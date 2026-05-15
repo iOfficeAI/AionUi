@@ -95,28 +95,6 @@ const LocalAgents: React.FC = () => {
     setEditorVisible(true);
   }, []);
 
-  const handleAddCursorCookbookAgent = useCallback(async () => {
-    const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-    const existing = current.find((agent) => agent.id === 'cursor-cookbook');
-    if (existing) {
-      setEditingAgent(existing);
-      setEditorVisible(true);
-      return;
-    }
-
-    const preset: AcpBackendConfig = {
-      id: 'cursor-cookbook',
-      name: 'Cursor Cookbook',
-      avatar: '📚',
-      defaultCliPath: 'agent',
-      acpArgs: ['acp'],
-      enabled: true,
-    };
-
-    await ConfigStorage.set('acp.customAgents', [...current, preset]);
-    await mutateCustomAgents();
-  }, [mutateCustomAgents]);
-
   return (
     <div className='flex flex-col gap-8px py-16px'>
       <div className='px-16px text-12px text-t-secondary'>
@@ -128,15 +106,6 @@ const LocalAgents: React.FC = () => {
           onClick={openCustomAgentEditor}
         >
           {t('settings.agentManagement.detectCustomAgent')}
-        </Button>
-        <span className='mx-6px'>·</span>
-        <Button
-          type='text'
-          size='mini'
-          className='!h-auto !p-0 !align-baseline !text-12px !font-normal !text-primary-6 hover:!text-primary-7 hover:!underline underline-offset-2'
-          onClick={() => void handleAddCursorCookbookAgent()}
-        >
-          {t('settings.agentManagement.addCursorCookbookAgent')}
         </Button>
       </div>
 

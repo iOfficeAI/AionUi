@@ -854,7 +854,6 @@
     "marketContributionAction": "AionHub に PR を送る",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "カスタムランタイムを検出",
-    "addCursorCookbookAgent": "Cursor Cookbook ランタイムを追加",
     "editCustomAgent": "カスタムランタイムを編集",
     "localAgentsEmpty": "ローカルランタイムが検出されていません",
     "detected": "検出済み",

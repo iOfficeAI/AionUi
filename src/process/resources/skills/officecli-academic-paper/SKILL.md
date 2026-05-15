@@ -2,6 +2,7 @@
 # officecli: v1.0.24
 name: officecli-academic-paper
 description: "Use this skill when the user wants to create an academic paper, research paper, white paper, technical report, policy brief, or any formally structured document with TOC, equations, footnotes, endnotes, or scholarly formatting. Trigger on: 'academic paper', 'research paper', 'white paper', 'technical report', 'policy brief', 'journal paper', 'scholarly document', 'paper with equations', 'paper with footnotes', 'paper with TOC', 'manuscript', 'conference paper'. Output is always a single .docx file."
+description_zh: 创建学术论文、研究报告、白皮书、技术报告等正式文档，支持目录、公式、脚注和学术引用格式，输出 .docx 文件。
 ---
 
 # Academic Paper Skill

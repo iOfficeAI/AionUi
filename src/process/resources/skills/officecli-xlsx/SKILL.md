@@ -2,6 +2,7 @@
 # officecli: v1.0.63
 name: officecli-xlsx
 description: "Use this skill any time a .xlsx file is involved -- as input, output, or both. This includes: creating spreadsheets, financial models, dashboards, or trackers; reading, parsing, or extracting data from any .xlsx file; editing, modifying, or updating existing workbooks; working with formulas, charts, pivot tables, or templates; importing CSV/TSV data into Excel format. Trigger whenever the user mentions 'spreadsheet', 'workbook', 'Excel', 'financial model', 'tracker', 'dashboard', or references a .xlsx/.csv filename."
+description_zh: 处理一切涉及 .xlsx 的任务：创建电子表格、财务模型、数据仪表盘，读取或编辑 Excel 文件。
 ---
 
 # OfficeCLI XLSX Skill

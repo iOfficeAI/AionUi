@@ -852,7 +852,6 @@
     "marketContributionAction": "Open a PR on AionHub",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "Detect Custom Runtime",
-    "addCursorCookbookAgent": "Add Cursor Cookbook Runtime",
     "editCustomAgent": "Edit Custom Runtime",
     "localAgentsEmpty": "No local runtimes detected",
     "detected": "Detected",

@@ -8,11 +8,25 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import AionSelect from '@/renderer/components/base/AionSelect';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/speech';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Divider,
+  Form,
+  Input,
+  InputNumber,
+  Message,
+  Modal,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,6 +35,183 @@ import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
+
+const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
+  enabled: false,
+  provider: 'openai',
+  openai: {
+    apiKey: '',
+    baseUrl: '',
+    language: '',
+    model: 'whisper-1',
+  },
+  deepgram: {
+    apiKey: '',
+    baseUrl: '',
+    detectLanguage: true,
+    language: '',
+    model: 'nova-2',
+    punctuate: true,
+    smartFormat: true,
+  },
+};
+
+const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextConfig => ({
+  ...DEFAULT_SPEECH_TO_TEXT_CONFIG,
+  ...config,
+  openai: {
+    ...DEFAULT_SPEECH_TO_TEXT_CONFIG.openai,
+    ...config?.openai,
+  },
+  deepgram: {
+    ...DEFAULT_SPEECH_TO_TEXT_CONFIG.deepgram,
+    ...config?.deepgram,
+  },
+});
+
+const SpeechToTextSettingsSection: React.FC<{
+  config: SpeechToTextConfig;
+  onChange: (updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => void;
+}> = ({ config, onChange }) => {
+  const { t } = useTranslation();
+  const renderSpeechToTextFieldLabel = useCallback(
+    (labelKey: string, requirement: 'required' | 'optional') => (
+      <span className='inline-flex items-center gap-6px'>
+        <span>{t(labelKey)}</span>
+        <span aria-hidden='true' className='text-12px text-t-tertiary'>
+          ({t(requirement === 'required' ? 'settings.speechToTextRequired' : 'settings.speechToTextOptional')})
+        </span>
+      </span>
+    ),
+    [t]
+  );
+
+  const handleProviderChange = useCallback(
+    (value: string) => {
+      onChange((current) => ({
+        ...current,
+        provider: value as SpeechToTextProvider,
+      }));
+    },
+    [onChange]
+  );
+
+  const handleOpenAIChange = useCallback(
+    (field: keyof NonNullable<SpeechToTextConfig['openai']>, value: string) => {
+      onChange((current) => ({
+        ...current,
+        openai: {
+          ...current.openai,
+          [field]: value,
+        },
+      }));
+    },
+    [onChange]
+  );
+
+  const handleDeepgramChange = useCallback(
+    (field: keyof NonNullable<SpeechToTextConfig['deepgram']>, value: string | boolean) => {
+      onChange((current) => ({
+        ...current,
+        deepgram: {
+          ...current.deepgram,
+          [field]: value,
+        },
+      }));
+    },
+    [onChange]
+  );
+
+  return (
+    <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
+      <div className='flex items-center justify-between gap-12px mb-8px'>
+        <div className='flex flex-col gap-4px'>
+          <span className='text-14px text-t-primary'>{t('settings.speechToText')}</span>
+          <span className='text-13px text-t-secondary'>{t('settings.speechToTextDescription')}</span>
+        </div>
+        <Switch
+          checked={config.enabled}
+          onChange={(checked) => {
+            onChange((current) => ({
+              ...current,
+              enabled: checked,
+            }));
+          }}
+        />
+      </div>
+
+      <Divider className='mt-0px mb-20px' />
+
+      <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
+        <Form.Item label={t('settings.speechToTextProvider')}>
+          <AionSelect value={config.provider} onChange={handleProviderChange}>
+            <AionSelect.Option value='openai'>{t('settings.speechToTextProviderOpenAI')}</AionSelect.Option>
+            <AionSelect.Option value='deepgram'>{t('settings.speechToTextProviderDeepgram')}</AionSelect.Option>
+          </AionSelect>
+        </Form.Item>
+
+        {config.provider === 'openai' ? (
+          <>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
+              <Input.Password
+                value={config.openai?.apiKey}
+                visibilityToggle
+                onChange={(value) => handleOpenAIChange('apiKey', value)}
+              />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
+              <Input value={config.openai?.baseUrl} onChange={(value) => handleOpenAIChange('baseUrl', value)} />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
+              <Input value={config.openai?.model} onChange={(value) => handleOpenAIChange('model', value)} />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
+              <Input value={config.openai?.language} onChange={(value) => handleOpenAIChange('language', value)} />
+            </Form.Item>
+          </>
+        ) : (
+          <>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
+              <Input.Password
+                value={config.deepgram?.apiKey}
+                visibilityToggle
+                onChange={(value) => handleDeepgramChange('apiKey', value)}
+              />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
+              <Input value={config.deepgram?.baseUrl} onChange={(value) => handleDeepgramChange('baseUrl', value)} />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
+              <Input value={config.deepgram?.model} onChange={(value) => handleDeepgramChange('model', value)} />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
+              <Input value={config.deepgram?.language} onChange={(value) => handleDeepgramChange('language', value)} />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextDetectLanguage', 'optional')}>
+              <Switch
+                checked={config.deepgram?.detectLanguage !== false}
+                onChange={(checked) => handleDeepgramChange('detectLanguage', checked)}
+              />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextPunctuate', 'optional')}>
+              <Switch
+                checked={config.deepgram?.punctuate !== false}
+                onChange={(checked) => handleDeepgramChange('punctuate', checked)}
+              />
+            </Form.Item>
+            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextSmartFormat', 'optional')}>
+              <Switch
+                checked={config.deepgram?.smartFormat !== false}
+                onChange={(checked) => handleDeepgramChange('smartFormat', checked)}
+              />
+            </Form.Item>
+          </>
+        )}
+      </Form>
+    </div>
+  );
+};
 
 /**
  * System settings content component
@@ -38,6 +229,7 @@ const SystemModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
   const initializingRef = useRef(true);
 
+  const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [startOnBoot, setStartOnBoot] = useState<IStartOnBootStatus>({
     supported: false,
     enabled: false,
@@ -51,6 +243,25 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+
+  useEffect(() => {
+    ConfigStorage.get('tools.speechToText')
+      .then((config) => setSpeechToTextConfig(normalizeSpeechToTextConfig(config)))
+      .catch(() => {});
+  }, []);
+
+  const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
+    setSpeechToTextConfig((current) => {
+      const next = normalizeSpeechToTextConfig(updater(current));
+      ConfigStorage.set('tools.speechToText', next).catch((error) => {
+        console.error('Failed to save speech-to-text config:', error);
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT));
+      }
+      return next;
+    });
+  }, []);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -407,6 +618,8 @@ const SystemModalContent: React.FC = () => {
               )}
             </Form>
           </div>
+
+          <SpeechToTextSettingsSection config={speechToTextConfig} onChange={updateSpeechToTextConfig} />
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
           <DevSettings />

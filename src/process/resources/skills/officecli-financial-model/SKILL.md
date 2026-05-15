@@ -10,6 +10,7 @@ description: "Use this skill when the user wants to build a financial model,
   'WACC calculation', 'scenario analysis model'.
   Input is a text prompt with assumptions. Output is a single .xlsx file
   with formula-driven, interconnected statement sheets."
+description_zh: 构建财务模型、三表联动、DCF 估值、股权结构表或财务预测，输出公式驱动的 .xlsx 文件。
 ---
 
 # Financial Model Skill

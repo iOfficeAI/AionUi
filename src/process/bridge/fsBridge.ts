@@ -1038,6 +1038,7 @@ export function initFsBridge(): void {
       type SkillEntry = {
         name: string;
         description: string;
+        descriptionZh?: string;
         location: string;
         isCustom: boolean;
         source: 'builtin' | 'custom' | 'extension';
@@ -1067,10 +1068,12 @@ export function initFsBridge(): void {
                 const yaml = frontMatterMatch[1];
                 const nameMatch = yaml.match(/^name:\s*(.+)$/m);
                 const descMatch = yaml.match(/^description:\s*['"]?(.+?)['"]?$/m);
+                const descZhMatch = yaml.match(/^description_zh:\s*['"]?(.+?)['"]?$/m);
                 if (nameMatch) {
                   skills.push({
                     name: nameMatch[1].trim(),
                     description: descMatch ? descMatch[1].trim() : '',
+                    descriptionZh: descZhMatch ? descZhMatch[1].trim() : undefined,
                     location: skillMdPath,
                     isCustom: source === 'custom',
                     source,

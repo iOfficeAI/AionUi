@@ -1,6 +1,7 @@
 ---
 name: star-office-helper
 description: Install, start, connect, and troubleshoot visualization companion projects for Aion/OpenClaw, with Star-Office-UI as the default recommendation. Use when users ask for Star Office setup, URL/port connection, Unauthorized page diagnosis, Python venv/pip issues (PEP 668), preview panel wiring, real-time monitor wake-up checks, or similar open-source visualizer alternatives.
+description_zh: 帮助安装、启动、连接和排查 Aion/OpenClaw 可视化配套项目，默认推荐 Star-Office-UI。
 ---
 
 # Star Office Helper

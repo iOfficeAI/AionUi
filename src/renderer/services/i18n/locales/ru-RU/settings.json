@@ -845,7 +845,6 @@
     "marketContributionAction": "Откройте PR в AionHub",
     "marketComingSoon": "Маркет AionHub скоро появится.",
     "detectCustomAgent": "Обнаружить пользовательскую среду выполнения",
-    "addCursorCookbookAgent": "Добавить Cursor Cookbook Runtime",
     "editCustomAgent": "Редактировать пользовательскую среду выполнения",
     "localAgentsEmpty": "Локальные среды выполнения не обнаружены",
     "detected": "Обнаружено",

@@ -273,6 +273,7 @@ export const fs = {
     Array<{
       name: string;
       description: string;
+      descriptionZh?: string;
       location: string;
       isCustom: boolean;
       source: 'builtin' | 'custom' | 'extension';

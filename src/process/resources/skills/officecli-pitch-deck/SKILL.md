@@ -2,6 +2,7 @@
 # officecli: v1.0.24
 name: officecli-pitch-deck
 description: "Use this skill when the user wants to create a pitch deck, investor presentation, product launch deck, sales presentation, or business proposal in PowerPoint format. Trigger on: 'pitch deck', 'investor deck', 'Series A deck', 'product launch presentation', 'sales deck', 'fundraising deck', 'startup pitch', 'business proposal slides', 'seed pitch', 'enterprise sales deck'. Output is always a single .pptx file. This skill does NOT use morph transitions -- for morph-animated presentations, use the morph-ppt skill instead."
+description_zh: 创建投资路演、产品发布或销售演示文稿，输出 .pptx 文件（不含 Morph 动画）。
 ---
 
 # Pitch Deck Skill

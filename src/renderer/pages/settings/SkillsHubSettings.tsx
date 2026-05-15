@@ -10,6 +10,7 @@ import SettingsPageWrapper from './components/SettingsPageWrapper';
 interface SkillInfo {
   name: string;
   description: string;
+  descriptionZh?: string;
   location: string;
   isCustom: boolean;
   source?: 'builtin' | 'custom' | 'extension';
@@ -46,7 +47,8 @@ interface SkillsHubSettingsProps {
 }
 
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isZh = i18n.language.startsWith('zh');
   const [searchParams, setSearchParams] = useSearchParams();
   const highlightName = searchParams.get('highlight');
   const [highlightedSkill, setHighlightedSkill] = useState<string | null>(null);
@@ -478,12 +480,12 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                         </span>
                       )}
                     </div>
-                    {skill.description && (
+                    {(isZh ? skill.descriptionZh || skill.description : skill.description) && (
                       <p
                         className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'
-                        title={skill.description}
+                        title={isZh ? skill.descriptionZh || skill.description : skill.description}
                       >
-                        {skill.description}
+                        {isZh ? skill.descriptionZh || skill.description : skill.description}
                       </p>
                     )}
                   </div>

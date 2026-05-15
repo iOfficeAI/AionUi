@@ -1,6 +1,7 @@
 ---
 name: morph-ppt
 description: Generate Morph-animated PPTs with officecli
+description_zh: 使用 officecli 生成带 Morph 动画过渡效果的 PPT 演示文稿。
 ---
 
 # Morph

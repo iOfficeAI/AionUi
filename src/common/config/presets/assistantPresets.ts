@@ -449,6 +449,54 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     showOnHome: true,
   },
   {
+    id: 'code-review',
+    avatar: '🔎',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/code-review',
+    ruleFiles: {
+      'en-US': 'code-review.md',
+      'zh-CN': 'code-review.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Code Review',
+      'zh-CN': 'Code Review',
+      'ru-RU': 'Code Review',
+      'uk-UA': 'Code Review',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Senior-level code review: catches bugs, security holes, and design flaws. Prioritized findings with blocking / important / minor severity.',
+      'zh-CN': '资深级代码审查：发现 Bug、安全漏洞和设计缺陷，按阻塞 / 重要 / 次要优先级分级输出。',
+      'ru-RU':
+        'Code review уровня senior: выявляет баги, уязвимости и архитектурные проблемы с приоритизацией по severity.',
+      'uk-UA':
+        'Code review рівня senior: виявляє баги, вразливості та архітектурні проблеми з пріоритизацією за severity.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Review this diff for bugs and security issues',
+        'Check this function for correctness and edge cases',
+        'Review my PR and flag anything blocking before merge',
+      ],
+      'zh-CN': [
+        '审查这个 diff，找出 Bug 和安全问题',
+        '检查这个函数的正确性和边界情况',
+        '审查我的 PR，标出合并前必须修复的问题',
+      ],
+      'ru-RU': [
+        'Проверь этот diff на баги и проблемы безопасности',
+        'Проверь эту функцию на корректность и граничные случаи',
+        'Проверь мой PR и отметь блокирующие проблемы',
+      ],
+      'uk-UA': [
+        'Перевір цей diff на баги та проблеми безпеки',
+        'Перевір цю функцію на коректність та граничні випадки',
+        'Перевір мій PR та відзнач блокуючі проблеми',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
     id: 'code-archaeology',
     avatar: '🏺',
     presetAgentType: 'gemini',

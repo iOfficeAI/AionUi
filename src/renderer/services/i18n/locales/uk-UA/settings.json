@@ -770,7 +770,6 @@
     "marketContributionAction": "Открийте PR в AionHub",
     "marketComingSoon": "Маркет AionHub скоро з'явиться.",
     "detectCustomAgent": "Виявити власне середовище виконання",
-    "addCursorCookbookAgent": "Додати Cursor Cookbook Runtime",
     "editCustomAgent": "Редагувати власне середовище виконання",
     "localAgentsEmpty": "Локальні середовища виконання не виявлені",
     "detected": "Виявлено",

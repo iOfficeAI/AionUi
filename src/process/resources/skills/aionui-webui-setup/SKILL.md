@@ -1,6 +1,7 @@
 ---
 name: aicore-webui-setup
 description: 'AICore WebUI configuration expert: Helps users configure AICore WebUI mode for remote access through the settings interface. Supports LAN connection, Tailscale VPN, and server deployment. Use when users need to set up AICore WebUI, configure remote access, troubleshoot WebUI issues, or deploy AICore on servers.'
+description_zh: AICore WebUI 配置专家，帮助用户配置远程访问模式，支持局域网、Tailscale VPN 和服务器部署。
 ---
 
 # AICore WebUI 配置专家

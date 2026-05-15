@@ -2,6 +2,7 @@
 # officecli: v1.0.24
 name: officecli-data-dashboard
 description: "Use this skill when the user wants to create a data dashboard, analytics dashboard, KPI dashboard, or executive summary from CSV/tabular data in Excel format. Trigger on: 'dashboard', 'KPI report', 'analytics summary', 'data visualization', 'CSV to Excel dashboard', 'executive dashboard', 'metrics dashboard'. Output is always a single .xlsx file."
+description_zh: 将 CSV 数据转换为数据仪表盘、KPI 报告或分析摘要，输出 .xlsx 文件。
 ---
 
 # Data Dashboard Skill

@@ -854,7 +854,6 @@
     "marketContributionAction": "AionHub에 PR 보내기",
     "marketComingSoon": "AionHub market is coming soon.",
     "detectCustomAgent": "커스텀 런타임 감지",
-    "addCursorCookbookAgent": "Cursor Cookbook 런타임 추가",
     "editCustomAgent": "커스텀 런타임 편집",
     "localAgentsEmpty": "로컬 런타임이 감지되지 않았습니다",
     "detected": "감지됨",
