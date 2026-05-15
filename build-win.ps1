@@ -61,12 +61,16 @@ if (-not (Get-Command node -ErrorAction SilentlyContinue)) {
 Write-Ok "node: $(node --version)"
 
 if (-not $SkipNative) {
-    if (-not (Get-Command python -ErrorAction SilentlyContinue)) {
+    $savedEAP = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    $pyVer = python --version 2>&1
+    $ErrorActionPreference = $savedEAP
+    if ($LASTEXITCODE -eq 0 -and "$pyVer" -match '^Python') {
+        Write-Ok "python: $pyVer"
+    } else {
         Write-Warn "未找到 python，原生模块重建可能失败"
         Write-Warn "  安装: https://www.python.org/downloads/"
         Write-Warn "  或跳过: .\build-win.ps1 -SkipNative"
-    } else {
-        Write-Ok "python: $(python --version 2>&1)"
     }
 }
 
