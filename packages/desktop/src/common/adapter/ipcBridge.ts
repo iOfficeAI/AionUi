@@ -201,7 +201,7 @@ export const conversation = {
     (p) => ({ question: p.question })
   ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
+    (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
   ),
   listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
@@ -284,7 +284,7 @@ export const conversation = {
       void,
       { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }
     >(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
+      (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
       (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
     ),
     list: httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
