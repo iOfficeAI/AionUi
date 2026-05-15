@@ -6,6 +6,8 @@
 
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
+import type { AvailableCommand } from '@/common/chat/chatLib';
+import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
@@ -24,6 +26,7 @@ export type UseAcpMessageReturn = {
   tokenUsage: TokenUsageData | null;
   context_limit: number;
   hasThinkingMessage: boolean;
+  slashCommands: SlashCommandItem[];
 };
 
 export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
@@ -40,6 +43,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const [aiProcessing, setAiProcessing] = useState(false); // New loading state for AI response
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
+  const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -285,6 +289,21 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           // useSlashCommands re-fetches.
           setAcpStatus((prev) => prev ?? 'session_active');
           break;
+        case 'available_commands': {
+          const cmdData = message.data as { commands?: AvailableCommand[] };
+          if (cmdData?.commands && Array.isArray(cmdData.commands)) {
+            setSlashCommands(
+              cmdData.commands.map((c) => ({
+                name: c.name,
+                description: c.description,
+                kind: 'template' as const,
+                source: 'acp' as const,
+                selectionBehavior: 'insert' as const,
+              })),
+            );
+          }
+          break;
+        }
         case 'acp_context_usage': {
           const usageData = message.data as { used: number; size: number };
           if (usageData && typeof usageData.used === 'number') {
@@ -357,6 +376,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setAcpStatus(null);
     setTokenUsage(null);
     setContextLimit(0);
+    setSlashCommands([]);
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
@@ -435,5 +455,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     tokenUsage,
     context_limit,
     hasThinkingMessage,
+    slashCommands,
   };
 };
