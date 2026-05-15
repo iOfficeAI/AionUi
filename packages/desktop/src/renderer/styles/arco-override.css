@@ -1,5 +1,14 @@
 /* Arco Design custom overrides - non-theme related */
 
+/* Arco's arco.css puts 'Inter' first in font-family, which causes very thin
+   text on systems that have Inter installed. Override to use system fonts. */
+html,
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei', 'Helvetica Neue', Arial,
+    sans-serif;
+}
+
 /* Override Arco Design component backgrounds to white in light mode */
 /* 覆盖 Arco Design 组件背景色为白色（浅色模式） */
 /* .arco-input,
