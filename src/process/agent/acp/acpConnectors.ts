@@ -55,6 +55,81 @@ function formatWindowsCommandForShell(command: string): string {
   return isPathLike ? `"${normalized}"` : normalized;
 }
 
+/**
+ * Resolve a bare Windows command name (for example `goose`) to an actual
+ * executable path before passing it to `cmd.exe` via `spawn(..., { shell: true })`.
+ *
+ * Why this exists:
+ * - On Windows, ACP backends are started through `cmd.exe` so we can prepend
+ *   `chcp 65001` and force UTF-8 console output.
+ * - For plain command names, `cmd.exe` may resolve wrapper scripts such as
+ *   `.cmd` / `.bat` differently from direct process spawning, so we proactively
+ *   ask `where` for the concrete executable candidate.
+ * - We only do this for *bare* commands. If the caller already supplied a path
+ *   (`C:\tool\agent.exe`, `./agent`, etc.) or an inline command string with
+ *   spaces, we must preserve it as-is.
+ *
+ * Safety / fallback behavior:
+ * - `where` output is treated as untrusted text. We only accept candidates that
+ *   look like real Windows executable paths (absolute drive path or UNC path,
+ *   with a shell-runnable extension such as `.cmd`, `.bat`, `.exe`, `.com`).
+ * - If resolution fails, times out, or returns unexpected content, we fall back
+ *   to the original command name instead of producing a broken command string.
+ */
+function resolveWindowsShellCommand(command: string, env?: Record<string, string | undefined>): string {
+  const normalized = normalizeWindowsCommand(command);
+  // Only attempt `where` lookup for a bare command token.
+  //
+  // Examples that should resolve:
+  // - `goose`
+  // - `codex`
+  //
+  // Examples that should NOT resolve here:
+  // - `C:\Program Files\Agent\agent.exe` (already a path)
+  // - `.\agent.cmd` / `..\agent.cmd` (explicit relative paths)
+  // - `goose acp` (inline args; handled by the caller)
+  const isBareCommand =
+    normalized.length > 0 &&
+    !/\s/.test(normalized) &&
+    !/^[a-zA-Z]:[\\/]/.test(normalized) &&
+    !normalized.startsWith('.\\') &&
+    !normalized.startsWith('..\\') &&
+    !normalized.includes('\\') &&
+    !normalized.includes('/');
+
+  if (process.platform !== 'win32' || !isBareCommand) {
+    return normalized;
+  }
+
+  try {
+    // `where` returns one candidate per line using the current PATH from `env`.
+    // We keep the lookup cheap and bounded because this runs during backend
+    // startup and should never block the connection flow for long.
+    const output = execFileSync('where', [normalized], {
+      encoding: 'utf8',
+      stdio: 'pipe',
+      env,
+      timeout: 3000,
+    });
+    const candidates = output
+      .split(/\r?\n/)
+      .map((line) => line.trim())
+      .filter(Boolean);
+    // Accept only concrete executable paths. This avoids accidentally trusting
+    // malformed output or mocked/test output such as `v20.10.0`, which is not a
+    // valid command path and would break the final shell command.
+    const preferred = candidates.find(
+      (candidate) =>
+        (/^[a-zA-Z]:[\\/]/.test(candidate) || candidate.startsWith('\\\\')) && /\.(cmd|bat|exe|com)$/i.test(candidate)
+    );
+    return preferred ?? normalized;
+  } catch {
+    // Best-effort only: if `where` is unavailable or finds nothing, keep the
+    // original bare command so existing PATH-based shell resolution still works.
+    return normalized;
+  }
+}
+
 function resolveCodexAcpPlatformPackage(): string | null {
   if (process.platform === 'win32') {
     if (process.arch === 'x64') {
@@ -301,7 +376,8 @@ export function createGenericSpawnConfig(
     // chcp 65001: switch console to UTF-8 so stderr/stdout doesn't get garbled
     // (Chinese Windows defaults to CP936/GBK).
     // Quotes around cliPath handle paths with spaces (e.g. "C:\Program Files\agent.exe").
-    spawnCommand = `chcp 65001 >nul && "${cliPath}"`;
+    const resolvedCliPath = resolveWindowsShellCommand(cliPath, env);
+    spawnCommand = `chcp 65001 >nul && "${resolvedCliPath}"`;
     spawnArgs = effectiveAcpArgs;
   } else {
     // Unix: simple command or path. If cliPath contains spaces (e.g., "goose acp"),
