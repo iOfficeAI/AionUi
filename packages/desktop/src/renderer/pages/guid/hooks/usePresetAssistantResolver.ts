@@ -108,8 +108,10 @@ export const usePresetAssistantResolver = ({
       if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
       // Preserve legacy "undefined means use agent default" semantics by
-      // treating an empty list the same as absent.
-      if (!assistant || assistant.enabled_skills.length === 0) return undefined;
+      // treating an empty list the same as absent. The field is typed as
+      // required `string[]`, but legacy/extension assistants can omit it,
+      // so guard the optional access.
+      if (!assistant?.enabled_skills?.length) return undefined;
       return assistant.enabled_skills;
     },
     [assistants]
@@ -121,7 +123,7 @@ export const usePresetAssistantResolver = ({
     ): string[] | undefined => {
       if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
-      if (!assistant || assistant.disabled_builtin_skills.length === 0) return undefined;
+      if (!assistant?.disabled_builtin_skills?.length) return undefined;
       return assistant.disabled_builtin_skills;
     },
     [assistants]

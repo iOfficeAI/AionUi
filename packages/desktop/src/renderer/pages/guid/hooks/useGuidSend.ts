@@ -53,6 +53,7 @@ export type GuidSendDeps = {
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
+  guidEnabledSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
 
@@ -102,6 +103,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
+    guidEnabledSkills,
     currentEffectiveAgentInfo,
     isGoogleAuth,
     setMentionOpen,
@@ -126,8 +128,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
     const { rules: preset_rules } = await resolvePresetRulesAndSkills(agentInfo);
-    const enabled_skills = resolveEnabledSkills(agentInfo);
-    // Use guid page's local skill state (initialized from assistant config, overridable by user)
+    // Guid page's per-conversation skill overrides take precedence over the
+    // assistant's saved defaults. The combined skills menu lets the user pick
+    // any custom skill — not just preset-declared ones — so for non-preset
+    // agents we still forward the user's selection (the backend accepts
+    // `preset_enabled_skills` regardless of `is_preset`).
+    const presetEnabledSkillsDefault = resolveEnabledSkills(agentInfo);
+    const enabled_skills = guidEnabledSkills ?? presetEnabledSkillsDefault;
+    const enabled_skills_to_send = is_presetAgent
+      ? enabled_skills
+      : guidEnabledSkills?.length
+        ? guidEnabledSkills
+        : undefined;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
     const finalEffectiveAgentType = effectiveAgentType;
@@ -155,7 +167,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             expected_model: current_model?.use_model,
             switched_at: Date.now(),
           },
-          preset_enabled_skills: is_preset ? enabled_skills : undefined,
+          preset_enabled_skills: enabled_skills_to_send,
           exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
@@ -205,7 +217,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         custom_workspace: isCustomWorkspace,
         extra: {
           default_files: files,
-          preset_enabled_skills: is_preset ? enabled_skills : undefined,
+          preset_enabled_skills: enabled_skills_to_send,
           exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
@@ -257,7 +269,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
             preset_rules: is_preset ? preset_rules : undefined,
-            preset_enabled_skills: is_preset ? enabled_skills : undefined,
+            preset_enabled_skills: enabled_skills_to_send,
             exclude_auto_inject_skills: excludeBuiltinSkills,
             preset_assistant_id,
             session_mode: selectedMode,
@@ -341,6 +353,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,
+          // Non-preset agents still forward user-selected custom skills via the
+          // shared backend slot. For preset assistants this is already wired
+          // through `preset_resources.enabled_skills` above.
+          ...(is_preset ? {} : guidEnabledSkills?.length ? { preset_enabled_skills: guidEnabledSkills } : {}),
         },
       });
 

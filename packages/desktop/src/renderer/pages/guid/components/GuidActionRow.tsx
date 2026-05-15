@@ -54,9 +54,10 @@ type GuidActionRowProps = {
   hidePresetTag?: boolean;
 
   // Skills management
-  builtinAutoSkills: Array<{ name: string; description: string }>;
+  allSkills: Array<{ name: string; description: string; isAuto: boolean }>;
   disabledBuiltinSkills: string[];
-  onToggleBuiltinSkill: (name: string) => void;
+  enabledSkills: string[];
+  onToggleSkill: (name: string, isAuto: boolean) => void;
 
   // Send button
   loading: boolean;
@@ -84,9 +85,10 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   agentLogo,
   agentSwitcherItems,
   onAgentSwitch,
-  builtinAutoSkills,
+  allSkills,
   disabledBuiltinSkills,
-  onToggleBuiltinSkill,
+  enabledSkills,
+  onToggleSkill,
   hidePresetTag = false,
   loading,
   isButtonDisabled,
@@ -201,7 +203,14 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     </div>
   );
 
-  const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
+  const enabledSkillSet = new Set(enabledSkills);
+  const disabledBuiltinSet = new Set(disabledBuiltinSkills);
+  const isSkillChecked = useCallback(
+    (skill: { name: string; isAuto: boolean }) =>
+      skill.isAuto ? !disabledBuiltinSet.has(skill.name) : enabledSkillSet.has(skill.name),
+    [disabledBuiltinSet, enabledSkillSet]
+  );
+  const activeSkillCount = allSkills.filter(isSkillChecked).length;
 
   const menuContent = (
     <Menu
@@ -246,30 +255,37 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           </div>
         </Menu.Item>
       )}
-      {builtinAutoSkills.length > 0 && (
+      {allSkills.length > 0 && (
         <Menu.SubMenu
           key='skills'
           title={
             <div className='flex items-center gap-8px'>
               <Lightning theme='filled' size='16' fill={iconColors.primary} style={{ lineHeight: 0 }} />
               <span>
-                {t('settings.autoInjectedSkills')} ({activeSkillCount}/{builtinAutoSkills.length})
+                {t('settings.capabilitiesTab.skills')} ({activeSkillCount}/{allSkills.length})
               </span>
             </div>
           }
+          triggerProps={{
+            popupStyle: {
+              maxHeight: 360,
+              overflowY: 'auto',
+              overflowX: 'hidden',
+            },
+          }}
         >
-          {builtinAutoSkills.map((skill) => (
+          {allSkills.map((skill) => (
             <Menu.Item
               key={`skill-${skill.name}`}
               onClick={(e) => {
                 e.stopPropagation();
-                onToggleBuiltinSkill(skill.name);
+                onToggleSkill(skill.name, skill.isAuto);
               }}
             >
               <Checkbox
-                checked={!disabledBuiltinSkills.includes(skill.name)}
+                checked={isSkillChecked(skill)}
                 onClick={(e: React.MouseEvent) => e.stopPropagation()}
-                onChange={() => onToggleBuiltinSkill(skill.name)}
+                onChange={() => onToggleSkill(skill.name, skill.isAuto)}
               >
                 <span className='text-13px'>{skill.name}</span>
               </Checkbox>
