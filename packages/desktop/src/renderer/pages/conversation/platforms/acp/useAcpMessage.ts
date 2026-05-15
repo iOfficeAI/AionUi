@@ -299,7 +299,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
                 kind: 'template' as const,
                 source: 'acp' as const,
                 selectionBehavior: 'insert' as const,
-              })),
+              }))
             );
           }
           break;
@@ -424,7 +424,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           setContextLimit(last_context_limit);
         }
       }
-
     });
 
     return () => {
@@ -454,7 +453,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             kind: 'template' as const,
             source: 'acp' as const,
             selectionBehavior: 'insert' as const,
-          })),
+          }))
         );
       })
       .catch(() => {});
