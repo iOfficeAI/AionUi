@@ -19,8 +19,35 @@ vi.mock('@/common', () => ({
       update: { invoke: vi.fn() },
       list: { invoke: vi.fn(async () => []) },
     },
+    fs: {
+      writeAssistantRule: { invoke: vi.fn(async () => true) },
+      readAssistantRule: { invoke: vi.fn(async () => '') },
+    },
   },
 }));
+
+// Stub the legacy assistants dir resolver — tests don't touch the real
+// filesystem, the `fs.readdir` mock below answers ENOENT for unspecified
+// cases so Phase 4 becomes a no-op.
+vi.mock('@/process/utils/initStorage', () => ({
+  getAssistantsDir: () => '/__test_legacy_assistants__',
+}));
+
+vi.mock('fs', async () => {
+  const actual = await vi.importActual<typeof import('fs')>('fs');
+  return {
+    ...actual,
+    promises: {
+      ...actual.promises,
+      readdir: vi.fn(async () => {
+        const err = new Error('ENOENT') as NodeJS.ErrnoException;
+        err.code = 'ENOENT';
+        throw err;
+      }),
+      readFile: vi.fn(async () => ''),
+    },
+  };
+});
 
 import { legacyAssistantToCreateRequest, migrateAssistantsToBackend } from '@/process/utils/migrateAssistants';
 import { ipcBridge } from '@/common';
@@ -99,26 +126,23 @@ describe('migrateAssistants', () => {
 
   describe('migrateAssistantsToBackend builtin overrides', () => {
     /**
-     * Fake ProcessConfig backed by an in-memory map. Exercises the two public
-     * surfaces the migration relies on: `get('assistants')` and the optional
-     * `remove('assistants')` that fires only on a clean migration.
+     * Fake ProcessConfig backed by an in-memory map. The migration only
+     * reads `get('assistants')` — there is no completion flag (idempotency
+     * is achieved phase-by-phase against the backend, see sibling
+     * `configMigration.ts` pattern) — so the fake exposes `get` only.
      */
     function makeConfig(seed: Record<string, unknown>) {
       const store: Record<string, unknown> = { ...seed };
       return {
         get: (key: string) => Promise.resolve(store[key]),
-        remove: (key: string) => {
-          delete store[key];
-          return Promise.resolve();
-        },
         store,
       };
     }
 
     it('treats 404 from retired built-in ids as skip, not failure', async () => {
       // User had two built-ins disabled: one still exists, one was retired from
-      // the backend manifest. The migration must finalize despite the 404 so
-      // the next launch does not retry forever.
+      // the backend manifest. The migration must succeed despite the 404 so
+      // the next launch does not abort the whole pipeline.
       const config = makeConfig({
         assistants: [
           { id: 'builtin-morph-ppt-3d', enabled: false, isBuiltin: true },
@@ -140,8 +164,10 @@ describe('migrateAssistants', () => {
 
       const result = await migrateAssistantsToBackend(config as any);
 
-      expect(result).toBe(true); // finalize fired, assistants key removed
-      expect(config.store).not.toHaveProperty('assistants');
+      expect(result).toBe(true);
+      // Legacy `assistants` field is left untouched on disk so users can
+      // roll back to an older Electron build at any time.
+      expect(config.store).toHaveProperty('assistants');
       expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledTimes(2);
     });
 
@@ -162,7 +188,7 @@ describe('migrateAssistants', () => {
       const result = await migrateAssistantsToBackend(config as any);
 
       expect(result).toBe(false); // keep retrying on next launch
-      expect(config.store).toHaveProperty('assistants'); // not finalized
+      expect(config.store).toHaveProperty('assistants'); // legacy field always preserved
     });
   });
 
@@ -171,10 +197,6 @@ describe('migrateAssistants', () => {
       const store: Record<string, unknown> = { ...seed };
       return {
         get: (key: string) => Promise.resolve(store[key]),
-        remove: (key: string) => {
-          delete store[key];
-          return Promise.resolve();
-        },
         store,
       };
     }
@@ -261,4 +283,107 @@ describe('migrateAssistants', () => {
 
   // migrateAssistantsToBackend Phase 1 (import) integration still relies on
   // the backend fake; Phase 2 and Phase 3 behavior are covered above.
+
+  describe('migrateAssistantsToBackend Phase 4 (rule file upload)', () => {
+    function makeConfig(seed: Record<string, unknown>) {
+      const store: Record<string, unknown> = { ...seed };
+      return {
+        get: (key: string) => Promise.resolve(store[key]),
+        store,
+      };
+    }
+
+    it('uploads rule .md files for custom assistants and skips builtin / mismatched ids', async () => {
+      const fsModule = await import('fs');
+      const readdirMock = fsModule.promises.readdir as unknown as ReturnType<typeof vi.fn>;
+      const readFileMock = fsModule.promises.readFile as unknown as ReturnType<typeof vi.fn>;
+      readdirMock.mockResolvedValueOnce([
+        'custom-1.zh-CN.md',
+        'custom-1.en-US.md',
+        'custom-1-skills.zh-CN.md', // skipped: skills filename
+        'builtin-word-creator.zh-CN.md', // skipped: builtin id
+        'unknown-id.zh-CN.md', // skipped: not in legacy assistant list
+        'README.txt', // skipped: not .md
+      ]);
+      readFileMock.mockResolvedValue('# Rule content\n');
+
+      const config = makeConfig({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(ipcBridge.fs.writeAssistantRule.invoke).toHaveBeenCalledTimes(2);
+      expect(ipcBridge.fs.writeAssistantRule.invoke).toHaveBeenCalledWith({
+        assistant_id: 'custom-1',
+        locale: 'zh-CN',
+        content: '# Rule content\n',
+      });
+      expect(ipcBridge.fs.writeAssistantRule.invoke).toHaveBeenCalledWith({
+        assistant_id: 'custom-1',
+        locale: 'en-US',
+        content: '# Rule content\n',
+      });
+    });
+
+    it('skips upload when backend already has non-empty rule (read-before-write)', async () => {
+      const fsModule = await import('fs');
+      const readdirMock = fsModule.promises.readdir as unknown as ReturnType<typeof vi.fn>;
+      const readFileMock = fsModule.promises.readFile as unknown as ReturnType<typeof vi.fn>;
+      readdirMock.mockResolvedValueOnce(['custom-1.zh-CN.md']);
+      readFileMock.mockResolvedValue('# legacy rule\n');
+
+      // Backend already has user-edited content; we must not clobber it.
+      (ipcBridge.fs.readAssistantRule.invoke as any).mockResolvedValueOnce('# user-edited\n');
+
+      const config = makeConfig({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 0, skipped: 1, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(ipcBridge.fs.writeAssistantRule.invoke).not.toHaveBeenCalled();
+    });
+
+    it('returns false when a rule upload fails so the next launch retries', async () => {
+      const fsModule = await import('fs');
+      const readdirMock = fsModule.promises.readdir as unknown as ReturnType<typeof vi.fn>;
+      const readFileMock = fsModule.promises.readFile as unknown as ReturnType<typeof vi.fn>;
+      readdirMock.mockResolvedValueOnce(['custom-1.zh-CN.md']);
+      readFileMock.mockResolvedValue('# content\n');
+
+      (ipcBridge.fs.writeAssistantRule.invoke as any).mockRejectedValueOnce(new Error('boom'));
+
+      const config = makeConfig({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(false);
+      // Legacy field is never modified by the migration regardless of outcome.
+      expect(config.store).toHaveProperty('assistants');
+    });
+
+    it('treats a missing legacy assistants dir as no-op success', async () => {
+      // Default readdir mock raises ENOENT — no rule files to upload, no
+      // failure.
+      const config = makeConfig({
+        assistants: [{ id: 'custom-1', name: 'Custom 1' }],
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      // No completion flag is written — re-runs are guarded phase-by-phase.
+      expect(config.store).toHaveProperty('assistants');
+    });
+  });
 });

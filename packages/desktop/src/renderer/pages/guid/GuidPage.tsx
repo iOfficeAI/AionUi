@@ -59,21 +59,41 @@ const GuidPage: React.FC = () => {
   }, []);
 
   // --- Skills state ---
-  const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  // All available skills (builtin auto-injected + user-imported custom) merged
+  // into one catalog for the action-row menu. Auto-injected skills default to
+  // checked; the rest are opt-in per conversation (or pre-checked when the
+  // active assistant declares them in `enabled_skills`).
+  const [allSkills, setAllSkills] = useState<Array<{ name: string; description: string; isAuto: boolean }>>([]);
   const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
+  const [guidEnabledSkills, setGuidEnabledSkills] = useState<string[] | undefined>(undefined);
 
   useEffect(() => {
-    ipcBridge.fs.listBuiltinAutoSkills
-      .invoke()
-      .then(setBuiltinAutoSkills)
-      .catch(() => setBuiltinAutoSkills([]));
+    Promise.all([ipcBridge.fs.listBuiltinAutoSkills.invoke(), ipcBridge.fs.listAvailableSkills.invoke()])
+      .then(([autoSkills, availableSkills]) => {
+        const autoNames = new Set(autoSkills.map((s) => s.name));
+        const merged: Array<{ name: string; description: string; isAuto: boolean }> = [
+          ...autoSkills.map((s) => ({ name: s.name, description: s.description, isAuto: true })),
+          ...availableSkills
+            .filter((s) => !autoNames.has(s.name))
+            .map((s) => ({ name: s.name, description: s.description, isAuto: false })),
+        ];
+        setAllSkills(merged);
+      })
+      .catch(() => setAllSkills([]));
   }, []);
 
-  const handleToggleBuiltinSkill = useCallback((skillName: string) => {
-    setGuidDisabledBuiltinSkills((prev) => {
-      const list = prev ?? [];
-      return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
-    });
+  const handleToggleSkill = useCallback((skillName: string, isAuto: boolean) => {
+    if (isAuto) {
+      setGuidDisabledBuiltinSkills((prev) => {
+        const list = prev ?? [];
+        return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
+      });
+    } else {
+      setGuidEnabledSkills((prev) => {
+        const list = prev ?? [];
+        return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
+      });
+    }
   }, []);
 
   // --- Hooks ---
@@ -131,6 +151,7 @@ const GuidPage: React.FC = () => {
     resolveEnabledSkills: agentSelection.resolveEnabledSkills,
     resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
+    guidEnabledSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
@@ -283,12 +304,14 @@ const GuidPage: React.FC = () => {
     return agentSelection.assistants.find((item) => candidates.has(item.id));
   }, [agentSelection.assistants, agentSelection.is_presetAgent, agentSelection.selectedAgentInfo?.custom_agent_id]);
 
-  // Sync disabledBuiltinSkills from preset assistant config
+  // Sync disabledBuiltinSkills + enabledSkills from preset assistant config
   useEffect(() => {
     if (agentSelection.is_presetAgent && selectedAssistantRecord) {
       setGuidDisabledBuiltinSkills(selectedAssistantRecord.disabled_builtin_skills ?? []);
+      setGuidEnabledSkills(selectedAssistantRecord.enabled_skills ?? []);
     } else {
       setGuidDisabledBuiltinSkills(undefined);
+      setGuidEnabledSkills(undefined);
     }
   }, [agentSelection.is_presetAgent, selectedAssistantRecord]);
 
@@ -539,9 +562,10 @@ const GuidPage: React.FC = () => {
       onAgentSwitch={(key) => {
         handlePresetAgentTypeSwitch(key).catch((err) => console.error('Failed to switch agent type:', err));
       }}
-      builtinAutoSkills={builtinAutoSkills}
+      allSkills={allSkills}
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
-      onToggleBuiltinSkill={handleToggleBuiltinSkill}
+      enabledSkills={guidEnabledSkills ?? []}
+      onToggleSkill={handleToggleSkill}
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}

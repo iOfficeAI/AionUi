@@ -7,9 +7,25 @@
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { CreateAssistantRequest } from '@/common/types/agent/assistantTypes';
-import type { ProcessConfig as ProcessConfigType } from './initStorage';
+import { promises as fs } from 'fs';
+import path from 'path';
+import { getAssistantsDir, type ProcessConfig as ProcessConfigType } from './initStorage';
 
 const BUILTIN_ID_PREFIX = 'builtin-';
+
+/**
+ * Legacy filename pattern for custom assistant rule files written by the
+ * pre-backend Electron build into `<userData>/config/assistants/`.
+ *   - Rules: `<id>.<locale>.md`
+ *   - Skills (kept here for completeness, not migrated by this module yet):
+ *     `<id>-skills.<locale>.md`
+ *
+ * We intentionally migrate only rule files: the renderer's "edit assistant"
+ * drawer always writes the rule (the prompt) but the skills md was a
+ * deprecated freeform extra prompt — there is no UI surface that reads it
+ * now that skills are looked up via the skills hub.
+ */
+const RULE_FILE_RE = /^(.+?)\.([a-zA-Z-]+)\.md$/;
 
 /**
  * The legacy Electron build shipped `'gemini'` as the fallback agent type for
@@ -155,7 +171,6 @@ type BuiltinAgentTypeOverride = { id: string; preset_agent_type: string };
 
 type LegacyConfigAccessor = {
   get: (key: string) => Promise<unknown>;
-  remove?: (key: string) => Promise<unknown>;
 };
 
 /**
@@ -336,25 +351,112 @@ async function fetchCurrentBuiltinAgentTypes(): Promise<Map<string, string>> {
   }
 }
 
-async function finalizeAssistantMigration(configFile: ConfigFile): Promise<boolean> {
-  const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
+/**
+ * Phase 4: upload custom-assistant rule .md files from the legacy on-disk
+ * directory to the backend. The pre-backend build wrote these as
+ * `<userData>/config/assistants/<id>.<locale>.md`. The new home is
+ * `<dataDir>/assistant-rules/<id>.<locale>.md`, owned by the backend, and
+ * only the backend's `POST /api/skills/assistant-rule/write` is allowed to
+ * touch it.
+ *
+ * Idempotency follows the sibling-migration pattern (see
+ * `configMigration.ts`): every launch re-runs cheaply, but for each rule
+ * file we first probe the backend via `readAssistantRule`. If the backend
+ * already has non-empty content, we skip the write so the user's
+ * post-migration edits are never clobbered. Empty / missing on the backend
+ * → upload.
+ *
+ * Skipped ids:
+ *   - Built-in ids (`builtin-*` or whitelisted slug). The backend rejects
+ *     writes against built-in ids on purpose, and built-in rule files
+ *     ship inside the backend's resource bundle anyway.
+ *   - Skill files (`<id>-skills.<locale>.md`) — those are a deprecated
+ *     extra prompt with no UI surface left.
+ *   - Files whose id is not present in the legacy `assistants` array —
+ *     protects against stale .md files referring to assistants the user
+ *     has since deleted.
+ *
+ * Returns the number of failures; 0 means the phase succeeded (no files
+ * present is also success). Any failure logs a warning but does not abort
+ * the rest of the migration — the next launch retries.
+ */
+async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Promise<number> {
+  const dir = getAssistantsDir();
+  let entries: string[];
   try {
-    if (typeof rawConfigFile.remove === 'function') {
-      await rawConfigFile.remove('assistants');
-    }
-    return true;
+    entries = await fs.readdir(dir);
   } catch (error) {
-    console.error('[AionUi] Failed to finalize assistant migration:', error);
-    return false;
+    const err = error as NodeJS.ErrnoException;
+    if (err.code === 'ENOENT') {
+      // No legacy assistants dir at all — nothing to upload.
+      return 0;
+    }
+    console.error('[AionUi] Failed to read legacy assistant rules dir:', error);
+    return 1;
   }
+
+  const ruleEntries: Array<{ file: string; id: string; locale: string }> = [];
+  for (const file of entries) {
+    if (!file.endsWith('.md')) continue;
+    if (file.includes('-skills.')) continue;
+    const match = RULE_FILE_RE.exec(file);
+    if (!match) continue;
+    const id = match[1];
+    const locale = match[2];
+    if (id.startsWith(BUILTIN_ID_PREFIX) || PRESET_ID_WHITELIST.has(id)) continue;
+    if (!legacyAssistantIds.has(id)) continue;
+    ruleEntries.push({ file, id, locale });
+  }
+
+  if (ruleEntries.length === 0) return 0;
+
+  type Outcome = 'uploaded' | 'skipped';
+  const results = await Promise.allSettled(
+    ruleEntries.map(async ({ file, id, locale }): Promise<Outcome> => {
+      const content = await fs.readFile(path.join(dir, file), 'utf-8');
+      if (!content.trim()) return 'skipped';
+      // Read-before-write: skip if the backend already has non-empty
+      // content for this (id, locale) so the user's post-migration
+      // edits are never clobbered. Treat read failures as "no content"
+      // so a freshly-imported assistant still receives its legacy rule.
+      const existing = await ipcBridge.fs.readAssistantRule.invoke({ assistant_id: id, locale }).catch(() => '');
+      if (existing.trim().length > 0) return 'skipped';
+      await ipcBridge.fs.writeAssistantRule.invoke({ assistant_id: id, locale, content });
+      return 'uploaded';
+    })
+  );
+
+  let failed = 0;
+  let uploaded = 0;
+  let skipped = 0;
+  results.forEach((r, i) => {
+    if (r.status === 'rejected') {
+      failed += 1;
+      console.error(
+        `[AionUi] Failed to upload legacy rule for '${ruleEntries[i].id}' (${ruleEntries[i].locale}):`,
+        r.reason
+      );
+      return;
+    }
+    if (r.value === 'uploaded') uploaded += 1;
+    else skipped += 1;
+  });
+  if (failed === 0) {
+    if (uploaded > 0 || skipped > 0) {
+      console.log(`[AionUi] Legacy rule upload: ${uploaded} uploaded, ${skipped} skipped`);
+    }
+  } else {
+    console.error(`[AionUi] Legacy rule upload partial: ${failed}/${ruleEntries.length} failed`);
+  }
+  return failed;
 }
 
 /**
- * One-shot import of legacy `ConfigStorage.get('assistants')` into the backend
- * after the backend is healthy. Three phases:
+ * Import legacy `ConfigStorage.get('assistants')` into the backend after the
+ * backend is healthy. Four phases:
  *
  *   1. POST /api/assistants/import for user-authored rows (insert-only, so
- *      retries are idempotent).
+ *      already-migrated rows are skipped without clobber).
  *   2. PATCH /api/assistants/{id}/state for each legacy built-in that the
  *      user had disabled, so the `enabled=false` preference survives the
  *      migration to the backend's `assistant_overrides` table.
@@ -362,11 +464,21 @@ async function finalizeAssistantMigration(configFile: ConfigFile): Promise<boole
  *      `presetAgentType` differs from the current manifest default — so a
  *      user who explicitly chose `claude`/`codex`/etc. keeps that choice
  *      across the 'gemini' → 'aionrs' default migration.
+ *   4. POST /api/skills/assistant-rule/write for each `<userData>/config/
+ *      assistants/<id>.<locale>.md` belonging to a custom assistant — but
+ *      only when the backend rule for that (id, locale) is currently empty,
+ *      so post-migration edits are never overwritten.
  *
- * Returns `true` only when all phases complete cleanly (or when there is
- * nothing to do). The caller owns the overall Electron-config migration flag;
- * any failure returns `false` so the caller can keep that flag unset and retry
- * on the next launch.
+ * No completion flag: every launch re-runs the four phases cheaply and
+ * each phase is content-aware (insert-only / collect-then-filter against
+ * backend state / read-before-write). The legacy `assistants` field is
+ * never touched, so downgrading to an older Electron build still works.
+ * This matches the sibling-migration pattern in `configMigration.ts`
+ * (`migrateConfigStorage`, `migrateProviders`).
+ *
+ * Returns `true` when all phases complete cleanly. A failure returns
+ * `false` so the caller can log the partial state, but next launch
+ * naturally retries the remaining work.
  *
  * Honors `AIONUI_SKIP_ELECTRON_MIGRATION=1` so E2E fixtures can seed via
  * `POST /api/assistants/import` directly.
@@ -378,6 +490,7 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   }
 
   const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
+
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
 
@@ -385,14 +498,31 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
   const builtinDisabledOverrides = collectBuiltinOverrides(legacy);
   // Phase 3's payload needs the live backend default for each built-in to
   // decide "did the user actually pick something different?". Fetch once,
-  // pass down. An empty map from a failed GET leaves Phase 3 as a no-op
-  // (safe default) but does not trip the overall migration flag.
+  // pass down. An empty map from a failed GET leaves Phase 3 as a no-op.
   const currentBuiltinAgentTypes = await fetchCurrentBuiltinAgentTypes();
   const builtinAgentTypeOverrides = collectBuiltinPresetAgentTypeOverrides(legacy, currentBuiltinAgentTypes);
 
-  // Nothing to do at all — flag flips true immediately.
-  if (userAssistants.length === 0 && builtinDisabledOverrides.length === 0 && builtinAgentTypeOverrides.length === 0) {
-    return finalizeAssistantMigration(configFile);
+  // Phase 4 keys off the *legacy* custom-assistant id (the file name on
+  // disk). The collision-rename path in `legacyAssistantToCreateRequest`
+  // produces a fresh id for rows whose legacy id clashed with a built-in
+  // slug, but those collisions are extremely rare in practice and are
+  // not handled here: the rule would be uploaded under the legacy id and
+  // would not match the new row. Acceptable trade-off for now.
+  const customAssistantIds = new Set<string>(
+    legacy
+      .filter((a) => !isLegacyBuiltin(a))
+      .map((a) => (typeof a.id === 'string' ? a.id : ''))
+      .filter((id) => id.length > 0)
+  );
+
+  if (
+    userAssistants.length === 0 &&
+    builtinDisabledOverrides.length === 0 &&
+    builtinAgentTypeOverrides.length === 0 &&
+    customAssistantIds.size === 0
+  ) {
+    // Nothing to do — no-op success.
+    return true;
   }
 
   // Phase 1: import user-authored assistants (if any).
@@ -403,11 +533,11 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
       });
       if (result.failed !== 0) {
         console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
-        // Keep flag false; next launch retries. Insert-only on backend so
-        // already-imported rows will skip rather than clobber.
         return false;
       }
-      console.log(`[AionUi] migrated ${result.imported} assistants (skipped ${result.skipped})`);
+      if (result.imported > 0 || result.skipped > 0) {
+        console.log(`[AionUi] migrated ${result.imported} assistants (skipped ${result.skipped})`);
+      }
     } catch (error) {
       console.error('[AionUi] Assistant migration failed:', error);
       return false;
@@ -430,5 +560,11 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     return false;
   }
 
-  return finalizeAssistantMigration(configFile);
+  // Phase 4: upload legacy custom-assistant rule files.
+  const ruleUploadFailures = await uploadLegacyAssistantRules(customAssistantIds);
+  if (ruleUploadFailures > 0) {
+    return false;
+  }
+
+  return true;
 }

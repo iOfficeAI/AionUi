@@ -1,6 +1,6 @@
 import { ipcBridge } from '@/common';
-import { Button, Message, Modal, Typography, Input, Dropdown, Menu } from '@arco-design/web-react';
-import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Plus, Refresh } from '@icon-park/react';
+import { Button, Message, Modal, Typography } from '@arco-design/web-react';
+import { Delete, FolderOpen, Info, Lightning, Puzzle, Search, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
@@ -19,14 +19,6 @@ interface SkillInfo {
   relative_location?: string;
   is_custom: boolean;
   source?: 'builtin' | 'custom' | 'extension';
-}
-
-// 外部来源类型 / External source type
-interface ExternalSource {
-  name: string;
-  path: string;
-  source: string;
-  skills: Array<{ name: string; description: string; path: string }>;
 }
 
 // Normalize skill name for data-testid usage
@@ -65,14 +57,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [loading, setLoading] = useState(false);
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);
   const [skillPaths, setSkillPaths] = useState<{ user_skills_dir: string; builtin_skills_dir: string } | null>(null);
-  const [externalSources, setExternalSources] = useState<ExternalSource[]>([]);
-  const [activeSourceTab, setActiveSourceTab] = useState<string>('');
   const [search_query, setSearchQuery] = useState('');
-  const [searchExternalQuery, setSearchExternalQuery] = useState('');
-  const [showAddPathModal, setShowAddPathModal] = useState(false);
-  const [customPathName, setCustomPathName] = useState('');
-  const [customPathValue, setCustomPathValue] = useState('');
-  const [refreshing, setRefreshing] = useState(false);
   const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
@@ -93,14 +78,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       const skills = await ipcBridge.fs.listAvailableSkills.invoke();
       setAvailableSkills(skills);
 
-      const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (external) {
-        setExternalSources(external);
-        if (external.length > 0 && !activeSourceTab) {
-          setActiveSourceTab(external[0].source);
-        }
-      }
-
       const paths = await ipcBridge.fs.getSkillPaths.invoke();
       setSkillPaths(paths);
 
@@ -112,7 +89,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     } finally {
       setLoading(false);
     }
-  }, [t, activeSourceTab]);
+  }, [t]);
 
   useEffect(() => {
     void fetchData();
@@ -147,27 +124,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     }
   };
 
-  const handleImportAll = async (skills: Array<{ name: string; path: string }>) => {
-    let successCount = 0;
-    for (const skill of skills) {
-      try {
-        await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skill.path });
-        successCount++;
-      } catch {
-        // continue
-      }
-    }
-    if (successCount > 0) {
-      Message.success(
-        t('settings.skillsHub.importAllSuccess', {
-          count: successCount,
-          defaultValue: `${successCount} skills imported`,
-        })
-      );
-      void fetchData();
-    }
-  };
-
   const handleDelete = async (skillName: string) => {
     try {
       await ipcBridge.fs.deleteSkill.invoke({ skill_name: skillName });
@@ -192,208 +148,9 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     }
   };
 
-  const handleRefreshExternal = useCallback(async () => {
-    setRefreshing(true);
-    try {
-      const external = await ipcBridge.fs.detectAndCountExternalSkills.invoke();
-      if (external) {
-        setExternalSources(external);
-        if (external.length > 0 && !external.find((s) => s.source === activeSourceTab)) {
-          setActiveSourceTab(external[0].source);
-        }
-      }
-      Message.success(t('common.refreshSuccess', { defaultValue: 'Refreshed' }));
-    } catch (error) {
-      console.error('Failed to refresh external skills:', error);
-    } finally {
-      setRefreshing(false);
-    }
-  }, [t, activeSourceTab]);
-
-  const handleAddCustomPath = useCallback(async () => {
-    if (!customPathName.trim() || !customPathValue.trim()) return;
-    try {
-      await ipcBridge.fs.addCustomExternalPath.invoke({
-        name: customPathName.trim(),
-        path: customPathValue.trim(),
-      });
-      setShowAddPathModal(false);
-      setCustomPathName('');
-      setCustomPathValue('');
-      void handleRefreshExternal();
-    } catch (error) {
-      Message.error('Failed to add custom path');
-    }
-  }, [customPathName, customPathValue, handleRefreshExternal]);
-
-  const totalExternal = externalSources.reduce((sum, src) => sum + src.skills.length, 0);
-  const activeSource = externalSources.find((s) => s.source === activeSourceTab);
-
-  const filteredExternalSkills = useMemo(() => {
-    if (!activeSource) return [];
-    if (!searchExternalQuery.trim()) return activeSource.skills;
-    const lowerQuery = searchExternalQuery.toLowerCase();
-    return activeSource.skills.filter(
-      (s) =>
-        s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
-    );
-  }, [activeSource, searchExternalQuery]);
-
   const mainContent = (
     <div className='flex flex-col h-full w-full'>
       <div className='space-y-16px pb-24px'>
-        {/* ======== 发现外部技能 / Discovered External Skills ======== */}
-        {totalExternal > 0 && (
-          <div
-            data-testid='external-skills-section'
-            className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px mb-16px shadow-sm border border-b-base relative overflow-hidden transition-all'
-          >
-            {/* Section Header with Search Bar */}
-            <div className='flex flex-col lg:flex-row lg:items-start justify-between gap-16px mb-24px relative z-10 w-full'>
-              <div className='flex flex-col'>
-                <div className='flex items-center gap-10px mb-8px'>
-                  <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
-                    {t('settings.skillsHub.discoveredTitle', { defaultValue: 'Discovered External Skills' })}
-                  </span>
-                  <span className='bg-[rgba(var(--primary-6),0.08)] text-primary-6 text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                    {totalExternal}
-                  </span>
-                  <button
-                    data-testid='btn-refresh-external'
-                    className='outline-none border-none bg-transparent cursor-pointer p-6px text-t-tertiary hover:text-primary-6 transition-colors rd-full hover:bg-fill-2 ml-4px'
-                    onClick={() => void handleRefreshExternal()}
-                    title={t('common.refresh', { defaultValue: 'Refresh' })}
-                  >
-                    <Refresh theme='outline' size={16} className={refreshing ? 'animate-spin' : ''} />
-                  </button>
-                </div>
-                <Typography.Text className='text-13px text-t-secondary block max-w-xl leading-relaxed'>
-                  {t('settings.skillsHub.discoveryAlert', {
-                    defaultValue: 'Detected skills from your CLI tools. Import them to use in AionUi.',
-                  })}
-                </Typography.Text>
-              </div>
-
-              {/* Search Bar Outputted inline with Header description in desktop */}
-              <div className='relative group shrink-0 w-full lg:w-[240px]'>
-                <div className='absolute left-12px top-1/2 -translate-y-1/2 text-t-tertiary group-focus-within:text-primary-6 flex pointer-events-none transition-colors'>
-                  <Search size={15} />
-                </div>
-                <input
-                  data-testid='input-search-external'
-                  type='text'
-                  className='w-full bg-fill-1 hover:bg-fill-2 border border-border-1 focus:border-primary-5 focus:bg-base outline-none rd-8px py-6px pl-36px pr-12px text-13px text-t-primary placeholder:text-t-tertiary transition-all shadow-sm box-border m-0'
-                  placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
-                  value={searchExternalQuery}
-                  onChange={(e) => setSearchExternalQuery(e.target.value)}
-                />
-              </div>
-            </div>
-
-            {/* Toolbar (Tabs) */}
-            <div className='flex flex-wrap items-center gap-8px mb-20px relative z-10 w-full'>
-              {externalSources.map((source) => {
-                const isActive = activeSourceTab === source.source;
-                return (
-                  <button
-                    key={source.source}
-                    data-testid={`external-source-tab-${source.source}`}
-                    type='button'
-                    className={`outline-none cursor-pointer px-16px py-6px text-13px rd-[100px] transition-all duration-300 flex items-center gap-6px border ${isActive ? 'bg-primary-6 border-primary-6 text-white shadow-md font-medium' : 'bg-base border-border-1 text-t-secondary hover:bg-fill-1 hover:text-t-primary'}`}
-                    onClick={() => setActiveSourceTab(source.source)}
-                  >
-                    {source.name}
-                    <span
-                      className={`px-6px py-1px rd-[100px] text-11px flex items-center justify-center transition-colors ${isActive ? 'bg-white/20 text-white font-medium' : 'bg-fill-2 text-t-secondary border border-transparent'}`}
-                    >
-                      {source.skills.length}
-                    </span>
-                  </button>
-                );
-              })}
-              <button
-                data-testid='btn-add-custom-path'
-                type='button'
-                className='outline-none border border-dashed border-border-1 hover:border-primary-4 cursor-pointer w-28px h-28px ml-4px text-t-tertiary hover:text-primary-6 hover:bg-primary-1 rd-full transition-all duration-300 flex items-center justify-center bg-transparent shrink-0'
-                onClick={() => setShowAddPathModal(true)}
-                title={t('common.add', { defaultValue: 'Add' })}
-              >
-                <Plus size={16} />
-              </button>
-            </div>
-            {/* Active tab content */}
-            {activeSource && (
-              <div className='flex flex-col'>
-                <div className='flex flex-col sm:flex-row sm:items-center justify-between gap-12px py-8px mb-4px'>
-                  <div className='flex items-center gap-8px text-12px text-t-tertiary font-mono min-w-0 bg-transparent py-4px'>
-                    <FolderOpen size={16} className='shrink-0' />
-                    <span className='truncate' title={activeSource.path}>
-                      {activeSource.path}
-                    </span>
-                  </div>
-                  <button
-                    data-testid='btn-import-all'
-                    className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
-                    onClick={() => void handleImportAll(activeSource.skills)}
-                  >
-                    {t('settings.skillsHub.importAll', { defaultValue: 'Import All' })}
-                  </button>
-                </div>
-
-                <div className='max-h-[360px] overflow-y-auto custom-scrollbar flex flex-col gap-6px pr-4px'>
-                  {filteredExternalSkills.map((skill) => (
-                    <div
-                      key={skill.name}
-                      data-testid={`external-skill-card-${normalizeTestId(skill.name)}`}
-                      ref={(el) => {
-                        skillRefs.current[skill.name] = el;
-                      }}
-                      className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 cursor-pointer ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
-                      onClick={() => void handleImport(skill.path)}
-                    >
-                      <div className='shrink-0 flex items-start sm:mt-2px'>
-                        <div className='w-40px h-40px rd-full bg-base border border-border-1 flex items-center justify-center font-bold text-16px text-t-primary shadow-sm transition-all text-transform-uppercase'>
-                          {skill.name.charAt(0)}
-                        </div>
-                      </div>
-                      <div className='flex-1 min-w-0 flex flex-col justify-center'>
-                        <h3 className='text-14px font-semibold text-t-primary/90 mb-6px truncate m-0'>{skill.name}</h3>
-                        {skill.description && (
-                          <p
-                            className='text-13px text-t-secondary leading-relaxed line-clamp-2 m-0'
-                            title={skill.description}
-                          >
-                            {skill.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className='shrink-0 sm:self-center flex items-center mt-8px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity'>
-                        <Button
-                          size='small'
-                          type='primary'
-                          status='default'
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            void handleImport(skill.path);
-                          }}
-                          className='rd-[100px] shadow-sm px-16px'
-                        >
-                          {t('common.import', { defaultValue: 'Import' })}
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                  {filteredExternalSkills.length === 0 && (
-                    <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed'>
-                      {t('settings.skillsHub.noSearchResults', { defaultValue: 'No matching skills found' })}
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* ======== 我的技能 / My Skills ======== */}
         <div
           data-testid='my-skills-section'
@@ -502,66 +259,6 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   </div>
 
                   <div className='shrink-0 sm:self-center flex items-center justify-end gap-6px mt-12px sm:mt-0 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity pl-4px'>
-                    {externalSources.length > 0 && (
-                      <Dropdown
-                        trigger='click'
-                        position='bl'
-                        droplist={
-                          <Menu>
-                            {externalSources.map((source) => (
-                              <Menu.Item
-                                key={source.source}
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-
-                                  const hide = Message.loading({
-                                    content: t('common.processing', { defaultValue: 'Processing...' }),
-                                    duration: 0,
-                                  });
-                                  try {
-                                    const skillPath = skill.location.replace(/[\\/]SKILL\.md$/, '');
-
-                                    await Promise.race([
-                                      ipcBridge.fs.exportSkillWithSymlink.invoke({
-                                        skill_path: skillPath,
-                                        target_dir: source.path,
-                                      }),
-                                      new Promise<void>((_, reject) =>
-                                        setTimeout(() => reject(new Error('Export timed out.')), 8000)
-                                      ),
-                                    ]);
-
-                                    hide();
-                                    Message.success(
-                                      t('settings.skillsHub.exportSuccess', {
-                                        defaultValue: 'Skill exported successfully',
-                                      })
-                                    );
-                                  } catch (error) {
-                                    hide();
-                                    console.error('[SkillsHub] Export error:', error);
-                                    const errMsg = error instanceof Error ? error.message : String(error);
-                                    Message.error(errMsg);
-                                  }
-                                }}
-                              >
-                                {source.name}
-                              </Menu.Item>
-                            ))}
-                          </Menu>
-                        }
-                      >
-                        <button
-                          data-testid={`btn-export-${normalizeTestId(skill.name)}`}
-                          className='p-8px hover:bg-fill-2 text-t-tertiary hover:text-t-secondary rd-6px outline-none flex items-center justify-center border border-transparent cursor-pointer transition-colors shadow-sm bg-base sm:bg-transparent sm:shadow-none'
-                          title={t('settings.skillsHub.exportTo', { defaultValue: 'Export To...' })}
-                        >
-                          <span className='text-12px font-medium'>
-                            {t('settings.skillsHub.exportTo', { defaultValue: 'Export' })}
-                          </span>
-                        </button>
-                      </Dropdown>
-                    )}
                     {skill.source === 'custom' && (
                       <button
                         data-testid={`btn-delete-${normalizeTestId(skill.name)}`}
@@ -705,78 +402,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     </div>
   );
 
-  return (
-    <>
-      {withWrapper ? <SettingsPageWrapper>{mainContent}</SettingsPageWrapper> : mainContent}
-
-      {/* Add Custom External Path Modal */}
-      <Modal
-        data-testid='modal-add-custom-path'
-        title={t('settings.skillsHub.addCustomPath', { defaultValue: 'Add Custom Skill Path' })}
-        visible={showAddPathModal}
-        onCancel={() => {
-          setShowAddPathModal(false);
-          setCustomPathName('');
-          setCustomPathValue('');
-        }}
-        onOk={() => void handleAddCustomPath()}
-        okText={t('common.confirm', { defaultValue: 'Confirm' })}
-        cancelText={t('common.cancel', { defaultValue: 'Cancel' })}
-        okButtonProps={{ disabled: !customPathName.trim() || !customPathValue.trim() }}
-        autoFocus={false}
-        focusLock
-        wrapClassName='modal-name-custom-path'
-      >
-        <div className='flex flex-col gap-16px'>
-          <div>
-            <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('common.name', { defaultValue: 'Name' })}
-            </div>
-            <Input
-              data-testid='input-source-name'
-              placeholder={t('settings.skillsHub.customPathNamePlaceholder', { defaultValue: 'e.g. My Custom Skills' })}
-              value={customPathName}
-              onChange={(v) => setCustomPathName(v)}
-              className='rd-6px'
-            />
-          </div>
-          <div>
-            <div className='text-13px font-medium text-t-primary mb-8px'>
-              {t('settings.skillsHub.customPathLabel', { defaultValue: 'Skill Directory Path' })}
-            </div>
-            <div className='flex gap-8px'>
-              <Input
-                data-testid='input-source-path'
-                placeholder={t('settings.skillsHub.customPathPlaceholder', {
-                  defaultValue: 'e.g. C:\\Users\\me\\.mytools\\skills',
-                })}
-                value={customPathValue}
-                onChange={(v) => setCustomPathValue(v)}
-                className='flex-1 rd-6px'
-              />
-              <Button
-                className='rd-6px'
-                onClick={async () => {
-                  try {
-                    const result = await ipcBridge.dialog.showOpen.invoke({
-                      properties: ['openDirectory', 'createDirectory'],
-                    });
-                    if (result && result.length > 0) {
-                      setCustomPathValue(result[0]);
-                    }
-                  } catch (e) {
-                    console.error('Failed to select directory', e);
-                  }
-                }}
-              >
-                <FolderOpen size={16} />
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Modal>
-    </>
-  );
+  return withWrapper ? <SettingsPageWrapper>{mainContent}</SettingsPageWrapper> : mainContent;
 };
 
 export default SkillsHubSettings;
