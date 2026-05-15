@@ -104,6 +104,8 @@ just push -u origin feat/branch    # same checks, with extra git push args
 
 Any step that fails aborts the push. Fix the issue, commit, then retry.
 
+> **Note for AI agents**: `just push` uses `--quiet` for lint — only errors cause failure. The project has many pre-existing lint _warnings_ which do NOT indicate failure. Judge success by exit code, not by output volume.
+
 ### Before PR (optional stricter check)
 
 `prek` replicates the **exact CI pipeline** (includes end-of-file, trailing whitespace checks on all file types):

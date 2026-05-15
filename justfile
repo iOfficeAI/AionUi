@@ -321,8 +321,13 @@ typecheck:
 check: lint fmt-check typecheck
 
 # Pre-push gate: lint + format check + typecheck + test, then push
-push *ARGS: lint fmt-check typecheck test
+# Uses --quiet to suppress warnings (exit code is still non-zero on errors)
+push *ARGS: lint-strict fmt-check typecheck test
     git push {{ ARGS }}
+
+# Lint with only errors reported (for CI/push gates)
+lint-strict:
+    bun run lint -- --quiet
 
 # ============================================================
 # Testing
