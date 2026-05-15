@@ -45,10 +45,10 @@ async function downloadFile(relativePath, destPath) {
       await downloadUrl(url, destPath);
       return url;
     } catch (error) {
-      console.warn(`  [hub] Failed from ${url}: ${error.message}`);
+      console.warn(`  [hub] ? ${url} ?????${error.message}`);
     }
   }
-  throw new Error(`Failed to download ${relativePath} from all mirrors`);
+  throw new Error(`?????????? ${relativePath}`);
 }
 
 function downloadUrl(url, destPath) {
@@ -95,12 +95,12 @@ function downloadUrl(url, destPath) {
 
 async function prepareHubResources() {
   if (process.env.AIONUI_HUB_SKIP === '1') {
-    console.log('[hub] Skipping hub resource preparation (AIONUI_HUB_SKIP=1)');
+    console.log('[hub] ??? Hub ?????AIONUI_HUB_SKIP=1?');
     return { skipped: true };
   }
 
   const tag = process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
-  console.log(`[hub] Preparing hub resources from tag: ${tag}`);
+  console.log(`[hub] ???? Hub ??????${tag}`);
 
   // Clean and create target directory
   if (fs.existsSync(HUB_DIR)) {
@@ -110,23 +110,35 @@ async function prepareHubResources() {
 
   // Step 1: Download index.json
   const indexPath = path.join(HUB_DIR, 'index.json');
-  console.log('[hub] Downloading index.json...');
-  const indexUrl = await downloadFile('index.json', indexPath);
-  console.log(`[hub] index.json downloaded from ${indexUrl}`);
+  console.log('[hub] ???? index.json ...');
+  let indexUrl;
+  try {
+    indexUrl = await downloadFile('index.json', indexPath);
+  } catch (err) {
+    console.error(`[hub] index.json ?????${err.message}`);
+    console.error('[hub] ??????????????? Hub ????????????????');
+    console.error('[hub] ??????????????? AIONUI_HUB_SKIP=1 ?? Hub ?????');
+    // Clean up incomplete hub dir
+    if (fs.existsSync(HUB_DIR)) {
+      fs.rmSync(HUB_DIR, { recursive: true, force: true });
+    }
+    process.exit(1);
+  }
+  console.log(`[hub] index.json ?????${indexUrl}`);
 
   // Step 2: Parse index and download all extension zips
   const index = JSON.parse(fs.readFileSync(indexPath, 'utf-8'));
   const extensions = index.extensions || {};
   const names = Object.keys(extensions);
 
-  console.log(`[hub] Found ${names.length} extensions to bundle`);
+  console.log(`[hub] ??? ${names.length} ???????`);
 
   const results = [];
   for (const name of names) {
     const ext = extensions[name];
     const tarball = ext.dist?.tarball;
     if (!tarball) {
-      console.warn(`[hub] Skipping ${name}: no dist.tarball`);
+      console.warn(`[hub] ?? ${name}??? dist.tarball`);
       continue;
     }
 
@@ -137,7 +149,7 @@ async function prepareHubResources() {
       console.log(`[hub] ${name} -> ${path.basename(tarball)} (${(size / 1024).toFixed(1)} KB)`);
       results.push({ name, file: path.basename(tarball), size, url });
     } catch (error) {
-      console.error(`[hub] Failed to download ${name}: ${error.message}`);
+      console.error(`[hub] ?? ${name} ?????${error.message}`);
       // Non-fatal: continue with other extensions
     }
   }
@@ -151,14 +163,14 @@ async function prepareHubResources() {
   };
   fs.writeFileSync(path.join(HUB_DIR, 'manifest.json'), JSON.stringify(manifest, null, 2) + '\n');
 
-  console.log(`[hub] Done: ${results.length}/${names.length} extensions bundled in resources/hub/`);
+  console.log(`[hub] ???${results.length}/${names.length} ??????? resources/hub/`);
   return { skipped: false, count: results.length, total: names.length };
 }
 
 // Support both direct execution and require() from build-with-builder.js
 if (require.main === module) {
   prepareHubResources().catch((err) => {
-    console.error('[hub] Fatal error:', err);
+    console.error('[hub] ?????', err);
     process.exit(1);
   });
 }

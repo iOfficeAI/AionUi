@@ -2,9 +2,15 @@
  * Prepare aionrs binary for Electron packaging.
  *
  * Resolution order:
- *  1. GitHub release download (requires AIONRS_VERSION or defaults to "latest")
+ *  1. Cached binary (already in resources/bundled-aionrs/ with matching version)
+ *  2. GitHub release download (requires AIONRS_VERSION or defaults to "latest")
  *
  * Output: resources/bundled-aionrs/{platform}-{arch}/aionrs[.exe]
+ *
+ * Environment variables:
+ *   AIONRS_VERSION  - Version tag to use (default: "latest")
+ *   AIONRS_ARCH     - Target arch for cross-compilation
+ *   AIONRS_SKIP     - Set to "1" to skip entirely (no binary bundled)
  *
  * Pattern follows prepareBundledBun.js.
  */
@@ -192,6 +198,11 @@ function prepareAionrs() {
   const runtimeKey = `${platform}-${arch}`;
   const version = getVersion();
 
+  if (process.env.AIONRS_SKIP === '1') {
+    console.log('[aionrs] Skipping aionrs preparation (AIONRS_SKIP=1)');
+    return { prepared: false, skipped: true };
+  }
+
   // Resolve the actual version tag — asset filenames include the tag
   let tag;
   if (version === 'latest') {
@@ -208,8 +219,22 @@ function prepareAionrs() {
   const targetDir = path.join(projectRoot, 'resources', 'bundled-aionrs', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
+  const manifestPath = path.join(targetDir, 'manifest.json');
 
   console.log(`Preparing aionrs for ${runtimeKey} (version: ${tag})`);
+
+  // Check if a cached binary with the matching version already exists
+  if (fs.existsSync(targetBinaryPath) && fs.existsSync(manifestPath)) {
+    try {
+      const cached = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+      if (!cached.skipped && cached.tag === tag) {
+        console.log(`  Using cached aionrs ${tag} (set AIONRS_VERSION=latest to re-resolve)`);
+        return { prepared: true, dir: targetDir, sourceType: 'cache' };
+      }
+    } catch {
+      // corrupt manifest — fall through to re-download
+    }
+  }
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -219,18 +244,16 @@ function prepareAionrs() {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Download from GitHub releases
-  if (!sourcePath) {
-    try {
-      const result = downloadAndExtract(platform, arch, tag);
-      sourcePath = result.binaryPath;
-      tempDir = result.tempDir;
-      sourceType = 'download';
-      sourceDetail = { url: result.url };
-      console.log(`  Downloaded from GitHub releases`);
-    } catch (error) {
-      console.warn(`  Download failed: ${error.message}`);
-    }
+  // Download from GitHub releases
+  try {
+    const result = downloadAndExtract(platform, arch, tag);
+    sourcePath = result.binaryPath;
+    tempDir = result.tempDir;
+    sourceType = 'download';
+    sourceDetail = { url: result.url };
+    console.log(`  Downloaded from GitHub releases`);
+  } catch (error) {
+    console.warn(`  Download failed: ${error.message}`);
   }
 
   // Write result
@@ -247,6 +270,7 @@ function prepareAionrs() {
     const manifest = {
       platform,
       arch,
+      tag,
       version: binaryVersion,
       generatedAt: new Date().toISOString(),
       sourceType,
@@ -255,7 +279,7 @@ function prepareAionrs() {
       skipped: false,
     };
 
-    writeJson(path.join(targetDir, 'manifest.json'), manifest);
+    writeJson(manifestPath, manifest);
     console.log(
       `  Bundled aionrs prepared: resources/bundled-aionrs/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
@@ -269,6 +293,7 @@ function prepareAionrs() {
   const manifest = {
     platform,
     arch,
+    tag,
     version: tag,
     generatedAt: new Date().toISOString(),
     sourceType: 'none',
@@ -278,7 +303,7 @@ function prepareAionrs() {
     reason: 'aionrs binary not found (ensure GitHub release exists)',
   };
 
-  writeJson(path.join(targetDir, 'manifest.json'), manifest);
+  writeJson(manifestPath, manifest);
   throw new Error(
     `aionrs binary not found for ${runtimeKey} (version: ${tag}). ` +
       `Ensure the GitHub release at iOfficeAI/aionrs contains the expected asset. ` +

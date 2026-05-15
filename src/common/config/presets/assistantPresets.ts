@@ -449,6 +449,54 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     showOnHome: true,
   },
   {
+    id: 'code-archaeology',
+    avatar: '🏺',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/code-archaeology',
+    ruleFiles: {
+      'en-US': 'code-archaeology.md',
+      'zh-CN': 'code-archaeology.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Code Archaeology',
+      'zh-CN': '代码考古',
+      'ru-RU': 'Код Археология',
+      'uk-UA': 'Код Археологія',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Uncover the why behind code — trace git history, decode intent, map evolution, and surface hidden constraints through systematic archaeology.',
+      'zh-CN': '挖掘代码背后的"为什么"——追踪 git 历史、解码意图、绘制演进脉络，系统性地揭露隐性约束与决策根源。',
+      'ru-RU':
+        'Раскрывает причины существования кода: трассирует git-историю, декодирует намерения и выявляет скрытые ограничения.',
+      'uk-UA':
+        'Розкриває причини існування коду: трасує git-історію, декодує наміри та виявляє приховані обмеження.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Why does this function exist and when was it introduced?',
+        'Trace the history of this file and explain its major changes',
+        'Is this code safe to delete? Find all references and dependencies',
+      ],
+      'zh-CN': [
+        '这个函数为什么存在，是什么时候引入的？',
+        '追溯这个文件的历史，解释它的主要变更',
+        '这段代码可以安全删除吗？找出所有引用和依赖',
+      ],
+      'ru-RU': [
+        'Почему существует эта функция и когда она была добавлена?',
+        'Проследи историю этого файла и объясни основные изменения',
+        'Безопасно ли удалить этот код? Найди все ссылки и зависимости',
+      ],
+      'uk-UA': [
+        'Чому існує ця функція і коли вона була додана?',
+        'Простеж історію цього файлу та поясни основні зміни',
+        'Чи безпечно видалити цей код? Знайди всі посилання та залежності',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
     id: 'beautiful-mermaid',
     avatar: '📈',
     presetAgentType: 'gemini',

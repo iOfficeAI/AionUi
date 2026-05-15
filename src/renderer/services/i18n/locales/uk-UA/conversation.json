@@ -93,7 +93,7 @@
     "presetAssistants": "Встановлені асистенти"
   },
   "noAgentsAvailable": "Немає доступних агентів",
-  "noModelConfigured": "Модель не налаштована. Будь ласка, налаштуйте в параметрах.",
+  "noModelConfigured": "Модель не налаштована.",
   "createFailed": "Не вдалося створити діалог",
   "workspace": {
     "title": "Робоча область",

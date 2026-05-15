@@ -87,7 +87,7 @@
     "presetAssistants": "プリセットアシスタント"
   },
   "noAgentsAvailable": "利用可能なエージェントはありません",
-  "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
+  "noModelConfigured": "モデルが設定されていません。",
   "createFailed": "会話の作成に失敗しました",
   "tabs": {
     "closeAll": "すべて閉じる",

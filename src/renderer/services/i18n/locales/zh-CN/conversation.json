@@ -93,7 +93,7 @@
     "presetAssistants": "预设Agent"
   },
   "noAgentsAvailable": "没有可用的 Agent",
-  "noModelConfigured": "未配置模型，请前往设置页面配置。",
+  "noModelConfigured": "未配置模型，",
   "createFailed": "创建会话失败",
   "workspace": {
     "title": "工作空间",

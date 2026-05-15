@@ -20,6 +20,10 @@ import type { RemoteAgentConfig } from '@process/agent/remote/types';
 /**
  * Central registry for ALL detected execution engines.
  *
+ * UI terminology (clt branch):
+ *   - Entries in this registry → displayed as **Runtime** in Settings > Runtimes
+ *   - ConfigStorage 'assistants' presets → displayed as **Agent** in UI
+ *
  * Coordinates sub-detectors, owns merged state, and provides the unified
  * `getDetectedAgents()` API consumed by IPC bridges.
  *

@@ -7,6 +7,10 @@
 /**
  * Detection layer types — represents available execution engines in the system.
  *
+ * UI terminology (clt branch):
+ *   - `DetectedAgent` / `AgentRegistry`  → displayed as **Runtime** in UI
+ *   - `assistants` (ConfigStorage presets) → displayed as **Agent** in UI
+ *
  * Each `kind` corresponds to a distinct execution engine / communication protocol.
  * Assistants (user-configured presets with skills, prompts, etc.) are a configuration
  * layer that *references* these execution engines — they are NOT detected agents.

@@ -5,6 +5,7 @@
  */
 
 // src/process/task/agentTypes.ts
+// UI terminology (clt branch): AgentType values correspond to Runtime kinds displayed in Settings > Runtimes.
 
 export type AgentType = 'gemini' | 'acp' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
 export type AgentStatus = 'pending' | 'running' | 'finished';

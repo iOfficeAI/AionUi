@@ -47,6 +47,15 @@
 | 配置目录 | `.aionui` | `.aicoredesktop` |
 | 标题栏 Logo | SVG 图标 | **自定义 PNG 品牌 Logo** |
 
+### 🏷️ UI 术语重命名
+
+| 旧 UI 标签 | 新 UI 标签 | 后端对应概念 |
+|:-----------|:-----------|:------------|
+| Agents     | **Runtimes** | `DetectedAgent` / `AgentRegistry` — 可用的执行引擎（CLI / 远程运行时） |
+| 助手        | **Agent**    | ConfigStorage `assistants` presets — 用户配置的 prompt 预设 |
+
+> 后端代码中凡涉及执行引擎的注释已标注 `UI: Runtime`；涉及预设配置层的注释已标注 `UI: Agent`。
+
 ### ✂️ 精简助手体系
 
 上游 20 个内置助手精简为 **3 个核心助手**，首页仅展示精选：
@@ -181,6 +190,4 @@ KSC 登录成功后，系统会自动：
 
 ---
 
-## 📄 License
 
-[Apache-2.0](LICENSE)

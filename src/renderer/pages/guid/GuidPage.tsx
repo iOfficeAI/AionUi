@@ -145,6 +145,25 @@ const GuidPage: React.FC = () => {
     closeAllTabs,
     openTab,
     t,
+    showNoModelWarning: () => {
+      Message.warning({
+        content: (
+          <span>
+            {t('conversation.noModelConfigured')}{' '}
+            <span
+              style={{ cursor: 'pointer', textDecoration: 'underline' }}
+              onClick={() => {
+                Message.clear();
+                void navigate('/settings/model');
+              }}
+            >
+              {t('common.goToSettings')}
+            </span>
+          </span>
+        ),
+        duration: 5000,
+      });
+    },
   });
 
   // --- Coordinated handlers (depend on multiple hooks) ---

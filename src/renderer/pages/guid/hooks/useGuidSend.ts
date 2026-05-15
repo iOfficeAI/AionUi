@@ -11,7 +11,6 @@ import { buildAgentConversationParams } from '@/common/utils/buildAgentConversat
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
-import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
@@ -66,6 +65,7 @@ export type GuidSendDeps = {
   closeAllTabs: () => void;
   openTab: (conversation: TChatConversation) => void;
   t: TFunction;
+  showNoModelWarning: () => void;
 };
 
 export type GuidSendResult = {
@@ -112,6 +112,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     closeAllTabs,
     openTab,
     t,
+    showNoModelWarning,
   } = deps;
   const sendingRef = useRef(false);
 
@@ -140,7 +141,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       // The placeholder only makes sense while Google Auth is active — otherwise
       // it fabricates a logged-out auth type and the chat page fails to load.
       if (!currentModel && !isGoogleAuth) {
-        Message.warning(t('conversation.noModelConfigured'));
+        showNoModelWarning();
         return;
       }
       const placeholderModel = currentModel || {
@@ -324,7 +325,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // Aionrs path (direct selection or preset assistant with aionrs as main agent)
     if (selectedAgent === 'aionrs' || (isPreset && finalEffectiveAgentType === 'aionrs')) {
       if (!currentModel) {
-        Message.warning(t('conversation.noModelConfigured'));
+        showNoModelWarning();
         return;
       }
       try {

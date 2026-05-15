@@ -93,7 +93,7 @@
     "presetAssistants": "Preset Assistants"
   },
   "noAgentsAvailable": "No agents available",
-  "noModelConfigured": "No model configured. Please configure in settings.",
+  "noModelConfigured": "No model configured.",
   "createFailed": "Failed to create conversation",
   "workspace": {
     "title": "Workspace",
