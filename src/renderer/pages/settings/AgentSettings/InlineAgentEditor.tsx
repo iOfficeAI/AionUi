@@ -208,7 +208,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     const envObj = envVarsToObject(envVars);
     const customAgent: AcpBackendConfig = {
       id: agent?.id || uuid(),
-      name: name.trim() || 'Custom Agent',
+      name: name.trim() || 'Custom Runtime',
       avatar,
       defaultCliPath: command.trim(),
       enabled: agent?.enabled !== false,

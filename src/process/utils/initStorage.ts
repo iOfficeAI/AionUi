@@ -583,7 +583,14 @@ const getBuiltinAssistants = (): AcpBackendConfig[] => {
       preset.id === 'openclaw-setup' ||
       preset.id === 'story-roleplay' ||
       preset.id === 'moltbook' ||
-      preset.id === 'beautiful-mermaid';
+      preset.id === 'beautiful-mermaid' ||
+      preset.id === 'test-case-generator' ||
+      preset.id === 'swagger-api-tester' ||
+      preset.id === 'webui-automation-tester' ||
+      preset.id === 'prd-issue-splitter' ||
+      preset.id === 'tech-solution-designer' ||
+      preset.id === 'cicd-failure-diagnoser' ||
+      preset.id === 'sast-security-advisor';
 
     assistants.push({
       id: `builtin-${preset.id}`,

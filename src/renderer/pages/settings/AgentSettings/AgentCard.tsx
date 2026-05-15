@@ -126,7 +126,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           {agent.avatar || <Robot theme='outline' size='20' />}
         </Avatar>
         <div className='min-w-0 flex-1'>
-          <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>
+          <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Runtime'}</Typography.Text>
           <div className='text-12px text-t-secondary truncate'>
             {agent.defaultCliPath}
             {agent.acpArgs && agent.acpArgs.length > 0 ? ` ${agent.acpArgs.join(' ')}` : ''}

@@ -90,7 +90,7 @@
   },
   "dropdown": {
     "cliAgents": "CLI Agents",
-    "presetAssistants": "预设助手"
+    "presetAssistants": "预设Agent"
   },
   "noAgentsAvailable": "没有可用的 Agent",
   "noModelConfigured": "未配置模型，请前往设置页面配置。",
@@ -278,7 +278,7 @@
     "type_skill": "技能（Python）",
     "type_rule": "规则（JSON/Markdown）",
     "name_label": "智能体名称：",
-    "name_placeholder": "例如：Excel 翻译助手",
+    "name_placeholder": "例如：Excel 翻译Agent",
     "menu_generate": "根据历史生成",
     "menu_load": "加载规则/技能",
     "load_title": "加载 Rule/Skill",

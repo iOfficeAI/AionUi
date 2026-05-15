@@ -40,7 +40,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     defaultEnabledSkills: ['skill-creator', 'officecli-pptx', 'officecli-docx', 'pdf', 'officecli-xlsx'],
     nameI18n: {
       'en-US': 'Cowork',
-      'zh-CN': 'Cowork 协作助手',
+      'zh-CN': 'Cowork 协作',
       'ru-RU': 'Cowork',
       'uk-UA': 'Cowork',
     },
@@ -83,7 +83,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     nameI18n: {
       'en-US': 'Planning with Files',
-      'zh-CN': '文件规划助手',
+      'zh-CN': '文件规划',
       'ru-RU': 'Планирование с файлами',
       'uk-UA': 'Планування з файлами',
     },
@@ -117,6 +117,338 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     showOnHome: true,
   },
   {
+    id: 'prd-issue-splitter',
+    avatar: '📝',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/prd-issue-splitter',
+    ruleFiles: {
+      'en-US': 'prd-issue-splitter.md',
+      'zh-CN': 'prd-issue-splitter.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'PRD to Issue Splitter',
+      'zh-CN': 'PRD 转 Issue 拆解',
+      'ru-RU': 'PRD → Issue Декомпозитор',
+      'uk-UA': 'PRD → Issue Декомпозитор',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Decompose PRD documents into structured epics, user stories, and tasks. Outputs GitHub Issues, Jira, or Linear format.',
+      'zh-CN': '将 PRD 文档拆解为结构化的 Epic、用户故事和任务，支持输出 GitHub Issues、Jira 或 Linear 格式。',
+      'ru-RU':
+        'Декомпозиция PRD на эпики, пользовательские истории и задачи. Экспорт в GitHub Issues, Jira или Linear.',
+      'uk-UA':
+        'Декомпозиція PRD на епіки, користувацькі історії та задачі. Експорт у GitHub Issues, Jira або Linear.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Split this PRD into GitHub Issues with acceptance criteria',
+        'Decompose the user authentication feature into epics and sub-tasks',
+        'Generate a Jira-ready issue list from this product requirements doc',
+      ],
+      'zh-CN': [
+        '将这份 PRD 拆解为带验收标准的 GitHub Issues',
+        '将用户认证功能拆解为 Epic 和子任务',
+        '根据这份产品需求文档生成可导入 Jira 的 Issue 列表',
+      ],
+      'ru-RU': [
+        'Разбей этот PRD на GitHub Issues с критериями приёмки',
+        'Декомпозируй функцию аутентификации на эпики и подзадачи',
+        'Сгенерируй список задач для Jira из этого документа с требованиями',
+      ],
+      'uk-UA': [
+        'Розбий цей PRD на GitHub Issues з критеріями прийому',
+        'Декомпозуй функцію автентифікації на епіки та підзадачі',
+        'Згенеруй список задач для Jira з цього документа вимог',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'tech-solution-designer',
+    avatar: '🏗️',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/tech-solution-designer',
+    ruleFiles: {
+      'en-US': 'tech-solution-designer.md',
+      'zh-CN': 'tech-solution-designer.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Tech Solution Designer',
+      'zh-CN': '技术方案生成',
+      'ru-RU': 'Технический Архитектор',
+      'uk-UA': 'Технічний Архітектор',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Generate technical design documents with architecture diagrams, API specs, and data models from feature requirements.',
+      'zh-CN': '根据功能需求生成技术设计文档，包含架构图、API 规范和数据模型。',
+      'ru-RU':
+        'Генерация технических проектных документов с диаграммами архитектуры, спецификациями API и моделями данных.',
+      'uk-UA':
+        'Генерація технічних проектних документів із діаграмами архітектури, специфікаціями API та моделями даних.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Design the technical architecture for a real-time chat system',
+        'Create an API spec and database schema for a multi-tenant SaaS app',
+        'Write a technical design doc for migrating a monolith to microservices',
+      ],
+      'zh-CN': [
+        '为实时聊天系统设计技术架构',
+        '为多租户 SaaS 应用创建 API 规范和数据库结构',
+        '编写单体应用迁移到微服务的技术设计文档',
+      ],
+      'ru-RU': [
+        'Спроектируй техническую архитектуру для системы чата в реальном времени',
+        'Создай спецификацию API и схему БД для мультитенантного SaaS',
+        'Напиши технический документ по миграции монолита на микросервисы',
+      ],
+      'uk-UA': [
+        'Спроектуй технічну архітектуру для системи чату в реальному часі',
+        'Створи специфікацію API та схему БД для мультитенантного SaaS',
+        'Напиши технічний документ щодо міграції моноліту на мікросервіси',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'cicd-failure-diagnoser',
+    avatar: '🔍',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/cicd-failure-diagnoser',
+    ruleFiles: {
+      'en-US': 'cicd-failure-diagnoser.md',
+      'zh-CN': 'cicd-failure-diagnoser.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'CI/CD Failure Diagnoser',
+      'zh-CN': 'CI/CD 流水线失败诊断',
+      'ru-RU': 'Диагностика CI/CD Сбоев',
+      'uk-UA': 'Діагностика CI/CD Збоїв',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Diagnose CI/CD pipeline failures from logs. Identifies root causes and provides step-by-step fix instructions.',
+      'zh-CN': '通过日志诊断 CI/CD 流水线故障，识别根本原因并提供分步修复指导。',
+      'ru-RU': 'Диагностика сбоев CI/CD по логам. Определяет первопричины и даёт пошаговые инструкции по исправлению.',
+      'uk-UA':
+        'Діагностика збоїв CI/CD за логами. Визначає першопричини та надає покрокові інструкції з виправлення.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Why did my GitHub Actions workflow fail? Here are the logs',
+        'Diagnose this Docker build failure and suggest a fix',
+        'My Jest tests pass locally but fail in CI — what could cause this?',
+      ],
+      'zh-CN': [
+        '我的 GitHub Actions 工作流为什么失败？这是日志',
+        '诊断这个 Docker 构建失败并建议修复方案',
+        '我的 Jest 测试本地通过但在 CI 中失败——可能是什么原因？',
+      ],
+      'ru-RU': [
+        'Почему упал мой GitHub Actions воркфлоу? Вот логи',
+        'Диагностируй этот сбой сборки Docker и предложи исправление',
+        'Jest-тесты проходят локально, но падают в CI — в чём причина?',
+      ],
+      'uk-UA': [
+        'Чому впав мій GitHub Actions воркфлоу? Ось логи',
+        'Діагностуй цей збій збірки Docker та запропонуй виправлення',
+        'Jest-тести проходять локально, але падають у CI — яка причина?',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'sast-security-advisor',
+    avatar: '🔒',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/sast-security-advisor',
+    ruleFiles: {
+      'en-US': 'sast-security-advisor.md',
+      'zh-CN': 'sast-security-advisor.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'SAST Security Advisor',
+      'zh-CN': '代码安全 / SAST 修复建议',
+      'ru-RU': 'SAST Советник по Безопасности',
+      'uk-UA': 'SAST Радник з Безпеки',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Analyze SAST scan results and provide prioritized, code-level fix recommendations for security vulnerabilities.',
+      'zh-CN': '分析 SAST 扫描结果，对安全漏洞提供有优先级的代码级修复建议。',
+      'ru-RU':
+        'Анализ результатов SAST и приоритизированные рекомендации по исправлению уязвимостей на уровне кода.',
+      'uk-UA':
+        'Аналіз результатів SAST та пріоритизовані рекомендації щодо виправлення вразливостей на рівні коду.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Analyze these Semgrep findings and provide fix suggestions',
+        'Explain this SQL injection vulnerability and show me the secure fix',
+        'Review my code for OWASP Top 10 vulnerabilities',
+      ],
+      'zh-CN': [
+        '分析这些 Semgrep 扫描结果并提供修复建议',
+        '解释这个 SQL 注入漏洞并给出安全修复方案',
+        '检查我的代码是否存在 OWASP Top 10 漏洞',
+      ],
+      'ru-RU': [
+        'Проанализируй результаты Semgrep и предложи исправления',
+        'Объясни эту уязвимость SQL-инъекции и покажи безопасное исправление',
+        'Проверь мой код на наличие уязвимостей OWASP Top 10',
+      ],
+      'uk-UA': [
+        'Проаналізуй результати Semgrep та запропонуй виправлення',
+        "Поясни цю вразливість SQL-ін'єкції та покажи безпечне виправлення",
+        'Перевір мій код на наявність вразливостей OWASP Top 10',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'test-case-generator',
+    avatar: '🧪',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/test-case-generator',
+    ruleFiles: {
+      'en-US': 'test-case-generator.md',
+      'zh-CN': 'test-case-generator.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Test Case Generator',
+      'zh-CN': '测试用例生成',
+      'ru-RU': 'Генератор тест-кейсов',
+      'uk-UA': 'Генератор тест-кейсів',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Generate comprehensive test cases from requirements or code. Supports unit, integration, E2E, and BDD Gherkin formats.',
+      'zh-CN': '根据需求或代码生成全面的测试用例，支持单元测试、集成测试、E2E 测试和 BDD Gherkin 格式。',
+      'ru-RU':
+        'Генерация тест-кейсов по требованиям или коду. Поддержка unit, integration, E2E и BDD Gherkin форматов.',
+      'uk-UA': 'Генерація тест-кейсів за вимогами або кодом. Підтримка unit, integration, E2E та BDD Gherkin форматів.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Generate test cases for a user login feature',
+        'Write Gherkin BDD scenarios for a shopping cart checkout',
+        'Create a test plan for a REST API with CRUD operations',
+      ],
+      'zh-CN': [
+        '为用户登录功能生成测试用例',
+        '为购物车结账流程编写 Gherkin BDD 场景',
+        '为具有 CRUD 操作的 REST API 创建测试计划',
+      ],
+      'ru-RU': [
+        'Создай тест-кейсы для функции входа пользователя',
+        'Напиши Gherkin BDD сценарии для оформления заказа в корзине',
+        'Создай план тестирования REST API с CRUD операциями',
+      ],
+      'uk-UA': [
+        'Створи тест-кейси для функції входу користувача',
+        'Напиши Gherkin BDD сценарії для оформлення замовлення в кошику',
+        'Створи план тестування REST API з CRUD операціями',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'swagger-api-tester',
+    avatar: '🔌',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/swagger-api-tester',
+    ruleFiles: {
+      'en-US': 'swagger-api-tester.md',
+      'zh-CN': 'swagger-api-tester.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'Swagger API Tester',
+      'zh-CN': 'Swagger 接口测试',
+      'ru-RU': 'Swagger API Тестер',
+      'uk-UA': 'Swagger API Тестер',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Test REST APIs using Swagger/OpenAPI specs. Generates curl commands, Postman collections, and test scripts.',
+      'zh-CN': '基于 Swagger/OpenAPI 规范测试 REST API，生成 curl 命令、Postman Collection 和测试脚本。',
+      'ru-RU':
+        'Тестирование REST API по Swagger/OpenAPI спецификациям. Генерация curl команд, Postman коллекций и тест-скриптов.',
+      'uk-UA':
+        'Тестування REST API за Swagger/OpenAPI специфікаціями. Генерація curl команд, Postman колекцій та тест-скриптів.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Generate test cases from this Swagger spec URL',
+        'Create a Postman collection for all endpoints in the API',
+        'Write Python requests tests for user authentication endpoints',
+      ],
+      'zh-CN': [
+        '根据 Swagger 规范 URL 生成测试用例',
+        '为 API 中所有端点创建 Postman Collection',
+        '为用户认证接口编写 Python requests 测试脚本',
+      ],
+      'ru-RU': [
+        'Создай тест-кейсы по URL Swagger спецификации',
+        'Создай Postman коллекцию для всех эндпоинтов API',
+        'Напиши тесты на Python requests для эндпоинтов аутентификации',
+      ],
+      'uk-UA': [
+        'Створи тест-кейси за URL Swagger специфікації',
+        'Створи Postman колекцію для всіх ендпоінтів API',
+        'Напиши тести на Python requests для ендпоінтів автентифікації',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
+    id: 'webui-automation-tester',
+    avatar: '🤖',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/webui-automation-tester',
+    ruleFiles: {
+      'en-US': 'webui-automation-tester.md',
+      'zh-CN': 'webui-automation-tester.zh-CN.md',
+    },
+    nameI18n: {
+      'en-US': 'WebUI Automation Tester',
+      'zh-CN': 'WebUI 自动化测试',
+      'ru-RU': 'WebUI Автотестер',
+      'uk-UA': 'WebUI Автотестер',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Create automated UI tests using Playwright, Cypress, or Selenium with Page Object Model patterns.',
+      'zh-CN': '使用 Playwright、Cypress 或 Selenium 按照页面对象模型模式创建 WebUI 自动化测试脚本。',
+      'ru-RU': 'Создание автотестов UI с Playwright, Cypress или Selenium по паттерну Page Object Model.',
+      'uk-UA': 'Створення автотестів UI з Playwright, Cypress або Selenium за паттерном Page Object Model.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Write Playwright tests for a user login and dashboard flow',
+        'Create Cypress E2E tests for a multi-step checkout process',
+        'Generate a Selenium Python test suite for form validation',
+      ],
+      'zh-CN': [
+        '为用户登录和仪表盘流程编写 Playwright 测试',
+        '为多步骤结账流程创建 Cypress E2E 测试',
+        '为表单验证生成 Selenium Python 测试套件',
+      ],
+      'ru-RU': [
+        'Напиши Playwright тесты для потока входа пользователя и дашборда',
+        'Создай Cypress E2E тесты для многошагового процесса оформления заказа',
+        'Сгенерируй тест-сьют на Selenium Python для валидации форм',
+      ],
+      'uk-UA': [
+        'Напиши Playwright тести для потоку входу користувача та дашборду',
+        'Створи Cypress E2E тести для багатокрокового процесу оформлення замовлення',
+        'Згенеруй тест-сьют на Selenium Python для валідації форм',
+      ],
+    },
+    showOnHome: true,
+  },
+  {
     id: 'beautiful-mermaid',
     avatar: '📈',
     presetAgentType: 'gemini',
@@ -128,7 +460,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     defaultEnabledSkills: ['mermaid'],
     nameI18n: {
       'en-US': 'Beautiful Mermaid',
-      'zh-CN': 'Mermaid 图表助手',
+      'zh-CN': 'Mermaid 图表',
       'ru-RU': 'Beautiful Mermaid',
       'uk-UA': 'Beautiful Mermaid',
     },

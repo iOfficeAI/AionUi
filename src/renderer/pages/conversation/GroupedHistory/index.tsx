@@ -4,18 +4,27 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
+import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { emitter } from '@/renderer/utils/emitter';
+import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
-import { Button, Empty, Input, Modal, Tooltip } from '@arco-design/web-react';
-import { FolderOpen, Plus } from '@icon-park/react';
+import { Button, Dropdown, Empty, Input, Menu, Message, Modal, Tag, Tooltip } from '@arco-design/web-react';
+import { Down, FolderOpen, Plus, Right, Robot } from '@icon-park/react';
 import classNames from 'classnames';
-import { Down, Right } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useConversationTabs } from '../hooks/ConversationTabsContext';
+import { useConversationAgents } from '../hooks/useConversationAgents';
+import { applyDefaultConversationName } from '../utils/newConversationName';
+import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
+import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 
 import WorkspaceCollapse from '../components/WorkspaceCollapse';
 import ConversationRow from './ConversationRow';
@@ -37,7 +46,11 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 }) => {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const { openTab } = useConversationTabs();
+  const { cliAgents, presetAssistants } = useConversationAgents();
+  const isCreatingRef = useRef(false);
+  const defaultConversationName = t('conversation.welcome.newConversation');
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => new Set());
   const toggleSection = useCallback((key: string) => {
@@ -128,6 +141,94 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       batchMode,
       collapsed,
     });
+
+  const handleNewConversationForWorkspace = useCallback(
+    async (workspace: string, key: string) => {
+      if (isCreatingRef.current) return;
+      isCreatingRef.current = true;
+      try {
+        let params: ICreateConversationParams;
+        if (key.startsWith('cli:')) {
+          const backend = key.slice(4);
+          const agent = cliAgents.find((a) => a.backend === backend);
+          if (!agent) { Message.error(t('conversation.createFailed')); return; }
+          params = await buildCliAgentParams(agent, workspace);
+        } else if (key.startsWith('preset:')) {
+          const assistantId = key.slice(7);
+          const agent = presetAssistants.find((a) => a.customAgentId === assistantId);
+          if (!agent) { Message.error(t('conversation.createFailed')); return; }
+          params = await buildPresetAssistantParams(agent, workspace, i18n.language);
+        } else {
+          return;
+        }
+        const newConversation = await ipcBridge.conversation.create.invoke(
+          applyDefaultConversationName(params, defaultConversationName)
+        );
+        updateWorkspaceTime(workspace);
+        openTab(newConversation);
+        void navigate(`/conversation/${newConversation.id}`);
+        emitter.emit('chat.history.refresh');
+      } catch (error) {
+        console.error('Failed to create conversation:', error);
+        Message.error(t('conversation.createFailed'));
+      } finally {
+        isCreatingRef.current = false;
+      }
+    },
+    [cliAgents, presetAssistants, openTab, navigate, t, i18n.language, defaultConversationName]
+  );
+
+  const renderWorkspaceAgentMenu = useCallback(
+    (workspace: string) => (
+      <Menu onClickMenuItem={(key) => void handleNewConversationForWorkspace(workspace, key)}>
+        {cliAgents.length > 0 && (
+          <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
+            {cliAgents.map((agent) => {
+              const logo = getAgentLogo(agent.backend);
+              return (
+                <Menu.Item key={`cli:${agent.backend}`}>
+                  <div className='flex items-center gap-8px'>
+                    {logo ? (
+                      <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                    ) : (
+                      <Robot size='16' />
+                    )}
+                    <span>{agent.name}</span>
+                    {agent.isExtension && (
+                      <Tag size='small' color='arcoblue'>ext</Tag>
+                    )}
+                  </div>
+                </Menu.Item>
+              );
+            })}
+          </Menu.ItemGroup>
+        )}
+        {presetAssistants.length > 0 && (
+          <Menu.ItemGroup title={t('conversation.dropdown.presetAssistants')}>
+            {presetAssistants.map((agent) => {
+              const avatarImage = agent.avatar ? CUSTOM_AVATAR_IMAGE_MAP[agent.avatar] : undefined;
+              const isEmoji = agent.avatar && !avatarImage && !agent.avatar.endsWith('.svg');
+              return (
+                <Menu.Item key={`preset:${agent.customAgentId}`}>
+                  <div className='flex items-center gap-8px'>
+                    {avatarImage ? (
+                      <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                    ) : isEmoji ? (
+                      <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.avatar}</span>
+                    ) : (
+                      <Robot size='16' />
+                    )}
+                    <span>{agent.name}</span>
+                  </div>
+                </Menu.Item>
+              );
+            })}
+          </Menu.ItemGroup>
+        )}
+      </Menu>
+    ),
+    [cliAgents, presetAssistants, handleNewConversationForWorkspace, t]
+  );
 
   const getConversationRowProps = useCallback(
     (conversation: TChatConversation): ConversationRowProps => ({
@@ -436,25 +537,23 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                             <span className='font-medium truncate flex-1 text-t-primary min-w-0'>
                               {group.displayName}
                             </span>
-                            <Tooltip content={t('conversation.workspace.createNewConversation')}>
-                              <div
-                                role='button'
-                                tabIndex={0}
-                                className='shrink-0 w-20px h-20px rd-4px flex items-center justify-center text-t-secondary hover:text-brand hover:bg-fill-3 transition-all cursor-pointer'
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  navigate('/guid', { state: { workspace: group.workspace } });
-                                }}
-                                onKeyDown={(e) => {
-                                  if (e.key === 'Enter' || e.key === ' ') {
-                                    e.stopPropagation();
-                                    navigate('/guid', { state: { workspace: group.workspace } });
-                                  }
-                                }}
-                              >
-                                <Plus theme='outline' size={14} />
-                              </div>
-                            </Tooltip>
+                            <Dropdown
+                              droplist={renderWorkspaceAgentMenu(group.workspace)}
+                              trigger='click'
+                              position='br'
+                              getPopupContainer={() => document.body}
+                            >
+                              <Tooltip content={t('conversation.workspace.createNewConversation')}>
+                                <div
+                                  role='button'
+                                  tabIndex={0}
+                                  className='shrink-0 w-20px h-20px rd-4px flex items-center justify-center text-t-secondary hover:text-brand hover:bg-fill-3 transition-all cursor-pointer'
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <Plus theme='outline' size={14} />
+                                </div>
+                              </Tooltip>
+                            </Dropdown>
                           </div>
                         }
                       >

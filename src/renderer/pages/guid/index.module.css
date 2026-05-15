@@ -732,3 +732,135 @@
     max-width: 100px;
   }
 }
+
+
+/* =============================================
+/* =============================================
+ * WelcomeBanner — 项目欢迎词 / 价值主张展示（紧凑卡片）
+ * ============================================= */
+.welcomeBanner {
+  position: relative;
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto 16px;
+  padding: 10px 36px 10px 14px;
+  border-radius: 12px;
+  background: linear-gradient(135deg, color-mix(in srgb, rgb(var(--primary-6)) 8%, transparent) 0%, color-mix(in srgb, rgb(var(--purple-6)) 6%, transparent) 100%);
+  border: 1px solid color-mix(in srgb, rgb(var(--primary-6)) 10%, transparent);
+  animation: welcomeFadeIn 0.5s ease-out;
+  box-sizing: border-box;
+}
+
+@keyframes welcomeFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.welcomeBannerClose {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-3);
+  cursor: pointer;
+  padding: 0;
+  transition: all 0.15s;
+}
+
+.welcomeBannerClose:hover {
+  background: color-mix(in srgb, var(--color-text-0) 10%, transparent);
+  color: var(--color-text-1);
+}
+
+.welcomeBannerInner {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.welcomeBannerHeader {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.welcomeBannerHeader svg {
+  flex-shrink: 0;
+}
+
+.welcomeBannerTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-text-0);
+  white-space: nowrap;
+}
+
+.welcomeBannerEmoji {
+  margin-left: 2px;
+  font-size: 14px;
+}
+
+.welcomeBannerItems {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.welcomeBannerItem {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 12px;
+  color: var(--color-text-2);
+  white-space: nowrap;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: color-mix(in srgb, var(--color-text-0) 5%, transparent);
+}
+
+.welcomeBannerItemBadge {
+  font-size: 12px;
+  line-height: 1;
+}
+
+@media (max-width: 768px) {
+  .welcomeBanner {
+    padding: 8px 32px 8px 10px;
+    margin-bottom: 10px;
+  }
+
+  .welcomeBannerInner {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .welcomeBannerTitle {
+    font-size: 13px;
+  }
+
+  .welcomeBannerItems {
+    gap: 6px;
+  }
+
+  .welcomeBannerItem {
+    font-size: 11px;
+    padding: 1px 6px;
+  }
+}

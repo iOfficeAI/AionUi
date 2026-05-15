@@ -170,7 +170,7 @@ const LocalAgents: React.FC = () => {
       {(editorVisible || (customAgents && customAgents.length > 0)) && (
         <div className='px-16px mt-16px'>
           <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
+            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Runtimes' })}
           </Typography.Text>
         </div>
       )}

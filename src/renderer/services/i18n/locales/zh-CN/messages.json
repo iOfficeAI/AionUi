@@ -30,7 +30,7 @@
   "export.typeLabel": "类型",
   "export.noMessages": "暂无消息",
   "export.userLabel": "用户",
-  "export.assistantLabel": "助手",
+  "export.assistantLabel": "Agent",
   "export.systemLabel": "系统",
   "export.menuTitle": "导出对话",
   "export.menuHint": "选择导出当前对话的方式",

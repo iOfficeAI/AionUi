@@ -12,11 +12,9 @@ import {
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Input, Message, Modal } from '@arco-design/web-react';
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
-import { useAuth } from '@renderer/hooks/context/AuthContext';
 import appLogo from '@renderer/assets/logos/brand/app.png';
 import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
@@ -30,7 +28,6 @@ interface TitlebarProps {
   workspaceAvailable: boolean;
 }
 
-const DEFAULT_KSC_BASE_URL = 'https://camelotklt.kscc.api.ksyun.com';
 
 const AionLogoMark: React.FC = () => (
   <img className='app-titlebar__brand-logo' src={appLogo} alt='' aria-hidden='true' />
@@ -68,21 +65,9 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
   const appTitle = useMemo(() => 'AICore', []);
-  const { user, status, logout } = useAuth();
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
-  const [kscLoginVisible, setKscLoginVisible] = useState(false);
-  const [kscBaseUrl, setKscBaseUrl] = useState('');
-  const [kscLoginLoading, setKscLoginLoading] = useState(false);
-  const [kscUser, setKscUser] = useState<{ userName?: string; companyName?: string } | null>(() => {
-    try {
-      const stored = localStorage.getItem('ksc.user');
-      return stored ? (JSON.parse(stored) as { userName?: string; companyName?: string }) : null;
-    } catch {
-      return null;
-    }
-  });
   const layout = useLayoutContext();
   const navigationHistory = useNavigationHistory();
   const location = useLocation();
@@ -155,28 +140,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     void navigate('/guid');
   };
 
-  const handleLoginEntryClick = async () => {
-    if (isDesktopRuntime) {
-      const cachedBaseUrl = (localStorage.getItem('ksc.baseUrl') || DEFAULT_KSC_BASE_URL).trim().replace(/\/+$/, '');
-      setKscBaseUrl(cachedBaseUrl);
-      setKscLoginVisible(true);
-      return;
-    }
-
-    void navigate('/login');
-  };
-
-  const handleSignOut = async () => {
-    if (isDesktopRuntime) {
-      localStorage.removeItem('ksc.user');
-      setKscUser(null);
-      Message.info(t('common.signedOut', { defaultValue: 'Signed out' }));
-      return;
-    }
-
-    await logout();
-  };
-
   const handleBackToChat = () => {
     const target = lastNonSettingsPathRef.current;
     if (target && !target.startsWith('/settings')) {
@@ -184,49 +147,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       return;
     }
     void navigate(-1);
-  };
-
-  const handleKscLoginConfirm = async () => {
-    const normalizedBaseUrl = kscBaseUrl.trim().replace(/\/+$/, '');
-    if (!normalizedBaseUrl) {
-      Message.warning('Please enter the KSC base URL.');
-      return;
-    }
-    if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
-      Message.error('KSC Base URL must start with http:// or https://');
-      return;
-    }
-
-    setKscLoginLoading(true);
-    localStorage.setItem('ksc.baseUrl', normalizedBaseUrl);
-    console.info('[KSC Login] Starting loginAndSync with base URL:', normalizedBaseUrl);
-    Message.info('Opening KSC login flow in browser...');
-
-    try {
-      const result = await ipcBridge.kscAuth.loginAndSync.invoke({
-        baseUrl: normalizedBaseUrl,
-      });
-
-      if (!result.success) {
-        console.error('[KSC Login] loginAndSync failed:', result.msg, result);
-        Message.error(result.msg || 'KSC login failed');
-        return;
-      }
-
-      console.info('[KSC Login] loginAndSync success:', result.data);
-      const kscUserData = { userName: result.data?.userName, companyName: result.data?.companyName };
-      localStorage.setItem('ksc.user', JSON.stringify(kscUserData));
-      setKscUser(kscUserData);
-      Message.success(
-        `KSC login succeeded. Synced ${result.data?.syncedModels ?? 0} models${result.data?.userName ? ` for ${result.data.userName}` : ''}.`
-      );
-      setKscLoginVisible(false);
-    } catch (error) {
-      console.error('[KSC Login] loginAndSync crashed:', error);
-      Message.error(error instanceof Error ? error.message : 'KSC login failed');
-    } finally {
-      setKscLoginLoading(false);
-    }
   };
 
   useEffect(() => {
@@ -426,79 +346,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         )}
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
-        {isDesktopRuntime ? (
-          kscUser ? (
-            <button
-              type='button'
-              className={classNames(
-                'app-titlebar__login-entry',
-                layout?.isMobile && 'app-titlebar__login-entry--mobile'
-              )}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-              onClick={() => {
-                void handleSignOut();
-              }}
-              aria-label={t('common.signOut', { defaultValue: 'Sign Out' })}
-              title={t('common.signOut', { defaultValue: 'Sign Out' })}
-            >
-              {t('common.signOut', { defaultValue: 'Sign Out' })}
-            </button>
-          ) : (
-            <button
-              type='button'
-              className={classNames(
-                'app-titlebar__login-entry',
-                layout?.isMobile && 'app-titlebar__login-entry--mobile'
-              )}
-              onMouseDown={(event) => {
-                event.preventDefault();
-                event.stopPropagation();
-              }}
-              onClick={() => {
-                void handleLoginEntryClick();
-              }}
-              aria-label={t('common.signIn', { defaultValue: 'Sign In' })}
-              title={t('common.signIn', { defaultValue: 'Sign In' })}
-            >
-              {t('common.signIn', { defaultValue: 'Sign In' })}
-            </button>
-          )
-        ) : status === 'authenticated' && user ? (
-          <button
-            type='button'
-            className={classNames('app-titlebar__login-entry', layout?.isMobile && 'app-titlebar__login-entry--mobile')}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={() => {
-              void handleSignOut();
-            }}
-            aria-label={t('common.signOut', { defaultValue: 'Sign Out' })}
-            title={t('common.signOut', { defaultValue: 'Sign Out' })}
-          >
-            {t('common.signOut', { defaultValue: 'Sign Out' })}
-          </button>
-        ) : (
-          <button
-            type='button'
-            className={classNames('app-titlebar__login-entry', layout?.isMobile && 'app-titlebar__login-entry--mobile')}
-            onMouseDown={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-            }}
-            onClick={() => {
-              void handleLoginEntryClick();
-            }}
-            aria-label={t('common.signIn', { defaultValue: 'Sign In' })}
-            title={t('common.signIn', { defaultValue: 'Sign In' })}
-          >
-            {t('common.signIn', { defaultValue: 'Sign In' })}
-          </button>
-        )}
         {showNewConversationButton && (
           <button
             type='button'
@@ -525,30 +372,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         )}
         {showWindowControls && <WindowControls />}
       </div>
-      <Modal
-        title={t('common.signIn', { defaultValue: 'Sign In' })}
-        visible={kscLoginVisible}
-        onOk={() => void handleKscLoginConfirm()}
-        onCancel={() => {
-          setKscLoginVisible(false);
-          setKscLoginLoading(false);
-        }}
-        okText={t('common.signIn', { defaultValue: 'Sign In' })}
-        confirmLoading={kscLoginLoading}
-        okButtonProps={{ disabled: !kscBaseUrl.trim() }}
-        style={{ borderRadius: '12px' }}
-        alignCenter
-        getPopupContainer={() => document.body}
-      >
-        <Input
-          autoFocus
-          value={kscBaseUrl}
-          onChange={setKscBaseUrl}
-          onPressEnter={() => void handleKscLoginConfirm()}
-          placeholder='https://your-ksc-host'
-          allowClear
-        />
-      </Modal>
     </div>
   );
 };

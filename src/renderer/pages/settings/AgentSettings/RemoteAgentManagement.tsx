@@ -7,13 +7,11 @@
 import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput } from '@process/agent/remote/types';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
-import { openExternalUrl } from '@/renderer/utils/platform';
 import {
   Avatar,
   Button,
   Form,
   Input,
-  Link,
   Message,
   Modal,
   Select,
@@ -32,7 +30,6 @@ const FormItem = Form.Item;
 
 const PAIRING_POLL_INTERVAL = 5_000;
 const PAIRING_TIMEOUT = 5 * 60 * 1000;
-const REMOTE_AGENT_GUIDE_URL = 'https://github.com/iOfficeAI/AionUi/wiki/Remote-Agent-Guide-Chinese';
 
 type PairingState = 'idle' | 'handshaking' | 'pending' | 'timeout';
 
@@ -54,10 +51,6 @@ const statusColor = (status?: string): string => {
     default:
       return 'gray';
   }
-};
-
-const openRemoteAgentGuide = (): void => {
-  void openExternalUrl(REMOTE_AGENT_GUIDE_URL).catch(console.error);
 };
 
 const RemoteAgentFormModal: React.FC<{
@@ -308,10 +301,7 @@ const RemoteAgentFormModal: React.FC<{
         <div className='flex gap-10px rounded-12px border border-solid border-[rgba(var(--warning-6),0.14)] bg-[rgba(var(--warning-6),0.08)] px-16px py-12px'>
           <Attention theme='filled' size={16} className='mt-2px shrink-0 text-[rgb(var(--warning-6))]' />
           <div className='min-w-0 text-13px leading-20px text-t-secondary'>
-            <span>{t('settings.agentManagement.remoteAgentsDescription')} </span>
-            <Link className='text-13px leading-20px' onClick={openRemoteAgentGuide}>
-              {t('settings.remoteAgent.guideAction')}
-            </Link>
+            <span>{t('settings.agentManagement.remoteAgentsDescription')}</span>
           </div>
         </div>
 
@@ -450,9 +440,6 @@ const RemoteAgentManagement: React.FC = () => {
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
             {t('settings.agentManagement.remoteAgentsDescription')}
           </Typography.Text>
-          <Link className='text-12px leading-18px' onClick={openRemoteAgentGuide}>
-            {t('settings.remoteAgent.guideAction')}
-          </Link>
         </div>
         <Button
           type='outline'

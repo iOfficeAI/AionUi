@@ -343,7 +343,7 @@ export const createRemoteAgent = async (options: ICreateConversationParams): Pro
 export const createAionrsAgent = async (options: ICreateConversationParams): Promise<TChatConversation> => {
   const { extra } = options;
   const { workspace, customWorkspace } = await buildWorkspaceWidthFiles(
-    `aionrs-temp-${Date.now()}`,
+    `temp-${Date.now()}`,
     extra.workspace,
     extra.defaultFiles,
     extra.customWorkspace

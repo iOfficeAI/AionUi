@@ -122,7 +122,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
       },
       agent: {
         id: 'agent',
-        label: t('settings.agents', { defaultValue: 'Agents' }),
+        label: t('settings.agents', { defaultValue: 'Runtimes' }),
         icon: <Speed />,
         path: 'agent',
       },

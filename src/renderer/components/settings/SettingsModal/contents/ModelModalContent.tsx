@@ -8,11 +8,12 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import { Button, Divider, Input, Message, Modal, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
@@ -96,11 +97,13 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 };
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
+const DEFAULT_KSC_BASE_URL = 'https://camelotklt.kscc.api.ksyun.com';
 
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const isDesktopRuntime = isElectronDesktop();
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
   const { data, mutate } = useSWR('model.config', () => {
@@ -110,6 +113,67 @@ const ModelModalContent: React.FC = () => {
     });
   });
   const [message, messageContext] = Message.useMessage();
+
+  const [kscUser, setKscUser] = useState<{ userName?: string; companyName?: string } | null>(() => {
+    try {
+      const stored = localStorage.getItem('ksc.user');
+      return stored ? (JSON.parse(stored) as { userName?: string; companyName?: string }) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [kscLoginVisible, setKscLoginVisible] = useState(false);
+  const [kscBaseUrl, setKscBaseUrl] = useState('');
+  const [kscLoginLoading, setKscLoginLoading] = useState(false);
+
+  const handleKscLogin = () => {
+    const cachedBaseUrl = (localStorage.getItem('ksc.baseUrl') || DEFAULT_KSC_BASE_URL).trim().replace(/\/+$/, '');
+    setKscBaseUrl(cachedBaseUrl);
+    setKscLoginVisible(true);
+  };
+
+  const handleKscLogout = () => {
+    localStorage.removeItem('ksc.user');
+    setKscUser(null);
+    Message.info('已登出云码');
+  };
+
+  const handleKscLoginConfirm = async () => {
+    const normalizedBaseUrl = kscBaseUrl.trim().replace(/\/+$/, '');
+    if (!normalizedBaseUrl) {
+      Message.warning('请输入 KSC Base URL');
+      return;
+    }
+    if (!normalizedBaseUrl.startsWith('http://') && !normalizedBaseUrl.startsWith('https://')) {
+      Message.error('KSC Base URL 必须以 http:// 或 https:// 开头');
+      return;
+    }
+
+    setKscLoginLoading(true);
+    localStorage.setItem('ksc.baseUrl', normalizedBaseUrl);
+    Message.info('正在打开云码登录页面...');
+
+    try {
+      const result = await ipcBridge.kscAuth.loginAndSync.invoke({ baseUrl: normalizedBaseUrl });
+
+      if (!result.success) {
+        Message.error(result.msg || '云码登录失败');
+        return;
+      }
+
+      const kscUserData = { userName: result.data?.userName, companyName: result.data?.companyName };
+      localStorage.setItem('ksc.user', JSON.stringify(kscUserData));
+      setKscUser(kscUserData);
+      Message.success(
+        `云码登录成功，已同步 ${result.data?.syncedModels ?? 0} 个模型${result.data?.userName ? `（${result.data.userName}）` : ''}`
+      );
+      setKscLoginVisible(false);
+    } catch (error) {
+      Message.error(error instanceof Error ? error.message : '云码登录失败');
+    } finally {
+      setKscLoginLoading(false);
+    }
+  };
 
   const saveModelConfig = (newData: IProvider[], success?: () => void) => {
     // 乐观更新：立即更新 UI
@@ -467,6 +531,28 @@ const ModelModalContent: React.FC = () => {
         <div className='flex items-center justify-between gap-8px flex-wrap'>
           <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
           <div className='flex items-center gap-8px flex-wrap'>
+            {isDesktopRuntime &&
+              (kscUser ? (
+                <Button
+                  type='outline'
+                  shape='round'
+                  size='small'
+                  onClick={handleKscLogout}
+                  className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+                >
+                  云码登出
+                </Button>
+              ) : (
+                <Button
+                  type='outline'
+                  shape='round'
+                  size='small'
+                  onClick={handleKscLogin}
+                  className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+                >
+                  云码登陆
+                </Button>
+              ))}
             <Button
               type='outline'
               shape='round'
@@ -725,6 +811,30 @@ const ModelModalContent: React.FC = () => {
           </div>
         )}
       </AionScrollArea>
+      <Modal
+        title='云码登陆'
+        visible={kscLoginVisible}
+        onOk={() => void handleKscLoginConfirm()}
+        onCancel={() => {
+          setKscLoginVisible(false);
+          setKscLoginLoading(false);
+        }}
+        okText='登陆'
+        confirmLoading={kscLoginLoading}
+        okButtonProps={{ disabled: !kscBaseUrl.trim() }}
+        style={{ borderRadius: '12px' }}
+        alignCenter
+        getPopupContainer={() => document.body}
+      >
+        <Input
+          autoFocus
+          value={kscBaseUrl}
+          onChange={setKscBaseUrl}
+          onPressEnter={() => void handleKscLoginConfirm()}
+          placeholder='https://your-ksc-host'
+          allowClear
+        />
+      </Modal>
     </div>
   );
 };
