@@ -7,6 +7,7 @@ const {
   rebuildSingleModule,
   verifyModuleBinary,
   getModulesToRebuild,
+  shouldRebuildNativeModules,
 } = require('./rebuildNativeModules');
 
 /**
@@ -24,10 +25,16 @@ module.exports = async function afterPack(context) {
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
-  const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI
-  // Linux 使用预编译二进制，避免 GLIBC 版本依赖 | Linux uses prebuilt binaries which are GLIBC-independent
+  const shouldRebuild = shouldRebuildNativeModules({
+    platform: electronPlatformName,
+    buildArch,
+    targetArch,
+    forceRebuild,
+  });
+  const needsSameArchRebuild = shouldRebuild && !isCrossCompile && !forceRebuild;
+  // Linux same-arch builds use prebuilt binaries and skip rebuild unless forced.
 
-  if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
+  if (!shouldRebuild) {
     console.log(`   ✓ Same architecture, rebuild skipped (set FORCE_NATIVE_REBUILD=true to override)\n`);
     return;
   }

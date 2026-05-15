@@ -82,6 +82,27 @@ function getModulesToRebuild(platform) {
 }
 
 /**
+ * Decide whether packaged native modules must be rebuilt for the target app.
+ *
+ * Cross-architecture builds always need rebuilds. Same-architecture macOS and
+ * Windows builds also need rebuilds because the installed addon may target the
+ * host Node.js ABI, while the packaged app runs under Electron's Node ABI.
+ */
+function shouldRebuildNativeModules({ platform, buildArch, targetArch, forceRebuild = false }) {
+  if (forceRebuild) {
+    return true;
+  }
+
+  const normalizedBuildArch = normalizeArch(buildArch);
+  const normalizedTargetArch = normalizeArch(targetArch);
+  if (normalizedBuildArch !== normalizedTargetArch) {
+    return true;
+  }
+
+  return platform === 'darwin' || platform === 'win32' || platform === 'windows';
+}
+
+/**
  * Build environment variables for native module compilation
  */
 function buildEnvironment(platform, targetArch, electronVersion) {
@@ -395,6 +416,7 @@ module.exports = {
   rebuildSingleModule,
   verifyModuleBinary,
   canCrossCompileFromSource,
+  shouldRebuildNativeModules,
   isVxAvailable,
   getBunxCommand,
   getCommandPrefix,
