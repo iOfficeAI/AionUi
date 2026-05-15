@@ -18,7 +18,7 @@ You manage, monitor, and recover all infrastructure services in the NovaMaster s
 ```
 9120  Claw3D Office          8095  Claw3D Backend
 18789 Hermes Adapter         8093  VibeVoice TTS
-18791 OpenClaw Gateway       8094  VibeVoice STT
+18793 OpenClaw Gateway       8094  VibeVoice STT
 8642  Hermes API            7438  ClawMem
 9119  Hermes Dashboard      11434  Ollama
 3000  Space Agent            4000  LiteLLM

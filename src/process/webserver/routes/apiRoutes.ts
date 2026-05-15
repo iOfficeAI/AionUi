@@ -45,6 +45,7 @@ type NovaMasterProbe = {
   name: string;
   role: string;
   port?: number;
+  actionPort?: number;
   portFile?: string;
   healthPath?: string;
   detailPath?: string;
@@ -178,9 +179,17 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     id: 'openclaw',
     name: 'OpenClaw',
     role: 'Gateway and Mission Control',
-    port: 18791,
+    port: 18793,
+    actionPort: 18793,
     kind: 'tcp',
-    openUrl: 'ws://127.0.0.1:18791',
+    openUrl: 'ws://127.0.0.1:18793',
+    healthPath: '/health',
+    primaryAction: {
+      id: 'health',
+      label: 'Health',
+      method: 'GET',
+      path: '/health',
+    },
   },
   {
     id: 'goclaw',
@@ -975,7 +984,8 @@ async function runNovaMasterServiceAction(serviceId: string): Promise<Record<str
     throw new Error(`No NovaMaster action configured for ${probe.name}`);
   }
 
-  const response = await requestNovaMasterEndpoint(port, action.path, {
+  const actionPort = probe.actionPort ?? port;
+  const response = await requestNovaMasterEndpoint(actionPort, action.path, {
     method: action.method,
     body: action.body,
     timeoutMs: action.id === 'chat' ? 10000 : 3000,

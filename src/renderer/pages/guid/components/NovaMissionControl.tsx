@@ -445,7 +445,7 @@ const NovaMissionControl: React.FC = () => {
   let embeddedPanel: React.ReactNode = null;
   if (activePanel === 'openclaw') {
     embeddedPanel = (
-      <EmbeddedPanel title='OpenClaw Gateway' badge=':18791' src='http://localhost:18791/' />
+      <EmbeddedPanel title='OpenClaw Gateway' badge=':18793' src='http://localhost:18793/' />
     );
   } else if (activePanel === 'spaceagent') {
     embeddedPanel = (

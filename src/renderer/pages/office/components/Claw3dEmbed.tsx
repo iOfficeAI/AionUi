@@ -13,7 +13,7 @@ interface Claw3dEmbedProps {
 
 const CLAW3D_DEFAULT_PORT = 9120;
 const CLAW3D_FLOOR = 'openclaw-ground';
-const GATEWAY_URL = 'ws://localhost:18791';
+const GATEWAY_URL = 'ws://localhost:18793';
 
 const Claw3dEmbed: React.FC<Claw3dEmbedProps> = ({
   port = CLAW3D_DEFAULT_PORT,

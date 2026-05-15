@@ -22,7 +22,7 @@ const TIMEOUT_MS = 3_000;
 
 const SERVICES: Array<{ id: string; name: string; url: string }> = [
   { id: 'hermes', name: 'Hermes', url: 'http://127.0.0.1:8642/health' },
-  { id: 'openclaw', name: 'OpenClaw', url: 'http://127.0.0.1:18791/health' },
+  { id: 'openclaw', name: 'OpenClaw', url: 'http://127.0.0.1:18793/health' },
   { id: 'clawmem', name: 'ClawMem', url: 'http://127.0.0.1:7438/health' },
   { id: 'ollama', name: 'Ollama', url: 'http://127.0.0.1:11434/api/tags' },
   { id: 'litellm', name: 'LiteLLM', url: 'http://127.0.0.1:4000/health/readiness' },

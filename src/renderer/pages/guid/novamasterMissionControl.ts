@@ -33,7 +33,7 @@ export const NOVA_ORB_OPTIONS: NovaOrbOption[] = [
 
 export const NOVA_COMMAND_ACTIONS: NovaCommandAction[] = [
   { id: 'jarvis-chat', label: 'Jarvis Chat', icon: 'JV', serviceId: 'jarvis', mode: 'action' },
-  { id: 'openclaw-models', label: 'OpenClaw Models', icon: 'OC', serviceId: 'openclaw', mode: 'action' },
+  { id: 'openclaw-health', label: 'OpenClaw Health', icon: 'OC', serviceId: 'openclaw', mode: 'action' },
   { id: 'goclaw-health', label: 'GoClaw Health', icon: 'GC', serviceId: 'goclaw', mode: 'action' },
   { id: 'space-health', label: 'Space Health', icon: 'SA', serviceId: 'space-agent', mode: 'action' },
   { id: 'hermes-health', label: 'Hermes Health', icon: 'HM', serviceId: 'hermes', mode: 'action' },
