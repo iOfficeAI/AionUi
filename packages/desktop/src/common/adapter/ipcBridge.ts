@@ -1615,6 +1615,7 @@ export const team = {
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
       agents: p.agents.map(toBackendAgent),
+      ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam
   ),
