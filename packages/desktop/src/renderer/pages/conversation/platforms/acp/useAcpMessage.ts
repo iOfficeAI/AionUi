@@ -424,12 +424,41 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           setContextLimit(last_context_limit);
         }
       }
+
     });
 
     return () => {
       cancelled = true;
     };
   }, [conversation_id]);
+
+  // Fetch slash commands via HTTP once conversation hydration completes.
+  // WebSocket push of available_commands happens during warmup when no
+  // StreamRelay is listening, so the initial load must come from HTTP.
+  // Subsequent runtime updates still arrive via the WebSocket handler above.
+  useEffect(() => {
+    if (!hasHydratedRunningState) return;
+    let cancelled = false;
+    void ipcBridge.conversation.getSlashCommands
+      .invoke({ conversation_id })
+      .then((result) => {
+        if (cancelled) return;
+        if (!result || !Array.isArray(result) || result.length === 0) return;
+        setSlashCommands(
+          result.map((c) => ({
+            name: c.command,
+            description: c.description,
+            kind: 'template' as const,
+            source: 'acp' as const,
+            selectionBehavior: 'insert' as const,
+          })),
+        );
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation_id, hasHydratedRunningState]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
