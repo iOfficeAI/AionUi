@@ -82,6 +82,15 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             return res;
           }
 
+          // Guard: on subsequent refreshes (not first load, not search), ignore
+          // empty responses when we already have files — prevents the tree from
+          // flashing empty while the backend is temporarily unable to read the
+          // workspace (e.g. concurrent file operations by another agent).
+          const isEmpty = res.length === 0 || (res[0]?.children?.length ?? 0) === 0;
+          if (!isFirstLoadRef.current && !search && isEmpty) {
+            return res;
+          }
+
           setFiles(res);
           // 只在搜索时才重置 Tree key，否则保持选中状态
           // Only reset Tree key when searching, otherwise keep selection state
@@ -106,16 +115,14 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           const hasFiles = res.length > 0 && (res[0]?.children?.length ?? 0) > 0;
 
           if (isFirstLoadRef.current) {
-            // 首次加载（切换会话或打开会话）：有文件展开，没文件折叠
-            // First load (switch or open conversation): expand if has files, collapse if not
-            dispatchWorkspaceHasFilesEvent(hasFiles, conversation_id);
             isFirstLoadRef.current = false;
-          } else {
-            // 后续刷新（Agent 生成文件等）：有文件就展开，不主动折叠
-            // Subsequent refresh (agent generates files, etc.): expand if has files, never collapse
-            if (hasFiles) {
-              dispatchWorkspaceHasFilesEvent(true, conversation_id);
-            }
+          }
+
+          // Only dispatch expand signal when there are files; never actively
+          // collapse — avoids fighting with team mode's explicit expand and
+          // prevents flicker when workspace starts empty.
+          if (hasFiles) {
+            dispatchWorkspaceHasFilesEvent(true, conversation_id);
           }
 
           return res;

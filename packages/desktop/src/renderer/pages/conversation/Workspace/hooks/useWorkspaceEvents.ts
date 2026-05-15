@@ -120,13 +120,24 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
    * Listen to agent response stream - auto refresh workspace (throttled)
    */
   useEffect(() => {
-    const handleResponse = (data: { type: string; data?: unknown }) => {
+    const isNonFileSystemTool = (name: string) => /^mcp__aionui-team-|^team_/.test(name);
+
+    const handleResponse = (data: { type: string; data?: unknown; conversation_id?: string }) => {
+      if (data.conversation_id && data.conversation_id !== conversation_id) return;
+
       if (data.type === 'acp_tool_call') {
-        throttledRefresh();
+        const acpData = data.data as { update?: { kind?: string; status?: string; title?: string } } | undefined;
+        const kind = acpData?.update?.kind;
+        const title = acpData?.update?.title;
+        if (kind === 'edit' || kind === 'execute') {
+          if (title && isNonFileSystemTool(title)) return;
+          throttledRefresh();
+        }
       }
       if (data.type === 'tool_call') {
-        const toolData = data.data as { status?: string } | undefined;
+        const toolData = data.data as { status?: string; name?: string } | undefined;
         if (toolData?.status === 'completed') {
+          if (toolData.name && isNonFileSystemTool(toolData.name)) return;
           throttledRefresh();
         }
       }
