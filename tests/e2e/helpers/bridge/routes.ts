@@ -22,7 +22,7 @@ function mapPreviewHistoryTarget(target: Record<string, unknown> | undefined): R
 }
 
 /**
- * Mapping from legacy dotted IPC keys to aionui-backend HTTP routes.
+ * Mapping from legacy dotted IPC keys to aioncli HTTP routes.
  * Only keys actually used by E2E tests are listed — unknown keys fall through
  * to the legacy IPC bridge.
  */
@@ -75,7 +75,7 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
       return `/api/conversations/${encodeURIComponent(String(p.conversation_id))}/messages?${qs.toString()}`;
     },
   },
-  // Workspace / file-system routes (aionui-backend, --local mode: no auth).
+  // Workspace / file-system routes (aioncli, --local mode: no auth).
   // mapResponse translates snake_case → camelCase so test assertions stay
   // in idiomatic TS.
   'fs.dir': { method: 'POST', path: '/api/fs/dir', mapResponse: 'dirOrFileTree' },

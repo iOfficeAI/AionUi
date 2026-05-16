@@ -1,6 +1,6 @@
 /**
  * HTTP/WS bridge factory — drop-in replacement for bridge.buildProvider / bridge.buildEmitter
- * that routes calls to aionui-backend via REST API and WebSocket.
+ * that routes calls to aioncli via REST API and WebSocket.
  *
  * Exported helpers produce objects with the same shape as @office-ai/platform bridge,
  * so existing renderer code works without changes.

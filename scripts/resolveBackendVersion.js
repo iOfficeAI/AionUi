@@ -1,5 +1,5 @@
 /**
- * Resolve the aionui-backend version tag to download for packaging.
+ * Resolve the aioncli version tag to download for packaging.
  *
  * Order:
  *   1. AIONUI_BACKEND_VERSION env (ad-hoc override, e.g. CI dispatch input)

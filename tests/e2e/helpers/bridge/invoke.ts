@@ -12,7 +12,7 @@ type ElectronApi = {
  *
  * Preferred path: map `key` to a backend HTTP route and issue a `fetch` from
  * the renderer against `window.__backendPort`. This matches how the running
- * app talks to aionui-backend.
+ * app talks to aioncli.
  *
  * Fallback: for any key not in the route map, fall back to the legacy
  * `@office-ai/platform` IPC protocol:

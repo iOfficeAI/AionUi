@@ -1,5 +1,5 @@
 /**
- * HTTP client factory for communicating with the aionui-backend server.
+ * HTTP client factory for communicating with the aioncli server.
  *
  * Usage:
  *   const api = createApiClient('http://127.0.0.1:9123')

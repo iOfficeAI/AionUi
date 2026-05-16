@@ -485,7 +485,7 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aionui-backend only after initializeProcess(). initStorage may open
+  // Start aioncli only after initializeProcess(). initStorage may open
   // the legacy Electron SQLite catalog for a one-shot v26 migration and must
   // close it before the backend touches the same file.
   try {
@@ -506,7 +506,7 @@ const handleAppReady = async (): Promise<void> => {
     registerCronResumeBridge(backendPort);
     backendStartedOk = true;
   } catch (error) {
-    console.error('[AionUi] Failed to start aionui-backend:', error);
+    console.error('[AionUi] Failed to start aioncli:', error);
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is
@@ -602,7 +602,7 @@ const handleAppReady = async (): Promise<void> => {
             // Spawning a second backend here would race the first on SQLite.
             const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
             if (!port) {
-              throw new Error('[WebUI] Cannot start: aionui-backend is not running (globalThis.__backendPort unset)');
+              throw new Error('[WebUI] Cannot start: aioncli is not running (globalThis.__backendPort unset)');
             }
             return port;
           })(),
@@ -787,7 +787,7 @@ app.on('before-quit', async () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
 
-    // Stop aionui-backend subprocess — backend shutdown kills all agent
+    // Stop aioncli subprocess — backend shutdown kills all agent
     // children transitively (no separate frontend workerTaskManager remains)
     await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
 
@@ -799,7 +799,7 @@ app.on('before-quit', async () => {
       /* pet not initialized */
     }
 
-    // Web Server lifecycle is managed by aionui-backend subprocess
+    // Web Server lifecycle is managed by aioncli subprocess
     // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
   };
 

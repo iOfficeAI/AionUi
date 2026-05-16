@@ -4,7 +4,7 @@ import type { Page } from '@playwright/test';
  * HTTP bridge helper for E2E tests.
  *
  * The renderer migrated from IPC `invokeBridge('subscribe-<key>')` to direct
- * HTTP calls against `aionui-backend` via `fetch('http://127.0.0.1:<port>/api/...')`.
+ * HTTP calls against `aioncli` via `fetch('http://127.0.0.1:<port>/api/...')`.
  * The backend port is exposed on `window.__backendPort` by the preload script
  * (`src/preload/main.ts:71`).
  *

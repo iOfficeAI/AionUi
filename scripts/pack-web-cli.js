@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aionui-backend.js');
+const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aioncli.js');
 const { resolveBackendVersion } = require('./resolveBackendVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -23,8 +23,8 @@ const tarballPath = path.join(distDir, tarballName);
 
 console.log(`Packing web-cli for ${platform}-${arch}...`);
 
-// 1. Prepare bundled-aionui-backend
-console.log('1. Preparing aionui-backend...');
+// 1. Prepare bundled-aioncli
+console.log('1. Preparing aioncli...');
 prepareAionuiBackend({
   projectRoot,
   platform,
@@ -77,9 +77,9 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled-aionui-backend
-const backendSrc = path.join(projectRoot, 'resources/bundled-aionui-backend', `${platform}-${arch}`);
-const backendDest = path.join(tarballContentDir, 'bundled-aionui-backend', `${platform}-${arch}`);
+// 7. Copy bundled-aioncli
+const backendSrc = path.join(projectRoot, 'resources/bundled-aioncli', `${platform}-${arch}`);
+const backendDest = path.join(tarballContentDir, 'bundled-aioncli', `${platform}-${arch}`);
 if (!fs.existsSync(backendSrc)) {
   throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAionuiBackend succeeded.`);
 }

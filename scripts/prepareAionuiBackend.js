@@ -1,5 +1,5 @@
 /**
- * CLI wrapper for prepare-aionui-backend.
+ * CLI wrapper for prepare-aioncli.
  *
  * Reads environment variables and invokes the shared module.
  *
@@ -15,7 +15,7 @@
  */
 
 const path = require('path');
-const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aionui-backend.js');
+const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aioncli.js');
 const { resolveBackendVersion } = require('./resolveBackendVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');

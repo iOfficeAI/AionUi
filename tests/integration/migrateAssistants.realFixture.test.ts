@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Integration test for `migrateAssistantsToBackend` against a real
- * aionui-backend binary using the user-provided fixtures
+ * aioncli binary using the user-provided fixtures
  * (`/Users/zhoukai/Downloads/aionui-config.txt` + `Archive/*.md`).
  *
  * The unit suite (`tests/unit/assistants/migrateAssistants.test.ts`)
@@ -13,7 +13,7 @@
  *
  *   1. Decode the legacy `aionui-config.txt` exactly as ConfigStorage would.
  *   2. Stage `Archive/*.md` as `<userData>/config/assistants/<id>.<locale>.md`.
- *   3. Spawn a real aionui-backend bound to a throw-away data-dir.
+ *   3. Spawn a real aioncli bound to a throw-away data-dir.
  *   4. Run `migrateAssistantsToBackend`.
  *   5. Assert: 3 user assistants in db, 4 rule .md files in
  *      `<dataDir>/assistant-rules/`, completion flag set, legacy
@@ -34,13 +34,13 @@ const describeIfFixtures = FIXTURES_AVAILABLE ? describe : describe.skip;
 function resolveBackendBinary(): string {
   const candidates = [
     process.env.AIONUI_BACKEND_BINARY,
-    path.join(os.homedir(), '.cargo', 'bin', 'aionui-backend'),
-    path.resolve(__dirname, '../../../aionui-backend/target/debug/aionui-backend'),
+    path.join(os.homedir(), '.cargo', 'bin', 'aioncli'),
+    path.resolve(__dirname, '../../../AionCLI/target/debug/aioncli'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  throw new Error('aionui-backend binary not found (set AIONUI_BACKEND_BINARY or build it)');
+  throw new Error('aioncli binary not found (set AIONUI_BACKEND_BINARY or build it)');
 }
 
 async function findFreePort(): Promise<number> {

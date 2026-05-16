@@ -158,7 +158,7 @@ describe('BackendLifecycleManager.start (success path)', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
-    const resolveBackend = vi.fn(() => '/abs/path/aionui-backend');
+    const resolveBackend = vi.fn(() => '/abs/path/aioncli');
     const mgr = new BackendLifecycleManager(APP_META_PACKAGED, resolveBackend);
 
     const port = await mgr.start('/db/path', '/log/dir', {
@@ -174,7 +174,7 @@ describe('BackendLifecycleManager.start (success path)', () => {
     expect(spawn).toHaveBeenCalledTimes(1);
 
     const spawnCall = vi.mocked(spawn).mock.calls[0];
-    expect(spawnCall[0]).toBe('/abs/path/aionui-backend');
+    expect(spawnCall[0]).toBe('/abs/path/aioncli');
     expect(spawnCall[1]).toEqual([
       '--port',
       '55555',

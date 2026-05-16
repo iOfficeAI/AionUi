@@ -940,4 +940,4 @@ test.beforeAll(async ({ page }) => {
 | `src/process/task/AionrsManager.ts`                                           | 78-781 | 进程管理 + 权限审批 + DB 持久化                                     |
 | `src/process/agent/aionrs/index.ts`                                           | 54-450 | binary 启动 + stdin/stdout 协议                                     |
 | `src/process/agent/aionrs/binaryResolver.ts`                                  | —      | binary 路径解析逻辑                                                 |
-| `aionui-backend aionui.db`                                                    | —      | conversations + messages 由 backend 独占持久化                      |
+| `aioncli aionui.db`                                                           | —      | conversations + messages 由 backend 独占持久化                      |

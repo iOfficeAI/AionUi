@@ -59,16 +59,13 @@ function querySqliteIds(dataDir: string, sql: string): string[] {
 
 /** Backend binary resolved from PATH / cargo bin. */
 function resolveBackendBinary(): string {
-  const candidates = [
-    process.env.AIONUI_BACKEND_BINARY,
-    path.join(os.homedir(), '.cargo', 'bin', 'aionui-backend'),
-  ].filter((x): x is string => typeof x === 'string' && x.length > 0);
+  const candidates = [process.env.AIONUI_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncli')].filter(
+    (x): x is string => typeof x === 'string' && x.length > 0
+  );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error(
-    `aionui-backend binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aionui-backend.`
-  );
+  throw new Error(`aioncli binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aioncli.`);
 }
 
 // ── Backend HTTP contract (shared with renderer httpBridge) ──────────────────
@@ -396,7 +393,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     async function startBackend(): Promise<void> {
       const bin = resolveBackendBinary();
-      const logPath = path.join(dataDir, 'sibling-backend.log');
+      const logPath = path.join(dataDir, 'sibling-aioncli.log');
       const logFd = fs.openSync(logPath, 'a');
       // Scrub env vars that would drag the main Electron's backend state in.
       const parentEnv = { ...process.env };

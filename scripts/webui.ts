@@ -14,8 +14,8 @@
  *   AIONUI_DATA_DIR       : override userData path (default Electron-compatible)
  *   AIONUI_LOG_DIR        : override log dir (default <dataDir>/logs)
  *   AIONUI_STATIC_DIR     : override static dir (default out/renderer)
- *   AIONUI_BACKEND_BIN    : absolute path to aionui-backend binary (else PATH lookup)
- *   AIONUI_BACKEND_BUNDLED_DIR : dir containing bundled-aionui-backend/<plat-arch>/binary
+ *   AIONUI_BACKEND_BIN    : absolute path to aioncli binary (else PATH lookup)
+ *   AIONUI_BACKEND_BUNDLED_DIR : dir containing bundled-aioncli/<plat-arch>/binary
  */
 
 import { execSync } from 'child_process';
@@ -31,7 +31,7 @@ const DEFAULT_PORT = (() => {
   if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();
-const BACKEND_BINARY = process.platform === 'win32' ? 'aionui-backend.exe' : 'aionui-backend';
+const BACKEND_BINARY = process.platform === 'win32' ? 'aioncli.exe' : 'aioncli';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -46,7 +46,7 @@ const getFlag = (name: string): string | undefined => {
 };
 
 /**
- * Resolve the directory where aionui-backend persists its SQLite DB.
+ * Resolve the directory where aioncli persists its SQLite DB.
  *
  * `bun run webui` runs **independently of the Electron desktop app** — it must
  * work on hosts that never installed AionUi.app, and its default work dir must
@@ -120,8 +120,7 @@ function resolveStaticDir(): string {
 function resolveBackendBinary(): string {
   if (process.env.AIONUI_BACKEND_BIN) return process.env.AIONUI_BACKEND_BIN;
 
-  const bundledBase =
-    process.env.AIONUI_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aionui-backend');
+  const bundledBase = process.env.AIONUI_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncli');
   const runtimeKey = `${process.platform}-${process.arch}`;
   const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
   if (fs.existsSync(bundled)) return bundled;
