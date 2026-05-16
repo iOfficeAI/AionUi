@@ -38,7 +38,16 @@ describe('transformMessage', () => {
   });
 
   it('returns undefined for transient message types', () => {
-    for (const type of ['start', 'finish', 'thought', 'info', 'system', 'acp_model_info', 'request_trace']) {
+    for (const type of [
+      'start',
+      'finish',
+      'thought',
+      'info',
+      'system',
+      'acp_model_info',
+      'request_trace',
+      'slash_commands_updated',
+    ]) {
       expect(transformMessage(makeMessage(type))).toBeUndefined();
     }
   });
@@ -47,6 +56,16 @@ describe('transformMessage', () => {
     const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
 
     const result = transformMessage(makeMessage('info', 'retrying'));
+
+    expect(result).toBeUndefined();
+    expect(warnSpy).not.toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
+
+  it('does not warn for slash command refresh events', () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
+
+    const result = transformMessage(makeMessage('slash_commands_updated', { commands: [] }));
 
     expect(result).toBeUndefined();
     expect(warnSpy).not.toHaveBeenCalled();

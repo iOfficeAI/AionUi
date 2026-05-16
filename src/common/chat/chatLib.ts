@@ -575,6 +575,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'acp_model_info': // Model info updates, handled by AcpModelSelector
     case 'codex_model_info': // Codex model info updates, handled by AcpModelSelector
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
+    case 'slash_commands_updated': // Slash command refresh events, handled by ACP hooks
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
       break;
     default: {

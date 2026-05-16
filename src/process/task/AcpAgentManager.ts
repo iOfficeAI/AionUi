@@ -10,7 +10,7 @@ import { transformMessage } from '@/common/chat/chatLib';
 import type { IConfigStorageRefer } from '@/common/config/storage';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
-import { parseError, uuid } from '@/common/utils';
+import { uuid } from '@/common/utils';
 import type {
   AcpBackend,
   AcpModelInfo,
@@ -44,6 +44,7 @@ import { prepareFirstMessageWithSkillsIndex } from '@process/task/agentUtils';
 import { shouldInjectTeamGuideMcp } from '@process/team/prompts/teamGuideCapability.ts';
 import { extractTextFromMessage, processCronInMessage } from './MessageMiddleware';
 import { ConversationTurnCompletionService } from './ConversationTurnCompletionService';
+import { formatAcpUserErrorMessage } from '@/common/chat/acpErrorMessage';
 
 interface AcpAgentManagerData {
   workspace?: string;
@@ -1092,7 +1093,10 @@ ${collectedResponses.join('\n')}`;
         type: 'error',
         conversation_id: this.conversation_id,
         msg_id: data.msg_id || uuid(),
-        data: parseError(e),
+        data: formatAcpUserErrorMessage(e, {
+          backend: this.options.backend,
+          modelId: this.agent?.getModelInfo?.()?.currentModelId || this.persistedModelId,
+        }),
       };
 
       // Backend handles persistence before emitting to frontend

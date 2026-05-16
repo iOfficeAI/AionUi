@@ -34,6 +34,7 @@ import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
 import MessageThinking from './components/MessageThinking';
+import { shouldRenderMessageInList } from './messageListUtils';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
@@ -208,9 +209,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
-      // Skip hidden and available_commands messages
-      if (message.hidden) continue;
-      if (message.type === 'available_commands') continue;
+      if (!shouldRenderMessageInList(message)) continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
         continue;
