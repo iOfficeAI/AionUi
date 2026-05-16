@@ -1,5 +1,5 @@
 /**
- * Lifecycle manager for the aionui-backend subprocess (web-host version).
+ * Lifecycle manager for the aioncli subprocess (web-host version).
  *
  * Migrated from packages/desktop/src/process/backend/lifecycleManager.ts in M4.
  * Electron dependency removed: `app.*` replaced with constructor-injected
@@ -69,7 +69,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
 
 /**
  * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs
- * (see aionui-backend/crates/aionui-system/src/sysinfo.rs). Inject them so the
+ * (see AionCLI/crates/aionui-system/src/sysinfo.rs). Inject them so the
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('aionui.dir').
  */
@@ -141,7 +141,7 @@ export class BackendLifecycleManager {
       appVersion,
       isPackaged: this.appMeta.isPackaged,
     });
-    console.log(`[aionui-backend] starting: ${binaryPath} ${args.join(' ')}`);
+    console.log(`[aioncli] starting: ${binaryPath} ${args.join(' ')}`);
 
     this.childProcess = spawn(binaryPath, args, {
       stdio: ['pipe', 'pipe', 'pipe'],
@@ -169,13 +169,13 @@ export class BackendLifecycleManager {
 
     this.childProcess.stdout?.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line.trim()) console.log(`[aionui-backend] ${line}`);
+        if (line.trim()) console.log(`[aioncli] ${line}`);
       }
     });
 
     this.childProcess.stderr?.on('data', (data: Buffer) => {
       for (const line of data.toString().split('\n')) {
-        if (line.trim()) console.error(`[aionui-backend] ${line}`);
+        if (line.trim()) console.error(`[aioncli] ${line}`);
       }
     });
 
@@ -184,12 +184,12 @@ export class BackendLifecycleManager {
       this.childProcess?.kill('SIGKILL');
       this.childProcess = null;
       this._status = 'error';
-      throw new Error('aionui-backend failed to start within timeout');
+      throw new Error('aioncli failed to start within timeout');
     }
 
     this._status = 'running';
     this.restartCount = 0;
-    console.log(`[aionui-backend] listening on port ${this._port}, data-dir: ${dbPath}`);
+    console.log(`[aioncli] listening on port ${this._port}, data-dir: ${dbPath}`);
     return this._port;
   }
 

@@ -8,7 +8,7 @@
  * IPC Bridge → HTTP/WS adapter.
  *
  * This file replaces the original IPC bridge calls with HTTP REST and WebSocket
- * calls routed to aionui-backend. Electron-native operations (window controls,
+ * calls routed to aioncli. Electron-native operations (window controls,
  * native dialogs, auto-update, devtools, zoom, CDP, deep links) remain as IPC.
  */
 

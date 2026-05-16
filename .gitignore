@@ -199,7 +199,7 @@ worktrees/
 .superpowers/
 docs/superpowers/
 resources/bundled-bun
-resources/bundled-aionui-backend
+resources/bundled-aioncli
 resources/hub
 
 # Server build output
