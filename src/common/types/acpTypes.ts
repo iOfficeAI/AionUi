@@ -33,6 +33,7 @@ export type AcpBackendAll =
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
   | 'snow' // Snow AI CLI
+  | 'kilo' // Kilo Code CLI (ACP via `kilo acp`)
   | 'custom'; // User-configured custom ACP agent (extension adapters)
 
 // Superset type covering all execution engine backends (ACP + non-ACP).
@@ -472,6 +473,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true,
     supportsStreaming: false,
     acpArgs: ['--acp'],
+  },
+  kilo: {
+    id: 'kilo',
+    name: 'Kilo Code',
+    cliCommand: 'kilo',
+    authRequired: false,
+    enabled: true,
+    supportsStreaming: false,
+    acpArgs: ['acp'],
+    skillsDirs: ['.kilo/skills'],
   },
   custom: {
     id: 'custom',
