@@ -16,6 +16,7 @@ import type {
 } from '@/common/types/detectedAgent';
 import { isAgentKind } from '@/common/types/detectedAgent';
 import type { RemoteAgentConfig } from '@process/agent/remote/types';
+import { detectAionrs } from '@process/agent/aionrs/binaryResolver';
 
 /**
  * Central registry for ALL detected execution engines.
@@ -59,13 +60,20 @@ class AgentRegistry {
     };
   }
 
-  private createAionrsAgent(): AionrsDetectedAgent {
+  private createAionrsAgent(): AionrsDetectedAgent | null {
+    const aionrsInfo = detectAionrs();
+    if (!aionrsInfo.available) {
+      return null;
+    }
+
     return {
       id: 'aionrs',
       name: 'Aion CLI',
       kind: 'aionrs',
       available: true,
       backend: 'aionrs',
+      cliPath: aionrsInfo.path,
+      version: aionrsInfo.version,
     };
   }
 
@@ -148,8 +156,9 @@ class AgentRegistry {
 
   // prettier-ignore
   private merge(): void {
+    const aionrsAgent = this.createAionrsAgent();
     this.detectedAgents = this.deduplicate([
-      this.createAionrsAgent(),
+      ...(aionrsAgent ? [aionrsAgent] : []),
       this.createGeminiAgent(),
       ...this.builtinAgents,
       ...this.otherAgents,

@@ -69,7 +69,8 @@ function resolveLatestTag() {
 
   // 1. Try gh CLI (honours GH_TOKEN automatically)
   try {
-    const out = execSync(`gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`, {
+    const ghArgs = ['api', `repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`, '--jq', '.tag_name'];
+    const out = execFileSync('gh', ghArgs, {
       encoding: 'utf-8',
       timeout: 15000,
     }).trim();
@@ -120,9 +121,102 @@ function downloadFile(url, outputPath) {
     return;
   }
   try {
-    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url], { timeout: 120000 });
-  } catch {
-    execFileSync('wget', ['-q', '-O', outputPath, url], { timeout: 120000 });
+    execFileSync(
+      'curl',
+      ['--http1.1', '-L', '--fail', '--silent', '--show-error', '--retry', '2', '-o', outputPath, url],
+      { timeout: 120000 }
+    );
+    return;
+  } catch (curlError) {
+    try {
+      execFileSync('wget', ['-q', '-O', outputPath, url], { timeout: 120000 });
+      return;
+    } catch {
+      downloadFileWithNode(url, outputPath, curlError);
+      return;
+    }
+  }
+}
+
+function downloadFileWithNode(url, outputPath, cause) {
+  const downloadScript = `
+const fs = require('fs');
+const http = require('http');
+const https = require('https');
+const path = require('path');
+
+const url = process.argv[1];
+const outputPath = process.argv[2];
+const maxRedirects = 5;
+
+function ensureDirectory(dirPath) {
+  if (!fs.existsSync(dirPath)) {
+    fs.mkdirSync(dirPath, { recursive: true });
+  }
+}
+
+function request(currentUrl, redirectCount) {
+  const client = currentUrl.startsWith('https:') ? https : http;
+  const req = client.get(
+    currentUrl,
+    {
+      headers: {
+        'user-agent': 'AionUi/prepareAionrs',
+        accept: '*/*',
+      },
+      timeout: 120000,
+    },
+    (res) => {
+      const statusCode = res.statusCode || 0;
+      const location = res.headers.location;
+
+      if (statusCode >= 300 && statusCode < 400 && location) {
+        res.resume();
+        if (redirectCount >= maxRedirects) {
+          console.error('Too many redirects while downloading ' + url);
+          process.exit(1);
+        }
+        request(new URL(location, currentUrl).toString(), redirectCount + 1);
+        return;
+      }
+
+      if (statusCode < 200 || statusCode >= 300) {
+        res.resume();
+        console.error('HTTP ' + statusCode + ' while downloading ' + url);
+        process.exit(1);
+      }
+
+      ensureDirectory(path.dirname(outputPath));
+      const fileStream = fs.createWriteStream(outputPath);
+      res.pipe(fileStream);
+      fileStream.on('finish', () => fileStream.close(() => process.exit(0)));
+      fileStream.on('error', (error) => {
+        console.error(error instanceof Error ? error.message : String(error));
+        process.exit(1);
+      });
+    }
+  );
+
+  req.on('timeout', () => {
+    req.destroy(new Error('Request timeout while downloading ' + url));
+  });
+
+  req.on('error', (error) => {
+    console.error(error instanceof Error ? error.message : String(error));
+    process.exit(1);
+  });
+}
+
+request(url, 0);
+`;
+
+  try {
+    execFileSync(process.execPath, ['-e', downloadScript, url, outputPath], {
+      stdio: ['ignore', 'pipe', 'pipe'],
+      timeout: 125000,
+    });
+  } catch (nodeError) {
+    throw nodeError instanceof Error ? nodeError : new Error(String(nodeError));
   }
 }
 
@@ -280,6 +374,10 @@ function prepareAionrs() {
   writeJson(path.join(targetDir, 'manifest.json'), manifest);
   console.warn(`  aionrs not found — skipping bundle (agent will not be available in packaged app)`);
   return { prepared: false, reason: 'not_found' };
+}
+
+if (require.main === module) {
+  prepareAionrs();
 }
 
 module.exports = prepareAionrs;

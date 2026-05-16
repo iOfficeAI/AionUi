@@ -4,6 +4,7 @@
  */
 
 const { execSync } = require('child_process');
+const prepareAionrs = require('./prepareAionrs');
 
 // Note: web-tree-sitter is now a direct dependency in package.json
 // No need for symlinks or copying - npm will install it directly to node_modules
@@ -35,6 +36,16 @@ function runPostInstall() {
   } catch (e) {
     console.error('Postinstall failed:', e.message);
     // Don't exit with error code to avoid breaking installation
+  }
+
+  if (!isCI) {
+    try {
+      console.log('Preparing local aionrs runtime for development');
+      prepareAionrs();
+    } catch (e) {
+      console.error('Prepare aionrs failed:', e.message);
+      // Keep install non-fatal; dev can rerun via bun run prepare:aionrs
+    }
   }
 }
 

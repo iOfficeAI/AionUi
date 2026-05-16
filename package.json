@@ -62,6 +62,7 @@
     "test:e2e:team:whitelist": "playwright test --config playwright.config.ts tests/e2e/specs/team-whitelist.e2e.ts --reporter=list",
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/specs/team-communication.e2e.ts --reporter=list",
     "prepare": "husky",
+    "prepare:aionrs": "node scripts/prepareAionrs.js",
     "postinstall": "node scripts/postinstall.js",
     "test:packaged:bun": "vitest run tests/integration/bundled-bun-packaged.test.ts",
     "test:bun": "bun test src/process/services/database/drivers/*.bun.test.ts",

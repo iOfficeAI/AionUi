@@ -12,19 +12,33 @@ function getBinaryName(): string {
   return process.platform === 'win32' ? 'aionrs.exe' : 'aionrs';
 }
 
+function getBundledCandidates(): string[] {
+  const runtimeKey = `${process.platform}-${process.arch}`;
+  const binaryName = getBinaryName();
+  const candidates = new Set<string>();
+
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  if (resourcesPath) {
+    candidates.add(join(resourcesPath, 'bundled-aionrs', runtimeKey, binaryName));
+  }
+
+  candidates.add(join(process.cwd(), 'resources', 'bundled-aionrs', runtimeKey, binaryName));
+  return [...candidates];
+}
+
 /**
  * Resolve the aionrs binary path.
  * Search order:
  *  1. Bundled with app (production)
+ *  2. Prepared source checkout resources/ (development)
  *  2. System PATH
  */
 export function resolveAionrsBinary(): string | null {
-  // 1. Bundled binary (production) — same layout as bundled-bun
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-  if (resourcesPath) {
-    const runtimeKey = `${process.platform}-${process.arch}`;
-    const bundled = join(resourcesPath, 'bundled-aionrs', runtimeKey, getBinaryName());
-    if (existsSync(bundled)) return bundled;
+  // 1. Bundled binary (production) / prepared source resources (development)
+  for (const candidate of getBundledCandidates()) {
+    if (existsSync(candidate)) {
+      return candidate;
+    }
   }
 
   // 2. System PATH

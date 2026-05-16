@@ -27,7 +27,10 @@ const LocalAgents: React.FC = () => {
   const { data: detectedAgents } = useSWR('acp.agents.available.settings', async () => {
     const result = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (result.success && result.data) {
-      return result.data.filter((agent) => agent.backend !== 'remote' && agent.backend !== 'custom' && !agent.isPreset);
+      return result.data.filter(
+        (agent) =>
+          agent.available !== false && agent.backend !== 'remote' && agent.backend !== 'custom' && !agent.isPreset
+      );
     }
     return [];
   });
@@ -68,7 +71,13 @@ const LocalAgents: React.FC = () => {
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
       const current = ((await ConfigStorage.get('acp.customAgents')) || []) as AcpBackendConfig[];
-      const updatedAgents = current.map((a) => (a.id === agentId ? { ...a, enabled } : a));
+      const updatedAgents = current.map((a) => {
+        if (a.id !== agentId) {
+          return a;
+        }
+
+        return Object.assign({}, a, { enabled });
+      });
       if (updatedAgents.some((a) => a.id === agentId)) {
         await ConfigStorage.set('acp.customAgents', updatedAgents);
         await mutateCustomAgents();

@@ -10,6 +10,7 @@ const mockDetectExtensionAgents = vi.fn(async () => []);
 const mockDetectCustomAgents = vi.fn(async () => []);
 const mockClearEnvCache = vi.fn();
 const mockIsCliAvailable = vi.fn(() => false);
+const mockDetectAionrs = vi.fn(() => ({ available: false }));
 
 vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: {
@@ -19,6 +20,10 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
     clearEnvCache: (...args: unknown[]) => mockClearEnvCache(...args),
     isCliAvailable: (...args: unknown[]) => mockIsCliAvailable(...args),
   },
+}));
+
+vi.mock('@process/agent/aionrs/binaryResolver', () => ({
+  detectAionrs: (...args: unknown[]) => mockDetectAionrs(...args),
 }));
 
 import type { AcpDetectedAgent } from '../../src/common/types/detectedAgent';
@@ -59,6 +64,7 @@ describe('AgentRegistry', () => {
     mockDetectExtensionAgents.mockResolvedValue([]);
     mockDetectCustomAgents.mockResolvedValue([]);
     mockIsCliAvailable.mockReturnValue(false);
+    mockDetectAionrs.mockReturnValue({ available: false });
   });
 
   describe('initialize', () => {
@@ -78,12 +84,10 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      // Aionrs always first, Gemini always second, then ACP agents
-      expect(agents).toHaveLength(4);
-      expect(agents[0].backend).toBe('aionrs');
-      expect(agents[1].backend).toBe('gemini');
-      expect(agents[2]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
-      expect(agents[3]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
+      expect(agents).toHaveLength(3);
+      expect(agents[0].backend).toBe('gemini');
+      expect(agents[1]).toMatchObject({ backend: 'claude', cliPath: 'claude' });
+      expect(agents[2]).toMatchObject({ backend: 'qwen', cliPath: 'qwen' });
     });
 
     it('should skip built-in CLIs that are not available', async () => {
@@ -95,19 +99,18 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(3); // gemini + aionrs + claude
+      expect(agents).toHaveLength(2); // gemini + claude
       expect(agents.find((a) => a.backend === 'qwen')).toBeUndefined();
       expect(agents.find((a) => a.backend === 'auggie')).toBeUndefined();
     });
 
-    it('should always include Aionrs first and Gemini second', async () => {
+    it('should include only Gemini when aionrs is unavailable', async () => {
       const registry = await createFreshRegistry();
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // aionrs + gemini
-      expect(agents[0]).toMatchObject({ backend: 'aionrs', name: 'Aion CLI' });
-      expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
+      expect(agents).toHaveLength(1);
+      expect(agents[0]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
     });
 
     it('should detect extension-contributed agents when CLI is available', async () => {
@@ -138,7 +141,7 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2); // gemini + aionrs
+      expect(agents).toHaveLength(1); // gemini
     });
 
     it('should not run twice (isDetected guard)', async () => {
@@ -211,9 +214,30 @@ describe('AgentRegistry', () => {
       await registry.initialize();
       const agents = registry.getDetectedAgents();
 
-      expect(agents).toHaveLength(2);
-      expect(agents[0].backend).toBe('aionrs');
-      expect(agents[1].backend).toBe('gemini');
+      expect(agents).toHaveLength(1);
+      expect(agents[0].backend).toBe('gemini');
+    });
+  });
+
+  describe('aionrs detection', () => {
+    it('should include aionrs before gemini when binary is available', async () => {
+      mockDetectAionrs.mockReturnValue({
+        available: true,
+        path: '/usr/local/bin/aionrs',
+        version: 'aionrs 0.1.0',
+      });
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+      const agents = registry.getDetectedAgents();
+
+      expect(agents[0]).toMatchObject({
+        backend: 'aionrs',
+        name: 'Aion CLI',
+        cliPath: '/usr/local/bin/aionrs',
+        version: 'aionrs 0.1.0',
+      });
+      expect(agents[1]).toMatchObject({ backend: 'gemini', name: 'Gemini CLI' });
     });
   });
 
@@ -299,7 +323,28 @@ describe('AgentRegistry', () => {
   });
 
   describe('refreshBuiltinAgents', () => {
-    it('should keep Aionrs and Gemini ahead of builtin agents after refresh', async () => {
+    it('should keep Gemini ahead of builtin agents after refresh when aionrs is unavailable', async () => {
+      mockDetectBuiltinAgents.mockResolvedValue([
+        makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
+        makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),
+      ]);
+
+      const registry = await createFreshRegistry();
+      await registry.initialize();
+
+      await registry.refreshBuiltinAgents();
+      const agents = registry.getDetectedAgents();
+
+      expect(agents[0].backend).toBe('gemini');
+      expect(agents.slice(1).map((agent) => agent.backend)).toEqual(['claude', 'qwen']);
+    });
+
+    it('should keep aionrs and Gemini ahead of builtin agents after refresh when aionrs is available', async () => {
+      mockDetectAionrs.mockReturnValue({
+        available: true,
+        path: '/usr/local/bin/aionrs',
+        version: 'aionrs 0.1.0',
+      });
       mockDetectBuiltinAgents.mockResolvedValue([
         makeAcpAgent({ id: 'claude', name: 'Claude Code', backend: 'claude', cliPath: 'claude' }),
         makeAcpAgent({ id: 'qwen', name: 'Qwen Code', backend: 'qwen', cliPath: 'qwen' }),

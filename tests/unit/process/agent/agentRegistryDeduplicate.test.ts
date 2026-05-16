@@ -16,6 +16,7 @@ const mockDetectCustomAgents = vi.fn(async () => []);
 const mockClearEnvCache = vi.fn();
 const mockIsCliAvailable = vi.fn(() => false);
 const mockGetRemoteAgents = vi.fn(() => []);
+const mockDetectAionrs = vi.fn(() => ({ available: false }));
 
 vi.mock('@process/agent/acp/AcpDetector', () => ({
   acpDetector: {
@@ -31,6 +32,10 @@ vi.mock('@process/services/database', () => ({
   getDatabase: vi.fn().mockResolvedValue({
     getRemoteAgents: (...args: unknown[]) => mockGetRemoteAgents(...args),
   }),
+}));
+
+vi.mock('@process/agent/aionrs/binaryResolver', () => ({
+  detectAionrs: (...args: unknown[]) => mockDetectAionrs(...args),
 }));
 
 // ---------------------------------------------------------------------------
@@ -88,6 +93,7 @@ describe('AgentRegistry.deduplicate', () => {
     mockDetectCustomAgents.mockResolvedValue([]);
     mockIsCliAvailable.mockReturnValue(false);
     mockGetRemoteAgents.mockReturnValue([]);
+    mockDetectAionrs.mockReturnValue({ available: false });
   });
 
   it('keeps the first agent when two agents share the same backend', async () => {
@@ -171,15 +177,13 @@ describe('AgentRegistry.deduplicate', () => {
     expect(claudeAgents[0].isExtension).toBeUndefined();
   });
 
-  it('returns aionrs + gemini for empty sub-detector results', async () => {
+  it('returns gemini only when aionrs binary is unavailable', async () => {
     const registry = await createFreshRegistry();
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // Only the always-present agents
-    expect(agents).toHaveLength(2);
-    expect(agents[0].backend).toBe('aionrs');
-    expect(agents[1].backend).toBe('gemini');
+    expect(agents).toHaveLength(1);
+    expect(agents[0].backend).toBe('gemini');
   });
 
   it('returns a single agent unchanged (no false dedup)', async () => {
@@ -191,9 +195,9 @@ describe('AgentRegistry.deduplicate', () => {
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // aionrs + gemini + codex
-    expect(agents).toHaveLength(3);
-    expect(agents[2]).toMatchObject({ id: 'codex', backend: 'codex' });
+    // gemini + codex
+    expect(agents).toHaveLength(2);
+    expect(agents[1]).toMatchObject({ id: 'codex', backend: 'codex' });
   });
 
   it('keeps multiple remote agents alongside a single non-remote backend', async () => {
@@ -209,11 +213,30 @@ describe('AgentRegistry.deduplicate', () => {
     await registry.initialize();
     const agents = registry.getDetectedAgents();
 
-    // aionrs + gemini + claude + 2 remotes
-    expect(agents).toHaveLength(5);
+    // gemini + claude + 2 remotes
+    expect(agents).toHaveLength(4);
     const remoteAgents = agents.filter((a) => a.kind === 'remote');
     expect(remoteAgents).toHaveLength(2);
     const claudeAgents = agents.filter((a) => a.backend === 'claude');
     expect(claudeAgents).toHaveLength(1);
+  });
+
+  it('includes aionrs with path/version when binary is available', async () => {
+    mockDetectAionrs.mockReturnValue({
+      available: true,
+      path: '/usr/local/bin/aionrs',
+      version: 'aionrs 0.1.0',
+    });
+
+    const registry = await createFreshRegistry();
+    await registry.initialize();
+    const agents = registry.getDetectedAgents();
+
+    expect(agents[0]).toMatchObject({
+      backend: 'aionrs',
+      cliPath: '/usr/local/bin/aionrs',
+      version: 'aionrs 0.1.0',
+    });
+    expect(agents[1].backend).toBe('gemini');
   });
 });

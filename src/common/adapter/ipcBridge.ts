@@ -458,7 +458,9 @@ export const acpConversation = {
         backend: string;
         name: string;
         kind?: string;
+        available?: boolean;
         cliPath?: string;
+        version?: string;
         supportedTransports?: string[];
         isExtension?: boolean;
         extensionName?: string;
