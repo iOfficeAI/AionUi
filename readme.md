@@ -1,3 +1,5 @@
+[![MseeP.ai Security Assessment Badge](https://mseep.net/pr/iofficeai-aionui-badge.png)](https://mseep.ai/app/iofficeai-aionui)
+
 <p align="center">
   <img src="./resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
 </p>
