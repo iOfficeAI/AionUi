@@ -1,0 +1,22 @@
+{
+  "auth": {
+    "failed": "{{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nLütfen yerel CLI aracı kimlik doğrulama durumunuzu kontrol edin",
+    "console_error": "ACP kimlik doğrulama hatası detayları:",
+    "failed_confirm": "ACP {{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nŞimdi yapılandırmak için ayarlar sayfasına gitmek ister misiniz?"
+  },
+  "sendbox": {
+    "placeholder": "{{backend}}'a mesaj gönder..."
+  },
+  "status": {
+    "connecting": "{{agent}} ajanına bağlanılıyor...",
+    "connected": "{{agent}} ajanına bağlanıldı",
+    "authenticated": "{{agent}} ile kimlik doğrulandı",
+    "session_active": "{{agent}} ile oturum aktif",
+    "error": "Bağlantı hatası",
+    "unknown": "Bilinmeyen durum"
+  },
+  "config": {
+    "reasoning_effort": "Akıl Yürütme Çabası",
+    "default": "Varsayılan"
+  }
+}

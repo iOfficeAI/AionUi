@@ -1,0 +1,61 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "New Team",
+    "pin": "Sabitle",
+    "unpin": "Sabitlemeyi Kaldır",
+    "rename": "Yeniden Adlandır",
+    "delete": "Sil",
+    "renameTitle": "Takımı Yeniden Adlandır",
+    "renamePlaceholder": "Takım adı",
+    "deleteConfirm": "Bu takımı silmek istiyor musunuz?",
+    "deleteConfirmContent": "Bu işlem geri alınamaz.",
+    "deleteOk": "Sil",
+    "deleteCancel": "İptal",
+    "renameOk": "Kaydet",
+    "renameCancel": "İptal",
+    "renameSuccess": "Takım yeniden adlandırıldı",
+    "deleteSuccess": "Takım silindi"
+  },
+  "newAgent": "New Agent",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Ajan henüz yapılandırılmadı.",
+  "sendBox": {
+    "placeholder": "Dağıtım ajanına mesaj gönder..."
+  },
+  "create": {
+    "title": "Create Team",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Takım liderini seçin",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Proje klasörü yolu (isteğe bağlı)",
+    "confirm": "Create Team",
+    "noSupportedAgents": "Desteklenen agent bulunamadı",
+    "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
+    "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",
+    "step": {
+      "dispatch": "Takım Lideri",
+      "subAgents": "Sub Agents",
+      "workspace": "Proje"
+    },
+    "nameRequired": "Takım adı girin",
+    "leaderRequired": "Takım lideri seçin",
+    "selectFolder": "Klasör seç",
+    "recentLabel": "Son kullanılan",
+    "chooseDifferentFolder": "Farklı klasör seç",
+    "error": "Takım oluşturulamadı"
+  },
+  "removeAgent": {
+    "confirmTitle": "Takım Üyesini Kaldır",
+    "confirmContent": "Bu üye şu anda aktif. Zorla kaldırılsın mı?"
+  },
+  "emptyState": {
+    "subtitle": "Hedefini söyle, ekibi koordine ederek tamamlayayım",
+    "suggestions": {
+      "help_build": "Sıfırdan yeni bir özellik oluşturmama yardım et",
+      "analyze_code": "Bu kod tabanını analiz et ve iyileştirmeler öner",
+      "write_report": "Bir konuyu araştır ve ayrıntılı rapor yaz",
+      "fix_bug": "Projemizdeki hataları bul ve düzelt"
+    }
+  }
+}

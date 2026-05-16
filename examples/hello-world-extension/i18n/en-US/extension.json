@@ -1,0 +1,7 @@
+{
+  "displayName": "Hello World Extension",
+  "description": "A complete demo extension showcasing all AionUI extension capabilities",
+  "settingsTabs": {
+    "hello-settings": { "name": "Hello Config" }
+  }
+}

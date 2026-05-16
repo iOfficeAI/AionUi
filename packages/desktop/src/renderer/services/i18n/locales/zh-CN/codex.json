@@ -1,0 +1,123 @@
+{
+  "sendbox": {},
+  "network": {
+    "cloudflare_blocked": "Cloudflare防护机制阻止了对{{service}}的访问。建议：1) 使用VPN 2) 更换网络 3) 稍后重试 4) 切换到其他AI服务",
+    "network_timeout": "网络超时，正在自动重试连接...",
+    "connection_refused": "连接被拒绝，请检查Codex服务是否正常运行。",
+    "unknown_error": "网络连接异常，请检查网络设置。",
+    "retry_attempt": "正在进行第{{current}}次重试...",
+    "cloudflare_blocked_title": "🚫 {{service}} 服务被 Cloudflare 防护机制阻止",
+    "network_timeout_title": "⏱️ 网络连接超时",
+    "connection_refused_title": "❌ 服务连接被拒绝",
+    "unknown_error_title": "🔌 网络连接异常",
+    "recovery_suggestions": "**建议的解决方案：**",
+    "technical_info": "**技术信息：**",
+    "error_type": "错误类型",
+    "retry_count": "重试次数",
+    "error_details": "错误详情",
+    "quick_switch_title": "💡 **快速切换方案：**",
+    "quick_switch_content": "当前服务遇到网络限制时，您可以：\n\n1. **立即切换 AI 助手**：在左侧面板选择其他可用的助手\n2. **检查服务状态**：不同 AI 服务的可用性可能因地区而异\n3. **网络优化**：使用稳定的网络环境可以提高连接成功率\n4. **稍后重试**：网络限制通常是临时的\n\n**提示**：建议配置多个 AI 服务作为备选，确保工作连续性。",
+    "recovery_actions": {
+      "cloudflare_blocked": [
+        "• 使用 VPN 或代理服务",
+        "• 更换网络环境（如移动热点）",
+        "• 等待 10-30 分钟后重试",
+        "• 清除浏览器缓存和 Cookie",
+        "• 切换到其他可用服务：ChatGPT、Claude、Qwen、Gemini"
+      ],
+      "network_timeout": ["• 检查网络连接是否稳定", "• 重试连接操作", "• 切换到更稳定的网络环境", "• 检查防火墙设置"],
+      "connection_refused": [
+        "• 检查 Codex CLI 是否正确安装",
+        "• 验证服务配置和API密钥",
+        "• 重启应用程序",
+        "• 检查本地端口是否被占用"
+      ],
+      "unknown": ["• 检查网络连接状态", "• 重试当前操作", "• 切换网络环境", "• 联系技术支持"]
+    }
+  },
+  "thinking": {
+    "processing": "🤔 Codex 正在思考...",
+    "completed": "💭 思考过程完成",
+    "analyzing": "正在分析问题和制定解决方案...",
+    "composing": "正在整理回复内容..."
+  },
+  "error": {
+    "system_init_failed": "Codex 系统初始化失败",
+    "invalid_message_format": "消息格式无效",
+    "invalid_input": "输入内容无效",
+    "session_timeout": "会话已超时，请重试",
+    "permission_denied": "此操作被拒绝访问",
+    "context_error": "在{{context}}中发生错误，请刷新或重试。",
+    "generic": "Codex 组件出现异常，请稍后重试。",
+    "troubleshooting": "故障排除建议",
+    "suggestion_1": "检查网络连接是否正常",
+    "suggestion_2": "确认 Codex 服务正在运行",
+    "suggestion_3": "尝试重新启动应用程序",
+    "suggestion_4": "清除浏览器缓存和本地存储"
+  },
+  "performance": {
+    "virtualization_enabled": "列表虚拟化已启用以提高性能",
+    "virtualization_disabled": "列表虚拟化已禁用，显示所有项目",
+    "debounce_enabled": "输入防抖已启用（{{delay}}毫秒延迟）",
+    "debounce_disabled": "输入防抖已禁用"
+  },
+  "config": {
+    "loaded": "配置加载成功",
+    "updated": "配置更新成功",
+    "reset": "配置已重置为默认值",
+    "validation_failed": "配置验证失败",
+    "import_success": "配置导入成功",
+    "import_failed": "配置导入失败",
+    "export_success": "配置导出成功"
+  },
+  "permissions": {
+    "allow_once": "仅此次允许",
+    "allow_always": "总是允许",
+    "reject_once": "仅此次拒绝",
+    "reject_always": "总是拒绝",
+    "allow_once_desc": "仅对此次请求给予权限",
+    "allow_always_desc": "对同类型请求总是给予权限",
+    "reject_once_desc": "仅拒绝此次请求",
+    "reject_always_desc": "对同类型请求总是拒绝",
+    "processing": "处理中...",
+    "response_sent": "响应发送成功",
+    "choose_action": "请选择操作：",
+    "titles": {
+      "exec_approval_request": "命令执行权限",
+      "apply_patch_approval_request": "文件修改权限",
+      "command_execution": "命令执行权限",
+      "file_write": "文件写入权限",
+      "file_read": "文件读取权限"
+    },
+    "labels": {
+      "command": "命令：",
+      "directory": "目录：",
+      "reason": "原因：",
+      "files_to_modify": "要修改的文件",
+      "summary": "摘要："
+    },
+    "descriptions": {
+      "command_execution": "Codex 请求执行系统命令",
+      "file_write": "Codex 请求修改或创建文件",
+      "file_read": "Codex 请求读取文件内容"
+    },
+    "command_execution": {
+      "allow_once_desc": "仅允许此次命令执行",
+      "allow_always_desc": "对所有命令执行请求总是允许",
+      "reject_once_desc": "仅拒绝此次命令执行",
+      "reject_always_desc": "对所有命令执行请求总是拒绝"
+    },
+    "file_write": {
+      "allow_once_desc": "仅允许此次文件写入",
+      "allow_always_desc": "对所有文件写入请求总是允许",
+      "reject_once_desc": "仅拒绝此次文件写入",
+      "reject_always_desc": "对所有文件写入请求总是拒绝"
+    },
+    "file_read": {
+      "allow_once_desc": "仅允许此次文件读取",
+      "allow_always_desc": "对所有文件读取请求总是允许",
+      "reject_once_desc": "仅拒绝此次文件读取",
+      "reject_always_desc": "对所有文件读取请求总是拒绝"
+    }
+  }
+}

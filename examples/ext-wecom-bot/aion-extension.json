@@ -1,0 +1,58 @@
+{
+  "name": "ext-wecom-bot",
+  "displayName": "ext-企业微信 Bot",
+  "version": "0.1.0",
+  "description": "Enterprise WeCom AI Bot channel extension example for AionUI",
+  "author": "AionUI Contributors",
+  "icon": "assets/ext-wecom-bot.svg",
+  "contributes": {
+    "channelPlugins": [
+      {
+        "type": "ext-wecom-bot",
+        "name": "企业微信 AI Bot (Example)",
+        "description": "企业微信 Bot 模式示例：加密回调 + 流式轮询响应。注意：仅开启 WebUI 远程访问(LAN)通常不足以通过企微回调校验，生产需公网 HTTPS 地址。",
+        "icon": "assets/ext-wecom-bot.svg",
+        "entryPoint": "channels/ext-wecom-bot-channel.js",
+        "credentialFields": [
+          {
+            "key": "token",
+            "label": "Bot Token",
+            "type": "password",
+            "required": true
+          },
+          {
+            "key": "encodingAesKey",
+            "label": "EncodingAESKey (43 chars)",
+            "type": "password",
+            "required": true
+          }
+        ],
+        "configFields": [
+          {
+            "key": "publicBaseUrl",
+            "label": "Public Base URL (optional)",
+            "type": "text",
+            "required": false
+          }
+        ]
+      }
+    ],
+    "webui": {
+      "apiRoutes": [
+        {
+          "path": "/ext-wecom-bot/webhook",
+          "entryPoint": "webui/webhook.js",
+          "description": "WeCom bot webhook endpoint",
+          "auth": false
+        }
+      ],
+      "staticAssets": [
+        {
+          "urlPrefix": "/ext-wecom-bot/assets",
+          "directory": "assets",
+          "description": "Static assets for ext-wecom-bot"
+        }
+      ]
+    }
+  }
+}

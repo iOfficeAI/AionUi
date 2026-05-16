@@ -1,0 +1,30 @@
+{
+  "health": {
+    "detectedError": "檢測到當前 Agent ({{agent}}) 回應異常",
+    "autoSwitching": "。系統將自動嘗試切換線路。",
+    "evaluating": "正在評估網路延遲與模型可用性...",
+    "checking": "檢查 {{agent}} 節點...",
+    "foundBest": "已找到最佳替代方案",
+    "recommendSwitch": "推薦切換",
+    "available": "可用",
+    "lowLatency": "低延遲",
+    "mediumLatency": "中等延遲",
+    "highLatency": "高延遲",
+    "bestMatch": "最佳匹配",
+    "noAvailable": "當前環境沒有可用 agent",
+    "checkConfig": "請檢查配置或稍後重試"
+  },
+  "setup": {
+    "connectionError": "連接錯誤",
+    "notConfigured": "{{agent}} 尚未配置",
+    "authRequired": "使用此 Agent 需要先完成認證或配置 API Key。",
+    "findingAlternatives": "正在查找可用的替代方案...",
+    "checkingAgent": "正在檢查 {{agent}}...",
+    "alternativesFound": "找到 {{count}} 個可用的替代方案",
+    "autoSwitching": "正在自動切換到最佳可用 Agent...",
+    "configError": "配置有問題，請檢查配置或選擇其他 Agent：",
+    "noAlternatives": "未找到可用的 Agent",
+    "configureFirst": "請先在設定中配置一個 Agent。",
+    "switching": "正在切換 Agent..."
+  }
+}

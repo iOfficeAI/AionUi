@@ -1,0 +1,14 @@
+[
+  {
+    "id": "ocean-breeze",
+    "name": "Ocean Breeze",
+    "file": "themes/ocean-breeze.css",
+    "cover": "assets/ocean-breeze-cover.svg"
+  },
+  {
+    "id": "sunset-glow",
+    "name": "Sunset Glow",
+    "file": "themes/sunset-glow.css",
+    "cover": "assets/sunset-glow-cover.svg"
+  }
+]

@@ -1,0 +1,19 @@
+{
+  "plan": "Plan Mode",
+  "default": "Default",
+  "acceptEdits": "Accept Edits",
+  "autoEdit": "Auto Edit",
+  "auto_edit": "Auto Edit",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Tam Otomatik (Sandbox Yok)",
+  "auto": "Otomatik",
+  "dontAsk": "Yalnızca Ön Onaylı",
+  "bypass": "Bypass (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Akıllı",
+  "build": "Build Mode",
+  "permission": "İzin",
+  "switchMode": "Switch Mode",
+  "switchSuccess": "Mode switched successfully",
+  "switchFailed": "Failed to switch mode"
+}

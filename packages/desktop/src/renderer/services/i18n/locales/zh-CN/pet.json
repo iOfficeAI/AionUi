@@ -1,0 +1,17 @@
+{
+  "desktopPet": "桌面宠物",
+  "enable": "启用桌面宠物",
+  "size": "宠物大小",
+  "sizeSmall": "小 ({{px}}px)",
+  "sizeMedium": "中 ({{px}}px)",
+  "sizeLarge": "大 ({{px}}px)",
+  "dnd": "免打扰",
+  "dndDescription": "宠物保持空闲，忽略 AI 事件",
+  "confirmBubble": "在宠物窗口显示授权",
+  "confirmBubbleDescription": "关闭后，AI 工具授权请求只在主聊天窗口显示",
+  "pat": "摸摸",
+  "resetPosition": "重置位置",
+  "hide": "隐藏",
+  "showHide": "显示/隐藏",
+  "desktopOnly": "桌面宠物仅在桌面应用中可用，无法在 WebUI 浏览器模式下使用。"
+}

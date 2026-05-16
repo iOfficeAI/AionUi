@@ -1,0 +1,69 @@
+{
+  "unknownFile": "未知文件",
+  "newFile": "新文件",
+  "deletedFile": "已删除文件",
+  "modified": "已修改",
+  "fileChanges": "文件变更",
+  "shell": {
+    "displayName": "Shell命令",
+    "description": "执行Shell命令"
+  },
+  "fileOps": {
+    "displayName": "文件操作",
+    "description": "文件读写和修改"
+  },
+  "webSearch": {
+    "displayName": "网页搜索",
+    "description": "搜索网页内容"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP工具: {{toolName}}",
+      "description": "MCP工具调用: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "未知工具",
+    "description": "未知工具类型"
+  },
+  "status": {
+    "pending": "等待中",
+    "executing": "执行中",
+    "success": "成功",
+    "error": "错误",
+    "canceled": "已取消"
+  },
+  "titles": {
+    "web_search_started": "网页搜索已开始",
+    "web_search_completed": "网页搜索已完成",
+    "web_search": "网页搜索",
+    "applying_patch": "正在应用补丁",
+    "patch_applied": "补丁已应用",
+    "file_patch": "文件补丁",
+    "mcp_tool_starting": "MCP工具：{{toolName}}（启动中）",
+    "mcp_tool": "MCP工具：{{toolName}}",
+    "execute_command": "执行：{{command}}",
+    "command_output": "命令输出",
+    "command_completed": "命令已完成",
+    "shell_command": "Shell命令"
+  },
+  "labels": {
+    "search_query": "搜索查询：",
+    "file_changes": "文件更改：",
+    "tool_details": "工具详细信息：",
+    "tool": "工具",
+    "arguments": "参数：",
+    "result": "结果：",
+    "command": "命令：",
+    "working_directory": "工作目录：",
+    "exit_code": "退出码：{{code}}",
+    "duration": "持续时间：{{seconds}}",
+    "auto_approved": "自动批准",
+    "manual_approval": "手动批准"
+  },
+  "actions": {
+    "create": "创建",
+    "modify": "修改",
+    "delete": "删除"
+  }
+}

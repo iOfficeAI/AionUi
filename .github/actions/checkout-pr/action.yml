@@ -1,0 +1,28 @@
+name: '🔍 Resolve PR Context'
+description: 'Resolve the correct ref and base branch for pull_request and workflow_dispatch triggers. Must be called after actions/checkout.'
+inputs:
+  pr_number:
+    description: 'PR number (only used when triggered via workflow_dispatch)'
+    required: false
+    default: ''
+  github_token:
+    description: 'GitHub token for gh API calls'
+    required: true
+runs:
+  using: 'composite'
+  steps:
+    - name: Resolve PR context
+      shell: bash
+      env:
+        GH_TOKEN: ${{ inputs.github_token }}
+      run: |
+        if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
+          PR_INFO=$(gh api repos/${{ github.repository }}/pulls/${{ inputs.pr_number }})
+          HEAD_SHA=$(echo "$PR_INFO" | jq -r '.head.sha')
+          BASE_REF=$(echo "$PR_INFO" | jq -r '.base.ref')
+          git fetch origin "refs/pull/${{ inputs.pr_number }}/head"
+          git checkout "$HEAD_SHA"
+          echo "PR_BASE_REF=$BASE_REF" >> $GITHUB_ENV
+        else
+          echo "PR_BASE_REF=${{ github.base_ref }}" >> $GITHUB_ENV
+        fi

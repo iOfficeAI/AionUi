@@ -1,0 +1,36 @@
+[
+  {
+    "id": "hello-stdio-agent",
+    "name": "Hello Stdio Agent",
+    "description": "A demo ACP adapter using stdio transport",
+    "connectionType": "stdio",
+    "cliCommand": "echo",
+    "defaultCliPath": "echo",
+    "acpArgs": ["--acp"],
+    "supportsStreaming": true,
+    "icon": "assets/ocean-breeze-cover.svg",
+    "models": ["demo-model"],
+    "healthCheck": {
+      "versionCommand": "echo 1.0.0",
+      "timeout": 3000
+    }
+  },
+  {
+    "id": "hello-http-agent",
+    "name": "Hello HTTP Agent",
+    "description": "A demo ACP adapter using HTTP transport",
+    "connectionType": "http",
+    "endpoint": "http://localhost:8080/acp",
+    "supportsStreaming": false,
+    "icon": "assets/sunset-glow-cover.svg",
+    "models": ["http-model"],
+    "apiKeyFields": [
+      {
+        "key": "HELLO_API_KEY",
+        "label": "API Key",
+        "type": "password",
+        "required": true
+      }
+    ]
+  }
+]

@@ -1,0 +1,7 @@
+/* E2E Dark Theme - for testing only */
+:root {
+  --e2e-bg: #1a1a2e;
+  --e2e-surface: #16213e;
+  --e2e-primary: #e94560;
+  --e2e-text: #eee;
+}

@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Masaüstü Pet",
+  "enable": "Masaüstü Pet'i Etkinleştir",
+  "size": "Pet Boyutu",
+  "sizeSmall": "Küçük ({{px}}px)",
+  "sizeMedium": "Orta ({{px}}px)",
+  "sizeLarge": "Büyük ({{px}}px)",
+  "dnd": "Rahatsız Etmeyin",
+  "dndDescription": "Pet boşta kalır, AI olaylarını yok sayar",
+  "confirmBubble": "Yetkilendirmeleri pet penceresinde göster",
+  "confirmBubbleDescription": "Kapalıyken, AI araç yetkilendirmeleri ana sohbet penceresinde kalır",
+  "pat": "Okşa",
+  "resetPosition": "Konumu Sıfırla",
+  "hide": "Gizle",
+  "showHide": "Göster/Gizle",
+  "desktopOnly": "Masaüstü evcil hayvanı yalnızca masaüstü uygulamasında kullanılabilir. WebUI tarayıcı modunda kullanılamaz."
+}

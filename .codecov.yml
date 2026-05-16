@@ -1,0 +1,33 @@
+codecov:
+  require_ci_to_pass: false
+
+coverage:
+  status:
+    patch:
+      default:
+        target: auto
+        threshold: 10%
+        informational: true
+    project:
+      default:
+        target: auto
+        threshold: 5%
+
+ignore:
+  - '**/*.json'
+  - '**/*.md'
+  - '**/*.txt'
+  - '**/*.html'
+  - '**/*.css'
+  - '**/*.svg'
+  - '**/*.png'
+  - '**/*.jpg'
+  - '**/*.gif'
+  - '**/*.woff*'
+  - '**/*.ttf'
+  - '**/*.lock'
+  - 'docs/'
+  - 'examples/'
+  - 'mobile/'
+  - 'scripts/'
+  - 'tests/'

@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Неизвестный файл",
+  "newFile": "Новый файл",
+  "deletedFile": "Удалённый файл",
+  "modified": "Изменено",
+  "fileChanges": "Изменения файлов",
+  "shell": {
+    "displayName": "Команда оболочки",
+    "description": "Выполнение команд оболочки"
+  },
+  "fileOps": {
+    "displayName": "Файловые операции",
+    "description": "Чтение, запись и изменение файлов"
+  },
+  "webSearch": {
+    "displayName": "Веб-поиск",
+    "description": "Поиск веб-контента"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP-инструмент: {{toolName}}",
+      "description": "Вызов MCP-инструмента: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Неизвестный инструмент",
+    "description": "Неизвестный тип инструмента"
+  },
+  "status": {
+    "pending": "В очереди",
+    "executing": "Выполняется",
+    "success": "Успешно",
+    "error": "Ошибка",
+    "canceled": "Отменено"
+  },
+  "titles": {
+    "web_search_started": "Веб-поиск начат",
+    "web_search_completed": "Веб-поиск завершён",
+    "web_search": "Веб-поиск",
+    "applying_patch": "Применение патча",
+    "patch_applied": "Патч применён",
+    "file_patch": "Патч файла",
+    "mcp_tool_starting": "MCP-инструмент: {{toolName}} (запуск)",
+    "mcp_tool": "MCP-инструмент: {{toolName}}",
+    "execute_command": "Выполнить: {{command}}",
+    "command_output": "Вывод команды",
+    "command_completed": "Команда завершена",
+    "shell_command": "Команда оболочки"
+  },
+  "labels": {
+    "search_query": "Поисковый запрос:",
+    "file_changes": "Изменения файлов:",
+    "tool_details": "Детали инструмента:",
+    "tool": "Инструмент",
+    "arguments": "Аргументы:",
+    "result": "Результат:",
+    "command": "Команда:",
+    "working_directory": "Рабочая директория:",
+    "exit_code": "Выход: {{code}}",
+    "duration": "Длительность: {{seconds}}",
+    "auto_approved": "Авто-одобрено",
+    "manual_approval": "Ручное одобрение"
+  },
+  "actions": {
+    "create": "создать",
+    "modify": "изменить",
+    "delete": "удалить"
+  }
+}

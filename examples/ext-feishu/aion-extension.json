@@ -1,0 +1,68 @@
+{
+  "name": "ext-feishu",
+  "displayName": "ext-飞书",
+  "version": "0.1.0",
+  "description": "Feishu Channels extension example (not integrated by default), demonstrates i18n, data collection hooks, and cross-runtime assets",
+  "author": "AionUI Contributors",
+  "icon": "assets/ext-feishu.svg",
+  "i18n": {
+    "localesDir": "i18n",
+    "defaultLocale": "en-US"
+  },
+  "contributes": {
+    "channelPlugins": [
+      {
+        "type": "ext-feishu",
+        "name": "ext-飞书 Channel",
+        "description": "Feishu channel adapter sample with event dedupe and in-memory data collection",
+        "icon": "assets/ext-feishu.svg",
+        "entryPoint": "channels/ext-feishu-channel.js",
+        "credentialFields": [
+          {
+            "key": "appId",
+            "label": "App ID",
+            "type": "text",
+            "required": true
+          },
+          {
+            "key": "appSecret",
+            "label": "App Secret",
+            "type": "password",
+            "required": true
+          }
+        ],
+        "configFields": [
+          {
+            "key": "enableMetrics",
+            "label": "Enable Metrics",
+            "type": "boolean",
+            "default": true
+          }
+        ]
+      }
+    ],
+    "webui": {
+      "apiRoutes": [
+        {
+          "path": "/ext-feishu/collect",
+          "entryPoint": "webui/collector.js",
+          "description": "Collect extension telemetry events",
+          "auth": true
+        },
+        {
+          "path": "/ext-feishu/stats",
+          "entryPoint": "webui/collector.js",
+          "description": "Read extension telemetry stats",
+          "auth": true
+        }
+      ],
+      "staticAssets": [
+        {
+          "urlPrefix": "/ext-feishu/assets",
+          "directory": "assets",
+          "description": "Static assets for ext-feishu example"
+        }
+      ]
+    }
+  }
+}

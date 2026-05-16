@@ -1,0 +1,41 @@
+{
+  "cli": {
+    "version": ">= 15.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "development": {
+      "developmentClient": true,
+      "distribution": "internal"
+    },
+    "preview": {
+      "distribution": "internal",
+      "ios": {
+        "distribution": "store"
+      },
+      "android": {
+        "buildType": "apk"
+      }
+    },
+    "production": {
+      "ios": {},
+      "android": {
+        "buildType": "apk"
+      }
+    }
+  },
+  "submit": {
+    "production": {
+      "ios": {
+        "appleId": "liangzhewei@gmail.com",
+        "appleTeamId": "M4AG47ZV62"
+      }
+    },
+    "preview": {
+      "ios": {
+        "appleId": "liangzhewei@gmail.com",
+        "appleTeamId": "M4AG47ZV62"
+      }
+    }
+  }
+}

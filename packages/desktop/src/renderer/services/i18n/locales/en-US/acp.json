@@ -1,0 +1,22 @@
+{
+  "auth": {
+    "failed": "{{backend}} authentication failed:\n\n{{error}}\n\nPlease check your local CLI tool authentication status",
+    "console_error": "ACP authentication error details:",
+    "failed_confirm": "ACP {{backend}} authentication failed:\n\n{{error}}\n\nWould you like to go to settings page to configure now?"
+  },
+  "sendbox": {
+    "placeholder": "Send message to {{backend}}..."
+  },
+  "status": {
+    "connecting": "Connecting to {{agent}}...",
+    "connected": "Connected to {{agent}}",
+    "authenticated": "Authenticated with {{agent}}",
+    "session_active": "Active session with {{agent}}",
+    "error": "Connection error",
+    "unknown": "Unknown status"
+  },
+  "config": {
+    "reasoning_effort": "Reasoning Effort",
+    "default": "Default"
+  }
+}

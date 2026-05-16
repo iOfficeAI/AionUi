@@ -1,0 +1,8 @@
+{
+  "displayName": "E2E 全功能測試擴充",
+  "description": "涵蓋所有貢獻類型的綜合測試擴充，用於端對端測試",
+  "settingsTabs": {
+    "e2e-settings": { "name": "E2E 設定" },
+    "e2e-before-about": { "name": "E2E 關於前" }
+  }
+}

@@ -1,0 +1,15 @@
+/* Mobile typography tuning: conversation readability */
+@media (max-width: 767px) {
+  /* Message body */
+  .message-item .markdown-shadow-body {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+
+  .message-item .markdown-shadow-body p,
+  .message-item .markdown-shadow-body li,
+  .message-item .markdown-shadow-body blockquote {
+    font-size: 16px !important;
+    line-height: 1.6 !important;
+  }
+}

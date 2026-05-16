@@ -1,0 +1,94 @@
+# Triage Rules — Detailed Decision Flow
+
+Classify each issue group into one of the categories below.
+
+## Step A: Skip — System-level or framework-internal errors
+
+These errors originate outside our codebase and cannot be fixed by application code changes.
+**Skip immediately** without further analysis.
+
+| Error pattern                       | Source              | Action              |
+| ----------------------------------- | ------------------- | ------------------- |
+| `write EPIPE` / `broken pipe`       | OS pipe closed      | Skip                |
+| `ENOSPC: no space left on device`   | Disk full           | Skip                |
+| `write EIO` (no app code in stack)  | I/O hardware/driver | Skip                |
+| `uv__loop_interrupt`                | libuv internal      | Skip                |
+| `SingletonCookie` / `SingletonLock` | Chromium internal   | See exception below |
+| `ERR_INTERNET_DISCONNECTED`         | Network offline     | Skip                |
+
+**Exception — Chromium init errors with actionable root cause:**
+
+`SingletonCookie` / `SingletonLock` errors are normally Chromium-internal. However, if Seer
+actionability is **medium or higher** and the root cause involves a **missing directory**
+(e.g., `userData` or `appData` path does not exist), reclassify as **Defensive fix** (Step C) —
+the application can ensure the directory exists before Electron initialization.
+
+## Step B: Direct fix — Stack trace points to our code
+
+When a stack trace is available and points to our codebase:
+
+| Criteria                                                   | Result |
+| ---------------------------------------------------------- | ------ |
+| Stack trace points to `src/` files in our repo             | Fix    |
+| Error cause is clear from trace                            | Fix    |
+| Fix is straightforward (null check, try-catch, type guard) | Fix    |
+| Stack trace points to third-party lib only (no app code)   | Skip   |
+| Fix requires architectural redesign                        | Skip   |
+
+**Note on file paths:** Sentry stack traces reference build output paths (e.g., `src/common/chatLib.ts`).
+After refactoring, files may have moved (e.g., → `src/common/chat/chatLib.ts`).
+Use `Glob` to locate the actual file in the current codebase.
+
+## Step C: Defensive fix — No stack trace, but error pattern is identifiable
+
+Some errors (especially native Node.js `fs`, `net` errors) are reported **without stack traces**.
+These should NOT be automatically skipped — the error message itself often contains enough
+information to locate the responsible code.
+
+**Approach:** Extract distinctive patterns from the error message (file name fragments, path
+structures, keywords), then search the codebase for code that produces or consumes matching
+patterns. If a matching code path is found, trace its error handling and apply a defensive fix
+(guards, try-catch, existence checks) even without 100% certainty it's the exact source.
+
+| Scenario                                                | Result        |
+| ------------------------------------------------------- | ------------- |
+| Error pattern matches a code path in our codebase       | Defensive fix |
+| Error is purely user-specific with no matching code     | Skip          |
+| Error references app-internal files (config, resources) | Defensive fix |
+
+## Step C2: Feedback fix — User-reported issue with diagnostic attachments
+
+Issues with `event.type: "default"` are user-submitted feedback, not automatic crash reports.
+These have no stack trace but may include attachments (logs, screenshots) with diagnostic clues.
+
+**Prerequisite:** Step 1.5b (Attachment Analysis) must have run first.
+
+| Scenario                                                             | Result                                |
+| -------------------------------------------------------------------- | ------------------------------------- |
+| Log attachment contains stack trace pointing to our code             | Promote to Direct fix (Step B)        |
+| Log attachment shows resource exhaustion (OOM, CPU 100%) in our code | Defensive fix                         |
+| Log attachment shows repeated errors matching our code paths         | Defensive fix                         |
+| Screenshot shows frozen UI with identifiable component               | Defensive fix                         |
+| User description + logs suggest a specific code path                 | Defensive fix                         |
+| Logs show only system / third-party issues                           | Skip (system-level)                   |
+| No attachments, no matching code path from description               | Skip (unfixable — needs human triage) |
+
+## Step D: Skip filters (apply to all categories)
+
+| Condition                                  | Action                        |
+| ------------------------------------------ | ----------------------------- |
+| Has merged PR / mentioned in release notes | Skip (already fixed)          |
+| Resolved with `inRelease` in Sentry        | Skip (already fixed)          |
+| Has OPEN PR addressing the root cause      | Skip (or improve existing PR) |
+
+## Classification Summary
+
+| Category          | Criteria                                                     | Action                        |
+| ----------------- | ------------------------------------------------------------ | ----------------------------- |
+| **Direct fix**    | Stack trace → our code, clear cause                          | Fix with targeted code change |
+| **Defensive fix** | No stack trace, but error path matches our code              | Fix with defensive guards     |
+| **Feedback fix**  | User feedback + attachment analysis → identifiable code path | Fix based on diagnostic clues |
+| **Pending merge** | Existing OPEN PR addresses the root cause                    | Skip or improve existing PR   |
+| **Already fixed** | Merged PR / resolved in Sentry                               | Skip                          |
+| **System-level**  | EPIPE, ENOSPC, EIO, uv, Chromium internal                    | Skip                          |
+| **Unfixable**     | No stack trace, no matching code path, no attachments        | Skip                          |

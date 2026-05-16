@@ -1,0 +1,75 @@
+diff --git a/node_modules/7zip-bin/.bun-tag-4d314d69e08871fe b/.bun-tag-4d314d69e08871fe
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/node_modules/7zip-bin/.bun-tag-af2be5958dbfc6a3 b/.bun-tag-af2be5958dbfc6a3
+new file mode 100644
+index 0000000000000000000000000000000000000000..e69de29bb2d1d6434b8b29ae775ad8c2e48c5391
+diff --git a/index.js b/index.js
+index d4c7a8ce90ce7ad7b89d3d59376b62aab04b3da9..3bad4b87a670835924df25410bc36f0dfa2ede5c 100644
+--- a/index.js
++++ b/index.js
+@@ -1,6 +1,8 @@
+ "use strict"
+ 
+ const path = require("path")
++const fs = require("fs")
++const os = require("os")
+ 
+ function getPath() {
+   if (process.env.USE_SYSTEM_7ZA === "true") {
+@@ -8,7 +10,9 @@ function getPath() {
+   }
+ 
+   if (process.platform === "darwin") {
+-    return path.join(__dirname, "mac", process.arch, "7za")
++    // macOS: bundled 7za 16.02 fails with E_INVALIDARG on .app bundles containing symlinks.
++    // Delegate to system `zip` which handles symlinks correctly.
++    return getMacWrapper()
+   }
+   else if (process.platform === "win32") {
+     return path.join(__dirname, "win", process.arch, "7za.exe")
+@@ -18,5 +22,43 @@ function getPath() {
+   }
+ }
+ 
++// macOS wrapper: translates `7za a [opts] output.zip input` -> `zip -r -y output.zip input`
++function getMacWrapper() {
++  const wrapperDir = path.join(os.tmpdir(), "7zip-bin-compat")
++  const wrapperPath = path.join(wrapperDir, "7za")
++  try {
++    if (!fs.existsSync(wrapperPath)) {
++      fs.mkdirSync(wrapperDir, { recursive: true })
++      const bundled = path.join(__dirname, "mac", process.arch, "7za")
++      const script = [
++        "#!/bin/sh",
++        "# 7zip-bin compat wrapper: uses system zip instead of bundled 7za 16.02",
++        "if [ \"$1\" = \"a\" ]; then",
++        "  shift",
++        "  # skip all option flags",
++        "  while [ $# -gt 0 ]; do",
++        "    case \"$1\" in",
++        "      -*) shift ;;",
++        "      *)  break ;;",
++        "    esac",
++        "  done",
++        "  OUTPUT=\"$1\"; shift",
++        "  INPUT=\"$1\"",
++        "  INPUT_DIR=$(dirname \"$INPUT\")",
++        "  INPUT_BASE=$(basename \"$INPUT\")",
++        "  cd \"$INPUT_DIR\" && exec zip -r -y \"$OUTPUT\" \"$INPUT_BASE\"",
++        "else",
++        "  exec \"" + bundled + "\" \"$@\"",
++        "fi",
++      ].join("\n") + "\n"
++      fs.writeFileSync(wrapperPath, script, { mode: 0o755 })
++    }
++  } catch (e) {
++    // Fallback to bundled binary if wrapper creation fails
++    return path.join(__dirname, "mac", process.arch, "7za")
++  }
++  return wrapperPath
++}
++
+ exports.path7za = getPath()
+ exports.path7x = path.join(__dirname, "7x.sh")
+\ No newline at end of file

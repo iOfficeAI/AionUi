@@ -1,0 +1,132 @@
+name: Verify Homebrew Cask
+
+# The aionui cask is on Homebrew's autobump list — BrewTestBot automatically
+# creates version-bump PRs every ~3 hours. This workflow only *verifies* that
+# the cask has been updated, it no longer submits bump PRs itself.
+
+on:
+  # Daily check at 08:00 UTC
+  schedule:
+    - cron: '0 8 * * *'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Version to verify (e.g., 1.8.20). Leave empty to use latest release.'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-cask:
+    name: Verify Homebrew Cask
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Get expected version
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          if [ -n "${{ inputs.version }}" ]; then
+            VERSION="${{ inputs.version }}"
+            VERSION="${VERSION#v}"
+          else
+            # Fetch latest non-prerelease release tag
+            TAG=$(gh release view --repo "${{ github.repository }}" --json tagName --jq '.tagName' 2>/dev/null || echo "")
+            if [ -z "$TAG" ]; then
+              echo "::error::Could not determine latest release tag"
+              exit 1
+            fi
+            VERSION="${TAG#v}"
+          fi
+
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "Expected Homebrew cask version: $VERSION"
+
+      - name: Verify cask version
+        id: verify
+        run: |
+          EXPECTED="${{ steps.release.outputs.version }}"
+
+          # Fetch the cask file directly from the Homebrew repo
+          CASK_CONTENT=$(curl -fsSL "https://raw.githubusercontent.com/Homebrew/homebrew-cask/HEAD/Casks/a/aionui.rb" 2>/dev/null || echo "")
+
+          if [ -z "$CASK_CONTENT" ]; then
+            echo "::error::Failed to fetch cask file from Homebrew repo"
+            echo "status=fetch_failed" >> $GITHUB_OUTPUT
+            exit 1
+          fi
+
+          # Extract version from cask file
+          CASK_VERSION=$(echo "$CASK_CONTENT" | grep -oP 'version\s+"\K[^"]+' | head -1)
+          echo "  Expected: $EXPECTED"
+          echo "  Homebrew: $CASK_VERSION"
+          echo "cask_version=$CASK_VERSION" >> $GITHUB_OUTPUT
+
+          if [ "$CASK_VERSION" = "$EXPECTED" ]; then
+            echo "status=match" >> $GITHUB_OUTPUT
+          else
+            echo "status=mismatch" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for pending PR
+        if: steps.verify.outputs.status == 'mismatch'
+        id: check_pr
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          EXPECTED="${{ steps.release.outputs.version }}"
+
+          # Search for open PRs updating aionui in homebrew-cask
+          PR_LIST=$(gh pr list --repo Homebrew/homebrew-cask \
+            --search "aionui $EXPECTED in:title" --state open \
+            --json number,title,url --limit 5 2>/dev/null || echo "[]")
+          PR_COUNT=$(echo "$PR_LIST" | jq length)
+
+          if [ "$PR_COUNT" -gt 0 ]; then
+            echo "Found pending PR(s):"
+            echo "$PR_LIST" | jq -r '.[] | "  #\(.number) \(.title) — \(.url)"'
+            echo "status=pr_pending" >> $GITHUB_OUTPUT
+          else
+            echo "status=no_pr" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Report result
+        if: always() && steps.release.outputs.version != ''
+        run: |
+          EXPECTED="${{ steps.release.outputs.version }}"
+          STATUS="${{ steps.verify.outputs.status }}"
+          CASK_VERSION="${{ steps.verify.outputs.cask_version }}"
+          PR_STATUS="${{ steps.check_pr.outputs.status }}"
+
+          echo ""
+          echo "======================================="
+          echo "  Homebrew Cask Verification Report"
+          echo "======================================="
+          echo ""
+
+          if [ "$STATUS" = "match" ]; then
+            echo "Homebrew cask is up to date!"
+            echo "  Version: $CASK_VERSION"
+            echo "  Install: brew install --cask aionui"
+          elif [ "$STATUS" = "mismatch" ] && [ "$PR_STATUS" = "pr_pending" ]; then
+            echo "Homebrew bump PR is pending review."
+            echo "  Current cask: $CASK_VERSION"
+            echo "  Expected:     $EXPECTED"
+            echo "  BrewTestBot has created a PR, awaiting Homebrew maintainer merge."
+          elif [ "$STATUS" = "mismatch" ]; then
+            echo "::warning::Homebrew cask has NOT been updated to $EXPECTED (current: $CASK_VERSION)"
+            echo "  Current cask: $CASK_VERSION"
+            echo "  Expected:     $EXPECTED"
+            echo ""
+            echo "  If this persists, manually create a PR:"
+            echo "  1. Fork https://github.com/Homebrew/homebrew-cask"
+            echo "  2. Update Casks/a/aionui.rb with new version and SHA256"
+            echo "  3. Submit PR to Homebrew/homebrew-cask"
+            exit 1
+          else
+            echo "::error::Failed to verify — could not fetch cask file from Homebrew repo"
+            exit 1
+          fi

@@ -1,0 +1,45 @@
+codecov:
+  require_ci_to_pass: false
+  max_report_age: off
+
+coverage:
+  precision: 2
+  round: down
+  range: '0...100'
+
+comment:
+  layout: 'reach,diff,flags,files'
+  behavior: default
+  require_changes: false
+
+status:
+  project:
+    default:
+      target: auto
+      threshold: 1%
+      informational: true
+  patch:
+    default:
+      target: 50%
+      informational: true
+
+ignore:
+  - 'tests/**'
+  - 'docs/**'
+  - '**/*.md'
+  - '**/*.d.ts'
+  - 'packages/desktop/src/index.ts'
+  - 'packages/desktop/src/preload.ts'
+  - 'packages/desktop/src/common/utils/shims/**'
+  - 'packages/desktop/src/common/types/**'
+  - 'packages/desktop/src/common/config/i18n-config.json'
+  - 'packages/desktop/src/renderer/**/*.json'
+  - 'packages/desktop/src/renderer/**/*.svg'
+  - 'packages/desktop/src/renderer/**/*.css'
+  - 'scripts/**'
+  - 'examples/**'
+  - 'resources/**'
+  - 'skills/**'
+  - 'assistant/**'
+  - 'homebrew/**'
+  - 'patches/**'

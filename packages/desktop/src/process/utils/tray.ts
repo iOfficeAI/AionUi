@@ -1,0 +1,314 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { BrowserWindow, Tray as TrayInstance } from 'electron';
+import {
+  electronApp as app,
+  electronMenu as Menu,
+  electronNativeImage as nativeImage,
+  electronTray as Tray,
+} from '@/common/electronSafe';
+import * as path from 'path';
+import { ipcBridge } from '@/common';
+import i18n from '@process/services/i18n';
+
+let tray: TrayInstance | null = null;
+let closeToTrayEnabled = false;
+let isQuitting = false;
+let mainWindowRef: BrowserWindow | null = null;
+let cachedActiveCount = 0;
+
+export const setTrayMainWindow = (win: BrowserWindow): void => {
+  mainWindowRef = win;
+};
+
+export const getCloseToTrayEnabled = (): boolean => closeToTrayEnabled;
+
+export const setCloseToTrayEnabled = (enabled: boolean): void => {
+  closeToTrayEnabled = enabled;
+};
+
+export const getIsQuitting = (): boolean => isQuitting;
+
+export const setIsQuitting = (quitting: boolean): void => {
+  isQuitting = quitting;
+};
+
+/**
+ * Get tray icon.
+ * macOS uses Template image to adapt to dark/light menu bar.
+ */
+const getTrayIcon = (): Electron.NativeImage => {
+  const resourcesPath = app.isPackaged ? process.resourcesPath : path.join(process.cwd(), 'resources');
+  const icon = nativeImage.createFromPath(path.join(resourcesPath, 'app.png'));
+  if (process.platform === 'darwin') {
+    return icon.resize({ width: 16, height: 16 });
+  }
+  return icon.resize({ width: 32, height: 32 });
+};
+
+/**
+ * Build tray context menu (async to support dynamic content).
+ */
+const buildTrayContextMenu = async (): Promise<Electron.Menu> => {
+  const getRecentConversations = async (): Promise<Array<{ id: string; title: string }>> => {
+    try {
+      const result = await ipcBridge.database.getUserConversations.invoke({ limit: 5 });
+      return (result.items || []).slice(0, 5).map((conv) => ({
+        id: conv.id,
+        title: conv.name || i18n.t('common.tray.untitled'),
+      }));
+    } catch {
+      return [];
+    }
+  };
+
+  const getRunningTasksCount = (): number => cachedActiveCount;
+
+  const recentConversations = await getRecentConversations();
+  const runningTasksCount = getRunningTasksCount();
+
+  const showAndFocus = () => {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.show();
+      }
+      if (mainWindowRef.isMinimized()) {
+        mainWindowRef.restore();
+      }
+      mainWindowRef.show();
+      mainWindowRef.focus();
+    }
+  };
+
+  const hideToTray = () => {
+    if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+      mainWindowRef.hide();
+      if (process.platform === 'darwin' && app.dock) {
+        void app.dock.hide();
+      }
+    }
+  };
+
+  const template: Electron.MenuItemConstructorOptions[] = [
+    {
+      label: i18n.t('common.tray.showWindow'),
+      click: showAndFocus,
+    },
+    {
+      label: i18n.t('common.tray.closeToTray'),
+      click: hideToTray,
+    },
+    { type: 'separator' },
+    {
+      label: i18n.t('common.tray.newChat'),
+      click: () => {
+        showAndFocus();
+        mainWindowRef?.webContents.send('tray:navigate-to-guid');
+      },
+    },
+  ];
+
+  if (recentConversations.length > 0) {
+    template.push({ type: 'separator' });
+    template.push({
+      label: i18n.t('common.tray.recentChats'),
+      enabled: false,
+    });
+    for (const conv of recentConversations) {
+      const displayTitle = conv.title.length > 20 ? conv.title.slice(0, 20) + '...' : conv.title;
+      template.push({
+        label: displayTitle,
+        click: () => {
+          showAndFocus();
+          mainWindowRef?.webContents.send('tray:navigate-to-conversation', {
+            conversation_id: conv.id,
+          });
+        },
+      });
+    }
+  }
+
+  template.push({ type: 'separator' });
+  template.push({
+    label: `${i18n.t('common.tray.runningTasks')}: ${runningTasksCount}`,
+    enabled: false,
+  });
+  template.push({
+    label: i18n.t('common.tray.pauseAll'),
+    click: () => {
+      showAndFocus();
+      mainWindowRef?.webContents.send('tray:pause-all-tasks');
+    },
+  });
+
+  template.push({ type: 'separator' });
+  template.push({
+    label: `🐾 ${i18n.t('pet.desktopPet')}`,
+    submenu: [
+      {
+        label: i18n.t('pet.showHide'),
+        click: async () => {
+          try {
+            const petManager = await import('../pet/petManager');
+            // Toggle: if pet windows exist, hide; otherwise show/create
+            petManager.showPetWindow();
+          } catch {
+            /* pet not available */
+          }
+        },
+      },
+      { type: 'separator' as const },
+      {
+        label: i18n.t('pet.sizeSmall', { px: 200 }),
+        click: async () => {
+          try {
+            const { resizePetWindow } = await import('../pet/petManager');
+            resizePetWindow(200);
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+      {
+        label: i18n.t('pet.sizeMedium', { px: 280 }),
+        click: async () => {
+          try {
+            const { resizePetWindow } = await import('../pet/petManager');
+            resizePetWindow(280);
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+      {
+        label: i18n.t('pet.sizeLarge', { px: 360 }),
+        click: async () => {
+          try {
+            const { resizePetWindow } = await import('../pet/petManager');
+            resizePetWindow(360);
+          } catch {
+            /* ignore */
+          }
+        },
+      },
+    ],
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.checkUpdate'),
+    click: () => {
+      showAndFocus();
+      mainWindowRef?.webContents.send('tray:check-update');
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.about'),
+    click: () => {
+      showAndFocus();
+      mainWindowRef?.webContents.send('tray:open-about');
+    },
+  });
+  template.push({
+    label: i18n.t('common.tray.restart'),
+    click: () => {
+      isQuitting = true;
+      app.relaunch();
+      app.exit(0);
+    },
+  });
+  template.push({ type: 'separator' });
+  template.push({
+    label: i18n.t('common.tray.quit'),
+    click: () => {
+      isQuitting = true;
+      app.quit();
+    },
+  });
+
+  return Menu.buildFromTemplate(template);
+};
+
+/**
+ * Create system tray (idempotent — no-op if already exists).
+ */
+export const createOrUpdateTray = (): void => {
+  if (tray) {
+    return;
+  }
+  try {
+    const icon = getTrayIcon();
+    tray = new Tray(icon);
+    tray.setToolTip('AionUi');
+    void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+
+    tray.on('double-click', () => {
+      if (mainWindowRef && !mainWindowRef.isDestroyed()) {
+        if (process.platform === 'darwin' && app.dock) {
+          void app.dock.show();
+        }
+        if (mainWindowRef.isMinimized()) {
+          mainWindowRef.restore();
+        }
+        mainWindowRef.show();
+        mainWindowRef.focus();
+      }
+    });
+
+    tray.on('click', (event: any) => {
+      if (event.event?.button === 2) {
+        void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+      }
+    });
+
+    void fetchActiveCountAndMaybeRebuild();
+  } catch (err) {
+    console.error('[Tray] Failed to create tray:', err);
+  }
+};
+
+/**
+ * Rebuild tray menu with current cached state (synchronous wrapper).
+ */
+const rebuildTrayMenu = (): void => {
+  if (!tray) return;
+  void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
+};
+
+/**
+ * Fetch active count from backend, update cache if changed, and rebuild menu.
+ */
+const fetchActiveCountAndMaybeRebuild = async (): Promise<void> => {
+  try {
+    const { count } = await ipcBridge.conversation.activeCount.invoke();
+    if (count !== cachedActiveCount) {
+      cachedActiveCount = count;
+      rebuildTrayMenu();
+    }
+  } catch {
+    // Keep last cached value on error
+  }
+};
+
+/**
+ * Refresh tray context menu labels (called on language change).
+ * Immediately rebuilds with current cache, then fetches latest count.
+ */
+export const refreshTrayMenu = async (): Promise<void> => {
+  rebuildTrayMenu();
+  await fetchActiveCountAndMaybeRebuild();
+};
+
+/**
+ * Destroy system tray.
+ */
+export const destroyTray = (): void => {
+  if (tray) {
+    tray.destroy();
+    tray = null;
+  }
+};

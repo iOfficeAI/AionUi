@@ -1,0 +1,10 @@
+{
+  "coder": {
+    "name": "Hello 编码助手",
+    "description": "帮助代码生成和代码审查的编码助手"
+  },
+  "researcher": {
+    "name": "Hello 研究助手",
+    "description": "分析和总结信息的研究助手"
+  }
+}

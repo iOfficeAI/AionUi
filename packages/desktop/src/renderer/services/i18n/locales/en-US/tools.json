@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Unknown file",
+  "newFile": "New File",
+  "deletedFile": "Deleted File",
+  "modified": "Modified",
+  "fileChanges": "File Changes",
+  "shell": {
+    "displayName": "Shell Command",
+    "description": "Execute shell commands"
+  },
+  "fileOps": {
+    "displayName": "File Operations",
+    "description": "File read, write and modification"
+  },
+  "webSearch": {
+    "displayName": "Web Search",
+    "description": "Search web content"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP Tool: {{toolName}}",
+      "description": "MCP tool call: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "Unknown Tool",
+    "description": "Unknown tool type"
+  },
+  "status": {
+    "pending": "Pending",
+    "executing": "Executing",
+    "success": "Success",
+    "error": "Error",
+    "canceled": "Canceled"
+  },
+  "titles": {
+    "web_search_started": "Web Search Started",
+    "web_search_completed": "Web Search Completed",
+    "web_search": "Web Search",
+    "applying_patch": "Applying Patch",
+    "patch_applied": "Patch Applied",
+    "file_patch": "File Patch",
+    "mcp_tool_starting": "MCP Tool: {{toolName}} (starting)",
+    "mcp_tool": "MCP Tool: {{toolName}}",
+    "execute_command": "Execute: {{command}}",
+    "command_output": "Command Output",
+    "command_completed": "Command Completed",
+    "shell_command": "Shell Command"
+  },
+  "labels": {
+    "search_query": "Search Query:",
+    "file_changes": "File Changes:",
+    "tool_details": "Tool Details:",
+    "tool": "Tool",
+    "arguments": "Arguments:",
+    "result": "Result:",
+    "command": "Command:",
+    "working_directory": "Working directory:",
+    "exit_code": "Exit: {{code}}",
+    "duration": "Duration: {{seconds}}",
+    "auto_approved": "Auto-approved",
+    "manual_approval": "Manual approval"
+  },
+  "actions": {
+    "create": "create",
+    "modify": "modify",
+    "delete": "delete"
+  }
+}

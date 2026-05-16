@@ -1,0 +1,68 @@
+name: '✓PR E2E Artifacts'
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: pr-e2e-artifacts-${{ github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+jobs:
+  e2e-artifacts:
+    name: E2E Artifacts (Linux)
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Setup bun
+        uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - name: Setup just
+        uses: extractions/setup-just@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run postinstall
+        run: npm run postinstall || true
+
+      - name: Install Linux display dependencies (E2E)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgbm-dev xvfb
+
+      - name: Run E2E tests (with screenshots)
+        run: xvfb-run --auto-servernum just e2e-test
+        env:
+          CI: true
+          E2E_DEV: '1'
+          E2E_SCREENSHOTS: '1'
+          AIONUI_EXTENSIONS_PATH: ${{ github.workspace }}/examples
+
+      - name: Upload E2E report (self-contained with screenshots & traces)
+        if: always()
+        uses: actions/upload-artifact@v6
+        with:
+          name: e2e-report-linux-pr
+          path: |
+            tests/e2e/report/
+            tests/e2e/results/
+            tests/e2e/screenshots/
+          retention-days: 14
+          if-no-files-found: ignore

@@ -1,0 +1,25 @@
+<svg width="360" height="224" viewBox="0 0 360 224" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#87CEEB"/>
+      <stop offset="50%" stop-color="#4FA8C8"/>
+      <stop offset="100%" stop-color="#1A6E8E"/>
+    </linearGradient>
+    <linearGradient id="wave1" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#2196F3" stop-opacity="0.6"/>
+      <stop offset="100%" stop-color="#0D47A1" stop-opacity="0.8"/>
+    </linearGradient>
+  </defs>
+  <rect width="360" height="224" fill="url(#sky)"/>
+  <!-- Clouds -->
+  <ellipse cx="80" cy="40" rx="40" ry="16" fill="white" opacity="0.5"/>
+  <ellipse cx="60" cy="36" rx="24" ry="12" fill="white" opacity="0.6"/>
+  <ellipse cx="260" cy="55" rx="30" ry="12" fill="white" opacity="0.4"/>
+  <!-- Waves -->
+  <path d="M0,140 Q45,125 90,140 Q135,155 180,140 Q225,125 270,140 Q315,155 360,140 L360,224 L0,224 Z" fill="url(#wave1)"/>
+  <path d="M0,160 Q45,145 90,160 Q135,175 180,160 Q225,145 270,160 Q315,175 360,160 L360,224 L0,224 Z" fill="#1565C0" opacity="0.5"/>
+  <path d="M0,180 Q45,170 90,180 Q135,190 180,180 Q225,170 270,180 Q315,190 360,180 L360,224 L0,224 Z" fill="#0D47A1" opacity="0.4"/>
+  <!-- Sun reflection -->
+  <circle cx="280" cy="30" r="20" fill="#FFD54F" opacity="0.8"/>
+  <ellipse cx="280" cy="160" rx="3" ry="30" fill="#FFD54F" opacity="0.2"/>
+</svg>

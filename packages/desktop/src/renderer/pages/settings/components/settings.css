@@ -1,0 +1,50 @@
+/* Settings mobile top nav */
+@media (max-width: 767px) {
+  .settings-mobile-top-nav {
+    display: flex;
+    gap: 8px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+    padding-bottom: 10px;
+    margin-bottom: 12px;
+  }
+
+  .settings-mobile-top-nav::-webkit-scrollbar {
+    display: none;
+  }
+
+  .settings-mobile-top-nav__item {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 12px;
+    border-radius: 999px;
+    border: 1px solid var(--border-base);
+    background: var(--bg-1);
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 20px;
+  }
+
+  .settings-mobile-top-nav__item--active {
+    background: var(--bg-active);
+    color: var(--text-primary);
+    border-color: var(--border-base);
+  }
+
+  .settings-mobile-top-nav__icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    line-height: 0;
+  }
+
+  .settings-mobile-top-nav__label {
+    white-space: nowrap;
+    font-weight: 500;
+  }
+}

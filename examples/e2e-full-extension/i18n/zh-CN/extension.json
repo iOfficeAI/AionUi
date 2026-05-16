@@ -1,0 +1,8 @@
+{
+  "displayName": "E2E 全功能测试扩展",
+  "description": "涵盖所有贡献类型的综合测试扩展，用于端到端测试",
+  "settingsTabs": {
+    "e2e-settings": { "name": "E2E 设置" },
+    "e2e-before-about": { "name": "E2E 关于前" }
+  }
+}

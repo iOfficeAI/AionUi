@@ -1,0 +1,69 @@
+{
+  "unknownFile": "알 수 없는 파일",
+  "newFile": "새 파일",
+  "deletedFile": "삭제된 파일",
+  "modified": "수정됨",
+  "fileChanges": "파일 변경",
+  "shell": {
+    "displayName": "Shell 명령",
+    "description": "Shell 명령 실행"
+  },
+  "fileOps": {
+    "displayName": "파일 작업",
+    "description": "파일 읽기, 쓰기 및 수정"
+  },
+  "webSearch": {
+    "displayName": "웹 검색",
+    "description": "웹 콘텐츠 검색"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "MCP 도구: {{toolName}}",
+      "description": "MCP 도구 호출: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "알 수 없는 도구",
+    "description": "알 수 없는 도구 유형"
+  },
+  "status": {
+    "pending": "대기 중",
+    "executing": "실행 중",
+    "success": "성공",
+    "error": "오류",
+    "canceled": "취소됨"
+  },
+  "titles": {
+    "web_search_started": "웹 검색 시작됨",
+    "web_search_completed": "웹 검색 완료됨",
+    "web_search": "웹 검색",
+    "applying_patch": "패치 적용 중",
+    "patch_applied": "패치 적용됨",
+    "file_patch": "파일 패치",
+    "mcp_tool_starting": "MCP 도구: {{toolName}} (시작 중)",
+    "mcp_tool": "MCP 도구: {{toolName}}",
+    "execute_command": "실행: {{command}}",
+    "command_output": "명령 출력",
+    "command_completed": "명령 완료됨",
+    "shell_command": "Shell 명령"
+  },
+  "labels": {
+    "search_query": "검색 쿼리:",
+    "file_changes": "파일 변경 사항:",
+    "tool_details": "도구 세부사항:",
+    "tool": "도구",
+    "arguments": "인수:",
+    "result": "결과:",
+    "command": "명령:",
+    "working_directory": "작업 디렉토리:",
+    "exit_code": "종료: {{code}}",
+    "duration": "소요 시간: {{seconds}}",
+    "auto_approved": "자동 승인됨",
+    "manual_approval": "수동 승인"
+  },
+  "actions": {
+    "create": "생성",
+    "modify": "수정",
+    "delete": "삭제"
+  }
+}

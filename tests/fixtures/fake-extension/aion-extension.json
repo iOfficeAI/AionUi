@@ -1,0 +1,25 @@
+{
+  "name": "fake-acp-extension",
+  "displayName": "Fake ACP Extension",
+  "version": "1.0.0",
+  "description": "Test fixture extension that contributes a fake ACP adapter",
+  "author": "AionUi Test",
+  "lifecycle": {
+    "onInstall": "scripts/install.js"
+  },
+  "contributes": {
+    "acpAdapters": [
+      {
+        "id": "fake-acp",
+        "name": "Fake ACP Agent",
+        "description": "Fake ACP agent for testing",
+        "connectionType": "cli",
+        "cliCommand": "fake-acp-cli",
+        "defaultCliPath": "fake-acp-cli",
+        "acpArgs": [],
+        "authRequired": false,
+        "supportsStreaming": false
+      }
+    ]
+  }
+}

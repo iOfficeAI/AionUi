@@ -1,0 +1,449 @@
+/* Retroma Obsidian Theme - AionUi Adaptation */
+/* Inspired by retroma-obsidian-theme color philosophy */
+/* Low-saturation organic palette with warm purples, teal blues, and olive greens */
+
+:root {
+  /* ===== Primary: Retroma Teal-Blue ===== */
+  --color-primary: #0f7887;
+  --primary: #0f7887;
+  --color-primary-light-1: #2a9aac;
+  --color-primary-light-2: #4db8c8;
+  --color-primary-light-3: #80d0dc;
+  --color-primary-dark-1: #0a5a66;
+  --primary-rgb: 15, 120, 135;
+
+  /* ===== Brand: Retroma Warm Purple ===== */
+  --brand: #6e3a66;
+  --brand-light: #f2e8f0;
+  --brand-hover: #9d6094;
+  --color-brand-fill: #6e3a66;
+  --color-brand-bg: #f2e8f0;
+
+  /* ===== AOU Palette: Warm Olive-Green Gradient ===== */
+  --aou-1: #f4f4ec;
+  --aou-2: #e8e9d8;
+  --aou-3: #d0d2b0;
+  --aou-4: #b4b888;
+  --aou-5: #979d62;
+  --aou-6: #737f16;
+  --aou-7: #575f10;
+  --aou-8: #3c420b;
+  --aou-9: #222606;
+  --aou-10: #0c0e02;
+
+  /* ===== Backgrounds: Warm Parchment ===== */
+  --bg-base: #faf9f6;
+  --bg-1: #f5f4ef;
+  --bg-2: #eeede5;
+  --bg-3: #e2e0d4;
+  --bg-4: #cbc8b8;
+  --bg-5: #b0ac9a;
+  --bg-6: #8c8878;
+  --bg-8: #575450;
+  --bg-9: #2c2b28;
+  --bg-10: #111009;
+  --color-bg-1: #f5f4ef;
+  --color-bg-2: #eeede5;
+  --color-bg-3: #e2e0d4;
+  --color-bg-4: #cbc8b8;
+
+  /* ===== Interactive States ===== */
+  --bg-hover: #ebe9df;
+  --bg-active: #e0ded4;
+
+  /* ===== Text: Warm Dark ===== */
+  --text-primary: #1d011d;
+  --text-secondary: #6e6060;
+  --text-disabled: #b8b0a8;
+  --text-0: #1d011d;
+  --text-white: #faf9f6;
+  --color-text-1: #1d011d;
+  --color-text-2: #6e6060;
+  --color-text-3: #9e9490;
+  --color-text-4: #c8c0bc;
+
+  /* ===== Borders ===== */
+  --border-base: #d8d4c8;
+  --border-light: #e8e6dc;
+  --border-special: #d0ccc0;
+  --color-border: #d8d4c8;
+  --color-border-1: #d8d4c8;
+  --color-border-2: #e8e6dc;
+
+  /* ===== Fill & Inverse ===== */
+  --fill: #f5f4ef;
+  --color-fill: #f5f4ef;
+  --fill-0: #faf9f6;
+  --fill-white-to-black: #faf9f6;
+  --dialog-fill-0: #faf9f6;
+  --inverse: #1d011d;
+
+  /* ===== Semantic Colors ===== */
+  --success: #35847e;
+  --warning: #b07a10;
+  --danger: #b03030;
+  --info: #0f7887;
+
+  /* ===== Message & Component ===== */
+  --message-user-bg: #e9e4f0;
+  --message-tips-bg: #f1edf6;
+  --workspace-btn-bg: #eeece4;
+
+  /* ===== Color GUID Agent Bar ===== */
+  --color-guid-agent-bar: #eae8de;
+  --hl-chip-bg: #f3eee2;
+  --hl-chip-text: #5a4a3a;
+  --hl-chip-border: #d7ccb7;
+}
+
+/* ===== Dark Mode Overrides ===== */
+[data-theme='dark'] {
+  /* Primary: Retroma Teal (dark-adjusted) */
+  --color-primary: #6e8ddb;
+  --primary: #6e8ddb;
+  --color-primary-light-1: #8fa8e8;
+  --color-primary-light-2: #aabff0;
+  --color-primary-light-3: #c5d5f6;
+  --color-primary-dark-1: #4f70c4;
+  --primary-rgb: 110, 141, 219;
+
+  /* Brand: Retroma Purple (dark) */
+  --brand: #be80bf;
+  --brand-light: #3d2840;
+  --brand-hover: #9a60a0;
+  --color-brand-fill: #be80bf;
+  --color-brand-bg: #3d2840;
+
+  /* AOU Palette: Dark Olive */
+  --aou-1: #232318;
+  --aou-2: #363525;
+  --aou-3: #4a4a30;
+  --aou-4: #666640;
+  --aou-5: #898a54;
+  --aou-6: #a2a554;
+  --aou-7: #bbbf6e;
+  --aou-8: #d0d490;
+  --aou-9: #e4e6b8;
+  --aou-10: #f2f4da;
+
+  /* Backgrounds: Dark Obsidian with warm undertones */
+  --bg-base: #0f0f0c;
+  --bg-1: #18180f;
+  --bg-2: #222217;
+  --bg-3: #2e2e20;
+  --bg-4: #3c3c2c;
+  --bg-5: #4e4e3a;
+  --bg-6: #606050;
+  --bg-8: #848470;
+  --bg-9: #b0b09a;
+  --bg-10: #d8d8c8;
+  --color-bg-1: #18180f;
+  --color-bg-2: #222217;
+  --color-bg-3: #2e2e20;
+  --color-bg-4: #3c3c2c;
+
+  /* Interactive States */
+  --bg-hover: #1e1e14;
+  --bg-active: #28281c;
+
+  /* Text: Retroma warm near-white */
+  --text-primary: #e8e6d8;
+  --text-secondary: #a8a498;
+  --text-disabled: #686458;
+  --text-0: #f0ede0;
+  --text-white: #f0ede0;
+  --color-text-1: #e8e6d8;
+  --color-text-2: #a8a498;
+  --color-text-3: #787468;
+  --color-text-4: #504c44;
+
+  /* Borders */
+  --border-base: #3a3a28;
+  --border-light: #2a2a1e;
+  --border-special: #4a4a36;
+  --color-border: #3a3a28;
+  --color-border-1: #3a3a28;
+  --color-border-2: #2a2a1e;
+
+  /* Fill & Inverse */
+  --fill: #18180f;
+  --color-fill: #18180f;
+  --fill-0: rgba(255, 252, 240, 0.07);
+  --fill-white-to-black: #0f0f0c;
+  --dialog-fill-0: #2e2e20;
+  --inverse: #f0ede0;
+
+  /* Semantic Colors */
+  --success: #68a99d;
+  --warning: #d4963a;
+  --danger: #c86060;
+  --info: #6e8ddb;
+
+  /* Message & Component */
+  --message-user-bg: #3a3444;
+  --message-tips-bg: #2f2a38;
+  --workspace-btn-bg: #1e1e14;
+
+  /* Color GUID Agent Bar */
+  --color-guid-agent-bar: #2a2a1e;
+  --hl-chip-bg: #d6ccb8;
+  --hl-chip-text: #3f3528;
+  --hl-chip-border: #b5a88f;
+}
+
+/* ===== Typography ===== */
+body {
+  font-family: 'Georgia', 'Palatino Linotype', 'Book Antiqua', 'Source Han Serif', serif;
+  letter-spacing: 0.01em;
+}
+
+/* ===== Scrollbar Styling ===== */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--bg-1);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--bg-4);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--brand);
+}
+
+/* ===== Message Headings (H1-H5) ===== */
+.message-content h1,
+.markdown-body h1 {
+  color: var(--brand);
+}
+
+.message-content h2,
+.markdown-body h2 {
+  color: var(--color-primary);
+}
+
+.message-content h3,
+.markdown-body h3 {
+  color: var(--aou-6);
+}
+
+.message-content h4,
+.markdown-body h4 {
+  color: var(--success);
+}
+
+.message-content h5,
+.markdown-body h5 {
+  color: #465881;
+}
+
+[data-theme='dark'] .message-content h5,
+[data-theme='dark'] .markdown-body h5 {
+  color: #7a90c8;
+}
+
+/* ===== Links ===== */
+.message-content a,
+.markdown-body a,
+.markdown-shadow-body a,
+[class*='markdown'] a {
+  color: #5b63cf;
+  -webkit-text-fill-color: #5b63cf;
+  text-decoration-color: rgba(91, 99, 207, 0.55);
+  text-underline-offset: 2px;
+}
+
+[data-theme='light'] .message-content a:hover,
+[data-theme='light'] .markdown-body a:hover,
+[data-theme='light'] .markdown-shadow-body a:hover,
+[data-theme='light'] [class*='markdown'] a:hover {
+  color: #464fc0 !important;
+  -webkit-text-fill-color: #464fc0 !important;
+  text-decoration-color: rgba(70, 79, 192, 0.8) !important;
+}
+
+[data-theme='light'] .message-content a:visited,
+[data-theme='light'] .markdown-body a:visited,
+[data-theme='light'] .markdown-shadow-body a:visited,
+[data-theme='light'] [class*='markdown'] a:visited {
+  color: #7a63b0 !important;
+  -webkit-text-fill-color: #7a63b0 !important;
+  text-decoration-color: rgba(122, 99, 176, 0.65) !important;
+}
+
+[data-theme='dark'] .message-content a,
+[data-theme='dark'] .markdown-body a,
+[data-theme='dark'] .markdown-shadow-body a,
+[data-theme='dark'] [class*='markdown'] a {
+  color: #cfe0ff !important;
+  -webkit-text-fill-color: #cfe0ff !important;
+  text-decoration-color: rgba(207, 224, 255, 0.85) !important;
+}
+
+[data-theme='dark'] .message-content a:hover,
+[data-theme='dark'] .markdown-body a:hover,
+[data-theme='dark'] .markdown-shadow-body a:hover,
+[data-theme='dark'] [class*='markdown'] a:hover {
+  color: #e7efff !important;
+  -webkit-text-fill-color: #e7efff !important;
+  text-decoration-color: rgba(231, 239, 255, 0.98) !important;
+}
+
+[data-theme='dark'] .message-content a:visited,
+[data-theme='dark'] .markdown-body a:visited,
+[data-theme='dark'] .markdown-shadow-body a:visited,
+[data-theme='dark'] [class*='markdown'] a:visited {
+  color: #d4c6fa !important;
+  -webkit-text-fill-color: #d4c6fa !important;
+  text-decoration-color: rgba(212, 198, 250, 0.82) !important;
+}
+
+/* ===== Code Blocks ===== */
+.message-content pre,
+.markdown-body pre {
+  background: var(--bg-2);
+  border: 1px solid var(--border-base);
+  border-radius: 6px;
+}
+
+[data-theme='dark'] .message-content pre,
+[data-theme='dark'] .markdown-body pre {
+  background: #141410;
+  border-color: var(--border-base);
+}
+
+/* ===== Inline Code / Highlight Chip ===== */
+.message-content code:not(pre code),
+.markdown-body code:not(pre code),
+.markdown-shadow-body code:not(pre code),
+[class*='markdown'] code:not(pre code) {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  border: 1px solid var(--hl-chip-border) !important;
+  border-radius: 7px !important;
+  padding: 1px 8px !important;
+  font-size: 0.9em !important;
+  font-weight: 650 !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+  background-clip: border-box !important;
+}
+
+[data-theme='dark'] .message-content code:not(pre code),
+[data-theme='dark'] .markdown-body code:not(pre code),
+[data-theme='dark'] .markdown-shadow-body code:not(pre code),
+[data-theme='dark'] [class*='markdown'] code:not(pre code) {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  border-color: var(--hl-chip-border) !important;
+  box-shadow: inset 0 0 0 1px rgba(90, 66, 108, 0.12) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+}
+
+/* ===== Emphasis Highlight (Bold with Background) ===== */
+.message-content strong,
+.markdown-body strong,
+.markdown-shadow-body strong,
+[class*='markdown'] strong {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  padding: 0 6px !important;
+  border-radius: 4px !important;
+  border: 1px solid var(--hl-chip-border) !important;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+}
+
+[data-theme='dark'] .message-content strong,
+[data-theme='dark'] .markdown-body strong,
+[data-theme='dark'] .markdown-shadow-body strong,
+[data-theme='dark'] [class*='markdown'] strong {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  border-color: var(--hl-chip-border) !important;
+  box-shadow: inset 0 0 0 1px rgba(90, 66, 108, 0.1) !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+}
+
+[data-theme='light'] .message-content mark,
+[data-theme='light'] .markdown-body mark,
+[data-theme='light'] .markdown-shadow-body mark,
+[data-theme='light'] [class*='markdown'] mark,
+[data-theme='dark'] .message-content mark,
+[data-theme='dark'] .markdown-body mark,
+[data-theme='dark'] .markdown-shadow-body mark,
+[data-theme='dark'] [class*='markdown'] mark {
+  background: var(--hl-chip-bg) !important;
+  color: var(--hl-chip-text) !important;
+  border: 1px solid var(--hl-chip-border) !important;
+  border-radius: 4px !important;
+  padding: 0 4px !important;
+  opacity: 1 !important;
+  filter: none !important;
+  text-shadow: none !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+}
+
+.message-content strong *,
+.markdown-body strong *,
+.markdown-shadow-body strong *,
+[class*='markdown'] strong *,
+.message-content code:not(pre code) *,
+.markdown-body code:not(pre code) *,
+.markdown-shadow-body code:not(pre code) *,
+[class*='markdown'] code:not(pre code) *,
+.message-content mark *,
+.markdown-body mark *,
+.markdown-shadow-body mark *,
+[class*='markdown'] mark * {
+  color: var(--hl-chip-text) !important;
+  -webkit-text-fill-color: var(--hl-chip-text) !important;
+  opacity: 1 !important;
+}
+
+/* ===== Sidebar ===== */
+.layout-sider {
+  background-color: var(--bg-1);
+  border-right: 1px solid var(--border-base);
+}
+
+/* ===== Conversation Bubble (AOU purple-gray) ===== */
+.message-item.user .message-bubble {
+  background: var(--message-user-bg) !important;
+  border: 1px solid #cbc0da !important;
+}
+
+[data-theme='dark'] .message-item.user .message-bubble {
+  background: var(--message-user-bg) !important;
+  border-color: color-mix(in srgb, var(--aou-5) 46%, var(--border-base)) !important;
+}
+
+/* ===== Selection Highlight ===== */
+::selection {
+  background: color-mix(in srgb, var(--brand) 25%, transparent);
+}
+
+[data-theme='dark'] ::selection {
+  background: color-mix(in srgb, var(--brand) 30%, transparent);
+}
+
+/* AionUi Theme Background Start */
+/* Preview cover only: do not auto-inject full-page background image */
+/* AionUi Theme Background End */

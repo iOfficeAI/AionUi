@@ -1,0 +1,15 @@
+{
+  "tab": {
+    "e2e-settings": "E2E 設定",
+    "e2e-before-about": "E2E 關於前"
+  },
+  "page": {
+    "title": "E2E 擴充設定",
+    "endpoint": "測試端點",
+    "timeout": "請求逾時時間 (毫秒)",
+    "mode": "測試模式",
+    "mode-mock": "模擬",
+    "mode-live": "即時",
+    "info": "這是由 E2E 完整測試擴充提供的展示設定頁面。"
+  }
+}

@@ -1,0 +1,130 @@
+/* Base styles - theme-independent */
+
+:root {
+  --app-min-width: 360px;
+  --titlebar-height: 36px;
+}
+
+.app-shell {
+  min-height: 0;
+}
+
+html,
+body,
+#root,
+.layout,
+.layout-content {
+  min-width: var(--app-min-width); /* prevent layout collapse on very small screens */
+}
+
+.loading {
+  animation: loading 1s linear infinite;
+}
+
+.bg-animate {
+  animation: bg-animate 1s alternate infinite;
+}
+
+/* Mobile base: prevent text size adjustment */
+@media (max-width: 767px) {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+}
+
+@keyframes bg-animate {
+  0% {
+    background-color: var(--bg-2);
+  }
+  100% {
+    background-color: var(--bg-3);
+  }
+}
+
+@keyframes team-tab-breathe {
+  0%,
+  100% {
+    opacity: 1;
+    background-color: transparent;
+    box-shadow: none;
+  }
+  50% {
+    opacity: 0.85;
+    background-color: color-mix(in srgb, var(--color-primary-6) 18%, transparent);
+    box-shadow:
+      0 0 8px 2px color-mix(in srgb, var(--color-primary-6) 30%, transparent),
+      inset 0 0 6px 0 color-mix(in srgb, var(--color-primary-6) 15%, transparent);
+  }
+}
+
+@keyframes loading {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+.collapsed {
+  .collapsed-hidden {
+    display: none;
+  }
+  .\!collapsed-hidden {
+    display: none !important;
+  }
+}
+
+/* Safe area utilities for mobile devices */
+/* iOS 17+ Chrome, Safari need env() in CSS, not inline styles */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+  .safe-area-bottom {
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+
+  .safe-area-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
+
+/* Custom scrollbar styles */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 3px;
+  transition: background 0.3s;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(0, 0, 0, 0.2);
+}
+
+[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Hide scrollbar while keeping scroll behavior */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+*:hover::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.1);
+}
+
+[data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
+  background: rgba(255, 255, 255, 0.1);
+}

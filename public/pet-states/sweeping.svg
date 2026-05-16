@@ -1,0 +1,72 @@
+<svg viewBox="-18 -18 58 58" width="500" height="500" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs><style>
+    .sw-all {
+      transform-origin: 11px 17px;
+      animation: sw-sway 0.7s ease-in-out infinite alternate;
+    }
+    .sw-broom {
+      transform-origin: 11px 19px;
+      animation: sw-broom 0.7s ease-in-out infinite alternate;
+    }
+    .sw-dust1 { animation: sw-dust 1.4s ease-out infinite; animation-delay: 0s; }
+    .sw-dust2 { animation: sw-dust 1.4s ease-out infinite; animation-delay: 0.35s; }
+    .sw-dust3 { animation: sw-dust 1.4s ease-out infinite; animation-delay: 0.7s; }
+    .sw-shadow {
+      transform-origin: 11px 25px;
+      animation: sw-shadow 0.7s ease-in-out infinite alternate;
+    }
+    @keyframes sw-sway {
+      from { transform: rotate(-7deg) translateY(0) scaleX(1.04); }
+      to   { transform: rotate(7deg) translateY(-1px) scaleX(0.96); }
+    }
+    @keyframes sw-broom {
+      from { transform: rotate(-18deg); }
+      to   { transform: rotate(18deg); }
+    }
+    @keyframes sw-dust {
+      0%   { transform: translate(0,0) scale(1); opacity: 0.8; }
+      100% { transform: translate(-6px, -4px) scale(0.3); opacity: 0; }
+    }
+    @keyframes sw-shadow {
+      from { transform: scaleX(1.1); opacity: 0.28; }
+      to   { transform: scaleX(0.85); opacity: 0.18; }
+    }
+  </style></defs>
+
+  <ellipse class="sw-shadow" cx="11" cy="25" rx="7" ry="0.75" fill="#c0c0c0"/>
+
+  <g class="sw-all">
+    <!-- 扫帚（在身体下方斜放） -->
+    <g class="sw-broom">
+      <!-- 扫帚柄 -->
+      <rect x="9.5" y="16" width="1.2" height="9" rx="0.6" fill="#c8a96e"/>
+      <!-- 扫帚头 -->
+      <rect x="5" y="23.5" width="10" height="2.5" rx="1" fill="#e0c070"/>
+      <!-- 刷毛线条 -->
+      <line x1="6.5"  y1="24" x2="6"   y2="26.5" stroke="#b89040" stroke-width="0.5"/>
+      <line x1="8.5"  y1="24" x2="8.2" y2="26.5" stroke="#b89040" stroke-width="0.5"/>
+      <line x1="10.5" y1="24" x2="10.5" y2="26.5" stroke="#b89040" stroke-width="0.5"/>
+      <line x1="12.5" y1="24" x2="12.8" y2="26.5" stroke="#b89040" stroke-width="0.5"/>
+      <line x1="14"   y1="24" x2="14.5" y2="26.5" stroke="#b89040" stroke-width="0.5"/>
+    </g>
+    <!-- 尘土粒子 -->
+    <rect class="sw-dust1" x="4"  y="24" width="1.5" height="1.5" rx="0.5" fill="#9098b0" opacity="0.7"/>
+    <rect class="sw-dust2" x="2"  y="23" width="1"   height="1"   rx="0.3" fill="#9098b0" opacity="0.6"/>
+    <rect class="sw-dust3" x="5"  y="22" width="0.8" height="0.8" rx="0.3" fill="#9098b0" opacity="0.5"/>
+
+    <!-- 左手握扫帚 -->
+    <rect x="7" y="14" width="3" height="3" rx="1.5" fill="#97A0C5" fill-opacity="0.75"/>
+    <!-- 右手也扶着 -->
+    <rect x="13" y="16" width="3" height="3" rx="1.5" fill="#97A0C5" fill-opacity="0.75"/>
+
+    <!-- 身体 -->
+    <rect x="5" y="6" width="12" height="12" rx="6" fill="#97A0C5"/>
+    <!-- 帽子 -->
+    <polygon points="11,1 15,7 7,7" fill="#FF6B35"/>
+      <rect x="10" y="2" width="1" height="1" fill="#e8714a"/>
+    <!-- 眼睛（专注眯眼） -->
+    <rect x="9" y="11" width="4" height="1.2" rx="0.6" fill="#111827"/>
+    <!-- 认真小嘴 -->
+    <path d="M9 14 Q11 15.5 13 14" stroke="#111827" stroke-width="0.9" stroke-linecap="round" fill="none"/>
+  </g>
+</svg>

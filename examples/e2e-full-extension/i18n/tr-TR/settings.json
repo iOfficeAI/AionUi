@@ -1,0 +1,15 @@
+{
+  "tab": {
+    "e2e-settings": "E2E Ayarlar",
+    "e2e-before-about": "E2E Hakkında Önce"
+  },
+  "page": {
+    "title": "E2E Uzantı Ayarları",
+    "endpoint": "Test Uç Noktası",
+    "timeout": "İstek Zaman Aşımı (ms)",
+    "mode": "Test Modu",
+    "mode-mock": "Sahte",
+    "mode-live": "Canlı",
+    "info": "Bu, E2E Tam Test Uzantısı tarafından sağlanan bir demo ayarlar sayfasıdır."
+  }
+}

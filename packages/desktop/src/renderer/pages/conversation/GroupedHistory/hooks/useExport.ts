@@ -1,0 +1,360 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { ipcBridge } from '@/common';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { TChatConversation } from '@/common/config/storage';
+import { isElectronDesktop } from '@/renderer/utils/platform';
+import { Message } from '@arco-design/web-react';
+import { useCallback, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { formatTimestamp, joinFilePath, sanitizeFileName } from '@/renderer/utils/chat/conversationExport';
+
+import type { ExportTask, ExportZipFile } from '../types';
+import {
+  appendWorkspaceFilesToZip,
+  buildConversationJson,
+  buildConversationMarkdown,
+  buildTopicFolderName,
+  EXPORT_IO_TIMEOUT_MS,
+  withTimeout,
+} from '../utils/exportHelpers';
+
+type UseExportParams = {
+  conversations: TChatConversation[];
+  selectedConversationIds: Set<string>;
+  setSelectedConversationIds: React.Dispatch<React.SetStateAction<Set<string>>>;
+  onBatchModeChange?: (value: boolean) => void;
+};
+
+export const useExport = ({
+  conversations,
+  selectedConversationIds,
+  setSelectedConversationIds,
+  onBatchModeChange,
+}: UseExportParams) => {
+  const [exportTask, setExportTask] = useState<ExportTask>(null);
+  const [exportModalVisible, setExportModalVisible] = useState(false);
+  const [exportTargetPath, setExportTargetPath] = useState('');
+  const [exportModalLoading, setExportModalLoading] = useState(false);
+  const [showExportDirectorySelector, setShowExportDirectorySelector] = useState(false);
+  const [currentExportRequestId, setCurrentExportRequestId] = useState<string | null>(null);
+  const exportCanceledRef = useRef(false);
+  const { t } = useTranslation();
+
+  const fileExists = useCallback(async (file_path: string): Promise<boolean> => {
+    try {
+      const metadata = await withTimeout(
+        ipcBridge.fs.getFileMetadata.invoke({ path: file_path }),
+        EXPORT_IO_TIMEOUT_MS,
+        `getFileMetadata:${file_path}`
+      );
+      return metadata.size >= 0;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const createUniqueFilePath = useCallback(
+    async (directory: string, file_nameWithoutExt: string, ext: 'json' | 'md' | 'zip') => {
+      const safeBaseName = sanitizeFileName(file_nameWithoutExt);
+      const findCandidate = async (index: number): Promise<string> => {
+        const suffix = index === 0 ? '' : `-${Date.now()}-${index}`;
+        const candidate = joinFilePath(directory, `${safeBaseName}${suffix}.${ext}`);
+        return (await fileExists(candidate)) ? findCandidate(index + 1) : candidate;
+      };
+
+      return findCandidate(0);
+    },
+    [fileExists]
+  );
+
+  const getDesktopPath = useCallback(async (): Promise<string> => {
+    try {
+      const desktopPath = await ipcBridge.application.getPath.invoke({ name: 'desktop' });
+      return desktopPath || '';
+    } catch {
+      return '';
+    }
+  }, []);
+
+  const closeExportModal = useCallback(() => {
+    if (exportModalLoading) {
+      exportCanceledRef.current = true;
+    }
+    if (exportModalLoading && currentExportRequestId) {
+      void ipcBridge.fs.cancelZip.invoke({ request_id: currentExportRequestId });
+    }
+    setExportModalVisible(false);
+    setExportTask(null);
+    setExportTargetPath('');
+    setExportModalLoading(false);
+    setCurrentExportRequestId(null);
+  }, [currentExportRequestId, exportModalLoading]);
+
+  const openExportModal = useCallback(
+    async (task: NonNullable<ExportTask>) => {
+      exportCanceledRef.current = false;
+      setExportTask(task);
+      setExportModalVisible(true);
+      const desktopPath = await getDesktopPath();
+      setExportTargetPath(desktopPath);
+    },
+    [getDesktopPath]
+  );
+
+  const handleSelectExportDirectoryFromModal = useCallback((paths: string[] | undefined) => {
+    setShowExportDirectorySelector(false);
+    if (paths && paths.length > 0) {
+      setExportTargetPath(paths[0]);
+    }
+  }, []);
+
+  const handleSelectExportFolder = useCallback(async () => {
+    if (exportModalLoading) {
+      return;
+    }
+
+    if (!isElectronDesktop()) {
+      setShowExportDirectorySelector(true);
+      return;
+    }
+
+    try {
+      const desktopPath = exportTargetPath || (await getDesktopPath());
+      const folders = await ipcBridge.dialog.showOpen.invoke({
+        properties: ['openDirectory', 'createDirectory'],
+        defaultPath: desktopPath || undefined,
+      });
+      if (folders && folders.length > 0) {
+        setExportTargetPath(folders[0]);
+      }
+    } catch (error) {
+      console.error('Failed to open export directory dialog:', error);
+      Message.error(t('conversation.history.exportFailed'));
+    }
+  }, [exportModalLoading, exportTargetPath, getDesktopPath, t]);
+
+  const fetchConversationMessages = useCallback(async (conversation_id: string): Promise<TMessage[]> => {
+    try {
+      const result = await withTimeout(
+        ipcBridge.database.getConversationMessages.invoke({
+          conversation_id: conversation_id,
+          page: 0,
+          page_size: 10000,
+        }),
+        EXPORT_IO_TIMEOUT_MS,
+        `getConversationMessages:${conversation_id}`
+      );
+      return result.items;
+    } catch (error) {
+      console.warn('[WorkspaceGroupedHistory] Export message fetch timeout/failure:', conversation_id, error);
+      return [];
+    }
+  }, []);
+
+  const fetchConversationWorkspaceTree = useCallback(async (conversation: TChatConversation) => {
+    const workspace = conversation.extra?.workspace;
+    if (!workspace) {
+      return undefined;
+    }
+
+    try {
+      const trees = await withTimeout(
+        ipcBridge.conversation.getWorkspace.invoke({
+          conversation_id: conversation.id,
+          workspace,
+          path: workspace,
+        }),
+        EXPORT_IO_TIMEOUT_MS,
+        `getWorkspace:${conversation.id}`
+      );
+      return trees?.[0];
+    } catch (error) {
+      console.warn('[WorkspaceGroupedHistory] Failed to read workspace for export:', conversation.id, error);
+      return undefined;
+    }
+  }, []);
+
+  const buildConversationExportFiles = useCallback(
+    async (conversation: TChatConversation, topicFolderName: string): Promise<ExportZipFile[]> => {
+      const [messages, workspaceTree] = await Promise.all([
+        fetchConversationMessages(conversation.id),
+        fetchConversationWorkspaceTree(conversation),
+      ]);
+      const files: ExportZipFile[] = [
+        {
+          name: `${topicFolderName}/conversation/conversation.json`,
+          content: buildConversationJson(conversation, messages),
+        },
+        {
+          name: `${topicFolderName}/conversation/conversation.md`,
+          content: buildConversationMarkdown(conversation, messages),
+        },
+      ];
+
+      appendWorkspaceFilesToZip(files, workspaceTree, topicFolderName);
+      return files;
+    },
+    [fetchConversationMessages, fetchConversationWorkspaceTree]
+  );
+
+  const runCreateZip = useCallback(
+    async (path: string, files: ExportZipFile[], request_id: string): Promise<boolean> => {
+      try {
+        return await withTimeout(
+          ipcBridge.fs.createZip.invoke({ path, files, request_id }),
+          EXPORT_IO_TIMEOUT_MS * 8,
+          `createZip:${request_id}`
+        );
+      } catch (error) {
+        // Ensure background zip task is stopped when renderer-side timeout/cancel happens.
+        void ipcBridge.fs.cancelZip.invoke({ request_id });
+        throw error;
+      }
+    },
+    []
+  );
+
+  const handleExportConversation = useCallback(
+    (conversation: TChatConversation) => {
+      void openExportModal({ mode: 'single', conversation });
+    },
+    [openExportModal]
+  );
+
+  const handleBatchExport = useCallback(() => {
+    if (selectedConversationIds.size === 0) {
+      Message.warning(t('conversation.history.batchNoSelection'));
+      return;
+    }
+    void openExportModal({
+      mode: 'batch',
+      conversation_ids: Array.from(selectedConversationIds),
+    });
+  }, [openExportModal, selectedConversationIds, t]);
+
+  const handleConfirmExport = useCallback(async () => {
+    if (!exportTask) return;
+
+    const directory = exportTargetPath.trim();
+    if (!directory) {
+      Message.warning(t('conversation.history.exportSelectFolder'));
+      return;
+    }
+
+    setExportModalLoading(true);
+    exportCanceledRef.current = false;
+    const request_id = `export-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+    setCurrentExportRequestId(request_id);
+
+    const throwIfCanceled = () => {
+      if (exportCanceledRef.current) {
+        throw new Error('export canceled');
+      }
+    };
+
+    try {
+      if (exportTask.mode === 'single') {
+        throwIfCanceled();
+        const conversation = exportTask.conversation;
+        const shortTopicName = sanitizeFileName(conversation.name || conversation.id).slice(0, 40) || 'topic';
+        const zipFileName = `${shortTopicName}-${formatTimestamp()}`;
+        const exportPath = await createUniqueFilePath(directory, zipFileName, 'zip');
+        throwIfCanceled();
+        const topicFolderName = buildTopicFolderName(conversation);
+        const files = await buildConversationExportFiles(conversation, topicFolderName);
+        throwIfCanceled();
+        const success = await runCreateZip(exportPath, files, request_id);
+        throwIfCanceled();
+
+        if (success) {
+          Message.success(t('conversation.history.exportSuccess'));
+          setExportModalVisible(false);
+          setExportTask(null);
+          setExportTargetPath('');
+          setCurrentExportRequestId(null);
+        } else {
+          Message.error(t('conversation.history.exportFailed'));
+        }
+        return;
+      }
+
+      const selectedConversations = conversations.filter((conversation) =>
+        exportTask.conversation_ids.includes(conversation.id)
+      );
+      if (selectedConversations.length === 0) {
+        Message.warning(t('conversation.history.batchNoSelection'));
+        return;
+      }
+
+      const files: ExportZipFile[] = [];
+      const topicFilesList = await Promise.all(
+        selectedConversations.map(async (conversation) => {
+          throwIfCanceled();
+          const topicFiles = await buildConversationExportFiles(conversation, buildTopicFolderName(conversation));
+          throwIfCanceled();
+          return topicFiles;
+        })
+      );
+      topicFilesList.forEach((topicFiles) => {
+        files.push(...topicFiles);
+      });
+      const exportPath = await createUniqueFilePath(directory, `batch-export-${formatTimestamp()}`, 'zip');
+      throwIfCanceled();
+      const success = await runCreateZip(exportPath, files, request_id);
+      throwIfCanceled();
+
+      if (success) {
+        Message.success(t('conversation.history.exportSuccess'));
+        setSelectedConversationIds(new Set());
+        onBatchModeChange?.(false);
+        setExportModalVisible(false);
+        setExportTask(null);
+        setExportTargetPath('');
+        setCurrentExportRequestId(null);
+      } else {
+        Message.error(t('conversation.history.exportFailed'));
+      }
+    } catch (error) {
+      if (error instanceof Error && error.message.includes('canceled')) {
+        Message.warning(t('conversation.history.exportCanceled'));
+      } else {
+        console.error('Failed to export conversations:', error);
+        Message.error(t('conversation.history.exportFailed'));
+      }
+    } finally {
+      setExportModalLoading(false);
+      setCurrentExportRequestId(null);
+      exportCanceledRef.current = false;
+    }
+  }, [
+    buildConversationExportFiles,
+    conversations,
+    createUniqueFilePath,
+    exportTargetPath,
+    exportTask,
+    onBatchModeChange,
+    runCreateZip,
+    t,
+    setSelectedConversationIds,
+  ]);
+
+  return {
+    exportTask,
+    exportModalVisible,
+    exportTargetPath,
+    exportModalLoading,
+    showExportDirectorySelector,
+    setShowExportDirectorySelector,
+    closeExportModal,
+    handleSelectExportDirectoryFromModal,
+    handleSelectExportFolder,
+    handleExportConversation,
+    handleBatchExport,
+    handleConfirmExport,
+  };
+};

@@ -1,0 +1,101 @@
+import React from 'react';
+import useSWR from 'swr';
+import { ipcBridge } from '@/common';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+
+type Props = {
+  agent_name: string;
+  agent_type: string;
+  icon?: string;
+  /** When provided, enables preset-aware avatar (emoji / custom svg) via the agent's conversation extras. */
+  conversation_id?: string;
+  isLeader?: boolean;
+  className?: string;
+  logoClassName?: string;
+  /** Used for emoji presets (text-based avatar) and the first-letter fallback circle. */
+  avatarClassName?: string;
+  nameClassName?: string;
+  crownClassName?: string;
+};
+
+const TeamAgentIdentity: React.FC<Props> = ({
+  agent_name,
+  agent_type,
+  icon,
+  conversation_id,
+  isLeader = false,
+  className,
+  logoClassName,
+  avatarClassName,
+  nameClassName,
+  crownClassName,
+}) => {
+  // Share the SWR key with AgentChatSlot / TeamChatEmptyState so this hits cache instead of firing a fetch
+  const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
+    ipcBridge.conversation.get.invoke({ id: conversation_id! })
+  );
+  const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
+  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
+  const backendLogo = getAgentLogo(agent_type);
+
+  const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
+  const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;
+  const defaultAvatarClassName =
+    'w-16px h-16px rounded-2px flex items-center justify-center text-12px leading-none bg-fill-2 shrink-0';
+  const resolvedAvatarClassName = avatarClassName ?? defaultAvatarClassName;
+
+  const renderAvatar = () => {
+    if (presetInfo) {
+      if (presetInfo.isEmoji) {
+        return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
+      }
+      return <img src={presetInfo.logo} alt={presetInfo.name} className={resolvedLogoClassName} />;
+    }
+    if (explicitLogo) {
+      return <img src={explicitLogo} alt={agent_name} className={resolvedLogoClassName} />;
+    }
+    if (backendLogo) {
+      return <img src={backendLogo} alt={agent_type} className={resolvedLogoClassName} />;
+    }
+    return <span className={resolvedAvatarClassName}>{agent_name.charAt(0).toUpperCase() || '🤖'}</span>;
+  };
+
+  const crownIcon = (
+    <svg
+      data-testid='team-leader-crown-icon'
+      width='15'
+      height='15'
+      viewBox='0 0 16 16'
+      fill='none'
+      aria-hidden='true'
+      className='block'
+    >
+      <path
+        d='M2.3 13L1.2 4.7L4.8 6.5L8 2.1L11.2 6.5L14.8 4.7L13.7 13H2.3Z'
+        strokeWidth='1.25'
+        strokeLinejoin='round'
+        style={{ fill: 'var(--warning)', stroke: 'var(--text-primary)' }}
+      />
+      <path d='M5 10.1H11' strokeWidth='1.1' strokeLinecap='round' style={{ stroke: 'var(--text-primary)' }} />
+    </svg>
+  );
+
+  return (
+    <div className={['flex items-center gap-8px', className].filter(Boolean).join(' ')}>
+      {renderAvatar()}
+      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agent_name}</span>
+      {isLeader && (
+        <span
+          data-testid='team-leader-crown'
+          className={['shrink-0 leading-none drop-shadow-sm', crownClassName].filter(Boolean).join(' ')}
+        >
+          {crownIcon}
+        </span>
+      )}
+    </div>
+  );
+};
+
+export default TeamAgentIdentity;

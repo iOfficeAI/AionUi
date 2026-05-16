@@ -1,0 +1,12 @@
+{
+  "displayName": "Расширение E2E Full Test",
+  "description": "Комплексное тестовое расширение, покрывающее все типы вкладок для E2E-тестирования",
+  "settingsTabs": {
+    "e2e-settings": {
+      "name": "Настройки E2E"
+    },
+    "e2e-before-about": {
+      "name": "E2E О приложении"
+    }
+  }
+}

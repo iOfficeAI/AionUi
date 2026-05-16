@@ -1,0 +1,53 @@
+/* GPU-friendly: transform applies to the + SVG only (see Sider.tsx), not the padded row or icon frame */
+
+.newChatTrigger {
+  position: relative;
+}
+
+.newChatIcon {
+  transform: translateZ(0);
+  transition: transform 0.14s cubic-bezier(0.33, 1, 0.68, 1);
+}
+
+.newChatTrigger:hover .newChatIcon {
+  transform: scale(0.92) translateZ(0);
+}
+
+.newChatTrigger:active .newChatIcon {
+  transform: scale(0.84) translateZ(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .newChatIcon {
+    transition: none;
+  }
+
+  .newChatTrigger:hover .newChatIcon,
+  .newChatTrigger:active .newChatIcon {
+    transform: translateZ(0);
+  }
+}
+
+/* Overlay-style scroll area: scrollbar takes zero layout width so icons in the
+   fixed top nav and the scrollable list stay on the same vertical center line.
+   Mimics macOS native overlay scrollbars. */
+.scrollArea {
+  scrollbar-width: none; /* Firefox */
+}
+
+.scrollArea::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Pinned sidebar row — reserve a dedicated 28px slot on the right for the
+   pushpin indicator so it never overlaps the row title. When the row is
+   hovered, the three-dot menu takes over that slot and the text reclaims
+   the gap (18px), matching non-pinned rows. */
+.pinnedTextSlot {
+  padding-right: 28px;
+}
+
+:global(.group):hover .pinnedTextSlot {
+  padding-right: 18px;
+}

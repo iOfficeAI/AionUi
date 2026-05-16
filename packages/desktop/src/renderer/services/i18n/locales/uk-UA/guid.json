@@ -1,0 +1,21 @@
+{
+  "agentFallbackNotice": "{{original}} недоступний, використовується {{fallback}} замість нього.",
+  "noAgentAvailable": "Головний Агент недоступний. Будь ласка, увійдіть у Google або встановіть Claude/Codex CLI. Перейти до налаштувань?",
+  "noAgentAvailableShort": "Головний Агент недоступний. Натисніть для налаштування.",
+  "agentTabAutoSwitch": "Модель не сумісна з Gemini, автоматичне переключення на {{fallback}}",
+  "autoSwitchToAgent": "Gemini не налаштовано, автоматичне переключення на {{agent}}",
+  "autoSwitchedAgent": "{{from}} недоступний, переключено на {{to}}",
+  "promptExamplesHint": "Спробуйте приклади промптів:",
+  "agentSwitcherLabel": "Агент",
+  "switchedToAgent": "Переключено на {{agent}}",
+  "scanning": {
+    "initialMessage": "Поточний Агент недоступний, пошук інших доступних агентів...",
+    "scanningMessage": "Сканування доступних локальних агентів...",
+    "connectingMessage": "Підключено успішно, зачекайте...",
+    "establishingConnection": "Встановлення з'єднання...",
+    "statusQueued": "У черзі",
+    "statusTesting": "Тестування затримки...",
+    "statusUnreachable": "Недосяжний",
+    "statusAvailable": "Доступний"
+  }
+}

@@ -1,0 +1,22 @@
+{
+  "name": "@aionui/web-host",
+  "version": "0.0.0",
+  "private": true,
+  "description": "WebUI host package - spawns backend and reverse-proxies to it; serves static files (no Electron dependency)",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "serve-handler": "^6.1.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "@types/serve-handler": "^6.1.4",
+    "vitest": "^4.1.0"
+  }
+}

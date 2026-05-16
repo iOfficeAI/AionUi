@@ -1,0 +1,7 @@
+{
+  "displayName": "Hello World 擴充",
+  "description": "展示 AionUI 所有擴充能力的完整範例",
+  "settingsTabs": {
+    "hello-settings": { "name": "Hello 設定" }
+  }
+}

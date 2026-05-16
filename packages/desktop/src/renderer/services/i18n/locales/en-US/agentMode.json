@@ -1,0 +1,19 @@
+{
+  "plan": "Plan Mode",
+  "default": "Default",
+  "acceptEdits": "Accept Edits",
+  "autoEdit": "Auto Edit",
+  "auto_edit": "Auto Edit",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Full Auto (No Sandbox)",
+  "auto": "Auto",
+  "dontAsk": "Don't Ask",
+  "bypass": "Bypass (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Smart",
+  "build": "Build Mode",
+  "permission": "Permission",
+  "switchMode": "Switch Mode",
+  "switchSuccess": "Mode switched successfully",
+  "switchFailed": "Failed to switch mode"
+}

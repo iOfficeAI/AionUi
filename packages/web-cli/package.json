@@ -1,0 +1,27 @@
+{
+  "name": "@aionui/web-cli",
+  "version": "1.9.26",
+  "private": true,
+  "description": "AionUi WebUI CLI - standalone web runtime (no Electron)",
+  "bin": {
+    "aionui-web": "./bin/aionui-web.js"
+  },
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@aionui/shared-scripts": "workspace:*",
+    "@aionui/web-host": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.3",
+    "vitest": "^4.1.0"
+  }
+}

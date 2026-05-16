@@ -1,0 +1,87 @@
+name: '🔨 Manual Build'
+
+permissions:
+  contents: write
+  actions: write
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build from'
+        required: true
+        default: 'main'
+        type: string
+      platform:
+        description: 'Platform to build'
+        required: true
+        type: choice
+        options:
+          - macos-arm64
+          - macos-x64
+          - windows-x64
+          - windows-arm64
+          - linux-x64
+          - linux-arm64
+          - all
+        default: 'macos-arm64'
+      skip_code_quality:
+        description: 'Skip code quality checks (faster builds for debugging)'
+        required: false
+        type: boolean
+        default: false
+
+env:
+  BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+
+jobs:
+  prepare-matrix:
+    name: Prepare Build Matrix
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.set-matrix.outputs.matrix }}
+
+    steps:
+      - name: Generate build matrix
+        id: set-matrix
+        shell: bash
+        run: |
+          PLATFORM="${{ inputs.platform }}"
+
+          MACOS_ARM64='{"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"}'
+          MACOS_X64='{"platform":"macos-x64","os":"macos-14","command":"node scripts/build-with-builder.js x64 --mac --x64","artifact-name":"macos-build-x64","arch":"x64"}'
+          WINDOWS_X64='{"platform":"windows-x64","os":"windows-2022","command":"node scripts/build-with-builder.js x64 --win --x64","artifact-name":"windows-build-x64","arch":"x64"}'
+          WINDOWS_ARM64='{"platform":"windows-arm64","os":"windows-2022","command":"node scripts/build-with-builder.js arm64 --win --arm64","artifact-name":"windows-build-arm64","arch":"arm64"}'
+          LINUX_X64='{"platform":"linux-x64","os":"ubuntu-latest","command":"node scripts/build-with-builder.js x64 --linux --x64","artifact-name":"linux-build-x64","arch":"x64"}'
+          LINUX_ARM64='{"platform":"linux-arm64","os":"ubuntu-latest","command":"node scripts/build-with-builder.js arm64 --linux --arm64","artifact-name":"linux-build-arm64","arch":"arm64"}'
+
+          if [ "$PLATFORM" = "all" ]; then
+            MATRIX="{\"include\":[$MACOS_ARM64,$MACOS_X64,$WINDOWS_X64,$WINDOWS_ARM64,$LINUX_X64,$LINUX_ARM64]}"
+          elif [ "$PLATFORM" = "macos-arm64" ]; then
+            MATRIX="{\"include\":[$MACOS_ARM64]}"
+          elif [ "$PLATFORM" = "macos-x64" ]; then
+            MATRIX="{\"include\":[$MACOS_X64]}"
+          elif [ "$PLATFORM" = "windows-x64" ]; then
+            MATRIX="{\"include\":[$WINDOWS_X64]}"
+          elif [ "$PLATFORM" = "windows-arm64" ]; then
+            MATRIX="{\"include\":[$WINDOWS_ARM64]}"
+          elif [ "$PLATFORM" = "linux-x64" ]; then
+            MATRIX="{\"include\":[$LINUX_X64]}"
+          elif [ "$PLATFORM" = "linux-arm64" ]; then
+            MATRIX="{\"include\":[$LINUX_ARM64]}"
+          fi
+
+          echo "matrix=$MATRIX" >> $GITHUB_OUTPUT
+          echo "Generated matrix for platform '$PLATFORM':"
+          echo "$MATRIX" | python3 -m json.tool
+
+  build-pipeline:
+    needs: prepare-matrix
+    uses: ./.github/workflows/_build-reusable.yml
+    with:
+      matrix: ${{ needs.prepare-matrix.outputs.matrix }}
+      ref: ${{ inputs.branch }}
+      skip_code_quality: ${{ inputs.skip_code_quality }}
+      append_commit_hash: true
+      upload_installers_only: true
+    secrets: inherit

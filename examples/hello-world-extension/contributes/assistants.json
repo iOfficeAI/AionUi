@@ -1,0 +1,9 @@
+[
+  {
+    "id": "hello-assistant",
+    "name": "Hello World Assistant",
+    "description": "A friendly demo assistant from the Hello World extension",
+    "presetAgentType": "ext-buddy",
+    "contextFile": "assistants/hello-assistant-context.md"
+  }
+]

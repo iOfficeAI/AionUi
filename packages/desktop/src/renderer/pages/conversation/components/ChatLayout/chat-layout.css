@@ -1,0 +1,85 @@
+/* Chat layout header styles */
+
+.chat-layout-header--mobile-unified {
+  height: 46px !important;
+  min-height: 46px;
+  padding: 0 12px !important;
+  background: linear-gradient(180deg, var(--bg-2) 0%, transparent 100%) !important;
+  border-bottom: none;
+  box-shadow: none;
+}
+
+.chat-layout-header--glass {
+  position: relative;
+  isolation: isolate;
+  contain: paint;
+  background-color: color-mix(in srgb, var(--bg-1) 92%, transparent) !important;
+}
+
+.chat-layout-header--glass::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: -12px;
+  height: 12px;
+  pointer-events: none;
+  background: linear-gradient(180deg, color-mix(in srgb, var(--bg-1) 68%, transparent) 0%, transparent 100%);
+}
+
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: saturate(110%) blur(6px);
+    backdrop-filter: saturate(110%) blur(6px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce), (max-width: 768px) {
+  .chat-layout-header--glass {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    background-color: var(--bg-1) !important;
+  }
+
+  .chat-layout-header--glass::after {
+    display: none;
+  }
+}
+
+/* Workspace open button dropdown styles */
+.workspace-open-dropdown {
+  background-color: var(--color-bg-2);
+  border-radius: 4px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  color: var(--color-text-1);
+}
+
+/* Mobile: conversation header pills */
+@media (max-width: 767px) {
+  .agent-mode-compact-pill {
+    min-height: 32px !important;
+    height: 32px !important;
+    padding: 0 10px !important;
+    border-radius: 999px !important;
+  }
+
+  .agent-mode-compact-pill .arco-btn-content {
+    line-height: 1;
+  }
+
+  .agent-mode-compact-pill--readonly,
+  .agent-mode-compact-pill--readonly:hover,
+  .agent-mode-compact-pill--readonly:active,
+  .agent-mode-compact-pill--readonly:focus,
+  .agent-mode-compact-pill--readonly:focus-visible {
+    cursor: default !important;
+    pointer-events: none !important;
+    background: var(--color-fill-2) !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .chat-header-cron-pill {
+    margin-right: 4px;
+  }
+}

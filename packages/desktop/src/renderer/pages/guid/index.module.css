@@ -1,0 +1,734 @@
+.guidLayout {
+  --assistant-surface-bg: color-mix(in srgb, var(--bg-2) 65%, transparent);
+  --assistant-surface-bg-hover: color-mix(in srgb, var(--bg-2) 85%, transparent);
+  width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 800px);
+  max-width: 100%;
+  padding: 0 16px;
+  box-sizing: border-box;
+  margin: 0 auto;
+}
+
+.heroHeader {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 16px;
+}
+
+.heroHeaderControls {
+  width: 100%;
+  max-width: 760px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 36px;
+  flex-wrap: nowrap;
+}
+
+.heroHeaderLeft {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  min-height: 36px;
+  flex: 1 1 auto;
+  white-space: nowrap;
+}
+
+.heroHeaderRight {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 36px;
+  flex: 0 0 auto;
+  padding-right: 2px;
+}
+
+.heroBackButton {
+  width: 30px !important;
+  height: 30px !important;
+  min-width: 30px !important;
+  color: var(--color-text-2) !important;
+  border-radius: 999px !important;
+  background: var(--color-fill-2) !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+}
+
+.heroBackButton:hover {
+  background: var(--color-fill-3) !important;
+}
+
+.heroBackButton :global(svg),
+.heroTitleEdit :global(svg),
+.heroAgentSwitchButton :global(svg) {
+  display: block;
+}
+
+.heroBackButton :global(.arco-btn-icon) {
+  margin: 0 !important;
+  line-height: 0 !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.heroTitleEdit {
+  width: 20px !important;
+  height: 20px !important;
+  min-width: 20px !important;
+  padding: 0 !important;
+  border: none !important;
+  border-radius: 0 !important;
+  color: var(--color-text-3) !important;
+  background: transparent !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+  transform: translateY(1px);
+}
+
+.heroTitleEdit:hover {
+  background: transparent !important;
+  color: var(--color-text-2) !important;
+}
+
+.heroAgentSwitchButton {
+  color: var(--color-text-2) !important;
+  padding: 0 6px !important;
+  height: 34px !important;
+  min-height: 34px !important;
+  display: inline-flex !important;
+  align-items: center;
+  transform: translateY(1px);
+}
+
+.heroAgentSwitchIcon {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.heroTitle {
+  margin: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.heroTitleInlineIcon {
+  width: 28px;
+  height: 28px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--color-text-0);
+  flex-shrink: 0;
+}
+
+.heroTitleInlineIcon img {
+  display: block;
+}
+
+.heroTitleEmoji {
+  font-size: 26px;
+  line-height: 1;
+}
+
+.heroSubtitle {
+  margin: 0 auto 14px;
+  max-width: 760px;
+  min-height: 40px;
+  padding: 0 14px;
+  border-radius: 20px;
+  color: var(--color-text-2);
+  background: var(--assistant-surface-bg);
+  border: none;
+  line-height: 20px;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background-color 0.15s;
+}
+
+.heroSubtitle:hover {
+  background: var(--assistant-surface-bg-hover);
+}
+
+.heroSubtitleExpanded {
+  align-items: flex-start;
+  padding: 10px 14px;
+  border-radius: 16px;
+  cursor: default;
+}
+
+.heroSubtitleExpanded:hover {
+  background: var(--assistant-surface-bg);
+}
+
+.heroSubtitleExpanded .heroSubtitleBack {
+  margin-top: 2px;
+}
+
+.heroSubtitleBack {
+  flex-shrink: 0;
+  width: 24px !important;
+  height: 24px !important;
+  min-width: 24px !important;
+  padding: 0 !important;
+  border-radius: 999px !important;
+  color: var(--color-text-2) !important;
+  border-color: var(--color-border-2) !important;
+  background: var(--bg-active) !important;
+}
+
+.heroSubtitleBack:hover {
+  background: var(--bg-3) !important;
+}
+
+.heroSubtitleToggle {
+  flex-shrink: 0;
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  padding: 0 !important;
+  border: none !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  transition: transform 0.2s ease;
+}
+
+.heroSubtitleToggle:hover {
+  background: transparent !important;
+  color: var(--color-text-2) !important;
+}
+
+.heroSubtitleToggleExpanded {
+  transform: rotate(180deg);
+}
+
+.heroSubtitleText {
+  flex: 1;
+  min-width: 0;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 20px;
+}
+
+.heroSubtitleTextExpanded {
+  display: block;
+  overflow: visible;
+  -webkit-line-clamp: unset;
+  white-space: normal;
+  line-height: 1.6;
+}
+
+.heroSubtitleDetail {
+  flex-shrink: 0;
+  height: 22px !important;
+  min-height: 22px !important;
+  padding: 0 6px !important;
+  border-radius: 10px !important;
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+  background: transparent !important;
+  color: var(--color-text-3) !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  opacity: 0.9;
+}
+
+.heroSubtitleDetail:hover {
+  background: var(--color-fill-2) !important;
+  color: var(--color-text-2) !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  opacity: 1;
+}
+
+.heroSubtitleDetail:focus,
+.heroSubtitleDetail:focus-visible,
+.heroSubtitleDetail:active {
+  border: 0 !important;
+  outline: 0 !important;
+  box-shadow: none !important;
+}
+
+.assistantPromptChip {
+  background: var(--assistant-surface-bg);
+}
+
+.assistantPromptHint {
+  color: var(--color-text-3);
+  font-size: 13px;
+  line-height: 20px;
+}
+
+.assistantPromptAgentSwitcher {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 24px;
+  padding: 0 8px;
+  border-radius: 12px;
+  background: var(--color-fill-1);
+  border: 1px solid var(--color-border-2);
+  color: var(--color-text-2);
+  cursor: pointer;
+  user-select: none;
+  transform: translateY(-1px);
+  transition:
+    background-color 0.2s,
+    border-color 0.2s,
+    color 0.2s;
+}
+
+.assistantPromptAgentSwitcher:hover {
+  background: var(--color-fill-2);
+  border-color: var(--color-border-3);
+  color: var(--color-text-1);
+}
+
+.assistantPromptAgentSwitcherName {
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 20px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 170px;
+}
+
+.assistantPromptAgentSwitcherDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgb(var(--success-6));
+  flex-shrink: 0;
+}
+
+.assistantPromptAgentSwitcherLogo {
+  width: 13px;
+  height: 13px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.assistantPromptChip:hover {
+  background: var(--assistant-surface-bg-hover);
+}
+
+.guidInputCard {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.actionTools {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 1;
+  min-width: 0;
+}
+
+.actionEntry {
+  display: inline-flex;
+  align-items: center;
+  flex: 0 0 auto;
+  margin-right: 0;
+}
+
+.actionConfigGroup {
+  display: inline-flex;
+  align-items: center;
+  gap: 24px;
+  min-width: 0;
+  flex: 0 1 auto;
+}
+
+.actionConfigGroupWithDivider > :first-child {
+  position: relative;
+}
+
+.actionConfigGroupWithDivider > :first-child::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  right: -12px;
+  width: 1px;
+  height: 18px;
+  transform: translateY(-50%);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--color-text-4) 55%, transparent);
+}
+
+/* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
+.actionTools :global(.sendbox-model-btn) {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-2) !important;
+  padding-inline: 10px !important;
+  min-height: 28px !important;
+}
+
+.actionTools :global(.sendbox-model-btn:hover) {
+  background-color: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-1) !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
+  gap: 0 !important;
+}
+
+.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
+  gap: 6px !important;
+}
+
+.actionSubmit {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+  margin-left: auto;
+}
+
+.lightPlaceholder::placeholder {
+  color: #a1a2aa;
+  opacity: 1;
+}
+
+.plusButtonRotate {
+  animation: rotate-animation 0.3s ease-in-out;
+}
+
+@keyframes rotate-animation {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(45deg);
+  }
+}
+
+/* Skeleton shimmer animation */
+@keyframes guid-shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+.skeleton {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 50%;
+}
+
+.skeletonPill {
+  background: linear-gradient(90deg, var(--color-fill-2) 25%, var(--color-fill-3) 50%, var(--color-fill-2) 75%);
+  background-size: 200% 100%;
+  animation: guid-shimmer 1.5s ease-in-out infinite;
+  border-radius: 100px;
+}
+
+/* 移动端优化 */
+@media (max-width: 768px) {
+  .guidLayout {
+    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
+    padding: 0 12px;
+    padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
+    box-sizing: border-box;
+  }
+
+  .guidInputCard {
+    width: 100%;
+  }
+
+  .actionRow {
+    flex-wrap: nowrap;
+    gap: 8px;
+  }
+
+  .actionTools {
+    gap: 8px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+  }
+
+  .actionTools::-webkit-scrollbar {
+    display: none;
+  }
+
+  .actionTools > * {
+    flex: 0 0 auto;
+  }
+
+  .actionEntry {
+    margin-right: 0;
+  }
+
+  .actionConfigGroup {
+    gap: 12px;
+  }
+
+  .actionConfigGroupWithDivider > :first-child::after {
+    right: -6px;
+    height: 16px;
+  }
+
+  .actionSubmit {
+    flex-shrink: 0;
+    margin-left: 8px;
+  }
+}
+
+/* 小屏手机再收窄一点安全边距，提升可操作面积 */
+@media (max-width: 420px) {
+  .guidLayout {
+    width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
+    padding: 0 10px;
+  }
+}
+
+/* 移动端容器滚动支持 */
+.guidContainer {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  position: relative;
+}
+
+/* 整体内容块略往上移，减轻「重心偏下」的感觉 */
+.guidContainer .guidLayout {
+  margin-top: -5vh;
+}
+
+/* Agent 选中时：先放大再回落至略大（pop 动效） */
+@keyframes agentSelectPop {
+  0% {
+    transform: scale(1);
+  }
+  35% {
+    transform: scale(1.12);
+  }
+  100% {
+    transform: scale(1.02);
+  }
+}
+
+.agentItemSelected {
+  background-color: var(--fill-0);
+  transition:
+    opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
+    background-color 0.25s ease-out;
+  animation: agentSelectPop 0.4s ease-out forwards;
+}
+
+/* 底部快捷按钮：基础间距 + 安全区 */
+.guidQuickActions {
+  bottom: calc(32px + env(safe-area-inset-bottom, 0px));
+}
+
+@media (max-width: 768px) {
+  .guidContainer {
+    justify-content: flex-start;
+    overflow-y: auto;
+    overflow-x: hidden;
+    padding-top: 20px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .guidContainer .guidLayout {
+    margin-top: 0;
+  }
+}
+
+/* 浅色占位符 */
+.lightPlaceholder :global(textarea::placeholder) {
+  color: #a1a2aa !important;
+  opacity: 1 !important;
+}
+
+/* 预设助手标签 */
+.presetAgentTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0;
+  background: var(--color-fill-2);
+  border: 1px solid var(--color-border-2);
+  padding: 0;
+  border-radius: 16px;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s;
+  max-width: 100%;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.presetAgentTag:hover {
+  background: color-mix(in srgb, var(--color-fill-3) 92%, transparent);
+}
+
+.presetAgentTagActiveDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgb(var(--success-6));
+  box-shadow: 0 0 8px color-mix(in srgb, rgb(var(--success-6)) 45%, transparent);
+  flex-shrink: 0;
+}
+
+/* Left clickable area: agent logo + avatar + name */
+.presetAgentTagMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 12px;
+  min-width: 0;
+}
+
+.presetAgentTagMain:hover {
+  background: var(--color-fill-3);
+  border-radius: 16px 0 0 16px;
+}
+
+.presetAgentTagAgentLogo {
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+/* Inner divider between agent logo and assistant avatar/name */
+.presetAgentTagInnerDivider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-3);
+  flex-shrink: 0;
+}
+
+/* Vertical divider between main area and right chevron/close */
+.presetAgentTagDivider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-3);
+  flex-shrink: 0;
+}
+
+.presetAgentTagName {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+/* Chevron (right side dropdown trigger) */
+.presetAgentTagChevron {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  margin-left: 2px;
+  margin-right: 6px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.presetAgentTagChevron:hover {
+  background: var(--color-fill-4);
+}
+
+.presetAgentTagClose {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  margin-left: 2px;
+  margin-right: 8px;
+  transition: background-color 0.2s;
+  flex-shrink: 0;
+}
+
+.presetAgentTagClose:hover {
+  background: var(--color-fill-4);
+}
+
+/* 移动端助手标签优化 */
+@media (max-width: 768px) {
+  .presetAgentTagName {
+    max-width: 120px;
+  }
+
+  .actionTools {
+    gap: 6px;
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+}
+
+/* iPhone专门优化 */
+@supports (-webkit-touch-callout: none) {
+  .actionRow {
+    flex-wrap: nowrap !important;
+  }
+
+  .actionTools {
+    flex: 1 1 auto;
+    min-width: 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+    white-space: nowrap;
+    -webkit-overflow-scrolling: touch;
+    touch-action: pan-x;
+  }
+
+  .actionSubmit {
+    flex-shrink: 0;
+  }
+
+  .presetAgentTagName {
+    max-width: 100px;
+  }
+}
