@@ -396,7 +396,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     async function startBackend(): Promise<void> {
       const bin = resolveBackendBinary();
-      const logPath = path.join(dataDir, 'sibling-backend.log');
+      const logPath = path.join(dataDir, 'sibling-aioncli.log');
       const logFd = fs.openSync(logPath, 'a');
       // Scrub env vars that would drag the main Electron's backend state in.
       const parentEnv = { ...process.env };

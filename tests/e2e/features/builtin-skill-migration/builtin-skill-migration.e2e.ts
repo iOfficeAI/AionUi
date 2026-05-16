@@ -343,7 +343,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
     async function startBackend(): Promise<void> {
       const bin = resolveBackendBinary();
-      const logPath = path.join(dataDir, 'sibling-backend.log');
+      const logPath = path.join(dataDir, 'sibling-aioncli.log');
       const logFd = fs.openSync(logPath, 'a');
       const parentEnv = { ...process.env };
       // Scrub any env vars that would leak main-Electron backend state.

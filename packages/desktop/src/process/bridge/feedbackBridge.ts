@@ -26,7 +26,7 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
     const date = new Date(now);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().slice(0, 10);
-    for (const filename of [`${dateStr}.log`, `${dateStr}.backend.log`, `${dateStr}.aionrs.log`]) {
+    for (const filename of [`${dateStr}.log`, `${dateStr}.aioncli.log`, `${dateStr}.aionrs.log`]) {
       const filePath = path.join(logsDir, filename);
       if (fs.existsSync(filePath)) {
         paths.push(filePath);
