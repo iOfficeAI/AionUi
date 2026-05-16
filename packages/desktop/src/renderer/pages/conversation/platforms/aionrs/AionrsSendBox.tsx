@@ -108,6 +108,15 @@ const AionrsSendBox: React.FC<{
     });
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
+  const handleContentChange = useCallback(
+    (val: string) => {
+      if (val && teamPermission) teamPermission.warmupSession();
+      setContent(val);
+    },
+    [teamPermission, setContent]
+  );
+
   const [agentWarmed, setAgentWarmed] = useState(false);
 
   useEffect(() => {
@@ -118,7 +127,7 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!conversation_id) return;
+    if (!conversation_id || teamPermission) return;
     setAgentWarmed(false);
     void ipcBridge.conversation.warmup
       .invoke({ conversation_id })
@@ -126,7 +135,7 @@ const AionrsSendBox: React.FC<{
         setAgentWarmed(true);
       })
       .catch(() => {});
-  }, [conversation_id]);
+  }, [conversation_id, teamPermission]);
 
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
@@ -171,6 +180,7 @@ const AionrsSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      if (teamPermission) await teamPermission.warmupSession();
       if (!current_model?.use_model) {
         Message.warning(t('conversation.chat.noModelSelected'));
         throw new Error('No model selected');
@@ -360,7 +370,7 @@ const AionrsSendBox: React.FC<{
       <SendBox
         data-testid='aionrs-sendbox'
         value={content}
-        onChange={setContent}
+        onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
           emitter.emit('aionrs.selected.file', items);

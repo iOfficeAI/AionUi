@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import React, { createContext, useCallback, useContext, useMemo } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
@@ -12,6 +12,8 @@ type TeamPermissionContextValue = {
   allConversationIds: string[];
   /** Propagate a permission mode change from the leader to all member agents */
   propagateMode: (mode: string) => void;
+  /** Trigger session warmup (idempotent, returns cached promise) */
+  warmupSession: () => Promise<void>;
 };
 
 const TeamPermissionContext = createContext<TeamPermissionContextValue | null>(null);
@@ -23,6 +25,8 @@ export const TeamPermissionProvider: React.FC<{
   leaderConversationId: string;
   allConversationIds: string[];
 }> = ({ children, team_id, isLeaderAgent, leaderConversationId, allConversationIds }) => {
+  const warmupPromiseRef = useRef<Promise<void> | null>(null);
+
   const propagateMode = useCallback(
     (mode: string) => {
       // Persist session_mode on the team record so newly spawned agents inherit it
@@ -33,6 +37,13 @@ export const TeamPermissionProvider: React.FC<{
     [team_id]
   );
 
+  const warmupSession = useCallback((): Promise<void> => {
+    if (!warmupPromiseRef.current) {
+      warmupPromiseRef.current = ipcBridge.team.ensureSession.invoke({ team_id }).catch(() => {});
+    }
+    return warmupPromiseRef.current;
+  }, [team_id]);
+
   const value = useMemo<TeamPermissionContextValue>(
     () => ({
       isTeamMode: true,
@@ -40,8 +51,9 @@ export const TeamPermissionProvider: React.FC<{
       leaderConversationId,
       allConversationIds,
       propagateMode,
+      warmupSession,
     }),
-    [isLeaderAgent, leaderConversationId, allConversationIds, propagateMode]
+    [isLeaderAgent, leaderConversationId, allConversationIds, propagateMode, warmupSession]
   );
 
   return <TeamPermissionContext.Provider value={value}>{children}</TeamPermissionContext.Provider>;
