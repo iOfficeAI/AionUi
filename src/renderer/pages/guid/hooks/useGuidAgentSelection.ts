@@ -215,7 +215,11 @@ export const useGuidAgentSelection = ({
       customAgentId: ra.id,
       avatar: ra.avatar,
     }));
-    setAvailableAgents([...availableAgentsData, ...remoteAsAvailable]);
+    // Remote entries from getAvailableAgents lack customAgentId (IPC maps remoteAgentId
+    // only on the process side). remoteAgent.list is the source of truth for remotes
+    // (id, avatar) — drop remote stubs from detection to avoid duplicate pills.
+    const nonRemoteDetected = availableAgentsData.filter((a) => a.backend !== 'remote');
+    setAvailableAgents([...nonRemoteDetected, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once

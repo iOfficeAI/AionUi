@@ -409,3 +409,68 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
     ]);
   });
 });
+
+describe('useGuidAgentSelection – remote agent merge (no duplicate with detection)', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetSwrCache();
+    defaultCodexModels.length = 0;
+    // Detection returns a remote stub without customAgentId (same as AgentRegistry + IPC);
+    // DB list is the canonical row with id + avatar.
+    ipcMock.getAvailableAgents.mockResolvedValue({
+      success: true,
+      data: [
+        { backend: 'gemini', name: 'Gemini' },
+        { backend: 'remote', name: 'OpenClaw' },
+      ],
+    });
+    ipcMock.getAssistants.mockResolvedValue([]);
+    ipcMock.remoteAgentList.mockResolvedValue([
+      {
+        id: 'ra-uuid-1',
+        name: 'OpenClaw',
+        avatar: '🤖',
+        protocol: 'openclaw',
+        url: 'ws://127.0.0.1:42617',
+        authType: 'none',
+        createdAt: 0,
+        updatedAt: 0,
+      },
+    ]);
+    configStorageMock.get.mockImplementation(async (key: string) => {
+      switch (key) {
+        case 'acp.cachedModels':
+          return {};
+        case 'guid.lastSelectedAgent':
+          return null;
+        case 'acp.config':
+        case 'gemini.config':
+        case 'gemini.defaultModel':
+        case 'aionrs.config':
+        case 'aionrs.defaultModel':
+          return null;
+        default:
+          return null;
+      }
+    });
+  });
+
+  it('exposes a single remote row keyed as remote:uuid (not bare remote + remote:uuid)', async () => {
+    const { result } = renderHook(() =>
+      useGuidAgentSelection({ modelList: MODEL_LIST, isGoogleAuth: false, localeKey: 'en-US' })
+    );
+
+    await waitFor(() => {
+      const agents = result.current.availableAgents;
+      expect(agents).toBeDefined();
+      const remotes = agents?.filter((a) => a.backend === 'remote') ?? [];
+      expect(remotes).toHaveLength(1);
+    });
+
+    const remotes = result.current.availableAgents?.filter((a) => a.backend === 'remote') ?? [];
+    expect(result.current.getAgentKey(remotes[0])).toBe('remote:ra-uuid-1');
+    expect(remotes[0].name).toBe('OpenClaw');
+    expect(remotes[0].customAgentId).toBe('ra-uuid-1');
+    expect(remotes[0].avatar).toBe('🤖');
+  });
+});
