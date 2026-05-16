@@ -34,8 +34,8 @@ cd "$TEMP_DIR/aionui-web"
 #   ├── aionui-web           ← single compiled executable (no bin/, no dist/, no node_modules)
 #   ├── package.json         ← for version lookup
 #   ├── static/              ← SPA assets
-#   └── bundled-aionui-backend/<plat-arch>/...
-for dir in static bundled-aionui-backend; do
+#   └── bundled-aioncli/<plat-arch>/...
+for dir in static bundled-aioncli; do
   if [ ! -d "$dir" ]; then
     echo "❌ Missing $dir directory"
     exit 1
@@ -71,13 +71,13 @@ echo "✓ Version: $VERSION"
 # 5. Test backend binary
 echo ""
 echo "5. Checking backend binary..."
-BACKEND_DIR="bundled-aionui-backend/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/; s/x86_64/x64/')"
-BACKEND_BINARY="$BACKEND_DIR/aionui-backend"
+BACKEND_DIR="bundled-aioncli/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/; s/x86_64/x64/')"
+BACKEND_BINARY="$BACKEND_DIR/aioncli"
 if [ ! -x "$BACKEND_BINARY" ]; then
   echo "❌ Backend binary missing or not executable: $BACKEND_BINARY"
   exit 1
 fi
-# aionui-backend has no --version flag. Read the pinned version from manifest.json
+# aioncli has no --version flag. Read the pinned version from manifest.json
 # (which prepareAionuiBackend writes at pack time) and use --help to confirm the
 # binary loads successfully on this platform's GLIBC / libstdc++ / etc.
 if [ -f "$BACKEND_DIR/manifest.json" ]; then
