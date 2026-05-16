@@ -13,7 +13,7 @@
 
 // ========== Protocol Version ==========
 
-export const OPENCLAW_PROTOCOL_VERSION = 3 as const;
+export const OPENCLAW_PROTOCOL_VERSION = 4 as const;
 
 // ========== Base Frame Types ==========
 
