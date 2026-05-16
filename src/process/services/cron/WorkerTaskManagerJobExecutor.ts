@@ -222,6 +222,7 @@ export class WorkerTaskManagerJobExecutor implements ICronJobExecutor {
         cronJobId: job.id,
         cronWorkspace: config.workspace || '',
         workspace: config.workspace || '',
+        ...(agentType === 'remote' ? { remoteAgentId: config.customAgentId } : {}),
         ...(config.mode ? { sessionMode: config.mode } : {}),
         ...(config.modelId ? { currentModelId: config.modelId } : {}),
         ...(cachedConfigOptions ? { cachedConfigOptions } : {}),
