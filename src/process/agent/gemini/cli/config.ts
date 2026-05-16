@@ -215,8 +215,10 @@ export async function loadCliConfig({
       const allowedNames = new Set(settings.allowMCPServers.filter(Boolean));
       if (allowedNames.size > 0) {
         mcpServersConfig = Object.fromEntries(
-          // Team MCP servers (aionui-team-*) are always kept regardless of allowlist
-          Object.entries(mcpServersConfig).filter(([key]) => key.startsWith('aionui-team-') || allowedNames.has(key))
+          // Team MCP servers are always kept regardless of allowlist
+          Object.entries(mcpServersConfig).filter(
+            ([key]) => key.startsWith('aionui-team-') || key.startsWith('aionui-t-') || allowedNames.has(key)
+          )
         );
       }
     }
@@ -225,8 +227,10 @@ export async function loadCliConfig({
       const excludedNames = new Set(settings.excludeMCPServers.filter(Boolean));
       if (excludedNames.size > 0) {
         mcpServersConfig = Object.fromEntries(
-          // Team MCP servers (aionui-team-*) are never excluded
-          Object.entries(mcpServersConfig).filter(([key]) => key.startsWith('aionui-team-') || !excludedNames.has(key))
+          // Team MCP servers are never excluded
+          Object.entries(mcpServersConfig).filter(
+            ([key]) => key.startsWith('aionui-team-') || key.startsWith('aionui-t-') || !excludedNames.has(key)
+          )
         );
       }
     }

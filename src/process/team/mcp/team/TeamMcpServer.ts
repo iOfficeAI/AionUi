@@ -41,6 +41,12 @@ type TeamMcpServerParams = {
   wakeAgent: (slotId: string) => Promise<void>;
 };
 
+const TEAM_MCP_SERVER_NAME_PREFIX = 'aionui-t-';
+
+function buildTeamMcpServerName(teamId: string): string {
+  return `${TEAM_MCP_SERVER_NAME_PREFIX}${teamId.slice(0, 8)}`;
+}
+
 export type StdioMcpConfig = {
   name: string;
   command: string;
@@ -102,6 +108,7 @@ export class TeamMcpServer {
     const scriptPath = path.join(resolveMcpScriptDir(), 'team-mcp-stdio.js');
 
     const env: StdioMcpConfig['env'] = [
+      { name: 'TEAM_ID', value: this.params.teamId },
       { name: 'TEAM_MCP_PORT', value: String(this._port) },
       { name: 'TEAM_MCP_TOKEN', value: this.authToken },
     ];
@@ -110,7 +117,7 @@ export class TeamMcpServer {
     }
 
     return {
-      name: `aionui-team-${this.params.teamId}`,
+      name: buildTeamMcpServerName(this.params.teamId),
       command: 'node',
       args: [scriptPath],
       env,

@@ -800,7 +800,7 @@ ${collectedResponses.join('\n')}`;
 
       // Auto-approve team MCP tools — internal tools provided by AionUi.
       const toolTitle = toolCall.title || '';
-      if (toolTitle.includes('aionui-team') && options.length > 0) {
+      if ((toolTitle.includes('aionui-team') || toolTitle.includes('aionui-t-')) && options.length > 0) {
         const autoOption = options[0];
         setTimeout(() => {
           void this.confirm(v.msg_id, toolCall.toolCallId || v.msg_id, autoOption);

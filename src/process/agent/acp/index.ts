@@ -1517,10 +1517,14 @@ export class AcpAgent {
     const resumeConversationId = this.extra.acpSessionConversationId;
     const mcpServers = await this.loadBuiltinSessionMcpServers();
 
-    // Derive teamId from injected team MCP server name (format: aionui-team-<teamId>)
+    // Derive teamId from injected team MCP server env. The server name is intentionally
+    // short because some OpenAI-compatible APIs limit MCP-qualified function names to 64 chars.
     // Only emit MCP status events when running inside a team session.
+    const teamMcpEnv = this.extra.teamMcpStdioConfig?.env;
     const teamMcpName = this.extra.teamMcpStdioConfig?.name;
-    const teamId = teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined;
+    const teamId =
+      teamMcpEnv?.find((entry) => entry.name === 'TEAM_ID')?.value ||
+      (teamMcpName?.startsWith('aionui-team-') ? teamMcpName.slice('aionui-team-'.length) : undefined);
     const slotId = this.id;
 
     const emitMcpStatus = teamId
@@ -1645,9 +1649,10 @@ export class AcpAgent {
       console.warn(`[ACP ${this.extra.backend}] Failed to load built-in MCP config for session/new:`, errMsg);
       const mcpName = this.extra.teamMcpStdioConfig?.name;
       const tId =
-        typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
+        this.extra.teamMcpStdioConfig?.env?.find((entry) => entry.name === 'TEAM_ID')?.value ||
+        (typeof mcpName === 'string' && mcpName.startsWith('aionui-team-')
           ? mcpName.slice('aionui-team-'.length)
-          : undefined;
+          : undefined);
       if (tId) {
         ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
       }

@@ -138,14 +138,21 @@ import { ProcessConfig } from '../../src/process/utils/initStorage';
 // ─── helpers ─────────────────────────────────────────────────────────────────
 
 const TEAM_MCP_CONFIG = {
-  name: 'aionui-team-abc',
+  name: 'aionui-t-abc12345',
   command: 'node',
   args: ['/app/scripts/team-mcp-stdio.mjs'],
   env: [
+    { name: 'TEAM_ID', value: 'abc12345-6789-4abc-def0-123456789abc' },
     { name: 'TEAM_MCP_PORT', value: '9001' },
     { name: 'TEAM_MCP_TOKEN', value: 'tok' },
     { name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' },
   ],
+};
+
+const LEGACY_TEAM_MCP_CONFIG = {
+  ...TEAM_MCP_CONFIG,
+  name: 'aionui-team-abc',
+  env: TEAM_MCP_CONFIG.env.filter((entry) => entry.name !== 'TEAM_ID'),
 };
 
 function createCodexAgent(extra: Record<string, unknown> = {}) {
@@ -217,7 +224,7 @@ describe('Step 5: buildTeamMcpServer — null-guard and shape', () => {
 
   it('preserves TEAM_AGENT_SLOT_ID for per-agent identity', () => {
     const result = buildTeamMcpServer({
-      name: 'aionui-team-abc',
+      name: 'aionui-t-abc12345',
       command: 'node',
       args: [],
       env: [{ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' }],
@@ -245,7 +252,8 @@ describe('Step 6: loadBuiltinSessionMcpServers — builds servers list', () => {
     const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
     const servers = await callLoadBuiltin(agent);
     expect(servers).toHaveLength(1);
-    expect(servers[0]).toMatchObject({ name: 'aionui-team-abc', command: 'node' });
+    expect(servers[0]).toMatchObject({ name: 'aionui-t-abc12345', command: 'node' });
+    expect(servers[0].env).toContainEqual({ name: 'TEAM_ID', value: 'abc12345-6789-4abc-def0-123456789abc' });
     expect(servers[0].env).toContainEqual({ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' });
   });
 
@@ -332,7 +340,7 @@ describe('Step 7a: createOrResumeSession — Codex vs non-Codex routing', () => 
     const opts = mockNewSession.mock.calls[0][1];
     expect(Array.isArray(opts.mcpServers)).toBe(true);
     expect(opts.mcpServers).toHaveLength(1);
-    expect(opts.mcpServers[0]).toMatchObject({ name: 'aionui-team-abc' });
+    expect(opts.mcpServers[0]).toMatchObject({ name: 'aionui-t-abc12345' });
   });
 
   it('fresh session (no prior sessionId) calls newSession with mcpServers', async () => {
@@ -408,9 +416,9 @@ describe('Step 7b PROOF-OF-FIX: Codex loadSession receives mcpServers (Task #1)'
     expect(mockLoadSession).toHaveBeenCalledOnce();
     const args = mockLoadSession.mock.calls[0];
     // On unfixed: args[2] is undefined → FAILS
-    // On fixed:   args[2] = [{name:'aionui-team-abc',...}] (direct array) → PASSES
+    // On fixed:   args[2] = [{name:'aionui-t-abc12345',...}] (direct array) → PASSES
     expect(args[2]).toEqual(
-      expect.arrayContaining([expect.objectContaining({ name: 'aionui-team-abc', command: 'node' })])
+      expect.arrayContaining([expect.objectContaining({ name: 'aionui-t-abc12345', command: 'node' })])
     );
     expect(args[2][0].env).toContainEqual({ name: 'TEAM_AGENT_SLOT_ID', value: 'slot-leader' });
   });
@@ -489,9 +497,14 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
   });
 
   it('emits degraded when team config is missing but mcpServers ends up empty', async () => {
-    // Agent has teamId name pattern but somehow mcpServers is [] (e.g., command was empty)
+    // Agent has TEAM_ID env but somehow mcpServers is [] (e.g., command was empty)
     const agent = createCodexAgent({
-      teamMcpStdioConfig: { name: 'aionui-team-abc', command: '', args: [], env: [] },
+      teamMcpStdioConfig: {
+        name: 'aionui-t-abc12345',
+        command: '',
+        args: [],
+        env: [{ name: 'TEAM_ID', value: 'abc12345-6789-4abc-def0-123456789abc' }],
+      },
     });
     await callCreateOrResume(agent);
 
@@ -499,14 +512,23 @@ describe('Step 8: Task #3 IPC mcpStatus events', () => {
     expect(phases).toContain('degraded');
   });
 
-  it('event payload includes teamId derived from server name', async () => {
+  it('event payload includes teamId derived from TEAM_ID env', async () => {
     const agent = createCodexAgent({ teamMcpStdioConfig: TEAM_MCP_CONFIG });
     await callCreateOrResume(agent);
 
     const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
     expect(readyCalls.length).toBeGreaterThan(0);
     const payload = readyCalls[0][0];
-    // teamId extracted from 'aionui-team-abc' → 'abc'
+    expect(payload.teamId).toBe('abc12345-6789-4abc-def0-123456789abc');
+  });
+
+  it('event payload falls back to legacy teamId derived from server name', async () => {
+    const agent = createCodexAgent({ teamMcpStdioConfig: LEGACY_TEAM_MCP_CONFIG });
+    await callCreateOrResume(agent);
+
+    const readyCalls = mockMcpStatusEmit.mock.calls.filter((c) => c[0].phase === 'session_ready');
+    expect(readyCalls.length).toBeGreaterThan(0);
+    const payload = readyCalls[0][0];
     expect(payload.teamId).toBe('abc');
   });
 

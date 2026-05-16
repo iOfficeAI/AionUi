@@ -198,11 +198,28 @@ describe('TeamMcpServer', () => {
 
     it('getStdioConfig returns correct structure', () => {
       const config = server.getStdioConfig();
-      expect(config.name).toContain('aionui-team-team-1');
+      expect(config.name).toBe('aionui-t-team-1');
       expect(config.command).toBe('node');
       expect(Array.isArray(config.args)).toBe(true);
+      expect(config.env).toContainEqual({ name: 'TEAM_ID', value: 'team-1' });
       expect(config.env.some((e) => e.name === 'TEAM_MCP_PORT')).toBe(true);
       expect(config.env.some((e) => e.name === 'TEAM_MCP_TOKEN')).toBe(true);
+    });
+
+    it('keeps MCP-qualified team tool names within OpenAI limits', () => {
+      const uuidTeamServer = new TeamMcpServer({
+        teamId: '12345678-1234-4123-8123-123456789abc',
+        getAgents: () => agents,
+        mailbox,
+        taskManager,
+        spawnAgent,
+        renameAgent,
+        removeAgent,
+        wakeAgent,
+      });
+      const config = uuidTeamServer.getStdioConfig();
+      expect(`${config.name}__team_describe_assistant`).toHaveLength(42);
+      expect(`${config.name}__team_describe_assistant`.length).toBeLessThanOrEqual(64);
     });
 
     it('getStdioConfig includes TEAM_AGENT_SLOT_ID when agentSlotId is provided', () => {

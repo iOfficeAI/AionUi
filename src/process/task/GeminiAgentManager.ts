@@ -673,10 +673,10 @@ export class GeminiAgentManager extends BaseAgentManager<
       void this.postMessagePromise(content.callId, ToolConfirmationOutcome.ProceedOnce);
       return true;
     }
-    // Team MCP servers (aionui-team-*) are always auto-approved regardless of mode
+    // Team MCP servers are always auto-approved regardless of mode
     if (type === 'mcp') {
       const serverName = (content.confirmationDetails as { serverName?: string })?.serverName ?? '';
-      if (serverName.startsWith('aionui-team-')) {
+      if (serverName.startsWith('aionui-team-') || serverName.startsWith('aionui-t-')) {
         console.log(
           `[GeminiAgentManager] Auto-approving team MCP tool: serverName=${serverName}, callId=${content.callId}`
         );
