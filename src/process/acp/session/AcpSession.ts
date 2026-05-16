@@ -349,6 +349,7 @@ export class AcpSession {
       }
     }
 
+    this.promptExecutor.trackToolCallLifecycle(update);
     this.promptExecutor.resetTimer();
     const messages = this.messageTranslator.translate(notification);
     for (const msg of messages) {

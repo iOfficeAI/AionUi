@@ -5,6 +5,7 @@ import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PromptTimer } from '@process/acp/session/PromptTimer';
 import type { SessionLifecycle } from '@process/acp/session/SessionLifecycle';
 import type { AgentConfig, PromptContent, SessionCallbacks, SessionStatus } from '@process/acp/types';
+import type { SessionUpdate } from '@agentclientprotocol/sdk';
 
 /** Minimal interface that AcpSession exposes so PromptExecutor can drive state transitions. */
 export type PromptHost = {
@@ -22,6 +23,7 @@ export type PromptHost = {
 
 export class PromptExecutor {
   private pendingPrompt: PromptContent | null = null;
+  private readonly pendingToolCalls = new Set<string>();
   private readonly timer: PromptTimer;
 
   constructor(
@@ -69,9 +71,11 @@ export class PromptExecutor {
     }
 
     try {
+      this.pendingToolCalls.clear();
       this.timer.start();
       const result = await lifecycle.client.prompt(lifecycle.sessionId, content);
       this.timer.stop();
+      this.pendingToolCalls.clear();
 
       // Fallback: emit usage from PromptResponse for backends that don't send usage_update
       if (result.usage) {
@@ -83,6 +87,7 @@ export class PromptExecutor {
       }
     } catch (err) {
       this.timer.stop();
+      this.pendingToolCalls.clear();
       this.host.messageTranslator.onTurnEnd();
       this.handlePromptError(err, content);
       return;
@@ -153,10 +158,42 @@ export class PromptExecutor {
 
   stopTimer(): void {
     this.timer.stop();
+    this.pendingToolCalls.clear();
+  }
+
+  // Agents can be silent for minutes between tool_call (start) and tool_call_update (done);
+  // tracking in-flight ids lets handleTimeout defer firing while a tool is still executing.
+  trackToolCallLifecycle(update: SessionUpdate): void {
+    if (update.sessionUpdate === 'tool_call') {
+      const toolCallId = update.toolCallId;
+      if (!toolCallId) return;
+      if (update.status === 'completed' || update.status === 'failed') {
+        this.pendingToolCalls.delete(toolCallId);
+      } else {
+        this.pendingToolCalls.add(toolCallId);
+      }
+    } else if (update.sessionUpdate === 'tool_call_update') {
+      const toolCallId = update.toolCallId;
+      if (!toolCallId) return;
+      if (update.status === 'completed' || update.status === 'failed') {
+        this.pendingToolCalls.delete(toolCallId);
+      }
+    }
+  }
+
+  /** Exposed for tests. */
+  get pendingToolCallCount(): number {
+    return this.pendingToolCalls.size;
   }
 
   private handleTimeout(): void {
     if (this.host.status !== 'prompting') return;
+
+    if (this.pendingToolCalls.size > 0) {
+      this.timer.start();
+      return;
+    }
+
     this.cancel();
     this.host.callbacks.onSignal({
       type: 'error',
