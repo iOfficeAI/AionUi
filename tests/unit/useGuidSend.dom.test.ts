@@ -118,7 +118,7 @@ describe('useGuidSend', () => {
           type: 'remote',
           name: 'test message',
           extra: expect.objectContaining({
-            remoteAgentId: undefined,
+            remoteAgentId: 'agent-1',
           }),
         })
       );

@@ -398,7 +398,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         workspace: finalWorkspace,
         model: currentModel!,
         cliPath: acpAgentInfo?.cliPath,
-        customAgentId: acpAgentInfo?.customAgentId,
+        customAgentId:
+          acpAgentInfo?.customAgentId ||
+          (selectedAgentKey?.startsWith('remote:') ? selectedAgentKey.slice(7) : undefined),
         customWorkspace: isCustomWorkspace,
         isPreset,
         presetAgentType: finalEffectiveAgentType,

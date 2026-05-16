@@ -17,6 +17,7 @@ import { promises as fs, rmSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  ACP_BACKENDS_ALL,
   CLAUDE_ACP_NPX_PACKAGE,
   CODEBUDDY_ACP_NPX_PACKAGE,
   CODEX_ACP_BRIDGE_VERSION,
@@ -283,7 +284,21 @@ export function createGenericSpawnConfig(
 
   // Default to --experimental-acp only if acpArgs is strictly undefined.
   // This allows passing an empty array [] to bypass default flags.
-  const effectiveAcpArgs = acpArgs === undefined ? ['--experimental-acp'] : acpArgs;
+  // For custom backends with a known CLI command (e.g., hermes), use the
+  // backend's configured acpArgs instead of the generic default.
+  const effectiveAcpArgs = (() => {
+    if (acpArgs !== undefined) return acpArgs;
+
+    const cliBase = cliPath.split(/\s+/)[0];
+    const knownBackend = Object.values(ACP_BACKENDS_ALL).find(
+      (b) => b.cliCommand && (b.cliCommand === cliBase || cliBase.endsWith('/' + b.cliCommand))
+    );
+    if (knownBackend?.acpArgs !== undefined) {
+      return knownBackend.acpArgs;
+    }
+
+    return ['--experimental-acp'];
+  })();
 
   let spawnCommand: string;
   let spawnArgs: string[];

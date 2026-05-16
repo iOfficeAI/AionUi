@@ -90,9 +90,11 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
         extra.backend = effectivePresetType as AcpBackend;
       }
     }
-  } else if (type === 'remote') {
+  }
+
+  if (type === 'remote') {
     extra.remoteAgentId = customAgentId;
-  } else if (type === 'acp' || type === 'openclaw-gateway') {
+  } else if (!isPreset && (type === 'acp' || type === 'openclaw-gateway')) {
     extra.backend = backend as AcpBackendAll;
     extra.agentName = agentName || name;
     if (cliPath) extra.cliPath = cliPath;

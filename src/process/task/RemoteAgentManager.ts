@@ -22,7 +22,8 @@ import { teamEventBus } from '@process/team/teamEventBus';
 export interface RemoteAgentManagerData {
   conversation_id: string;
   workspace?: string;
-  remoteAgentId: string;
+  remoteAgentId?: string;
+  agentName?: string;
   sessionKey?: string;
   yoloMode?: boolean;
 }
@@ -47,9 +48,19 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
   private async initCore(data: RemoteAgentManagerData): Promise<RemoteAgentCore> {
     const db = await getDatabase();
-    const remoteConfig = db.getRemoteAgent(data.remoteAgentId);
+    let remoteConfig = data.remoteAgentId ? db.getRemoteAgent(data.remoteAgentId) : null;
+
+    // Fallback: if no remoteAgentId or config not found, try resolving by agentName
+    if (!remoteConfig && data.agentName) {
+      const allAgents = db.getRemoteAgents();
+      remoteConfig = allAgents.find((a) => a.name === data.agentName) ?? null;
+      if (remoteConfig) {
+        console.log(`[RemoteAgentManager] Resolved remote agent by name "${data.agentName}" -> ${remoteConfig.id}`);
+      }
+    }
+
     if (!remoteConfig) {
-      throw new Error(`Remote agent config not found: ${data.remoteAgentId}`);
+      throw new Error(`Remote agent config not found: ${data.remoteAgentId ?? data.agentName ?? 'undefined'}`);
     }
 
     this.core = new RemoteAgentCore({
@@ -63,10 +74,10 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
 
     try {
       await this.core.start();
-      this.updateRemoteAgentStatus(data.remoteAgentId, 'connected');
+      this.updateRemoteAgentStatus(remoteConfig.id, 'connected');
       return this.core;
     } catch (error) {
-      this.updateRemoteAgentStatus(data.remoteAgentId, 'error');
+      this.updateRemoteAgentStatus(remoteConfig.id, 'error');
       const errorMsg = error instanceof Error ? error.message : String(error);
       this.emitErrorMessage(`Failed to start remote agent: ${errorMsg}`);
       throw error;

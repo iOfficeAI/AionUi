@@ -61,7 +61,12 @@ export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager)
         isExtension: 'isExtension' in agent ? (agent.isExtension as boolean | undefined) : undefined,
         extensionName: 'extensionName' in agent ? (agent.extensionName as string | undefined) : undefined,
         isPreset: 'isPreset' in agent ? (agent.isPreset as boolean | undefined) : undefined,
-        customAgentId: 'customAgentId' in agent ? (agent.customAgentId as string | undefined) : undefined,
+        customAgentId:
+          'customAgentId' in agent
+            ? (agent.customAgentId as string | undefined)
+            : 'remoteAgentId' in agent
+              ? (agent.remoteAgentId as string | undefined)
+              : undefined,
       }));
       return Promise.resolve({ success: true as const, data });
     } catch (error) {
