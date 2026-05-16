@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: POUNDING
+executableName: POUNDING
+copyright: Copyright © 2024 POUNDING
 
 protocols:
-  - name: AionUi Protocol
+  - name: POUNDING Protocol
     schemes:
       - aionui
 
@@ -178,7 +178,7 @@ linux:
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: POUNDING
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;
