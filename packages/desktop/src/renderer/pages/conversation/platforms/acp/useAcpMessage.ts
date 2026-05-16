@@ -29,10 +29,7 @@ export type UseAcpMessageReturn = {
   slashCommands: SlashCommandItem[];
 };
 
-export const useAcpMessage = (
-  conversation_id: string,
-  options?: { skipWarmup?: boolean }
-): UseAcpMessageReturn => {
+export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
