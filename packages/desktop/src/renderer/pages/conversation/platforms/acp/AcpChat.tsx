@@ -5,6 +5,7 @@
  */
 
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
+import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
@@ -36,7 +37,8 @@ const AcpChat: React.FC<{
   loadedSkills,
 }) => {
   useMessageLstCache(conversation_id);
-  const messageState = useAcpMessage(conversation_id);
+  const teamPermission = useTeamPermission();
+  const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
 
   return (
     <ConversationProvider

@@ -103,6 +103,14 @@ const AcpSendBox: React.FC<{
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
+  const handleContentChange = useCallback(
+    (val: string) => {
+      if (val && teamPermission) teamPermission.warmupSession();
+      setContent(val);
+    },
+    [teamPermission, setContent]
+  );
   const { setSendBoxHandler } = usePreviewContext();
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
@@ -154,6 +162,7 @@ const AcpSendBox: React.FC<{
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      if (teamPermission) await teamPermission.warmupSession();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
       setAiProcessing(true);
@@ -334,7 +343,7 @@ Please check your local CLI tool authentication status`,
 
       <SendBox
         value={content}
-        onChange={setContent}
+        onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
           emitter.emit('acp.selected.file', items);
