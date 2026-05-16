@@ -82,7 +82,9 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
   // Build initialDesired from Guid page selections
   const initialDesired: InitialDesiredConfig = {};
   if (old.extra?.currentModelId) initialDesired.model = old.extra.currentModelId;
-  if (old.extra?.sessionMode) initialDesired.mode = old.extra.sessionMode;
+  if (old.extra?.sessionMode && old.extra.sessionMode !== 'default') {
+    initialDesired.mode = old.extra.sessionMode;
+  }
   if (old.extra?.pendingConfigOptions && Object.keys(old.extra.pendingConfigOptions).length > 0) {
     initialDesired.configOptions = old.extra.pendingConfigOptions;
   }

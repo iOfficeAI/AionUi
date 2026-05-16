@@ -105,6 +105,40 @@ describe('typeBridge', () => {
       expect(result.resumeSessionId).toBe('session-123');
     });
 
+    it('should not reassert default session mode', () => {
+      const oldConfig: OldAcpAgentConfig = {
+        id: 'default-mode-agent',
+        backend: 'opencode',
+        workingDir: '/workspace',
+        onStreamEvent: () => {},
+        extra: {
+          backend: 'opencode',
+          sessionMode: 'default',
+        },
+      };
+
+      const result = toAgentConfig(oldConfig);
+
+      expect(result.initialDesired).toBeUndefined();
+    });
+
+    it('should reassert non-default session mode', () => {
+      const oldConfig: OldAcpAgentConfig = {
+        id: 'custom-mode-agent',
+        backend: 'claude',
+        workingDir: '/workspace',
+        onStreamEvent: () => {},
+        extra: {
+          backend: 'claude',
+          sessionMode: 'acceptEdits',
+        },
+      };
+
+      const result = toAgentConfig(oldConfig);
+
+      expect(result.initialDesired?.mode).toBe('acceptEdits');
+    });
+
     it('should convert teamMcpStdioConfig to teamMcpConfig', () => {
       const oldConfig: OldAcpAgentConfig = {
         id: 'team-agent',
