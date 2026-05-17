@@ -694,17 +694,33 @@ export class TeamSessionService {
   }
 
   async renameAgent(teamId: string, slotId: string, newName: string): Promise<void> {
+    const trimmedName = newName.trim();
     // Update in-memory session if running
     const session = this.sessions.get(teamId);
     if (session) {
-      session.renameAgent(slotId, newName);
+      session.renameAgent(slotId, trimmedName);
       return; // TeamSession.renameAgent already persists
     }
     // No active session — update DB directly
     const team = await this.repo.findById(teamId);
     if (!team) throw new Error(`Team "${teamId}" not found`);
-    const updatedAgents = team.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: newName.trim() } : a));
+    const previousName = team.agents.find((a) => a.slotId === slotId)?.agentName;
+    const updatedAgents = team.agents.map((a) => (a.slotId === slotId ? { ...a, agentName: trimmedName } : a));
     await this.repo.update(teamId, { agents: updatedAgents, updatedAt: Date.now() });
+    await this.syncTaskOwnersForRename(teamId, previousName, trimmedName);
+  }
+
+  private async syncTaskOwnersForRename(
+    teamId: string,
+    previousName: string | undefined,
+    newName: string
+  ): Promise<void> {
+    if (!previousName || previousName === newName) return;
+
+    const ownedTasks = await this.repo.findTasksByOwner(teamId, previousName);
+    for (const task of ownedTasks) {
+      await this.repo.updateTask(task.id, { owner: newName, updatedAt: Date.now() });
+    }
   }
 
   async renameTeam(id: string, name: string): Promise<void> {

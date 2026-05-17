@@ -493,4 +493,54 @@ describe('TeamSessionService', () => {
       })
     );
   });
+
+  it('keeps task owners in sync when renaming an offline teammate', async () => {
+    const team: TTeam = {
+      id: 'team-1',
+      name: 'Rename Team',
+      workspace: '/workspace',
+      workspaceMode: 'shared',
+      leaderAgentId: 'slot-lead',
+      agents: [
+        makeAgent({ slotId: 'slot-lead', role: 'leader', agentName: 'Leader' }),
+        makeAgent({ slotId: 'slot-member', role: 'teammate', agentName: 'Worker' }),
+      ],
+      createdAt: 1,
+      updatedAt: 1,
+    };
+    const repo = makeRepo({
+      findById: vi.fn().mockResolvedValue(team),
+      findTasksByOwner: vi.fn().mockResolvedValue([
+        {
+          id: 'task-1',
+          teamId: 'team-1',
+          subject: 'Review patch',
+          status: 'in_progress',
+          owner: 'Worker',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: 1,
+          updatedAt: 1,
+        },
+      ]),
+      updateTask: vi.fn().mockResolvedValue(undefined),
+    });
+    const service = new TeamSessionService(repo, makeWorkerTaskManager() as any, makeConversationService());
+
+    await service.renameAgent('team-1', 'slot-member', 'Reviewer');
+
+    expect(repo.update).toHaveBeenCalledWith(
+      'team-1',
+      expect.objectContaining({
+        agents: expect.arrayContaining([expect.objectContaining({ slotId: 'slot-member', agentName: 'Reviewer' })]),
+        updatedAt: expect.any(Number),
+      })
+    );
+    expect(repo.findTasksByOwner).toHaveBeenCalledWith('team-1', 'Worker');
+    expect(repo.updateTask).toHaveBeenCalledWith(
+      'task-1',
+      expect.objectContaining({ owner: 'Reviewer', updatedAt: expect.any(Number) })
+    );
+  });
 });

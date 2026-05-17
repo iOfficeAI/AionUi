@@ -236,4 +236,80 @@ describe('TeamSession', () => {
       expect(repo.writeMessage).not.toHaveBeenCalled();
     });
   });
+
+  describe('renameAgent()', () => {
+    it('keeps owned tasks aligned with the new teammate name', async () => {
+      const repo = makeRepo();
+      const now = Date.now();
+      (repo.findTasksByOwner as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'task-1-uuid',
+          teamId: 'team-1',
+          subject: 'Review patch',
+          status: 'pending',
+          owner: 'Worker',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+      (repo.updateTask as ReturnType<typeof vi.fn>).mockImplementation((_id: string, updates: object) =>
+        Promise.resolve({
+          id: _id,
+          teamId: 'team-1',
+          subject: 'Review patch',
+          status: 'pending',
+          owner: 'Reviewer',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+          ...updates,
+        })
+      );
+
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+
+      session.renameAgent('slot-member', 'Reviewer');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          agents: expect.arrayContaining([expect.objectContaining({ slotId: 'slot-member', agentName: 'Reviewer' })]),
+          updatedAt: expect.any(Number),
+        })
+      );
+      expect(repo.findTasksByOwner).toHaveBeenCalledWith('team-1', 'Worker');
+      expect(repo.updateTask).toHaveBeenCalledWith(
+        'task-1-uuid',
+        expect.objectContaining({ owner: 'Reviewer', updatedAt: expect.any(Number) })
+      );
+
+      await session.dispose();
+    });
+
+    it('skips task owner rewrites when the trimmed name is unchanged', async () => {
+      const repo = makeRepo();
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+
+      session.renameAgent('slot-member', '  Worker  ');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(repo.update).toHaveBeenCalledWith(
+        'team-1',
+        expect.objectContaining({
+          agents: expect.arrayContaining([expect.objectContaining({ slotId: 'slot-member', agentName: 'Worker' })]),
+          updatedAt: expect.any(Number),
+        })
+      );
+      expect(repo.findTasksByOwner).not.toHaveBeenCalled();
+      expect(repo.updateTask).not.toHaveBeenCalled();
+
+      await session.dispose();
+    });
+  });
 });
