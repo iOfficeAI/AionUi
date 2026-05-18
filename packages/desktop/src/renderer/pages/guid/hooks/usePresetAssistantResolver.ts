@@ -93,10 +93,10 @@ export const usePresetAssistantResolver = ({
 
   const resolvePresetAgentType = useCallback(
     (agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined): string => {
-      if (!agentInfo) return 'gemini';
+      if (!agentInfo) return 'aionrs';
       if (!agentInfo.custom_agent_id) return agentInfo.backend || agentInfo.agent_type;
       const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
-      return assistant?.preset_agent_type || 'gemini';
+      return assistant?.preset_agent_type || 'aionrs';
     },
     [assistants]
   );

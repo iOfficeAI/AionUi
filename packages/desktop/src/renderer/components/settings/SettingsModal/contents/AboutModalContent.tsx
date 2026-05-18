@@ -5,23 +5,20 @@
  */
 
 import { Divider, Typography, Button, Switch } from '@arco-design/web-react';
-import { Github, Right } from '@icon-park/react';
+import { Right } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
+import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
-import FeedbackReportModal from './FeedbackReportModal';
-
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
 // '../../../../../../package.json'` resolved to packages/desktop/package.json
 // which is a workspace placeholder permanently pinned at "0.0.0".
 declare const __APP_VERSION__: string;
 
-type LinkItem =
-  | { title: string; url: string; icon: React.ReactNode; onClick?: never }
-  | { title: string; onClick: () => void; icon: React.ReactNode; url?: never };
+type LinkItem = { title: string; url: string; icon: React.ReactNode; onClick?: never };
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
@@ -30,8 +27,6 @@ const AboutModalContent: React.FC = () => {
   const isElectron = isElectronDesktop();
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
     setIncludePrerelease(saved === 'true');
@@ -59,32 +54,22 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://github.com/iOfficeAI/AionUi/wiki',
+      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/Zsr9wqyHHi3e5IkQYtwcQu6Knab',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://github.com/iOfficeAI/AionUi/releases',
+      url: 'https://github.com/halojerry/AionUi/releases',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.feedback'),
-      url: 'https://github.com/iOfficeAI/AionUi/issues',
-      icon: <Right theme='outline' size='16' />,
-    },
-    {
-      title: t('settings.bugReport'),
-      onClick: () => setShowFeedbackModal(true),
-      icon: <Right theme='outline' size='16' />,
-    },
-    {
-      title: t('settings.contactMe'),
-      url: 'https://x.com/WailiVery',
+      url: 'https://github.com/halojerry/AionUi/issues',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://www.aionui.com',
+      url: 'https://api.maou.cn',
       icon: <Right theme='outline' size='16' />,
     },
   ];
@@ -101,6 +86,9 @@ const AboutModalContent: React.FC = () => {
         <div className='flex flex-col max-w-500px mx-auto'>
           {/* App Info Section */}
           <div className='flex flex-col items-center pb-24px'>
+            <div className='w-88px h-88px mb-12px' aria-hidden='true'>
+              <PoundingInteractiveLogo className='size-full' />
+            </div>
             <Typography.Title heading={3} className='text-24px font-bold text-t-primary mb-8px'>
               POUNDING
             </Typography.Title>
@@ -111,16 +99,6 @@ const AboutModalContent: React.FC = () => {
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
                 v{__APP_VERSION__}
               </span>
-              <div
-                className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
-                onClick={() =>
-                  openLink('https://github.com/iOfficeAI/AionUi').catch((error) =>
-                    console.error('Failed to open link:', error)
-                  )
-                }
-              >
-                <Github theme='outline' size='20' />
-              </div>
             </div>
 
             {/* Check Update Section */}
@@ -151,11 +129,7 @@ const AboutModalContent: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  if ('url' in item) {
-                    openLink(item.url).catch((error) => console.error('Failed to open link:', error));
-                  } else {
-                    item.onClick();
-                  }
+                  openLink(item.url).catch((error) => console.error('Failed to open link:', error));
                 }}
               >
                 <Typography.Text className='text-14px text-t-primary'>{item.title}</Typography.Text>
@@ -165,7 +139,6 @@ const AboutModalContent: React.FC = () => {
           </div>
         </div>
       </div>
-      <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
     </div>
   );
 };

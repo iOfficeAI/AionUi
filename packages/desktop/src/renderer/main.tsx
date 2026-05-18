@@ -27,6 +27,7 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './hooks/context/AuthContext';
 import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
+import { NewApiAccountProvider } from './hooks/context/NewApiAccountContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 import { ConversationTabsProvider } from './pages/conversation/hooks/ConversationTabsContext';
 
@@ -100,9 +101,13 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
       ThemeProvider,
       null,
       React.createElement(
-        PreviewProvider,
+        NewApiAccountProvider,
         null,
-        React.createElement(ConversationTabsProvider, null, React.createElement(FeedbackProvider, null, children))
+        React.createElement(
+          PreviewProvider,
+          null,
+          React.createElement(ConversationTabsProvider, null, React.createElement(FeedbackProvider, null, children))
+        )
       )
     )
   );

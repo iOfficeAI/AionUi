@@ -70,6 +70,7 @@
   height: 26px;
   display: block;
   color: inherit;
+  flex: none;
 }
 
 .app-titlebar--mobile .app-titlebar__brand-logo {

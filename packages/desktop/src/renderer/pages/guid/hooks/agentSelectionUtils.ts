@@ -4,7 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
+import { buildManagedRuntimeModelId, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /** Save preferred mode to the agent's own config key */
@@ -26,9 +28,25 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 /** Save preferred model ID to the agent's acp.config key */
 export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
+    const cliTarget = resolveManagedRuntimeCliTarget(agentKey);
+    const isManagedLoggedIn = Boolean(cliTarget && configService.get('newApi.desktop.account')?.loggedIn);
+
+    if (agentKey === 'aionrs') {
+      const config = configService.get('aionrs.defaultModel');
+      await configService.set('aionrs.defaultModel', { id: config?.id, use_model: model_id });
+      return;
+    }
+
     const config = configService.get('acp.config');
     const backendConfig = config?.[agentKey as string] || {};
-    await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
+    await configService.set('acp.config', {
+      ...config,
+      [agentKey]: { ...backendConfig, preferredModelId: model_id },
+    });
+
+    if (cliTarget && isManagedLoggedIn) {
+      await ipcBridge.newApiAccount.reconcileModel.invoke({ cliTarget, modelId: model_id });
+    }
   } catch {
     /* silent */
   }

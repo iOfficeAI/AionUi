@@ -5,22 +5,37 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ManagedCliInstallTarget } from '@/common/types/agent/managedCliInstaller';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useAgents } from '@/renderer/hooks/agent/useAgents';
-import { Button, Typography } from '@arco-design/web-react';
+import { Button, Message, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
-import React, { useCallback, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 
+type ManagedCliCardConfig = {
+  target: ManagedCliInstallTarget;
+  label: string;
+  backendAliases: string[];
+};
+
+type InstallState = 'idle' | 'installing' | 'uninstalling';
+
+const MANAGED_CLI_CARDS: ManagedCliCardConfig[] = [
+  { target: 'claude', label: 'Claude Code', backendAliases: ['claude', 'anthropic'] },
+  { target: 'hermes', label: 'Hermes', backendAliases: ['hermes'] },
+  { target: 'opencode', label: 'OpenCode', backendAliases: ['opencode'] },
+  { target: 'openclaw', label: 'OpenClaw', backendAliases: ['openclaw', 'openclaw-gateway'] },
+];
+
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
+  const [installingState, setInstallingState] = useState<Partial<Record<ManagedCliInstallTarget, InstallState>>>({});
 
   // Single fetch for all agents; both detected and custom lists are derived from it.
   const { agents: allAgents, revalidate: mutateAgents } = useAgents();
@@ -85,7 +100,93 @@ const LocalAgents: React.FC = () => {
 
   // Aion CLI first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
+
+  const managedCliCards = useMemo(() => {
+    return MANAGED_CLI_CARDS.map((card) => {
+      const matchedAgent = detectedAgents.find((agent) =>
+        card.backendAliases.includes((agent.backend || agent.agent_type || '').toLowerCase())
+      );
+
+      const fallbackAgent: AgentMetadata = {
+        id: `managed-cli-${card.target}`,
+        name: card.label,
+        backend: card.backendAliases[0],
+        agent_type: 'acp',
+        agent_source: 'builtin',
+        available: false,
+        enabled: true,
+      };
+
+      return {
+        ...card,
+        agent: matchedAgent ?? fallbackAgent,
+      };
+    });
+  }, [detectedAgents]);
+
+  const setTargetState = useCallback((target: ManagedCliInstallTarget, state: InstallState) => {
+    setInstallingState((prev) => ({ ...prev, [target]: state }));
+  }, []);
+
+  const clearTargetState = useCallback((target: ManagedCliInstallTarget) => {
+    setInstallingState((prev) => {
+      const next = { ...prev };
+      delete next[target];
+      return next;
+    });
+  }, []);
+
+  const revalidateAfterCliMutation = useCallback(async () => {
+    await mutateAgents();
+  }, [mutateAgents]);
+
+  const handleInstallManagedCli = useCallback(
+    async (target: ManagedCliInstallTarget) => {
+      setTargetState(target, 'installing');
+      try {
+        const result = await ipcBridge.managedCliInstaller.install.invoke({ target });
+        if (!result.success) {
+          throw new Error(result.message || 'Install failed');
+        }
+        await revalidateAfterCliMutation();
+        Message.success(
+          t('settings.agentManagement.installSuccess', {
+            defaultValue: 'Installed successfully',
+          })
+        );
+      } catch (error) {
+        console.error(`Failed to install ${target}:`, error);
+        Message.error(error instanceof Error ? error.message : t('common.failed', { defaultValue: 'Failed' }));
+      } finally {
+        clearTargetState(target);
+      }
+    },
+    [clearTargetState, revalidateAfterCliMutation, setTargetState, t]
+  );
+
+  const handleUninstallManagedCli = useCallback(
+    async (target: ManagedCliInstallTarget) => {
+      setTargetState(target, 'uninstalling');
+      try {
+        const result = await ipcBridge.managedCliInstaller.uninstall.invoke({ target });
+        if (!result.success) {
+          throw new Error(result.message || 'Uninstall failed');
+        }
+        await revalidateAfterCliMutation();
+        Message.success(
+          t('settings.agentManagement.uninstallSuccess', {
+            defaultValue: 'Uninstalled successfully',
+          })
+        );
+      } catch (error) {
+        console.error(`Failed to uninstall ${target}:`, error);
+        Message.error(error instanceof Error ? error.message : t('common.failed', { defaultValue: 'Failed' }));
+      } finally {
+        clearTargetState(target);
+      }
+    },
+    [clearTargetState, revalidateAfterCliMutation, setTargetState, t]
+  );
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -143,17 +244,23 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && (
+        {aionrsAgent && <AgentCard type='detected' agent={aionrsAgent} variant='grid' />}
+        {managedCliCards.map(({ target, agent }) => (
           <AgentCard
+            key={target}
             type='detected'
-            agent={aionrsAgent}
-            settingsDisabled={false}
-            onSettings={() => navigate('/settings/aionrs')}
+            agent={agent}
             variant='grid'
+            managedCliTarget={target}
+            canManageInstall={true}
+            installState={installingState[target] ?? 'idle'}
+            onInstall={() => {
+              void handleInstallManagedCli(target);
+            }}
+            onUninstall={() => {
+              void handleUninstallManagedCli(target);
+            }}
           />
-        )}
-        {otherDetected.map((agent) => (
-          <AgentCard key={agent.backend || agent.agent_type} type='detected' agent={agent} variant='grid' />
         ))}
       </div>
       {(!detectedAgents || detectedAgents.length === 0) && (

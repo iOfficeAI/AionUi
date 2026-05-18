@@ -44,7 +44,7 @@ export const useAssistantEditor = ({
   const [editContext, setEditContext] = useState('');
   const [editAvatar, setEditAvatar] = useState('');
   // editAgent holds a backend ID (e.g. "claude", "goose") or an extension adapter ID (e.g. "ext-buddy")
-  const [editAgent, setEditAgent] = useState<string>('claude');
+  const [editAgent, setEditAgent] = useState<string>('aionrs');
   const [editSkills, setEditSkills] = useState('');
   const [isCreating, setIsCreating] = useState(false);
   const [deleteConfirmVisible, setDeleteConfirmVisible] = useState(false);
@@ -97,7 +97,7 @@ export const useAssistantEditor = ({
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.preset_agent_type || 'aionrs');
     setPendingSkills([]);
     setDeletePendingSkillName(null);
     setDeleteCustomSkillName(null);
@@ -157,7 +157,7 @@ export const useAssistantEditor = ({
     setEditDescription('');
     setEditContext('');
     setEditAvatar('\u{1F916}');
-    setEditAgent('claude');
+    setEditAgent('aionrs');
     setEditSkills('');
     setSelectedSkills([]);
     setCustomSkills([]);
@@ -187,7 +187,7 @@ export const useAssistantEditor = ({
     setEditName(`${assistant.name_i18n?.[localeKey] || assistant.name} (Copy)`);
     setEditDescription(assistant.description_i18n?.[localeKey] || assistant.description || '');
     setEditAvatar(assistant.avatar || '\u{1F916}');
-    setEditAgent(assistant.preset_agent_type || 'claude');
+    setEditAgent(assistant.preset_agent_type || 'aionrs');
     setPromptViewMode('edit');
     setEditVisible(true);
 

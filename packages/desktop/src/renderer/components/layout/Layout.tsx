@@ -8,14 +8,17 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { configService } from '@/common/config/configService';
 import type { ICssTheme } from '@/common/config/storage';
+import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
+import DesktopLoginGate from '@renderer/components/layout/DesktopLoginGate';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
@@ -95,6 +98,7 @@ const Layout: React.FC<{
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
   useDeepLink();
   useNotificationClick();
   const navigate = useNavigate();
@@ -403,6 +407,8 @@ const Layout: React.FC<{
     };
   }, []);
 
+  const shouldShowDesktopGate = isElectronDesktop() && newApiReady && !isNewApiLoggedIn;
+
   const siderStyle = isMobile
     ? {
         position: 'fixed' as const,
@@ -447,33 +453,17 @@ const Layout: React.FC<{
                 )}
               >
                 <div
-                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
+                  className={classNames('shrink-0 size-40px relative rd-0.5rem', {
                     '!size-24px': collapsed,
                   })}
                   onClick={onClick}
                 >
-                  <svg
-                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      'scale-140': !collapsed,
+                  <PoundingInteractiveLogo
+                    className={classNames('absolute inset-0 m-auto app-sider-brand-logo', {
+                      'app-sider-brand-logo--collapsed': collapsed,
                     })}
-                    viewBox='0 0 80 80'
-                    fill='none'
-                  >
-                    <path
-                      key='logo-path-1'
-                      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-                      fill='white'
-                    ></path>
-                    <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                    <path
-                      key='logo-path-2'
-                      d='M18 50 Q40 70 62 50'
-                      stroke='white'
-                      strokeWidth='3.5'
-                      fill='none'
-                      strokeLinecap='round'
-                    ></path>
-                  </svg>
+                    compact={collapsed}
+                  />
                 </div>
                 <div className='text-16px text-t-primary collapsed-hidden font-semibold'>POUNDING</div>
                 {isMobile && !collapsed && (
@@ -528,7 +518,7 @@ const Layout: React.FC<{
                   : undefined
               }
             >
-              <Outlet />
+              {shouldShowDesktopGate ? <DesktopLoginGate /> : <Outlet />}
               {directorySelectionContextHolder}
               <PwaPullToRefresh />
               <Suspense fallback={null}>

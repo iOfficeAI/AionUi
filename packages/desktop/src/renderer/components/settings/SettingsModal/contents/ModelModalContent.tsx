@@ -9,12 +9,14 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import classNames from 'classnames';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
+import { isElectronDesktop } from '@renderer/utils/platform';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
@@ -96,15 +98,19 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 };
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
+const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
 
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
+  const isDesktopManagedNewApiMode = isElectronDesktop();
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
+  const shouldHideAddModelButton =
+    isDesktopManagedNewApiMode && (data ?? []).some((provider) => provider.id === NEW_API_MANAGED_PROVIDER_ID);
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -209,7 +215,7 @@ const ModelModalContent: React.FC = () => {
 
       // 1. 创建临时对话
       const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'acp',
+        type: 'aionrs',
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,
@@ -217,8 +223,8 @@ const ModelModalContent: React.FC = () => {
         },
         extra: {
           workspace: '',
+          custom_workspace: false,
           is_health_check: true,
-          backend: 'gemini',
         },
       });
 
@@ -482,6 +488,7 @@ const ModelModalContent: React.FC = () => {
               shape='round'
               icon={<Plus size='16' />}
               onClick={() => addPlatformModalCtrl.open()}
+              hidden={shouldHideAddModelButton}
               className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
             >
               {t('settings.addModel')}
@@ -509,7 +516,7 @@ const ModelModalContent: React.FC = () => {
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
               <a
-                href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
+                href='https://github.com/halojerry/AionUi/wiki/LLM-Configuration'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -524,6 +531,10 @@ const ModelModalContent: React.FC = () => {
             {(data || []).map((platform: IProvider) => {
               const key = platform.id;
               const isExpanded = collapseKey[platform.id] ?? false;
+              const isManagedNewApiProvider =
+                isDesktopManagedNewApiMode &&
+                platform.id === NEW_API_MANAGED_PROVIDER_ID &&
+                isNewApiPlatform(platform.platform);
               return (
                 <Collapse
                   activeKey={isExpanded ? ['image-generation'] : []}
@@ -569,7 +580,9 @@ const ModelModalContent: React.FC = () => {
                             <span className='mx-6px'>|</span>
                             <span
                               className='cursor-pointer hover:text-t-primary transition-colors'
-                              onClick={() => editModalCtrl.open({ data: platform })}
+                              onClick={() => {
+                                if (!isManagedNewApiProvider) editModalCtrl.open({ data: platform });
+                              }}
                             >
                               {t('settings.apiKeyCount')}（{getApiKeyCount(platform.api_key)}）
                             </span>
@@ -578,33 +591,41 @@ const ModelModalContent: React.FC = () => {
                             {(platform.models ?? []).length} / {getApiKeyCount(platform.api_key)}
                           </span>
                           {/* 供应商启用开关 / Provider enable switch */}
-                          <Switch
-                            size='small'
-                            checked={getProviderState(platform).checked}
-                            onChange={() => toggleProviderEnabled(platform)}
-                          />
-                          <div className='flex items-center gap-4px'>
-                            <Button
-                              size='mini'
-                              className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                              icon={<Plus size='14' />}
-                              onClick={() => addModelModalCtrl.open({ data: platform })}
+                          {!isManagedNewApiProvider && (
+                            <Switch
+                              size='small'
+                              checked={getProviderState(platform).checked}
+                              onChange={() => toggleProviderEnabled(platform)}
                             />
-                            <Popconfirm
-                              title={t('settings.deleteAllModelConfirm')}
-                              onOk={() => removePlatform(platform.id)}
-                            >
+                          )}
+                          <div className='flex items-center gap-4px'>
+                            {!isManagedNewApiProvider && (
                               <Button
                                 size='mini'
                                 className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
-                                icon={<Minus size='14' />}
+                                icon={<Plus size='14' />}
+                                onClick={() => addModelModalCtrl.open({ data: platform })}
                               />
-                            </Popconfirm>
+                            )}
+                            {!isManagedNewApiProvider && (
+                              <Popconfirm
+                                title={t('settings.deleteAllModelConfirm')}
+                                onOk={() => removePlatform(platform.id)}
+                              >
+                                <Button
+                                  size='mini'
+                                  className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
+                                  icon={<Minus size='14' />}
+                                />
+                              </Popconfirm>
+                            )}
                             <Button
                               size='mini'
                               className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
                               icon={<Write size='14' />}
-                              onClick={() => editModalCtrl.open({ data: platform })}
+                              onClick={() => {
+                                if (!isManagedNewApiProvider) editModalCtrl.open({ data: platform });
+                              }}
                             />
                           </div>
                         </div>
@@ -661,8 +682,9 @@ const ModelModalContent: React.FC = () => {
                                 <Tag
                                   size='small'
                                   color={getProtocolColor(modelProtocol)}
-                                  className='cursor-pointer select-none'
+                                  className={classNames(!isManagedNewApiProvider && 'cursor-pointer select-none')}
                                   onClick={() => {
+                                    if (isManagedNewApiProvider) return;
                                     const nextProtocol = getNextProtocol(modelProtocol);
                                     const newProtocols = { ...platform.model_protocols };
                                     newProtocols[model] = nextProtocol;
@@ -674,11 +696,13 @@ const ModelModalContent: React.FC = () => {
                               )}
 
                               {/* 模型启用开关 / Model enable switch */}
-                              <Switch
-                                size='small'
-                                checked={isModelEnabled(platform, model)}
-                                onChange={(checked) => toggleModelEnabled(platform, model, checked)}
-                              />
+                              {!isManagedNewApiProvider && (
+                                <Switch
+                                  size='small'
+                                  checked={isModelEnabled(platform, model)}
+                                  onChange={(checked) => toggleModelEnabled(platform, model, checked)}
+                                />
+                              )}
                             </div>
 
                             <div className='flex items-center gap-6px shrink-0'>
@@ -693,38 +717,42 @@ const ModelModalContent: React.FC = () => {
                                 />
                               </Tooltip>
 
-                              <Popconfirm
-                                title={t('settings.deleteModelConfirm')}
-                                onOk={() => {
-                                  const newModels = platform.models.filter((item: string) => item !== model);
-                                  // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
-                                  // Clean all per-model state to avoid stale state on re-add.
-                                  const newProtocols = { ...platform.model_protocols };
-                                  const newModelEnabled = { ...platform.model_enabled };
-                                  const newModelHealth = { ...platform.model_health };
-                                  delete newProtocols[model];
-                                  delete newModelEnabled[model];
-                                  delete newModelHealth[model];
+                              {!isManagedNewApiProvider && (
+                                <Popconfirm
+                                  title={t('settings.deleteModelConfirm')}
+                                  onOk={() => {
+                                    const newModels = platform.models.filter((item: string) => item !== model);
+                                    // 同时清理模型相关状态，避免删除后重加模型时复用脏状态
+                                    // Clean all per-model state to avoid stale state on re-add.
+                                    const newProtocols = { ...platform.model_protocols };
+                                    const newModelEnabled = { ...platform.model_enabled };
+                                    const newModelHealth = { ...platform.model_health };
+                                    delete newProtocols[model];
+                                    delete newModelEnabled[model];
+                                    delete newModelHealth[model];
 
-                                  updatePlatform(
-                                    {
-                                      ...platform,
-                                      models: newModels,
-                                      model_protocols: Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
-                                      model_enabled:
-                                        Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
-                                      model_health: Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
-                                    },
-                                    () => {}
-                                  );
-                                }}
-                              >
-                                <Button
-                                  size='mini'
-                                  className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
-                                  icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
-                                />
-                              </Popconfirm>
+                                    updatePlatform(
+                                      {
+                                        ...platform,
+                                        models: newModels,
+                                        model_protocols:
+                                          Object.keys(newProtocols).length > 0 ? newProtocols : undefined,
+                                        model_enabled:
+                                          Object.keys(newModelEnabled).length > 0 ? newModelEnabled : undefined,
+                                        model_health:
+                                          Object.keys(newModelHealth).length > 0 ? newModelHealth : undefined,
+                                      },
+                                      () => {}
+                                    );
+                                  }}
+                                >
+                                  <Button
+                                    size='mini'
+                                    className='!w-28px !h-28px !min-w-28px !bg-[var(--color-bg-1)] text-t-secondary hover:text-t-primary hover:!bg-[var(--fill-0)]'
+                                    icon={<DeleteFour theme='outline' size='18' strokeWidth={2} />}
+                                  />
+                                </Popconfirm>
+                              )}
                             </div>
                           </div>
                           {index < arr.length - 1 && <Divider className='!my-0 !border-[var(--color-border-2)]/70' />}

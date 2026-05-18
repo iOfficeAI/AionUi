@@ -34,6 +34,12 @@ import type {
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
+  ManagedRuntimeCliTarget,
+  NewApiAccountStatus,
+  NewApiLoginParams,
+  NewApiLoginResponse,
+} from '../types/newApiAccount';
+import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
@@ -580,6 +586,15 @@ export const fileSnapshot = {
 // ---------------------------------------------------------------------------
 // Google Auth — stubbed (Electron-native OAuth flow)
 // ---------------------------------------------------------------------------
+
+export const newApiAccount = {
+  getStatus: bridge.buildProvider<IBridgeResponse<NewApiAccountStatus>, void>('newapi-account.get-status'),
+  login: bridge.buildProvider<IBridgeResponse<NewApiLoginResponse>, NewApiLoginParams>('newapi-account.login'),
+  logout: bridge.buildProvider<IBridgeResponse, void>('newapi-account.logout'),
+  reconcileModel: bridge.buildProvider<IBridgeResponse, { cliTarget?: ManagedRuntimeCliTarget; modelId?: string }>(
+    'newapi-account.reconcile-model'
+  ),
+};
 
 export const googleAuth = {
   status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
@@ -1591,6 +1606,7 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
+import type { ManagedCliInstallOptions, ManagedCliInstallResult } from '@/common/types/agent/managedCliInstaller';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
@@ -1601,6 +1617,13 @@ export const hub = {
   checkUpdates: httpPost<{ name: string }[], void>('/api/hub/check-updates'),
   update: httpPost<void, { name: string }>('/api/hub/update'),
   onStateChanged: wsEmitter<{ name: string; status: HubExtensionStatus; error?: string }>('hub.state-changed'),
+};
+
+export const managedCliInstaller = {
+  install: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallOptions>('managed-cli-installer.install'),
+  uninstall: bridge.buildProvider<ManagedCliInstallResult, { target: ManagedCliInstallOptions['target'] }>(
+    'managed-cli-installer.uninstall'
+  ),
 };
 
 // ---------------------------------------------------------------------------

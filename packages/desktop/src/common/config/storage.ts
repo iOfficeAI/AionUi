@@ -5,6 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -71,6 +72,8 @@ export interface IConfigStorageRefer {
     preferredMode?: string;
   };
   'aionrs.defaultModel'?: { id: string; use_model: string };
+  'newApi.desktop.account'?: NewApiAccountStatus;
+  'newApi.desktop.cliModelPrefs'?: Partial<Record<ManagedRuntimeCliTarget, string>>;
   'tools.imageGenerationModel': TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;

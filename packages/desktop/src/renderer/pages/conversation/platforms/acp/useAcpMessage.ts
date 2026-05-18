@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
+import type { IMessageAcpToolCall, IMessageText } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
@@ -13,6 +14,65 @@ import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+
+export function extractCompletedToolFallbackText(message: IMessageAcpToolCall): string | null {
+  const update = message.content.update;
+  const sessionUpdate =
+    (update as { sessionUpdate?: string; session_update?: string } | undefined)?.sessionUpdate ??
+    (update as { sessionUpdate?: string; session_update?: string } | undefined)?.session_update;
+  if (!update || sessionUpdate !== 'tool_call_update' || update.status !== 'completed') {
+    return null;
+  }
+
+  const contentItems = Array.isArray(update.content) ? update.content : [];
+  for (let i = contentItems.length - 1; i >= 0; i--) {
+    const item = contentItems[i];
+    if (item?.type !== 'content') continue;
+    const content = item.content;
+    if (content?.type !== 'text' || typeof content.text !== 'string') continue;
+    const trimmed = content.text.trim();
+    if (!trimmed) continue;
+
+    const outputMatch = trimmed.match(/- \*\*output:\*\*\s*([^\n]+)/);
+    if (outputMatch?.[1]?.trim()) {
+      return outputMatch[1].trim();
+    }
+
+    return trimmed;
+  }
+
+  const rawOutput =
+    (update as { rawOutput?: unknown; raw_output?: unknown }).rawOutput ??
+    (update as { rawOutput?: unknown; raw_output?: unknown }).raw_output;
+  if (rawOutput && typeof rawOutput === 'object') {
+    const output = 'output' in rawOutput ? rawOutput.output : undefined;
+    if (typeof output === 'string' && output.trim()) {
+      return output.trim();
+    }
+  }
+
+  return null;
+}
+
+export function buildAcpFallbackAssistantText(params: {
+  conversationId: string;
+  msgId: string;
+  content: string;
+  createdAt?: number;
+}): IMessageText {
+  return {
+    id: params.msgId,
+    msg_id: params.msgId,
+    type: 'text',
+    position: 'left',
+    conversation_id: params.conversationId,
+    created_at: params.createdAt ?? Date.now(),
+    content: {
+      content: params.content,
+      replace: true,
+    },
+  };
+}
 
 export type UseAcpMessageReturn = {
   thought: ThoughtData;
@@ -51,6 +111,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
   // Track whether current turn has content output
   const hasContentInTurnRef = useRef(false);
+  const lastCompletedToolTextRef = useRef<string | null>(null);
+  const lastFallbackTextMsgIdRef = useRef<string | null>(null);
 
   // Guard: after finish arrives, prevent auto-recover from setting running=true
   // until a new 'start' signal arrives for the next turn
@@ -152,12 +214,26 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           // New turn starting — clear the finished guard and content flag
           turnFinishedRef.current = false;
           hasContentInTurnRef.current = false;
+          lastCompletedToolTextRef.current = null;
+          lastFallbackTextMsgIdRef.current = null;
           setRunning(true);
           runningRef.current = true;
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
           {
+            if (!hasContentInTurnRef.current && lastCompletedToolTextRef.current) {
+              addOrUpdateMessage(
+                buildAcpFallbackAssistantText({
+                  conversationId: conversation_id,
+                  msgId: lastFallbackTextMsgIdRef.current ?? message.msg_id,
+                  content: lastCompletedToolTextRef.current,
+                  createdAt: message.created_at,
+                })
+              );
+              hasContentInTurnRef.current = true;
+            }
+
             // Mark turn as finished to prevent auto-recover from late messages
             turnFinishedRef.current = true;
             // Immediate state reset (notification is handled by centralized hook)
@@ -189,6 +265,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setAiProcessing(false);
             aiProcessingRef.current = false;
           }
+          lastCompletedToolTextRef.current = null;
+          lastFallbackTextMsgIdRef.current = null;
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
@@ -270,6 +348,20 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             }
             addOrUpdateMessage(tmMsg);
           }
+          break;
+        }
+        case 'acp_tool_call': {
+          const fallbackText = extractCompletedToolFallbackText(transformedMessage as IMessageAcpToolCall);
+          if (fallbackText) {
+            lastCompletedToolTextRef.current = fallbackText;
+            lastFallbackTextMsgIdRef.current = message.msg_id;
+          }
+          // Auto-recover running state only if turn hasn't finished
+          if (!runningRef.current && !turnFinishedRef.current) {
+            setRunning(true);
+            runningRef.current = true;
+          }
+          addOrUpdateMessage(transformedMessage);
           break;
         }
         case 'acp_permission':
@@ -379,6 +471,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setSlashCommands([]);
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
+    lastCompletedToolTextRef.current = null;
+    lastFallbackTextMsgIdRef.current = null;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
@@ -470,6 +564,8 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    lastCompletedToolTextRef.current = null;
+    lastFallbackTextMsgIdRef.current = null;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
   }, []);

@@ -10,6 +10,8 @@ import { resolveLocaleKey } from '@/common/utils';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
+import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
+import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -36,6 +38,8 @@ import { mutate as swrMutate } from 'swr';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
 
+type GuidModelAgentKey = Parameters<typeof useGuidModelSelection>[0];
+
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -48,6 +52,8 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const { isGoogleAuth } = useGoogleAuthModels();
+  const { providers: availableProviderList } = useModelProviderList();
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -96,15 +102,10 @@ const GuidPage: React.FC = () => {
     }
   }, []);
 
-  // --- Hooks ---
-  // Only aionrs uses this provider-based model picker now (Gemini runs as a
-  // regular ACP backend with its own model selector).
-  const modelSelection = useGuidModelSelection('aionrs');
-
   const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
   const agentSelection = useGuidAgentSelection({
-    modelList: modelSelection.modelList,
-    isGoogleAuth: modelSelection.isGoogleAuth,
+    modelList: availableProviderList,
+    isGoogleAuth,
     localeKey,
     resetAssistant: resetAssistantRequested,
     locationKey: location.key,
@@ -122,6 +123,26 @@ const GuidPage: React.FC = () => {
     setInput: guidInput.setInput,
     selectedAgentInfo: agentSelection.selectedAgentInfo,
   });
+
+  const effectiveAgentType = agentSelection.is_presetAgent
+    ? agentSelection.currentEffectiveAgentInfo.agent_type
+    : agentSelection.selectedAgent;
+
+  const modelSelectionAgentKey = useMemo<GuidModelAgentKey>(() => {
+    if (effectiveAgentType === 'openclaw-gateway') return 'openclaw';
+    if (
+      effectiveAgentType === 'aionrs' ||
+      effectiveAgentType === 'claude' ||
+      effectiveAgentType === 'hermes' ||
+      effectiveAgentType === 'opencode' ||
+      effectiveAgentType === 'openclaw'
+    ) {
+      return effectiveAgentType;
+    }
+    return 'aionrs';
+  }, [effectiveAgentType]);
+
+  const modelSelection = useGuidModelSelection(modelSelectionAgentKey);
 
   const send = useGuidSend({
     // Input state
@@ -153,7 +174,7 @@ const GuidPage: React.FC = () => {
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
-    isGoogleAuth: modelSelection.isGoogleAuth,
+    isGoogleAuth,
 
     // Mention state reset
     setMentionOpen: mention.setMentionOpen,
@@ -426,7 +447,7 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'gemini';
+  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'aionrs';
   // Mirrors AssistantEditDrawer's Main Agent options — detected execution
   // engines from AgentPillBar's data source, so avatars resolve the same way.
   const agentSwitcherItems = useMemo(() => {
@@ -504,11 +525,6 @@ const GuidPage: React.FC = () => {
     [agentSelection, currentPresetAgentType, t]
   );
 
-  // Resolve the effective agent type once — covers both direct selection and preset assistants
-  const effectiveAgentType = agentSelection.is_presetAgent
-    ? agentSelection.currentEffectiveAgentInfo.agent_type
-    : agentSelection.selectedAgent;
-
   // Agents that use configured model providers instead of ACP probe-based models.
   // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
   const PROVIDER_BASED_AGENTS = new Set(['aionrs']);
@@ -536,6 +552,7 @@ const GuidPage: React.FC = () => {
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={agentSelection.setSelectedAcpModel}
+      selectedAgentBackend={effectiveAgentType}
     />
   );
 

@@ -1,5 +1,6 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type ConfigKeyMap = {
@@ -41,6 +42,8 @@ export type ConfigKeyMap = {
   'css.activeThemeId': string;
   'aionrs.config': { preferredMode?: string } | undefined;
   'aionrs.defaultModel': { id: string; use_model: string } | undefined;
+  'newApi.desktop.account': NewApiAccountStatus | undefined;
+  'newApi.desktop.cliModelPrefs': Partial<Record<ManagedRuntimeCliTarget, string>> | undefined;
   'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };
   'tools.speechToText': SpeechToTextConfig | undefined;
   'workspace.pasteConfirm': boolean | undefined;

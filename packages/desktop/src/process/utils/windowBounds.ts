@@ -95,7 +95,7 @@ export const attachWindowBoundsPersistence = (
     if (win.isMaximized() || win.isFullScreen() || win.isMinimized()) return;
     const bounds = win.getNormalBounds();
     Promise.resolve(persist(bounds)).catch((error) => {
-      console.error('[AionUi] Failed to persist window bounds:', error);
+      console.error('[POUNDING] Failed to persist window bounds:', error);
     });
   };
 

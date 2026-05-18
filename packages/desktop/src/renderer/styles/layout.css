@@ -259,3 +259,31 @@
     line-height: 20px !important;
   }
 }
+
+
+.app-sider-brand-logo {
+  width: 34px;
+  height: 34px;
+}
+
+.app-sider-brand-logo--collapsed {
+  width: 22px;
+  height: 22px;
+}
+
+.pounding-logo__svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.pounding-logo__eyes-track {
+  transition: transform 140ms ease-out;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pounding-logo__eyes-track {
+    transition: none;
+  }
+}

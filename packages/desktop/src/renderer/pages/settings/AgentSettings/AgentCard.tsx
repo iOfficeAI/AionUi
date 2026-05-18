@@ -5,17 +5,19 @@
  */
 
 import React from 'react';
-import { Avatar, Button, Switch, Tooltip, Typography } from '@arco-design/web-react';
-import { Setting, EditTwo, Delete, Robot } from '@icon-park/react';
+import { Avatar, Button, Popconfirm, Switch, Tooltip, Typography } from '@arco-design/web-react';
+import { EditTwo, Delete, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import type { ManagedCliInstallTarget } from '@/common/types/agent/managedCliInstaller';
 
 type DetectedAgent = {
   agent_type: string;
   backend?: string;
   icon?: string;
   name: string;
+  available?: boolean;
   custom_agent_id?: string;
   isExtension?: boolean;
   avatar?: string;
@@ -38,9 +40,12 @@ type AgentCardProps =
   | {
       type: 'detected';
       agent: DetectedAgent;
-      onSettings?: () => void;
-      settingsDisabled?: boolean;
       variant?: 'row' | 'grid';
+      installState?: 'idle' | 'installing' | 'uninstalling';
+      managedCliTarget?: ManagedCliInstallTarget;
+      canManageInstall?: boolean;
+      onInstall?: () => void;
+      onUninstall?: () => void;
     }
   | {
       type: 'custom';
@@ -54,7 +59,15 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
 
   if (props.type === 'detected') {
-    const { agent, onSettings, settingsDisabled = true, variant = 'row' } = props;
+    const {
+      agent,
+      variant = 'row',
+      installState = 'idle',
+      managedCliTarget,
+      canManageInstall = false,
+      onInstall,
+      onUninstall,
+    } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
     const gridSettingsButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
     const logo =
@@ -65,22 +78,42 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         custom_agent_id: agent.custom_agent_id,
         isExtension: agent.isExtension,
       });
+    const renderActionButton = () => {
+      if (!canManageInstall || !managedCliTarget) return null;
+      if (installState === 'installing') {
+        return (
+          <Button size='small' type='primary' loading disabled className={gridSettingsButtonClassName}>
+            {t('settings.agentManagement.marketInstalling', { defaultValue: 'Installing...' })}
+          </Button>
+        );
+      }
+      if (installState === 'uninstalling') {
+        return (
+          <Button size='small' type='secondary' loading disabled className={gridSettingsButtonClassName}>
+            {t('settings.agentManagement.uninstalling', { defaultValue: 'Uninstalling...' })}
+          </Button>
+        );
+      }
+      if (!agent.available) {
+        return (
+          <Button size='small' type='primary' className={gridSettingsButtonClassName} onClick={onInstall}>
+            {t('settings.agentManagement.marketInstall', { defaultValue: 'Install' })}
+          </Button>
+        );
+      }
+      return (
+        <Popconfirm
+          title={t('settings.agentManagement.uninstallConfirm', { defaultValue: 'Uninstall this CLI?' })}
+          onOk={onUninstall}
+        >
+          <Button size='small' type='outline' status='danger' className={gridSettingsButtonClassName}>
+            {t('settings.agentManagement.uninstall', { defaultValue: 'Uninstall' })}
+          </Button>
+        </Popconfirm>
+      );
+    };
 
     if (variant === 'grid') {
-      const settingsButton = (
-        <Button
-          size='small'
-          type='secondary'
-          icon={<Setting theme='outline' size='14' />}
-          onClick={settingsDisabled ? undefined : onSettings}
-          disabled={settingsDisabled}
-          className={gridSettingsButtonClassName}
-          style={settingsDisabled ? { color: 'var(--color-text-4)' } : undefined}
-        >
-          {t('settings.agentManagement.settings')}
-        </Button>
-      );
-
       return (
         <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
           <div className='mb-10px flex justify-center'>
@@ -94,11 +127,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
               {agent.name}
             </Typography.Text>
             <Typography.Text className='mt-4px block text-11px text-t-secondary'>
-              {t('settings.agentManagement.detected')}
+              {agent.available
+                ? t('settings.agentManagement.detected')
+                : t('settings.agentManagement.notInstalled', { defaultValue: 'Not installed' })}
             </Typography.Text>
           </div>
 
-          {settingsButton}
+          {renderActionButton()}
         </div>
       );
     }
@@ -111,19 +146,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           </Avatar>
           <Typography.Text className='font-medium text-14px'>{agent.name}</Typography.Text>
         </div>
-        {settingsDisabled ? (
-          <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
-            <Button
-              size='small'
-              type='text'
-              icon={<Setting theme='outline' size='14' />}
-              disabled
-              style={{ color: 'var(--color-text-4)' }}
-            />
-          </Tooltip>
-        ) : (
-          <Button size='small' type='text' icon={<Setting theme='outline' size='14' />} onClick={onSettings} />
-        )}
+        <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
+          <Button size='small' type='text' disabled style={{ color: 'var(--color-text-4)' }} />
+        </Tooltip>
       </div>
     );
   }
