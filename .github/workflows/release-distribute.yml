@@ -24,14 +24,20 @@ name: Distribute Release Assets
 on:
   release:
     types: [published]
-  # Manual trigger for smoke testing or for retrying a missed release:
-  # pick any existing release tag to re-run the distribution against.
   workflow_dispatch:
     inputs:
       tag:
         description: 'Existing release tag to redistribute (e.g. v1.9.21)'
         required: true
         type: string
+      cleanup_existing:
+        description: 'Delete existing version/latest objects before manual redistribution'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: read
@@ -40,7 +46,6 @@ jobs:
   distribute:
     name: Distribute release assets
     runs-on: ubuntu-latest
-    # Skip prereleases: manual dispatch always runs, automatic event runs only when not a prerelease.
     if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
     steps:
       - name: Extract version from tag
@@ -55,13 +60,13 @@ jobs:
             exit 1
           fi
           VERSION="${TAG#v}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Tag: $TAG / Version: $VERSION"
 
-      - name: Configure AWS credentials (OIDC)
+      - name: Configure COS client
         run: |
-          echo "This workflow now targets Tencent COS via S3-compatible API."
+          echo "This workflow targets Tencent COS via the AWS CLI S3-compatible API."
           aws --version
 
       - name: Validate COS configuration
@@ -84,6 +89,8 @@ jobs:
           COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
           COS_REGION: ${{ vars.TENCENT_COS_REGION }}
           VERSION: ${{ steps.version.outputs.version }}
+          CLEANUP_EXISTING: ${{ github.event.inputs.cleanup_existing || 'true' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           mkdir -p ~/.aws
           cat > ~/.aws/config <<EOF2
@@ -96,10 +103,15 @@ jobs:
           DEST="s3://${COS_BUCKET}/releases/download/${VERSION}/"
           COUNT=$(aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT" 2>/dev/null | wc -l | tr -d ' ')
           if [ "$COUNT" -gt 0 ]; then
-            echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
-            echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
-            aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT"
-            exit 1
+            if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && [ "$CLEANUP_EXISTING" = 'true' ]; then
+              echo "Manual redistribution requested; removing $COUNT existing version object(s) before retry."
+              aws s3 rm "$DEST" --recursive --endpoint-url "$ENDPOINT"
+            else
+              echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
+              echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
+              aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT"
+              exit 1
+            fi
           fi
 
       - name: Download release assets from GitHub
@@ -131,6 +143,8 @@ jobs:
           COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
           COS_REGION: ${{ vars.TENCENT_COS_REGION }}
           VERSION: ${{ steps.version.outputs.version }}
+          CLEANUP_EXISTING: ${{ github.event.inputs.cleanup_existing || 'true' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
           mkdir -p ~/.aws
           cat > ~/.aws/config <<EOF2
@@ -140,16 +154,41 @@ jobs:
           EOF2
 
           ENDPOINT="https://cos.${COS_REGION}.myqcloud.com"
-          VERSION_PREFIX="s3://${COS_BUCKET}/releases/download/${VERSION}/"
-          LATEST_PREFIX="s3://${COS_BUCKET}/releases/latest/"
+          VERSION_PREFIX="releases/download/${VERSION}/"
+          LATEST_PREFIX="releases/latest/"
 
-          aws s3 sync dist/ "$VERSION_PREFIX" --endpoint-url "$ENDPOINT" --exact-timestamps
-          aws s3 sync dist/ "$LATEST_PREFIX" --endpoint-url "$ENDPOINT" --delete --exact-timestamps
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && [ "$CLEANUP_EXISTING" = 'true' ]; then
+            aws s3 rm "s3://${COS_BUCKET}/${LATEST_PREFIX}" --recursive --endpoint-url "$ENDPOINT" || true
+          fi
 
-          find dist -maxdepth 1 -type f \( -name "*.yml" -o -name "*.blockmap" \) | while read -r file; do
-            aws s3 cp "$file" "${LATEST_PREFIX}$(basename "$file")" \
-              --endpoint-url "$ENDPOINT" \
-              --cache-control "no-cache, no-store, must-revalidate, max-age=0"
+          find dist -maxdepth 1 -type f | sort | while read -r file; do
+            name="$(basename "$file")"
+            version_key="${VERSION_PREFIX}${name}"
+            latest_key="${LATEST_PREFIX}${name}"
+
+            echo "Uploading ${name} -> ${version_key}"
+            aws s3api put-object \
+              --bucket "$COS_BUCKET" \
+              --key "$version_key" \
+              --body "$file" \
+              --endpoint-url "$ENDPOINT"
+
+            if [[ "$name" == *.yml || "$name" == *.blockmap ]]; then
+              echo "Uploading cache-busted ${name} -> ${latest_key}"
+              aws s3api put-object \
+                --bucket "$COS_BUCKET" \
+                --key "$latest_key" \
+                --body "$file" \
+                --cache-control 'no-cache, no-store, must-revalidate, max-age=0' \
+                --endpoint-url "$ENDPOINT"
+            else
+              echo "Uploading ${name} -> ${latest_key}"
+              aws s3api put-object \
+                --bucket "$COS_BUCKET" \
+                --key "$latest_key" \
+                --body "$file" \
+                --endpoint-url "$ENDPOINT"
+            fi
           done
 
           echo "Uploaded release ${VERSION} to COS"
@@ -170,4 +209,4 @@ jobs:
             echo "- Version: \`${VERSION}\`"
             echo "- Versioned assets: \`${BASE}/releases/download/${VERSION}/\`"
             echo "- Auto-update feed: \`${BASE}/releases/latest/\`"
-          } >> $GITHUB_STEP_SUMMARY
+          } >> "$GITHUB_STEP_SUMMARY"
