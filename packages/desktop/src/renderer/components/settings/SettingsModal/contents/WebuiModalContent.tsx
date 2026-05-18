@@ -19,7 +19,7 @@ import ChannelWecomLogo from '@/renderer/assets/channel-logos/wecom.svg';
 import ChannelWeixinLogo from '@/renderer/assets/channel-logos/weixin.svg';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Button, Form, Input, Message, Switch, Tabs, Tooltip } from '@arco-design/web-react';
-import { CheckOne, Communication, Copy, Earth, EditTwo, Refresh } from '@icon-park/react';
+import { CheckOne, Communication, Copy, Earth, EditTwo, PreviewClose, PreviewOpen, Refresh } from '@icon-park/react';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSettingsViewMode } from '../settingsViewContext';
@@ -65,6 +65,17 @@ const QRCodeSVGLazy = React.lazy(async () => {
 const DESKTOP_WEBUI_ENABLED_KEY = 'webui.desktop.enabled';
 const DESKTOP_WEBUI_ALLOW_REMOTE_KEY = 'webui.desktop.allowRemote';
 
+const renderPasswordVisibilityIcon = (visible: boolean, label: string) => (
+  <Button
+    type='text'
+    size='mini'
+    aria-label={label}
+    className='!w-20px !h-20px !p-0 inline-flex items-center justify-center text-t-tertiary'
+  >
+    {visible ? <PreviewOpen size={16} /> : <PreviewClose size={16} />}
+  </Button>
+);
+
 /**
  * WebUI 设置内容组件
  * WebUI settings content component
@@ -91,10 +102,13 @@ const WebuiModalContent: React.FC = () => {
   // 设置新密码弹窗 / Set new password modal
   const [setPasswordModalVisible, setSetPasswordModalVisible] = useState(false);
   const [passwordLoading, setPasswordLoading] = useState(false);
+  const [newPasswordVisible, setNewPasswordVisible] = useState(false);
+  const [confirmPasswordVisible, setConfirmPasswordVisible] = useState(false);
   const [setUsernameModalVisible, setSetUsernameModalVisible] = useState(false);
   const [usernameLoading, setUsernameLoading] = useState(false);
   const [form] = Form.useForm();
   const [usernameForm] = Form.useForm();
+  const confirmPasswordInputRef = useRef<React.ElementRef<typeof Input.Password>>(null);
 
   // 二维码登录相关状态 / QR code login related state
   const [qrUrl, setQrUrl] = useState<string | null>(null);
@@ -167,6 +181,20 @@ const WebuiModalContent: React.FC = () => {
   useEffect(() => {
     void loadStatus();
   }, [loadStatus]);
+
+  useEffect(() => {
+    if (!setPasswordModalVisible) {
+      setNewPasswordVisible(false);
+      setConfirmPasswordVisible(false);
+    }
+  }, [setPasswordModalVisible]);
+
+  const handleNewPasswordKeyDown = useCallback((event: React.KeyboardEvent<HTMLInputElement>) => {
+    if (event.key === 'Tab' && !event.shiftKey) {
+      event.preventDefault();
+      confirmPasswordInputRef.current?.focus();
+    }
+  }, []);
 
   // 监听状态变更事件 / Listen to status change events
   useEffect(() => {
@@ -719,6 +747,7 @@ const WebuiModalContent: React.FC = () => {
                   type='text'
                   size='mini'
                   className='rd-100px !px-6px inline-flex items-center !h-24px'
+                  aria-label={t('settings.webui.resetPassword')}
                   onClick={handleResetPassword}
                 >
                   <EditTwo size={14} />
@@ -923,7 +952,16 @@ const WebuiModalContent: React.FC = () => {
               { minLength: 8, message: t('settings.webui.passwordMinLength') },
             ]}
           >
-            <Input.Password placeholder={t('settings.webui.newPasswordPlaceholder')} />
+            <Input.Password
+              placeholder={t('settings.webui.newPasswordPlaceholder')}
+              visibility={newPasswordVisible}
+              onVisibilityChange={setNewPasswordVisible}
+              onKeyDown={handleNewPasswordKeyDown}
+              suffix={renderPasswordVisibilityIcon(
+                newPasswordVisible,
+                newPasswordVisible ? t('login.hidePassword') : t('login.showPassword')
+              )}
+            />
           </Form.Item>
           <Form.Item
             label={t('settings.webui.confirmPassword')}
@@ -941,7 +979,16 @@ const WebuiModalContent: React.FC = () => {
               },
             ]}
           >
-            <Input.Password placeholder={t('settings.webui.confirmPasswordPlaceholder')} />
+            <Input.Password
+              ref={confirmPasswordInputRef}
+              placeholder={t('settings.webui.confirmPasswordPlaceholder')}
+              visibility={confirmPasswordVisible}
+              onVisibilityChange={setConfirmPasswordVisible}
+              suffix={renderPasswordVisibilityIcon(
+                confirmPasswordVisible,
+                confirmPasswordVisible ? t('login.hidePassword') : t('login.showPassword')
+              )}
+            />
           </Form.Item>
         </Form>
       </AionModal>
