@@ -28,9 +28,7 @@ interface TitlebarProps {
   workspaceAvailable: boolean;
 }
 
-const AionLogoMark: React.FC = () => (
-  <PoundingInteractiveLogo className='app-titlebar__brand-logo' compact />
-);
+const AionLogoMark: React.FC = () => <PoundingInteractiveLogo className='app-titlebar__brand-logo' compact />;
 
 // Claude-desktop-style sidebar toggle icon: a rounded rectangle with a vertical divider
 // near the left edge, indicating a collapsible side panel. Rendered as inline SVG since

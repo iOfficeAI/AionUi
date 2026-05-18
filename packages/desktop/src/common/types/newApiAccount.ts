@@ -36,7 +36,6 @@ export type NewApiLoginResponse = {
   status: NewApiAccountStatus;
 };
 
-
 export type NewApiTokenPayload = {
   token?: string;
   access_token?: string;

@@ -87,7 +87,9 @@ const AcpModelSelector: React.FC<{
     const preferredManagedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
     const current_model_id =
       normalizedInitialManagedModelId ||
-      (preferredManagedModel && managedSelectableModels.includes(preferredManagedModel) ? preferredManagedModel : null) ||
+      (preferredManagedModel && managedSelectableModels.includes(preferredManagedModel)
+        ? preferredManagedModel
+        : null) ||
       managedSelectableModels[0] ||
       null;
     return {
@@ -208,7 +210,14 @@ const AcpModelSelector: React.FC<{
         loadFallbackModelInfo(backend, options);
       }
     },
-    [backend, conversation_id, loadFallbackModelInfo, normalizeManagedModelInfo, normalizedInitialManagedModelId, updateModelInfo]
+    [
+      backend,
+      conversation_id,
+      loadFallbackModelInfo,
+      normalizeManagedModelInfo,
+      normalizedInitialManagedModelId,
+      updateModelInfo,
+    ]
   );
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
@@ -278,7 +287,11 @@ const AcpModelSelector: React.FC<{
         if (backend === 'codex') {
           console.log('[AcpModelSelector][codex] Stream model info:', normalizedIncoming);
         }
-        if (normalizedInitialManagedModelId && !hasUserChangedModel.current && normalizedIncoming.available_models?.length > 0) {
+        if (
+          normalizedInitialManagedModelId &&
+          !hasUserChangedModel.current &&
+          normalizedIncoming.available_models?.length > 0
+        ) {
           const match = normalizedIncoming.available_models.find((m) => m.id === normalizedInitialManagedModelId);
           if (match && normalizedIncoming.current_model_id !== normalizedInitialManagedModelId) {
             updateModelInfo({
@@ -325,9 +338,7 @@ const AcpModelSelector: React.FC<{
       });
 
       const runtimeModelId =
-        useManagedCliModels && cliTarget
-          ? buildManagedRuntimeModelId(cliTarget, model_id)
-          : model_id;
+        useManagedCliModels && cliTarget ? buildManagedRuntimeModelId(cliTarget, model_id) : model_id;
 
       ipcBridge.acpConversation.setModel
         .invoke({ conversation_id, model_id: runtimeModelId })

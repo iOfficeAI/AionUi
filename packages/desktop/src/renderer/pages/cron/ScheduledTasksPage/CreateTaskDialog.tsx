@@ -241,18 +241,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (resolvedBackend === 'aionrs' ? aionrsProviders : providers),
     [resolvedBackend, providers, aionrsProviders]
   );
-  const managedCliTarget = useMemo(
-    () => resolveManagedRuntimeCliTarget(resolvedBackend),
-    [resolvedBackend]
-  );
+  const managedCliTarget = useMemo(() => resolveManagedRuntimeCliTarget(resolvedBackend), [resolvedBackend]);
   const managedProvider = useMemo(
     () => providers.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [providers]
   );
-  const managedSelectableModels = useMemo(
-    () => getManagedCliSelectableModels(managedProvider),
-    [managedProvider]
-  );
+  const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
   const isManagedCliSelection = Boolean(managedCliTarget && managedSelectableModels.length > 0);
 
   // Build Gemini current_model from model_id for GuidModelSelector.

@@ -103,24 +103,21 @@ vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
   const React = await vi.importActual<typeof import('react')>('react');
 
-  const Menu = Object.assign(
-    ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-    {
-      Item: ({
-        children,
-        onClick,
-      }: {
-        children?: React.ReactNode;
-        onClick?: () => void;
-        key?: string;
-        className?: string;
-      }) => (
-        <button type='button' data-testid='menu-item' onClick={onClick}>
-          {children}
-        </button>
-      ),
-    }
-  );
+  const Menu = Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
+    Item: ({
+      children,
+      onClick,
+    }: {
+      children?: React.ReactNode;
+      onClick?: () => void;
+      key?: string;
+      className?: string;
+    }) => (
+      <button type='button' data-testid='menu-item' onClick={onClick}>
+        {children}
+      </button>
+    ),
+  });
 
   return {
     ...actual,

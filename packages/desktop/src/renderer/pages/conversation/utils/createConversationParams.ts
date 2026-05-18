@@ -93,7 +93,9 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
-    return cliTarget ? resolveManagedModelIdFromRuntime(cliTarget, preferredModelId) || preferredModelId : preferredModelId;
+    return cliTarget
+      ? resolveManagedModelIdFromRuntime(cliTarget, preferredModelId) || preferredModelId
+      : preferredModelId;
   }
 
   // Fallback: last-seen model info persisted on the backend's agent_metadata row.
@@ -102,7 +104,9 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
   const handshakeModelId = handshakeModels?.current_model_id;
   if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
-    return cliTarget ? resolveManagedModelIdFromRuntime(cliTarget, handshakeModelId) || handshakeModelId : handshakeModelId;
+    return cliTarget
+      ? resolveManagedModelIdFromRuntime(cliTarget, handshakeModelId) || handshakeModelId
+      : handshakeModelId;
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {

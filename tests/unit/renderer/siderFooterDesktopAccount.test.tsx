@@ -34,9 +34,7 @@ vi.mock('@arco-design/web-react', async () => {
   return {
     ...actual,
     Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
-    Dropdown: ({ children }: { children?: React.ReactNode; droplist?: React.ReactNode }) => (
-      <div>{children}</div>
-    ),
+    Dropdown: ({ children }: { children?: React.ReactNode; droplist?: React.ReactNode }) => <div>{children}</div>,
     Menu: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
     Form: Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
       useForm: () => [{}],

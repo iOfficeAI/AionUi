@@ -143,14 +143,7 @@ const PoundingInteractiveLogo: React.FC<PoundingInteractiveLogoProps> = ({ class
             />
           </g>
         </g>
-        <image
-          href={noseDot}
-          x={NOSE_X}
-          y={NOSE_Y}
-          width={NOSE_SIZE}
-          height={NOSE_SIZE}
-          preserveAspectRatio='none'
-        />
+        <image href={noseDot} x={NOSE_X} y={NOSE_Y} width={NOSE_SIZE} height={NOSE_SIZE} preserveAspectRatio='none' />
       </svg>
     </div>
   );

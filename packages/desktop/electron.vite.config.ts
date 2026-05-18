@@ -148,7 +148,9 @@ export default defineConfig(({ mode }) => {
         'process.env.AIONUI_SENTRY_RELEASE': JSON.stringify(
           process.env.AIONUI_SENTRY_RELEASE ?? rootPackageJson.version
         ),
-        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'),
+        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(
+          process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'
+        ),
         'process.env.AIONUI_BRAND_NAME': JSON.stringify(process.env.AIONUI_BRAND_NAME ?? 'POUNDING'),
         'process.env.APP_VERSION': JSON.stringify(rootPackageJson.version),
       },
@@ -188,7 +190,9 @@ export default defineConfig(({ mode }) => {
         'process.env.AIONUI_SENTRY_RELEASE': JSON.stringify(
           process.env.AIONUI_SENTRY_RELEASE ?? rootPackageJson.version
         ),
-        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'),
+        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(
+          process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'
+        ),
         'process.env.AIONUI_BRAND_NAME': JSON.stringify(process.env.AIONUI_BRAND_NAME ?? 'POUNDING'),
         'process.env.APP_VERSION': JSON.stringify(rootPackageJson.version),
       },

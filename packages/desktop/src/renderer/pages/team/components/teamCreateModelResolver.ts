@@ -55,7 +55,9 @@ async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
   if (cliTarget) {
     try {
       const providers = await ipcBridge.mode.listProviders.invoke();
-      const managedProvider = providers.find((provider: IProvider) => provider.id === 'desktop-newapi-managed-provider');
+      const managedProvider = providers.find(
+        (provider: IProvider) => provider.id === 'desktop-newapi-managed-provider'
+      );
       const managedModels = getManagedCliSelectableModels(managedProvider);
       if (managedModels.length > 0) {
         const savedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];

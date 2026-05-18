@@ -30,7 +30,6 @@ type ManagedCliDescriptor = {
   uninstall: () => Promise<void>;
 };
 
-
 const NPM_DEFAULT_REGISTRY = 'https://registry.npmjs.org';
 const NPM_MIRROR_REGISTRY = 'https://registry.npmmirror.com';
 const HERMES_HOME_DIR = path.join(os.homedir(), '.hermes');
@@ -116,7 +115,12 @@ function getOpencodeBinaryTargetPath(): string {
 }
 
 function getOpencodePlatformBinaryPath(): string {
-  return path.join(BUN_GLOBAL_NODE_MODULES_DIR, getOpencodePlatformPackage(), 'bin', process.platform === 'win32' ? 'opencode.exe' : 'opencode');
+  return path.join(
+    BUN_GLOBAL_NODE_MODULES_DIR,
+    getOpencodePlatformPackage(),
+    'bin',
+    process.platform === 'win32' ? 'opencode.exe' : 'opencode'
+  );
 }
 
 function writeOpencodeShim(): void {
@@ -239,7 +243,6 @@ async function uninstallHermes(): Promise<void> {
   safeRm(path.join(HERMES_HOME_DIR, 'hermes-agent'));
   safeRm(HERMES_SHIM_PATH);
 }
-
 
 async function installOpenCode(): Promise<void> {
   ensureDir(BUN_HOME_DIR);
