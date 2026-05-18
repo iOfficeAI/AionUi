@@ -15,6 +15,8 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import useSWR from 'swr';
+import { ipcBridge } from '@/common';
 
 type GuidModelSelectorProps = {
   // Gemini model state
@@ -41,6 +43,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const defaultModelLabel = t('common.defaultModel');
+  const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () => ipcBridge.application.getStartOnBootStatus.invoke());
+  const isPackaged = startOnBootStatus?.data?.isPackaged ?? false;
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useProvidersQuery();
@@ -102,14 +106,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   >
                     {t('settings.noAvailableModels')}
                   </Menu.Item>,
-                  <Menu.Item
-                    key='add-model'
-                    className='text-12px text-t-secondary'
-                    onClick={() => navigate('/settings/model')}
-                  >
-                    <Plus theme='outline' size='12' />
-                    {t('settings.addModel')}
-                  </Menu.Item>,
+                  ...(!isPackaged
+                    ? [
+                        <Menu.Item
+                          key='add-model'
+                          className='text-12px text-t-secondary'
+                          onClick={() => navigate('/settings/model')}
+                        >
+                          <Plus theme='outline' size='12' />
+                          {t('settings.addModel')}
+                        </Menu.Item>,
+                      ]
+                    : []),
                 ]
               : [
                   ...(enabledModelList || []).map((provider) => {
@@ -152,14 +160,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                       </Menu.ItemGroup>
                     );
                   }),
-                  <Menu.Item
-                    key='add-model'
-                    className='text-12px text-t-secondary'
-                    onClick={() => navigate('/settings/model')}
-                  >
-                    <Plus theme='outline' size='12' />
-                    {t('settings.addModel')}
-                  </Menu.Item>,
+                  ...(!isPackaged
+                    ? [
+                        <Menu.Item
+                          key='add-model'
+                          className='text-12px text-t-secondary'
+                          onClick={() => navigate('/settings/model')}
+                        >
+                          <Plus theme='outline' size='12' />
+                          {t('settings.addModel')}
+                        </Menu.Item>,
+                      ]
+                    : []),
                 ]}
           </Menu>
         }
