@@ -54,11 +54,11 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
-const DEFAULT_USER_AGENT = 'AionUi';
+const DEFAULT_REPO = 'halojerry/AionUi-2.0.2-dev-a3881e2';
+const DEFAULT_USER_AGENT = 'POUNDING';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'static.aionui.com';
-const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
+const CDN_HOST = 'yss-1256275613.cos.ap-guangzhou.myqcloud.com';
+const CDN_BASE_URL = `${process.env.POUNDING_UPDATE_PUBLIC_BASE?.trim() || `https://${CDN_HOST}`}/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
   'github.com',
