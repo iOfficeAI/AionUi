@@ -20,6 +20,14 @@ export const isElectronDesktop = (): boolean => {
 };
 
 /**
+ * Check if running in packaged Electron desktop app.
+ * 检测是否为打包后的桌面客户端
+ */
+export const isPackagedElectronDesktop = (): boolean => {
+  return isElectronDesktop() && process.env.NODE_ENV === 'production';
+};
+
+/**
  * Check if running on macOS
  * 检测是否运行在 macOS
  */

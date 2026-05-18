@@ -24,7 +24,7 @@ import {
 import classNames from 'classnames';
 import { useNavigate } from 'react-router-dom';
 import type { NewApiAccountStatus } from '@/common/types/newApiAccount';
-import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { changeLanguage } from '@/renderer/services/i18n';
 import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { iconColors } from '@renderer/styles/colors';
@@ -67,7 +67,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { login } = useNewApiAccount();
-  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const { openFeedback } = useFeedback();
   const [loginLoading, setLoginLoading] = useState(false);
   const [accountPopupVisible, setAccountPopupVisible] = useState(false);
   const [loginForm] = Form.useForm<{ username: string; password: string }>();
@@ -359,7 +359,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
         <div className='flex flex-col gap-2px relative'>
           <Tooltip {...siderTooltipProps} content={t('settings.bugReport')} position='right'>
             <div
-              onClick={() => setShowFeedbackModal(true)}
+              onClick={() => {
+                void openFeedback({ autoScreenshot: true });
+              }}
               className={footerEntryClass}
               data-testid='bug-report-trigger'
             >
@@ -490,7 +492,6 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           )}
         </div>
       </div>
-      <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
     </>
   );
 };

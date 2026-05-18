@@ -10,6 +10,7 @@ import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
+import { useFeedback } from '@renderer/hooks/context/FeedbackContext';
 import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
@@ -18,13 +19,16 @@ import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 // which is a workspace placeholder permanently pinned at "0.0.0".
 declare const __APP_VERSION__: string;
 
-type LinkItem = { title: string; url: string; icon: React.ReactNode; onClick?: never };
+type LinkItem =
+  | { title: string; url: string; icon: React.ReactNode; onClick?: never }
+  | { title: string; onClick: () => void; icon: React.ReactNode; url?: never };
 
 const AboutModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const isElectron = isElectronDesktop();
+  const { openFeedback } = useFeedback();
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   useEffect(() => {
@@ -59,12 +63,14 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://github.com/halojerry/AionUi/releases',
+      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/EA0lw5xjhiSR2AkOSeacIhsCnab?from=from_copylink',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.feedback'),
-      url: 'https://github.com/halojerry/AionUi/issues',
+      onClick: () => {
+        void openFeedback({ autoScreenshot: true });
+      },
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -129,7 +135,11 @@ const AboutModalContent: React.FC = () => {
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
-                  openLink(item.url).catch((error) => console.error('Failed to open link:', error));
+                  if ('url' in item) {
+                    openLink(item.url).catch((error) => console.error('Failed to open link:', error));
+                  } else {
+                    item.onClick();
+                  }
                 }}
               >
                 <Typography.Text className='text-14px text-t-primary'>{item.title}</Typography.Text>
