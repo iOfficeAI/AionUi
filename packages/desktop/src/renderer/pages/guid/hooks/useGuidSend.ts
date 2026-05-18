@@ -7,7 +7,9 @@
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
+import { buildManagedRuntimeModelId, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -147,24 +149,31 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
+      const managedCliTarget = resolveManagedRuntimeCliTarget(openclawAgentInfo?.backend || 'openclaw-gateway');
+      const managedCurrentModelId =
+        managedCliTarget && configService.get('newApi.desktop.account')?.loggedIn && selectedAcpModel
+          ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
+          : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
         agent_name: openclawAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,
-        model: current_model!,
+        model: {} as TProviderWithModel,
         cli_path: openclawAgentInfo?.cli_path,
         custom_agent_id: openclawAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
+        current_model_id: managedCurrentModelId,
         extra: {
+          backend: openclawAgentInfo?.backend || 'openclaw-gateway',
           default_files: files,
           runtime_validation: {
             expected_workspace: finalWorkspace,
-            expected_backend: openclawAgentInfo?.backend,
+            expected_backend: openclawAgentInfo?.backend || 'openclaw-gateway',
             expected_agent_name: openclawAgentInfo?.name,
             expected_cli_path: openclawAgentInfo?.cli_path,
-            expected_model: current_model?.use_model,
+            expected_model: managedCurrentModelId,
             switched_at: Date.now(),
           },
           preset_enabled_skills: enabled_skills_to_send,
@@ -325,6 +334,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
+      const managedCliTarget = resolveManagedRuntimeCliTarget(agentBackend);
+      const managedCurrentModelId =
+        managedCliTarget && configService.get('newApi.desktop.account')?.loggedIn && selectedAcpModel
+          ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
+          : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
+
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
@@ -349,7 +364,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             }
           : undefined,
         session_mode: selectedMode,
-        current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+        current_model_id: managedCurrentModelId,
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,

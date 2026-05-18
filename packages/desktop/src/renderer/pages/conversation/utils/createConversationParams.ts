@@ -195,7 +195,7 @@ export async function buildPresetAssistantParams(
   workspace: string,
   language: string
 ): Promise<ICreateConversationParams> {
-  const preset_agent_type = assistant.preset_agent_type || 'claude';
+  const preset_agent_type = assistant.preset_agent_type || 'aionrs';
   const custom_agent_id = assistant.id;
 
   // [BUG-2] Map raw i18n.language to standard locale key

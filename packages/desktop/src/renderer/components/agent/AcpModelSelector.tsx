@@ -6,8 +6,18 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
+import {
+  buildManagedRuntimeModelId,
+  getManagedCliSelectableModels,
+  getManagedRuntimeModelDisplayLabel,
+  MANAGED_NEWAPI_PROVIDER_ID,
+  resolveManagedModelIdFromRuntime,
+  resolveManagedRuntimeCliTarget,
+} from '@/common/types/agent/managedRuntimeCli';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
@@ -54,10 +64,71 @@ const AcpModelSelector: React.FC<{
 }> = ({ conversation_id, backend, initialModelId }) => {
   const { t } = useTranslation();
   const [model_info, setModelInfo] = useState<AcpModelInfo | null>(null);
+  const { data: modelConfig } = useProvidersQuery();
+  useNewApiAccount();
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
   // Track the last conversation_id to detect tab switches
   const prevConversationIdRef = useRef(conversation_id);
+  const cliTarget = resolveManagedRuntimeCliTarget(backend);
+  const managedProvider = useMemo(
+    () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
+    [modelConfig]
+  );
+  const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const useManagedCliModels = Boolean(cliTarget && managedSelectableModels.length > 0);
+  const normalizedInitialManagedModelId = useMemo(() => {
+    if (!useManagedCliModels || !cliTarget) return initialModelId ?? null;
+    const normalized = resolveManagedModelIdFromRuntime(cliTarget, initialModelId);
+    return normalized && managedSelectableModels.includes(normalized) ? normalized : null;
+  }, [cliTarget, initialModelId, managedSelectableModels, useManagedCliModels]);
+  const managedFallbackModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!useManagedCliModels || !cliTarget || managedSelectableModels.length === 0) return null;
+    const preferredManagedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
+    const current_model_id =
+      normalizedInitialManagedModelId ||
+      (preferredManagedModel && managedSelectableModels.includes(preferredManagedModel) ? preferredManagedModel : null) ||
+      managedSelectableModels[0] ||
+      null;
+    return {
+      current_model_id,
+      current_model_label: current_model_id,
+      available_models: managedSelectableModels.map((modelId) => ({
+        id: modelId,
+        label: modelId,
+      })),
+    };
+  }, [cliTarget, managedSelectableModels, normalizedInitialManagedModelId, useManagedCliModels]);
+
+  const normalizeManagedModelInfo = useCallback(
+    (info: AcpModelInfo): AcpModelInfo => {
+      if (!useManagedCliModels || !cliTarget) return info;
+
+      const available_models =
+        managedSelectableModels.length > 0
+          ? managedSelectableModels.map((modelId) => ({ id: modelId, label: modelId }))
+          : info.available_models
+              .map((model) => {
+                const managedId = resolveManagedModelIdFromRuntime(cliTarget, model.id);
+                return managedId ? { id: managedId, label: managedId } : null;
+              })
+              .filter((model): model is { id: string; label: string } => Boolean(model))
+              .filter((model, index, list) => list.findIndex((item) => item.id === model.id) === index);
+
+      const current_model_id =
+        resolveManagedModelIdFromRuntime(cliTarget, info.current_model_id) ||
+        resolveManagedModelIdFromRuntime(cliTarget, info.current_model_label) ||
+        available_models[0]?.id ||
+        null;
+
+      return {
+        current_model_id,
+        current_model_label: current_model_id || getManagedRuntimeModelDisplayLabel(info.current_model_label) || null,
+        available_models,
+      };
+    },
+    [cliTarget, managedSelectableModels, useManagedCliModels]
+  );
 
   const updateModelInfo = useCallback((nextModelInfo: AcpModelInfo) => {
     setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
@@ -73,12 +144,12 @@ const AcpModelSelector: React.FC<{
     const matched = agentsData.find((a) => (a.backend ?? a.agent_type) === backend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (!info || !Array.isArray(info.available_models) || info.available_models.length === 0) return null;
-    return info;
-  }, [agentsData, backend]);
+    return normalizeManagedModelInfo(info);
+  }, [agentsData, backend, normalizeManagedModelInfo]);
 
   const loadFallbackModelInfo = useCallback(
     (backendKey: string, options?: { preserveInitialModel?: boolean }) => {
-      const source = handshakeModelInfo;
+      const source = handshakeModelInfo || managedFallbackModelInfo;
       if (!source || source.available_models.length === 0) return false;
 
       if (backendKey === 'codex') {
@@ -86,7 +157,9 @@ const AcpModelSelector: React.FC<{
       }
 
       const effectiveModelId =
-        options?.preserveInitialModel && initialModelId ? initialModelId : (source.current_model_id ?? null);
+        options?.preserveInitialModel && normalizedInitialManagedModelId
+          ? normalizedInitialManagedModelId
+          : (source.current_model_id ?? null);
 
       updateModelInfo({
         ...source,
@@ -97,7 +170,7 @@ const AcpModelSelector: React.FC<{
       });
       return true;
     },
-    [handshakeModelInfo, initialModelId, updateModelInfo]
+    [handshakeModelInfo, managedFallbackModelInfo, normalizedInitialManagedModelId, updateModelInfo]
   );
 
   const reloadModelInfo = useCallback(
@@ -110,23 +183,23 @@ const AcpModelSelector: React.FC<{
       }
 
       if (result?.model_info) {
-        const info = result.model_info;
+        const info = normalizeManagedModelInfo(result.model_info);
         if (backend === 'codex') {
           console.log('[AcpModelSelector][codex] Initial model info:', info);
         }
         if (info.available_models?.length > 0) {
           if (
             options?.preserveInitialModel &&
-            initialModelId &&
+            normalizedInitialManagedModelId &&
             !hasUserChangedModel.current &&
-            info.current_model_id !== initialModelId
+            info.current_model_id !== normalizedInitialManagedModelId
           ) {
-            const match = info.available_models.find((m) => m.id === initialModelId);
+            const match = info.available_models.find((m) => m.id === normalizedInitialManagedModelId);
             if (match) {
               updateModelInfo({
                 ...info,
-                current_model_id: initialModelId,
-                current_model_label: match.label || initialModelId,
+                current_model_id: normalizedInitialManagedModelId,
+                current_model_label: match.label || normalizedInitialManagedModelId,
               });
               return;
             }
@@ -140,7 +213,7 @@ const AcpModelSelector: React.FC<{
         loadFallbackModelInfo(backend, options);
       }
     },
-    [backend, conversation_id, initialModelId, loadFallbackModelInfo, updateModelInfo]
+    [backend, conversation_id, loadFallbackModelInfo, normalizeManagedModelInfo, normalizedInitialManagedModelId, updateModelInfo]
   );
 
   // Fetch initial model info on mount, fallback to cached models if manager not ready
@@ -168,6 +241,13 @@ const AcpModelSelector: React.FC<{
     if (hasUserChangedModel.current) return;
     loadFallbackModelInfo(backend, { preserveInitialModel: true });
   }, [backend, handshakeModelInfo, model_info, loadFallbackModelInfo]);
+
+  useEffect(() => {
+    if (!backend || !managedFallbackModelInfo || !useManagedCliModels) return;
+    if (model_info && model_info.available_models.length > 0) return;
+    if (hasUserChangedModel.current) return;
+    loadFallbackModelInfo(backend, { preserveInitialModel: true });
+  }, [backend, loadFallbackModelInfo, managedFallbackModelInfo, model_info, useManagedCliModels]);
 
   useEffect(() => {
     if (backend !== 'claude') return;
@@ -199,24 +279,22 @@ const AcpModelSelector: React.FC<{
       if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
+        const normalizedIncoming = useManagedCliModels && cliTarget ? normalizeManagedModelInfo(incoming) : incoming;
         if (backend === 'codex') {
-          console.log('[AcpModelSelector][codex] Stream model info:', incoming);
+          console.log('[AcpModelSelector][codex] Stream model info:', normalizedIncoming);
         }
-        // Preserve pre-selected model from Guid page until user manually switches.
-        // The agent emits its default model during start (before re-apply), which
-        // would otherwise overwrite the user's Guid page selection.
-        if (initialModelId && !hasUserChangedModel.current && incoming.available_models?.length > 0) {
-          const match = incoming.available_models.find((m) => m.id === initialModelId);
-          if (match && incoming.current_model_id !== initialModelId) {
+        if (normalizedInitialManagedModelId && !hasUserChangedModel.current && normalizedIncoming.available_models?.length > 0) {
+          const match = normalizedIncoming.available_models.find((m) => m.id === normalizedInitialManagedModelId);
+          if (match && normalizedIncoming.current_model_id !== normalizedInitialManagedModelId) {
             updateModelInfo({
-              ...incoming,
-              current_model_id: initialModelId,
-              current_model_label: match.label || initialModelId,
+              ...normalizedIncoming,
+              current_model_id: normalizedInitialManagedModelId,
+              current_model_label: match.label || normalizedInitialManagedModelId,
             });
             return;
           }
         }
-        updateModelInfo(incoming);
+        updateModelInfo(normalizedIncoming);
       } else if (message.type === 'codex_model_info' && message.data) {
         const data = message.data as { model: string };
         if (data.model) {
@@ -229,7 +307,14 @@ const AcpModelSelector: React.FC<{
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversation_id, initialModelId, updateModelInfo]);
+  }, [
+    cliTarget,
+    conversation_id,
+    normalizeManagedModelInfo,
+    normalizedInitialManagedModelId,
+    updateModelInfo,
+    useManagedCliModels,
+  ]);
 
   const handleSelectModel = useCallback(
     (model_id: string) => {
@@ -243,15 +328,30 @@ const AcpModelSelector: React.FC<{
           current_model_label: selectedModel?.label || model_id,
         };
       });
+
+      const runtimeModelId =
+        useManagedCliModels && cliTarget
+          ? buildManagedRuntimeModelId(cliTarget, model_id)
+          : model_id;
+
       ipcBridge.acpConversation.setModel
-        .invoke({ conversation_id, model_id })
+        .invoke({ conversation_id, model_id: runtimeModelId })
         .then(() => {
-          // setModel returns void; re-fetch model info after successful set
+          if (useManagedCliModels && cliTarget) {
+            void ipcBridge.newApiAccount.reconcileModel
+              .invoke({ cliTarget, modelId: model_id })
+              .catch((error) => console.error('[AcpModelSelector] Failed to sync managed CLI model:', error));
+          }
           ipcBridge.acpConversation.getModel
             .invoke({ conversation_id })
             .then((result) => {
               if (result?.model_info) {
-                updateModelInfo(result.model_info);
+                const nextInfo = normalizeManagedModelInfo(result.model_info);
+                if (useManagedCliModels && cliTarget) {
+                  updateModelInfo(nextInfo);
+                  return;
+                }
+                updateModelInfo(nextInfo);
               }
             })
             .catch(() => {});
@@ -260,7 +360,7 @@ const AcpModelSelector: React.FC<{
           console.error('[AcpModelSelector] Failed to set model:', error);
         });
     },
-    [conversation_id, updateModelInfo]
+    [backend, cliTarget, conversation_id, normalizeManagedModelInfo, updateModelInfo, useManagedCliModels]
   );
 
   const defaultModelLabel = t('common.defaultModel');
@@ -272,23 +372,26 @@ const AcpModelSelector: React.FC<{
     '';
   const display_label = getModelDisplayLabel({
     selected_value: model_info?.current_model_id,
-    selectedLabel: rawDisplayLabel,
+    selectedLabel:
+      (useManagedCliModels && cliTarget ? getManagedRuntimeModelDisplayLabel(rawDisplayLabel) : rawDisplayLabel) ||
+      rawDisplayLabel,
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
   const tooltipContent = display_label;
-  // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useProvidersQuery();
 
   // 获取当前模型的健康状态
   const current_modelHealth = React.useMemo(() => {
     if (!model_info?.current_model_id || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
+    const providerConfig =
+      useManagedCliModels && cliTarget
+        ? modelConfig.find((p) => p.id === MANAGED_NEWAPI_PROVIDER_ID)
+        : modelConfig.find((p) => p.platform?.includes(backend || ''));
     const healthStatus = providerConfig?.model_health?.[model_info.current_model_id]?.status || 'unknown';
     const healthColor =
       healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
     return { status: healthStatus, color: healthColor };
-  }, [model_info?.current_model_id, modelConfig, backend]);
+  }, [backend, cliTarget, modelConfig, model_info?.current_model_id, useManagedCliModels]);
 
   // State 1: No model info — show disabled "Use CLI model" button
   if (!model_info) {
@@ -338,7 +441,10 @@ const AcpModelSelector: React.FC<{
         <Menu>
           {model_info.available_models.map((model) => {
             // 获取模型健康状态
-            const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
+            const providerConfig =
+              useManagedCliModels && cliTarget
+                ? modelConfig?.find((p) => p.id === MANAGED_NEWAPI_PROVIDER_ID)
+                : modelConfig?.find((p) => p.platform?.includes(backend || ''));
             const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
             const healthColor =
               healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';

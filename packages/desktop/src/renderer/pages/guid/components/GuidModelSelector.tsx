@@ -8,25 +8,26 @@ import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';
+import { resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
 import { getAvailableModels } from '../utils/modelUtils';
+import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Brain, Down, Plus } from '@icon-park/react';
+import { Brain, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { getManagedRuntimeModelDisplayLabel } from '@/common/types/agent/managedRuntimeCli';
+import { getManagedCliSelectableModels, MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
 
 type GuidModelSelectorProps = {
-  // Gemini model state
   isGeminiMode: boolean;
   modelList: IProvider[];
   current_model: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
-
-  // ACP model state
   currentAcpCachedModelInfo: AcpModelInfo | null;
   selectedAcpModel: string | null;
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
+  selectedAgentBackend?: string;
 };
 
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
@@ -37,13 +38,22 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
+  selectedAgentBackend,
 }) => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const defaultModelLabel = t('common.defaultModel');
+  useNewApiAccount();
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useProvidersQuery();
+  const managedProvider = React.useMemo(
+    () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
+    [modelConfig]
+  );
+  const managedSelectableModels = React.useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const isManagedCliSelection = Boolean(
+    resolveManagedRuntimeCliTarget(selectedAgentBackend) && managedSelectableModels.length > 0
+  );
 
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
@@ -56,6 +66,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [current_model?.use_model]);
 
   const geminiButtonLabel = React.useMemo(() => {
+    if (geminiSelectedLabel) return geminiSelectedLabel;
     return getModelDisplayLabel({
       selected_value: current_model?.use_model,
       selectedLabel: geminiSelectedLabel,
@@ -79,18 +90,22 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   ]);
 
   const acpButtonLabel = React.useMemo(() => {
-    return getModelDisplayLabel({
+    const rawLabel = getModelDisplayLabel({
       selected_value: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id,
       selectedLabel: acpSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-  }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
+    if (isManagedCliSelection) {
+      return getManagedRuntimeModelDisplayLabel(rawLabel) || rawLabel;
+    }
+    return rawLabel;
+  }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, isManagedCliSelection, selectedAcpModel]);
 
-  if (isGeminiMode) {
+  if (isGeminiMode || isManagedCliSelection) {
     return (
       <Dropdown
-        trigger='hover'
+        trigger='click'
         droplist={
           <Menu selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}>
             {!enabledModelList || enabledModelList.length === 0
@@ -101,14 +116,6 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     disabled
                   >
                     {t('settings.noAvailableModels')}
-                  </Menu.Item>,
-                  <Menu.Item
-                    key='add-model'
-                    className='text-12px text-t-secondary'
-                    onClick={() => navigate('/settings/model')}
-                  >
-                    <Plus theme='outline' size='12' />
-                    {t('settings.addModel')}
                   </Menu.Item>,
                 ]
               : [
@@ -138,6 +145,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                                 setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
                                   console.error('Failed to set current model:', error);
                                 });
+                                if (isManagedCliSelection) {
+                                  setSelectedAcpModel(modelName);
+                                }
                               }}
                             >
                               <div className='flex items-center gap-8px w-full'>
@@ -152,14 +162,6 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                       </Menu.ItemGroup>
                     );
                   }),
-                  <Menu.Item
-                    key='add-model'
-                    className='text-12px text-t-secondary'
-                    onClick={() => navigate('/settings/model')}
-                  >
-                    <Plus theme='outline' size='12' />
-                    {t('settings.addModel')}
-                  </Menu.Item>,
                 ]}
           </Menu>
         }
@@ -172,15 +174,17 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{geminiButtonLabel}</span>
-            <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
+            <span>{isManagedCliSelection ? geminiSelectedLabel || geminiButtonLabel : geminiButtonLabel}</span>
+            {enabledModelList.length > 0 ? (
+              <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
+            ) : null}
           </span>
         </Button>
       </Dropdown>
     );
   }
 
-  // ACP cached model selector
+  // ACP cached / managed CLI model selector
   if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.available_models?.length > 0) {
     if (currentAcpCachedModelInfo.available_models.length > 0) {
       return (
@@ -190,7 +194,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
               {currentAcpCachedModelInfo.available_models.map((model) => {
                 // 获取模型健康状态
-                const providerConfig = modelConfig?.find((p) => p.platform?.includes(''));
+                const providerConfig = modelConfig?.find((p) => p.id === 'desktop-newapi-managed-provider');
                 const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
                 const healthColor =
                   healthStatus === 'healthy'
@@ -206,7 +210,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     onClick={() => setSelectedAcpModel(model.id)}
                   >
                     <div className='flex items-center gap-8px w-full'>
-                      {healthStatus !== 'unknown' && (
+                      {!isManagedCliSelection && healthStatus !== 'unknown' && (
                         <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
                       )}
                       <span>{model.label}</span>
@@ -221,7 +225,9 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
               <span>{acpButtonLabel}</span>
-              <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
+              {currentAcpCachedModelInfo.available_models.length > 1 ? (
+                <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
+              ) : null}
             </span>
           </Button>
         </Dropdown>
@@ -245,7 +251,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     );
   }
 
-  // Fallback: no model switching
+  // Fallback: no model switching / managed model not ready
   return (
     <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
       <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>

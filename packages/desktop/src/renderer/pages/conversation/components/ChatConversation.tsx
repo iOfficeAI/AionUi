@@ -316,6 +316,16 @@ const ChatConversation: React.FC<{
         />
       );
     }
+    if (conversation.type === 'openclaw-gateway') {
+      const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      return (
+        <AcpModelSelector
+          conversation_id={conversation.id}
+          backend={extra.backend || 'openclaw-gateway'}
+          initialModelId={extra.current_model_id}
+        />
+      );
+    }
     return <GoogleModelSelector disabled={true} />;
   }, [conversation, isAionrsConversation]);
 
