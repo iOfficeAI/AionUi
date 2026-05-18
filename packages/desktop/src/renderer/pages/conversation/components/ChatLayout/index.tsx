@@ -234,99 +234,68 @@ const ChatLayout: React.FC<{
       }}
     >
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
-        {isPreviewOpen && isDesktop ? (
-          /* Desktop with preview: header spans chat+preview, preview sits below header */
-          <>
-            <div className='flex flex-col flex-1 min-w-0'>
-              <div className='shrink-0 !bg-1'>{headerBlock}</div>
-              <div className='flex flex-1 min-h-0 relative'>
-                <div
-                  className='flex flex-col relative'
-                  style={{
-                    flexGrow: 0,
-                    flexShrink: 0,
-                    flexBasis: `${chatFlex}%`,
-                    minWidth: '240px',
-                  }}
-                >
-                  <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
-                    {props.children}
-                  </ArcoLayout.Content>
-                </div>
-                <div
-                  className='preview-panel flex flex-col relative overflow-visible rounded-[15px] mb-[12px] mr-[12px] ml-[8px]'
-                  style={{
-                    flexGrow: 1,
-                    flexShrink: 1,
-                    flexBasis: 0,
-                    border: '1px solid var(--bg-3)',
-                    minWidth: '260px',
-                    boxSizing: 'border-box',
-                  }}
-                >
-                  {createPreviewDragHandle({
-                    className: 'absolute top-0 bottom-0 z-30',
-                    style: { width: '20px', left: '-20px' },
-                    linePlacement: 'end',
-                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
-                    lineStyle: { width: '2px' },
-                  })}
-                  <div className='h-full w-full overflow-hidden rounded-[15px]'>
-                    <PreviewPanel />
-                  </div>
-                </div>
-              </div>
-            </div>
-          </>
-        ) : (
-          /* Desktop without preview / Mobile */
-          <>
+        {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle */}
+        <div
+          className='flex flex-col min-w-0'
+          style={{
+            flexGrow: chatFlex,
+            flexShrink: 0,
+            flexBasis: 0,
+          }}
+        >
+          <div className='shrink-0 !bg-1'>{headerBlock}</div>
+          <div className='flex flex-1 min-h-0 relative'>
+            {/* Chat area - always mounted, never unmounted on preview toggle */}
             <div
               className='flex flex-col relative'
               style={{
-                flexGrow: chatFlex,
+                flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
                 flexShrink: 0,
-                flexBasis: 0,
-                display: isPreviewOpen && layout?.isMobile ? 'none' : 'flex',
-                minWidth: isDesktop ? '240px' : '100%',
+                flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
+                display: isPreviewOpen && isMobile ? 'none' : 'flex',
+                minWidth: '240px',
+              }}
+              onClick={() => {
+                if (window.innerWidth < 768 && !rightSiderCollapsed) setRightSiderCollapsed(true);
               }}
             >
-              <ArcoLayout.Content
-                className='flex flex-col h-full'
-                onClick={() => {
-                  if (window.innerWidth < 768 && !rightSiderCollapsed) setRightSiderCollapsed(true);
-                }}
-              >
-                {headerBlock}
-                <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
-                  {props.children}
-                </ArcoLayout.Content>
+              <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
+                {props.children}
               </ArcoLayout.Content>
             </div>
+            {/* Preview panel - conditionally rendered */}
             {isPreviewOpen && (
               <div
                 className={classNames(
                   'preview-panel flex flex-col relative overflow-visible rounded-[15px]',
-                  'm-[8px]'
+                  isDesktop ? 'mb-[12px] mr-[12px] ml-[8px]' : 'm-[8px]'
                 )}
                 style={{
                   flexGrow: 1,
                   flexShrink: 1,
                   flexBasis: 0,
                   border: '1px solid var(--bg-3)',
-                  width: 'calc(100% - 16px)',
-                  maxWidth: 'calc(100% - 16px)',
-                  minWidth: 0,
+                  minWidth: isDesktop ? '260px' : 0,
+                  maxWidth: isMobile ? 'calc(100% - 16px)' : undefined,
+                  width: isMobile ? 'calc(100% - 16px)' : undefined,
                   boxSizing: 'border-box',
                 }}
               >
+                {isDesktop &&
+                  createPreviewDragHandle({
+                    className: 'absolute top-0 bottom-0 z-30',
+                    style: { width: '20px', left: '-20px' },
+                    linePlacement: 'end',
+                    lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
+                    lineStyle: { width: '2px' },
+                  })}
                 <div className='h-full w-full overflow-hidden rounded-[15px]'>
                   <PreviewPanel />
                 </div>
               </div>
             )}
-          </>
-        )}
+          </div>
+        </div>
         {workspaceEnabled && !layout?.isMobile && (
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
