@@ -57,7 +57,7 @@ interface AutoUpdateCheckParams {
 const DEFAULT_REPO = 'halojerry/AionUi-2.0.2-dev-a3881e2';
 const DEFAULT_USER_AGENT = 'POUNDING';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const DEFAULT_UPDATE_BASE_URL = 'https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/releases/download';
+const DEFAULT_UPDATE_BASE_URL = 'https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/releases/download';
 const GITHUB_RELEASE_HOSTS = [
   'github.com',
   'objects.githubusercontent.com',

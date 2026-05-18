@@ -12,6 +12,8 @@ import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 
+const DEFAULT_AUTO_UPDATE_URL = 'https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/releases/latest';
+
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
  * Returns undefined for the default channel (Windows x64 / Linux x64).
@@ -37,7 +39,10 @@ function resolveRuntimeAutoUpdateFeed(): PublishConfigurationLike | null {
     }
   }
 
-  return null;
+  return {
+    provider: 'generic',
+    url: DEFAULT_AUTO_UPDATE_URL,
+  };
 }
 
 export function getUpdateChannel(): string | undefined {
