@@ -72,8 +72,10 @@ const getUpdateBaseUrl = (): string => {
 
 const getAllowedDownloadHosts = (): Set<string> => {
   const hosts = new Set<string>(GITHUB_RELEASE_HOSTS);
-  const configuredBase = process.env.AIONUI_UPDATE_BASE_URL?.trim();
-  if (configuredBase) {
+  const candidateBases = [getUpdateBaseUrl(), process.env.AIONUI_UPDATE_BASE_URL?.trim()].filter(
+    (value): value is string => Boolean(value && value.trim())
+  );
+  for (const configuredBase of candidateBases) {
     try {
       hosts.add(new URL(configuredBase).hostname);
     } catch {

@@ -134,8 +134,8 @@ describe('ClientFactory', () => {
       const calls = (OpenAIRotatingClient as any).mock.calls;
       const config = calls[0][1];
       expect(config.defaultHeaders).toEqual({
-        'HTTP-Referer': 'https://aionui.com',
-        'X-Title': 'AionUi',
+        'HTTP-Referer': 'https://api.maou.cn',
+        'X-Title': 'POUNDING',
       });
     });
 
