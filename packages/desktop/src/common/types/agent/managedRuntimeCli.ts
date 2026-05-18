@@ -127,6 +127,24 @@ export function getManagedRuntimeModelDisplayLabel(modelId: string | null | unde
   return normalized;
 }
 
+export function normalizeManagedRuntimeModelLabel(
+  cliTarget: ManagedRuntimeCliTarget,
+  runtimeModelLabel: string | null | undefined
+): string | undefined {
+  const normalizedLabel = runtimeModelLabel?.trim();
+  if (!normalizedLabel) return undefined;
+
+  const resolvedModelId = resolveManagedModelIdFromRuntime(cliTarget, normalizedLabel);
+  if (resolvedModelId) return resolvedModelId;
+
+  const managedPrefixPattern = /^(?:new api|pounding api)\s*\/\s*/i;
+  if (managedPrefixPattern.test(normalizedLabel)) {
+    return normalizedLabel.replace(managedPrefixPattern, '').trim() || undefined;
+  }
+
+  return getManagedRuntimeModelDisplayLabel(normalizedLabel) || undefined;
+}
+
 export function getManagedCliSelectableModels(provider: IProvider | null | undefined): string[] {
   if (!provider) return [];
 

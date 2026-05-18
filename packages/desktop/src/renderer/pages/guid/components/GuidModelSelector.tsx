@@ -16,7 +16,10 @@ import { Brain, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import { getManagedRuntimeModelDisplayLabel } from '@/common/types/agent/managedRuntimeCli';
+import {
+  getManagedRuntimeModelDisplayLabel,
+  normalizeManagedRuntimeModelLabel,
+} from '@/common/types/agent/managedRuntimeCli';
 import { getManagedCliSelectableModels, MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
 
 type GuidModelSelectorProps = {
@@ -95,7 +98,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [current_model?.use_model, defaultModelLabel, geminiSelectedLabel]);
 
   const acpSelectedLabel = React.useMemo(() => {
+    const cliTarget = resolveManagedRuntimeCliTarget(selectedAgentBackend);
+    const normalizedManagedLabel =
+      cliTarget &&
+      normalizeManagedRuntimeModelLabel(
+        cliTarget,
+        currentAcpCachedModelInfo?.available_models?.find((m) => m.id === selectedAcpModel)?.label ||
+          currentAcpCachedModelInfo?.current_model_label ||
+          currentAcpCachedModelInfo?.current_model_id ||
+          ''
+      );
     return (
+      normalizedManagedLabel ||
       currentAcpCachedModelInfo?.available_models?.find((m) => m.id === selectedAcpModel)?.label ||
       currentAcpCachedModelInfo?.current_model_label ||
       currentAcpCachedModelInfo?.current_model_id ||
@@ -105,6 +119,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     currentAcpCachedModelInfo?.available_models,
     currentAcpCachedModelInfo?.current_model_id,
     currentAcpCachedModelInfo?.current_model_label,
+    selectedAgentBackend,
     selectedAcpModel,
   ]);
 

@@ -13,6 +13,7 @@ import {
   getManagedCliSelectableModels,
   getManagedRuntimeModelDisplayLabel,
   MANAGED_NEWAPI_PROVIDER_ID,
+  normalizeManagedRuntimeModelLabel,
   resolveManagedModelIdFromRuntime,
   resolveManagedRuntimeCliTarget,
 } from '@/common/types/agent/managedRuntimeCli';
@@ -110,7 +111,7 @@ const AcpModelSelector: React.FC<{
 
       const current_model_id =
         resolveManagedModelIdFromRuntime(cliTarget, info.current_model_id) ||
-        resolveManagedModelIdFromRuntime(cliTarget, info.current_model_label) ||
+        normalizeManagedRuntimeModelLabel(cliTarget, info.current_model_label) ||
         available_models[0]?.id ||
         null;
 
@@ -118,7 +119,7 @@ const AcpModelSelector: React.FC<{
         current_model_id,
         current_model_label:
           current_model_id ||
-          getManagedRuntimeModelDisplayLabel(info.current_model_label) ||
+          normalizeManagedRuntimeModelLabel(cliTarget, info.current_model_label) ||
           getManagedRuntimeModelDisplayLabel(info.current_model_id) ||
           null,
         available_models,

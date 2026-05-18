@@ -51,7 +51,7 @@ describe('teamCreateModelResolver managed CLI mapping', () => {
     vi.mocked(getAgents).mockResolvedValue([]);
 
     const result = await resolveDefaultTeamAgentModel({ agent_type: 'opencode', conversation_type: 'acp' });
-    expect(result).toBe('aionui-new-api-desktop-newapi-managed-provider/mimo-v2.5');
+    expect(result).toBe('pounding-new-api-desktop-newapi-managed-provider/mimo-v2.5');
     expect(getAgents).not.toHaveBeenCalled();
   });
 });
