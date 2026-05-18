@@ -92,7 +92,7 @@ jobs:
             addressing_style = virtual
           EOF2
 
-          ENDPOINT="https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com"
+          ENDPOINT="https://cos.${COS_REGION}.myqcloud.com"
           DEST="s3://${COS_BUCKET}/releases/download/${VERSION}/"
           COUNT=$(aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT" 2>/dev/null | wc -l | tr -d ' ')
           if [ "$COUNT" -gt 0 ]; then
@@ -139,7 +139,7 @@ jobs:
             addressing_style = virtual
           EOF2
 
-          ENDPOINT="https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com"
+          ENDPOINT="https://cos.${COS_REGION}.myqcloud.com"
           VERSION_PREFIX="s3://${COS_BUCKET}/releases/download/${VERSION}/"
           LATEST_PREFIX="s3://${COS_BUCKET}/releases/latest/"
 
