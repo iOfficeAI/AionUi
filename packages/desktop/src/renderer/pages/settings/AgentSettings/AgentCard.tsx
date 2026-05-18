@@ -5,8 +5,8 @@
  */
 
 import React from 'react';
-import { Avatar, Button, Switch, Tooltip, Typography } from '@arco-design/web-react';
-import { Setting, EditTwo, Delete, Robot } from '@icon-park/react';
+import { Avatar, Button, Switch, Typography } from '@arco-design/web-react';
+import { Delete, EditTwo, MessageOne, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -38,13 +38,12 @@ type AgentCardProps =
   | {
       type: 'detected';
       agent: DetectedAgent;
-      onSettings?: () => void;
-      settingsDisabled?: boolean;
-      variant?: 'row' | 'grid';
+      onGoToChat: () => void;
     }
   | {
       type: 'custom';
       agent: CustomAgentCardData;
+      onGoToChat: () => void;
       onEdit: () => void;
       onDelete: () => void;
       onToggle: (enabled: boolean) => void;
@@ -52,11 +51,11 @@ type AgentCardProps =
 
 const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
+  const goToChatButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
 
   if (props.type === 'detected') {
-    const { agent, onSettings, settingsDisabled = true, variant = 'row' } = props;
+    const { agent, onGoToChat } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-    const gridSettingsButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
     const logo =
       extensionAvatar ||
       resolveAgentLogo({
@@ -66,69 +65,37 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         isExtension: agent.isExtension,
       });
 
-    if (variant === 'grid') {
-      const settingsButton = (
+    return (
+      <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
+        <div className='mb-10px flex justify-center'>
+          <Avatar size={40} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
+            {logo ? <img src={logo} alt={agent.name} className='h-full w-full object-contain' /> : '🤖'}
+          </Avatar>
+        </div>
+
+        <div className='mb-10px flex-1 text-center'>
+          <Typography.Text className='block text-13px font-medium leading-18px line-clamp-2'>
+            {agent.name}
+          </Typography.Text>
+          <Typography.Text className='mt-4px block text-11px text-t-secondary'>
+            {t('settings.agentManagement.detected')}
+          </Typography.Text>
+        </div>
+
         <Button
           size='small'
           type='secondary'
-          icon={<Setting theme='outline' size='14' />}
-          onClick={settingsDisabled ? undefined : onSettings}
-          disabled={settingsDisabled}
-          className={gridSettingsButtonClassName}
-          style={settingsDisabled ? { color: 'var(--color-text-4)' } : undefined}
+          icon={<MessageOne theme='outline' size='14' />}
+          onClick={onGoToChat}
+          className={goToChatButtonClassName}
         >
-          {t('settings.agentManagement.settings')}
+          {t('settings.agentManagement.goToChat')}
         </Button>
-      );
-
-      return (
-        <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
-          <div className='mb-10px flex justify-center'>
-            <Avatar size={40} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
-              {logo ? <img src={logo} alt={agent.name} className='h-full w-full object-contain' /> : '🤖'}
-            </Avatar>
-          </div>
-
-          <div className='mb-10px flex-1 text-center'>
-            <Typography.Text className='block text-13px font-medium leading-18px line-clamp-2'>
-              {agent.name}
-            </Typography.Text>
-            <Typography.Text className='mt-4px block text-11px text-t-secondary'>
-              {t('settings.agentManagement.detected')}
-            </Typography.Text>
-          </div>
-
-          {settingsButton}
-        </div>
-      );
-    }
-
-    return (
-      <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
-        <div className='flex items-center gap-12px min-w-0 flex-1'>
-          <Avatar size={32} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
-            {logo ? <img src={logo} alt={agent.name} className='w-full h-full object-contain' /> : '🤖'}
-          </Avatar>
-          <Typography.Text className='font-medium text-14px'>{agent.name}</Typography.Text>
-        </div>
-        {settingsDisabled ? (
-          <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
-            <Button
-              size='small'
-              type='text'
-              icon={<Setting theme='outline' size='14' />}
-              disabled
-              style={{ color: 'var(--color-text-4)' }}
-            />
-          </Tooltip>
-        ) : (
-          <Button size='small' type='text' icon={<Setting theme='outline' size='14' />} onClick={onSettings} />
-        )}
       </div>
     );
   }
 
-  const { agent, onEdit, onDelete, onToggle } = props;
+  const { agent, onGoToChat, onEdit, onDelete, onToggle } = props;
 
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -150,6 +117,15 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       </div>
       <div className='flex items-center gap-8px'>
         <Switch size='small' checked={agent.enabled !== false} onChange={onToggle} />
+        <Button
+          size='small'
+          type='text'
+          icon={<MessageOne theme='outline' size='14' />}
+          onClick={onGoToChat}
+          disabled={agent.enabled === false}
+        >
+          {t('settings.agentManagement.goToChat')}
+        </Button>
         <Button size='small' type='text' icon={<EditTwo theme='outline' size='14' />} onClick={onEdit} />
         <Button
           size='small'

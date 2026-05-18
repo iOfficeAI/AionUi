@@ -829,12 +829,11 @@
   "agentManagement": {
     "localAgents": "ローカルエージェント",
     "remoteAgents": "リモートエージェント",
-    "localAgentsDescription": "Gemini CLI は組み込みです。その他のエージェントはローカルインストール後に自動検出されます。",
+    "localAgentsDescription": "Aion CLI は組み込みエージェントで、アプリに同梱されインストール不要です。その他のエージェントは対応する CLI をローカルにインストールすると検出されます。",
     "localAgentsSetupLink": "セットアップガイド",
+    "goToChat": "チャットを開始",
     "remoteAgentsDescription": "現在は OpenClaw のリモート接続のみ対応しています。その他のエージェントは開発中です。",
-    "settings": "設定",
     "advancedConfig": "高度な設定",
-    "settingsDisabledHint": "設定機能は近日公開予定",
     "geminiDescription": "Google Gemini AI コマンドラインツール",
     "connectRemoteAgent": "リモートエージェントに接続",
     "discoverMoreAgents": "もっとエージェントを探す",
@@ -898,12 +897,5 @@
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
   },
-  "noExternalSources": "外部スキルソースが見つかりません",
-  "aionrs": {
-    "available": "利用可能",
-    "notFound": "見つかりません",
-    "version": "バージョン",
-    "path": "パス",
-    "providerNote": "プロバイダーとAPIキーの設定はモデルページで管理します。Aion CLIは以下をサポート：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  "noExternalSources": "外部スキルソースが見つかりません"
 }

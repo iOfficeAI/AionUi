@@ -820,12 +820,11 @@
   "agentManagement": {
     "localAgents": "Локальные агенты",
     "remoteAgents": "Удалённые агенты",
-    "localAgentsDescription": "Gemini CLI встроен. Другие агенты автоматически обнаруживаются после локальной установки.",
+    "localAgentsDescription": "Aion CLI — встроенный агент, поставляется вместе с приложением и не требует установки. Другие агенты обнаруживаются только после локальной установки соответствующего CLI.",
     "localAgentsSetupLink": "Руководство по установке",
+    "goToChat": "Перейти к чату",
     "remoteAgentsDescription": "Пока поддерживается только удалённое подключение OpenClaw. Остальные агенты находятся в разработке.",
-    "settings": "Настройки",
     "advancedConfig": "Расширенная конфигурация",
-    "settingsDisabledHint": "Настройки скоро будут доступны",
     "geminiDescription": "Инструмент командной строки Google Gemini AI",
     "connectRemoteAgent": "Подключить удалённый агент",
     "discoverMoreAgents": "Обнаружить больше агентов",
@@ -888,13 +887,6 @@
     "pendingTimeout": "Запрос на одобрение истёк (5 минут). Попробуйте снова.",
     "pendingCancel": "Отмена",
     "pendingTimeRemaining": "Осталось времени: {{time}}"
-  },
-  "aionrs": {
-    "available": "Доступен",
-    "notFound": "Не найден",
-    "version": "Версия",
-    "path": "Путь",
-    "providerNote": "Настройки провайдера и API-ключей управляются на странице моделей. Aion CLI поддерживает: Anthropic, OpenAI, AWS Bedrock."
   },
   "noExternalSources": "Внешние источники навыков не найдены",
   "groupAiCore": "Ядро ИИ",

@@ -109,6 +109,8 @@ type UseGuidAgentSelectionOptions = {
   isGoogleAuth: boolean;
   localeKey: string;
   resetAssistant?: boolean;
+  /** Pre-select a specific agent by key (e.g. from "Go to Chat" deep-links). */
+  preselectAgentKey?: string;
   /** React Router location.key — changes on every navigation, used to detect new resets. */
   locationKey?: string;
 };
@@ -121,6 +123,7 @@ export const useGuidAgentSelection = ({
   isGoogleAuth,
   localeKey,
   resetAssistant,
+  preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
@@ -295,12 +298,29 @@ export const useGuidAgentSelection = ({
     resetHandledRef.current = false;
   }
 
-  // Apply sidebar "new chat" resets before paint so the previous assistant
-  // selection does not flash for a frame when navigating to /guid again.
+  // Apply sidebar "new chat" resets and explicit "Go to Chat" pre-selections
+  // before paint so the previous assistant selection does not flash for a
+  // frame when navigating to /guid again.
   useLayoutEffect(() => {
     if (!availableAgents || availableAgents.length === 0) return;
+    if (resetHandledRef.current) return;
 
-    if (resetAssistant && !resetHandledRef.current) {
+    // Explicit pre-selection (e.g. from Settings → Agent "Go to Chat") wins
+    // over reset and saved-selection when the agent is actually present.
+    if (preselectAgentKey) {
+      const matched = availableAgents.find((a) => getAgentKey(a) === preselectAgentKey);
+      if (matched) {
+        resetHandledRef.current = true;
+        const key = getAgentKey(matched);
+        _setSelectedAgentKey(key);
+        configService.set('guid.lastSelectedAgent', key).catch((error) => {
+          console.error('Failed to save preselected agent key:', error);
+        });
+        return;
+      }
+    }
+
+    if (resetAssistant) {
       resetHandledRef.current = true;
       const firstCliAgent = availableAgents.find((a) => !a.is_preset);
       const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
@@ -309,12 +329,16 @@ export const useGuidAgentSelection = ({
         console.error('Failed to save reset agent key:', error);
       });
     }
-  }, [availableAgents, resetAssistant, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 
   // Load last selected agent when no explicit reset was requested.
   useEffect(() => {
     if (!availableAgents || availableAgents.length === 0) return;
     if (resetAssistant) return;
+    // An explicit pre-selection from navigation state wins over the
+    // persisted last-selected key — skip the saved-restore path so
+    // useLayoutEffect's preselect remains the authoritative pick.
+    if (preselectAgentKey && availableAgents.some((a) => getAgentKey(a) === preselectAgentKey)) return;
 
     let cancelled = false;
     initialRestoreDoneRef.current = true;
@@ -352,7 +376,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {

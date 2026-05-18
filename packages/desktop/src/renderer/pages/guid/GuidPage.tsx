@@ -101,12 +101,15 @@ const GuidPage: React.FC = () => {
   // regular ACP backend with its own model selector).
   const modelSelection = useGuidModelSelection('aionrs');
 
-  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
+  const navState = location.state as { resetAssistant?: boolean; selectedAgentKey?: string } | null;
+  const resetAssistantRequested = navState?.resetAssistant === true;
+  const preselectAgentKey = navState?.selectedAgentKey;
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
     isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
     resetAssistant: resetAssistantRequested,
+    preselectAgentKey,
     locationKey: location.key,
   });
 
@@ -373,9 +376,9 @@ const GuidPage: React.FC = () => {
   // next hard reload, the browser would then request '/guid' directly from
   // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
-    if (!resetAssistantRequested) return;
+    if (!resetAssistantRequested && !preselectAgentKey) return;
     navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
-  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
+  }, [resetAssistantRequested, preselectAgentKey, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;

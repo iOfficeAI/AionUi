@@ -828,12 +828,11 @@
   "agentManagement": {
     "localAgents": "本地 Agents",
     "remoteAgents": "远端 Agents",
-    "localAgentsDescription": "除了内置 Agent，其他 Agent 需本地安装后自动识别才可使用。",
+    "localAgentsDescription": "Aion CLI 是内置 Agent，App 自带无需安装；其他 Agent 需先在本地安装对应 CLI 才能被识别。",
     "localAgentsSetupLink": "查看安装指南",
+    "goToChat": "去对话",
     "remoteAgentsDescription": "目前只支持远程连接 OpenClaw，其他 Agent 正在开发中。",
-    "settings": "设置",
     "advancedConfig": "高级配置",
-    "settingsDisabledHint": "配置能力即将开放",
     "geminiDescription": "Google Gemini AI 命令行工具",
     "connectRemoteAgent": "连接远端 Agent",
     "discoverMoreAgents": "发现更多 Agent",
@@ -897,12 +896,5 @@
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
   },
-  "noExternalSources": "未发现外部技能源",
-  "aionrs": {
-    "available": "可用",
-    "notFound": "未找到",
-    "version": "版本",
-    "path": "路径",
-    "providerNote": "服务商和 API 密钥设置在模型页面管理。Aion CLI 支持：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  "noExternalSources": "未发现外部技能源"
 }
