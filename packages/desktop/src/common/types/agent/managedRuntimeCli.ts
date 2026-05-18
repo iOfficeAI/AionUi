@@ -6,6 +6,8 @@ export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'hermes', 'opencode', 'ope
 export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
 export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
 export const MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME = 'POUNDING API';
+export const MANAGED_RUNTIME_PROVIDER_PREFIX = 'pounding-';
+export const MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES = ['aionui-'] as const;
 
 const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
   claude: ['claude', 'anthropic'],
@@ -23,13 +25,40 @@ function slugifyPart(value: string): string {
     .slice(0, 32);
 }
 
+function buildManagedRuntimeProviderIdWithPrefix(prefix: string, providerName: string, providerId: string): string {
+  const namePart = slugifyPart(providerName || 'provider') || 'provider';
+  const idPart = slugifyPart(providerId || 'default') || 'default';
+  return `${prefix}${namePart}-${idPart}`.slice(0, 64);
+}
+
 export function getManagedRuntimeProviderId(
   providerName = MANAGED_NEWAPI_PROVIDER_NAME,
   providerId = MANAGED_NEWAPI_PROVIDER_ID
 ): string {
-  const namePart = slugifyPart(providerName || 'provider') || 'provider';
-  const idPart = slugifyPart(providerId || 'default') || 'default';
-  return `aionui-${namePart}-${idPart}`.slice(0, 64);
+  return buildManagedRuntimeProviderIdWithPrefix(MANAGED_RUNTIME_PROVIDER_PREFIX, providerName, providerId);
+}
+
+export function getManagedRuntimeProviderIdAliases(
+  providerName = MANAGED_NEWAPI_PROVIDER_NAME,
+  providerId = MANAGED_NEWAPI_PROVIDER_ID
+): string[] {
+  const names = Array.from(new Set([providerName, MANAGED_NEWAPI_PROVIDER_NAME, MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME]));
+  const prefixes = [MANAGED_RUNTIME_PROVIDER_PREFIX, ...MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES];
+  return Array.from(
+    new Set(
+      prefixes.flatMap((prefix) =>
+        names.map((name) => buildManagedRuntimeProviderIdWithPrefix(prefix, name, providerId))
+      )
+    )
+  );
+}
+
+export function isManagedRuntimeProviderId(value: string | null | undefined): boolean {
+  const normalized = value?.trim();
+  if (!normalized) return false;
+  return [MANAGED_RUNTIME_PROVIDER_PREFIX, ...MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES].some((prefix) =>
+    normalized.startsWith(prefix)
+  );
 }
 
 export function resolveManagedRuntimeCliTarget(value: string | null | undefined): ManagedRuntimeCliTarget | undefined {
@@ -72,10 +101,10 @@ export function resolveManagedModelIdFromRuntime(
         : undefined;
     case 'opencode':
     case 'openclaw': {
-      const prefix = `${getManagedRuntimeProviderId()}/`;
-      return normalizedModelId.startsWith(prefix)
-        ? normalizedModelId.slice(prefix.length) || undefined
-        : normalizedModelId;
+      const matchedPrefix = getManagedRuntimeProviderIdAliases()
+        .map((providerId) => `${providerId}/`)
+        .find((prefix) => normalizedModelId.startsWith(prefix));
+      return matchedPrefix ? normalizedModelId.slice(matchedPrefix.length) || undefined : normalizedModelId;
     }
     case 'claude':
       if (['default', 'opus', 'sonnet', 'haiku'].includes(normalizedModelId)) return undefined;

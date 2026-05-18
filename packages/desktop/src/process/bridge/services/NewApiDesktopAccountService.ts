@@ -20,6 +20,7 @@ import type {
 import {
   getManagedCliSelectableModels,
   getManagedRuntimeProviderId,
+  isManagedRuntimeProviderId,
   MANAGED_RUNTIME_CLI_TARGETS,
 } from '@/common/types/agent/managedRuntimeCli';
 import type { CreateProviderRequest, UpdateProviderRequest } from '@/common/types/provider/providerApi';
@@ -42,7 +43,6 @@ const HERMES_API_KEY_ENV = 'AIONUI_HERMES_API_KEY';
 const OPENCODE_CONFIG_ENV = 'OPENCODE_CONFIG';
 const OPENCODE_MANAGED_FALLBACK_DIR_NAME = 'managed-opencode';
 const OPENCODE_MANAGED_FALLBACK_FILE_NAME = 'opencode.json';
-const MANAGED_PROVIDER_PREFIX = 'aionui-';
 const CLAUDE_MANAGED_ENV_KEYS = [
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_MODEL',
@@ -439,15 +439,16 @@ function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncPro
   const normalizedModelId = provider.use_model?.trim();
   const protocol = resolveSyncProtocol(provider);
   if (!protocol || !normalizedBaseUrl || !normalizedModelId) return null;
+  const runtimeProviderName =
+    provider.id === NEW_API_MANAGED_PROVIDER_ID
+      ? NEW_API_PROVIDER_NAME
+      : provider.name || provider.platform || 'provider';
   return {
     provider,
     protocol,
     normalizedBaseUrl,
     normalizedModelId,
-    managedProviderId: getManagedRuntimeProviderId(
-      provider.name || provider.platform || 'provider',
-      provider.id || 'default'
-    ),
+    managedProviderId: getManagedRuntimeProviderId(runtimeProviderName, provider.id || 'default'),
   };
 }
 
@@ -492,10 +493,6 @@ function resolveOpenClawBaseUrl(profile: ProviderSyncProfile): string {
   if (profile.protocol !== 'openai') return profile.normalizedBaseUrl;
   const rootUrl = profile.normalizedBaseUrl.replace(/\/v1$/, '').replace(/\/v1beta$/, '');
   return `${rootUrl}/v1`;
-}
-
-function isManagedRuntimeProviderId(value: unknown): boolean {
-  return typeof value === 'string' && value.trim().startsWith(MANAGED_PROVIDER_PREFIX);
 }
 
 function readJsonObjectFile<T extends Record<string, unknown>>(filePath: string): T | null {
