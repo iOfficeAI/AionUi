@@ -1,7 +1,8 @@
 name: Distribute Release Assets
 
 # Triggered after a GitHub Release is officially published.
-# Mirrors installer assets to the configured distribution endpoint for external download.
+# Mirrors desktop installers, updater metadata, blockmaps, and web-cli assets
+# to the configured distribution endpoint for external download / auto-update.
 #
 # Why `published` (not `released`)?
 #   - `released` is supposed to fire when a non-prerelease release is published,
@@ -10,11 +11,15 @@ name: Distribute Release Assets
 #   - `published` reliably fires on every draft → public transition, including
 #     prereleases. The `if` guard on the job filters out prereleases explicitly.
 #
-# All credentials / identifiers are read from repository secrets:
-#   - AWS_REGION
-#   - AWS_ROLE_ARN
-#   - AWS_S3_BUCKET
-# Do NOT hardcode these values in this file.
+# All credentials / identifiers are read from repository secrets / variables:
+#   Secrets:
+#   - TENCENT_COS_SECRET_ID
+#   - TENCENT_COS_SECRET_KEY
+#   Variables:
+#   - TENCENT_COS_BUCKET
+#   - TENCENT_COS_REGION
+#   - POUNDING_UPDATE_PUBLIC_BASE (optional, e.g. https://download.api.mxou.cn)
+# Do NOT hardcode secrets in this file.
 
 on:
   release:
@@ -29,7 +34,6 @@ on:
         type: string
 
 permissions:
-  id-token: write # required for OIDC token
   contents: read
 
 jobs:
@@ -56,22 +60,45 @@ jobs:
           echo "Tag: $TAG / Version: $VERSION"
 
       - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+        run: |
+          echo "This workflow now targets Tencent COS via S3-compatible API."
+          aws --version
+
+      - name: Validate COS configuration
+        env:
+          TENCENT_COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
+          TENCENT_COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+          TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+        run: |
+          test -n "$TENCENT_COS_BUCKET" || { echo "::error::Missing repository variable TENCENT_COS_BUCKET"; exit 1; }
+          test -n "$TENCENT_COS_REGION" || { echo "::error::Missing repository variable TENCENT_COS_REGION"; exit 1; }
+          test -n "$TENCENT_COS_SECRET_ID" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_ID"; exit 1; }
+          test -n "$TENCENT_COS_SECRET_KEY" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_KEY"; exit 1; }
 
       - name: Guard against same-version overwrite
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          DEST="s3://${S3_BUCKET}/releases/${VERSION}/"
-          COUNT=$(aws s3 ls "$DEST" 2>/dev/null | wc -l | tr -d ' ')
+          mkdir -p ~/.aws
+          cat > ~/.aws/config <<EOF2
+          [default]
+          s3 =
+            addressing_style = virtual
+          EOF2
+
+          ENDPOINT="https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com"
+          DEST="s3://${COS_BUCKET}/releases/download/${VERSION}/"
+          COUNT=$(aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT" 2>/dev/null | wc -l | tr -d ' ')
           if [ "$COUNT" -gt 0 ]; then
             echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
             echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
-            aws s3 ls "$DEST"
+            aws s3 ls "$DEST" --recursive --endpoint-url "$ENDPOINT"
             exit 1
           fi
 
@@ -87,26 +114,60 @@ jobs:
             --pattern "*.exe" \
             --pattern "*.msi" \
             --pattern "*.deb" \
-            --pattern "*.zip"
+            --pattern "*.zip" \
+            --pattern "*.yml" \
+            --pattern "*.blockmap" \
+            --pattern "*.tar.gz" \
+            --pattern "*.sha256" \
+            --pattern "install-web.sh"
           echo "Downloaded files:"
           ls -la dist
 
-      - name: Upload assets
+      - name: Upload assets to versioned and latest prefixes
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          AWS_ACCESS_KEY_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+          AWS_EC2_METADATA_DISABLED: 'true'
+          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          aws s3 cp dist/ "s3://${S3_BUCKET}/releases/${VERSION}/" --recursive
-          echo "Uploaded release ${VERSION}"
+          mkdir -p ~/.aws
+          cat > ~/.aws/config <<EOF2
+          [default]
+          s3 =
+            addressing_style = virtual
+          EOF2
+
+          ENDPOINT="https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com"
+          VERSION_PREFIX="s3://${COS_BUCKET}/releases/download/${VERSION}/"
+          LATEST_PREFIX="s3://${COS_BUCKET}/releases/latest/"
+
+          aws s3 sync dist/ "$VERSION_PREFIX" --endpoint-url "$ENDPOINT" --exact-timestamps
+          aws s3 sync dist/ "$LATEST_PREFIX" --endpoint-url "$ENDPOINT" --delete --exact-timestamps
+
+          find dist -maxdepth 1 -type f \( -name "*.yml" -o -name "*.blockmap" \) | while read -r file; do
+            aws s3 cp "$file" "${LATEST_PREFIX}$(basename "$file")" \
+              --endpoint-url "$ENDPOINT" \
+              --cache-control "no-cache, no-store, must-revalidate, max-age=0"
+          done
+
+          echo "Uploaded release ${VERSION} to COS"
 
       - name: Summary
         env:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
+          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+          PUBLIC_BASE: ${{ vars.POUNDING_UPDATE_PUBLIC_BASE }}
         run: |
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
           {
             echo "### Release assets distributed"
             echo ""
             echo "- Tag: \`${TAG}\`"
             echo "- Version: \`${VERSION}\`"
+            echo "- Versioned assets: \`${BASE}/releases/download/${VERSION}/\`"
+            echo "- Auto-update feed: \`${BASE}/releases/latest/\`"
           } >> $GITHUB_STEP_SUMMARY
