@@ -50,7 +50,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [modelConfig]
   );
-  const managedSelectableModels = React.useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const managedSelectableModels = React.useMemo(
+    () => getManagedCliSelectableModels(managedProvider),
+    [managedProvider]
+  );
   const isManagedCliSelection = Boolean(
     resolveManagedRuntimeCliTarget(selectedAgentBackend) && managedSelectableModels.length > 0
   );
@@ -116,7 +119,13 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       return getManagedRuntimeModelDisplayLabel(rawLabel) || rawLabel;
     }
     return rawLabel;
-  }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, isManagedCliSelection, selectedAcpModel]);
+  }, [
+    acpSelectedLabel,
+    currentAcpCachedModelInfo?.current_model_id,
+    defaultModelLabel,
+    isManagedCliSelection,
+    selectedAcpModel,
+  ]);
 
   if (isGeminiMode || isManagedCliSelection) {
     return (
@@ -135,48 +144,48 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   </Menu.Item>,
                 ]
               : (dropdownProviders || []).map((provider) => {
-                    const available_models = getAvailableModels(provider);
-                    if (available_models.length === 0) return null;
-                    return (
-                      <Menu.ItemGroup title={provider.name} key={provider.id}>
-                        {available_models.map((modelName) => {
-                          // 获取模型健康状态
-                          const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                          const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
-                          const healthColor =
-                            healthStatus === 'healthy'
-                              ? 'bg-green-500'
-                              : healthStatus === 'unhealthy'
-                                ? 'bg-red-500'
-                                : 'bg-gray-400';
+                  const available_models = getAvailableModels(provider);
+                  if (available_models.length === 0) return null;
+                  return (
+                    <Menu.ItemGroup title={provider.name} key={provider.id}>
+                      {available_models.map((modelName) => {
+                        // 获取模型健康状态
+                        const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
+                        const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
+                        const healthColor =
+                          healthStatus === 'healthy'
+                            ? 'bg-green-500'
+                            : healthStatus === 'unhealthy'
+                              ? 'bg-red-500'
+                              : 'bg-gray-400';
 
-                          return (
-                            <Menu.Item
-                              key={provider.id + modelName}
-                              className={
-                                current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
+                        return (
+                          <Menu.Item
+                            key={provider.id + modelName}
+                            className={
+                              current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
+                            }
+                            onClick={() => {
+                              setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
+                                console.error('Failed to set current model:', error);
+                              });
+                              if (isManagedCliSelection) {
+                                setSelectedAcpModel(modelName);
                               }
-                              onClick={() => {
-                                setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
-                                  console.error('Failed to set current model:', error);
-                                });
-                                if (isManagedCliSelection) {
-                                  setSelectedAcpModel(modelName);
-                                }
-                              }}
-                            >
-                              <div className='flex items-center gap-8px w-full'>
-                                {healthStatus !== 'unknown' && (
-                                  <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                                )}
-                                <span>{modelName}</span>
-                              </div>
-                            </Menu.Item>
-                          );
-                        })}
-                      </Menu.ItemGroup>
-                    );
-                  })}
+                            }}
+                          >
+                            <div className='flex items-center gap-8px w-full'>
+                              {healthStatus !== 'unknown' && (
+                                <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                              )}
+                              <span>{modelName}</span>
+                            </div>
+                          </Menu.Item>
+                        );
+                      })}
+                    </Menu.ItemGroup>
+                  );
+                })}
           </Menu>
         }
       >

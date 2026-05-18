@@ -114,7 +114,9 @@ class AutoUpdaterService extends EventEmitter {
     const runtimeFeed = resolveRuntimeAutoUpdateFeed();
     if (runtimeFeed) {
       autoUpdater.setFeedURL(runtimeFeed as unknown as string);
-      log.info(`Auto-update feed overridden at runtime: ${typeof runtimeFeed === 'string' ? runtimeFeed : JSON.stringify(runtimeFeed)}`);
+      log.info(
+        `Auto-update feed overridden at runtime: ${typeof runtimeFeed === 'string' ? runtimeFeed : JSON.stringify(runtimeFeed)}`
+      );
     }
 
     // Set the correct update channel based on platform and architecture before
