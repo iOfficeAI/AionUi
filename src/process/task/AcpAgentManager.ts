@@ -755,8 +755,13 @@ ${collectedResponses.join('\n')}`;
 
     const emitStart = Date.now();
     ipcBridge.acpConversation.responseStream.emit(processedMessage);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (processedMessage.type === 'finish' || processedMessage.type === 'error') {
+    // Forward content to team bus so TeammateManager can capture teammate replies;
+    // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+    if (
+      processedMessage.type === 'finish' ||
+      processedMessage.type === 'error' ||
+      processedMessage.type === 'content'
+    ) {
       teamEventBus.emit('responseStream', {
         ...processedMessage,
         conversation_id: this.conversation_id,

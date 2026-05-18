@@ -303,11 +303,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   }
 
   /**
-   * Emit to teamEventBus (terminal events only) and channelEventBus (all events).
+   * Emit to teamEventBus (content + terminal events) and channelEventBus (all events).
+   * Content is forwarded so TeammateManager can capture teammate replies via its turn-response buffer.
    * Mirrors the multi-bus emission pattern in AcpAgentManager.
    */
   private emitToEventBuses(message: IResponseMessage): void {
-    if (message.type === 'finish' || message.type === 'error') {
+    if (message.type === 'finish' || message.type === 'error' || message.type === 'content') {
       teamEventBus.emit('responseStream', {
         ...message,
         conversation_id: this.conversation_id,

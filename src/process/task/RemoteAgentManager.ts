@@ -91,8 +91,9 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
+    // Forward content to team bus so TeammateManager can capture teammate replies;
+    // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+    if (msg.type === 'finish' || msg.type === 'error' || msg.type === 'content') {
       teamEventBus.emit('responseStream', msg);
     }
     channelEventBus.emitAgentMessage(this.conversation_id, msg);
@@ -134,8 +135,9 @@ class RemoteAgentManager extends BaseAgentManager<RemoteAgentManagerData> {
     }
 
     ipcBridge.conversation.responseStream.emit(msg);
-    // Only emit terminal events to team bus for agent lifecycle management
-    if (msg.type === 'finish' || msg.type === 'error') {
+    // Forward content to team bus so TeammateManager can capture teammate replies;
+    // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+    if (msg.type === 'finish' || msg.type === 'error' || msg.type === 'content') {
       teamEventBus.emit('responseStream', msg);
     }
     channelEventBus.emitAgentMessage(this.conversation_id, msg);

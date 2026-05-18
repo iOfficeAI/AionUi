@@ -859,9 +859,11 @@ export class GeminiAgentManager extends BaseAgentManager<
       const filteredData = this.filterThinkTagsFromMessage(data);
       ipcBridge.geminiConversation.responseStream.emit(filteredData);
 
-      // Emit terminal events to main-process-local bus so TeammateManager can
-      // manage agent lifecycle — ipcBridge.emit only delivers to renderer via webContents.send()
-      if (filteredData.type === 'finish' || filteredData.type === 'error') {
+      // Forward content to team bus so TeammateManager can capture teammate replies;
+      // forward terminal events (finish/error) so TeammateManager can drive lifecycle.
+      // ipcBridge.emit only delivers to renderer via webContents.send(), so main-process
+      // coordination must go through teamEventBus.
+      if (filteredData.type === 'finish' || filteredData.type === 'error' || filteredData.type === 'content') {
         teamEventBus.emit('responseStream', filteredData);
       }
 

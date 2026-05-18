@@ -224,9 +224,9 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
     });
   });
 
-  // ── AC-2: teamEventBus receives only terminal events ────────────
+  // ── AC-2: teamEventBus receives content + terminal events ───────
 
-  describe('AC-2: teamEventBus receives only terminal events (finish/error)', () => {
+  describe('AC-2: teamEventBus receives content and terminal events (finish/error)', () => {
     it('emits finish event to teamEventBus', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'finish', data: '', msg_id: 'msg-1' });
@@ -248,13 +248,17 @@ describe('GAP-8: AionrsManager Multi EventBus Emission', () => {
       expect(errorCalls.length).toBeGreaterThanOrEqual(1);
     });
 
-    it('does NOT emit content event to teamEventBus', () => {
+    it('emits content event to teamEventBus so TeammateManager can capture replies', () => {
       emitEvent(manager, { type: 'start', data: '', msg_id: 'msg-1' });
       emitEvent(manager, { type: 'content', data: 'hello', msg_id: 'msg-1' });
 
       const teamCalls = findTeamEmissions();
       const contentCalls = teamCalls.filter(([, data]: [string, any]) => data.type === 'content');
-      expect(contentCalls).toHaveLength(0);
+      expect(contentCalls.length).toBeGreaterThanOrEqual(1);
+
+      const [eventName, payload] = contentCalls[0];
+      expect(eventName).toBe('responseStream');
+      expect(payload.conversation_id).toBe(CONV_ID);
     });
 
     it('does NOT emit tool_group event to teamEventBus', () => {
