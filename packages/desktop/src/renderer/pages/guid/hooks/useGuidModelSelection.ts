@@ -114,7 +114,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
         const cliTarget = resolveManagedRuntimeCliTarget(agentKey);
         if (cliTarget && useManagedCliModels && model_info.use_model) {
           const nextPrefs = {
-            ...(configService.get('newApi.desktop.cliModelPrefs') ?? {}),
+            ...configService.get('newApi.desktop.cliModelPrefs'),
             [cliTarget]: model_info.use_model,
           };
           await configService.set('newApi.desktop.cliModelPrefs', nextPrefs).catch((error) => {

@@ -728,11 +728,11 @@ function writeOpencodeConfigForProviderSync(provider: TProviderWithModel, source
   const nextProvider = {
     ...currentProviders,
     [profile.managedProviderId]: {
-      ...(current.provider?.[profile.managedProviderId] ?? {}),
+      ...current.provider?.[profile.managedProviderId],
       npm: resolveOpencodeNpmPackage(profile),
       name: provider.name || profile.managedProviderId,
       options: {
-        ...(current.provider?.[profile.managedProviderId]?.options ?? {}),
+        ...current.provider?.[profile.managedProviderId]?.options,
         baseURL: resolveOpencodeBaseUrl(profile),
         apiKey: provider.api_key,
       },

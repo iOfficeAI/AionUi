@@ -134,8 +134,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     {t('settings.noAvailableModels')}
                   </Menu.Item>,
                 ]
-              : [
-                  ...(dropdownProviders || []).map((provider) => {
+              : (dropdownProviders || []).map((provider) => {
                     const available_models = getAvailableModels(provider);
                     if (available_models.length === 0) return null;
                     return (
@@ -177,8 +176,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                         })}
                       </Menu.ItemGroup>
                     );
-                  }),
-                ]}
+                  })}
           </Menu>
         }
       >

@@ -65,7 +65,7 @@ const AionrsSettings: React.FC = () => {
   const handleCliModelChange = async (cliTarget: ManagedRuntimeCliTarget, modelId: string) => {
     setSavingTarget(cliTarget);
     const nextPrefs = {
-      ...(configService.get(NEW_API_CLI_MODEL_PREFS_KEY) ?? {}),
+      ...configService.get(NEW_API_CLI_MODEL_PREFS_KEY),
       [cliTarget]: modelId,
     };
     try {
