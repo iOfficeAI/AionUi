@@ -9,8 +9,8 @@ import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import {
   getManagedCliSelectableModels,
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
   MANAGED_NEWAPI_PROVIDER_ID,
-  MANAGED_NEWAPI_PROVIDER_NAME,
   resolveManagedRuntimeCliTarget,
 } from '@/common/types/agent/managedRuntimeCli';
 import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
@@ -67,7 +67,7 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
       return [
         {
           id: MANAGED_NEWAPI_PROVIDER_ID,
-          name: MANAGED_NEWAPI_PROVIDER_NAME,
+          name: MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
           platform: 'new-api',
           base_url: managedProvider?.base_url || '',
           api_key: '',

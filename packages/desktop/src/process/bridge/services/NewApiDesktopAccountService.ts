@@ -36,6 +36,7 @@ const NEW_API_STORAGE_KEY = 'newApi.desktop.account';
 const NEW_API_CLI_MODEL_PREFS_KEY = 'newApi.desktop.cliModelPrefs';
 const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
 const NEW_API_PROVIDER_NAME = 'New API';
+const NEW_API_PROVIDER_DISPLAY_NAME = 'POUNDING API';
 const OPENCODE_SCHEMA_URL = 'https://opencode.ai/config.json';
 const HERMES_API_KEY_ENV = 'AIONUI_HERMES_API_KEY';
 const OPENCODE_CONFIG_ENV = 'OPENCODE_CONFIG';
@@ -1019,7 +1020,7 @@ function buildManagedProviderPayload(params: {
   const baseUrl = params.baseUrl || NEW_API_BASE_URL;
   return {
     id: NEW_API_MANAGED_PROVIDER_ID,
-    name: NEW_API_PROVIDER_NAME,
+    name: NEW_API_PROVIDER_DISPLAY_NAME,
     platform: 'new-api',
     base_url: baseUrl,
     api_key: params.apiKey,

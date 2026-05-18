@@ -5,6 +5,7 @@ import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'hermes', 'opencode', 'openclaw'] as const;
 export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
 export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
+export const MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME = 'POUNDING API';
 
 const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
   claude: ['claude', 'anthropic'],
