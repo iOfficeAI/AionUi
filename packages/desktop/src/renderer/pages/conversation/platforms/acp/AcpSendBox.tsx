@@ -95,6 +95,7 @@ const AcpSendBox: React.FC<{
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -103,6 +104,18 @@ const AcpSendBox: React.FC<{
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
+  // In team mode, warmup the agent then fetch slash commands
+  useEffect(() => {
+    if (!teamPermission) return;
+    void teamPermission
+      .warmupSession()
+      .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+      .then(() => {
+        fetchSlashCommands();
+      })
+      .catch(() => {});
+  }, [teamPermission, conversation_id, fetchSlashCommands]);
 
   const handleContentChange = useCallback(
     (val: string) => {

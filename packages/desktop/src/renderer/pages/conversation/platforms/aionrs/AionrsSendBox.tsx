@@ -127,7 +127,17 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!conversation_id || teamPermission) return;
+    if (!conversation_id) return;
+    if (teamPermission) {
+      void teamPermission
+        .warmupSession()
+        .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+        .then(() => {
+          setAgentWarmed(true);
+        })
+        .catch(() => {});
+      return;
+    }
     setAgentWarmed(false);
     void ipcBridge.conversation.warmup
       .invoke({ conversation_id })
