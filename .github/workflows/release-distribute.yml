@@ -42,6 +42,10 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: release-distribute-${{ github.ref_name }}
+  cancel-in-progress: true
+
 jobs:
   distribute:
     name: Distribute release assets
