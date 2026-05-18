@@ -420,8 +420,9 @@ function buildProviderWithModel(provider: IProvider, modelId?: string): TProvide
   if (!resolvedModel) return null;
   return {
     ...provider,
+    models: provider.models,
     use_model: resolvedModel,
-  };
+  } as TProviderWithModel;
 }
 
 function resolveSyncProtocol(provider: TProviderWithModel): 'anthropic' | 'gemini' | 'openai' | null {
@@ -698,9 +699,24 @@ function parseOpencodeConfig(content: string): OpencodeProviderConfig {
   return isRecord(parsed) ? ({ ...parsed } as OpencodeProviderConfig) : {};
 }
 
-function writeOpencodeConfigForProviderSync(provider: TProviderWithModel): void {
+function getSyncableProviderModels(
+  provider: Partial<Pick<IProvider, 'models' | 'model_enabled' | 'capabilities'>> & { use_model?: string }
+): string[] {
+  const models = Array.isArray(provider.models) && provider.models.length > 0 ? provider.models : [];
+  if (models.length > 0) {
+    return getManagedCliSelectableModels({
+      models,
+      model_enabled: provider.model_enabled,
+      capabilities: provider.capabilities,
+    } as IProvider);
+  }
+  return provider.use_model?.trim() ? [provider.use_model.trim()] : [];
+}
+
+function writeOpencodeConfigForProviderSync(provider: TProviderWithModel, sourceProvider?: IProvider): void {
   const profile = buildProviderSyncProfile(provider);
   if (!profile) return;
+  const syncableModels = getSyncableProviderModels(sourceProvider ?? provider);
   const configPath = resolveOpencodeConfigPath();
   process.env[OPENCODE_CONFIG_ENV] = configPath;
   const current = fs.existsSync(configPath)
@@ -720,12 +736,14 @@ function writeOpencodeConfigForProviderSync(provider: TProviderWithModel): void 
         baseURL: resolveOpencodeBaseUrl(profile),
         apiKey: provider.api_key,
       },
-      models: {
-        ...(current.provider?.[profile.managedProviderId]?.models ?? {}),
-        [profile.normalizedModelId]: {
-          name: profile.normalizedModelId,
-        },
-      },
+      models: Object.fromEntries(
+        syncableModels.map((modelId) => [
+          modelId,
+          {
+            name: modelId,
+          },
+        ])
+      ),
     },
   };
   const nextConfig: OpencodeProviderConfig = {
@@ -792,9 +810,10 @@ function readOpenClawConfigFromPath(configPath: string): Record<string, unknown>
   }
 }
 
-function writeOpenClawManagedProviderModel(provider: TProviderWithModel): void {
+function writeOpenClawManagedProviderModel(provider: TProviderWithModel, sourceProvider?: IProvider): void {
   const profile = buildProviderSyncProfile(provider);
   if (!profile) return;
+  const syncableModels = getSyncableProviderModels(sourceProvider ?? provider);
   const configPath = resolveOpenClawConfigPath();
   const current = readOpenClawConfigFromPath(configPath);
   const models = isRecord(current.models) ? { ...current.models } : {};
@@ -814,16 +833,18 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel): void {
     api: resolveOpenClawApiProtocol(profile),
     headers: {},
     authHeader: true,
-    models: [{ id: profile.normalizedModelId, name: profile.normalizedModelId }],
+    models: syncableModels.map((modelId) => ({ id: modelId, name: modelId })),
   };
   models.mode = 'merge';
   models.providers = providers;
   const agents = isRecord(current.agents) ? { ...current.agents } : {};
   const defaults = isRecord(agents.defaults) ? { ...agents.defaults } : {};
   const defaultModels = isRecord(defaults.models) ? { ...defaults.models } : {};
-  defaultModels[`${profile.managedProviderId}/${profile.normalizedModelId}`] = {
-    alias: profile.normalizedModelId,
-  };
+  for (const modelId of syncableModels) {
+    defaultModels[`${profile.managedProviderId}/${modelId}`] = {
+      alias: modelId,
+    };
+  }
   defaults.model = { primary: `${profile.managedProviderId}/${profile.normalizedModelId}` };
   defaults.models = defaultModels;
   agents.defaults = defaults;
@@ -909,11 +930,11 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
     },
     {
       cliTarget: 'opencode',
-      run: (providerWithModel) => writeOpencodeConfigForProviderSync(providerWithModel),
+      run: (providerWithModel) => writeOpencodeConfigForProviderSync(providerWithModel, provider),
     },
     {
       cliTarget: 'openclaw',
-      run: (providerWithModel) => writeOpenClawManagedProviderModel(providerWithModel),
+      run: (providerWithModel) => writeOpenClawManagedProviderModel(providerWithModel, provider),
     },
   ];
 

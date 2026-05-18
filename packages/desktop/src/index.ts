@@ -8,17 +8,28 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import * as Sentry from '@sentry/electron/main';
+import { resolveDesktopSentryConfig } from './common/config/sentry';
 
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-});
+const sentryConfig = resolveDesktopSentryConfig(process.env as Record<string, string | undefined>);
+
+if (sentryConfig.enabled && sentryConfig.dsn) {
+  Sentry.init({
+    dsn: sentryConfig.dsn,
+    release: sentryConfig.release,
+    environment: sentryConfig.environment,
+    serverName: sentryConfig.serverName,
+  });
+}
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
 
-Sentry.setTag('app.arch', process.arch);
-Sentry.setTag('app.version', app.getVersion());
-Sentry.setTag('os.name', process.platform);
+if (sentryConfig.enabled) {
+  Sentry.setTag('brand', sentryConfig.brand);
+  Sentry.setTag('app.arch', process.arch);
+  Sentry.setTag('app.version', app.getVersion());
+  Sentry.setTag('os.name', process.platform);
+}
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';

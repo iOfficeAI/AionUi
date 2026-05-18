@@ -221,7 +221,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: iOfficeAI
-  repo: AionUi
+  owner: halojerry
+  repo: AionUi-2.0.2-dev-a3881e2
   publishAutoUpdate: true
   releaseType: release

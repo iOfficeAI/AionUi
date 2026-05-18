@@ -5,6 +5,8 @@
  */
 
 import { autoUpdater } from 'electron-updater';
+
+type PublishConfigurationLike = string | { provider: 'generic'; url: string; channel?: string };
 import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
@@ -14,6 +16,30 @@ import { EventEmitter } from 'events';
  * Returns the appropriate update channel name based on the current platform and architecture.
  * Returns undefined for the default channel (Windows x64 / Linux x64).
  */
+function resolveRuntimeAutoUpdateFeed(): PublishConfigurationLike | null {
+  const genericUrl = process.env.AIONUI_AUTO_UPDATE_URL?.trim();
+  if (genericUrl) {
+    return {
+      provider: 'generic',
+      url: genericUrl.replace(/\/+$/, ''),
+    };
+  }
+
+  const githubRepo = process.env.AIONUI_GITHUB_REPO?.trim();
+  if (githubRepo) {
+    const [owner, repo] = githubRepo.split('/');
+    if (owner && repo) {
+      return {
+        provider: 'github',
+        owner,
+        repo,
+      } as unknown as PublishConfigurationLike;
+    }
+  }
+
+  return null;
+}
+
 export function getUpdateChannel(): string | undefined {
   const { platform, arch } = process;
 
@@ -79,6 +105,12 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+
+    const runtimeFeed = resolveRuntimeAutoUpdateFeed();
+    if (runtimeFeed) {
+      autoUpdater.setFeedURL(runtimeFeed as unknown as string);
+      log.info(`Auto-update feed overridden at runtime: ${typeof runtimeFeed === 'string' ? runtimeFeed : JSON.stringify(runtimeFeed)}`);
+    }
 
     // Set the correct update channel based on platform and architecture before
     // any update checks are performed

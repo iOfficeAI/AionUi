@@ -7,9 +7,19 @@
 // Sentry must be initialized first
 // Use electron-specific renderer package only inside Electron; fall back to the
 // browser SDK when running as a web server (no window.electronAPI).
-if ((window as { electronAPI?: unknown }).electronAPI) {
+import { desktopSentryConfig, isDesktopSentryEnabled } from './utils/telemetry/sentry';
+
+if (isDesktopSentryEnabled() && desktopSentryConfig.dsn) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
-  import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
+  import('@sentry/electron/renderer')
+    .then((Sentry) =>
+      Sentry.init({
+        dsn: desktopSentryConfig.dsn,
+        release: desktopSentryConfig.release,
+        environment: desktopSentryConfig.environment,
+      })
+    )
+    .catch(() => {});
 }
 
 // Runtime patches must be imported early

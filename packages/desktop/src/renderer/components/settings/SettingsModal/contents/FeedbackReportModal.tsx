@@ -12,6 +12,7 @@ import { Info } from '@icon-park/react';
 import React, { useState, useCallback, useEffect, useRef } from 'react';
 import type { RefTextAreaType } from '@arco-design/web-react/es/Input/textarea';
 import { useTranslation } from 'react-i18next';
+import { desktopSentryConfig } from '@/renderer/utils/telemetry/sentry';
 
 const DESCRIPTION_MAX_LENGTH = 2000;
 const MAX_SCREENSHOTS = 3;
@@ -156,6 +157,10 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       // Submit via Sentry
       // Use hint.attachments instead of scope.addAttachment to avoid
       // @sentry/electron's ScopeToMain normalize() corrupting Uint8Array binary data.
+      if (!desktopSentryConfig.enabled || !desktopSentryConfig.dsn) {
+        throw new Error('desktop_sentry_not_configured');
+      }
+
       const Sentry = await import('@sentry/electron/renderer');
 
       const attachments: Array<{ filename: string; data: Uint8Array; contentType: string }> = [];
@@ -184,6 +189,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       const eventSummary = `${t(selectedModule?.i18nKey ?? 'settings.bugReportModuleOther')}: ${summaryPreview}`;
 
       Sentry.withScope((scope) => {
+        scope.setTag('brand', desktopSentryConfig.brand);
         scope.setTag('type', 'user-feedback');
         scope.setTag('module', module);
 

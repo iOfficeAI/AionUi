@@ -104,16 +104,7 @@ const AcpModelSelector: React.FC<{
     (info: AcpModelInfo): AcpModelInfo => {
       if (!useManagedCliModels || !cliTarget) return info;
 
-      const available_models =
-        managedSelectableModels.length > 0
-          ? managedSelectableModels.map((modelId) => ({ id: modelId, label: modelId }))
-          : info.available_models
-              .map((model) => {
-                const managedId = resolveManagedModelIdFromRuntime(cliTarget, model.id);
-                return managedId ? { id: managedId, label: managedId } : null;
-              })
-              .filter((model): model is { id: string; label: string } => Boolean(model))
-              .filter((model, index, list) => list.findIndex((item) => item.id === model.id) === index);
+      const available_models = managedSelectableModels.map((modelId) => ({ id: modelId, label: modelId }));
 
       const current_model_id =
         resolveManagedModelIdFromRuntime(cliTarget, info.current_model_id) ||
@@ -123,7 +114,11 @@ const AcpModelSelector: React.FC<{
 
       return {
         current_model_id,
-        current_model_label: current_model_id || getManagedRuntimeModelDisplayLabel(info.current_model_label) || null,
+        current_model_label:
+          current_model_id ||
+          getManagedRuntimeModelDisplayLabel(info.current_model_label) ||
+          getManagedRuntimeModelDisplayLabel(info.current_model_id) ||
+          null,
         available_models,
       };
     },

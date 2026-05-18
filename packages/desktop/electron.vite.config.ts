@@ -143,6 +143,14 @@ export default defineConfig(({ mode }) => {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_DSN': JSON.stringify(process.env.AIONUI_SENTRY_DSN ?? process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_ENVIRONMENT': JSON.stringify(process.env.AIONUI_SENTRY_ENVIRONMENT ?? mode),
+        'process.env.AIONUI_SENTRY_RELEASE': JSON.stringify(
+          process.env.AIONUI_SENTRY_RELEASE ?? rootPackageJson.version
+        ),
+        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'),
+        'process.env.AIONUI_BRAND_NAME': JSON.stringify(process.env.AIONUI_BRAND_NAME ?? 'POUNDING'),
+        'process.env.APP_VERSION': JSON.stringify(rootPackageJson.version),
       },
     },
 
@@ -171,6 +179,18 @@ export default defineConfig(({ mode }) => {
             petConfirmPreload: resolve('packages/desktop/src/preload/petConfirmPreload.ts'),
           },
         },
+      },
+      define: {
+        'process.env.NODE_ENV': JSON.stringify(mode),
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_DSN': JSON.stringify(process.env.AIONUI_SENTRY_DSN ?? process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_ENVIRONMENT': JSON.stringify(process.env.AIONUI_SENTRY_ENVIRONMENT ?? mode),
+        'process.env.AIONUI_SENTRY_RELEASE': JSON.stringify(
+          process.env.AIONUI_SENTRY_RELEASE ?? rootPackageJson.version
+        ),
+        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'),
+        'process.env.AIONUI_BRAND_NAME': JSON.stringify(process.env.AIONUI_BRAND_NAME ?? 'POUNDING'),
+        'process.env.APP_VERSION': JSON.stringify(rootPackageJson.version),
       },
     },
 
@@ -272,6 +292,16 @@ export default defineConfig(({ mode }) => {
         'process.env.env': JSON.stringify(process.env.env),
         'process.env.AIONUI_MULTI_INSTANCE': JSON.stringify(process.env.AIONUI_MULTI_INSTANCE ?? ''),
         'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_DSN': JSON.stringify(process.env.AIONUI_SENTRY_DSN ?? process.env.SENTRY_DSN ?? ''),
+        'process.env.AIONUI_SENTRY_ENVIRONMENT': JSON.stringify(process.env.AIONUI_SENTRY_ENVIRONMENT ?? mode),
+        'process.env.AIONUI_SENTRY_RELEASE': JSON.stringify(
+          process.env.AIONUI_SENTRY_RELEASE ?? rootPackageJson.version
+        ),
+        'process.env.AIONUI_SENTRY_SERVER_NAME': JSON.stringify(
+          process.env.AIONUI_SENTRY_SERVER_NAME ?? 'pounding-desktop'
+        ),
+        'process.env.AIONUI_BRAND_NAME': JSON.stringify(process.env.AIONUI_BRAND_NAME ?? 'POUNDING'),
+        'process.env.APP_VERSION': JSON.stringify(rootPackageJson.version),
         // Inject the real AionUi version (root package.json) so renderer code
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".

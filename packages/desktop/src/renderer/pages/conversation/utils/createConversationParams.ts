@@ -22,6 +22,13 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
+import {
+  buildManagedRuntimeModelId,
+  getManagedCliSelectableModels,
+  MANAGED_NEWAPI_PROVIDER_ID,
+  resolveManagedModelIdFromRuntime,
+  resolveManagedRuntimeCliTarget,
+} from '@/common/types/agent/managedRuntimeCli';
 
 type ModePreference = {
   preferredMode?: string;
@@ -64,11 +71,29 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 }
 
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
+  const cliTarget = resolveManagedRuntimeCliTarget(backend);
+  if (cliTarget) {
+    try {
+      const providers = await ipcBridge.mode.listProviders.invoke();
+      const managedProvider = providers?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID);
+      const managedModels = getManagedCliSelectableModels(managedProvider);
+      if (managedModels.length > 0) {
+        const savedManagedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
+        if (savedManagedModel && managedModels.includes(savedManagedModel)) {
+          return buildManagedRuntimeModelId(cliTarget, savedManagedModel);
+        }
+        return buildManagedRuntimeModelId(cliTarget, managedModels[0]);
+      }
+    } catch {
+      // Fall through to legacy ACP preference / handshake fallback.
+    }
+  }
+
   const acpConfig = configService.get('acp.config');
   const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
-    return preferredModelId;
+    return cliTarget ? resolveManagedModelIdFromRuntime(cliTarget, preferredModelId) || preferredModelId : preferredModelId;
   }
 
   // Fallback: last-seen model info persisted on the backend's agent_metadata row.
@@ -77,7 +102,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
   const handshakeModelId = handshakeModels?.current_model_id;
   if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
-    return handshakeModelId;
+    return cliTarget ? resolveManagedModelIdFromRuntime(cliTarget, handshakeModelId) || handshakeModelId : handshakeModelId;
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {

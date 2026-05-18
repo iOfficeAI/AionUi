@@ -54,11 +54,27 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const isManagedCliSelection = Boolean(
     resolveManagedRuntimeCliTarget(selectedAgentBackend) && managedSelectableModels.length > 0
   );
-
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
     return modelList.filter((p) => p.enabled !== false);
   }, [modelList]);
+  const managedCliProvider = React.useMemo<IProvider | null>(() => {
+    if (!isManagedCliSelection || !managedProvider) return null;
+    return {
+      ...managedProvider,
+      name: managedProvider.name,
+      models: managedSelectableModels,
+      model: managedSelectableModels,
+      enabled: true,
+      model_enabled: Object.fromEntries(managedSelectableModels.map((modelId) => [modelId, true])),
+    } as IProvider;
+  }, [isManagedCliSelection, managedProvider, managedSelectableModels]);
+  const dropdownProviders = React.useMemo(() => {
+    if (isManagedCliSelection) {
+      return managedCliProvider ? [managedCliProvider] : [];
+    }
+    return enabledModelList;
+  }, [enabledModelList, isManagedCliSelection, managedCliProvider]);
 
   const geminiSelectedLabel = React.useMemo(() => {
     if (!current_model?.use_model) return '';
@@ -108,7 +124,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         trigger='click'
         droplist={
           <Menu selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}>
-            {!enabledModelList || enabledModelList.length === 0
+            {!dropdownProviders || dropdownProviders.length === 0
               ? [
                   <Menu.Item
                     key='no-models'
@@ -119,7 +135,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   </Menu.Item>,
                 ]
               : [
-                  ...(enabledModelList || []).map((provider) => {
+                  ...(dropdownProviders || []).map((provider) => {
                     const available_models = getAvailableModels(provider);
                     if (available_models.length === 0) return null;
                     return (
@@ -175,7 +191,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{isManagedCliSelection ? geminiSelectedLabel || geminiButtonLabel : geminiButtonLabel}</span>
-            {enabledModelList.length > 0 ? (
+            {dropdownProviders.length > 0 ? (
               <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             ) : null}
           </span>

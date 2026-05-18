@@ -35,7 +35,7 @@ export interface UpdateCheckResult {
 
 export interface UpdateCheckRequest {
   includePrerelease?: boolean;
-  /** Defaults to iOfficeAI/AionUi when omitted */
+  /** Defaults to halojerry/AionUi-2.0.2-dev-a3881e2 when omitted */
   repo?: string;
 }
 

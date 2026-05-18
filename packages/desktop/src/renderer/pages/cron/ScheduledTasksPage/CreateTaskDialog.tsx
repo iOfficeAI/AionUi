@@ -23,6 +23,11 @@ import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
+import {
+  getManagedCliSelectableModels,
+  MANAGED_NEWAPI_PROVIDER_ID,
+  resolveManagedRuntimeCliTarget,
+} from '@/common/types/agent/managedRuntimeCli';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -236,6 +241,19 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (resolvedBackend === 'aionrs' ? aionrsProviders : providers),
     [resolvedBackend, providers, aionrsProviders]
   );
+  const managedCliTarget = useMemo(
+    () => resolveManagedRuntimeCliTarget(resolvedBackend),
+    [resolvedBackend]
+  );
+  const managedProvider = useMemo(
+    () => providers.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
+    [providers]
+  );
+  const managedSelectableModels = useMemo(
+    () => getManagedCliSelectableModels(managedProvider),
+    [managedProvider]
+  );
+  const isManagedCliSelection = Boolean(managedCliTarget && managedSelectableModels.length > 0);
 
   // Build Gemini current_model from model_id for GuidModelSelector.
   // For aionrs edit mode, prefer the exact provider_id stored on the job —
@@ -277,10 +295,21 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // ACP model info derived from the backend `/api/agents` handshake.
   const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
+    if (isManagedCliSelection) {
+      const currentManagedModelId = model_id || managedSelectableModels[0] || null;
+      return {
+        current_model_id: currentManagedModelId,
+        current_model_label: currentManagedModelId,
+        available_models: managedSelectableModels.map((modelId) => ({
+          id: modelId,
+          label: modelId,
+        })),
+      } satisfies AcpModelInfo;
+    }
     const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     return info?.available_models?.length ? info : null;
-  }, [resolvedBackend, detectedAgents]);
+  }, [resolvedBackend, detectedAgents, isManagedCliSelection, managedSelectableModels, model_id]);
 
   // Auto-pick the first available model from /api/providers when aionrs is
   // selected but none is set yet. Source of truth is the backend provider
@@ -733,6 +762,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={model_id ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}
+                      selectedAgentBackend={resolvedBackend}
                     />
                   </div>
                 )}

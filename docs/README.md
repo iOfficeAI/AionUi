@@ -17,6 +17,7 @@ Documentation is organized by reader intent, not by document type.
 - Setting up a dev environment? See [`contributing/development.md`](contributing/development.md).
 - Writing code? The entry point for code-style, linting, formatting, and commit rules is [`AGENTS.md`](../AGENTS.md) at the repo root.
 - Deploying a server? [`guides/deploy-server.md`](guides/deploy-server.md).
+- Operating POUNDING releases and desktop auto-update? [`guides/pounding-release-update.md`](guides/pounding-release-update.md).
 
 ## Where to put new docs
 

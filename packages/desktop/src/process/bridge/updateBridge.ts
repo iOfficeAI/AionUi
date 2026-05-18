@@ -54,18 +54,34 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
+const DEFAULT_REPO = 'halojerry/AionUi-2.0.2-dev-a3881e2';
 const DEFAULT_USER_AGENT = 'POUNDING';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'static.aionui.com';
-const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
-const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
-  CDN_HOST,
+const DEFAULT_UPDATE_BASE_URL = 'https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/releases/download';
+const GITHUB_RELEASE_HOSTS = [
   'github.com',
   'objects.githubusercontent.com',
   'github-releases.githubusercontent.com',
   'release-assets.githubusercontent.com',
-]);
+] as const;
+
+const getUpdateBaseUrl = (): string => {
+  const configuredBase = process.env.AIONUI_UPDATE_BASE_URL?.trim();
+  return configuredBase && configuredBase.length > 0 ? configuredBase.replace(/\/+$/, '') : DEFAULT_UPDATE_BASE_URL;
+};
+
+const getAllowedDownloadHosts = (): Set<string> => {
+  const hosts = new Set<string>(GITHUB_RELEASE_HOSTS);
+  const configuredBase = process.env.AIONUI_UPDATE_BASE_URL?.trim();
+  if (configuredBase) {
+    try {
+      hosts.add(new URL(configuredBase).hostname);
+    } catch {
+      // ignore invalid runtime override here; concrete requests will still be validated later.
+    }
+  }
+  return hosts;
+};
 const MAX_REDIRECTS = 8;
 
 const isAllowedAssetName = (name: string) => {
@@ -87,7 +103,7 @@ const normalizeTagToSemver = (tag: string): string | null => {
  * matching electron-builder's artifactName output, so no name conversion is needed.
  */
 const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
-  return `${CDN_BASE_URL}/${version}/${assetName}`;
+  return `${getUpdateBaseUrl()}/${version}/${assetName}`;
 };
 
 const mapAsset = (asset: GitHubReleaseApiAsset, version: string): GitHubReleaseAsset => ({
@@ -209,7 +225,7 @@ const assertAllowedUrl = async (rawUrl: string) => {
   if (parsed.protocol !== 'https:') {
     throw new Error((await getI18n()).t('update.errors.httpsOnly'));
   }
-  if (!ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) {
+  if (!getAllowedDownloadHosts().has(parsed.hostname)) {
     throw new Error((await getI18n()).t('update.errors.hostNotAllowed', { host: parsed.hostname }));
   }
 };
