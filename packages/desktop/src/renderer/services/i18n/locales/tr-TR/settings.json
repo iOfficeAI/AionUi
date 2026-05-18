@@ -827,12 +827,11 @@
   "agentManagement": {
     "localAgents": "Yerel Ajanlar",
     "remoteAgents": "Uzak Ajanlar",
-    "localAgentsDescription": "Gemini CLI yerleşiktir. Diğer ajanlar yerel kurulumdan sonra otomatik olarak algılanır.",
+    "localAgentsDescription": "Aion CLI yerleşik ajandır ve uygulamayla birlikte gelir, kurulum gerektirmez. Diğer ajanlar yalnızca ilgili CLI yerel olarak kurulduktan sonra algılanır.",
     "localAgentsSetupLink": "Kurulum kılavuzu",
+    "goToChat": "Sohbete Başla",
     "remoteAgentsDescription": "Şimdilik yalnızca OpenClaw uzak bağlantısı desteklenmektedir. Diğer ajanlar geliştirilmektedir.",
-    "settings": "Ayarlar",
     "advancedConfig": "Gelişmiş Yapılandırma",
-    "settingsDisabledHint": "Yapılandırma yakında gelecek",
     "geminiDescription": "Google Gemini AI komut satırı aracı",
     "connectRemoteAgent": "Uzak Ajan Bağla",
     "discoverMoreAgents": "Daha Fazla Ajan Keşfet",
@@ -896,12 +895,5 @@
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
   },
-  "noExternalSources": "Harici beceri kaynağı bulunamadı",
-  "aionrs": {
-    "available": "Mevcut",
-    "notFound": "Bulunamadı",
-    "version": "Sürüm",
-    "path": "Yol",
-    "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. Aion CLI destekler: Anthropic, OpenAI, AWS Bedrock."
-  }
+  "noExternalSources": "Harici beceri kaynağı bulunamadı"
 }

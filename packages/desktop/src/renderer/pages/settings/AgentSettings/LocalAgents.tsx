@@ -16,6 +16,7 @@ import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
+import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
@@ -92,6 +93,13 @@ const LocalAgents: React.FC = () => {
     setEditorVisible(true);
   }, []);
 
+  const goToChatWithAgent = useCallback(
+    (agent: AgentMetadata) => {
+      navigate('/guid', { state: { selectedAgentKey: getAgentKey(agent) } });
+    },
+    [navigate]
+  );
+
   return (
     <div className='flex flex-col gap-8px py-16px'>
       <div className='px-16px text-12px text-t-secondary'>
@@ -144,16 +152,15 @@ const LocalAgents: React.FC = () => {
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
         {aionrsAgent && (
-          <AgentCard
-            type='detected'
-            agent={aionrsAgent}
-            settingsDisabled={false}
-            onSettings={() => navigate('/settings/aionrs')}
-            variant='grid'
-          />
+          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
         )}
         {otherDetected.map((agent) => (
-          <AgentCard key={agent.backend || agent.agent_type} type='detected' agent={agent} variant='grid' />
+          <AgentCard
+            key={agent.backend || agent.agent_type}
+            type='detected'
+            agent={agent}
+            onGoToChat={() => goToChatWithAgent(agent)}
+          />
         ))}
       </div>
       {(!detectedAgents || detectedAgents.length === 0) && (
@@ -216,6 +223,7 @@ const LocalAgents: React.FC = () => {
             key={agent.id}
             type='custom'
             agent={agent}
+            onGoToChat={() => goToChatWithAgent(agent)}
             onEdit={() => {
               setEditingAgent(agent);
               setEditorVisible(true);
