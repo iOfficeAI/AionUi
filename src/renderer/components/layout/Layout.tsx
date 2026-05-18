@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { ConfigStorage, type ICssTheme } from '@/common/config/storage';
+import GlobalMascot from '@/renderer/components/layout/GlobalMascot';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
@@ -538,6 +539,7 @@ const Layout: React.FC<{
               </Suspense>
             </ArcoLayout.Content>
           </ArcoLayout>
+          <GlobalMascot />
         </div>
       </NavigationHistoryProvider>
     </LayoutContext.Provider>

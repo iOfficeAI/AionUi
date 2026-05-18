@@ -1,0 +1,59 @@
+.root {
+  height: 0;
+  left: 0;
+  pointer-events: none;
+  position: fixed;
+  top: 0;
+  width: 0;
+  z-index: 9999;
+}
+
+.mascot {
+  height: 40px;
+  pointer-events: none;
+  left: 0;
+  opacity: 0;
+  position: fixed;
+  top: 0;
+  transform-origin: center;
+  transition:
+    opacity 0.25s ease,
+    transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
+  width: 72px;
+}
+
+.visible {
+  opacity: 1;
+}
+
+.idle {
+  opacity: 0;
+}
+
+.core {
+  animation: float 3s ease-in-out infinite;
+  height: 100%;
+  width: 100%;
+}
+
+.image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 10px 20px color-mix(in srgb, rgb(var(--primary-6)) 24%, transparent));
+  user-select: none;
+  position: relative;
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-4px);
+  }
+}

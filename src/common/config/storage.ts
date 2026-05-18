@@ -130,6 +130,10 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Whether the floating mascot is enabled near focused inputs
+  'system.mascotEnabled'?: boolean;
+  // Floating mascot image shown near focused inputs
+  'system.mascotImage'?: string;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

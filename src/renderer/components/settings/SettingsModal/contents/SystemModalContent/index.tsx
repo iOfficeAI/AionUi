@@ -8,6 +8,14 @@ import { ipcBridge } from '@/common';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { ConfigStorage } from '@/common/config/storage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
+import {
+  DEFAULT_GLOBAL_MASCOT_ENABLED,
+  DEFAULT_GLOBAL_MASCOT_ID,
+  GLOBAL_MASCOT_CHANGED_EVENT,
+  GLOBAL_MASCOT_OPTIONS,
+  type GlobalMascotOptionId,
+  resolveGlobalMascotOption,
+} from '@/renderer/components/layout/GlobalMascot/mascotCatalog';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { AUTO_PREVIEW_OFFICE_FILES_SWR_KEY } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
 import { iconColors } from '@/renderer/styles/colors';
@@ -51,6 +59,8 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [mascotEnabled, setMascotEnabled] = useState(DEFAULT_GLOBAL_MASCOT_ENABLED);
+  const [mascotImageId, setMascotImageId] = useState(DEFAULT_GLOBAL_MASCOT_ID);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -115,6 +125,15 @@ const SystemModalContent: React.FC = () => {
     ipcBridge.systemSettings.getAutoPreviewOfficeFiles
       .invoke()
       .then((enabled) => setAutoPreviewOfficeFiles(enabled))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    Promise.all([ConfigStorage.get('system.mascotEnabled'), ConfigStorage.get('system.mascotImage')])
+      .then(([enabledValue, imageValue]) => {
+        setMascotEnabled(enabledValue ?? DEFAULT_GLOBAL_MASCOT_ENABLED);
+        setMascotImageId(resolveGlobalMascotOption(imageValue).id);
+      })
       .catch(() => {});
   }, []);
 
@@ -203,6 +222,42 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const dispatchMascotChange = useCallback((detail: { enabled?: boolean; id?: string }) => {
+    window.dispatchEvent(new CustomEvent(GLOBAL_MASCOT_CHANGED_EVENT, { detail }));
+  }, []);
+
+  const handleMascotImageChange = useCallback(
+    (nextId: GlobalMascotOptionId) => {
+      if (nextId === mascotImageId) {
+        return;
+      }
+
+      const previousId = mascotImageId;
+      setMascotImageId(nextId);
+      dispatchMascotChange({ id: nextId });
+
+      ConfigStorage.set('system.mascotImage', nextId).catch(() => {
+        setMascotImageId(previousId);
+        dispatchMascotChange({ id: previousId });
+      });
+    },
+    [dispatchMascotChange, mascotImageId]
+  );
+
+  const handleMascotEnabledChange = useCallback(
+    (checked: boolean) => {
+      const previousEnabled = mascotEnabled;
+      setMascotEnabled(checked);
+      dispatchMascotChange({ enabled: checked });
+
+      ConfigStorage.set('system.mascotEnabled', checked).catch(() => {
+        setMascotEnabled(previousEnabled);
+        dispatchMascotChange({ enabled: previousEnabled });
+      });
+    },
+    [dispatchMascotChange, mascotEnabled]
+  );
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -273,6 +328,71 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.autoPreviewOfficeFiles'),
       description: t('settings.autoPreviewOfficeFilesDesc'),
       component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
+    },
+    {
+      key: 'mascotEnabled',
+      label: t('settings.mascotEnabled'),
+      description: t('settings.mascotEnabledDesc'),
+      component: <Switch checked={mascotEnabled} onChange={handleMascotEnabledChange} />,
+    },
+    {
+      key: 'mascotImage',
+      label: t('settings.mascotImage'),
+      description: t('settings.mascotImageDesc'),
+      component: (
+        <div className='flex max-w-320px flex-wrap justify-end gap-8px'>
+          {GLOBAL_MASCOT_OPTIONS.map((option) => {
+            const selected = mascotImageId === option.id;
+            return (
+              <Button
+                key={option.id}
+                type='secondary'
+                onClick={() => handleMascotImageChange(option.id)}
+                disabled={!mascotEnabled}
+                className='!h-auto !w-150px !rounded-12px !border !p-8px'
+                style={{
+                  alignItems: 'stretch',
+                  background: selected ? 'var(--color-fill-2)' : 'var(--color-bg-2)',
+                  borderColor: selected ? 'rgb(var(--primary-6))' : 'var(--color-border-2)',
+                  boxShadow: selected ? '0 0 0 1px rgba(var(--primary-6), 0.14)' : 'none',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 8,
+                  justifyContent: 'flex-start',
+                }}
+              >
+                <div
+                  className='overflow-hidden rounded-10px'
+                  style={{
+                    alignItems: 'center',
+                    background: 'var(--color-fill-1)',
+                    display: 'flex',
+                    height: 84,
+                    justifyContent: 'center',
+                  }}
+                >
+                  <img
+                    src={option.image}
+                    alt=''
+                    style={{
+                      height: option.frameHeight,
+                      imageRendering: 'pixelated',
+                      objectFit: 'contain',
+                      width: option.frameWidth,
+                    }}
+                  />
+                </div>
+                <span
+                  className='text-12px font-medium'
+                  style={{ color: selected ? 'rgb(var(--primary-6))' : 'var(--color-text-2)' }}
+                >
+                  {t(option.labelKey)}
+                </span>
+              </Button>
+            );
+          })}
+        </div>
+      ),
     },
   ];
 

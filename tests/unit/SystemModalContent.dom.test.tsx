@@ -92,11 +92,13 @@ const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
 const mockGetStartOnBootStatus = vi.fn();
 const mockSetStartOnBoot = vi.fn();
+const mockConfigGet = vi.fn();
+const mockConfigSet = vi.fn();
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
-    get: vi.fn().mockResolvedValue(undefined),
-    set: vi.fn().mockResolvedValue(undefined),
+    get: (...args: any[]) => mockConfigGet(...args),
+    set: (...args: any[]) => mockConfigSet(...args),
   },
 }));
 
@@ -247,6 +249,11 @@ describe('SystemModalContent', () => {
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
+    mockConfigGet.mockImplementation((key: string) => {
+      if (key === 'system.mascotEnabled') return Promise.resolve(false);
+      return Promise.resolve(undefined);
+    });
+    mockConfigSet.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {
@@ -262,6 +269,68 @@ describe('SystemModalContent', () => {
     expect(screen.getByText('settings.saveUploadToWorkspace')).toBeInTheDocument();
     expect(screen.getByText('settings.autoPreviewOfficeFiles')).toBeInTheDocument();
     expect(screen.getByText('settings.autoPreviewOfficeFilesDesc')).toBeInTheDocument();
+    expect(screen.getByText('settings.mascotEnabled')).toBeInTheDocument();
+    expect(screen.getByText('settings.mascotEnabledDesc')).toBeInTheDocument();
+    expect(screen.getByText('settings.mascotImage')).toBeInTheDocument();
+    expect(screen.getByText('settings.mascotImageDesc')).toBeInTheDocument();
+    expect(screen.getByText('settings.mascotImageOptionCute')).toBeInTheDocument();
+  });
+
+  it('should persist mascot image selection and dispatch a refresh event', async () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+    mockConfigGet.mockImplementation((key: string) => {
+      if (key === 'system.mascotEnabled') return Promise.resolve(true);
+      return Promise.resolve(undefined);
+    });
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mascotImageOptionGeminiA')).toBeInTheDocument();
+    });
+
+    await act(async () => {
+      fireEvent.click(screen.getByText('settings.mascotImageOptionGeminiA'));
+    });
+
+    await waitFor(() => {
+      expect(mockConfigSet).toHaveBeenCalledWith('system.mascotImage', 'geminiA');
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: { id: 'geminiA' },
+        type: 'aionui:global-mascot-changed',
+      })
+    );
+  });
+
+  it('should persist mascot enabled toggle and dispatch a refresh event', async () => {
+    const dispatchSpy = vi.spyOn(window, 'dispatchEvent');
+
+    render(<SystemModalContent />);
+
+    await waitFor(() => {
+      expect(screen.getByText('settings.mascotEnabled')).toBeInTheDocument();
+    });
+
+    const mascotEnabledSection = screen.getByText('settings.mascotEnabled').closest('.flex-1')?.parentElement;
+    const mascotEnabledSwitch = mascotEnabledSection?.querySelector('button[role="switch"]');
+
+    await act(async () => {
+      fireEvent.click(mascotEnabledSwitch!);
+    });
+
+    await waitFor(() => {
+      expect(mockConfigSet).toHaveBeenCalledWith('system.mascotEnabled', true);
+    });
+
+    expect(dispatchSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        detail: { enabled: true },
+        type: 'aionui:global-mascot-changed',
+      })
+    );
   });
 
   it('should toggle start on boot when the switch is clicked', async () => {
