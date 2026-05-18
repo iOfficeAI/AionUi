@@ -10,10 +10,11 @@ import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { useProjectAgentHandoff } from '@/renderer/pages/conversation/hooks/useProjectAgentHandoff';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
-import React, { useCallback, useMemo, useRef } from 'react';
+import React, { useCallback, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
@@ -134,6 +135,119 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
   );
 };
 
+const CANCEL_PENDING_SWITCH_MENU_KEY = '__project_executor_cancel_pending__';
+const NO_AVAILABLE_AGENTS_MENU_KEY = '__project_executor_no_available_agents__';
+const PENDING_TARGET_MENU_KEY = '__project_executor_pending_target__';
+
+const ProjectExecutorSwitchControl: React.FC<{ conversation: TChatConversation }> = ({ conversation }) => {
+  const { t } = useTranslation();
+  const [switching, setSwitching] = useState(false);
+  const { state, candidates, availableCandidates, pendingCandidate, isLoading, queueSwitch, cancelPendingSwitch } =
+    useProjectAgentHandoff(conversation.id);
+
+  const shouldHide = !isLoading && availableCandidates.length === 0 && !state?.pendingExecutorId;
+  if (shouldHide) {
+    return null;
+  }
+
+  const onClickMenuItem = async (key: string) => {
+    if (key === NO_AVAILABLE_AGENTS_MENU_KEY || key === PENDING_TARGET_MENU_KEY || switching || isLoading) {
+      return;
+    }
+
+    setSwitching(true);
+    try {
+      if (key === CANCEL_PENDING_SWITCH_MENU_KEY) {
+        await cancelPendingSwitch();
+        return;
+      }
+
+      const target = candidates.find((candidate) => candidate.id === key);
+      if (!target) {
+        return;
+      }
+
+      const result = await queueSwitch(target.id);
+      if (result.applied) {
+        Message.success(
+          t('conversation.chat.switchedToAgent', {
+            defaultValue: `Switched to ${target.label}`,
+            agent: target.label,
+          })
+        );
+        return;
+      }
+      Message.info(
+        t('conversation.chat.processing', {
+          defaultValue: 'Processing...',
+        })
+      );
+    } catch (error) {
+      console.error('[ProjectExecutorSwitchControl] Failed to switch executor:', error);
+      Message.error(
+        t('conversation.chat.switchAgentFailed', {
+          defaultValue: 'Failed to switch agent',
+        })
+      );
+    } finally {
+      setSwitching(false);
+    }
+  };
+
+  const tooltipContent = state?.pendingExecutorId
+    ? t('conversation.chat.processing', { defaultValue: 'Processing...' })
+    : t('conversation.chat.tryAnotherAgent', { defaultValue: 'Try another Agent:' });
+
+  return (
+    <Dropdown
+      trigger={['click']}
+      droplist={
+        <Menu
+          onClickMenuItem={(key) => {
+            void onClickMenuItem(String(key));
+          }}
+        >
+          {state?.pendingExecutorId && pendingCandidate && (
+            <Menu.Item key={PENDING_TARGET_MENU_KEY} disabled>
+              <Typography.Text type='secondary'>{pendingCandidate.label}</Typography.Text>
+            </Menu.Item>
+          )}
+          {state?.pendingExecutorId && (
+            <Menu.Item key={CANCEL_PENDING_SWITCH_MENU_KEY}>
+              {t('conversation.history.cancelDelete', { defaultValue: 'Cancel' })}
+            </Menu.Item>
+          )}
+          {availableCandidates.length > 0 ? (
+            availableCandidates.map((candidate) => <Menu.Item key={candidate.id}>{candidate.label}</Menu.Item>)
+          ) : (
+            <Menu.Item key={NO_AVAILABLE_AGENTS_MENU_KEY} disabled>
+              {t('conversation.noAgentsAvailable', { defaultValue: 'No agents available' })}
+            </Menu.Item>
+          )}
+        </Menu>
+      }
+    >
+      <Tooltip content={tooltipContent}>
+        <Button
+          size='mini'
+          loading={switching}
+          disabled={isLoading}
+          icon={
+            <History
+              theme='filled'
+              size='14'
+              fill={iconColors.primary}
+              strokeWidth={2}
+              strokeLinejoin='miter'
+              strokeLinecap='square'
+            />
+          }
+        />
+      </Tooltip>
+    </Dropdown>
+  );
+};
+
 // 仅抽取 Gemini 会话，确保包含模型信息
 // Narrow to Gemini conversations so model field is always available
 type GeminiConversation = Extract<TChatConversation, { type: 'gemini' }>;
@@ -169,6 +283,7 @@ const GeminiConversationPanel: React.FC<{
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <ConversationSkillsIndicator conversation={conversation} />
+        <ProjectExecutorSwitchControl conversation={conversation} />
         <CronJobManager
           conversationId={conversation.id}
           cronJobId={conversation.extra?.cronJobId as string | undefined}
@@ -228,6 +343,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <ConversationSkillsIndicator conversation={conversation} />
+        <ProjectExecutorSwitchControl conversation={conversation} />
         <CronJobManager
           conversationId={conversation.id}
           cronJobId={conversation.extra?.cronJobId as string | undefined}
@@ -413,6 +529,11 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {conversation && (
+        <div className='shrink-0'>
+          <ProjectExecutorSwitchControl conversation={conversation} />
+        </div>
+      )}
       {conversation?.type === 'openclaw-gateway' && (
         <div className='shrink-0'>
           <StarOfficeMonitorCard
