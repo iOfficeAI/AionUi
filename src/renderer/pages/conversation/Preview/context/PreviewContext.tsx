@@ -67,6 +67,10 @@ export interface PreviewContextValue {
   addDomSnippet: (tag: string, html: string) => void;
   removeDomSnippet: (id: string) => void;
   clearDomSnippets: () => void;
+
+  // URL 预览自动刷新触发器：每次 agent 写入前端源文件时递增
+  // URL preview auto-refresh trigger: incremented each time agent writes a frontend source file
+  urlReloadTrigger: number;
 }
 
 const PreviewContext = createContext<PreviewContextValue | null>(null);
@@ -157,6 +161,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
+  const [urlReloadTrigger, setUrlReloadTrigger] = useState(0);
 
   // 持久化 tabs 到 localStorage（仅保存小体积文本 tab）
   // Persist tabs to localStorage (only lightweight text tabs)
@@ -555,6 +560,21 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       }, 500); // 500ms 防抖时间 / 500ms debounce delay
 
       debounceTimers.set(filePath, timer);
+
+      // 如果是前端源文件，触发 URL 预览刷新（针对 localhost dev server）
+      // For frontend source files, trigger URL preview reload (targets localhost dev server)
+      const FRONTEND_SOURCE_RE = /\.(tsx?|jsx?|css|vue|html|svelte|scss|less)$/i;
+      if (FRONTEND_SOURCE_RE.test(filePath)) {
+        setTabs((prevTabs) => {
+          const hasLocalhostTab = prevTabs.some(
+            (tab) => tab.contentType === 'url' && /^https?:\/\/localhost/i.test(tab.content)
+          );
+          if (hasLocalhostTab) {
+            setUrlReloadTrigger((c) => c + 1);
+          }
+          return prevTabs;
+        });
+      }
     });
 
     return () => {
@@ -679,6 +699,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       addDomSnippet,
       removeDomSnippet,
       clearDomSnippets,
+      urlReloadTrigger,
     };
   }, [
     isOpen,
@@ -699,6 +720,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     addDomSnippet,
     removeDomSnippet,
     clearDomSnippets,
+    urlReloadTrigger,
   ]);
 
   return <PreviewContext.Provider value={previewContextValue}>{children}</PreviewContext.Provider>;

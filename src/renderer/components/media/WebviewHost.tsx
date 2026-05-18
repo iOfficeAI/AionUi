@@ -24,6 +24,8 @@ export interface WebviewHostProps {
   onDidFinishLoad?: () => void;
   /** Called when the page fails to load */
   onDidFailLoad?: (errorCode: number, errorDescription: string) => void;
+  /** Increment this value to programmatically reload the webview */
+  reloadTrigger?: number;
 }
 
 const MIN_ZOOM_FACTOR = 0.75;
@@ -48,6 +50,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   style,
   onDidFinishLoad,
   onDidFailLoad,
+  reloadTrigger,
 }) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const contentRef = useRef<HTMLDivElement | null>(null);
@@ -60,6 +63,16 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [zoomFactor, setZoomFactor] = useState(1);
   const [webviewReady, setWebviewReady] = useState(false);
+
+  // Auto-reload when reloadTrigger increments (e.g. agent wrote frontend source files)
+  const prevReloadTriggerRef = useRef(reloadTrigger);
+  useEffect(() => {
+    if (reloadTrigger === undefined) return;
+    if (prevReloadTriggerRef.current !== reloadTrigger && webviewReady) {
+      webviewRef.current?.reload();
+    }
+    prevReloadTriggerRef.current = reloadTrigger;
+  }, [reloadTrigger, webviewReady]);
 
   // Self-managed history stacks
   const historyBackRef = useRef<string[]>([]);

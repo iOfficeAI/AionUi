@@ -588,4 +588,104 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
     showOnHome: true,
   },
+  {
+    id: 'builtin-req-analyst',
+    avatar: 'code.svg',
+    presetAgentType: 'claude',
+    resourceDir: 'src/process/resources/assistant/req-analyst',
+    ruleFiles: {
+      'en-US': 'req-analyst.md',
+      'zh-CN': 'req-analyst.md',
+    },
+    defaultEnabledSkills: ['reverse-engineer-prd', 'requirements-clarifier'],
+    nameI18n: {
+      'en-US': 'Requirements Analyst',
+      'zh-CN': '需求分析师',
+      'ru-RU': 'Requirements Analyst',
+      'uk-UA': 'Requirements Analyst',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Specialist in extracting requirements from UI screenshots and design mockups, producing structured PRDs and clarification reports.',
+      'zh-CN': '专注从 UI 截图和设计稿中提取需求，生成结构化 PRD 文档和澄清报告。',
+      'ru-RU': 'Извлекает требования из UI-скриншотов, создаёт PRD и отчёты об уточнениях.',
+      'uk-UA': 'Витягує вимоги з UI-скриншотів, створює PRD та звіти з уточнень.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Analyze this screenshot and extract product requirements',
+        'Review this requirements document and identify ambiguities',
+        'Generate user stories from this design mockup',
+      ],
+      'zh-CN': ['分析这个截图并提取产品需求', '审查这份需求文档并识别模糊点', '从这个设计稿生成用户故事'],
+    },
+  },
+  {
+    id: 'builtin-frontend-dev',
+    avatar: 'code.svg',
+    presetAgentType: 'claude',
+    resourceDir: 'src/process/resources/assistant/frontend-dev',
+    ruleFiles: {
+      'en-US': 'frontend-dev.md',
+      'zh-CN': 'frontend-dev.md',
+    },
+    defaultEnabledSkills: ['requirements-clarifier'],
+    nameI18n: {
+      'en-US': 'Frontend Developer',
+      'zh-CN': '前端开发者',
+      'ru-RU': 'Frontend Developer',
+      'uk-UA': 'Frontend Developer',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Specialist in UI implementation, component development, CSS styling, and frontend performance. Follows the project tech profile and existing codebase patterns.',
+      'zh-CN': '专注 UI 实现、组件开发、CSS 样式和前端性能优化，遵循项目技术规范和现有代码风格。',
+      'ru-RU': 'Специалист по UI, компонентам, CSS и производительности фронтенда.',
+      'uk-UA': 'Спеціаліст з UI, компонентів, CSS та продуктивності фронтенду.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Build a responsive dashboard layout with sidebar navigation',
+        'Implement a multi-step form with validation',
+        'Optimize the bundle size and improve page load performance',
+      ],
+      'zh-CN': ['构建带侧边导航的响应式 Dashboard 布局', '实现带校验的多步骤表单', '优化打包体积，提升页面加载性能'],
+    },
+  },
+  {
+    id: 'builtin-backend-dev',
+    avatar: 'code.svg',
+    presetAgentType: 'claude',
+    resourceDir: 'src/process/resources/assistant/backend-dev',
+    ruleFiles: {
+      'en-US': 'backend-dev.md',
+      'zh-CN': 'backend-dev.md',
+    },
+    defaultEnabledSkills: ['requirements-clarifier'],
+    nameI18n: {
+      'en-US': 'Backend Developer',
+      'zh-CN': '后端开发者',
+      'ru-RU': 'Backend Developer',
+      'uk-UA': 'Backend Developer',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Specialist in API design, database modeling, business logic, and backend security. Follows the project tech profile and never breaks existing API contracts.',
+      'zh-CN': '专注 API 设计、数据库建模、业务逻辑和后端安全，遵循项目技术规范，不破坏现有 API 契约。',
+      'ru-RU': 'Специалист по API, базам данных, бизнес-логике и безопасности бэкенда.',
+      'uk-UA': 'Спеціаліст з API, баз даних, бізнес-логіки та безпеки бекенду.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Design and implement a RESTful API for user management',
+        'Create a database migration to add audit logging',
+        'Implement JWT authentication with refresh token rotation',
+      ],
+      'zh-CN': [
+        '设计并实现用户管理的 RESTful API',
+        '创建数据库迁移以添加审计日志',
+        '实现带 Refresh Token 轮换的 JWT 认证',
+      ],
+    },
+  },
 ];

@@ -12,6 +12,8 @@ interface URLViewerProps {
   url: string;
   /** Optional title for the page */
   title?: string;
+  /** Increment to trigger a webview reload (e.g. after agent writes frontend source files) */
+  reloadTrigger?: number;
 }
 
 /**
@@ -20,8 +22,8 @@ interface URLViewerProps {
  *
  * Delegates to the shared WebviewHost with navigation bar enabled.
  */
-const URLViewer: React.FC<URLViewerProps> = ({ url }) => {
-  return <WebviewHost url={url} showNavBar className='bg-bg-1' />;
+const URLViewer: React.FC<URLViewerProps> = ({ url, reloadTrigger }) => {
+  return <WebviewHost url={url} showNavBar className='bg-bg-1' reloadTrigger={reloadTrigger} />;
 };
 
 export default URLViewer;

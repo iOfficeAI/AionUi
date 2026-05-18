@@ -12,6 +12,7 @@ import type { Mailbox } from './Mailbox';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
 import { agentRegistry } from '@process/agent/AgentRegistry';
+import { readTechProfile } from './techProfile';
 
 type TeammateManagerParams = {
   teamId: string;
@@ -178,7 +179,7 @@ export class TeammateManager extends EventEmitter {
             .getDetectedAgents()
             .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
             .map((a) => ({
-              type: a.backend,
+              type: a.backend === 'aionrs' ? 'aicore-cli' : a.backend,
               name: a.name,
             }));
 
@@ -202,6 +203,7 @@ export class TeammateManager extends EventEmitter {
           availableAssistants,
           renamedAgents: this.renamedAgents,
           teamWorkspace: this.teamWorkspace,
+          techProfile: this.teamWorkspace ? readTechProfile(this.teamWorkspace) : null,
         });
 
         message =

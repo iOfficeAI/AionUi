@@ -69,6 +69,7 @@ export class TeamSession extends EventEmitter {
         this.teammateManager.removeAgent(slotId);
       },
       wakeAgent: (slotId: string) => this.teammateManager.wake(slotId),
+      workspace: team.workspace || undefined,
     });
   }
 

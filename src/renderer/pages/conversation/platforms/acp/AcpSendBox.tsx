@@ -33,7 +33,7 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import { useAcpMessage } from './useAcpMessage';
@@ -125,6 +125,15 @@ const AcpSendBox: React.FC<{
   const showModeSelector = true;
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
+  const [sessionCost, setSessionCost] = useState<{ totalCost: number; currency: string } | null>(null);
+  useEffect(() => {
+    if (!tokenUsage) return;
+    void ipcBridge.tokenUsage.queryByConversation.invoke({ conversationId: conversation_id }).then((res) => {
+      if (res && res.totalCost > 0) {
+        setSessionCost({ totalCost: res.totalCost, currency: res.currency });
+      }
+    });
+  }, [conversation_id, tokenUsage]);
   const slashCommands = useSlashCommands(conversation_id, { agentStatus: acpStatus });
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
@@ -439,6 +448,7 @@ Please check your local CLI tool authentication status`,
               tokenUsage={tokenUsage}
               contextLimit={contextLimit > 0 ? contextLimit : undefined}
               size={24}
+              cost={sessionCost}
             />
           ) : undefined
         }

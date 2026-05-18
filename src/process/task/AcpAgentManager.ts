@@ -681,7 +681,9 @@ ${collectedResponses.join('\n')}`;
 
     // Persist context usage to conversation extra for restore on page switch
     if (message.type === 'acp_context_usage') {
-      this.saveContextUsage(message.data as { used: number; size: number });
+      const usageData = message.data as { used: number; size: number; cost?: { amount: number; currency: string } };
+      this.saveContextUsage(usageData);
+      this.recordTokenUsageEvent(usageData);
     }
 
     // Convert thought events to thinking messages in conversation flow
@@ -1496,6 +1498,18 @@ ${collectedResponses.join('\n')}`;
   private clearBusyState(): void {
     cronBusyGuard.setProcessing(this.conversation_id, false);
     this.status = 'finished';
+  }
+
+  private recordTokenUsageEvent(usage: { used: number; cost?: { amount: number; currency: string } }): void {
+    void getDatabase().then((db) => {
+      db.insertTokenUsageEvent({
+        conversationId: this.conversation_id,
+        agentBackend: this.options.backend,
+        totalTokens: usage.used,
+        costAmount: usage.cost?.amount,
+        costCurrency: usage.cost?.currency,
+      });
+    });
   }
 
   private async saveContextUsage(usage: { used: number; size: number }): Promise<void> {

@@ -17,7 +17,8 @@ import { hasGeminiOauthCreds } from '../googleAuthCheck';
 import { agentRegistry } from '@process/agent/AgentRegistry';
 
 export async function handleListModels(args: Record<string, unknown>): Promise<string> {
-  const agentType = args.agent_type ? String(args.agent_type) : undefined;
+  let agentType = args.agent_type ? String(args.agent_type) : undefined;
+  if (agentType === 'aicore-cli') agentType = 'aionrs';
 
   const [cachedModels, providers, isGoogleAuth] = await Promise.all([
     ProcessConfig.get('acp.cachedModels'),
@@ -28,9 +29,10 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
   if (agentType) {
     const models = getTeamAvailableModels(agentType, cachedModels, providers, isGoogleAuth);
     if (models.length === 0) {
-      return `No models available for agent type "${agentType}".`;
+      return `No models available for agent type "${agentType === 'aionrs' ? 'aicore-cli' : agentType}".`;
     }
-    return `## Models for ${agentType}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
+    const displayType = agentType === 'aionrs' ? 'aicore-cli' : agentType;
+    return `## Models for ${displayType}\n${models.map((m) => `- ${m.id}`).join('\n')}`;
   }
 
   // List models for all team-capable backends
@@ -46,7 +48,8 @@ export async function handleListModels(args: Record<string, unknown>): Promise<s
   const sections = detectedAgents.map((a) => {
     const models = getTeamAvailableModels(a.backend, cachedModels, providers, isGoogleAuth);
     const modelLines = models.length > 0 ? models.map((m) => `  - ${m.id}`).join('\n') : '  (no models available)';
-    return `### ${a.name} (\`${a.backend}\`)\n${modelLines}`;
+    const displayBackend = a.backend === 'aionrs' ? 'aicore-cli' : a.backend;
+    return `### ${a.name} (\`${displayBackend}\`)\n${modelLines}`;
   });
 
   return `## Available Models by Agent Type\n\n${sections.join('\n\n')}`;

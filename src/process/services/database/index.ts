@@ -1672,6 +1672,102 @@ export class AionUIDatabase {
   }
 
   /**
+   * ==================
+   * Token usage tracking
+   * ==================
+   */
+
+  insertTokenUsageEvent(event: {
+    conversationId: string;
+    teamId?: string;
+    agentBackend?: string;
+    totalTokens?: number;
+    costAmount?: number;
+    costCurrency?: string;
+  }): void {
+    try {
+      this.db
+        .prepare(
+          `INSERT INTO token_usage_events
+            (conversation_id, team_id, agent_backend, ts, total_tokens, cost_amount, cost_currency)
+           VALUES (?, ?, ?, ?, ?, ?, ?)`
+        )
+        .run(
+          event.conversationId,
+          event.teamId ?? null,
+          event.agentBackend ?? null,
+          Date.now(),
+          event.totalTokens ?? null,
+          event.costAmount ?? null,
+          event.costCurrency ?? 'USD'
+        );
+    } catch {
+      // Non-critical; silently ignore
+    }
+  }
+
+  queryTokenUsageByConversation(conversationId: string): {
+    totalTokens: number;
+    totalCost: number;
+    currency: string;
+    eventCount: number;
+  } {
+    try {
+      const row = this.db
+        .prepare(
+          `SELECT
+            COALESCE(SUM(total_tokens), 0) as total_tokens,
+            COALESCE(SUM(cost_amount), 0) as total_cost,
+            MAX(cost_currency) as currency,
+            COUNT(*) as event_count
+           FROM token_usage_events WHERE conversation_id = ?`
+        )
+        .get(conversationId) as { total_tokens: number; total_cost: number; currency: string; event_count: number };
+      return {
+        totalTokens: row.total_tokens,
+        totalCost: row.total_cost,
+        currency: row.currency ?? 'USD',
+        eventCount: row.event_count,
+      };
+    } catch {
+      return { totalTokens: 0, totalCost: 0, currency: 'USD', eventCount: 0 };
+    }
+  }
+
+  queryTokenUsageSummary(from: number, to: number): {
+    totalTokens: number;
+    totalCost: number;
+    currency: string;
+    conversationCount: number;
+  } {
+    try {
+      const row = this.db
+        .prepare(
+          `SELECT
+            COALESCE(SUM(total_tokens), 0) as total_tokens,
+            COALESCE(SUM(cost_amount), 0) as total_cost,
+            MAX(cost_currency) as currency,
+            COUNT(DISTINCT conversation_id) as conversation_count
+           FROM token_usage_events WHERE ts >= ? AND ts <= ?`
+        )
+        .get(from, to) as {
+        total_tokens: number;
+        total_cost: number;
+        currency: string;
+        conversation_count: number;
+      };
+      return {
+        totalTokens: row.total_tokens,
+        totalCost: row.total_cost,
+        currency: row.currency ?? 'USD',
+        conversationCount: row.conversation_count,
+      };
+    } catch {
+      return { totalTokens: 0, totalCost: 0, currency: 'USD', conversationCount: 0 };
+    }
+  }
+
+  /**
    * Vacuum database to reclaim space
    */
   vacuum(): void {

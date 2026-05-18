@@ -283,6 +283,51 @@ Pass agent_type to query a specific backend, or omit it to see all.`,
   TEAM_MCP_TOKEN
 );
 
+// ---- team_analyze_project ----
+createTeamTool(
+  server,
+  'team_analyze_project',
+  `Scan the team workspace and return a project analysis: complexity level, project type, detected tech stack, recommended agent lineup, and suggested skills.
+
+Use this at the start of a project to understand what you are working with and which teammates to propose to the user.`,
+  {},
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
+// ---- team_request_design_review ----
+createTeamTool(
+  server,
+  'team_request_design_review',
+  `Send a UI screenshot to the requirements analyst agent for PRD extraction. The analyst will use the reverse-engineer-prd skill to produce a structured Product Requirements Document.
+
+Use this when the user provides a design mockup or screenshot and wants to extract requirements from it.`,
+  {
+    screenshot_path: z.string().describe('Absolute path to the screenshot or design image file.'),
+    task: z
+      .string()
+      .optional()
+      .describe('Custom instruction for the analyst. Defaults to standard PRD extraction.'),
+  },
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
+// ---- team_get_tech_profile ----
+createTeamTool(
+  server,
+  'team_get_tech_profile',
+  `Read the project's tech profile from .aicore/tech-profile.yaml in the team workspace.
+
+Returns the raw YAML content describing technology constraints (stack, coding standards, forbidden patterns) that all agents must follow. Returns an empty string if no profile exists.`,
+  {},
+  TEAM_MCP_PORT,
+  TEAM_AGENT_SLOT_ID,
+  TEAM_MCP_TOKEN
+);
+
 async function main(): Promise<void> {
   const transport = new StdioServerTransport();
   await server.connect(transport);

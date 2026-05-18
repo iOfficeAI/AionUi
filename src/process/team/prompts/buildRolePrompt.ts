@@ -11,6 +11,8 @@ type BuildRolePromptParams = {
   availableAssistants?: Array<{ customAgentId: string; name: string; backend: string; description?: string }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
+  /** Raw YAML content from .aicore/tech-profile.yaml — injected into agent prompt */
+  techProfile?: string | null;
 };
 
 /**
@@ -19,7 +21,8 @@ type BuildRolePromptParams = {
  * Agents pull dynamic state on demand via team_* MCP tools.
  */
 export function buildRolePrompt(params: BuildRolePromptParams): string {
-  const { agent, teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace } = params;
+  const { agent, teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace, techProfile } =
+    params;
 
   if (agent.role === 'leader') {
     return buildLeaderPrompt({
@@ -28,6 +31,7 @@ export function buildRolePrompt(params: BuildRolePromptParams): string {
       availableAssistants,
       renamedAgents,
       teamWorkspace,
+      techProfile,
     });
   }
 
@@ -40,5 +44,6 @@ export function buildRolePrompt(params: BuildRolePromptParams): string {
     teammates: otherTeammates,
     renamedAgents,
     teamWorkspace,
+    techProfile,
   });
 }

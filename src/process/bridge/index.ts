@@ -44,6 +44,7 @@ import { initRemoteAgentBridge } from './remoteAgentBridge';
 import { initHubBridge } from './hubBridge';
 import { initTeamBridge } from './teamBridge';
 import { initKscBridge } from './kscBridge';
+import { initTokenUsageBridge } from './tokenUsageBridge';
 import type { TeamSessionService } from '@process/team/TeamSessionService';
 
 export interface BridgeDependencies {
@@ -94,6 +95,7 @@ export function initAllBridges(deps: BridgeDependencies): void {
   initHubBridge();
   initTeamBridge(deps.teamSessionService);
   initKscBridge();
+  initTokenUsageBridge();
 }
 
 /**

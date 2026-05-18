@@ -22,6 +22,7 @@ import { resolveLocaleKey } from '@/common/utils';
 import { handleListModels } from '../modelListHandler.ts';
 import { notifyMcpReady } from '../../mcpReadiness.ts';
 import { writeTcpMessage, createTcpMessageReader, resolveMcpScriptDir } from '../tcpHelpers.ts';
+import { readTechProfile } from '../../techProfile.ts';
 
 type SpawnAgentFn = (
   agentName: string,
@@ -39,6 +40,7 @@ type TeamMcpServerParams = {
   renameAgent?: (slotId: string, newName: string) => void;
   removeAgent?: (slotId: string) => void;
   wakeAgent: (slotId: string) => Promise<void>;
+  workspace?: string;
 };
 
 export type StdioMcpConfig = {
@@ -271,6 +273,12 @@ export class TeamMcpServer {
         return this.handleDescribeAssistant(args);
       case 'team_list_models':
         return handleListModels(args);
+      case 'team_get_tech_profile':
+        return this.handleGetTechProfile();
+      case 'team_analyze_project':
+        return this.handleAnalyzeProject();
+      case 'team_request_design_review':
+        return this.handleRequestDesignReview(args, fromSlotId);
       default:
         throw new Error(`Unknown tool: ${toolName}`);
     }
@@ -377,6 +385,9 @@ export class TeamMcpServer {
     const model = args.model ? String(args.model) : undefined;
     let agentType = args.agent_type ? String(args.agent_type) : undefined;
 
+    // Accept 'aicore-cli' as a display alias for the internal 'aionrs' backend
+    if (agentType === 'aicore-cli') agentType = 'aionrs';
+
     // When a preset is requested, resolve its backend from config so the caller
     // does not need to specify agent_type separately.
     if (customAgentId) {
@@ -412,7 +423,7 @@ export class TeamMcpServer {
         const capable = getTeamCapableBackends(
           agentRegistry.getDetectedAgents().map((a) => a.backend),
           cachedInitResults
-        );
+        ).map((b) => (b === 'aionrs' ? 'aicore-cli' : b));
         throw new Error(`Agent type "${agentType}" is not supported in team mode. Supported: ${capable.join(', ')}.`);
       }
     }
@@ -500,7 +511,8 @@ export class TeamMcpServer {
     }
     const lines = agents.map((a) => {
       const modelSuffix = a.model ? `, model: ${a.model}` : '';
-      return `- ${a.agentName} (type: ${a.agentType}, role: ${a.role}, status: ${a.status}${modelSuffix})`;
+      const displayType = a.agentType === 'aionrs' ? 'aicore-cli' : a.agentType;
+      return `- ${a.agentName} (type: ${displayType}, role: ${a.role}, status: ${a.status}${modelSuffix})`;
     });
     return `## Team Members\n${lines.join('\n')}`;
   }
@@ -631,5 +643,148 @@ export class TeamMcpServer {
 
     this.params.renameAgent(resolvedSlotId, newName);
     return `Agent renamed: "${oldName}" → "${newName.trim()}"`;
+  }
+
+  private handleGetTechProfile(): string {
+    const workspace = this.params.workspace;
+    if (!workspace) return '';
+    const profile = readTechProfile(workspace);
+    return profile ?? '';
+  }
+
+  private handleAnalyzeProject(): string {
+    const workspace = this.params.workspace;
+    if (!workspace) {
+      return JSON.stringify({ error: 'No workspace configured for this team.' });
+    }
+
+    const fs = require('node:fs') as typeof import('node:fs');
+    const extCounts: Record<string, number> = {};
+    let totalFiles = 0;
+
+    const ignoredDirs = new Set(['node_modules', '.git', 'dist', 'build', 'out', 'coverage', '.next', '.nuxt']);
+
+    const walk = (dir: string): void => {
+      let entries: import('node:fs').Dirent[];
+      try {
+        entries = fs.readdirSync(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (entry.isDirectory()) {
+          if (!ignoredDirs.has(entry.name) && !entry.name.startsWith('.')) {
+            walk(path.join(dir, entry.name));
+          }
+        } else if (entry.isFile()) {
+          totalFiles++;
+          const ext = path.extname(entry.name).toLowerCase();
+          if (ext) extCounts[ext] = (extCounts[ext] ?? 0) + 1;
+        }
+      }
+    };
+
+    walk(workspace);
+
+    // Detect stack from file extensions
+    const detectedStack: string[] = [];
+    if ((extCounts['.tsx'] ?? 0) + (extCounts['.jsx'] ?? 0) > 0) detectedStack.push('React');
+    if ((extCounts['.vue'] ?? 0) > 0) detectedStack.push('Vue');
+    if ((extCounts['.svelte'] ?? 0) > 0) detectedStack.push('Svelte');
+    if ((extCounts['.ts'] ?? 0) > 0) detectedStack.push('TypeScript');
+    if ((extCounts['.py'] ?? 0) > 0) detectedStack.push('Python');
+    if ((extCounts['.go'] ?? 0) > 0) detectedStack.push('Go');
+    if ((extCounts['.java'] ?? 0) > 0) detectedStack.push('Java');
+    if ((extCounts['.rs'] ?? 0) > 0) detectedStack.push('Rust');
+    if ((extCounts['.css'] ?? 0) + (extCounts['.scss'] ?? 0) + (extCounts['.less'] ?? 0) > 0)
+      detectedStack.push('CSS');
+
+    // Check package.json for more clues
+    try {
+      const pkgPath = path.join(workspace, 'package.json');
+      if (fs.existsSync(pkgPath)) {
+        const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) as {
+          dependencies?: Record<string, string>;
+          devDependencies?: Record<string, string>;
+        };
+        const deps = { ...pkg.dependencies, ...pkg.devDependencies };
+        if (deps['next']) detectedStack.push('Next.js');
+        if (deps['nuxt']) detectedStack.push('Nuxt');
+        if (deps['nestjs'] ?? deps['@nestjs/core']) detectedStack.push('NestJS');
+        if (deps['express']) detectedStack.push('Express');
+        if (deps['fastapi'] ?? deps['fastapi-slim']) detectedStack.push('FastAPI');
+      }
+    } catch {
+      // ignore
+    }
+
+    // Determine project type
+    const hasFrontend = (extCounts['.tsx'] ?? 0) + (extCounts['.jsx'] ?? 0) + (extCounts['.vue'] ?? 0) > 0;
+    const hasBackend =
+      (extCounts['.py'] ?? 0) + (extCounts['.go'] ?? 0) + (extCounts['.java'] ?? 0) + (extCounts['.rs'] ?? 0) > 0 ||
+      detectedStack.includes('NestJS') ||
+      detectedStack.includes('Express');
+    const type = hasFrontend && hasBackend ? 'fullstack' : hasFrontend ? 'frontend' : hasBackend ? 'backend' : 'mixed';
+
+    // Complexity: based on file count and stack diversity
+    const stackSize = detectedStack.length;
+    const complexity = totalFiles > 500 || stackSize > 5 ? 'high' : totalFiles > 100 || stackSize > 2 ? 'medium' : 'low';
+
+    // Agent recommendations
+    const recommendedAgents: Array<{ role: string; preset: string; reason: string }> = [];
+    if (hasFrontend) {
+      recommendedAgents.push({
+        role: 'Frontend Developer',
+        preset: 'builtin-frontend-dev',
+        reason: 'Project has frontend source files',
+      });
+    }
+    if (hasBackend) {
+      recommendedAgents.push({
+        role: 'Backend Developer',
+        preset: 'builtin-backend-dev',
+        reason: 'Project has backend source files',
+      });
+    }
+
+    const recommendedSkills = ['requirements-clarifier'];
+    if (hasFrontend) recommendedSkills.push('reverse-engineer-prd');
+
+    return JSON.stringify(
+      { complexity, type, fileStats: { total: totalFiles, byExtension: extCounts }, detectedStack, recommendedAgents, recommendedSkills },
+      null,
+      2
+    );
+  }
+
+  private async handleRequestDesignReview(args: Record<string, unknown>, fromSlotId?: string): Promise<string> {
+    const screenshotPath = String(args.screenshot_path ?? '');
+    const task = String(args.task ?? 'Analyze this UI screenshot and produce a PRD using the reverse-engineer-prd skill.');
+
+    if (!screenshotPath) {
+      throw new Error('screenshot_path is required');
+    }
+
+    const agents = this.params.getAgents();
+    const reqAnalyst = agents.find(
+      (a) => a.agentName.toLowerCase().includes('analyst') || a.agentName.toLowerCase().includes('analyst')
+    );
+
+    if (!reqAnalyst) {
+      return 'No requirements analyst agent found on the team. Ask the leader to spawn a builtin-req-analyst agent first.';
+    }
+
+    const fromAgent = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : agents.find((a) => a.role === 'leader');
+    const fromSlot = fromAgent?.slotId ?? 'unknown';
+
+    await this.params.mailbox.write({
+      teamId: this.params.teamId,
+      toAgentId: reqAnalyst.slotId,
+      fromAgentId: fromSlot,
+      content: `${task}\n\nScreenshot path: ${screenshotPath}`,
+    });
+    this.safeWake(reqAnalyst.slotId, 'design review request');
+
+    return `Design review request sent to ${reqAnalyst.agentName}. They will analyze the screenshot at: ${screenshotPath}`;
   }
 }

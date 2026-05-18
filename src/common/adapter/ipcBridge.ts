@@ -622,6 +622,30 @@ export const remoteAgent = {
   ),
 };
 
+// Token usage / cost tracking
+export interface ITokenUsageSummary {
+  totalTokens: number;
+  totalCost: number;
+  currency: string;
+  conversationCount: number;
+}
+
+export interface IConversationCostSummary {
+  totalTokens: number;
+  totalCost: number;
+  currency: string;
+  eventCount: number;
+}
+
+export const tokenUsage = {
+  queryByConversation: bridge.buildProvider<IConversationCostSummary, { conversationId: string }>(
+    'token-usage.query-by-conversation'
+  ),
+  querySummary: bridge.buildProvider<ITokenUsageSummary, { from: number; to: number }>(
+    'token-usage.query-summary'
+  ),
+};
+
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<

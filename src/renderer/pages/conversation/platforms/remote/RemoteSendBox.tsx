@@ -142,15 +142,12 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     setHasHydratedRunningState(false);
 
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (!res) {
-        setAiProcessing(false);
-        aiProcessingRef.current = false;
-        setHasHydratedRunningState(true);
-        return;
+      const isRunning = res ? res.status === 'running' : false;
+      // Don't reset to false if user has already triggered processing locally
+      if (isRunning || !aiProcessingRef.current) {
+        setAiProcessing(isRunning);
+        aiProcessingRef.current = isRunning;
       }
-      const isRunning = res.status === 'running';
-      setAiProcessing(isRunning);
-      aiProcessingRef.current = isRunning;
       setHasHydratedRunningState(true);
     });
   }, [conversation_id]);

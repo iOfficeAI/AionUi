@@ -14,6 +14,8 @@ export type LeaderPromptParams = {
   }>;
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
+  /** Raw YAML content from .aicore/tech-profile.yaml */
+  techProfile?: string | null;
 };
 
 /**
@@ -24,7 +26,7 @@ export type LeaderPromptParams = {
  * that are automatically available in the tool list.
  */
 export function buildLeaderPrompt(params: LeaderPromptParams): string {
-  const { teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace } = params;
+  const { teammates, availableAgentTypes, availableAssistants, renamedAgents, teamWorkspace, techProfile } = params;
 
   const teammateList =
     teammates.length === 0
@@ -33,7 +35,8 @@ export function buildLeaderPrompt(params: LeaderPromptParams): string {
           .map((t) => {
             const formerly = renamedAgents?.get(t.slotId);
             const formerlyNote = formerly ? ` [formerly: ${formerly}]` : '';
-            return `- ${t.agentName} (${t.agentType}, status: ${t.status})${formerlyNote}`;
+            const displayType = t.agentType === 'aionrs' ? 'aicore-cli' : t.agentType;
+            return `- ${t.agentName} (${displayType}, status: ${t.status})${formerlyNote}`;
           })
           .join('\n');
 
@@ -183,5 +186,5 @@ When the user explicitly asks to dismiss/fire/shut down teammates:
 - If a teammate fails, reassign or adjust the plan
 - Refer to teammates by their name (e.g., "researcher", "developer")
 - Do NOT duplicate work that teammates are already doing
-- Be patient with idle teammates — idle means waiting for input, not done`;
+- Be patient with idle teammates — idle means waiting for input, not done${techProfile ? `\n\n## Tech Profile\nThe following project-level technology constraints apply to all work in this team. You and all teammates MUST follow these constraints:\n\n\`\`\`yaml\n${techProfile}\n\`\`\`` : ''}`;
 }

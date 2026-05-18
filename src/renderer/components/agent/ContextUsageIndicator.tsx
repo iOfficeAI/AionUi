@@ -18,6 +18,7 @@ interface ContextUsageIndicatorProps {
   contextLimit?: number;
   className?: string;
   size?: number;
+  cost?: { totalCost: number; currency: string } | null;
 }
 
 const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
@@ -25,6 +26,7 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
   contextLimit = DEFAULT_CONTEXT_LIMIT,
   className = '',
   size = 24,
+  cost,
 }) => {
   const { t } = useTranslation();
 
@@ -50,6 +52,11 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
       isDanger: pct > 90,
     };
   }, [tokenUsage, contextLimit]);
+
+  const costDisplay = useMemo(() => {
+    if (!cost || cost.totalCost <= 0) return null;
+    return `${cost.totalCost < 0.01 ? '< $0.01' : `$${cost.totalCost.toFixed(3)}`} ${cost.currency}`;
+  }, [cost]);
 
   // 如果没有 token 数据，不显示
   if (!tokenUsage) {
@@ -80,6 +87,11 @@ const ContextUsageIndicator: React.FC<ContextUsageIndicatorProps> = ({
         {percentage.toFixed(1)}% · {displayTotal} / {displayLimit}{' '}
         {t('conversation.contextUsage.contextUsed', 'context used')}
       </div>
+      {costDisplay && (
+        <div className='text-12px text-t-secondary mt-4px'>
+          {t('conversation.contextUsage.sessionCost', 'Session cost')}: {costDisplay}
+        </div>
+      )}
     </div>
   );
 

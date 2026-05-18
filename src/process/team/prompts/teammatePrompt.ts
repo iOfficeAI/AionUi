@@ -8,6 +8,8 @@ export type TeammatePromptParams = {
   teammates: TeamAgent[];
   renamedAgents?: Map<string, string>;
   teamWorkspace?: string;
+  /** Raw YAML content from .aicore/tech-profile.yaml */
+  techProfile?: string | null;
 };
 
 function roleDescription(agentType: string): string {
@@ -32,7 +34,7 @@ function roleDescription(agentType: string): string {
  * assignments via mailbox and uses MCP tools to communicate results back.
  */
 export function buildTeammatePrompt(params: TeammatePromptParams): string {
-  const { agent, leader, teammates, renamedAgents, teamWorkspace } = params;
+  const { agent, leader, teammates, renamedAgents, teamWorkspace, techProfile } = params;
 
   const teammateNames =
     teammates.length === 0
@@ -110,5 +112,5 @@ If you receive a message with type \`shutdown_request\`, the leader is asking yo
 - Report back to the leader when you finish, including a summary of what you did
 - If you get stuck, send a message to the leader asking for guidance
 - You can communicate with other teammates directly if needed
-- Use your native tools (Read, Write, Bash, etc.) for implementation work`;
+- Use your native tools (Read, Write, Bash, etc.) for implementation work${techProfile ? `\n\n## Tech Profile\nThe following project-level technology constraints apply to all your work. You MUST follow these constraints:\n\n\`\`\`yaml\n${techProfile}\n\`\`\`` : ''}`;
 }

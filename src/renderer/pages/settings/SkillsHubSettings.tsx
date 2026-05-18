@@ -70,6 +70,10 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
   const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
+  const existingSkillNames = useMemo(
+    () => new Set(availableSkills.map((s) => s.name.toLowerCase())),
+    [availableSkills]
+  );
 
   const filteredSkills = useMemo(() => {
     if (!searchQuery.trim()) return mySkills;
@@ -233,18 +237,32 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
     }
   }, [customPathName, customPathValue, handleRefreshExternal]);
 
-  const totalExternal = externalSources.reduce((sum, src) => sum + src.skills.length, 0);
+  const unimportedCountBySource = useMemo(
+    () =>
+      Object.fromEntries(
+        externalSources.map((src) => [
+          src.source,
+          src.skills.filter((s) => !existingSkillNames.has(s.name.toLowerCase())).length,
+        ])
+      ),
+    [externalSources, existingSkillNames]
+  );
+  const totalExternal = externalSources.reduce(
+    (sum, src) => sum + (unimportedCountBySource[src.source] ?? 0),
+    0
+  );
   const activeSource = externalSources.find((s) => s.source === activeSourceTab);
 
   const filteredExternalSkills = useMemo(() => {
     if (!activeSource) return [];
-    if (!searchExternalQuery.trim()) return activeSource.skills;
+    const unimported = activeSource.skills.filter((s) => !existingSkillNames.has(s.name.toLowerCase()));
+    if (!searchExternalQuery.trim()) return unimported;
     const lowerQuery = searchExternalQuery.toLowerCase();
-    return activeSource.skills.filter(
+    return unimported.filter(
       (s) =>
         s.name.toLowerCase().includes(lowerQuery) || (s.description && s.description.toLowerCase().includes(lowerQuery))
     );
-  }, [activeSource, searchExternalQuery]);
+  }, [activeSource, searchExternalQuery, existingSkillNames]);
 
   const mainContent = (
     <div className='flex flex-col h-full w-full'>
@@ -307,7 +325,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                     <span
                       className={`px-6px py-1px rd-[100px] text-11px flex items-center justify-center transition-colors ${isActive ? 'bg-white/20 text-white font-medium' : 'bg-fill-2 text-t-secondary border border-transparent'}`}
                     >
-                      {source.skills.length}
+                      {unimportedCountBySource[source.source] ?? source.skills.length}
                     </span>
                   </button>
                 );
@@ -333,7 +351,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   </div>
                   <button
                     className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
-                    onClick={() => void handleImportAll(activeSource.skills)}
+                    onClick={() => void handleImportAll(activeSource.skills.filter((s) => !existingSkillNames.has(s.name.toLowerCase())))}
                   >
                     {t('settings.skillsHub.importAll', { defaultValue: 'Import All' })}
                   </button>

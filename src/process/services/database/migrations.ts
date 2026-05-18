@@ -1214,6 +1214,39 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add token_usage_events table for cost tracking
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add token_usage_events table',
+  up: (db) => {
+    db.exec(`CREATE TABLE IF NOT EXISTS token_usage_events (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      conversation_id TEXT NOT NULL,
+      team_id TEXT,
+      agent_backend TEXT,
+      ts INTEGER NOT NULL,
+      input_tokens INTEGER,
+      output_tokens INTEGER,
+      total_tokens INTEGER,
+      cost_amount REAL,
+      cost_currency TEXT DEFAULT 'USD'
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_tue_conv ON token_usage_events(conversation_id)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_tue_ts ON token_usage_events(ts)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_tue_team ON token_usage_events(team_id) WHERE team_id IS NOT NULL');
+    console.log('[Migration v27] Added token_usage_events table');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_tue_team');
+    db.exec('DROP INDEX IF EXISTS idx_tue_ts');
+    db.exec('DROP INDEX IF EXISTS idx_tue_conv');
+    db.exec('DROP TABLE IF EXISTS token_usage_events');
+    console.log('[Migration v27] Rolled back: Removed token_usage_events table');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1255,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**
