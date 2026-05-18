@@ -830,7 +830,7 @@
     "remoteAgents": "远端 Agents",
     "localAgentsDescription": "Aion CLI 是内置 Agent，App 自带无需安装；其他 Agent 需先在本地安装对应 CLI 才能被识别。",
     "localAgentsSetupLink": "查看安装指南",
-    "goToChat": "去对话",
+    "goToChat": "开始对话",
     "remoteAgentsDescription": "目前只支持远程连接 OpenClaw，其他 Agent 正在开发中。",
     "advancedConfig": "高级配置",
     "geminiDescription": "Google Gemini AI 命令行工具",

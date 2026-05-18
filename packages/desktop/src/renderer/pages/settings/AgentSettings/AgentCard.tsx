@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Avatar, Button, Switch, Typography } from '@arco-design/web-react';
-import { Delete, EditTwo, MessageOne, Robot } from '@icon-park/react';
+import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -82,13 +82,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           </Typography.Text>
         </div>
 
-        <Button
-          size='small'
-          type='secondary'
-          icon={<MessageOne theme='outline' size='14' />}
-          onClick={onGoToChat}
-          className={goToChatButtonClassName}
-        >
+        <Button size='small' type='secondary' onClick={onGoToChat} className={goToChatButtonClassName}>
           {t('settings.agentManagement.goToChat')}
         </Button>
       </div>
@@ -117,13 +111,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       </div>
       <div className='flex items-center gap-8px'>
         <Switch size='small' checked={agent.enabled !== false} onChange={onToggle} />
-        <Button
-          size='small'
-          type='text'
-          icon={<MessageOne theme='outline' size='14' />}
-          onClick={onGoToChat}
-          disabled={agent.enabled === false}
-        >
+        <Button size='small' type='text' onClick={onGoToChat} disabled={agent.enabled === false}>
           {t('settings.agentManagement.goToChat')}
         </Button>
         <Button size='small' type='text' icon={<EditTwo theme='outline' size='14' />} onClick={onEdit} />

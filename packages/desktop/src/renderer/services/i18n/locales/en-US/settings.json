@@ -829,7 +829,7 @@
     "remoteAgents": "Remote Agents",
     "localAgentsDescription": "Aion CLI is the built-in agent and ships with the app — no install needed. Other agents are detected only after their CLI is installed locally.",
     "localAgentsSetupLink": "Setup guide",
-    "goToChat": "Go to Chat",
+    "goToChat": "Start Chat",
     "remoteAgentsDescription": "Only remote OpenClaw connections are supported for now. Other agents are in development.",
     "advancedConfig": "Advanced Config",
     "geminiDescription": "Google Gemini AI command-line tool",

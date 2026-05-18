@@ -829,7 +829,7 @@
     "remoteAgents": "Uzak Ajanlar",
     "localAgentsDescription": "Aion CLI yerleşik ajandır ve uygulamayla birlikte gelir, kurulum gerektirmez. Diğer ajanlar yalnızca ilgili CLI yerel olarak kurulduktan sonra algılanır.",
     "localAgentsSetupLink": "Kurulum kılavuzu",
-    "goToChat": "Sohbete Git",
+    "goToChat": "Sohbete Başla",
     "remoteAgentsDescription": "Şimdilik yalnızca OpenClaw uzak bağlantısı desteklenmektedir. Diğer ajanlar geliştirilmektedir.",
     "advancedConfig": "Gelişmiş Yapılandırma",
     "geminiDescription": "Google Gemini AI komut satırı aracı",
