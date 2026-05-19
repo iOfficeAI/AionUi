@@ -254,7 +254,7 @@ export const processGeminiStreamEvents = async (
 
             onStreamEvent({
               type: ServerGeminiEventType.Error,
-              data: `Context window overflow: Request size (${estimatedK}K tokens) exceeds model capacity (${remainingK}K tokens). Try: 1) Start a new conversation, 2) Reduce workspace files, 3) Clear conversation history, or 4) Use smaller files.`,
+              data: `当前对话内容过长啦～\n\n本次请求约 ${estimatedK}K tokens，已超出模型剩余容量（${remainingK}K tokens）。\n\n你可以尝试：\n• 开启一个新对话，清空历史记录\n• 减少引用的文件数量或选择更小的文件\n• 切换到上下文更大的模型`,
             });
           }
           break;
