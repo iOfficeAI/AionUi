@@ -55,7 +55,7 @@ function normalisePresetAgentType(raw: unknown): string {
 /**
  * Frozen snapshot of built-in assistant ids. Must stay in sync with the
  * backend manifest at
- * `AionCLI/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
+ * `AionCore/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
  * — add/remove ids in the same PR. Drift means a user-authored assistant
  * whose id accidentally matches a built-in slug will be imported into the
  * user table and then silently overwritten the next time the backend ships

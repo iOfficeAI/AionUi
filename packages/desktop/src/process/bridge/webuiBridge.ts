@@ -6,11 +6,11 @@
  * Desktop IPC bridge for WebUI lifecycle (start/stop/getStatus).
  *
  * WebUI credential operations (change-password / change-username / reset-password /
- * generate-qr-token) are NOT handled here — those are HTTP routes on aioncli's
+ * generate-qr-token) are NOT handled here — those are HTTP routes on aioncore's
  * local-only /api/webui/*, called directly by the renderer via ipcBridge HTTP.
  *
  * This bridge owns only the lifecycle + status snapshot, because spawning a
- * WebUI instance requires Electron's app.* / Node child_process — aioncli
+ * WebUI instance requires Electron's app.* / Node child_process — aioncore
  * has no way to start a WebUI wrapper around itself.
  */
 
@@ -52,7 +52,7 @@ async function fetchAdminUsername(): Promise<string> {
 async function maybeSeedInitialPassword(): Promise<void> {
   const port = getBackendPort();
   if (!port) {
-    throw new Error('[WebUI] Cannot start: aioncli is not running (globalThis.__backendPort unset)');
+    throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
   }
   const statusRes = await fetch(`http://127.0.0.1:${port}/api/auth/status`);
   if (!statusRes.ok) {

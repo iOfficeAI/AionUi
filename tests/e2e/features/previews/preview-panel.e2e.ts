@@ -1,7 +1,7 @@
 /**
  * Preview panel + office document E2E.
  *
- * Covers the four user-visible preview flows that run against aioncli
+ * Covers the four user-visible preview flows that run against aioncore
  * in --local mode (no auth, no CSRF):
  *   1. Document conversion API (/api/document/convert)
  *   2. Preview panel rendering inside a conversation

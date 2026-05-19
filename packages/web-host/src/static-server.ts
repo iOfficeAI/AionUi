@@ -2,7 +2,7 @@
  * WebUI static server.
  *
  * Serves out/renderer/ as the SPA and reverse-proxies /api/*, /ws, /login and
- * /logout to aioncli. All auth goes to backend's aionui-auth crate;
+ * /logout to aioncore. All auth goes to backend's aionui-auth crate;
  * /login and /logout are aionui-auth's top-level paths, the rest live under
  * /api/auth/*.
  *

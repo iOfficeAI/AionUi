@@ -1,6 +1,6 @@
 /**
  * WebSocket client with automatic reconnection, heartbeat keep-alive,
- * and typed event dispatch for aioncli communication.
+ * and typed event dispatch for aioncore communication.
  *
  * Usage:
  *   const ws = createWebSocketClient('ws://127.0.0.1:9123/ws')

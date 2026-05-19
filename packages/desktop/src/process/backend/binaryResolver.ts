@@ -1,5 +1,5 @@
 /**
- * Resolve the aioncli binary path.
+ * Resolve the aioncore binary path.
  *
  * Search order:
  *  1. Bundled with app (production)
@@ -10,14 +10,14 @@ import { existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { execSync } from 'node:child_process';
 
-const BINARY_NAME = 'aioncli';
+const BINARY_NAME = 'aioncore';
 
 function getBinaryName(): string {
   return process.platform === 'win32' ? `${BINARY_NAME}.exe` : BINARY_NAME;
 }
 
 /**
- * Resolve the aioncli binary path.
+ * Resolve the aioncore binary path.
  * Returns the absolute path to the binary, or throws if not found.
  */
 export function resolveBinaryPath(): string {
@@ -32,14 +32,14 @@ export function resolveBinaryPath(): string {
 
 /**
  * Check bundled binary in resources directory.
- * Layout: bundled-aioncli/{platform}-{arch}/aioncli[.exe]
+ * Layout: bundled-aioncore/{platform}-{arch}/aioncore[.exe]
  */
 function bundledPath(): string | null {
   const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
   if (!resourcesPath) return null;
 
   const runtimeKey = `${process.platform}-${process.arch}`;
-  const candidate = join(resourcesPath, 'bundled-aioncli', runtimeKey, getBinaryName());
+  const candidate = join(resourcesPath, 'bundled-aioncore', runtimeKey, getBinaryName());
 
   if (existsSync(candidate)) return candidate;
   return null;

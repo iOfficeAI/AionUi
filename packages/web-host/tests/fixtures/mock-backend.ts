@@ -9,7 +9,7 @@ export type MockBackend = {
 
 /**
  * Unified mock backend used by equivalence.test.ts to stand in for
- * aioncli. Responds with canned answers for known endpoints and
+ * aioncore. Responds with canned answers for known endpoints and
  * captures every request for post-hoc assertions.
  */
 export async function startMockBackend(): Promise<MockBackend> {
