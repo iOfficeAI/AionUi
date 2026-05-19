@@ -11,7 +11,7 @@ import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 import { resolveAionrsBinary } from './binaryResolver';
-import { buildSpawnConfig } from './envBuilder';
+import { buildSpawnConfig, logSpawnDiagnostics } from './envBuilder';
 import type { AionrsEvent, AionrsCommand, AionrsCapabilities } from './protocol';
 
 const AIONRS_PROJECT_CONFIG = '.aionrs.toml';
@@ -100,6 +100,8 @@ export class AionrsAgent {
       sessionId: this.options.sessionId,
       resume: this.options.resume,
     });
+
+    logSpawnDiagnostics(args, env, projectConfig);
 
     // Write temporary .aionrs.toml for provider compat overrides
     if (projectConfig) {
@@ -431,6 +433,7 @@ export class AionrsAgent {
   }
 
   setConfig(config: { model?: string; thinking?: string; thinking_budget?: number; effort?: string }): void {
+    console.log('[AionrsAgent] set_config', JSON.stringify(config));
     this.sendCommand({ type: 'set_config', ...config });
   }
 

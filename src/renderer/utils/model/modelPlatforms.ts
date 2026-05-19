@@ -114,7 +114,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
     value: 'gemini',
     logo: GeminiLogo,
     platform: 'gemini',
-    baseUrl: 'https://generativelanguage.googleapis.com',
+    baseUrl: 'https://generativelanguage.googleapis.com/v1beta',
   },
   { name: 'Gemini (Vertex AI)', value: 'gemini-vertex-ai', logo: GeminiLogo, platform: 'gemini-vertex-ai' },
 

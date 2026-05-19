@@ -48,6 +48,7 @@ function isValidCommandName(name: string): boolean {
 
 const aionrsRequestThrottleChains = new Map<string, Promise<void>>();
 const aionrsRequestNextAvailableAt = new Map<string, number>();
+const GEMINI_DEFAULT_THINKING_BUDGET = 8192;
 
 function resolveAionrsRequestThrottleKey(model: TProviderWithModel): string {
   return [model.platform, model.name, model.baseUrl ?? '', model.useModel].join('\u0000');
@@ -237,6 +238,12 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       this._configSentAt = Date.now();
       mainLog('[AionrsManager]', `initial effort sent: effort=${mergedData.reasoningEffort}`);
       agent.setConfig({ effort: mergedData.reasoningEffort });
+    }
+
+    if (mergedData.model?.platform === 'gemini' && this._capabilities?.thinking) {
+      this._configSentAt = Date.now();
+      mainLog('[AionrsManager]', `initial thinking sent: thinking=enabled, budget=${GEMINI_DEFAULT_THINKING_BUDGET}`);
+      agent.setConfig({ thinking: 'enabled', thinking_budget: GEMINI_DEFAULT_THINKING_BUDGET });
     }
 
     if (this.data.data.teamMcpStdioConfig) {
@@ -875,6 +882,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     effort?: string;
   }): Promise<void> {
     if (this.agent) {
+      mainLog('[AionrsManager]', `set_config sent: ${JSON.stringify(config)}`);
       this.agent.setConfig(config);
     }
     if (config.effort) {

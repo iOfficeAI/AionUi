@@ -8,7 +8,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { isOpenAIHost } from '@/common/utils/urlValidation';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 
-type AionrsProvider = 'anthropic' | 'openai' | 'bedrock' | 'vertex' | 'copilot' | 'chatgpt';
+type AionrsProvider = 'anthropic' | 'openai' | 'gemini' | 'bedrock' | 'vertex' | 'copilot' | 'chatgpt';
 const DEFAULT_NO_PROXY = 'localhost,127.0.0.1,::1';
 const PROXY_ENV_KEYS = [
   'HTTP_PROXY',
@@ -40,8 +40,7 @@ function mapProvider(model: TProviderWithModel): AionrsProvider {
     copilot: 'copilot',
     chatgpt: 'chatgpt',
     'gemini-vertex-ai': 'vertex',
-    // Gemini uses OpenAI-compatible endpoint
-    gemini: 'openai',
+    gemini: 'gemini',
     // custom / new-api default to OpenAI-compatible protocol
     custom: 'openai',
     'new-api': 'openai',
@@ -49,18 +48,57 @@ function mapProvider(model: TProviderWithModel): AionrsProvider {
   return mapping[model.platform] ?? 'openai';
 }
 
-const GEMINI_OPENAI_COMPAT_PATH = '/v1beta/openai';
+const GEMINI_NATIVE_DEFAULT_BASE_URL = 'https://generativelanguage.googleapis.com/v1beta';
 
-/**
- * Resolve base URL for OpenAI-compatible providers.
- * For Gemini, ensure the URL includes the `/v1beta/openai` path suffix.
- */
-function resolveOpenAIBaseUrl(model: TProviderWithModel): string {
-  if (model.platform === 'gemini') {
-    const raw = (model.baseUrl || 'https://generativelanguage.googleapis.com').replace(/\/+$/, '');
-    return raw.endsWith(GEMINI_OPENAI_COMPAT_PATH) ? raw : `${raw}${GEMINI_OPENAI_COMPAT_PATH}`;
+function resolveGeminiBaseUrl(model: TProviderWithModel): string {
+  const raw = (model.baseUrl || GEMINI_NATIVE_DEFAULT_BASE_URL).replace(/\/+$/, '');
+  if (raw === 'https://generativelanguage.googleapis.com') {
+    return GEMINI_NATIVE_DEFAULT_BASE_URL;
   }
-  return model.baseUrl || '';
+  if (hasGeminiNativeVersionPath(raw)) {
+    return raw;
+  }
+  return `${raw}/v1beta`;
+}
+
+function hasGeminiNativeVersionPath(url: string): boolean {
+  try {
+    const parsed = new URL(url);
+    return /\/v1(?:alpha|beta)?$/i.test(parsed.pathname.replace(/\/+$/, ''));
+  } catch {
+    return /\/v1(?:alpha|beta)?$/i.test(url.replace(/\/+$/, ''));
+  }
+}
+
+function getArgValue(args: string[], name: string): string | undefined {
+  const index = args.indexOf(name);
+  return index >= 0 ? args[index + 1] : undefined;
+}
+
+function maskSecret(value: string): string {
+  if (value.length <= 8) {
+    return '***';
+  }
+  return `${value.slice(0, 4)}...${value.slice(-4)}`;
+}
+
+function buildSpawnDiagnostics(args: string[], env: Record<string, string>, projectConfig: string) {
+  const safeEnv = Object.fromEntries(
+    Object.entries(env).map(([key, value]) => [key, /key|token|secret/i.test(key) ? maskSecret(value) : value])
+  );
+
+  return {
+    provider: getArgValue(args, '--provider'),
+    model: getArgValue(args, '--model'),
+    baseUrl: getArgValue(args, '--base-url'),
+    args,
+    env: safeEnv,
+    projectConfig: projectConfig ? projectConfig.trim() : undefined,
+  };
+}
+
+export function logSpawnDiagnostics(args: string[], env: Record<string, string>, projectConfig: string): void {
+  console.log('[AionrsAgent] spawn config', JSON.stringify(buildSpawnDiagnostics(args, env, projectConfig)));
 }
 
 /**
@@ -172,10 +210,15 @@ export function buildSpawnConfig(
 
     case 'openai': {
       if (model.apiKey) env.OPENAI_API_KEY = model.apiKey;
-      const baseUrl = resolveOpenAIBaseUrl(model);
+      const baseUrl = model.baseUrl || '';
       if (baseUrl) args.push('--base-url', stripTrailingV1(baseUrl));
       break;
     }
+
+    case 'gemini':
+      if (model.apiKey) env.GEMINI_API_KEY = model.apiKey;
+      args.push('--base-url', resolveGeminiBaseUrl(model));
+      break;
 
     case 'bedrock': {
       const bc = (model as TProviderWithModel & { bedrockConfig?: any }).bedrockConfig;
@@ -215,9 +258,6 @@ export function buildSpawnConfig(
  * Build `.aionrs.toml` project config content for provider compat overrides.
  * Returns non-empty string only when overrides are needed.
  *
- * - Gemini's OpenAI-compatible endpoint already includes version in the base URL
- *   (`/v1beta/openai`), so we override api_path to `/chat/completions` to avoid
- *   the default `/v1/chat/completions` which would produce a 404.
  * - OpenAI official API requires `max_completion_tokens` instead of `max_tokens`
  *   for newer models (gpt-5.x, o-series, etc.).
  */
@@ -227,13 +267,8 @@ function buildProjectConfig(model: TProviderWithModel, provider: AionrsProvider)
   // Collect compat overrides as key-value pairs
   const overrides: string[] = [];
 
-  // Gemini uses /v1beta/openai as base URL — skip the default /v1 prefix
-  if (model.platform === 'gemini') {
-    overrides.push('api_path = "/chat/completions"');
-  }
-
   // OpenAI official API needs max_completion_tokens for newer models.
-  // Only apply when the host is actually OpenAI (not Gemini or other providers).
+  // Only apply when the host is actually OpenAI.
   const baseUrl = model.baseUrl || '';
   if (baseUrl && isOpenAIHost(baseUrl)) {
     overrides.push('max_tokens_field = "max_completion_tokens"');
