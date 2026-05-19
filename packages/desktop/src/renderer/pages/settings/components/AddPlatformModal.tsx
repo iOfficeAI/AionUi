@@ -4,7 +4,7 @@ import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import { isGoogleApisHost } from '@/common/utils/urlValidation';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select } from '@arco-design/web-react';
+import { Form, Input, Message, Select, Switch } from '@arco-design/web-react';
 import { LinkCloud, Edit, Search, Loading } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -236,6 +236,7 @@ const AddPlatformModal = ModalHOC<{
 
   // new-api 每模型协议选择状态 / new-api per-model protocol selection state
   const [modelProtocol, setModelProtocol] = useState<string>('openai');
+  const [isFullUrl, setIsFullUrl] = useState(false);
 
   // Auto-detect protocol when model changes (for new-api platforms)
   useEffect(() => {
@@ -306,6 +307,7 @@ const AddPlatformModal = ModalHOC<{
       protocolDetection.reset();
       setLastDetectionInput(null); // 重置检测记录 / Reset detection record
       setModelProtocol('openai'); // 重置协议选择 / Reset protocol selection
+      setIsFullUrl(false);
 
       // Pre-fill from deep link data (aionui:// protocol)
       if (deepLinkData?.base_url || deepLinkData?.api_key) {
@@ -351,6 +353,7 @@ const AddPlatformModal = ModalHOC<{
           base_url: isBedrock ? '' : values.base_url || selectedPlatform?.base_url || '',
           api_key: isBedrock ? '' : values.api_key,
           models: [values.model],
+          is_full_url: isFullUrl,
         };
 
         // Add Bedrock configuration if platform is Bedrock
@@ -441,18 +444,37 @@ const AddPlatformModal = ModalHOC<{
           {/* Base URL - 自定义选项、标准 Gemini 和 New API 显示 / Base URL - for Custom, standard Gemini and New API */}
           <Form.Item
             hidden={isBedrock || (!isCustom && !isNewApi && platformValue !== 'gemini')}
-            label={t('settings.baseUrl')}
+            label={t('settings.apiEndpoint', 'API 请求地址')}
             field={'base_url'}
             required={isCustom || isNewApi}
             rules={[{ required: isCustom || isNewApi }]}
           >
             <Input
-              placeholder={isNewApi ? 'https://your-newapi-instance.com' : selectedPlatform?.base_url || ''}
+              placeholder={
+                isFullUrl
+                  ? 'https://your-api-endpoint.com/v1/chat/completions'
+                  : isNewApi
+                    ? 'https://your-newapi-instance.com'
+                    : selectedPlatform?.base_url || ''
+              }
               onBlur={() => {
                 void modelListState.mutate();
               }}
             />
           </Form.Item>
+
+          {/* Full URL toggle - only for custom and new-api platforms */}
+          {(isCustom || isNewApi) && !isBedrock && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: -8, marginBottom: 12 }}>
+              <Switch size='small' checked={isFullUrl} onChange={setIsFullUrl} />
+              <span className='text-12px text-t-secondary'>{t('settings.fullUrlMode', '完整 URL')}</span>
+              <span className='text-11px text-t-tertiary'>
+                {isFullUrl
+                  ? t('settings.fullUrlHint', '直接使用此地址，不拼接路径')
+                  : t('settings.baseUrlHint', '系统会自动拼接请求路径')}
+              </span>
+            </div>
+          )}
 
           {/* API Key */}
           <Form.Item
