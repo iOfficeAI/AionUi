@@ -5,7 +5,7 @@
  *
  * Version resolution order:
  *  1. AIONUI_BACKEND_VERSION env (for ad-hoc overrides)
- *  2. "aionuiBackendVersion" field in repo-root package.json (the pin)
+ *  2. "aioncoreVersion" field in repo-root package.json (the pin)
  *  3. 'latest' (fallback; not recommended for reproducible builds)
  *
  * Environment variables:
@@ -15,27 +15,27 @@
  */
 
 const path = require('path');
-const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aioncore.js');
-const { resolveBackendVersion } = require('./resolveBackendVersion.js');
+const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.platform;
 // Support cross-compilation: AIONUI_BACKEND_ARCH > npm_config_target_arch > process.arch
 const arch = process.env.AIONUI_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
-const version = resolveBackendVersion(projectRoot);
+const version = resolveAioncoreVersion(projectRoot);
 
 try {
-  prepareAionuiBackend({ projectRoot, platform, arch, version });
+  prepareAioncore({ projectRoot, platform, arch, version });
 } catch (error) {
-  console.error('❌ prepareAionuiBackend failed:', error.message);
+  console.error('❌ prepareAioncore failed:', error.message);
   process.exit(1);
 }
 
 module.exports = function () {
   try {
-    return prepareAionuiBackend({ projectRoot, platform, arch, version });
+    return prepareAioncore({ projectRoot, platform, arch, version });
   } catch (error) {
-    console.error('❌ prepareAionuiBackend failed:', error.message);
+    console.error('❌ prepareAioncore failed:', error.message);
     throw error;
   }
 };

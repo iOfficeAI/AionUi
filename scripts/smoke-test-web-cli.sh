@@ -78,7 +78,7 @@ if [ ! -x "$BACKEND_BINARY" ]; then
   exit 1
 fi
 # aioncore has no --version flag. Read the pinned version from manifest.json
-# (which prepareAionuiBackend writes at pack time) and use --help to confirm the
+# (which prepareAioncore writes at pack time) and use --help to confirm the
 # binary loads successfully on this platform's GLIBC / libstdc++ / etc.
 if [ -f "$BACKEND_DIR/manifest.json" ]; then
   BACKEND_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$BACKEND_DIR/manifest.json" | head -1 | sed 's/.*"\([^"]*\)"$/\1/')
