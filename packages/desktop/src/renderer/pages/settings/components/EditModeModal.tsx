@@ -1,6 +1,6 @@
 import type { IProvider } from '@/common/config/storage';
 import ModalHOC from '@/renderer/utils/ui/ModalHOC';
-import { Form, Input, Message, Select } from '@arco-design/web-react';
+import { Form, Input, Message, Select, Tag } from '@arco-design/web-react';
 import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
@@ -136,7 +136,16 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
             {/* Base URL */}
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.apiEndpoint', 'API 请求地址')}
+              label={
+                <span className='inline-flex items-center gap-4px'>
+                  {t('settings.apiEndpoint', 'API 请求地址')}
+                  {isFullUrl && (
+                    <Tag size='small' color='arcoblue'>
+                      {t('settings.fullUrl', '完整URL')}
+                    </Tag>
+                  )}
+                </span>
+              }
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'base_url'}
