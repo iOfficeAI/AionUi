@@ -115,6 +115,19 @@ const sortKeys = (items: IntegrationDefinition[]) => {
   });
 };
 
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => reject(new Error(`${label} timed out`)), timeoutMs);
+  });
+
+  try {
+    return await Promise.race([promise, timeout]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const ProvidersCockpit: React.FC = () => {
   const [statusMap, setStatusMap] = useState<Record<string, IntegrationState>>({});
   const [draftMap, setDraftMap] = useState<Record<string, string>>({});
@@ -129,11 +142,11 @@ const ProvidersCockpit: React.FC = () => {
   const loadStatus = useCallback(async () => {
     setLoading(true);
     try {
-      const statuses = await systemSettings.getIntegrationKeysStatus.invoke();
+      const statuses = await withTimeout(systemSettings.getIntegrationKeysStatus.invoke(), 3500, 'Provider key status');
       setStatusMap(statuses ?? {});
     } catch (error) {
       console.error('[ProvidersCockpit] failed to load integration key status:', error);
-      Message.error('Failed to load provider key status.');
+      Message.warning('Provider key status is slow. You can still paste and commit values.');
     } finally {
       setLoading(false);
     }
@@ -207,7 +220,7 @@ const ProvidersCockpit: React.FC = () => {
 
     setSavingMap((prev) => ({ ...prev, [envKey]: true }));
     try {
-      await systemSettings.setIntegrationKey.invoke({ key: envKey, value: raw });
+      await withTimeout(systemSettings.setIntegrationKey.invoke({ key: envKey, value: raw }), 10000, `Commit ${envKey}`);
       Message.success(`${envKey} committed.`);
       setDraftMap((prev) => ({ ...prev, [envKey]: '' }));
       await loadStatus();
@@ -222,7 +235,7 @@ const ProvidersCockpit: React.FC = () => {
   const handleClear = async (envKey: string) => {
     setClearingMap((prev) => ({ ...prev, [envKey]: true }));
     try {
-      await systemSettings.clearIntegrationKey.invoke({ key: envKey });
+      await withTimeout(systemSettings.clearIntegrationKey.invoke({ key: envKey }), 10000, `Clear ${envKey}`);
       Message.success(`${envKey} cleared.`);
       setDraftMap((prev) => ({ ...prev, [envKey]: '' }));
       await loadStatus();
@@ -349,7 +362,6 @@ const ProvidersCockpit: React.FC = () => {
                       onChange={(value) => setDraft(item.envKey, value)}
                       autoSize={{ minRows: 1, maxRows: 3 }}
                       placeholder={configured ? `${API_KEY_EMPTY_LABEL} configured` : authMode === 'auth0' ? 'Paste Auth0 value' : 'Paste value'}
-                      disabled={loading}
                     />
                   </div>
                   <div className='mt-8px flex justify-end gap-8px'>
@@ -357,7 +369,7 @@ const ProvidersCockpit: React.FC = () => {
                       size='small'
                       type='primary'
                       icon={<IconSave />}
-                      disabled={loading || !hasValueDraft}
+                      disabled={!hasValueDraft}
                       loading={isSaving}
                       onClick={() => void handleSave(item.envKey)}
                     >

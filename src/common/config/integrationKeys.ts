@@ -373,6 +373,18 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     priority: 'recommended',
   },
   {
+    envKey: 'NOIZ_API_KEY',
+    label: 'Noiz.ai API Key',
+    link: 'https://noiz.ai/',
+    docsLabel: 'Noiz.ai',
+    helperLink: 'https://noiz.ai/',
+    helperLabel: 'Open Noiz.ai',
+    group: 'media',
+    authMode: 'api-key',
+    priority: 'recommended',
+    setupHint: 'Use this for Noiz.ai audio/media generation routes when they are enabled.',
+  },
+  {
     envKey: 'HOSTINGER_API_TOKEN',
     label: 'Hostinger API Token',
     link: 'https://developers.hostinger.com/',
