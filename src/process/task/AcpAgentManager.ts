@@ -469,21 +469,51 @@ ${collectedResponses.join('\n')}`;
 
   /**
    * Resolve CLI config for a custom agent backend.
-   * Looks up assistants config by UUID, falling back to extension-contributed adapters.
+   * Looks up user-defined custom agents first, with a legacy assistants fallback,
+   * then falls back to extension-contributed adapters.
    */
   private async resolveCustomAgentCliConfig(data: AcpAgentManagerData): Promise<{
     cliPath?: string;
     customArgs?: string[];
     customEnv?: Record<string, string>;
   }> {
-    const customAgents = await ProcessConfig.get('assistants');
-    let customAgentConfig: CustomAgentLaunchConfig | undefined = customAgents?.find(
+    const userCustomAgents = (await ProcessConfig.get('acp.customAgents')) as CustomAgentLaunchConfig[] | undefined;
+    const legacyAssistants = (await ProcessConfig.get('assistants')) as CustomAgentLaunchConfig[] | undefined;
+
+    let configSource: 'acp.customAgents' | 'assistants' | 'extension' | 'conversation-cliPath' = 'conversation-cliPath';
+    let customAgentConfig: CustomAgentLaunchConfig | undefined = userCustomAgents?.find(
       (agent) => agent.id === data.customAgentId
     );
 
-    // Fallback: extension adapter (customAgentId format: ext:{extensionName}:{adapterId})
-    if (!customAgentConfig && data.customAgentId!.startsWith('ext:')) {
-      const [, extensionName, ...idParts] = data.customAgentId!.split(':');
+    if (customAgentConfig) {
+      configSource = 'acp.customAgents';
+    } else {
+      customAgentConfig = legacyAssistants?.find((agent) => agent.id === data.customAgentId);
+      if (customAgentConfig) {
+        configSource = 'assistants';
+      }
+    }
+
+    customAgentConfig = customAgentConfig?.defaultCliPath ? customAgentConfig : undefined;
+
+    let resolvedConfig:
+      | {
+          cliPath?: string;
+          customArgs?: string[];
+          customEnv?: Record<string, string>;
+        }
+      | undefined;
+
+    if (customAgentConfig) {
+      resolvedConfig = {
+        cliPath: customAgentConfig.defaultCliPath.trim(),
+        customArgs: customAgentConfig.acpArgs,
+        customEnv: customAgentConfig.env,
+      };
+    }
+
+    if (!resolvedConfig && data.customAgentId?.startsWith('ext:')) {
+      const [, extensionName, ...idParts] = data.customAgentId.split(':');
       const adapterId = idParts.join(':');
       const adapter = ExtensionRegistry.getInstance()
         .getAcpAdapters()
@@ -493,27 +523,24 @@ ${collectedResponses.join('\n')}`;
         }) as Record<string, unknown> | undefined;
 
       if (adapter) {
-        customAgentConfig = {
-          id: data.customAgentId,
-          name: typeof adapter.name === 'string' ? adapter.name : data.customAgentId,
-          defaultCliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath : undefined,
-          acpArgs: Array.isArray(adapter.acpArgs)
+        configSource = 'extension';
+        resolvedConfig = {
+          cliPath: typeof adapter.defaultCliPath === 'string' ? adapter.defaultCliPath.trim() : undefined,
+          customArgs: Array.isArray(adapter.acpArgs)
             ? adapter.acpArgs.filter((v): v is string => typeof v === 'string')
             : undefined,
-          env: typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
+          customEnv:
+            typeof adapter.env === 'object' && adapter.env ? (adapter.env as Record<string, string>) : undefined,
         };
       }
     }
 
-    if (!customAgentConfig?.defaultCliPath) {
-      return { cliPath: data.cliPath };
+    if (!resolvedConfig?.cliPath) {
+      resolvedConfig = { cliPath: data.cliPath };
+      configSource = 'conversation-cliPath';
     }
 
-    return {
-      cliPath: customAgentConfig.defaultCliPath.trim(),
-      customArgs: customAgentConfig.acpArgs,
-      customEnv: customAgentConfig.env,
-    };
+    return resolvedConfig;
   }
 
   /**
