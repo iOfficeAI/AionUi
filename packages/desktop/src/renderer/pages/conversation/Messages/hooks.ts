@@ -13,6 +13,7 @@ import {
   normalizeAgentStreamError,
   normalizeTextMessageContent,
   preferTextMessageVersion,
+  sanitizeAcpToolCallContent,
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
@@ -169,7 +170,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(message);
+    return list.concat({ ...message, content: sanitizeAcpToolCallContent(message.content) });
   }
 
   // permission: use call_id for recovery/live stream dedupe.

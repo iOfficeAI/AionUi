@@ -5,12 +5,16 @@
  */
 
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
+import { getAcpImageFileName, getAcpImagePath } from '@/common/chat/acpToolCallOutput';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
+import LocalImageView from '@/renderer/components/media/LocalImageView';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import { Card, Tag } from '@arco-design/web-react';
+import { downloadFileFromPath } from '@/renderer/utils/file/download';
+import { Button, Card, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { Download } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
-import React, { useMemo } from 'react';
+import React, { useCallback, useMemo } from 'react';
 import MarkdownView from '@renderer/components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -81,6 +85,19 @@ const ContentView: React.FC<{ content: IMessageAcpToolCall['content']['update'][
   return null;
 };
 
+const getKindDisplayName = (toolKind: string) => {
+  switch (toolKind) {
+    case 'edit':
+      return 'File Edit';
+    case 'read':
+      return 'File Read';
+    case 'execute':
+      return 'Shell Command';
+    default:
+      return toolKind;
+  }
+};
+
 const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ message }) => {
   const { content } = message;
   if (!content?.update) {
@@ -88,22 +105,23 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   }
   const { update } = content;
   const { tool_call_id, kind, title, status, rawInput, content: diffContent } = update;
-
-  const getKindDisplayName = (kind: string) => {
-    switch (kind) {
-      case 'edit':
-        return 'File Edit';
-      case 'read':
-        return 'File Read';
-      case 'execute':
-        return 'Shell Command';
-      default:
-        return kind;
+  const imagePath = getAcpImagePath(update);
+  const imageAlt = imagePath?.split(/[/\\]/).pop() || 'Generated image';
+  const [messageApi, messageContext] = Message.useMessage();
+  const handleDownloadImage = useCallback(async () => {
+    if (!imagePath) return;
+    try {
+      await downloadFileFromPath(imagePath, getAcpImageFileName(imagePath));
+      messageApi.success('Download successful');
+    } catch (error) {
+      console.error('[MessageAcpToolCall] Failed to download image:', error);
+      messageApi.error('Failed to download');
     }
-  };
+  }, [imagePath, messageApi]);
 
   return (
     <Card className='w-full mb-2' size='small' bordered>
+      {messageContext}
       <div className='flex items-start gap-3'>
         <div className='flex-1 min-w-0'>
           <div className='flex items-center gap-2 mb-2'>
@@ -119,10 +137,30 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
               )}
             </div>
           )}
+          {imagePath && (
+            <div className='group relative mt-3 overflow-hidden rounded border bg-1 p-2'>
+              <LocalImageView
+                src={imagePath}
+                alt={imageAlt}
+                className='max-w-full max-h-[520px] object-contain rounded'
+              />
+              <Tooltip content='Download'>
+                <Button
+                  aria-label='Download image'
+                  className='!absolute right-10px top-10px !h-28px !w-28px !p-0 opacity-0 shadow-sm transition-opacity group-hover:opacity-90 focus:opacity-100'
+                  type='secondary'
+                  size='mini'
+                  shape='circle'
+                  icon={<Download theme='outline' size='14' />}
+                  onClick={() => void handleDownloadImage()}
+                />
+              </Tooltip>
+            </div>
+          )}
           {diffContent && diffContent.length > 0 && (
             <div>
-              {diffContent.map((content, index) => (
-                <ContentView key={index} content={content} />
+              {diffContent.map((item, index) => (
+                <ContentView key={index} content={item} />
               ))}
             </div>
           )}
