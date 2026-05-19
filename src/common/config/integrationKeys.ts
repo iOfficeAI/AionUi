@@ -12,9 +12,60 @@ export type IntegrationDefinition = {
   helperLink?: string;
   helperLabel?: string;
   group: 'core' | 'cloud' | 'media' | 'ops' | 'developer';
+  authMode?: 'auth0' | 'oauth' | 'api-key' | 'local';
+  priority?: 'must' | 'recommended' | 'optional';
+  setupHint?: string;
 };
 
 export const INTEGRATION_KEYS: IntegrationDefinition[] = [
+  {
+    envKey: 'AUTH0_DOMAIN',
+    label: 'Auth0 Domain',
+    link: 'https://manage.auth0.com/dashboard/',
+    docsLabel: 'Auth0 Dashboard',
+    helperLink: 'https://auth0.com/docs/get-started/applications/application-settings',
+    helperLabel: 'Application settings',
+    group: 'ops',
+    authMode: 'auth0',
+    priority: 'must',
+    setupHint: 'Use one Auth0 tenant as central login for dashboards and client portals.',
+  },
+  {
+    envKey: 'AUTH0_CLIENT_ID',
+    label: 'Auth0 Client ID',
+    link: 'https://manage.auth0.com/dashboard/',
+    docsLabel: 'Auth0 Dashboard',
+    helperLink: 'https://auth0.com/docs/get-started/applications/application-settings',
+    helperLabel: 'Application settings',
+    group: 'ops',
+    authMode: 'auth0',
+    priority: 'must',
+    setupHint: 'Public application identifier for Auth0 login.',
+  },
+  {
+    envKey: 'AUTH0_CLIENT_SECRET',
+    label: 'Auth0 Client Secret',
+    link: 'https://manage.auth0.com/dashboard/',
+    docsLabel: 'Auth0 Dashboard',
+    helperLink: 'https://auth0.com/docs/get-started/applications/application-settings',
+    helperLabel: 'Application settings',
+    group: 'ops',
+    authMode: 'auth0',
+    priority: 'must',
+    setupHint: 'Secret for server-side Auth0 token exchange. Keep it private.',
+  },
+  {
+    envKey: 'AUTH0_AUDIENCE',
+    label: 'Auth0 API Audience',
+    link: 'https://manage.auth0.com/dashboard/',
+    docsLabel: 'Auth0 APIs',
+    helperLink: 'https://auth0.com/docs/get-started/apis',
+    helperLabel: 'Create API',
+    group: 'ops',
+    authMode: 'auth0',
+    priority: 'recommended',
+    setupHint: 'Use when dashboards call a protected backend/API.',
+  },
   {
     envKey: 'OPENAI_API_BASE',
     label: 'OpenAI API Base',
@@ -28,6 +79,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://platform.openai.com/api-keys',
     docsLabel: 'OpenAI API Keys',
     group: 'core',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'ANTHROPIC_API_BASE',
@@ -42,6 +95,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.anthropic.com/en/api/api-keys',
     docsLabel: 'Anthropic API keys',
     group: 'core',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'CLAUDE_API_KEY',
@@ -49,6 +104,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.anthropic.com/en/docs/quickstart',
     docsLabel: 'Claude docs',
     group: 'core',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'CLAUDE_ACCESS_TOKEN',
@@ -56,6 +113,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://claude.ai/settings/tokens',
     docsLabel: 'Claude token settings',
     group: 'core',
+    authMode: 'oauth',
+    priority: 'recommended',
   },
   {
     envKey: 'GOOGLE_APPLICATION_CREDENTIALS_JSON',
@@ -63,6 +122,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://cloud.google.com/docs/authentication/provide-credentials-adc',
     docsLabel: 'Google auth docs',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'GOOGLE_API_KEY',
@@ -70,6 +131,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://aistudio.google.com/app/apikey',
     docsLabel: 'Google AI Studio',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'GEMINI_API_KEY',
@@ -77,6 +140,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://aistudio.google.com/app/apikey',
     docsLabel: 'Gemini API key',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'OPENROUTER_API_KEY',
@@ -84,6 +149,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://openrouter.ai/settings/keys',
     docsLabel: 'OpenRouter keys',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'GROQ_API_KEY',
@@ -91,6 +158,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://console.groq.com/keys',
     docsLabel: 'Groq keys',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'PERPLEXITY_API_KEY',
@@ -98,6 +167,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://www.perplexity.ai/settings/api',
     docsLabel: 'Perplexity API',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'XAI_API_KEY',
@@ -105,6 +176,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://console.x.ai/',
     docsLabel: 'xAI Console',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'DEEPSEEK_API_KEY',
@@ -112,6 +185,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://platform.deepseek.com/api_keys',
     docsLabel: 'DeepSeek keys',
     group: 'cloud',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'HUGGINGFACE_API_KEY',
@@ -119,6 +194,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://huggingface.co/settings/tokens',
     docsLabel: 'HF token settings',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'HF_TOKEN',
@@ -126,6 +203,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://huggingface.co/settings/tokens',
     docsLabel: 'HF token settings',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'OLLAMA_API_KEY',
@@ -133,6 +212,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://ollama.com/',
     docsLabel: 'Ollama',
     group: 'developer',
+    authMode: 'oauth',
+    priority: 'recommended',
   },
   {
     envKey: 'KRYVAI_API_KEY',
@@ -142,6 +223,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     helperLink: 'https://kryven.cc/docs/',
     helperLabel: 'Get Kryven key',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'KRYVEN_API_KEY',
@@ -151,6 +234,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     helperLink: 'https://kryven.cc/docs/',
     helperLabel: 'Get Kryven key',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'SUNO_COOKIE',
@@ -158,6 +243,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://suno.com/',
     docsLabel: 'Suno',
     group: 'media',
+    authMode: 'oauth',
+    priority: 'optional',
   },
   {
     envKey: 'DISCORD_BOT_TOKEN',
@@ -165,6 +252,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://discord.com/developers/applications',
     docsLabel: 'Discord Developer Portal',
     group: 'ops',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'TELEGRAM_BOT_TOKEN',
@@ -172,6 +261,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://core.telegram.org/bots/tutorial',
     docsLabel: 'Telegram bot docs',
     group: 'ops',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'LIVEKIT_API_KEY',
@@ -179,6 +270,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.livekit.io/realtime/security/api-keys/',
     docsLabel: 'LiveKit API keys',
     group: 'media',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'LIVEKIT_API_SECRET',
@@ -186,6 +279,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.livekit.io/realtime/security/api-keys/',
     docsLabel: 'LiveKit API keys',
     group: 'media',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'LIVEKIT_URL',
@@ -193,6 +288,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.livekit.io/home/self-hosting/docker/',
     docsLabel: 'LiveKit host setup',
     group: 'media',
+    authMode: 'local',
+    priority: 'recommended',
   },
   {
     envKey: 'CLICKUP_API_TOKEN',
@@ -200,6 +297,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://help.clickup.com/hc/en-us/articles/6303420891089-API-Token',
     docsLabel: 'ClickUp API token',
     group: 'ops',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'KAGGLE_USERNAME',
@@ -207,6 +306,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://www.kaggle.com/settings',
     docsLabel: 'Kaggle settings',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'KAGGLE_KEY',
@@ -214,6 +315,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://www.kaggle.com/settings',
     docsLabel: 'Kaggle settings',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'WOLFRAM_ALPHA_API_KEY',
@@ -221,6 +324,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://products.wolframalpha.com/api/',
     docsLabel: 'Wolfram Alpha API',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'CLAW3D_API_KEY',
@@ -228,6 +333,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://app.claw3d.ai/',
     docsLabel: 'Claw3D',
     group: 'media',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'GITLAB_TOKEN',
@@ -235,6 +342,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://docs.gitlab.com/ee/user/profile/personal_access_tokens.html',
     docsLabel: 'GitLab PAT guide',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'GITHUB_TOKEN',
@@ -242,6 +351,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://github.com/settings/tokens',
     docsLabel: 'GitHub tokens',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'DEVIN_API_KEY',
@@ -249,6 +360,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://app.devin.ai/settings',
     docsLabel: 'Devin settings',
     group: 'developer',
+    authMode: 'api-key',
+    priority: 'optional',
   },
   {
     envKey: 'RESEND_API_KEY',
@@ -256,6 +369,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://resend.com/api-keys',
     docsLabel: 'Resend keys',
     group: 'ops',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
   {
     envKey: 'HOSTINGER_API_TOKEN',
@@ -263,6 +378,8 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     link: 'https://developers.hostinger.com/',
     docsLabel: 'Hostinger API',
     group: 'ops',
+    authMode: 'api-key',
+    priority: 'recommended',
   },
 ];
 
