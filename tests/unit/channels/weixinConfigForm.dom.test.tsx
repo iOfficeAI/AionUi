@@ -281,9 +281,9 @@ describe('WeixinConfigForm', () => {
     expect(es?.options).toEqual({ withCredentials: true });
 
     await act(async () => {
-      es?.emit('qr', { qrcodeData: 'ticket_webui_1' });
+      es?.emit('qr', { qrcodeUrl: 'https://qr.weixin.qq.com/liteapp/ticket_webui_1' });
     });
-    expect(screen.getByTestId('webui-qr').textContent).toContain('ticket_webui_1');
+    expect(screen.getByTestId('webui-qr').textContent).toContain('https://qr.weixin.qq.com/liteapp/ticket_webui_1');
 
     await act(async () => {
       es?.emit('scanned');
@@ -337,7 +337,7 @@ describe('WeixinConfigForm', () => {
     const es = MockEventSource.instances[0];
 
     await act(async () => {
-      es?.emit('qr', { qrcodeData: 'ticket_1' });
+      es?.emit('qr', { qrcodeUrl: 'https://qr.weixin.qq.com/liteapp/ticket_1' });
     });
 
     await act(async () => {
@@ -362,7 +362,7 @@ describe('WeixinConfigForm', () => {
     const es = MockEventSource.instances[0];
 
     await act(async () => {
-      es?.emit('qr', { qrcodeData: 'ticket_2' });
+      es?.emit('qr', { qrcodeUrl: 'https://qr.weixin.qq.com/liteapp/ticket_2' });
     });
 
     await act(async () => {
