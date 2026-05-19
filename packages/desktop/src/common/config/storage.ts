@@ -506,6 +506,7 @@ export interface IProvider {
       error?: string; // 错误信息 / error message
     }
   >;
+  is_full_url?: boolean;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {
