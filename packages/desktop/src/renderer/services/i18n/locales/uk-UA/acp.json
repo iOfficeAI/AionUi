@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "Надіслати повідомлення до {{backend}}..."
   },
+  "image": {
+    "download": "Завантажити",
+    "download_aria": "Завантажити зображення",
+    "download_success": "Завантаження успішне",
+    "download_error": "Не вдалося завантажити",
+    "generated_alt": "Згенероване зображення"
+  },
   "status": {
     "connecting": "Підключення до {{agent}}...",
     "connected": "Підключено до {{agent}}",

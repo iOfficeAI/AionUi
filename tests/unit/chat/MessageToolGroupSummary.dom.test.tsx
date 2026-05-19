@@ -23,6 +23,12 @@ vi.mock('@/renderer/utils/file/download', () => ({
   downloadFileFromPath: (...args: unknown[]) => mockDownloadFileFromPath(...args),
 }));
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 describe('MessageToolGroupSummary ACP image output', () => {
   it('renders generated image preview when an ACP image tool call is expanded', () => {
     const message: IMessageAcpToolCall = {
@@ -88,8 +94,36 @@ describe('MessageToolGroupSummary ACP image output', () => {
 
     render(<MessageToolGroupSummary messages={[message]} />);
     fireEvent.click(screen.getByText('View Steps · 1'));
-    fireEvent.click(screen.getByLabelText('Download image'));
+    fireEvent.click(screen.getByLabelText('acp.image.download_aria'));
 
     expect(mockDownloadFileFromPath).toHaveBeenCalledWith(imagePath, 'ig_test_image.png');
+  });
+
+  it('uses i18n keys for the image download control', () => {
+    const message: IMessageAcpToolCall = {
+      id: 'ig_test_image',
+      conversation_id: 'conv-1',
+      type: 'acp_tool_call',
+      content: {
+        sessionId: 'sess-1',
+        update: {
+          sessionUpdate: 'tool_call_update',
+          tool_call_id: 'ig_test_image',
+          status: 'completed',
+          title: 'Image generation',
+          kind: 'execute',
+          raw_output: {
+            image: {
+              path: '/Users/test/.codex/generated_images/session/ig_test_image.png',
+            },
+          },
+        },
+      },
+    };
+
+    render(<MessageToolGroupSummary messages={[message]} />);
+    fireEvent.click(screen.getByText('View Steps · 1'));
+
+    expect(screen.getByLabelText('acp.image.download_aria')).toBeInTheDocument();
   });
 });

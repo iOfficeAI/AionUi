@@ -23,6 +23,12 @@ vi.mock('@/renderer/utils/file/download', () => ({
   downloadFileFromPath: (...args: unknown[]) => mockDownloadFileFromPath(...args),
 }));
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => key,
+  }),
+}));
+
 vi.mock('@arco-design/web-react', () => ({
   Card: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
   Tag: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
@@ -129,9 +135,26 @@ describe('MessageAcpToolCall image output', () => {
       />
     );
 
-    screen.getByLabelText('Download image').click();
+    screen.getByLabelText('acp.image.download_aria').click();
 
     expect(mockDownloadFileFromPath).toHaveBeenCalledWith(imagePath, 'ig_test_image.png');
+  });
+
+  it('uses i18n keys for image download labels', () => {
+    render(
+      <MessageAcpToolCall
+        message={createMessage({
+          ...baseUpdate,
+          rawOutput: {
+            image: {
+              path: '/Users/test/.codex/generated_images/session/ig_test_image.png',
+            },
+          },
+        })}
+      />
+    );
+
+    expect(screen.getByLabelText('acp.image.download_aria')).toBeInTheDocument();
   });
 
   it('falls back to raw_output.saved_path for persisted snake_case content', () => {
@@ -165,7 +188,7 @@ describe('MessageAcpToolCall image output', () => {
       />
     );
 
-    expect(screen.getByTestId('local-image')).toHaveAttribute('alt', 'Generated image');
+    expect(screen.getByTestId('local-image')).toHaveAttribute('alt', 'acp.image.generated_alt');
   });
 
   it('renders kind fallback labels when title is missing', () => {

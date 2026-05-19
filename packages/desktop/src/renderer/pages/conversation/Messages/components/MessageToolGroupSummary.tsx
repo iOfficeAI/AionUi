@@ -3,6 +3,7 @@ import { Badge, Button, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { Checklist, Download, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { getAcpImageFileName } from '@/common/chat/acpToolCallOutput';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
@@ -28,24 +29,25 @@ const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
 };
 
 const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
+  const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const [fullItem, setFullItem] = useState<NormalizedToolCall | null>(null);
   const [loadingFull, setLoadingFull] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const displayItem = fullItem ?? item;
   const hasDetail = displayItem.input || displayItem.output || item.truncated || item.imagePath;
-  const imageAlt = item.imagePath ? getAcpImageFileName(item.imagePath) : 'Generated image';
+  const imageAlt = item.imagePath ? getAcpImageFileName(item.imagePath) : t('acp.image.generated_alt');
   const [messageApi, messageContext] = Message.useMessage();
   const handleDownloadImage = useCallback(async () => {
     if (!item.imagePath) return;
     try {
       await downloadFileFromPath(item.imagePath, getAcpImageFileName(item.imagePath));
-      messageApi.success('Download successful');
+      messageApi.success(t('acp.image.download_success'));
     } catch (error) {
       console.error('[MessageToolGroupSummary] Failed to download image:', error);
-      messageApi.error('Failed to download');
+      messageApi.error(t('acp.image.download_error'));
     }
-  }, [item.imagePath, messageApi]);
+  }, [item.imagePath, messageApi, t]);
 
   const loadFullItem = async () => {
     if (!item.truncated || fullItem || loadingFull || !item.conversationId || !item.messageId) return;
@@ -120,9 +122,9 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
             alt={imageAlt}
             className='max-w-full max-h-320px object-contain rounded'
           />
-          <Tooltip content='Download'>
+          <Tooltip content={t('acp.image.download')}>
             <Button
-              aria-label='Download image'
+              aria-label={t('acp.image.download_aria')}
               className='!absolute right-10px top-10px !h-28px !w-28px !p-0 opacity-0 shadow-sm transition-opacity group-hover:opacity-90 focus:opacity-100'
               type='secondary'
               size='mini'

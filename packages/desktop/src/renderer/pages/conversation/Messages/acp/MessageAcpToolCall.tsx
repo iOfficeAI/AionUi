@@ -15,6 +15,7 @@ import { Button, Card, Message, Tag, Tooltip } from '@arco-design/web-react';
 import { Download } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
 import React, { useCallback, useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
 import MarkdownView from '@renderer/components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -99,6 +100,7 @@ const getKindDisplayName = (toolKind: string) => {
 };
 
 const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ message }) => {
+  const { t } = useTranslation();
   const { content } = message;
   if (!content?.update) {
     return null;
@@ -106,18 +108,18 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   const { update } = content;
   const { tool_call_id, kind, title, status, rawInput, content: diffContent } = update;
   const imagePath = getAcpImagePath(update);
-  const imageAlt = imagePath?.split(/[/\\]/).pop() || 'Generated image';
+  const imageAlt = imagePath?.split(/[/\\]/).pop() || t('acp.image.generated_alt');
   const [messageApi, messageContext] = Message.useMessage();
   const handleDownloadImage = useCallback(async () => {
     if (!imagePath) return;
     try {
       await downloadFileFromPath(imagePath, getAcpImageFileName(imagePath));
-      messageApi.success('Download successful');
+      messageApi.success(t('acp.image.download_success'));
     } catch (error) {
       console.error('[MessageAcpToolCall] Failed to download image:', error);
-      messageApi.error('Failed to download');
+      messageApi.error(t('acp.image.download_error'));
     }
-  }, [imagePath, messageApi]);
+  }, [imagePath, messageApi, t]);
 
   return (
     <Card className='w-full mb-2' size='small' bordered>
@@ -144,9 +146,9 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
                 alt={imageAlt}
                 className='max-w-full max-h-[520px] object-contain rounded'
               />
-              <Tooltip content='Download'>
+              <Tooltip content={t('acp.image.download')}>
                 <Button
-                  aria-label='Download image'
+                  aria-label={t('acp.image.download_aria')}
                   className='!absolute right-10px top-10px !h-28px !w-28px !p-0 opacity-0 shadow-sm transition-opacity group-hover:opacity-90 focus:opacity-100'
                   type='secondary'
                   size='mini'

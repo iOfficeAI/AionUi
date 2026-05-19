@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "Send message to {{backend}}..."
   },
+  "image": {
+    "download": "Download",
+    "download_aria": "Download image",
+    "download_success": "Download successful",
+    "download_error": "Failed to download",
+    "generated_alt": "Generated image"
+  },
   "status": {
     "connecting": "Connecting to {{agent}}...",
     "connected": "Connected to {{agent}}",

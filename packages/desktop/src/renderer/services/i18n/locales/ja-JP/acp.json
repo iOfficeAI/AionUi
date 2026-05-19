@@ -10,6 +10,13 @@
   "sendbox": {
     "placeholder": "{{backend}}にメッセージを送信..."
   },
+  "image": {
+    "download": "ダウンロード",
+    "download_aria": "画像をダウンロード",
+    "download_success": "ダウンロードしました",
+    "download_error": "ダウンロードに失敗しました",
+    "generated_alt": "生成された画像"
+  },
   "status": {
     "connecting": "{{agent}} に接続中...",
     "connected": "{{agent}} に接続しました",
