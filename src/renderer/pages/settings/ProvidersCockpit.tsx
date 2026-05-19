@@ -17,6 +17,40 @@ type IntegrationState = {
   placeholder: boolean;
 };
 
+type ProviderCredit = {
+  id: string;
+  label: string;
+  kind: string;
+  configured: boolean;
+  configured_keys?: string[];
+  billing_url: string;
+  usage_url: string;
+  notes: string;
+  probe_status: string;
+  probe_ok?: boolean;
+  status_code?: number;
+  credit_total_usd?: number;
+  credit_used_usd?: number;
+  credit_remaining_usd?: number;
+  character_count?: number;
+  character_limit?: number;
+  characters_remaining?: number;
+};
+
+type ProviderCreditsPayload = {
+  generated_at: string;
+  live_probes: boolean;
+  summary: {
+    total: number;
+    configured: number;
+    missing: number;
+    checked_live: number;
+    live_ok: number;
+    live_failed: number;
+  };
+  providers: ProviderCredit[];
+};
+
 type PriorityFilter = 'must' | 'recommended' | 'optional' | 'all';
 type AuthFilter = 'auth0' | 'oauth' | 'api-key' | 'local' | 'all';
 
@@ -84,6 +118,7 @@ const QUICK_STEPS: QuickStep[] = [
 
 const QUICK_KEYS: QuickKey[] = [
   { envKey: 'NOIZ_API_KEY', title: 'Noiz.ai API Key', hint: 'Plak hier je Noiz.ai key en klik Commit value.' },
+  { envKey: 'STITCH_API_KEY', title: 'Google Stitch API Key', hint: 'Voor Stitch MCP design-to-code: key uit Stitch settings, nooit in chat plakken.' },
   { envKey: 'AUTH0_DOMAIN', title: 'Auth0 Domain', hint: 'Bijvoorbeeld jouw-tenant.eu.auth0.com' },
   { envKey: 'AUTH0_CLIENT_ID', title: 'Auth0 Client ID', hint: 'Auth0 application client id.' },
   { envKey: 'AUTH0_CLIENT_SECRET', title: 'Auth0 Client Secret', hint: 'Auth0 application secret. Niet delen buiten deze vault.' },
@@ -155,12 +190,47 @@ const storeIntegrationKeyFallback = async (key: string, value: string) => {
   }
 };
 
+const loadProviderCredits = async (): Promise<ProviderCreditsPayload | null> => {
+  const response = await fetch('/api/novamaster/provider-credits', {
+    cache: 'no-store',
+    credentials: 'include',
+  });
+  if (!response.ok) return null;
+  return (await response.json()) as ProviderCreditsPayload;
+};
+
+const formatCreditValue = (provider: ProviderCredit) => {
+  if (typeof provider.credit_remaining_usd === 'number') {
+    const used = typeof provider.credit_used_usd === 'number' ? ` · used $${provider.credit_used_usd.toFixed(2)}` : '';
+    return `$${provider.credit_remaining_usd.toFixed(2)} remaining${used}`;
+  }
+  if (typeof provider.credit_used_usd === 'number') {
+    return `$${provider.credit_used_usd.toFixed(2)} used`;
+  }
+  if (typeof provider.characters_remaining === 'number') {
+    return `${provider.characters_remaining.toLocaleString()} chars remaining`;
+  }
+  if (provider.probe_ok === false) {
+    return `live check failed${provider.status_code ? ` · HTTP ${provider.status_code}` : ''}`;
+  }
+  return provider.configured ? 'configured · manual/dashboard check' : 'missing key or login';
+};
+
+const creditStatusColor = (provider: ProviderCredit) => {
+  if (!provider.configured) return 'gray';
+  if (provider.probe_ok === false) return 'red';
+  if (typeof provider.credit_remaining_usd === 'number' || typeof provider.characters_remaining === 'number') return 'green';
+  return 'arcoblue';
+};
+
 const ProvidersCockpit: React.FC = () => {
   const [statusMap, setStatusMap] = useState<Record<string, IntegrationState>>({});
   const [draftMap, setDraftMap] = useState<Record<string, string>>({});
   const [savingMap, setSavingMap] = useState<Record<string, boolean>>({});
   const [clearingMap, setClearingMap] = useState<Record<string, boolean>>({});
   const [loading, setLoading] = useState(true);
+  const [credits, setCredits] = useState<ProviderCreditsPayload | null>(null);
+  const [creditsLoading, setCreditsLoading] = useState(true);
   const [showMissingOnly, setShowMissingOnly] = useState(true);
   const [query, setQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('must');
@@ -179,11 +249,26 @@ const ProvidersCockpit: React.FC = () => {
     }
   }, []);
 
+  const loadCredits = useCallback(async () => {
+    setCreditsLoading(true);
+    try {
+      setCredits(await withTimeout(loadProviderCredits(), 3500, 'Provider credits'));
+    } catch (error) {
+      console.error('[ProvidersCockpit] failed to load provider credits:', error);
+      setCredits(null);
+    } finally {
+      setCreditsLoading(false);
+    }
+  }, []);
+
   const handleRefresh = useCallback(() => {
     loadStatus().catch((error) => {
       console.error('[ProvidersCockpit] failed to refresh provider key status:', error);
     });
-  }, [loadStatus]);
+    loadCredits().catch((error) => {
+      console.error('[ProvidersCockpit] failed to refresh provider credits:', error);
+    });
+  }, [loadCredits, loadStatus]);
 
   useEffect(() => {
     handleRefresh();
@@ -369,6 +454,55 @@ const ProvidersCockpit: React.FC = () => {
                 </div>
               );
             })}
+          </div>
+        </section>
+
+        <section className='mb-18px border border-line bg-fill-1 rd-8px p-14px'>
+          <div className='mb-10px flex flex-wrap items-start justify-between gap-10px'>
+            <div>
+              <div className='text-14px font-semibold text-t-primary'>Credits & abonnementen</div>
+              <div className='mt-2px text-12px text-t-secondary'>
+                Samenvatting uit <span className='font-mono'>nova-provider-credits refresh</span>. Secrets blijven verborgen; sommige providers vereisen browser/login voor exact tegoed.
+              </div>
+            </div>
+            <div className='flex flex-wrap gap-8px text-12px'>
+              {credits ? (
+                <>
+                  <Tag color='green'>configured {credits.summary.configured}/{credits.summary.total}</Tag>
+                  <Tag color='arcoblue'>live checked {credits.summary.checked_live}</Tag>
+                  <Tag color={credits.summary.live_failed > 0 ? 'red' : 'green'}>live failed {credits.summary.live_failed}</Tag>
+                </>
+              ) : (
+                <Tag color={creditsLoading ? 'arcoblue' : 'orange'}>{creditsLoading ? 'loading credits' : 'run nova-provider-credits refresh'}</Tag>
+              )}
+            </div>
+          </div>
+          <div className='grid gap-8px md:grid-cols-2'>
+            {(credits?.providers ?? []).slice(0, 16).map((provider) => (
+              <div key={provider.id} className='border border-line bg-fill-2 rd-8px p-10px'>
+                <div className='flex items-start justify-between gap-8px'>
+                  <div className='min-w-0'>
+                    <div className='flex flex-wrap items-center gap-6px'>
+                      <span className='text-13px font-medium text-t-primary'>{provider.label}</span>
+                      <Tag color={creditStatusColor(provider)}>{provider.configured ? provider.probe_status : 'missing'}</Tag>
+                    </div>
+                    <div className='mt-3px text-12px text-t-secondary'>{formatCreditValue(provider)}</div>
+                    <div className='mt-2px text-11px text-t-tertiary'>{provider.notes}</div>
+                  </div>
+                  <div className='flex shrink-0 gap-4px'>
+                    <Button size='mini' type='text' icon={<IconLink />} onClick={() => handleOpenDocs(provider.usage_url)}>
+                      Usage
+                    </Button>
+                    <Button size='mini' type='text' icon={<IconLink />} onClick={() => handleOpenDocs(provider.billing_url)}>
+                      Billing
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            ))}
+            {!creditsLoading && !credits ? (
+              <div className='text-12px text-t-secondary'>Geen cache gevonden. Run: <span className='font-mono'>nova-provider-credits refresh</span></div>
+            ) : null}
           </div>
         </section>
 

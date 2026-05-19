@@ -1300,6 +1300,24 @@ export function registerApiRoutes(app: Express): void {
   app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
 
   /**
+   * NovaMaster provider credits/status cache.
+   * Safe read-only endpoint: returns only provider status, billing links, and sanitized quota fields.
+   */
+  app.get('/api/novamaster/provider-credits', apiRateLimiter, async (_req: Request, res: Response) => {
+    try {
+      const cachePath = path.join(os.homedir(), '.cache/clawmem/novamaster-receipts/provider-credits/latest.json');
+      const raw = await fsPromises.readFile(cachePath, 'utf8');
+      res.type('application/json').send(raw);
+    } catch {
+      res.status(404).json({
+        success: false,
+        msg: 'Provider credits cache not found. Run nova-provider-credits refresh.',
+        path: '~/.cache/clawmem/novamaster-receipts/provider-credits/latest.json',
+      });
+    }
+  });
+
+  /**
    * Localhost integration key vault fallback.
    * Used by standalone WebUI when the IPC bridge is unavailable or slow.
    * Values are write-only: this endpoint never returns stored secrets.

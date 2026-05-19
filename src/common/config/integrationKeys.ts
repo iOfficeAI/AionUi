@@ -144,6 +144,18 @@ export const INTEGRATION_KEYS: IntegrationDefinition[] = [
     priority: 'recommended',
   },
   {
+    envKey: 'STITCH_API_KEY',
+    label: 'Google Stitch API Key',
+    link: 'https://stitch.withgoogle.com/',
+    docsLabel: 'Google Stitch',
+    helperLink: 'https://stitch.withgoogle.com/docs/mcp/setup/',
+    helperLabel: 'Stitch MCP setup',
+    group: 'developer',
+    authMode: 'api-key',
+    priority: 'recommended',
+    setupHint: 'Use this for Google Stitch remote MCP design-to-code workflows.',
+  },
+  {
     envKey: 'OPENROUTER_API_KEY',
     label: 'OpenRouter API Key',
     link: 'https://openrouter.ai/settings/keys',
