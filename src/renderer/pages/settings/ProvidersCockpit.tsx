@@ -26,6 +26,12 @@ type QuickStep = {
   docsLabel: string;
 };
 
+type QuickKey = {
+  envKey: string;
+  title: string;
+  hint: string;
+};
+
 const API_KEY_EMPTY_LABEL = '********';
 
 const AUTH_MODE_LABELS: Record<NonNullable<IntegrationDefinition['authMode']>, string> = {
@@ -56,23 +62,30 @@ const AUTH_COLOR: Record<NonNullable<IntegrationDefinition['authMode']>, string>
 
 const QUICK_STEPS: QuickStep[] = [
   {
-    title: '1. Start with Auth0',
-    body: 'Fill AUTH0_DOMAIN, AUTH0_CLIENT_ID and AUTH0_CLIENT_SECRET first. Use this as the central login layer for dashboards and client portals.',
+    title: '1. Noiz.ai nu',
+    body: 'Plak NOIZ_API_KEY bovenaan. Geen filters, geen zoeken, meteen committen.',
+    docs: 'https://noiz.ai/',
+    docsLabel: 'Open Noiz.ai',
+  },
+  {
+    title: '2. Auth0 daarna',
+    body: 'Vul Auth0 pas daarna in voor centrale login: domain, client id en client secret.',
     docs: 'https://manage.auth0.com/dashboard/',
     docsLabel: 'Open Auth0',
   },
   {
-    title: '2. Browser-login where possible',
-    body: 'Use browser/OAuth routes for Ollama Cloud, Claude and xAI/Grok when available. Only paste API keys for providers that cannot be connected by browser login.',
-    docs: 'https://ollama.com/signin',
-    docsLabel: 'Open Ollama login',
-  },
-  {
-    title: '3. Fill fallback API keys',
-    body: 'Add Gemini, OpenRouter, DeepSeek, Hugging Face, GitHub, Resend, Hostinger and LiveKit keys so NovaMaster can keep working when one provider is limited.',
+    title: '3. Provider fallbacks',
+    body: 'Daarna Gemini, OpenRouter, DeepSeek, GitHub, Resend, Hostinger en LiveKit.',
     docs: 'https://github.com/settings/tokens',
     docsLabel: 'Open GitHub tokens',
   },
+];
+
+const QUICK_KEYS: QuickKey[] = [
+  { envKey: 'NOIZ_API_KEY', title: 'Noiz.ai API Key', hint: 'Plak hier je Noiz.ai key en klik Commit value.' },
+  { envKey: 'AUTH0_DOMAIN', title: 'Auth0 Domain', hint: 'Bijvoorbeeld jouw-tenant.eu.auth0.com' },
+  { envKey: 'AUTH0_CLIENT_ID', title: 'Auth0 Client ID', hint: 'Auth0 application client id.' },
+  { envKey: 'AUTH0_CLIENT_SECRET', title: 'Auth0 Client Secret', hint: 'Auth0 application secret. Niet delen buiten deze vault.' },
 ];
 
 const getAuthMode = (item: IntegrationDefinition): NonNullable<IntegrationDefinition['authMode']> => item.authMode ?? 'api-key';
@@ -200,6 +213,14 @@ const ProvidersCockpit: React.FC = () => {
     );
   }, [authFilter, priorityFilter, query, showMissingOnly, statusMap]);
 
+  const quickItems = useMemo(() => {
+    return QUICK_KEYS.map((quick) => {
+      const definition = INTEGRATION_KEYS.find((item) => item.envKey === quick.envKey);
+      if (!definition) return null;
+      return { envKey: quick.envKey, title: quick.title, hint: quick.hint, definition };
+    }).filter((item): item is QuickKey & { definition: IntegrationDefinition } => item !== null);
+  }, []);
+
   const handleOpenDocs = (url: string) => {
     shell.openExternal.invoke(url).catch((error) => {
       console.error('[ProvidersCockpit] failed to open docs:', error);
@@ -278,6 +299,53 @@ const ProvidersCockpit: React.FC = () => {
               </Button>
             </div>
           ))}
+        </section>
+
+        <section className='mb-18px'>
+          <div className='mb-8px text-12px font-semibold uppercase text-t-secondary'>Direct invullen</div>
+          <div className='grid gap-10px'>
+            {quickItems.map(({ definition, envKey, hint, title }) => {
+              const state = statusMap[envKey];
+              const configured = isConfigured(state);
+              const hasValueDraft = (draftMap[envKey] || '').trim().length > 0;
+              const isSaving = !!savingMap[envKey];
+              const isClearing = !!clearingMap[envKey];
+              const canClear = (!!state?.configured || !!state?.placeholder) && !isClearing;
+
+              return (
+                <div key={envKey} className='border-2 border-primary bg-fill-1 rd-10px p-14px'>
+                  <div className='flex flex-wrap items-start justify-between gap-10px'>
+                    <div className='min-w-0 flex-1'>
+                      <div className='flex flex-wrap items-center gap-8px'>
+                        <span className='text-15px font-semibold text-t-primary'>{title}</span>
+                        <Tag color={keyStatusColor(state)}>{keyStatusLabel(state)}</Tag>
+                      </div>
+                      <div className='mt-2px font-mono text-12px text-t-secondary'>{envKey}</div>
+                      <div className='mt-4px text-12px text-t-secondary'>{hint}</div>
+                    </div>
+                    <Button size='small' type='outline' icon={<IconLink />} onClick={() => handleOpenDocs(definition.link)}>
+                      Open link
+                    </Button>
+                  </div>
+                  <Input.TextArea
+                    className='mt-10px'
+                    value={draftMap[envKey] || ''}
+                    onChange={(value) => setDraft(envKey, value)}
+                    autoSize={{ minRows: 2, maxRows: 4 }}
+                    placeholder={configured ? `${API_KEY_EMPTY_LABEL} configured - paste new value to replace` : 'Paste key/value here'}
+                  />
+                  <div className='mt-10px flex flex-wrap justify-end gap-8px'>
+                    <Button size='large' type='primary' icon={<IconSave />} disabled={!hasValueDraft} loading={isSaving} onClick={() => void handleSave(envKey)}>
+                      Commit value
+                    </Button>
+                    <Button size='large' type='outline' status='danger' icon={<IconDelete />} disabled={!canClear} loading={isClearing} onClick={() => void handleClear(envKey)}>
+                      Clear
+                    </Button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
         </section>
 
         <section>
