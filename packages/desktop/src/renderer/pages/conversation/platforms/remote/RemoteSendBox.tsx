@@ -437,8 +437,13 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   });
 
   const handleStop = async (): Promise<void> => {
+    // Best-effort cancel: swallow rejections (e.g. backend returns 409 when
+    // the WS session is not yet connected) so they don't surface as unhandled
+    // rejections. UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[RemoteSendBox] stop request failed', error);
     } finally {
       setAiProcessing(false);
       aiProcessingRef.current = false;

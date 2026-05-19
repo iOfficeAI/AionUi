@@ -328,9 +328,13 @@ Please check your local CLI tool authentication status`,
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
-    // Use finally to ensure UI state is reset even if backend stop fails
+    // Cancelling is best-effort: swallow errors (e.g. backend WS not yet
+    // connected → 409) so they don't bubble up as unhandled rejections.
+    // UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[AcpSendBox] stop request failed', error);
     } finally {
       resetState();
       resetActiveExecution('stop');

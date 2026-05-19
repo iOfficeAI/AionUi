@@ -404,8 +404,12 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   }, [conversation_id, addOrUpdateMessage]);
 
   const handleStop = async (): Promise<void> => {
+    // Best-effort cancel: swallow rejections so they don't bubble up as
+    // unhandled rejections. UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[NanobotSendBox] stop request failed', error);
     } finally {
       setAiProcessing(false);
       setThought({ subject: '', description: '' });
