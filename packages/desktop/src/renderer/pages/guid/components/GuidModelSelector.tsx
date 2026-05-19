@@ -19,8 +19,11 @@ import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import {
   getManagedRuntimeModelDisplayLabel,
   normalizeManagedRuntimeModelLabel,
+  getManagedCliSelectableModels,
+  MANAGED_NEWAPI_PROVIDER_ID,
 } from '@/common/types/agent/managedRuntimeCli';
-import { getManagedCliSelectableModels, MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
+import useSWR from 'swr';
+import { ipcBridge } from '@/common';
 
 type GuidModelSelectorProps = {
   isGeminiMode: boolean;
@@ -46,6 +49,10 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   const { t } = useTranslation();
   const defaultModelLabel = t('common.defaultModel');
   useNewApiAccount();
+  const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () =>
+    ipcBridge.application.getStartOnBootStatus.invoke()
+  );
+  const isPackaged = startOnBootStatus?.data?.isPackaged ?? false;
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useProvidersQuery();

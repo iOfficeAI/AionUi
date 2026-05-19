@@ -18,6 +18,7 @@ Documentation is organized by reader intent, not by document type.
 - Writing code? The entry point for code-style, linting, formatting, and commit rules is [`AGENTS.md`](../AGENTS.md) at the repo root.
 - Deploying a server? [`guides/deploy-server.md`](guides/deploy-server.md).
 - Operating POUNDING releases and desktop auto-update? [`guides/pounding-release-update.md`](guides/pounding-release-update.md).
+- Building zero-config skills or MCP tools that reuse app model credentials? [`guides/skills-model-env.md`](guides/skills-model-env.md).
 
 ## Where to put new docs
 

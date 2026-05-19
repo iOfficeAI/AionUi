@@ -24,6 +24,7 @@ import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { classifyHealthCheckMessage } from './healthCheckUtils';
 import '../model-provider.css';
+import useSWR from 'swr';
 
 /**
  * 获取协议显示标签颜色
@@ -104,6 +105,10 @@ const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () =>
+    ipcBridge.application.getStartOnBootStatus.invoke()
+  );
+  const isPackaged = startOnBootStatus?.data?.isPackaged ?? false;
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const isDesktopManagedNewApiMode = isElectronDesktop();
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
@@ -483,16 +488,18 @@ const ModelModalContent: React.FC = () => {
             >
               {t('settings.clearStatus')}
             </Button>
-            <Button
-              type='outline'
-              shape='round'
-              icon={<Plus size='16' />}
-              onClick={() => addPlatformModalCtrl.open()}
-              hidden={shouldHideAddModelButton}
-              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-            >
-              {t('settings.addModel')}
-            </Button>
+            {!isPackaged && (
+              <Button
+                type='outline'
+                shape='round'
+                icon={<Plus size='16' />}
+                onClick={() => addPlatformModalCtrl.open()}
+                hidden={shouldHideAddModelButton}
+                className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              >
+                {t('settings.addModel')}
+              </Button>
+            )}
           </div>
         </div>
         <div
@@ -599,7 +606,7 @@ const ModelModalContent: React.FC = () => {
                             />
                           )}
                           <div className='flex items-center gap-4px'>
-                            {!isManagedNewApiProvider && (
+                            {!isPackaged && !isManagedNewApiProvider && (
                               <Button
                                 size='mini'
                                 className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
