@@ -22,8 +22,9 @@ import { SpeechToTextService } from '@process/bridge/services/SpeechToTextServic
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
 import { AIONUI_TIMESTAMP_SEPARATOR } from '@/common/config/constants';
+import { INTEGRATION_KEY_ALLOWLIST } from '@/common/config/integrationKeys';
 import directoryApi from '../directoryApi';
-import { apiRateLimiter } from '../middleware/security';
+import { apiRateLimiter, authenticatedActionLimiter } from '../middleware/security';
 import { registerWeixinLoginRoutes } from './weixinLoginRoutes';
 import { registerWecomChannelRoutes } from './wecomChannelRoutes';
 
@@ -39,6 +40,11 @@ const uploadAudio = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: MAX_AUDIO_SIZE },
 });
+
+const isLoopbackRequest = (req: Request): boolean => {
+  const address = req.socket.remoteAddress ?? req.ip ?? '';
+  return address === '127.0.0.1' || address === '::1' || address === '::ffff:127.0.0.1';
+};
 
 type NovaMasterProbe = {
   id: string;
@@ -1292,6 +1298,48 @@ export function registerApiRoutes(app: Express): void {
    * /api/directory/*
    */
   app.use('/api/directory', apiRateLimiter, validateApiAccess, directoryApi);
+
+  /**
+   * Localhost integration key vault fallback.
+   * Used by standalone WebUI when the IPC bridge is unavailable or slow.
+   * Values are write-only: this endpoint never returns stored secrets.
+   */
+  app.post(
+    '/api/novamaster/integration-key',
+    apiRateLimiter,
+    validateApiAccess,
+    authenticatedActionLimiter,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      const key = typeof req.body?.key === 'string' ? req.body.key.trim() : '';
+      const value = typeof req.body?.value === 'string' ? req.body.value.trim() : '';
+      const dryRun = req.body?.dryRun === true;
+
+      if (!isLoopbackRequest(req)) {
+        res.status(403).json({ ok: false, error: 'loopback_only' });
+        return;
+      }
+
+      if (!(INTEGRATION_KEY_ALLOWLIST as readonly string[]).includes(key)) {
+        res.status(400).json({ ok: false, error: 'key_not_allowed' });
+        return;
+      }
+
+      if (!value) {
+        res.status(400).json({ ok: false, error: 'empty_value' });
+        return;
+      }
+
+      if (dryRun) {
+        res.json({ ok: true, key, stored: false, dryRun: true });
+        return;
+      }
+
+      const currentRaw = await ProcessConfig.get('integration.keys');
+      const current = currentRaw && typeof currentRaw === 'object' && !Array.isArray(currentRaw) ? currentRaw : {};
+      await ProcessConfig.set('integration.keys', { ...current, [key]: value });
+      res.json({ ok: true, key, stored: true });
+    })
+  );
 
   /**
    * 上传文件 - Upload file

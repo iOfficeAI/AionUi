@@ -7,6 +7,7 @@
 import { Button, Checkbox, Input, Message, Select, Tag } from '@arco-design/web-react';
 import { IconDelete, IconLink, IconRefresh, IconSave, IconSearch } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import { withCsrfToken } from '@process/webserver/middleware/csrfClient';
 import { shell, systemSettings } from '@/common/adapter/ipcBridge';
 import { INTEGRATION_KEYS, type IntegrationDefinition } from '@/common/config/integrationKeys';
 
@@ -141,6 +142,19 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, label: st
   }
 };
 
+const storeIntegrationKeyFallback = async (key: string, value: string) => {
+  const response = await fetch('/api/novamaster/integration-key', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(withCsrfToken({ key, value })),
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+};
+
 const ProvidersCockpit: React.FC = () => {
   const [statusMap, setStatusMap] = useState<Record<string, IntegrationState>>({});
   const [draftMap, setDraftMap] = useState<Record<string, string>>({});
@@ -241,10 +255,20 @@ const ProvidersCockpit: React.FC = () => {
 
     setSavingMap((prev) => ({ ...prev, [envKey]: true }));
     try {
-      await withTimeout(systemSettings.setIntegrationKey.invoke({ key: envKey, value: raw }), 10000, `Commit ${envKey}`);
+      try {
+        await withTimeout(systemSettings.setIntegrationKey.invoke({ key: envKey, value: raw }), 5000, `Commit ${envKey}`);
+      } catch (bridgeError) {
+        console.warn('[ProvidersCockpit] bridge commit failed, using HTTP fallback:', envKey, bridgeError);
+        await withTimeout(storeIntegrationKeyFallback(envKey, raw), 10000, `HTTP commit ${envKey}`);
+      }
+
       Message.success(`${envKey} committed.`);
       setDraftMap((prev) => ({ ...prev, [envKey]: '' }));
-      await loadStatus();
+      setStatusMap((prev) => ({
+        ...prev,
+        [envKey]: { configured: true, hasEnvironmentValue: !!prev[envKey]?.hasEnvironmentValue, placeholder: false },
+      }));
+      void loadStatus();
     } catch (error) {
       console.error('[ProvidersCockpit] failed to commit key:', envKey, error);
       Message.error(`Failed to commit ${envKey}.`);
