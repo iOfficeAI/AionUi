@@ -36,9 +36,18 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
       return getProviderLogo({ name: data?.name, base_url: data?.base_url, platform: data?.platform });
     }, [data?.name, data?.base_url, data?.platform]);
 
+    const isFullUrl = data?.is_full_url ?? false;
+
     // For Bedrock, don't pass bedrock_config to avoid auto-refresh on input changes
     // We'll build it dynamically in onFocus
-    const modelListState = useModeModeList(data?.platform || 'gemini', data?.base_url, data?.api_key, true, undefined);
+    // When is_full_url, pass empty base_url to prevent auto-fetch with the full endpoint URL
+    const modelListState = useModeModeList(
+      data?.platform || 'gemini',
+      isFullUrl ? '' : data?.base_url,
+      isFullUrl ? '' : data?.api_key,
+      true,
+      undefined
+    );
 
     useEffect(() => {
       if (data) {
@@ -124,10 +133,10 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               <Input placeholder={t('settings.modelProvider')} />
             </Form.Item>
 
-            {/* Base URL - 仅 Gemini 平台显示（用于自定义代理）/ Base URL - only for Gemini platform (for custom proxy) */}
+            {/* Base URL */}
             <Form.Item
               hidden={isBedrock}
-              label={t('settings.baseUrl')}
+              label={t('settings.apiEndpoint', 'API 请求地址')}
               required={data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock}
               rules={[{ required: data?.platform !== 'gemini' && data?.platform !== 'gemini-vertex-ai' && !isBedrock }]}
               field={'base_url'}
@@ -222,21 +231,22 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
               field={'model'}
               required
               rules={[{ required: true }]}
-              validateStatus={modelListState.error ? 'error' : undefined}
+              validateStatus={!isFullUrl && modelListState.error ? 'error' : undefined}
               help={
-                modelListState.error instanceof Error
+                !isFullUrl && modelListState.error instanceof Error
                   ? modelListState.error.message
-                  : modelListState.error
+                  : !isFullUrl && modelListState.error
                     ? String(modelListState.error)
                     : undefined
               }
             >
               <Select
-                loading={modelListState.isLoading}
+                loading={!isFullUrl && modelListState.isLoading}
                 showSearch
                 allowCreate
                 mode={data?.models && data.models.length > 1 ? 'multiple' : undefined}
                 onFocus={async () => {
+                  if (isFullUrl) return;
                   // For Bedrock, build bedrock_config from current form values and fetch models
                   if (isBedrock) {
                     const values = form.getFields();
@@ -291,7 +301,7 @@ const EditModeModal = ModalHOC<{ data?: IProvider; onChange(data: IProvider): vo
                   }
                   void modelListState.mutate();
                 }}
-                options={modelListState.data?.models || []}
+                options={isFullUrl ? [] : modelListState.data?.models || []}
               />
             </Form.Item>
           </Form>
