@@ -51,14 +51,25 @@ class JsonErrorCommand implements ErrorCommand {
  * 处理所有未被捕获的错误，统一返回格式化的错误响应
  * Handles all uncaught errors and returns formatted error responses
  */
+const isCsrfError = (err: unknown): boolean => {
+  if (!err || typeof err !== 'object') {
+    return false;
+  }
+  const record = err as { code?: unknown; message?: unknown };
+  const code = typeof record.code === 'string' ? record.code.toLowerCase() : '';
+  const message = typeof record.message === 'string' ? record.message.toLowerCase() : '';
+  return code === 'ebadcsrftoken' || message.includes('invalid csrf') || message.includes('csrf');
+};
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   const isAppError = err instanceof AppError;
-  const statusCode = isAppError ? err.statusCode : 500;
-  const code = isAppError ? err.code : 'internal_error';
-  const message = isAppError ? err.message : 'Internal server error';
+  const csrfError = isCsrfError(err);
+  const statusCode = csrfError ? 403 : isAppError ? err.statusCode : 500;
+  const code = csrfError ? 'csrf_invalid' : isAppError ? err.code : 'internal_error';
+  const message = csrfError ? 'Invalid CSRF token' : isAppError ? err.message : 'Internal server error';
 
   // 仅记录非预期错误 / Only log unexpected errors
-  if (!isAppError) {
+  if (!isAppError && !csrfError) {
     console.error('[Error]', err);
   }
 
