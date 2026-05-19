@@ -852,7 +852,18 @@
     "customAgents": "自定义 Agents",
     "custom": "自定义",
     "addCustomAgent": "添加自定义 Agent",
-    "customEmpty": "暂无自定义 Agent，点击「添加自定义 Agent」创建。"
+    "customEmpty": "暂无自定义 Agent，点击「添加自定义 Agent」创建。",
+    "warmupStatus": {
+      "idle": "空闲",
+      "warming": "准备中",
+      "ready": "已就绪",
+      "failed": "预热失败",
+      "skipped": "已跳过预热",
+      "unsupported": "暂不支持预热",
+      "unknown": "预热状态未知"
+    },
+    "warmupCheckedAt": "{{time}} 检查",
+    "warmupLastError": "预热错误：{{error}}"
   },
   "remoteAgent": {
     "title": "远程 Agent",

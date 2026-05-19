@@ -57,6 +57,39 @@ export type AgentHandshake = {
   available_commands?: unknown;
 };
 
+export type AgentWarmupReason = 'idle' | 'user_select' | 'before_send';
+
+export type SupportedAgentWarmupBackend = 'codex' | 'claude';
+
+export type AgentWarmupRequest = {
+  backends: string[];
+  reason: AgentWarmupReason;
+};
+
+export type AgentWarmupStatus =
+  | 'idle'
+  | 'warming'
+  | 'pending'
+  | 'running'
+  | 'ready'
+  | 'success'
+  | 'ok'
+  | 'skipped'
+  | 'failed'
+  | 'error'
+  | 'unsupported';
+
+export type AgentWarmupResult = {
+  backend: string;
+  status: AgentWarmupStatus;
+  agent_id?: string;
+  error?: string;
+};
+
+export type AgentWarmupResponse = {
+  results: AgentWarmupResult[];
+};
+
 /**
  * Unified agent metadata returned by `/api/agents`.
  *
@@ -99,6 +132,12 @@ export type AgentMetadata = {
   yolo_id?: string;
 
   handshake?: AgentHandshake;
+
+  /** Optional warmup diagnostics returned by newer backends. */
+  warmup_status?: AgentWarmupStatus;
+  last_error?: string;
+  last_checked_at?: number | string;
+  handshake_updated_at?: number | string;
 };
 
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */

@@ -853,7 +853,18 @@
     "customAgents": "自訂 Agents",
     "custom": "自訂",
     "addCustomAgent": "新增自訂 Agent",
-    "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。"
+    "customEmpty": "尚無自訂 Agent，點擊「新增自訂 Agent」建立。",
+    "warmupStatus": {
+      "idle": "閒置",
+      "warming": "準備中",
+      "ready": "已就緒",
+      "failed": "預熱失敗",
+      "skipped": "已跳過預熱",
+      "unsupported": "暫不支援預熱",
+      "unknown": "預熱狀態未知"
+    },
+    "warmupCheckedAt": "{{time}} 檢查",
+    "warmupLastError": "預熱錯誤：{{error}}"
   },
   "remoteAgent": {
     "title": "遠端 Agent",

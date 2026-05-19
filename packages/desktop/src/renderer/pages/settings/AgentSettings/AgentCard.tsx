@@ -5,11 +5,12 @@
  */
 
 import React from 'react';
-import { Avatar, Button, Switch, Typography } from '@arco-design/web-react';
+import { Avatar, Button, Switch, Tooltip, Typography } from '@arco-design/web-react';
 import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import type { AgentWarmupStatus } from '@/renderer/utils/model/agentTypes';
 
 type DetectedAgent = {
   agent_type: string;
@@ -19,6 +20,9 @@ type DetectedAgent = {
   custom_agent_id?: string;
   isExtension?: boolean;
   avatar?: string;
+  warmup_status?: AgentWarmupStatus;
+  last_error?: string;
+  last_checked_at?: number | string;
 };
 
 /** Minimal custom-agent fields consumed by the 'custom' card variant. */
@@ -32,6 +36,9 @@ type CustomAgentCardData = {
   /** Launch arguments for the CLI. */
   args?: string[];
   enabled: boolean;
+  warmup_status?: AgentWarmupStatus;
+  last_error?: string;
+  last_checked_at?: number | string;
 };
 
 type AgentCardProps =
@@ -49,9 +56,47 @@ type AgentCardProps =
       onToggle: (enabled: boolean) => void;
     };
 
+function formatWarmupCheckedAt(value: number | string | undefined): string | undefined {
+  if (!value) return undefined;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return undefined;
+  return new Intl.DateTimeFormat(undefined, { hour: '2-digit', minute: '2-digit' }).format(date);
+}
+
 const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
   const goToChatButtonClassName = '!w-full !justify-center !rounded-10px !text-12px';
+
+  const getWarmupStatus = (
+    status: AgentWarmupStatus | undefined,
+    lastError: string | undefined,
+    lastCheckedAt: number | string | undefined
+  ) => {
+    if (!status && !lastError && !lastCheckedAt) return undefined;
+
+    const normalized = status?.toLowerCase();
+    const key =
+      normalized === 'ready' || normalized === 'success' || normalized === 'ok'
+        ? 'ready'
+        : normalized === 'warming' || normalized === 'pending' || normalized === 'running'
+          ? 'warming'
+          : normalized === 'failed' || normalized === 'error' || lastError
+            ? 'failed'
+            : normalized === 'skipped'
+              ? 'skipped'
+              : normalized === 'unsupported'
+                ? 'unsupported'
+                : normalized === 'idle'
+                  ? 'idle'
+                  : 'unknown';
+    const checkedAt = formatWarmupCheckedAt(lastCheckedAt);
+    const label = t(`settings.agentManagement.warmupStatus.${key}`);
+    const suffix = checkedAt ? t('settings.agentManagement.warmupCheckedAt', { time: checkedAt }) : undefined;
+    const content = suffix ? `${label} · ${suffix}` : label;
+    const tooltip = lastError ? t('settings.agentManagement.warmupLastError', { error: lastError }) : suffix || label;
+
+    return { content, tooltip };
+  };
 
   if (props.type === 'detected') {
     const { agent, onGoToChat } = props;
@@ -64,6 +109,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         custom_agent_id: agent.custom_agent_id,
         isExtension: agent.isExtension,
       });
+    const warmupStatus = getWarmupStatus(agent.warmup_status, agent.last_error, agent.last_checked_at);
 
     return (
       <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
@@ -80,6 +126,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           <Typography.Text className='mt-4px block text-11px text-t-secondary'>
             {t('settings.agentManagement.detected')}
           </Typography.Text>
+          {warmupStatus && (
+            <Tooltip content={warmupStatus.tooltip}>
+              <Typography.Text className='mt-4px block truncate text-11px text-t-secondary'>
+                {warmupStatus.content}
+              </Typography.Text>
+            </Tooltip>
+          )}
         </div>
 
         <Button size='small' type='secondary' onClick={onGoToChat} className={goToChatButtonClassName}>
@@ -90,6 +143,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   }
 
   const { agent, onGoToChat, onEdit, onDelete, onToggle } = props;
+  const warmupStatus = getWarmupStatus(agent.warmup_status, agent.last_error, agent.last_checked_at);
 
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -107,6 +161,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             {agent.command}
             {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
           </div>
+          {warmupStatus && (
+            <Tooltip content={warmupStatus.tooltip}>
+              <Typography.Text className='block truncate text-11px text-t-secondary'>
+                {warmupStatus.content}
+              </Typography.Text>
+            </Tooltip>
+          )}
         </div>
       </div>
       <div className='flex items-center gap-8px'>

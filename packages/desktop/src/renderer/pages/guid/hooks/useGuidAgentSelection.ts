@@ -25,6 +25,7 @@ import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
+import { supportsAgentWarmup, warmupAgent } from '@/renderer/hooks/agent/useAgentWarmup';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -135,15 +136,6 @@ export const useGuidAgentSelection = ({
   const initialRestoreDoneRef = useRef(false);
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
 
-  // Wrap setSelectedAgentKey to also save to storage
-  const setSelectedAgentKey = useCallback((key: string) => {
-    initialRestoreDoneRef.current = true;
-    _setSelectedAgentKey(key);
-    configService.set('guid.lastSelectedAgent', key).catch((error) => {
-      console.error('Failed to save selected agent:', error);
-    });
-  }, []);
-
   // Wrap setSelectedMode to also save preferred mode to the agent's own config
   const setSelectedMode = useCallback((mode: React.SetStateAction<string>) => {
     _setSelectedMode((prev) => {
@@ -239,6 +231,19 @@ export const useGuidAgentSelection = ({
     return availableAgents?.find((a) => a.backend === key || a.agent_type === key);
   };
 
+  // Wrap setSelectedAgentKey to also save to storage and warm supported slow-start adapters.
+  const setSelectedAgentKey = useCallback(
+    (key: string) => {
+      initialRestoreDoneRef.current = true;
+      _setSelectedAgentKey(key);
+      void warmupAgent(findAgentByKey(key) ?? { backend: key, agent_type: key }, 'user_select');
+      configService.set('guid.lastSelectedAgent', key).catch((error) => {
+        console.error('Failed to save selected agent:', error);
+      });
+    },
+    [availableAgents, assistants]
+  );
+
   // Derived state: collapse row-scoped rows to a stable slot key so shared
   // config namespaces (acp.config / mode preferences) are not fragmented
   // per row.
@@ -253,6 +258,37 @@ export const useGuidAgentSelection = ({
     return findAgentByKey(selectedAgentKey);
   }, [selectedAgentKey, availableAgents, assistants]);
   const is_presetAgent = Boolean(selectedAgentInfo?.is_preset);
+  const idleWarmupDoneRef = useRef(false);
+
+  useEffect(() => {
+    const target = selectedAgentInfo ?? { backend: selectedAgent, agent_type: selectedAgent };
+    if (idleWarmupDoneRef.current || !supportsAgentWarmup(target)) {
+      return;
+    }
+
+    let cancelled = false;
+    const schedule =
+      typeof window !== 'undefined' && 'requestIdleCallback' in window
+        ? (callback: () => void) => {
+            const id = window.requestIdleCallback(callback, { timeout: 1500 });
+            return () => window.cancelIdleCallback(id);
+          }
+        : (callback: () => void) => {
+            const id = window.setTimeout(callback, 600);
+            return () => window.clearTimeout(id);
+          };
+
+    const cancelScheduledWarmup = schedule(() => {
+      if (cancelled || idleWarmupDoneRef.current) return;
+      idleWarmupDoneRef.current = true;
+      void warmupAgent(target, 'idle');
+    });
+
+    return () => {
+      cancelled = true;
+      cancelScheduledWarmup();
+    };
+  }, [selectedAgentInfo, selectedAgent]);
 
   // --- SWR: Fetch detected execution engines (shared cache) ---
   const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);

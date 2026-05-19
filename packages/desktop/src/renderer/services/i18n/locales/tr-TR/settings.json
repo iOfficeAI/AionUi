@@ -851,7 +851,18 @@
     "customAgents": "Özel Ajanlar",
     "custom": "Özel",
     "addCustomAgent": "Özel Ajan Ekle",
-    "customEmpty": "Yapılandırılmış özel ajan yok. Oluşturmak için \"Özel Ajan Ekle\"ye tıklayın."
+    "customEmpty": "Yapılandırılmış özel ajan yok. Oluşturmak için \"Özel Ajan Ekle\"ye tıklayın.",
+    "warmupStatus": {
+      "idle": "Boşta",
+      "warming": "Hazırlanıyor",
+      "ready": "Hazır",
+      "failed": "Isıtma başarısız",
+      "skipped": "Isıtma atlandı",
+      "unsupported": "Isıtma kullanılamıyor",
+      "unknown": "Isıtma durumu bilinmiyor"
+    },
+    "warmupCheckedAt": "{{time}} kontrol edildi",
+    "warmupLastError": "Isıtma hatası: {{error}}"
   },
   "remoteAgent": {
     "title": "Uzak Ajanlar",

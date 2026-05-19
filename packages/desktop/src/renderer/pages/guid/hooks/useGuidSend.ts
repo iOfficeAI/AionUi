@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { TChatConversation } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
+import { warmupAgent } from '@/renderer/hooks/agent/useAgentWarmup';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -143,6 +144,14 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
     const finalEffectiveAgentType = effectiveAgentType;
+
+    await warmupAgent(
+      agentInfo ?? {
+        backend: finalEffectiveAgentType,
+        agent_type: finalEffectiveAgentType,
+      },
+      'before_send'
+    );
 
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
