@@ -5,7 +5,7 @@
   "description": "Shared build scripts for AionUi packages",
   "type": "commonjs",
   "exports": {
-    "./prepare-aioncli": "./src/prepare-aioncli.js"
+    "./prepare-aioncore": "./src/prepare-aioncore.js"
   },
   "scripts": {
     "test": "vitest run",

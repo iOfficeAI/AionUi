@@ -451,7 +451,7 @@ try {
     return;
   }
 
-  // 5. Prepare aioncli binary (for packaged runtime usage)
+  // 5. Prepare aioncore binary (for packaged runtime usage)
   const prepareAionuiBackend = require('./prepareAionuiBackend');
   prepareAionuiBackend();
 

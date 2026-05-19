@@ -76,13 +76,13 @@ interface MaterializeResponse {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveBackendBinary(): string {
-  const candidates = [process.env.AIONUI_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncli')].filter(
+  const candidates = [process.env.AIONUI_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
     (x): x is string => typeof x === 'string' && x.length > 0
   );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error('aioncli binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aioncli.');
+  throw new Error('aioncore binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.');
 }
 
 // ── Suite ───────────────────────────────────────────────────────────────────
@@ -279,7 +279,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
   // ── Scenarios 6 & 8 — require a fresh data-dir / cold boot ────────────────
   //
-  // Run against a sibling `aioncli` process on port 25903 against a
+  // Run against a sibling `aioncore` process on port 25903 against a
   // tmp data-dir (same pattern as the assistant-user-data pilot's
   // S8/S9/S10). This lets us seed pre-existing state and observe the
   // startup/legacy-cleanup behaviour without tearing down the main
@@ -340,7 +340,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
     async function startBackend(): Promise<void> {
       const bin = resolveBackendBinary();
-      const logPath = path.join(dataDir, 'sibling-aioncli.log');
+      const logPath = path.join(dataDir, 'sibling-aioncore.log');
       const logFd = fs.openSync(logPath, 'a');
       const parentEnv = { ...process.env };
       // Scrub any env vars that would leak main-Electron backend state.
