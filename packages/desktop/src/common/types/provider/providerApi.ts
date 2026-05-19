@@ -33,6 +33,7 @@ export interface CreateProviderRequest {
   model_enabled?: Record<string, boolean>;
   model_health?: IProvider['model_health'];
   bedrock_config?: IProvider['bedrock_config'];
+  is_full_url?: boolean;
 }
 
 /**
@@ -52,6 +53,7 @@ export interface UpdateProviderRequest {
   model_enabled?: Record<string, boolean>;
   model_health?: IProvider['model_health'];
   bedrock_config?: IProvider['bedrock_config'];
+  is_full_url?: boolean;
 }
 
 /**
