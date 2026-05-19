@@ -291,5 +291,6 @@
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
-  }
+  },
+  "notFound": "Conversation not found or has been deleted"
 }

@@ -293,5 +293,6 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
-  }
+  },
+  "notFound": "Konuşma bulunamadı veya silinmiş"
 }
