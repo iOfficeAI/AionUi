@@ -7,10 +7,31 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
+import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import * as Sentry from '@sentry/electron/main';
+
+// 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
+// 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
+const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
+  beforeSend(event) {
+    const haystacks: string[] = [];
+    if (event.message) haystacks.push(event.message);
+    const exceptions = event.exception?.values ?? [];
+    for (const ex of exceptions) {
+      if (ex.value) haystacks.push(ex.value);
+      const frames = ex.stacktrace?.frames ?? [];
+      for (const frame of frames) {
+        if (frame.function) haystacks.push(frame.function);
+      }
+    }
+    if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
+      return null;
+    }
+    return event;
+  },
 });
 
 import './process/utils/configureConsoleLog';
@@ -734,6 +755,9 @@ app.on('open-url', (event, url) => {
   // Focus existing window so user sees the result
   showOrCreateMainWindow({ mainWindow, createWindow });
 });
+
+// 监听 GPU 子进程崩溃，连续多次后下次启动自动关闭硬件加速（参见 ELECTRON-9A / ELECTRON-9D）。
+installGpuCrashHandler();
 
 // Ensure we don't miss the ready event when running in CLI/WebUI mode
 void app

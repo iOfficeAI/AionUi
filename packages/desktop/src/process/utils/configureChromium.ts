@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
 import { getDevAppName } from '@/common/platform';
+import { applyGpuRecoveryFlags } from './gpuRecovery';
 
 // ============ Environment Separation ============
 // Set app name before any getPath() call so userData is isolated from production.
@@ -24,6 +25,9 @@ if (!app.isPackaged) {
   const appSupportDir = path.dirname(app.getPath('userData'));
   app.setPath('userData', path.join(appSupportDir, devAppName));
 }
+
+// app.disableHardwareAcceleration() must run before app is ready.
+applyGpuRecoveryFlags();
 
 // Configure Chromium command-line flags for WebUI and CLI modes
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数

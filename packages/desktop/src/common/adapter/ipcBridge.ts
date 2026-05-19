@@ -330,6 +330,18 @@ export interface IStartOnBootStatus {
   platform: string;
 }
 
+/** Hardware acceleration / GPU recovery status — see process/utils/gpuRecovery */
+export type IGpuOverride = 'force-on' | 'force-off';
+
+export interface IGpuStatus {
+  /** User-set override; null means follow auto-recovery */
+  userOverride: IGpuOverride | null;
+  /** Whether auto-recovery has disabled hardware acceleration after repeated crashes */
+  autoDisabled: boolean;
+  crashCount: number;
+  lastCrashAt: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -361,6 +373,10 @@ export const application = {
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
+  ),
+  getGpuStatus: bridge.buildProvider<IBridgeResponse<IGpuStatus>, void>('app.get-gpu-status'),
+  setGpuOverride: bridge.buildProvider<IBridgeResponse<IGpuStatus>, { override: IGpuOverride | null }>(
+    'app.set-gpu-override'
   ),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
