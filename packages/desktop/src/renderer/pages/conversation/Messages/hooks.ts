@@ -96,7 +96,9 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
 }
 
 const normalizeMessageForList = (message: TMessage): TMessage =>
-  message.type === 'acp_tool_call' ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage) : message;
+  message.type === 'acp_tool_call'
+    ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+    : message;
 
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function

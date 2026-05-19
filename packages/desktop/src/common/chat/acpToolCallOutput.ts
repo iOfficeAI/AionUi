@@ -39,17 +39,13 @@ const sanitizeAcpRawOutput = (rawOutput?: AcpRawOutput): AcpRawOutput | undefine
   };
 };
 
-export const sanitizeAcpToolUpdate = (
-  update: ToolCallUpdate['update']
-): ToolCallUpdate['update'] => ({
+export const sanitizeAcpToolUpdate = (update: ToolCallUpdate['update']): ToolCallUpdate['update'] => ({
   ...update,
   rawOutput: sanitizeAcpRawOutput(update.rawOutput),
   raw_output: sanitizeAcpRawOutput(update.raw_output),
 });
 
-export const sanitizeAcpToolCallContent = (
-  content: ToolCallUpdate
-): ToolCallUpdate => ({
+export const sanitizeAcpToolCallContent = (content: ToolCallUpdate): ToolCallUpdate => ({
   ...content,
   update: sanitizeAcpToolUpdate(content.update),
 });

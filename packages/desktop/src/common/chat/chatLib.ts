@@ -792,7 +792,9 @@ export const composeMessage = (
 ): TMessage[] => {
   if (!message) return list || [];
   const normalizedMessage =
-    message.type === 'acp_tool_call' ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage) : message;
+    message.type === 'acp_tool_call'
+      ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
+      : message;
   if (!list?.length) {
     messageHandler('insert', normalizedMessage);
     return [normalizedMessage];
