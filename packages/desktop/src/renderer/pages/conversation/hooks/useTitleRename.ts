@@ -9,7 +9,6 @@ import { useTranslation } from 'react-i18next';
 type UseTitleRenameParams = {
   title?: React.ReactNode;
   conversation_id?: string;
-  updateTabName: (id: string, name: string) => void;
   /** When provided, replaces the default conversation.update call. Return true on success. */
   onRename?: (new_name: string) => Promise<boolean>;
 };
@@ -27,12 +26,7 @@ type UseTitleRenameReturn = {
 /**
  * Manages inline title editing state and submission for conversation rename.
  */
-export function useTitleRename({
-  title,
-  conversation_id,
-  updateTabName,
-  onRename,
-}: UseTitleRenameParams): UseTitleRenameReturn {
+export function useTitleRename({ title, conversation_id, onRename }: UseTitleRenameParams): UseTitleRenameReturn {
   const { t } = useTranslation();
   const [editingTitle, setEditingTitle] = useState(false);
   const [titleDraft, setTitleDraft] = useState(typeof title === 'string' ? title : '');
@@ -76,7 +70,6 @@ export function useTitleRename({
         success = Boolean(result);
         if (success) {
           await refreshConversationCache(conversation_id!);
-          updateTabName(conversation_id!, nextTitle);
           emitter.emit('chat.history.refresh');
         }
       }

@@ -92,12 +92,6 @@
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",
-  "tabs": {
-    "closeAll": "모두 닫기",
-    "closeLeft": "왼쪽 닫기",
-    "closeRight": "오른쪽 닫기",
-    "closeOthers": "다른 탭 닫기"
-  },
   "workspace": {
     "title": "프로젝트",
     "pasteConfirm_title": "파일 붙여넣기",

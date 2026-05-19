@@ -85,12 +85,6 @@
     "loadingMore": "Завантаження...",
     "untitled": "Діалог без назви"
   },
-  "tabs": {
-    "closeAll": "Закрити всі",
-    "closeLeft": "Закрити зліва",
-    "closeRight": "Закрити справа",
-    "closeOthers": "Закрити інші"
-  },
   "dropdown": {
     "cliAgents": "CLI Агенти",
     "presetAssistants": "Встановлені асистенти"

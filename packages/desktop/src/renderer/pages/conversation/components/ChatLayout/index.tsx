@@ -3,12 +3,10 @@ import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssist
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import ConversationTabs from '@/renderer/pages/conversation/components/ConversationTabs';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
-import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/usePreviewAutoCollapse';
@@ -76,14 +74,10 @@ const ChatLayout: React.FC<{
   const { containerRef, containerWidth } = useContainerWidth();
 
   // --- Hook C: title rename ---
-  const { openTabs, updateTabName } = useConversationTabs();
-  const hasTabs = openTabs.length > 0;
-
   const { editingTitle, setEditingTitle, titleDraft, setTitleDraft, renameLoading, canRenameTitle, submitTitleRename } =
     useTitleRename({
       title: props.title,
       conversation_id,
-      updateTabName,
       onRename: props.onRenameTitle,
     });
 
@@ -183,7 +177,7 @@ const ChatLayout: React.FC<{
       >
         <div className='shrink-0'>{props.headerLeft}</div>
         <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
-          {!layout?.isMobile && !hasTabs && (
+          {!layout?.isMobile && (
             <ChatTitleEditor
               editingTitle={editingTitle}
               titleDraft={titleDraft}
@@ -197,7 +191,7 @@ const ChatLayout: React.FC<{
               conversation_id={conversation_id}
             />
           )}
-          {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversation_id={conversation_id} hideTrigger />}
+          {layout?.isMobile && <ConversationTitleMinimap conversation_id={conversation_id} hideTrigger />}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
@@ -222,7 +216,7 @@ const ChatLayout: React.FC<{
           )}
         </div>
       </ArcoLayout.Header>
-      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
+      {props.tabsSlot}
     </>
   );
 

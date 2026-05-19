@@ -85,12 +85,6 @@
     "loadingMore": "正在加载更多...",
     "untitled": "未命名会话"
   },
-  "tabs": {
-    "closeAll": "关闭全部",
-    "closeLeft": "关闭左侧",
-    "closeRight": "关闭右侧",
-    "closeOthers": "关闭其他"
-  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "预设助手"

@@ -14,7 +14,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
-import { useConversationTabs } from '../../hooks/ConversationTabsContext';
 import { isConversationPinned } from '../utils/groupingHelpers';
 
 type UseConversationActionsParams = {
@@ -44,7 +43,6 @@ export const useConversationActions = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { openTab, closeAllTabs, activeTab, updateTabName } = useConversationTabs();
 
   // Close dropdown when entering batch mode
   useEffect(() => {
@@ -63,32 +61,14 @@ export const useConversationActions = ({
       blockMobileInputFocus();
       blurActiveElement();
 
-      const custom_workspace = conversation.extra?.custom_workspace;
-      const newWorkspace = conversation.extra?.workspace;
-
       markAsRead(conversation.id);
 
-      if (!custom_workspace) {
-        closeAllTabs();
-        void navigate(`/conversation/${conversation.id}`);
-        if (onSessionClick) {
-          onSessionClick();
-        }
-        return;
-      }
-
-      const currentWorkspace = activeTab?.workspace;
-      if (!currentWorkspace || currentWorkspace !== newWorkspace) {
-        closeAllTabs();
-      }
-
-      openTab(conversation);
       void navigate(`/conversation/${conversation.id}`);
       if (onSessionClick) {
         onSessionClick();
       }
     },
-    [batchMode, toggleSelectedConversation, markAsRead, closeAllTabs, navigate, onSessionClick, activeTab, openTab]
+    [batchMode, toggleSelectedConversation, markAsRead, navigate, onSessionClick]
   );
 
   const removeConversation = useCallback(
@@ -192,7 +172,6 @@ export const useConversationActions = ({
 
       if (success) {
         await refreshConversationCache(renameModalId);
-        updateTabName(renameModalId, renameModalName.trim());
         emitter.emit('chat.history.refresh');
         setRenameModalVisible(false);
         setRenameModalId(null);
@@ -207,7 +186,7 @@ export const useConversationActions = ({
     } finally {
       setRenameLoading(false);
     }
-  }, [renameModalId, renameModalName, updateTabName, t]);
+  }, [renameModalId, renameModalName, t]);
 
   const handleRenameCancel = useCallback(() => {
     setRenameModalVisible(false);

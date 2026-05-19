@@ -85,12 +85,6 @@
     "loadingMore": "Loading more...",
     "untitled": "Untitled conversation"
   },
-  "tabs": {
-    "closeAll": "Close All",
-    "closeLeft": "Close to the Left",
-    "closeRight": "Close to the Right",
-    "closeOthers": "Close Others"
-  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "Preset Assistants"
