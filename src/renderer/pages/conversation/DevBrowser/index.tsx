@@ -9,45 +9,11 @@ import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import { Left, Right, Refresh, Loading, Click, Close } from '@icon-park/react';
 import Basket from './Basket';
+import { estimatePayloadBytes, formatForChat, mergePicked, nextId, normalizeUrl } from './helpers';
 import { buildPickerScript, EXIT_MARKER_NAME, PICK_MARKER_NAME } from './pickerScript';
 import { MAX_BASKET_ITEMS, MAX_OUTER_HTML, MAX_PAYLOAD_BYTES, MAX_TEXT, type PickedElement } from './types';
 
 const HOME_URL = 'https://www.google.com/';
-
-function normalizeUrl(input: string): string {
-  const trimmed = input.trim();
-  if (!trimmed) return '';
-  if (/^https?:\/\//i.test(trimmed)) return trimmed;
-  return 'https://' + trimmed;
-}
-
-function nextId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
-
-function estimatePayloadBytes(items: PickedElement[]): number {
-  let n = 0;
-  for (const el of items) {
-    n += el.outerHTML.length + el.textContent.length + el.selector.length + 64;
-  }
-  return n;
-}
-
-function formatForChat(items: PickedElement[]): string {
-  const lines: string[] = [`<picked_elements count="${items.length}">`];
-  for (const el of items) {
-    lines.push(
-      `  <element url="${el.url}" selector="${el.selector}">`,
-      `    <tag>${el.tagName}</tag>`,
-      `    <text>${el.textContent}</text>`,
-      `    <html><![CDATA[${el.outerHTML}]]></html>`,
-      `    <attrs>${JSON.stringify(el.attrs)}</attrs>`,
-      `  </element>`
-    );
-  }
-  lines.push(`</picked_elements>`);
-  return lines.join('\n');
-}
 
 const DevBrowser: React.FC = () => {
   const { t } = useTranslation();
@@ -88,21 +54,19 @@ const DevBrowser: React.FC = () => {
   const addPicked = useCallback(
     (payload: Omit<PickedElement, 'id' | 'pickedAt'>) => {
       setItems((prev) => {
-        const existing = prev.find((e) => e.url === payload.url && e.selector === payload.selector);
-        if (existing) {
-          return prev.map((e) => (e.id === existing.id ? { ...payload, id: existing.id, pickedAt: Date.now() } : e));
-        }
-        if (prev.length >= MAX_BASKET_ITEMS) {
+        const result = mergePicked(prev, payload, MAX_BASKET_ITEMS, Date.now(), nextId);
+        if (result.kind === 'rejected') {
           Message.warning(t('conversation.devBrowser.basketFull', { max: MAX_BASKET_ITEMS }));
           return prev;
         }
-        const id = nextId();
-        setSelectedIds((s) => {
-          const next = new Set(s);
-          next.add(id);
-          return next;
-        });
-        return [...prev, { ...payload, id, pickedAt: Date.now() }];
+        if (result.kind === 'added') {
+          setSelectedIds((s) => {
+            const next = new Set(s);
+            next.add(result.newId);
+            return next;
+          });
+        }
+        return result.items;
       });
     },
     [t]
