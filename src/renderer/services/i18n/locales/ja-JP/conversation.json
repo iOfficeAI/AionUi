@@ -347,5 +347,26 @@
       "title": "不明なエラーが発生しました",
       "hint": "再試行をクリックして続行してください。繰り返し発生する場合は、上記の詳細とともにサポートに連絡してください。"
     }
+  },
+  "devBrowser": {
+    "entry": "Web ブラウザ",
+    "back": "戻る",
+    "forward": "進む",
+    "refresh": "再読込",
+    "loading": "読み込み中…",
+    "urlPlaceholder": "URL を入力して Enter",
+    "pickerStart": "要素を取得",
+    "pickerStop": "停止",
+    "pickerHint": "要素をクリックして追加。Esc で終了。",
+    "basketTitle": "取得した要素 ({{count}})",
+    "basketEmpty": "まだ要素がありません。「要素を取得」を有効にしてページをクリック。",
+    "basketFull": "上限 {{max}} に達しました。送信または削除してください。",
+    "clearAll": "クリア",
+    "highlight": "ページで点滅",
+    "remove": "削除",
+    "payloadSize": "選択サイズ: {{current}} KB / {{limit}} KB",
+    "sendToChat": "{{count}} 個をチャットにコピー",
+    "copiedToClipboard": "{{count}} 個の要素をクリップボードにコピーしました。",
+    "copyFailed": "クリップボードへのコピーに失敗しました。"
   }
 }

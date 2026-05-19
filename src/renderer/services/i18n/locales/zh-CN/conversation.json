@@ -347,5 +347,26 @@
       "title": "发生未知错误",
       "hint": "点击重试继续。如反复出现，请联系支持并附上错误详情。"
     }
+  },
+  "devBrowser": {
+    "entry": "网页浏览",
+    "back": "后退",
+    "forward": "前进",
+    "refresh": "刷新",
+    "loading": "加载中…",
+    "urlPlaceholder": "输入网址后回车",
+    "pickerStart": "取元素",
+    "pickerStop": "停止",
+    "pickerHint": "点击网页元素加入选集，按 Esc 退出。",
+    "basketTitle": "已选元素（{{count}}）",
+    "basketEmpty": "还没有选中元素。开启\"取元素\"后点击页面。",
+    "basketFull": "选集已满（上限 {{max}}），请先发送或清空。",
+    "clearAll": "清空",
+    "highlight": "在页面闪烁",
+    "remove": "移除",
+    "payloadSize": "已选体积：{{current}} KB / {{limit}} KB",
+    "sendToChat": "复制 {{count}} 个作为对话上下文",
+    "copiedToClipboard": "已将 {{count}} 个元素复制到剪贴板。",
+    "copyFailed": "复制到剪贴板失败。"
   }
 }

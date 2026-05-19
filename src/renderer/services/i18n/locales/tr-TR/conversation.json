@@ -349,5 +349,26 @@
       "title": "Bilinmeyen hata",
       "hint": "Devam etmek için yeniden denemeye tıklayın. Tekrarlarsa, yukarıdaki ayrıntılarla destek ekibine başvurun."
     }
+  },
+  "devBrowser": {
+    "entry": "Web Tarayıcı",
+    "back": "Geri",
+    "forward": "İleri",
+    "refresh": "Yenile",
+    "loading": "Yükleniyor…",
+    "urlPlaceholder": "URL girin ve Enter'a basın",
+    "pickerStart": "Seç",
+    "pickerStop": "Durdur",
+    "pickerHint": "Eklemek için öğelere tıklayın. Çıkmak için Esc.",
+    "basketTitle": "Seçili öğeler ({{count}})",
+    "basketEmpty": "Henüz öğe yok. Seçim modunu açıp sayfaya tıklayın.",
+    "basketFull": "Sepet dolu (en fazla {{max}}). Gönderin veya temizleyin.",
+    "clearAll": "Temizle",
+    "highlight": "Sayfada parlat",
+    "remove": "Kaldır",
+    "payloadSize": "Seçim: {{current}} KB / {{limit}} KB",
+    "sendToChat": "{{count}} öğeyi sohbete kopyala",
+    "copiedToClipboard": "{{count}} öğe panoya kopyalandı.",
+    "copyFailed": "Panoya kopyalama başarısız."
   }
 }

@@ -347,5 +347,26 @@
       "title": "Unknown error",
       "hint": "Click retry to continue. If this keeps happening, contact support with the details above."
     }
+  },
+  "devBrowser": {
+    "entry": "Web Browser",
+    "back": "Back",
+    "forward": "Forward",
+    "refresh": "Refresh",
+    "loading": "Loading…",
+    "urlPlaceholder": "Enter a URL and press Enter",
+    "pickerStart": "Pick",
+    "pickerStop": "Stop Picking",
+    "pickerHint": "Click elements to add them to the basket. Press Esc to exit.",
+    "basketTitle": "Picked elements ({{count}})",
+    "basketEmpty": "No elements yet. Toggle Pick and click on the page.",
+    "basketFull": "Basket is full (max {{max}}). Send or clear before picking more.",
+    "clearAll": "Clear",
+    "highlight": "Flash on page",
+    "remove": "Remove",
+    "payloadSize": "Selection: {{current}} KB / {{limit}} KB",
+    "sendToChat": "Copy {{count}} as chat context",
+    "copiedToClipboard": "Copied {{count}} elements to clipboard.",
+    "copyFailed": "Failed to copy to clipboard."
   }
 }
