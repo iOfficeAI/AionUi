@@ -145,7 +145,21 @@ export type IMessageText = IMessage<
   }
 >;
 
-export type IMessageTips = IMessage<'tips', { content: string; type: 'error' | 'success' | 'warning' }>;
+/** Optional structured payload attached to error tips so the renderer can show
+ * a friendly title, recovery hint and Retry control instead of the raw text. */
+export type IMessageTipsErrorMeta = {
+  /** Stable machine code, e.g. KSC_PROXY_STREAM_IDLE. UI uses it to resolve i18n. */
+  code: string;
+  /** Optional plain-text hint shown beneath the main message. */
+  hint?: string;
+  /** If true, the renderer shows a Retry control. */
+  retryable?: boolean;
+};
+
+export type IMessageTips = IMessage<
+  'tips',
+  { content: string; type: 'error' | 'success' | 'warning'; errorMeta?: IMessageTipsErrorMeta }
+>;
 
 export type IMessageToolCall = IMessage<
   'tool_call',
@@ -402,6 +416,24 @@ export interface IConfirmation<Option extends any = any> {
 export const transformMessage = (message: IResponseMessage): TMessage => {
   switch (message.type) {
     case 'error': {
+      // Error events may arrive as a plain string (legacy) or a structured payload
+      // { __aionuiError: true, code, message, hint, retryable } emitted by agent
+      // managers that want to render a friendly error UI.
+      const raw = message.data;
+      let content: string;
+      let errorMeta: IMessageTipsErrorMeta | undefined;
+      if (raw && typeof raw === 'object' && (raw as { __aionuiError?: boolean }).__aionuiError) {
+        const struct = raw as {
+          code: string;
+          message?: string;
+          hint?: string;
+          retryable?: boolean;
+        };
+        content = struct.message ?? struct.code;
+        errorMeta = { code: struct.code, hint: struct.hint, retryable: struct.retryable };
+      } else {
+        content = typeof raw === 'string' ? raw : String(raw ?? '');
+      }
       return {
         id: uuid(),
         type: 'tips',
@@ -409,8 +441,9 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         position: 'center',
         conversation_id: message.conversation_id,
         content: {
-          content: message.data as string,
+          content,
           type: 'error',
+          ...(errorMeta ? { errorMeta } : {}),
         },
       };
     }

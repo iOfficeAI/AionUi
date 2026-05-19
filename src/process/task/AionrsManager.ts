@@ -29,6 +29,43 @@ import { ConversationTurnCompletionService } from './ConversationTurnCompletionS
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
 import { skillSuggestWatcher } from '@process/services/cron/SkillSuggestWatcher';
 
+/** Structured error payload consumed by chatLib.transformMessage('error') and
+ * MessageTips. Backend never localizes — the renderer maps `code` to i18n. */
+type AionrsErrorPayload = {
+  __aionuiError: true;
+  code: string;
+  message: string;
+  retryable: boolean;
+};
+
+/** Detect a stable error code from aionrs CLI's raw error text. Returns
+ * AIONRS_UNKNOWN_ERROR as the default so the UI can always show a Retry. */
+function classifyAionrsErrorCode(rawText: string): string {
+  const text = rawText || '';
+  if (/KSC_PROXY_STREAM_IDLE/.test(text)) return 'KSC_PROXY_STREAM_IDLE';
+  if (/KSC_PROXY_STREAM_ERROR/.test(text)) return 'KSC_PROXY_STREAM_ERROR';
+  if (/KSC_PROXY_TIMEOUT/.test(text)) return 'KSC_PROXY_TIMEOUT';
+  if (/KSC_PROXY_FAILED/.test(text)) return 'KSC_PROXY_FAILED';
+  if (/\b(ECONNREFUSED|ECONNRESET|ENOTFOUND|EHOSTUNREACH|ETIMEDOUT)\b/.test(text)) return 'AIONRS_NETWORK_ERROR';
+  if (/\b5\d{2}\b/.test(text)) return 'AIONRS_UPSTREAM_5XX';
+  if (/\b401\b|unauthori[sz]ed/i.test(text)) return 'AIONRS_UNAUTHORIZED';
+  if (/\b429\b|rate[\s_-]?limit/i.test(text)) return 'AIONRS_RATE_LIMITED';
+  return 'AIONRS_UNKNOWN_ERROR';
+}
+
+function buildAionrsErrorPayload(rawText: string, overrides?: Partial<AionrsErrorPayload>): AionrsErrorPayload {
+  const code = overrides?.code ?? classifyAionrsErrorCode(rawText);
+  // Non-retryable: auth failures need user action; unknown stays retryable so
+  // the user can at least try again rather than be stuck without recourse.
+  const retryable = overrides?.retryable ?? code !== 'AIONRS_UNAUTHORIZED';
+  return {
+    __aionuiError: true,
+    code,
+    message: overrides?.message ?? rawText,
+    retryable,
+  };
+}
+
 // Aionrs-specific approval key — reuses same pattern as GeminiApprovalStore
 type AionrsApprovalKey = IApprovalKey & {
   action: 'exec' | 'edit' | 'info' | 'mcp';
@@ -93,7 +130,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   private heartbeatInterval: ReturnType<typeof setInterval> | null = null;
   private readonly heartbeatIntervalMs = 30_000;
   private readonly heartbeatMaxMissed = 3;
-  private readonly kscHeartbeatMaxMissed = 20;
+  // KSC tolerates 6 missed pongs (~3 min) — the upstream KSC proxy now enforces
+  // a stream idle timeout, so a stalled KSC inference will surface as a stream
+  // error long before this fallback fires.
+  private readonly kscHeartbeatMaxMissed = 6;
   private heartbeatMissedCount = 0;
   private heartbeatActive = false;
 
@@ -254,7 +294,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       const errorMessage = error instanceof Error ? error.message : String(error);
       this.emit('aionrs.message', {
         type: 'error',
-        data: errorMessage,
+        data: buildAionrsErrorPayload(errorMessage, { code: 'AIONRS_BOOTSTRAP_FAILED', retryable: true }),
         msg_id: data.msg_id,
       });
       this.emit('aionrs.message', {
@@ -272,7 +312,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       this.status = 'finished';
       this.emit('aionrs.message', {
         type: 'error',
-        data: error.message,
+        data: buildAionrsErrorPayload(error.message, { code: 'AIONRS_BOOTSTRAP_FAILED', retryable: true }),
         msg_id: data.msg_id,
       });
       this.emit('aionrs.message', {
@@ -503,7 +543,10 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       type: 'error',
       conversation_id: this.conversation_id,
       msg_id: activeMsgId,
-      data: `Agent process exited unexpectedly (code ${code})`,
+      data: buildAionrsErrorPayload(`Agent process exited unexpectedly (code ${code})`, {
+        code: 'AIONRS_PROCESS_EXIT',
+        retryable: true,
+      }),
     };
     ipcBridge.conversation.responseStream.emit(errorMessage);
     this.emitToEventBuses(errorMessage);
@@ -545,10 +588,7 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
     const maxMissed = this.getHeartbeatMaxMissed();
 
     if (this.heartbeatMissedCount >= maxMissed) {
-      mainError(
-        '[AionrsManager]',
-        `aionrs process unresponsive after ${maxMissed} missed pongs, killing`
-      );
+      mainError('[AionrsManager]', `aionrs process unresponsive after ${maxMissed} missed pongs, killing`);
       this.agent?.kill();
       return;
     }
@@ -590,6 +630,13 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
       // Any stream event with msg_id counts as activity — reset heartbeat missed count.
       // This provides backward compat with aionrs binaries that don't yet support pong.
       this.heartbeatMissedCount = 0;
+
+      // Wrap raw error text from aionrs CLI with a structured payload so the
+      // renderer can show a friendly title + recovery hint + Retry control.
+      // Skip if upstream already provided structured data.
+      if (data.type === 'error' && typeof data.data === 'string') {
+        data = { ...data, data: buildAionrsErrorPayload(data.data) };
+      }
 
       const contentTypes = ['content', 'tool_group'];
       if (contentTypes.includes(data.type)) {

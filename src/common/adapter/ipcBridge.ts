@@ -281,9 +281,10 @@ export const fs = {
     void
   >('list-available-skills'),
   // 获取内置自动注入 skills 列表 / List builtin auto-injected skills from _builtin directory
-  listBuiltinAutoSkills: bridge.buildProvider<Array<{ name: string; description: string; descriptionZh?: string }>, void>(
-    'list-builtin-auto-skills'
-  ),
+  listBuiltinAutoSkills: bridge.buildProvider<
+    Array<{ name: string; description: string; descriptionZh?: string }>,
+    void
+  >('list-builtin-auto-skills'),
   // 读取 skill 信息（不导入）/ Read skill info without importing
   readSkillInfo: bridge.buildProvider<IBridgeResponse<{ name: string; description: string }>, { skillPath: string }>(
     'read-skill-info'
@@ -641,9 +642,7 @@ export const tokenUsage = {
   queryByConversation: bridge.buildProvider<IConversationCostSummary, { conversationId: string }>(
     'token-usage.query-by-conversation'
   ),
-  querySummary: bridge.buildProvider<ITokenUsageSummary, { from: number; to: number }>(
-    'token-usage.query-summary'
-  ),
+  querySummary: bridge.buildProvider<ITokenUsageSummary, { from: number; to: number }>('token-usage.query-summary'),
 };
 
 // Database operations

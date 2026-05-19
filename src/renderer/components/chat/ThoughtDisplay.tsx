@@ -19,6 +19,11 @@ interface ThoughtDisplayProps {
   style?: 'default' | 'compact';
   running?: boolean;
   onStop?: () => void;
+  /**
+   * Seconds after which a "response is slow" hint is shown next to the elapsed
+   * timer. Defaults to 30s. Set to 0 to disable.
+   */
+  slowResponseHintAfterSec?: number;
 }
 
 // Background gradient constants
@@ -30,6 +35,7 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
   style = 'default',
   running = false,
   onStop: _onStop,
+  slowResponseHintAfterSec = 30,
 }) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
@@ -91,6 +97,8 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
     return null;
   }
 
+  const showSlowHint = slowResponseHintAfterSec > 0 && elapsedTime >= slowResponseHintAfterSec;
+
   // Loading-only mode: running without thought data (used by ACP when thinking is inline)
   if (running && !thought?.subject) {
     return (
@@ -103,6 +111,9 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
           {t('conversation.chat.processing')}
           <span className='ml-8px opacity-60'>({formatElapsedTime(elapsedTime)})</span>
         </span>
+        {showSlowHint && (
+          <span className='ml-8px text-t-tertiary text-12px'>{t('conversation.chat.slowResponseHint')}</span>
+        )}
       </div>
     );
   }
@@ -123,6 +134,9 @@ const ThoughtDisplay: React.FC<ThoughtDisplayProps> = ({
         {showDescription && <span className='flex-1 truncate'>{thought?.description}</span>}
         {running && (
           <span className='text-t-tertiary text-12px whitespace-nowrap'>({formatElapsedTime(elapsedTime)})</span>
+        )}
+        {running && showSlowHint && (
+          <span className='text-t-tertiary text-12px whitespace-nowrap'>{t('conversation.chat.slowResponseHint')}</span>
         )}
       </div>
     </div>

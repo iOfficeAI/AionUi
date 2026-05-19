@@ -8,7 +8,18 @@ import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
-import { Button, Divider, Input, Message, Modal, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Button,
+  Divider,
+  Input,
+  Message,
+  Modal,
+  Popconfirm,
+  Collapse,
+  Tag,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -528,31 +539,35 @@ const ModelModalContent: React.FC = () => {
 
       {/* Header with Add Button */}
       <div className='flex-shrink-0 border-b border-[var(--color-border-2)] pb-12px mb-14px flex flex-col gap-10px'>
+        {isDesktopRuntime && (
+          <div className='flex justify-end'>
+            {kscUser ? (
+              <Button
+                type='primary'
+                status='warning'
+                shape='round'
+                size='small'
+                onClick={handleKscLogout}
+                className='rd-100px h-34px px-18px font-500'
+              >
+                云码登出
+              </Button>
+            ) : (
+              <Button
+                type='primary'
+                shape='round'
+                size='small'
+                onClick={handleKscLogin}
+                className='rd-100px h-34px px-18px font-500'
+              >
+                云码登陆
+              </Button>
+            )}
+          </div>
+        )}
         <div className='flex items-center justify-between gap-8px flex-wrap'>
           <div className='text-20px font-600 text-t-primary leading-34px'>{t('settings.model')}</div>
           <div className='flex items-center gap-8px flex-wrap'>
-            {isDesktopRuntime &&
-              (kscUser ? (
-                <Button
-                  type='outline'
-                  shape='round'
-                  size='small'
-                  onClick={handleKscLogout}
-                  className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-                >
-                  云码登出
-                </Button>
-              ) : (
-                <Button
-                  type='outline'
-                  shape='round'
-                  size='small'
-                  onClick={handleKscLogin}
-                  className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-                >
-                  云码登陆
-                </Button>
-              ))}
             <Button
               type='outline'
               shape='round'

@@ -2,7 +2,18 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { extensions as extensionsIpc, type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
-import { Api, Communication, Computer, Earth, Lightning, LinkCloud, Puzzle, Robot, Speed, System } from '@icon-park/react';
+import {
+  Api,
+  Communication,
+  Computer,
+  Earth,
+  Lightning,
+  LinkCloud,
+  Puzzle,
+  Robot,
+  Speed,
+  System,
+} from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';

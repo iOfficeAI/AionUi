@@ -25,7 +25,14 @@ export function resolveNativeBinding(): string | undefined {
     if (idx === -1) return undefined;
     const appAsarPath = normalized.substring(0, idx + 'app.asar'.length);
     const unpackedRoot = appAsarPath.replace('app.asar', 'app.asar.unpacked');
-    const nodePath = path.join(unpackedRoot, 'node_modules', 'better-sqlite3', 'build', 'Release', 'better_sqlite3.node');
+    const nodePath = path.join(
+      unpackedRoot,
+      'node_modules',
+      'better-sqlite3',
+      'build',
+      'Release',
+      'better_sqlite3.node'
+    );
     if (fs.existsSync(nodePath)) {
       return nodePath;
     }
@@ -56,9 +63,7 @@ export class BetterSqlite3Driver implements ISqliteDriver {
 
   constructor(dbPath: string) {
     const nativeBinding = resolveNativeBinding();
-    this.db = nativeBinding
-      ? new BetterSqlite3(dbPath, { nativeBinding })
-      : new BetterSqlite3(dbPath);
+    this.db = nativeBinding ? new BetterSqlite3(dbPath, { nativeBinding }) : new BetterSqlite3(dbPath);
   }
 
   prepare(sql: string): IStatement {

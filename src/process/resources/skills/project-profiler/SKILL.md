@@ -31,17 +31,19 @@ You will receive a JSON object from `team_analyze_project` with this shape:
 # Project Profile
 
 ## Summary
+
 **Complexity:** 🟢 Low | 🟡 Medium | 🔴 High
 **Type:** <project type>
 **Tech Stack:** <comma-separated detected technologies>
 
 ## Complexity Assessment
+
 <2-3 sentences explaining why this complexity level was assigned — reference file count, stack diversity, and detected frameworks>
 
 ## Recommended Team Lineup
 
-| Role | Preset | Why |
-|------|--------|-----|
+| Role        | Preset      | Why               |
+| ----------- | ----------- | ----------------- |
 | <role name> | <preset id> | <one-line reason> |
 
 > **How to set up:** Ask the team leader to spawn these agents using the presets above.
@@ -50,13 +52,14 @@ You will receive a JSON object from `team_analyze_project` with this shape:
 
 Enable these skills for the agents working on this project:
 
-| Skill | Purpose |
-|-------|---------|
+| Skill        | Purpose                |
+| ------------ | ---------------------- |
 | <skill name> | <one-line description> |
 
 > **How to enable:** Go to Settings → Skills Hub and toggle these on, or add them to `.aicore/skills.json` in your workspace.
 
 ## Next Steps
+
 1. <first concrete action — e.g. "Ask the leader to spawn the recommended agents">
 2. <second action — e.g. "Review and confirm the tech profile in .aicore/tech-profile.yaml">
 3. <third action if needed>

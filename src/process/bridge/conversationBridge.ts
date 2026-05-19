@@ -51,7 +51,6 @@ const VALID_CONVERSATION_TYPES = new Set<TChatConversation['type']>([
   'aionrs',
 ]);
 
-
 export function initConversationBridge(
   conversationService: IConversationService,
   workerTaskManager: IWorkerTaskManager,

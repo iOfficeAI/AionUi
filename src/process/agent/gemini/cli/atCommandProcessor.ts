@@ -268,8 +268,7 @@ export async function handleAtCommand({
         const absolutePath = path.resolve(dir, normalizedPathName);
         const stats = await fs.stat(absolutePath);
         if (stats.isDirectory()) {
-          currentPathSpec =
-            normalizedPathName + (normalizedPathName.endsWith(path.sep) ? `**` : `/**`);
+          currentPathSpec = normalizedPathName + (normalizedPathName.endsWith(path.sep) ? `**` : `/**`);
           onDebugMessage(`Path ${normalizedPathName} resolved to directory, using glob: ${currentPathSpec}`);
         } else {
           onDebugMessage(`Path ${normalizedPathName} resolved to file: ${absolutePath}`);
@@ -296,11 +295,11 @@ export async function handleAtCommand({
                 const lines = globResult.llmContent.split('\n');
                 if (lines.length > 1 && lines[1]) {
                   const firstMatchAbsolute = lines[1].trim();
-                    currentPathSpec = path.relative(dir, firstMatchAbsolute);
-                    onDebugMessage(
-                      `Glob search for ${normalizedPathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`
-                    );
-                    resolvedSuccessfully = true;
+                  currentPathSpec = path.relative(dir, firstMatchAbsolute);
+                  onDebugMessage(
+                    `Glob search for ${normalizedPathName} found ${firstMatchAbsolute}, using relative path: ${currentPathSpec}`
+                  );
+                  resolvedSuccessfully = true;
                 } else {
                   onDebugMessage(
                     `Glob search for '**/*${normalizedPathName}*' did not return a usable path. Path ${normalizedPathName} will be skipped.`

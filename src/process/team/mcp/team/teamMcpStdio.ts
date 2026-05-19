@@ -305,10 +305,7 @@ createTeamTool(
 Use this when the user provides a design mockup or screenshot and wants to extract requirements from it.`,
   {
     screenshot_path: z.string().describe('Absolute path to the screenshot or design image file.'),
-    task: z
-      .string()
-      .optional()
-      .describe('Custom instruction for the analyst. Defaults to standard PRD extraction.'),
+    task: z.string().optional().describe('Custom instruction for the analyst. Defaults to standard PRD extraction.'),
   },
   TEAM_MCP_PORT,
   TEAM_AGENT_SLOT_ID,

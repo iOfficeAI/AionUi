@@ -37,7 +37,7 @@ import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/mo
 import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
@@ -110,6 +110,9 @@ const AionrsSendBox: React.FC<{
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
+  // Remember the last user input so the error UI's Retry control can re-send it.
+  const lastSentRef = useRef<{ input: string; files: string[] } | null>(null);
+
   useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res?.extra?.workspace) return;
@@ -163,6 +166,7 @@ const AionrsSendBox: React.FC<{
       const msg_id = uuid();
       setActiveMsgId(msg_id);
       setWaitingResponse(true);
+      lastSentRef.current = { input, files: [...files] };
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
       if (!teamId) {
@@ -327,6 +331,22 @@ const AionrsSendBox: React.FC<{
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
+
+  // Listen for retry-last-message events from error tips
+  useAddEventListener(
+    'chat.retry.last',
+    (payload: { conversationId: string }) => {
+      if (payload.conversationId !== conversation_id) return;
+      const last = lastSentRef.current;
+      if (!last) return;
+      if (isBusy) {
+        Message.warning(t('messages.conversationInProgress'));
+        return;
+      }
+      void executeCommand({ input: last.input, files: last.files });
+    },
+    [conversation_id, isBusy, executeCommand, t]
+  );
 
   useAddEventListener('aionrs.selected.file', setAtPath);
   useAddEventListener('aionrs.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {

@@ -17,14 +17,14 @@ Analyze a requirements document and produce a structured clarification report.
 
 ## Ambiguity Categories
 
-| Code | Category | Examples |
-|------|----------|---------|
-| SCOPE | Scope & boundaries | What's in/out, which users, which platforms |
-| LOGIC | Business logic | Edge cases, conditional flows, error handling |
-| DATA | Data & state | Formats, validation rules, storage, ownership |
-| UI | UI & interaction | Layout, responsive behavior, empty/loading states |
-| PERF | Performance | Latency targets, concurrency, data volume limits |
-| SEC | Security & compliance | Auth requirements, data sensitivity, audit needs |
+| Code  | Category              | Examples                                          |
+| ----- | --------------------- | ------------------------------------------------- |
+| SCOPE | Scope & boundaries    | What's in/out, which users, which platforms       |
+| LOGIC | Business logic        | Edge cases, conditional flows, error handling     |
+| DATA  | Data & state          | Formats, validation rules, storage, ownership     |
+| UI    | UI & interaction      | Layout, responsive behavior, empty/loading states |
+| PERF  | Performance           | Latency targets, concurrency, data volume limits  |
+| SEC   | Security & compliance | Auth requirements, data sensitivity, audit needs  |
 
 ## Question Priority Levels
 
@@ -40,33 +40,41 @@ Produce the report in this exact structure:
 # Requirements Clarification Report
 
 ## Summary
+
 <2-3 sentence summary of what the requirements describe>
 
 ## Ambiguities Found
 
 ### [SCOPE] <short title>
+
 **Priority:** MUST | SHOULD | NICE
 **Context:** <quote or paraphrase the relevant requirement text>
 **Question:** <specific question to ask the stakeholder>
 **Assumption if skipped:** <what you will assume if no answer is given>
 
 ### [LOGIC] <short title>
+
 ...
 
 ## Clarification Questions (Prioritized)
 
 ### MUST Answer Before Development
+
 1. [SCOPE] <question>
 2. [LOGIC] <question>
 
 ### SHOULD Answer Soon
+
 1. [DATA] <question>
 
 ### NICE to Have
+
 1. [UI] <question>
 
 ## Working Assumptions
+
 If clarification is not received, implementation will proceed with these assumptions:
+
 - <assumption 1>
 - <assumption 2>
 ```

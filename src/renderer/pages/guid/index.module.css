@@ -332,6 +332,25 @@
   box-sizing: border-box;
 }
 
+.sendingOverlay {
+  position: absolute;
+  inset: 0;
+  border-radius: 18px;
+  background: color-mix(in srgb, var(--bg-dialog-fill-0, var(--color-bg-2)) 82%, transparent);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  z-index: 10;
+  pointer-events: none;
+}
+
+.sendingOverlayText {
+  font-size: 14px;
+  color: var(--color-text-2);
+}
+
 .actionRow {
   display: flex;
   align-items: center;
@@ -733,7 +752,6 @@
   }
 }
 
-
 /* =============================================
 /* =============================================
  * WelcomeBanner — 项目欢迎词 / 价值主张展示（紧凑卡片）
@@ -745,7 +763,11 @@
   margin: 0 auto 16px;
   padding: 10px 36px 10px 14px;
   border-radius: 12px;
-  background: linear-gradient(135deg, color-mix(in srgb, rgb(var(--primary-6)) 8%, transparent) 0%, color-mix(in srgb, rgb(var(--purple-6)) 6%, transparent) 100%);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, rgb(var(--primary-6)) 8%, transparent) 0%,
+    color-mix(in srgb, rgb(var(--purple-6)) 6%, transparent) 100%
+  );
   border: 1px solid color-mix(in srgb, rgb(var(--primary-6)) 10%, transparent);
   animation: welcomeFadeIn 0.5s ease-out;
   box-sizing: border-box;

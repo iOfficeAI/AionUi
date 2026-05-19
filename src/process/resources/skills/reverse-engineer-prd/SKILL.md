@@ -22,6 +22,7 @@ Analyze a UI screenshot or design image and produce a complete, structured Produ
 
 ```markdown
 # Product Requirements Document
+
 **Source:** [screenshot filename or description]
 **Analyzed by:** [your agent name]
 **Date:** [today's date]
@@ -29,6 +30,7 @@ Analyze a UI screenshot or design image and produce a complete, structured Produ
 ---
 
 ## 1. Product Overview
+
 **Purpose:** <one sentence>
 **Target Users:** <who uses this>
 **Core Value:** <what problem it solves>
@@ -38,32 +40,37 @@ Analyze a UI screenshot or design image and produce a complete, structured Produ
 ## 2. Functional Modules
 
 ### Module: <Name>
+
 **Description:** <what this module does>
 **Entry Point:** <how users access it>
 
 #### User Stories
-| ID | As a... | I want to... | So that... | Priority |
-|----|---------|--------------|------------|----------|
-| US-001 | [role] | [action] | [benefit] | MUST/SHOULD/NICE |
+
+| ID     | As a... | I want to... | So that... | Priority         |
+| ------ | ------- | ------------ | ---------- | ---------------- |
+| US-001 | [role]  | [action]     | [benefit]  | MUST/SHOULD/NICE |
 
 #### Interaction Logic
+
 - **State:** <state name> → **Trigger:** <user action> → **Result:** <what happens>
 - Include: loading states, empty states, error states, success states
 
 #### Edge Cases
+
 - <edge case description and expected behavior>
 
 ---
 
 ## 3. Data Entities
 
-| Entity | Fields | Relationships |
-|--------|--------|---------------|
+| Entity | Fields                       | Relationships              |
+| ------ | ---------------------------- | -------------------------- |
 | <name> | field1 (type), field2 (type) | belongs_to: <other entity> |
 
 ---
 
 ## 4. Non-Functional Requirements (inferred)
+
 - **Performance:** <any visible loading indicators, pagination, or lazy loading clues>
 - **Accessibility:** <visible accessibility considerations>
 - **Responsive:** <evidence of responsive design>
@@ -71,7 +78,9 @@ Analyze a UI screenshot or design image and produce a complete, structured Produ
 ---
 
 ## 5. Open Questions
+
 Items that could not be determined from the screenshot alone:
+
 1. <question about unclear behavior>
 2. <question about data source>
 ```

@@ -28,7 +28,6 @@ interface TitlebarProps {
   workspaceAvailable: boolean;
 }
 
-
 const AionLogoMark: React.FC = () => (
   <img className='app-titlebar__brand-logo' src={appLogo} alt='' aria-hidden='true' />
 );

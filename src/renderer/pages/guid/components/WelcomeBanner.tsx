@@ -25,7 +25,9 @@ const WelcomeBanner: React.FC<{ visible: boolean }> = ({ visible }) => {
     setDismissed(true);
     try {
       localStorage.setItem(LS_KEY, 'true');
-    } catch { /* noop */ }
+    } catch {
+      /* noop */
+    }
   }, []);
 
   if (!visible || dismissed) return null;
@@ -33,17 +35,17 @@ const WelcomeBanner: React.FC<{ visible: boolean }> = ({ visible }) => {
   return (
     <div className={styles.welcomeBanner}>
       <button
-        type="button"
+        type='button'
         className={styles.welcomeBannerClose}
         onClick={handleDismiss}
         aria-label={t('common.close', { defaultValue: 'Close' })}
       >
-        <Close theme="outline" size={14} fill="currentColor" />
+        <Close theme='outline' size={14} fill='currentColor' />
       </button>
 
       <div className={styles.welcomeBannerInner}>
         <div className={styles.welcomeBannerHeader}>
-          <Magic theme="filled" size={18} fill="var(--color-text-0)" />
+          <Magic theme='filled' size={18} fill='var(--color-text-0)' />
           <span className={styles.welcomeBannerTitle}>
             企业级AI 研发平台<span className={styles.welcomeBannerEmoji}>✨</span>
           </span>
@@ -54,9 +56,7 @@ const WelcomeBanner: React.FC<{ visible: boolean }> = ({ visible }) => {
             <span className={styles.welcomeBannerItemBadge}>🎉</span>
             Skills 技能觉醒
           </span>
-          <span className={styles.welcomeBannerItem}>
-            国内顶尖大模型
-          </span>
+          <span className={styles.welcomeBannerItem}>国内顶尖大模型</span>
           <span className={styles.welcomeBannerItem}>
             <span className={styles.welcomeBannerItemBadge}>🔒</span>
             企业级安全保障

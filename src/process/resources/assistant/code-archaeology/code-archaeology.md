@@ -43,22 +43,26 @@ git log --diff-filter=D -- <file>
 ## Investigation Patterns
 
 ### "Why does this exist?"
+
 1. `git blame` the suspicious line → get the commit hash
 2. `git show <hash>` → read full diff + commit message
 3. Check sibling changes in that commit — what else changed at the same time?
 4. Search for related issue number or PR reference in the message
 
 ### "When did this break / change behavior?"
+
 1. `git log -S '<old_behavior>'` — find when the old version existed
 2. Walk the diff to understand the migration
 3. Check if a test was removed or added alongside
 
 ### "What depends on this?"
+
 1. Grep all import/require references
 2. Check IPC bridge registrations (for process-boundary code)
 3. Find all callers and trace the call graph up
 
 ### "Is this safe to delete?"
+
 1. Confirm zero references with grep
 2. Check git log for any recent touch — active files are rarely truly dead
 3. Look for dynamic references (`require(variable)`, string-based dispatch)

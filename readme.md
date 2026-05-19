@@ -38,21 +38,21 @@
 
 ### 🏢 品牌重塑：AICore Desktop
 
-| 维度 | 上游 AionUi | 本分支 AICore Desktop |
-|:-----|:-----------|:---------------------|
-| 产品名 | AionUi | **AICore** |
+| 维度         | 上游 AionUi      | 本分支 AICore Desktop      |
+| :----------- | :--------------- | :------------------------- |
+| 产品名       | AionUi           | **AICore**                 |
 | 包名 / appId | `com.aionui.app` | `com.aicore.aicoredesktop` |
-| 可执行文件名 | AionUi | **AICoreDesktop** |
-| 深度链接协议 | `aionui://` | `aicoredesktop://` |
-| 配置目录 | `.aionui` | `.aicoredesktop` |
-| 标题栏 Logo | SVG 图标 | **自定义 PNG 品牌 Logo** |
+| 可执行文件名 | AionUi           | **AICoreDesktop**          |
+| 深度链接协议 | `aionui://`      | `aicoredesktop://`         |
+| 配置目录     | `.aionui`        | `.aicoredesktop`           |
+| 标题栏 Logo  | SVG 图标         | **自定义 PNG 品牌 Logo**   |
 
 ### 🏷️ UI 术语重命名
 
-| 旧 UI 标签 | 新 UI 标签 | 后端对应概念 |
-|:-----------|:-----------|:------------|
+| 旧 UI 标签 | 新 UI 标签   | 后端对应概念                                                           |
+| :--------- | :----------- | :--------------------------------------------------------------------- |
 | Agents     | **Runtimes** | `DetectedAgent` / `AgentRegistry` — 可用的执行引擎（CLI / 远程运行时） |
-| 助手        | **Agent**    | ConfigStorage `assistants` presets — 用户配置的 prompt 预设 |
+| 助手       | **Agent**    | ConfigStorage `assistants` presets — 用户配置的 prompt 预设            |
 
 > 后端代码中凡涉及执行引擎的注释已标注 `UI: Runtime`；涉及预设配置层的注释已标注 `UI: Agent`。
 
@@ -60,11 +60,11 @@
 
 上游 20 个内置助手精简为 **3 个核心助手**，首页仅展示精选：
 
-| 助手 | 说明 |
-|:-----|:-----|
-| 🤝 **Cowork 协作助手** | 自主任务执行、文件操作、文档处理、多步骤工作流规划 |
-| 📋 **文件规划助手** | Manus 风格持久化文件规划（task_plan.md / findings.md / progress.md） |
-| 📈 **Mermaid 图表助手** | 流程图、时序图、状态图、类图、ER 图，多主题 |
+| 助手                    | 说明                                                                 |
+| :---------------------- | :------------------------------------------------------------------- |
+| 🤝 **Cowork 协作助手**  | 自主任务执行、文件操作、文档处理、多步骤工作流规划                   |
+| 📋 **文件规划助手**     | Manus 风格持久化文件规划（task_plan.md / findings.md / progress.md） |
+| 📈 **Mermaid 图表助手** | 流程图、时序图、状态图、类图、ER 图，多主题                          |
 
 > 其余 17 个助手（PPT Creator、Word Creator、Excel Creator、Academic Paper Writer 等）已移除，减少首页噪音。
 
@@ -77,14 +77,14 @@
 
 ### 🚫 移除的功能
 
-| 移除项 | 原因 |
-|:-------|:-----|
-| 🐾 桌面宠物（Pet） | 托盘菜单及 Pet 相关功能已移除 |
-| 🫧 Ambient Mode | 气泡窗口及 ambient 模式全部移除 |
-| 🛒 技能市场 Banner | 首页 SkillsMarketBanner 组件已移除 |
-| 📝 反馈报告弹窗 | FeedbackReportModal 已移除 |
-| 🔄 CDN 加速下载 | 更新下载回退为直连 GitHub，移除 CDN 重写逻辑 |
-| 🔍 托盘"关于"入口 | 托盘菜单精简，移除"关于"和"检查更新"快捷入口 |
+| 移除项             | 原因                                         |
+| :----------------- | :------------------------------------------- |
+| 🐾 桌面宠物（Pet） | 托盘菜单及 Pet 相关功能已移除                |
+| 🫧 Ambient Mode    | 气泡窗口及 ambient 模式全部移除              |
+| 🛒 技能市场 Banner | 首页 SkillsMarketBanner 组件已移除           |
+| 📝 反馈报告弹窗    | FeedbackReportModal 已移除                   |
+| 🔄 CDN 加速下载    | 更新下载回退为直连 GitHub，移除 CDN 重写逻辑 |
+| 🔍 托盘"关于"入口  | 托盘菜单精简，移除"关于"和"检查更新"快捷入口 |
 
 ### 🛠️ 其他改进
 
@@ -189,5 +189,3 @@ KSC 登录成功后，系统会自动：
 请阅读 [CONTRIBUTING.md](CONTRIBUTING.md) 后提交 PR。
 
 ---
-
-

@@ -186,7 +186,11 @@ export function readClaudeModelInfoFromCcSwitch(paths?: Partial<CcSwitchPaths>):
   try {
     const _nativeBinding = resolveNativeBinding();
     db = _nativeBinding
-      ? new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true, nativeBinding: _nativeBinding })
+      ? new BetterSqlite3(resolvedPaths.databasePath, {
+          readonly: true,
+          fileMustExist: true,
+          nativeBinding: _nativeBinding,
+        })
       : new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
     const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
       | CcSwitchProviderRow
@@ -225,7 +229,11 @@ export function readClaudeProviderEnvFromCcSwitch(paths?: Partial<CcSwitchPaths>
   try {
     const _nativeBinding = resolveNativeBinding();
     db = _nativeBinding
-      ? new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true, nativeBinding: _nativeBinding })
+      ? new BetterSqlite3(resolvedPaths.databasePath, {
+          readonly: true,
+          fileMustExist: true,
+          nativeBinding: _nativeBinding,
+        })
       : new BetterSqlite3(resolvedPaths.databasePath, { readonly: true, fileMustExist: true });
     const provider = db.prepare('SELECT settings_config FROM providers WHERE id = ? LIMIT 1').get(currentProviderId) as
       | CcSwitchProviderRow

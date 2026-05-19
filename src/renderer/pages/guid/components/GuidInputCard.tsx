@@ -8,7 +8,7 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
-import { Input, Tooltip } from '@arco-design/web-react';
+import { Input, Spin, Tooltip } from '@arco-design/web-react';
 import { IconClose } from '@arco-design/web-react/icon';
 import { FolderOpen } from '@icon-park/react';
 import React from 'react';
@@ -48,6 +48,9 @@ type GuidInputCardProps = {
 
   // Action row
   actionRow: React.ReactNode;
+
+  // Loading state (while creating conversation after send)
+  loading?: boolean;
 };
 
 const GuidInputCard: React.FC<GuidInputCardProps> = ({
@@ -72,6 +75,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   dir,
   onClearDir,
   actionRow,
+  loading = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
@@ -107,6 +111,12 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       }}
       {...dragHandlers}
     >
+      {loading && (
+        <div className={styles.sendingOverlay}>
+          <Spin size={20} />
+          <span className={styles.sendingOverlayText}>{t('conversation.processing')}</span>
+        </div>
+      )}
       {mentionSelectorBadge}
       <Input.TextArea
         autoSize={textareaAutoSize}

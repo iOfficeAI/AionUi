@@ -151,12 +151,18 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
         if (key.startsWith('cli:')) {
           const backend = key.slice(4);
           const agent = cliAgents.find((a) => a.backend === backend);
-          if (!agent) { Message.error(t('conversation.createFailed')); return; }
+          if (!agent) {
+            Message.error(t('conversation.createFailed'));
+            return;
+          }
           params = await buildCliAgentParams(agent, workspace);
         } else if (key.startsWith('preset:')) {
           const assistantId = key.slice(7);
           const agent = presetAssistants.find((a) => a.customAgentId === assistantId);
-          if (!agent) { Message.error(t('conversation.createFailed')); return; }
+          if (!agent) {
+            Message.error(t('conversation.createFailed'));
+            return;
+          }
           params = await buildPresetAssistantParams(agent, workspace, i18n.language);
         } else {
           return;
@@ -195,7 +201,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                     )}
                     <span>{agent.name}</span>
                     {agent.isExtension && (
-                      <Tag size='small' color='arcoblue'>ext</Tag>
+                      <Tag size='small' color='arcoblue'>
+                        ext
+                      </Tag>
                     )}
                   </div>
                 </Menu.Item>

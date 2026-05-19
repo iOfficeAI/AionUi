@@ -80,6 +80,7 @@ function isLoopbackRequest(req: Request): boolean {
 }
 
 const KSC_PROXY_TIMEOUT_MS = 45_000;
+const KSC_PROXY_STREAM_IDLE_MS = 60_000;
 const KSC_PROXY_MAX_ATTEMPTS = 3;
 const KSC_PROXY_RETRYABLE_STATUSES = new Set([408, 425, 429, 500, 502, 503, 504]);
 
@@ -726,11 +727,13 @@ export function registerApiRoutes(app: Express): void {
       }
 
       let upstream: globalThis.Response | null = null;
+      let streamController: AbortController | null = null;
       let lastError: unknown;
 
       for (let attempt = 1; attempt <= KSC_PROXY_MAX_ATTEMPTS; attempt += 1) {
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), KSC_PROXY_TIMEOUT_MS);
+        let succeeded = false;
         try {
           upstream = await fetch(targetUrl, {
             method: req.method,
@@ -738,18 +741,28 @@ export function registerApiRoutes(app: Express): void {
             body: body as BodyInit,
             signal: controller.signal,
           });
+          succeeded = true;
 
           const shouldRetry = attempt < KSC_PROXY_MAX_ATTEMPTS && KSC_PROXY_RETRYABLE_STATUSES.has(upstream.status);
           if (!shouldRetry) {
+            streamController = controller;
             break;
           }
         } catch (error) {
           lastError = error;
           if (attempt >= KSC_PROXY_MAX_ATTEMPTS) {
+            clearTimeout(timer);
             throw error;
           }
         } finally {
+          // Clear the header-phase timer. We keep the controller itself so the
+          // streaming phase below can abort the same fetch if it goes idle or
+          // the client disconnects.
           clearTimeout(timer);
+          // If we won't pipe this attempt's body, free its underlying connection.
+          if (succeeded && controller !== streamController) {
+            controller.abort();
+          }
         }
 
         await sleep(250 * attempt);
@@ -787,7 +800,62 @@ export function registerApiRoutes(app: Express): void {
         return;
       }
 
-      Readable.fromWeb(upstream.body as any).pipe(res);
+      // Stream-phase guards: abort the upstream fetch when the client disconnects
+      // or when no chunk has arrived within KSC_PROXY_STREAM_IDLE_MS. Without these
+      // a stalled SSE stream would leave the aionrs CLI waiting indefinitely.
+      const upstreamStream = Readable.fromWeb(upstream.body as any);
+      let idleTimer: NodeJS.Timeout | null = null;
+      let idleAborted = false;
+
+      const clearIdleTimer = () => {
+        if (idleTimer) {
+          clearTimeout(idleTimer);
+          idleTimer = null;
+        }
+      };
+      const armIdleTimer = () => {
+        clearIdleTimer();
+        idleTimer = setTimeout(() => {
+          idleAborted = true;
+          console.error('[API] KSC proxy stream idle timeout', {
+            providerId,
+            idleMs: KSC_PROXY_STREAM_IDLE_MS,
+          });
+          streamController?.abort();
+          upstreamStream.destroy(new Error(`KSC proxy stream idle for ${KSC_PROXY_STREAM_IDLE_MS}ms`));
+        }, KSC_PROXY_STREAM_IDLE_MS);
+      };
+
+      const onClientClose = () => {
+        if (!res.writableEnded) {
+          streamController?.abort();
+          upstreamStream.destroy();
+        }
+      };
+
+      req.on('close', onClientClose);
+      upstreamStream.on('data', armIdleTimer);
+      upstreamStream.on('end', clearIdleTimer);
+      upstreamStream.on('close', () => {
+        clearIdleTimer();
+        req.off('close', onClientClose);
+      });
+      upstreamStream.on('error', (err) => {
+        clearIdleTimer();
+        if (!res.headersSent) {
+          res.status(idleAborted ? 504 : 502).json({
+            code: idleAborted ? 'KSC_PROXY_STREAM_IDLE' : 'KSC_PROXY_STREAM_ERROR',
+            message: idleAborted
+              ? `KSC proxy stream idle for ${KSC_PROXY_STREAM_IDLE_MS}ms`
+              : parseProxyErrorMessage(err),
+          });
+        } else if (!res.writableEnded) {
+          res.destroy(err);
+        }
+      });
+
+      armIdleTimer();
+      upstreamStream.pipe(res);
     } catch (error) {
       console.error('[API] KSC proxy error:', error);
       if (!res.headersSent) {

@@ -247,10 +247,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
       ),
     [externalSources, existingSkillNames]
   );
-  const totalExternal = externalSources.reduce(
-    (sum, src) => sum + (unimportedCountBySource[src.source] ?? 0),
-    0
-  );
+  const totalExternal = externalSources.reduce((sum, src) => sum + (unimportedCountBySource[src.source] ?? 0), 0);
   const activeSource = externalSources.find((s) => s.source === activeSourceTab);
 
   const filteredExternalSkills = useMemo(() => {
@@ -351,7 +348,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   </div>
                   <button
                     className='flex items-center gap-6px text-13px font-medium text-primary-6 hover:text-primary-5 transition-colors bg-transparent border-none outline-none cursor-pointer whitespace-nowrap'
-                    onClick={() => void handleImportAll(activeSource.skills.filter((s) => !existingSkillNames.has(s.name.toLowerCase())))}
+                    onClick={() =>
+                      void handleImportAll(
+                        activeSource.skills.filter((s) => !existingSkillNames.has(s.name.toLowerCase()))
+                      )
+                    }
                   >
                     {t('settings.skillsHub.importAll', { defaultValue: 'Import All' })}
                   </button>

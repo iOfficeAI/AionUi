@@ -723,6 +723,7 @@ const GuidPage: React.FC = () => {
             inactiveBorderColor={inactiveBorderColor}
             activeShadow={activeShadow}
             dragHandlers={guidInput.dragHandlers}
+            loading={guidInput.loading}
             mentionOpen={mention.mentionOpen}
             mentionSelectorBadge={
               <MentionSelectorBadge
@@ -757,10 +758,7 @@ const GuidPage: React.FC = () => {
           />
         </div>
 
-        <QuickActionButtons
-          inactiveBorderColor={inactiveBorderColor}
-          activeShadow={activeShadow}
-        />
+        <QuickActionButtons inactiveBorderColor={inactiveBorderColor} activeShadow={activeShadow} />
       </div>
     </ConfigProvider>
   );

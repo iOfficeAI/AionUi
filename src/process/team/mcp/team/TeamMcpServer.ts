@@ -696,8 +696,7 @@ export class TeamMcpServer {
     if ((extCounts['.go'] ?? 0) > 0) detectedStack.push('Go');
     if ((extCounts['.java'] ?? 0) > 0) detectedStack.push('Java');
     if ((extCounts['.rs'] ?? 0) > 0) detectedStack.push('Rust');
-    if ((extCounts['.css'] ?? 0) + (extCounts['.scss'] ?? 0) + (extCounts['.less'] ?? 0) > 0)
-      detectedStack.push('CSS');
+    if ((extCounts['.css'] ?? 0) + (extCounts['.scss'] ?? 0) + (extCounts['.less'] ?? 0) > 0) detectedStack.push('CSS');
 
     // Check package.json for more clues
     try {
@@ -728,7 +727,8 @@ export class TeamMcpServer {
 
     // Complexity: based on file count and stack diversity
     const stackSize = detectedStack.length;
-    const complexity = totalFiles > 500 || stackSize > 5 ? 'high' : totalFiles > 100 || stackSize > 2 ? 'medium' : 'low';
+    const complexity =
+      totalFiles > 500 || stackSize > 5 ? 'high' : totalFiles > 100 || stackSize > 2 ? 'medium' : 'low';
 
     // Agent recommendations
     const recommendedAgents: Array<{ role: string; preset: string; reason: string }> = [];
@@ -751,7 +751,14 @@ export class TeamMcpServer {
     if (hasFrontend) recommendedSkills.push('reverse-engineer-prd');
 
     return JSON.stringify(
-      { complexity, type, fileStats: { total: totalFiles, byExtension: extCounts }, detectedStack, recommendedAgents, recommendedSkills },
+      {
+        complexity,
+        type,
+        fileStats: { total: totalFiles, byExtension: extCounts },
+        detectedStack,
+        recommendedAgents,
+        recommendedSkills,
+      },
       null,
       2
     );
@@ -759,7 +766,9 @@ export class TeamMcpServer {
 
   private async handleRequestDesignReview(args: Record<string, unknown>, fromSlotId?: string): Promise<string> {
     const screenshotPath = String(args.screenshot_path ?? '');
-    const task = String(args.task ?? 'Analyze this UI screenshot and produce a PRD using the reverse-engineer-prd skill.');
+    const task = String(
+      args.task ?? 'Analyze this UI screenshot and produce a PRD using the reverse-engineer-prd skill.'
+    );
 
     if (!screenshotPath) {
       throw new Error('screenshot_path is required');
@@ -774,7 +783,9 @@ export class TeamMcpServer {
       return 'No requirements analyst agent found on the team. Ask the leader to spawn a builtin-req-analyst agent first.';
     }
 
-    const fromAgent = fromSlotId ? agents.find((a) => a.slotId === fromSlotId) : agents.find((a) => a.role === 'leader');
+    const fromAgent = fromSlotId
+      ? agents.find((a) => a.slotId === fromSlotId)
+      : agents.find((a) => a.role === 'leader');
     const fromSlot = fromAgent?.slotId ?? 'unknown';
 
     await this.params.mailbox.write({

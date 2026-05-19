@@ -137,8 +137,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '将 PRD 文档拆解为结构化的 Epic、用户故事和任务，支持输出 GitHub Issues、Jira 或 Linear 格式。',
       'ru-RU':
         'Декомпозиция PRD на эпики, пользовательские истории и задачи. Экспорт в GitHub Issues, Jira или Linear.',
-      'uk-UA':
-        'Декомпозиція PRD на епіки, користувацькі історії та задачі. Експорт у GitHub Issues, Jira або Linear.',
+      'uk-UA': 'Декомпозиція PRD на епіки, користувацькі історії та задачі. Експорт у GitHub Issues, Jira або Linear.',
     },
     promptsI18n: {
       'en-US': [
@@ -232,8 +231,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
         'Diagnose CI/CD pipeline failures from logs. Identifies root causes and provides step-by-step fix instructions.',
       'zh-CN': '通过日志诊断 CI/CD 流水线故障，识别根本原因并提供分步修复指导。',
       'ru-RU': 'Диагностика сбоев CI/CD по логам. Определяет первопричины и даёт пошаговые инструкции по исправлению.',
-      'uk-UA':
-        'Діагностика збоїв CI/CD за логами. Визначає першопричини та надає покрокові інструкції з виправлення.',
+      'uk-UA': 'Діагностика збоїв CI/CD за логами. Визначає першопричини та надає покрокові інструкції з виправлення.',
     },
     promptsI18n: {
       'en-US': [
@@ -278,10 +276,8 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'en-US':
         'Analyze SAST scan results and provide prioritized, code-level fix recommendations for security vulnerabilities.',
       'zh-CN': '分析 SAST 扫描结果，对安全漏洞提供有优先级的代码级修复建议。',
-      'ru-RU':
-        'Анализ результатов SAST и приоритизированные рекомендации по исправлению уязвимостей на уровне кода.',
-      'uk-UA':
-        'Аналіз результатів SAST та пріоритизовані рекомендації щодо виправлення вразливостей на рівні коду.',
+      'ru-RU': 'Анализ результатов SAST и приоритизированные рекомендации по исправлению уязвимостей на уровне кода.',
+      'uk-UA': 'Аналіз результатів SAST та пріоритизовані рекомендації щодо виправлення вразливостей на рівні коду.',
     },
     promptsI18n: {
       'en-US': [
@@ -418,8 +414,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'uk-UA': 'WebUI Автотестер',
     },
     descriptionI18n: {
-      'en-US':
-        'Create automated UI tests using Playwright, Cypress, or Selenium with Page Object Model patterns.',
+      'en-US': 'Create automated UI tests using Playwright, Cypress, or Selenium with Page Object Model patterns.',
       'zh-CN': '使用 Playwright、Cypress 或 Selenium 按照页面对象模型模式创建 WebUI 自动化测试脚本。',
       'ru-RU': 'Создание автотестов UI с Playwright, Cypress или Selenium по паттерну Page Object Model.',
       'uk-UA': 'Створення автотестів UI з Playwright, Cypress або Selenium за паттерном Page Object Model.',
@@ -517,8 +512,7 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
       'zh-CN': '挖掘代码背后的"为什么"——追踪 git 历史、解码意图、绘制演进脉络，系统性地揭露隐性约束与决策根源。',
       'ru-RU':
         'Раскрывает причины существования кода: трассирует git-историю, декодирует намерения и выявляет скрытые ограничения.',
-      'uk-UA':
-        'Розкриває причини існування коду: трасує git-історію, декодує наміри та виявляє приховані обмеження.',
+      'uk-UA': 'Розкриває причини існування коду: трасує git-історію, декодує наміри та виявляє приховані обмеження.',
     },
     promptsI18n: {
       'en-US': [

@@ -202,6 +202,7 @@
     "noModelSelected": "No model selected for current session, cannot send message",
     "sendMessageTo": "Send message to {{model}}",
     "processing": "Processing...",
+    "slowResponseHint": "Response is slow — you can stop and retry",
     "quotaExceededTitle": "Model quota reached",
     "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
     "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
@@ -299,5 +300,52 @@
   },
   "skills": {
     "loaded": "Loaded Skills"
+  },
+  "error": {
+    "retry": "Resend last message",
+    "KSC_PROXY_STREAM_IDLE": {
+      "title": "KSC model stopped responding",
+      "hint": "No data received for 60 seconds. The KSC service may be busy or the network may be unstable. Click retry below."
+    },
+    "KSC_PROXY_STREAM_ERROR": {
+      "title": "KSC stream broken",
+      "hint": "The response stream was interrupted. Please retry; if it persists, check the KSC service status."
+    },
+    "KSC_PROXY_TIMEOUT": {
+      "title": "KSC request timed out",
+      "hint": "The upstream took too long to respond. Retry, or switch to another model in Settings."
+    },
+    "KSC_PROXY_FAILED": {
+      "title": "KSC proxy request failed",
+      "hint": "Could not reach the KSC upstream. Check your network or the KSC service availability."
+    },
+    "AIONRS_NETWORK_ERROR": {
+      "title": "Network error",
+      "hint": "Please check your local network and try again."
+    },
+    "AIONRS_UPSTREAM_5XX": {
+      "title": "Model service temporarily unavailable",
+      "hint": "The upstream returned a 5xx error. This is usually transient — please retry."
+    },
+    "AIONRS_UNAUTHORIZED": {
+      "title": "Unauthorized or token expired",
+      "hint": "Please sign in to KSC again in Settings before sending."
+    },
+    "AIONRS_RATE_LIMITED": {
+      "title": "Too many requests",
+      "hint": "Upstream rate limit triggered. Please wait a moment and retry."
+    },
+    "AIONRS_PROCESS_EXIT": {
+      "title": "AICore CLI exited unexpectedly",
+      "hint": "The underlying CLI process exited. Retrying will start a new session."
+    },
+    "AIONRS_BOOTSTRAP_FAILED": {
+      "title": "AICore CLI failed to start",
+      "hint": "CLI bootstrap failed. Verify the binary is present, or restart the app and retry."
+    },
+    "AIONRS_UNKNOWN_ERROR": {
+      "title": "Unknown error",
+      "hint": "Click retry to continue. If this keeps happening, contact support with the details above."
+    }
   }
 }

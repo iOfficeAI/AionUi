@@ -1734,7 +1734,10 @@ export class AionUIDatabase {
     }
   }
 
-  queryTokenUsageSummary(from: number, to: number): {
+  queryTokenUsageSummary(
+    from: number,
+    to: number
+  ): {
     totalTokens: number;
     totalCost: number;
     currency: string;

@@ -24,10 +24,7 @@ let webuiStatusCache: {
   at: number;
 } | null = null;
 
-const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
-  inactiveBorderColor,
-  activeShadow,
-}) => {
+const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({ inactiveBorderColor, activeShadow }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [hoveredQuickAction, setHoveredQuickAction] = useState<'webui' | null>(null);

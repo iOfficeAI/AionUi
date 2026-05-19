@@ -197,6 +197,7 @@
     "noModelSelected": "Mevcut oturum için model seçilmedi, mesaj gönderilemiyor",
     "sendMessageTo": "{{model}} modeline mesaj gönder",
     "processing": "İşleniyor...",
+    "slowResponseHint": "Yanıt yavaş — durdurup tekrar deneyebilirsiniz",
     "quotaExceededTitle": "Model kotasına ulaşıldı",
     "quotaExceededBody": "Mevcut model kotası tükendi. Devam etmek için {{model}} modeline geçilsin mi?",
     "quotaExceededNoFallback": "Model kotasına ulaşıldı. Lütfen başka bir uygun modele geçin.",
@@ -301,5 +302,52 @@
   },
   "skills": {
     "loaded": "Yüklenen Beceriler"
+  },
+  "error": {
+    "retry": "Son mesajı yeniden gönder",
+    "KSC_PROXY_STREAM_IDLE": {
+      "title": "KSC modeli yanıt vermeyi durdurdu",
+      "hint": "60 saniyedir veri alınmadı. KSC servisi yoğun olabilir veya ağ kararsız olabilir. Aşağıdaki yeniden denemeye tıklayın."
+    },
+    "KSC_PROXY_STREAM_ERROR": {
+      "title": "KSC akışı kesildi",
+      "hint": "Yanıt akışı kesintiye uğradı. Lütfen yeniden deneyin; sorun devam ederse KSC servis durumunu kontrol edin."
+    },
+    "KSC_PROXY_TIMEOUT": {
+      "title": "KSC isteği zaman aşımına uğradı",
+      "hint": "Sunucu yanıt vermek için çok uzun sürdü. Tekrar deneyin veya Ayarlardan başka bir modele geçin."
+    },
+    "KSC_PROXY_FAILED": {
+      "title": "KSC proxy isteği başarısız",
+      "hint": "KSC sunucusuna ulaşılamadı. Ağ bağlantınızı veya KSC servis kullanılabilirliğini kontrol edin."
+    },
+    "AIONRS_NETWORK_ERROR": {
+      "title": "Ağ hatası",
+      "hint": "Lütfen yerel ağınızı kontrol edip tekrar deneyin."
+    },
+    "AIONRS_UPSTREAM_5XX": {
+      "title": "Model servisi geçici olarak kullanılamıyor",
+      "hint": "Sunucu 5xx hatası döndürdü. Genellikle geçicidir — lütfen tekrar deneyin."
+    },
+    "AIONRS_UNAUTHORIZED": {
+      "title": "Yetkisiz veya jeton süresi doldu",
+      "hint": "Mesaj göndermeden önce Ayarlar'dan KSC'ye tekrar giriş yapın."
+    },
+    "AIONRS_RATE_LIMITED": {
+      "title": "Çok fazla istek",
+      "hint": "Sunucu hız sınırı tetiklendi. Lütfen biraz bekleyip tekrar deneyin."
+    },
+    "AIONRS_PROCESS_EXIT": {
+      "title": "AICore CLI beklenmedik şekilde kapandı",
+      "hint": "Alt katman CLI işlemi sonlandı. Yeniden denemek yeni bir oturum başlatır."
+    },
+    "AIONRS_BOOTSTRAP_FAILED": {
+      "title": "AICore CLI başlatılamadı",
+      "hint": "CLI ön yüklemesi başarısız. İkili dosyanın varlığını doğrulayın veya uygulamayı yeniden başlatıp tekrar deneyin."
+    },
+    "AIONRS_UNKNOWN_ERROR": {
+      "title": "Bilinmeyen hata",
+      "hint": "Devam etmek için yeniden denemeye tıklayın. Tekrarlarsa, yukarıdaki ayrıntılarla destek ekibine başvurun."
+    }
   }
 }

@@ -202,6 +202,7 @@
     "noModelSelected": "當前會話未選擇模型，無法發送訊息",
     "sendMessageTo": "發送訊息到 {{model}}",
     "processing": "正在處理中……",
+    "slowResponseHint": "回應較慢，可點擊停止後重試",
     "quotaExceededTitle": "模型額度已用盡",
     "quotaExceededBody": "當前模型額度已用盡，是否切換到 {{model}}？",
     "quotaExceededNoFallback": "當前模型額度已用盡，請切換到其他可用模型。",
@@ -299,5 +300,52 @@
   },
   "skills": {
     "loaded": "已載入技能"
+  },
+  "error": {
+    "retry": "重新發送上一則訊息",
+    "KSC_PROXY_STREAM_IDLE": {
+      "title": "KSC 模型回應中斷",
+      "hint": "60 秒內未收到任何資料，可能是 KSC 服務忙碌或網路異常。請點選下方重試。"
+    },
+    "KSC_PROXY_STREAM_ERROR": {
+      "title": "KSC 模型串流異常",
+      "hint": "資料串流在傳輸途中中斷。請重試；若持續發生請檢查 KSC 服務狀態。"
+    },
+    "KSC_PROXY_TIMEOUT": {
+      "title": "KSC 模型請求逾時",
+      "hint": "上游回應過慢。請重試，或在設定中切換其他模型。"
+    },
+    "KSC_PROXY_FAILED": {
+      "title": "KSC 代理請求失敗",
+      "hint": "無法連線到 KSC 上游。請檢查網路或 KSC 服務狀態。"
+    },
+    "AIONRS_NETWORK_ERROR": {
+      "title": "網路錯誤",
+      "hint": "請檢查本地網路連線後重試。"
+    },
+    "AIONRS_UPSTREAM_5XX": {
+      "title": "模型服務暫時無法使用",
+      "hint": "上游服務回傳 5xx 錯誤，通常為暫時性問題。請稍後重試。"
+    },
+    "AIONRS_UNAUTHORIZED": {
+      "title": "未授權或權杖過期",
+      "hint": "請在設定中重新登入 KSC 帳號後再發送訊息。"
+    },
+    "AIONRS_RATE_LIMITED": {
+      "title": "請求過於頻繁",
+      "hint": "已觸發上游限流，請稍後再試。"
+    },
+    "AIONRS_PROCESS_EXIT": {
+      "title": "AICore CLI 程序意外結束",
+      "hint": "底層 CLI 子程序已退出。點選重試將重新啟動工作階段。"
+    },
+    "AIONRS_BOOTSTRAP_FAILED": {
+      "title": "AICore CLI 啟動失敗",
+      "hint": "CLI 初始化發生錯誤。請檢查二進位是否存在，或重啟應用程式後重試。"
+    },
+    "AIONRS_UNKNOWN_ERROR": {
+      "title": "發生未知錯誤",
+      "hint": "點選重試以繼續。如反覆出現，請附上錯誤詳情聯絡支援。"
+    }
   }
 }
