@@ -135,7 +135,24 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 // HTTP request helper
 // ---------------------------------------------------------------------------
 
-export async function httpRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+/**
+ * Per-request overrides for `httpRequest`.
+ *
+ * `silentStatuses` lets known-soft failures (e.g. `GET /:id/model` returning
+ * 404 before the agent has attached) skip the noisy `console.error` and the
+ * Sentry breadcrumb that comes with it. The error is still thrown so the
+ * caller's existing try/catch keeps working.
+ */
+export type HttpRequestOptions = {
+  silentStatuses?: number[];
+};
+
+export async function httpRequest<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: HttpRequestOptions
+): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 
@@ -161,7 +178,11 @@ export async function httpRequest<T>(method: string, path: string, body?: unknow
     } catch {
       errorBody = await response.text();
     }
-    console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
+    if (options?.silentStatuses?.includes(response.status)) {
+      console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
+    } else {
+      console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
+    }
     throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
   }
 
@@ -203,13 +224,14 @@ export function withResponseMap<Raw, Mapped, Params>(
 }
 
 export function httpGet<Data, Params = undefined>(
-  path: string | ((params: Params) => string)
+  path: string | ((params: Params) => string),
+  options?: HttpRequestOptions
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
     invoke: (async (params?: Params) => {
       const resolvedPath = typeof path === 'function' ? path(params!) : path;
-      return httpRequest<Data>('GET', resolvedPath);
+      return httpRequest<Data>('GET', resolvedPath, undefined, options);
     }) as ProviderLike<Data, Params>['invoke'],
   };
 }
