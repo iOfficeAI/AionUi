@@ -85,12 +85,6 @@
     "loadingMore": "Загрузка...",
     "untitled": "Безымянный диалог"
   },
-  "tabs": {
-    "closeAll": "Закрыть все",
-    "closeLeft": "Закрыть слева",
-    "closeRight": "Закрыть справа",
-    "closeOthers": "Закрыть остальные"
-  },
   "dropdown": {
     "cliAgents": "CLI-агенты",
     "presetAssistants": "Предустановленные ассистенты"

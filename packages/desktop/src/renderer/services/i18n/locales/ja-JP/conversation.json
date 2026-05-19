@@ -92,12 +92,6 @@
   "noAgentsAvailable": "利用可能なエージェントはありません",
   "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
   "createFailed": "会話の作成に失敗しました",
-  "tabs": {
-    "closeAll": "すべて閉じる",
-    "closeLeft": "左側を閉じる",
-    "closeRight": "右側を閉じる",
-    "closeOthers": "他を閉じる"
-  },
   "workspace": {
     "title": "プロジェクト",
     "pasteConfirm_title": "ファイルを貼り付け",

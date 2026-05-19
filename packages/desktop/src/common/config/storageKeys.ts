@@ -20,9 +20,6 @@ export const STORAGE_KEYS = {
   /** Workspace panel collapse state / 工作空间面板折叠状态 */
   WORKSPACE_PANEL_COLLAPSE: 'aionui_workspace_panel_collapsed',
 
-  /** Conversation tabs state / 会话 tabs 状态 */
-  CONVERSATION_TABS: 'aionui_conversation_tabs',
-
   /** Sidebar collapse state / 侧边栏折叠状态 */
   SIDEBAR_COLLAPSE: 'aionui_sider_collapsed',
 

@@ -92,12 +92,6 @@
   "noAgentsAvailable": "沒有可用的 Agent",
   "noModelConfigured": "未設定模型，請前往設定頁面設定。",
   "createFailed": "建立對話失敗",
-  "tabs": {
-    "closeAll": "全部關閉",
-    "closeLeft": "關閉左側",
-    "closeRight": "關閉右側",
-    "closeOthers": "關閉其他"
-  },
   "workspace": {
     "title": "專案",
     "pasteConfirm_title": "貼上檔案",

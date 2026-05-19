@@ -6,7 +6,6 @@ import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useConversationTabs } from './hooks/ConversationTabsContext';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 
 const ChatConversationIndex: React.FC = () => {
@@ -14,7 +13,6 @@ const ChatConversationIndex: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
-  const { openTab } = useConversationTabs();
   const { syncTitleFromHistory } = useAutoTitle();
   const previousConversationIdRef = useRef<string | undefined>(undefined);
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
@@ -58,14 +56,6 @@ const ChatConversationIndex: React.FC = () => {
 
     void syncTitleFromHistory(data.id);
   }, [data, defaultConversationTitle, syncTitleFromHistory]);
-
-  // 当会话数据加载完成后，自动打开 tab
-  // Automatically open tab when conversation data is loaded
-  useEffect(() => {
-    if (data) {
-      openTab(data);
-    }
-  }, [data, openTab]);
 
   // 会话不存在（例如从历史栈回到已删除会话）时，提示并替换路由到首页，
   // 避免渲染空骨架。每个 id 只触发一次。

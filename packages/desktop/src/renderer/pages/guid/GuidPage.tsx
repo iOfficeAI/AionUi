@@ -9,7 +9,6 @@ import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -43,7 +42,6 @@ const GuidPage: React.FC = () => {
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const openAssistantDetailsRef = useRef<(() => void) | null>(null);
   const descriptionTextRef = useRef<HTMLDivElement>(null);
-  const { closeAllTabs, openTab } = useConversationTabs();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
 
   const localeKey = resolveLocaleKey(i18n.language);
@@ -164,10 +162,8 @@ const GuidPage: React.FC = () => {
     setMentionSelectorOpen: mention.setMentionSelectorOpen,
     setMentionActiveIndex: mention.setMentionActiveIndex,
 
-    // Navigation & tabs
+    // Navigation
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   });
 
