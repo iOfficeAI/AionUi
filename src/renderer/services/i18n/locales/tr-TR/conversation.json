@@ -367,8 +367,9 @@
     "highlight": "Sayfada parlat",
     "remove": "Kaldır",
     "payloadSize": "Seçim: {{current}} KB / {{limit}} KB",
-    "sendToChat": "{{count}} öğeyi sohbete kopyala",
+    "sendToChat": "{{count}} öğeyi yeni sohbete gönder",
     "copiedToClipboard": "{{count}} öğe panoya kopyalandı.",
-    "copyFailed": "Panoya kopyalama başarısız."
+    "copyFailed": "Panoya kopyalama başarısız.",
+    "copyToClipboard": "Panoya kopyala"
   }
 }

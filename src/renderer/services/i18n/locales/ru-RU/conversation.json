@@ -365,8 +365,9 @@
     "highlight": "Подсветить на странице",
     "remove": "Удалить",
     "payloadSize": "Размер: {{current}} КБ / {{limit}} КБ",
-    "sendToChat": "Скопировать {{count}} в чат",
+    "sendToChat": "Отправить {{count}} в новый чат",
     "copiedToClipboard": "Скопировано {{count}} элементов в буфер обмена.",
-    "copyFailed": "Не удалось скопировать в буфер обмена."
+    "copyFailed": "Не удалось скопировать в буфер обмена.",
+    "copyToClipboard": "Скопировать в буфер"
   }
 }

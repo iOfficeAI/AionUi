@@ -6,6 +6,7 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { Message } from '@arco-design/web-react';
 import { Left, Right, Refresh, Loading, Click, Close } from '@icon-park/react';
 import Basket from './Basket';
@@ -17,6 +18,7 @@ const HOME_URL = 'https://www.google.com/';
 
 const DevBrowser: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [currentUrl, setCurrentUrl] = useState(HOME_URL);
   const [inputUrl, setInputUrl] = useState(HOME_URL);
@@ -211,7 +213,13 @@ const DevBrowser: React.FC = () => {
   const selectedItems = useMemo(() => items.filter((e) => selectedIds.has(e.id)), [items, selectedIds]);
   const byteEstimate = useMemo(() => estimatePayloadBytes(selectedItems), [selectedItems]);
 
-  const handleSend = useCallback(async () => {
+  const handleSend = useCallback(() => {
+    if (selectedItems.length === 0) return;
+    const text = formatForChat(selectedItems);
+    void navigate('/guid', { state: { devBrowserPrompt: text } });
+  }, [selectedItems, navigate]);
+
+  const handleCopy = useCallback(async () => {
     if (selectedItems.length === 0) return;
     const text = formatForChat(selectedItems);
     try {
@@ -308,6 +316,7 @@ const DevBrowser: React.FC = () => {
         onHighlight={handleHighlight}
         onClear={handleClear}
         onSend={handleSend}
+        onCopy={handleCopy}
         byteEstimate={byteEstimate}
         byteLimit={MAX_PAYLOAD_BYTES}
       />

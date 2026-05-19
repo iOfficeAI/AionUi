@@ -365,8 +365,9 @@
     "highlight": "在页面闪烁",
     "remove": "移除",
     "payloadSize": "已选体积：{{current}} KB / {{limit}} KB",
-    "sendToChat": "复制 {{count}} 个作为对话上下文",
+    "sendToChat": "发送 {{count}} 个到新对话",
     "copiedToClipboard": "已将 {{count}} 个元素复制到剪贴板。",
-    "copyFailed": "复制到剪贴板失败。"
+    "copyFailed": "复制到剪贴板失败。",
+    "copyToClipboard": "复制到剪贴板"
   }
 }

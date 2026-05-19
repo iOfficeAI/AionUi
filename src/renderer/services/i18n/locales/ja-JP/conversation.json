@@ -365,8 +365,9 @@
     "highlight": "ページで点滅",
     "remove": "削除",
     "payloadSize": "選択サイズ: {{current}} KB / {{limit}} KB",
-    "sendToChat": "{{count}} 個をチャットにコピー",
+    "sendToChat": "{{count}} 個を新規チャットに送信",
     "copiedToClipboard": "{{count}} 個の要素をクリップボードにコピーしました。",
-    "copyFailed": "クリップボードへのコピーに失敗しました。"
+    "copyFailed": "クリップボードへのコピーに失敗しました。",
+    "copyToClipboard": "クリップボードにコピー"
   }
 }

@@ -18,6 +18,7 @@ interface BasketProps {
   onHighlight: (selector: string) => void;
   onClear: () => void;
   onSend: () => void;
+  onCopy: () => void;
   byteEstimate: number;
   byteLimit: number;
 }
@@ -36,6 +37,7 @@ const Basket: React.FC<BasketProps> = ({
   onHighlight,
   onClear,
   onSend,
+  onCopy,
   byteEstimate,
   byteLimit,
 }) => {
@@ -118,6 +120,14 @@ const Basket: React.FC<BasketProps> = ({
           className='h-32px rounded-6px bg-primary-6 text-white text-12px font-medium border-0 cursor-pointer disabled:bg-fill-3 disabled:text-t-tertiary disabled:cursor-not-allowed hover:bg-primary-7'
         >
           {t('conversation.devBrowser.sendToChat', { count: selectedIds.size })}
+        </button>
+        <button
+          type='button'
+          onClick={onCopy}
+          disabled={selectedIds.size === 0}
+          className='h-28px rounded-6px bg-transparent text-t-secondary text-12px border border-border-2 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed hover:bg-fill-2'
+        >
+          {t('conversation.devBrowser.copyToClipboard')}
         </button>
       </div>
     </div>

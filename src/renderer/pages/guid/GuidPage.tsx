@@ -349,17 +349,27 @@ const GuidPage: React.FC = () => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
 
+  const devBrowserPrompt = (location.state as { devBrowserPrompt?: string } | null)?.devBrowserPrompt;
+
   // Reset guid-local UI state before paint so same-route navigations do not
   // briefly show the previous draft or preset assistant layout.
   useLayoutEffect(() => {
-    guidInput.setInput('');
+    guidInput.setInput(devBrowserPrompt ?? '');
     guidInput.setFiles([]);
     guidInput.setLoading(false);
     if (!(location.state as { workspace?: string } | null)?.workspace) {
       guidInput.setDir('');
     }
     setIsDescriptionExpanded(false);
-  }, [guidInput.setDir, guidInput.setFiles, guidInput.setInput, guidInput.setLoading, location.key, location.state]);
+  }, [
+    guidInput.setDir,
+    guidInput.setFiles,
+    guidInput.setInput,
+    guidInput.setLoading,
+    location.key,
+    location.state,
+    devBrowserPrompt,
+  ]);
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
@@ -370,9 +380,9 @@ const GuidPage: React.FC = () => {
   // next hard reload, the browser would then request '/guid' directly from
   // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
-    if (!resetAssistantRequested) return;
+    if (!resetAssistantRequested && !devBrowserPrompt) return;
     navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
-  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
+  }, [resetAssistantRequested, devBrowserPrompt, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;

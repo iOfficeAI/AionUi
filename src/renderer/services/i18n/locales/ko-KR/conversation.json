@@ -365,8 +365,9 @@
     "highlight": "페이지에서 깜박이기",
     "remove": "제거",
     "payloadSize": "선택 크기: {{current}} KB / {{limit}} KB",
-    "sendToChat": "{{count}}개를 채팅 컨텍스트로 복사",
+    "sendToChat": "{{count}}개를 새 채팅으로 보내기",
     "copiedToClipboard": "{{count}}개 요소를 클립보드에 복사했습니다.",
-    "copyFailed": "클립보드 복사에 실패했습니다."
+    "copyFailed": "클립보드 복사에 실패했습니다.",
+    "copyToClipboard": "클립보드에 복사"
   }
 }

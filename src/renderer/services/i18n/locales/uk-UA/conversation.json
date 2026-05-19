@@ -361,8 +361,9 @@
     "highlight": "Підсвітити на сторінці",
     "remove": "Видалити",
     "payloadSize": "Розмір: {{current}} КБ / {{limit}} КБ",
-    "sendToChat": "Скопіювати {{count}} у чат",
+    "sendToChat": "Надіслати {{count}} у новий чат",
     "copiedToClipboard": "Скопійовано {{count}} елементів до буфера.",
-    "copyFailed": "Не вдалося скопіювати до буфера."
+    "copyFailed": "Не вдалося скопіювати до буфера.",
+    "copyToClipboard": "Скопіювати в буфер"
   }
 }

@@ -365,8 +365,9 @@
     "highlight": "Flash on page",
     "remove": "Remove",
     "payloadSize": "Selection: {{current}} KB / {{limit}} KB",
-    "sendToChat": "Copy {{count}} as chat context",
+    "sendToChat": "Send {{count}} to new chat",
     "copiedToClipboard": "Copied {{count}} elements to clipboard.",
-    "copyFailed": "Failed to copy to clipboard."
+    "copyFailed": "Failed to copy to clipboard.",
+    "copyToClipboard": "Copy to clipboard"
   }
 }
