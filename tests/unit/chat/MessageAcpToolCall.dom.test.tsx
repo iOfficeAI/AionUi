@@ -5,12 +5,14 @@
  */
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
 import MessageAcpToolCall from '@/renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
 
 const mockDownloadFileFromPath = vi.fn().mockResolvedValue(undefined);
+const mockMessageSuccess = vi.fn();
+const mockMessageError = vi.fn();
 
 vi.mock('@/renderer/components/media/LocalImageView', () => ({
   __esModule: true,
@@ -39,7 +41,7 @@ vi.mock('@arco-design/web-react', () => ({
   ),
   Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
   Message: {
-    useMessage: () => [{ success: vi.fn(), error: vi.fn() }, null],
+    useMessage: () => [{ success: mockMessageSuccess, error: mockMessageError }, null],
   },
 }));
 
@@ -84,6 +86,13 @@ const baseUpdate: IMessageAcpToolCall['content']['update'] = {
 };
 
 describe('MessageAcpToolCall image output', () => {
+  beforeEach(() => {
+    mockDownloadFileFromPath.mockReset();
+    mockDownloadFileFromPath.mockResolvedValue(undefined);
+    mockMessageSuccess.mockClear();
+    mockMessageError.mockClear();
+  });
+
   it('renders nothing when update content is missing', () => {
     const { container } = render(
       <MessageAcpToolCall
@@ -138,6 +147,34 @@ describe('MessageAcpToolCall image output', () => {
     screen.getByLabelText('acp.image.download_aria').click();
 
     expect(mockDownloadFileFromPath).toHaveBeenCalledWith(imagePath, 'ig_test_image.png');
+  });
+
+  it('shows an error when image download fails', async () => {
+    const imagePath = '/Users/test/.codex/generated_images/session/ig_test_image.png';
+    const consoleError = vi.spyOn(console, 'error').mockImplementation(() => {});
+    mockDownloadFileFromPath.mockRejectedValueOnce(new Error('denied'));
+
+    render(
+      <MessageAcpToolCall
+        message={createMessage({
+          ...baseUpdate,
+          rawOutput: {
+            image: {
+              path: imagePath,
+            },
+          },
+        })}
+      />
+    );
+
+    screen.getByLabelText('acp.image.download_aria').click();
+
+    await waitFor(() => {
+      expect(mockMessageError).toHaveBeenCalledWith('acp.image.download_error');
+    });
+    expect(consoleError).toHaveBeenCalledWith('[MessageAcpToolCall] Failed to download image:', expect.any(Error));
+    expect(mockMessageSuccess).not.toHaveBeenCalled();
+    consoleError.mockRestore();
   });
 
   it('uses i18n keys for image download labels', () => {

@@ -4,10 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAcpImagePath, sanitizeAcpToolCallContent } from '@/common/chat/acpToolCallOutput';
+import { getAcpImageFileName, getAcpImagePath, sanitizeAcpToolCallContent } from '@/common/chat/acpToolCallOutput';
 import { composeMessage, mergeAcpToolCallContent } from '@/common/chat/chatLib';
-import type { IMessageAcpToolCall } from '@/common/chat/chatLib';
-import { describe, expect, it } from 'vitest';
+import type { IMessageAcpToolCall, TMessage } from '@/common/chat/chatLib';
+import { describe, expect, it, vi } from 'vitest';
 
 const createAcpToolCall = (
   rawOutput: IMessageAcpToolCall['content']['update']['rawOutput'],
@@ -146,6 +146,49 @@ describe('ACP tool call image output', () => {
     expect(inserted.content.update.rawOutput?.image?.mime_type).toBe('image/jpeg');
   });
 
+  it('sanitizes ACP tool call messages appended to a non-empty compose list', () => {
+    const textMessage: TMessage = {
+      id: 'text-1',
+      msg_id: 'text-1',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      content: {
+        content: 'hello',
+      },
+    };
+    const message = createAcpToolCall({
+      saved_path: '/Users/test/.codex/generated_images/session/ig_appended.webp',
+      result: `UklGR${'A'.repeat(128 * 1024)}`,
+    });
+
+    const list = composeMessage(message, [textMessage]);
+
+    expect(list).toHaveLength(2);
+    const inserted = list[1] as IMessageAcpToolCall;
+    expect(inserted.content.update.rawOutput?.result).toBeUndefined();
+    expect(inserted.content.update.rawOutput?.image?.mime_type).toBe('image/webp');
+  });
+
+  it('leaves non-ACP compose messages unchanged', () => {
+    const message: TMessage = {
+      id: 'text-1',
+      msg_id: 'text-1',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      content: {
+        content: 'hello',
+      },
+    };
+    const messageHandler = vi.fn();
+
+    const list = composeMessage(message, [], messageHandler);
+
+    expect(list).toEqual([message]);
+    expect(messageHandler).toHaveBeenCalledWith('insert', message);
+  });
+
   it('resolves image preview paths with image.path preferred over saved_path', () => {
     expect(
       getAcpImagePath({
@@ -169,5 +212,9 @@ describe('ACP tool call image output', () => {
     ).toBe('/persisted.png');
 
     expect(getAcpImagePath(createAcpToolCall(undefined).content.update)).toBeUndefined();
+  });
+
+  it('falls back to a generated image file name when the path has no file name', () => {
+    expect(getAcpImageFileName('/')).toBe('generated-image.png');
   });
 });

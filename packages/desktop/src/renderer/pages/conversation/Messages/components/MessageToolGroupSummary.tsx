@@ -36,18 +36,19 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   const [loadError, setLoadError] = useState(false);
   const displayItem = fullItem ?? item;
   const hasDetail = displayItem.input || displayItem.output || item.truncated || item.imagePath;
-  const imageAlt = item.imagePath ? getAcpImageFileName(item.imagePath) : t('acp.image.generated_alt');
   const [messageApi, messageContext] = Message.useMessage();
-  const handleDownloadImage = useCallback(async () => {
-    if (!item.imagePath) return;
-    try {
-      await downloadFileFromPath(item.imagePath, getAcpImageFileName(item.imagePath));
-      messageApi.success(t('acp.image.download_success'));
-    } catch (error) {
-      console.error('[MessageToolGroupSummary] Failed to download image:', error);
-      messageApi.error(t('acp.image.download_error'));
-    }
-  }, [item.imagePath, messageApi, t]);
+  const handleDownloadImage = useCallback(
+    async (path: string) => {
+      try {
+        await downloadFileFromPath(path, getAcpImageFileName(path));
+        messageApi.success(t('acp.image.download_success'));
+      } catch (error) {
+        console.error('[MessageToolGroupSummary] Failed to download image:', error);
+        messageApi.error(t('acp.image.download_error'));
+      }
+    },
+    [messageApi, t]
+  );
 
   const loadFullItem = async () => {
     if (!item.truncated || fullItem || loadingFull || !item.conversationId || !item.messageId) return;
@@ -119,7 +120,7 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
         <div className='group relative m-l-20px m-t-8px overflow-hidden rounded border bg-1 p-2 max-w-280px'>
           <LocalImageView
             src={item.imagePath}
-            alt={imageAlt}
+            alt={getAcpImageFileName(item.imagePath)}
             className='max-w-full max-h-320px object-contain rounded'
           />
           <Tooltip content={t('acp.image.download')}>
@@ -130,7 +131,7 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
               size='mini'
               shape='circle'
               icon={<Download theme='outline' size='14' />}
-              onClick={() => void handleDownloadImage()}
+              onClick={() => void handleDownloadImage(item.imagePath)}
             />
           </Tooltip>
         </div>

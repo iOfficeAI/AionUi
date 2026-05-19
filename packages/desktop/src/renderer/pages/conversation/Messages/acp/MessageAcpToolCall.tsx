@@ -110,16 +110,18 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   const imagePath = getAcpImagePath(update);
   const imageAlt = imagePath?.split(/[/\\]/).pop() || t('acp.image.generated_alt');
   const [messageApi, messageContext] = Message.useMessage();
-  const handleDownloadImage = useCallback(async () => {
-    if (!imagePath) return;
-    try {
-      await downloadFileFromPath(imagePath, getAcpImageFileName(imagePath));
-      messageApi.success(t('acp.image.download_success'));
-    } catch (error) {
-      console.error('[MessageAcpToolCall] Failed to download image:', error);
-      messageApi.error(t('acp.image.download_error'));
-    }
-  }, [imagePath, messageApi, t]);
+  const handleDownloadImage = useCallback(
+    async (path: string) => {
+      try {
+        await downloadFileFromPath(path, getAcpImageFileName(path));
+        messageApi.success(t('acp.image.download_success'));
+      } catch (error) {
+        console.error('[MessageAcpToolCall] Failed to download image:', error);
+        messageApi.error(t('acp.image.download_error'));
+      }
+    },
+    [messageApi, t]
+  );
 
   return (
     <Card className='w-full mb-2' size='small' bordered>
@@ -154,7 +156,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
                   size='mini'
                   shape='circle'
                   icon={<Download theme='outline' size='14' />}
-                  onClick={() => void handleDownloadImage()}
+                  onClick={() => void handleDownloadImage(imagePath)}
                 />
               </Tooltip>
             </div>

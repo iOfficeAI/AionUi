@@ -60,6 +60,7 @@ const MessageListProbe: React.FC<{ message: TMessage; add?: boolean }> = ({ mess
   return (
     <div>
       <div data-testid='message-count'>{messages.length}</div>
+      <div data-testid='last-message-type'>{messages.at(-1)?.type ?? ''}</div>
       <div data-testid='has-result'>{String(Boolean(rawOutput?.result))}</div>
       <div data-testid='image-path'>{rawOutput?.image?.path ?? ''}</div>
     </div>
@@ -100,6 +101,23 @@ describe('conversation message hooks ACP sanitization', () => {
     );
   });
 
+  it('sanitizes an ACP image message without msg_id inserted into an empty list', () => {
+    const message = createImageToolCall('ig_first_image_without_msg_id') as IMessageAcpToolCall & {
+      msg_id?: string;
+    };
+    delete message.msg_id;
+
+    renderMessageListProbe(message);
+
+    flushNextMessageUpdate();
+
+    expect(screen.getByTestId('message-count')).toHaveTextContent('1');
+    expect(screen.getByTestId('has-result')).toHaveTextContent('false');
+    expect(screen.getByTestId('image-path')).toHaveTextContent(
+      '/Users/test/.codex/generated_images/session/ig_first_image_without_msg_id.png'
+    );
+  });
+
   it('sanitizes an ACP image message inserted with add=true', () => {
     renderMessageListProbe(createImageToolCall('ig_added_image'), {
       add: true,
@@ -113,5 +131,43 @@ describe('conversation message hooks ACP sanitization', () => {
     expect(screen.getByTestId('image-path')).toHaveTextContent(
       '/Users/test/.codex/generated_images/session/ig_added_image.png'
     );
+  });
+
+  it('sanitizes a new ACP image message appended to a non-empty list', () => {
+    renderMessageListProbe(createImageToolCall('ig_appended_image'), {
+      initial: [existingTextMessage],
+    });
+
+    flushNextMessageUpdate();
+
+    expect(screen.getByTestId('message-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('last-message-type')).toHaveTextContent('acp_tool_call');
+    expect(screen.getByTestId('has-result')).toHaveTextContent('false');
+    expect(screen.getByTestId('image-path')).toHaveTextContent(
+      '/Users/test/.codex/generated_images/session/ig_appended_image.png'
+    );
+  });
+
+  it('keeps non-ACP messages unchanged when inserted with add=true', () => {
+    renderMessageListProbe(
+      {
+        ...existingTextMessage,
+        id: 'text-2',
+        msg_id: 'text-2',
+        content: {
+          content: 'world',
+        },
+      },
+      {
+        add: true,
+        initial: [existingTextMessage],
+      }
+    );
+
+    flushNextMessageUpdate();
+
+    expect(screen.getByTestId('message-count')).toHaveTextContent('2');
+    expect(screen.getByTestId('last-message-type')).toHaveTextContent('text');
+    expect(screen.getByTestId('has-result')).toHaveTextContent('false');
   });
 });

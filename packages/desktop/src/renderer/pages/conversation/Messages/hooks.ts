@@ -95,7 +95,7 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
   return cached;
 }
 
-const normalizeMessageForList = (message: TMessage): TMessage =>
+const sanitizeMessageForList = (message: TMessage): TMessage =>
   message.type === 'acp_tool_call'
     ? ({ ...message, content: sanitizeAcpToolCallContent(message.content) } as TMessage)
     : message;
@@ -109,15 +109,14 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     return list || [];
   }
 
-  const normalizedMessage = normalizeMessageForList(message);
-
   if (!list?.length) {
+    const firstMessage = sanitizeMessageForList(message);
     // Update index when adding first message
-    const msgIndexKey = getMessageIndexKey(normalizedMessage);
+    const msgIndexKey = getMessageIndexKey(firstMessage);
     if (msgIndexKey) {
       index.msgIdIndex.set(msgIndexKey, 0);
     }
-    return [normalizedMessage];
+    return [firstMessage];
   }
 
   const last = list[list.length - 1];
@@ -126,8 +125,8 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
   // For tool_group type, use original composeMessage (involves inner array matching)
   // After composeMessage, the returned list may have different length/ordering,
   // so we must invalidate the index to prevent stale lookups in subsequent calls.
-  if (normalizedMessage.type === 'tool_group') {
-    const result = composeMessage(normalizedMessage, list);
+  if (message.type === 'tool_group') {
+    const result = composeMessage(message, list);
     if (result !== list) {
       // Rebuild index maps from the new list to keep them in sync
       const rebuilt = buildMessageIndex(result);
@@ -141,83 +140,83 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
 
   // tool_call: 使用 call_idIndex 快速查找
   // tool_call: use call_idIndex for fast lookup
-  if (normalizedMessage.type === 'tool_call' && normalizedMessage.content?.call_id) {
-    const existingIdx = index.call_idIndex.get(normalizedMessage.content.call_id);
+  if (message.type === 'tool_call' && message.content?.call_id) {
+    const existingIdx = index.call_idIndex.get(message.content.call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'tool_call') {
         const newList = list.slice();
-        const merged = { ...existingMsg.content, ...normalizedMessage.content };
+        const merged = { ...existingMsg.content, ...message.content };
         newList[existingIdx] = { ...existingMsg, content: merged };
         return newList;
       }
     }
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
-    index.call_idIndex.set(normalizedMessage.content.call_id, newIdx);
-    const msgIndexKey = getMessageIndexKey(normalizedMessage);
+    index.call_idIndex.set(message.content.call_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(normalizedMessage);
+    return list.concat(message);
   }
 
   // acp_tool_call: use tool_call_idIndex for fast lookup
-  if (normalizedMessage.type === 'acp_tool_call' && normalizedMessage.content?.update?.tool_call_id) {
-    const existingIdx = index.tool_call_idIndex.get(normalizedMessage.content.update.tool_call_id);
+  if (message.type === 'acp_tool_call' && message.content?.update?.tool_call_id) {
+    const existingIdx = index.tool_call_idIndex.get(message.content.update.tool_call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'acp_tool_call') {
         const newList = list.slice();
-        const merged = mergeAcpToolCallContent(existingMsg.content, normalizedMessage.content);
+        const merged = mergeAcpToolCallContent(existingMsg.content, message.content);
         newList[existingIdx] = { ...existingMsg, content: merged };
         return newList;
       }
     }
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
-    index.tool_call_idIndex.set(normalizedMessage.content.update.tool_call_id, newIdx);
-    const msgIndexKey = getMessageIndexKey(normalizedMessage);
+    index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(normalizedMessage);
+    return list.concat(sanitizeMessageForList(message));
   }
 
   // permission: use call_id for recovery/live stream dedupe.
-  if (normalizedMessage.type === 'permission' && normalizedMessage.content?.call_id) {
-    const existingIdx = index.permission_call_idIndex.get(normalizedMessage.content.call_id);
+  if (message.type === 'permission' && message.content?.call_id) {
+    const existingIdx = index.permission_call_idIndex.get(message.content.call_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'permission') {
         const newList = list.slice();
-        newList[existingIdx] = { ...existingMsg, ...normalizedMessage, content: normalizedMessage.content };
+        newList[existingIdx] = { ...existingMsg, ...message, content: message.content };
         return newList;
       }
     }
     const newIdx = list.length;
-    index.permission_call_idIndex.set(normalizedMessage.content.call_id, newIdx);
-    const msgIndexKey = getMessageIndexKey(normalizedMessage);
+    index.permission_call_idIndex.set(message.content.call_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(normalizedMessage);
+    return list.concat(message);
   }
 
   // text message: merge only with the latest contiguous streaming chunk.
   // text 消息: 只与最后一条连续的流式片段合并，保留被工具/思考打断后的消息边界。
-  if (normalizedMessage.type === 'text' && normalizedMessage.msg_id) {
-    const existingIdx = index.msgIdIndex.get(normalizedMessage.msg_id);
+  if (message.type === 'text' && message.msg_id) {
+    const existingIdx = index.msgIdIndex.get(message.msg_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       if (existingMsg.type === 'text') {
         // User messages (right position) are complete — skip if already exists to prevent duplicates
-        if (normalizedMessage.position === 'right') {
+        if (message.position === 'right') {
           return list;
         }
         // Complete teammate messages are not streaming chunks — skip if already exists
-        if ((normalizedMessage.content as { teammateMessage?: boolean })?.teammateMessage) {
+        if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
           return list;
         }
         // AI streaming messages (left position) — append by default, replace when explicitly signaled
         const newList = list.slice();
         newList[existingIdx] = {
           ...existingMsg,
-          content: mergeTextMessageContent(existingMsg.content, normalizedMessage.content),
+          content: mergeTextMessageContent(existingMsg.content, message.content),
         };
         return newList;
       }
@@ -233,15 +232,15 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     }
 
     const newIdx = list.length;
-    index.msgIdIndex.set(normalizedMessage.msg_id, newIdx);
-    return list.concat(normalizedMessage);
+    index.msgIdIndex.set(message.msg_id, newIdx);
+    return list.concat(message);
   }
 
   // thinking message: merge only with the latest contiguous thinking chunk.
   // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id.
-  if (normalizedMessage.type === 'thinking' && normalizedMessage.msg_id) {
-    const thinkingKey = `thinking:${normalizedMessage.msg_id}`;
-    if (normalizedMessage.content.status === 'done') {
+  if (message.type === 'thinking' && message.msg_id) {
+    const thinkingKey = `thinking:${message.msg_id}`;
+    if (message.content.status === 'done') {
       const existingIdx = index.msgIdIndex.get(thinkingKey);
       if (existingIdx !== undefined && existingIdx < list.length) {
         const existingMsg = list[existingIdx];
@@ -252,8 +251,8 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
             content: {
               ...existingMsg.content,
               status: 'done' as const,
-              duration: normalizedMessage.content.duration,
-              subject: normalizedMessage.content.subject || existingMsg.content.subject,
+              duration: message.content.duration,
+              subject: message.content.subject || existingMsg.content.subject,
             },
           };
           return newList;
@@ -261,14 +260,14 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       }
     }
 
-    if (last.type === 'thinking' && last.msg_id === normalizedMessage.msg_id) {
+    if (last.type === 'thinking' && last.msg_id === message.msg_id) {
       const newList = list.slice();
       newList[newList.length - 1] = {
         ...last,
         content: {
           ...last.content,
-          content: last.content.content + normalizedMessage.content.content,
-          subject: normalizedMessage.content.subject || last.content.subject,
+          content: last.content.content + message.content.content,
+          subject: message.content.subject || last.content.subject,
         },
       };
       return newList;
@@ -276,17 +275,17 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
 
     const newIdx = list.length;
     index.msgIdIndex.set(thinkingKey, newIdx);
-    return list.concat(normalizedMessage);
+    return list.concat(message);
   }
 
   // plan message: update content and move to end of list
-  if (normalizedMessage.type === 'plan' && normalizedMessage.msg_id) {
-    const existingIdx = index.msgIdIndex.get(normalizedMessage.msg_id);
+  if (message.type === 'plan' && message.msg_id) {
+    const existingIdx = index.msgIdIndex.get(message.msg_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       const newList = list.slice();
       newList.splice(existingIdx, 1);
-      const updated = { ...existingMsg, ...normalizedMessage, content: normalizedMessage.content } as TMessage;
+      const updated = { ...existingMsg, ...message, content: message.content } as TMessage;
       newList.push(updated);
       // Rebuild index after splice
       const rebuilt = buildMessageIndex(newList);
@@ -297,21 +296,21 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       return newList;
     }
     const newIdx = list.length;
-    index.msgIdIndex.set(normalizedMessage.msg_id, newIdx);
-    return list.concat(normalizedMessage);
+    index.msgIdIndex.set(message.msg_id, newIdx);
+    return list.concat(message);
   }
 
   // agent_status / tips and other msg_id-based messages:
   // replace the existing item in place instead of appending duplicates.
-  if (normalizedMessage.msg_id) {
-    const existingIdx = index.msgIdIndex.get(normalizedMessage.msg_id);
+  if (message.msg_id) {
+    const existingIdx = index.msgIdIndex.get(message.msg_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
       const existingMsg = list[existingIdx];
       const newList = list.slice();
       newList[existingIdx] = {
         ...existingMsg,
-        ...normalizedMessage,
-        content: normalizedMessage.content,
+        ...message,
+        content: message.content,
       } as TMessage;
       return newList;
     }
@@ -319,18 +318,18 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
 
   // Other types: fallback to last message check
   // 其他类型: 回退到检查最后一条消息
-  if (last.msg_id !== normalizedMessage.msg_id || last.type !== normalizedMessage.type) {
+  if (last.msg_id !== message.msg_id || last.type !== message.type) {
     // Add new message and update index
     const newIdx = list.length;
-    const msgIndexKey = getMessageIndexKey(normalizedMessage);
+    const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
-    return list.concat(normalizedMessage);
+    return list.concat(message);
   }
 
   // Merge other message types with same msg_id
   const newList = list.slice();
   const lastIdx = newList.length - 1;
-  newList[lastIdx] = { ...last, ...normalizedMessage };
+  newList[lastIdx] = { ...last, ...message };
   return newList;
 }
 
@@ -363,7 +362,7 @@ export const useAddOrUpdateMessage = () => {
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index
-          const msg = normalizeMessageForList(item.message);
+          const msg = sanitizeMessageForList(item.message);
           const newIdx = newList.length;
           const msgIndexKey = getMessageIndexKey(msg);
           if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);

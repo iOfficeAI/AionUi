@@ -27,3 +27,11 @@ MB 级 base64。
 后端是主要清洗边界。前端在 `mergeAcpToolCallContent` 和消息列表快速合并路径中
 保留兜底清洗：如果收到包含 `saved_path` 且超出阈值的 `result` 字符串，会移除
 `result` 并补齐 `image.path`、`result_omitted` 和 `result_bytes`。
+
+## 测试覆盖
+
+相关单测位于 `tests/unit/chat/`：
+
+- `acpToolCallOutput.test.ts` 覆盖图片路径提取、文件名生成和 base64 清洗。
+- `messageHooks.dom.test.tsx` 覆盖空列表、非空列表和 `add=true` 路径下的 ACP 图片消息清洗。
+- `MessageAcpToolCall.dom.test.tsx` 与 `MessageToolGroupSummary.dom.test.tsx` 覆盖图片预览、下载成功调用和下载失败提示。
