@@ -19,7 +19,7 @@
  */
 
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate, useNavigationType, NavigationType } from 'react-router-dom';
 
 const MAX_HISTORY = 50;
 
@@ -42,6 +42,7 @@ const buildPath = (location: { pathname: string; search: string; hash: string })
 export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ children }) => {
   const location = useLocation();
   const navigate = useNavigate();
+  const navigationType = useNavigationType();
 
   const [stack, setStack] = useState<HistoryEntry[]>(() => [{ path: buildPath(location) }]);
   const [cursor, setCursor] = useState(0);
@@ -63,6 +64,19 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
         // Same path as current cursor — no-op (initial render, or a redundant push).
         return prevStack;
       }
+      // navigate(..., { replace: true }) should overwrite the current cursor
+      // entry rather than push a new one — otherwise replace navigations grow
+      // the in-app history stack and incorrectly enable the back button (e.g.
+      // when ConversationIndex redirects from a 404'd conversation to '/').
+      if (navigationType === NavigationType.Replace) {
+        const next = prevStack.slice();
+        next[cursor] = { path };
+        return next;
+      }
+      // POP (browser/native back-forward): we already mutate cursor + stack
+      // inside back()/forward(); skipNextRef should have caught those. Any
+      // POP that slips through here came from outside our buttons (e.g.
+      // hardware back), so treat it like a push for consistency.
       // Discard any forward entries past the cursor, then append.
       const truncated = prevStack.slice(0, cursor + 1);
       truncated.push({ path });
@@ -79,7 +93,7 @@ export const NavigationHistoryProvider: React.FC<React.PropsWithChildren> = ({ c
     // We intentionally only depend on pathname/search/hash — not `cursor` —
     // because `cursor` is kept consistent inside the setStack updater above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [location.pathname, location.search, location.hash]);
+  }, [location.pathname, location.search, location.hash, navigationType]);
 
   const back = useCallback(() => {
     const next = cursor - 1;
