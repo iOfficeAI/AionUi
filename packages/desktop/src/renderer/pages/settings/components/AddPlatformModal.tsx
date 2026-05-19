@@ -590,92 +590,94 @@ const AddPlatformModal = ModalHOC<{
             field={'model'}
             required
             rules={[{ required: true }]}
-            validateStatus={modelListState.error ? 'error' : 'success'}
+            validateStatus={!isFullUrl && modelListState.error ? 'error' : 'success'}
             help={
-              modelListState.error instanceof Error
+              !isFullUrl && modelListState.error instanceof Error
                 ? modelListState.error.message
-                : modelListState.error
+                : !isFullUrl && modelListState.error
                   ? String(modelListState.error)
                   : undefined
             }
           >
             <Select
-              loading={modelListState.isLoading}
+              loading={!isFullUrl && modelListState.isLoading}
               showSearch
               allowCreate
               suffixIcon={
-                <Search
-                  onClick={async (e) => {
-                    e.stopPropagation();
-                    if ((isCustom || isNewApi) && !base_url) {
-                      message.warning(t('settings.pleaseEnterBaseUrl'));
-                      return;
-                    }
-                    // For Bedrock, build bedrock_config from current form values and fetch models
-                    if (isBedrock) {
-                      const values = form.getFields();
-                      if (!values.bedrockAuthMethod || !values.bedrockRegion) {
-                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                isFullUrl ? undefined : (
+                  <Search
+                    onClick={async (e) => {
+                      e.stopPropagation();
+                      if ((isCustom || isNewApi) && !base_url) {
+                        message.warning(t('settings.pleaseEnterBaseUrl'));
                         return;
                       }
-                      if (
-                        values.bedrockAuthMethod === 'accessKey' &&
-                        (!values.bedrockAccessKeyId || !values.bedrockSecretAccessKey)
-                      ) {
-                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                      // For Bedrock, build bedrock_config from current form values and fetch models
+                      if (isBedrock) {
+                        const values = form.getFields();
+                        if (!values.bedrockAuthMethod || !values.bedrockRegion) {
+                          message.warning(t('settings.bedrock.fillRequiredFields'));
+                          return;
+                        }
+                        if (
+                          values.bedrockAuthMethod === 'accessKey' &&
+                          (!values.bedrockAccessKeyId || !values.bedrockSecretAccessKey)
+                        ) {
+                          message.warning(t('settings.bedrock.fillRequiredFields'));
+                          return;
+                        }
+                        if (values.bedrockAuthMethod === 'profile' && !values.bedrockProfile) {
+                          message.warning(t('settings.bedrock.fillRequiredFields'));
+                          return;
+                        }
+                        // Build bedrock_config and fetch models manually
+                        const bedrock_config = {
+                          auth_method: values.bedrockAuthMethod,
+                          region: values.bedrockRegion,
+                          ...(values.bedrockAuthMethod === 'accessKey'
+                            ? {
+                                access_key_id: values.bedrockAccessKeyId,
+                                secret_access_key: values.bedrockSecretAccessKey,
+                              }
+                            : {
+                                profile: values.bedrockProfile,
+                              }),
+                        };
+                        try {
+                          const res = await ipcBridge.mode.fetchModelList.invoke({
+                            platform,
+                            api_key: '',
+                            bedrock_config,
+                          });
+                          const models =
+                            res.models.map((v) => {
+                              if (typeof v === 'string') {
+                                return { label: v, value: v };
+                              } else {
+                                return { label: v.name, value: v.id };
+                              }
+                            }) || [];
+                          // Update the model list state manually
+                          void modelListState.mutate({ models }, false);
+                        } catch (error: any) {
+                          message.error(error.message || 'Failed to fetch models');
+                        }
                         return;
                       }
-                      if (values.bedrockAuthMethod === 'profile' && !values.bedrockProfile) {
-                        message.warning(t('settings.bedrock.fillRequiredFields'));
+                      // For Gemini, no api_key check needed
+                      if (!isGemini && !api_key) {
+                        message.warning(t('settings.pleaseEnterApiKey'));
                         return;
                       }
-                      // Build bedrock_config and fetch models manually
-                      const bedrock_config = {
-                        auth_method: values.bedrockAuthMethod,
-                        region: values.bedrockRegion,
-                        ...(values.bedrockAuthMethod === 'accessKey'
-                          ? {
-                              access_key_id: values.bedrockAccessKeyId,
-                              secret_access_key: values.bedrockSecretAccessKey,
-                            }
-                          : {
-                              profile: values.bedrockProfile,
-                            }),
-                      };
-                      try {
-                        const res = await ipcBridge.mode.fetchModelList.invoke({
-                          platform,
-                          api_key: '',
-                          bedrock_config,
-                        });
-                        const models =
-                          res.models.map((v) => {
-                            if (typeof v === 'string') {
-                              return { label: v, value: v };
-                            } else {
-                              return { label: v.name, value: v.id };
-                            }
-                          }) || [];
-                        // Update the model list state manually
-                        void modelListState.mutate({ models }, false);
-                      } catch (error: any) {
-                        message.error(error.message || 'Failed to fetch models');
-                      }
-                      return;
-                    }
-                    // For Gemini, no api_key check needed
-                    if (!isGemini && !api_key) {
-                      message.warning(t('settings.pleaseEnterApiKey'));
-                      return;
-                    }
-                    void modelListState.mutate();
-                  }}
-                  theme='outline'
-                  size={16}
-                  className='cursor-pointer text-t-secondary hover:text-t-primary'
-                />
+                      void modelListState.mutate();
+                    }}
+                    theme='outline'
+                    size={16}
+                    className='cursor-pointer text-t-secondary hover:text-t-primary'
+                  />
+                )
               }
-              options={modelListState.data?.models || []}
+              options={isFullUrl ? [] : modelListState.data?.models || []}
             />
           </Form.Item>
 
