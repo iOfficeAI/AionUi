@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
+import type { IGpuStatus, IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
@@ -45,6 +45,7 @@ const SystemModalContent: React.FC = () => {
     platform: 'web',
   });
   const [closeToTray, setCloseToTray] = useState(false);
+  const [gpuStatus, setGpuStatus] = useState<IGpuStatus | null>(null);
   const [notificationEnabled, setNotificationEnabled] = useState(true);
   const [cronNotificationEnabled, setCronNotificationEnabled] = useState(false);
   const [promptTimeout, setPromptTimeout] = useState<number>(300);
@@ -62,6 +63,15 @@ const SystemModalContent: React.FC = () => {
       .then((result) => {
         if (result.success && result.data) {
           setStartOnBoot(result.data);
+        }
+      })
+      .catch(() => {});
+
+    ipcBridge.application.getGpuStatus
+      .invoke()
+      .then((result) => {
+        if (result.success && result.data) {
+          setGpuStatus(result.data);
         }
       })
       .catch(() => {});
@@ -87,6 +97,45 @@ const SystemModalContent: React.FC = () => {
       configService.setLocal('system.closeToTray', !checked);
     });
   }, []);
+
+  const handleHardwareAccelerationChange = useCallback(
+    (checked: boolean) => {
+      const previous = gpuStatus;
+      const optimistic: IGpuStatus = {
+        userOverride: checked ? 'force-on' : 'force-off',
+        autoDisabled: false,
+        crashCount: 0,
+        lastCrashAt: gpuStatus?.lastCrashAt ?? null,
+      };
+      setGpuStatus(optimistic);
+
+      const apply = () => {
+        ipcBridge.application.setGpuOverride
+          .invoke({ override: checked ? 'force-on' : 'force-off' })
+          .then((result) => {
+            if (result.success && result.data) {
+              setGpuStatus(result.data);
+              ipcBridge.application.restart.invoke().catch(() => {});
+            } else {
+              setGpuStatus(previous);
+              Message.error(t('settings.hardwareAccelerationUpdateFailed'));
+            }
+          })
+          .catch(() => {
+            setGpuStatus(previous);
+            Message.error(t('settings.hardwareAccelerationUpdateFailed'));
+          });
+      };
+
+      modal.confirm({
+        title: t('settings.updateConfirm'),
+        content: t('settings.hardwareAccelerationRestartConfirm'),
+        onOk: apply,
+        onCancel: () => setGpuStatus(previous),
+      });
+    },
+    [gpuStatus, modal, t]
+  );
 
   const handleStartOnBootChange = useCallback(
     (checked: boolean) => {
@@ -202,6 +251,23 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
     },
+    ...(isDesktop && gpuStatus
+      ? [
+          {
+            key: 'hardwareAcceleration',
+            label: t('settings.hardwareAcceleration'),
+            description: gpuStatus.autoDisabled
+              ? t('settings.hardwareAccelerationAutoDisabled')
+              : t('settings.hardwareAccelerationDesc'),
+            component: (
+              <Switch
+                checked={gpuStatus.userOverride !== 'force-off' && !gpuStatus.autoDisabled}
+                onChange={handleHardwareAccelerationChange}
+              />
+            ),
+          },
+        ]
+      : []),
     {
       key: 'promptTimeout',
       label: t('settings.promptTimeout'),
