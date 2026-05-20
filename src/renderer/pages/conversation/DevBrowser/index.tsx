@@ -9,12 +9,14 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Message } from '@arco-design/web-react';
 import { Left, Right, Refresh, Loading, Click, Close, ArrowLeft } from '@icon-park/react';
+import { ipcBridge } from '@/common';
 import Basket from './Basket';
+import { FALLBACK_DEV_URL, fetchProjectDevUrl } from './devUrl';
 import { estimatePayloadBytes, formatForChat, mergePicked, nextId, normalizeUrl } from './helpers';
 import { buildPickerScript, EXIT_MARKER_NAME, PICK_MARKER_NAME } from './pickerScript';
 import { MAX_BASKET_ITEMS, MAX_OUTER_HTML, MAX_PAYLOAD_BYTES, MAX_TEXT, type PickedElement } from './types';
 
-const HOME_URL = 'http://localhost:3000/';
+const HOME_URL = FALLBACK_DEV_URL;
 
 const DevBrowser: React.FC = () => {
   const { t } = useTranslation();
@@ -75,6 +77,33 @@ const DevBrowser: React.FC = () => {
     },
     [t]
   );
+
+  // On mount with a `from` conversation: detect the workspace's dev server URL
+  // (port parsed from package.json) and redirect to it. Falls back to HOME_URL.
+  useEffect(() => {
+    if (!fromConversationId) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const conv = await ipcBridge.conversation.get.invoke({ id: fromConversationId });
+        const workspace = (conv?.extra as { workspace?: string } | undefined)?.workspace;
+        const detected = await fetchProjectDevUrl(workspace);
+        if (cancelled || !detected || detected === currentUrl) return;
+        const webviewEl = webviewRef.current;
+        setCurrentUrl(detected);
+        setInputUrl(detected);
+        if (webviewEl) webviewEl.src = detected;
+      } catch {
+        // Detection is best-effort; ignore failures and stay on the fallback URL.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // Intentionally only react to the source conversation id — we don't want to
+    // re-detect on every user navigation inside the webview.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fromConversationId]);
 
   // Inject / refresh picker script whenever picking flag flips (and webview ready)
   useEffect(() => {
