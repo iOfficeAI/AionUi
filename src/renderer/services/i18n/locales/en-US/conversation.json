@@ -202,7 +202,6 @@
     "noModelSelected": "No model selected for current session, cannot send message",
     "sendMessageTo": "Send message to {{model}}",
     "processing": "Processing...",
-    "slowResponseHint": "Response is slow — you can stop and retry",
     "quotaExceededTitle": "Model quota reached",
     "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
     "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
