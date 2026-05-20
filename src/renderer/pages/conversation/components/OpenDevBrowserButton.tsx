@@ -7,7 +7,6 @@
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { Tooltip } from '@arco-design/web-react';
 import { Browser } from '@icon-park/react';
 
 interface OpenDevBrowserButtonProps {
@@ -23,16 +22,15 @@ const OpenDevBrowserButton: React.FC<OpenDevBrowserButtonProps> = ({ conversatio
   }, [navigate, conversationId]);
 
   return (
-    <Tooltip content={t('conversation.devBrowser.openWebPage')}>
-      <button
-        type='button'
-        onClick={handleClick}
-        aria-label='open-dev-browser'
-        className='w-28px h-28px rounded-6px border border-border-2 bg-bg-3 text-t-secondary cursor-pointer hover:bg-fill-2 flex items-center justify-center shrink-0'
-      >
-        <Browser theme='outline' size={16} />
-      </button>
-    </Tooltip>
+    <button
+      type='button'
+      onClick={handleClick}
+      aria-label='open-dev-browser'
+      className='h-28px px-10px rounded-6px border border-[rgba(var(--primary-6),0.3)] bg-[rgba(var(--primary-6),0.08)] text-primary-6 hover:bg-[rgba(var(--primary-6),0.16)] cursor-pointer flex items-center gap-6px shrink-0 text-12px font-medium transition-colors'
+    >
+      <Browser theme='outline' size={14} />
+      {t('conversation.devBrowser.openWebPage')}
+    </button>
   );
 };
 

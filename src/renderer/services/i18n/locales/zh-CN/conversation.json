@@ -370,6 +370,7 @@
     "copyFailed": "复制到剪贴板失败。",
     "copyToClipboard": "复制到剪贴板",
     "openWebPage": "打开网页",
-    "backToChat": "返回对话"
+    "backToChat": "返回对话",
+    "sendToCurrentChat": "发送 {{count}} 个到当前对话"
   }
 }

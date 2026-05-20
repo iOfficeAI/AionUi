@@ -372,6 +372,7 @@
     "copyFailed": "Panoya kopyalama başarısız.",
     "copyToClipboard": "Panoya kopyala",
     "openWebPage": "Web sayfası aç",
-    "backToChat": "Sohbete dön"
+    "backToChat": "Sohbete dön",
+    "sendToCurrentChat": "{{count}} öğeyi mevcut sohbete gönder"
   }
 }

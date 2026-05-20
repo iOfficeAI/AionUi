@@ -370,6 +370,7 @@
     "copyFailed": "Failed to copy to clipboard.",
     "copyToClipboard": "Copy to clipboard",
     "openWebPage": "Open web page",
-    "backToChat": "Back to chat"
+    "backToChat": "Back to chat",
+    "sendToCurrentChat": "Send {{count}} to current chat"
   }
 }

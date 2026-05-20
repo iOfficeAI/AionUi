@@ -21,6 +21,8 @@ interface BasketProps {
   onCopy: () => void;
   byteEstimate: number;
   byteLimit: number;
+  /** When true, the Send button label says "send to the current chat" (round-trip mode) instead of "new chat". */
+  sendToCurrentChat: boolean;
 }
 
 function describe(el: PickedElement): string {
@@ -40,6 +42,7 @@ const Basket: React.FC<BasketProps> = ({
   onCopy,
   byteEstimate,
   byteLimit,
+  sendToCurrentChat,
 }) => {
   const { t } = useTranslation();
   const overBudget = byteEstimate > byteLimit;
@@ -119,7 +122,9 @@ const Basket: React.FC<BasketProps> = ({
           disabled={selectedIds.size === 0 || overBudget}
           className='h-32px rounded-6px bg-primary-6 text-white text-12px font-medium border-0 cursor-pointer disabled:bg-fill-3 disabled:text-t-tertiary disabled:cursor-not-allowed hover:bg-primary-7'
         >
-          {t('conversation.devBrowser.sendToChat', { count: selectedIds.size })}
+          {t(sendToCurrentChat ? 'conversation.devBrowser.sendToCurrentChat' : 'conversation.devBrowser.sendToChat', {
+            count: selectedIds.size,
+          })}
         </button>
         <button
           type='button'

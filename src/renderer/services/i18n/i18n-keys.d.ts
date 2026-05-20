@@ -317,6 +317,7 @@ export type I18nKey =
   | 'conversation.devBrowser.refresh'
   | 'conversation.devBrowser.remove'
   | 'conversation.devBrowser.sendToChat'
+  | 'conversation.devBrowser.sendToCurrentChat'
   | 'conversation.devBrowser.urlPlaceholder'
   | 'conversation.dropdown.cliAgents'
   | 'conversation.dropdown.presetAssistants'

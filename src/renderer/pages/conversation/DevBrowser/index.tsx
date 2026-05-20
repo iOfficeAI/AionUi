@@ -343,6 +343,7 @@ const DevBrowser: React.FC = () => {
         onCopy={handleCopy}
         byteEstimate={byteEstimate}
         byteLimit={MAX_PAYLOAD_BYTES}
+        sendToCurrentChat={Boolean(fromConversationId)}
       />
     </div>
   );

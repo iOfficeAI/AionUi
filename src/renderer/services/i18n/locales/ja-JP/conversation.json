@@ -370,6 +370,7 @@
     "copyFailed": "クリップボードへのコピーに失敗しました。",
     "copyToClipboard": "クリップボードにコピー",
     "openWebPage": "Web ページを開く",
-    "backToChat": "チャットに戻る"
+    "backToChat": "チャットに戻る",
+    "sendToCurrentChat": "{{count}} 個を現在のチャットに送信"
   }
 }
