@@ -52,4 +52,24 @@ describe('detectLocalhostOpenCommand', () => {
   it('does not match `open` substring inside another word', () => {
     expect(detectLocalhostOpenCommand('reopen http://localhost:3000')).toBeNull();
   });
+
+  it('matches bash -c wrapper with quoted command', () => {
+    expect(detectLocalhostOpenCommand(`bash -c "open http://localhost:3000"`)).toBe('http://localhost:3000');
+    expect(detectLocalhostOpenCommand(`sh -c 'xdg-open http://localhost:5173'`)).toBe('http://localhost:5173');
+  });
+
+  it('matches macOS open with -a application flag', () => {
+    expect(detectLocalhostOpenCommand(`open -a "Google Chrome" http://localhost:3000`)).toBe('http://localhost:3000');
+    expect(detectLocalhostOpenCommand(`open -na 'Safari' http://localhost:8080/foo`)).toBe('http://localhost:8080/foo');
+  });
+
+  it('matches with nohup / & backgrounding', () => {
+    expect(detectLocalhostOpenCommand('nohup open http://localhost:3000 &')).toBe('http://localhost:3000');
+  });
+
+  it('matches with PORT prefix and dev server chain', () => {
+    expect(detectLocalhostOpenCommand('PORT=3000 npm run dev & sleep 3 && open http://localhost:3000')).toBe(
+      'http://localhost:3000'
+    );
+  });
 });

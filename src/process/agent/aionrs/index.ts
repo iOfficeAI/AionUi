@@ -277,6 +277,9 @@ export class AionrsAgent {
         if (event.tool.category === 'exec') {
           const command = (event.tool.args as Record<string, string> | undefined)?.command;
           const url = detectLocalhostOpenCommand(command);
+          console.log(
+            `[Aionrs] tool_request exec call=${event.call_id} command=${JSON.stringify(command)} matchedUrl=${url ?? '<none>'}`
+          );
           if (url) {
             this.sendCommand({
               type: 'tool_deny',
@@ -291,6 +294,11 @@ export class AionrsAgent {
             });
             break;
           }
+        } else if (event.tool.name === 'shell' || event.tool.name === 'run_shell_command') {
+          // Defensive log: some categories may not be 'exec' even though it is shell.
+          console.log(
+            `[Aionrs] tool_request name=${event.tool.name} category=${event.tool.category} args=${JSON.stringify(event.tool.args)}`
+          );
         }
         this.onStreamEvent({
           type: 'tool_group',

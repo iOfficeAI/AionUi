@@ -15,20 +15,25 @@
 export function detectLocalhostOpenCommand(command: string | undefined | null): string | null {
   if (!command || typeof command !== 'string') return null;
 
-  // Strip leading env-style prefix like `BROWSER=open` (rare but possible).
   const trimmed = command.trim();
   if (!trimmed) return null;
 
-  // Match: optional sudo, then one of [open / xdg-open / start], then a URL.
-  // We deliberately accept the URL anywhere on the line so that compound
-  // commands like `npm run dev & sleep 2 && open http://localhost:3000` still
-  // get caught.
-  const re = /(?:^|[\s;&|`(])(?:open|xdg-open|start)\s+(?:"|')?(https?:\/\/[^\s"'`)]+)/i;
-  const m = re.exec(trimmed);
-  if (!m) return null;
+  // Two-step match — loose by design so common variants don't slip through:
+  //   1) command contains a recognized "open URL" token as its own word
+  //      (handles `bash -c "open ..."`, `open -a 'Google Chrome' URL`, etc.)
+  //   2) and contains a localhost-shaped http(s) URL somewhere in the line
+  // We deliberately do NOT enforce that the URL immediately follows the token;
+  // false positives are unlikely (you rarely have a localhost URL in an arg
+  // that isn't the open target), false negatives are what bit users.
+  const hasOpenToken = /(?:^|[\s;&|`("'])(?:open|xdg-open|start)(?:[\s;&|`)"']|$)/i.test(trimmed);
+  if (!hasOpenToken) return null;
 
-  const url = m[1];
+  const urlMatch = /(https?:\/\/(?:localhost|127\.0\.0\.1|0\.0\.0\.0|\[::1\])(?::\d+)?[^\s"'`)]*)/i.exec(trimmed);
+  if (!urlMatch) return null;
+
+  const url = urlMatch[1];
   try {
+    // Validate it parses and the host is genuinely loopback (defense in depth).
     const parsed = new URL(url);
     const host = parsed.hostname.toLowerCase();
     if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]' || host === '0.0.0.0') {
