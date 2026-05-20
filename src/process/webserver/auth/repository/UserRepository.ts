@@ -14,7 +14,7 @@ import type { IUser, IQueryResult } from '@process/services/database/types';
  */
 export type AuthUser = Pick<
   IUser,
-  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'created_at' | 'updated_at' | 'last_login'
+  'id' | 'username' | 'password_hash' | 'jwt_secret' | 'role' | 'created_at' | 'updated_at' | 'last_login'
 >;
 
 /**
@@ -43,6 +43,7 @@ function mapUser(row: IUser): AuthUser {
     username: row.username,
     password_hash: row.password_hash,
     jwt_secret: row.jwt_secret ?? null,
+    role: row.role ?? 'user',
     created_at: row.created_at,
     updated_at: row.updated_at,
     last_login: row.last_login ?? null,
@@ -113,9 +114,11 @@ export const UserRepository = {
    * @param passwordHash - 密码哈希 / Password hash
    * @returns 创建的用户 / Created user
    */
-  async createUser(username: string, passwordHash: string): Promise<AuthUser> {
+  async createUser(username: string, passwordHash: string, role?: 'admin' | 'user'): Promise<AuthUser> {
     const db = await getDatabase();
-    const result = db.createUser(username, undefined, passwordHash);
+    // First user to be created becomes admin; all subsequent users are regular users.
+    const resolvedRole = role ?? ((await this.hasUsers()) ? 'user' : 'admin');
+    const result = db.createUser(username, undefined, passwordHash, resolvedRole);
     const user = unwrap(result, 'Failed to create user');
     return mapUser(user);
   },

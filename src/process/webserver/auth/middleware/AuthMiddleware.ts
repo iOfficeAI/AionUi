@@ -103,6 +103,18 @@ export class AuthMiddleware {
   }
 
   /**
+   * Admin-only guard. Must be used after authenticateToken.
+   * Returns 403 if the authenticated user does not have the 'admin' role.
+   */
+  public static requireAdmin(req: Request, res: Response, next: NextFunction): void {
+    if (req.user?.role !== 'admin') {
+      res.status(403).json({ success: false, error: 'Admin privileges required.' });
+      return;
+    }
+    next();
+  }
+
+  /**
    * 登录输入验证中间件
    * Input validation middleware for login
    */

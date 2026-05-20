@@ -1214,6 +1214,29 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add role column to users table
+ * Grants 'admin' role to all pre-existing users (they were de-facto admins in the
+ * single-user era). New users created after this migration default to 'user'.
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add role column to users table',
+  up: (db) => {
+    const columns = new Set((db.pragma('table_info(users)') as Array<{ name: string }>).map((c) => c.name));
+    if (!columns.has('role')) {
+      db.exec(`ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'`);
+    }
+    // All users that existed before this migration were de-facto admins.
+    db.exec(`UPDATE users SET role = 'admin' WHERE role = 'user'`);
+    console.log('[Migration v27] Added role column to users table');
+  },
+  down: (_db) => {
+    // SQLite does not support DROP COLUMN before 3.35.0; skip rollback to prevent data loss.
+    console.warn('[Migration v27] Rollback skipped: cannot drop columns safely.');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1245,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27,
 ];
 
 /**

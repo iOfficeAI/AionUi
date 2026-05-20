@@ -378,6 +378,40 @@ export function registerAuthRoutes(app: Express): void {
   });
 
   /**
+   * Register a new user (admin-only)
+   * POST /api/auth/register
+   */
+  app.post(
+    '/api/auth/register',
+    apiRateLimiter,
+    AuthMiddleware.authenticateToken,
+    AuthMiddleware.requireAdmin,
+    AuthMiddleware.validateRegisterInput,
+    async (req: Request, res: Response) => {
+      try {
+        const { username, password } = req.body;
+
+        const existing = await UserRepository.findByUsername(username);
+        if (existing) {
+          res.status(409).json({ success: false, error: 'Username already taken.' });
+          return;
+        }
+
+        const passwordHash = await AuthService.hashPassword(password);
+        const user = await UserRepository.createUser(username, passwordHash, 'user');
+
+        res.status(201).json({
+          success: true,
+          user: { id: user.id, username: user.username, role: user.role },
+        });
+      } catch (error) {
+        console.error('Register error:', error);
+        res.status(500).json({ success: false, error: 'Internal server error' });
+      }
+    }
+  );
+
+  /**
    * 二维码登录验证 - QR code login verification
    * POST /api/auth/qr-login
    */

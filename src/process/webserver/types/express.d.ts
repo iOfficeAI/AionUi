@@ -9,7 +9,7 @@ import type { AuthUser } from '@process/webserver/auth/repository/UserRepository
 declare global {
   namespace Express {
     interface Request {
-      user?: Pick<AuthUser, 'id' | 'username'>;
+      user?: Pick<AuthUser, 'id' | 'username' | 'role'>;
       cookies?: Record<string, string>;
       csrfToken?: () => string;
     }

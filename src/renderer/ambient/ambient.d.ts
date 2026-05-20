@@ -5,7 +5,6 @@
  */
 
 // Required so that this file is treated as a module; otherwise `declare global` errors.
-export {};
 
 declare global {
   interface Window {

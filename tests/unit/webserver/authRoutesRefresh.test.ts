@@ -19,7 +19,9 @@ vi.mock('@process/webserver/auth/service/AuthService', () => ({
 vi.mock('@process/webserver/auth/middleware/AuthMiddleware', () => ({
   AuthMiddleware: {
     validateLoginInput: ((_req, _res, next) => next()) as RequestHandler,
+    validateRegisterInput: ((_req, _res, next) => next()) as RequestHandler,
     authenticateToken: ((_req, _res, next) => next()) as RequestHandler,
+    requireAdmin: ((_req, _res, next) => next()) as RequestHandler,
     requireSetupNotComplete: ((_req, _res, next) => next()) as RequestHandler,
   },
 }));

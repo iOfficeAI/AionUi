@@ -32,6 +32,7 @@ export function initSchema(db: ISqliteDriver): void {
     password_hash TEXT NOT NULL,
     avatar_path TEXT,
     jwt_secret TEXT,
+    role TEXT NOT NULL DEFAULT 'user',
     created_at INTEGER NOT NULL,
     updated_at INTEGER NOT NULL,
     last_login INTEGER
@@ -151,4 +152,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 26;
+export const CURRENT_DB_VERSION = 27;

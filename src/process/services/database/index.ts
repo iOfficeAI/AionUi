@@ -245,7 +245,7 @@ export class AionUIDatabase {
     this.db
       .prepare(
         `UPDATE users
-         SET username = ?, password_hash = ?, updated_at = ?, created_at = COALESCE(created_at, ?)
+         SET username = ?, password_hash = ?, role = 'admin', updated_at = ?, created_at = COALESCE(created_at, ?)
          WHERE id = ?`
       )
       .run(username, passwordHash, now, now, this.defaultUserId);
@@ -298,17 +298,22 @@ export class AionUIDatabase {
    * @param passwordHash - Hashed password (use bcrypt)
    * @returns Query result with created user data
    */
-  createUser(username: string, email: string | undefined, passwordHash: string): IQueryResult<IUser> {
+  createUser(
+    username: string,
+    email: string | undefined,
+    passwordHash: string,
+    role: 'admin' | 'user' = 'user'
+  ): IQueryResult<IUser> {
     try {
       const userId = `user_${Date.now()}`;
       const now = Date.now();
 
       const stmt = this.db.prepare(`
-        INSERT INTO users (id, username, email, password_hash, avatar_path, created_at, updated_at, last_login)
-        VALUES (?, ?, ?, ?, NULL, ?, ?, NULL)
+        INSERT INTO users (id, username, email, password_hash, avatar_path, role, created_at, updated_at, last_login)
+        VALUES (?, ?, ?, ?, NULL, ?, ?, ?, NULL)
       `);
 
-      stmt.run(userId, username, email ?? null, passwordHash, now, now);
+      stmt.run(userId, username, email ?? null, passwordHash, role, now, now);
 
       return {
         success: true,
@@ -317,6 +322,7 @@ export class AionUIDatabase {
           username,
           email,
           password_hash: passwordHash,
+          role,
           created_at: now,
           updated_at: now,
           last_login: null,

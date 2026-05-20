@@ -24,6 +24,7 @@ export interface IUser {
   password_hash: string;
   avatar_path?: string;
   jwt_secret?: string | null;
+  role: 'admin' | 'user';
   created_at: number;
   updated_at: number;
   last_login?: number | null;

@@ -49,7 +49,9 @@ vi.mock('@process/webserver/auth/service/AuthService', () => ({
 vi.mock('@process/webserver/auth/middleware/AuthMiddleware', () => ({
   AuthMiddleware: {
     validateLoginInput: mockValidateLoginInput,
+    validateRegisterInput: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
     authenticateToken: mockAuthenticateToken,
+    requireAdmin: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
     validateSetupInput: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
     requireSetupMode: vi.fn((_req: express.Request, _res: express.Response, next: express.NextFunction) => next()),
   },
