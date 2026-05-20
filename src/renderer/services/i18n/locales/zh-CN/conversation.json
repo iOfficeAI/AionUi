@@ -368,6 +368,8 @@
     "sendToChat": "发送 {{count}} 个到新对话",
     "copiedToClipboard": "已将 {{count}} 个元素复制到剪贴板。",
     "copyFailed": "复制到剪贴板失败。",
-    "copyToClipboard": "复制到剪贴板"
+    "copyToClipboard": "复制到剪贴板",
+    "openWebPage": "打开网页",
+    "backToChat": "返回对话"
   }
 }

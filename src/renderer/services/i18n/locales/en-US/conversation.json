@@ -368,6 +368,8 @@
     "sendToChat": "Send {{count}} to new chat",
     "copiedToClipboard": "Copied {{count}} elements to clipboard.",
     "copyFailed": "Failed to copy to clipboard.",
-    "copyToClipboard": "Copy to clipboard"
+    "copyToClipboard": "Copy to clipboard",
+    "openWebPage": "Open web page",
+    "backToChat": "Back to chat"
   }
 }

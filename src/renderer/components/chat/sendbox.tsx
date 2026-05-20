@@ -247,10 +247,21 @@ const SendBox: React.FC<{
       setInputRef.current(newValue);
     };
     setSendBoxHandler(handler);
+    // Consume pending DevBrowser append routed for this conversation (if any).
+    // Written by DevBrowser when user returns to an existing chat with picked elements.
+    const convId = conversationContext?.conversationId;
+    if (convId) {
+      const key = `devBrowserAppend:${convId}`;
+      const pending = sessionStorage.getItem(key);
+      if (pending) {
+        sessionStorage.removeItem(key);
+        handler(pending);
+      }
+    }
     return () => {
       setSendBoxHandler(null);
     };
-  }, [setSendBoxHandler]);
+  }, [setSendBoxHandler, conversationContext?.conversationId]);
 
   // 初始化时获取单行输入框的可用宽度
   // Initialize and get the available width of single-line input

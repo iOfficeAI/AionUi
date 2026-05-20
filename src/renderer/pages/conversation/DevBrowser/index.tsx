@@ -6,9 +6,9 @@
 
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Message } from '@arco-design/web-react';
-import { Left, Right, Refresh, Loading, Click, Close } from '@icon-park/react';
+import { Left, Right, Refresh, Loading, Click, Close, ArrowLeft } from '@icon-park/react';
 import Basket from './Basket';
 import { estimatePayloadBytes, formatForChat, mergePicked, nextId, normalizeUrl } from './helpers';
 import { buildPickerScript, EXIT_MARKER_NAME, PICK_MARKER_NAME } from './pickerScript';
@@ -19,6 +19,8 @@ const HOME_URL = 'https://www.google.com/';
 const DevBrowser: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromConversationId = searchParams.get('from');
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
   const [currentUrl, setCurrentUrl] = useState(HOME_URL);
   const [inputUrl, setInputUrl] = useState(HOME_URL);
@@ -216,9 +218,19 @@ const DevBrowser: React.FC = () => {
   const handleSend = useCallback(() => {
     if (selectedItems.length === 0) return;
     const text = formatForChat(selectedItems);
-    sessionStorage.setItem('devBrowserPrompt', text);
-    void navigate('/guid');
-  }, [selectedItems, navigate]);
+    if (fromConversationId) {
+      sessionStorage.setItem(`devBrowserAppend:${fromConversationId}`, text);
+      void navigate(`/conversation/${fromConversationId}`);
+    } else {
+      sessionStorage.setItem('devBrowserPrompt', text);
+      void navigate('/guid');
+    }
+  }, [selectedItems, navigate, fromConversationId]);
+
+  const handleBackToChat = useCallback(() => {
+    if (!fromConversationId) return;
+    void navigate(`/conversation/${fromConversationId}`);
+  }, [fromConversationId, navigate]);
 
   const handleCopy = useCallback(async () => {
     if (selectedItems.length === 0) return;
@@ -236,6 +248,17 @@ const DevBrowser: React.FC = () => {
       <div className='flex-1 min-w-0 flex flex-col'>
         {/* Toolbar */}
         <div className='flex items-center gap-6px h-44px px-12px bg-bg-2 border-b border-border-1 flex-shrink-0'>
+          {fromConversationId && (
+            <button
+              type='button'
+              onClick={handleBackToChat}
+              className='h-28px px-10px rounded-6px border border-border-2 bg-bg-3 text-t-secondary cursor-pointer hover:bg-fill-2 flex items-center gap-4px text-12px'
+              title={t('conversation.devBrowser.backToChat')}
+            >
+              <ArrowLeft theme='outline' size={14} />
+              {t('conversation.devBrowser.backToChat')}
+            </button>
+          )}
           <button
             onClick={handleGoBack}
             disabled={!canGoBack}

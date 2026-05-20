@@ -368,6 +368,8 @@
     "sendToChat": "{{count}}개를 새 채팅으로 보내기",
     "copiedToClipboard": "{{count}}개 요소를 클립보드에 복사했습니다.",
     "copyFailed": "클립보드 복사에 실패했습니다.",
-    "copyToClipboard": "클립보드에 복사"
+    "copyToClipboard": "클립보드에 복사",
+    "openWebPage": "웹 페이지 열기",
+    "backToChat": "채팅으로 돌아가기"
   }
 }

@@ -368,6 +368,8 @@
     "sendToChat": "{{count}} 個を新規チャットに送信",
     "copiedToClipboard": "{{count}} 個の要素をクリップボードにコピーしました。",
     "copyFailed": "クリップボードへのコピーに失敗しました。",
-    "copyToClipboard": "クリップボードにコピー"
+    "copyToClipboard": "クリップボードにコピー",
+    "openWebPage": "Web ページを開く",
+    "backToChat": "チャットに戻る"
   }
 }

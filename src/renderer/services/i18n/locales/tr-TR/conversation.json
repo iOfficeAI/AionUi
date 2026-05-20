@@ -370,6 +370,8 @@
     "sendToChat": "{{count}} öğeyi yeni sohbete gönder",
     "copiedToClipboard": "{{count}} öğe panoya kopyalandı.",
     "copyFailed": "Panoya kopyalama başarısız.",
-    "copyToClipboard": "Panoya kopyala"
+    "copyToClipboard": "Panoya kopyala",
+    "openWebPage": "Web sayfası aç",
+    "backToChat": "Sohbete dön"
   }
 }

@@ -364,6 +364,8 @@
     "sendToChat": "Надіслати {{count}} у новий чат",
     "copiedToClipboard": "Скопійовано {{count}} елементів до буфера.",
     "copyFailed": "Не вдалося скопіювати до буфера.",
-    "copyToClipboard": "Скопіювати в буфер"
+    "copyToClipboard": "Скопіювати в буфер",
+    "openWebPage": "Відкрити веб-сторінку",
+    "backToChat": "Назад у чат"
   }
 }
