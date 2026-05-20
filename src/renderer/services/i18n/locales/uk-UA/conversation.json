@@ -345,7 +345,6 @@
     }
   },
   "devBrowser": {
-    "entry": "Веб-браузер",
     "back": "Назад",
     "forward": "Вперед",
     "refresh": "Оновити",
@@ -365,7 +364,7 @@
     "copiedToClipboard": "Скопійовано {{count}} елементів до буфера.",
     "copyFailed": "Не вдалося скопіювати до буфера.",
     "copyToClipboard": "Скопіювати в буфер",
-    "openWebPage": "Відкрити веб-сторінку",
+    "openWebPage": "Цитувати елемент сторінки",
     "backToChat": "Назад у чат",
     "sendToCurrentChat": "Надіслати {{count}} у поточний чат"
   }

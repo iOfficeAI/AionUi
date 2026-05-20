@@ -349,7 +349,6 @@
     }
   },
   "devBrowser": {
-    "entry": "Web Browser",
     "back": "Back",
     "forward": "Forward",
     "refresh": "Refresh",
@@ -369,7 +368,7 @@
     "copiedToClipboard": "Copied {{count}} elements to clipboard.",
     "copyFailed": "Failed to copy to clipboard.",
     "copyToClipboard": "Copy to clipboard",
-    "openWebPage": "Open web page",
+    "openWebPage": "Reference Page Element",
     "backToChat": "Back to chat",
     "sendToCurrentChat": "Send {{count}} to current chat"
   }

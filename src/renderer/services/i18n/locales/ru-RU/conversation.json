@@ -349,7 +349,6 @@
     }
   },
   "devBrowser": {
-    "entry": "Веб-браузер",
     "back": "Назад",
     "forward": "Вперёд",
     "refresh": "Обновить",
@@ -369,7 +368,7 @@
     "copiedToClipboard": "Скопировано {{count}} элементов в буфер обмена.",
     "copyFailed": "Не удалось скопировать в буфер обмена.",
     "copyToClipboard": "Скопировать в буфер",
-    "openWebPage": "Открыть веб-страницу",
+    "openWebPage": "Цитировать элемент страницы",
     "backToChat": "Вернуться в чат",
     "sendToCurrentChat": "Отправить {{count}} в текущий чат"
   }

@@ -349,7 +349,6 @@
     }
   },
   "devBrowser": {
-    "entry": "网页浏览",
     "back": "后退",
     "forward": "前进",
     "refresh": "刷新",
@@ -369,7 +368,7 @@
     "copiedToClipboard": "已将 {{count}} 个元素复制到剪贴板。",
     "copyFailed": "复制到剪贴板失败。",
     "copyToClipboard": "复制到剪贴板",
-    "openWebPage": "打开网页",
+    "openWebPage": "页面元素引用",
     "backToChat": "返回对话",
     "sendToCurrentChat": "发送 {{count}} 个到当前对话"
   }

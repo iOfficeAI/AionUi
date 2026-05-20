@@ -351,7 +351,6 @@
     }
   },
   "devBrowser": {
-    "entry": "Web Tarayıcı",
     "back": "Geri",
     "forward": "İleri",
     "refresh": "Yenile",
@@ -371,7 +370,7 @@
     "copiedToClipboard": "{{count}} öğe panoya kopyalandı.",
     "copyFailed": "Panoya kopyalama başarısız.",
     "copyToClipboard": "Panoya kopyala",
-    "openWebPage": "Web sayfası aç",
+    "openWebPage": "Sayfa öğesi alıntıla",
     "backToChat": "Sohbete dön",
     "sendToCurrentChat": "{{count}} öğeyi mevcut sohbete gönder"
   }

@@ -349,7 +349,6 @@
     }
   },
   "devBrowser": {
-    "entry": "Web ブラウザ",
     "back": "戻る",
     "forward": "進む",
     "refresh": "再読込",
@@ -369,7 +368,7 @@
     "copiedToClipboard": "{{count}} 個の要素をクリップボードにコピーしました。",
     "copyFailed": "クリップボードへのコピーに失敗しました。",
     "copyToClipboard": "クリップボードにコピー",
-    "openWebPage": "Web ページを開く",
+    "openWebPage": "ページ要素を引用",
     "backToChat": "チャットに戻る",
     "sendToCurrentChat": "{{count}} 個を現在のチャットに送信"
   }

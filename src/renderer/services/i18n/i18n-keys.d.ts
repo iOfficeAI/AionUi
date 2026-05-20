@@ -305,7 +305,6 @@ export type I18nKey =
   | 'conversation.devBrowser.copiedToClipboard'
   | 'conversation.devBrowser.copyFailed'
   | 'conversation.devBrowser.copyToClipboard'
-  | 'conversation.devBrowser.entry'
   | 'conversation.devBrowser.forward'
   | 'conversation.devBrowser.highlight'
   | 'conversation.devBrowser.loading'
