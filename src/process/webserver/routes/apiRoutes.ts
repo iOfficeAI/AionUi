@@ -1317,6 +1317,41 @@ export function registerApiRoutes(app: Express): void {
     }
   });
 
+  app.post(
+    '/api/novamaster/provider-credits/refresh',
+    apiRateLimiter,
+    validateApiAccess,
+    authenticatedActionLimiter,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      if (!isLoopbackRequest(req)) {
+        res.status(403).json({ ok: false, error: 'loopback_only' });
+        return;
+      }
+
+      const proc = spawn('/home/faramix/bin/nova-provider-credits', ['refresh'], {
+        env: process.env,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+      let stdout = '';
+      let stderr = '';
+      proc.stdout?.on('data', (chunk) => {
+        stdout += String(chunk);
+      });
+      proc.stderr?.on('data', (chunk) => {
+        stderr += String(chunk);
+      });
+      const code = await new Promise<number | null>((resolve) => {
+        proc.on('close', resolve);
+      });
+      res.status(code === 0 ? 200 : 500).json({
+        ok: code === 0,
+        code,
+        output: stdout.slice(-3000),
+        error: stderr.slice(-1000),
+      });
+    })
+  );
+
   /**
    * Localhost integration key vault fallback.
    * Used by standalone WebUI when the IPC bridge is unavailable or slow.

@@ -35,6 +35,14 @@ type ProviderCredit = {
   character_count?: number;
   character_limit?: number;
   characters_remaining?: number;
+  dataset_count?: number;
+  reclaimable_summary?: string;
+  running_containers?: number;
+  vps_plan?: string;
+  vps_cpus?: number;
+  vps_memory?: number;
+  vps_disk?: number;
+  vps_disk_line?: string;
 };
 
 type ProviderCreditsPayload = {
@@ -199,6 +207,18 @@ const loadProviderCredits = async (): Promise<ProviderCreditsPayload | null> => 
   return (await response.json()) as ProviderCreditsPayload;
 };
 
+const refreshProviderCredits = async () => {
+  const response = await fetch('/api/novamaster/provider-credits/refresh', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify(withCsrfToken({ refresh: true })),
+  });
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+};
+
 const formatCreditValue = (provider: ProviderCredit) => {
   if (typeof provider.credit_remaining_usd === 'number') {
     const used = typeof provider.credit_used_usd === 'number' ? ` · used $${provider.credit_used_usd.toFixed(2)}` : '';
@@ -210,6 +230,15 @@ const formatCreditValue = (provider: ProviderCredit) => {
   if (typeof provider.characters_remaining === 'number') {
     return `${provider.characters_remaining.toLocaleString()} chars remaining`;
   }
+  if (typeof provider.dataset_count === 'number') {
+    return `${provider.dataset_count} datasets · GPU/TPU quota via Kaggle account UI`;
+  }
+  if (provider.reclaimable_summary) {
+    return `${provider.running_containers ?? '?'} containers · reclaimable ${provider.reclaimable_summary}`;
+  }
+  if (provider.vps_plan) {
+    return `${provider.vps_plan} · ${provider.vps_cpus ?? '?'} CPU · ${provider.vps_memory ?? '?'}MB RAM · ${provider.vps_disk ?? '?'}MB disk`;
+  }
   if (provider.probe_ok === false) {
     return `live check failed${provider.status_code ? ` · HTTP ${provider.status_code}` : ''}`;
   }
@@ -219,7 +248,13 @@ const formatCreditValue = (provider: ProviderCredit) => {
 const creditStatusColor = (provider: ProviderCredit) => {
   if (!provider.configured) return 'gray';
   if (provider.probe_ok === false) return 'red';
-  if (typeof provider.credit_remaining_usd === 'number' || typeof provider.characters_remaining === 'number') return 'green';
+  if (
+    typeof provider.credit_remaining_usd === 'number' ||
+    typeof provider.characters_remaining === 'number' ||
+    typeof provider.dataset_count === 'number' ||
+    provider.reclaimable_summary ||
+    provider.vps_plan
+  ) return 'green';
   return 'arcoblue';
 };
 
@@ -231,6 +266,7 @@ const ProvidersCockpit: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [credits, setCredits] = useState<ProviderCreditsPayload | null>(null);
   const [creditsLoading, setCreditsLoading] = useState(true);
+  const [creditsRefreshing, setCreditsRefreshing] = useState(false);
   const [showMissingOnly, setShowMissingOnly] = useState(true);
   const [query, setQuery] = useState('');
   const [priorityFilter, setPriorityFilter] = useState<PriorityFilter>('must');
@@ -269,6 +305,20 @@ const ProvidersCockpit: React.FC = () => {
       console.error('[ProvidersCockpit] failed to refresh provider credits:', error);
     });
   }, [loadCredits, loadStatus]);
+
+  const handleRefreshCreditsNow = useCallback(async () => {
+    setCreditsRefreshing(true);
+    try {
+      await withTimeout(refreshProviderCredits(), 120000, 'Refresh provider credits');
+      await loadCredits();
+      Message.success('Provider credits refreshed.');
+    } catch (error) {
+      console.error('[ProvidersCockpit] failed to refresh provider credits now:', error);
+      Message.error('Provider credits refresh failed. Run nova-provider-credits refresh in terminal.');
+    } finally {
+      setCreditsRefreshing(false);
+    }
+  }, [loadCredits]);
 
   useEffect(() => {
     handleRefresh();
@@ -466,6 +516,9 @@ const ProvidersCockpit: React.FC = () => {
               </div>
             </div>
             <div className='flex flex-wrap gap-8px text-12px'>
+              <Button size='small' type='outline' icon={<IconRefresh />} loading={creditsRefreshing} onClick={() => void handleRefreshCreditsNow()}>
+                Refresh credits
+              </Button>
               {credits ? (
                 <>
                   <Tag color='green'>configured {credits.summary.configured}/{credits.summary.total}</Tag>
