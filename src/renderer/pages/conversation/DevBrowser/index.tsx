@@ -14,7 +14,7 @@ import { estimatePayloadBytes, formatForChat, mergePicked, nextId, normalizeUrl 
 import { buildPickerScript, EXIT_MARKER_NAME, PICK_MARKER_NAME } from './pickerScript';
 import { MAX_BASKET_ITEMS, MAX_OUTER_HTML, MAX_PAYLOAD_BYTES, MAX_TEXT, type PickedElement } from './types';
 
-const HOME_URL = 'https://www.google.com/';
+const HOME_URL = 'http://localhost:3000/';
 
 const DevBrowser: React.FC = () => {
   const { t } = useTranslation();
