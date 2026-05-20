@@ -93,7 +93,7 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
             onClick={handleLinkClick}
           />
         ),
-        table: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        table: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
           <div style={{ overflowX: 'auto', maxWidth: '100%' }}>
             <table
               {...(rest as React.TableHTMLAttributes<HTMLTableElement>)}
@@ -103,10 +103,12 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
                 border: '1px solid var(--bg-3)',
                 minWidth: '100%',
               }}
-            />
+            >
+              {ch as React.ReactNode}
+            </table>
           </div>
         ),
-        td: ({ node: _node, ...rest }: Record<string, unknown>) => (
+        td: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
           <td
             {...(rest as React.TdHTMLAttributes<HTMLTableCellElement>)}
             style={{
@@ -115,7 +117,33 @@ const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
               border: '1px solid var(--bg-3)',
               minWidth: '120px',
             }}
-          />
+          >
+            {ch as React.ReactNode}
+          </td>
+        ),
+        th: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
+          <th
+            {...(rest as React.ThHTMLAttributes<HTMLTableCellElement>)}
+            style={{
+              ...(rest as { style?: React.CSSProperties }).style,
+              padding: '8px',
+              border: '1px solid var(--bg-3)',
+              backgroundColor: 'var(--bg-2)',
+              fontWeight: 600,
+              textAlign: 'inherit',
+            }}
+          >
+            {ch as React.ReactNode}
+          </th>
+        ),
+        tbody: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
+          <tbody {...(rest as React.HTMLAttributes<HTMLTableSectionElement>)}>{ch as React.ReactNode}</tbody>
+        ),
+        thead: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
+          <thead {...(rest as React.HTMLAttributes<HTMLTableSectionElement>)}>{ch as React.ReactNode}</thead>
+        ),
+        tr: ({ node: _node, children: ch, ...rest }: Record<string, unknown>) => (
+          <tr {...(rest as React.HTMLAttributes<HTMLTableRowElement>)}>{ch as React.ReactNode}</tr>
         ),
         img: ({ node: _node, ...rest }: Record<string, unknown>) => {
           const imgProps = rest as React.ImgHTMLAttributes<HTMLImageElement>;
