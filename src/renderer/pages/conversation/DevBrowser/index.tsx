@@ -216,7 +216,8 @@ const DevBrowser: React.FC = () => {
   const handleSend = useCallback(() => {
     if (selectedItems.length === 0) return;
     const text = formatForChat(selectedItems);
-    void navigate('/guid', { state: { devBrowserPrompt: text } });
+    sessionStorage.setItem('devBrowserPrompt', text);
+    void navigate('/guid');
   }, [selectedItems, navigate]);
 
   const handleCopy = useCallback(async () => {

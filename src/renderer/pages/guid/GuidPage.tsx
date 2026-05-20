@@ -349,27 +349,27 @@ const GuidPage: React.FC = () => {
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
 
-  const devBrowserPrompt = (location.state as { devBrowserPrompt?: string } | null)?.devBrowserPrompt;
-
   // Reset guid-local UI state before paint so same-route navigations do not
   // briefly show the previous draft or preset assistant layout.
   useLayoutEffect(() => {
-    guidInput.setInput(devBrowserPrompt ?? '');
+    guidInput.setInput('');
     guidInput.setFiles([]);
     guidInput.setLoading(false);
     if (!(location.state as { workspace?: string } | null)?.workspace) {
       guidInput.setDir('');
     }
     setIsDescriptionExpanded(false);
-  }, [
-    guidInput.setDir,
-    guidInput.setFiles,
-    guidInput.setInput,
-    guidInput.setLoading,
-    location.key,
-    location.state,
-    devBrowserPrompt,
-  ]);
+  }, [guidInput.setDir, guidInput.setFiles, guidInput.setInput, guidInput.setLoading, location.key, location.state]);
+
+  // Seed input from DevBrowser "Send to chat" — stored in sessionStorage to survive
+  // the navigate-replace that clears location.state (location.state approach causes
+  // the reset useLayoutEffect to re-fire and wipe the input).
+  useEffect(() => {
+    const raw = sessionStorage.getItem('devBrowserPrompt');
+    if (!raw) return;
+    sessionStorage.removeItem('devBrowserPrompt');
+    guidInput.setInput(raw);
+  }, [guidInput.setInput, location.key]);
 
   // Clear resetAssistant from location.state after the hook has consumed it,
   // so that re-renders don't re-trigger the reset logic.
@@ -380,9 +380,9 @@ const GuidPage: React.FC = () => {
   // next hard reload, the browser would then request '/guid' directly from
   // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
-    if (!resetAssistantRequested && !devBrowserPrompt) return;
+    if (!resetAssistantRequested) return;
     navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
-  }, [resetAssistantRequested, devBrowserPrompt, location.pathname, location.search, location.hash, navigate]);
+  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;
