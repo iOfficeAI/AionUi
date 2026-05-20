@@ -766,6 +766,19 @@ export class GeminiAgentManager extends BaseAgentManager<
 
     // 接受来子进程的对话消息
     this.on('gemini.message', (data) => {
+      // Tool-originated UI request: open a URL inside the internal element-reference browser.
+      // Not a chat message — broadcast straight to renderer and stop further processing.
+      if (data.type === 'open_internal_browser') {
+        const payload = data.data as { url?: string } | undefined;
+        if (payload?.url) {
+          ipcBridge.devBrowser.openInternal.emit({
+            conversationId: this.conversation_id,
+            url: payload.url,
+          });
+        }
+        return;
+      }
+
       // Mark as finished when content is output (visible to user)
       // Gemini uses: content, tool_group
       const contentTypes = ['content', 'tool_group'];

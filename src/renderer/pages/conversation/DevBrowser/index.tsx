@@ -23,9 +23,11 @@ const DevBrowser: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const fromConversationId = searchParams.get('from');
+  const initialUrlParam = searchParams.get('url');
   const webviewRef = useRef<Electron.WebviewTag | null>(null);
-  const [currentUrl, setCurrentUrl] = useState(HOME_URL);
-  const [inputUrl, setInputUrl] = useState(HOME_URL);
+  const initialUrl = initialUrlParam && /^https?:\/\//i.test(initialUrlParam) ? initialUrlParam : HOME_URL;
+  const [currentUrl, setCurrentUrl] = useState(initialUrl);
+  const [inputUrl, setInputUrl] = useState(initialUrl);
   const [isLoading, setIsLoading] = useState(true);
   const [webviewReady, setWebviewReady] = useState(false);
   const [picking, setPicking] = useState(false);
@@ -80,8 +82,10 @@ const DevBrowser: React.FC = () => {
 
   // On mount with a `from` conversation: detect the workspace's dev server URL
   // (port parsed from package.json) and redirect to it. Falls back to HOME_URL.
+  // Skipped when an explicit ?url= was provided (the tool already told us where to go).
   useEffect(() => {
     if (!fromConversationId) return;
+    if (initialUrlParam) return;
     let cancelled = false;
     (async () => {
       try {

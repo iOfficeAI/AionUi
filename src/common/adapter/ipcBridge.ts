@@ -101,6 +101,18 @@ export const conversation = {
   },
 };
 
+// DevBrowser: main → renderer event asking the UI to open the internal element-reference browser.
+// Emitted by the `aionui_open_internal_browser` tool when an agent wants to surface a local URL.
+export interface IDevBrowserOpenEvent {
+  /** Source conversation id, so the back-to-chat shortcut works. */
+  conversationId: string;
+  /** URL the agent wants to display (usually http://localhost:<port>/...). */
+  url: string;
+}
+export const devBrowser = {
+  openInternal: bridge.buildEmitter<IDevBrowserOpenEvent>('dev-browser.open-internal'),
+};
+
 // Gemini对话相关接口 - 复用统一的conversation接口
 export const geminiConversation = {
   sendMessage: conversation.sendMessage,

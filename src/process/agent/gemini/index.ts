@@ -155,6 +155,11 @@ export class GeminiAgent {
     this.toolConfig = new ConversationToolConfig({
       proxy: this.proxy,
       webSearchEngine: this.webSearchEngine,
+      emitToolEvent: (event) => {
+        // Surface tool-originated UI requests (e.g. open internal browser) through
+        // the same onStreamEvent pipeline so they reach the main process via the worker.
+        this.onStreamEvent({ type: event.type, data: event.data, msg_id: this.activeMsgId ?? '' });
+      },
     });
 
     // Register as current agent for flashFallbackHandler access

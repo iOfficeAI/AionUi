@@ -11,12 +11,18 @@ import type { GeminiClient } from '@office-ai/aioncli-core';
 import { AuthType, Config } from '@office-ai/aioncli-core';
 import { mkdirSync } from 'fs';
 import path from 'path';
+import { OpenInternalBrowserTool, type OpenInternalBrowserEmitter } from './open-in-internal-browser';
 import { WebFetchTool } from './web-fetch';
 import { WebSearchTool } from './web-search';
 
 interface ConversationToolConfigOptions {
   proxy: string;
   webSearchEngine?: 'google' | 'default';
+  /**
+   * Callback used by tools that need to surface a UI-side action (e.g. opening
+   * the internal element-reference browser). Wired up to the agent's onStreamEvent.
+   */
+  emitToolEvent?: OpenInternalBrowserEmitter;
 }
 
 const getGeminiWebSearchRuntimeDir = () => {
@@ -37,9 +43,11 @@ export class ConversationToolConfig {
   private dedicatedConfig: Config | null = null; // 缓存专门的Config（用于OAuth认证）
   private webSearchEngine: 'google' | 'default' = 'default';
   private proxy: string = '';
+  private emitToolEvent: OpenInternalBrowserEmitter | undefined;
   constructor(options: ConversationToolConfigOptions) {
     this.proxy = options.proxy;
     this.webSearchEngine = options.webSearchEngine ?? 'default';
+    this.emitToolEvent = options.emitToolEvent;
   }
 
   /**
@@ -145,6 +153,13 @@ export class ConversationToolConfig {
     if (this.useAionuiWebFetch) {
       const customWebFetchTool = new WebFetchTool(geminiClient, config.getMessageBus());
       toolRegistry.registerTool(customWebFetchTool);
+    }
+
+    // 注册 aionui_open_internal_browser 工具：让 agent 用内部浏览器打开 URL，
+    // 而不是用 shell `open`/`xdg-open`/`start` 调起系统浏览器。
+    if (this.emitToolEvent) {
+      const openInternalBrowserTool = new OpenInternalBrowserTool(this.emitToolEvent, config.getMessageBus());
+      toolRegistry.registerTool(openInternalBrowserTool);
     }
 
     // 注册 gemini_web_search 工具（仅OpenAI模型）

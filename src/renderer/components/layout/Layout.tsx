@@ -18,6 +18,7 @@ import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
+import { useDevBrowserBridge } from '@renderer/hooks/system/useDevBrowserBridge';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { useMultiAgentDetection } from '@renderer/hooks/agent/useMultiAgentDetection';
@@ -99,6 +100,7 @@ const Layout: React.FC<{
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
+  useDevBrowserBridge();
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
