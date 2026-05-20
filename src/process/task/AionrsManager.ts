@@ -603,6 +603,20 @@ export class AionrsManager extends BaseAgentManager<AionrsManagerData, string> {
   init() {
     this.on('aionrs.message', (data) => {
       // Store capabilities from config_changed events
+      // Tool-originated UI request: open a URL inside the internal element-reference browser.
+      // Mirrors the GeminiAgentManager handler — broadcast straight to renderer, skip chat-stream
+      // processing so it never appears as a chat message.
+      if (data.type === 'open_internal_browser') {
+        const payload = data.data as { url?: string } | undefined;
+        if (payload?.url) {
+          ipcBridge.devBrowser.openInternal.emit({
+            conversationId: this.conversation_id,
+            url: payload.url,
+          });
+        }
+        return;
+      }
+
       if (data.type === 'config_changed') {
         const elapsed = this._configSentAt ? `${Date.now() - this._configSentAt}ms` : 'n/a';
         mainLog('[AionrsManager]', `config_changed received (${elapsed})`, data.data);

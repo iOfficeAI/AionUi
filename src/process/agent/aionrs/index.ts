@@ -10,6 +10,7 @@ import { join } from 'node:path';
 import { createInterface } from 'node:readline';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
+import { detectLocalhostOpenCommand } from '@process/agent/utils/detectLocalhostOpenCommand';
 import { resolveAionrsBinary } from './binaryResolver';
 import { buildSpawnConfig } from './envBuilder';
 import { ensureKscProxyModel } from './kscProxy';
@@ -269,7 +270,28 @@ export class AionrsAgent {
         this.onStreamEvent({ type: 'thought', data: event.text, msg_id: event.msg_id });
         break;
 
-      case 'tool_request':
+      case 'tool_request': {
+        // Intercept exec tools that just want to pop a system browser at a localhost URL —
+        // redirect them into the AionUi internal element-reference browser so the user can
+        // pick DOM elements as chat context instead of losing focus to an external Chrome.
+        if (event.tool.category === 'exec') {
+          const command = (event.tool.args as Record<string, string> | undefined)?.command;
+          const url = detectLocalhostOpenCommand(command);
+          if (url) {
+            this.sendCommand({
+              type: 'tool_deny',
+              call_id: event.call_id,
+              reason:
+                'Already opened in the AionUi internal element-reference browser. Do not retry with another shell command for the same URL.',
+            });
+            this.onStreamEvent({
+              type: 'open_internal_browser',
+              data: { url },
+              msg_id: event.msg_id,
+            });
+            break;
+          }
+        }
         this.onStreamEvent({
           type: 'tool_group',
           data: [
@@ -285,6 +307,7 @@ export class AionrsAgent {
           msg_id: event.msg_id,
         });
         break;
+      }
 
       case 'tool_running':
         this.onStreamEvent({
