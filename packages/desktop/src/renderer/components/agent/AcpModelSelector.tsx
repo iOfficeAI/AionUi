@@ -66,7 +66,7 @@ const AcpModelSelector: React.FC<{
   const { t } = useTranslation();
   const [model_info, setModelInfo] = useState<AcpModelInfo | null>(null);
   const { data: modelConfig } = useProvidersQuery();
-  useNewApiAccount();
+  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
   // Track the last conversation_id to detect tab switches
@@ -77,7 +77,7 @@ const AcpModelSelector: React.FC<{
     [modelConfig]
   );
   const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
-  const useManagedCliModels = Boolean(cliTarget && managedSelectableModels.length > 0);
+  const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
   const normalizedInitialManagedModelId = useMemo(() => {
     if (!useManagedCliModels || !cliTarget) return initialModelId ?? null;
     const normalized = resolveManagedModelIdFromRuntime(cliTarget, initialModelId);

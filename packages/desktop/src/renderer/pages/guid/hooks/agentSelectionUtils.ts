@@ -29,7 +29,6 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
     const cliTarget = resolveManagedRuntimeCliTarget(agentKey);
-    const isManagedLoggedIn = Boolean(cliTarget && configService.get('newApi.desktop.account')?.loggedIn);
 
     if (agentKey === 'aionrs') {
       const config = configService.get('aionrs.defaultModel');
@@ -44,7 +43,7 @@ export async function savePreferredModelId(agentKey: string, model_id: string): 
       [agentKey]: { ...backendConfig, preferredModelId: model_id },
     });
 
-    if (cliTarget && isManagedLoggedIn) {
+    if (cliTarget) {
       await ipcBridge.newApiAccount.reconcileModel.invoke({ cliTarget, modelId: model_id });
     }
   } catch {

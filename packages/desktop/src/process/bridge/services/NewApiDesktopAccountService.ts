@@ -4,9 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import BetterSqlite3 from 'better-sqlite3';
-import type Database from 'better-sqlite3';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { BackendHttpError, httpRequest, isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type {
   ManagedRuntimeCliTarget,
@@ -102,6 +100,26 @@ type ResolvedManagedToken = {
 
 type ManagedCliModelPrefs = Partial<Record<ManagedRuntimeCliTarget, string>>;
 
+type ManagedRuntimeStateResponse = {
+  account?: {
+    logged_in?: boolean;
+    base_url?: string;
+    models?: string[];
+    updated_at?: number;
+    user?: {
+      id?: string | number;
+      username?: string;
+      display_name?: string;
+      email?: string;
+      quota?: number;
+      used_quota?: number;
+      avatar_letter?: string;
+    };
+    managed_provider_id?: string;
+  };
+  cli_model_prefs?: Record<string, string>;
+};
+
 type ManagedRuntimeReconcileInput =
   | string
   | {
@@ -153,6 +171,82 @@ const EMPTY_STATUS: NewApiAccountStatus = {
   models: [],
   updatedAt: 0,
 };
+
+function toPersistedAccountStatus(status: NewApiAccountStatus): NewApiAccountStatus {
+  return {
+    loggedIn: status.loggedIn,
+    baseUrl: status.baseUrl,
+    models: [...status.models],
+    updatedAt: status.updatedAt,
+    user: status.user ? { ...status.user } : undefined,
+    managedProviderId: status.managedProviderId,
+  };
+}
+
+function toBackendManagedRuntimeAccount(status: NewApiAccountStatus) {
+  return {
+    logged_in: status.loggedIn,
+    base_url: status.baseUrl,
+    models: [...status.models],
+    updated_at: status.updatedAt,
+    user: status.user
+      ? {
+          id: status.user.id,
+          username: status.user.username,
+          display_name: status.user.displayName,
+          email: status.user.email,
+          quota: status.user.quota,
+          used_quota: status.user.usedQuota,
+          avatar_letter: status.user.avatarLetter,
+        }
+      : undefined,
+    managed_provider_id: status.managedProviderId,
+  };
+}
+
+function fromManagedRuntimeAccountStatus(account: ManagedRuntimeStateResponse['account']): NewApiAccountStatus | undefined {
+  if (!account) return undefined;
+  const username = account.user?.username?.trim();
+  const user: NewApiDesktopUser | undefined = username
+    ? {
+        id: account.user?.id != null ? String(account.user.id) : undefined,
+        username,
+        displayName: account.user?.display_name?.trim() || undefined,
+        email: account.user?.email?.trim() || undefined,
+        quota: typeof account.user?.quota === 'number' ? account.user.quota : undefined,
+        usedQuota: typeof account.user?.used_quota === 'number' ? account.user.used_quota : undefined,
+        avatarLetter: account.user?.avatar_letter?.trim() || undefined,
+      }
+    : undefined;
+
+  return {
+    loggedIn: Boolean(account.logged_in),
+    baseUrl: isNonEmptyString(account.base_url) ? account.base_url : NEW_API_BASE_URL,
+    models: Array.isArray(account.models) ? account.models.filter(isNonEmptyString) : [],
+    updatedAt: typeof account.updated_at === 'number' ? account.updated_at : 0,
+    user,
+    managedProviderId: isNonEmptyString(account.managed_provider_id) ? account.managed_provider_id : undefined,
+  };
+}
+
+function mergeAccountStatus(
+  persisted: NewApiAccountStatus | undefined,
+  local: NewApiAccountStatus | undefined
+): NewApiAccountStatus {
+  const base = persisted ?? local ?? EMPTY_STATUS;
+  return {
+    ...base,
+    user: base.user ? { ...base.user } : undefined,
+    models: [...(base.models ?? [])],
+    token: local?.token?.trim() || undefined,
+    cookies: local?.cookies ? [...local.cookies] : undefined,
+  };
+}
+
+
+function shouldFallbackToLegacyClientSettings(error: unknown): boolean {
+  return isBackendHttpError(error) && [404, 405, 501].includes(error.status);
+}
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
@@ -376,7 +470,7 @@ async function resolveManagedToken(
   };
 }
 
-async function fetchJson<T>(path: string, options: NewApiRequestOptions = {}): Promise<FetchResult<T>> {
+async function fetchJson<T>(requestPath: string, options: NewApiRequestOptions = {}): Promise<FetchResult<T>> {
   const headers: Record<string, string> = {};
   if (options.body) {
     headers['Content-Type'] = 'application/json';
@@ -392,7 +486,7 @@ async function fetchJson<T>(path: string, options: NewApiRequestOptions = {}): P
     headers['New-Api-User'] = options.userId.trim();
   }
 
-  const response = await fetch(`${normalizeBaseUrl(NEW_API_BASE_URL)}${path}`, {
+  const response = await fetch(`${normalizeBaseUrl(NEW_API_BASE_URL)}${requestPath}`, {
     method: options.method ?? 'GET',
     headers,
     body: options.body ? JSON.stringify(options.body) : undefined,
@@ -465,7 +559,7 @@ function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProv
 }
 
 function resolveHermesApiMode(profile: ProviderSyncProfile): 'anthropic_messages' | 'chat_completions' {
-  return profile.protocol === 'anthropic' || profile.protocol === 'openai' ? 'anthropic_messages' : 'chat_completions';
+  return profile.protocol === 'anthropic' ? 'anthropic_messages' : 'chat_completions';
 }
 
 function resolveOpencodeNpmPackage(
@@ -595,19 +689,21 @@ function writeHermesEnvFile(apiKey: string): void {
 }
 
 function renderHermesManagedConfig(profile: ProviderSyncProfile): string {
+  const hermesBaseUrl = profile.protocol === 'openai' ? resolveOpenClawBaseUrl(profile) : profile.normalizedBaseUrl;
   return normalizeTrailingNewline(
     [
       'custom_providers:',
       `  - name: ${JSON.stringify(profile.managedProviderId)}`,
-      `    base_url: ${JSON.stringify(profile.normalizedBaseUrl)}`,
+      `    base_url: ${JSON.stringify(hermesBaseUrl)}`,
       `    key_env: ${JSON.stringify(HERMES_API_KEY_ENV)}`,
       `    api_mode: ${JSON.stringify(resolveHermesApiMode(profile))}`,
+      `    model: ${JSON.stringify(profile.normalizedModelId)}`,
       '    models:',
       `      ${JSON.stringify(profile.normalizedModelId)}: {}`,
       'model:',
       `  default: ${JSON.stringify(profile.normalizedModelId)}`,
       '  provider: custom',
-      `  base_url: ${JSON.stringify(profile.normalizedBaseUrl)}`,
+      `  base_url: ${JSON.stringify(hermesBaseUrl)}`,
       `  api_key: ${JSON.stringify(`\${${HERMES_API_KEY_ENV}}`)}`,
       `  api_mode: ${JSON.stringify(resolveHermesApiMode(profile))}`,
       'agent:',
@@ -665,6 +761,10 @@ function resolveManagedOpencodeFallbackPath(): string {
   return path.join(getSystemDir().workDir, OPENCODE_MANAGED_FALLBACK_DIR_NAME, OPENCODE_MANAGED_FALLBACK_FILE_NAME);
 }
 
+function resolveManagedOpencodeConfigPath(): string {
+  return resolveManagedOpencodeFallbackPath();
+}
+
 function canWriteToPath(targetPath: string): boolean {
   try {
     const dirPath = path.dirname(targetPath);
@@ -680,6 +780,11 @@ function canWriteToPath(targetPath: string): boolean {
 }
 
 function resolveOpencodeConfigPath(): string {
+  const managedPath = resolveManagedOpencodeConfigPath();
+  process.env[OPENCODE_CONFIG_ENV] = managedPath;
+  return managedPath;
+
+  /* legacy fallback path intentionally disabled for managed runtime sync
   const customPath = process.env[OPENCODE_CONFIG_ENV];
   if (customPath && customPath.trim()) return path.resolve(customPath);
   const jsonPath = path.join(os.homedir(), '.config', 'opencode', 'opencode.json');
@@ -690,6 +795,7 @@ function resolveOpencodeConfigPath(): string {
   const fallbackPath = resolveManagedOpencodeFallbackPath();
   process.env[OPENCODE_CONFIG_ENV] = fallbackPath;
   return fallbackPath;
+  */
 }
 
 function parseOpencodeConfig(content: string): OpencodeProviderConfig {
@@ -697,59 +803,48 @@ function parseOpencodeConfig(content: string): OpencodeProviderConfig {
   return isRecord(parsed) ? ({ ...parsed } as OpencodeProviderConfig) : {};
 }
 
-function getSyncableProviderModels(
-  provider: Partial<Pick<IProvider, 'models' | 'model_enabled' | 'capabilities'>> & { use_model?: string }
-): string[] {
-  const models = Array.isArray(provider.models) && provider.models.length > 0 ? provider.models : [];
-  if (models.length > 0) {
-    return getManagedCliSelectableModels({
-      models,
-      model_enabled: provider.model_enabled,
-      capabilities: provider.capabilities,
-    } as IProvider);
-  }
-  return provider.use_model?.trim() ? [provider.use_model.trim()] : [];
-}
-
-function writeOpencodeConfigForProviderSync(provider: TProviderWithModel, sourceProvider?: IProvider): void {
-  const profile = buildProviderSyncProfile(provider);
-  if (!profile) return;
-  const syncableModels = getSyncableProviderModels(sourceProvider ?? provider);
-  const configPath = resolveOpencodeConfigPath();
-  process.env[OPENCODE_CONFIG_ENV] = configPath;
-  const current = fs.existsSync(configPath)
-    ? parseOpencodeConfig(fs.readFileSync(configPath, 'utf8'))
-    : { $schema: OPENCODE_SCHEMA_URL };
+function buildManagedOpencodeConfig(
+  profile: ProviderSyncProfile,
+  current: OpencodeProviderConfig
+): OpencodeProviderConfig {
   const currentProviders = Object.fromEntries(
     Object.entries(current.provider ?? {}).filter(([providerId]) => !isManagedRuntimeProviderId(providerId))
   );
-  const nextProvider = {
+  const nextProvider: NonNullable<OpencodeProviderConfig['provider']> = {
     ...currentProviders,
     [profile.managedProviderId]: {
       ...current.provider?.[profile.managedProviderId],
       npm: resolveOpencodeNpmPackage(profile),
-      name: provider.name || profile.managedProviderId,
+      name: profile.provider.name || profile.managedProviderId,
       options: {
         ...current.provider?.[profile.managedProviderId]?.options,
         baseURL: resolveOpencodeBaseUrl(profile),
-        apiKey: provider.api_key,
+        apiKey: profile.provider.api_key,
       },
-      models: Object.fromEntries(
-        syncableModels.map((modelId) => [
-          modelId,
-          {
-            name: modelId,
-          },
-        ])
-      ),
+      models: {
+        [profile.normalizedModelId]: {
+          name: profile.normalizedModelId,
+        },
+      },
     },
   };
-  const nextConfig: OpencodeProviderConfig = {
+  return {
     ...current,
     $schema: current.$schema || OPENCODE_SCHEMA_URL,
     model: `${profile.managedProviderId}/${profile.normalizedModelId}`,
     provider: nextProvider,
   };
+}
+
+function writeOpencodeConfigForProviderSync(provider: TProviderWithModel, _sourceProvider?: IProvider): void {
+  const profile = buildProviderSyncProfile(provider);
+  if (!profile) return;
+  const configPath = resolveOpencodeConfigPath();
+  process.env[OPENCODE_CONFIG_ENV] = configPath;
+  const current = fs.existsSync(configPath)
+    ? parseOpencodeConfig(fs.readFileSync(configPath, 'utf8'))
+    : { $schema: OPENCODE_SCHEMA_URL };
+  const nextConfig = buildManagedOpencodeConfig(profile, current);
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(nextConfig, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
 }
@@ -808,12 +903,7 @@ function readOpenClawConfigFromPath(configPath: string): Record<string, unknown>
   }
 }
 
-function writeOpenClawManagedProviderModel(provider: TProviderWithModel, sourceProvider?: IProvider): void {
-  const profile = buildProviderSyncProfile(provider);
-  if (!profile) return;
-  const syncableModels = getSyncableProviderModels(sourceProvider ?? provider);
-  const configPath = resolveOpenClawConfigPath();
-  const current = readOpenClawConfigFromPath(configPath);
+function buildManagedOpenClawConfig(profile: ProviderSyncProfile, current: Record<string, unknown>): Record<string, unknown> {
   const models = isRecord(current.models) ? { ...current.models } : {};
   const providers = Object.fromEntries(
     Object.entries(isRecord(models.providers) ? models.providers : {}).filter(
@@ -826,27 +916,31 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel, sourceP
       unknown
     >),
     baseUrl: resolveOpenClawBaseUrl(profile),
-    apiKey: provider.api_key,
+    apiKey: profile.provider.api_key,
     auth: 'api-key',
     api: resolveOpenClawApiProtocol(profile),
     headers: {},
     authHeader: true,
-    models: syncableModels.map((modelId) => ({ id: modelId, name: modelId })),
+    models: [{ id: profile.normalizedModelId, name: profile.normalizedModelId }],
   };
   models.mode = 'merge';
   models.providers = providers;
   const agents = isRecord(current.agents) ? { ...current.agents } : {};
   const defaults = isRecord(agents.defaults) ? { ...agents.defaults } : {};
   const defaultModels = isRecord(defaults.models) ? { ...defaults.models } : {};
-  for (const modelId of syncableModels) {
-    defaultModels[`${profile.managedProviderId}/${modelId}`] = {
-      alias: modelId,
-    };
+  for (const modelId of Object.keys(defaultModels)) {
+    const providerId = modelId.split('/')[0];
+    if (providerId && isManagedRuntimeProviderId(providerId)) {
+      delete defaultModels[modelId];
+    }
   }
+  defaultModels[`${profile.managedProviderId}/${profile.normalizedModelId}`] = {
+    alias: profile.normalizedModelId,
+  };
   defaults.model = { primary: `${profile.managedProviderId}/${profile.normalizedModelId}` };
   defaults.models = defaultModels;
   agents.defaults = defaults;
-  const next = {
+  return {
     ...current,
     gateway: {
       mode: 'local',
@@ -855,6 +949,14 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel, sourceP
     models,
     agents,
   };
+}
+
+function writeOpenClawManagedProviderModel(provider: TProviderWithModel, _sourceProvider?: IProvider): void {
+  const profile = buildProviderSyncProfile(provider);
+  if (!profile) return;
+  const configPath = resolveOpenClawConfigPath();
+  const current = readOpenClawConfigFromPath(configPath);
+  const next = buildManagedOpenClawConfig(profile, current);
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
   fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
 }
@@ -936,31 +1038,79 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
     },
   ];
 
-  for (const { cliTarget, run } of cliTasks) {
-    const providerWithModel = buildProviderWithModel(provider, resolveManagedCliModelId(provider, prefs, cliTarget));
-    if (!providerWithModel) continue;
-    try {
-      await run(providerWithModel);
-    } catch (error) {
-      console.error(`[POUNDING] Managed NewAPI runtime sync target failed for ${cliTarget}:`, error);
-    }
-  }
+  await Promise.all(
+    cliTasks.map(async ({ cliTarget, run }) => {
+      const providerWithModel = buildProviderWithModel(provider, resolveManagedCliModelId(provider, prefs, cliTarget));
+      if (!providerWithModel) return;
+      try {
+        await run(providerWithModel);
+      } catch (error) {
+        console.error(`[POUNDING] Managed NewAPI runtime sync target failed for ${cliTarget}:`, error);
+      }
+    })
+  );
 }
 
 async function getStoredStatus(): Promise<NewApiAccountStatus> {
-  return ((await ProcessConfig.get(NEW_API_STORAGE_KEY)) as NewApiAccountStatus | undefined) ?? EMPTY_STATUS;
+  const managedRuntime = await getManagedRuntimeState();
+  const shouldUseLegacyClientSettings = !managedRuntime || managedRuntime.account == null;
+  const backendSettings = shouldUseLegacyClientSettings
+    ? await getBackendClientSettings().catch((): Record<string, unknown> => ({}))
+    : {};
+  const persisted = managedRuntime?.account
+    ? fromManagedRuntimeAccountStatus(managedRuntime.account)
+    : (backendSettings[NEW_API_STORAGE_KEY] as NewApiAccountStatus | undefined);
+  const local = (await ProcessConfig.get(NEW_API_STORAGE_KEY)) as NewApiAccountStatus | undefined;
+  return mergeAccountStatus(persisted, local);
 }
 
 async function saveStatus(status: NewApiAccountStatus): Promise<void> {
   await ProcessConfig.set(NEW_API_STORAGE_KEY, status);
+  try {
+    await httpRequest<void>('PUT', '/api/settings/managed-runtime', {
+      account: toBackendManagedRuntimeAccount(status),
+    });
+  } catch (error) {
+    if (!shouldFallbackToLegacyClientSettings(error)) throw error;
+    await httpRequest<void>('PUT', '/api/settings/client', {
+      [NEW_API_STORAGE_KEY]: toPersistedAccountStatus(status),
+    });
+  }
+}
+
+async function clearPersistedStatus(): Promise<void> {
+  try {
+    await httpRequest<void>('PUT', '/api/settings/managed-runtime', {
+      account: null,
+    });
+  } catch (error) {
+    if (!shouldFallbackToLegacyClientSettings(error)) throw error;
+    await httpRequest<void>('PUT', '/api/settings/client', {
+      [NEW_API_STORAGE_KEY]: null,
+    });
+  }
 }
 
 async function getBackendClientSettings(): Promise<Record<string, unknown>> {
   return ((await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) ?? {}) as Record<string, unknown>;
 }
 
+async function getManagedRuntimeState(): Promise<ManagedRuntimeStateResponse | null> {
+  try {
+    return (
+      (await httpRequest<ManagedRuntimeStateResponse>('GET', '/api/settings/managed-runtime')) ?? null
+    ) as ManagedRuntimeStateResponse | null;
+  } catch (error) {
+    if (shouldFallbackToLegacyClientSettings(error)) return null;
+    throw error;
+  }
+}
+
 async function getSavedManagedModelPrefs(): Promise<ManagedCliModelPrefs> {
-  const backendSettings = await getBackendClientSettings().catch((): Record<string, unknown> => ({}));
+  const managedRuntime = await getManagedRuntimeState();
+  const backendSettings = managedRuntime && managedRuntime.cli_model_prefs != null
+    ? { [NEW_API_CLI_MODEL_PREFS_KEY]: managedRuntime.cli_model_prefs }
+    : await getBackendClientSettings().catch((): Record<string, unknown> => ({}));
   const current =
     (backendSettings[NEW_API_CLI_MODEL_PREFS_KEY] as ManagedCliModelPrefs | undefined) ??
     ((await ProcessConfig.get(NEW_API_CLI_MODEL_PREFS_KEY)) as ManagedCliModelPrefs | undefined);
@@ -980,15 +1130,29 @@ async function saveManagedModelPrefs(prefs: ManagedCliModelPrefs): Promise<void>
         MANAGED_RUNTIME_CLI_TARGETS.includes(cliTarget as ManagedRuntimeCliTarget) && isNonEmptyString(modelId)
     )
   ) as ManagedCliModelPrefs;
-  await httpRequest<void>('PUT', '/api/settings/client', {
-    [NEW_API_CLI_MODEL_PREFS_KEY]: normalized,
-  });
+  try {
+    await httpRequest<void>('PUT', '/api/settings/managed-runtime', {
+      cli_model_prefs: normalized,
+    });
+  } catch (error) {
+    if (!shouldFallbackToLegacyClientSettings(error)) throw error;
+    await httpRequest<void>('PUT', '/api/settings/client', {
+      [NEW_API_CLI_MODEL_PREFS_KEY]: normalized,
+    });
+  }
 }
 
 async function clearManagedModelPrefs(): Promise<void> {
-  await httpRequest<void>('PUT', '/api/settings/client', {
-    [NEW_API_CLI_MODEL_PREFS_KEY]: null,
-  });
+  try {
+    await httpRequest<void>('PUT', '/api/settings/managed-runtime', {
+      cli_model_prefs: null,
+    });
+  } catch (error) {
+    if (!shouldFallbackToLegacyClientSettings(error)) throw error;
+    await httpRequest<void>('PUT', '/api/settings/client', {
+      [NEW_API_CLI_MODEL_PREFS_KEY]: null,
+    });
+  }
 }
 
 function resolveManagedCliModelId(
@@ -1238,6 +1402,7 @@ export class NewApiDesktopAccountService {
     await removeManagedProvider().catch((): void => undefined);
     await clearManagedModelPrefs().catch((): void => undefined);
     await clearManagedBackendSyncArtifacts().catch((): void => undefined);
+    await clearPersistedStatus().catch((): void => undefined);
     await saveStatus({
       ...EMPTY_STATUS,
       updatedAt: Date.now(),
@@ -1247,3 +1412,17 @@ export class NewApiDesktopAccountService {
 }
 
 export const newApiDesktopAccountService = new NewApiDesktopAccountService();
+
+export const __TEST__ = {
+  mergeAccountStatus,
+  toPersistedAccountStatus,
+  toBackendManagedRuntimeAccount,
+  fromManagedRuntimeAccountStatus,
+  buildProviderSyncProfile,
+  buildManagedOpencodeConfig,
+  buildManagedOpenClawConfig,
+  renderHermesManagedConfig,
+  resolveHermesApiMode,
+  resolveOpenClawApiProtocol,
+  resolveOpenClawBaseUrl,
+};

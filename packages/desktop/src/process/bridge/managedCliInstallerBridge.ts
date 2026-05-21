@@ -17,6 +17,7 @@ import { execFile } from 'node:child_process';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { getEnvAwareName } from '@/common/config/appEnv';
 
 type ExecCommandOptions = {
   env?: NodeJS.ProcessEnv;
@@ -26,6 +27,7 @@ type ExecCommandOptions = {
 type ManagedCliDescriptor = {
   target: ManagedCliInstallTarget;
   detectCommand: string;
+  detectPaths?: string[];
   install: () => Promise<void>;
   uninstall: () => Promise<void>;
 };
@@ -36,14 +38,28 @@ const HERMES_HOME_DIR = path.join(os.homedir(), '.hermes');
 const HERMES_VENV_DIR = path.join(HERMES_HOME_DIR, 'hermes-agent', 'venv');
 const HERMES_BIN_DIR = path.join(os.homedir(), '.local', 'bin');
 const HERMES_SHIM_PATH = path.join(HERMES_BIN_DIR, 'hermes');
+const UV_BIN_PATH = path.join(os.homedir(), '.local', 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv');
 const OPENCODE_CONFIG_ENV_NAME = 'OPENCODE_CONFIG';
 const XDG_CONFIG_HOME_ENV_NAME = 'XDG_CONFIG_HOME';
-const AIONUI_DEV_DIR = path.join(os.homedir(), '.aionui-dev');
+const AIONUI_DEV_DIR = path.join(os.homedir(), getEnvAwareName('.pouding'));
 const MANAGED_OPENCODE_CONFIG_PATH = path.join(AIONUI_DEV_DIR, 'managed-opencode', 'opencode.json');
 const MANAGED_OPENCODE_XDG_HOME = path.join(AIONUI_DEV_DIR, 'xdg-config');
 const BUN_HOME_DIR = process.env.BUN_INSTALL?.trim() || path.join(os.homedir(), '.bun');
 const BUN_BIN_DIR = path.join(BUN_HOME_DIR, 'bin');
 const BUN_GLOBAL_NODE_MODULES_DIR = path.join(BUN_HOME_DIR, 'install', 'global', 'node_modules');
+const BUN_BIN_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.exe' : 'bun');
+const BUN_SHIM_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.cmd' : 'bun');
+const LEGACY_OPENCODE_XDG_HOME = path.join(os.homedir(), getEnvAwareName('.aionui'), 'xdg-config');
+const LEGACY_OPENCODE_CONFIG_PATH = path.join(
+  os.homedir(),
+  getEnvAwareName('.aionui'),
+  'managed-opencode',
+  'opencode.json'
+);
+
+function isAbsoluteExecutablePath(command: string): boolean {
+  return path.isAbsolute(command) && fs.existsSync(command);
+}
 
 function runCommand(command: string, args: string[], options: ExecCommandOptions = {}): Promise<void> {
   return new Promise((resolve, reject) => {
@@ -154,6 +170,33 @@ function writeOpencodeShim(): void {
   fs.writeFileSync(shimPath, shim, { encoding: 'utf8', mode: 0o755 });
 }
 
+function ensureManagedOpencodeShim(): void {
+  const targetBinary = getOpencodePlatformBinaryPath();
+  if (!fs.existsSync(targetBinary)) return;
+
+  const shimPath = getOpencodeBinaryTargetPath();
+  if (!fs.existsSync(shimPath)) return;
+
+  const currentShim = fs.existsSync(shimPath) ? fs.readFileSync(shimPath, 'utf8') : '';
+  const isOwnedManagedShim =
+    currentShim.includes(MANAGED_OPENCODE_CONFIG_PATH) || currentShim.includes(MANAGED_OPENCODE_XDG_HOME);
+  const isOwnedLegacyShim =
+    currentShim.includes(LEGACY_OPENCODE_CONFIG_PATH) || currentShim.includes(LEGACY_OPENCODE_XDG_HOME);
+  if (!isOwnedManagedShim && !isOwnedLegacyShim) {
+    return;
+  }
+
+  const needsRewrite =
+    !currentShim.includes(MANAGED_OPENCODE_CONFIG_PATH) ||
+    !currentShim.includes(MANAGED_OPENCODE_XDG_HOME) ||
+    currentShim.includes(LEGACY_OPENCODE_CONFIG_PATH) ||
+    currentShim.includes(LEGACY_OPENCODE_XDG_HOME);
+
+  if (needsRewrite) {
+    writeOpencodeShim();
+  }
+}
+
 async function installNpmPackage(packageName: string): Promise<void> {
   let lastError: unknown;
   for (const registry of [NPM_MIRROR_REGISTRY, NPM_DEFAULT_REGISTRY]) {
@@ -177,11 +220,44 @@ async function uninstallNpmPackage(packageName: string): Promise<void> {
   }
 }
 
+function getLocalBunBinaryPath(): string {
+  return fs.existsSync(BUN_BIN_PATH) ? BUN_BIN_PATH : BUN_SHIM_PATH;
+}
+
+function getLocalUvBinaryPath(): string {
+  return UV_BIN_PATH;
+}
+
+async function ensureBunInstalled(): Promise<string> {
+  if (await commandExists(getBunCommand())) return getBunCommand();
+  if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
+    return getLocalBunBinaryPath();
+  }
+  throw new Error('Bun is required for this operation. Please install Bun first, then retry.');
+}
+
+async function ensureUvInstalled(): Promise<string> {
+  const configuredUv = process.env.UV_BINARY?.trim() || 'uv';
+  if (await commandExists(configuredUv)) return configuredUv;
+  if (isAbsoluteExecutablePath(getLocalUvBinaryPath())) return getLocalUvBinaryPath();
+  throw new Error('uv is required for Hermes installation. Please install uv first, then retry.');
+}
+
+async function getGlobalJsCommand(): Promise<string> {
+  try {
+    return await ensureBunInstalled();
+  } catch {
+    if (await commandExists('npm')) return getNpmCommand();
+    throw new Error('Neither bun nor npm is available to install global JavaScript CLIs.');
+  }
+}
+
 async function installBunPackage(packageName: string): Promise<void> {
+  const bunCommand = await ensureBunInstalled();
   let lastError: unknown;
   for (const registry of [NPM_MIRROR_REGISTRY, NPM_DEFAULT_REGISTRY]) {
     try {
-      await runCommand(getBunCommand(), ['add', '-g', packageName], {
+      await runCommand(bunCommand, ['add', '-g', packageName], {
         env: getNpmEnv(registry),
       });
       return;
@@ -194,10 +270,20 @@ async function installBunPackage(packageName: string): Promise<void> {
 
 async function uninstallBunPackage(packageName: string): Promise<void> {
   try {
-    await runCommand(getBunCommand(), ['remove', '-g', packageName]);
+    const bunCommand = (await commandExists(getBunCommand()))
+      ? getBunCommand()
+      : isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)
+        ? getLocalBunBinaryPath()
+        : null;
+    if (!bunCommand) return;
+    await runCommand(bunCommand, ['remove', '-g', packageName]);
   } catch {
     // ignore uninstall miss
   }
+}
+
+async function uninstallGlobalPackage(packageName: string): Promise<void> {
+  await Promise.allSettled([uninstallBunPackage(packageName), uninstallNpmPackage(packageName)]);
 }
 
 function writeHermesShim(): void {
@@ -211,7 +297,7 @@ exec "${path.join(HERMES_VENV_DIR, 'bin', 'hermes')}" "$@"
 }
 
 async function installHermes(): Promise<void> {
-  const uvBinary = process.env.UV_BINARY?.trim() || 'uv';
+  const uvBinary = await ensureUvInstalled();
   const packageName = 'hermes-agent';
   const indexUrls = ['https://pypi.tuna.tsinghua.edu.cn/simple', 'https://pypi.org/simple'];
 
@@ -250,6 +336,7 @@ async function installOpenCode(): Promise<void> {
   try {
     await installBunPackage('opencode-ai');
     if (await commandExists('opencode')) {
+      writeOpencodeShim();
       return;
     }
   } catch (error) {
@@ -273,6 +360,7 @@ async function uninstallOpenCode(): Promise<void> {
 }
 
 async function commandExists(command: string): Promise<boolean> {
+  if (isAbsoluteExecutablePath(command)) return true;
   const locator = process.platform === 'win32' ? 'where' : 'which';
   try {
     await runCommand(locator, [command]);
@@ -290,30 +378,62 @@ const DESCRIPTORS: Record<ManagedCliInstallTarget, ManagedCliDescriptor> = {
   claude: {
     target: 'claude',
     detectCommand: 'claude',
-    install: async () => installNpmPackage('@anthropic-ai/claude-code'),
-    uninstall: async () => uninstallNpmPackage('@anthropic-ai/claude-code'),
+    detectPaths: [path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'claude.cmd' : 'claude')],
+    install: async () => {
+      const command = await getGlobalJsCommand();
+      if (command === getNpmCommand()) {
+        await installNpmPackage('@anthropic-ai/claude-code');
+        return;
+      }
+      await installBunPackage('@anthropic-ai/claude-code');
+    },
+    uninstall: async () => {
+      await uninstallGlobalPackage('@anthropic-ai/claude-code');
+    },
   },
   hermes: {
     target: 'hermes',
     detectCommand: 'hermes',
+    detectPaths: [HERMES_SHIM_PATH],
     install: installHermes,
     uninstall: uninstallHermes,
   },
   opencode: {
     target: 'opencode',
     detectCommand: 'opencode',
+    detectPaths: [getOpencodeBinaryTargetPath(), getOpencodePlatformBinaryPath()],
     install: installOpenCode,
     uninstall: uninstallOpenCode,
   },
   openclaw: {
     target: 'openclaw',
     detectCommand: 'openclaw',
-    install: async () => installNpmPackage('openclaw'),
-    uninstall: async () => uninstallNpmPackage('openclaw'),
+    detectPaths: [path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'openclaw.cmd' : 'openclaw')],
+    install: async () => {
+      const command = await getGlobalJsCommand();
+      if (command === getNpmCommand()) {
+        await installNpmPackage('openclaw');
+        return;
+      }
+      await installBunPackage('openclaw');
+    },
+    uninstall: async () => {
+      await uninstallGlobalPackage('openclaw');
+    },
   },
 };
 
+async function isManagedCliInstalled(descriptor: ManagedCliDescriptor): Promise<boolean> {
+  const pathChecks = descriptor.detectPaths ?? [];
+  if (pathChecks.some((candidate) => isAbsoluteExecutablePath(candidate))) return true;
+  if (descriptor.target === 'hermes') return false;
+  return commandExists(descriptor.detectCommand);
+}
+
 async function syncAfterInstall(target: ManagedCliInstallTarget): Promise<void> {
+  if (target === 'opencode') {
+    ensureManagedOpencodeShim();
+  }
   await newApiDesktopAccountService.reconcileManagedRuntimeState({ cliTarget: target });
   await refreshAgents();
 }
@@ -336,7 +456,7 @@ async function installManagedCli(input: ManagedCliInstallOptions): Promise<Manag
   try {
     await descriptor.install();
     await syncAfterInstall(descriptor.target);
-    const installed = await commandExists(descriptor.detectCommand);
+    const installed = await isManagedCliInstalled(descriptor);
     return {
       success: installed,
       status: installed ? 'installed' : 'failed',
@@ -364,7 +484,7 @@ async function uninstallManagedCli(target: ManagedCliInstallTarget): Promise<Man
   try {
     await descriptor.uninstall();
     await syncAfterUninstall(target);
-    const installed = await commandExists(descriptor.detectCommand);
+    const installed = await isManagedCliInstalled(descriptor);
     return {
       success: !installed,
       status: installed ? 'failed' : 'not_installed',
@@ -380,6 +500,7 @@ async function uninstallManagedCli(target: ManagedCliInstallTarget): Promise<Man
 }
 
 export function initManagedCliInstallerBridge(): void {
+  ensureManagedOpencodeShim();
   ipcBridge.managedCliInstaller.install.provider(async (input) => installManagedCli(input));
   ipcBridge.managedCliInstaller.uninstall.provider(async ({ target }) => uninstallManagedCli(target));
 }

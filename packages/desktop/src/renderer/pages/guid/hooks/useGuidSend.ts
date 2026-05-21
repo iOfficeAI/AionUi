@@ -10,6 +10,7 @@ import type { TChatConversation } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { buildManagedRuntimeModelId, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
+import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -82,6 +83,7 @@ export type GuidSendResult = {
  * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
+  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
   const {
     input,
     setInput,
@@ -119,7 +121,17 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   } = deps;
   const sendingRef = useRef(false);
 
+  const selectedManagedCliTarget = resolveManagedRuntimeCliTarget(selectedAgentInfo?.backend || selectedAgent);
+  const requiresManagedLogin = Boolean(
+    selectedAgent === 'aionrs' && current_model?.id === 'desktop-newapi-managed-provider' && !isManagedNewApiLoggedIn
+  );
+
   const handleSend = useCallback(async () => {
+    if (requiresManagedLogin && !isManagedNewApiLoggedIn) {
+      Message.warning(t('settings.newApi.loginRequired'));
+      return;
+    }
+
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
@@ -151,7 +163,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
       const managedCliTarget = resolveManagedRuntimeCliTarget(openclawAgentInfo?.backend || 'openclaw-gateway');
       const managedCurrentModelId =
-        managedCliTarget && configService.get('newApi.desktop.account')?.loggedIn && selectedAcpModel
+        managedCliTarget && isManagedNewApiLoggedIn && selectedAcpModel
           ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
           : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
       const openclawConversationParams = buildAgentConversationParams({
@@ -286,7 +298,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          alert('Failed to create POUNDING CLI conversation. Please ensure aionrs is installed.');
           return;
         }
 
@@ -307,7 +319,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        alert(`Failed to create POUNDING CLI conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -336,7 +348,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const agentBackend = acpBackend || selectedAgent;
       const managedCliTarget = resolveManagedRuntimeCliTarget(agentBackend);
       const managedCurrentModelId =
-        managedCliTarget && configService.get('newApi.desktop.account')?.loggedIn && selectedAcpModel
+        managedCliTarget && isManagedNewApiLoggedIn && selectedAcpModel
           ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
           : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
 
@@ -403,6 +415,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
     }
   }, [
+    isManagedNewApiLoggedIn,
+    requiresManagedLogin,
     input,
     files,
     dir,
@@ -461,7 +475,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim();
+  const isButtonDisabled = loading || !input.trim() || (requiresManagedLogin && !isManagedNewApiLoggedIn);
 
   return {
     handleSend,
