@@ -10,7 +10,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useCallback, useRef, useState } from 'react';
 import type { SelectedNodeRef } from '../types';
-import { getFirstLevelKeys } from '../utils/treeHelpers';
+import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
 
 interface UseWorkspaceTreeOptions {
   workspace: string;
@@ -91,7 +91,17 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
             return res;
           }
 
-          setFiles(res);
+          // On refresh, splice already-lazy-loaded subtrees from the old tree
+          // back into the new response — the backend only returns one level at
+          // a time, so a root refresh would otherwise collapse every dir the
+          // user had expanded via loadMore. Skipped for searches and the very
+          // first load (no prior tree to merge). Functional setState reads the
+          // latest files snapshot without a stale closure.
+          if (!search && !isFirstLoadRef.current) {
+            setFiles((prev) => mergeLoadedChildren(res, prev));
+          } else {
+            setFiles(res);
+          }
           // 只在搜索时才重置 Tree key，否则保持选中状态
           // Only reset Tree key when searching, otherwise keep selection state
           if (search) {
@@ -114,6 +124,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // Determine workspace panel expand/collapse state based on files
           const hasFiles = res.length > 0 && (res[0]?.children?.length ?? 0) > 0;
 
+          const wasFirstLoad = isFirstLoadRef.current;
           if (isFirstLoadRef.current) {
             isFirstLoadRef.current = false;
           }
@@ -122,7 +133,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // collapse — avoids fighting with team mode's explicit expand and
           // prevents flicker when workspace starts empty.
           if (hasFiles) {
-            dispatchWorkspaceHasFilesEvent(true, conversation_id);
+            dispatchWorkspaceHasFilesEvent(true, conversation_id, wasFirstLoad);
           }
 
           return res;

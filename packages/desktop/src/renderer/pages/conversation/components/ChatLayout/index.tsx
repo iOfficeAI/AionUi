@@ -49,11 +49,17 @@ const ChatLayout: React.FC<{
   workspacePath?: string;
   /** Authoritative temp-workspace flag from `conversation.extra.is_temporary_workspace`. */
   isTemporaryWorkspace?: boolean;
+  /**
+   * Stable key for persisting the workspace collapse preference. Defaults to
+   * `conversation_id` for single chats; team mode passes `team_id` so the
+   * preference survives agent-tab switches.
+   */
+  workspacePreferenceKey?: string;
   /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
   onRenameTitle?: (new_name: string) => Promise<boolean>;
 }> = (props) => {
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
-  const { backend, presetAssistant, agent_name, workspaceEnabled = true } = props;
+  const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -68,6 +74,8 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isMobile,
     conversation_id,
+    preferenceKey: workspacePreferenceKey ?? conversation_id,
+    isTemporaryWorkspace,
   });
 
   // --- Hook B: container width ---

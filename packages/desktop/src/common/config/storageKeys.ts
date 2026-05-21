@@ -17,9 +17,6 @@ export const STORAGE_KEYS = {
   /** Workspace tree collapse state / 工作空间目录树折叠状态 */
   WORKSPACE_TREE_COLLAPSE: 'aionui_workspace_collapse_state',
 
-  /** Workspace panel collapse state / 工作空间面板折叠状态 */
-  WORKSPACE_PANEL_COLLAPSE: 'aionui_workspace_panel_collapsed',
-
   /** Sidebar collapse state / 侧边栏折叠状态 */
   SIDEBAR_COLLAPSE: 'aionui_sider_collapsed',
 
