@@ -10,7 +10,17 @@ import { useEffect, useRef, useState } from 'react';
 type UseWorkspaceCollapseParams = {
   workspaceEnabled: boolean;
   isMobile: boolean;
+  /**
+   * Identifier whose change forces a mobile collapse (typically the active
+   * conversation id; in team mode, the active agent's conversation id).
+   */
   conversation_id?: string;
+  /**
+   * Stable key used to persist the user's manual toggle preference. Single-chat
+   * uses `conversation_id`; team mode passes `team_id` so the preference
+   * survives agent-tab switches and follows the team as a whole.
+   */
+  preferenceKey?: string;
   /**
    * True when the current workspace is an auto-created temporary one (no folder
    * picked by the user). Auto-expand on hasFiles is suppressed in that case so
@@ -29,31 +39,29 @@ type UseWorkspaceCollapseReturn = {
  *
  * Default: collapsed. Auto-expand fires when WORKSPACE_HAS_FILES_EVENT arrives
  * and either:
- *   - the workspace is user-picked (folder chosen at conversation creation), or
+ *   - the workspace is user-picked (folder chosen at creation), or
  *   - files appear mid-session in a temporary workspace (e.g. agent writes a
- *     file while the user is in this conversation).
+ *     file while the user is here).
  *
- * User toggle is persisted per conversation as
- * `workspace-preference-${conversation_id}` and overrides auto-expand for that
- * conversation.
+ * Manual toggle is persisted under `workspace-preference-${preferenceKey}` and
+ * overrides auto-expand. The caller decides what `preferenceKey` is — single
+ * chats use `conversation_id`, teams use `team_id`.
  *
- * Known limitation: leaving and re-entering a temporary-workspace conversation
- * remounts the workspace tree, so files added while away report as initial
- * load. They will not trigger auto-expand on return — the user must open the
- * panel manually that one time.
+ * Known limitation: leaving and re-entering a temporary workspace remounts the
+ * workspace tree, so files added while away report as initial load. They will
+ * not trigger auto-expand on return — the user must open the panel manually
+ * that one time.
  */
 export function useWorkspaceCollapse({
   workspaceEnabled,
   isMobile,
   conversation_id,
+  preferenceKey,
   isTemporaryWorkspace,
 }: UseWorkspaceCollapseParams): UseWorkspaceCollapseReturn {
-  // Workspace panel always starts collapsed; per-conversation preference and
-  // hasFiles events drive expand. See WORKSPACE_HAS_FILES_EVENT handler below.
+  // Workspace panel always starts collapsed; preference and hasFiles events
+  // drive expand. See WORKSPACE_HAS_FILES_EVENT handler below.
   const [rightSiderCollapsed, setRightSiderCollapsed] = useState(true);
-
-  // Current active conversation ID (for recording user manual operation preference)
-  const currentConversationIdRef = useRef<string | undefined>(undefined);
 
   // Mirror ref for collapse state
   const rightCollapsedRef = useRef(rightSiderCollapsed);
@@ -74,11 +82,9 @@ export function useWorkspaceCollapse({
       }
       setRightSiderCollapsed((prev) => {
         const newState = !prev;
-        // Record user manual operation preference
-        const convId = currentConversationIdRef.current;
-        if (convId) {
+        if (preferenceKey) {
           try {
-            localStorage.setItem(`workspace-preference-${convId}`, newState ? 'collapsed' : 'expanded');
+            localStorage.setItem(`workspace-preference-${preferenceKey}`, newState ? 'collapsed' : 'expanded');
           } catch {
             // ignore errors
           }
@@ -90,7 +96,7 @@ export function useWorkspaceCollapse({
     return () => {
       window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
     };
-  }, [workspaceEnabled]);
+  }, [workspaceEnabled, preferenceKey]);
 
   // Auto expand/collapse workspace panel based on files state (user preference takes priority)
   useEffect(() => {
@@ -99,10 +105,6 @@ export function useWorkspaceCollapse({
     }
     const handleHasFiles = (event: Event) => {
       const detail = (event as CustomEvent<WorkspaceHasFilesDetail>).detail;
-      const convId = detail.conversation_id;
-
-      // Update current conversation ID
-      currentConversationIdRef.current = convId;
 
       // Mobile: always keep workspace collapsed to avoid covering main chat area
       if (isMobile) {
@@ -114,9 +116,9 @@ export function useWorkspaceCollapse({
 
       // Check if user has manual preference
       let userPreference: 'expanded' | 'collapsed' | null = null;
-      if (convId) {
+      if (preferenceKey) {
         try {
-          const stored = localStorage.getItem(`workspace-preference-${convId}`);
+          const stored = localStorage.getItem(`workspace-preference-${preferenceKey}`);
           if (stored === 'expanded' || stored === 'collapsed') {
             userPreference = stored;
           }
@@ -152,7 +154,7 @@ export function useWorkspaceCollapse({
     return () => {
       window.removeEventListener(WORKSPACE_HAS_FILES_EVENT, handleHasFiles);
     };
-  }, [isMobile, workspaceEnabled, rightSiderCollapsed, isTemporaryWorkspace]);
+  }, [isMobile, workspaceEnabled, rightSiderCollapsed, isTemporaryWorkspace, preferenceKey]);
 
   // Broadcast workspace state event
   useEffect(() => {
