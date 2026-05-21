@@ -223,6 +223,32 @@ export async function goToNewChat(page: Page): Promise<void> {
  * The actual text content lives in a nested child element.
  * @returns The text content of the AI reply.
  */
+function countAiRepliesInDom(): number {
+  const items = document.querySelectorAll('.message-item.text.justify-start');
+  let count = 0;
+  for (const item of items) {
+    const shadow = item.querySelector('.markdown-shadow');
+    const text = shadow?.shadowRoot?.textContent?.trim() ?? item.textContent?.trim() ?? '';
+    if (text) count += 1;
+  }
+  return count;
+}
+
+export async function getAiReplyCount(page: Page): Promise<number> {
+  return page.evaluate(countAiRepliesInDom);
+}
+
+export async function waitForNewAiReply(page: Page, previousCount: number, timeoutMs = 120_000): Promise<string> {
+  await expect
+    .poll(() => page.evaluate(countAiRepliesInDom), {
+      timeout: timeoutMs,
+      message: 'Waiting for a new AI reply to be appended',
+    })
+    .toBeGreaterThan(previousCount);
+
+  return waitForAiReply(page, timeoutMs);
+}
+
 export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<string> {
   // AI text messages are left-aligned. The actual reply text is rendered
   // inside a Shadow DOM (`ShadowView` component), so normal textContent /

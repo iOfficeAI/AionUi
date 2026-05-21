@@ -55,6 +55,8 @@ export {
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
+  getAiReplyCount,
+  waitForNewAiReply,
   deleteConversation,
   goToNewChat,
   runConversationCycle,
