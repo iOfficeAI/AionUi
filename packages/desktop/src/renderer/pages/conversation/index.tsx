@@ -1,8 +1,8 @@
 import { ipcBridge } from '@/common';
-import { Spin } from '@arco-design/web-react';
+import { Message, Spin } from '@arco-design/web-react';
 import React, { useEffect, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useParams } from 'react-router-dom';
+import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -12,10 +12,12 @@ import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
   const { openTab } = useConversationTabs();
   const { syncTitleFromHistory } = useAutoTitle();
   const previousConversationIdRef = useRef<string | undefined>(undefined);
+  const notFoundHandledIdRef = useRef<string | undefined>(undefined);
   const defaultConversationTitle = t('conversation.welcome.newConversation');
 
   useEffect(() => {
@@ -32,7 +34,7 @@ const ChatConversationIndex: React.FC = () => {
   }, [id, closePreview]);
 
   const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
-    return ipcBridge.conversation.get.invoke({ id });
+    return ipcBridge.conversation.get.invoke({ id }).catch((): null => null);
   });
 
   useEffect(() => {
@@ -63,8 +65,15 @@ const ChatConversationIndex: React.FC = () => {
     }
   }, [data, openTab]);
 
+  useEffect(() => {
+    if (!id || isLoading || data || notFoundHandledIdRef.current === id) return;
+    notFoundHandledIdRef.current = id;
+    Message.warning(t('conversation.chat.notFound'));
+    navigate('/', { replace: true });
+  }, [id, isLoading, data, navigate, t]);
+
   if (isLoading) return <Spin loading></Spin>;
-  return <ChatConversation conversation={data}></ChatConversation>;
+  return <ChatConversation conversation={data ?? undefined}></ChatConversation>;
 };
 
 export default ChatConversationIndex;

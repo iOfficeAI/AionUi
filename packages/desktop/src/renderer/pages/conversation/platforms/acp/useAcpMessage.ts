@@ -87,6 +87,7 @@ export type UseAcpMessageReturn = {
   context_limit: number;
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
+  fetchSlashCommands: () => void;
 };
 
 export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
@@ -525,20 +526,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, [conversation_id]);
 
-  // Fetch slash commands via HTTP after warmup completes.
-  // WebSocket push of available_commands arrives during warmup when no
-  // StreamRelay is listening, so the initial load must come from HTTP.
-  // Mirrors the aionrs pattern: warmup first, then fetch.
-  useEffect(() => {
-    let cancelled = false;
-    void ipcBridge.conversation.warmup
+  const fetchSlashCommands = useCallback(() => {
+    void ipcBridge.conversation.getSlashCommands
       .invoke({ conversation_id })
-      .then(() => {
-        if (cancelled) return;
-        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
-      })
       .then((result) => {
-        if (cancelled) return;
         if (!result || !Array.isArray(result) || result.length === 0) return;
         setSlashCommands(
           result.map((c) => ({
@@ -551,10 +542,25 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         );
       })
       .catch(() => {});
+  }, [conversation_id]);
+
+  // Fetch slash commands via HTTP after warmup completes.
+  // WebSocket push of available_commands arrives during warmup when no
+  // StreamRelay is listening, so the initial load must come from HTTP.
+  useEffect(() => {
+    let cancelled = false;
+    void ipcBridge.conversation.warmup
+      .invoke({ conversation_id })
+      .then(() => {
+        if (!cancelled) {
+          fetchSlashCommands();
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, fetchSlashCommands]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
@@ -583,5 +589,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   };
 };

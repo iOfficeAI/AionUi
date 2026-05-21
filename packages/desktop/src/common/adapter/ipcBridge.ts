@@ -83,6 +83,35 @@ import {
 } from './teamMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 
+type RawFileChangeInfo = {
+  file_path: string;
+  relativePath?: string;
+  relative_path?: string;
+  operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
+};
+
+type RawCompareResult = {
+  staged?: RawFileChangeInfo[];
+  unstaged?: RawFileChangeInfo[];
+};
+
+function fromBackendCompareResult(
+  raw: RawCompareResult
+): import('@/common/types/platform/fileSnapshot').CompareResult {
+  const mapFileChange = (
+    item: RawFileChangeInfo
+  ): import('@/common/types/platform/fileSnapshot').FileChangeInfo => ({
+    file_path: item.file_path,
+    relativePath: item.relativePath ?? item.relative_path ?? item.file_path,
+    operation: item.operation,
+  });
+
+  return {
+    staged: (raw.staged ?? []).map(mapFileChange),
+    unstaged: (raw.unstaged ?? []).map(mapFileChange),
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
 // ---------------------------------------------------------------------------
@@ -206,7 +235,7 @@ export const conversation = {
     (p) => ({ question: p.question })
   ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
-    (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
+    (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
   ),
   listArtifacts: httpGet<IConversationArtifact[], { conversation_id: string }>(
@@ -289,7 +318,7 @@ export const conversation = {
       void,
       { conversation_id: string; msg_id: string; data: unknown; call_id: string; always_allow?: boolean }
     >(
-      (p) => `/api/conversations/${p.conversation_id}/confirmations/${p.call_id}/confirm`,
+      (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
       (p) => ({ msg_id: p.msg_id, data: p.data, always_allow: p.always_allow ?? false })
     ),
     list: httpGet<IConfirmation<unknown>[], { conversation_id: string }>(
@@ -552,8 +581,9 @@ export const fileSnapshot = {
   init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
     '/api/fs/snapshot/init'
   ),
-  compare: httpPost<import('@/common/types/platform/fileSnapshot').CompareResult, { workspace: string }>(
-    '/api/fs/snapshot/compare'
+  compare: withResponseMap(
+    httpPost<RawCompareResult, { workspace: string }>('/api/fs/snapshot/compare'),
+    fromBackendCompareResult
   ),
   getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
   getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
@@ -727,10 +757,12 @@ export const acpConversation = {
     (p) => ({ mode: p.mode })
   ),
   getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`
+    (p) => `/api/conversations/${p.conversation_id}/mode`,
+    { silentStatuses: [404] }
   ),
   getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`
+    (p) => `/api/conversations/${p.conversation_id}/model`,
+    { silentStatuses: [404] }
   ),
   setModel: httpPut<void, { conversation_id: string; model_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
