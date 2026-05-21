@@ -21,6 +21,7 @@ import {
   normalizeManagedRuntimeModelLabel,
   getManagedCliSelectableModels,
   MANAGED_NEWAPI_PROVIDER_ID,
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
 } from '@/common/types/agent/managedRuntimeCli';
 import useSWR from 'swr';
 import { ipcBridge } from '@/common';
@@ -48,7 +49,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 }) => {
   const { t } = useTranslation();
   const defaultModelLabel = t('common.defaultModel');
-  useNewApiAccount();
+  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
   const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () =>
     ipcBridge.application.getStartOnBootStatus.invoke()
   );
@@ -65,7 +66,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     [managedProvider]
   );
   const isManagedCliSelection = Boolean(
-    resolveManagedRuntimeCliTarget(selectedAgentBackend) && managedSelectableModels.length > 0
+    resolveManagedRuntimeCliTarget(selectedAgentBackend) && isManagedNewApiLoggedIn && managedSelectableModels.length > 0
   );
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
@@ -75,13 +76,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     if (!isManagedCliSelection || !managedProvider) return null;
     return {
       ...managedProvider,
-      name: managedProvider.name,
+      name: MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
       models: managedSelectableModels,
       model: managedSelectableModels,
       enabled: true,
       model_enabled: Object.fromEntries(managedSelectableModels.map((modelId) => [modelId, true])),
     } as IProvider;
   }, [isManagedCliSelection, managedProvider, managedSelectableModels]);
+  const getProviderGroupLabel = React.useCallback(
+    (provider: IProvider) =>
+      provider.id === MANAGED_NEWAPI_PROVIDER_ID ? MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME : provider.name,
+    []
+  );
   const dropdownProviders = React.useMemo(() => {
     if (isManagedCliSelection) {
       return managedCliProvider ? [managedCliProvider] : [];
@@ -169,7 +175,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   const available_models = getAvailableModels(provider);
                   if (available_models.length === 0) return null;
                   return (
-                    <Menu.ItemGroup title={provider.name} key={provider.id}>
+                    <Menu.ItemGroup title={getProviderGroupLabel(provider)} key={provider.id}>
                       {available_models.map((modelName) => {
                         // 获取模型健康状态
                         const matchedProvider = modelConfig?.find((p) => p.id === provider.id);

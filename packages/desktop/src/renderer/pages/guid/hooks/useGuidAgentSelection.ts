@@ -19,6 +19,7 @@ import {
   type AgentSource,
 } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -288,6 +289,7 @@ export const useGuidAgentSelection = ({
       const isCustomRow = asAgent.agent_source === 'custom';
       return {
         ...a,
+        name: getAgentDisplayName(a),
         id: asAgent.id,
         custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
         avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
@@ -419,7 +421,7 @@ export const useGuidAgentSelection = ({
     const managedCliPrefs = configService.get('newApi.desktop.cliModelPrefs');
     const config = configService.get('acp.config');
     const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
-    const useManagedCliModels = Boolean(cliTarget && managedSelectableModels.length > 0);
+    const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
 
     if (useManagedCliModels) {
       const managedPreferred = managedCliPrefs?.[cliTarget]?.trim();
@@ -537,7 +539,7 @@ export const useGuidAgentSelection = ({
   const currentAcpCachedModelInfo = useMemo(() => {
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     const cliTarget = resolveManagedRuntimeCliTarget(backend);
-    const useManagedCliModels = Boolean(cliTarget && managedSelectableModels.length > 0);
+    const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
 
     if (useManagedCliModels) {
       const currentManagedModelId = selectedAcpModel || managedSelectableModels[0] || null;

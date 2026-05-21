@@ -2,7 +2,9 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import { isElectronDesktop } from '@renderer/utils/platform';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
 const AgentSettings = React.lazy(() => import('@renderer/pages/settings/AgentSettings'));
@@ -29,12 +31,20 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
+  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
+  const effectiveStatus = isElectronDesktop()
+    ? !newApiReady
+      ? 'checking'
+      : isNewApiLoggedIn
+        ? 'authenticated'
+        : 'unauthenticated'
+    : status;
 
-  if (status === 'checking') {
+  if (effectiveStatus === 'checking') {
     return <AppLoader />;
   }
 
-  if (status !== 'authenticated') {
+  if (effectiveStatus !== 'authenticated') {
     return <Navigate to='/login' replace />;
   }
 
@@ -43,13 +53,21 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
+  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
+  const effectiveStatus = isElectronDesktop()
+    ? !newApiReady
+      ? 'checking'
+      : isNewApiLoggedIn
+        ? 'authenticated'
+        : 'unauthenticated'
+    : status;
 
   return (
     <HashRouter>
       <Routes>
         <Route
           path='/login'
-          element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
+          element={effectiveStatus === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
         />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
@@ -78,7 +96,10 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/scheduled' element={withRouteFallback(ScheduledTasksPage)} />
           <Route path='/scheduled/:job_id' element={withRouteFallback(TaskDetailPage)} />
         </Route>
-        <Route path='*' element={<Navigate to={status === 'authenticated' ? '/guid' : '/login'} replace />} />
+        <Route
+          path='*'
+          element={<Navigate to={effectiveStatus === 'authenticated' ? '/guid' : '/login'} replace />}
+        />
       </Routes>
     </HashRouter>
   );

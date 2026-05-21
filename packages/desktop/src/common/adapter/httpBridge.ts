@@ -135,7 +135,16 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 // HTTP request helper
 // ---------------------------------------------------------------------------
 
-export async function httpRequest<T>(method: string, path: string, body?: unknown): Promise<T> {
+export type HttpRequestOptions = {
+  silentStatuses?: number[];
+};
+
+export async function httpRequest<T>(
+  method: string,
+  path: string,
+  body?: unknown,
+  options?: HttpRequestOptions
+): Promise<T> {
   const url = `${getBaseUrl()}${path}`;
   const headers: Record<string, string> = {};
 
@@ -154,25 +163,41 @@ export async function httpRequest<T>(method: string, path: string, body?: unknow
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  if (!response.ok) {
-    let errorBody: unknown;
+  const contentType = response.headers.get('Content-Type') || '';
+  const rawText = await response.text();
+  let parsedBody: unknown = rawText;
+  if (rawText && contentType.includes('application/json')) {
     try {
-      errorBody = await response.json();
+      parsedBody = JSON.parse(rawText);
     } catch {
-      errorBody = await response.text();
+      parsedBody = rawText;
     }
-    console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
-    throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
+  } else if (rawText) {
+    try {
+      parsedBody = JSON.parse(rawText);
+    } catch {
+      parsedBody = rawText;
+    }
+  } else {
+    parsedBody = undefined;
+  }
+
+  if (!response.ok) {
+    if (options?.silentStatuses?.includes(response.status)) {
+      console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, parsedBody);
+    } else {
+      console.error(`[httpBridge] ${method} ${path} → ${response.status}`, parsedBody);
+    }
+    throw new BackendHttpError({ method, path, status: response.status, body: parsedBody });
   }
 
   console.debug(`[httpBridge] ${method} ${path} → ${response.status} OK`);
 
-  const contentType = response.headers.get('Content-Type');
-  if (!contentType?.includes('application/json')) {
+  if (!contentType.includes('application/json')) {
     return undefined as T;
   }
 
-  const json = await response.json();
+  const json = parsedBody;
   // Backend wraps in { success, data, ... } — unwrap when present
   if (json && typeof json === 'object' && 'data' in json) {
     return json.data as T;
@@ -203,13 +228,14 @@ export function withResponseMap<Raw, Mapped, Params>(
 }
 
 export function httpGet<Data, Params = undefined>(
-  path: string | ((params: Params) => string)
+  path: string | ((params: Params) => string),
+  options?: HttpRequestOptions
 ): ProviderLike<Data, Params> {
   return {
     provider: () => {},
     invoke: (async (params?: Params) => {
       const resolvedPath = typeof path === 'function' ? path(params!) : path;
-      return httpRequest<Data>('GET', resolvedPath);
+      return httpRequest<Data>('GET', resolvedPath, undefined, options);
     }) as ProviderLike<Data, Params>['invoke'],
   };
 }
