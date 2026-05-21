@@ -8,6 +8,14 @@
   "promptExamplesHint": "Try example prompts:",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "{{agent}}으로 전환되었습니다",
+  "workspace": {
+    "workInProject": "프로젝트에서 작업",
+    "optional": "선택사항",
+    "clearWorkspace": "지우기",
+    "specifyWorkspace": "프로젝트 폴더 선택",
+    "searchPlaceholder": "프로젝트 검색…",
+    "noProject": "프로젝트 없음"
+  },
   "scanning": {
     "initialMessage": "Current Agent is unavailable, detecting other available agents...",
     "scanningMessage": "Scanning local available agents...",

@@ -356,42 +356,33 @@
   margin-right: 0;
 }
 
+/* 方案E：模型 + 权限各自独立 tb-btn，中间有竖线分隔 */
 .actionConfigGroup {
   display: inline-flex;
   align-items: center;
-  gap: 24px;
+  gap: 0;
   min-width: 0;
   flex: 0 1 auto;
 }
 
-.actionConfigGroupWithDivider > :first-child {
-  position: relative;
-}
-
-.actionConfigGroupWithDivider > :first-child::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -12px;
-  width: 1px;
-  height: 18px;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-text-4) 55%, transparent);
-}
-
-/* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
+/* 首页输入框下方「模型 / 模式」按钮：方案E tb-btn 风格 */
 .actionTools :global(.sendbox-model-btn) {
   background-color: transparent !important;
   border: none !important;
   box-shadow: none !important;
   color: var(--color-text-2) !important;
-  padding-inline: 10px !important;
-  min-height: 28px !important;
+  padding: 5px 8px !important;
+  min-height: unset !important;
+  height: auto !important;
+  border-radius: 8px !important;
+  font-size: 12px !important;
+  font-weight: 500 !important;
+  white-space: nowrap !important;
+  line-height: 1 !important;
 }
 
 .actionTools :global(.sendbox-model-btn:hover) {
-  background-color: transparent !important;
+  background-color: var(--color-fill-2) !important;
   border: none !important;
   box-shadow: none !important;
   color: var(--color-text-1) !important;
@@ -402,7 +393,36 @@
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
-  gap: 6px !important;
+  gap: 4px !important;
+}
+
+/* + 按钮和模型按钮之间的竖线，方案E tb-div */
+.actionToolsDivider {
+  width: 1px;
+  height: 14px;
+  background: var(--color-border-2);
+  flex-shrink: 0;
+  margin: 0 2px;
+}
+
+.attachBtn {
+  width: 28px !important;
+  height: 28px !important;
+  min-width: 28px !important;
+  border-radius: 8px !important;
+  background: transparent !important;
+  border: none !important;
+  box-shadow: none !important;
+  color: var(--color-text-2) !important;
+  padding: 0 !important;
+  display: inline-flex !important;
+  align-items: center;
+  justify-content: center;
+}
+
+.attachBtn:hover {
+  background: var(--color-fill-2) !important;
+  color: var(--color-text-1) !important;
 }
 
 .actionSubmit {
@@ -410,6 +430,190 @@
   align-items: center;
   flex-shrink: 0;
   margin-left: auto;
+}
+
+.workspaceFootnote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-border-2);
+  background: var(--color-fill-2);
+  border-radius: 0 0 20px 20px;
+}
+
+.workspaceEmptyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-3);
+  background: transparent;
+  border: none;
+  padding: 3px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  line-height: 1;
+}
+
+.workspaceEmptyBtn:hover {
+  color: var(--color-text-1);
+  background: var(--color-fill-2);
+}
+
+.workspacePill {
+  display: inline-flex;
+  align-items: center;
+  background: var(--aou-1);
+  border: 1px solid var(--aou-3);
+  border-radius: 8px;
+  overflow: hidden;
+  max-width: 280px;
+}
+
+.workspacePillMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--aou-7);
+  background: transparent;
+  border: none;
+  padding: 6px 5px 6px 10px;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.workspacePillMain:hover {
+  background: var(--aou-2);
+}
+
+.workspacePillName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspacePillClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  margin-right: 4px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--aou-5);
+  flex-shrink: 0;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.workspacePillClose:hover {
+  background: var(--aou-2);
+  color: var(--aou-7);
+}
+
+.workspaceOptionalLabel {
+  font-size: 11px;
+  color: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+/* workspace dropdown popup — portal-rendered, position set via JS */
+.wsDropdown {
+  background: var(--bg-base, #fff);
+  border: 1px solid var(--color-border-2);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  min-width: 230px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.wsDropdownSearch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: var(--color-fill-2);
+  border-radius: 8px;
+}
+
+.wsDropdownSearchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--color-text-1);
+  width: 100%;
+  font-family: inherit;
+}
+
+.wsDropdownSearchInput::placeholder {
+  color: var(--color-text-4);
+}
+
+.wsDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text-1);
+  transition: background 0.1s;
+}
+
+.wsDropdownItem:hover {
+  background: var(--color-fill-2);
+}
+
+.wsDropdownItemActive {
+  color: var(--aou-7);
+  font-weight: 600;
+}
+
+.wsDropdownItemAccent {
+  color: var(--aou-7);
+}
+
+.wsDropdownItemMuted {
+  color: var(--color-text-2);
+  font-style: italic;
+}
+
+.wsDropdownItemMuted:hover {
+  color: var(--color-text-1);
+}
+
+.wsDropdownItemMutedDisabled {
+  color: var(--color-text-3);
+  font-style: italic;
+}
+
+.wsDropdownSep {
+  height: 1px;
+  background: var(--color-border-2);
+  margin: 4px 0;
 }
 
 .lightPlaceholder::placeholder {

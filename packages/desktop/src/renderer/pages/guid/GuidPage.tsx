@@ -543,9 +543,6 @@ const GuidPage: React.FC = () => {
     <GuidActionRow
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
-      workspaceDir={guidInput.dir}
-      onSelectWorkspace={(dir) => guidInput.setDir(dir)}
-      onClearWorkspace={() => guidInput.setDir('')}
       modelSelectorNode={modelSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
@@ -763,6 +760,9 @@ const GuidPage: React.FC = () => {
             files={guidInput.files}
             onRemoveFile={guidInput.handleRemoveFile}
             actionRow={actionRowNode}
+            workspaceDir={guidInput.dir}
+            onSelectWorkspace={(dir) => guidInput.setDir(dir)}
+            onClearWorkspace={() => guidInput.setDir('')}
           />
 
           <AssistantSelectionArea
