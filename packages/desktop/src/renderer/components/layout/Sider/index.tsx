@@ -131,7 +131,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   }, [closePreview, logoutNewApi, onSessionClick]);
 
   const handleHelpCenterClick = useCallback(() => {
-    void openExternalUrl('https://wcnb2ddshm1z.feishu.cn/wiki/Zsr9wqyHHi3e5IkQYtwcQu6Knab');
+    void openExternalUrl('https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI');
   }, []);
 
   useEffect(() => {

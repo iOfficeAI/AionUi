@@ -6,6 +6,7 @@ import noseDot from '@renderer/assets/logos/brand/pounding-nose-dot.png';
 type PoundingInteractiveLogoProps = {
   className?: string;
   compact?: boolean;
+  scaleClassName?: string;
 };
 
 const VIEWBOX_WIDTH = 1759;
@@ -24,7 +25,11 @@ const BLINK_DURATION_MS = 160;
 const BLINK_MIN_GAP_MS = 2600;
 const BLINK_RANDOM_GAP_MS = 3200;
 
-const PoundingInteractiveLogo: React.FC<PoundingInteractiveLogoProps> = ({ className = '', compact = false }) => {
+const PoundingInteractiveLogo: React.FC<PoundingInteractiveLogoProps> = ({
+  className = '',
+  compact = false,
+  scaleClassName = '',
+}) => {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const blinkTimeoutRef = useRef<number | null>(null);
   const blinkResetTimeoutRef = useRef<number | null>(null);
@@ -127,7 +132,7 @@ const PoundingInteractiveLogo: React.FC<PoundingInteractiveLogoProps> = ({ class
         viewBox={`0 0 ${VIEWBOX_WIDTH} ${VIEWBOX_HEIGHT}`}
         aria-hidden='true'
         focusable='false'
-        className='pounding-logo__svg'
+        className={`pounding-logo__svg ${scaleClassName}`.trim()}
         preserveAspectRatio='xMidYMid meet'
       >
         <image href={heartSolid} x='0' y='0' width={VIEWBOX_WIDTH} height={VIEWBOX_HEIGHT} preserveAspectRatio='none' />

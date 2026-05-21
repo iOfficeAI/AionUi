@@ -16,6 +16,11 @@ import { useTranslation } from 'react-i18next';
 import AddModelModal from '@/renderer/pages/settings/components/AddModelModal';
 import AddPlatformModal from '@/renderer/pages/settings/components/AddPlatformModal';
 import { isNewApiPlatform, NEW_API_PROTOCOL_OPTIONS } from '@/renderer/utils/model/modelPlatforms';
+import {
+  MANAGED_NEWAPI_PROVIDER_ID,
+  MANAGED_NEWAPI_PROVIDER_NAME,
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
+} from '@/common/types/agent/managedRuntimeCli';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import EditModeModal from '@/renderer/pages/settings/components/EditModeModal';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -99,8 +104,6 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
 };
 
 const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
-const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
-
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
@@ -115,7 +118,19 @@ const ModelModalContent: React.FC = () => {
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
   const shouldHideAddModelButton =
-    isDesktopManagedNewApiMode && (data ?? []).some((provider) => provider.id === NEW_API_MANAGED_PROVIDER_ID);
+    isDesktopManagedNewApiMode && (data ?? []).some((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID);
+
+  const getProviderDisplayName = (platform: IProvider): string => {
+    if (
+      platform.id === MANAGED_NEWAPI_PROVIDER_ID ||
+      platform.name === MANAGED_NEWAPI_PROVIDER_NAME ||
+      platform.name === MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME
+    ) {
+      return MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME;
+    }
+    return platform.name;
+  };
+  const getHealthCheckDisplayName = (platform: IProvider): string => getProviderDisplayName(platform);
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -221,7 +236,7 @@ const ModelModalContent: React.FC = () => {
       // 1. 创建临时对话
       const conversation = await ipcBridge.conversation.create.invoke({
         type: 'aionrs',
-        name: `[Health Check] ${platform.name} - ${modelName}`,
+        name: `[Health Check] ${getHealthCheckDisplayName(platform)} - ${modelName}`,
         model: {
           ...platform,
           use_model: modelName,
@@ -359,12 +374,12 @@ const ModelModalContent: React.FC = () => {
         await mutate();
         if (result.success) {
           Message.success({
-            content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
+            content: `${getHealthCheckDisplayName(platform)} - ${modelName}: ${t('common.success')} (${latency}ms)`,
             duration: 3000,
           });
         } else {
           Message.error({
-            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
+            content: `${getHealthCheckDisplayName(platform)} - ${modelName}: ${t('common.failed')} - ${result.error}`,
             duration: 5000,
           });
         }
@@ -379,7 +394,7 @@ const ModelModalContent: React.FC = () => {
       const latency = Date.now() - startTime;
       const errorMessage = error instanceof Error ? error.message : String(error);
       Message.error({
-        content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
+        content: `${getHealthCheckDisplayName(platform)} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
         duration: 5000,
       });
 
@@ -418,7 +433,7 @@ const ModelModalContent: React.FC = () => {
     if (!data) return;
     const nextArray: IProvider[] = data.map((platform: IProvider) => ({
       ...platform,
-      model_health: undefined as IProvider['model_health'],
+      model_health: {} as IProvider['model_health'],
     }));
     void mutate(nextArray, false);
 
@@ -523,7 +538,7 @@ const ModelModalContent: React.FC = () => {
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
               <a
-                href='https://github.com/halojerry/AionUi/wiki/LLM-Configuration'
+                href='https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -540,7 +555,7 @@ const ModelModalContent: React.FC = () => {
               const isExpanded = collapseKey[platform.id] ?? false;
               const isManagedNewApiProvider =
                 isDesktopManagedNewApiMode &&
-                platform.id === NEW_API_MANAGED_PROVIDER_ID &&
+                platform.id === MANAGED_NEWAPI_PROVIDER_ID &&
                 isNewApiPlatform(platform.platform);
               return (
                 <Collapse
@@ -566,7 +581,7 @@ const ModelModalContent: React.FC = () => {
                         <span
                           className={`text-14px font-500 truncate min-w-0 transition-colors ${isExpanded ? 'text-t-primary' : 'text-2 group-hover:text-1'}`}
                         >
-                          {platform.name}
+                          {getProviderDisplayName(platform)}
                         </span>
                         <div
                           className='flex items-center gap-8px shrink-0'

@@ -8,9 +8,10 @@ import React from 'react';
 import { Avatar, Button, Popconfirm, Switch, Tooltip, Typography } from '@arco-design/web-react';
 import { EditTwo, Delete, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentDisplayName, resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { ManagedCliInstallTarget } from '@/common/types/agent/managedCliInstaller';
+import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 
 type DetectedAgent = {
   agent_type: string;
@@ -74,10 +75,12 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       extensionAvatar ||
       resolveAgentLogo({
         icon: agent.icon,
+        name: agent.name,
         backend: agent.backend || agent.agent_type,
         custom_agent_id: agent.custom_agent_id,
         isExtension: agent.isExtension,
       });
+    const isPoundingCli = (agent.backend || agent.agent_type || '').toLowerCase() === 'aionrs';
     const renderActionButton = () => {
       if (!canManageInstall || !managedCliTarget) return null;
       if (installState === 'installing') {
@@ -118,13 +121,21 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
           <div className='mb-10px flex justify-center'>
             <Avatar size={40} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
-              {logo ? <img src={logo} alt={agent.name} className='h-full w-full object-contain' /> : '🤖'}
+              {isPoundingCli ? (
+                <div className='h-full w-full p-2px'>
+                  <PoundingInteractiveLogo className='size-full' compact scaleClassName='scale-140' />
+                </div>
+              ) : logo ? (
+                <img src={logo} alt={getAgentDisplayName(agent)} className='h-full w-full object-contain' />
+              ) : (
+                '🤖'
+              )}
             </Avatar>
           </div>
 
           <div className='mb-10px flex-1 text-center'>
             <Typography.Text className='block text-13px font-medium leading-18px line-clamp-2'>
-              {agent.name}
+              {getAgentDisplayName(agent)}
             </Typography.Text>
             <Typography.Text className='mt-4px block text-11px text-t-secondary'>
               {agent.available
@@ -142,9 +153,17 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
       <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
         <div className='flex items-center gap-12px min-w-0 flex-1'>
           <Avatar size={32} shape='square' style={{ flexShrink: 0, backgroundColor: 'transparent' }}>
-            {logo ? <img src={logo} alt={agent.name} className='w-full h-full object-contain' /> : '🤖'}
+            {isPoundingCli ? (
+              <div className='h-full w-full p-1px'>
+                <PoundingInteractiveLogo className='size-full' compact scaleClassName='scale-140' />
+              </div>
+            ) : logo ? (
+              <img src={logo} alt={getAgentDisplayName(agent)} className='w-full h-full object-contain' />
+            ) : (
+              '🤖'
+            )}
           </Avatar>
-          <Typography.Text className='font-medium text-14px'>{agent.name}</Typography.Text>
+          <Typography.Text className='font-medium text-14px'>{getAgentDisplayName(agent)}</Typography.Text>
         </div>
         <Tooltip content={t('settings.agentManagement.settingsDisabledHint')}>
           <Button size='small' type='text' disabled style={{ color: 'var(--color-text-4)' }} />

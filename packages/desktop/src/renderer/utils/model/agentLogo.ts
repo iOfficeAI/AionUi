@@ -11,6 +11,7 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
+import poundingHeartSolid from '@renderer/assets/logos/brand/pounding-heart-solid.png';
 
 /**
  * Agent Logo 映射表
@@ -20,7 +21,7 @@ import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
 const AGENT_LOGO_PATH_MAP = {
-  aionrs: 'brand/aion.svg',
+  aionrs: 'brand/pounding-heart-solid.png',
   claude: 'ai-major/claude.svg',
   gemini: 'ai-major/gemini.svg',
   qwen: 'ai-china/qwen.svg',
@@ -49,6 +50,15 @@ const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
 
 function buildAssetUrl(path: string): string {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
+}
+
+function isPoundingCliAgent(agent: string | undefined | null): boolean {
+  return typeof agent === 'string' && agent.toLowerCase() === 'aionrs';
+}
+
+function isLegacyPoundingCliName(name: string | undefined | null): boolean {
+  const normalized = name?.trim().toLowerCase();
+  return normalized === 'aion cli' || normalized === 'aioncli' || normalized === 'aion rs';
 }
 
 function applyThemeVariant(logo: string): string {
@@ -81,6 +91,9 @@ function isDarkTheme(): boolean {
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent || typeof agent !== 'string') return null;
+  if (isPoundingCliAgent(agent)) {
+    return poundingHeartSolid;
+  }
   const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_PATH_MAP;
   const path = AGENT_LOGO_PATH_MAP[key];
   return path ? normalizeLogoUrl(buildAssetUrl(path)) : null;
@@ -100,7 +113,12 @@ export function resolveAgentLogo(opts: {
   backend?: string | null;
   custom_agent_id?: string | null;
   isExtension?: boolean;
+  name?: string | null;
 }): string | null {
+  if (isPoundingCliAgent(opts.backend) || isLegacyPoundingCliName(opts.name)) {
+    return poundingHeartSolid;
+  }
+
   if (opts.icon) return normalizeLogoUrl(opts.icon);
 
   // For extension agents, extract adapter ID from custom_agent_id
@@ -111,6 +129,21 @@ export function resolveAgentLogo(opts: {
   }
 
   return getAgentLogo(opts.backend);
+}
+
+export function getAgentDisplayName(agent: {
+  name?: string | null;
+  backend?: string | null;
+  agent_type?: string | null;
+}): string {
+  if (
+    isPoundingCliAgent(agent.backend) ||
+    isPoundingCliAgent(agent.agent_type) ||
+    isLegacyPoundingCliName(agent.name)
+  ) {
+    return 'POUNDING CLI';
+  }
+  return agent.name?.trim() || agent.backend?.trim() || agent.agent_type?.trim() || 'Agent';
 }
 
 /**

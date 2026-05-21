@@ -75,7 +75,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://api.maou.cn',
+            'HTTP-Referer': 'https://api.mxou.cn',
             'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),
@@ -107,7 +107,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://api.maou.cn',
+            'HTTP-Referer': 'https://api.mxou.cn',
             'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),

@@ -13,6 +13,7 @@ import { Button, Message, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isPackagedElectronDesktop } from '@/renderer/utils/platform';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
@@ -36,6 +37,7 @@ const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
   const [hubModalVisible, setHubModalVisible] = useState(false);
   const [installingState, setInstallingState] = useState<Partial<Record<ManagedCliInstallTarget, InstallState>>>({});
+  const isPackaged = isPackagedElectronDesktop();
 
   // Single fetch for all agents; both detected and custom lists are derived from it.
   const { agents: allAgents, revalidate: mutateAgents } = useAgents();
@@ -98,8 +100,9 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // Aion CLI first among detected agents
+  // POUNDING CLI first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
+  const brandedAionrsAgent = aionrsAgent ? { ...aionrsAgent, name: 'POUNDING CLI' } : null;
 
   const managedCliCards = useMemo(() => {
     return MANAGED_CLI_CARDS.map((card) => {
@@ -207,7 +210,7 @@ const LocalAgents: React.FC = () => {
         </Button>
       </div>
 
-      {process.env.NODE_ENV === 'development' && (
+      {process.env.NODE_ENV === 'development' && !isPackaged && (
         <div className='px-16px mt-8px'>
           <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
             <div className='flex items-center gap-12px'>
@@ -244,7 +247,7 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && <AgentCard type='detected' agent={aionrsAgent} variant='grid' />}
+        {brandedAionrsAgent && <AgentCard type='detected' agent={brandedAionrsAgent} variant='grid' />}
         {managedCliCards.map(({ target, agent }) => (
           <AgentCard
             key={target}

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentDisplayName, resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
@@ -79,6 +79,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               (!emojiAvatar
                 ? resolveAgentLogo({
                     icon: agent.icon,
+                    name: agent.name,
                     backend: agent.backend || agent.agent_type,
                     custom_agent_id: agent.custom_agent_id,
                     isExtension: agent.isExtension,
@@ -129,7 +130,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                           : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
                     }}
                   >
-                    {agent.name}
+                    {getAgentDisplayName(agent)}
                   </span>
                 </div>
               </React.Fragment>

@@ -128,6 +128,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
             {agents.map((agent) => {
               const logo = resolveAgentLogo({
                 icon: agent.icon,
+                name: agent.display_name,
                 backend: agent.contributes?.acpAdapters?.[0],
               });
 

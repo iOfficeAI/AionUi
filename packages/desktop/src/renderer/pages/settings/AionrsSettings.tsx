@@ -96,7 +96,7 @@ const AionrsSettings: React.FC = () => {
     <SettingsPageWrapper>
       <div className='flex flex-col gap-16px'>
         <Typography.Title heading={5} className='!mb-0'>
-          Aion CLI
+          POUNDING CLI
         </Typography.Title>
 
         <div className='flex flex-col gap-8px p-16px rd-12px bg-aou-1'>
@@ -118,7 +118,7 @@ const AionrsSettings: React.FC = () => {
           <Typography.Text type='secondary' className='text-12px'>
             {t('settings.aionrs.providerNote', {
               defaultValue:
-                'Provider and API key settings are managed in the Models page. Aion CLI supports: Anthropic, OpenAI, AWS Bedrock.',
+                'Provider and API key settings are managed in the Models page. POUNDING CLI supports: Anthropic, OpenAI, AWS Bedrock.',
             })}
           </Typography.Text>
         </div>
@@ -132,7 +132,7 @@ const AionrsSettings: React.FC = () => {
               <Typography.Text type='secondary' className='text-12px'>
                 {t('settings.aionrs.managedCliModelsDesc', {
                   defaultValue:
-                    'All local CLIs share the same NewAPI base URL and API key. You can choose a different model for each CLI.',
+                    'All local CLIs share the same POUNDING API base URL and API key. You can choose a different model for each CLI.',
                 })}
               </Typography.Text>
             </div>
