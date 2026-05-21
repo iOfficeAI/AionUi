@@ -21,6 +21,7 @@ import { applyDefaultConversationName } from '../utils/newConversationName';
 import { buildCliAgentParams, buildPresetAssistantParams } from '../utils/createConversationParams';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 
 const TAB_OVERFLOW_THRESHOLD = 10;
 
@@ -277,6 +278,7 @@ const ConversationTabs: React.FC = () => {
             {cliAgents.map((agent) => {
               const logo = resolveAgentLogo({
                 icon: agent.icon,
+                name: agent.name,
                 backend: agent.backend || agent.agent_type,
               });
               const agentKey = agent.backend || agent.agent_type;
@@ -284,11 +286,15 @@ const ConversationTabs: React.FC = () => {
                 <Menu.Item key={`cli:${agentKey}`}>
                   <div className='flex items-center gap-8px'>
                     {logo ? (
-                      <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+                      <img
+                        src={logo}
+                        alt={getAgentDisplayName(agent)}
+                        style={{ width: 16, height: 16, objectFit: 'contain' }}
+                      />
                     ) : (
                       <Robot size='16' />
                     )}
-                    <span>{agent.name}</span>
+                    <span>{getAgentDisplayName(agent)}</span>
                     {agent.agent_source === 'extension' && (
                       <Tag size='small' color='arcoblue'>
                         ext

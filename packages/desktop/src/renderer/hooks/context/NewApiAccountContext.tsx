@@ -6,6 +6,7 @@
 
 import React from 'react';
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import type { NewApiAccountStatus } from '@/common/types/newApiAccount';
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
 import useSWR, { mutate as mutateSWR } from 'swr';
@@ -59,6 +60,7 @@ export const NewApiAccountProvider: React.FC<React.PropsWithChildren> = ({ child
   useEffect(() => {
     if (!isDesktopRuntime) return;
     if (data) {
+      configService.setLocal('newApi.desktop.account', data);
       setReady(true);
     }
   }, [data]);

@@ -13,6 +13,10 @@ import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import {
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
+  MANAGED_NEWAPI_PROVIDER_ID,
+} from '@/common/types/agent/managedRuntimeCli';
 
 const AionrsModelSelector: React.FC<{
   selection?: AionrsModelSelection;
@@ -77,7 +81,12 @@ const AionrsModelSelector: React.FC<{
             if (!models.length) return null;
 
             return (
-              <Menu.ItemGroup title={provider.name} key={provider.id}>
+              <Menu.ItemGroup
+                title={
+                  provider.id === MANAGED_NEWAPI_PROVIDER_ID ? MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME : provider.name
+                }
+                key={provider.id}
+              >
                 {models.map((modelName) => {
                   const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
                   const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
