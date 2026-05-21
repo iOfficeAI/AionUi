@@ -10,6 +10,10 @@
  *
  * Environment variables:
  *  - AIONUI_BACKEND_VERSION: override the pinned version
+ *  - AIONUI_BACKEND_GITHUB_OWNER / AIONUI_BACKEND_GITHUB_REPO: override backend release source
+ *    (defaults to halojerry/AionCore)
+ *  - AIONUI_BACKEND_SOURCE_BINARY_NAME: source binary name inside the release asset
+ *  - AIONUI_BACKEND_TARGET_BINARY_NAME: local packaged binary name (defaults to aionui-backend for runtime compatibility)
  *  - AIONUI_BACKEND_ARCH: target architecture (default: process.arch)
  *  - GH_TOKEN / GITHUB_TOKEN: GitHub API token (for rate limiting)
  */

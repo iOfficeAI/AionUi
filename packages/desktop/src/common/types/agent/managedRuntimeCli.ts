@@ -9,6 +9,18 @@ export const MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME = 'POUNDING API';
 export const MANAGED_RUNTIME_PROVIDER_PREFIX = 'pounding-';
 export const MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES = ['aionui-'] as const;
 
+function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
+  const result: string[] = [];
+  const seen = new Set<string>();
+  for (const value of values) {
+    const normalized = value?.trim();
+    if (!normalized || seen.has(normalized)) continue;
+    seen.add(normalized);
+    result.push(normalized);
+  }
+  return result;
+}
+
 const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
   claude: ['claude', 'anthropic'],
   hermes: ['hermes'],
@@ -148,7 +160,9 @@ export function normalizeManagedRuntimeModelLabel(
 export function getManagedCliSelectableModels(provider: IProvider | null | undefined): string[] {
   if (!provider) return [];
 
-  const candidateModels = (provider.models || []).filter((modelId) => {
+  const allModels = uniqueNonEmpty(provider.models || []);
+
+  const candidateModels = allModels.filter((modelId) => {
     if (provider.model_enabled?.[modelId] === false) return false;
     const excluded = hasSpecificModelCapability(provider, modelId, 'excludeFromPrimary');
     if (excluded === true) return false;
@@ -157,5 +171,5 @@ export function getManagedCliSelectableModels(provider: IProvider | null | undef
   });
 
   if (candidateModels.length > 0) return candidateModels;
-  return (provider.models || []).filter((modelId) => provider.model_enabled?.[modelId] !== false);
+  return allModels.filter((modelId) => provider.model_enabled?.[modelId] !== false);
 }
