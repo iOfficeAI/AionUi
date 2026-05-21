@@ -115,6 +115,32 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
     margin-block-start: 8px;
     margin-block-end: 8px;
   }
+  /* Code block horizontal scrollbar — blends with bg-2 */
+  pre,
+  .hljs {
+    scrollbar-width: thin;
+    scrollbar-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'} transparent;
+  }
+  pre::-webkit-scrollbar,
+  .hljs::-webkit-scrollbar {
+    height: 6px;
+    background: transparent;
+  }
+  pre::-webkit-scrollbar-track,
+  .hljs::-webkit-scrollbar-track,
+  pre::-webkit-scrollbar-corner,
+  .hljs::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  pre::-webkit-scrollbar-thumb,
+  .hljs::-webkit-scrollbar-thumb {
+    background-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'};
+    border-radius: 3px;
+  }
+  pre::-webkit-scrollbar-thumb:hover,
+  .hljs::-webkit-scrollbar-thumb:hover {
+    background-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.28)' : 'rgba(0, 0, 0, 0.2)'};
+  }
   img {
     max-width: 100%;
     height: auto;
