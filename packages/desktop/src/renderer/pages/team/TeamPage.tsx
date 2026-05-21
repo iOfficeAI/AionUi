@@ -213,7 +213,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Auto-expand workspace panel on mount when workspace is available
   useEffect(() => {
     if (workspaceEnabled && leadAgent?.conversation_id) {
-      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversation_id);
+      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversation_id, true);
     }
   }, [workspaceEnabled, leadAgent?.conversation_id]);
 

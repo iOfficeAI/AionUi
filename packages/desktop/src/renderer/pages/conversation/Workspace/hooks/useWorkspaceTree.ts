@@ -114,6 +114,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // Determine workspace panel expand/collapse state based on files
           const hasFiles = res.length > 0 && (res[0]?.children?.length ?? 0) > 0;
 
+          const wasFirstLoad = isFirstLoadRef.current;
           if (isFirstLoadRef.current) {
             isFirstLoadRef.current = false;
           }
@@ -122,7 +123,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
           // collapse — avoids fighting with team mode's explicit expand and
           // prevents flicker when workspace starts empty.
           if (hasFiles) {
-            dispatchWorkspaceHasFilesEvent(true, conversation_id);
+            dispatchWorkspaceHasFilesEvent(true, conversation_id, wasFirstLoad);
           }
 
           return res;

@@ -68,6 +68,7 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isMobile,
     conversation_id,
+    isTemporaryWorkspace,
   });
 
   // --- Hook B: container width ---
