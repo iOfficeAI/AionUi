@@ -5,7 +5,9 @@
  */
 
 import * as Sentry from '@sentry/electron/main';
-import { app } from 'electron';
+import { app, type BrowserWindow } from 'electron';
+import * as fs from 'node:fs';
+import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 
@@ -129,4 +131,140 @@ export function packAndCap(segments: LogSegment[], maxBytes: number): PackResult
   truncated = truncated.slice(-Math.floor(maxBytes / 2));
   gzipped = gzipSync(truncated);
   return { gzipped, truncated: true };
+}
+
+const STATE_FILE = 'sentry-log-report-state.json';
+const ATTACHMENT_CAP_BYTES = 19 * 1024 * 1024;
+const STARTUP_DELAY_MS = 30_000;
+const THROTTLE_WINDOW_MS = 24 * 60 * 60 * 1000;
+
+type State = { lastReportAt?: number };
+
+function readState(): State {
+  try {
+    const p = path.join(app.getPath('userData'), STATE_FILE);
+    return JSON.parse(fs.readFileSync(p, 'utf8')) as State;
+  } catch {
+    return {};
+  }
+}
+
+function writeState(state: State): void {
+  try {
+    const p = path.join(app.getPath('userData'), STATE_FILE);
+    fs.writeFileSync(p, JSON.stringify(state), 'utf8');
+  } catch {
+    // best-effort; failure to persist throttle state is not fatal
+  }
+}
+
+function listLogFilesSync(dir: string): LogFileMeta[] {
+  let entries: string[];
+  try {
+    entries = fs.readdirSync(dir);
+  } catch {
+    return [];
+  }
+  const out: LogFileMeta[] = [];
+  for (const name of entries) {
+    const full = path.join(dir, name);
+    try {
+      const stat = fs.statSync(full);
+      if (stat.isFile() && /\.log$/.test(name)) {
+        out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
+      }
+    } catch {
+      // skip unreadable entries
+    }
+  }
+  return out;
+}
+
+class UnretryableError extends Error {}
+class RetryableError extends Error {}
+
+async function runStartupLogReport(): Promise<void> {
+  const now = Date.now();
+  const state = readState();
+
+  if (state.lastReportAt && now - state.lastReportAt < THROTTLE_WINDOW_MS) {
+    return;
+  }
+
+  const days = computeReportDays(state.lastReportAt, now);
+  const logsRoot = app.getPath('logs');
+  const frontendFiles = listLogFilesSync(logsRoot);
+  const backendFiles = listLogFilesSync(path.join(logsRoot, 'logs'));
+  const all = [...frontendFiles, ...backendFiles];
+  if (all.length === 0) {
+    writeState({ lastReportAt: now });
+    throw new UnretryableError('no log files');
+  }
+
+  const selected = selectRecentLogFiles(all, days);
+  if (selected.length === 0) {
+    writeState({ lastReportAt: now });
+    throw new UnretryableError('no non-empty logs');
+  }
+
+  let segments: LogSegment[];
+  try {
+    segments = selected.map((f) => ({
+      name: path.basename(f.path),
+      mtime: f.mtime,
+      content: fs.readFileSync(f.path, 'utf8'),
+    }));
+  } catch (err) {
+    throw new RetryableError(`read failed: ${(err as Error).message}`);
+  }
+
+  let pack: PackResult;
+  try {
+    pack = packAndCap(segments, ATTACHMENT_CAP_BYTES);
+  } catch (err) {
+    throw new RetryableError(`gzip failed: ${(err as Error).message}`);
+  }
+
+  if (!process.env.SENTRY_DSN) {
+    writeState({ lastReportAt: now });
+    throw new UnretryableError('no DSN');
+  }
+
+  Sentry.withScope((scope) => {
+    scope.addAttachment({
+      filename: 'aionui-logs.log.gz',
+      data: pack.gzipped,
+      contentType: 'application/gzip',
+    });
+    scope.setExtra('truncated', pack.truncated);
+    scope.setExtra('days_covered', days);
+    Sentry.captureMessage('startup-log-report', 'info');
+  });
+
+  writeState({ lastReportAt: now });
+}
+
+/**
+ * Schedule a one-shot startup log report 30s after the renderer finishes
+ * loading. Best-effort: any failure is logged to console only and never
+ * affects app startup.
+ *
+ * Failure semantics: `UnretryableError` paths already update `lastReportAt`
+ * before throwing (so the same skip persists for 24h); `RetryableError`
+ * paths leave `lastReportAt` untouched so the next launch retries.
+ */
+export function scheduleStartupLogReport(window: BrowserWindow): void {
+  const trigger = () => {
+    setTimeout(() => {
+      runStartupLogReport().catch((err) => {
+        console.error('[sentry] startup log report failed:', err);
+      });
+    }, STARTUP_DELAY_MS);
+  };
+
+  if (window.webContents.isLoading()) {
+    window.webContents.once('did-finish-load', trigger);
+  } else {
+    trigger();
+  }
 }

@@ -8,7 +8,7 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { initSentry, setSentryDeviceId } from './sentry';
+import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
@@ -294,6 +294,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     },
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
+
+  scheduleStartupLogReport(mainWindow);
 
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
