@@ -220,9 +220,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           <Dropdown trigger='hover' onVisibleChange={setIsPlusDropdownOpen} droplist={menuContent}>
             <span className='flex items-center gap-4px cursor-pointer lh-[1]'>
               <Button
-                type='text'
-                shape='square'
-                className={`${styles.attachBtn} ${isPlusDropdownOpen ? styles.plusButtonRotate : ''}`}
+                type='secondary'
+                shape='circle'
+                className={isPlusDropdownOpen ? styles.plusButtonRotate : ''}
                 icon={<Plus theme='outline' size='14' strokeWidth={2} fill={iconColors.primary} />}
                 loading={uploading}
                 disabled={uploading}
@@ -248,9 +248,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             />
           )}
         </div>
-
-        {configOptionCount > 0 && <div className={styles.actionToolsDivider} />}
-
+      </div>
+      <div className={styles.actionSubmit}>
         {configOptionCount > 0 && (
           <div className={styles.actionConfigGroup}>
             {modelSelectorNode}
@@ -281,8 +280,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             />
           </div>
         )}
-      </div>
-      <div className={styles.actionSubmit}>
+
         {speechInputNode}
         <Button
           shape='circle'

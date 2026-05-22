@@ -3,7 +3,6 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
@@ -91,8 +90,6 @@ const AcpSendBox: React.FC<{
     aiProcessing,
     setAiProcessing,
     resetState,
-    tokenUsage,
-    context_limit,
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
@@ -380,23 +377,21 @@ Please check your local CLI tool authentication status`,
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={
-          <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
-            {showModeSelector && (
-              <AgentModeSelector
-                backend={backend}
-                conversation_id={conversation_id}
-                compact
-                initialMode={session_mode}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-                compactLabelPrefix={t('agentMode.permission')}
-                hideCompactLabelPrefixOnMobile
-                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-              />
-            )}
-          </div>
+        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        rightTools={
+          showModeSelector ? (
+            <AgentModeSelector
+              backend={backend}
+              conversation_id={conversation_id}
+              compact
+              initialMode={session_mode}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+              onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+            />
+          ) : undefined
         }
         prefix={
           <>
@@ -442,15 +437,6 @@ Please check your local CLI tool authentication status`,
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
         compactActions={false}
-        sendButtonPrefix={
-          tokenUsage ? (
-            <ContextUsageIndicator
-              tokenUsage={tokenUsage}
-              context_limit={context_limit > 0 ? context_limit : undefined}
-              size={24}
-            />
-          ) : undefined
-        }
       ></SendBox>
     </div>
   );

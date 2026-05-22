@@ -159,6 +159,7 @@ const SendBox: React.FC<{
   loading?: boolean;
   className?: string;
   tools?: React.ReactNode;
+  rightTools?: React.ReactNode;
   prefix?: React.ReactNode;
   placeholder?: string;
   onFilesAdded?: (files: FileMetadata[]) => void;
@@ -182,6 +183,7 @@ const SendBox: React.FC<{
   className,
   loading,
   tools,
+  rightTools,
   disabled,
   placeholder,
   value: input = '',
@@ -1595,7 +1597,8 @@ const SendBox: React.FC<{
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
             <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
-            <div className='flex items-center gap-2'>
+            <div className='sendbox-actions flex items-center gap-2'>
+              {rightTools}
               <SpeechInputButton
                 disabled={disabled || isLoading || loading || isUploading}
                 locale={speechLocale}
