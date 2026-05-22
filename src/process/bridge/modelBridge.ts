@@ -41,6 +41,7 @@ const API_PATH_PATTERNS = [
   '/compatible-mode/v1', // 阿里云 DashScope / Alibaba Cloud
   '/compatibility/v1', // Cohere
   '/v2', // 百度千帆 / Baidu Qianfan
+  '/v3', // 腾讯云 Coding / Tencent Coding Plan
   '/api/v3', // 火山引擎 Ark / Volcengine
   '/api/paas/v4', // 智谱 / Zhipu
 ];

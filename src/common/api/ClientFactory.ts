@@ -23,11 +23,52 @@ export interface ClientOptions {
 export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | AnthropicRotatingClient;
 
 /**
+ * 已知的完整 API 路径模式（不需要再添加 /v1）
+ * Known complete API path patterns (no need to add /v1)
+ *
+ * 这些路径已经是完整的 API 端点路径，OpenAI SDK 会自动添加 /chat/completions
+ * These paths are already complete API endpoint paths, OpenAI SDK adds /chat/completions automatically
+ *
+ * 注意：/v1beta 仅用于 Gemini 协议，在 normalizeNewApiBaseUrl 中单独处理
+ * Note: /v1beta is only for Gemini protocol, handled separately in normalizeNewApiBaseUrl
+ */
+const COMPLETE_API_PATHS = [
+  '/v1', // 标准格式 / Standard: OpenAI, DeepSeek, Moonshot, Mistral, SiliconFlow
+  '/v2', // 百度千帆 / Baidu Qianfan
+  '/v3', // 腾讯云 Coding、通用 v3 / Tencent Coding, generic v3
+  '/api/v1', // OpenRouter
+  '/api/v3', // 火山引擎 Ark / Volcengine Ark
+  '/api/paas/v4', // 智谱 / Zhipu
+  '/openai/v1', // Groq
+  '/compatible-mode/v1', // 阿里云 DashScope / Alibaba DashScope
+  '/compatibility/v1', // Cohere
+];
+
+/**
+ * 检查 URL 是否已包含完整的 API 路径
+ * Check if URL already contains a complete API path
+ *
+ * @param url 要检查的 URL / URL to check
+ * @returns 是否包含完整路径 / Whether it contains a complete path
+ */
+function hasCompleteApiPath(url: string): boolean {
+  const normalizedUrl = url.replace(/\/+$/, '');
+  return COMPLETE_API_PATHS.some((path) => normalizedUrl.endsWith(path));
+}
+
+/**
  * 为 new-api 网关规范化 base URL
  * Normalize base URL for new-api gateway based on target protocol
  *
- * 策略：先剥离所有已知 API 路径后缀得到根 URL，再根据目标协议添加正确后缀。
- * Strategy: strip all known API path suffixes to get root URL, then add the correct suffix for target protocol.
+ * 策略：
+ * - OpenAI 协议：如果 URL 已包含完整的 API 路径（如 /v2, /v3, /api/v3 等），直接使用，不再添加 /v1
+ * - Gemini 协议：剥离 /v1beta 后缀，返回根 URL（SDK 会自动添加路径）
+ * - Anthropic 协议：剥离 /v1 后缀，返回根 URL（SDK 会自动添加路径）
+ *
+ * Strategy:
+ * - OpenAI protocol: If URL already contains a complete API path (e.g., /v2, /v3, /api/v3), use directly without adding /v1
+ * - Gemini protocol: Strip /v1beta suffix, return root URL (SDK appends its own paths)
+ * - Anthropic protocol: Strip /v1 suffix, return root URL (SDK appends its own paths)
  *
  * @param baseUrl 原始 base URL / Original base URL
  * @param authType 目标认证类型 / Target auth type
@@ -36,26 +77,35 @@ export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | Anthr
 export function normalizeNewApiBaseUrl(baseUrl: string, authType: AuthType): string {
   if (!baseUrl) return baseUrl;
 
-  // 1. 移除尾部斜杠，剥离所有已知 API 路径后缀，得到根 URL
-  //    Remove trailing slashes, strip all known API path suffixes to get root URL
-  const rootUrl = baseUrl
-    .replace(/\/+$/, '')
-    .replace(/\/v1$/, '')
-    .replace(/\/v1beta$/, '');
+  const normalizedUrl = baseUrl.replace(/\/+$/, '');
 
-  // 2. 根据目标协议添加正确的路径后缀
-  //    Add the correct path suffix for the target protocol
   switch (authType) {
-    case AuthType.USE_OPENAI:
-      // OpenAI SDK 需要带 /v1 的路径 / OpenAI SDK expects URL with /v1 path
-      return `${rootUrl}/v1`;
-    case AuthType.USE_GEMINI:
-    case AuthType.USE_ANTHROPIC:
-      // Gemini/Anthropic SDK 需要根 URL（它们会自动附加各自的路径）
-      // Gemini/Anthropic SDKs need root URL (they append their own paths)
-      return rootUrl;
+    case AuthType.USE_OPENAI: {
+      // OpenAI SDK 需要带 /v1 的路径
+      // OpenAI SDK expects URL with /v1 path
+      // 如果 URL 已包含完整的 API 路径，直接使用，不再添加 /v1
+      // If URL already contains a complete API path, use directly without adding /v1
+      if (hasCompleteApiPath(normalizedUrl)) {
+        return normalizedUrl;
+      }
+      return `${normalizedUrl}/v1`;
+    }
+    case AuthType.USE_GEMINI: {
+      // Gemini SDK 需要根 URL（它会自动附加 /v1beta 等路径）
+      // Gemini SDK needs root URL (it appends /v1beta and other paths automatically)
+      // 剥离 /v1beta 后缀（如果存在）
+      // Strip /v1beta suffix if present
+      return normalizedUrl.replace(/\/v1beta$/, '');
+    }
+    case AuthType.USE_ANTHROPIC: {
+      // Anthropic SDK 需要根 URL（它会自动附加 /v1/messages 等路径）
+      // Anthropic SDK needs root URL (it appends /v1/messages and other paths automatically)
+      // 剥离 /v1 后缀（如果存在）
+      // Strip /v1 suffix if present
+      return normalizedUrl.replace(/\/v1$/, '');
+    }
     default:
-      return rootUrl;
+      return normalizedUrl;
   }
 }
 
