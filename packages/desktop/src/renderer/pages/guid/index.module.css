@@ -398,7 +398,7 @@
   min-height: unset !important;
   height: auto !important;
   border-radius: 8px !important;
-  font-size: 12px !important;
+  font-size: 14px !important;
   font-weight: 500 !important;
   white-space: nowrap !important;
   line-height: 1 !important;
@@ -467,7 +467,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text-3);
   background: transparent;
@@ -502,7 +502,7 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 500;
   color: var(--color-text-2);
   background: transparent;
