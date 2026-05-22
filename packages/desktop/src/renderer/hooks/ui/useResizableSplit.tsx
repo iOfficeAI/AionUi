@@ -23,10 +23,16 @@ const addWindowEventListener = <K extends keyof WindowEventMap>(
 };
 
 interface UseResizableSplitOptions {
-  defaultWidth?: number; // 默认宽度百分比（0-100） / Default width percentage (0-100)
-  minWidth?: number; // 最小宽度百分比 / Minimum width percentage
-  maxWidth?: number; // 最大宽度百分比 / Maximum width percentage
-  storageKey?: string; // LocalStorage 存储键名（用于记录偏好） / LocalStorage key for saving user preference
+  /** 默认宽度。`unit: 'ratio'` 时为百分比 (0-100)，`unit: 'px'` 时为像素值 */
+  defaultWidth?: number;
+  /** 最小宽度（同 defaultWidth 的单位） */
+  minWidth?: number;
+  /** 最大宽度（同 defaultWidth 的单位） */
+  maxWidth?: number;
+  /** LocalStorage 存储键名（用于记录偏好） */
+  storageKey?: string;
+  /** 单位：百分比或像素。默认 'ratio'（向后兼容） */
+  unit?: 'ratio' | 'px';
 }
 
 /**
@@ -37,7 +43,8 @@ interface UseResizableSplitOptions {
  * @returns 分割比例、拖动句柄和设置函数 / Split ratio, drag handle, and setter function
  */
 export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
-  const { defaultWidth = 50, minWidth = 20, maxWidth = 80, storageKey } = options;
+  const { defaultWidth = 50, minWidth = 20, maxWidth = 80, storageKey, unit = 'ratio' } = options;
+  const isPx = unit === 'px';
 
   // 从 LocalStorage 读取保存的比例 / Read saved ratio from LocalStorage
   const getStoredRatio = (): number => {
@@ -94,13 +101,22 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
         const parent = dragHandle.parentElement;
         const outerContainer = parent?.parentElement;
         const containerWidth = outerContainer?.offsetWidth || 0;
-        if (!containerWidth) {
+        if (!isPx && !containerWidth) {
           return;
         }
 
         const startX = event.clientX;
         const startRatio = splitRatio;
         const pointerId = event.pointerId;
+        // px 模式下拖动直接换算为像素差，不再除以容器宽度
+        const computeRatio = (clientX: number): number => {
+          const deltaX = reverse ? startX - clientX : clientX - startX;
+          if (isPx) {
+            return Math.max(minWidth, Math.min(maxWidth, startRatio + deltaX));
+          }
+          const deltaRatio = (deltaX / containerWidth) * 100;
+          return Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+        };
         let rafId: number | null = null;
         let pendingRatio: number | null = null;
         let latestRatio = startRatio;
@@ -154,9 +170,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
 
           let finalRatio = latestRatio;
           if (e && 'clientX' in e && typeof e.clientX === 'number') {
-            const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
-            const deltaRatio = (deltaX / containerWidth) * 100;
-            finalRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+            finalRatio = computeRatio(e.clientX);
             latestRatio = finalRatio;
           }
 
@@ -172,9 +186,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
             finishDrag(e);
             return;
           }
-          const deltaX = reverse ? startX - e.clientX : e.clientX - startX;
-          const deltaRatio = (deltaX / containerWidth) * 100;
-          pendingRatio = Math.max(minWidth, Math.min(maxWidth, startRatio + deltaRatio));
+          pendingRatio = computeRatio(e.clientX);
           if (rafId === null) {
             rafId = requestAnimationFrame(() => {
               rafId = null;
@@ -215,7 +227,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
           addWindowEventListener('blur', () => finishDrag())
         );
       },
-    [splitRatio, minWidth, maxWidth, setSplitRatio, dispatchSplitResizeEvent]
+    [splitRatio, minWidth, maxWidth, setSplitRatio, dispatchSplitResizeEvent, isPx]
   );
 
   const renderHandle = ({
