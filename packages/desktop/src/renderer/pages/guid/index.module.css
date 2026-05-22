@@ -332,13 +332,36 @@
   box-sizing: border-box;
 }
 
+.guidInputCardWrap {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--color-fill-1);
+}
+
+.guidInputInner {
+  background: var(--bg-base, #fff);
+  border: 1px solid var(--color-border-3);
+  border-radius: 24px 24px 18px 18px;
+  margin: -1px -1px 0;
+  box-sizing: border-box;
+}
+
+:global([data-theme='dark']) .guidInputCardWrap {
+  background: #1a1a1a;
+}
+
+:global([data-theme='dark']) .guidInputInner {
+  background: #262626;
+  border-color: #3a3a3a;
+}
+
 .actionRow {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   width: 100%;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: auto;
 }
 
 .actionTools {
@@ -436,10 +459,8 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 8px 12px;
-  border-top: 1px solid var(--color-border-2);
-  background: var(--color-fill-1);
-  border-radius: 0 0 20px 20px;
+  padding: 10px 6px 10px 14px;
+  background: transparent;
 }
 
 .workspaceEmptyBtn {
@@ -615,7 +636,7 @@
 }
 
 .lightPlaceholder::placeholder {
-  color: #a1a2aa;
+  color: #b4b5bc;
   opacity: 1;
 }
 
@@ -778,7 +799,7 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #a1a2aa !important;
+  color: #b4b5bc !important;
   opacity: 1 !important;
 }
 

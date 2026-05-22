@@ -13,7 +13,7 @@
   "smart": "Умный",
   "build": "Режим сборки",
   "permission": "Разрешение",
-  "switchMode": "Сменить режим",
+  "switchMode": "Режим разрешений",
   "switchSuccess": "Режим успешно сменён",
   "switchFailed": "Не удалось сменить режим"
 }

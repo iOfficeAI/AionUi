@@ -78,7 +78,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   const isElectron = isElectronDesktop();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
-  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 3, maxRows: 20 };
+  const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (isComposing.current) return;
@@ -93,7 +93,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   return (
     <div
-      className={`${styles.guidInputCard} guid-input-card-shell relative b b-solid rd-20px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed guid-input-card-shell--dragging' : ''}`}
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative b b-solid rd-24px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
         transition: 'box-shadow 0.25s ease, border-color 0.25s ease, border-width 0.25s ease',
@@ -114,11 +114,8 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
       }}
       {...dragHandlers}
     >
-      {/* main input area with padding */}
-      <div
-        className='p-16px flex flex-col bg-dialog-fill-0'
-        style={{ borderRadius: isElectron ? '20px 20px 0 0' : '20px' }}
-      >
+      {/* inner white card — narrower than outer wrap */}
+      <div className={`${styles.guidInputInner} p-12px flex flex-col bg-dialog-fill-0`}>
         {mentionSelectorBadge}
         <Input.TextArea
           autoSize={textareaAutoSize}
@@ -134,6 +131,7 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
           onKeyDown={handleKeyDown}
           data-testid='guid-input'
         />
+        <div style={{ height: 12, flexShrink: 0 }} aria-hidden='true' />
         {mentionOpen && (
           <div className='absolute z-50' style={{ left: 16, top: 44 }}>
             {mentionDropdown}

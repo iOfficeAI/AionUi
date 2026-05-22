@@ -263,8 +263,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 onModeSelect={onModeSelect}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={getModeDisplayLabel}
-                compactLabelPrefix={t('agentMode.permission')}
-                hideCompactLabelPrefixOnMobile
               />
             )}
           </div>
