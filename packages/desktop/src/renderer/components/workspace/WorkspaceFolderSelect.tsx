@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { Input } from '@arco-design/web-react';
-import { Check, Close, Down, Folder, FolderOpen, FolderPlus } from '@icon-park/react';
+import { Check, Close, Down, FolderClose, FolderOpen, FolderPlus } from '@icon-park/react';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace, getRecentWorkspaces } from './recentWorkspaces';
@@ -203,7 +203,7 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
         >
           {recentWorkspaces.length > 0 && (
             <>
-              <div className='px-10px py-6px text-11px font-medium uppercase tracking-[0.08em] text-t-tertiary'>
+              <div className='px-10px pb-4px pt-6px text-10px font-500 uppercase tracking-[0.08em] text-t-tertiary'>
                 {recentLabel}
               </div>
               {recentWorkspaces.map((path) => {
@@ -214,31 +214,34 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
                   <div
                     key={path}
                     onClick={() => handleSelectRecent(path)}
-                    className={`mx-2px flex cursor-pointer items-center gap-10px rounded-10px px-10px py-8px transition-all ${
-                      isSelected
-                        ? 'border border-primary-5 bg-fill-2 shadow-[0_0_0_1px_rgba(var(--primary-6),0.24)] hover:bg-fill-2'
-                        : 'border border-transparent hover:border-border-2 hover:bg-fill-1'
+                    className={`flex cursor-pointer items-center gap-10px rounded-8px px-10px py-6px transition-colors ${
+                      isSelected ? 'bg-primary-1' : 'hover:bg-fill-2'
                     }`}
                   >
-                    <Folder theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-secondary' />
+                    <FolderClose
+                      theme='filled'
+                      size='16'
+                      fill={isSelected ? 'rgb(var(--primary-6))' : 'currentColor'}
+                      className='shrink-0 text-t-tertiary'
+                    />
                     <div className='min-w-0 flex-1'>
-                      <div className='text-sm leading-20px text-t-primary'>{recentName}</div>
-                      <div className='truncate text-11px leading-16px text-t-secondary'>{path}</div>
+                      <div className='truncate text-13px leading-18px text-t-primary'>{recentName}</div>
+                      <div className='truncate text-11px leading-14px text-t-tertiary'>{path}</div>
                     </div>
                     {isSelected && <Check size='14' fill='currentColor' className='shrink-0 text-primary-6' />}
                   </div>
                 );
               })}
-              <div className='mx-6px my-4px border-t border-border-2' />
+              <div className='mx-2px my-4px h-1px bg-border-2' />
             </>
           )}
 
           <div
             onClick={() => void handleBrowse()}
-            className='mx-2px flex cursor-pointer items-center gap-10px rounded-10px border border-transparent px-10px py-8px transition-all hover:border-border-2 hover:bg-fill-1'
+            className='flex cursor-pointer items-center gap-10px rounded-8px px-10px py-8px transition-colors hover:bg-fill-2'
           >
-            <FolderPlus theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-secondary' />
-            <span className='text-sm text-t-primary'>{chooseDifferentLabel}</span>
+            <FolderPlus theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-tertiary' />
+            <span className='text-13px text-t-primary'>{chooseDifferentLabel}</span>
           </div>
         </div>
       )}
