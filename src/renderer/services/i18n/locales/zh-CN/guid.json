@@ -17,5 +17,41 @@
     "statusTesting": "正在测试延迟...",
     "statusUnreachable": "不可达",
     "statusAvailable": "可用"
+  },
+  "kanban": {
+    "title": "Hermes Kanban",
+    "popout": "Pop out ↗",
+    "refresh": "↻ Refresh",
+    "retry": "Retry Connection",
+    "unreachable": "Hermes Kanban unreachable. Is the server running on port {{port}}?"
+  },
+  "videoFactory": {
+    "title": "Video Factory",
+    "popout": "Pop out ↗",
+    "refresh": "↻ Refresh",
+    "retry": "Retry Connection",
+    "unreachable": "Video Factory unreachable. Is the server running on port {{port}}?"
+  },
+  "boekhouder": {
+    "title": "AI Boekhouder",
+    "popout": "Pop out ↗",
+    "refresh": "↻ Refresh",
+    "retry": "Retry Connection",
+    "unreachable": "AI Boekhouder unreachable. Is the server running on port {{port}}?"
+  },
+  "vps": {
+    "title": "VPS Control",
+    "popout": "Pop out ↗",
+    "refresh": "↻ Refresh",
+    "retry": "Retry Connection",
+    "unreachable": "VPS Panel unreachable. Is the server running on port {{port}}?"
+  },
+  "spaceAgent": {
+    "title": "Space Agent · Browser Control",
+    "open": "Open ↗",
+    "refresh": "↻ Refresh",
+    "retry": "Retry Connection",
+    "unreachable": "Space Agent unreachable on port {{port}}",
+    "connecting": "Connecting to Space Agent on port {{port}}..."
   }
 }

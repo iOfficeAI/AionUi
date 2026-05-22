@@ -4,6 +4,8 @@
  */
 
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Button } from '@arco-design/web-react';
 
 interface SpaceAgentPanelProps {
   port?: number;
@@ -16,6 +18,7 @@ const SpaceAgentPanel: React.FC<SpaceAgentPanelProps> = ({
   port = SPACE_AGENT_DEFAULT_PORT,
   height = 520,
 }) => {
+  const { t } = useTranslation();
   const [connected, setConnected] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -69,7 +72,7 @@ const SpaceAgentPanel: React.FC<SpaceAgentPanelProps> = ({
   };
 
   const handleIframeError = () => {
-    setError('Space Agent unreachable on port ' + port);
+    setError(t('guid.spaceAgent.unreachable', { port }));
     setConnected(false);
     setLoading(false);
   };
@@ -168,7 +171,7 @@ const SpaceAgentPanel: React.FC<SpaceAgentPanelProps> = ({
               ? '0 0 10px #00ccff'
               : loading ? '0 0 10px #f39c12' : '0 0 10px #e74c3c',
           }} />
-          Space Agent · Browser Control
+          {t('guid.spaceAgent.title')}
           {connected && (
             <span style={{
               ...styles.badge,
@@ -182,35 +185,31 @@ const SpaceAgentPanel: React.FC<SpaceAgentPanelProps> = ({
         </div>
         <div style={styles.actions}>
           {connected && (
-            <button
+            <Button
+              size="mini"
+              type="outline"
               onClick={() => window.open(spaceUrl, '_blank')}
               style={{
-                background: 'rgba(0,204,255,0.1)',
-                border: '1px solid rgba(0,204,255,0.2)',
+                borderColor: 'rgba(0,204,255,0.2)',
                 color: '#00ccff',
-                borderRadius: 6,
-                padding: '4px 10px',
-                fontSize: 11,
-                cursor: 'pointer',
+                background: 'rgba(0,204,255,0.1)',
               }}
             >
-              Open ↗
-            </button>
+              {t('guid.spaceAgent.open')}
+            </Button>
           )}
-          <button
+          <Button
+            size="mini"
+            type="outline"
             onClick={handleRetry}
             style={{
-              background: 'rgba(255,255,255,0.04)',
-              border: '1px solid rgba(255,255,255,0.08)',
+              borderColor: 'rgba(255,255,255,0.08)',
               color: '#888',
-              borderRadius: 6,
-              padding: '4px 10px',
-              fontSize: 11,
-              cursor: 'pointer',
+              background: 'rgba(255,255,255,0.04)',
             }}
           >
-            ↻ Refresh
-          </button>
+            {t('guid.spaceAgent.refresh')}
+          </Button>
         </div>
       </div>
 
@@ -228,26 +227,23 @@ const SpaceAgentPanel: React.FC<SpaceAgentPanelProps> = ({
           {loading && !error && (
             <>
               <div style={styles.spinner} />
-              <div style={styles.loadingText}>Connecting to Space Agent on port {port}...</div>
+              <div style={styles.loadingText}>{t('guid.spaceAgent.connecting', { port })}</div>
             </>
           )}
           {error && (
             <>
               <div style={styles.errorText}>{error}</div>
-              <button
+              <Button
+                type="primary"
                 onClick={handleRetry}
                 style={{
                   background: 'rgba(0,204,255,0.12)',
                   border: '1px solid rgba(0,204,255,0.25)',
                   color: '#00ccff',
-                  borderRadius: 8,
-                  padding: '8px 20px',
-                  cursor: 'pointer',
-                  fontSize: 13,
                 }}
               >
-                Retry Connection
-              </button>
+                {t('guid.spaceAgent.retry')}
+              </Button>
             </>
           )}
         </div>
