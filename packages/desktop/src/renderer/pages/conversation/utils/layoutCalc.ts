@@ -57,7 +57,10 @@ export const calcLayoutMetrics = (input: LayoutCalcInput): LayoutMetrics => {
   const previewReservedPx = isPreviewOpen ? MIN_CHAT_PANEL_PX + MIN_PREVIEW_PANEL_PX : MIN_CHAT_PANEL_PX;
   const workspaceMaxByContainer = Math.max(MIN_WORKSPACE_PANEL_PX, safeContainerWidth - previewReservedPx);
   const effectiveWorkspaceWidthPx = workspaceVisible
-    ? Math.max(MIN_WORKSPACE_PANEL_PX, Math.min(MAX_WORKSPACE_PANEL_PX, requestedWorkspaceWidthPx, workspaceMaxByContainer))
+    ? Math.max(
+        MIN_WORKSPACE_PANEL_PX,
+        Math.min(MAX_WORKSPACE_PANEL_PX, requestedWorkspaceWidthPx, workspaceMaxByContainer)
+      )
     : 0;
 
   // 计算 chat / preview 之间的动态比例约束（基于剩余可用宽度）
