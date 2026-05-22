@@ -338,44 +338,17 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       {t('team.create.noSearchResults', { defaultValue: 'No results found' })}
                     </div>
                   ) : (
-                    <>
-                      {filteredCliAgents.length > 0 && (
-                        <div>
-                          <div className='px-12px py-6px text-11px font-500 uppercase tracking-wider text-t-tertiary'>
-                            {t('conversation.dropdown.cliAgents', { defaultValue: 'CLI Agents' })}
-                          </div>
-                          {filteredCliAgents.map((agent) => {
-                            const key = agentKey(agent);
-                            return (
-                              <AgentRadioRow
-                                key={key}
-                                agent={agent}
-                                isSelected={dispatchAgentKey === key}
-                                onClick={() => handleSelectLeader(key)}
-                              />
-                            );
-                          })}
-                        </div>
-                      )}
-                      {filteredPresetAssistants.length > 0 && (
-                        <div className={filteredCliAgents.length > 0 ? 'mt-4px' : ''}>
-                          <div className='px-12px py-6px text-11px font-500 uppercase tracking-wider text-t-tertiary'>
-                            {t('conversation.dropdown.presetAssistants', { defaultValue: 'Preset Assistants' })}
-                          </div>
-                          {filteredPresetAssistants.map((agent) => {
-                            const key = agentKey(agent);
-                            return (
-                              <AgentRadioRow
-                                key={key}
-                                agent={agent}
-                                isSelected={dispatchAgentKey === key}
-                                onClick={() => handleSelectLeader(key)}
-                              />
-                            );
-                          })}
-                        </div>
-                      )}
-                    </>
+                    [...filteredCliAgents, ...filteredPresetAssistants].map((agent) => {
+                      const key = agentKey(agent);
+                      return (
+                        <AgentRadioRow
+                          key={key}
+                          agent={agent}
+                          isSelected={dispatchAgentKey === key}
+                          onClick={() => handleSelectLeader(key)}
+                        />
+                      );
+                    })
                   )}
                 </div>
               </div>
