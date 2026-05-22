@@ -335,19 +335,14 @@
 .guidInputCardWrap {
   width: 100%;
   box-sizing: border-box;
-  background: var(--color-fill-1);
+  background: var(--bg-2);
 }
 
 .guidInputInner {
   background: var(--bg-base, #fff);
   border: 1px solid var(--color-border-3);
-  border-radius: 24px 24px 18px 18px;
-  margin: -1px -1px 0;
+  border-radius: 24px;
   box-sizing: border-box;
-}
-
-:global([data-theme='dark']) .guidInputCardWrap {
-  background: #1a1a1a;
 }
 
 :global([data-theme='dark']) .guidInputInner {
@@ -459,7 +454,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 10px 6px 10px 14px;
+  padding: 6px 6px 10px 14px;
   background: transparent;
 }
 

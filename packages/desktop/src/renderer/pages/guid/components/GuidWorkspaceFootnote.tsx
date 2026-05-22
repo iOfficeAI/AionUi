@@ -254,7 +254,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
                 className={styles.workspacePillMain}
                 onClick={toggleOpen}
               >
-                <FolderIcon size={12} />
+                <FolderIcon size={14} />
                 <span className={styles.workspacePillName}>{workspaceName}</span>
                 <ChevronDown />
               </button>
@@ -281,7 +281,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
             data-testid='workspace-selector-btn'
             onClick={recentWorkspaces.length > 0 ? toggleOpen : handleBrowseWorkspace}
           >
-            <FolderIcon size={12} />
+            <FolderIcon size={14} />
             <span>{t('guid.workspace.workInProject')}</span>
             {recentWorkspaces.length > 0 && <ChevronDown />}
           </button>
