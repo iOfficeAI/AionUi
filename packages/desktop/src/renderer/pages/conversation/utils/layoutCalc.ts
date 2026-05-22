@@ -1,15 +1,17 @@
 // Layout constants for the chat layout panel sizing
 export const MIN_CHAT_RATIO = 25;
-export const MIN_WORKSPACE_RATIO = 12;
 export const MIN_PREVIEW_RATIO = 20;
 export const WORKSPACE_HEADER_HEIGHT = 32;
 export const MIN_CHAT_PANEL_PX = 360;
 export const MIN_PREVIEW_PANEL_PX = 340;
 export const MIN_WORKSPACE_PANEL_PX = 220;
+export const MAX_WORKSPACE_PANEL_PX = 500;
+export const DEFAULT_WORKSPACE_PANEL_PX = 260;
 
 export type LayoutCalcInput = {
   containerWidth: number;
-  workspaceSplitRatio: number;
+  /** 用户偏好的工作空间宽度（像素） */
+  workspaceWidthPx: number;
   chatSplitRatio: number;
   workspaceEnabled: boolean;
   isDesktop: boolean;
@@ -19,29 +21,27 @@ export type LayoutCalcInput = {
 };
 
 export type LayoutMetrics = {
-  activeWorkspaceRatio: number;
-  availableRatioForChatPreview: number;
+  /** 桌面端工作空间生效宽度（像素，已根据容器宽度做上限收缩） */
+  effectiveWorkspaceWidthPx: number;
   dynamicChatMinRatio: number;
   dynamicChatMaxRatio: number;
+  /** 聊天区在主区域内的 flex-grow（preview 关闭时为 100，打开时按 chatSplitRatio 分配） */
   chatFlex: number;
-  workspaceFlex: number;
-  mobileWorkspaceWidthPx: number;
-  desktopWorkspaceWidthPx: number;
+  /** 工作空间最终展示像素：mobile 模式下走移动端值，桌面端等于 effectiveWorkspaceWidthPx */
   workspaceWidthPx: number;
+  mobileWorkspaceWidthPx: number;
   titleAreaMaxWidth: number;
   mobileWorkspaceHandleRight: number;
-  showDesktopWorkspaceSidebar: boolean;
-  desktopWorkspaceSidebarWidth: number;
 };
 
 /**
- * Compute all derived layout metrics from raw split ratios and panel state.
- * This is a pure function with no side-effects.
+ * Compute all derived layout metrics. Workspace width is fixed px, not a
+ * percentage of the container — the chat area absorbs viewport size changes.
  */
 export const calcLayoutMetrics = (input: LayoutCalcInput): LayoutMetrics => {
   const {
     containerWidth,
-    workspaceSplitRatio,
+    workspaceWidthPx: requestedWorkspaceWidthPx,
     chatSplitRatio,
     workspaceEnabled,
     isDesktop,
@@ -50,17 +50,23 @@ export const calcLayoutMetrics = (input: LayoutCalcInput): LayoutMetrics => {
     isMobile,
   } = input;
 
-  // Active workspace ratio (only when workspace is visible on desktop)
-  const activeWorkspaceRatio = workspaceEnabled && isDesktop && !rightSiderCollapsed ? workspaceSplitRatio : 0;
-  const availableRatioForChatPreview = Math.max(1, 100 - activeWorkspaceRatio);
-
-  // Pixel-based minimum ratio calculations
   const safeContainerWidth = Math.max(containerWidth || 0, 1);
-  const availableWidthForChatPreview = (safeContainerWidth * availableRatioForChatPreview) / 100;
-  const minChatRatioByPx = (MIN_CHAT_PANEL_PX / Math.max(availableWidthForChatPreview, 1)) * 100;
-  const minPreviewRatioByPx = (MIN_PREVIEW_PANEL_PX / Math.max(availableWidthForChatPreview, 1)) * 100;
 
-  // Dynamic min/max chat ratios
+  // Workspace 在桌面端固定 px；当容器太窄时按上限收缩，但永远不小于 MIN
+  const workspaceVisible = workspaceEnabled && isDesktop && !rightSiderCollapsed;
+  const previewReservedPx = isPreviewOpen ? MIN_CHAT_PANEL_PX + MIN_PREVIEW_PANEL_PX : MIN_CHAT_PANEL_PX;
+  const workspaceMaxByContainer = Math.max(MIN_WORKSPACE_PANEL_PX, safeContainerWidth - previewReservedPx);
+  const effectiveWorkspaceWidthPx = workspaceVisible
+    ? Math.max(
+        MIN_WORKSPACE_PANEL_PX,
+        Math.min(MAX_WORKSPACE_PANEL_PX, requestedWorkspaceWidthPx, workspaceMaxByContainer)
+      )
+    : 0;
+
+  // 计算 chat / preview 之间的动态比例约束（基于剩余可用宽度）
+  const availableWidthForChatPreview = Math.max(safeContainerWidth - effectiveWorkspaceWidthPx, 1);
+  const minChatRatioByPx = (MIN_CHAT_PANEL_PX / availableWidthForChatPreview) * 100;
+  const minPreviewRatioByPx = (MIN_PREVIEW_PANEL_PX / availableWidthForChatPreview) * 100;
   const dynamicChatMinRatio =
     workspaceEnabled && isDesktop && isPreviewOpen ? Math.max(MIN_CHAT_RATIO, minChatRatioByPx) : MIN_CHAT_RATIO;
   const dynamicChatMaxCandidate =
@@ -69,45 +75,29 @@ export const calcLayoutMetrics = (input: LayoutCalcInput): LayoutMetrics => {
       : 80;
   const dynamicChatMaxRatio = Math.max(dynamicChatMinRatio, dynamicChatMaxCandidate);
 
-  // Effective workspace ratio and flex values
-  const effectiveWorkspaceRatio = workspaceEnabled && isDesktop && !rightSiderCollapsed ? workspaceSplitRatio : 0;
-  const availableChatPreviewRatio = Math.max(0, 100 - effectiveWorkspaceRatio);
-  const chatFlex = isDesktop
-    ? isPreviewOpen
-      ? (availableChatPreviewRatio * chatSplitRatio) / 100
-      : 100 - effectiveWorkspaceRatio
-    : 100;
-  const workspaceFlex = effectiveWorkspaceRatio;
+  // chat-area flex（外层 chat+preview 容器内的聊天面板的 flex-grow）：
+  // preview 打开时按 chatSplitRatio 分配，否则聊天区独占
+  const chatFlex = isDesktop ? (isPreviewOpen ? chatSplitRatio : 100) : 100;
 
-  // Workspace width in pixels
+  // 移动端工作空间宽度（覆盖式抽屉）
   const viewportWidth = containerWidth || (typeof window === 'undefined' ? 0 : window.innerWidth);
-  const mobileViewportWidth = viewportWidth || (typeof window === 'undefined' ? 0 : window.innerWidth);
   const mobileWorkspaceWidthPx = Math.min(
-    Math.max(300, Math.round(mobileViewportWidth * 0.84)),
-    Math.max(300, Math.min(420, mobileViewportWidth - 20))
+    Math.max(300, Math.round(viewportWidth * 0.84)),
+    Math.max(300, Math.min(420, viewportWidth - 20))
   );
-  const desktopWorkspaceWidthPx = Math.min(500, Math.max(200, (workspaceSplitRatio / 100) * (viewportWidth || 0)));
-  const workspaceWidthPx = workspaceEnabled ? (isMobile ? mobileWorkspaceWidthPx : desktopWorkspaceWidthPx) : 0;
+  const workspaceWidthPx = workspaceEnabled ? (isMobile ? mobileWorkspaceWidthPx : effectiveWorkspaceWidthPx) : 0;
 
-  // Derived display values
   const mobileWorkspaceHandleRight = rightSiderCollapsed ? 0 : Math.max(0, Math.round(workspaceWidthPx) - 14);
-  const showDesktopWorkspaceSidebar = workspaceEnabled && isDesktop && !rightSiderCollapsed;
-  const desktopWorkspaceSidebarWidth = Math.max(220, Math.round(workspaceWidthPx));
   const titleAreaMaxWidth = Math.max(320, Math.min(820, containerWidth - 520));
 
   return {
-    activeWorkspaceRatio,
-    availableRatioForChatPreview,
+    effectiveWorkspaceWidthPx,
     dynamicChatMinRatio,
     dynamicChatMaxRatio,
     chatFlex,
-    workspaceFlex,
-    mobileWorkspaceWidthPx,
-    desktopWorkspaceWidthPx,
     workspaceWidthPx,
+    mobileWorkspaceWidthPx,
     titleAreaMaxWidth,
     mobileWorkspaceHandleRight,
-    showDesktopWorkspaceSidebar,
-    desktopWorkspaceSidebarWidth,
   };
 };

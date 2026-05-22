@@ -74,7 +74,7 @@ const WorkspaceToolbar: React.FC<WorkspaceToolbarProps> = ({
     <div className='px-12px'>
       {/* Search Input */}
       {(showSearch || searchText) && (
-        <div className='pb-8px workspace-toolbar-search'>
+        <div className='py-8px workspace-toolbar-search'>
           <Input
             className='w-full workspace-search-input'
             ref={searchInputRef}

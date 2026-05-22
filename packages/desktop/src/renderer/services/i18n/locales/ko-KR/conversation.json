@@ -149,6 +149,7 @@
     "changes": {
       "tab": "변경",
       "filesTab": "파일",
+      "currentBranchLabel": "현재 브랜치",
       "summary": "{{count}}개 파일 변경됨",
       "insertions": "+{{count}} 줄 추가",
       "deletions": "-{{count}} 줄 삭제",

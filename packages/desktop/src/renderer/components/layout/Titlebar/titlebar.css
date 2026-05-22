@@ -65,18 +65,6 @@
   pointer-events: none;
 }
 
-.app-titlebar__brand-logo {
-  width: 26px;
-  height: 26px;
-  display: block;
-  color: inherit;
-}
-
-.app-titlebar--mobile .app-titlebar__brand-logo {
-  width: 28px;
-  height: 28px;
-}
-
 .app-titlebar--mobile .app-titlebar__brand {
   position: absolute;
   left: 50%;

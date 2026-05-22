@@ -149,6 +149,7 @@
     "changes": {
       "tab": "Changes",
       "filesTab": "Files",
+      "currentBranchLabel": "Current branch",
       "summary": "{{count}} file(s) changed",
       "insertions": "+{{count}} insertions",
       "deletions": "-{{count}} deletions",

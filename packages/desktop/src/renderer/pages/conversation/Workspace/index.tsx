@@ -9,7 +9,6 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { emitter } from '@/renderer/utils/emitter';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -34,7 +33,6 @@ import {
   computeContextMenuPosition,
   extractNodeData,
   extractNodeKey,
-  findNodeByKey,
   flattenSingleRoot,
   getTargetFolderPath,
 } from './utils/treeHelpers';
@@ -275,7 +273,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
-          branches={fileChangesHook.branches}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -342,6 +339,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 key={treeHook.treeKey}
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
+                actionOnClick={['select', 'expand']}
+                // Reuse the +/- glyph during lazy-load so the switcher doesn't
+                // flash a spinner on first expand of each folder.
+                icons={(nodeProps) => ({
+                  loadingIcon: <span className={`arco-tree-node-${nodeProps.expanded ? 'minus' : 'plus'}-icon`} />,
+                })}
                 treeData={treeData}
                 fieldNames={{
                   children: 'children',
@@ -418,7 +421,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     </div>
                   );
                 }}
-                onSelect={(keys, extra) => {
+                onSelect={(_keys, extra) => {
                   const clickedKey = extractNodeKey(extra?.node);
                   const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
                   const isFileNode = Boolean(nodeData?.isFile);
@@ -437,42 +440,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     }
                     return;
                   }
-
-                  // Keep existing selection logic for folders
-                  let newKeys: string[];
-
-                  if (clickedKey && wasSelected) {
-                    newKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
-                  } else if (clickedKey) {
-                    newKeys = [...treeHook.selectedKeysRef.current, clickedKey];
-                  } else {
-                    newKeys = keys.filter((key) => key !== workspace);
-                  }
-
-                  treeHook.setSelected(newKeys);
-                  treeHook.selectedKeysRef.current = newKeys;
-
-                  if (extra && extra.node && nodeData && nodeData.fullPath && nodeData.relativePath != null) {
-                    treeHook.selectedNodeRef.current = {
-                      relativePath: nodeData.relativePath,
-                      fullPath: nodeData.fullPath,
-                    };
-                  } else {
-                    treeHook.selectedNodeRef.current = null;
-                  }
-
-                  const items: Array<{ path: string; name: string; isFile: boolean }> = [];
-                  for (const k of newKeys) {
-                    const node = findNodeByKey(treeHook.files, k);
-                    if (node && node.fullPath) {
-                      items.push({
-                        path: node.fullPath,
-                        name: node.name,
-                        isFile: node.isFile,
-                      });
-                    }
-                  }
-                  emitter.emit(`${eventPrefix}.selected.file`, items);
+                  // Folder: actionOnClick={['select','expand']} on the Tree
+                  // already toggles expand via onExpand. Right-click menu
+                  // remains the entry point for "Add to Chat".
                 }}
                 onExpand={(keys) => {
                   treeHook.setExpandedKeys(keys);

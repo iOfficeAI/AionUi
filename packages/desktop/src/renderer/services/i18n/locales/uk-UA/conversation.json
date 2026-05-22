@@ -149,6 +149,7 @@
     "changes": {
       "tab": "Зміни",
       "filesTab": "Файли",
+      "currentBranchLabel": "Поточна гілка",
       "summary": "{{count}} файл(ів) змінено",
       "insertions": "+{{count}} додано",
       "deletions": "-{{count}} видалено",

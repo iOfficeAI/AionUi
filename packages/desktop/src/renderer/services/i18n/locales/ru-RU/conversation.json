@@ -149,6 +149,7 @@
     "changes": {
       "tab": "Изменения",
       "filesTab": "Файлы",
+      "currentBranchLabel": "Текущая ветка",
       "summary": "{{count}} файл(ов) изменено",
       "insertions": "+{{count}} добавлено",
       "deletions": "-{{count}} удалено",

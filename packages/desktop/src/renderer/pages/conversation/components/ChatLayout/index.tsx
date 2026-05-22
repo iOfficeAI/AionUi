@@ -18,7 +18,9 @@ import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useCo
 import classNames from 'classnames';
 import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
-  MIN_WORKSPACE_RATIO,
+  DEFAULT_WORKSPACE_PANEL_PX,
+  MAX_WORKSPACE_PANEL_PX,
+  MIN_WORKSPACE_PANEL_PX,
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
@@ -102,20 +104,21 @@ const ChatLayout: React.FC<{
   const display_name = presetAssistant?.name || agent_name || backendAgentName || capitalizedBackend;
 
   const {
-    splitRatio: workspaceSplitRatio,
-    setSplitRatio: setWorkspaceSplitRatio,
+    splitRatio: workspaceWidthPxPref,
+    setSplitRatio: setWorkspaceWidthPxPref,
     createDragHandle: createWorkspaceDragHandle,
   } = useResizableSplit({
-    defaultWidth: 20,
-    minWidth: MIN_WORKSPACE_RATIO,
-    maxWidth: 40,
-    storageKey: 'chat-workspace-split-ratio',
+    unit: 'px',
+    defaultWidth: DEFAULT_WORKSPACE_PANEL_PX,
+    minWidth: MIN_WORKSPACE_PANEL_PX,
+    maxWidth: MAX_WORKSPACE_PANEL_PX,
+    storageKey: 'chat-workspace-width-px',
   });
 
   // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
   const { dynamicChatMinRatio, dynamicChatMaxRatio } = calcLayoutMetrics({
     containerWidth,
-    workspaceSplitRatio,
+    workspaceWidthPx: workspaceWidthPxPref,
     chatSplitRatio: 60, // placeholder; only dynamicChatMinRatio/dynamicChatMaxRatio are used here
     workspaceEnabled,
     isDesktop,
@@ -136,17 +139,16 @@ const ChatLayout: React.FC<{
   });
 
   // Full metrics with real chatSplitRatio
-  const { chatFlex, workspaceFlex, workspaceWidthPx, titleAreaMaxWidth, mobileWorkspaceHandleRight } =
-    calcLayoutMetrics({
-      containerWidth,
-      workspaceSplitRatio,
-      chatSplitRatio,
-      workspaceEnabled,
-      isDesktop,
-      isPreviewOpen,
-      rightSiderCollapsed,
-      isMobile,
-    });
+  const { chatFlex, workspaceWidthPx, titleAreaMaxWidth, mobileWorkspaceHandleRight } = calcLayoutMetrics({
+    containerWidth,
+    workspaceWidthPx: workspaceWidthPxPref,
+    chatSplitRatio,
+    workspaceEnabled,
+    isDesktop,
+    isPreviewOpen,
+    rightSiderCollapsed,
+    isMobile,
+  });
 
   // --- Hook D: preview auto-collapse ---
   usePreviewAutoCollapse({
@@ -167,8 +169,8 @@ const ChatLayout: React.FC<{
     isPreviewOpen,
     rightSiderCollapsed,
     setRightSiderCollapsed,
-    workspaceSplitRatio,
-    setWorkspaceSplitRatio,
+    workspaceWidthPx: workspaceWidthPxPref,
+    setWorkspaceWidthPx: setWorkspaceWidthPxPref,
     chatSplitRatio,
     setChatSplitRatio,
     dynamicChatMinRatio,
@@ -240,8 +242,8 @@ const ChatLayout: React.FC<{
         <div
           className='flex flex-col min-w-0'
           style={{
-            flexGrow: chatFlex,
-            flexShrink: 0,
+            flexGrow: 1,
+            flexShrink: 1,
             flexBasis: 0,
           }}
         >
@@ -302,11 +304,11 @@ const ChatLayout: React.FC<{
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
-              flexGrow: isPreviewOpen ? 0 : workspaceFlex,
+              flexGrow: 0,
               flexShrink: 0,
-              flexBasis: rightSiderCollapsed ? '0px' : isPreviewOpen ? `${Math.round(workspaceWidthPx)}px` : 0,
-              width: rightSiderCollapsed ? '0px' : isPreviewOpen ? `${Math.round(workspaceWidthPx)}px` : undefined,
-              minWidth: rightSiderCollapsed ? '0px' : '220px',
+              flexBasis: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              width: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              minWidth: rightSiderCollapsed ? '0px' : `${MIN_WORKSPACE_PANEL_PX}px`,
               overflow: 'hidden',
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
