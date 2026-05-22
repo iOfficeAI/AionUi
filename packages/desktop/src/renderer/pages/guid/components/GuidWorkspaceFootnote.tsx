@@ -286,7 +286,6 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
             {recentWorkspaces.length > 0 && <ChevronDown />}
           </button>
           {dropdownEl}
-          <span className={styles.workspaceOptionalLabel}>{t('guid.workspace.optional')}</span>
         </>
       )}
     </div>

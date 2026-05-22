@@ -244,7 +244,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   if (is_presetAgent && selectedAgentInfo) {
     // Selected Assistant View
     return (
-      <div className='mt-12px w-full'>
+      <div className='mt-20px w-full'>
         <div className='flex flex-col w-full animate-fade-in'>
           {/* Main Agent Fallback Notice */}
           {currentEffectiveAgentInfo.isFallback && (
@@ -306,7 +306,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   // Assistant List View
   return (
-    <div className='mt-12px w-full'>
+    <div className='mt-20px w-full'>
       <div className='flex flex-wrap gap-8px justify-center'>
         {assistants
           .filter((a) => a.enabled !== false)

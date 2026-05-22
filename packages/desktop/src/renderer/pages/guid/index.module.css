@@ -438,7 +438,7 @@
   gap: 8px;
   padding: 8px 12px;
   border-top: 1px solid var(--color-border-2);
-  background: var(--color-fill-2);
+  background: var(--color-fill-1);
   border-radius: 0 0 20px 20px;
 }
 
@@ -451,7 +451,7 @@
   color: var(--color-text-3);
   background: transparent;
   border: none;
-  padding: 3px 6px;
+  padding: 4px 6px;
   border-radius: 6px;
   cursor: pointer;
   font-family: inherit;
@@ -462,16 +462,17 @@
 }
 
 .workspaceEmptyBtn:hover {
-  color: var(--color-text-1);
-  background: var(--color-fill-2);
+  color: var(--color-text-2);
+  background: var(--color-fill-3);
 }
 
+/* 选中态：和空状态同色系，不做颜色跳变 */
 .workspacePill {
   display: inline-flex;
   align-items: center;
-  background: var(--aou-1);
-  border: 1px solid var(--aou-3);
-  border-radius: 8px;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
   overflow: hidden;
   max-width: 280px;
 }
@@ -480,22 +481,25 @@
   display: inline-flex;
   align-items: center;
   gap: 5px;
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--aou-7);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--color-text-2);
   background: transparent;
   border: none;
-  padding: 6px 5px 6px 10px;
+  padding: 4px 4px 4px 6px;
   cursor: pointer;
   font-family: inherit;
-  transition: background 0.12s;
+  transition:
+    background 0.12s,
+    color 0.12s;
   max-width: 220px;
   overflow: hidden;
   white-space: nowrap;
 }
 
 .workspacePillMain:hover {
-  background: var(--aou-2);
+  background: var(--color-fill-3);
+  color: var(--color-text-1);
 }
 
 .workspacePillName {
@@ -508,14 +512,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 22px;
-  height: 22px;
-  margin-right: 4px;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
   border: none;
   background: transparent;
   cursor: pointer;
   border-radius: 4px;
-  color: var(--aou-5);
+  color: var(--color-text-4);
   flex-shrink: 0;
   transition:
     background 0.12s,
@@ -523,8 +527,8 @@
 }
 
 .workspacePillClose:hover {
-  background: var(--aou-2);
-  color: var(--aou-7);
+  background: var(--color-fill-3);
+  color: var(--color-text-2);
 }
 
 .workspaceOptionalLabel {

@@ -125,14 +125,11 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 
   const isWebUI = !isElectronDesktop();
 
-  const enabledSkillSet = new Set(enabledSkills);
-  const disabledBuiltinSet = new Set(disabledBuiltinSkills);
-  const isSkillChecked = useCallback(
-    (skill: { name: string; isAuto: boolean }) =>
-      skill.isAuto ? !disabledBuiltinSet.has(skill.name) : enabledSkillSet.has(skill.name),
-    [disabledBuiltinSet, enabledSkillSet]
-  );
-  const activeSkillCount = allSkills.filter(isSkillChecked).length;
+  const builtinAutoSkills = allSkills.filter((s) => s.isAuto);
+  const activeSkillCount = builtinAutoSkills.length - disabledBuiltinSkills.length;
+
+  const isSkillChecked = (skill: { name: string; isAuto: boolean }) =>
+    skill.isAuto ? !disabledBuiltinSkills.includes(skill.name) : enabledSkills.includes(skill.name);
 
   const menuContent = (
     <Menu
