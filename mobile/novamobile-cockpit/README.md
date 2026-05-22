@@ -33,11 +33,14 @@ Expected local bind:
 127.0.0.1:25809
 ```
 
-Expected public Cloudflare hostname:
+Expected public Cloudflare route:
 
 ```text
-https://mobile.novacore.lol
+https://aion.novacore.lol/mobile
 ```
+
+`mobile.novacore.lol` requires Cloudflare DNS write access. The VPS tunnel can
+serve the route, but DNS provisioning is not assumed for this runtime package.
 
 ## Required environment
 
