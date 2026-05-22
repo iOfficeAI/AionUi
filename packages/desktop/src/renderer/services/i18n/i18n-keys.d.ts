@@ -633,6 +633,7 @@ export type I18nKey =
   | 'guid.scanning.statusQueued'
   | 'guid.scanning.statusTesting'
   | 'guid.scanning.statusUnreachable'
+  | 'guid.selectAssistantHint'
   | 'guid.switchedToAgent'
   | 'guid.workspace.clearWorkspace'
   | 'guid.workspace.noProject'
