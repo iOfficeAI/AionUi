@@ -93,10 +93,10 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
 
   return (
     <div
-      className={`${styles.guidInputCardWrap} guid-input-card-shell relative b b-solid rd-24px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'border-dashed guid-input-card-shell--dragging' : ''}`}
+      className={`${styles.guidInputCardWrap} guid-input-card-shell relative rd-24px flex flex-col ${mentionOpen ? 'overflow-visible' : 'overflow-hidden'} transition-all duration-200 ${isFileDragging ? 'b b-solid border-dashed guid-input-card-shell--dragging' : ''}`}
       style={{
         zIndex: 1,
-        transition: 'box-shadow 0.25s ease, border-color 0.25s ease, border-width 0.25s ease',
+        transition: 'box-shadow 0.25s ease',
         width: isMobile ? 'calc(100% + 28px)' : undefined,
         marginLeft: isMobile ? -14 : undefined,
         marginRight: isMobile ? -14 : undefined,
@@ -107,15 +107,20 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
               borderWidth: '1px',
             }
           : {
-              borderWidth: '1px',
-              borderColor,
               boxShadow: isInputActive ? activeShadow : 'none',
             }),
       }}
       {...dragHandlers}
     >
       {/* inner white card — narrower than outer wrap */}
-      <div className={`${styles.guidInputInner} p-12px flex flex-col bg-dialog-fill-0`}>
+      <div
+        className={`${styles.guidInputInner} p-12px flex flex-col bg-dialog-fill-0`}
+        style={{
+          transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
+          borderColor: isFileDragging ? 'rgb(var(--primary-3))' : borderColor,
+          boxShadow: isInputActive && !isFileDragging ? activeShadow : 'none',
+        }}
+      >
         {mentionSelectorBadge}
         <Input.TextArea
           autoSize={textareaAutoSize}
