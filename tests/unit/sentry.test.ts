@@ -4,8 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  *
  * Unit tests for the pure helpers exported from `packages/desktop/src/sentry.ts`:
- * `computeReportDays`, `selectRecentLogFiles`, `packAndCap`. Electron and Sentry
- * are mocked so this suite runs under the `node` Vitest project.
+ * `selectRecentLogFiles`, `packAndCap`. Electron and Sentry are mocked so this
+ * suite runs under the `node` Vitest project.
  */
 
 import { describe, it, expect, vi } from 'vitest';
@@ -26,28 +26,7 @@ vi.mock('@/process/utils/analyticsId', () => ({
   getOrCreateAnalyticsId: () => 'test-device-id',
 }));
 
-import { computeReportDays, selectRecentLogFiles, packAndCap } from '@/sentry';
-
-describe('computeReportDays', () => {
-  const ONE_DAY = 24 * 60 * 60 * 1000;
-  const now = 1_700_000_000_000;
-
-  it('returns 7 when there is no prior report', () => {
-    expect(computeReportDays(undefined, now)).toBe(7);
-  });
-
-  it('clamps to 1 when the last report was within 24h', () => {
-    expect(computeReportDays(now - 60_000, now)).toBe(1);
-  });
-
-  it('matches the elapsed-day count for mid-range gaps', () => {
-    expect(computeReportDays(now - 3 * ONE_DAY, now)).toBe(3);
-  });
-
-  it('caps at 7 even when far in the past', () => {
-    expect(computeReportDays(now - 30 * ONE_DAY, now)).toBe(7);
-  });
-});
+import { selectRecentLogFiles, packAndCap } from '@/sentry';
 
 describe('selectRecentLogFiles', () => {
   it('returns every file from the N most recent non-empty days', () => {

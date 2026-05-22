@@ -53,22 +53,13 @@ export function setSentryDeviceId(): void {
   Sentry.setTag('device_id', id);
 }
 
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
-
 /**
- * How many recent days of logs the next startup report should pack.
- *
- * - First-ever launch (`lastReportAt === undefined`): 7 days.
- * - Subsequent launches: ceil(elapsed / 24h), clamped to [1, 7].
- *
- * Throttle gating (skip-if-within-24h) is enforced by `runStartupLogReport`,
- * not here — this helper just decides the slice size once gating passes.
+ * How many recent days of logs the next startup report packs. Aligned with
+ * the 24h throttle: the previous report covers everything older, so each
+ * launch only needs the last calendar day. The app always writes today's
+ * log on startup, so this slice is never empty in practice.
  */
-export function computeReportDays(lastReportAt: number | undefined, now: number): number {
-  if (lastReportAt === undefined) return 7;
-  const elapsedDays = Math.ceil((now - lastReportAt) / MS_PER_DAY);
-  return Math.min(Math.max(elapsedDays, 1), 7);
-}
+const REPORT_DAYS = 1;
 
 export type LogFileMeta = { path: string; mtime: number; size: number };
 
@@ -201,7 +192,6 @@ async function runStartupLogReport(): Promise<void> {
     throw new UnretryableError('no DSN');
   }
 
-  const days = computeReportDays(state.lastReportAt, now);
   const logsRoot = app.getPath('logs');
   const frontendFiles = listLogFilesSync(logsRoot);
   const backendFiles = listLogFilesSync(path.join(logsRoot, 'logs'));
@@ -211,7 +201,7 @@ async function runStartupLogReport(): Promise<void> {
     throw new UnretryableError('no log files');
   }
 
-  const selected = selectRecentLogFiles(all, days);
+  const selected = selectRecentLogFiles(all, REPORT_DAYS);
   if (selected.length === 0) {
     writeState({ lastReportAt: now });
     throw new UnretryableError('no non-empty logs');
@@ -242,14 +232,14 @@ async function runStartupLogReport(): Promise<void> {
       contentType: 'application/gzip',
     });
     scope.setExtra('truncated', pack.truncated);
-    scope.setExtra('days_covered', days);
+    scope.setExtra('days_covered', REPORT_DAYS);
     Sentry.captureMessage('startup-log-report', 'info');
   });
 
   writeState({ lastReportAt: now });
   const sizeKb = (pack.gzipped.length / 1024).toFixed(1);
   console.info(
-    `[sentry] startup log report sent (days=${days}, files=${selected.length}, gzipped=${sizeKb}KB, truncated=${pack.truncated})`
+    `[sentry] startup log report sent (days=${REPORT_DAYS}, files=${selected.length}, gzipped=${sizeKb}KB, truncated=${pack.truncated})`
   );
 }
 
