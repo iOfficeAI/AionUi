@@ -531,12 +531,6 @@
   color: var(--color-text-2);
 }
 
-.workspaceOptionalLabel {
-  font-size: 11px;
-  color: var(--color-text-3);
-  flex-shrink: 0;
-}
-
 /* workspace dropdown popup — portal-rendered, position set via JS */
 .wsDropdown {
   background: var(--bg-base, #fff);

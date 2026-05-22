@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
@@ -89,7 +88,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   onSend,
 }) => {
   const { t } = useTranslation();
-  const layout = useLayoutContext();
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
   const showModeSwitch = supportsModeSwitch(modeBackend);
@@ -109,7 +107,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         if (processed.length > 0) {
           onFilesUploaded(processed.map((f) => f.path));
         }
-      } catch (err) {
+      } catch {
         Message.error(t('common.fileAttach.failed'));
       } finally {
         setUploading(false);
