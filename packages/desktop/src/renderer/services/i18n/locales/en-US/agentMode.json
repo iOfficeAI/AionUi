@@ -13,7 +13,7 @@
   "smart": "Smart",
   "build": "Build Mode",
   "permission": "Permission",
-  "switchMode": "Switch Mode",
+  "switchMode": "Permission Mode",
   "switchSuccess": "Mode switched successfully",
   "switchFailed": "Failed to switch mode"
 }

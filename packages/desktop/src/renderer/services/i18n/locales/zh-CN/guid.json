@@ -8,6 +8,14 @@
   "promptExamplesHint": "试试这些可点击的案例提示词：",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "已切换到 {{agent}}",
+  "workspace": {
+    "workInProject": "在项目中工作",
+    "optional": "可选",
+    "clearWorkspace": "清除",
+    "specifyWorkspace": "选择项目文件夹",
+    "searchPlaceholder": "搜索项目…",
+    "noProject": "不使用项目"
+  },
   "scanning": {
     "initialMessage": "当前Agent不可用, 正在检测其他可用agent...",
     "scanningMessage": "正在扫描本地可用agent...",

@@ -8,6 +8,14 @@
   "promptExamplesHint": "Попробуйте примеры промптов:",
   "agentSwitcherLabel": "Агент",
   "switchedToAgent": "Переключено на {{agent}}",
+  "workspace": {
+    "workInProject": "Работать в проекте",
+    "optional": "Необязательно",
+    "clearWorkspace": "Очистить",
+    "specifyWorkspace": "Выбрать папку проекта",
+    "searchPlaceholder": "Поиск проектов…",
+    "noProject": "Без проекта"
+  },
   "scanning": {
     "initialMessage": "Текущий агент недоступен, обнаружение других доступных агентов...",
     "scanningMessage": "Сканирование локальных доступных агентов...",
