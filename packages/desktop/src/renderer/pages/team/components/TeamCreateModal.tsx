@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Form, Input, Message } from '@arco-design/web-react';
+import { Button, Form, Input, Message, Tooltip } from '@arco-design/web-react';
 import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
-import { Close, Search } from '@icon-park/react';
+import { Close, Search, CloseSmall } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/team/teamTypes';
@@ -46,10 +46,10 @@ const AgentRadioRow: React.FC<{
     data-testid={`team-create-agent-option-${agentKey(agent)}`}
   >
     <div
-      className='flex h-16px w-16px flex-shrink-0 items-center justify-center rounded-full border border-solid transition-all'
+      className='h-16px w-16px flex-shrink-0 rounded-full transition-all'
       style={{
-        borderColor: isSelected ? 'rgb(var(--primary-6))' : 'var(--color-border-3)',
-        borderWidth: isSelected ? 5 : 1.5,
+        boxSizing: 'border-box',
+        border: isSelected ? '5px solid rgb(var(--primary-6))' : '1.5px solid var(--color-border-3)',
       }}
     />
     <div className='flex-1 overflow-hidden'>
@@ -67,7 +67,19 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const nameInputRef = useRef<RefInputType | null>(null);
+  const searchInputRef = useRef<HTMLInputElement | null>(null);
+
+  const handleToggleSearch = () => {
+    if (searchExpanded) {
+      setSearch('');
+      setSearchExpanded(false);
+    } else {
+      setSearchExpanded(true);
+      setTimeout(() => searchInputRef.current?.focus(), 50);
+    }
+  };
 
   const cliAgentOptions = useMemo(() => cliAgents.map(cliAgentToOption), [cliAgents]);
   const teamCapableKeys = useMemo(
@@ -117,6 +129,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     setDispatchAgentKey(undefined);
     setWorkspace('');
     setSearch('');
+    setSearchExpanded(false);
     onClose();
   };
 
@@ -271,12 +284,43 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                 {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
               </div>
             ) : (
-              <div className='rounded-12px border border-border-2 bg-fill-1'>
-                {/* 搜索框 */}
-                <div className='border-b border-border-2 px-12px py-8px'>
-                  <div className='flex items-center gap-8px'>
+              <div className='relative flex flex-col gap-8px'>
+                {/* 搜索按钮（暂时隐藏 —— 列表数量少时不需要） */}
+                {false && (
+                <Tooltip
+                  content={
+                    searchExpanded
+                      ? t('team.create.closeSearchTooltip', { defaultValue: 'Close search' })
+                      : t('team.create.searchAgentsTooltip', { defaultValue: 'Search agents' })
+                  }
+                  position='top'
+                >
+                  <button
+                    type='button'
+                    onClick={handleToggleSearch}
+                    className='absolute -top-26px right-0 flex h-22px w-22px cursor-pointer items-center justify-center rounded-6px border-none bg-transparent text-t-secondary transition-colors hover:bg-fill-2 hover:text-t-primary'
+                    data-testid='team-create-leader-search-toggle'
+                    aria-label={
+                      searchExpanded
+                        ? t('team.create.closeSearchTooltip', { defaultValue: 'Close search' })
+                        : t('team.create.searchAgentsTooltip', { defaultValue: 'Search agents' })
+                    }
+                  >
+                    {searchExpanded ? (
+                      <CloseSmall size='14' fill='currentColor' />
+                    ) : (
+                      <Search size='14' fill='currentColor' />
+                    )}
+                  </button>
+                </Tooltip>
+                )}
+
+                {/* 搜索框（点搜索图标后展开） */}
+                {searchExpanded && (
+                  <div className='flex items-center gap-8px rounded-8px border border-border-2 bg-bg-2 px-12px py-8px focus-within:border-primary-6'>
                     <Search size='14' fill='currentColor' className='flex-shrink-0 text-t-tertiary' />
                     <input
+                      ref={searchInputRef}
                       className='flex-1 border-none bg-transparent text-13px text-t-primary outline-none placeholder:text-t-tertiary'
                       placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search agents...' })}
                       value={search}
@@ -284,10 +328,10 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       data-testid='team-create-leader-search'
                     />
                   </div>
-                </div>
+                )}
 
-                {/* 列表 */}
-                <div className='max-h-240px overflow-y-auto p-6px'>
+                {/* 列表 —— 根据 agent 数量自适应，最大 320px */}
+                <div className='max-h-320px overflow-y-auto rounded-12px border border-border-2 bg-fill-1 p-6px'>
                   {!hasSearchResults ? (
                     <div className='flex items-center justify-center py-20px text-12px text-t-tertiary'>
                       {t('team.create.noSearchResults', { defaultValue: 'No results found' })}
