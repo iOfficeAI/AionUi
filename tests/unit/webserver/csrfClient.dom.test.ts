@@ -10,8 +10,11 @@ import {
   hasValidCsrfToken,
   clearCookie,
   clearAllCookies,
+  clearCachedCsrfToken,
   withCsrfToken,
   withCsrfHeader,
+  rememberCsrfToken,
+  rememberCsrfTokenFromResponse,
 } from '@/process/webserver/middleware/csrfClient';
 import { CSRF_COOKIE_NAME, CSRF_HEADER_NAME } from '@/process/webserver/config/constants';
 
@@ -30,6 +33,7 @@ describe('csrfClient', () => {
       delete mockCookies[key];
     });
     document.cookie = '';
+    clearCachedCsrfToken();
   });
 
   afterEach(() => {
@@ -38,6 +42,7 @@ describe('csrfClient', () => {
       delete mockCookies[key];
     });
     document.cookie = '';
+    clearCachedCsrfToken();
   });
 
   describe('getCsrfToken', () => {
@@ -65,6 +70,19 @@ describe('csrfClient', () => {
       document.cookie = `other=value; ${CSRF_COOKIE_NAME}=${testToken}; another=test`;
       const token = getCsrfToken();
       expect(token).toBe(testToken);
+    });
+
+    it('should return a cached response header token when the CSRF cookie is HTTP-only', () => {
+      rememberCsrfToken('header-csrf-token');
+      expect(getCsrfToken()).toBe('header-csrf-token');
+    });
+
+    it('should remember the token from a response header', () => {
+      const response = new Response(null, {
+        headers: { [CSRF_HEADER_NAME]: 'response-csrf-token' },
+      });
+      expect(rememberCsrfTokenFromResponse(response)).toBe('response-csrf-token');
+      expect(getCsrfToken()).toBe('response-csrf-token');
     });
   });
 

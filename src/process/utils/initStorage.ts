@@ -619,7 +619,7 @@ const getDefaultMcpServers = (): IMcpServer[] => {
     mcpServers: {
       'chrome-devtools': {
         command: 'npx',
-        args: ['-y', 'chrome-devtools-mcp@latest'],
+        args: ['-y', 'chrome-devtools-mcp@0.26.0'],
       },
     },
   };

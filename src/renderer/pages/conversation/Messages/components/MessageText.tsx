@@ -116,6 +116,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
+  const isAssistantMessage = message.position === 'left';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
@@ -160,6 +161,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const senderAgentType = message.content.senderAgentType;
   const senderConversationId = message.content.senderConversationId;
   const fallbackBackendLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
+  const assistantDisplayName = senderName || senderAgentType || 'Jarvis';
+  const showAssistantIdentity = isAssistantMessage && !isTeammateMessage;
 
   return (
     <>
@@ -173,6 +176,16 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
               backendLogo={fallbackBackendLogo}
             />
             <span className='text-12px text-t-secondary'>{senderName}</span>
+          </div>
+        )}
+        {showAssistantIdentity && (
+          <div className='flex items-center gap-6px mb-5px'>
+            <TeammateMessageAvatar
+              senderName={assistantDisplayName}
+              senderConversationId={senderConversationId}
+              backendLogo={fallbackBackendLogo}
+            />
+            <span className='text-12px text-t-secondary'>{assistantDisplayName}</span>
           </div>
         )}
         {files.length > 0 && (
@@ -194,14 +207,25 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
             'bg-aou-2 p-8px': isUserMessage || cronMeta,
             'bg-3 p-8px': isTeammateMessage,
-            'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
+            'p-10px': showAssistantIdentity,
+            'w-full': !(isUserMessage || cronMeta || isTeammateMessage || showAssistantIdentity),
           })}
           style={{
             ...(isUserMessage || cronMeta
               ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
               : isTeammateMessage
                 ? { borderRadius: '0 8px 8px 8px' }
-                : undefined),
+                : showAssistantIdentity
+                  ? {
+                      borderRadius: '0 10px 10px 10px',
+                      background:
+                        'linear-gradient(135deg, color-mix(in srgb, var(--color-fill-2) 92%, transparent), color-mix(in srgb, var(--color-fill-1) 82%, transparent))',
+                      border: '1px solid color-mix(in srgb, var(--color-border-2) 72%, transparent)',
+                      boxShadow:
+                        'inset 0 1px 0 rgba(255,255,255,0.04), 0 10px 30px rgba(0,0,0,0.12)',
+                      color: 'var(--color-text-1)',
+                    }
+                  : undefined),
           }}
         >
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}

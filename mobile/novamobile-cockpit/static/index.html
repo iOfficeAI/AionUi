@@ -1,0 +1,276 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>NovaMobile Cockpit</title>
+    <style>
+      :root {
+        --bg: #08110f;
+        --panel: rgba(238, 232, 206, 0.08);
+        --panel-strong: rgba(238, 232, 206, 0.14);
+        --text: #f3ecd2;
+        --muted: #9eb8aa;
+        --line: rgba(243, 236, 210, 0.14);
+        --ok: #8fd694;
+        --bad: #ff7e67;
+        --warn: #f6c15c;
+        --accent: #c9ff70;
+        --accent-2: #66e3d4;
+      }
+
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; }
+      body {
+        font-family: "Aptos", "Segoe UI", sans-serif;
+        background:
+          radial-gradient(circle at top left, rgba(102, 227, 212, 0.18), transparent 34rem),
+          radial-gradient(circle at 100% 15%, rgba(201, 255, 112, 0.16), transparent 26rem),
+          linear-gradient(145deg, #07100e 0%, #11140b 58%, #07100e 100%);
+        color: var(--text);
+      }
+
+      .shell { width: min(1120px, 100%); margin: 0 auto; padding: 22px; }
+      .hero {
+        display: grid;
+        gap: 12px;
+        padding: 22px;
+        border: 1px solid var(--line);
+        border-radius: 28px;
+        background: linear-gradient(135deg, rgba(243, 236, 210, 0.12), rgba(8, 17, 15, 0.74));
+        box-shadow: 0 30px 80px rgba(0, 0, 0, 0.32);
+      }
+      .eyebrow { color: var(--accent); font-size: 12px; text-transform: uppercase; letter-spacing: 0.16em; }
+      h1 { margin: 0; font-size: clamp(34px, 10vw, 74px); line-height: 0.9; letter-spacing: -0.07em; }
+      .sub { margin: 0; color: var(--muted); max-width: 720px; line-height: 1.55; }
+      .bar { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 10px; }
+      button, .pill {
+        border: 1px solid var(--line);
+        border-radius: 999px;
+        background: var(--panel);
+        color: var(--text);
+        padding: 10px 14px;
+        font-weight: 700;
+      }
+      button { cursor: pointer; transition: 160ms transform ease, 160ms background ease; }
+      button:hover { transform: translateY(-1px); background: var(--panel-strong); }
+      button.primary { color: #07100e; background: var(--accent); border-color: transparent; }
+      button.danger { color: #180b09; background: var(--bad); border-color: transparent; }
+      button:disabled { opacity: 0.55; cursor: wait; transform: none; }
+
+      .grid { display: grid; gap: 14px; margin-top: 16px; }
+      @media (min-width: 820px) {
+        .grid { grid-template-columns: 1.1fr 0.9fr; }
+      }
+      .card {
+        border: 1px solid var(--line);
+        border-radius: 24px;
+        background: rgba(8, 17, 15, 0.72);
+        backdrop-filter: blur(14px);
+        padding: 16px;
+      }
+      .card h2 { margin: 0 0 12px; font-size: 18px; letter-spacing: -0.02em; }
+      .metric { display: grid; grid-template-columns: 1fr auto; gap: 8px; padding: 9px 0; border-top: 1px solid var(--line); }
+      .metric:first-of-type { border-top: 0; }
+      .label { color: var(--muted); }
+      .value { font-weight: 800; text-align: right; }
+      .ok { color: var(--ok); }
+      .bad { color: var(--bad); }
+      .warn { color: var(--warn); }
+      .services { display: grid; gap: 10px; }
+      .svc {
+        display: grid;
+        grid-template-columns: 1fr auto;
+        gap: 8px;
+        align-items: center;
+        padding: 12px;
+        border-radius: 18px;
+        background: var(--panel);
+        border: 1px solid var(--line);
+      }
+      .svc-name { font-weight: 800; }
+      .svc-unit { color: var(--muted); font-size: 12px; }
+      .svc-actions { display: flex; gap: 8px; }
+      .logbox {
+        min-height: 180px;
+        max-height: 360px;
+        overflow: auto;
+        white-space: pre-wrap;
+        word-break: break-word;
+        border-radius: 18px;
+        padding: 14px;
+        background: #030706;
+        color: #d8f7e4;
+        font-family: "Cascadia Code", "SFMono-Regular", monospace;
+        font-size: 12px;
+        border: 1px solid var(--line);
+      }
+      .footer { color: var(--muted); font-size: 12px; margin-top: 14px; }
+      .flash { min-height: 22px; color: var(--accent-2); font-weight: 700; }
+      input {
+        width: 100%;
+        border: 1px solid var(--line);
+        background: rgba(0, 0, 0, 0.18);
+        color: var(--text);
+        border-radius: 16px;
+        padding: 12px;
+        margin: 8px 0;
+      }
+    </style>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="hero">
+        <div class="eyebrow">AionUi NovaMobile</div>
+        <h1>VPS cockpit</h1>
+        <p class="sub">Always-on control for NovaMaster. Use this from phone when the PC is off. Discord remains alerts and voice; this page is the operator panel.</p>
+        <div class="bar">
+          <button class="primary" id="refresh">Refresh status</button>
+          <button id="noizSmoke">Test Noiz voice</button>
+          <button id="secretaryCall">Call Faramix</button>
+          <span class="pill" id="session">checking login...</span>
+        </div>
+        <div class="flash" id="flash"></div>
+      </section>
+
+      <section class="grid">
+        <div class="card">
+          <h2>System</h2>
+          <div id="metrics"></div>
+        </div>
+
+        <div class="card">
+          <h2>Quick call</h2>
+          <input id="callMessage" value="Faramix, Nova Secretary belt via de VPS." />
+          <button class="primary" id="secretaryCall2">Speak in Discord voice</button>
+          <p class="footer">This temporarily runs the Secretary one-shot voice path and returns the bot service to active state.</p>
+        </div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>Services</h2>
+        <div class="services" id="services"></div>
+      </section>
+
+      <section class="card" style="margin-top:16px">
+        <h2>Logs</h2>
+        <div class="bar" id="logButtons"></div>
+        <pre class="logbox" id="logs">Select a service log.</pre>
+      </section>
+
+      <div class="footer">API: <span id="apiUrl"></span></div>
+    </main>
+
+    <script>
+      const $ = (id) => document.getElementById(id);
+      const state = { status: null, busy: false };
+      $("apiUrl").textContent = `${location.origin}/api/status`;
+
+      function flash(message, bad = false) {
+        $("flash").textContent = message;
+        $("flash").style.color = bad ? "var(--bad)" : "var(--accent-2)";
+      }
+
+      async function api(path, options = {}) {
+        const res = await fetch(path, {
+          ...options,
+          cache: "no-store",
+          headers: { "content-type": "application/json", ...(options.headers || {}) },
+        });
+        const data = await res.json().catch(() => ({ ok: false, error: `HTTP ${res.status}` }));
+        if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+        return data;
+      }
+
+      function row(label, value, klass = "") {
+        return `<div class="metric"><div class="label">${label}</div><div class="value ${klass}">${value ?? "-"}</div></div>`;
+      }
+
+      function renderStatus(data) {
+        state.status = data;
+        const h = data.health || {};
+        const noiz = data.noiz || {};
+        $("metrics").innerHTML = [
+          row("Host", data.host || "unknown"),
+          row("Health", h.ok ? "PASS" : "FAIL", h.ok ? "ok" : "bad"),
+          row("Noiz", noiz.ok ? "PASS" : "FAIL", noiz.ok ? "ok" : "bad"),
+          row("Load", Array.isArray(h.loadavg) ? h.loadavg.slice(0, 3).join(" / ") : "-"),
+          row("Memory", h.memory && h.memory.usedPercent != null ? `${h.memory.usedPercent}%` : "-"),
+          row("Disk", h.disk && h.disk.usedPercent != null ? `${h.disk.usedPercent}%` : "-"),
+          row("High risk exposure", h.highRiskExposureCount ?? "-",
+            Number(h.highRiskExposureCount || 0) > 0 ? "warn" : "ok"),
+        ].join("");
+
+        $("services").innerHTML = data.services.map((svc) => `
+          <div class="svc">
+            <div>
+              <div class="svc-name ${svc.ok ? "ok" : "bad"}">${svc.name}</div>
+              <div class="svc-unit">${svc.unit} | ${svc.enabled}</div>
+            </div>
+            <div class="svc-actions">
+              <button data-log="${svc.name}">Logs</button>
+              <button data-restart="${svc.name}" class="${svc.ok ? "" : "danger"}">Restart</button>
+            </div>
+          </div>
+        `).join("");
+
+        $("logButtons").innerHTML = data.services.map((svc) =>
+          `<button data-log="${svc.name}">${svc.name}</button>`
+        ).join("");
+      }
+
+      async function refresh() {
+        flash("Refreshing...");
+        const session = await api("/api/session");
+        $("session").textContent = session.email;
+        const data = await api("/api/status");
+        renderStatus(data);
+        flash(`Updated ${new Date().toLocaleTimeString()}`);
+      }
+
+      async function loadLogs(name) {
+        flash(`Loading ${name} logs...`);
+        const data = await api(`/api/logs/${encodeURIComponent(name)}?lines=120`);
+        $("logs").textContent = data.output || "(no output)";
+        flash(`Logs loaded: ${name}`);
+      }
+
+      async function restart(name) {
+        if (!confirm(`Restart ${name}?`)) return;
+        flash(`Restarting ${name}...`);
+        const data = await api(`/api/services/${encodeURIComponent(name)}/restart`, { method: "POST", body: "{}" });
+        flash(data.ok ? `${name} restarted` : `${name} restart failed`, !data.ok);
+        await refresh();
+      }
+
+      async function noizSmoke() {
+        flash("Running Noiz smoke...");
+        const data = await api("/api/actions/noiz-smoke", { method: "POST", body: "{}" });
+        flash(data.ok ? `Noiz PASS (${data.bytes} bytes)` : "Noiz FAIL", !data.ok);
+      }
+
+      async function secretaryCall() {
+        const message = $("callMessage").value.trim() || "Faramix, Nova Secretary belt via de VPS.";
+        flash("Calling Discord voice...");
+        const data = await api("/api/actions/secretary-call", { method: "POST", body: JSON.stringify({ message }) });
+        flash(data.ok ? "Secretary call PASS" : "Secretary call FAIL", !data.ok);
+        await refresh();
+      }
+
+      document.addEventListener("click", (event) => {
+        const target = event.target;
+        if (!(target instanceof HTMLElement)) return;
+        const logName = target.getAttribute("data-log");
+        const restartName = target.getAttribute("data-restart");
+        if (logName) loadLogs(logName).catch((err) => flash(err.message, true));
+        if (restartName) restart(restartName).catch((err) => flash(err.message, true));
+      });
+
+      $("refresh").addEventListener("click", () => refresh().catch((err) => flash(err.message, true)));
+      $("noizSmoke").addEventListener("click", () => noizSmoke().catch((err) => flash(err.message, true)));
+      $("secretaryCall").addEventListener("click", () => secretaryCall().catch((err) => flash(err.message, true)));
+      $("secretaryCall2").addEventListener("click", () => secretaryCall().catch((err) => flash(err.message, true)));
+      refresh().catch((err) => flash(err.message, true));
+    </script>
+  </body>
+</html>

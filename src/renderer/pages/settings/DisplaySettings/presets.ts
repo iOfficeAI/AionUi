@@ -24,6 +24,7 @@ import retromaY2kCss from './presets/retroma-y2k.css?raw';
 import retromaObsidianBookCss from './presets/retroma-obsidian-book.css?raw';
 import discourseHorizonCss from './presets/discourse-horizon.css?raw';
 import glitteringInputFieldCss from './presets/glittering-input-field.css?raw';
+import novaMasterCss from '../../../styles/themes/novamaster-theme.css?raw';
 
 /**
  * 默认主题 ID / Default theme ID
@@ -42,6 +43,15 @@ export const PRESET_THEMES: ICssTheme[] = [
     isPreset: true,
     cover: defaultThemeCover,
     css: defaultCss,
+    createdAt: Date.now(),
+    updatedAt: Date.now(),
+  },
+  {
+    id: 'novamaster-trinity',
+    name: 'NovaMaster Trinity',
+    isPreset: true,
+    cover: '/novamaster-logo.svg',
+    css: novaMasterCss,
     createdAt: Date.now(),
     updatedAt: Date.now(),
   },

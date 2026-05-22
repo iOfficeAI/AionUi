@@ -117,6 +117,11 @@ function registerProductionStaticRoutes(expressApp: Express, staticRoot: string,
 
   const serveApplication = async (req: Request, res: Response) => {
     try {
+      if (req.path !== '/') {
+        res.redirect(302, `/#${req.originalUrl}`);
+        return;
+      }
+
       res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
       res.setHeader('Pragma', 'no-cache');
       res.setHeader('Expires', '0');

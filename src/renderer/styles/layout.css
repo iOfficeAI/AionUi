@@ -3,8 +3,20 @@
 /* Layout sider base styles */
 .layout-sider {
   overflow-x: hidden;
-  box-shadow: none !important;
-  border-right: 1px solid var(--border-base);
+  background:
+    linear-gradient(180deg, rgba(255, 241, 168, 0.055), transparent 18%),
+    linear-gradient(90deg, rgba(217, 164, 49, 0.07), transparent 34%),
+    linear-gradient(180deg, #120c04 0%, #070402 44%, #020201 100%) !important;
+  box-shadow: 22px 0 62px rgba(0, 0, 0, 0.52) !important;
+  border-right: 1px solid rgba(217, 164, 49, 0.26);
+  backdrop-filter: saturate(118%) blur(10px);
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .layout-sider {
+  box-shadow:
+    22px 0 64px rgba(0, 0, 0, 0.55),
+    inset -1px 0 0 rgba(255, 241, 168, 0.08) !important;
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer
@@ -16,10 +28,38 @@
   flex: 1 !important;
   min-height: 0 !important;
   height: 100% !important;
+  background:
+    repeating-linear-gradient(180deg, rgba(255, 241, 168, 0.025) 0 1px, transparent 1px 36px),
+    linear-gradient(180deg, rgba(255, 241, 168, 0.03), transparent 28%);
 }
 
 .layout-sider-header {
   flex-shrink: 0 !important;
+  min-height: 64px;
+  border-bottom: 1px solid rgba(217, 164, 49, 0.13);
+  background: linear-gradient(180deg, rgba(255, 241, 168, 0.045), rgba(0, 0, 0, 0));
+}
+
+.novamaster-brandmark {
+  border: 1px solid rgba(255, 241, 168, 0.18);
+  background:
+    radial-gradient(circle at 50% 28%, rgba(255, 241, 168, 0.2), transparent 0 38%, transparent 62%),
+    linear-gradient(145deg, rgba(217, 164, 49, 0.14), rgba(8, 5, 2, 0.96));
+  box-shadow:
+    0 0 0 1px rgba(217, 164, 49, 0.08),
+    0 10px 26px rgba(0, 0, 0, 0.42),
+    0 0 22px rgba(217, 164, 49, 0.16);
+}
+
+.novamaster-brandmark img {
+  filter: drop-shadow(0 0 12px rgba(217, 164, 49, 0.42));
+}
+
+.novamaster-sidebar-title {
+  color: #fff1a8 !important;
+  font-family: ui-serif, Georgia, 'Times New Roman', serif;
+  letter-spacing: 0;
+  text-shadow: 0 0 16px rgba(217, 164, 49, 0.18);
 }
 
 .layout-sider-content {
@@ -44,7 +84,21 @@
   transition:
     padding 0.2s ease,
     margin 0.2s ease,
-    background-color 0.2s ease;
+    background-color 0.2s ease,
+    box-shadow 0.2s ease,
+    border-color 0.2s ease;
+  border: 1px solid transparent;
+  border-radius: 8px;
+}
+
+.chat-history__item:hover,
+.settings-sider__item:hover {
+  box-shadow:
+    inset 0 0 0 1px rgba(217, 164, 49, 0.24),
+    0 8px 24px rgba(0, 0, 0, 0.18);
+  background:
+    linear-gradient(90deg, rgba(217, 164, 49, 0.14), rgba(217, 164, 49, 0.035)),
+    rgba(18, 12, 4, 0.74);
 }
 
 .chat-history__item-name,
@@ -136,7 +190,8 @@
 .arco-input-inner-wrapper,
 .arco-input-group-addafter,
 .arco-input-group-addbefore {
-  background-color: var(--fill-0) !important;
+  background-color: color-mix(in srgb, var(--fill-0) 88%, var(--bg-base)) !important;
+  border-color: var(--border-base) !important;
 }
 
 /* Grouped inputs should share one surface across the field and its add-ons. */
@@ -149,6 +204,36 @@
 .arco-input-group-addafter .arco-select .arco-select-view,
 .arco-input-group-addbefore .arco-select .arco-select-view {
   background-color: transparent !important;
+}
+
+[data-theme='dark'] .layout-content {
+  background:
+    linear-gradient(180deg, rgba(255, 241, 168, 0.035), transparent 18%),
+    radial-gradient(ellipse at 52% -20%, rgba(217, 164, 49, 0.14), transparent 42%),
+    radial-gradient(ellipse at 102% 12%, rgba(184, 115, 22, 0.09), transparent 28%),
+    linear-gradient(180deg, #050302 0%, #020201 58%, #090603 100%),
+    #020201 !important;
+  color: var(--text-primary);
+}
+
+[data-theme='dark'] .arco-card,
+[data-theme='dark'] .arco-modal,
+[data-theme='dark'] .arco-drawer,
+[data-theme='dark'] .arco-popover-content,
+[data-theme='dark'] .arco-dropdown-menu {
+  background:
+    linear-gradient(180deg, rgba(255, 241, 168, 0.035), transparent 26%),
+    rgba(8, 5, 2, 0.96) !important;
+  border-color: rgba(217, 164, 49, 0.2) !important;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.52) !important;
+}
+
+[data-theme='dark'] .arco-input:focus,
+[data-theme='dark'] .arco-input:hover,
+[data-theme='dark'] .arco-select-view:hover,
+[data-theme='dark'] .arco-input-inner-wrapper.arco-input-focus {
+  border-color: color-mix(in srgb, var(--brand) 55%, var(--border-base)) !important;
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 22%, transparent) !important;
 }
 
 /* Mobile sidebar positioning */

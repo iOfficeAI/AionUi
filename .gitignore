@@ -204,6 +204,7 @@ dist-server/
 .claude/teams/
 iterations/
 graphify-out/
+.codegraph/
 .graphify_python
 
 .snow/

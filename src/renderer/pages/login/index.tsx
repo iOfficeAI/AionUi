@@ -1,4 +1,3 @@
-import loginLogo from '@renderer/assets/logos/brand/app.png';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/renderer/services/i18n';
@@ -15,6 +14,7 @@ type MessageState = {
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
 const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
+const loginLogo = '/novamaster-logo.svg';
 
 // Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
 const obfuscate = (text: string): string => {
@@ -58,8 +58,8 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    document.title = t('login.pageTitle');
-  }, [t]);
+    document.title = 'NovaMaster';
+  }, []);
 
   useEffect(() => {
     document.documentElement.lang = i18n.language;
@@ -217,9 +217,9 @@ const LoginPage: React.FC = () => {
 
         <div className='login-page__header'>
           <div className='login-page__logo'>
-            <img src={loginLogo} alt={t('login.brand')} />
+            <img src={loginLogo} alt='NovaMaster' />
           </div>
-          <h1 className='login-page__title'>{t('login.brand')}</h1>
+          <h1 className='login-page__title'>NovaMaster</h1>
           <p className='login-page__subtitle'>{t('login.subtitle')}</p>
         </div>
 

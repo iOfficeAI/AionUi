@@ -114,9 +114,9 @@ export function toAgentConfig(old: OldAcpAgentConfig): AgentConfig {
  * Convert new-style ModelSnapshot to old-style AcpModelInfo
  */
 export function toAcpModelInfo(snapshot: ModelSnapshot): AcpModelInfo {
-  const availableModels = snapshot.availableModels.map((model) => ({
-    id: model.modelId,
-    label: model.name,
+  const availableModels = snapshot.availableModels.map((model, index) => ({
+    id: model.modelId ?? model.id ?? `model-${index}`,
+    label: model.name ?? model.id ?? `Model ${index + 1}`,
   }));
 
   let currentModelLabel: string | null = null;

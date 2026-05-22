@@ -1,11 +1,1328 @@
 .guidLayout {
   --assistant-surface-bg: color-mix(in srgb, var(--bg-2) 65%, transparent);
   --assistant-surface-bg-hover: color-mix(in srgb, var(--bg-2) 85%, transparent);
-  width: clamp(var(--app-min-width, 360px), calc(100% - 32px), 800px);
+  --nova-core-gold: #d9a431;
+  --nova-core-light: #fff1a8;
+  --nova-core-copper: #8b5e13;
+  --nova-core-emerald: #8fd3a3;
+  --nova-core-cyan: #7bdff2;
+  --nova-core-rose: #d28cbb;
+  width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 1520px);
   max-width: 100%;
-  padding: 0 16px;
+  padding: 0 12px 18px;
   box-sizing: border-box;
   margin: 0 auto;
+  position: relative;
+}
+
+.novaIdentity {
+  width: min(100%, 1520px);
+  max-width: 100%;
+  margin: 0 auto 14px;
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 7px 12px 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--border-base) 80%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-light) 10%, transparent), transparent 42%),
+    linear-gradient(315deg, color-mix(in srgb, var(--nova-core-copper) 14%, transparent), transparent 52%),
+    color-mix(in srgb, var(--bg-2) 78%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 30px rgba(0, 0, 0, 0.26),
+    0 0 28px color-mix(in srgb, var(--nova-core-gold) 11%, transparent);
+}
+
+.novaIdentity::before {
+  content: '';
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    color-mix(in srgb, var(--nova-core-light) 22%, transparent),
+    color-mix(in srgb, var(--nova-core-emerald) 12%, transparent),
+    transparent
+  );
+  transform: translateX(-120%);
+  animation: novaIdentitySweep 6s ease-in-out infinite;
+}
+
+.novaIdentityMark {
+  width: 38px;
+  height: 38px;
+  display: block;
+  border-radius: 11px;
+  filter: drop-shadow(0 0 12px color-mix(in srgb, var(--nova-core-gold) 34%, transparent));
+  flex-shrink: 0;
+  transform-origin: center;
+  animation: novaIdentityMarkPulse 5s ease-in-out infinite;
+}
+
+.novaIdentityText {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  min-width: 0;
+  white-space: nowrap;
+}
+
+.novaIdentityName {
+  color: var(--color-text-1);
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.novaIdentityMode {
+  color: color-mix(in srgb, var(--nova-core-gold) 78%, var(--color-text-2));
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+@keyframes novaIdentitySweep {
+  0%,
+  18% {
+    transform: translateX(-120%);
+    opacity: 0;
+  }
+
+  42% {
+    opacity: 1;
+  }
+
+  72%,
+  100% {
+    transform: translateX(120%);
+    opacity: 0;
+  }
+}
+
+@keyframes novaIdentityMarkPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px color-mix(in srgb, var(--brand) 24%, transparent));
+    transform: scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 18px color-mix(in srgb, var(--nova-core-light) 36%, transparent));
+    transform: scale(1.035);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .novaIdentity::before,
+  .novaIdentityMark,
+  .novaMissionControl::before,
+  .novaOrbPanel,
+  .novaOrbPanel::before,
+  .novaOrbPanel::after,
+  .novaOrbRing,
+  .novaOrbCore,
+  .novaOrb,
+  .novaOrb::before,
+  .novaOrb::after,
+  .novaOrbNode,
+  .novaOrbScan,
+  .novaOrbOrbit,
+  .novaOrbMetric,
+  .novaOrbAgentChip,
+  .novaServiceRail,
+  .novaServiceRail::before,
+  .novaServiceTile,
+  .novaServiceStatus,
+  .novaCommandButton,
+  .novaCommandButton::before,
+  .novaServiceOpen,
+  .novaServiceOpen::before,
+  .novaOrbChoice,
+  .novaOrbChoice::before,
+  .novaServiceLoading::before,
+  .novaHintChip,
+  .skeleton,
+  .skeletonPill {
+    animation: none;
+    transition: none;
+  }
+}
+
+.novaMissionControl {
+  width: 100%;
+  margin: 0 auto 20px;
+  display: grid;
+  grid-template-columns: minmax(560px, 1.32fr) minmax(340px, 0.68fr);
+  gap: 14px;
+  align-items: stretch;
+  position: relative;
+  isolation: isolate;
+}
+
+.novaMissionControl::before {
+  content: '';
+  position: absolute;
+  inset: -28px;
+  pointer-events: none;
+  z-index: 0;
+  background:
+    radial-gradient(circle at 18% 30%, color-mix(in srgb, var(--nova-core-gold) 14%, transparent), transparent 26%),
+    radial-gradient(circle at 68% 14%, color-mix(in srgb, var(--nova-core-light) 10%, transparent), transparent 18%),
+    radial-gradient(circle at 88% 64%, color-mix(in srgb, var(--nova-core-emerald) 10%, transparent), transparent 20%),
+    linear-gradient(135deg, transparent 0 46%, color-mix(in srgb, var(--nova-core-gold) 6%, transparent) 50%, transparent 54%);
+  filter: blur(12px);
+  opacity: 0.62;
+  animation: novaBackflow 18s ease-in-out infinite;
+}
+
+.novaOrbPanel,
+.novaServiceRail,
+.novaServiceTile {
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 28%, transparent);
+  background:
+    linear-gradient(120deg, color-mix(in srgb, var(--nova-core-gold) 12%, transparent), transparent 40%),
+    linear-gradient(180deg, color-mix(in srgb, var(--nova-core-light) 4%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bg-2) 88%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 16px 44px rgba(0, 0, 0, 0.28),
+    0 0 34px color-mix(in srgb, var(--nova-core-gold) 8%, transparent);
+  backdrop-filter: blur(18px);
+  position: relative;
+  z-index: 1;
+  transition:
+    transform 0.24s ease,
+    border-color 0.24s ease,
+    box-shadow 0.24s ease,
+    background 0.24s ease;
+}
+
+.novaOrbPanel {
+  min-height: 462px;
+  border-radius: 8px;
+  padding: 28px;
+  display: grid;
+  grid-template-columns: minmax(300px, 0.92fr) minmax(290px, 1.08fr);
+  grid-template-rows: 1fr auto auto;
+  column-gap: 30px;
+  row-gap: 16px;
+  position: relative;
+  overflow: hidden;
+  animation: novaPanelFloat 12s ease-in-out infinite;
+}
+
+.novaOrbPanel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(90deg, transparent 0 49%, color-mix(in srgb, var(--nova-core-gold) 12%, transparent) 50%, transparent 51%),
+    linear-gradient(0deg, transparent 0 49%, color-mix(in srgb, var(--nova-core-gold) 7%, transparent) 50%, transparent 51%),
+    radial-gradient(circle at 28% 46%, color-mix(in srgb, var(--nova-core-gold) 12%, transparent), transparent 34%);
+  background-size: 58px 58px, 58px 58px, auto;
+  opacity: 0.22;
+  mask-image: radial-gradient(circle at 29% 46%, black 0 33%, transparent 72%);
+  animation: novaGridDrift 24s linear infinite;
+}
+
+.novaOrbPanel::after {
+  content: '';
+  position: absolute;
+  inset: 14px;
+  pointer-events: none;
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 12%, transparent);
+  border-radius: 6px;
+  opacity: 0.76;
+  animation: novaFramePulse 10s ease-in-out infinite;
+}
+
+.novaPanelChrome {
+  position: absolute;
+  top: 18px;
+  right: 20px;
+  display: inline-flex;
+  gap: 6px;
+  opacity: 0.78;
+}
+
+.novaPanelChrome span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--nova-core-gold) 72%, transparent);
+  box-shadow: 0 0 10px color-mix(in srgb, var(--nova-core-gold) 34%, transparent);
+}
+
+.novaOrb {
+  width: clamp(224px, 24vw, 316px);
+  height: clamp(224px, 24vw, 316px);
+  align-self: center;
+  justify-self: center;
+  grid-row: 1 / 2;
+  position: relative;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 36% 28%, color-mix(in srgb, var(--nova-core-light) 38%, transparent), transparent 0 10%, transparent 18%),
+    radial-gradient(circle at 64% 72%, color-mix(in srgb, var(--nova-core-cyan) 20%, transparent), transparent 0 14%, transparent 34%),
+    conic-gradient(
+      from 218deg,
+      color-mix(in srgb, var(--nova-core-copper) 28%, transparent),
+      transparent 17%,
+      color-mix(in srgb, var(--nova-core-emerald) 20%, transparent) 31%,
+      transparent 48%,
+      color-mix(in srgb, var(--nova-core-gold) 34%, transparent) 64%,
+      transparent 82%,
+      color-mix(in srgb, var(--nova-core-cyan) 18%, transparent)
+    ),
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--nova-core-gold) 18%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bg-1) 82%, transparent);
+  box-shadow:
+    inset 0 0 34px color-mix(in srgb, var(--nova-core-cyan) 11%, transparent),
+    inset 0 0 64px color-mix(in srgb, var(--nova-core-light) 13%, transparent),
+    inset 0 0 0 1px color-mix(in srgb, var(--nova-core-gold) 34%, transparent),
+    0 0 42px color-mix(in srgb, var(--nova-core-gold) 22%, transparent),
+    0 0 90px color-mix(in srgb, var(--nova-core-cyan) 10%, transparent),
+    0 0 140px color-mix(in srgb, var(--nova-core-copper) 13%, transparent);
+  isolation: isolate;
+  z-index: 1;
+  animation:
+    novaOrbFloat 16s ease-in-out infinite,
+    novaOrbBreath 9s ease-in-out infinite,
+    novaOrbHue 22s ease-in-out infinite;
+}
+
+.novaOrb::before,
+.novaOrb::after {
+  content: '';
+  position: absolute;
+  display: block;
+  pointer-events: none;
+}
+
+.novaOrb::before {
+  inset: 14%;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 24deg,
+      transparent 0 10%,
+      color-mix(in srgb, var(--nova-core-light) 68%, transparent) 10% 12%,
+      transparent 12% 34%,
+      color-mix(in srgb, var(--nova-core-cyan) 42%, transparent) 34% 36%,
+      transparent 36% 64%,
+      color-mix(in srgb, var(--nova-core-gold) 48%, transparent) 64% 67%,
+      transparent 67% 100%
+    );
+  mask-image: radial-gradient(circle, transparent 0 47%, black 49% 55%, transparent 57%);
+  filter: drop-shadow(0 0 14px color-mix(in srgb, var(--nova-core-cyan) 18%, transparent));
+  z-index: 1;
+  animation: novaTriadSweep 18s linear infinite;
+}
+
+.novaOrb::after {
+  inset: 34%;
+  border: 1px solid color-mix(in srgb, var(--nova-core-light) 58%, transparent);
+  border-radius: 50%;
+  background:
+    radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--nova-core-light) 55%, transparent), transparent 0 12%, transparent 20%),
+    conic-gradient(from 180deg, transparent, color-mix(in srgb, var(--nova-core-emerald) 24%, transparent), transparent, color-mix(in srgb, var(--nova-core-gold) 22%, transparent), transparent);
+  box-shadow:
+    inset 0 0 18px color-mix(in srgb, var(--nova-core-light) 14%, transparent),
+    0 0 0 13px color-mix(in srgb, var(--nova-core-cyan) 6%, transparent),
+    0 0 24px color-mix(in srgb, var(--nova-core-gold) 22%, transparent);
+  z-index: 2;
+  animation: novaCenterPulse 7s ease-in-out infinite;
+}
+
+.novaOrbRing,
+.novaOrbCore,
+.novaOrbNode,
+.novaOrbScan,
+.novaOrbOrbit {
+  position: absolute;
+  display: block;
+}
+
+.novaOrbRing {
+  inset: 6%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--nova-core-light) 58%, transparent);
+  border-left-color: color-mix(in srgb, var(--nova-core-cyan) 52%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--nova-core-emerald) 40%, transparent);
+  box-shadow: inset 0 0 16px color-mix(in srgb, var(--nova-core-cyan) 8%, transparent);
+  animation: novaOrbDrift 34s linear infinite;
+}
+
+.novaOrbRing:nth-child(2) {
+  inset: 17%;
+  border-color: color-mix(in srgb, var(--nova-core-gold) 54%, transparent);
+  border-top-color: color-mix(in srgb, var(--nova-core-light) 74%, transparent);
+  border-right-color: color-mix(in srgb, var(--nova-core-rose) 28%, transparent);
+  animation-duration: 46s;
+  animation-direction: reverse;
+}
+
+.novaOrbRing:nth-child(3) {
+  inset: 29%;
+  border-color: color-mix(in srgb, var(--nova-core-copper) 52%, transparent);
+  border-left-color: color-mix(in srgb, var(--nova-core-emerald) 48%, transparent);
+  border-bottom-color: color-mix(in srgb, var(--nova-core-cyan) 34%, transparent);
+  animation-duration: 58s;
+  animation-direction: reverse;
+}
+
+.novaOrbScan {
+  inset: 8%;
+  border-radius: 50%;
+  background:
+    conic-gradient(
+      from 0deg,
+      color-mix(in srgb, var(--nova-core-cyan) 52%, transparent) 0 3%,
+      color-mix(in srgb, var(--nova-core-gold) 30%, transparent) 4% 7%,
+      transparent 8% 100%
+    );
+  mask-image: radial-gradient(circle, transparent 0 35%, black 38% 42%, transparent 45% 100%);
+  opacity: 0.72;
+  z-index: 2;
+  filter: drop-shadow(0 0 16px color-mix(in srgb, var(--nova-core-cyan) 24%, transparent));
+  animation: novaRadarSweep 6.8s linear infinite;
+}
+
+.novaOrbOrbit {
+  inset: 22%;
+  border-radius: 50%;
+  border: 1px dashed color-mix(in srgb, var(--nova-core-light) 34%, transparent);
+  box-shadow:
+    inset 0 0 12px color-mix(in srgb, var(--nova-core-cyan) 8%, transparent),
+    0 0 14px color-mix(in srgb, var(--nova-core-gold) 8%, transparent);
+  opacity: 0.82;
+  z-index: 2;
+  animation: novaOrbitPulse 5.6s ease-in-out infinite;
+}
+
+.novaOrbOrbit:nth-child(6) {
+  inset: 43%;
+  border-style: solid;
+  border-color: color-mix(in srgb, var(--nova-core-gold) 42%, transparent);
+  animation-delay: 1.8s;
+}
+
+.novaOrbCore {
+  inset: 37%;
+  border-radius: 50%;
+  background:
+    conic-gradient(from 210deg, transparent 0 24%, color-mix(in srgb, var(--nova-core-cyan) 46%, transparent) 24% 28%, transparent 28% 31%, color-mix(in srgb, var(--nova-core-light) 68%, transparent) 31% 34%, transparent 34% 62%, color-mix(in srgb, var(--nova-core-gold) 58%, transparent) 62% 65%, transparent 65% 82%, color-mix(in srgb, var(--nova-core-emerald) 34%, transparent) 82% 85%, transparent 85% 100%),
+    radial-gradient(circle, rgba(255, 241, 168, 0.72), transparent 0 14%, transparent 18%),
+    radial-gradient(circle, color-mix(in srgb, var(--nova-core-gold) 48%, transparent), color-mix(in srgb, var(--nova-core-cyan) 14%, transparent) 58%, color-mix(in srgb, var(--nova-core-copper) 24%, transparent));
+  box-shadow:
+    inset 0 0 14px color-mix(in srgb, var(--nova-core-light) 18%, transparent),
+    0 0 20px color-mix(in srgb, var(--nova-core-gold) 34%, transparent),
+    0 0 38px color-mix(in srgb, var(--nova-core-cyan) 14%, transparent);
+  animation: novaOrbPulse 11s ease-in-out infinite;
+  z-index: 3;
+}
+
+.novaOrbNode {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background:
+    radial-gradient(circle, white 0 14%, color-mix(in srgb, var(--nova-core-cyan) 68%, var(--nova-core-light)) 15% 54%, color-mix(in srgb, var(--nova-core-gold) 64%, transparent) 55%);
+  box-shadow:
+    0 0 8px color-mix(in srgb, var(--nova-core-light) 42%, transparent),
+    0 0 18px color-mix(in srgb, var(--nova-core-cyan) 30%, transparent);
+  z-index: 4;
+  animation: novaNodeTwinkle 4.8s ease-in-out infinite;
+}
+
+.novaOrbNode:nth-child(8) {
+  top: 11%;
+  left: 32%;
+  animation-delay: 0.4s;
+}
+
+.novaOrbNode:nth-child(9) {
+  right: 13%;
+  bottom: 17%;
+  animation-delay: 1.7s;
+}
+
+.novaOrbNode:nth-child(10) {
+  left: 13%;
+  bottom: 18%;
+  animation-delay: 3.1s;
+}
+
+.novaOrb_signal {
+  background:
+    conic-gradient(from 120deg, color-mix(in srgb, var(--nova-core-gold) 24%, transparent), transparent, color-mix(in srgb, var(--nova-core-emerald) 18%, transparent)),
+    color-mix(in srgb, var(--bg-1) 82%, transparent);
+}
+
+.novaOrb_glass {
+  background:
+    radial-gradient(circle at 32% 24%, rgba(255, 241, 168, 0.32), transparent 0 16%, transparent 20%),
+    linear-gradient(145deg, color-mix(in srgb, var(--nova-core-light) 16%, transparent), color-mix(in srgb, var(--bg-1) 92%, transparent));
+}
+
+.novaOrb_minimal {
+  background: color-mix(in srgb, var(--bg-1) 88%, transparent);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--brand) 38%, transparent),
+    0 0 18px color-mix(in srgb, var(--brand) 14%, transparent);
+}
+
+.novaOrb_minimal .novaOrbNode,
+.novaOrb_minimal .novaOrbCore {
+  animation: none;
+}
+
+.novaOrbCopy {
+  min-width: 0;
+  align-self: center;
+  position: relative;
+  z-index: 1;
+}
+
+.novaDeckEyebrow {
+  color: color-mix(in srgb, var(--nova-core-gold) 78%, var(--color-text-3));
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.2;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.novaDeckTitle {
+  margin-top: 10px;
+  color: var(--nova-core-light);
+  font-size: clamp(28px, 3.5vw, 48px);
+  font-weight: 760;
+  line-height: 1.03;
+  text-shadow:
+    0 0 18px color-mix(in srgb, var(--nova-core-gold) 26%, transparent),
+    0 0 42px color-mix(in srgb, var(--nova-core-copper) 18%, transparent);
+}
+
+.novaDeckMeta {
+  margin-top: 12px;
+  color: var(--color-text-3);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.35;
+  max-width: 360px;
+}
+
+.novaOrbTelemetry {
+  grid-column: 1 / 2;
+  width: min(100%, 320px);
+  justify-self: center;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  position: relative;
+  z-index: 2;
+}
+
+.novaOrbMetric {
+  min-width: 0;
+  min-height: 48px;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 3px;
+  padding: 7px 8px;
+  border: 1px solid color-mix(in srgb, var(--border-base) 56%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--nova-core-light) 7%, transparent), transparent 48%),
+    color-mix(in srgb, var(--bg-1) 78%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  animation: novaMetricPulse 7s ease-in-out infinite;
+}
+
+.novaOrbMetric strong {
+  color: var(--nova-core-light);
+  font-size: 18px;
+  font-weight: 780;
+  line-height: 1;
+}
+
+.novaOrbMetric span {
+  max-width: 100%;
+  color: var(--color-text-3);
+  font-size: 9px;
+  font-weight: 760;
+  line-height: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.novaOrbMetric_online {
+  border-color: color-mix(in srgb, var(--nova-core-emerald) 38%, transparent);
+  box-shadow: 0 0 16px color-mix(in srgb, var(--nova-core-emerald) 10%, transparent);
+}
+
+.novaOrbMetric_degraded {
+  border-color: rgba(226, 180, 80, 0.38);
+  box-shadow: 0 0 16px rgba(226, 180, 80, 0.08);
+}
+
+.novaOrbMetric_offline {
+  border-color: rgba(214, 107, 120, 0.38);
+  box-shadow: 0 0 16px rgba(214, 107, 120, 0.08);
+}
+
+.novaOrbAgentGrid {
+  grid-column: 2 / 3;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-self: end;
+  position: relative;
+  z-index: 2;
+}
+
+.novaOrbAgentChip {
+  min-width: 0;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 8px 10px;
+  border: 1px solid color-mix(in srgb, var(--border-base) 62%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-cyan) 7%, transparent), transparent 54%),
+    color-mix(in srgb, var(--bg-1) 74%, transparent);
+  color: var(--color-text-2);
+  font: inherit;
+  line-height: 1;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    box-shadow 0.16s ease,
+    transform 0.16s ease,
+    color 0.16s ease;
+}
+
+.novaOrbAgentChip:hover {
+  border-color: color-mix(in srgb, var(--nova-core-cyan) 48%, transparent);
+  color: var(--color-text-1);
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 10px 24px rgba(0, 0, 0, 0.18);
+}
+
+.novaOrbAgentChip strong,
+.novaOrbAgentChip small {
+  min-width: 0;
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.novaOrbAgentChip strong {
+  color: var(--color-text-1);
+  font-size: 12px;
+  font-weight: 740;
+}
+
+.novaOrbAgentChip small {
+  margin-top: 3px;
+  color: var(--color-text-3);
+  font-size: 10px;
+  font-weight: 620;
+}
+
+.novaOrbAgentLoading {
+  opacity: 0.62;
+  cursor: default;
+}
+
+.novaOrbChoices {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  position: relative;
+}
+
+.novaCommandBar {
+  grid-column: 1 / -1;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
+  gap: 8px;
+  position: relative;
+}
+
+.novaHintStrip {
+  grid-column: 1 / -1;
+  min-height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow: hidden;
+  position: relative;
+}
+
+.novaHintStrip::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(90deg, var(--bg-2), transparent 8%, transparent 92%, var(--bg-2));
+  opacity: 0.42;
+}
+
+.novaHintChip {
+  min-width: max-content;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  height: 28px;
+  padding: 0 10px;
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 24%, transparent);
+  border-radius: 999px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-gold) 9%, transparent), transparent 54%),
+    color-mix(in srgb, var(--bg-1) 76%, transparent);
+  color: var(--color-text-2);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1;
+  animation: novaHintFloat 12s ease-in-out infinite;
+}
+
+.novaHintChip:nth-child(2) {
+  animation-delay: 1.4s;
+}
+
+.novaHintChip:nth-child(3) {
+  animation-delay: 2.8s;
+}
+
+.novaHintChip strong {
+  color: var(--nova-core-gold);
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.novaOrbChoice,
+.novaServiceAction,
+.novaServiceOpen,
+.novaCommandButton {
+  border: 1px solid color-mix(in srgb, var(--border-base) 68%, transparent);
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--nova-core-light) 6%, transparent), transparent 45%),
+    linear-gradient(315deg, color-mix(in srgb, var(--nova-core-cyan) 6%, transparent), transparent 58%),
+    color-mix(in srgb, var(--bg-1) 76%, transparent);
+  color: var(--color-text-2);
+  font: inherit;
+  font-size: 12px;
+  font-weight: 650;
+  line-height: 1;
+  cursor: pointer;
+  min-width: 0;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.novaOrbChoice::before,
+.novaServiceAction::before,
+.novaServiceOpen::before,
+.novaCommandButton::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    110deg,
+    transparent 0 32%,
+    color-mix(in srgb, var(--nova-core-cyan) 16%, transparent) 44%,
+    rgba(255, 241, 168, 0.24) 52%,
+    transparent 68%
+  );
+  transform: translateX(-140%);
+  opacity: 0;
+}
+
+.novaOrbChoice:hover::before,
+.novaServiceAction:hover::before,
+.novaServiceOpen:hover::before,
+.novaCommandButton:hover::before {
+  opacity: 1;
+  animation: novaSweep 1.25s ease;
+}
+
+.novaOrbChoice {
+  height: 34px;
+  border-radius: 8px;
+  padding: 0 10px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.novaOrbChoice:hover,
+.novaServiceAction:hover,
+.novaServiceOpen:hover,
+.novaOrbChoiceActive,
+.novaCommandButton:hover {
+  border-color: color-mix(in srgb, var(--nova-core-gold) 66%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-cyan) 10%, transparent), transparent 58%),
+    color-mix(in srgb, var(--nova-core-gold) 15%, var(--bg-1));
+  color: var(--color-text-1);
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--nova-core-light) 7%, transparent),
+    0 10px 24px rgba(0, 0, 0, 0.18),
+    0 0 20px color-mix(in srgb, var(--nova-core-gold) 12%, transparent);
+}
+
+.novaOrbChoiceActive {
+  border-color: color-mix(in srgb, var(--nova-core-light) 70%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-cyan) 13%, transparent), transparent 58%),
+    color-mix(in srgb, var(--nova-core-gold) 18%, var(--bg-1));
+  color: var(--color-text-1);
+}
+
+.novaOrbChoice:focus-visible,
+.novaServiceAction:focus-visible,
+.novaServiceOpen:focus-visible,
+.novaCommandButton:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--nova-core-cyan) 48%, transparent);
+  outline-offset: 2px;
+}
+
+.novaCommandButton {
+  min-height: 48px;
+  border-radius: 8px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 10px;
+  color: color-mix(in srgb, var(--nova-core-light) 82%, var(--color-text-2));
+  box-shadow: inset 0 -1px 0 color-mix(in srgb, var(--nova-core-cyan) 8%, transparent);
+  animation: novaCommandFloat 9s ease-in-out infinite;
+}
+
+.novaCommandButton:hover {
+  transform: translateY(-1px);
+}
+
+.novaCommandButton:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.novaCommandIcon {
+  width: 21px;
+  height: 21px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: color-mix(in srgb, var(--nova-core-cyan) 42%, var(--nova-core-gold));
+  font-size: 15px;
+  line-height: 1;
+  filter: drop-shadow(0 0 8px color-mix(in srgb, var(--nova-core-cyan) 22%, transparent));
+}
+
+.novaServiceRail {
+  min-height: 462px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  align-content: start;
+  gap: 9px;
+  padding: 18px;
+  border-radius: 8px;
+  position: relative;
+  overflow: hidden;
+  animation: novaPanelFloat 13s ease-in-out infinite;
+}
+
+.novaServiceRail::before {
+  animation: novaBackflow 20s ease-in-out infinite;
+}
+
+.novaServiceRail::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--nova-core-gold) 12%, transparent), transparent 34%),
+    radial-gradient(circle at 92% 8%, color-mix(in srgb, var(--nova-core-light) 14%, transparent), transparent 28%);
+  opacity: 0.72;
+}
+
+.novaServiceHeader {
+  min-height: 64px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 11px 12px;
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 28%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--bg-1) 80%, transparent);
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+}
+
+.novaServiceHeader div {
+  min-width: 0;
+  display: grid;
+  gap: 4px;
+}
+
+.novaServiceHeader span {
+  color: color-mix(in srgb, var(--nova-core-gold) 74%, var(--color-text-3));
+  font-size: 11px;
+  font-weight: 760;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.novaServiceHeader strong {
+  color: var(--nova-core-light);
+  font-size: 20px;
+  font-weight: 780;
+  line-height: 1;
+}
+
+.novaServiceTile {
+  min-height: 72px;
+  border-radius: 8px;
+  padding: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  box-sizing: border-box;
+  position: relative;
+  z-index: 1;
+  animation: novaTileFloat 10s ease-in-out infinite;
+}
+
+.novaServiceTile::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--nova-core-gold) 10%, transparent), transparent 42%);
+  opacity: 0;
+  transition: opacity 0.18s ease;
+}
+
+.novaServiceTile:hover::after {
+  opacity: 1;
+}
+
+.novaServiceTile:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in srgb, var(--nova-core-gold) 40%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.05),
+    0 10px 26px rgba(0, 0, 0, 0.24),
+    0 0 22px color-mix(in srgb, var(--nova-core-gold) 10%, transparent);
+}
+
+.novaServiceMain {
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.novaServiceStatus {
+  width: 9px;
+  height: 9px;
+  flex: 0 0 9px;
+  border-radius: 50%;
+  background: var(--color-text-4);
+  box-shadow: 0 0 0 4px color-mix(in srgb, var(--color-text-4) 16%, transparent);
+  animation: novaStatusPulse 3.8s ease-in-out infinite;
+}
+
+.novaService_online .novaServiceStatus {
+  background: color-mix(in srgb, var(--nova-core-emerald) 82%, white);
+  box-shadow:
+    0 0 0 4px color-mix(in srgb, var(--nova-core-emerald) 18%, transparent),
+    0 0 14px color-mix(in srgb, var(--nova-core-emerald) 34%, transparent);
+}
+
+.novaService_degraded .novaServiceStatus {
+  background: #e2b450;
+  box-shadow: 0 0 0 4px rgba(226, 180, 80, 0.16);
+}
+
+.novaService_offline .novaServiceStatus {
+  background: #d66b78;
+  box-shadow: 0 0 0 4px rgba(214, 107, 120, 0.16);
+}
+
+.novaServiceText {
+  min-width: 0;
+  display: grid;
+  gap: 2px;
+}
+
+.novaServiceText strong,
+.novaServiceText span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.novaServiceText strong {
+  color: var(--color-text-1);
+  font-size: 13px;
+  font-weight: 740;
+  line-height: 1.2;
+}
+
+.novaServiceText span {
+  color: var(--color-text-3);
+  font-size: 11px;
+  font-weight: 560;
+  line-height: 1.2;
+}
+
+.novaServiceActions {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.novaServiceLatency {
+  min-width: 42px;
+  color: var(--color-text-3);
+  font-size: 11px;
+  font-weight: 650;
+  line-height: 1;
+  text-align: right;
+}
+
+.novaServiceAction,
+.novaServiceOpen {
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 7px;
+  animation: novaCommandFloat 11s ease-in-out infinite;
+}
+
+.novaServiceAction {
+  min-width: 64px;
+  color: color-mix(in srgb, var(--nova-core-cyan) 74%, var(--color-text-1));
+}
+
+.novaServiceAction:disabled,
+.novaServiceOpen:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.novaServiceReceipt {
+  color: color-mix(in srgb, var(--nova-core-cyan) 72%, var(--color-text-3)) !important;
+}
+
+.novaServiceLoading {
+  min-height: 58px;
+  overflow: hidden;
+  position: relative;
+}
+
+.novaServiceLoading::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--brand) 16%, transparent), transparent);
+  animation: guid-shimmer 1.6s ease-in-out infinite;
+}
+
+@keyframes novaOrbDrift {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes novaOrbPulse {
+  0%,
+  100% {
+    transform: scale(0.96);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: scale(1.05);
+    opacity: 1;
+  }
+}
+
+@keyframes novaNodeTwinkle {
+  0%,
+  100% {
+    transform: scale(0.9);
+    opacity: 0.68;
+  }
+
+  42% {
+    transform: scale(1.18);
+    opacity: 1;
+  }
+
+  70% {
+    transform: scale(0.98);
+    opacity: 0.82;
+  }
+}
+
+@keyframes novaHintFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.84;
+  }
+
+  50% {
+    transform: translateY(-2px);
+    opacity: 1;
+  }
+}
+
+@keyframes novaBackflow {
+  0%,
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+    opacity: 0.54;
+  }
+
+  50% {
+    transform: translate3d(8px, -6px, 0) scale(1.01);
+    opacity: 0.78;
+  }
+}
+
+@keyframes novaPanelFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-2px);
+  }
+}
+
+@keyframes novaGridDrift {
+  from {
+    background-position: 0 0, 0 0, 0 0;
+  }
+
+  to {
+    background-position: 58px 0, 0 58px, 0 0;
+  }
+}
+
+@keyframes novaFramePulse {
+  0%,
+  100% {
+    opacity: 0.56;
+  }
+
+  50% {
+    opacity: 0.96;
+  }
+}
+
+@keyframes novaOrbFloat {
+  0%,
+  100% {
+    transform: translateY(0) rotate(0deg);
+  }
+
+  50% {
+    transform: translateY(-7px) rotate(0.6deg);
+  }
+}
+
+@keyframes novaOrbBreath {
+  0%,
+  100% {
+    filter:
+      drop-shadow(0 0 22px color-mix(in srgb, var(--nova-core-gold) 18%, transparent))
+      drop-shadow(0 0 18px color-mix(in srgb, var(--nova-core-cyan) 9%, transparent));
+  }
+
+  50% {
+    filter:
+      drop-shadow(0 0 34px color-mix(in srgb, var(--nova-core-gold) 26%, transparent))
+      drop-shadow(0 0 26px color-mix(in srgb, var(--nova-core-cyan) 16%, transparent));
+  }
+}
+
+@keyframes novaOrbHue {
+  0%,
+  100% {
+    background-position: 0 0, 0 0, 0 0, 50% 50%, 0 0;
+  }
+
+  50% {
+    background-position: 3% -2%, -3% 2%, 0 0, 52% 48%, 0 0;
+  }
+}
+
+@keyframes novaTriadSweep {
+  0% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.82;
+  }
+
+  50% {
+    transform: rotate(6deg) scale(1.02);
+    opacity: 1;
+  }
+
+  100% {
+    transform: rotate(0deg) scale(1);
+    opacity: 0.82;
+  }
+}
+
+@keyframes novaCenterPulse {
+  0%,
+  100% {
+    transform: scale(0.98);
+    box-shadow:
+      inset 0 0 16px color-mix(in srgb, var(--nova-core-light) 12%, transparent),
+      0 0 0 13px color-mix(in srgb, var(--nova-core-cyan) 6%, transparent),
+      0 0 20px color-mix(in srgb, var(--nova-core-gold) 18%, transparent);
+  }
+
+  50% {
+    transform: scale(1.04);
+    box-shadow:
+      inset 0 0 20px color-mix(in srgb, var(--nova-core-light) 16%, transparent),
+      0 0 0 16px color-mix(in srgb, var(--nova-core-cyan) 9%, transparent),
+      0 0 28px color-mix(in srgb, var(--nova-core-gold) 24%, transparent);
+  }
+}
+
+@keyframes novaRadarSweep {
+  0% {
+    transform: rotate(0deg);
+    opacity: 0.56;
+  }
+
+  45% {
+    opacity: 0.9;
+  }
+
+  100% {
+    transform: rotate(360deg);
+    opacity: 0.56;
+  }
+}
+
+@keyframes novaOrbitPulse {
+  0%,
+  100% {
+    transform: scale(0.98);
+    opacity: 0.58;
+  }
+
+  50% {
+    transform: scale(1.04);
+    opacity: 0.92;
+  }
+}
+
+@keyframes novaCommandFloat {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-1px);
+  }
+}
+
+@keyframes novaTileFloat {
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(2px);
+  }
+}
+
+@keyframes novaMetricPulse {
+  0%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.88;
+  }
+
+  50% {
+    transform: translateY(-1px);
+    opacity: 1;
+  }
+}
+
+@keyframes novaStatusPulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+
+  50% {
+    transform: scale(1.14);
+  }
+}
+
+@keyframes novaSweep {
+  0% {
+    transform: translateX(-140%);
+    opacity: 0;
+  }
+
+  25% {
+    opacity: 1;
+  }
+
+  100% {
+    transform: translateX(140%);
+    opacity: 0;
+  }
 }
 
 .heroHeader {
@@ -330,6 +1647,14 @@
 .guidInputCard {
   width: 100%;
   box-sizing: border-box;
+  border-radius: 10px !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--nova-core-light) 4%, transparent), transparent),
+    color-mix(in srgb, var(--bg-2) 92%, transparent) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.035),
+    0 18px 42px rgba(0, 0, 0, 0.28),
+    0 0 26px color-mix(in srgb, var(--nova-core-gold) 7%, transparent) !important;
 }
 
 .actionRow {
@@ -339,6 +1664,8 @@
   width: 100%;
   gap: 8px;
   margin-top: 12px;
+  border-top: 1px solid color-mix(in srgb, var(--nova-core-gold) 12%, transparent);
+  padding-top: 12px;
 }
 
 .actionTools {
@@ -347,6 +1674,12 @@
   gap: 6px;
   flex-shrink: 1;
   min-width: 0;
+  padding: 3px;
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 9%, transparent);
+  border-radius: 8px;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-cyan) 5%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bg-1) 46%, transparent);
 }
 
 .actionEntry {
@@ -382,19 +1715,37 @@
 
 /* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
 .actionTools :global(.sendbox-model-btn) {
-  background-color: transparent !important;
-  border: none !important;
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--nova-core-light) 5%, transparent), transparent),
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-cyan) 6%, transparent), transparent 62%),
+    color-mix(in srgb, var(--bg-1) 72%, transparent) !important;
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 18%, transparent) !important;
   box-shadow: none !important;
   color: var(--color-text-2) !important;
   padding-inline: 10px !important;
   min-height: 28px !important;
+  border-radius: 7px !important;
+  transition:
+    background-color 0.16s ease,
+    border-color 0.16s ease,
+    color 0.16s ease,
+    transform 0.16s ease,
+    box-shadow 0.16s ease !important;
 }
 
 .actionTools :global(.sendbox-model-btn:hover) {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+  background-color: color-mix(in srgb, var(--nova-core-gold) 13%, var(--bg-1)) !important;
+  border-color: color-mix(in srgb, var(--nova-core-cyan) 36%, var(--nova-core-gold)) !important;
+  box-shadow:
+    inset 0 0 0 1px color-mix(in srgb, var(--nova-core-light) 5%, transparent),
+    0 6px 16px rgba(0, 0, 0, 0.16) !important;
   color: var(--color-text-1) !important;
+  transform: translateY(-1px);
+}
+
+.actionTools :global(.sendbox-model-btn:focus-visible) {
+  outline: 2px solid color-mix(in srgb, var(--nova-core-cyan) 46%, transparent) !important;
+  outline-offset: 2px !important;
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
@@ -463,6 +1814,67 @@
     box-sizing: border-box;
   }
 
+  .novaIdentity {
+    margin-bottom: 14px;
+  }
+
+  .novaMissionControl {
+    width: 100%;
+    grid-template-columns: 1fr;
+  }
+
+  .novaOrbPanel {
+    min-height: 176px;
+    grid-template-columns: 118px minmax(0, 1fr);
+    padding: 14px;
+    column-gap: 14px;
+  }
+
+  .novaOrb {
+    width: 112px;
+    height: 112px;
+  }
+
+  .novaOrbCore {
+    inset: 39px;
+  }
+
+  .novaOrbRing {
+    inset: 8px;
+  }
+
+  .novaOrbRing:nth-child(2) {
+    inset: 20px;
+  }
+
+  .novaOrbRing:nth-child(3) {
+    inset: 33px;
+  }
+
+  .novaOrbTelemetry {
+    grid-column: 1 / -1;
+    width: 100%;
+    margin-top: -2px;
+  }
+
+  .novaOrbAgentGrid {
+    grid-column: 1 / -1;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .novaOrbAgentChip {
+    min-height: 38px;
+    padding: 7px 9px;
+  }
+
+  .novaCommandBar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .novaServiceRail {
+    grid-template-columns: 1fr;
+  }
+
   .guidInputCard {
     width: 100%;
   }
@@ -516,6 +1928,67 @@
     width: clamp(var(--app-min-width, 360px), calc(100% - 20px), 100%);
     padding: 0 10px;
   }
+
+  .novaIdentity {
+    padding-right: 10px;
+    gap: 8px;
+  }
+
+  .novaIdentityMark {
+    width: 30px;
+    height: 30px;
+    border-radius: 10px;
+  }
+
+  .novaIdentityName {
+    font-size: 12px;
+  }
+
+  .novaIdentityMode {
+    font-size: 10px;
+  }
+
+  .novaOrbPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .novaOrb {
+    justify-self: center;
+  }
+
+  .novaOrbCopy {
+    text-align: center;
+  }
+
+  .novaOrbChoices {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .novaOrbTelemetry {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .novaOrbAgentGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .novaCommandBar {
+    grid-template-columns: 1fr;
+  }
+
+  .novaHintStrip {
+    display: none;
+  }
+
+  .novaServiceTile {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .novaServiceActions {
+    width: 100%;
+    justify-content: space-between;
+  }
 }
 
 /* 移动端容器滚动支持 */
@@ -524,14 +1997,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   padding: 10px;
   position: relative;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background:
+    radial-gradient(ellipse at 50% -12%, color-mix(in srgb, var(--nova-core-gold) 12%, transparent), transparent 46%),
+    linear-gradient(180deg, color-mix(in srgb, var(--nova-core-light) 2%, transparent), transparent 24%);
 }
 
 /* 整体内容块略往上移，减轻「重心偏下」的感觉 */
 .guidContainer .guidLayout {
-  margin-top: -5vh;
+  margin-top: 12px;
 }
 
 /* Agent 选中时：先放大再回落至略大（pop 动效） */
@@ -548,7 +2026,13 @@
 }
 
 .agentItemSelected {
-  background-color: var(--fill-0);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--nova-core-light) 12%, transparent), transparent 54%),
+    color-mix(in srgb, var(--nova-core-gold) 16%, var(--bg-1));
+  border: 1px solid color-mix(in srgb, var(--nova-core-gold) 24%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.04),
+    0 8px 24px color-mix(in srgb, var(--nova-core-gold) 8%, transparent);
   transition:
     opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1),
     background-color 0.25s ease-out;

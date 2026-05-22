@@ -72,7 +72,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
       const parsed = new URL(targetUrl);
       const host = parsed.hostname.toLowerCase();
       const localHost = host === '127.0.0.1' || host === 'localhost';
-      const knownPort = ['18791', '18888', '19000'].includes(parsed.port);
+      const knownPort = ['18793', '18888', '19000'].includes(parsed.port);
       return localHost && knownPort;
     } catch {
       return false;

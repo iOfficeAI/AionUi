@@ -1,0 +1,672 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   NovaMaster ▸ Empire Theme v2.0
+   Core identity: AionUi · JARVIS · OpenClaw · Hermes · Space Agent
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root {
+  /* ── Brand Colors ── */
+  --nova-primary: #d9a431;
+  --nova-secondary: #fff1a8;
+  --nova-accent: #b87316;
+  --nova-danger: #d66b78;
+  --nova-danger-glow: #ff6b7a;
+  --nova-warning: #f2c65c;
+  --nova-success: #8fd3a3;
+  --nova-success-glow: #5eff9b;
+  --nova-info: #7bdff2;
+  --nova-info-glow: #3ef0ff;
+  --nova-purple: #a78bfa;
+  --nova-rose: #d28cbb;
+  --nova-deep: #020201;
+  --nova-dark: #0a0804;
+  --nova-surface: #120c04;
+  --nova-elevated: #1a1208;
+
+  /* ── Gradients ── */
+  --nova-gradient-primary: linear-gradient(135deg, #fff1a8 0%, #d9a431 48%, #8b5e13 100%);
+  --nova-gradient-accent: linear-gradient(135deg, #7bdff2 0%, #3ef0ff 48%, #0ea5e9 100%);
+  --nova-gradient-success: linear-gradient(135deg, #8fd3a3 0%, #5eff9b 48%, #22c55e 100%);
+  --nova-gradient-danger: linear-gradient(135deg, #d66b78 0%, #ff6b7a 48%, #ef4444 100%);
+  --nova-gradient-bg: linear-gradient(180deg, #020201 0%, #070503 52%, #120c04 100%);
+  --nova-gradient-card: linear-gradient(145deg, rgba(217,164,49,0.06), rgba(123,223,242,0.03), transparent 55%);
+  --nova-gradient-glass: linear-gradient(135deg, rgba(255,241,168,0.08), rgba(217,164,49,0.04), transparent 60%);
+
+  /* ── Glass Morphism ── */
+  --glass-bg: rgba(12, 8, 4, 0.72);
+  --glass-border: rgba(217, 164, 49, 0.16);
+  --glass-highlight: rgba(255, 241, 168, 0.08);
+  --glass-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+  --glass-blur: 16px;
+
+  /* ── Shadows ── */
+  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.18);
+  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.24);
+  --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.32);
+  --shadow-glow-gold: 0 0 24px rgba(217, 164, 49, 0.18);
+  --shadow-glow-cyan: 0 0 24px rgba(123, 223, 242, 0.14);
+  --shadow-glow-green: 0 0 24px rgba(143, 211, 163, 0.14);
+  --shadow-glow-red: 0 0 24px rgba(214, 107, 120, 0.14);
+
+  /* ── Transitions ── */
+  --transition-fast: 0.18s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-smooth: 0.28s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.42s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-bounce: 0.42s cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* ── Border Radius ── */
+  --radius-xs: 4px;
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-2xl: 24px;
+  --radius-full: 9999px;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Dark Theme Override — Nova Base
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+:root,
+[data-color-scheme='default'],
+[data-color-scheme='default'][data-theme='light'],
+[data-color-scheme='default'][data-theme='dark'] {
+  /* ── AOU Brand Colors ── */
+  --aou-1: #030201;
+  --aou-2: #080502;
+  --color-guid-agent-bar: #120c04;
+  --aou-3: #171006;
+  --aou-4: #241805;
+  --aou-5: #4f3308;
+  --aou-6: #d9a431;
+  --aou-7: #f2c65c;
+  --aou-8: #fff1a8;
+  --aou-9: #f3e8c0;
+  --aou-10: #fffaf0;
+
+  /* ── Background Colors ── */
+  --bg-base: #020201;
+  --bg-1: #050302;
+  --bg-2: #0b0703;
+  --bg-3: #171006;
+  --bg-4: #241805;
+  --bg-5: #3a290d;
+  --bg-6: #78510d;
+  --bg-8: #c8962d;
+  --bg-9: #ead495;
+  --bg-10: #fff8df;
+
+  /* ── Interactive States ── */
+  --bg-hover: #181106;
+  --bg-active: #2a1c07;
+
+  /* ── Text Colors ── */
+  --text-primary: #f6ecd1;
+  --text-secondary: #b9a06a;
+  --text-disabled: #66512a;
+
+  /* ── Semantic Colors ── */
+  --primary: #d9a431;
+  --success: #8fd3a3;
+  --warning: #f2c65c;
+  --danger: #d66b78;
+  --info: #7bdff2;
+
+  /* ── Borders ── */
+  --border-base: rgba(217, 164, 49, 0.28);
+  --border-light: rgba(217, 164, 49, 0.13);
+
+  /* ── Brand ── */
+  --brand: #d9a431;
+  --brand-light: rgba(217, 164, 49, 0.13);
+  --brand-hover: #fff1a8;
+
+  /* ── Messages ── */
+  --message-user-bg: rgba(217, 164, 49, 0.12);
+  --message-tips-bg: rgba(143, 211, 163, 0.08);
+  --workspace-btn-bg: #171006;
+
+  /* ── Special ── */
+  --fill: #120c04;
+  --inverse: #fffaf0;
+  --dialog-fill-0: #0b0703;
+  --text-0: #fffaf0;
+  --text-white: #fffaf0;
+  --fill-0: rgba(217, 164, 49, 0.12);
+  --fill-white-to-black: #020201;
+  --border-special: rgba(217, 164, 49, 0.42);
+  color-scheme: dark;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Root Elements
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+html, body, #root {
+  background:
+    linear-gradient(180deg, rgba(255,241,168,0.03), transparent 18%),
+    linear-gradient(180deg, rgba(123,223,242,0.02), transparent 30%),
+    var(--nova-gradient-bg);
+  color: var(--text-primary);
+}
+
+.layout, .layout-content {
+  background:
+    linear-gradient(180deg, rgba(255,241,168,0.025), transparent 22%),
+    radial-gradient(ellipse at 50% -18%, rgba(217,164,49,0.08), transparent 38%),
+    radial-gradient(ellipse at 80% 20%, rgba(123,223,242,0.04), transparent 34%),
+    var(--bg-base);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Glass Cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-glass {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow: var(--glass-shadow);
+  border-radius: var(--radius-lg);
+}
+
+.nova-glass:hover {
+  border-color: rgba(217, 164, 49, 0.32);
+  box-shadow:
+    var(--glass-shadow),
+    var(--shadow-glow-gold);
+}
+
+.nova-glass-elevated {
+  background:
+    linear-gradient(145deg, rgba(217,164,49,0.09), rgba(123,223,242,0.04)),
+    var(--glass-bg);
+  border: 1px solid rgba(217, 164, 49, 0.24);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
+  box-shadow:
+    var(--glass-shadow),
+    0 0 40px rgba(217,164,49,0.06);
+  border-radius: var(--radius-lg);
+}
+
+.nova-glass-elevated:hover {
+  border-color: rgba(255, 241, 168, 0.42);
+  box-shadow:
+    var(--glass-shadow),
+    var(--shadow-glow-gold),
+    0 0 56px rgba(217,164,49,0.1);
+  transform: translateY(-1px);
+  transition: var(--transition-smooth);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Service Status Badges
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: var(--radius-full);
+  letter-spacing: 0.02em;
+}
+
+.nova-status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nova-status-online {
+  color: var(--nova-success);
+  background: rgba(143,211,163,0.1);
+  border: 1px solid rgba(143,211,163,0.24);
+}
+.nova-status-online::before {
+  background: var(--nova-success-glow);
+  box-shadow: 0 0 6px var(--nova-success-glow);
+  animation: novaStatusPulse 3s ease-in-out infinite;
+}
+
+.nova-status-degraded {
+  color: var(--nova-warning);
+  background: rgba(242,198,92,0.1);
+  border: 1px solid rgba(242,198,92,0.24);
+}
+.nova-status-degraded::before {
+  background: var(--nova-warning);
+  box-shadow: 0 0 6px var(--nova-warning);
+  animation: novaStatusPulse 2.2s ease-in-out infinite;
+}
+
+.nova-status-offline {
+  color: var(--nova-danger);
+  background: rgba(214,107,120,0.1);
+  border: 1px solid rgba(214,107,120,0.24);
+}
+.nova-status-offline::before {
+  background: var(--nova-danger-glow);
+  box-shadow: 0 0 6px var(--nova-danger-glow);
+}
+
+.nova-status-working {
+  color: var(--nova-info);
+  background: rgba(123,223,242,0.1);
+  border: 1px solid rgba(123,223,242,0.24);
+}
+.nova-status-working::before {
+  background: var(--nova-info-glow);
+  box-shadow: 0 0 8px var(--nova-info-glow);
+  animation: novaStatusPulse 1.8s ease-in-out infinite;
+}
+
+@keyframes novaStatusPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.6; transform: scale(0.85); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Stat Cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-stat-card {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 18px;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(217,164,49,0.06), transparent 60%);
+  border: 1px solid rgba(217,164,49,0.12);
+  transition: var(--transition-smooth);
+}
+
+.nova-stat-card:hover {
+  border-color: rgba(217,164,49,0.32);
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateY(-1px);
+}
+
+.nova-stat-value {
+  font-size: 24px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  background: var(--nova-gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  line-height: 1.1;
+}
+
+.nova-stat-label {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Metric Bars
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-metric-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nova-metric-track {
+  flex: 1;
+  height: 4px;
+  border-radius: var(--radius-full);
+  background: rgba(217,164,49,0.12);
+  overflow: hidden;
+}
+
+.nova-metric-fill {
+  height: 100%;
+  border-radius: var(--radius-full);
+  transition: width var(--transition-slow);
+}
+
+.nova-metric-fill-gold { background: var(--nova-gradient-primary); }
+.nova-metric-fill-cyan { background: var(--nova-gradient-accent); }
+.nova-metric-fill-green { background: var(--nova-gradient-success); }
+.nova-metric-fill-red { background: var(--nova-gradient-danger); }
+
+.nova-metric-value {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  min-width: 42px;
+  text-align: right;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Agent Cards
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-agent-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: var(--radius-md);
+  background:
+    linear-gradient(135deg, rgba(217,164,49,0.05), transparent 50%);
+  border: 1px solid rgba(217,164,49,0.1);
+  transition: var(--transition-smooth);
+}
+
+.nova-agent-card:hover {
+  border-color: rgba(217,164,49,0.34);
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateX(2px);
+}
+
+.nova-agent-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--nova-deep);
+  background: var(--nova-gradient-primary);
+  flex-shrink: 0;
+  box-shadow: 0 0 12px rgba(217,164,49,0.24);
+}
+
+.nova-agent-avatar.accent {
+  background: var(--nova-gradient-accent);
+  box-shadow: 0 0 12px rgba(123,223,242,0.24);
+}
+
+.nova-agent-avatar.success {
+  background: var(--nova-gradient-success);
+  box-shadow: 0 0 12px rgba(143,211,163,0.24);
+}
+
+.nova-agent-info {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nova-agent-name {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.nova-agent-task {
+  font-size: 11px;
+  color: var(--text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Buttons
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 18px;
+  border: 1px solid rgba(217,164,49,0.22);
+  border-radius: var(--radius-md);
+  background: rgba(217,164,49,0.06);
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: var(--transition-smooth);
+  text-decoration: none;
+}
+
+.nova-btn:hover {
+  border-color: rgba(255,241,168,0.44);
+  background: rgba(217,164,49,0.12);
+  box-shadow: var(--shadow-glow-gold);
+  transform: translateY(-1px);
+}
+
+.nova-btn-primary {
+  border: none;
+  background: var(--nova-gradient-primary);
+  color: var(--nova-deep);
+  box-shadow: var(--shadow-glow-gold);
+}
+.nova-btn-primary:hover {
+  filter: brightness(1.08);
+  box-shadow: 0 0 32px rgba(217,164,49,0.28);
+}
+
+.nova-btn-danger {
+  border-color: rgba(214,107,120,0.28);
+  background: rgba(214,107,120,0.06);
+  color: var(--nova-danger);
+}
+.nova-btn-danger:hover {
+  border-color: rgba(255,107,122,0.5);
+  box-shadow: var(--shadow-glow-red);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Tabs
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 4px;
+  border-radius: var(--radius-md);
+  background: rgba(217,164,49,0.04);
+  border: 1px solid rgba(217,164,49,0.1);
+}
+
+.nova-tab {
+  padding: 6px 14px;
+  border-radius: var(--radius-sm);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: var(--transition-fast);
+  border: none;
+  background: none;
+}
+
+.nova-tab:hover {
+  color: var(--text-primary);
+  background: rgba(217,164,49,0.06);
+}
+
+.nova-tab-active {
+  color: var(--nova-deep);
+  background: var(--nova-gradient-primary);
+  box-shadow: var(--shadow-glow-gold);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Panels
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.nova-panel-title {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nova-panel-title::before {
+  content: '';
+  width: 3px;
+  height: 14px;
+  border-radius: var(--radius-full);
+  background: var(--nova-gradient-primary);
+}
+
+.nova-panel-badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: var(--radius-full);
+  background: rgba(217,164,49,0.12);
+  color: var(--nova-primary);
+  border: 1px solid rgba(217,164,49,0.22);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Live Data Pulse
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-live-indicator {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--nova-success);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.nova-live-indicator::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--nova-success-glow);
+  animation: novaLivePulse 1.5s ease-in-out infinite;
+}
+
+@keyframes novaLivePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 4px var(--nova-success-glow); }
+  50% { opacity: 0.3; box-shadow: 0 0 12px var(--nova-success-glow); }
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Scrollbar
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(217,164,49,0.16);
+  border-radius: 2px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(217,164,49,0.32);
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Iframe Containers
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+.nova-iframe-container {
+  width: 100%;
+  height: 100%;
+  min-height: 420px;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  border: 1px solid rgba(217,164,49,0.16);
+  background: var(--nova-deep);
+}
+
+.nova-iframe-container iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   Arco Override
+   ═══════════════════════════════════════════════════════════════════════════ */
+
+[data-theme='dark'] body,
+[data-theme='dark'] .arco-layout,
+[data-theme='dark'] .arco-layout-content {
+  background-color: #020201 !important;
+}
+
+[data-theme='dark'] .arco-btn-primary,
+[data-theme='dark'] .arco-btn-status-normal.arco-btn-primary {
+  background: var(--nova-gradient-primary) !important;
+  border-color: rgba(255,241,168,0.22) !important;
+  color: #090601 !important;
+  box-shadow: 0 10px 24px rgba(217,164,49,0.16);
+  transition: var(--transition-smooth);
+}
+[data-theme='dark'] .arco-btn-primary:hover,
+[data-theme='dark'] .arco-btn-status-normal.arco-btn-primary:hover {
+  filter: brightness(1.06);
+  box-shadow: 0 14px 30px rgba(217,164,49,0.22);
+}
+
+[data-theme='dark'] .arco-btn:not(.arco-btn-primary) {
+  border-color: rgba(217,164,49,0.18);
+}
+
+[data-theme='dark'] .arco-input,
+[data-theme='dark'] .arco-input-inner-wrapper,
+[data-theme='dark'] .arco-select-view,
+[data-theme='dark'] .arco-textarea {
+  background-color: rgba(8,5,2,0.82) !important;
+  border-color: rgba(217,164,49,0.2) !important;
+  color: var(--text-primary) !important;
+}
+
+[data-theme='dark'] .arco-menu,
+[data-theme='dark'] .arco-menu-inner,
+[data-theme='dark'] .arco-tabs-content {
+  background: transparent !important;
+}
+
+[data-theme='dark'] .arco-menu-item,
+[data-theme='dark'] .arco-menu-group-title,
+[data-theme='dark'] .arco-tabs-tab {
+  color: var(--text-secondary) !important;
+}
+
+[data-theme='dark'] .arco-menu-selected,
+[data-theme='dark'] .arco-menu-item:hover,
+[data-theme='dark'] .arco-tabs-tab-active {
+  color: #fff1a8 !important;
+  background: linear-gradient(90deg, rgba(217,164,49,0.16), rgba(217,164,49,0.035)) !important;
+}
+
+[data-theme='dark'] .arco-tabs-header-ink {
+  background-color: #d9a431 !important;
+}
+
+[data-theme='dark'] ::selection {
+  color: #090601;
+  background: rgba(217,164,49,0.72);
+}

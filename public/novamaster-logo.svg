@@ -1,0 +1,135 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <style>
+    .nova-outer,
+    .nova-flower,
+    .nova-trinity {
+      transform-box: fill-box;
+      transform-origin: center;
+    }
+
+    .nova-outer {
+      animation: nova-breathe 7s ease-in-out infinite;
+    }
+
+    .nova-flower {
+      animation: nova-turn 38s linear infinite;
+    }
+
+    .nova-star {
+      transform-origin: 384px 116px;
+      animation: nova-spark 5.5s ease-in-out infinite;
+    }
+
+    .nova-trinity {
+      animation: nova-core-pulse 6s ease-in-out infinite;
+    }
+
+    @keyframes nova-turn {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes nova-breathe {
+      0%, 100% {
+        opacity: 0.86;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @keyframes nova-spark {
+      0%, 100% {
+        opacity: 0.72;
+        transform: scale(0.92);
+      }
+      50% {
+        opacity: 1;
+        transform: scale(1.08);
+      }
+    }
+
+    @keyframes nova-core-pulse {
+      0%, 100% {
+        opacity: 0.82;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .nova-outer,
+      .nova-flower,
+      .nova-star,
+      .nova-trinity {
+        animation: none;
+      }
+    }
+  </style>
+
+  <defs>
+    <radialGradient id="nova-core-bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(258 238) rotate(90) scale(254)">
+      <stop offset="0" stop-color="#171006"/>
+      <stop offset="0.58" stop-color="#060503"/>
+      <stop offset="1" stop-color="#010101"/>
+    </radialGradient>
+    <linearGradient id="nova-gold" x1="112" y1="74" x2="414" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF1A8"/>
+      <stop offset="0.24" stop-color="#D9A431"/>
+      <stop offset="0.52" stop-color="#8B5E13"/>
+      <stop offset="0.78" stop-color="#F2C65C"/>
+      <stop offset="1" stop-color="#6E470B"/>
+    </linearGradient>
+    <linearGradient id="nova-gold-soft" x1="150" y1="126" x2="362" y2="374" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF4BB"/>
+      <stop offset="0.46" stop-color="#D49A24"/>
+      <stop offset="1" stop-color="#7A510E"/>
+    </linearGradient>
+    <filter id="nova-amber-glow" x="50" y="44" width="412" height="412" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="8"/>
+    </filter>
+    <filter id="nova-star-glow" x="324" y="56" width="120" height="120" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <rect width="512" height="512" rx="112" fill="url(#nova-core-bg)"/>
+  <rect x="18" y="18" width="476" height="476" rx="94" stroke="#D9A431" stroke-opacity="0.18" stroke-width="2"/>
+
+  <g filter="url(#nova-amber-glow)" opacity="0.36">
+    <circle cx="256" cy="256" r="155" stroke="#D9A431" stroke-width="18"/>
+    <path d="M256 108 382 330H130L256 108Z" stroke="#D9A431" stroke-width="18" stroke-linejoin="round"/>
+  </g>
+
+  <g class="nova-outer">
+    <circle cx="256" cy="256" r="158" stroke="url(#nova-gold)" stroke-width="10"/>
+    <circle cx="256" cy="256" r="136" stroke="url(#nova-gold-soft)" stroke-width="4" opacity="0.82"/>
+    <circle cx="256" cy="256" r="112" stroke="#D9A431" stroke-width="2" opacity="0.5"/>
+  </g>
+
+  <g class="nova-flower" stroke="#D9A431" stroke-width="3" opacity="0.78">
+    <circle cx="256" cy="204" r="52"/>
+    <circle cx="256" cy="308" r="52"/>
+    <circle cx="211" cy="230" r="52"/>
+    <circle cx="301" cy="230" r="52"/>
+    <circle cx="211" cy="282" r="52"/>
+    <circle cx="301" cy="282" r="52"/>
+    <circle cx="256" cy="256" r="52"/>
+  </g>
+
+  <path d="M256 130 366 324H146L256 130Z" stroke="url(#nova-gold)" stroke-width="12" stroke-linejoin="round"/>
+  <g class="nova-trinity">
+    <path d="M256 198 318 306H194L256 198Z" stroke="url(#nova-gold-soft)" stroke-width="8" stroke-linejoin="round"/>
+    <path d="M256 217v70" stroke="#D9A431" stroke-opacity="0.42" stroke-width="5" stroke-linecap="round"/>
+    <path d="M217 297h78" stroke="#D9A431" stroke-opacity="0.32" stroke-width="5" stroke-linecap="round"/>
+  </g>
+
+  <g class="nova-star" filter="url(#nova-star-glow)">
+    <path d="M384 72v88M340 116h88M353 85l62 62M415 85l-62 62" stroke="#FFF1A8" stroke-width="5" stroke-linecap="round"/>
+    <circle cx="384" cy="116" r="9" fill="#FFF1A8"/>
+  </g>
+
+  <circle cx="256" cy="256" r="11" fill="#FFF1A8"/>
+</svg>

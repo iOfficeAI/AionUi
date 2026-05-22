@@ -18,6 +18,7 @@ import { execFile, execFileSync, spawn } from 'child_process';
 import { accessSync, existsSync, readFileSync, readdirSync } from 'fs';
 import os from 'os';
 import path from 'path';
+import { ConfigStorage } from '@/common/config/storage';
 
 /** Enable ACP performance diagnostics via ACP_PERF=1 */
 const PERF_LOG = process.env.ACP_PERF === '1';
@@ -434,6 +435,24 @@ function getPosixExtraToolPaths(): string[] {
 export function getEnhancedEnv(customEnv?: Record<string, string>): Record<string, string> {
   const shellEnv = loadShellEnvironment();
   const separator = process.platform === 'win32' ? ';' : ':';
+  let integrationKeys: Record<string, string> = {};
+  try {
+    // `ConfigStorage.getSync` exists in some runtime bundles, but newer storage
+    // builds expose only async `get`. Avoid runtime crashes when this build
+    // mismatch happens by gracefully degrading to an empty integration set.
+    const configStorage = ConfigStorage as {
+      getSync?: (key: string) => unknown;
+    };
+    const loadedIntegrationKeys = configStorage.getSync?.('integration.keys');
+    if (loadedIntegrationKeys && typeof loadedIntegrationKeys === 'object') {
+      integrationKeys = loadedIntegrationKeys as Record<string, string>;
+    }
+  } catch {
+    integrationKeys = {};
+  }
+  const integrationEnv = Object.fromEntries(
+    Object.entries(integrationKeys).filter(([, v]) => typeof v === 'string' && v.trim().length > 0)
+  );
 
   // Merge PATH from both sources (shell env may miss nvm/fnm paths in dev mode)
   // 合并两个来源的 PATH（开发模式下 shell 环境可能缺少 nvm/fnm 路径）
@@ -462,6 +481,7 @@ export function getEnhancedEnv(customEnv?: Record<string, string>): Record<strin
   return {
     ...process.env,
     ...shellEnv,
+    ...integrationEnv,
     ...customEnv,
     // PATH must be set after spreading to ensure merged value is used
     // When customEnv.PATH exists, merge it with the already merged path (fix: don't override)

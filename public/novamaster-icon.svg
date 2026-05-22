@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <style>
+    .flower {
+      transform-box: fill-box;
+      transform-origin: center;
+      animation: turn 38s linear infinite;
+    }
+
+    .core {
+      animation: breathe 6s ease-in-out infinite;
+    }
+
+    @keyframes turn {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @keyframes breathe {
+      0%, 100% {
+        opacity: 0.84;
+      }
+      50% {
+        opacity: 1;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .flower,
+      .core {
+        animation: none;
+      }
+    }
+  </style>
+  <defs>
+    <radialGradient id="bg" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(258 238) rotate(90) scale(254)">
+      <stop offset="0" stop-color="#171006"/>
+      <stop offset="0.58" stop-color="#060503"/>
+      <stop offset="1" stop-color="#010101"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="112" y1="74" x2="414" y2="438" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#FFF1A8"/>
+      <stop offset="0.28" stop-color="#D9A431"/>
+      <stop offset="0.68" stop-color="#8B5E13"/>
+      <stop offset="1" stop-color="#F2C65C"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="url(#bg)"/>
+  <circle cx="256" cy="256" r="158" stroke="url(#gold)" stroke-width="12"/>
+  <circle cx="256" cy="256" r="136" stroke="#D9A431" stroke-opacity="0.64" stroke-width="4"/>
+  <g class="flower" stroke="#D9A431" stroke-width="3" opacity="0.74">
+    <circle cx="256" cy="204" r="52"/>
+    <circle cx="256" cy="308" r="52"/>
+    <circle cx="211" cy="230" r="52"/>
+    <circle cx="301" cy="230" r="52"/>
+    <circle cx="211" cy="282" r="52"/>
+    <circle cx="301" cy="282" r="52"/>
+    <circle cx="256" cy="256" r="52"/>
+  </g>
+  <g class="core">
+    <path d="M256 130 366 324H146L256 130Z" stroke="url(#gold)" stroke-width="12" stroke-linejoin="round"/>
+    <path d="M256 198 318 306H194L256 198Z" stroke="url(#gold)" stroke-width="8" stroke-linejoin="round"/>
+    <circle cx="256" cy="256" r="11" fill="#FFF1A8"/>
+  </g>
+</svg>

@@ -33,7 +33,7 @@ const toLocalPort = (rawUrl?: string): number | null => {
 const toLocalUrl = (port: number) => `http://127.0.0.1:${port}`;
 
 const buildCandidates = (preferredUrl?: string): string[] => {
-  const knownPorts = [toLocalPort(preferredUrl), 19000, 18791]
+const knownPorts = [toLocalPort(preferredUrl), 19000, 18793]
     .filter((port): port is number => port != null)
     .filter((port, index, arr) => arr.indexOf(port) === index);
 

@@ -11,6 +11,12 @@
   user-select: none;
   position: relative;
   z-index: 10;
+  background:
+    linear-gradient(180deg, rgba(255, 241, 168, 0.055), transparent 76%),
+    linear-gradient(90deg, rgba(217, 164, 49, 0.075), transparent 38%),
+    #030201;
+  border-bottom: 1px solid rgba(217, 164, 49, 0.18);
+  box-shadow: 0 10px 28px rgba(0, 0, 0, 0.28);
 }
 
 .app-titlebar--desktop {
@@ -55,7 +61,7 @@
 .app-titlebar__brand {
   font-weight: 600;
   font-size: 13px;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
   color: var(--text-primary);
   flex: 1;
   display: flex;
@@ -70,6 +76,10 @@
   height: 26px;
   display: block;
   color: inherit;
+  border-radius: 8px;
+  filter: drop-shadow(0 0 10px rgba(217, 164, 49, 0.38));
+  transform-origin: center;
+  animation: novaTitlebarBrandPulse 5.4s ease-in-out infinite;
 }
 
 .app-titlebar--mobile .app-titlebar__brand-logo {
@@ -107,6 +117,25 @@
   max-width: 42vw;
 }
 
+@keyframes novaTitlebarBrandPulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 10px rgba(217, 164, 49, 0.34));
+    transform: scale(1);
+  }
+
+  50% {
+    filter: drop-shadow(0 0 16px rgba(255, 241, 168, 0.38));
+    transform: scale(1.018);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-titlebar__brand-logo {
+    animation: none;
+  }
+}
+
 .app-titlebar__menu {
   -webkit-app-region: no-drag;
   display: flex;
@@ -134,7 +163,9 @@
   align-items: center;
   justify-content: center;
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
 }
 
 .app-titlebar__button:hover {
@@ -146,11 +177,11 @@
 }
 
 [data-theme='dark'] .app-titlebar__button:hover {
-  background-color: rgba(255, 255, 255, 0.1);
+  background-color: rgba(217, 164, 49, 0.12);
 }
 
 [data-theme='dark'] .app-titlebar__button:active {
-  background-color: rgba(255, 255, 255, 0.16);
+  background-color: rgba(217, 164, 49, 0.18);
 }
 
 .app-titlebar__button:disabled,
@@ -212,6 +243,14 @@
 
 .app-window-controls__button:active {
   background-color: rgba(128, 128, 128, 0.3);
+}
+
+[data-theme='dark'] .app-window-controls__button:hover {
+  background-color: rgba(217, 164, 49, 0.12);
+}
+
+[data-theme='dark'] .app-window-controls__button:active {
+  background-color: rgba(217, 164, 49, 0.18);
 }
 
 .app-window-controls__button--close:hover {

@@ -613,6 +613,33 @@ export const remoteAgent = {
   ),
 };
 
+export const jarvisActions = {
+  status: bridge.buildProvider<{ healthy: boolean; backend: string; actions: string[] }, void>('jarvis.status'),
+  list: bridge.buildProvider<string[], void>('jarvis.action.list'),
+  invoke: bridge.buildProvider<
+    { success: boolean; result?: unknown; error?: string },
+    { action: string; params?: Record<string, unknown> }
+  >('jarvis.action.invoke'),
+  browser: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.browser'
+  ),
+  code: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.code'
+  ),
+  dev: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.dev'
+  ),
+  image: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.image'
+  ),
+  video: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.video'
+  ),
+  file: bridge.buildProvider<{ success: boolean; result?: unknown; error?: string }, Record<string, unknown>>(
+    'jarvis.file'
+  ),
+};
+
 // Database operations
 export const database = {
   getConversationMessages: bridge.buildProvider<
@@ -729,6 +756,15 @@ export const systemSettings = {
   setAutoPreviewOfficeFiles: bridge.buildProvider<void, { enabled: boolean }>(
     'system-settings:set-auto-preview-office-files'
   ),
+  getIntegrationKeysStatus: bridge.buildProvider<
+    Record<string, { configured: boolean; hasEnvironmentValue: boolean; placeholder: boolean }>,
+    void
+  >('system-settings:get-integration-keys-status'),
+  getIntegrationKey: bridge.buildProvider<string, { key: string }>('system-settings:get-integration-key'),
+  setIntegrationKey: bridge.buildProvider<void, { key: string; value: string }>(
+    'system-settings:set-integration-key'
+  ),
+  clearIntegrationKey: bridge.buildProvider<void, { key: string }>('system-settings:clear-integration-key'),
   // Desktop pet settings
   getPetEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-enabled'),
   setPetEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-enabled'),

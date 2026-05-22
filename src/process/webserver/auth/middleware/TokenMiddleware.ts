@@ -132,7 +132,15 @@ export const createAuthMiddleware = (type: 'json' | 'html' = 'json') => {
   const strategy = ValidatorFactory.create(type);
 
   return async (req: Request, res: Response, next: NextFunction): Promise<void> => {
-    // 1. 提取 token / Extract token
+    // Localhost bypass: skip auth when running locally with DISABLE_AUTH env
+    const host = req.hostname || req.ip || '';
+    const isLocalhost = host === 'localhost' || host === '127.0.0.1' || host === '::1';
+    if (process.env.DISABLE_AUTH === 'true' && isLocalhost) {
+      req.user = { id: 'local', username: 'novamaster' };
+      next();
+      return;
+    }
+
     const token = TokenExtractor.extract(req);
 
     if (!token) {

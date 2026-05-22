@@ -8,7 +8,6 @@
 // Use electron-specific renderer package only inside Electron; fall back to the
 // browser SDK when running as a standalone web server (no window.electronAPI).
 if ((window as { electronAPI?: unknown }).electronAPI) {
-  // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
   import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
 }
 
@@ -26,12 +25,12 @@ import { createRoot } from 'react-dom/client';
 // Context providers
 import { AuthProvider } from './hooks/context/AuthContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
+import { ServiceHealthProvider } from './hooks/context/ServiceHealthContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 import { ConversationTabsProvider } from './pages/conversation/hooks/ConversationTabsContext';
 
 // Arco Design
 import { ConfigProvider } from '@arco-design/web-react';
-// Configure Arco Design to use React 18's createRoot, fixing Message component's CopyReactDOM.render error
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
 import enUS from '@arco-design/web-react/es/locale/en-US';
@@ -54,7 +53,6 @@ import { registerPwa } from './services/registerPwa';
 import Layout from './components/layout/Layout';
 import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
-import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
 
@@ -86,33 +84,16 @@ const arcoLocales: Record<string, typeof enUS> = {
   'en-US': enUS,
 };
 
-const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
-  React.createElement(
-    AuthProvider,
-    null,
-    React.createElement(
-      ThemeProvider,
-      null,
-      React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))
-    )
-  );
-
 const Config: React.FC<PropsWithChildren> = ({ children }) => {
   const {
     i18n: { language },
   } = useTranslation();
   const arcoLocale = arcoLocales[language] ?? enUS;
 
-  return React.createElement(ConfigProvider, { theme: { primaryColor: '#4E5969' }, locale: arcoLocale }, children);
+  return React.createElement(ConfigProvider, { theme: { primaryColor: '#d9a431' }, locale: arcoLocale }, children);
 };
 
 const Main = () => {
-  const { ready } = useAuth();
-
-  if (!ready) {
-    return null;
-  }
-
   return (
     <Router
       layout={
@@ -125,6 +106,22 @@ const Main = () => {
 };
 
 const App = HOC.Wrapper(Config)(Main);
+
+// AppProviders wraps the entire app with all context providers
+const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
+  React.createElement(
+    AuthProvider,
+    null,
+    React.createElement(
+      ThemeProvider,
+      null,
+      React.createElement(
+        ServiceHealthProvider,
+        null,
+        React.createElement(PreviewProvider, null, React.createElement(ConversationTabsProvider, null, children))
+      )
+    )
+  );
 
 void registerPwa();
 

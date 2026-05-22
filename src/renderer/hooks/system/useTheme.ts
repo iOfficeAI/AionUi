@@ -4,14 +4,18 @@ import { useCallback, useEffect, useState } from 'react';
 
 export type Theme = 'light' | 'dark';
 
-const DEFAULT_THEME: Theme = 'light';
+const DEFAULT_THEME: Theme = 'dark';
 const THEME_CACHE_KEY = '__aionui_theme';
+
+const normalizeTheme = (theme?: string | null): Theme => {
+  return theme === 'light' || theme === 'dark' ? theme : DEFAULT_THEME;
+};
 
 // Initialize theme immediately when module loads
 const initTheme = async () => {
   try {
-    const theme = (await ConfigStorage.get('theme')) as Theme;
-    const initialTheme = theme || DEFAULT_THEME;
+    const theme = await ConfigStorage.get('theme');
+    const initialTheme = normalizeTheme(theme);
     document.documentElement.setAttribute('data-theme', initialTheme);
     document.body.setAttribute('arco-theme', initialTheme);
     try {

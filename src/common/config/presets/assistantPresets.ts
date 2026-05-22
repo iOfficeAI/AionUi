@@ -1001,6 +1001,102 @@ export const ASSISTANT_PRESETS: AssistantPreset[] = [
     },
   },
   {
+    id: 'novamaster-ops',
+    avatar: '⚕️',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/novamaster-ops',
+    ruleFiles: {
+      'en-US': 'novamaster-ops.md',
+    },
+    defaultEnabledSkills: ['nova-health-diagnostics', 'nova-sysadmin'],
+    nameI18n: {
+      'en-US': 'NovaMaster Ops',
+      'nl-NL': 'NovaMaster Ops',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Infrastructure operations agent — manages VPS services, Docker, systemd, reverse proxy routing, monitoring, and rollback-safe recovery for the NovaMaster stack.',
+      'nl-NL':
+        'Infrastructuur operations agent — beheert VPS services, Docker, systemd, reverse proxy, monitoring en rollback-veilige herstelprocedures voor de NovaMaster stack.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Check all NovaMaster services and report health status',
+        'Restart the hermes-gateway service and verify connectivity',
+        'Run a full system scan and fix any issues found',
+      ],
+      'nl-NL': [
+        'Controleer alle NovaMaster services en rapporteer de status',
+        'Herstart de hermes-gateway service en verifieer verbinding',
+        'Voer een volledige systeemscan uit en los gevonden problemen op',
+      ],
+    },
+  },
+  {
+    id: 'novamaster-builder',
+    avatar: '⚒️',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/novamaster-builder',
+    ruleFiles: {
+      'en-US': 'novamaster-builder.md',
+    },
+    defaultEnabledSkills: ['hermes-agent', 'agentic-dev-protocol'],
+    nameI18n: {
+      'en-US': 'NovaMaster Builder',
+      'nl-NL': 'NovaMaster Builder',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Implementation agent — builds, patches, tests, and deploys AI orchestration code, dashboards, integrations, and automation workflows for NovaMaster.',
+      'nl-NL':
+        'Implementatie agent — bouwt, patcht, test en deployed AI orkestratiecode, dashboards, integraties en automatiseringsworkflows voor NovaMaster.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Build a new integration for the Hermes gateway',
+        'Patch the dashboard component to show real-time metrics',
+        'Deploy the latest office stack changes to production',
+      ],
+      'nl-NL': [
+        'Bouw een nieuwe integratie voor de Hermes gateway',
+        'Patch het dashboard component om real-time metrics te tonen',
+        'Deploy de laatste office stack wijzigingen naar productie',
+      ],
+    },
+  },
+  {
+    id: 'novamaster-scout',
+    avatar: '🔭',
+    presetAgentType: 'gemini',
+    resourceDir: 'src/process/resources/assistant/novamaster-scout',
+    ruleFiles: {
+      'en-US': 'novamaster-scout.md',
+    },
+    defaultEnabledSkills: ['find-skills', 'automation'],
+    nameI18n: {
+      'en-US': 'NovaMaster Scout',
+      'nl-NL': 'NovaMaster Scout',
+    },
+    descriptionI18n: {
+      'en-US':
+        'Skills and business automation scout — discovers, evaluates, and operationalizes community skills into monetizable AI systems for the NovaMaster ecosystem.',
+      'nl-NL':
+        'Skills en business automatie scout — ontdekt, evalueert en operationaliseert community skills in verhandelbare AI-systemen voor het NovaMaster ecosysteem.',
+    },
+    promptsI18n: {
+      'en-US': [
+        'Search for useful skills for the NovaMaster stack',
+        'Evaluate which community skills would add revenue potential',
+        'Operationalize the top 3 discovered skills into our workflow',
+      ],
+      'nl-NL': [
+        'Zoek naar bruikbare skills voor de NovaMaster stack',
+        'Evalueer welke community skills omzetpotentieel hebben',
+        'Operationaliseer de top 3 ontdekte skills in onze workflow',
+      ],
+    },
+  },
+  {
     id: 'story-roleplay',
     avatar: '📖',
     presetAgentType: 'gemini',
