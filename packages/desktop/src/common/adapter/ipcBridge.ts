@@ -770,14 +770,11 @@ export const mcpService = {
   >('/api/mcp/test-connection'),
   syncMcpToAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    {
-      mcpServers: IMcpServer[];
-      agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>;
-    }
+    { servers: string[] }
   >('/api/mcp/sync-to-agents'),
   removeMcpFromAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { mcpServerName: string; agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }> }
+    { server_names: string[] }
   >('/api/mcp/remove-from-agents'),
   checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
     '/api/mcp/oauth/check-status'
