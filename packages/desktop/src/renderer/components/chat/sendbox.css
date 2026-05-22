@@ -109,7 +109,12 @@
 .sendbox-tools .sendbox-model-btn:hover,
 .sendbox-tools .sendbox-model-btn:active,
 .sendbox-tools .sendbox-model-btn:focus,
-.sendbox-tools .sendbox-model-btn:focus-visible {
+.sendbox-tools .sendbox-model-btn:focus-visible,
+.sendbox-actions .sendbox-model-btn,
+.sendbox-actions .sendbox-model-btn:hover,
+.sendbox-actions .sendbox-model-btn:active,
+.sendbox-actions .sendbox-model-btn:focus,
+.sendbox-actions .sendbox-model-btn:focus-visible {
   background: transparent !important;
   border: none !important;
   box-shadow: none !important;
@@ -119,7 +124,11 @@
 .sendbox-tools .sendbox-model-btn:hover,
 .sendbox-tools .sendbox-model-btn:active,
 .sendbox-tools .sendbox-model-btn:focus,
-.sendbox-tools .sendbox-model-btn:focus-visible {
+.sendbox-tools .sendbox-model-btn:focus-visible,
+.sendbox-actions .sendbox-model-btn:hover,
+.sendbox-actions .sendbox-model-btn:active,
+.sendbox-actions .sendbox-model-btn:focus,
+.sendbox-actions .sendbox-model-btn:focus-visible {
   color: var(--text-primary) !important;
 }
 
@@ -312,7 +321,8 @@
 /* Only pill buttons shrink; file-attach / other fixed buttons stay rigid.
  * flex-basis:0 makes all pills share space equally when compressed,
  * max-width:max-content prevents short-text pills from stretching. */
-.sendbox-tools .agent-mode-compact-pill {
+.sendbox-tools .agent-mode-compact-pill,
+.sendbox-actions .agent-mode-compact-pill {
   min-width: 0 !important;
   overflow: hidden !important;
   flex-shrink: 1 !important;
@@ -321,7 +331,8 @@
   max-width: max-content !important;
 }
 
-.sendbox-tools .agent-mode-compact-pill .arco-btn-content {
+.sendbox-tools .agent-mode-compact-pill .arco-btn-content,
+.sendbox-actions .agent-mode-compact-pill .arco-btn-content {
   min-width: 0 !important;
   overflow: hidden !important;
 }
