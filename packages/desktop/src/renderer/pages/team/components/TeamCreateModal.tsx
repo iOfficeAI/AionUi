@@ -286,36 +286,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               </div>
             ) : (
               <div className='relative flex flex-col gap-8px'>
-                {/* 搜索按钮（暂时隐藏 —— 列表数量少时不需要） */}
-                {false && (
-                <Tooltip
-                  content={
-                    searchExpanded
-                      ? t('team.create.closeSearchTooltip', { defaultValue: 'Close search' })
-                      : t('team.create.searchAgentsTooltip', { defaultValue: 'Search agents' })
-                  }
-                  position='top'
-                >
-                  <button
-                    type='button'
-                    onClick={handleToggleSearch}
-                    className='absolute -top-26px right-0 flex h-22px w-22px cursor-pointer items-center justify-center rounded-6px border-none bg-transparent text-t-secondary transition-colors hover:bg-fill-2 hover:text-t-primary'
-                    data-testid='team-create-leader-search-toggle'
-                    aria-label={
-                      searchExpanded
-                        ? t('team.create.closeSearchTooltip', { defaultValue: 'Close search' })
-                        : t('team.create.searchAgentsTooltip', { defaultValue: 'Search agents' })
-                    }
-                  >
-                    {searchExpanded ? (
-                      <CloseSmall size='14' fill='currentColor' />
-                    ) : (
-                      <Search size='14' fill='currentColor' />
-                    )}
-                  </button>
-                </Tooltip>
-                )}
-
                 {/* 搜索框（点搜索图标后展开） */}
                 {searchExpanded && (
                   <div className='flex items-center gap-8px rounded-8px border border-border-2 bg-bg-2 px-12px py-8px focus-within:border-primary-6'>
