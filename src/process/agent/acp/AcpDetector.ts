@@ -13,6 +13,20 @@ import { ProcessConfig } from '@process/utils/initStorage';
 import { getEnhancedEnv } from '@process/utils/shellEnv';
 
 /**
+ * Upper bound for the POSIX `command -v` batch invocation. Healthy systems
+ * finish in <100ms (see PR #2485); the larger budget accommodates slow PATH
+ * entries such as WSL `/mnt/c/*` Windows mounts or cold network shares,
+ * where `command -v` has to stat each PATH dir for each candidate CLI.
+ */
+const POSIX_BATCH_TIMEOUT_MS = 8000;
+
+/**
+ * Per-CLI timeout for the POSIX fallback path. Isolates a single slow
+ * lookup from blocking the rest, mirroring the Windows `where` strategy.
+ */
+const POSIX_PER_CLI_TIMEOUT_MS = 3000;
+
+/**
  * ACP agent detector — discovers ACP protocol agents from two sources:
  *
  * **Builtin agents** — Well-known CLI tools (claude, qwen, goose, etc.) defined
@@ -45,7 +59,10 @@ class AcpDetector {
    * Batch-check which CLI commands are available on the system PATH.
    *
    * POSIX: single shell invocation using `command -v` (shell builtin,
-   * no per-command process spawn).
+   * no per-command process spawn). Falls back to parallel per-CLI checks
+   * if the batch times out or errors — a single slow PATH entry (e.g. a
+   * Windows mount `/mnt/c/*` under WSL, an unresponsive network share)
+   * would otherwise cause every CLI to be reported missing.
    *
    * Windows: parallel `where` calls with PowerShell fallback.
    */
@@ -66,11 +83,13 @@ class AcpDetector {
       const checks = safe.map((cmd) => `command -v '${cmd}' >/dev/null 2>&1 && echo '${cmd}'`);
       const script = checks.join('; ') + '; true';
       try {
-        const { stdout } = await safeExec(script, { timeout: 3000, env: this.enhancedEnv });
+        const { stdout } = await safeExec(script, { timeout: POSIX_BATCH_TIMEOUT_MS, env: this.enhancedEnv });
         return new Set(stdout.trim().split('\n').filter(Boolean));
       } catch (err) {
-        console.error('[AcpDetector] Batch CLI check failed:', err);
-        return new Set();
+        console.warn(
+          `[AcpDetector] Batch CLI check failed (${(err as Error).message}), falling back to per-CLI probes`
+        );
+        return this.perCliFallback(safe);
       }
     }
 
@@ -96,6 +115,34 @@ class AcpDetector {
           return cmd;
         } catch (err) {
           console.warn(`[AcpDetector] PowerShell Get-Command '${cmd}' also failed:`, (err as Error).message);
+          return null;
+        }
+      })
+    );
+    return new Set(
+      results
+        .filter((r): r is PromiseFulfilledResult<string> => r.status === 'fulfilled' && r.value !== null)
+        .map((r) => r.value)
+    );
+  }
+
+  /**
+   * Parallel per-CLI fallback for the POSIX batch path. Used only after the
+   * single-shell `command -v` batch fails — typically a 8s timeout caused by
+   * a slow PATH entry such as `/mnt/c/*` under WSL or an unresponsive network
+   * share. Each probe gets its own 3s budget so a single slow lookup cannot
+   * mask the rest of the CLIs.
+   */
+  private async perCliFallback(commands: string[]): Promise<Set<string>> {
+    const results = await Promise.allSettled(
+      commands.map(async (cmd): Promise<string | null> => {
+        try {
+          await safeExec(`command -v '${cmd}'`, {
+            timeout: POSIX_PER_CLI_TIMEOUT_MS,
+            env: this.enhancedEnv,
+          });
+          return cmd;
+        } catch {
           return null;
         }
       })
