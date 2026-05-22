@@ -3,7 +3,7 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * On first tarball launch, the aioncli's SQLite `users` table holds the
+ * On first tarball launch, the aioncore's SQLite `users` table holds the
  * seeded `system_default_user` row with an empty password_hash. We probe
  * /api/auth/status; if `needs_setup === true`, ask the backend to generate and
  * persist a random password via POST /api/webui/reset-password and print it to
@@ -27,7 +27,7 @@ export type EnsureAdminPasswordDeps = {
 };
 
 export type EnsureAdminPasswordOptions = {
-  /** 127.0.0.1 port where aioncli listens (from WebHostHandle.backendPort). */
+  /** 127.0.0.1 port where aioncore listens (from WebHostHandle.backendPort). */
   backendPort: number;
   /** Total wait budget for /api/auth/status coming up. Default: 15s. */
   statusTimeoutMs?: number;

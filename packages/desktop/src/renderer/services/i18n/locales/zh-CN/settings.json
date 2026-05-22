@@ -155,6 +155,11 @@
   "startOnBootUnsupported": "仅在打包后的 macOS 和 Windows 客户端中可用。",
   "startOnBootUpdateFailed": "更新开机启动设置失败",
   "closeToTray": "关闭到托盘",
+  "hardwareAcceleration": "硬件加速",
+  "hardwareAccelerationDesc": "使用 GPU 渲染界面。如果启动时崩溃或画面异常，请关闭。",
+  "hardwareAccelerationAutoDisabled": "因 GPU 反复崩溃已自动关闭。",
+  "hardwareAccelerationRestartConfirm": "重启 AionUi 以应用新的硬件加速设置？",
+  "hardwareAccelerationUpdateFailed": "更新硬件加速设置失败",
   "notification": "通知",
   "cronNotificationEnabled": "定时任务完成通知",
   "promptTimeout": "LLM 请求超时时间（秒）",
@@ -175,6 +180,11 @@
   "platformName": "平台名称",
   "modelName": "模型名称",
   "baseUrl": "base url",
+  "apiEndpoint": "API 请求地址",
+  "fullUrl": "完整URL",
+  "fullUrlMode": "完整 URL",
+  "fullUrlHint": "直接使用此地址，不拼接路径",
+  "baseUrlHint": "系统会自动拼接请求路径",
   "apiKey": "API Key",
   "deleteModelConfirm": "是否删除该模型？",
   "deleteAllModelConfirm": "是否删除所有模型？",
@@ -828,12 +838,11 @@
   "agentManagement": {
     "localAgents": "本地 Agents",
     "remoteAgents": "远端 Agents",
-    "localAgentsDescription": "除了内置 Agent，其他 Agent 需本地安装后自动识别才可使用。",
+    "localAgentsDescription": "Aion CLI 是内置 Agent，App 自带无需安装；其他 Agent 需先在本地安装对应 CLI 才能被识别。",
     "localAgentsSetupLink": "查看安装指南",
+    "goToChat": "开始对话",
     "remoteAgentsDescription": "目前只支持远程连接 OpenClaw，其他 Agent 正在开发中。",
-    "settings": "设置",
     "advancedConfig": "高级配置",
-    "settingsDisabledHint": "配置能力即将开放",
     "geminiDescription": "Google Gemini AI 命令行工具",
     "connectRemoteAgent": "连接远端 Agent",
     "discoverMoreAgents": "发现更多 Agent",
@@ -897,12 +906,5 @@
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
   },
-  "noExternalSources": "未发现外部技能源",
-  "aionrs": {
-    "available": "可用",
-    "notFound": "未找到",
-    "version": "版本",
-    "path": "路径",
-    "providerNote": "服务商和 API 密钥设置在模型页面管理。Aion CLI 支持：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  "noExternalSources": "未发现外部技能源"
 }

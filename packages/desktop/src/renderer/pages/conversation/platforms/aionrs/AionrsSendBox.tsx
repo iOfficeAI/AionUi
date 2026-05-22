@@ -127,7 +127,17 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!conversation_id || teamPermission) return;
+    if (!conversation_id) return;
+    if (teamPermission) {
+      void teamPermission
+        .warmupSession()
+        .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+        .then(() => {
+          setAgentWarmed(true);
+        })
+        .catch(() => {});
+      return;
+    }
     setAgentWarmed(false);
     void ipcBridge.conversation.warmup
       .invoke({ conversation_id })
@@ -342,8 +352,12 @@ const AionrsSendBox: React.FC<{
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
+    // Best-effort cancel: swallow rejections so they don't bubble up as
+    // unhandled rejections. UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[AionrsSendBox] stop request failed', error);
     } finally {
       resetState();
       resetActiveExecution('stop');

@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aioncli.js');
-const { resolveBackendVersion } = require('./resolveBackendVersion.js');
+const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.env.PACK_PLATFORM || process.platform;
@@ -23,13 +23,13 @@ const tarballPath = path.join(distDir, tarballName);
 
 console.log(`Packing web-cli for ${platform}-${arch}...`);
 
-// 1. Prepare bundled-aioncli
-console.log('1. Preparing aioncli...');
-prepareAionuiBackend({
+// 1. Prepare bundled-aioncore
+console.log('1. Preparing aioncore...');
+prepareAioncore({
   projectRoot,
   platform,
   arch,
-  version: resolveBackendVersion(projectRoot),
+  version: resolveAioncoreVersion(projectRoot),
 });
 
 // 2. Create staging dir
@@ -77,11 +77,11 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled-aioncli
-const backendSrc = path.join(projectRoot, 'resources/bundled-aioncli', `${platform}-${arch}`);
-const backendDest = path.join(tarballContentDir, 'bundled-aioncli', `${platform}-${arch}`);
+// 7. Copy bundled-aioncore
+const backendSrc = path.join(projectRoot, 'resources/bundled-aioncore', `${platform}-${arch}`);
+const backendDest = path.join(tarballContentDir, 'bundled-aioncore', `${platform}-${arch}`);
 if (!fs.existsSync(backendSrc)) {
-  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAionuiBackend succeeded.`);
+  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAioncore succeeded.`);
 }
 fs.mkdirSync(path.dirname(backendDest), { recursive: true });
 fs.cpSync(backendSrc, backendDest, { recursive: true });

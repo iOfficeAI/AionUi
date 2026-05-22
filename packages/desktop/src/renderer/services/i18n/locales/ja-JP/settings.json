@@ -155,6 +155,11 @@
   "startOnBootUnsupported": "パッケージ版の macOS / Windows アプリでのみ利用できます。",
   "startOnBootUpdateFailed": "起動時自動起動の設定更新に失敗しました",
   "closeToTray": "トレイに最小化",
+  "hardwareAcceleration": "ハードウェアアクセラレーション",
+  "hardwareAccelerationDesc": "GPU を使って UI を描画します。起動時にクラッシュしたり画面が乱れる場合はオフにしてください。",
+  "hardwareAccelerationAutoDisabled": "GPU の繰り返しクラッシュにより自動的に無効化されました。",
+  "hardwareAccelerationRestartConfirm": "新しいハードウェアアクセラレーション設定を反映するため AionUi を再起動しますか？",
+  "hardwareAccelerationUpdateFailed": "ハードウェアアクセラレーション設定の更新に失敗しました",
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",
@@ -175,6 +180,11 @@
   "platformName": "プラットフォーム名",
   "modelName": "モデル名",
   "baseUrl": "ベースURL",
+  "apiEndpoint": "APIエンドポイント",
+  "fullUrl": "完全URL",
+  "fullUrlMode": "完全URL",
+  "fullUrlHint": "このアドレスをそのまま使用し、パスを追加しません",
+  "baseUrlHint": "システムが自動的にリクエストパスを追加します",
   "apiKey": "API キー",
   "deleteModelConfirm": "このモデルを削除してもよろしいですか？",
   "deleteAllModelConfirm": "すべてのモデルを削除してもよろしいですか？",
@@ -829,12 +839,11 @@
   "agentManagement": {
     "localAgents": "ローカルエージェント",
     "remoteAgents": "リモートエージェント",
-    "localAgentsDescription": "Gemini CLI は組み込みです。その他のエージェントはローカルインストール後に自動検出されます。",
+    "localAgentsDescription": "Aion CLI は組み込みエージェントで、アプリに同梱されインストール不要です。その他のエージェントは対応する CLI をローカルにインストールすると検出されます。",
     "localAgentsSetupLink": "セットアップガイド",
+    "goToChat": "チャットを開始",
     "remoteAgentsDescription": "現在は OpenClaw のリモート接続のみ対応しています。その他のエージェントは開発中です。",
-    "settings": "設定",
     "advancedConfig": "高度な設定",
-    "settingsDisabledHint": "設定機能は近日公開予定",
     "geminiDescription": "Google Gemini AI コマンドラインツール",
     "connectRemoteAgent": "リモートエージェントに接続",
     "discoverMoreAgents": "もっとエージェントを探す",
@@ -898,12 +907,5 @@
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
   },
-  "noExternalSources": "外部スキルソースが見つかりません",
-  "aionrs": {
-    "available": "利用可能",
-    "notFound": "見つかりません",
-    "version": "バージョン",
-    "path": "パス",
-    "providerNote": "プロバイダーとAPIキーの設定はモデルページで管理します。Aion CLIは以下をサポート：Anthropic、OpenAI、AWS Bedrock。"
-  }
+  "noExternalSources": "外部スキルソースが見つかりません"
 }

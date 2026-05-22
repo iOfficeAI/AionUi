@@ -451,9 +451,9 @@ try {
     return;
   }
 
-  // 5. Prepare aioncli binary (for packaged runtime usage)
-  const prepareAionuiBackend = require('./prepareAionuiBackend');
-  prepareAionuiBackend();
+  // 5. Prepare aioncore binary (for packaged runtime usage)
+  const prepareAioncore = require('./prepareAioncore');
+  prepareAioncore();
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });

@@ -95,6 +95,7 @@ const AcpSendBox: React.FC<{
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -103,6 +104,18 @@ const AcpSendBox: React.FC<{
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
+  // In team mode, warmup the agent then fetch slash commands
+  useEffect(() => {
+    if (!teamPermission) return;
+    void teamPermission
+      .warmupSession()
+      .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+      .then(() => {
+        fetchSlashCommands();
+      })
+      .catch(() => {});
+  }, [teamPermission, conversation_id, fetchSlashCommands]);
 
   const handleContentChange = useCallback(
     (val: string) => {
@@ -315,9 +328,13 @@ Please check your local CLI tool authentication status`,
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
-    // Use finally to ensure UI state is reset even if backend stop fails
+    // Cancelling is best-effort: swallow errors (e.g. backend WS not yet
+    // connected → 409) so they don't bubble up as unhandled rejections.
+    // UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[AcpSendBox] stop request failed', error);
     } finally {
       resetState();
       resetActiveExecution('stop');

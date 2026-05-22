@@ -7,10 +7,31 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
+import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import * as Sentry from '@sentry/electron/main';
+
+// 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
+// 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
+const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
 
 Sentry.init({
   dsn: process.env.SENTRY_DSN,
+  beforeSend(event) {
+    const haystacks: string[] = [];
+    if (event.message) haystacks.push(event.message);
+    const exceptions = event.exception?.values ?? [];
+    for (const ex of exceptions) {
+      if (ex.value) haystacks.push(ex.value);
+      const frames = ex.stacktrace?.frames ?? [];
+      for (const frame of frames) {
+        if (frame.function) haystacks.push(frame.function);
+      }
+    }
+    if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
+      return null;
+    }
+    return event;
+  },
 });
 
 import './process/utils/configureConsoleLog';
@@ -485,7 +506,7 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aioncli only after initializeProcess(). initStorage may open
+  // Start aioncore only after initializeProcess(). initStorage may open
   // the legacy Electron SQLite catalog for a one-shot v26 migration and must
   // close it before the backend touches the same file.
   try {
@@ -506,7 +527,7 @@ const handleAppReady = async (): Promise<void> => {
     registerCronResumeBridge(backendPort);
     backendStartedOk = true;
   } catch (error) {
-    console.error('[AionUi] Failed to start aioncli:', error);
+    console.error('[AionUi] Failed to start aioncore:', error);
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is
@@ -602,7 +623,7 @@ const handleAppReady = async (): Promise<void> => {
             // Spawning a second backend here would race the first on SQLite.
             const port = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
             if (!port) {
-              throw new Error('[WebUI] Cannot start: aioncli is not running (globalThis.__backendPort unset)');
+              throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
             }
             return port;
           })(),
@@ -735,6 +756,9 @@ app.on('open-url', (event, url) => {
   showOrCreateMainWindow({ mainWindow, createWindow });
 });
 
+// 监听 GPU 子进程崩溃，连续多次后下次启动自动关闭硬件加速（参见 ELECTRON-9A / ELECTRON-9D）。
+installGpuCrashHandler();
+
 // Ensure we don't miss the ready event when running in CLI/WebUI mode
 void app
   .whenReady()
@@ -787,7 +811,7 @@ app.on('before-quit', async () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
 
-    // Stop aioncli subprocess — backend shutdown kills all agent
+    // Stop aioncore subprocess — backend shutdown kills all agent
     // children transitively (no separate frontend workerTaskManager remains)
     await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
 
@@ -799,7 +823,7 @@ app.on('before-quit', async () => {
       /* pet not initialized */
     }
 
-    // Web Server lifecycle is managed by aioncli subprocess
+    // Web Server lifecycle is managed by aioncore subprocess
     // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
   };
 

@@ -153,6 +153,11 @@
   "startOnBootUnsupported": "Доступно лише в упакованих програмах для macOS та Windows.",
   "startOnBootUpdateFailed": "Не вдалося оновити налаштування запуску при завантаженні",
   "closeToTray": "Згортати в трей",
+  "hardwareAcceleration": "Апаратне прискорення",
+  "hardwareAccelerationDesc": "Використовувати GPU для відображення інтерфейсу. Вимкніть, якщо застосунок вилітає під час запуску або зображення спотворюється.",
+  "hardwareAccelerationAutoDisabled": "Автоматично вимкнено через повторні збої GPU.",
+  "hardwareAccelerationRestartConfirm": "Перезапустити AionUi, щоб застосувати нові налаштування апаратного прискорення?",
+  "hardwareAccelerationUpdateFailed": "Не вдалося оновити налаштування апаратного прискорення",
   "notification": "Сповіщення",
   "cronNotificationEnabled": "Завершення запланованих завдань",
   "promptTimeout": "Таймаут промпту ШІ (с)",
@@ -173,6 +178,11 @@
   "platformName": "Назва платформи",
   "modelName": "Назва моделі",
   "baseUrl": "base url",
+  "apiEndpoint": "Адреса API",
+  "fullUrl": "Повний URL",
+  "fullUrlMode": "Повний URL",
+  "fullUrlHint": "Використовувати цю адресу безпосередньо, без додавання шляху",
+  "baseUrlHint": "Система автоматично додасть шлях запиту",
   "apiKey": "API-ключ",
   "deleteModelConfirm": "Ви впевнені, що хочете видалити цю модель?",
   "deleteAllModelConfirm": "Ви впевнені, що хочете видалити всі моделі?",
@@ -745,12 +755,11 @@
   "agentManagement": {
     "localAgents": "Локальні агенти",
     "remoteAgents": "Віддалені агенти",
-    "localAgentsDescription": "Gemini CLI вбудований. Інші агенти автоматично виявляються після локального встановлення.",
+    "localAgentsDescription": "Aion CLI — це вбудований агент, який постачається разом із застосунком і не потребує встановлення. Інші агенти виявляються лише після локального встановлення відповідного CLI.",
     "localAgentsSetupLink": "Посібник із встановлення",
+    "goToChat": "Почати чат",
     "remoteAgentsDescription": "Поки що підтримується лише віддалене підключення OpenClaw. Інші агенти знаходяться в розробці.",
-    "settings": "Налаштування",
     "advancedConfig": "Розширена конфігурація",
-    "settingsDisabledHint": "Налаштування скоро будуть доступні",
     "geminiDescription": "Інструмент командного рядка Google Gemini AI",
     "connectRemoteAgent": "Підключити віддалений агент",
     "discoverMoreAgents": "Виявити більше агентів",
@@ -814,12 +823,5 @@
     "pendingCancel": "Скасувати",
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
-  "noExternalSources": "Зовнішні джерела навичок не знайдені",
-  "aionrs": {
-    "available": "Доступний",
-    "notFound": "Не знайдений",
-    "version": "Версія",
-    "path": "Шлях",
-    "providerNote": "Налаштування провайдера та API-ключів керуються на сторінці моделей. Aion CLI підтримує: Anthropic, OpenAI, AWS Bedrock."
-  }
+  "noExternalSources": "Зовнішні джерела навичок не знайдені"
 }

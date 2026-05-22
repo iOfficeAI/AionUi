@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { TChatConversation } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -63,10 +62,8 @@ export type GuidSendDeps = {
   setMentionSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setMentionActiveIndex: React.Dispatch<React.SetStateAction<number>>;
 
-  // Navigation & tabs
+  // Navigation
   navigate: NavigateFunction;
-  closeAllTabs: () => void;
-  openTab: (conversation: TChatConversation) => void;
   t: TFunction;
 };
 
@@ -111,8 +108,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     setMentionSelectorOpen,
     setMentionActiveIndex,
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   } = deps;
   const sendingRef = useRef(false);
@@ -181,9 +176,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -231,9 +224,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -282,9 +273,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -368,9 +357,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -406,8 +393,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   ]);
 

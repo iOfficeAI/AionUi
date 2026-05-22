@@ -14,20 +14,30 @@ import * as fs from 'fs';
 import * as path from 'path';
 import * as zlib from 'zlib';
 
+const LOG_SUFFIXES = ['.log', '.aioncore.log', '.aionrs.log'];
+const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}/;
+
 /**
- * Get log file paths for the last N days.
+ * Get log file paths for the most recent N days that actually have logs.
  * Log files are named YYYY-MM-DD.log by electron-log.
  */
 const getRecentLogPaths = (logsDir: string, days: number): string[] => {
-  const paths: string[] = [];
-  const now = new Date();
+  const files = fs.readdirSync(logsDir);
 
-  for (let i = 0; i < days; i++) {
-    const date = new Date(now);
-    date.setDate(date.getDate() - i);
-    const dateStr = date.toISOString().slice(0, 10);
-    for (const filename of [`${dateStr}.log`, `${dateStr}.aioncli.log`, `${dateStr}.aionrs.log`]) {
-      const filePath = path.join(logsDir, filename);
+  const dates = new Set<string>();
+  for (const file of files) {
+    const match = DATE_PATTERN.exec(file);
+    if (match && LOG_SUFFIXES.some((suffix) => file.endsWith(suffix))) {
+      dates.add(match[0]);
+    }
+  }
+
+  const recentDates = [...dates].sort().reverse().slice(0, days);
+
+  const paths: string[] = [];
+  for (const dateStr of recentDates) {
+    for (const suffix of LOG_SUFFIXES) {
+      const filePath = path.join(logsDir, `${dateStr}${suffix}`);
       if (fs.existsSync(filePath)) {
         paths.push(filePath);
       }

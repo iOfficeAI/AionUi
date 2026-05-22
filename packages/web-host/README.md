@@ -4,7 +4,7 @@ WebUI host package for AionUi - zero Electron dependency.
 
 ## Responsibilities
 
-- **backend-launcher**: spawn or reuse existing aioncli process
+- **backend-launcher**: spawn or reuse existing aioncore process
 - **static-server**: serve out/renderer SPA + reverse proxy /api and /ws to backend
 - **auth**: password reset, change, verify, config I/O (bcrypt + session)
 
@@ -23,7 +23,7 @@ const handle = await startWebHost({
   staticDir: '/path/to/out/renderer',
   backend: {
     kind: 'ownBackend',
-    resolveBackend: () => '/path/to/aioncli',
+    resolveBackend: () => '/path/to/aioncore',
   },
 });
 

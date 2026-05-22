@@ -19,7 +19,6 @@ import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
-import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 type Props = {
   team: TTeam;
@@ -209,13 +208,10 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)
   const effectiveWorkspace = team.workspace || (dispatchConversation?.extra as { workspace?: string })?.workspace || '';
   const workspaceEnabled = Boolean(effectiveWorkspace);
-
-  // Auto-expand workspace panel on mount when workspace is available
-  useEffect(() => {
-    if (workspaceEnabled && leadAgent?.conversation_id) {
-      dispatchWorkspaceHasFilesEvent(true, leadAgent.conversation_id);
-    }
-  }, [workspaceEnabled, leadAgent?.conversation_id]);
+  // Team is "user-picked" only when team.workspace was explicitly set at team
+  // creation. Falling back to a leader agent's auto-temp workspace counts as
+  // temporary, mirroring single-chat behavior.
+  const isTeamWorkspaceTemporary = !team.workspace;
 
   const siderTitle = useMemo(
     () => (
@@ -352,6 +348,8 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         conversation_id={activeAgent?.conversation_id}
         agent_name={undefined}
         workspacePath={effectiveWorkspace}
+        isTemporaryWorkspace={isTeamWorkspaceTemporary}
+        workspacePreferenceKey={team.id}
         onRenameTitle={onRenameTeam}
       >
         <div className='relative flex h-full'>

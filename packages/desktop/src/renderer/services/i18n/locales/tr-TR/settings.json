@@ -155,6 +155,11 @@
   "startOnBootUnsupported": "Yalnızca paketlenmiş macOS ve Windows uygulamalarında kullanılabilir.",
   "startOnBootUpdateFailed": "Açılışta başlat ayarı güncellenemedi",
   "closeToTray": "Tepsiye Kapat",
+  "hardwareAcceleration": "Donanım Hızlandırma",
+  "hardwareAccelerationDesc": "Arayüzü oluşturmak için GPU kullanır. Açılışta çökme veya görüntü titremesi varsa kapatın.",
+  "hardwareAccelerationAutoDisabled": "Tekrarlanan GPU çökmeleri nedeniyle otomatik olarak devre dışı bırakıldı.",
+  "hardwareAccelerationRestartConfirm": "Yeni donanım hızlandırma ayarını uygulamak için AionUi yeniden başlatılsın mı?",
+  "hardwareAccelerationUpdateFailed": "Donanım hızlandırma ayarı güncellenemedi",
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
   "promptTimeout": "LLM İstek Zaman Aşımı (sn)",
@@ -175,6 +180,11 @@
   "platformName": "Platform Adı",
   "modelName": "Model Adı",
   "baseUrl": "Temel URL",
+  "apiEndpoint": "API Uç Noktası",
+  "fullUrl": "Tam URL",
+  "fullUrlMode": "Tam URL",
+  "fullUrlHint": "Bu adresi doğrudan kullan, yol ekleme",
+  "baseUrlHint": "Sistem otomatik olarak istek yolunu ekleyecektir",
   "apiKey": "API Anahtarı",
   "deleteModelConfirm": "Bu modeli silmek istediğinizden emin misiniz?",
   "deleteAllModelConfirm": "Tüm modelleri silmek istediğinizden emin misiniz?",
@@ -827,12 +837,11 @@
   "agentManagement": {
     "localAgents": "Yerel Ajanlar",
     "remoteAgents": "Uzak Ajanlar",
-    "localAgentsDescription": "Gemini CLI yerleşiktir. Diğer ajanlar yerel kurulumdan sonra otomatik olarak algılanır.",
+    "localAgentsDescription": "Aion CLI yerleşik ajandır ve uygulamayla birlikte gelir, kurulum gerektirmez. Diğer ajanlar yalnızca ilgili CLI yerel olarak kurulduktan sonra algılanır.",
     "localAgentsSetupLink": "Kurulum kılavuzu",
+    "goToChat": "Sohbete Başla",
     "remoteAgentsDescription": "Şimdilik yalnızca OpenClaw uzak bağlantısı desteklenmektedir. Diğer ajanlar geliştirilmektedir.",
-    "settings": "Ayarlar",
     "advancedConfig": "Gelişmiş Yapılandırma",
-    "settingsDisabledHint": "Yapılandırma yakında gelecek",
     "geminiDescription": "Google Gemini AI komut satırı aracı",
     "connectRemoteAgent": "Uzak Ajan Bağla",
     "discoverMoreAgents": "Daha Fazla Ajan Keşfet",
@@ -896,12 +905,5 @@
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
   },
-  "noExternalSources": "Harici beceri kaynağı bulunamadı",
-  "aionrs": {
-    "available": "Mevcut",
-    "notFound": "Bulunamadı",
-    "version": "Sürüm",
-    "path": "Yol",
-    "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. Aion CLI destekler: Anthropic, OpenAI, AWS Bedrock."
-  }
+  "noExternalSources": "Harici beceri kaynağı bulunamadı"
 }

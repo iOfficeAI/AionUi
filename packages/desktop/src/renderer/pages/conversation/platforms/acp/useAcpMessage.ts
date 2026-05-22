@@ -27,6 +27,7 @@ export type UseAcpMessageReturn = {
   context_limit: number;
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
+  fetchSlashCommands: () => void;
 };
 
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
@@ -476,6 +477,24 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setHasThinkingMessage(false);
   }, []);
 
+  const fetchSlashCommands = useCallback(() => {
+    void ipcBridge.conversation.getSlashCommands
+      .invoke({ conversation_id })
+      .then((result) => {
+        if (!result || !Array.isArray(result) || result.length === 0) return;
+        setSlashCommands(
+          result.map((c) => ({
+            name: c.command,
+            description: c.description,
+            kind: 'template' as const,
+            source: 'acp' as const,
+            selectionBehavior: 'insert' as const,
+          }))
+        );
+      })
+      .catch(() => {});
+  }, [conversation_id]);
+
   return {
     thought,
     setThought,
@@ -489,5 +508,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   };
 };

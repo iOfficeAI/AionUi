@@ -85,12 +85,6 @@
     "loadingMore": "Daha fazla yükleniyor...",
     "untitled": "Adsız sohbet"
   },
-  "tabs": {
-    "closeAll": "Tümünü Kapat",
-    "closeLeft": "Sol tarafı kapat",
-    "closeRight": "Sağ tarafı kapat",
-    "closeOthers": "Diğerlerini Kapat"
-  },
   "workspace": {
     "title": "Proje",
     "pasteConfirm_title": "Dosyaları yapıştır",
@@ -293,5 +287,6 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
-  }
+  },
+  "notFound": "Konuşma bulunamadı veya silinmiş"
 }

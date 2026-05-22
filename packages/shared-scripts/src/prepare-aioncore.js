@@ -1,12 +1,12 @@
 /**
- * Prepare aioncli binary for packaging.
+ * Prepare aioncore binary for packaging.
  *
  * Resolution order:
  *  1. GitHub release download (requires version or defaults to "latest")
  *
- * Output: {projectRoot}/resources/bundled-aioncli/{platform}-{arch}/aioncli[.exe]
+ * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/aioncore[.exe]
  *
- * @module prepare-aioncli
+ * @module prepare-aioncore
  */
 
 const { execSync, execFileSync } = require('child_process');
@@ -15,7 +15,7 @@ const os = require('os');
 const path = require('path');
 
 const GITHUB_OWNER = 'iOfficeAI';
-const GITHUB_REPO = 'AionCLI';
+const GITHUB_REPO = 'AionCore';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -48,7 +48,7 @@ function writeJson(filePath, payload) {
 }
 
 function getBinaryName(platform) {
-  return platform === 'win32' ? 'aioncli.exe' : 'aioncli';
+  return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 }
 
 // ---------------------------------------------------------------------------
@@ -92,7 +92,7 @@ function resolveLatestTag() {
  * Build the release asset filename for the given platform/arch/tag.
  *
  * Expected asset naming convention:
- *   aioncli-v0.1.0-aarch64-apple-darwin.tar.gz
+ *   aioncore-v0.1.0-aarch64-apple-darwin.tar.gz
  */
 function getAssetName(platform, arch, tag) {
   const archMap = { x64: 'x86_64', arm64: 'aarch64' };
@@ -105,7 +105,7 @@ function getAssetName(platform, arch, tag) {
   const normalizedPlatform = platformMap[platform];
   if (!normalizedArch || !normalizedPlatform) return null;
   const ext = platform === 'win32' ? '.zip' : '.tar.gz';
-  return `aioncli-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
+  return `aioncore-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
 }
 
 function getDownloadUrl(assetName, tag) {
@@ -113,7 +113,7 @@ function getDownloadUrl(assetName, tag) {
 }
 
 function downloadFile(url, outputPath) {
-  console.log(`  Downloading aioncli from ${url}`);
+  console.log(`  Downloading aioncore from ${url}`);
   if (process.platform === 'win32') {
     const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
     execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
@@ -158,11 +158,11 @@ function findBinaryInDir(dir, binaryName) {
 function downloadAndExtract(platform, arch, tag) {
   const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
-    throw new Error(`Unsupported aioncli target: ${platform}-${arch}`);
+    throw new Error(`Unsupported aioncore target: ${platform}-${arch}`);
   }
 
   const url = getDownloadUrl(assetName, tag);
-  const tempDir = path.join(os.tmpdir(), 'aioncli-prepare', tag, `${platform}-${arch}`);
+  const tempDir = path.join(os.tmpdir(), 'aioncore-prepare', tag, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
 
@@ -186,7 +186,7 @@ function downloadAndExtract(platform, arch, tag) {
 // ---------------------------------------------------------------------------
 
 /**
- * Prepare aioncli binary for packaging.
+ * Prepare aioncore binary for packaging.
  *
  * @param {object} options - Configuration options
  * @param {string} options.projectRoot - Project root directory
@@ -195,7 +195,7 @@ function downloadAndExtract(platform, arch, tag) {
  * @param {string} options.version - Backend version (default: 'latest')
  * @returns {{ prepared: true; dir: string; sourceType: string }}
  */
-function prepareAionuiBackend(options) {
+function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
 
@@ -204,19 +204,19 @@ function prepareAionuiBackend(options) {
   if (version === 'latest') {
     const resolved = resolveLatestTag();
     if (!resolved) {
-      throw new Error('Failed to resolve latest aioncli release tag from GitHub API');
+      throw new Error('Failed to resolve latest aioncore release tag from GitHub API');
     }
     tag = resolved;
-    console.log(`Resolved aioncli "latest" → ${tag}`);
+    console.log(`Resolved aioncore "latest" → ${tag}`);
   } else {
     tag = version.startsWith('v') ? version : `v${version}`;
   }
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncli', runtimeKey);
+  const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncore', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
-  console.log(`Preparing aioncli for ${runtimeKey} (version: ${tag})`);
+  console.log(`Preparing aioncore for ${runtimeKey} (version: ${tag})`);
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -245,7 +245,7 @@ function prepareAionuiBackend(options) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
 
-    // The release tag is the authoritative version — the aioncli
+    // The release tag is the authoritative version — the aioncore
     // binary does not expose a --version flag (it has --app-version which
     // takes a value, not a self-report).
     const manifest = {
@@ -260,14 +260,14 @@ function prepareAionuiBackend(options) {
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
     console.log(
-      `  Bundled aioncli prepared: resources/bundled-aioncli/${runtimeKey}/${binaryName} [source=${sourceType}]`
+      `  Bundled aioncore prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
 
     if (tempDir) removeDirectorySafe(tempDir);
     return { prepared: true, dir: targetDir, sourceType };
   }
 
-  throw new Error(`aioncli binary not found for ${runtimeKey} (tag: ${tag})`);
+  throw new Error(`aioncore binary not found for ${runtimeKey} (tag: ${tag})`);
 }
 
-module.exports = { prepareAionuiBackend };
+module.exports = { prepareAioncore };

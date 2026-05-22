@@ -1076,7 +1076,7 @@ SELECT status FROM conversations WHERE id = ?;
 | `src/process/task/AionrsManager.ts`                                           | 250-259  | 权限模式自动批准逻辑                              |
 | `src/process/task/AionrsManager.ts`                                           | 727-737  | `setMode()` 持久化                                |
 | `src/process/task/AionrsManager.ts`                                           | 452-489  | missing finish fallback（15s 超时）               |
-| `aioncli aionui.db`                                                           | —        | conversations + messages 由 backend 独占持久化    |
+| `aioncore aionui.db`                                                          | —        | conversations + messages 由 backend 独占持久化    |
 
 ---
 

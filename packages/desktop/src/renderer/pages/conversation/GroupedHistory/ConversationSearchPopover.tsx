@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { useOptionalConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
@@ -148,7 +147,6 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const conversationTabs = useOptionalConversationTabs();
   const [visible, setVisible] = useState(false);
   const [keyword, setKeyword] = useState('');
   const [debouncedKeyword, setDebouncedKeyword] = useState('');
@@ -278,22 +276,6 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
       onConversationSelect?.();
 
-      const custom_workspace = item.conversation.extra?.custom_workspace;
-      const newWorkspace = item.conversation.extra?.workspace;
-
-      if (conversationTabs) {
-        const { closeAllTabs, openTab, activeTab } = conversationTabs;
-        if (!custom_workspace) {
-          closeAllTabs();
-        } else {
-          const currentWorkspace = activeTab?.workspace;
-          if (!currentWorkspace || currentWorkspace !== newWorkspace) {
-            closeAllTabs();
-          }
-          openTab(item.conversation);
-        }
-      }
-
       await Promise.resolve(
         navigate(`/conversation/${item.conversation.id}`, {
           state: {
@@ -304,7 +286,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
       );
       onSessionClick?.();
     },
-    [conversationTabs, navigate, onConversationSelect, onSessionClick, resetSearchState]
+    [navigate, onConversationSelect, onSessionClick, resetSearchState]
   );
 
   const handleClose = useCallback(() => {
