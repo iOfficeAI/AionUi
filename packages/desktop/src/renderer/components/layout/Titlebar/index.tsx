@@ -341,13 +341,11 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         aria-label={layout?.isMobile ? mobileCenterTitle : appTitle}
         title={layout?.isMobile ? mobileCenterTitle : appTitle}
       >
-        {layout?.isMobile ? (
+        {layout?.isMobile && (
           <span className='app-titlebar__brand-mobile'>
             <AionLogoMark />
             <span className='app-titlebar__brand-text'>{mobileCenterTitle}</span>
           </span>
-        ) : (
-          appTitle
         )}
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
