@@ -28,7 +28,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
 
   const branchIcon = (
     <span className='flex items-center text-t-tertiary mx-8px hover:text-t-secondary transition-colors cursor-pointer'>
-      <BranchOne size={14} className='shrink-0' />
+      <BranchOne size={16} className='shrink-0' />
     </span>
   );
 
