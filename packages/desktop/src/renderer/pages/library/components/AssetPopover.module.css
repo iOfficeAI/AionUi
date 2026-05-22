@@ -1,0 +1,95 @@
+.popover {
+  position: absolute;
+  z-index: 10000;
+  width: 320px;
+  background: var(--fill-0);
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.18);
+  padding: 14px;
+  opacity: 0;
+  transform: translateY(4px);
+  transition:
+    opacity 0.18s,
+    transform 0.18s;
+  pointer-events: none;
+}
+
+[data-theme='dark'] .popover {
+  background: var(--bg-2);
+  border-color: var(--color-border-3);
+  box-shadow:
+    0 12px 40px rgba(0, 0, 0, 0.5),
+    0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+.popover.show {
+  opacity: 1;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+
+.prompt {
+  font-size: 12px;
+  color: var(--color-text-2);
+  font-style: italic;
+  line-height: 1.5;
+  margin-bottom: 10px;
+  padding-left: 8px;
+  border-left: 2px solid var(--color-border-3);
+  /* 最多显示 4 行，超出省略 */
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.sectionTitle {
+  font-size: 11px;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 6px 0 6px 2px;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 4px;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.fileRow:hover {
+  background: var(--color-fill-2);
+}
+
+.fileTag {
+  width: 36px;
+  height: 24px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 10px;
+  font-weight: 700;
+  color: white;
+  letter-spacing: 0.5px;
+  flex-shrink: 0;
+}
+
+.fileName {
+  flex: 1;
+  min-width: 0;
+  font-size: 12px;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (hover: none), (max-width: 768px) {
+  .popover {
+    display: none !important;
+  }
+}
