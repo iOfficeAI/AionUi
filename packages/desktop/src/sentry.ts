@@ -18,6 +18,7 @@ const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCra
 export function initSentry(): void {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
+    environment: app.isPackaged ? 'production' : 'development',
     beforeSend(event) {
       const haystacks: string[] = [];
       if (event.message) haystacks.push(event.message);
@@ -88,8 +89,8 @@ export function selectRecentLogFiles(files: LogFileMeta[], n: number): LogFileMe
     }
     bucket.push(f);
   }
-  const days = Array.from(byDay.keys()).sort().reverse().slice(0, n);
-  return days.flatMap((d) => byDay.get(d) ?? []).sort((a, b) => a.mtime - b.mtime);
+  const days = Array.from(byDay.keys()).toSorted().toReversed().slice(0, n);
+  return days.flatMap((d) => byDay.get(d) ?? []).toSorted((a, b) => a.mtime - b.mtime);
 }
 
 export type LogSegment = { name: string; mtime: number; content: string };
@@ -170,7 +171,7 @@ function listLogFilesSync(dir: string): LogFileMeta[] {
     const full = path.join(dir, name);
     try {
       const stat = fs.statSync(full);
-      if (stat.isFile() && /\.log$/.test(name)) {
+      if (stat.isFile() && name.endsWith('.log')) {
         out.push({ path: full, mtime: stat.mtimeMs, size: stat.size });
       }
     } catch {
@@ -188,7 +189,16 @@ async function runStartupLogReport(): Promise<void> {
   const state = readState();
 
   if (state.lastReportAt && now - state.lastReportAt < THROTTLE_WINDOW_MS) {
+    const remainingHours = ((THROTTLE_WINDOW_MS - (now - state.lastReportAt)) / 3_600_000).toFixed(1);
+    console.info(`[sentry] startup log report skipped (throttled, next attempt in ~${remainingHours}h)`);
     return;
+  }
+
+  // DSN gate goes first so we don't read the disk for nothing.
+  // Don't write state — the next launch with a DSN should still fire.
+  if (!process.env.SENTRY_DSN) {
+    console.info('[sentry] startup log report skipped (SENTRY_DSN not set)');
+    throw new UnretryableError('no DSN');
   }
 
   const days = computeReportDays(state.lastReportAt, now);
@@ -225,11 +235,6 @@ async function runStartupLogReport(): Promise<void> {
     throw new RetryableError(`gzip failed: ${(err as Error).message}`);
   }
 
-  if (!process.env.SENTRY_DSN) {
-    writeState({ lastReportAt: now });
-    throw new UnretryableError('no DSN');
-  }
-
   Sentry.withScope((scope) => {
     scope.addAttachment({
       filename: 'aionui-logs.log.gz',
@@ -242,6 +247,10 @@ async function runStartupLogReport(): Promise<void> {
   });
 
   writeState({ lastReportAt: now });
+  const sizeKb = (pack.gzipped.length / 1024).toFixed(1);
+  console.info(
+    `[sentry] startup log report sent (days=${days}, files=${selected.length}, gzipped=${sizeKb}KB, truncated=${pack.truncated})`
+  );
 }
 
 /**
@@ -249,9 +258,10 @@ async function runStartupLogReport(): Promise<void> {
  * loading. Best-effort: any failure is logged to console only and never
  * affects app startup.
  *
- * Failure semantics: `UnretryableError` paths already update `lastReportAt`
- * before throwing (so the same skip persists for 24h); `RetryableError`
- * paths leave `lastReportAt` untouched so the next launch retries.
+ * Failure semantics: `UnretryableError` paths (other than missing DSN) update
+ * `lastReportAt` before throwing so the skip persists for 24h. `RetryableError`
+ * and the missing-DSN path leave `lastReportAt` untouched so the next launch
+ * retries.
  */
 export function scheduleStartupLogReport(window: BrowserWindow): void {
   const trigger = () => {

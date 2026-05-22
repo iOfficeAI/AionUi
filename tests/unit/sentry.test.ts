@@ -13,7 +13,7 @@ import { gunzipSync } from 'node:zlib';
 import { randomBytes } from 'node:crypto';
 
 vi.mock('electron', () => ({
-  app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp' },
+  app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp', isPackaged: false },
 }));
 
 vi.mock('@sentry/electron/main', () => ({
