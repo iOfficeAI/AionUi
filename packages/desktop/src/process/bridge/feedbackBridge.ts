@@ -32,7 +32,7 @@ const getRecentLogPaths = (logsDir: string, days: number): string[] => {
     }
   }
 
-  const recentDates = [...dates].sort().reverse().slice(0, days);
+  const recentDates = [...dates].toSorted().toReversed().slice(0, days);
 
   const paths: string[] = [];
   for (const dateStr of recentDates) {
