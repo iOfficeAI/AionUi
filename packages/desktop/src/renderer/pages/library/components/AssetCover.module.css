@@ -1,0 +1,72 @@
+.cover {
+  height: 150px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  overflow: hidden;
+}
+
+.symbol {
+  font-size: 40px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  color: white;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.emoji {
+  font-size: 56px;
+}
+
+.codeSymbol {
+  font-family: monospace;
+  font-size: 28px;
+}
+
+.slide {
+  background: linear-gradient(135deg, #ff7a45, #f5222d);
+}
+.doc {
+  background: linear-gradient(135deg, #4096ff, #1677ff);
+}
+.sheet {
+  background: linear-gradient(135deg, #52c41a, #389e0d);
+}
+.image {
+  background: linear-gradient(135deg, #b37feb, #722ed1);
+}
+.code {
+  background: linear-gradient(135deg, #262626, #595959);
+}
+.mermaid {
+  background: linear-gradient(135deg, #ff85c0, #eb2f96);
+}
+.mindmap {
+  background: linear-gradient(135deg, #36cfc9, #08979c);
+}
+
+.small {
+  height: 110px;
+}
+.small .symbol {
+  font-size: 32px;
+}
+.small .emoji {
+  font-size: 44px;
+}
+
+.tiny {
+  width: 40px;
+  height: 40px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+.tiny .symbol {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+.tiny .emoji {
+  font-size: 18px;
+}
