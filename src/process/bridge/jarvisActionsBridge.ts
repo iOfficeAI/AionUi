@@ -265,8 +265,7 @@ async function executeJarvisAction(args: JarvisActionArgs): Promise<JarvisAction
 export function initJarvisActionsBridge(): void {
   console.log('[JarvisActions] Initializing bridge...');
 
-  // Health check endpoint
-  ipcBridge.register('jarvis:status', async () => {
+  ipcBridge.jarvisActions.status.provider(async () => {
     const healthy = await checkJarvisHealth();
     return {
       healthy,
@@ -275,23 +274,20 @@ export function initJarvisActionsBridge(): void {
     };
   });
 
-  // List available actions
-  ipcBridge.register('jarvis:action:list', () => {
+  ipcBridge.jarvisActions.list.provider(async () => {
     return listActions();
   });
 
-  // Execute any action
-  ipcBridge.register('jarvis:action:invoke', async (args: JarvisActionArgs) => {
+  ipcBridge.jarvisActions.invoke.provider(async (args: JarvisActionArgs) => {
     return executeJarvisAction(args);
   });
 
-  // Direct action endpoints (for convenience)
-  ipcBridge.register('jarvis:browser', async (params: any) => execBrowserControl(params));
-  ipcBridge.register('jarvis:code', async (params: any) => execCodeHelper(params));
-  ipcBridge.register('jarvis:dev', async (params: any) => execDevAgent(params));
-  ipcBridge.register('jarvis:image', async (params: any) => execGenerateImage(params));
-  ipcBridge.register('jarvis:video', async (params: any) => execGenerateVideo(params));
-  ipcBridge.register('jarvis:file', async (params: any) => execFileController(params));
+  ipcBridge.jarvisActions.browser.provider(params => execBrowserControl(params));
+  ipcBridge.jarvisActions.code.provider(params => execCodeHelper(params));
+  ipcBridge.jarvisActions.dev.provider(params => execDevAgent(params));
+  ipcBridge.jarvisActions.image.provider(params => execGenerateImage(params as any));
+  ipcBridge.jarvisActions.video.provider(params => execGenerateVideo(params as any));
+  ipcBridge.jarvisActions.file.provider(params => execFileController(params as any));
 
   console.log('[JarvisActions] Bridge initialized with 6 actions');
 }
