@@ -15,6 +15,7 @@ import type {
   AcpPromptResponseUsage,
   AcpRequest,
   AcpResponse,
+  AcpAvailableModel,
   AcpSessionConfigOption,
   AcpSessionModes,
   AcpSessionModels,
@@ -805,7 +806,7 @@ export class AcpConnection {
 
     this.sessionId = response.sessionId;
 
-    this.parseSessionCapabilities(response);
+    await this.parseSessionCapabilities(response);
 
     // console.log(`[ACP ${this.backend}] session/new response:`, JSON.stringify(response, null, 2));
 
@@ -878,7 +879,7 @@ export class AcpConnection {
     // session/load returns modes/models/configOptions but not sessionId — keep the one we sent
     this.sessionId = response.sessionId || sessionId;
 
-    this.parseSessionCapabilities(response);
+    await this.parseSessionCapabilities(response);
 
     return response;
   }
@@ -886,7 +887,7 @@ export class AcpConnection {
   /**
    * Parse configOptions, models, and modes from a session response (session/new or session/load).
    */
-  private parseSessionCapabilities(response: unknown): void {
+  private async parseSessionCapabilities(response: unknown): Promise<void> {
     const result = response as Record<string, unknown>;
     if (Array.isArray(result.configOptions)) {
       this.configOptions = result.configOptions as AcpSessionConfigOption[];
@@ -898,11 +899,76 @@ export class AcpConnection {
       this.modes = modesField;
     }
 
-    // Check top-level models first, then fall back to _meta.models (some backends nest models under _meta)
+    // 1. Get CLI-returned models
     const modelsSource = result.models || (result._meta as Record<string, unknown> | undefined)?.models;
+    let cliModels: AcpSessionModels | null = null;
     if (modelsSource && typeof modelsSource === 'object') {
-      this.models = modelsSource as AcpSessionModels;
+      cliModels = modelsSource as AcpSessionModels;
     }
+
+    // 2. Load Model Providers from AionUi configuration
+    const modelProviders = await this.loadModelProviders();
+
+    // 3. Merge: if providers have extra models, merge them in; otherwise preserve original
+    if (modelProviders.length > 0) {
+      this.models = this.mergeModelLists(cliModels, modelProviders);
+    } else {
+      this.models = cliModels;
+    }
+  }
+
+  /**
+   * Load model providers from AionUi configuration.
+   * Returns empty array if loading fails (graceful degradation).
+   */
+  private async loadModelProviders(): Promise<Array<{ id: string; name: string; platform?: string; model: string[] }>> {
+    try {
+      // Dynamic import to avoid circular dependency
+      const { ProcessConfig } = await import('@process/utils/initStorage');
+      const providers = (await ProcessConfig.get('model.config')) || [];
+      return providers.filter((p: { enabled?: boolean }) => p.enabled !== false);
+    } catch (error) {
+      console.warn('[AcpConnection] Failed to load model providers:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Merge CLI-returned models with Model Providers.
+   * CLI models take priority to maintain backward compatibility.
+   */
+  private mergeModelLists(
+    cliModels: AcpSessionModels | null,
+    providers: Array<{ id: string; name: string; platform?: string; model: string[] }>
+  ): AcpSessionModels {
+    const seenModelIds = new Set<string>();
+    const availableModels: AcpAvailableModel[] = [];
+
+    // 1. Preserve CLI-returned models as-is (keep original shape)
+    if (cliModels?.availableModels) {
+      for (const model of cliModels.availableModels) {
+        const modelId = typeof model === 'string' ? model : model.id || model.modelId || '';
+        if (modelId && !seenModelIds.has(modelId)) {
+          availableModels.push(typeof model === 'string' ? { id: model } : model);
+          seenModelIds.add(modelId);
+        }
+      }
+    }
+
+    // 2. Append Model Providers' models (avoid duplicates)
+    for (const provider of providers) {
+      for (const modelId of provider.model || []) {
+        if (!seenModelIds.has(modelId)) {
+          availableModels.push({ id: modelId, name: `${modelId} (${provider.name})` });
+          seenModelIds.add(modelId);
+        }
+      }
+    }
+
+    return {
+      currentModelId: cliModels?.currentModelId || availableModels[0]?.id || null,
+      availableModels,
+    };
   }
 
   /**

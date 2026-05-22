@@ -11,7 +11,7 @@ import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { formatAcpModelDisplayLabel, getAcpModelSourceLabel } from '@/renderer/utils/model/modelSource';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Tag, Tooltip } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -321,6 +321,9 @@ const AcpModelSelector: React.FC<{
             const healthColor =
               healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
 
+            // 判断模型来源：如果模型名称包含括号，说明来自 Model Providers
+            const isFromProvider = model.label?.includes('(') && model.label?.includes(')');
+
             return (
               <Menu.Item
                 key={model.id}
@@ -329,7 +332,12 @@ const AcpModelSelector: React.FC<{
               >
                 <div className='flex items-center gap-8px w-full'>
                   {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
-                  <span>{model.label}</span>
+                  <span className='flex-1'>{model.label}</span>
+                  {isFromProvider && (
+                    <Tag size='small' color='blue'>
+                      Custom
+                    </Tag>
+                  )}
                 </div>
               </Menu.Item>
             );
