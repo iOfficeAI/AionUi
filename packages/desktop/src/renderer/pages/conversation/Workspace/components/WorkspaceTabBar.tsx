@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { Badge, Dropdown, Tabs } from '@arco-design/web-react';
+import { Dropdown, Tabs } from '@arco-design/web-react';
 import { BranchOne } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React from 'react';
@@ -20,9 +20,9 @@ type WorkspaceTabBarProps = {
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabChange, changeCount, branch }) => {
   const changesTitle = (
-    <span className='flex items-center gap-4px'>
+    <span className='flex items-center'>
       {t('conversation.workspace.changes.tab')}
-      {changeCount > 0 && <Badge count={changeCount} maxCount={99} style={{ fontSize: '11px' }} />}
+      {changeCount > 0 && <span className='ml-2px text-t-tertiary'>({changeCount > 99 ? '99+' : changeCount})</span>}
     </span>
   );
 
@@ -62,7 +62,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
       onChange={(key) => onTabChange(key as WorkspaceTab)}
       type='line'
       size='small'
-      className='px-12px [&_.arco-tabs-nav]:border-b-0'
+      className='px-12px [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px'
       extra={branchDropdown}
     >
       <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />

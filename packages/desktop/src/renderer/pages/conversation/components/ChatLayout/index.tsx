@@ -106,7 +106,7 @@ const ChatLayout: React.FC<{
     setSplitRatio: setWorkspaceSplitRatio,
     createDragHandle: createWorkspaceDragHandle,
   } = useResizableSplit({
-    defaultWidth: 20,
+    defaultWidth: 15,
     minWidth: MIN_WORKSPACE_RATIO,
     maxWidth: 40,
     storageKey: 'chat-workspace-split-ratio',
