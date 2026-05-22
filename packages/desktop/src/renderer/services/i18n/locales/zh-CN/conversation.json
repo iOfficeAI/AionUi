@@ -149,6 +149,7 @@
     "changes": {
       "tab": "变更",
       "filesTab": "文件",
+      "currentBranchLabel": "当前分支",
       "summary": "{{count}} 个文件已变更",
       "insertions": "+{{count}} 行新增",
       "deletions": "-{{count}} 行删除",

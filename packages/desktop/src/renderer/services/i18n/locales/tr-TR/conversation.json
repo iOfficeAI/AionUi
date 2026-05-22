@@ -144,6 +144,7 @@
     "changes": {
       "tab": "Değişiklikler",
       "filesTab": "Dosyalar",
+      "currentBranchLabel": "Geçerli dal",
       "summary": "{{count}} dosya değiştirildi",
       "insertions": "+{{count}} ekleme",
       "deletions": "-{{count}} silme",

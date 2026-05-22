@@ -18,7 +18,6 @@ type UseFileChangesReturn = {
   changeCount: number;
   loading: boolean;
   snapshotInfo: SnapshotInfo | null;
-  branches: string[];
   refreshChanges: () => Promise<void>;
   stageFile: (file_path: string) => Promise<void>;
   stageAll: () => Promise<void>;
@@ -32,7 +31,6 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
   const [result, setResult] = useState<CompareResult>({ staged: [], unstaged: [] });
   const [loading, setLoading] = useState(false);
   const [snapshotInfo, setSnapshotInfo] = useState<SnapshotInfo | null>(null);
-  const [branches, setBranches] = useState<string[]>([]);
   const initializedRef = useRef(false);
 
   useEffect(() => {
@@ -41,19 +39,12 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
     initializedRef.current = false;
     setResult({ staged: [], unstaged: [] });
     setSnapshotInfo(null);
-    setBranches([]);
 
     ipcBridge.fileSnapshot.init
       .invoke({ workspace })
       .then((info) => {
         setSnapshotInfo(info);
         initializedRef.current = true;
-        if (info.mode === 'git-repo') {
-          ipcBridge.fileSnapshot.getBranches
-            .invoke({ workspace })
-            .then(setBranches)
-            .catch(() => {});
-        }
       })
       .catch((err) => {
         console.error('[useFileChanges] Failed to init snapshot:', err);
@@ -143,7 +134,6 @@ export function useFileChanges({ workspace }: UseFileChangesParams): UseFileChan
     changeCount: result.staged.length + result.unstaged.length,
     loading,
     snapshotInfo,
-    branches,
     refreshChanges,
     stageFile,
     stageAll,

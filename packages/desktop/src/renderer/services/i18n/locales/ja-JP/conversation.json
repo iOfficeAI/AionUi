@@ -149,6 +149,7 @@
     "changes": {
       "tab": "変更",
       "filesTab": "ファイル",
+      "currentBranchLabel": "現在のブランチ",
       "summary": "{{count}} 個のファイルが変更されました",
       "insertions": "+{{count}} 行追加",
       "deletions": "-{{count}} 行削除",
