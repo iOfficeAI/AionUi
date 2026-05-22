@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import { Input } from '@arco-design/web-react';
-import { Check, Close, Down, FolderClose, FolderOpen, FolderPlus } from '@icon-park/react';
+import { Check, Close, Down, FolderClose, FolderOpen } from '@icon-park/react';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace, getRecentWorkspaces } from './recentWorkspaces';
@@ -152,33 +152,38 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
           }
           setMenuVisible((visible) => !visible);
         }}
-        className={`flex min-h-44px items-center gap-10px rounded-10px border px-12px py-0 transition-all ${
+        className={`flex items-center gap-10px rounded-10px border px-12px py-10px transition-all ${
           menuVisible
             ? 'border-primary-5 bg-fill-2 shadow-sm'
             : 'border-border-2 bg-fill-1 hover:border-border-1 hover:bg-fill-2'
         }`}
       >
-        <FolderOpen theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-secondary' />
-        <div className='min-w-0 flex-1'>
-          {value ? (
-            <div className='flex flex-col'>
-              <span className='text-sm leading-20px text-t-primary'>{folderName}</span>
-              <span className='truncate text-11px leading-16px text-t-tertiary'>{value}</span>
-            </div>
-          ) : (
-            <span className='text-sm text-t-secondary'>{placeholder}</span>
-          )}
-        </div>
+        <FolderOpen
+          theme='outline'
+          size='16'
+          fill='currentColor'
+          className='block shrink-0 text-t-secondary'
+          style={{ transform: 'translateY(3px)' }}
+        />
         {value ? (
-          <Close
-            theme='outline'
-            size='14'
-            fill='currentColor'
-            className='shrink-0 text-t-secondary transition-colors hover:text-t-primary'
-            onClick={handleClear}
-          />
+          <div className='flex min-w-0 flex-1 flex-col justify-center'>
+            <span className='text-sm leading-20px text-t-primary'>{folderName}</span>
+            <span className='truncate text-11px leading-16px text-t-tertiary'>{value}</span>
+          </div>
         ) : (
-          <Down size='14' fill='currentColor' className='shrink-0 text-t-secondary' />
+          <span className='min-w-0 flex-1 truncate text-sm leading-20px text-t-secondary'>{placeholder}</span>
+        )}
+        {value ? (
+          <span
+            className='flex h-20px w-20px shrink-0 cursor-pointer items-center justify-center text-t-secondary transition-colors hover:text-t-primary'
+            onClick={handleClear}
+          >
+            <Close theme='outline' size='14' fill='currentColor' />
+          </span>
+        ) : (
+          <span className='flex h-20px w-20px shrink-0 items-center justify-center text-t-secondary'>
+            <Down size='14' fill='currentColor' />
+          </span>
         )}
       </div>
 
@@ -215,20 +220,26 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
                     key={path}
                     onClick={() => handleSelectRecent(path)}
                     className={`flex cursor-pointer items-center gap-10px rounded-8px px-10px py-6px transition-colors ${
-                      isSelected ? 'bg-primary-1' : 'hover:bg-fill-2'
+                      isSelected ? 'bg-aou-1' : 'hover:bg-fill-2'
                     }`}
+                    style={isSelected ? { boxShadow: 'inset 0 0 0 1px var(--aou-6)' } : undefined}
                   >
                     <FolderClose
-                      theme='filled'
+                      theme='outline'
                       size='16'
-                      fill={isSelected ? 'rgb(var(--primary-6))' : 'currentColor'}
-                      className='shrink-0 text-t-tertiary'
+                      fill='currentColor'
+                      className={`block shrink-0 ${isSelected ? 'text-aou-6' : 'text-t-tertiary'}`}
+                      style={{ transform: 'translateY(3px)' }}
                     />
                     <div className='min-w-0 flex-1'>
                       <div className='truncate text-13px leading-18px text-t-primary'>{recentName}</div>
                       <div className='truncate text-11px leading-14px text-t-tertiary'>{path}</div>
                     </div>
-                    {isSelected && <Check size='14' fill='currentColor' className='shrink-0 text-primary-6' />}
+                    {isSelected && (
+                      <span className='flex h-20px w-20px shrink-0 items-center justify-center text-aou-6'>
+                        <Check size='14' fill='currentColor' />
+                      </span>
+                    )}
                   </div>
                 );
               })}
@@ -238,9 +249,15 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
 
           <div
             onClick={() => void handleBrowse()}
-            className='flex cursor-pointer items-center gap-10px rounded-8px px-10px py-8px transition-colors hover:bg-fill-2'
+            className='flex cursor-pointer items-center gap-10px rounded-8px px-10px py-6px transition-colors hover:bg-fill-2'
           >
-            <FolderPlus theme='outline' size='16' fill='currentColor' className='shrink-0 text-t-tertiary' />
+            <FolderOpen
+              theme='outline'
+              size='16'
+              fill='currentColor'
+              className='block shrink-0 text-t-tertiary'
+              style={{ transform: 'translateY(3px)' }}
+            />
             <span className='text-13px text-t-primary'>{chooseDifferentLabel}</span>
           </div>
         </div>
