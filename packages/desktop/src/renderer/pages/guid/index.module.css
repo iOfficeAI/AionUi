@@ -383,27 +383,23 @@
   flex: 0 1 auto;
 }
 
-/* 首页输入框下方「模型 / 模式」按钮：方案E tb-btn 风格 */
-.actionTools :global(.sendbox-model-btn) {
-  background-color: transparent !important;
+/* 首页输入框右下「模型 / 模式」按钮：与对话框 .sendbox-tools/.sendbox-actions 同款 */
+.actionSubmit :global(.sendbox-model-btn),
+.actionSubmit :global(.sendbox-model-btn:hover),
+.actionSubmit :global(.sendbox-model-btn:active),
+.actionSubmit :global(.sendbox-model-btn:focus),
+.actionSubmit :global(.sendbox-model-btn:focus-visible) {
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: var(--color-text-2) !important;
-  padding: 5px 8px !important;
-  min-height: unset !important;
-  height: auto !important;
-  border-radius: 8px !important;
-  font-size: 14px !important;
-  font-weight: 500 !important;
-  white-space: nowrap !important;
-  line-height: 1 !important;
+  color: var(--text-secondary) !important;
 }
 
-.actionTools :global(.sendbox-model-btn:hover) {
-  background-color: var(--color-fill-2) !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: var(--color-text-1) !important;
+.actionSubmit :global(.sendbox-model-btn:hover),
+.actionSubmit :global(.sendbox-model-btn:active),
+.actionSubmit :global(.sendbox-model-btn:focus),
+.actionSubmit :global(.sendbox-model-btn:focus-visible) {
+  color: var(--text-primary) !important;
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
@@ -414,40 +410,13 @@
   gap: 4px !important;
 }
 
-/* + 按钮和模型按钮之间的竖线，方案E tb-div */
-.actionToolsDivider {
-  width: 1px;
-  height: 14px;
-  background: var(--color-border-2);
-  flex-shrink: 0;
-  margin: 0 2px;
-}
-
-.attachBtn {
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  border-radius: 8px !important;
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: var(--color-text-2) !important;
-  padding: 0 !important;
-  display: inline-flex !important;
-  align-items: center;
-  justify-content: center;
-}
-
-.attachBtn:hover {
-  background: var(--color-fill-2) !important;
-  color: var(--color-text-1) !important;
-}
-
 .actionSubmit {
   display: flex;
   align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   margin-left: auto;
+  min-width: 0;
 }
 
 .workspaceFootnote {
