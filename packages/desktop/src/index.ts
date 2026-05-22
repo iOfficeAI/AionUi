@@ -8,38 +8,12 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import * as Sentry from '@sentry/electron/main';
+import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
-// 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
-// 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
-const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
-
-Sentry.init({
-  dsn: process.env.SENTRY_DSN,
-  beforeSend(event) {
-    const haystacks: string[] = [];
-    if (event.message) haystacks.push(event.message);
-    const exceptions = event.exception?.values ?? [];
-    for (const ex of exceptions) {
-      if (ex.value) haystacks.push(ex.value);
-      const frames = ex.stacktrace?.frames ?? [];
-      for (const frame of frames) {
-        if (frame.function) haystacks.push(frame.function);
-      }
-    }
-    if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
-      return null;
-    }
-    return event;
-  },
-});
+initSentry();
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
-
-Sentry.setTag('app.arch', process.arch);
-Sentry.setTag('app.version', app.getVersion());
-Sentry.setTag('os.name', process.platform);
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -64,7 +38,6 @@ import {
   loadSavedWindowBounds,
   resolveInitialBounds,
 } from './process/utils/windowBounds';
-import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import {
   clearPendingDeepLinkUrl,
   getPendingDeepLinkUrl,
@@ -322,6 +295,8 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
 
+  scheduleStartupLogReport(mainWindow);
+
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
   // combined with 'did-finish-load' as belt-and-suspenders approach.
@@ -495,7 +470,7 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  Sentry.setUser({ id: getOrCreateAnalyticsId() });
+  setSentryDeviceId();
 
   try {
     await initializeProcess();
