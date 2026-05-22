@@ -8,7 +8,7 @@ import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
-import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
+import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry, SiderSolidAiEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
 import TeamSiderSection from './TeamSiderSection';
@@ -89,6 +89,19 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
     closePreview();
     setIsBatchMode(false);
     Promise.resolve(navigate('/scheduled')).catch((error) => {
+      console.error('Navigation failed:', error);
+    });
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  };
+
+  const handleSolidAiClick = () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    setIsBatchMode(false);
+    Promise.resolve(navigate('/solidai')).catch((error) => {
       console.error('Navigation failed:', error);
     });
     if (onSessionClick) {
@@ -183,6 +196,14 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
               collapsed={collapsed}
               siderTooltipProps={siderTooltipProps}
               onClick={handleScheduledClick}
+            />
+            {/* SolidAI nav entry */}
+            <SiderSolidAiEntry
+              isMobile={isMobile}
+              isActive={pathname === '/solidai'}
+              collapsed={collapsed}
+              siderTooltipProps={siderTooltipProps}
+              onClick={handleSolidAiClick}
             />
             {/* Divider between fixed top nav and scrollable content area */}
             <div

@@ -1,0 +1,12 @@
+{
+  "title": "SolidAI Platform",
+  "description": "African AI platform for sector-specific advice.",
+  "agentStatus": "Agent Status",
+  "taskProgress": "Task Progress",
+  "switchAgent": "Switch Agent",
+  "online": "Online",
+  "offline": "Offline",
+  "busy": "Busy",
+  "processingFarmData": "Processing farm data",
+  "generatingHealthReport": "Generating health report"
+}

@@ -1,7 +1,4 @@
-/**
- * en-US locale module index
- * Exports all translation modules for English (US)
- */
+/** * en-US locale module index * Exports all translation modules for en-US */
 
 import common from './common.json';
 import agentMode from './agentMode.json';
@@ -23,6 +20,7 @@ import guid from './guid.json';
 import agent from './agent.json';
 import team from './team.json';
 import pet from './pet.json';
+import solidai from './solidai.json';
 
 export default {
   common,
@@ -45,4 +43,5 @@ export default {
   agent,
   team,
   pet,
+  solidai,
 };
