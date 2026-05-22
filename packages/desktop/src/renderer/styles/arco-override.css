@@ -342,3 +342,50 @@ body[arco-theme='dark'] .arco-message-error {
     background: var(--color-primary);
   }
 }
+
+/* WebUI 局域网访问副卡 — 容器与主卡视觉对齐 */
+.webui-lan-collapse {
+  .arco-collapse-item {
+    border: none;
+    background: var(--bg-2);
+    border-radius: 16px;
+    overflow: hidden;
+  }
+
+  /* 头部内边距与主卡 (px-[12px] md:px-[28px] py-14px) 一致 */
+  .arco-collapse-item-header {
+    padding: 14px 12px;
+    border-bottom: none;
+    background: transparent;
+    position: relative;
+  }
+
+  @media (min-width: 768px) {
+    .arco-collapse-item-header {
+      padding: 14px 28px;
+    }
+  }
+
+  .arco-collapse-item-header-title {
+    flex: 1;
+    min-width: 0;
+  }
+
+  /* 隐藏 Arco 默认 expand icon，使用 header 内自定义 icon */
+  .arco-collapse-item-icon-right,
+  .arco-collapse-item-icon-hover {
+    display: none !important;
+  }
+
+  /* 内容区继承外层 bg-2，内部 div 自控 padding；展开后用 top border 分隔 */
+  .arco-collapse-item-content {
+    background: transparent;
+    padding: 0;
+    border-top: 1px solid var(--color-fill-2);
+  }
+
+  .arco-collapse-item-content-box {
+    padding: 0;
+  }
+}
+

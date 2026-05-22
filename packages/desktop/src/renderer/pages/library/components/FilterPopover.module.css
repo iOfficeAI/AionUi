@@ -1,0 +1,185 @@
+/* Filter button */
+.filterBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: none;
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  flex-shrink: 0;
+}
+.filterBtn:hover {
+  background: var(--color-fill-2);
+  color: var(--color-text-2);
+}
+.filterBtn.active {
+  background: var(--color-fill-2);
+  color: var(--color-text-1);
+  font-weight: 500;
+}
+
+/* Popover panel */
+.panel {
+  width: 240px;
+  background: var(--color-bg-2);
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+}
+
+.section {
+  padding: 12px 14px 10px;
+}
+.section + .section {
+  border-top: 1px solid var(--color-border-2);
+}
+
+.sectionLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 8px;
+}
+
+/* Agent multi-select chips */
+.agentList {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 200px;
+  overflow-y: auto;
+}
+.agentItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 8px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 12px;
+  color: var(--color-text-2);
+  transition: background 0.1s;
+  user-select: none;
+}
+.agentItem:hover {
+  background: var(--color-fill-2);
+}
+.agentItem.selected {
+  background: rgba(var(--primary-6), 0.08);
+  color: rgb(var(--primary-6));
+}
+.agentCheck {
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  border: 1.5px solid var(--color-border-3);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    border-color 0.1s,
+    background 0.1s;
+}
+.agentItem.selected .agentCheck {
+  border-color: rgb(var(--primary-6));
+  background: rgb(var(--primary-6));
+}
+
+/* Time single-select */
+.timeList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.timeChip {
+  padding: 4px 10px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border-2);
+  font-size: 11px;
+  color: var(--color-text-2);
+  cursor: pointer;
+  transition:
+    border-color 0.1s,
+    color 0.1s,
+    background 0.1s;
+  user-select: none;
+}
+.timeChip:hover {
+  border-color: rgb(var(--primary-6));
+  color: rgb(var(--primary-6));
+}
+.timeChip.selected {
+  border-color: rgb(var(--primary-6));
+  background: rgba(var(--primary-6), 0.08);
+  color: rgb(var(--primary-6));
+  font-weight: 500;
+}
+
+/* Footer */
+.footer {
+  padding: 8px 14px;
+  border-top: 1px solid var(--color-border-2);
+  display: flex;
+  justify-content: flex-end;
+}
+.clearBtn {
+  font-size: 12px;
+  color: var(--color-text-3);
+  cursor: pointer;
+  background: none;
+  border: none;
+  padding: 2px 4px;
+  border-radius: 4px;
+}
+.clearBtn:hover {
+  color: var(--color-text-1);
+  background: var(--color-fill-2);
+}
+
+/* Active filter tags row */
+.tagsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+.tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 8px 3px 10px;
+  border-radius: 20px;
+  background: rgba(var(--primary-6), 0.1);
+  border: 1px solid rgba(var(--primary-6), 0.3);
+  color: rgb(var(--primary-6));
+  font-size: 11px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.tagClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  cursor: pointer;
+  opacity: 0.6;
+  transition: opacity 0.1s;
+  flex-shrink: 0;
+}
+.tagClose:hover {
+  opacity: 1;
+}

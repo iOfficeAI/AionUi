@@ -1,0 +1,168 @@
+/* Scoped Arco Drawer overrides — only affect the Library AssetDrawer */
+.drawer :global(.arco-drawer-header) {
+  height: auto;
+  min-height: 56px;
+  padding: 16px 48px 16px 20px;
+  align-items: flex-start;
+}
+
+.drawer :global(.arco-drawer-header-title) {
+  font-size: 15px;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.drawer :global(.arco-drawer-content) {
+  padding: 20px 20px 16px;
+}
+
+.drawer :global(.arco-drawer-footer) {
+  padding: 12px 20px;
+}
+
+@media (max-width: 480px) {
+  .drawer :global(.arco-drawer-header) {
+    padding: 14px 44px 14px 16px;
+    min-height: 48px;
+  }
+  .drawer :global(.arco-drawer-header-title) {
+    font-size: 14px;
+  }
+  .drawer :global(.arco-drawer-content) {
+    padding: 14px 16px 12px;
+  }
+  .drawer :global(.arco-drawer-footer) {
+    padding: 10px 16px;
+  }
+}
+
+.metaCard {
+  border: 1px solid var(--color-border-2);
+  border-radius: 8px;
+  padding: 14px 16px;
+  margin-bottom: 16px;
+}
+
+/* grid: key 列自适应最长内容，value 列填满剩余 */
+.metaGrid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  gap: 10px 16px;
+  font-size: 12px;
+}
+
+.metaKey {
+  color: var(--color-text-3);
+  white-space: nowrap;
+  padding-top: 1px;
+  line-height: 1.5;
+}
+
+.metaValue {
+  color: var(--color-text-1);
+  line-height: 1.5;
+  min-width: 0;
+  word-break: break-word;
+}
+
+/* "Prompt" 字段独占整行 */
+.metaFullRow {
+  grid-column: 1 / -1;
+}
+
+.metaPrompt {
+  margin-top: 6px;
+  border-left: 2px solid var(--color-border-3);
+  padding: 6px 10px;
+  font-size: 12px;
+  color: var(--color-text-2);
+  line-height: 1.5;
+  font-style: italic;
+  word-break: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── 文件列表 ── */
+.sectionTitle {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-text-3);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  margin: 4px 0 8px;
+}
+
+.fileRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px;
+  border-radius: 6px;
+  cursor: pointer;
+}
+.fileRow:hover {
+  background: var(--color-fill-2);
+}
+
+.fileMeta {
+  flex: 1;
+  min-width: 0;
+}
+
+.fileName {
+  font-size: 13px;
+  color: var(--color-text-1);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.fileSub {
+  font-size: 11px;
+  color: var(--color-text-3);
+  margin-top: 2px;
+}
+
+/* Agent 徽章（Drawer 内）*/
+.agentBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--color-text-1);
+  font-weight: 500;
+}
+
+.agentLogo {
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  object-fit: contain;
+  flex-shrink: 0;
+}
+
+.agentDot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--color-text-3);
+  flex-shrink: 0;
+}
+
+/* 简洁文件类型标签 */
+.fileExtBadge {
+  width: 36px;
+  height: 36px;
+  border-radius: 6px;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: #fff;
+}

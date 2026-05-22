@@ -1,0 +1,60 @@
+{
+  "title": "Library",
+  "totalAssets": "{{count}} актив",
+  "totalAssets_other": "{{count}} активов",
+  "totalFiles": "{{count}} файл",
+  "totalFiles_other": "{{count}} файлов",
+  "singleFile": "Один файл",
+  "fileCount": "{{count}} файл",
+  "fileCount_other": "{{count}} файлов",
+  "searchPlaceholder": "Поиск по имени файла / беседе / промпту…",
+  "loading": "Сканирование истории…",
+  "empty": "Нет активов, соответствующих фильтрам.",
+  "view": {
+    "conversation": "По беседе",
+    "file": "По файлу"
+  },
+  "tabs": {
+    "all": "Все",
+    "doc": "Документы",
+    "slide": "Слайды",
+    "sheet": "Таблицы",
+    "image": "Изображения",
+    "code": "Код",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "Сегодня",
+    "yesterday": "Вчера",
+    "week": "На этой неделе",
+    "month": "В этом месяце",
+    "older": "Ранее"
+  },
+  "time": {
+    "minutesAgo": "{{count}} мин назад",
+    "hoursAgo": "{{count}} ч назад",
+    "daysAgo": "{{count}} дн назад",
+    "weeksAgo": "{{count}} нед назад",
+    "monthsAgo": "{{count}} мес назад"
+  },
+  "drawer": {
+    "createdAt": "Создано",
+    "updatedAt": "Обновлено",
+    "agent": "Agent",
+    "prompt": "Промпт",
+    "close": "Закрыть",
+    "viewInConversation": "Открыть беседу"
+  },
+  "toast": {
+    "mockJump": "mock: переход к беседе ({{id}})",
+    "mockOpen": "mock: открыть {{name}}",
+    "mockMenu": "mock: меню действий"
+  },
+  "filter": {
+    "button": "Фильтр",
+    "agent": "Ассистент / Agent",
+    "time": "Период",
+    "clear": "Сбросить фильтры"
+  },
+  "subtitle": "Файлы, созданные в ходе AI-диалогов, автоматически архивируются здесь."
+}

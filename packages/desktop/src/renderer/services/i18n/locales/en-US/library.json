@@ -1,0 +1,65 @@
+{
+  "title": "Library",
+  "totalAssets": "{{count}} asset",
+  "totalAssets_other": "{{count}} assets",
+  "totalFiles": "{{count}} file",
+  "totalFiles_other": "{{count}} files",
+  "singleFile": "Single file",
+  "fileCount": "{{count}} file",
+  "fileCount_other": "{{count}} files",
+  "searchPlaceholder": "Search file name / conversation / prompt…",
+  "loading": "Scanning conversation history…",
+  "empty": "No assets match the current filters.",
+  "view": {
+    "conversation": "By conversation",
+    "file": "By file"
+  },
+  "tabs": {
+    "all": "All",
+    "doc": "Docs",
+    "slide": "Slides",
+    "sheet": "Sheets",
+    "image": "Images",
+    "code": "Code",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "week": "This week",
+    "month": "This month",
+    "older": "Earlier"
+  },
+  "time": {
+    "minutesAgo": "{{count}} min ago",
+    "minutesAgo_other": "{{count}} mins ago",
+    "hoursAgo": "{{count}} hour ago",
+    "hoursAgo_other": "{{count}} hours ago",
+    "daysAgo": "{{count}} day ago",
+    "daysAgo_other": "{{count}} days ago",
+    "weeksAgo": "{{count}} week ago",
+    "weeksAgo_other": "{{count}} weeks ago",
+    "monthsAgo": "{{count}} month ago",
+    "monthsAgo_other": "{{count}} months ago"
+  },
+  "drawer": {
+    "createdAt": "Created",
+    "updatedAt": "Updated",
+    "agent": "Agent",
+    "prompt": "Prompt",
+    "close": "Close",
+    "viewInConversation": "View in conversation"
+  },
+  "toast": {
+    "mockJump": "Mock jump to conversation ({{id}})",
+    "mockOpen": "Mock open: {{name}}",
+    "mockMenu": "Mock action menu"
+  },
+  "filter": {
+    "button": "Filter",
+    "agent": "Assistant / Agent",
+    "time": "Time",
+    "clear": "Clear filters"
+  },
+  "subtitle": "Files generated across your AI conversations, automatically archived here."
+}

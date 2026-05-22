@@ -1,0 +1,57 @@
+{
+  "title": "Library",
+  "totalAssets": "{{count}} 项资产",
+  "totalFiles": "{{count}} 个文件",
+  "singleFile": "单文件",
+  "fileCount": "{{count}} 个文件",
+  "searchPlaceholder": "搜索文件名 / 对话名 / Prompt…",
+  "loading": "正在扫描历史对话…",
+  "empty": "没有符合条件的资产",
+  "view": {
+    "conversation": "按对话",
+    "file": "按文件"
+  },
+  "tabs": {
+    "all": "全部",
+    "doc": "文档",
+    "slide": "演示",
+    "sheet": "表格",
+    "image": "图像",
+    "code": "代码",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "今天",
+    "yesterday": "昨天",
+    "week": "本周",
+    "month": "本月",
+    "older": "更早"
+  },
+  "time": {
+    "minutesAgo": "{{count}} 分钟前",
+    "hoursAgo": "{{count}} 小时前",
+    "daysAgo": "{{count}} 天前",
+    "weeksAgo": "{{count}} 周前",
+    "monthsAgo": "{{count}} 个月前"
+  },
+  "drawer": {
+    "createdAt": "发起时间",
+    "updatedAt": "最近活跃",
+    "agent": "使用 Agent",
+    "prompt": "提示词",
+    "close": "关闭",
+    "viewInConversation": "在对话中查看"
+  },
+  "toast": {
+    "mockJump": "mock：跳转到对话 ({{id}})",
+    "mockOpen": "mock：打开 {{name}}",
+    "mockMenu": "mock：操作菜单"
+  },
+  "filter": {
+    "button": "筛选",
+    "agent": "助手 / Agent",
+    "time": "时间",
+    "clear": "清除筛选"
+  },
+  "subtitle": "所有 AI 对话中生成的文件，自动归档在这里。"
+}
