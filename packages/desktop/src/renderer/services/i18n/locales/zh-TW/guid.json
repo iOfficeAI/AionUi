@@ -6,6 +6,7 @@
   "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
   "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
   "promptExamplesHint": "試試這些可點擊的案例提示詞：",
+  "selectAssistantHint": "選擇一位助手開始任務",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "已切換到 {{agent}}",
   "workspace": {

@@ -23,7 +23,7 @@ import type { AvailableAgent, EffectiveAgentInfo } from '../types';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { Message } from '@arco-design/web-react';
 import { Plus, Robot } from '@icon-park/react';
-import React, { useCallback, useLayoutEffect, useMemo } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -238,6 +238,19 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     onRegisterOpenDetails(openAssistantDetails);
   }, [onRegisterOpenDetails, openAssistantDetails]);
 
+  const scrollWrapRef = useRef<HTMLDivElement>(null);
+  const [isScrollable, setIsScrollable] = useState(false);
+
+  useEffect(() => {
+    const el = scrollWrapRef.current;
+    if (!el) return;
+    const measure = () => setIsScrollable(el.scrollHeight > el.clientHeight + 1);
+    measure();
+    const observer = new ResizeObserver(measure);
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, [assistants]);
+
   // Render only if the backend catalog has at least one assistant.
   if (!assistants || assistants.length === 0) return null;
 
@@ -306,55 +319,66 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   // Assistant List View
   return (
-    <div className='mt-20px w-full'>
-      <div className='flex flex-wrap gap-8px justify-center'>
-        {assistants
-          .filter((a) => a.enabled !== false)
-          .toSorted((a, b) => {
-            if (a.id === 'cowork') return -1;
-            if (b.id === 'cowork') return 1;
-            return 0;
-          })
-          .map((assistant) => {
-            const avatarValue = assistant.avatar?.trim();
-            const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
-            const resolvedAvatar = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
-            const avatarImage = mappedAvatar || resolvedAvatar;
-            const isImageAvatar = Boolean(
-              avatarImage &&
-              (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
-            );
-            return (
-              <div
-                key={assistant.id}
-                data-testid={`preset-pill-${assistant.id}`}
-                className='h-28px group flex items-center gap-8px px-16px rd-100px cursor-pointer transition-all b-1 b-solid bg-fill-0 hover:bg-fill-1 select-none'
-                style={{
-                  borderWidth: '1px',
-                  borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)',
-                }}
-                onClick={() => onSelectAssistant(`custom:${assistant.id}`)}
-              >
-                {isImageAvatar ? (
-                  <img src={avatarImage} alt='' width={16} height={16} style={{ objectFit: 'contain' }} />
-                ) : avatarValue ? (
-                  <span style={{ fontSize: 16, lineHeight: '18px' }}>{avatarValue}</span>
-                ) : (
-                  <Robot theme='outline' size={16} />
-                )}
-                <span className='text-14px text-2 hover:text-1'>
-                  {assistant.name_i18n?.[localeKey] || assistant.name}
-                </span>
-              </div>
-            );
-          })}
-        <div
-          data-testid='btn-add-preset'
-          className='flex items-center justify-center h-28px w-28px rd-50% bg-fill-0 hover:bg-fill-2 cursor-pointer b-1 b-dashed select-none transition-colors'
-          style={{ borderWidth: '1px', borderColor: 'color-mix(in srgb, var(--color-border-2) 70%, transparent)' }}
-          onClick={() => navigate('/settings/assistants')}
-        >
-          <Plus theme='outline' size={14} className='line-height-0 text-[var(--color-text-3)]' />
+    <div className='mt-32px w-full'>
+      <div className={`${styles.assistantPromptHint} text-center mb-12px`}>
+        {t('guid.selectAssistantHint', { defaultValue: 'Select an assistant to start a task' })}
+      </div>
+      <div
+        ref={scrollWrapRef}
+        className={`${styles.assistantCardScrollWrap} ${isScrollable ? styles.assistantCardScrollWrapScrollable : ''}`}
+      >
+        <div className={styles.assistantCardGrid}>
+          {assistants
+            .filter((a) => a.enabled !== false)
+            .toSorted((a, b) => {
+              if (a.id === 'cowork') return -1;
+              if (b.id === 'cowork') return 1;
+              return 0;
+            })
+            .map((assistant) => {
+              const avatarValue = assistant.avatar?.trim();
+              const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
+              const resolvedAvatar = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
+              const avatarImage = mappedAvatar || resolvedAvatar;
+              const isImageAvatar = Boolean(
+                avatarImage &&
+                (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
+              );
+              const description =
+                assistant.description_i18n?.[localeKey] ||
+                assistant.description_i18n?.['en-US'] ||
+                assistant.description ||
+                '';
+              return (
+                <div
+                  key={assistant.id}
+                  data-testid={`preset-pill-${assistant.id}`}
+                  className={styles.assistantCard}
+                  onClick={() => onSelectAssistant(`custom:${assistant.id}`)}
+                >
+                  <div className={styles.assistantCardAvatar}>
+                    {isImageAvatar ? (
+                      <img src={avatarImage} alt='' />
+                    ) : avatarValue ? (
+                      <span className={styles.assistantCardEmoji}>{avatarValue}</span>
+                    ) : (
+                      <Robot theme='outline' size={18} />
+                    )}
+                  </div>
+                  <div className={styles.assistantCardMeta}>
+                    <div className={styles.assistantCardName}>{assistant.name_i18n?.[localeKey] || assistant.name}</div>
+                    {description && <div className={styles.assistantCardDesc}>{description}</div>}
+                  </div>
+                </div>
+              );
+            })}
+          <div
+            data-testid='btn-add-preset'
+            className={styles.assistantCardAdd}
+            onClick={() => navigate('/settings/assistants')}
+          >
+            <Plus theme='outline' size={20} />
+          </div>
         </div>
       </div>
       {modalTree}

@@ -6,6 +6,7 @@
   "autoSwitchToAgent": "Gemini не налаштовано, автоматичне переключення на {{agent}}",
   "autoSwitchedAgent": "{{from}} недоступний, переключено на {{to}}",
   "promptExamplesHint": "Спробуйте приклади промптів:",
+  "selectAssistantHint": "Виберіть асистента, щоб розпочати завдання",
   "agentSwitcherLabel": "Агент",
   "switchedToAgent": "Переключено на {{agent}}",
   "workspace": {

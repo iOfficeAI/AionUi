@@ -6,6 +6,7 @@
   "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
   "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
   "promptExamplesHint": "Try example prompts:",
+  "selectAssistantHint": "어시스턴트를 선택하여 작업을 시작하세요",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "{{agent}}으로 전환되었습니다",
   "workspace": {
