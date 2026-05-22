@@ -7,10 +7,11 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Brain } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -277,18 +278,8 @@ const AcpModelSelector: React.FC<{
     fallbackLabel: t('conversation.welcome.useCliModel'),
   });
   const tooltipContent = display_label;
-  // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useProvidersQuery();
 
-  // 获取当前模型的健康状态
-  const current_modelHealth = React.useMemo(() => {
-    if (!model_info?.current_model_id || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const providerConfig = modelConfig.find((p) => p.platform?.includes(backend || ''));
-    const healthStatus = providerConfig?.model_health?.[model_info.current_model_id]?.status || 'unknown';
-    const healthColor =
-      healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-    return { status: healthStatus, color: healthColor };
-  }, [model_info?.current_model_id, modelConfig, backend]);
+  const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
   // State 1: No model info — show disabled "Use CLI model" button
   if (!model_info) {
@@ -301,6 +292,7 @@ const AcpModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0 leading-none'>
+            {renderLogo()}
             <MarqueePillLabel>{t('conversation.welcome.useCliModel')}</MarqueePillLabel>
           </span>
         </Button>
@@ -320,9 +312,7 @@ const AcpModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {current_modelHealth.status !== 'unknown' && (
-              <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
-            )}
+            {renderLogo()}
             <MarqueePillLabel>{display_label}</MarqueePillLabel>
           </span>
         </Button>
@@ -336,34 +326,23 @@ const AcpModelSelector: React.FC<{
       trigger='click'
       droplist={
         <Menu>
-          {model_info.available_models.map((model) => {
-            // 获取模型健康状态
-            const providerConfig = modelConfig?.find((p) => p.platform?.includes(backend || ''));
-            const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
-            const healthColor =
-              healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-
-            return (
-              <Menu.Item
-                key={model.id}
-                className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-                onClick={() => handleSelectModel(model.id)}
-              >
-                <div className='flex items-center gap-8px w-full'>
-                  {healthStatus !== 'unknown' && <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />}
-                  <span>{model.label || model.id}</span>
-                </div>
-              </Menu.Item>
-            );
-          })}
+          {model_info.available_models.map((model) => (
+            <Menu.Item
+              key={model.id}
+              className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
+              onClick={() => handleSelectModel(model.id)}
+            >
+              <div className='flex items-center gap-8px w-full'>
+                <span>{model.label || model.id}</span>
+              </div>
+            </Menu.Item>
+          ))}
         </Menu>
       }
     >
       <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
         <span className='flex items-center gap-6px min-w-0 leading-none'>
-          {current_modelHealth.status !== 'unknown' && (
-            <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
-          )}
+          {renderLogo()}
           <MarqueePillLabel>{display_label}</MarqueePillLabel>
         </span>
       </Button>

@@ -2,13 +2,12 @@ import type { GoogleModelSelection } from '@/renderer/pages/conversation/platfor
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
+import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Down } from '@icon-park/react';
+import { Brain, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
-import type { IProvider } from '@/common/config/storage';
-import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 
 // Unified model dropdown for chat header, send box, and channel settings
 const GoogleModelSelector: React.FC<{
@@ -24,19 +23,9 @@ const GoogleModelSelector: React.FC<{
   const isMobileHeaderCompact = variant === 'header' && Boolean(layout?.isMobile);
   const defaultModelLabel = t('common.defaultModel');
 
-  // 获取模型配置数据（包含健康状态）
-  const { data: modelConfig } = useProvidersQuery();
-
-  // 获取当前模型的健康状态 (must be called before any early return to keep hooks count stable)
   const current_model = selection?.current_model;
-  const current_modelHealth = React.useMemo(() => {
-    if (!current_model || !modelConfig) return { status: 'unknown', color: 'bg-gray-400' };
-    const matchedProvider = modelConfig.find((p) => p.id === current_model.id);
-    const healthStatus = matchedProvider?.model_health?.[current_model.use_model]?.status || 'unknown';
-    const healthColor =
-      healthStatus === 'healthy' ? 'bg-green-500' : healthStatus === 'unhealthy' ? 'bg-red-500' : 'bg-gray-400';
-    return { status: healthStatus, color: healthColor };
-  }, [current_model, modelConfig]);
+
+  const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
 
   // Disabled state (non-Gemini Agent): render a simple Tooltip + Button, no Dropdown needed
   if (disabled || !selection) {
@@ -59,6 +48,7 @@ const GoogleModelSelector: React.FC<{
           style={{ cursor: 'default' }}
         >
           <span className='flex items-center gap-6px min-w-0'>
+            {renderLogo()}
             <span className={compact ? 'block truncate' : undefined}>{display_label}</span>
           </span>
         </Button>
@@ -84,9 +74,6 @@ const GoogleModelSelector: React.FC<{
     variant === 'settings' ? (
       <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
         <div className='flex items-center gap-8px min-w-0'>
-          {current_modelHealth.status !== 'unknown' && (
-            <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
-          )}
           <span className='truncate'>{label}</span>
         </div>
         <Down theme='outline' size={14} />
@@ -103,9 +90,7 @@ const GoogleModelSelector: React.FC<{
         data-testid='chat-model-selector'
       >
         <span className='flex items-center gap-6px min-w-0'>
-          {current_modelHealth.status !== 'unknown' && (
-            <div className={`w-6px h-6px rounded-full shrink-0 ${current_modelHealth.color}`} />
-          )}
+          {renderLogo()}
           <span className={compact ? 'block truncate' : undefined}>{label}</span>
           <Down theme='outline' size={12} className='shrink-0' />
         </span>
@@ -124,31 +109,16 @@ const GoogleModelSelector: React.FC<{
 
             return (
               <Menu.ItemGroup title={provider.name} key={provider.id}>
-                {models.map((modelName) => {
-                  // 获取模型健康状态
-                  const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                  const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
-                  const healthColor =
-                    healthStatus === 'healthy'
-                      ? 'bg-green-500'
-                      : healthStatus === 'unhealthy'
-                        ? 'bg-red-500'
-                        : 'bg-gray-400';
-
-                  return (
-                    <Menu.Item
-                      key={`${provider.id}-${modelName}`}
-                      onClick={() => void handleSelectModel(provider, modelName)}
-                    >
-                      <div className='flex items-center gap-8px w-full'>
-                        {healthStatus !== 'unknown' && (
-                          <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                        )}
-                        <span>{modelName}</span>
-                      </div>
-                    </Menu.Item>
-                  );
-                })}
+                {models.map((modelName) => (
+                  <Menu.Item
+                    key={`${provider.id}-${modelName}`}
+                    onClick={() => void handleSelectModel(provider, modelName)}
+                  >
+                    <div className='flex items-center gap-8px w-full'>
+                      <span>{modelName}</span>
+                    </div>
+                  </Menu.Item>
+                ))}
               </Menu.ItemGroup>
             );
           })}
