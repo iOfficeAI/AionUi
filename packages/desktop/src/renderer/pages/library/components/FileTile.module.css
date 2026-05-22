@@ -1,0 +1,124 @@
+.tile {
+  padding: 12px 8px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  transition: background 0.15s;
+  position: relative;
+}
+
+.tile:hover {
+  background: var(--color-fill-2);
+}
+
+.icon {
+  width: 64px;
+  height: 80px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  position: relative;
+}
+
+.icon::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 14px;
+  height: 14px;
+  background: linear-gradient(225deg, rgba(255, 255, 255, 0.4) 50%, transparent 50%);
+  border-radius: 0 6px 0 6px;
+}
+
+.iconEmoji {
+  font-size: 38px;
+  box-shadow: none;
+  background: transparent !important;
+}
+.iconEmoji::before {
+  display: none;
+}
+
+.name {
+  font-size: 12px;
+  color: var(--color-text-1);
+  line-height: 1.35;
+  max-width: 110px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  word-break: break-all;
+}
+
+.meta {
+  font-size: 10px;
+  color: var(--color-text-3);
+}
+
+.conv {
+  font-size: 10px;
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--color-text-1);
+  color: var(--color-bg-2);
+  padding: 2px 6px;
+  border-radius: 4px;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s;
+  white-space: nowrap;
+  z-index: 10;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tile:hover .conv {
+  opacity: 1;
+}
+
+.codeSymbol {
+  font-family: monospace;
+  font-size: 13px;
+}
+
+.slide {
+  background: linear-gradient(135deg, #ff7a45, #f5222d);
+}
+.doc {
+  background: linear-gradient(135deg, #4096ff, #1677ff);
+}
+.sheet {
+  background: linear-gradient(135deg, #52c41a, #389e0d);
+}
+.image {
+  background: linear-gradient(135deg, #b37feb, #722ed1);
+}
+.code {
+  background: linear-gradient(135deg, #262626, #595959);
+}
+.html {
+  background: linear-gradient(135deg, #36b8e8, #1a8cc0);
+  font-size: 12px;
+  letter-spacing: 0;
+}
+
+@media (hover: none) {
+  .conv {
+    display: none;
+  }
+}

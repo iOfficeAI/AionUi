@@ -1,0 +1,60 @@
+{
+  "title": "Library",
+  "totalAssets": "{{count}} актив",
+  "totalAssets_other": "{{count}} активів",
+  "totalFiles": "{{count}} файл",
+  "totalFiles_other": "{{count}} файлів",
+  "singleFile": "Один файл",
+  "fileCount": "{{count}} файл",
+  "fileCount_other": "{{count}} файлів",
+  "searchPlaceholder": "Пошук за іменем файлу / розмовою / промптом…",
+  "loading": "Сканування історії…",
+  "empty": "Немає активів за поточними фільтрами.",
+  "view": {
+    "conversation": "За розмовою",
+    "file": "За файлом"
+  },
+  "tabs": {
+    "all": "Усі",
+    "doc": "Документи",
+    "slide": "Слайди",
+    "sheet": "Таблиці",
+    "image": "Зображення",
+    "code": "Код",
+    "html": "HTML"
+  },
+  "bucket": {
+    "today": "Сьогодні",
+    "yesterday": "Вчора",
+    "week": "Цього тижня",
+    "month": "Цього місяця",
+    "older": "Раніше"
+  },
+  "time": {
+    "minutesAgo": "{{count}} хв тому",
+    "hoursAgo": "{{count}} год тому",
+    "daysAgo": "{{count}} дн тому",
+    "weeksAgo": "{{count}} тиж тому",
+    "monthsAgo": "{{count}} міс тому"
+  },
+  "drawer": {
+    "createdAt": "Створено",
+    "updatedAt": "Оновлено",
+    "agent": "Agent",
+    "prompt": "Промпт",
+    "close": "Закрити",
+    "viewInConversation": "Відкрити розмову"
+  },
+  "toast": {
+    "mockJump": "mock: перехід до розмови ({{id}})",
+    "mockOpen": "mock: відкрити {{name}}",
+    "mockMenu": "mock: меню дій"
+  },
+  "filter": {
+    "button": "Фільтр",
+    "agent": "Асистент / Agent",
+    "time": "Період",
+    "clear": "Скинути фільтри"
+  },
+  "subtitle": "Файли, створені в AI-розмовах, автоматично архівуються тут."
+}

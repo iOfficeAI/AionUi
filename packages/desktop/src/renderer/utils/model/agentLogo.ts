@@ -42,6 +42,7 @@ const AGENT_LOGO_PATH_MAP = {
   remote: 'tools/openclaw.svg',
   qoder: 'tools/coding/qoder.png',
   cursor: 'tools/coding/cursor.png',
+  antigravity: 'tools/antigravity.svg',
 } as const satisfies Record<string, string>;
 
 const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
