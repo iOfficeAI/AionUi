@@ -806,15 +806,15 @@
 /* 助手卡片网格（首页 list view） */
 .assistantCardScrollWrap {
   position: relative;
-  max-height: 226px;
+  max-height: 200px;
   overflow-y: auto;
   padding: 4px 6px 4px 4px;
   scrollbar-width: thin;
 }
 
 .assistantCardScrollWrapScrollable {
-  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 20px), transparent 100%);
-  mask-image: linear-gradient(to bottom, black 0, black calc(100% - 20px), transparent 100%);
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 56px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0, black calc(100% - 56px), transparent 100%);
 }
 
 .assistantCardScrollWrap::-webkit-scrollbar {
