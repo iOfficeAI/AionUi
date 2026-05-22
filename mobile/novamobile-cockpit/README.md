@@ -37,6 +37,7 @@ Expected public Cloudflare route:
 
 ```text
 https://aion.novacore.lol/mobile
+https://aion.novacore.lol/m
 ```
 
 `mobile.novacore.lol` requires Cloudflare DNS write access. The VPS tunnel can
