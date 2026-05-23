@@ -4,6 +4,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
 import {
@@ -166,14 +167,22 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   );
 
   // 检测可用agents的状态
-  const [detectedAgents, setDetectedAgents] = React.useState<Array<{ backend: string; name: string }>>([]);
+  const [detectedAgents, setDetectedAgents] = React.useState<
+    Array<{ backend: string; name: string; displayName: string }>
+  >([]);
   const [importMode, setImportMode] = React.useState<'json' | 'oneclick'>('json');
 
   React.useEffect(() => {
     const loadAgents = async () => {
       try {
         const agents = await getAgents();
-        setDetectedAgents(agents.map((agent) => ({ backend: agent.backend, name: agent.name })));
+        setDetectedAgents(
+          agents.map((agent) => ({
+            backend: agent.backend,
+            name: agent.name,
+            displayName: getAgentDisplayName(agent),
+          }))
+        );
       } catch (error) {
         console.error('Failed to load agents:', error);
       }

@@ -13,8 +13,8 @@
   "showPassword": "显示密码",
   "hidePassword": "隐藏密码",
   "languageToggle": "切换语言",
-  "footerPrimary": "命令行 AI 的现代化体验",
-  "footerSecondary": "高效且优雅",
+  "footerPrimary": "POUNDING",
+  "footerSecondary": "让 agent 们只为您服务",
   "errors": {
     "empty": "请输入用户名和密码",
     "invalidCredentials": "用户名或密码错误",

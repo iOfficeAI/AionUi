@@ -118,7 +118,7 @@
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
       "model": "Model",
-      "aionrsModelRequired": "Aion CLI için bir model seçin",
+      "aionrsModelRequired": "POUNDING CLI için bir model seçin",
       "aionrsNoProvider": "Kullanılabilir model yok"
     },
     "freq": {

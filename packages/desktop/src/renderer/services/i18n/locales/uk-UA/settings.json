@@ -195,7 +195,7 @@
   "deleteInvalidKeys": "Видалити невалідні ключі",
   "testAllKeys": "Тестувати всі ключі",
   "addModelPlaceholder": "Виберіть або введіть ID моделі",
-  "customModelSupportNote": "Примітка: Наразі лише Aion CLI підтримує власні моделі.",
+  "customModelSupportNote": "POUNDING уже налаштував для вас AI-моделі. Вам залишається лише вибрати потрібного провайдера моделей.",
   "addModelHint": "Виберіть або введіть ID моделі, і вона буде додана до цього провайдера.",
   "addModelSelectedHint": "Готово до додавання моделі: {{model}}",
   "currentModelsLabel": "Поточні моделі",
@@ -514,7 +514,7 @@
   "needHelpTooltip": "Якщо потрібна допомога, перевірте",
   "googleCloudProjectPlaceholder": "Введіть Google Cloud Project ID",
   "noAvailableModels": "Немає доступних моделей",
-  "appDescription": "Безкоштовна локальна програма з відкритим кодом для Gemini CLI",
+  "appDescription": "Нехай агенти працюють лише для вас",
   "helpDocumentation": "Довідкова документація",
   "updateLog": "Журнал оновлень",
   "feedback": "Зворотний зв'язок",
@@ -824,6 +824,6 @@
     "notFound": "Не знайдений",
     "version": "Версія",
     "path": "Шлях",
-    "providerNote": "Налаштування провайдера та API-ключів керуються на сторінці моделей. Aion CLI підтримує: Anthropic, OpenAI, AWS Bedrock."
+    "providerNote": "Налаштування провайдера та API-ключів керуються на сторінці моделей. POUNDING CLI підтримує Anthropic, OpenAI та AWS Bedrock."
   }
 }

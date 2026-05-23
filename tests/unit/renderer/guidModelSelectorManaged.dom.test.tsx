@@ -12,15 +12,15 @@ import type { IProvider } from '@/common/config/storage';
 
 const managedProvider: IProvider = {
   id: 'desktop-newapi-managed-provider',
-  name: 'New API',
+  name: 'POUNDING API',
   platform: 'new-api',
   base_url: 'https://api.mxou.cn',
   api_key: '',
-  model: ['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro'],
-  models: ['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro'],
+  model: ['claude-sonnet-4-20250514', 'mimo-v2.5', 'deepseek-v4-pro'],
+  models: ['claude-sonnet-4-20250514', 'mimo-v2.5', 'deepseek-v4-pro'],
   enabled: true,
   model_enabled: {
-    'MiniMax-M2.7-highspeed': true,
+    'claude-sonnet-4-20250514': true,
     'mimo-v2.5': true,
     'deepseek-v4-pro': true,
   },
@@ -122,29 +122,26 @@ describe('GuidModelSelector managed CLI mapping', () => {
         <GuidModelSelector
           isGeminiMode={false}
           modelList={[managedProvider]}
-          current_model={{ ...managedProvider, use_model: 'MiniMax-M2.7-highspeed' }}
+          current_model={{ ...managedProvider, use_model: 'claude-sonnet-4-20250514' }}
           setCurrentModel={setCurrentModel}
           currentAcpCachedModelInfo={{
-            current_model_id: 'default',
-            current_model_label: 'Default (recommended)',
-            available_models: [
-              { id: 'default', label: 'Default (recommended)' },
-              { id: 'opus', label: 'MiniMax-M2.7-highspeed' },
-            ],
+            current_model_id: 'claude-sonnet-4-20250514',
+            current_model_label: 'claude-sonnet-4-20250514',
+            available_models: [{ id: 'claude-sonnet-4-20250514', label: 'claude-sonnet-4-20250514' }],
           }}
-          selectedAcpModel='MiniMax-M2.7-highspeed'
+          selectedAcpModel='claude-sonnet-4-20250514'
           setSelectedAcpModel={setSelectedAcpModel}
           selectedAgentBackend='claude'
         />
       </ConfigProvider>
     );
 
-    expect(screen.getAllByText('MiniMax-M2.7-highspeed').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('claude-sonnet-4-20250514').length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByTestId('dropdown-trigger'));
 
     const items = screen.getAllByTestId('menu-item').map((node) => node.textContent?.replace(/\s+/g, ' ').trim());
-    expect(items).toEqual(['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro']);
+    expect(items).toEqual(['claude-sonnet-4-20250514']);
     expect(screen.queryByText('Default (recommended)')).not.toBeInTheDocument();
     expect(screen.queryByText('opus')).not.toBeInTheDocument();
   });
@@ -162,11 +159,8 @@ describe('GuidModelSelector managed CLI mapping', () => {
           setCurrentModel={setCurrentModel}
           currentAcpCachedModelInfo={{
             current_model_id: 'aionui-new-api-desktop-newapi-managed-provider/mimo-v2.5',
-            current_model_label: 'New API/mimo-v2.5',
-            available_models: [
-              { id: 'minimax/MiniMax-M2.7-highspeed', label: 'MiniMax (minimax.io)/MiniMax-M2.7-highspeed' },
-              { id: 'opencode/big-pickle', label: 'OpenCode Zen/Big Pickle' },
-            ],
+            current_model_label: 'POUNDING API/mimo-v2.5',
+            available_models: [{ id: 'claude/claude-sonnet-4-20250514', label: 'Claude/claude-sonnet-4-20250514' }],
           }}
           selectedAcpModel='mimo-v2.5'
           setSelectedAcpModel={setSelectedAcpModel}
@@ -178,8 +172,7 @@ describe('GuidModelSelector managed CLI mapping', () => {
     fireEvent.click(screen.getByTestId('dropdown-trigger'));
 
     const items = screen.getAllByTestId('menu-item').map((node) => node.textContent?.replace(/\s+/g, ' ').trim());
-    expect(items).toEqual(['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro']);
-    expect(screen.queryByText(/OpenCode Zen/i)).not.toBeInTheDocument();
-    expect(screen.queryByText(/MiniMax \(minimax\.io\)/i)).not.toBeInTheDocument();
+    expect(items).toEqual(['claude-sonnet-4-20250514', 'mimo-v2.5', 'deepseek-v4-pro']);
+    expect(screen.queryByText('Default (recommended)')).not.toBeInTheDocument();
   });
 });

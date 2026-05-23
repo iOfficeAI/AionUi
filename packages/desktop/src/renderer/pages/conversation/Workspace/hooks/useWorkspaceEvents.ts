@@ -128,8 +128,9 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
       if (data.type === 'acp_tool_call') {
         const acpData = data.data as { update?: { kind?: string; status?: string; title?: string } } | undefined;
         const kind = acpData?.update?.kind;
+        const status = acpData?.update?.status;
         const title = acpData?.update?.title;
-        if (kind === 'edit' || kind === 'execute') {
+        if (kind === 'edit' || kind === 'execute' || (!kind && status === 'completed')) {
           if (title && isNonFileSystemTool(title)) return;
           throttledRefresh();
         }

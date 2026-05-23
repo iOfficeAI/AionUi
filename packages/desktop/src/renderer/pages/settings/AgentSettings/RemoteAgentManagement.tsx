@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput } from '@/common/types/agent/remoteAgentTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import {
   Avatar,
   Button,
@@ -32,7 +33,7 @@ const FormItem = Form.Item;
 
 const PAIRING_POLL_INTERVAL = 5_000;
 const PAIRING_TIMEOUT = 5 * 60 * 1000;
-const REMOTE_AGENT_GUIDE_URL = 'https://github.com/halojerry/AionUi/wiki/Remote-Agent-Guide-Chinese';
+const REMOTE_AGENT_GUIDE_URL = 'https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI';
 
 type PairingState = 'idle' | 'handshaking' | 'pending' | 'timeout';
 
@@ -501,7 +502,7 @@ const RemoteAgentManagement: React.FC = () => {
 
               <div className='mb-10px text-center'>
                 <Typography.Text className='block text-14px font-medium leading-20px line-clamp-2'>
-                  {agent.name}
+                  {getAgentDisplayName({ name: agent.name })}
                 </Typography.Text>
               </div>
 

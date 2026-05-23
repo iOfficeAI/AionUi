@@ -32,7 +32,8 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
   const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
-  const effectiveStatus = isElectronDesktop()
+  const isDesktop = isElectronDesktop();
+  const effectiveStatus = isDesktop
     ? !newApiReady
       ? 'checking'
       : isNewApiLoggedIn
@@ -42,6 +43,10 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 
   if (effectiveStatus === 'checking') {
     return <AppLoader />;
+  }
+
+  if (isDesktop) {
+    return React.cloneElement(layout);
   }
 
   if (effectiveStatus !== 'authenticated') {
@@ -54,7 +59,8 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
   const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
-  const effectiveStatus = isElectronDesktop()
+  const isDesktop = isElectronDesktop();
+  const effectiveStatus = isDesktop
     ? !newApiReady
       ? 'checking'
       : isNewApiLoggedIn
@@ -67,7 +73,15 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
       <Routes>
         <Route
           path='/login'
-          element={effectiveStatus === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
+          element={
+            isDesktop ? (
+              <Navigate to='/guid' replace />
+            ) : effectiveStatus === 'authenticated' ? (
+              <Navigate to='/guid' replace />
+            ) : (
+              withRouteFallback(LoginPage)
+            )
+          }
         />
         <Route element={<ProtectedLayout layout={layout} />}>
           <Route index element={<Navigate to='/guid' replace />} />
@@ -98,7 +112,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
         </Route>
         <Route
           path='*'
-          element={<Navigate to={effectiveStatus === 'authenticated' ? '/guid' : '/login'} replace />}
+          element={<Navigate to={isDesktop || effectiveStatus === 'authenticated' ? '/guid' : '/login'} replace />}
         />
       </Routes>
     </HashRouter>

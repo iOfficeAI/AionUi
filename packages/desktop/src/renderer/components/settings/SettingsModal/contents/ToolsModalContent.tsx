@@ -28,12 +28,18 @@ import {
   useMcpServerCRUD,
   useMcpOAuth,
 } from '@/renderer/hooks/mcp';
+import {
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
+  MANAGED_NEWAPI_PROVIDER_ID,
+} from '@/common/types/agent/managedRuntimeCli';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
+const getProviderDisplayName = (platform: { id: string; name: string }): string =>
+  platform.id === MANAGED_NEWAPI_PROVIDER_ID ? MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME : platform.name;
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
@@ -809,7 +815,7 @@ const ToolsModalContent: React.FC = () => {
                     }}
                   >
                     {imageGenerationModelList.map(({ models, ...platform }) => (
-                      <AionSelect.OptGroup label={platform.name} key={platform.id}>
+                      <AionSelect.OptGroup label={getProviderDisplayName(platform)} key={platform.id}>
                         {models.map((modelName) => (
                           <AionSelect.Option key={platform.id + modelName} value={platform.id + '|' + modelName}>
                             {modelName}
@@ -826,7 +832,7 @@ const ToolsModalContent: React.FC = () => {
                         <div>
                           {t('settings.needHelpTooltip')}
                           <a
-                            href='https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                            href='https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI'
                             target='_blank'
                             rel='noopener noreferrer'
                             className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -838,7 +844,7 @@ const ToolsModalContent: React.FC = () => {
                       }
                     >
                       <a
-                        href='https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
+                        href='https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI'
                         target='_blank'
                         rel='noopener noreferrer'
                         className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'

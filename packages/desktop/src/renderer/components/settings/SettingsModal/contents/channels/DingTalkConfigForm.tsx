@@ -9,6 +9,7 @@ import { channel } from '@/common/adapter/ipcBridge';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -57,7 +58,7 @@ interface DingTalkConfigFormProps {
   onStatusChange: (status: IChannelPluginStatus | null) => void;
 }
 
-const DINGTALK_DEV_DOCS_URL = 'https://github.com/halojerry/AionUi/wiki/DingTalk-Bot-Setup-Guide';
+const DINGTALK_DEV_DOCS_URL = 'https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI';
 
 const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, modelSelection, onStatusChange }) => {
   const { t } = useTranslation();
@@ -131,7 +132,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           const list = agentsResp.map((a) => ({
             agent_type: a.agent_type,
             backend: a.backend,
-            name: a.name,
+            name: getAgentDisplayName(a),
             id: a.id,
           }));
           setAvailableAgents(list);
@@ -346,7 +347,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'POUNDING CLI' }];
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -520,7 +521,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                           agent_type: a.agent_type,
                           backend: a.backend,
                           id: a.id,
-                          name: a.name,
+                          name: getAgentDisplayName(a),
                         };
                         setSelectedAgent(next);
                         void persistSelectedAgent(next);
@@ -538,7 +539,7 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
                         }
                       }}
                     >
-                      {a.name}
+                      {getAgentDisplayName(a)}
                     </Menu.Item>
                   );
                 })}
@@ -547,15 +548,15 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
               <span className='truncate'>
-                {selectedAgent.name ||
+                {getAgentDisplayName(
                   availableAgents.find(
                     (a) =>
                       (a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type) ===
                       (selectedAgent.id
                         ? `${selectedAgent.agent_type}|${selectedAgent.id}`
                         : selectedAgent.backend || selectedAgent.agent_type)
-                  )?.name ||
-                  selectedAgent.agent_type}
+                  ) || selectedAgent
+                )}
               </span>
               <Down theme='outline' size={14} />
             </Button>

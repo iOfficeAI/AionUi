@@ -58,7 +58,7 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/Zsr9wqyHHi3e5IkQYtwcQu6Knab',
+      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI',
       icon: <Right theme='outline' size='16' />,
     },
     {
@@ -75,7 +75,7 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://api.maou.cn',
+      url: 'https://api.mxou.cn',
       icon: <Right theme='outline' size='16' />,
     },
   ];

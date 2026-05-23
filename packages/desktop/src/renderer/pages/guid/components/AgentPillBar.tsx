@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentDisplayName, resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
@@ -65,7 +65,8 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
         {availableAgents
           .filter((agent) => !agent.is_preset)
           .map((agent, index) => {
-            const isSelected = selectedAgentKey === getAgentKey(agent);
+            const agentKey = getAgentKey(agent);
+            const isSelected = selectedAgentKey === agentKey;
             const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
             // Remote and user-defined custom agents store emoji strings in
             // `avatar` — treat those as glyphs, not URLs. Builtin rows
@@ -79,6 +80,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               (!emojiAvatar
                 ? resolveAgentLogo({
                     icon: agent.icon,
+                    name: agent.name,
                     backend: agent.backend || agent.agent_type,
                     custom_agent_id: agent.custom_agent_id,
                     isExtension: agent.isExtension,
@@ -89,9 +91,9 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
               <React.Fragment key={getAgentKey(agent)}>
                 {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
                 <div
-                  data-testid={`agent-pill-${agent.backend}`}
+                  data-testid={`agent-pill-${agentKey}`}
                   data-agent-pill='true'
-                  data-agent-key={getAgentKey(agent)}
+                  data-agent-key={agentKey}
                   data-agent-type={agent.agent_type}
                   data-agent-selected={isSelected ? 'true' : 'false'}
                   className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
@@ -103,7 +105,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                         }
                       : { transition: 'opacity 0.2s ease' }
                   }
-                  onClick={() => onSelectAgent(getAgentKey(agent))}
+                  onClick={() => onSelectAgent(agentKey)}
                 >
                   {emojiAvatar ? (
                     <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{emojiAvatar}</span>
@@ -129,7 +131,7 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
                           : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
                     }}
                   >
-                    {agent.name}
+                    {getAgentDisplayName(agent)}
                   </span>
                 </div>
               </React.Fragment>

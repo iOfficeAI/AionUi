@@ -58,7 +58,7 @@ async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
       const managedProvider = providers.find(
         (provider: IProvider) => provider.id === 'desktop-newapi-managed-provider'
       );
-      const managedModels = getManagedCliSelectableModels(managedProvider);
+      const managedModels = getManagedCliSelectableModels(managedProvider, cliTarget);
       if (managedModels.length > 0) {
         const savedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
         if (savedModel && managedModels.includes(savedModel)) {

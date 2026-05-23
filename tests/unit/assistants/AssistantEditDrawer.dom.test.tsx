@@ -10,7 +10,6 @@ import React from 'react';
 
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 
 vi.mock('react-i18next', () => ({
@@ -105,5 +104,18 @@ describe('AssistantEditDrawer', () => {
       <AssistantEditDrawer {...defaultProps} editVisible={true} isCreating={true} />
     );
     expect(container).toBeTruthy();
+  });
+
+  it('shows POUNDING CLI for aionrs in main agent selector summary', () => {
+    renderWithProviders(
+      <AssistantEditDrawer
+        {...defaultProps}
+        editVisible={true}
+        editAgent='aionrs'
+        availableBackends={[{ id: 'aionrs', name: 'POUNDING CLI' }]}
+      />
+    );
+
+    expect(screen.getAllByText('POUNDING CLI').length).toBeGreaterThan(0);
   });
 });

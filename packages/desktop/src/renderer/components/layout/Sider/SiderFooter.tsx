@@ -379,7 +379,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
               </span>
             </div>
           </Tooltip>
-          {(!isDesktopAccountMode || isSettings) && (
+          {(!isDesktopAccountMode || (isSettings && desktopAccountLoggedIn)) && (
             <Tooltip
               {...siderTooltipProps}
               content={isSettings ? t('common.back') : t('common.settings')}
@@ -430,27 +430,29 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
                   </span>
                 </div>
               </Tooltip>
-              <Tooltip {...siderTooltipProps} content={themeTooltip} position='right'>
-                <div
-                  onClick={onThemeToggle}
-                  className={classNames(
-                    'h-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
-                    collapsed ? 'w-full' : 'w-40px',
-                    isMobile && 'sider-footer-btn-mobile'
-                  )}
-                  aria-label={themeTooltip}
-                  data-testid='desktop-theme-toggle'
-                >
-                  <span className='w-28px h-28px flex items-center justify-center shrink-0'>
-                    {theme === 'dark' ? (
-                      <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                    ) : (
-                      <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
-                    )}
-                  </span>
-                </div>
-              </Tooltip>
             </div>
+          )}
+          {!isDesktopAccountMode && (
+            <Tooltip {...siderTooltipProps} content={themeTooltip} position='right'>
+              <div
+                onClick={onThemeToggle}
+                className={classNames(
+                  'h-40px shrink-0 flex items-center justify-center cursor-pointer rd-0.5rem transition-colors text-t-secondary hover:bg-fill-2 hover:text-t-primary active:bg-fill-3',
+                  collapsed ? 'w-full' : 'w-40px',
+                  isMobile && 'sider-footer-btn-mobile'
+                )}
+                aria-label={themeTooltip}
+                data-testid='desktop-theme-toggle'
+              >
+                <span className='w-28px h-28px flex items-center justify-center shrink-0'>
+                  {theme === 'dark' ? (
+                    <SunOne theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                  ) : (
+                    <Moon theme='outline' size='18' fill='currentColor' className='block leading-none' />
+                  )}
+                </span>
+              </div>
+            </Tooltip>
           )}
           {showLogout && onLogoutClick && !isDesktopAccountMode && (
             <Tooltip {...siderTooltipProps} content={t('settings.googleLogout')} position='right'>

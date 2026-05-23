@@ -105,7 +105,7 @@
       "selectFolder": "Select Folder",
       "clearFolder": "Clear",
       "model": "Model",
-      "aionrsModelRequired": "Please select a model for Aion CLI",
+      "aionrsModelRequired": "Please select a model for POUNDING CLI",
       "aionrsNoProvider": "No available models"
     },
     "freq": {

@@ -29,6 +29,7 @@ import {
   MANAGED_NEWAPI_PROVIDER_ID,
   resolveManagedModelIdFromRuntime,
   resolveManagedRuntimeCliTarget,
+  sanitizeManagedRuntimeModelValue,
 } from '@/common/types/agent/managedRuntimeCli';
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
@@ -181,7 +182,10 @@ export const useGuidAgentSelection = ({
     () => modelList.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [modelList]
   );
-  const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const managedSelectableModels = useMemo(
+    () => getManagedCliSelectableModels(managedProvider, resolveManagedRuntimeCliTarget(selectedAgentKey)),
+    [managedProvider, selectedAgentKey]
+  );
 
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
@@ -418,20 +422,25 @@ export const useGuidAgentSelection = ({
   useEffect(() => {
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     const cliTarget = resolveManagedRuntimeCliTarget(backend);
+    const backendManagedSelectableModels = getManagedCliSelectableModels(managedProvider, cliTarget);
     const managedCliPrefs = configService.get('newApi.desktop.cliModelPrefs');
     const config = configService.get('acp.config');
-    const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
-    const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
+    const preferred = sanitizeManagedRuntimeModelValue(
+      (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined
+    );
+    const useManagedCliModels = Boolean(
+      cliTarget && isManagedNewApiLoggedIn && backendManagedSelectableModels.length > 0
+    );
 
     if (useManagedCliModels) {
       const managedPreferred = managedCliPrefs?.[cliTarget]?.trim();
-      if (managedPreferred && managedSelectableModels.includes(managedPreferred)) {
+      if (managedPreferred && backendManagedSelectableModels.includes(managedPreferred)) {
         _setSelectedAcpModel(managedPreferred);
         return;
       }
 
       const normalizedPreferred = resolveManagedModelIdFromRuntime(cliTarget, preferred);
-      if (normalizedPreferred && managedSelectableModels.includes(normalizedPreferred)) {
+      if (normalizedPreferred && backendManagedSelectableModels.includes(normalizedPreferred)) {
         _setSelectedAcpModel(normalizedPreferred);
         return;
       }
@@ -440,7 +449,7 @@ export const useGuidAgentSelection = ({
     if (preferred) {
       if (useManagedCliModels) {
         const normalizedPreferred = resolveManagedModelIdFromRuntime(cliTarget, preferred);
-        if (normalizedPreferred && managedSelectableModels.includes(normalizedPreferred)) {
+        if (normalizedPreferred && backendManagedSelectableModels.includes(normalizedPreferred)) {
           _setSelectedAcpModel(normalizedPreferred);
           return;
         }
@@ -457,7 +466,7 @@ export const useGuidAgentSelection = ({
 
     if (useManagedCliModels) {
       _setSelectedAcpModel(
-        resolveManagedModelIdFromRuntime(cliTarget, fallbackModelId) || managedSelectableModels[0] || null
+        resolveManagedModelIdFromRuntime(cliTarget, fallbackModelId) || backendManagedSelectableModels[0] || null
       );
       return;
     }
@@ -539,14 +548,17 @@ export const useGuidAgentSelection = ({
   const currentAcpCachedModelInfo = useMemo(() => {
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
     const cliTarget = resolveManagedRuntimeCliTarget(backend);
-    const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
+    const backendManagedSelectableModels = getManagedCliSelectableModels(managedProvider, cliTarget);
+    const useManagedCliModels = Boolean(
+      cliTarget && isManagedNewApiLoggedIn && backendManagedSelectableModels.length > 0
+    );
 
     if (useManagedCliModels) {
-      const currentManagedModelId = selectedAcpModel || managedSelectableModels[0] || null;
+      const currentManagedModelId = selectedAcpModel || backendManagedSelectableModels[0] || null;
       return {
         current_model_id: currentManagedModelId,
         current_model_label: currentManagedModelId,
-        available_models: managedSelectableModels.map((modelId) => ({
+        available_models: backendManagedSelectableModels.map((modelId) => ({
           id: modelId,
           label: modelId,
         })),

@@ -21,5 +21,8 @@
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
   "openFile": "Open file",
-  "errorTitle": "Update failed"
+  "errorTitle": "Update failed",
+  "errors": {
+    "feedUnavailable": "Update feed is unavailable ({{status}})"
+  }
 }

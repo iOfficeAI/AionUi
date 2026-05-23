@@ -8,6 +8,7 @@ import { Check } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
 import AionSteps from '@/renderer/components/base/AionSteps';
 import AionModal from '@/renderer/components/base/AionModal';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 
 interface OneClickImportModalProps {
   visible: boolean;
@@ -17,7 +18,9 @@ interface OneClickImportModalProps {
 
 const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCancel, onBatchImport }) => {
   const { t } = useTranslation();
-  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
+  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string; displayName: string }>>(
+    []
+  );
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [importableServers, setImportableServers] = useState<IMcpServer[]>([]);
   const [loadingImport, setLoadingImport] = useState(false);
@@ -35,7 +38,11 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       const loadAgents = async () => {
         try {
           const result = await getAgents();
-          const agentList = result.map((agent) => ({ backend: agent.backend, name: agent.name }));
+          const agentList = result.map((agent) => ({
+            backend: agent.backend,
+            name: agent.name,
+            displayName: getAgentDisplayName(agent),
+          }));
           setDetectedAgents(agentList);
           // 设置第一个agent为默认值
           if (agentList.length > 1) {
@@ -153,7 +160,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       >
         {detectedAgents.map((agent) => (
           <Select.Option key={agent.backend} value={agent.backend}>
-            {agent.name}
+            {agent.displayName}
           </Select.Option>
         ))}
       </Select>

@@ -13,8 +13,8 @@
   "showPassword": "Show password",
   "hidePassword": "Hide password",
   "languageToggle": "Change language",
-  "footerPrimary": "Transform your command-line AI",
-  "footerSecondary": "Modern & Efficient",
+  "footerPrimary": "POUNDING",
+  "footerSecondary": "Agents at your service",
   "errors": {
     "empty": "Please enter username and password",
     "invalidCredentials": "Invalid username or password",

@@ -6,6 +6,7 @@ import ModalWrapper from '@/renderer/components/base/ModalWrapper';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { getAgentDisplayName } from '@renderer/utils/model/agentLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
@@ -128,6 +129,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
             {agents.map((agent) => {
               const logo = resolveAgentLogo({
                 icon: agent.icon,
+                name: agent.display_name,
                 backend: agent.contributes?.acpAdapters?.[0],
               });
 
@@ -141,15 +143,25 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
                     bold
                     className='mb-6px block min-h-36px text-center text-13px leading-18px line-clamp-2'
                   >
-                    {agent.display_name}
+                    {getAgentDisplayName({ name: agent.display_name, backend: agent.contributes?.acpAdapters?.[0] })}
                   </Typography.Text>
 
                   <div className='mb-6px flex h-40px items-center justify-center'>
                     {logo ? (
-                      <img src={logo} alt={agent.display_name} className='h-36px w-36px rounded-10px object-contain' />
+                      <img
+                        src={logo}
+                        alt={getAgentDisplayName({
+                          name: agent.display_name,
+                          backend: agent.contributes?.acpAdapters?.[0],
+                        })}
+                        className='h-36px w-36px rounded-10px object-contain'
+                      />
                     ) : (
                       <div className='flex h-36px w-36px items-center justify-center rounded-10px bg-fill-2 text-16px font-bold text-t-secondary'>
-                        {agent.display_name.charAt(0)}
+                        {getAgentDisplayName({
+                          name: agent.display_name,
+                          backend: agent.contributes?.acpAdapters?.[0],
+                        }).charAt(0)}
                       </div>
                     )}
                   </div>

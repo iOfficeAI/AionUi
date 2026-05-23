@@ -16,6 +16,7 @@ import {
   normalizeManagedRuntimeModelLabel,
   resolveManagedModelIdFromRuntime,
   resolveManagedRuntimeCliTarget,
+  sanitizeManagedRuntimeModelValue,
 } from '@/common/types/agent/managedRuntimeCli';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
@@ -76,7 +77,10 @@ const AcpModelSelector: React.FC<{
     () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [modelConfig]
   );
-  const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const managedSelectableModels = useMemo(
+    () => getManagedCliSelectableModels(managedProvider, cliTarget),
+    [managedProvider, cliTarget]
+  );
   const useManagedCliModels = Boolean(cliTarget && isManagedNewApiLoggedIn && managedSelectableModels.length > 0);
   const normalizedInitialManagedModelId = useMemo(() => {
     if (!useManagedCliModels || !cliTarget) return initialModelId ?? null;
@@ -306,10 +310,11 @@ const AcpModelSelector: React.FC<{
         updateModelInfo(normalizedIncoming);
       } else if (message.type === 'codex_model_info' && message.data) {
         const data = message.data as { model: string };
-        if (data.model) {
+        const sanitizedModel = sanitizeManagedRuntimeModelValue(data.model);
+        if (sanitizedModel) {
           updateModelInfo({
-            current_model_id: data.model,
-            current_model_label: data.model,
+            current_model_id: sanitizedModel,
+            current_model_label: sanitizedModel,
             available_models: [],
           });
         }

@@ -18,7 +18,7 @@ import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentDisplayName, getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 type AgentSetupCardProps = {
   conversation_id: string;
@@ -127,8 +127,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         // Show success notification and navigate
         Message.success(
           t('conversation.chat.switchedToAgent', {
-            defaultValue: `Switched to ${agent.name}`,
-            agent: agent.name,
+            defaultValue: `Switched to ${getAgentDisplayName(agent)}`,
+            agent: getAgentDisplayName(agent),
           })
         );
 
