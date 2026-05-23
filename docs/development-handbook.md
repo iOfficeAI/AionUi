@@ -338,19 +338,19 @@ utils/
 
 本项目是 [iOfficeAI/AionUi](https://github.com/iOfficeAI/AionUi) 的 **fork 改进版**，采用"基线层 + 品牌覆盖层"模式：
 
-| 层面             | 上游 (iOfficeAI)    | 本分支 (POUNDING)                      |
-| ---------------- | ------------------- | -------------------------------------- |
-| **品牌名**       | AionUi              | **POUNDING**                           |
-| **后端**         | aioncore (JS) | **AionCore** (Rust, v0.1.7)            |
-| **后端发布源**   | GitHub Release      | **腾讯 COS** 分发                      |
-| **自动更新**     | GitHub Releases     | **自定义 COS 更新链路**                |
-| **配置文件注入** | `AIONUI_*` 变量     | `AIONUI_*` + `POUNDING_*`              |
-| **内置 Skills**  | 上游默认            | **预装/定制 skills**                   |
-| **模型托管**     | 标准                | **零配置模型接入**                     |
-| **桌面账户**     | 标准                | **受管 CLI 安装/卸载**                 |
-| **i18n 语言**    | 多语言              | **额外支持 uk-UA**                     |
-| **AI 平台**      | 标准                | **RAG、OpenClaw、本地 Agent**          |
-| **发布仓库**     | iOfficeAI/AionUi    | **halojerry/AionUi-2.0.2-dev-a3881e2** |
+| 层面             | 上游 (iOfficeAI) | 本分支 (POUNDING)                      |
+| ---------------- | ---------------- | -------------------------------------- |
+| **品牌名**       | AionUi           | **POUNDING**                           |
+| **后端**         | aioncore (JS)    | **AionCore** (Rust, v0.1.7)            |
+| **后端发布源**   | GitHub Release   | **腾讯 COS** 分发                      |
+| **自动更新**     | GitHub Releases  | **自定义 COS 更新链路**                |
+| **配置文件注入** | `AIONUI_*` 变量  | `AIONUI_*` + `POUNDING_*`              |
+| **内置 Skills**  | 上游默认         | **预装/定制 skills**                   |
+| **模型托管**     | 标准             | **零配置模型接入**                     |
+| **桌面账户**     | 标准             | **受管 CLI 安装/卸载**                 |
+| **i18n 语言**    | 多语言           | **额外支持 uk-UA**                     |
+| **AI 平台**      | 标准             | **RAG、OpenClaw、本地 Agent**          |
+| **发布仓库**     | iOfficeAI/AionUi | **halojerry/AionUi-2.0.2-dev-a3881e2** |
 
 ### 同步策略
 

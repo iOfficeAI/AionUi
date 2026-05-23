@@ -76,16 +76,13 @@ interface MaterializeResponse {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveBackendBinary(): string {
-  const candidates = [
-    process.env.AIONCORE_BINARY,
-    path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
-  ].filter((x): x is string => typeof x === 'string' && x.length > 0);
+  const candidates = [process.env.AIONCORE_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
+    (x): x is string => typeof x === 'string' && x.length > 0
+  );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error(
-    'aioncore binary not found. Set AIONCORE_BINARY or install to ~/.cargo/bin/aioncore.'
-  );
+  throw new Error('aioncore binary not found. Set AIONCORE_BINARY or install to ~/.cargo/bin/aioncore.');
 }
 
 // ── Suite ───────────────────────────────────────────────────────────────────

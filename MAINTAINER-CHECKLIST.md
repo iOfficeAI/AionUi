@@ -16,7 +16,9 @@
 ## 3. Release 流程
 
 ### 冻结
+
 - [ ] 从稳定控制分支创建 `release/pounding-*`：
+
   ```bash
   # AionCore
   git checkout main && git checkout -b release/pounding-v0.1.x
@@ -26,6 +28,7 @@
   ```
 
 ### 验证
+
 - [ ] **AionCore**: `cargo fmt --all -- --check && cargo clippy --workspace -- -D warnings && cargo nextest run --workspace`
 - [ ] **AionUi**: `bun run lint && bun run format:check && bunx tsc --noEmit && bunx vitest run`
 - [ ] 触发 GitHub Actions `build-and-release.yml` (AionUi) / `release.yml` (AionCore)
@@ -33,6 +36,7 @@
 - [ ] 品牌 / 飞书链接旁路检查
 
 ### 发布
+
 - [ ] 确认 `electron-builder.yml` publish.owner = halojerry
 - [ ] 确认 release tag 格式正确 (e.g. v2.0.2)
 - [ ] 触发或等待 CI 构建完成
@@ -57,11 +61,11 @@
 
 ## 关键配置清单
 
-| 配置项 | 位置 | 值 |
-|--------|------|-----|
-| publish owner | `packages/desktop/electron-builder.yml` | `halojerry` ✅ |
-| productName | `package.json` | `POUNDING` ✅ |
-| PR targets | `.github/workflows/pr-checks.yml` | `main, dev, release/pounding-*` ✅ |
-| upstream mirror | `upstream-sync/main` | 已创建 ✅ |
-| AionCore release | `release/pounding-v0.1.x` | 已创建 ✅ |
-| AionUi release | `release/pounding-v2.0.x` | 已创建 ✅ |
+| 配置项           | 位置                                    | 值                                 |
+| ---------------- | --------------------------------------- | ---------------------------------- |
+| publish owner    | `packages/desktop/electron-builder.yml` | `halojerry` ✅                     |
+| productName      | `package.json`                          | `POUNDING` ✅                      |
+| PR targets       | `.github/workflows/pr-checks.yml`       | `main, dev, release/pounding-*` ✅ |
+| upstream mirror  | `upstream-sync/main`                    | 已创建 ✅                          |
+| AionCore release | `release/pounding-v0.1.x`               | 已创建 ✅                          |
+| AionUi release   | `release/pounding-v2.0.x`               | 已创建 ✅                          |
