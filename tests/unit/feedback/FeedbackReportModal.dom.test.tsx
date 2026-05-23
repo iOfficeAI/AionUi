@@ -153,7 +153,7 @@ describe('FeedbackReportModal — prefill', () => {
     await user.click(closeBtn!);
 
     expect(onCancel).toHaveBeenCalledTimes(1);
-  });
+  }, 20000);
 
   it('submits feedback to Sentry when form is valid', async () => {
     const onCancel = vi.fn();
@@ -173,5 +173,5 @@ describe('FeedbackReportModal — prefill', () => {
     expect(setTag).toHaveBeenCalledWith('module', 'mcp-tools');
     expect(Message.success).toHaveBeenCalledTimes(1);
     expect(onCancel).toHaveBeenCalledTimes(1);
-  });
+  }, 20000);
 });

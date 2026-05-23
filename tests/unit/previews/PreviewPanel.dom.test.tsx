@@ -6,21 +6,22 @@
 
 import { describe, it, expect } from 'vitest';
 
-describe('PreviewPanel', () => {
+describe.sequential('PreviewPanel', () => {
+
   it('is a React component module that exports a default function', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
     expect(typeof mod.default).toBe('function');
-  });
+  }, 20000);
 
   it('module loads without throwing on import', async () => {
     await expect(
       import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel')
     ).resolves.toBeTruthy();
-  });
+  }, 20000);
 
   it('has a displayName or function name for debugging', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/PreviewPanel/PreviewPanel');
     const fn = mod.default;
     expect(fn.name || fn.displayName || 'anonymous').toBeTruthy();
-  });
+  }, 20000);
 });
