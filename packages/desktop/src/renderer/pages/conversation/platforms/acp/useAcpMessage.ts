@@ -9,7 +9,7 @@ import { transformMessage } from '@/common/chat/chatLib';
 import type { IMessageAcpToolCall, IMessageText } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IConversationTurnCompletedEvent, IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -74,6 +74,14 @@ export function buildAcpFallbackAssistantText(params: {
   };
 }
 
+function extractCompletedThinkingFallbackText(message: ReturnType<typeof transformMessage>): string | null {
+  if (message.type !== 'thinking') return null;
+  const content = message.content;
+  if (!content || typeof content !== 'object' || !('content' in content)) return null;
+  const text = content.content;
+  return typeof text === 'string' && text.trim() ? text.trim() : null;
+}
+
 export type UseAcpMessageReturn = {
   thought: ThoughtData;
   setThought: React.Dispatch<React.SetStateAction<ThoughtData>>;
@@ -87,6 +95,7 @@ export type UseAcpMessageReturn = {
   context_limit: number;
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
+  fetchSlashCommands: () => void;
 };
 
 export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
@@ -104,6 +113,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
+  const acpSessionIdRef = useRef<string | null>(null);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -112,6 +122,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   // Track whether current turn has content output
   const hasContentInTurnRef = useRef(false);
   const lastCompletedToolTextRef = useRef<string | null>(null);
+  const lastCompletedThinkingTextRef = useRef<string | null>(null);
   const lastFallbackTextMsgIdRef = useRef<string | null>(null);
 
   // Guard: after finish arrives, prevent auto-recover from setting running=true
@@ -178,6 +189,49 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, []);
 
+  const finalizeTurn = useCallback(
+    (params?: { createdAt?: number; msgId?: string }) => {
+      const fallbackText = lastCompletedToolTextRef.current || lastCompletedThinkingTextRef.current;
+      if (!hasContentInTurnRef.current && fallbackText) {
+        const fallbackMsgId =
+          params?.msgId || lastFallbackTextMsgIdRef.current || `acp-fallback-${conversation_id}-${Date.now()}`;
+        addOrUpdateMessage(
+          buildAcpFallbackAssistantText({
+            conversationId: conversation_id,
+            msgId: fallbackMsgId,
+            content: fallbackText,
+            createdAt: params?.createdAt,
+          })
+        );
+        hasContentInTurnRef.current = true;
+      }
+
+      turnFinishedRef.current = true;
+      setRunning(false);
+      runningRef.current = false;
+      setAiProcessing(false);
+      aiProcessingRef.current = false;
+      setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
+      lastCompletedToolTextRef.current = null;
+      lastCompletedThinkingTextRef.current = null;
+      lastFallbackTextMsgIdRef.current = null;
+      hasThinkingMessageRef.current = false;
+      setHasThinkingMessage(false);
+
+      if (requestTraceRef.current) {
+        const duration = Date.now() - requestTraceRef.current.startTime;
+        console.log(
+          `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
+          'color: #52c41a; font-weight: bold',
+          'color: inherit'
+        );
+        requestTraceRef.current = null;
+      }
+    },
+    [addOrUpdateMessage, conversation_id, setAiProcessing, setRunning, setThought]
+  );
+
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -207,6 +261,9 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
+          if (thinkingData?.status === 'done') {
+            lastCompletedThinkingTextRef.current = extractCompletedThinkingFallbackText(transformedMessage);
+          }
           addOrUpdateMessage(transformedMessage);
           break;
         }
@@ -215,47 +272,17 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           turnFinishedRef.current = false;
           hasContentInTurnRef.current = false;
           lastCompletedToolTextRef.current = null;
+          lastCompletedThinkingTextRef.current = null;
           lastFallbackTextMsgIdRef.current = null;
           setRunning(true);
           runningRef.current = true;
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
-          {
-            if (!hasContentInTurnRef.current && lastCompletedToolTextRef.current) {
-              addOrUpdateMessage(
-                buildAcpFallbackAssistantText({
-                  conversationId: conversation_id,
-                  msgId: lastFallbackTextMsgIdRef.current ?? message.msg_id,
-                  content: lastCompletedToolTextRef.current,
-                  createdAt: message.created_at,
-                })
-              );
-              hasContentInTurnRef.current = true;
-            }
-
-            // Mark turn as finished to prevent auto-recover from late messages
-            turnFinishedRef.current = true;
-            // Immediate state reset (notification is handled by centralized hook)
-            setRunning(false);
-            runningRef.current = false;
-            setAiProcessing(false);
-            aiProcessingRef.current = false;
-            setThought({ subject: '', description: '' });
-            hasContentInTurnRef.current = false;
-            hasThinkingMessageRef.current = false;
-            setHasThinkingMessage(false);
-            // Log request completion
-            if (requestTraceRef.current) {
-              const duration = Date.now() - requestTraceRef.current.startTime;
-              console.log(
-                `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #52c41a; font-weight: bold',
-                'color: inherit'
-              );
-              requestTraceRef.current = null;
-            }
-          }
+          finalizeTurn({
+            createdAt: message.created_at,
+            msgId: lastFallbackTextMsgIdRef.current ?? message.msg_id,
+          });
           break;
         case 'text':
         case 'content': {
@@ -266,6 +293,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             aiProcessingRef.current = false;
           }
           lastCompletedToolTextRef.current = null;
+          lastCompletedThinkingTextRef.current = null;
           lastFallbackTextMsgIdRef.current = null;
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -287,7 +315,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           const agentData = message.data as {
             status?: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
             backend?: string;
+            session_id?: string;
           };
+          if (typeof agentData?.session_id === 'string' && agentData.session_id.trim()) {
+            acpSessionIdRef.current = agentData.session_id;
+          }
           if (agentData?.status) {
             setAcpStatus(agentData.status);
             // Reset running state when authentication is complete
@@ -453,12 +485,47 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus]
+    [
+      conversation_id,
+      addOrUpdateMessage,
+      finalizeTurn,
+      throttledSetThought,
+      setThought,
+      setRunning,
+      setAiProcessing,
+      setAcpStatus,
+    ]
   );
 
   useEffect(() => {
     return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
   }, [handleResponseMessage]);
+
+  const handleTurnCompleted = useCallback(
+    (event: IConversationTurnCompletedEvent) => {
+      const currentSessionId = acpSessionIdRef.current;
+      if (!currentSessionId || event.session_id !== currentSessionId) {
+        return;
+      }
+      if (event.status !== 'finished') {
+        return;
+      }
+      if (turnFinishedRef.current) {
+        return;
+      }
+      finalizeTurn({
+        createdAt: event.last_message?.created_at,
+        msgId:
+          lastFallbackTextMsgIdRef.current ||
+          `acp-turn-completed-${conversation_id}-${event.last_message?.created_at ?? Date.now()}`,
+      });
+    },
+    [conversation_id, finalizeTurn]
+  );
+
+  useEffect(() => {
+    return ipcBridge.conversation.turnCompleted.on(handleTurnCompleted);
+  }, [handleTurnCompleted]);
 
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
@@ -469,9 +536,11 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setTokenUsage(null);
     setContextLimit(0);
     setSlashCommands([]);
+    acpSessionIdRef.current = null;
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     lastCompletedToolTextRef.current = null;
+    lastCompletedThinkingTextRef.current = null;
     lastFallbackTextMsgIdRef.current = null;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
@@ -499,6 +568,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         setHasHydratedRunningState(true);
         return;
       }
+      acpSessionIdRef.current =
+        (res.type === 'acp' ? res.extra?.acp_session_id : undefined) ||
+        (res.type === 'acp' ? res.extra?.acp_session_conversation_id : undefined) ||
+        null;
       const isRunning = res.status === 'running';
       setRunning(isRunning);
       runningRef.current = isRunning;
@@ -525,20 +598,46 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, [conversation_id]);
 
-  // Fetch slash commands via HTTP after warmup completes.
-  // WebSocket push of available_commands arrives during warmup when no
-  // StreamRelay is listening, so the initial load must come from HTTP.
-  // Mirrors the aionrs pattern: warmup first, then fetch.
   useEffect(() => {
+    if (acpSessionIdRef.current) {
+      return;
+    }
+
     let cancelled = false;
-    void ipcBridge.conversation.warmup
+    let attempts = 0;
+    const maxAttempts = 20;
+
+    const hydrateSessionId = async () => {
+      while (!cancelled && !acpSessionIdRef.current && attempts < maxAttempts) {
+        attempts += 1;
+        try {
+          const res = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+          const sessionId =
+            (res?.type === 'acp' ? res.extra?.acp_session_id : undefined) ||
+            (res?.type === 'acp' ? res.extra?.acp_session_conversation_id : undefined) ||
+            null;
+          if (sessionId) {
+            acpSessionIdRef.current = sessionId;
+            return;
+          }
+        } catch {
+          // swallow and retry
+        }
+        await new Promise((resolve) => setTimeout(resolve, 500));
+      }
+    };
+
+    void hydrateSessionId();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation_id]);
+
+  const fetchSlashCommands = useCallback(() => {
+    void ipcBridge.conversation.getSlashCommands
       .invoke({ conversation_id })
-      .then(() => {
-        if (cancelled) return;
-        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
-      })
       .then((result) => {
-        if (cancelled) return;
         if (!result || !Array.isArray(result) || result.length === 0) return;
         setSlashCommands(
           result.map((c) => ({
@@ -551,10 +650,31 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
         );
       })
       .catch(() => {});
+  }, [conversation_id]);
+
+  // Fetch slash commands via HTTP after warmup completes.
+  // WebSocket push of available_commands arrives during warmup when no
+  // StreamRelay is listening, so the initial load must come from HTTP.
+  useEffect(() => {
+    const inflightKey = `acp_initial_message_inflight_${conversation_id}`;
+    const inflightSince = Number(sessionStorage.getItem(inflightKey) || '0');
+    if (Number.isFinite(inflightSince) && inflightSince > 0 && Date.now() - inflightSince < 15_000) {
+      return;
+    }
+
+    let cancelled = false;
+    void ipcBridge.conversation.warmup
+      .invoke({ conversation_id })
+      .then(() => {
+        if (!cancelled) {
+          fetchSlashCommands();
+        }
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, fetchSlashCommands]);
 
   const resetState = useCallback(() => {
     turnFinishedRef.current = true;
@@ -565,6 +685,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
     lastCompletedToolTextRef.current = null;
+    lastCompletedThinkingTextRef.current = null;
     lastFallbackTextMsgIdRef.current = null;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
@@ -583,5 +704,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   };
 };

@@ -1,7 +1,9 @@
 export {
   navigateTo,
   goToGuid,
+  waitForDesktopGuidReady,
   goToSettings,
+  hasSettingsTab,
   goToExtensionSettings,
   goToChannelsTab,
   resetChannelsTabCache,
@@ -55,6 +57,7 @@ export {
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
+  waitForConversationAiReply,
   getAiReplyCount,
   waitForNewAiReply,
   deleteConversation,

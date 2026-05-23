@@ -17,6 +17,7 @@ import { _electron as electron } from 'playwright';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import crypto from 'crypto';
 
 type Fixtures = {
   electronApp: ElectronApplication;
@@ -28,6 +29,21 @@ let app: ElectronApplication | null = null;
 let mainPage: Page | null = null;
 const e2eStateSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-state-'));
 const e2eStateFile = path.join(e2eStateSandboxDir, 'extension-states.json');
+const e2eDataSandboxDir = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-data-'));
+
+function resolveE2EBackendOverride(projectRoot: string): string | null {
+  const explicit = process.env.AIONCORE_BIN?.trim() || process.env.AIONCORE_BINARY?.trim();
+  if (explicit && fs.existsSync(explicit)) {
+    return explicit;
+  }
+
+  const siblingCoreDebug = path.resolve(projectRoot, '../AionCore-main/target/debug/aioncore');
+  if (fs.existsSync(siblingCoreDebug)) {
+    return siblingCoreDebug;
+  }
+
+  return null;
+}
 
 function isDevToolsWindow(page: Page): boolean {
   return page.url().startsWith('devtools://');
@@ -96,47 +112,75 @@ function resolvePackagedApp(): { executablePath: string; cwd: string } | null {
   return null;
 }
 
-function shouldUsePackagedMode(): boolean {
+function hasBuildOutput(projectRoot: string): boolean {
+  return (
+    fs.existsSync(path.join(projectRoot, 'out', 'main', 'index.js')) &&
+    fs.existsSync(path.join(projectRoot, 'out', 'renderer', 'index.html'))
+  );
+}
+
+function shouldUsePackagedMode(projectRoot: string): boolean {
   if (process.env.E2E_PACKAGED === '1') return true;
   if (process.env.E2E_DEV === '1') return false;
-  // Default: packaged in CI, dev locally
+  if (process.env.E2E_SOURCE_DEV === '1') return false;
+  // Local default: prefer built output when present because `electron .` alone
+  // does not start the renderer dev server in Playwright's Electron launcher.
+  if (hasBuildOutput(projectRoot)) return true;
+  // CI default: packaged/build-output mode.
   return !!process.env.CI;
 }
 
 async function launchApp(): Promise<ElectronApplication> {
   const projectRoot = path.resolve(__dirname, '../..');
-  const usePackaged = shouldUsePackagedMode();
+  const usePackaged = shouldUsePackagedMode(projectRoot);
 
   const commonEnv = {
     ...process.env,
     AIONUI_EXTENSIONS_PATH: process.env.AIONUI_EXTENSIONS_PATH || path.join(projectRoot, 'examples'),
     AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eStateFile,
+    AIONUI_DATA_DIR: process.env.AIONUI_DATA_DIR || path.join(e2eDataSandboxDir, crypto.randomUUID()),
     AIONUI_DISABLE_AUTO_UPDATE: '1',
     AIONUI_DISABLE_DEVTOOLS: '1',
     AIONUI_E2E_TEST: '1',
     AIONUI_CDP_PORT: '0',
+    // Isolate E2E from the user's normal dev workspace and existing conversations.
+    AIONUI_MULTI_INSTANCE: process.env.AIONUI_MULTI_INSTANCE || '1',
   };
+  const backendOverride = resolveE2EBackendOverride(projectRoot);
+  if (backendOverride) {
+    commonEnv.AIONCORE_BIN = backendOverride;
+    commonEnv.AIONCORE_BINARY = backendOverride;
+    console.log(`[E2E] Using backend override: ${backendOverride}`);
+  }
 
   if (usePackaged) {
     const packaged = resolvePackagedApp();
-    if (!packaged) {
+    const launchArgs: string[] = [];
+    let executablePath: string | undefined;
+    let cwd = projectRoot;
+
+    if (packaged) {
+      console.log(`[E2E] Launching PACKAGED app: ${packaged.executablePath}`);
+      executablePath = packaged.executablePath;
+      cwd = packaged.cwd;
+    } else if (hasBuildOutput(projectRoot)) {
+      console.log('[E2E] Launching BUILD-OUTPUT app: out/main/index.js');
+      launchArgs.push(path.join('out', 'main', 'index.js'));
+    } else {
       throw new Error(
-        'E2E packaged mode: could not find packaged app under out/. ' +
-          'Run `node scripts/build-with-builder.js auto --<platform> --pack-only` first.'
+        'E2E packaged mode: could not find packaged app or built renderer under out/. ' +
+          'Run `bun run package` or `node scripts/build-with-builder.js auto --<platform> --pack-only` first.'
       );
     }
 
-    console.log(`[E2E] Launching PACKAGED app: ${packaged.executablePath}`);
-
-    const launchArgs: string[] = [];
     if (process.platform === 'linux' && process.env.CI) {
       launchArgs.push('--no-sandbox');
     }
 
     const electronApp = await electron.launch({
-      executablePath: packaged.executablePath,
+      ...(executablePath ? { executablePath } : {}),
       args: launchArgs,
-      cwd: packaged.cwd,
+      cwd,
       env: {
         ...commonEnv,
         NODE_ENV: 'production',
@@ -147,8 +191,8 @@ async function launchApp(): Promise<ElectronApplication> {
     return electronApp;
   }
 
-  // Dev mode: launch via electron .
-  console.log(`[E2E] Launching DEV app from: ${projectRoot}`);
+  // Source-dev mode: only valid when caller explicitly opts in and manages a renderer dev server.
+  console.log(`[E2E] Launching SOURCE-DEV app from: ${projectRoot}`);
 
   const launchArgs = ['.'];
   if (process.platform === 'linux' && process.env.CI) {

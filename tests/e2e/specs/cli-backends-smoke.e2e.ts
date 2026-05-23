@@ -1,12 +1,11 @@
 import { test, expect } from '../fixtures';
 import {
   goToGuid,
+  waitForDesktopGuidReady,
   AGENT_PILL,
   selectAgent,
   sendMessageFromGuid,
-  getAiReplyCount,
-  waitForNewAiReply,
-  waitForSessionActive,
+  waitForConversationAiReply,
   deleteConversation,
   startAutoApprovePermissionMessages,
   goToNewChat,
@@ -19,6 +18,7 @@ test.describe('CLI backends smoke', () => {
 
   test('list visible guid backends', async ({ page }) => {
     await goToGuid(page);
+    await waitForDesktopGuidReady(page);
     await expect(page.locator(AGENT_PILL).first()).toBeVisible({ timeout: 15000 });
     const pills = await page.locator(AGENT_PILL).evaluateAll((els) =>
       els.map((el) => ({
@@ -35,6 +35,7 @@ test.describe('CLI backends smoke', () => {
   for (const backend of TARGET_BACKENDS) {
     test(`smoke reply for ${backend}`, async ({ page }) => {
       await goToGuid(page);
+      await waitForDesktopGuidReady(page);
       await expect(page.locator(AGENT_PILL).first()).toBeVisible({ timeout: 15000 });
 
       const visibleBackends = await page.locator(AGENT_PILL).evaluateAll((els) =>
@@ -56,10 +57,8 @@ test.describe('CLI backends smoke', () => {
       const stopAutoApprove = startAutoApprovePermissionMessages(page, 400);
       try {
         await selectAgent(page, backend);
-        const beforeReplyCount = await getAiReplyCount(page);
         const conversationId = await sendMessageFromGuid(page, `Reply with exactly: smoke-${backend}`);
-        await waitForSessionActive(page, 180_000);
-        const reply = await waitForNewAiReply(page, beforeReplyCount, 180_000);
+        const reply = await waitForConversationAiReply(page, conversationId, 180_000);
         console.log(`[cli-backends-smoke] reply for ${backend}:`, reply);
         expect(reply.toLowerCase()).toContain(`smoke-${backend}`);
         await deleteConversation(page, conversationId).catch(() => {});

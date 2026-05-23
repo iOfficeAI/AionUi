@@ -77,14 +77,14 @@ interface MaterializeResponse {
 
 function resolveBackendBinary(): string {
   const candidates = [
-    process.env.AIONUI_BACKEND_BINARY,
-    path.join(os.homedir(), '.cargo', 'bin', 'aionui-backend'),
+    process.env.AIONCORE_BINARY,
+    path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
   throw new Error(
-    'aionui-backend binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aionui-backend.'
+    'aioncore binary not found. Set AIONCORE_BINARY or install to ~/.cargo/bin/aioncore.'
   );
 }
 
@@ -282,7 +282,7 @@ test.describe('Built-in Skill Migration (T3)', () => {
 
   // ── Scenarios 6 & 8 — require a fresh data-dir / cold boot ────────────────
   //
-  // Run against a sibling `aionui-backend` process on port 25903 against a
+  // Run against a sibling `aioncore` process on port 25903 against a
   // tmp data-dir (same pattern as the assistant-user-data pilot's
   // S8/S9/S10). This lets us seed pre-existing state and observe the
   // startup/legacy-cleanup behaviour without tearing down the main

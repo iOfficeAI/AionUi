@@ -8,6 +8,8 @@ type ExecState = {
   curlInPath: boolean;
   wgetInPath: boolean;
   uvInPath: boolean;
+  python3InPath: boolean;
+  pythonInPath: boolean;
   claudeInstalled: boolean;
   openclawInstalled: boolean;
   hermesInstalled: boolean;
@@ -27,6 +29,8 @@ const execState: ExecState = {
   curlInPath: true,
   wgetInPath: false,
   uvInPath: true,
+  python3InPath: true,
+  pythonInPath: false,
   claudeInstalled: false,
   openclawInstalled: false,
   hermesInstalled: false,
@@ -112,6 +116,8 @@ function resetExecState(): void {
   execState.curlInPath = true;
   execState.wgetInPath = false;
   execState.uvInPath = true;
+  execState.python3InPath = true;
+  execState.pythonInPath = false;
   execState.claudeInstalled = false;
   execState.openclawInstalled = false;
   execState.hermesInstalled = false;
@@ -132,6 +138,8 @@ function installExecFileBehavior(): void {
           (target === 'curl' && execState.curlInPath) ||
           (target === 'wget' && execState.wgetInPath) ||
           (target === 'uv' && execState.uvInPath) ||
+          (target === 'python3' && execState.python3InPath) ||
+          (target === 'python' && execState.pythonInPath) ||
           (target === 'claude' && execState.claudeInstalled) ||
           (target === 'openclaw' && execState.openclawInstalled) ||
           (target === 'hermes' && execState.hermesInstalled)
@@ -185,6 +193,10 @@ function installExecFileBehavior(): void {
 
       if (command === 'npm' && args[0] === 'install') {
         const packageName = args.at(-1);
+        if (packageName === 'bun') {
+          execState.bunInPath = true;
+          existingPaths.add(bunBinPath);
+        }
         if (packageName === '@anthropic-ai/claude-code') {
           execState.claudeInstalled = true;
         }
@@ -204,6 +216,22 @@ function installExecFileBehavior(): void {
           execState.openclawInstalled = false;
         }
         execSuccess(callback);
+        return { unref: vi.fn() };
+      }
+
+      if (
+        (command === 'python3' || command === 'python' || command === 'py') &&
+        args[0] === '-m' &&
+        args[1] === 'pip'
+      ) {
+        existingPaths.add(uvBinPath);
+        execState.uvInPath = true;
+        execSuccess(callback);
+        return { unref: vi.fn() };
+      }
+
+      if ((command === 'python3' || command === 'python' || command === 'py') && args[0] === '-c') {
+        execSuccess(callback, `${mockHome}/.local`);
         return { unref: vi.fn() };
       }
 
@@ -291,7 +319,7 @@ describe('managedCliInstallerBridge', () => {
     expect(existingPaths.has(bunOpenclawPath)).toBe(false);
   });
 
-  it('falls back to npm for openclaw when bun is missing', async () => {
+  it('installs bun first when bun is missing, then uses bun for openclaw', async () => {
     execState.bunInPath = false;
     execState.openclawInstalled = false;
     const { installHandler } = await loadHandlers();
@@ -301,7 +329,29 @@ describe('managedCliInstallerBridge', () => {
     expect(result).toEqual({ success: true, status: 'installed', message: undefined });
     expect(execFileMock).toHaveBeenCalledWith(
       'npm',
-      ['install', '-g', 'openclaw'],
+      ['install', '-g', 'bun'],
+      expect.any(Object),
+      expect.any(Function)
+    );
+    expect(execFileMock).toHaveBeenCalledWith(
+      'bun',
+      ['add', '-g', 'openclaw'],
+      expect.any(Object),
+      expect.any(Function)
+    );
+  });
+
+  it('auto-installs bun via npm when bun is missing, then installs openclaw', async () => {
+    execState.bunInPath = false;
+    execState.openclawInstalled = false;
+    const { installHandler } = await loadHandlers();
+
+    const result = await installHandler({ target: 'openclaw' });
+
+    expect(result).toEqual({ success: true, status: 'installed', message: undefined });
+    expect(execFileMock).toHaveBeenCalledWith(
+      'npm',
+      ['install', '-g', 'bun'],
       expect.any(Object),
       expect.any(Function)
     );
@@ -309,6 +359,8 @@ describe('managedCliInstallerBridge', () => {
 
   it('fails hermes install with actionable message when uv is missing', async () => {
     execState.uvInPath = false;
+    execState.python3InPath = false;
+    execState.pythonInPath = false;
     const { installHandler } = await loadHandlers();
 
     const result = await installHandler({ target: 'hermes' });
@@ -316,7 +368,32 @@ describe('managedCliInstallerBridge', () => {
     expect(result).toEqual({
       success: false,
       status: 'failed',
-      message: 'uv is required for Hermes installation. Please install uv first, then retry.',
+      message: 'uv is required for Hermes installation. No suitable Python runtime was found to auto-install it.',
     });
+  });
+
+  it('auto-installs uv via python user-site mirror when uv is missing', async () => {
+    execState.uvInPath = false;
+    execState.python3InPath = true;
+    const { installHandler } = await loadHandlers();
+
+    const result = await installHandler({ target: 'hermes' });
+
+    expect(result).toEqual({ success: true, status: 'installed', message: undefined });
+    expect(execFileMock).toHaveBeenCalledWith(
+      'python3',
+      [
+        '-m',
+        'pip',
+        'install',
+        '--user',
+        '--disable-pip-version-check',
+        '-i',
+        'https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple',
+        'uv',
+      ],
+      expect.any(Object),
+      expect.any(Function)
+    );
   });
 });

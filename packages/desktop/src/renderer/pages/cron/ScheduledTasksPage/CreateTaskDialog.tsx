@@ -13,7 +13,7 @@ import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { getAgentDisplayName, resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
@@ -246,7 +246,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => providers.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [providers]
   );
-  const managedSelectableModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const managedSelectableModels = useMemo(
+    () => getManagedCliSelectableModels(managedProvider, managedCliTarget),
+    [managedProvider, managedCliTarget]
+  );
   const isManagedCliSelection = Boolean(managedCliTarget && managedSelectableModels.length > 0);
 
   // Build Gemini current_model from model_id for GuidModelSelector.
@@ -423,7 +426,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           // cli_path is no longer sent from the frontend — the backend
           // resolves it server-side from the `agent_metadata` catalog.
           backend,
-          name: agent.name || capitalizedBackend,
+          name: getAgentDisplayName(agent) || capitalizedBackend,
           mode: getFullAutoMode(backend),
           model_id,
           config_options,
@@ -562,13 +565,16 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 if (type === 'cli') {
                   const agent = cliAgents.find((a) => (a.backend || a.agent_type) === id);
                   if (agent) {
-                    name = agent.name;
+                    name = getAgentDisplayName(agent);
                     const logoSrc = resolveAgentLogo({
                       icon: agent.icon,
+                      name: agent.name,
                       backend: agent.backend || agent.agent_type,
                     });
                     if (logoSrc) {
-                      logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
+                      logo = (
+                        <img src={logoSrc} alt={getAgentDisplayName(agent)} className='w-16px h-16px object-contain' />
+                      );
                     }
                   }
                 } else if (type === 'preset') {
@@ -598,6 +604,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     const agentKey = agent.backend || agent.agent_type;
                     const logo = resolveAgentLogo({
                       icon: agent.icon,
+                      name: agent.name,
                       backend: agentKey,
                     });
                     const disabled = agentKey === 'aionrs' && !hasAionrsProvider;
@@ -608,11 +615,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                           title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
                         >
                           {logo ? (
-                            <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
+                            <img src={logo} alt={getAgentDisplayName(agent)} className='w-16px h-16px object-contain' />
                           ) : (
                             <Robot size='16' />
                           )}
-                          <span>{agent.name}</span>
+                          <span>{getAgentDisplayName(agent)}</span>
                           {disabled && (
                             <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
                           )}

@@ -32,6 +32,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -95,6 +96,7 @@ const AcpSendBox: React.FC<{
     context_limit,
     hasThinkingMessage,
     slashCommands,
+    fetchSlashCommands,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -104,6 +106,25 @@ const AcpSendBox: React.FC<{
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
   const { setSendBoxHandler } = usePreviewContext();
+
+  useEffect(() => {
+    if (!teamPermission) return;
+    void teamPermission
+      .warmupSession()
+      .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+      .then(() => {
+        fetchSlashCommands();
+      })
+      .catch(() => {});
+  }, [teamPermission, conversation_id, fetchSlashCommands]);
+
+  const handleContentChange = useCallback(
+    (val: string) => {
+      if (val && teamPermission) void teamPermission.warmupSession();
+      setContent(val);
+    },
+    [teamPermission, setContent]
+  );
 
   // Use useLatestRef to keep latest setters to avoid re-registering handler
   const setContentRef = useLatestRef(setContent);
@@ -150,10 +171,12 @@ const AcpSendBox: React.FC<{
     setAiProcessing,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
+    fetchSlashCommands,
   });
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+      if (teamPermission) await teamPermission.warmupSession();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
       setAiProcessing(true);
@@ -229,7 +252,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
+    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, teamPermission, workspacePath]
   );
 
   const {
@@ -306,9 +329,10 @@ Please check your local CLI tool authentication status`,
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
-    // Use finally to ensure UI state is reset even if backend stop fails
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[AcpSendBox] stop request failed', error);
     } finally {
       resetState();
       resetActiveExecution('stop');
@@ -334,7 +358,7 @@ Please check your local CLI tool authentication status`,
 
       <SendBox
         value={content}
-        onChange={setContent}
+        onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={(items) => {
           emitter.emit('acp.selected.file', items);
@@ -343,7 +367,7 @@ Please check your local CLI tool authentication status`,
         loading={isBusy}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || backend,
+          backend: getAgentDisplayName({ name: agent_name, backend, agent_type: backend }),
           defaultValue: `Send message to {{backend}}...`,
         })}
         onStop={handleStop}

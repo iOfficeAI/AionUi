@@ -11,6 +11,13 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 
+const ACP_INITIAL_MESSAGE_MAX_RETRIES = 3;
+const ACP_INITIAL_MESSAGE_RETRY_DELAYS_MS = [800, 1600];
+
+function delay(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 type UseAcpInitialMessageParams = {
   conversation_id: string;
   backend: string;
@@ -18,6 +25,7 @@ type UseAcpInitialMessageParams = {
   setAiProcessing: (value: boolean) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
+  fetchSlashCommands?: () => void;
 };
 
 /**
@@ -31,15 +39,27 @@ export const useAcpInitialMessage = ({
   setAiProcessing,
   checkAndUpdateTitle,
   addOrUpdateMessage,
+  fetchSlashCommands,
 }: UseAcpInitialMessageParams): void => {
   useEffect(() => {
     const storageKey = `acp_initial_message_${conversation_id}`;
+    const completedKey = `acp_initial_message_completed_${conversation_id}`;
+    const processedKey = `acp_initial_message_processed_${conversation_id}`;
+    const inflightKey = `acp_initial_message_inflight_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
+    if (sessionStorage.getItem(completedKey) === '1') return;
+    if (sessionStorage.getItem(processedKey) === '1') return;
 
-    // Clear immediately to prevent duplicate sends (e.g., if component remounts while sendMessage is pending)
-    sessionStorage.removeItem(storageKey);
+    const inflightSince = Number(sessionStorage.getItem(inflightKey) || '0');
+    if (Number.isFinite(inflightSince) && inflightSince > 0 && Date.now() - inflightSince < 15_000) {
+      return;
+    }
+
+    let cancelled = false;
+    sessionStorage.setItem(processedKey, '1');
+    sessionStorage.setItem(inflightKey, String(Date.now()));
 
     const sendInitialMessage = async () => {
       try {
@@ -50,22 +70,35 @@ export const useAcpInitialMessage = ({
 
         setAiProcessing(true);
 
-        // POST first to obtain the server-assigned msg_id, then render the
-        // optimistic user bubble with that canonical id. Doing it in this
-        // order prevents `useMessageLstCache` from treating the optimistic
-        // row as a separate "streaming-only" entry when the DB load races
-        // with sendMessage — which previously produced two duplicated user
-        // bubbles on the first conversation render.
-        void checkAndUpdateTitle(conversation_id, input);
-        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
-          input: displayMessage,
-          conversation_id: conversation_id,
-          files,
-        });
+        let msg_id: string | null = null;
+        let lastError: unknown = null;
 
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
+        for (let attempt = 0; attempt < ACP_INITIAL_MESSAGE_MAX_RETRIES && !msg_id; attempt += 1) {
+          try {
+            await ipcBridge.conversation.warmup.invoke({ conversation_id });
+            fetchSlashCommands?.();
+            void checkAndUpdateTitle(conversation_id, input);
+            const result = await ipcBridge.acpConversation.sendMessage.invoke({
+              input: displayMessage,
+              conversation_id,
+              files,
+            });
+            msg_id = result.msg_id;
+          } catch (error) {
+            lastError = error;
+            if (attempt < ACP_INITIAL_MESSAGE_MAX_RETRIES - 1) {
+              await delay(ACP_INITIAL_MESSAGE_RETRY_DELAYS_MS[attempt] ?? 2000);
+              continue;
+            }
+          }
+        }
+
+        if (!msg_id) {
+          throw lastError instanceof Error ? lastError : new Error('Failed to send initial ACP message');
+        }
+
+        if (cancelled) return;
+
         addOrUpdateMessage({
           id: msg_id,
           msg_id,
@@ -76,7 +109,8 @@ export const useAcpInitialMessage = ({
           created_at: Date.now(),
         });
 
-        // Initial message sent successfully
+        sessionStorage.removeItem(storageKey);
+        sessionStorage.setItem(completedKey, '1');
         emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
@@ -84,27 +118,44 @@ export const useAcpInitialMessage = ({
           name: (error as Error)?.name,
           message: (error as Error)?.message,
           conversation_id,
+          backend,
         });
-        // Create error message in UI
-        const errorMessage: TMessage = {
-          id: uuid(),
-          msg_id: uuid(),
-          conversation_id: conversation_id,
-          type: 'tips',
-          position: 'center',
-          content: {
-            content: 'Failed to send message. Please try again.',
-            type: 'error',
-          },
-          created_at: Date.now() + 2,
-        };
-        addOrUpdateMessage(errorMessage, true);
-        setAiProcessing(false); // Stop loading state on error
+        if (!cancelled) {
+          sessionStorage.removeItem(processedKey);
+          const errorMessage: TMessage = {
+            id: uuid(),
+            msg_id: uuid(),
+            conversation_id,
+            type: 'tips',
+            position: 'center',
+            content: {
+              content: 'Failed to send message. Please try again.',
+              type: 'error',
+            },
+            created_at: Date.now() + 2,
+          };
+          addOrUpdateMessage(errorMessage, true);
+          setAiProcessing(false);
+        }
+      } finally {
+        sessionStorage.removeItem(inflightKey);
       }
     };
 
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, workspacePath]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    addOrUpdateMessage,
+    backend,
+    checkAndUpdateTitle,
+    conversation_id,
+    fetchSlashCommands,
+    setAiProcessing,
+    workspacePath,
+  ]);
 };

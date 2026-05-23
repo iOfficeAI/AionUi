@@ -20,11 +20,13 @@ import {
   getManagedRuntimeProviderId,
   isManagedRuntimeProviderId,
   MANAGED_RUNTIME_CLI_TARGETS,
+  sanitizeManagedRuntimeModelValue,
 } from '@/common/types/agent/managedRuntimeCli';
 import type { CreateProviderRequest, UpdateProviderRequest } from '@/common/types/provider/providerApi';
 import { getProviderAuthType } from '@/common/utils/platformAuthType';
 import { AuthType } from '@office-ai/aioncli-core';
 import { ProcessConfig, getSystemDir } from '@process/utils/initStorage';
+import { createRequire } from 'node:module';
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
@@ -135,6 +137,13 @@ type ProviderSyncProfile = {
   managedProviderId: string;
 };
 
+type RecoveredManagedRuntimeSnapshot = {
+  token: string;
+  baseUrl: string;
+  models: string[];
+  managedProviderId?: string;
+};
+
 type ClaudeProviderEnv = Record<string, string>;
 
 type ClaudeSettings = {
@@ -144,6 +153,67 @@ type ClaudeSettings = {
   statusLine?: unknown;
   [key: string]: unknown;
 };
+
+type CcSwitchSettings = {
+  currentProviderClaude?: string;
+  claudeConfigDir?: string | null;
+  [key: string]: unknown;
+};
+
+type CcSwitchProviderSettingsConfig = {
+  env?: Record<string, string>;
+  model?: string;
+};
+
+type BetterSqliteDatabase = {
+  exec(sql: string): void;
+  prepare<T = unknown>(
+    sql: string
+  ): {
+    run(params?: Record<string, unknown>): unknown;
+    get(...args: unknown[]): T | undefined;
+  };
+  close(): void;
+};
+
+type BetterSqliteConstructor = new (
+  database: string,
+  options?: { readonly?: boolean; fileMustExist?: boolean }
+) => BetterSqliteDatabase;
+
+const require = createRequire(import.meta.url);
+let betterSqlite3Ctor: BetterSqliteConstructor | null = null;
+
+function loadBetterSqlite3(): BetterSqliteConstructor | null {
+  if (betterSqlite3Ctor) return betterSqlite3Ctor;
+  try {
+    betterSqlite3Ctor = require('better-sqlite3') as unknown as BetterSqliteConstructor;
+  } catch (error) {
+    console.warn(
+      '[POUNDING] better-sqlite3 unavailable, cc-switch database sync will fall back to settings.json only.',
+      error
+    );
+    betterSqlite3Ctor = null;
+  }
+  return betterSqlite3Ctor;
+}
+
+function openBetterSqliteDb(
+  databasePath: string,
+  options?: { readonly?: boolean; fileMustExist?: boolean }
+): BetterSqliteDatabase | null {
+  const BetterSqlite3 = loadBetterSqlite3();
+  if (!BetterSqlite3) return null;
+  try {
+    return new BetterSqlite3(databasePath, options);
+  } catch (error) {
+    console.warn(
+      '[POUNDING] better-sqlite3 database unavailable, cc-switch DB sync will fall back to settings.json only.',
+      error
+    );
+    return null;
+  }
+}
 
 type OpencodeProviderConfig = {
   $schema?: string;
@@ -204,7 +274,9 @@ function toBackendManagedRuntimeAccount(status: NewApiAccountStatus) {
   };
 }
 
-function fromManagedRuntimeAccountStatus(account: ManagedRuntimeStateResponse['account']): NewApiAccountStatus | undefined {
+function fromManagedRuntimeAccountStatus(
+  account: ManagedRuntimeStateResponse['account']
+): NewApiAccountStatus | undefined {
   if (!account) return undefined;
   const username = account.user?.username?.trim();
   const user: NewApiDesktopUser | undefined = username
@@ -243,6 +315,9 @@ function mergeAccountStatus(
   };
 }
 
+function shouldSelfHealManagedRuntimeStatus(status: NewApiAccountStatus): boolean {
+  return !status.loggedIn || status.models.length === 0 || !status.managedProviderId;
+}
 
 function shouldFallbackToLegacyClientSettings(error: unknown): boolean {
   return isBackendHttpError(error) && [404, 405, 501].includes(error.status);
@@ -509,7 +584,7 @@ function detectNewApiProtocol(modelName: string): string {
 }
 
 function buildProviderWithModel(provider: IProvider, modelId?: string): TProviderWithModel | null {
-  const requestedModel = modelId?.trim();
+  const requestedModel = sanitizeManagedRuntimeModelValue(modelId);
   const resolvedModel =
     requestedModel && provider.models?.includes(requestedModel) ? requestedModel : provider.models?.[0];
   if (!resolvedModel) return null;
@@ -518,6 +593,21 @@ function buildProviderWithModel(provider: IProvider, modelId?: string): TProvide
     models: provider.models,
     use_model: resolvedModel,
   } as TProviderWithModel;
+}
+
+function normalizeManagedRuntimeModels(models: Array<string | null | undefined>): string[] {
+  return Array.from(
+    new Set(
+      models.map((model) => sanitizeManagedRuntimeModelValue(model)).filter((model): model is string => Boolean(model))
+    )
+  );
+}
+
+function mergeManagedRuntimeModelSets(
+  preferredModels: Array<string | null | undefined>,
+  fallbackModels: Array<string | null | undefined>
+): string[] {
+  return normalizeManagedRuntimeModels([...preferredModels, ...fallbackModels]);
 }
 
 function resolveSyncProtocol(provider: TProviderWithModel): 'anthropic' | 'gemini' | 'openai' | null {
@@ -549,10 +639,7 @@ function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncPro
 function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProviderEnv {
   return {
     ANTHROPIC_BASE_URL: profile.normalizedBaseUrl,
-    ANTHROPIC_MODEL: profile.normalizedModelId,
     ANTHROPIC_DEFAULT_SONNET_MODEL: profile.normalizedModelId,
-    ANTHROPIC_DEFAULT_OPUS_MODEL: profile.normalizedModelId,
-    ANTHROPIC_DEFAULT_HAIKU_MODEL: profile.normalizedModelId,
     ANTHROPIC_AUTH_TOKEN: profile.provider.api_key,
     ANTHROPIC_API_KEY: profile.provider.api_key,
   };
@@ -594,12 +681,126 @@ function readJsonObjectFile<T extends Record<string, unknown>>(filePath: string)
   return parseJsonObject<T>(fs.readFileSync(filePath, 'utf-8'));
 }
 
-function getCcSwitchPaths(homeDir = os.homedir()) {
+function getCcSwitchBasePaths(homeDir = os.homedir()) {
   const baseDir = path.join(homeDir, '.cc-switch');
   return {
     settingsPath: path.join(baseDir, 'settings.json'),
     databasePath: path.join(baseDir, 'cc-switch.db'),
-    claudeSettingsPath: path.join(homeDir, '.claude', 'settings.json'),
+  };
+}
+
+function readCcSwitchSettings(homeDir = os.homedir()): CcSwitchSettings {
+  const { settingsPath } = getCcSwitchBasePaths(homeDir);
+  return readJsonObjectFile<CcSwitchSettings>(settingsPath) ?? {};
+}
+
+function writeCcSwitchSettings(settings: CcSwitchSettings, homeDir = os.homedir()): void {
+  const { settingsPath } = getCcSwitchBasePaths(homeDir);
+  fs.mkdirSync(path.dirname(settingsPath), { recursive: true });
+  fs.writeFileSync(settingsPath, `${JSON.stringify(settings, null, 2)}\n`, {
+    encoding: 'utf-8',
+    mode: 0o600,
+  });
+}
+
+function resolveCcSwitchClaudeConfigDir(homeDir = os.homedir()): string {
+  const settings = readCcSwitchSettings(homeDir);
+  const override = typeof settings.claudeConfigDir === 'string' ? settings.claudeConfigDir.trim() : '';
+  if (!override) return path.join(homeDir, '.claude');
+  return path.isAbsolute(override) ? override : path.resolve(homeDir, override);
+}
+
+function ensureCcSwitchDatabase(profile: ProviderSyncProfile, homeDir = os.homedir()): void {
+  const { databasePath } = getCcSwitchPaths(homeDir);
+  fs.mkdirSync(path.dirname(databasePath), { recursive: true });
+  const db = openBetterSqliteDb(databasePath);
+  if (!db) return;
+  try {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS providers (
+        id TEXT NOT NULL,
+        app_type TEXT NOT NULL,
+        name TEXT NOT NULL,
+        settings_config TEXT NOT NULL,
+        PRIMARY KEY (id, app_type)
+      );
+    `);
+
+    const settingsConfig: CcSwitchProviderSettingsConfig = {
+      env: buildClaudeRuntimeProviderEnv(profile),
+      model: 'default',
+    };
+
+    db.prepare(
+      `INSERT INTO providers (id, app_type, name, settings_config)
+       VALUES (@id, 'claude', @name, @settingsConfig)
+       ON CONFLICT(id, app_type) DO UPDATE SET
+        name = excluded.name,
+        settings_config = excluded.settings_config`
+    ).run({
+      id: profile.managedProviderId,
+      name: profile.provider.name || profile.managedProviderId,
+      settingsConfig: JSON.stringify(settingsConfig),
+    });
+  } finally {
+    db.close();
+  }
+}
+
+function removeManagedCcSwitchProvider(managedProviderId: string, homeDir = os.homedir()): void {
+  const { databasePath } = getCcSwitchPaths(homeDir);
+  if (!fs.existsSync(databasePath)) return;
+  const db = openBetterSqliteDb(databasePath);
+  if (!db) return;
+  try {
+    db.prepare(`DELETE FROM providers WHERE id = @id AND app_type = 'claude'`).run({ id: managedProviderId });
+  } finally {
+    db.close();
+  }
+}
+
+function recoverManagedRuntimeSnapshotFromCcSwitch(
+  homeDir = os.homedir()
+): RecoveredManagedRuntimeSnapshot | undefined {
+  const { databasePath } = getCcSwitchPaths(homeDir);
+  const settings = readCcSwitchSettings(homeDir);
+  const providerId = settings.currentProviderClaude?.trim();
+  if (!providerId || !isManagedRuntimeProviderId(providerId) || !fs.existsSync(databasePath)) return undefined;
+
+  const db = openBetterSqliteDb(databasePath, { readonly: true, fileMustExist: true });
+  if (!db) return undefined;
+  try {
+    const row = db
+      .prepare(`SELECT settings_config FROM providers WHERE id = ? AND app_type = 'claude' LIMIT 1`)
+      .get(providerId) as { settings_config?: string } | undefined;
+    const settingsConfig =
+      typeof row?.settings_config === 'string' ? parseJsonObject<Record<string, unknown>>(row.settings_config) : null;
+    const env = normalizeProviderEnv(settingsConfig?.env);
+    const token = env.ANTHROPIC_AUTH_TOKEN?.trim() || env.ANTHROPIC_API_KEY?.trim();
+    const models = normalizeManagedRuntimeModels([
+      env.ANTHROPIC_MODEL,
+      env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+      env.ANTHROPIC_DEFAULT_OPUS_MODEL,
+      env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+    ]);
+    if (!token || models.length === 0) return undefined;
+    return {
+      token,
+      baseUrl: normalizeBaseUrl(env.ANTHROPIC_BASE_URL || NEW_API_BASE_URL),
+      models,
+      managedProviderId: providerId,
+    };
+  } finally {
+    db.close();
+  }
+}
+
+function getCcSwitchPaths(homeDir = os.homedir()) {
+  const { settingsPath, databasePath } = getCcSwitchBasePaths(homeDir);
+  return {
+    settingsPath,
+    databasePath,
+    claudeSettingsPath: path.join(resolveCcSwitchClaudeConfigDir(homeDir), 'settings.json'),
   };
 }
 
@@ -607,14 +808,24 @@ function writeClaudeSettingsForProviderSync(provider: TProviderWithModel): void 
   const profile = buildProviderSyncProfile(provider);
   if (!profile) return;
   const { claudeSettingsPath } = getCcSwitchPaths();
+  ensureCcSwitchDatabase(profile);
+  const ccSwitchSettings = readCcSwitchSettings();
+  writeCcSwitchSettings({
+    ...ccSwitchSettings,
+    currentProviderClaude: profile.managedProviderId,
+  });
   const currentSettings = fs.existsSync(claudeSettingsPath)
     ? (parseJsonObject<ClaudeSettings>(fs.readFileSync(claudeSettingsPath, 'utf-8')) ?? {})
     : {};
+  const nextEnv = { ...normalizeProviderEnv(currentSettings.env) };
+  for (const key of CLAUDE_MANAGED_ENV_KEYS) {
+    delete nextEnv[key];
+  }
   const nextSettings: ClaudeSettings = {
     ...currentSettings,
     model: 'default',
     env: {
-      ...normalizeProviderEnv(currentSettings.env),
+      ...nextEnv,
       ...buildClaudeRuntimeProviderEnv(profile),
     },
   };
@@ -627,6 +838,18 @@ function writeClaudeSettingsForProviderSync(provider: TProviderWithModel): void 
 
 function clearClaudeSettingsForProviderSync(): void {
   const { claudeSettingsPath } = getCcSwitchPaths();
+  const managedProviderId = getManagedRuntimeProviderId(NEW_API_PROVIDER_NAME, NEW_API_MANAGED_PROVIDER_ID);
+  const ccSwitchSettings = readCcSwitchSettings();
+  if (ccSwitchSettings.currentProviderClaude === managedProviderId) {
+    const nextCcSwitchSettings: CcSwitchSettings = { ...ccSwitchSettings, currentProviderClaude: undefined };
+    if (Object.entries(nextCcSwitchSettings).some(([, value]) => value !== undefined)) {
+      writeCcSwitchSettings(nextCcSwitchSettings);
+    } else {
+      const { settingsPath } = getCcSwitchPaths();
+      fs.rmSync(settingsPath, { force: true });
+    }
+  }
+  removeManagedCcSwitchProvider(managedProviderId);
   if (!fs.existsSync(claudeSettingsPath)) return;
   const currentSettings = parseJsonObject<ClaudeSettings>(fs.readFileSync(claudeSettingsPath, 'utf-8'));
   if (!currentSettings) return;
@@ -656,6 +879,28 @@ function recoverApiKeyFromClaudeSettings(): string | undefined {
   const env = normalizeProviderEnv(currentSettings.env);
   const token = env.ANTHROPIC_AUTH_TOKEN?.trim() || env.ANTHROPIC_API_KEY?.trim();
   return token || undefined;
+}
+
+function recoverManagedRuntimeSnapshotFromClaudeSettings(): RecoveredManagedRuntimeSnapshot | undefined {
+  const ccSwitchSnapshot = recoverManagedRuntimeSnapshotFromCcSwitch();
+  if (ccSwitchSnapshot) return ccSwitchSnapshot;
+  const { claudeSettingsPath } = getCcSwitchPaths();
+  const currentSettings = readJsonObjectFile<ClaudeSettings>(claudeSettingsPath);
+  if (!currentSettings) return undefined;
+  const env = normalizeProviderEnv(currentSettings.env);
+  const token = env.ANTHROPIC_AUTH_TOKEN?.trim() || env.ANTHROPIC_API_KEY?.trim();
+  const models = normalizeManagedRuntimeModels([
+    env.ANTHROPIC_MODEL,
+    env.ANTHROPIC_DEFAULT_SONNET_MODEL,
+    env.ANTHROPIC_DEFAULT_OPUS_MODEL,
+    env.ANTHROPIC_DEFAULT_HAIKU_MODEL,
+  ]);
+  if (!token || models.length === 0) return undefined;
+  return {
+    token,
+    baseUrl: normalizeBaseUrl(env.ANTHROPIC_BASE_URL || NEW_API_BASE_URL),
+    models,
+  };
 }
 
 function resolveHermesDir(): string {
@@ -879,6 +1124,33 @@ function recoverApiKeyFromOpencodeConfig(): string | undefined {
   return undefined;
 }
 
+function recoverManagedRuntimeSnapshotFromOpencodeConfig(): RecoveredManagedRuntimeSnapshot | undefined {
+  const configPath = resolveOpencodeConfigPath();
+  if (!fs.existsSync(configPath)) return undefined;
+  const current = parseOpencodeConfig(fs.readFileSync(configPath, 'utf8'));
+
+  for (const [providerId, provider] of Object.entries(current.provider ?? {})) {
+    if (!isManagedRuntimeProviderId(providerId)) continue;
+    const token = provider?.options?.apiKey?.trim();
+    const baseUrl = provider?.options?.baseURL?.trim();
+    const models = normalizeManagedRuntimeModels([
+      ...Object.keys(provider?.models ?? {}),
+      typeof current.model === 'string' && current.model.startsWith(`${providerId}/`)
+        ? current.model.slice(providerId.length + 1)
+        : undefined,
+    ]);
+    if (!token || !baseUrl || models.length === 0) continue;
+    return {
+      token,
+      baseUrl: normalizeBaseUrl(baseUrl),
+      models,
+      managedProviderId: providerId,
+    };
+  }
+
+  return undefined;
+}
+
 function resolveOpenClawConfigPath(): string {
   const override = process.env.OPENCLAW_CONFIG_PATH?.trim();
   if (override) return path.resolve(override);
@@ -903,7 +1175,10 @@ function readOpenClawConfigFromPath(configPath: string): Record<string, unknown>
   }
 }
 
-function buildManagedOpenClawConfig(profile: ProviderSyncProfile, current: Record<string, unknown>): Record<string, unknown> {
+function buildManagedOpenClawConfig(
+  profile: ProviderSyncProfile,
+  current: Record<string, unknown>
+): Record<string, unknown> {
   const models = isRecord(current.models) ? { ...current.models } : {};
   const providers = Object.fromEntries(
     Object.entries(isRecord(models.providers) ? models.providers : {}).filter(
@@ -990,6 +1265,17 @@ function clearOpenClawManagedProviderModel(managedProviderId: string): void {
   defaults.models = Object.keys(nextDefaultModels).length > 0 ? nextDefaultModels : undefined;
   agents.defaults = defaults;
   const next = { ...current, models, agents };
+  const hasNonManagedProviders = Object.keys(providers).length > 0;
+  const hasNonManagedDefaults =
+    Object.keys(nextDefaultModels).length > 0 ||
+    Boolean(
+      typeof primary === 'string' &&
+      !(primary.startsWith(`${managedProviderId}/`) || isManagedRuntimeProviderId(primary.split('/')[0]))
+    );
+  if (!hasNonManagedProviders && !hasNonManagedDefaults) {
+    fs.rmSync(configPath, { force: true });
+    return;
+  }
   fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
 }
 
@@ -1006,12 +1292,70 @@ function recoverApiKeyFromOpenClawConfig(): string | undefined {
   return undefined;
 }
 
+function recoverManagedRuntimeSnapshotFromOpenClawConfig(): RecoveredManagedRuntimeSnapshot | undefined {
+  const configPath = resolveOpenClawConfigPath();
+  if (!fs.existsSync(configPath)) return undefined;
+  const current = readOpenClawConfigFromPath(configPath);
+  const providers = isRecord(current.models) && isRecord(current.models.providers) ? current.models.providers : {};
+
+  for (const [providerId, providerValue] of Object.entries(providers)) {
+    if (!isManagedRuntimeProviderId(providerId) || !isRecord(providerValue)) continue;
+    const token = typeof providerValue.apiKey === 'string' ? providerValue.apiKey.trim() : '';
+    const baseUrl = typeof providerValue.baseUrl === 'string' ? providerValue.baseUrl.trim() : '';
+    const models = normalizeManagedRuntimeModels(
+      Array.isArray(providerValue.models)
+        ? providerValue.models.map((item) => {
+            if (!isRecord(item)) return undefined;
+            if (typeof item.id === 'string') return item.id;
+            if (typeof item.name === 'string') return item.name;
+            return undefined;
+          })
+        : []
+    );
+    if (!token || !baseUrl || models.length === 0) continue;
+    return {
+      token,
+      baseUrl: normalizeBaseUrl(baseUrl),
+      models,
+      managedProviderId: providerId,
+    };
+  }
+
+  return undefined;
+}
+
+function recoverManagedRuntimeSnapshotFromHermesConfig(): RecoveredManagedRuntimeSnapshot | undefined {
+  const token = recoverApiKeyFromHermesEnv();
+  const configPath = resolveHermesConfigPath();
+  if (!token || !fs.existsSync(configPath)) return undefined;
+  const content = fs.readFileSync(configPath, 'utf8');
+  const baseUrlMatch = content.match(/base_url:\s*["']?([^"'\n]+)["']?/);
+  const modelMatch = content.match(/default:\s*["']?([^"'\n]+)["']?/);
+  const baseUrl = baseUrlMatch?.[1]?.trim();
+  const model = modelMatch?.[1]?.trim();
+  if (!baseUrl || !model) return undefined;
+  return {
+    token,
+    baseUrl: normalizeBaseUrl(baseUrl),
+    models: [model],
+  };
+}
+
 function recoverManagedApiKeyFromRuntimeConfigs(): string | undefined {
   return (
     recoverApiKeyFromHermesEnv() ||
     recoverApiKeyFromOpenClawConfig() ||
     recoverApiKeyFromOpencodeConfig() ||
     recoverApiKeyFromClaudeSettings()
+  );
+}
+
+function recoverManagedRuntimeSnapshotFromConfigs(): RecoveredManagedRuntimeSnapshot | undefined {
+  return (
+    recoverManagedRuntimeSnapshotFromOpenClawConfig() ||
+    recoverManagedRuntimeSnapshotFromOpencodeConfig() ||
+    recoverManagedRuntimeSnapshotFromClaudeSettings() ||
+    recoverManagedRuntimeSnapshotFromHermesConfig()
   );
 }
 
@@ -1097,9 +1441,8 @@ async function getBackendClientSettings(): Promise<Record<string, unknown>> {
 
 async function getManagedRuntimeState(): Promise<ManagedRuntimeStateResponse | null> {
   try {
-    return (
-      (await httpRequest<ManagedRuntimeStateResponse>('GET', '/api/settings/managed-runtime')) ?? null
-    ) as ManagedRuntimeStateResponse | null;
+    return ((await httpRequest<ManagedRuntimeStateResponse>('GET', '/api/settings/managed-runtime')) ??
+      null) as ManagedRuntimeStateResponse | null;
   } catch (error) {
     if (shouldFallbackToLegacyClientSettings(error)) return null;
     throw error;
@@ -1108,27 +1451,34 @@ async function getManagedRuntimeState(): Promise<ManagedRuntimeStateResponse | n
 
 async function getSavedManagedModelPrefs(): Promise<ManagedCliModelPrefs> {
   const managedRuntime = await getManagedRuntimeState();
-  const backendSettings = managedRuntime && managedRuntime.cli_model_prefs != null
-    ? { [NEW_API_CLI_MODEL_PREFS_KEY]: managedRuntime.cli_model_prefs }
-    : await getBackendClientSettings().catch((): Record<string, unknown> => ({}));
+  const backendSettings =
+    managedRuntime && managedRuntime.cli_model_prefs != null
+      ? { [NEW_API_CLI_MODEL_PREFS_KEY]: managedRuntime.cli_model_prefs }
+      : await getBackendClientSettings().catch((): Record<string, unknown> => ({}));
   const current =
     (backendSettings[NEW_API_CLI_MODEL_PREFS_KEY] as ManagedCliModelPrefs | undefined) ??
     ((await ProcessConfig.get(NEW_API_CLI_MODEL_PREFS_KEY)) as ManagedCliModelPrefs | undefined);
   if (!current || !isRecord(current)) return {};
   return Object.fromEntries(
-    Object.entries(current).filter(
-      ([cliTarget, modelId]) =>
-        MANAGED_RUNTIME_CLI_TARGETS.includes(cliTarget as ManagedRuntimeCliTarget) && isNonEmptyString(modelId)
-    )
+    Object.entries(current)
+      .filter(
+        ([cliTarget, modelId]) =>
+          MANAGED_RUNTIME_CLI_TARGETS.includes(cliTarget as ManagedRuntimeCliTarget) &&
+          isNonEmptyString(sanitizeManagedRuntimeModelValue(modelId))
+      )
+      .map(([cliTarget, modelId]) => [cliTarget, sanitizeManagedRuntimeModelValue(modelId)!])
   ) as ManagedCliModelPrefs;
 }
 
 async function saveManagedModelPrefs(prefs: ManagedCliModelPrefs): Promise<void> {
   const normalized = Object.fromEntries(
-    Object.entries(prefs).filter(
-      ([cliTarget, modelId]) =>
-        MANAGED_RUNTIME_CLI_TARGETS.includes(cliTarget as ManagedRuntimeCliTarget) && isNonEmptyString(modelId)
-    )
+    Object.entries(prefs)
+      .filter(
+        ([cliTarget, modelId]) =>
+          MANAGED_RUNTIME_CLI_TARGETS.includes(cliTarget as ManagedRuntimeCliTarget) &&
+          isNonEmptyString(sanitizeManagedRuntimeModelValue(modelId))
+      )
+      .map(([cliTarget, modelId]) => [cliTarget, sanitizeManagedRuntimeModelValue(modelId)!])
   ) as ManagedCliModelPrefs;
   try {
     await httpRequest<void>('PUT', '/api/settings/managed-runtime', {
@@ -1160,8 +1510,8 @@ function resolveManagedCliModelId(
   prefs: ManagedCliModelPrefs,
   cliTarget: ManagedRuntimeCliTarget
 ): string | undefined {
-  const sourceModels = getManagedCliSelectableModels(provider);
-  const preferredModelId = prefs[cliTarget]?.trim();
+  const sourceModels = getManagedCliSelectableModels(provider, cliTarget);
+  const preferredModelId = sanitizeManagedRuntimeModelValue(prefs[cliTarget]);
   if (preferredModelId && sourceModels.includes(preferredModelId)) {
     return preferredModelId;
   }
@@ -1247,13 +1597,13 @@ function parseReconcileInput(input?: ManagedRuntimeReconcileInput): {
   modelId?: string;
 } {
   if (typeof input === 'string') {
-    const modelId = input.trim();
+    const modelId = sanitizeManagedRuntimeModelValue(input);
     return modelId ? { modelId } : {};
   }
   if (!input) return {};
   const cliTarget =
     input.cliTarget && MANAGED_RUNTIME_CLI_TARGETS.includes(input.cliTarget) ? input.cliTarget : undefined;
-  const modelId = input.modelId?.trim() || undefined;
+  const modelId = sanitizeManagedRuntimeModelValue(input.modelId);
   return { cliTarget, modelId };
 }
 
@@ -1263,14 +1613,36 @@ export class NewApiDesktopAccountService {
   }
 
   async reconcileManagedRuntimeState(input?: ManagedRuntimeReconcileInput): Promise<void> {
-    const status = await getStoredStatus();
-    if (!status.loggedIn) {
-      return;
+    let status = await getStoredStatus();
+    let recoveredToken = status.token?.trim() || recoverManagedApiKeyFromRuntimeConfigs();
+    let provider = await findManagedProvider();
+    let statusRecoveredFromRuntime = false;
+
+    if ((!status.loggedIn || status.models.length === 0) && !provider) {
+      const recoveredSnapshot = recoverManagedRuntimeSnapshotFromConfigs();
+      if (recoveredSnapshot) {
+        recoveredToken = recoveredToken || recoveredSnapshot.token;
+        const recoveredModels = mergeManagedRuntimeModelSets(status.models, recoveredSnapshot.models);
+        provider = await upsertManagedProvider({
+          apiKey: recoveredSnapshot.token,
+          models: recoveredModels,
+          baseUrl: recoveredSnapshot.baseUrl,
+        });
+        status = {
+          ...status,
+          loggedIn: true,
+          baseUrl: recoveredSnapshot.baseUrl,
+          models: recoveredModels,
+          updatedAt: Date.now(),
+          token: recoveredToken,
+          managedProviderId: NEW_API_MANAGED_PROVIDER_ID,
+        };
+        statusRecoveredFromRuntime = true;
+      }
     }
 
-    const recoveredToken = status.token?.trim() || recoverManagedApiKeyFromRuntimeConfigs();
-    const provider =
-      (await findManagedProvider()) ??
+    provider =
+      provider ??
       (recoveredToken && status.models.length > 0
         ? await upsertManagedProvider({
             apiKey: recoveredToken,
@@ -1279,15 +1651,49 @@ export class NewApiDesktopAccountService {
           })
         : null);
 
+    if (!status.loggedIn && provider) {
+      const providerModels = normalizeManagedRuntimeModels(provider.models ?? []);
+      if (providerModels.length > 0) {
+        status = {
+          ...status,
+          loggedIn: true,
+          baseUrl: normalizeBaseUrl(provider.base_url || status.baseUrl || NEW_API_BASE_URL),
+          models: mergeManagedRuntimeModelSets(status.models, providerModels),
+          updatedAt: Date.now(),
+          token: recoveredToken || provider.api_key,
+          managedProviderId: provider.id || NEW_API_MANAGED_PROVIDER_ID,
+        };
+        statusRecoveredFromRuntime = true;
+      }
+    }
+
+    if (!status.loggedIn) {
+      return;
+    }
+
     if (!provider) {
       return;
     }
 
-    if (!status.token && recoveredToken) {
+    if (statusRecoveredFromRuntime) {
+      await saveStatus({
+        ...status,
+        token: status.token || recoveredToken,
+        managedProviderId: status.managedProviderId || NEW_API_MANAGED_PROVIDER_ID,
+        updatedAt: Date.now(),
+      });
+    } else if (!status.token && recoveredToken) {
       await saveStatus({
         ...status,
         token: recoveredToken,
         managedProviderId: NEW_API_MANAGED_PROVIDER_ID,
+        updatedAt: Date.now(),
+      });
+    } else if (status.loggedIn && (status.models.length === 0 || !status.managedProviderId)) {
+      await saveStatus({
+        ...status,
+        models: mergeManagedRuntimeModelSets(status.models, provider.models ?? []),
+        managedProviderId: status.managedProviderId || NEW_API_MANAGED_PROVIDER_ID,
         updatedAt: Date.now(),
       });
     }
@@ -1311,9 +1717,19 @@ export class NewApiDesktopAccountService {
   }
 
   async getStatus(): Promise<BridgeResponse<NewApiAccountStatus>> {
+    let status = await getStoredStatus();
+    if (shouldSelfHealManagedRuntimeStatus(status)) {
+      try {
+        await this.reconcileManagedRuntimeState();
+        status = await getStoredStatus();
+      } catch (error) {
+        console.warn('[POUNDING] Failed to self-heal managed runtime status on getStatus:', error);
+      }
+    }
+
     return {
       success: true,
-      data: await getStoredStatus(),
+      data: status,
     };
   }
 
@@ -1415,6 +1831,8 @@ export const newApiDesktopAccountService = new NewApiDesktopAccountService();
 
 export const __TEST__ = {
   mergeAccountStatus,
+  mergeManagedRuntimeModelSets,
+  shouldSelfHealManagedRuntimeStatus,
   toPersistedAccountStatus,
   toBackendManagedRuntimeAccount,
   fromManagedRuntimeAccountStatus,
@@ -1425,4 +1843,12 @@ export const __TEST__ = {
   resolveHermesApiMode,
   resolveOpenClawApiProtocol,
   resolveOpenClawBaseUrl,
+  recoverManagedRuntimeSnapshotFromConfigs,
+  recoverManagedRuntimeSnapshotFromClaudeSettings,
+  writeClaudeSettingsForProviderSync,
+  clearClaudeSettingsForProviderSync,
+  readCcSwitchSettings,
+  getManagedCliSelectableModels,
+  clearOpenClawManagedProviderModel,
+  clearManagedRuntimeForCliTargetSync,
 };

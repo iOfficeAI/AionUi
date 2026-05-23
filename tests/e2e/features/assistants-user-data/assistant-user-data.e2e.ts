@@ -60,14 +60,14 @@ function querySqliteIds(dataDir: string, sql: string): string[] {
 /** Backend binary resolved from PATH / cargo bin. */
 function resolveBackendBinary(): string {
   const candidates = [
-    process.env.AIONUI_BACKEND_BINARY,
-    path.join(os.homedir(), '.cargo', 'bin', 'aionui-backend'),
+    process.env.AIONCORE_BINARY,
+    path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
   throw new Error(
-    `aionui-backend binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aionui-backend.`
+    `aioncore binary not found. Set AIONCORE_BINARY or install to ~/.cargo/bin/aioncore.`
   );
 }
 

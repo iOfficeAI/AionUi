@@ -5,7 +5,15 @@
  * settings sub-pages without errors.
  */
 import { test, expect } from '../fixtures';
-import { goToGuid, goToSettings, ROUTES, expectUrlContains, takeScreenshot, type SettingsTab } from '../helpers';
+import {
+  goToGuid,
+  goToSettings,
+  hasSettingsTab,
+  ROUTES,
+  expectUrlContains,
+  takeScreenshot,
+  type SettingsTab,
+} from '../helpers';
 
 // ── Guid Page ────────────────────────────────────────────────────────────────
 
@@ -40,19 +48,25 @@ test.describe('Guid Page', () => {
 // ── Settings Pages ───────────────────────────────────────────────────────────
 
 test.describe('Settings Pages', () => {
-  const tabs: { tab: SettingsTab; name: string }[] = [
-    { tab: 'gemini', name: 'Gemini Settings' },
+  const baseTabs: { tab: SettingsTab; name: string }[] = [
     { tab: 'model', name: 'Model Settings' },
     { tab: 'agent', name: 'Agent/ACP Settings' },
-    { tab: 'tools', name: 'Tools/MCP Settings' },
-    { tab: 'display', name: 'Display Settings' },
+    { tab: 'assistants', name: 'Assistants Settings' },
+    { tab: 'capabilities', name: 'Capabilities Settings' },
     { tab: 'webui', name: 'WebUI Settings' },
     { tab: 'system', name: 'System Settings' },
     { tab: 'about', name: 'About Page' },
   ];
 
-  for (const { tab, name } of tabs) {
+  const devOnlyTabs: { tab: SettingsTab; name: string }[] = [{ tab: 'display', name: 'Display Settings' }];
+
+  for (const { tab, name } of [...baseTabs, ...devOnlyTabs]) {
     test(`${name} loads`, async ({ page }) => {
+      if (tab === 'display') {
+        const visible = await hasSettingsTab(page, tab);
+        test.skip(!visible, 'display settings are hidden in the current runtime');
+      }
+
       await goToSettings(page, tab);
       await expectUrlContains(page, tab);
       const body = await page.locator('body').textContent();
@@ -62,7 +76,14 @@ test.describe('Settings Pages', () => {
 
   test('screenshot: settings pages', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
-    for (const { tab } of tabs) {
+    const visibleTabs = [...baseTabs];
+    for (const item of devOnlyTabs) {
+      if (await hasSettingsTab(page, item.tab)) {
+        visibleTabs.push(item);
+      }
+    }
+
+    for (const { tab } of visibleTabs) {
       await goToSettings(page, tab);
       await takeScreenshot(page, `settings-${tab}`);
     }

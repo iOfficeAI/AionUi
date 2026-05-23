@@ -1,5 +1,5 @@
 /**
- * HTTP client factory for communicating with the aionui-backend server.
+ * HTTP client factory for communicating with the aioncore server.
  *
  * Usage:
  *   const api = createApiClient('http://127.0.0.1:9123')
@@ -39,18 +39,23 @@ async function request<T>(
     signal: options?.signal,
   });
 
-  if (!response.ok) {
-    let errorBody: unknown;
+  const contentType = response.headers.get('Content-Type');
+  const rawBody = await response.text();
+  let parsedBody: unknown = rawBody;
+
+  if (contentType?.includes('application/json') && rawBody) {
     try {
-      errorBody = await response.json();
+      parsedBody = JSON.parse(rawBody) as unknown;
     } catch {
-      errorBody = await response.text();
+      parsedBody = rawBody;
     }
-    throw new ApiError(response.status, response.statusText, errorBody);
   }
 
-  const contentType = response.headers.get('Content-Type');
-  if (contentType?.includes('application/json')) return (await response.json()) as T;
+  if (!response.ok) {
+    throw new ApiError(response.status, response.statusText, parsedBody);
+  }
+
+  if (contentType?.includes('application/json')) return parsedBody as T;
   return undefined as T;
 }
 
