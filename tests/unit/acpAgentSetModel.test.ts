@@ -29,6 +29,7 @@ vi.mock('../../src/process/agent/acp/AcpConnection', () => ({
     onPermissionRequest: unknown = undefined;
     onEndTurn: unknown = undefined;
     onPromptUsage: unknown = undefined;
+    onRuntimeDiagnostic: unknown = undefined;
     onFileOperation: unknown = undefined;
     onDisconnect: unknown = undefined;
   },
@@ -283,5 +284,38 @@ describe('AcpAgent turn-level thought/content observability', () => {
       '[ACP-STREAM] End turn with thought but no content (conversation=obs-agent, backend=claude)'
     );
     warnSpy.mockRestore();
+  });
+});
+
+describe('AcpAgent runtime diagnostics', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  it('emits runtime diagnostics as an updatable error message', () => {
+    const onStreamEvent = vi.fn();
+    const agent = new AcpAgent({
+      id: 'diag-agent',
+      backend: 'codex',
+      workingDir: '/tmp',
+      onStreamEvent,
+      extra: { backend: 'codex' },
+    });
+
+    (agent as any).connection.onRuntimeDiagnostic({ message: 'Reconnecting... 1/5 · 503 Service Unavailable' });
+    (agent as any).connection.onRuntimeDiagnostic({ message: 'Reconnecting... 2/5 · 503 Service Unavailable' });
+
+    expect(onStreamEvent).toHaveBeenNthCalledWith(1, {
+      type: 'error',
+      conversation_id: 'diag-agent',
+      msg_id: 'test-uuid',
+      data: 'Reconnecting... 1/5 · 503 Service Unavailable',
+    });
+    expect(onStreamEvent).toHaveBeenNthCalledWith(2, {
+      type: 'error',
+      conversation_id: 'diag-agent',
+      msg_id: 'test-uuid',
+      data: 'Reconnecting... 2/5 · 503 Service Unavailable',
+    });
   });
 });

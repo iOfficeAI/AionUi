@@ -76,6 +76,8 @@ const AionrsTeamChat: React.FC<{
       modelSelection={modelSelection}
       teamId={teamId}
       agentSlotId={agentSlotId}
+      sessionMode={conversation.extra.sessionMode}
+      effort={conversation.extra.effort}
       emptySlot={emptySlot}
     />
   );

@@ -26,12 +26,13 @@ import type {
   AvailableCommandsUpdate,
   ToolCallUpdate,
 } from '@/common/types/acpTypes';
+import { CLAUDE_REASONING_EFFORT_CONFIG_ID } from '@/common/types/acpConfigOptions';
 import { AcpErrorType, createAcpError } from '@/common/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
 import { ProcessConfig } from '@process/utils/initStorage';
-import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@process/utils/shellEnv';
+import { buildPackageRunnerArgs, getEnhancedEnv, resolveNpxPath } from '@process/utils/shellEnv';
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
@@ -178,6 +179,7 @@ export class AcpAgent {
   // Turn-level observability for "thought shown but no answer rendered" cases.
   private turnHasThought = false;
   private turnHasContent = false;
+  private runtimeDiagnosticMessageId: string | null = null;
 
   constructor(config: AcpAgentConfig) {
     this.id = config.id;
@@ -213,6 +215,9 @@ export class AcpAgent {
     };
     this.connection.onPromptUsage = (usage: AcpPromptResponseUsage) => {
       this.handlePromptUsage(usage);
+    };
+    this.connection.onRuntimeDiagnostic = (diagnostic) => {
+      this.emitRuntimeDiagnosticMessage(diagnostic.message);
     };
     this.connection.onFileOperation = (operation) => {
       this.handleFileOperation(operation);
@@ -274,6 +279,14 @@ export class AcpAgent {
       const tryConnect = async () => {
         const connectTimeoutMs = this.getConnectTimeoutMs();
         let connectTimeoutId: NodeJS.Timeout | null = null;
+        const customEnv = { ...this.extra.customEnv };
+        const initialClaudeEffort =
+          this.extra.backend === 'claude'
+            ? this.extra.pendingConfigOptions?.[CLAUDE_REASONING_EFFORT_CONFIG_ID]
+            : undefined;
+        if (initialClaudeEffort) {
+          customEnv.CLAUDE_CODE_EFFORT_LEVEL = initialClaudeEffort;
+        }
 
         try {
           const connectTimeoutPromise = new Promise<never>((_, reject) => {
@@ -288,7 +301,7 @@ export class AcpAgent {
               this.extra.cliPath,
               this.extra.workspace,
               this.extra.customArgs,
-              this.extra.customEnv
+              customEnv
             ),
             connectTimeoutPromise,
           ]);
@@ -637,6 +650,7 @@ export class AcpAgent {
     try {
       this.turnHasThought = false;
       this.turnHasContent = false;
+      this.runtimeDiagnosticMessageId = null;
 
       // Auto-reconnect if connection is lost (e.g., after unexpected process exit)
       if (!this.connection.isConnected || !this.connection.hasActiveSession) {
@@ -1398,6 +1412,19 @@ export class AcpAgent {
     this.emitMessage(errorMessage);
   }
 
+  private emitRuntimeDiagnosticMessage(message: string): void {
+    if (!this.runtimeDiagnosticMessageId) {
+      this.runtimeDiagnosticMessageId = uuid();
+    }
+
+    this.onStreamEvent({
+      type: 'error',
+      conversation_id: this.id,
+      msg_id: this.runtimeDiagnosticMessageId,
+      data: message,
+    });
+  }
+
   private extractThoughtSubject(content: string): string {
     const lines = content.split('\n');
     const firstLine = lines[0].trim();
@@ -1697,7 +1724,7 @@ export class AcpAgent {
         // Route legacy npx launchers through bundled bun.
         const parts = this.extra.cliPath.split(' ');
         command = resolveNpxPath(cleanEnv);
-        args = ['x', '--bun', ...normalizeNpxArgsForBundledBun(parts.slice(1)), loginArg];
+        args = buildPackageRunnerArgs(command, [...parts.slice(1), loginArg]);
       } else {
         // For regular paths like '/usr/local/bin/qwen' or '/usr/local/bin/claude'
         command = this.extra.cliPath;

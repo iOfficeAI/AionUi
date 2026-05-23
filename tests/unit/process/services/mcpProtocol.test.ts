@@ -24,6 +24,12 @@ vi.mock('@modelcontextprotocol/sdk/client/streamableHttp.js', () => ({
   StreamableHTTPClientTransport: vi.fn(),
 }));
 vi.mock('@process/utils/shellEnv', () => ({
+  buildPackageRunnerArgs: vi.fn((command: string, args: string[]) => {
+    if (command === '/usr/local/bin/bun') {
+      return ['x', '--bun', ...args.filter((arg) => arg !== '-y' && arg !== '--yes' && arg !== '--prefer-offline')];
+    }
+    return ['--yes', ...args];
+  }),
   getEnhancedEnv: vi.fn().mockResolvedValue({}),
   getNpxCacheDir: vi.fn().mockReturnValue('/tmp/npx-cache'),
   normalizeNpxArgsForBundledBun: vi.fn((args: string[]) =>

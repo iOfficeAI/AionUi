@@ -53,6 +53,8 @@ export interface IConfigStorageRefer {
       preferredMode?: string;
       /** Preferred model ID for new conversations / 新会话的默认模型 */
       preferredModelId?: string;
+      /** Preferred ACP config option values for new conversations / 新会话默认 ACP 配置项 */
+      preferredConfigOptions?: Record<string, string>;
       /** LLM prompt timeout in seconds (default: 300) / LLM 请求超时时间（秒，默认 300） */
       promptTimeout?: number;
     };
@@ -94,6 +96,8 @@ export interface IConfigStorageRefer {
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
+    /** Preferred reasoning effort for new conversations / 新会话的默认推理深度 */
+    preferredEffort?: string;
   };
   'aionrs.defaultModel'?: { id: string; useModel: string };
   'tools.imageGenerationModel': TProviderWithModel & {
@@ -455,6 +459,8 @@ export type TChatConversation =
         presetRules?: string;
         /** Enabled skills list */
         enabledSkills?: string[];
+        /** Builtin auto-injected skills to exclude */
+        excludeBuiltinSkills?: string[];
         /** Snapshot of actually loaded skills */
         loadedSkills?: Array<{ name: string; description: string }>;
         /** Preset assistant ID */
@@ -469,6 +475,8 @@ export type TChatConversation =
         maxTurns?: number;
         /** Persisted session mode for resume support */
         sessionMode?: string;
+        /** Persisted reasoning effort for resume support */
+        effort?: string;
         /** Explicit marker for temporary health-check conversations */
         isHealthCheck?: boolean;
         /** Last token usage stats */

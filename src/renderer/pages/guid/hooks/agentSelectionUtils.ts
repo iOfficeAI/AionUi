@@ -27,12 +27,41 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
   }
 }
 
+/** Save preferred reasoning effort to Aionrs config */
+export async function savePreferredAionrsEffort(effort: string): Promise<void> {
+  try {
+    const config = await ConfigStorage.get('aionrs.config');
+    await ConfigStorage.set('aionrs.config', { ...config, preferredEffort: effort });
+  } catch {
+    /* silent */
+  }
+}
+
 /** Save preferred model ID to the agent's acp.config key */
 export async function savePreferredModelId(agentKey: string, modelId: string): Promise<void> {
   try {
     const config = await ConfigStorage.get('acp.config');
     const backendConfig = config?.[agentKey as AcpBackendAll] || {};
     await ConfigStorage.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: modelId } });
+  } catch {
+    /* silent */
+  }
+}
+
+/** Save preferred ACP config option values, such as Claude reasoning effort. */
+export async function savePreferredConfigOption(agentKey: string, configId: string, value: string): Promise<void> {
+  try {
+    if (agentKey === 'gemini' || agentKey === 'aionrs' || agentKey === 'custom') return;
+    const config = await ConfigStorage.get('acp.config');
+    const backendConfig = config?.[agentKey as AcpBackendAll] || {};
+    const preferredConfigOptions = {
+      ...backendConfig.preferredConfigOptions,
+      [configId]: value,
+    };
+    await ConfigStorage.set('acp.config', {
+      ...config,
+      [agentKey]: { ...backendConfig, preferredConfigOptions },
+    });
   } catch {
     /* silent */
   }

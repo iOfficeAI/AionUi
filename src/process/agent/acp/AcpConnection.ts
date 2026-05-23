@@ -81,6 +81,54 @@ export function buildStartupErrorMessage(
   return errMsg;
 }
 
+export interface AcpRuntimeDiagnostic {
+  message: string;
+}
+
+/**
+ * Extract user-visible runtime diagnostics from ACP stderr.
+ * Keep this narrow so normal debug output does not enter the chat stream.
+ */
+export function parseRuntimeDiagnosticStderr(stderr: string): AcpRuntimeDiagnostic | null {
+  if (
+    !stderr.includes('Handled error during turn') ||
+    !stderr.includes('Reconnecting...') ||
+    !stderr.includes('ResponseStreamDisconnected')
+  ) {
+    return null;
+  }
+
+  const reconnectMatches = Array.from(stderr.matchAll(/Reconnecting\.\.\.\s*\d+\/\d+/g));
+  const reconnect = reconnectMatches.at(-1)?.[0] ?? 'Reconnecting...';
+  const statusMatches = Array.from(stderr.matchAll(/unexpected status\s+(\d+)\s+([^:"]+):\s*([^",\n]+)/gi));
+  const statusMatch = statusMatches.at(-1);
+  const httpCode = statusMatch?.[1];
+  const httpStatus = statusMatch?.[2]?.trim();
+  const statusDetail = statusMatch?.[3]?.trim();
+
+  const headlineParts = [reconnect];
+  if (httpCode && httpStatus) {
+    headlineParts.push(`${httpCode} ${httpStatus}${statusDetail ? `: ${statusDetail}` : ''}`);
+  }
+
+  const detailLines: string[] = [];
+  const urlMatches = Array.from(stderr.matchAll(/\burl:\s*([^,\s")]+)/gi));
+  const requestIdMatches = Array.from(stderr.matchAll(/\brequest id:\s*([^,"\s)]+)/gi));
+  const url = urlMatches.at(-1)?.[1];
+  const requestId = requestIdMatches.at(-1)?.[1];
+  if (url) {
+    detailLines.push(`URL: ${url}`);
+  }
+  if (requestId) {
+    detailLines.push(`Request ID: ${requestId}`);
+  }
+
+  return {
+    message:
+      detailLines.length > 0 ? `${headlineParts.join(' · ')}\n\n${detailLines.join('\n')}` : headlineParts.join(' · '),
+  };
+}
+
 interface PendingRequest<T = unknown> {
   resolve: (value: T) => void;
   reject: (error: Error) => void;
@@ -119,6 +167,7 @@ export class AcpConnection {
   }> = () => Promise.resolve({ optionId: 'allow' }); // Returns a resolved Promise for interface consistency
   public onEndTurn: () => void = () => {}; // Handler for end_turn messages
   public onPromptUsage: (usage: AcpPromptResponseUsage) => void = () => {}; // Handler for PromptResponse.usage (per-turn token data)
+  public onRuntimeDiagnostic: (diagnostic: AcpRuntimeDiagnostic) => void = () => {};
   public onFileOperation: (operation: { method: string; path: string; content?: string; sessionId: string }) => void =
     () => {};
 
@@ -221,7 +270,7 @@ export class AcpConnection {
 
     switch (backend) {
       case 'claude':
-        await connectClaude(workingDir, npxHooks);
+        await connectClaude(workingDir, npxHooks, customEnv);
         break;
 
       case 'codebuddy':
@@ -280,9 +329,20 @@ export class AcpConnection {
     const STDERR_TAIL_MAX = 1536;
     let stderrHead = '';
     let stderrTail = '';
+    let runtimeDiagnosticTail = '';
+    let lastRuntimeDiagnosticMessage = '';
     child.stderr?.on('data', (data: Buffer) => {
       const chunk = data.toString();
       console.error(`[ACP ${backend} STDERR]:`, chunk);
+      runtimeDiagnosticTail += chunk;
+      if (runtimeDiagnosticTail.length > STDERR_TAIL_MAX) {
+        runtimeDiagnosticTail = runtimeDiagnosticTail.slice(-STDERR_TAIL_MAX);
+      }
+      const diagnostic = parseRuntimeDiagnosticStderr(runtimeDiagnosticTail);
+      if (diagnostic && this.isSetupComplete && diagnostic.message !== lastRuntimeDiagnosticMessage) {
+        lastRuntimeDiagnosticMessage = diagnostic.message;
+        this.onRuntimeDiagnostic(diagnostic);
+      }
       if (stderrHead.length < STDERR_HEAD_MAX) {
         stderrHead += chunk;
         if (stderrHead.length > STDERR_HEAD_MAX) {

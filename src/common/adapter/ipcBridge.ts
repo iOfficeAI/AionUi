@@ -952,6 +952,8 @@ export interface ICreateConversationParams {
     presetAssistantId?: string;
     /** Initial session mode selected on Guid page (from AgentModeSelector) */
     sessionMode?: string;
+    /** Initial reasoning effort selected for Aion CLI */
+    effort?: string;
     /** User-selected Codex model from Guid page */
     codexModel?: string;
     /** Pre-selected ACP model from Guid page (cached model list) */

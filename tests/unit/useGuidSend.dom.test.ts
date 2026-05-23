@@ -230,6 +230,83 @@ describe('useGuidSend', () => {
     });
   });
 
+  describe('aionrs agent path', () => {
+    it('passes selected reasoning effort into new Aion CLI conversations', async () => {
+      const deps = makeDeps({
+        selectedAgent: 'aionrs',
+        selectedAgentKey: 'aionrs',
+        currentModel: {
+          id: 'provider-1',
+          name: 'Provider',
+          platform: 'openai',
+          baseUrl: 'https://example.com',
+          apiKey: 'token',
+          useModel: 'gpt-5',
+        },
+        pendingConfigOptions: { effort: 'high' },
+        currentEffectiveAgentInfo: { agentType: 'aionrs', isAvailable: true },
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'aionrs', isAvailable: true })),
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'aionrs',
+          extra: expect.objectContaining({
+            effort: 'high',
+          }),
+        })
+      );
+    });
+  });
+
+  describe('acp agent path', () => {
+    it('passes default reasoning effort into new ACP conversations', async () => {
+      const deps = makeDeps({
+        selectedAgent: 'codex',
+        selectedAgentKey: 'codex',
+        selectedAcpModel: 'gpt-5.4',
+        cachedConfigOptions: [
+          {
+            id: 'model_reasoning_effort',
+            name: 'Reasoning Effort',
+            category: 'thought_level',
+            type: 'select',
+            currentValue: 'medium',
+            selectedValue: 'medium',
+            options: [
+              { value: 'low', name: 'low' },
+              { value: 'medium', name: 'medium' },
+              { value: 'high', name: 'high' },
+              { value: 'xhigh', name: 'xhigh' },
+            ],
+          },
+        ],
+        pendingConfigOptions: {},
+        currentEffectiveAgentInfo: { agentType: 'codex', isAvailable: true },
+        getEffectiveAgentType: vi.fn(() => ({ agentType: 'codex', isAvailable: true })),
+      });
+      const { result } = renderHook(() => useGuidSend(deps));
+
+      await act(async () => {
+        await result.current.handleSend();
+      });
+
+      expect(mockCreate).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'acp',
+          extra: expect.objectContaining({
+            pendingConfigOptions: { model_reasoning_effort: 'medium' },
+          }),
+        })
+      );
+    });
+  });
+
   describe('isButtonDisabled', () => {
     it('is true when input is empty', () => {
       const deps = makeDeps({ input: '' });

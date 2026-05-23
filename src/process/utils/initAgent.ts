@@ -369,6 +369,8 @@ export const createAionrsAgent = async (options: ICreateConversationParams): Pro
       enabledSkills: extra.enabledSkills,
       presetAssistantId: extra.presetAssistantId,
       sessionMode: extra.sessionMode,
+      effort: extra.effort,
+      excludeBuiltinSkills: extra.excludeBuiltinSkills,
     },
     desc: customWorkspace ? workspace : '',
     createTime: Date.now(),

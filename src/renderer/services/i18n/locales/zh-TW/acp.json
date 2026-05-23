@@ -17,6 +17,11 @@
   },
   "config": {
     "reasoning_effort": "推理深度",
-    "default": "預設"
+    "default": "預設",
+    "effort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    }
   }
 }

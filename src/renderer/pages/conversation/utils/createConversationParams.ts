@@ -8,6 +8,11 @@ import { ConfigStorage } from '@/common/config/storage';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { AcpBackend } from '@/common/types/acpTypes';
+import {
+  applyPreferredAcpConfigOptions,
+  getSelectedAcpConfigOptionValues,
+  getDefaultAcpConfigOptions,
+} from '@/common/types/acpConfigOptions';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { resolveLocaleKey } from '@/common/utils';
 import { loadPresetAssistantResources } from '@/common/utils/presetAssistantResources';
@@ -80,25 +85,69 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   return undefined;
 }
 
+type PreferredAcpConfig = {
+  cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
+  pendingConfigOptions?: Record<string, string>;
+};
+
+async function resolvePreferredAcpConfig(backend: string, modelId?: string): Promise<PreferredAcpConfig | undefined> {
+  const [acpConfig, cached] = await Promise.all([
+    ConfigStorage.get('acp.config'),
+    ConfigStorage.get('acp.cachedConfigOptions'),
+  ]);
+  const preferredConfigOptions = acpConfig?.[backend as AcpBackend]?.preferredConfigOptions;
+  const cachedOptions = cached?.[backend];
+  const baseOptions =
+    Array.isArray(cachedOptions) && cachedOptions.length > 0
+      ? cachedOptions
+      : getDefaultAcpConfigOptions(backend, modelId);
+  const withPreferred = applyPreferredAcpConfigOptions(baseOptions, preferredConfigOptions);
+  const filtered = withPreferred.filter((option) => option.category !== 'model' && option.category !== 'mode');
+  if (filtered.length === 0) return undefined;
+  return {
+    cachedConfigOptions: filtered,
+    pendingConfigOptions: getSelectedAcpConfigOptionValues(filtered),
+  };
+}
+
+async function resolvePreferredAionrsEffort(): Promise<string | undefined> {
+  const config = await ConfigStorage.get('aionrs.config');
+  const effort = config?.preferredEffort;
+  return typeof effort === 'string' && effort.trim().length > 0 ? effort : undefined;
+}
+
 /**
  * Get a model from configured providers that is compatible with aionrs.
  * aionrs supports all platforms via OpenAI-compatible protocol.
  * Throws if no compatible provider is configured.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
-  const providers = await ConfigStorage.get('model.config');
+  const [providers, savedModel] = await Promise.all([
+    ConfigStorage.get('model.config'),
+    ConfigStorage.get('aionrs.defaultModel'),
+  ]);
 
   if (!providers || providers.length === 0) {
     throw new Error('No model provider configured');
   }
 
-  // aionrs supports all platforms via OpenAI-compatible protocol
-  const provider = providers.find((p) => p.enabled !== false);
+  const savedProvider =
+    typeof savedModel === 'object' && savedModel?.id
+      ? providers.find((p) => p.id === savedModel.id && p.enabled !== false)
+      : undefined;
+  const provider = savedProvider ?? providers.find((p) => p.enabled !== false);
   if (!provider) {
     throw new Error('No enabled model provider for Aion CLI');
   }
 
-  const enabledModel = provider.model.find((m) => provider.modelEnabled?.[m] !== false);
+  const savedUseModel =
+    typeof savedModel === 'object' && savedProvider && typeof savedModel.useModel === 'string'
+      ? savedModel.useModel
+      : undefined;
+  const enabledModel =
+    savedUseModel && provider.model.includes(savedUseModel) && provider.modelEnabled?.[savedUseModel] !== false
+      ? savedUseModel
+      : provider.model.find((m) => provider.modelEnabled?.[m] !== false);
 
   return {
     id: provider.id,
@@ -184,6 +233,9 @@ export async function buildCliAgentParams(
   const type = getConversationTypeForBackend(agent.backend);
   const preferredMode = await resolvePreferredMode(agent.backend);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agent.backend) : undefined;
+  const preferredAcpConfig =
+    type === 'acp' ? await resolvePreferredAcpConfig(agent.backend, preferredAcpModelId) : undefined;
+  const preferredAionrsEffort = type === 'aionrs' ? await resolvePreferredAionrsEffort() : undefined;
 
   let model: TProviderWithModel;
   if (type === 'gemini') {
@@ -205,6 +257,8 @@ export async function buildCliAgentParams(
     model,
     sessionMode: preferredMode,
     currentModelId: preferredAcpModelId,
+    effort: preferredAionrsEffort,
+    extra: preferredAcpConfig,
   });
 }
 
@@ -236,6 +290,9 @@ export async function buildPresetAssistantParams(
   const type = getConversationTypeForBackend(presetAgentType);
   const preferredMode = await resolvePreferredMode(presetAgentType);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(presetAgentType) : undefined;
+  const preferredAcpConfig =
+    type === 'acp' ? await resolvePreferredAcpConfig(presetAgentType, preferredAcpModelId) : undefined;
+  const preferredAionrsEffort = type === 'aionrs' ? await resolvePreferredAionrsEffort() : undefined;
   const model = type === 'gemini' ? await resolveGeminiModel() : ({} as TProviderWithModel);
 
   return buildAgentConversationParams({
@@ -254,5 +311,7 @@ export async function buildPresetAssistantParams(
     model,
     sessionMode: preferredMode,
     currentModelId: preferredAcpModelId,
+    effort: preferredAionrsEffort,
+    extra: preferredAcpConfig,
   });
 }

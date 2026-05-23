@@ -93,6 +93,7 @@ const AcpSendBox: React.FC<{
   conversation_id: string;
   backend: AcpBackend;
   sessionMode?: string;
+  currentModelId?: string;
   cachedConfigOptions?: import('@/common/types/acpTypes').AcpSessionConfigOption[];
   agentName?: string;
   workspacePath?: string;
@@ -102,6 +103,7 @@ const AcpSendBox: React.FC<{
   conversation_id,
   backend,
   sessionMode,
+  currentModelId,
   cachedConfigOptions,
   agentName,
   workspacePath,
@@ -384,6 +386,7 @@ Please check your local CLI tool authentication status`,
             <AcpConfigSelector
               conversationId={conversation_id}
               backend={backend}
+              modelId={currentModelId}
               compact={!!teamId}
               initialConfigOptions={cachedConfigOptions}
             />

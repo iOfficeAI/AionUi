@@ -107,6 +107,7 @@ const PRESET_AGENT_ID = 'cowork';
 const AVAILABLE_AGENTS: AvailableAgent[] = [
   { backend: 'gemini', name: 'Gemini' },
   { backend: 'claude', name: 'Claude' },
+  { backend: 'codex', name: 'Codex' },
   { backend: 'claude', name: 'Cowork Assistant', customAgentId: PRESET_AGENT_ID, isPreset: true },
 ];
 
@@ -148,10 +149,12 @@ const MODEL_LIST: IProvider[] = [
 
 function setupMocks(overrides?: {
   cachedModels?: Record<string, AcpModelInfo>;
+  cachedConfigOptions?: Record<string, unknown[]>;
   acpConfig?: Record<string, unknown>;
   geminiConfig?: Record<string, unknown>;
 }) {
   const cachedModels = overrides?.cachedModels ?? { claude: CLAUDE_CACHED_MODEL };
+  const cachedConfigOptions = overrides?.cachedConfigOptions ?? {};
   const acpConfig = overrides?.acpConfig ?? { claude: { preferredMode: 'bypassPermissions' } };
   const geminiConfig = overrides?.geminiConfig ?? {};
 
@@ -162,6 +165,8 @@ function setupMocks(overrides?: {
     switch (key) {
       case 'acp.cachedModels':
         return cachedModels;
+      case 'acp.cachedConfigOptions':
+        return cachedConfigOptions;
       case 'assistants':
         return CUSTOM_AGENTS;
       case 'guid.lastSelectedAgent':
@@ -407,5 +412,77 @@ describe('useGuidAgentSelection – preset agent config resolution', () => {
       { id: 'gpt-5', label: 'GPT-5' },
       { id: 'gpt-5-mini', label: 'GPT-5 Mini' },
     ]);
+  });
+
+  it('shows Claude reasoning effort config options before backend cache exists', async () => {
+    setupMocks({
+      cachedConfigOptions: {},
+      acpConfig: { claude: { preferredConfigOptions: { effort: 'high' } } },
+    });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('claude');
+    });
+
+    await waitFor(() => {
+      expect(result.current.cachedConfigOptions[0]?.id).toBe('effort');
+    });
+
+    expect(result.current.cachedConfigOptions[0]).toMatchObject({
+      category: 'thought_level',
+      currentValue: 'high',
+      selectedValue: 'high',
+    });
+    expect(result.current.pendingConfigOptions).toEqual({ effort: 'high' });
+  });
+
+  it('adds Codex reasoning effort config options when backend cache lacks it', async () => {
+    setupMocks({
+      cachedConfigOptions: {
+        codex: [
+          {
+            id: 'output_format',
+            name: 'Output Format',
+            type: 'select',
+            category: 'config',
+            currentValue: 'text',
+            selectedValue: 'text',
+            options: [
+              { value: 'text', name: 'text' },
+              { value: 'json', name: 'json' },
+            ],
+          },
+        ],
+      },
+      acpConfig: { codex: { preferredConfigOptions: { model_reasoning_effort: 'xhigh' } } },
+    });
+
+    const { result } = renderHook(() => useGuidAgentSelection(hookOptions));
+
+    await waitFor(() => {
+      expect(result.current.availableAgents).toBeDefined();
+    });
+
+    act(() => {
+      result.current.setSelectedAgentKey('codex');
+    });
+
+    await waitFor(() => {
+      expect(result.current.cachedConfigOptions.some((option) => option.id === 'model_reasoning_effort')).toBe(true);
+    });
+
+    const reasoningOption = result.current.cachedConfigOptions.find((option) => option.id === 'model_reasoning_effort');
+    expect(reasoningOption).toMatchObject({
+      category: 'thought_level',
+      currentValue: 'xhigh',
+      selectedValue: 'xhigh',
+    });
+    expect(result.current.pendingConfigOptions).toMatchObject({ model_reasoning_effort: 'xhigh' });
   });
 });

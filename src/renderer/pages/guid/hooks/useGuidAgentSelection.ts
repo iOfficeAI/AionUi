@@ -9,12 +9,25 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { IProvider } from '@/common/config/storage';
 import { ConfigStorage } from '@/common/config/storage';
 import type { AcpBackendAll, AcpSessionConfigOption } from '@/common/types/acpTypes';
+import {
+  AIONRS_REASONING_EFFORT_CONFIG_ID,
+  applyPreferredAcpConfigOptions,
+  getSelectedAcpConfigOptionValues,
+  getDefaultAcpConfigOptions,
+  mergeDefaultAcpConfigOptions,
+} from '@/common/types/acpConfigOptions';
 import type { AcpBackend, AcpBackendConfig, AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
-import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil } from './agentSelectionUtils';
+import {
+  savePreferredAionrsEffort,
+  savePreferredConfigOption,
+  savePreferredMode,
+  savePreferredModelId,
+  getAgentKey as getAgentKeyUtil,
+} from './agentSelectionUtils';
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
@@ -114,6 +127,13 @@ export const useGuidAgentSelection = ({
   // Update a single pending config option selection (local mode, Guid page)
   const setPendingConfigOption = useCallback((configId: string, value: string) => {
     setPendingConfigOptions((prev) => ({ ...prev, [configId]: value }));
+    const agentKey = selectedAgentRef.current;
+    if (!agentKey) return;
+    if (agentKey === 'aionrs' && configId === AIONRS_REASONING_EFFORT_CONFIG_ID) {
+      void savePreferredAionrsEffort(value);
+      return;
+    }
+    void savePreferredConfigOption(agentKey, configId, value);
   }, []);
 
   // Wrap setSelectedAcpModel to also save preferred model to the agent's config
@@ -326,27 +346,51 @@ export const useGuidAgentSelection = ({
     if (!backend) return;
     let isActive = true;
     ConfigStorage.get('acp.cachedConfigOptions')
-      .then((cached) => {
+      .then(async (cached) => {
         if (!isActive) return;
-        const options = cached?.[backend];
+        const [acpConfig, aionrsConfig] = await Promise.all([
+          ConfigStorage.get('acp.config'),
+          backend === 'aionrs' ? ConfigStorage.get('aionrs.config') : Promise.resolve(undefined),
+        ]);
+        if (!isActive) return;
+        const preferredConfigOptions =
+          backend === 'aionrs'
+            ? aionrsConfig?.preferredEffort
+              ? { [AIONRS_REASONING_EFFORT_CONFIG_ID]: aionrsConfig.preferredEffort }
+              : undefined
+            : acpConfig?.[backend as AcpBackendAll]?.preferredConfigOptions;
+        const cachedOptions = cached?.[backend];
+        const rawOptions =
+          Array.isArray(cachedOptions) && cachedOptions.length > 0
+            ? cachedOptions
+            : getDefaultAcpConfigOptions(backend, selectedAcpModel ?? undefined);
+        const options = mergeDefaultAcpConfigOptions(
+          backend,
+          selectedAcpModel ?? undefined,
+          rawOptions as AcpSessionConfigOption[]
+        );
+        const withPreferred = applyPreferredAcpConfigOptions(options, preferredConfigOptions);
         // Filter out model/mode categories — those are handled by AcpModelSelector / AgentModeSelector
-        const filtered = Array.isArray(options)
-          ? (options as Array<{ category?: string }>).filter(
+        const filtered = Array.isArray(withPreferred)
+          ? (withPreferred as Array<{ category?: string }>).filter(
               (opt) => opt.category !== 'model' && opt.category !== 'mode'
             )
           : [];
         setCachedConfigOptions(filtered as AcpSessionConfigOption[]);
-        setPendingConfigOptions({});
+        setPendingConfigOptions(getSelectedAcpConfigOptionValues(filtered as AcpSessionConfigOption[]));
       })
       .catch(() => {
         if (!isActive) return;
-        setCachedConfigOptions([]);
-        setPendingConfigOptions({});
+        const fallback = getDefaultAcpConfigOptions(backend, selectedAcpModel ?? undefined).filter(
+          (opt) => opt.category !== 'model' && opt.category !== 'mode'
+        );
+        setCachedConfigOptions(fallback);
+        setPendingConfigOptions(getSelectedAcpConfigOptionValues(fallback));
       });
     return () => {
       isActive = false;
     };
-  }, [selectedAgentKey, isPresetAgent, currentEffectiveAgentInfo.agentType]);
+  }, [selectedAgentKey, isPresetAgent, currentEffectiveAgentInfo.agentType, selectedAcpModel]);
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to cached default
   useEffect(() => {

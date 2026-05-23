@@ -38,6 +38,7 @@ const mockUseConversationCommandQueue = vi.fn(() => ({
 
 const mockConversationGetInvoke = vi.fn();
 const mockConversationStopInvoke = vi.fn();
+const mockConversationSetConfigInvoke = vi.fn();
 const mockConversationSendInvoke = vi.fn();
 const mockAcpSendInvoke = vi.fn();
 const mockGeminiSendInvoke = vi.fn();
@@ -78,6 +79,7 @@ vi.mock('@/common', () => ({
     conversation: {
       get: { invoke: (...args: unknown[]) => mockConversationGetInvoke(...args) },
       stop: { invoke: (...args: unknown[]) => mockConversationStopInvoke(...args) },
+      setConfig: { invoke: (...args: unknown[]) => mockConversationSetConfigInvoke(...args) },
       sendMessage: { invoke: (...args: unknown[]) => mockConversationSendInvoke(...args) },
       responseStream: { on: vi.fn(() => vi.fn()) },
     },
@@ -117,16 +119,19 @@ vi.mock('@/renderer/components/chat/sendbox', () => ({
     loading,
     onSend,
     onStop,
+    tools,
   }: {
     disabled?: boolean;
     loading?: boolean;
     onSend: (message: string) => Promise<void> | void;
     onStop?: () => Promise<void> | void;
+    tools?: React.ReactNode;
   }) =>
     React.createElement(
       'div',
       { 'data-testid': 'sendbox' },
       React.createElement('div', { 'data-testid': 'sendbox-loading' }, String(Boolean(loading))),
+      tools,
       React.createElement(
         'button',
         {
@@ -180,6 +185,10 @@ vi.mock('@/renderer/components/media/FileAttachButton', () => ({
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
   __esModule: true,
   default: () => React.createElement('div'),
+}));
+
+vi.mock('@/renderer/pages/guid/hooks/agentSelectionUtils', () => ({
+  savePreferredAionrsEffort: vi.fn().mockResolvedValue(undefined),
 }));
 
 vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
@@ -367,6 +376,15 @@ vi.mock('@/renderer/utils/model/modelContextLimits', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => ({
+  Button: ({ children, onClick, disabled }: { children?: React.ReactNode; onClick?: () => void; disabled?: boolean }) =>
+    React.createElement('button', { type: 'button', disabled, onClick }, children),
+  Dropdown: ({ children, droplist }: { children?: React.ReactNode; droplist?: React.ReactNode }) =>
+    React.createElement(React.Fragment, null, children, droplist),
+  Menu: Object.assign(({ children }: { children?: React.ReactNode }) => React.createElement('div', {}, children), {
+    ItemGroup: ({ children }: { children?: React.ReactNode }) => React.createElement('div', {}, children),
+    Item: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) =>
+      React.createElement('button', { type: 'button', onClick }, children),
+  }),
   Message: {
     error: (...args: unknown[]) => mockArcoError(...args),
     warning: (...args: unknown[]) => mockArcoWarning(...args),
@@ -376,7 +394,9 @@ vi.mock('@arco-design/web-react', () => ({
 }));
 
 vi.mock('@icon-park/react', () => ({
+  Brain: () => React.createElement('span'),
   Shield: () => React.createElement('span'),
+  Down: () => React.createElement('span'),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -426,6 +446,7 @@ describe('platform send box queue integration', () => {
       },
     }));
     mockConversationStopInvoke.mockResolvedValue(undefined);
+    mockConversationSetConfigInvoke.mockResolvedValue({ success: true });
     mockConversationSendInvoke.mockResolvedValue({ success: true });
     mockAcpSendInvoke.mockResolvedValue({ success: true });
     mockGeminiSendInvoke.mockResolvedValue({ success: true });
@@ -739,6 +760,44 @@ describe('platform send box queue integration', () => {
       conversation_id: 'conv-acp',
       files: ['C:/workspace/uploads/photo.png'],
     });
+  });
+
+  it('sends aionrs reasoning effort config from the selector', async () => {
+    render(
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+        effort='medium'
+      />
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'high' }));
+
+    await waitFor(() => {
+      expect(mockConversationSetConfigInvoke).toHaveBeenCalledWith({
+        conversation_id: 'conv-aionrs',
+        config: { effort: 'high' },
+      });
+    });
+  });
+
+  it('falls back to medium for invalid persisted aionrs reasoning effort', () => {
+    render(
+      <AionrsSendBox
+        conversation_id='conv-aionrs'
+        modelSelection={{
+          currentModel: { useModel: 'aionrs-1' },
+          getDisplayModelName: (modelId: string) => modelId,
+        }}
+        effort='middle'
+      />
+    );
+
+    expect(screen.getByRole('button', { name: /acp.config.reasoning_effort: medium/ })).toBeInTheDocument();
+    expect(screen.queryByText(/middle/)).not.toBeInTheDocument();
   });
 
   it('blocks OpenClaw dispatch when runtime validation fails', async () => {

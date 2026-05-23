@@ -17,6 +17,11 @@
   },
   "config": {
     "reasoning_effort": "推論の深さ",
-    "default": "デフォルト"
+    "default": "デフォルト",
+    "effort": {
+      "low": "低",
+      "medium": "中",
+      "high": "高"
+    }
   }
 }

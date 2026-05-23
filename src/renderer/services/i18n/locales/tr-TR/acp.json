@@ -17,6 +17,11 @@
   },
   "config": {
     "reasoning_effort": "Akıl Yürütme Çabası",
-    "default": "Varsayılan"
+    "default": "Varsayılan",
+    "effort": {
+      "low": "Düşük",
+      "medium": "Orta",
+      "high": "Yüksek"
+    }
   }
 }

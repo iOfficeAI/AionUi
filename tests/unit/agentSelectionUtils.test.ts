@@ -17,7 +17,9 @@ vi.mock('../../src/common/config/storage', () => ({
 
 import {
   savePreferredMode,
+  savePreferredAionrsEffort,
   savePreferredModelId,
+  savePreferredConfigOption,
   getAgentKey,
 } from '../../src/renderer/pages/guid/hooks/agentSelectionUtils';
 
@@ -118,6 +120,36 @@ describe('savePreferredMode', () => {
 });
 
 // ---------------------------------------------------------------------------
+// savePreferredAionrsEffort
+// ---------------------------------------------------------------------------
+
+describe('savePreferredAionrsEffort', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    configStorageMocks.get.mockResolvedValue({});
+    configStorageMocks.set.mockResolvedValue(undefined);
+  });
+
+  it('saves preferred effort under aionrs.config', async () => {
+    configStorageMocks.get.mockResolvedValue({ preferredMode: 'yolo' });
+
+    await savePreferredAionrsEffort('high');
+
+    expect(configStorageMocks.get).toHaveBeenCalledWith('aionrs.config');
+    expect(configStorageMocks.set).toHaveBeenCalledWith('aionrs.config', {
+      preferredMode: 'yolo',
+      preferredEffort: 'high',
+    });
+  });
+
+  it('silently catches errors during effort save', async () => {
+    configStorageMocks.get.mockRejectedValue(new Error('storage error'));
+
+    await expect(savePreferredAionrsEffort('low')).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
 // savePreferredModelId
 // ---------------------------------------------------------------------------
 
@@ -153,5 +185,60 @@ describe('savePreferredModelId', () => {
     configStorageMocks.get.mockRejectedValue(new Error('storage error'));
 
     await expect(savePreferredModelId('codex', 'gpt-4o')).resolves.toBeUndefined();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// savePreferredConfigOption
+// ---------------------------------------------------------------------------
+
+describe('savePreferredConfigOption', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    configStorageMocks.get.mockResolvedValue({});
+    configStorageMocks.set.mockResolvedValue(undefined);
+  });
+
+  it('saves preferred ACP config option under acp.config', async () => {
+    await savePreferredConfigOption('claude', 'effort', 'high');
+
+    expect(configStorageMocks.get).toHaveBeenCalledWith('acp.config');
+    expect(configStorageMocks.set).toHaveBeenCalledWith('acp.config', {
+      claude: { preferredConfigOptions: { effort: 'high' } },
+    });
+  });
+
+  it('preserves existing ACP config options', async () => {
+    configStorageMocks.get.mockResolvedValue({
+      claude: {
+        preferredMode: 'default',
+        preferredConfigOptions: { output_format: 'text' },
+      },
+    });
+
+    await savePreferredConfigOption('claude', 'effort', 'low');
+
+    expect(configStorageMocks.set).toHaveBeenCalledWith('acp.config', {
+      claude: {
+        preferredMode: 'default',
+        preferredConfigOptions: { output_format: 'text', effort: 'low' },
+      },
+    });
+  });
+
+  it('does NOT save for aionrs because it uses aionrs.config', async () => {
+    await savePreferredConfigOption('aionrs', 'effort', 'high');
+
+    expect(configStorageMocks.get).not.toHaveBeenCalled();
+    expect(configStorageMocks.set).not.toHaveBeenCalled();
+  });
+
+  it('saves preferred Codex reasoning effort under acp.config', async () => {
+    await savePreferredConfigOption('codex', 'model_reasoning_effort', 'xhigh');
+
+    expect(configStorageMocks.get).toHaveBeenCalledWith('acp.config');
+    expect(configStorageMocks.set).toHaveBeenCalledWith('acp.config', {
+      codex: { preferredConfigOptions: { model_reasoning_effort: 'xhigh' } },
+    });
   });
 });

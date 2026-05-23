@@ -1,6 +1,9 @@
 import { fireEvent, render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const acpConfigSelectorMock = vi.fn(() => null);
+const aionrsEffortSelectorMock = vi.fn(() => null);
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -65,7 +68,11 @@ vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({
 }));
 
 vi.mock('@/renderer/components/agent/AcpConfigSelector', () => ({
-  default: () => null,
+  default: (props: unknown) => acpConfigSelectorMock(props),
+}));
+
+vi.mock('@/renderer/pages/conversation/platforms/aionrs/AionrsEffortSelector', () => ({
+  default: (props: unknown) => aionrsEffortSelectorMock(props),
 }));
 
 vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
@@ -112,6 +119,11 @@ import GuidActionRow from '@/renderer/pages/guid/components/GuidActionRow';
 import { FileService } from '@/renderer/services/FileService';
 
 describe('GuidActionRow', () => {
+  beforeEach(() => {
+    acpConfigSelectorMock.mockClear();
+    aionrsEffortSelectorMock.mockClear();
+  });
+
   const defaultProps = {
     files: [],
     onFilesUploaded: vi.fn(),
@@ -138,6 +150,62 @@ describe('GuidActionRow', () => {
     render(<GuidActionRow {...defaultProps} />);
     expect(screen.getByLabelText('speech-input')).toBeInTheDocument();
     expect(screen.getByText('ArrowUp')).toBeInTheDocument();
+  });
+
+  it('passes the selected ACP model id to the config selector', () => {
+    render(
+      <GuidActionRow
+        {...defaultProps}
+        configOptionsBackend='codex'
+        configOptionsModelId='gpt-5.4/xhigh'
+        cachedConfigOptions={[]}
+      />
+    );
+
+    expect(acpConfigSelectorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: 'codex',
+        modelId: 'gpt-5.4/xhigh',
+      })
+    );
+  });
+
+  it('uses the effective mode backend for config options when no explicit backend is passed', () => {
+    render(
+      <GuidActionRow
+        {...defaultProps}
+        selectedAgent='custom'
+        effectiveModeAgent='codex'
+        configOptionsModelId='gpt-5.4/xhigh'
+        cachedConfigOptions={[]}
+      />
+    );
+
+    expect(acpConfigSelectorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        backend: 'codex',
+        modelId: 'gpt-5.4/xhigh',
+      })
+    );
+  });
+
+  it('renders the Aion CLI reasoning effort selector on the Guid page', () => {
+    render(
+      <GuidActionRow
+        {...defaultProps}
+        selectedAgent='aionrs'
+        effectiveModeAgent='aionrs'
+        cachedConfigOptions={[{ id: 'effort', type: 'select', currentValue: 'medium' }]}
+      />
+    );
+
+    expect(aionrsEffortSelectorMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        effort: 'medium',
+        onEffortChange: expect.any(Function),
+      })
+    );
+    expect(acpConfigSelectorMock).not.toHaveBeenCalled();
   });
 
   it('displays skill count when builtin skills are provided', () => {
