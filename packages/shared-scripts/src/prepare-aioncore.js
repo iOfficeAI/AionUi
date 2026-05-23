@@ -14,11 +14,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const GITHUB_OWNER = process.env.AIONUI_BACKEND_GITHUB_OWNER || 'halojerry';
-const GITHUB_REPO = process.env.AIONUI_BACKEND_GITHUB_REPO || 'AionCore';
-const ASSET_PREFIX = process.env.AIONUI_BACKEND_ASSET_PREFIX || 'aioncore';
-const SOURCE_BINARY_NAME = process.env.AIONUI_BACKEND_SOURCE_BINARY_NAME || ASSET_PREFIX;
-const TARGET_BINARY_NAME = process.env.AIONUI_BACKEND_TARGET_BINARY_NAME || 'aioncore';
+const GITHUB_OWNER = process.env.AIONCORE_GITHUB_OWNER || 'halojerry';
+const GITHUB_REPO = process.env.AIONCORE_GITHUB_REPO || 'AionCore';
+const ASSET_PREFIX = process.env.AIONCORE_ASSET_PREFIX || 'aioncore';
+const SOURCE_BINARY_NAME = process.env.AIONCORE_SOURCE_BINARY_NAME || ASSET_PREFIX;
+const TARGET_BINARY_NAME = process.env.AIONCORE_TARGET_BINARY_NAME || 'aioncore';
 
 function ensureDirectory(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -221,7 +221,9 @@ function prepareAioncore(options) {
     };
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
-    console.log(`  Bundled ${ASSET_PREFIX} prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`);
+    console.log(
+      `  Bundled ${ASSET_PREFIX} prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
+    );
 
     if (tempDir) removeDirectorySafe(tempDir);
     return { prepared: true, dir: targetDir, sourceType };

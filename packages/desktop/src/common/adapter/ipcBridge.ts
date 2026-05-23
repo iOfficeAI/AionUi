@@ -8,7 +8,7 @@
  * IPC Bridge → HTTP/WS adapter.
  *
  * This file replaces the original IPC bridge calls with HTTP REST and WebSocket
- * calls routed to aionui-backend. Electron-native operations (window controls,
+ * calls routed to aioncore. Electron-native operations (window controls,
  * native dialogs, auto-update, devtools, zoom, CDP, deep links) remain as IPC.
  */
 
@@ -95,12 +95,8 @@ type RawCompareResult = {
   unstaged?: RawFileChangeInfo[];
 };
 
-function fromBackendCompareResult(
-  raw: RawCompareResult
-): import('@/common/types/platform/fileSnapshot').CompareResult {
-  const mapFileChange = (
-    item: RawFileChangeInfo
-  ): import('@/common/types/platform/fileSnapshot').FileChangeInfo => ({
+function fromBackendCompareResult(raw: RawCompareResult): import('@/common/types/platform/fileSnapshot').CompareResult {
+  const mapFileChange = (item: RawFileChangeInfo): import('@/common/types/platform/fileSnapshot').FileChangeInfo => ({
     file_path: item.file_path,
     relativePath: item.relativePath ?? item.relative_path ?? item.file_path,
     operation: item.operation,

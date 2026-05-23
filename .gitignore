@@ -200,6 +200,7 @@ worktrees/
 docs/superpowers/
 resources/bundled-bun
 resources/bundled-aionui-backend
+resources/bundled-aioncore
 resources/hub
 
 # Server build output
@@ -213,3 +214,4 @@ graphify-out/
 
 .snow/
 .omx/
+dist-web-cli/

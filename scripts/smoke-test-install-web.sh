@@ -39,7 +39,7 @@ echo ""
 echo "2. Running installation..."
 export MIRROR="$MIRROR"
 export VERSION="${VERSION:-latest}"
-export INSTALL_DIR="/tmp/aionui-web-smoke-test"
+export INSTALL_DIR="/tmp/pounding-web-smoke-test"
 export BIN_DIR="/tmp/smoke-bin"
 export CREATE_SYMLINK=1
 export UPDATE_PATH=0  # Don't modify shell profile in container

@@ -2,10 +2,9 @@
  * Resolve the aioncore version tag to download for packaging.
  *
  * Order:
- *   1. AIONUI_BACKEND_VERSION env (ad-hoc override)
+ *   1. AIONCORE_VERSION env (ad-hoc override)
  *   2. "aioncoreVersion" in repo-root package.json
- *   3. "aionuiBackendVersion" in repo-root package.json (legacy fallback)
- *   4. 'latest'
+ *   3. 'latest'
  */
 
 const fs = require('fs');
@@ -17,7 +16,7 @@ function readPkg(projectRoot) {
 }
 
 function resolveAioncoreVersion(projectRoot) {
-  const envOverride = process.env.AIONUI_BACKEND_VERSION;
+  const envOverride = process.env.AIONCORE_VERSION;
   if (envOverride && envOverride.trim()) {
     return envOverride.trim();
   }
@@ -26,9 +25,6 @@ function resolveAioncoreVersion(projectRoot) {
     const pkg = readPkg(projectRoot);
     if (pkg && typeof pkg.aioncoreVersion === 'string' && pkg.aioncoreVersion.trim()) {
       return pkg.aioncoreVersion.trim();
-    }
-    if (pkg && typeof pkg.aionuiBackendVersion === 'string' && pkg.aionuiBackendVersion.trim()) {
-      return pkg.aionuiBackendVersion.trim();
     }
   } catch {
     // fall through
