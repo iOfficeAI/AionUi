@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import React, { createContext, useCallback, useContext, useMemo, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
 
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
@@ -45,6 +45,10 @@ export const TeamPermissionProvider: React.FC<{
     }
     return warmupPromiseRef.current;
   }, [team_id]);
+
+  useEffect(() => {
+    void warmupSession();
+  }, [warmupSession]);
 
   const value = useMemo<TeamPermissionContextValue>(
     () => ({

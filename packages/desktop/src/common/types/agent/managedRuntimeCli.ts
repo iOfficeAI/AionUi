@@ -2,6 +2,11 @@ import type { IProvider } from '@/common/config/storage';
 import type { ManagedRuntimeCliTarget } from '@/common/types/newApiAccount';
 import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 
+const CLAUDE_COMPATIBLE_PROTOCOLS = new Set(['anthropic']);
+const ANSI_ESCAPE_PATTERN = /\u001b\[[0-9;]*[A-Za-z]/g;
+const ORPHAN_SGR_SUFFIX_PATTERN = /\[(?:\d{1,3}(?:;\d{1,3})*)m\]?$/i;
+const SET_MODEL_PREFIX_PATTERN = /^set model to\s+/i;
+
 export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'hermes', 'opencode', 'openclaw'] as const;
 export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
 export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
@@ -13,12 +18,23 @@ function uniqueNonEmpty(values: Array<string | null | undefined>): string[] {
   const result: string[] = [];
   const seen = new Set<string>();
   for (const value of values) {
-    const normalized = value?.trim();
+    const normalized = sanitizeManagedRuntimeModelValue(value);
     if (!normalized || seen.has(normalized)) continue;
     seen.add(normalized);
     result.push(normalized);
   }
   return result;
+}
+
+export function sanitizeManagedRuntimeModelValue(value: string | null | undefined): string | undefined {
+  const trimmed = value?.trim();
+  if (!trimmed) return undefined;
+
+  const withoutAnsi = trimmed.replace(ANSI_ESCAPE_PATTERN, '').trim();
+  const withoutSetModelPrefix = withoutAnsi.replace(SET_MODEL_PREFIX_PATTERN, '').trim();
+  const withoutOrphanSuffix = withoutSetModelPrefix.replace(ORPHAN_SGR_SUFFIX_PATTERN, '').trim();
+
+  return withoutOrphanSuffix || undefined;
 }
 
 const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
@@ -86,14 +102,22 @@ export function getManagedRuntimeCliBackendAliases(target: ManagedRuntimeCliTarg
 }
 
 export function buildManagedRuntimeModelId(cliTarget: ManagedRuntimeCliTarget, managedModelId: string): string {
-  const normalizedModelId = managedModelId.trim();
+  const normalizedModelId = sanitizeManagedRuntimeModelValue(managedModelId) || managedModelId.trim();
   switch (cliTarget) {
+    case 'claude':
+      // Claude's managed runtime is backed by cc-switch slot semantics.
+      // The actual provider model id is written into the selected slot's env
+      // (and reflected back via current_model_label), but runtime switching
+      // itself still accepts slot ids such as `default` / `opus` / `haiku`.
+      // Persisting the raw provider model id into `current_model_id` breaks
+      // session/new resume and later prompts because the Claude ACP session
+      // expects the slot id, not the underlying hosted model name.
+      return 'default';
     case 'hermes':
       return `custom:${normalizedModelId}`;
     case 'opencode':
     case 'openclaw':
       return `${getManagedRuntimeProviderId()}/${normalizedModelId}`;
-    case 'claude':
     default:
       return normalizedModelId;
   }
@@ -103,7 +127,7 @@ export function resolveManagedModelIdFromRuntime(
   cliTarget: ManagedRuntimeCliTarget,
   runtimeModelId: string | null | undefined
 ): string | undefined {
-  const normalizedModelId = runtimeModelId?.trim();
+  const normalizedModelId = sanitizeManagedRuntimeModelValue(runtimeModelId);
   if (!normalizedModelId) return undefined;
 
   switch (cliTarget) {
@@ -127,7 +151,7 @@ export function resolveManagedModelIdFromRuntime(
 }
 
 export function getManagedRuntimeModelDisplayLabel(modelId: string | null | undefined): string | undefined {
-  const normalized = modelId?.trim();
+  const normalized = sanitizeManagedRuntimeModelValue(modelId);
   if (!normalized) return undefined;
   if (normalized.startsWith('custom:')) {
     return normalized.slice('custom:'.length) || undefined;
@@ -143,7 +167,7 @@ export function normalizeManagedRuntimeModelLabel(
   cliTarget: ManagedRuntimeCliTarget,
   runtimeModelLabel: string | null | undefined
 ): string | undefined {
-  const normalizedLabel = runtimeModelLabel?.trim();
+  const normalizedLabel = sanitizeManagedRuntimeModelValue(runtimeModelLabel);
   if (!normalizedLabel) return undefined;
 
   const resolvedModelId = resolveManagedModelIdFromRuntime(cliTarget, normalizedLabel);
@@ -157,13 +181,37 @@ export function normalizeManagedRuntimeModelLabel(
   return getManagedRuntimeModelDisplayLabel(normalizedLabel) || undefined;
 }
 
-export function getManagedCliSelectableModels(provider: IProvider | null | undefined): string[] {
+function inferManagedModelProtocol(provider: IProvider, modelId: string): string | undefined {
+  const explicitProtocol = provider.model_protocols?.[modelId]?.trim().toLowerCase();
+  if (explicitProtocol) return explicitProtocol;
+
+  const normalizedModelId = modelId.trim().toLowerCase();
+  if (normalizedModelId.startsWith('claude') || normalizedModelId.startsWith('anthropic')) return 'anthropic';
+  if (normalizedModelId.startsWith('gemini') || normalizedModelId.startsWith('models/gemini')) return 'gemini';
+  return 'openai';
+}
+
+function isManagedCliModelCompatible(
+  provider: IProvider,
+  modelId: string,
+  cliTarget?: ManagedRuntimeCliTarget
+): boolean {
+  if (cliTarget !== 'claude') return true;
+  const protocol = inferManagedModelProtocol(provider, modelId);
+  return protocol ? CLAUDE_COMPATIBLE_PROTOCOLS.has(protocol) : false;
+}
+
+export function getManagedCliSelectableModels(
+  provider: IProvider | null | undefined,
+  cliTarget?: ManagedRuntimeCliTarget
+): string[] {
   if (!provider) return [];
 
   const allModels = uniqueNonEmpty(provider.models || []);
 
   const candidateModels = allModels.filter((modelId) => {
     if (provider.model_enabled?.[modelId] === false) return false;
+    if (!isManagedCliModelCompatible(provider, modelId, cliTarget)) return false;
     const excluded = hasSpecificModelCapability(provider, modelId, 'excludeFromPrimary');
     if (excluded === true) return false;
     const functionCalling = hasSpecificModelCapability(provider, modelId, 'function_calling');
@@ -171,5 +219,8 @@ export function getManagedCliSelectableModels(provider: IProvider | null | undef
   });
 
   if (candidateModels.length > 0) return candidateModels;
-  return allModels.filter((modelId) => provider.model_enabled?.[modelId] !== false);
+  return allModels.filter(
+    (modelId) =>
+      provider.model_enabled?.[modelId] !== false && isManagedCliModelCompatible(provider, modelId, cliTarget)
+  );
 }

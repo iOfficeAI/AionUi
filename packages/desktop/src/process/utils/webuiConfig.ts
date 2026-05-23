@@ -229,7 +229,7 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
   // Spawning a second backend here would race the first on the same SQLite file.
   const backendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
   if (!backendPort) {
-    throw new Error('[WebUI] Cannot start: aionui-backend is not running (globalThis.__backendPort unset)');
+    throw new Error('[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)');
   }
 
   const handle = await startWebHost({
@@ -239,7 +239,7 @@ export async function startDesktopWebUI(opts: { port?: number; allowRemote?: boo
       resourcesPath: app.getAppPath(),
       // webui.config.json must live next to the backend SQLite DB so --resetpass
       // CLI and the runtime settings path read/write the same user record.
-      // getDataPath() returns ~/.aionui[-dev] symlink on macOS to sidestep
+      // getDataPath() returns ~/.pouding[-dev] symlink on macOS to sidestep
       // path-with-spaces issues under Application Support.
       userDataPath: getDataPath(),
     },

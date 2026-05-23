@@ -3,8 +3,8 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { prepareAionuiBackend } = require('../packages/shared-scripts/src/prepare-aionui-backend.js');
-const { resolveBackendVersion } = require('./resolveBackendVersion.js');
+const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.env.PACK_PLATFORM || process.platform;
@@ -23,13 +23,13 @@ const tarballPath = path.join(distDir, tarballName);
 
 console.log(`Packing web-cli for ${platform}-${arch}...`);
 
-// 1. Prepare bundled-aionui-backend
-console.log('1. Preparing aionui-backend...');
-prepareAionuiBackend({
+// 1. Prepare bundled aioncore
+console.log('1. Preparing aioncore...');
+prepareAioncore({
   projectRoot,
   platform,
   arch,
-  version: resolveBackendVersion(projectRoot),
+  version: resolveAioncoreVersion(projectRoot),
 });
 
 // 2. Create staging dir
@@ -77,12 +77,14 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled-aionui-backend
-const backendSrc = path.join(projectRoot, 'resources/bundled-aionui-backend', `${platform}-${arch}`);
-const backendDest = path.join(tarballContentDir, 'bundled-aionui-backend', `${platform}-${arch}`);
+// 7. Copy bundled backend (aioncore only)
+const backendSrc = path.join(projectRoot, 'resources', 'bundled-aioncore', `${platform}-${arch}`);
 if (!fs.existsSync(backendSrc)) {
-  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAionuiBackend succeeded.`);
+  throw new Error(
+    `Backend bundle dir missing under resources/bundled-aioncore for ${platform}-${arch}. Ensure prepareAioncore succeeded.`
+  );
 }
+const backendDest = path.join(tarballContentDir, 'bundled-aioncore', `${platform}-${arch}`);
 fs.mkdirSync(path.dirname(backendDest), { recursive: true });
 fs.cpSync(backendSrc, backendDest, { recursive: true });
 

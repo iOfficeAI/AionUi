@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 import { execSync, spawn } from 'node:child_process';
+import fs from 'node:fs';
 import path from 'node:path';
 import process from 'node:process';
 
 const DEFAULT_PORTS = [5173, 9230];
 const KILLABLE_NAMES = new Set(['electron', 'aionui', 'aionui.exe']);
+const DEV_DATA_DIRS = ['.pouding-dev', '.pouding-dev-2', '.pouding-config-dev', '.pouding-config-dev-2'];
 
 const log = (...args) => console.log('[dev-bootstrap]', ...args);
 const warn = (...args) => console.warn('[dev-bootstrap]', ...args);
@@ -129,6 +131,23 @@ function cleanupByName() {
   return killed;
 }
 
+function cleanupDevDataDirs() {
+  const homeDir = process.env.HOME || process.env.USERPROFILE;
+  if (!homeDir) return [];
+  const removed = [];
+  for (const dirName of DEV_DATA_DIRS) {
+    const target = path.join(homeDir, dirName);
+    if (!fs.existsSync(target)) continue;
+    try {
+      fs.rmSync(target, { recursive: true, force: true });
+      removed.push(target);
+    } catch (error) {
+      warn(`failed to remove stale dev data dir ${target}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  }
+  return removed;
+}
+
 function doctor() {
   log(`platform=${process.platform} node=${process.version}`);
   try {
@@ -150,7 +169,7 @@ function doctor() {
   }
 }
 
-function launch(scriptName, withExtensions) {
+export function launch(scriptName, withExtensions) {
   if (!scriptName) {
     throw new Error(
       'Missing script name. Usage: node scripts/dev-bootstrap.mjs launch <start|webui|cli> [--extensions]'
@@ -159,8 +178,12 @@ function launch(scriptName, withExtensions) {
 
   const killedByName = cleanupByName();
   const killedByPort = cleanupPorts(DEFAULT_PORTS);
+  const cleanedDirs = cleanupDevDataDirs();
   if (killedByName.length > 0 || killedByPort.length > 0) {
     log(`killed ${killedByName.length + killedByPort.length} stale process(es)`);
+  }
+  if (cleanedDirs.length > 0) {
+    log(`removed ${cleanedDirs.length} stale dev data dir(s)`);
   }
 
   const env = { ...process.env };
@@ -185,8 +208,8 @@ function launch(scriptName, withExtensions) {
   });
 }
 
-function main() {
-  const { command, values, flags } = parseArgs(process.argv.slice(2));
+export function main(argv = process.argv.slice(2)) {
+  const { command, values, flags } = parseArgs(argv);
 
   if (command === 'doctor') {
     doctor();
@@ -201,4 +224,7 @@ function main() {
   throw new Error(`Unknown command: ${command}`);
 }
 
-main();
+const isDirectExecution = import.meta.url === `file://${process.argv[1]}`;
+if (isDirectExecution) {
+  main();
+}

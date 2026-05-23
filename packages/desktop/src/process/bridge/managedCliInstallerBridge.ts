@@ -34,6 +34,8 @@ type ManagedCliDescriptor = {
 
 const NPM_DEFAULT_REGISTRY = 'https://registry.npmjs.org';
 const NPM_MIRROR_REGISTRY = 'https://registry.npmmirror.com';
+const PYPI_TUNA_INDEX_URL = 'https://mirrors.tuna.tsinghua.edu.cn/pypi/web/simple';
+const PYPI_DEFAULT_INDEX_URL = 'https://pypi.org/simple';
 const HERMES_HOME_DIR = path.join(os.homedir(), '.hermes');
 const HERMES_VENV_DIR = path.join(HERMES_HOME_DIR, 'hermes-agent', 'venv');
 const HERMES_BIN_DIR = path.join(os.homedir(), '.local', 'bin');
@@ -82,6 +84,34 @@ function runCommand(command: string, args: string[], options: ExecCommandOptions
           return;
         }
         resolve();
+      }
+    );
+
+    child.unref?.();
+  });
+}
+
+function runCommandOutput(command: string, args: string[], options: ExecCommandOptions = {}): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const child = execFile(
+      command,
+      args,
+      {
+        env: {
+          ...process.env,
+          ...options.env,
+        },
+        cwd: options.cwd,
+        shell: false,
+        maxBuffer: 16 * 1024 * 1024,
+      },
+      (error, stdout, stderr) => {
+        if (error) {
+          const detail = [stderr, stdout, error.message].filter(Boolean).join('\n').trim();
+          reject(new Error(detail || `${command} ${args.join(' ')} failed`));
+          return;
+        }
+        resolve(stdout);
       }
     );
 
@@ -228,19 +258,86 @@ function getLocalUvBinaryPath(): string {
   return UV_BIN_PATH;
 }
 
+function getPythonLaunchers(): string[] {
+  return process.platform === 'win32' ? ['py', 'python'] : ['python3', 'python'];
+}
+
+function getPythonUserScriptsDir(userBase: string): string {
+  return path.join(userBase, process.platform === 'win32' ? 'Scripts' : 'bin');
+}
+
+function resolvePipIndexUrls(): string[] {
+  const configured = process.env.PIP_INDEX_URL?.trim();
+  if (configured) return [configured, PYPI_TUNA_INDEX_URL, PYPI_DEFAULT_INDEX_URL];
+  return [PYPI_TUNA_INDEX_URL, PYPI_DEFAULT_INDEX_URL];
+}
+
+async function installUvViaPythonUserSite(pythonCommand: string): Promise<string> {
+  let lastError: unknown;
+  for (const indexUrl of resolvePipIndexUrls()) {
+    try {
+      await runCommand(
+        pythonCommand,
+        ['-m', 'pip', 'install', '--user', '--disable-pip-version-check', '-i', indexUrl, 'uv'],
+        {
+          env: {
+            PIP_INDEX_URL: indexUrl,
+          },
+        }
+      );
+      lastError = undefined;
+      break;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  if (lastError) {
+    throw lastError instanceof Error ? lastError : new Error(String(lastError));
+  }
+  const userBase = (await runCommandOutput(pythonCommand, ['-c', 'import site; print(site.USER_BASE)'])).trim();
+  if (!userBase) {
+    throw new Error(`Failed to resolve USER_BASE for ${pythonCommand}`);
+  }
+  const uvBinary = path.join(getPythonUserScriptsDir(userBase), process.platform === 'win32' ? 'uv.exe' : 'uv');
+  if (!fs.existsSync(uvBinary)) {
+    throw new Error(`uv binary not found after pip install at ${uvBinary}`);
+  }
+  return uvBinary;
+}
+
 async function ensureBunInstalled(): Promise<string> {
   if (await commandExists(getBunCommand())) return getBunCommand();
   if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
     return getLocalBunBinaryPath();
   }
-  throw new Error('Bun is required for this operation. Please install Bun first, then retry.');
+  if (await commandExists('npm')) {
+    await installNpmPackage('bun');
+    if (await commandExists(getBunCommand())) return getBunCommand();
+    if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
+      return getLocalBunBinaryPath();
+    }
+  }
+  throw new Error('Bun is required for this operation and could not be auto-installed.');
 }
 
 async function ensureUvInstalled(): Promise<string> {
   const configuredUv = process.env.UV_BINARY?.trim() || 'uv';
   if (await commandExists(configuredUv)) return configuredUv;
   if (isAbsoluteExecutablePath(getLocalUvBinaryPath())) return getLocalUvBinaryPath();
-  throw new Error('uv is required for Hermes installation. Please install uv first, then retry.');
+  let lastError: unknown;
+  for (const pythonCommand of getPythonLaunchers()) {
+    if (!(await commandExists(pythonCommand))) continue;
+    try {
+      return await installUvViaPythonUserSite(pythonCommand);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw new Error(
+    lastError instanceof Error
+      ? `Failed to auto-install uv via Python mirror: ${lastError.message}`
+      : 'uv is required for Hermes installation. No suitable Python runtime was found to auto-install it.'
+  );
 }
 
 async function getGlobalJsCommand(): Promise<string> {
@@ -454,6 +551,14 @@ async function installManagedCli(input: ManagedCliInstallOptions): Promise<Manag
   }
 
   try {
+    const alreadyInstalled = await isManagedCliInstalled(descriptor);
+    if (alreadyInstalled) {
+      await syncAfterInstall(descriptor.target);
+      return {
+        success: true,
+        status: 'installed',
+      };
+    }
     await descriptor.install();
     await syncAfterInstall(descriptor.target);
     const installed = await isManagedCliInstalled(descriptor);
@@ -497,6 +602,22 @@ async function uninstallManagedCli(target: ManagedCliInstallTarget): Promise<Man
       message: error instanceof Error ? error.message : String(error),
     };
   }
+}
+
+export async function installManagedCliBatch(targets: ManagedCliInstallTarget[]): Promise<ManagedCliInstallResult[]> {
+  const results: ManagedCliInstallResult[] = [];
+  for (const target of targets) {
+    results.push(await installManagedCli({ target }));
+  }
+  return results;
+}
+
+export async function uninstallManagedCliBatch(targets: ManagedCliInstallTarget[]): Promise<ManagedCliInstallResult[]> {
+  const results: ManagedCliInstallResult[] = [];
+  for (const target of targets) {
+    results.push(await uninstallManagedCli(target));
+  }
+  return results;
 }
 
 export function initManagedCliInstallerBridge(): void {

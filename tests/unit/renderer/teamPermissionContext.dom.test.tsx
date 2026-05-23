@@ -26,10 +26,7 @@ vi.mock('@/common', () => ({
   },
 }));
 
-import {
-  TeamPermissionProvider,
-  useTeamPermission,
-} from '@/renderer/pages/team/hooks/TeamPermissionContext';
+import { TeamPermissionProvider, useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 
 const WarmupProbe: React.FC = () => {
   const teamPermission = useTeamPermission();
@@ -62,6 +59,23 @@ describe('TeamPermissionContext', () => {
     await waitFor(() => {
       expect(ensureSessionInvoke).toHaveBeenCalledTimes(1);
       expect(ensureSessionInvoke).toHaveBeenCalledWith({ team_id: 'team-1' });
+    });
+  });
+
+  it('warms the session automatically on provider mount', async () => {
+    render(
+      <TeamPermissionProvider
+        team_id='team-auto'
+        isLeaderAgent
+        leaderConversationId='conv-auto'
+        allConversationIds={['conv-auto']}
+      >
+        <div />
+      </TeamPermissionProvider>
+    );
+
+    await waitFor(() => {
+      expect(ensureSessionInvoke).toHaveBeenCalledWith({ team_id: 'team-auto' });
     });
   });
 

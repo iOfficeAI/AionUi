@@ -13,8 +13,8 @@
   "showPassword": "Показать пароль",
   "hidePassword": "Скрыть пароль",
   "languageToggle": "Сменить язык",
-  "footerPrimary": "Преобразуйте свой ИИ командной строки",
-  "footerSecondary": "Современно и эффективно",
+  "footerPrimary": "POUNDING",
+  "footerSecondary": "Агенты к вашим услугам",
   "errors": {
     "empty": "Введите имя пользователя и пароль",
     "invalidCredentials": "Неверное имя пользователя или пароль",

@@ -13,8 +13,8 @@
   "showPassword": "Şifreyi göster",
   "hidePassword": "Şifreyi gizle",
   "languageToggle": "Dili değiştir",
-  "footerPrimary": "Komut satırı AI'nızı dönüştürün",
-  "footerSecondary": "Modern ve Verimli",
+  "footerPrimary": "POUNDING",
+  "footerSecondary": "Ajanlar hizmetinizde",
   "errors": {
     "empty": "Lütfen kullanıcı adı ve şifre girin",
     "invalidCredentials": "Geçersiz kullanıcı adı veya şifre",

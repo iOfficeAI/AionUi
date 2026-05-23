@@ -20,6 +20,26 @@ import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 
+function resolveManagedConversationModelId(params: {
+  backend: string | undefined;
+  selectedAcpModel: string | null;
+  currentAcpCachedModelInfo: AcpModelInfo | null;
+}): string | undefined {
+  const { backend, selectedAcpModel, currentAcpCachedModelInfo } = params;
+  const managedCliTarget = resolveManagedRuntimeCliTarget(backend);
+  const chosenManagedModelId = selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
+
+  if (!managedCliTarget || !chosenManagedModelId) {
+    return chosenManagedModelId;
+  }
+
+  if (managedCliTarget === 'openclaw') {
+    return chosenManagedModelId;
+  }
+
+  return buildManagedRuntimeModelId(managedCliTarget, chosenManagedModelId);
+}
+
 export type GuidSendDeps = {
   // Input state
   input: string;
@@ -161,11 +181,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-      const managedCliTarget = resolveManagedRuntimeCliTarget(openclawAgentInfo?.backend || 'openclaw-gateway');
-      const managedCurrentModelId =
-        managedCliTarget && isManagedNewApiLoggedIn && selectedAcpModel
-          ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
-          : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
+      const managedCurrentModelId = resolveManagedConversationModelId({
+        backend: openclawAgentInfo?.backend || 'openclaw-gateway',
+        selectedAcpModel,
+        currentAcpCachedModelInfo,
+      });
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
@@ -346,11 +366,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
-      const managedCliTarget = resolveManagedRuntimeCliTarget(agentBackend);
-      const managedCurrentModelId =
-        managedCliTarget && isManagedNewApiLoggedIn && selectedAcpModel
-          ? buildManagedRuntimeModelId(managedCliTarget, selectedAcpModel)
-          : selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
+      const managedCurrentModelId = resolveManagedConversationModelId({
+        backend: agentBackend,
+        selectedAcpModel,
+        currentAcpCachedModelInfo,
+      });
 
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,

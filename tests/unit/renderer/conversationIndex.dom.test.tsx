@@ -9,16 +9,23 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { render, waitFor } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 
-const { navigateMock, messageWarning, conversationGetInvoke, listChangedOn, closePreview, openTab, syncTitleFromHistory } =
-  vi.hoisted(() => ({
-    navigateMock: vi.fn(),
-    messageWarning: vi.fn(),
-    conversationGetInvoke: vi.fn(),
-    listChangedOn: vi.fn(() => () => {}),
-    closePreview: vi.fn(),
-    openTab: vi.fn(),
-    syncTitleFromHistory: vi.fn(),
-  }));
+const {
+  navigateMock,
+  messageWarning,
+  conversationGetInvoke,
+  listChangedOn,
+  closePreview,
+  openTab,
+  syncTitleFromHistory,
+} = vi.hoisted(() => ({
+  navigateMock: vi.fn(),
+  messageWarning: vi.fn(),
+  conversationGetInvoke: vi.fn(),
+  listChangedOn: vi.fn(() => () => {}),
+  closePreview: vi.fn(),
+  openTab: vi.fn(),
+  syncTitleFromHistory: vi.fn(),
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

@@ -18,6 +18,7 @@ import {
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
@@ -28,6 +29,7 @@ import {
   MANAGED_NEWAPI_PROVIDER_ID,
   resolveManagedModelIdFromRuntime,
   resolveManagedRuntimeCliTarget,
+  sanitizeManagedRuntimeModelValue,
 } from '@/common/types/agent/managedRuntimeCli';
 
 type ModePreference = {
@@ -72,17 +74,23 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
   const cliTarget = resolveManagedRuntimeCliTarget(backend);
+  const toManagedRuntimeModelId = (modelId: string): string => {
+    if (!cliTarget) return modelId;
+    const resolvedManagedModelId = resolveManagedModelIdFromRuntime(cliTarget, modelId) || modelId;
+    return buildManagedRuntimeModelId(cliTarget, resolvedManagedModelId);
+  };
+
   if (cliTarget) {
     try {
       const providers = await ipcBridge.mode.listProviders.invoke();
       const managedProvider = providers?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID);
-      const managedModels = getManagedCliSelectableModels(managedProvider);
+      const managedModels = getManagedCliSelectableModels(managedProvider, cliTarget);
       if (managedModels.length > 0) {
         const savedManagedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
         if (savedManagedModel && managedModels.includes(savedManagedModel)) {
-          return buildManagedRuntimeModelId(cliTarget, savedManagedModel);
+          return toManagedRuntimeModelId(savedManagedModel);
         }
-        return buildManagedRuntimeModelId(cliTarget, managedModels[0]);
+        return toManagedRuntimeModelId(managedModels[0]);
       }
     } catch {
       // Fall through to legacy ACP preference / handshake fallback.
@@ -91,22 +99,18 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
 
   const acpConfig = configService.get('acp.config');
   const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
-  const preferredModelId = backendConfig?.preferredModelId;
+  const preferredModelId = sanitizeManagedRuntimeModelValue(backendConfig?.preferredModelId);
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
-    return cliTarget
-      ? resolveManagedModelIdFromRuntime(cliTarget, preferredModelId) || preferredModelId
-      : preferredModelId;
+    return cliTarget ? toManagedRuntimeModelId(preferredModelId) : preferredModelId;
   }
 
   // Fallback: last-seen model info persisted on the backend's agent_metadata row.
   const agents = await getAgents();
   const matched = agents.find((a) => (a.backend ?? a.agent_type) === backend);
   const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-  const handshakeModelId = handshakeModels?.current_model_id;
+  const handshakeModelId = sanitizeManagedRuntimeModelValue(handshakeModels?.current_model_id);
   if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
-    return cliTarget
-      ? resolveManagedModelIdFromRuntime(cliTarget, handshakeModelId) || handshakeModelId
-      : handshakeModelId;
+    return cliTarget ? toManagedRuntimeModelId(handshakeModelId) : handshakeModelId;
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
@@ -204,9 +208,9 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
 
   return buildAgentConversationParams({
     backend: agentKey,
-    name: agent.name,
+    name: getAgentDisplayName(agent),
     agent_id: agent.id,
-    agent_name: agent.name,
+    agent_name: getAgentDisplayName(agent),
     workspace,
     model,
     session_mode: preferredMode,
@@ -260,5 +264,6 @@ export async function buildPresetAssistantParams(
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
+    extra: preset_agent_type === 'aionrs' ? { backend: 'aionrs' } : undefined,
   });
 }

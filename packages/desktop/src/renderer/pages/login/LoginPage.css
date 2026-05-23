@@ -178,6 +178,10 @@ body.login-page-active {
   font-weight: 400;
 }
 
+.login-page__prep-section {
+  margin-bottom: 20px;
+}
+
 .login-page__form {
   margin-bottom: 24px;
 }

@@ -202,6 +202,7 @@
     "tryAnotherAgent": "尝试其他 Agent：",
     "switchedToAgent": "已切换到 {{agent}}",
     "switchAgentFailed": "切换 Agent 失败",
+    "notFound": "会话不存在或已被删除",
     "speech": {
       "recordTooltip": "开始语音输入",
       "pickFileTooltip": "选择音频文件",

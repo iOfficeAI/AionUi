@@ -62,11 +62,13 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     [modelConfig]
   );
   const managedSelectableModels = React.useMemo(
-    () => getManagedCliSelectableModels(managedProvider),
-    [managedProvider]
+    () => getManagedCliSelectableModels(managedProvider, resolveManagedRuntimeCliTarget(selectedAgentBackend)),
+    [managedProvider, selectedAgentBackend]
   );
   const isManagedCliSelection = Boolean(
-    resolveManagedRuntimeCliTarget(selectedAgentBackend) && isManagedNewApiLoggedIn && managedSelectableModels.length > 0
+    resolveManagedRuntimeCliTarget(selectedAgentBackend) &&
+    isManagedNewApiLoggedIn &&
+    managedSelectableModels.length > 0
   );
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {

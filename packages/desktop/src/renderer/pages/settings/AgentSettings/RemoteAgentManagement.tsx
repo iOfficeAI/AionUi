@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput } from '@/common/types/agent/remoteAgentTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import {
   Avatar,
   Button,
@@ -501,7 +502,7 @@ const RemoteAgentManagement: React.FC = () => {
 
               <div className='mb-10px text-center'>
                 <Typography.Text className='block text-14px font-medium leading-20px line-clamp-2'>
-                  {agent.name}
+                  {getAgentDisplayName({ name: agent.name })}
                 </Typography.Text>
               </div>
 

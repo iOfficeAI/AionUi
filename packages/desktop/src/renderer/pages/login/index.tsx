@@ -181,8 +181,9 @@ const LoginPage: React.FC = () => {
               return t('login.errors.serverError');
             case 'unknown':
             default:
-              return ('message' in result ? result.message : 'msg' in result ? result.msg : undefined) ?? t(
-                'login.errors.unknown'
+              return (
+                ('message' in result ? result.message : 'msg' in result ? result.msg : undefined) ??
+                t('login.errors.unknown')
               );
           }
         })();

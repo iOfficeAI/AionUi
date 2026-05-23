@@ -197,7 +197,7 @@
   "deleteInvalidKeys": "Geçersiz Anahtarları Sil",
   "testAllKeys": "Tüm Anahtarları Test Et",
   "addModelPlaceholder": "Model ID seçin veya girin",
-  "customModelSupportNote": "Not: Şu anda yalnızca Aion CLI özel modelleri destekliyor.",
+  "customModelSupportNote": "POUNDING yapay zeka modellerini sizin için zaten yapılandırdı. Sadece kullanmak istediğiniz model sağlayıcısını seçin.",
   "addModelHint": "Bir model ID seçin veya yazın, bu sağlayıcıya eklenecektir.",
   "addModelSelectedHint": "Model eklemeye hazır: {{model}}",
   "currentModelsLabel": "Mevcut Modeller",
@@ -518,7 +518,7 @@
   "needHelpTooltip": "Yardıma ihtiyacınız varsa, lütfen kontrol edin",
   "googleCloudProjectPlaceholder": "Google Cloud Proje ID'nizi girin",
   "noAvailableModels": "Mevcut model yok",
-  "appDescription": "Gemini CLI için ücretsiz, yerel, açık kaynaklı GUI uygulaması",
+  "appDescription": "Ajanlar sadece sizin için çalışsın",
   "helpDocumentation": "Yardım Dokümantasyonu",
   "updateLog": "Güncelleme Günlüğü",
   "feedback": "Geri Bildirim",
@@ -906,6 +906,6 @@
     "notFound": "Bulunamadı",
     "version": "Sürüm",
     "path": "Yol",
-    "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. Aion CLI destekler: Anthropic, OpenAI, AWS Bedrock."
+    "providerNote": "Sağlayıcı ve API anahtarı ayarları Modeller sayfasında yönetilir. POUNDING CLI Anthropic, OpenAI ve AWS Bedrock destekler."
   }
 }

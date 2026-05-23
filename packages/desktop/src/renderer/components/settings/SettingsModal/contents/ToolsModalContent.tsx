@@ -28,7 +28,10 @@ import {
   useMcpServerCRUD,
   useMcpOAuth,
 } from '@/renderer/hooks/mcp';
-import { MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME, MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
+import {
+  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
+  MANAGED_NEWAPI_PROVIDER_ID,
+} from '@/common/types/agent/managedRuntimeCli';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 

@@ -12,7 +12,6 @@ import { channelItemById, webuiTabByKey } from './selectors';
 export const ROUTES = {
   guid: '#/guid',
   settings: {
-    gemini: '#/settings/gemini',
     model: '#/settings/model',
     agent: '#/settings/agent',
     assistants: '#/settings/assistants',
@@ -46,6 +45,27 @@ function isAlreadyAt(page: Page, hash: string): boolean {
   }
 }
 
+async function openSettingsShell(page: Page): Promise<void> {
+  const directSettingsTrigger = page.locator('[data-testid="settings-trigger"]').first();
+  if (await directSettingsTrigger.isVisible().catch(() => false)) {
+    await directSettingsTrigger.click();
+    await page.waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 }).catch(() => {});
+    return;
+  }
+
+  const desktopAccountTrigger = page.locator('[data-testid="desktop-account-trigger"]').first();
+  if (await desktopAccountTrigger.isVisible().catch(() => false)) {
+    await desktopAccountTrigger.click();
+    const popupSettingsTrigger = page.locator('[data-testid="desktop-account-settings-trigger"]').first();
+    await popupSettingsTrigger.waitFor({ state: 'visible', timeout: 10_000 });
+    await popupSettingsTrigger.click();
+    await page.waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 }).catch(() => {});
+    return;
+  }
+
+  throw new Error('Could not find a settings entry point in sider footer.');
+}
+
 /**
  * Navigate to a hash route via UI clicks.
  *
@@ -70,8 +90,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   if (!targetIsSettings) {
     // Target is non-settings (guid, conversation, etc.)
     if (isOnSettings) {
-      // Click the sider back button to leave settings
-      const siderBtn = page.locator('.sider-footer div').first();
+      const siderBtn = page.locator('[data-testid="settings-trigger"]').first();
       await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
       await siderBtn.click();
       // Wait for hash to change away from settings
@@ -92,13 +111,7 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   } else {
     // Target is a settings sub-page
     if (!isOnSettings) {
-      // Click sider settings button to enter settings
-      const siderBtn = page.locator('.sider-footer div').first();
-      await siderBtn.waitFor({ state: 'visible', timeout: 10_000 });
-      await siderBtn.click();
-      await page
-        .waitForFunction(() => window.location.hash.includes('/settings/'), { timeout: 10_000 })
-        .catch(() => {});
+      await openSettingsShell(page);
     }
 
     // Extract the settings path segment (e.g. "assistants" from "#/settings/assistants")
@@ -147,9 +160,44 @@ export async function goToGuid(page: Page): Promise<void> {
   await navigateWithRetry(page, ROUTES.guid);
 }
 
+/**
+ * Wait until the desktop-managed account has either recovered into a logged-in
+ * state or the GUID surface has rendered its agent pills.
+ *
+ * Packaged Electron runs can take a moment to self-heal managed runtime state
+ * from CLI configs on first boot, so GUID smoke must not assert on pills
+ * before that recovery window closes.
+ */
+export async function waitForDesktopGuidReady(page: Page, timeoutMs = 20_000): Promise<void> {
+  await page.waitForFunction(
+    () => {
+      const bodyText = document.body.textContent || '';
+      const hasPill = Boolean(document.querySelector('[data-agent-pill="true"]'));
+      const showsLoginGate =
+        bodyText.includes('请登录后使用完整功能') ||
+        bodyText.includes('登录后将自动为你配置可用模型与访问能力') ||
+        bodyText.includes('Sign in to access full features') ||
+        bodyText.includes('available models and access will be configured automatically');
+      return hasPill || !showsLoginGate;
+    },
+    { timeout: timeoutMs }
+  );
+}
+
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
   await navigateWithRetry(page, ROUTES.settings[tab]);
+}
+
+export async function hasSettingsTab(page: Page, tab: SettingsTab): Promise<boolean> {
+  const currentHash = await page.evaluate(() => window.location.hash).catch(() => '');
+  if (!currentHash.includes('/settings/')) {
+    await openSettingsShell(page);
+  }
+  return page
+    .locator(`[data-settings-path="${tab}"]`)
+    .isVisible()
+    .catch(() => false);
 }
 
 /** Navigate to the assistant settings page. */

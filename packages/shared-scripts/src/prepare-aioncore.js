@@ -1,12 +1,12 @@
 /**
- * Prepare aionui-backend binary for packaging.
+ * Prepare aioncore binary for packaging.
  *
  * Resolution order:
  *  1. GitHub release download (requires version or defaults to "latest")
  *
- * Output: {projectRoot}/resources/bundled-aionui-backend/{platform}-{arch}/aionui-backend[.exe]
+ * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/aioncore[.exe]
  *
- * @module prepare-aionui-backend
+ * @module prepare-aioncore
  */
 
 const { execSync, execFileSync } = require('child_process');
@@ -14,12 +14,11 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const GITHUB_OWNER = 'iOfficeAI';
-const GITHUB_REPO = 'aionui-backend';
-
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
+const GITHUB_OWNER = process.env.AIONCORE_GITHUB_OWNER || 'halojerry';
+const GITHUB_REPO = process.env.AIONCORE_GITHUB_REPO || 'AionCore';
+const ASSET_PREFIX = process.env.AIONCORE_ASSET_PREFIX || 'aioncore';
+const SOURCE_BINARY_NAME = process.env.AIONCORE_SOURCE_BINARY_NAME || ASSET_PREFIX;
+const TARGET_BINARY_NAME = process.env.AIONCORE_TARGET_BINARY_NAME || 'aioncore';
 
 function ensureDirectory(dirPath) {
   if (!fs.existsSync(dirPath)) {
@@ -48,52 +47,35 @@ function writeJson(filePath, payload) {
 }
 
 function getBinaryName(platform) {
-  return platform === 'win32' ? 'aionui-backend.exe' : 'aionui-backend';
+  return platform === 'win32' ? `${SOURCE_BINARY_NAME}.exe` : SOURCE_BINARY_NAME;
 }
 
-// ---------------------------------------------------------------------------
-// Source resolvers
-// ---------------------------------------------------------------------------
+function getTargetBinaryName(platform) {
+  return platform === 'win32' ? `${TARGET_BINARY_NAME}.exe` : TARGET_BINARY_NAME;
+}
 
-/**
- * Resolve the actual version tag when "latest" is requested.
- * Uses GitHub API via `gh` CLI (needs GH_TOKEN in CI) or falls back to
- * `curl` with an optional Authorization header (GITHUB_TOKEN / GH_TOKEN).
- */
 function resolveLatestTag() {
   const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
 
-  // 1. Try gh CLI (honours GH_TOKEN automatically)
   try {
     const out = execSync(`gh api repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest --jq .tag_name`, {
       encoding: 'utf-8',
       timeout: 15000,
     }).trim();
     if (out) return out;
-  } catch {
-    // gh CLI not available or no token — fall back to curl
-  }
+  } catch {}
 
-  // 2. Curl with optional token to avoid rate-limit 403
   try {
     const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
     const args = ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/latest`];
     const out = execFileSync('curl', args, { encoding: 'utf-8', timeout: 15000 });
     const tag = JSON.parse(out).tag_name;
     if (tag) return tag;
-  } catch {
-    // network issue or rate-limited
-  }
+  } catch {}
 
   return null;
 }
 
-/**
- * Build the release asset filename for the given platform/arch/tag.
- *
- * Expected asset naming convention:
- *   aionui-backend-v0.1.0-aarch64-apple-darwin.tar.gz
- */
 function getAssetName(platform, arch, tag) {
   const archMap = { x64: 'x86_64', arm64: 'aarch64' };
   const platformMap = {
@@ -105,7 +87,7 @@ function getAssetName(platform, arch, tag) {
   const normalizedPlatform = platformMap[platform];
   if (!normalizedArch || !normalizedPlatform) return null;
   const ext = platform === 'win32' ? '.zip' : '.tar.gz';
-  return `aionui-backend-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
+  return `${ASSET_PREFIX}-${tag}-${normalizedArch}-${normalizedPlatform}${ext}`;
 }
 
 function getDownloadUrl(assetName, tag) {
@@ -113,7 +95,7 @@ function getDownloadUrl(assetName, tag) {
 }
 
 function downloadFile(url, outputPath) {
-  console.log(`  Downloading aionui-backend from ${url}`);
+  console.log(`  Downloading ${ASSET_PREFIX} from ${url}`);
   if (process.platform === 'win32') {
     const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
     execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
@@ -158,11 +140,11 @@ function findBinaryInDir(dir, binaryName) {
 function downloadAndExtract(platform, arch, tag) {
   const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
-    throw new Error(`Unsupported aionui-backend target: ${platform}-${arch}`);
+    throw new Error(`Unsupported ${ASSET_PREFIX} target: ${platform}-${arch}`);
   }
 
   const url = getDownloadUrl(assetName, tag);
-  const tempDir = path.join(os.tmpdir(), 'aionui-backend-prepare', tag, `${platform}-${arch}`);
+  const tempDir = path.join(os.tmpdir(), `${ASSET_PREFIX}-prepare`, tag, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
 
@@ -181,42 +163,27 @@ function downloadAndExtract(platform, arch, tag) {
   return { binaryPath, tempDir, url };
 }
 
-// ---------------------------------------------------------------------------
-// Main export
-// ---------------------------------------------------------------------------
-
-/**
- * Prepare aionui-backend binary for packaging.
- *
- * @param {object} options - Configuration options
- * @param {string} options.projectRoot - Project root directory
- * @param {string} options.platform - Target platform (process.platform)
- * @param {string} options.arch - Target architecture (process.arch)
- * @param {string} options.version - Backend version (default: 'latest')
- * @returns {{ prepared: true; dir: string; sourceType: string }}
- */
-function prepareAionuiBackend(options) {
+function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
 
-  // Resolve the actual version tag — asset filenames include the tag
   let tag;
   if (version === 'latest') {
     const resolved = resolveLatestTag();
     if (!resolved) {
-      throw new Error('Failed to resolve latest aionui-backend release tag from GitHub API');
+      throw new Error(`Failed to resolve latest ${ASSET_PREFIX} release tag from GitHub API`);
     }
     tag = resolved;
-    console.log(`Resolved aionui-backend "latest" → ${tag}`);
+    console.log(`Resolved ${ASSET_PREFIX} "latest" → ${tag}`);
   } else {
     tag = version.startsWith('v') ? version : `v${version}`;
   }
 
-  const targetDir = path.join(projectRoot, 'resources', 'bundled-aionui-backend', runtimeKey);
-  const binaryName = getBinaryName(platform);
+  const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncore', runtimeKey);
+  const binaryName = getTargetBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
-  console.log(`Preparing aionui-backend for ${runtimeKey} (version: ${tag})`);
+  console.log(`Preparing ${ASSET_PREFIX} for ${runtimeKey} (version: ${tag})`);
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -226,7 +193,6 @@ function prepareAionuiBackend(options) {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Download from GitHub releases
   if (!sourcePath) {
     try {
       const result = downloadAndExtract(platform, arch, tag);
@@ -234,20 +200,16 @@ function prepareAionuiBackend(options) {
       tempDir = result.tempDir;
       sourceType = 'download';
       sourceDetail = { url: result.url };
-      console.log(`  Downloaded from GitHub releases`);
+      console.log('  Downloaded from GitHub releases');
     } catch (error) {
       console.warn(`  Download failed: ${error.message}`);
     }
   }
 
-  // Write result
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
 
-    // The release tag is the authoritative version — the aionui-backend
-    // binary does not expose a --version flag (it has --app-version which
-    // takes a value, not a self-report).
     const manifest = {
       platform,
       arch,
@@ -260,14 +222,14 @@ function prepareAionuiBackend(options) {
 
     writeJson(path.join(targetDir, 'manifest.json'), manifest);
     console.log(
-      `  Bundled aionui-backend prepared: resources/bundled-aionui-backend/${runtimeKey}/${binaryName} [source=${sourceType}]`
+      `  Bundled ${ASSET_PREFIX} prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
 
     if (tempDir) removeDirectorySafe(tempDir);
     return { prepared: true, dir: targetDir, sourceType };
   }
 
-  throw new Error(`aionui-backend binary not found for ${runtimeKey} (tag: ${tag})`);
+  throw new Error(`${ASSET_PREFIX} binary not found for ${runtimeKey} (tag: ${tag})`);
 }
 
-module.exports = { prepareAionuiBackend };
+module.exports = { prepareAioncore };

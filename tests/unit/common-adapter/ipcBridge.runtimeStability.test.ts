@@ -84,11 +84,13 @@ describe('ipcBridge runtime stability regressions', () => {
           status: 404,
           headers: { 'Content-Type': 'application/json' },
         })
-    );
+      );
     vi.stubGlobal('fetch', fetchSpy);
     const errorSpy = vi.spyOn(console, 'error');
 
-    await expect(acpConversation.getMode.invoke({ conversation_id: 'conv-404' })).rejects.toMatchObject({ status: 404 });
+    await expect(acpConversation.getMode.invoke({ conversation_id: 'conv-404' })).rejects.toMatchObject({
+      status: 404,
+    });
     await expect(acpConversation.getModel.invoke({ conversation_id: 'conv-404' })).rejects.toMatchObject({
       status: 404,
     });

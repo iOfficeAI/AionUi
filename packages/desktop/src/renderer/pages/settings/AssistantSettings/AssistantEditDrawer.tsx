@@ -6,6 +6,7 @@ import type { AssistantListItem, BuiltinAutoSkill, SkillInfo } from './types';
 import type { AvailableBackend } from '@/renderer/hooks/assistant';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
 import { Close, Delete, Plus, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
@@ -133,6 +134,11 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const showSkills = isCreating || (activeAssistant !== null && activeAssistant.source !== 'extension');
 
   const agentOptions = availableBackends;
+  const selectedAgentDisplayName = getAgentDisplayName({
+    name: agentOptions.find((opt) => opt.id === editAgent)?.name,
+    backend: editAgent,
+    agent_type: editAgent,
+  });
 
   const customSkillItems = availableSkills.filter((skill) => skill.source === 'custom');
   const builtinSkillItems = availableSkills.filter((skill) => skill.source === 'builtin');
@@ -311,11 +317,19 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               value={editAgent}
               onChange={(value) => setEditAgent(value as string)}
               data-testid='select-assistant-agent'
+              renderFormat={() => {
+                const selectedAgentOption = agentOptions.find((opt) => opt.id === editAgent);
+                return getAgentDisplayName({
+                  name: selectedAgentOption?.name,
+                  backend: editAgent,
+                  agent_type: editAgent,
+                });
+              }}
             >
               {agentOptions.map((opt) => (
                 <Select.Option key={opt.id} value={opt.id}>
                   <span className='flex items-center gap-6px'>
-                    {opt.name}
+                    {getAgentDisplayName({ name: opt.name, backend: opt.id, agent_type: opt.id })}
                     {opt.isExtension && (
                       <Tag size='small' color='arcoblue'>
                         ext
@@ -333,7 +347,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
               {t('settings.assistantMainAgent', { defaultValue: 'Main Agent' })}:
             </span>
             <Tag size='small' color='arcoblue'>
-              {editAgent}
+              {selectedAgentDisplayName}
             </Tag>
             <span className='text-12px text-t-secondary ml-6px'>
               {t('settings.assistantSkills', { defaultValue: 'Skills' })}:

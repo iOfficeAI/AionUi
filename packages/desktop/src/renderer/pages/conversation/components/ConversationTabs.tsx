@@ -276,6 +276,7 @@ const ConversationTabs: React.FC = () => {
         {cliAgents.length > 0 && (
           <Menu.ItemGroup title={t('conversation.dropdown.cliAgents')}>
             {cliAgents.map((agent) => {
+              const displayName = getAgentDisplayName(agent);
               const logo = resolveAgentLogo({
                 icon: agent.icon,
                 name: agent.name,
@@ -286,15 +287,11 @@ const ConversationTabs: React.FC = () => {
                 <Menu.Item key={`cli:${agentKey}`}>
                   <div className='flex items-center gap-8px'>
                     {logo ? (
-                      <img
-                        src={logo}
-                        alt={getAgentDisplayName(agent)}
-                        style={{ width: 16, height: 16, objectFit: 'contain' }}
-                      />
+                      <img src={logo} alt={displayName} style={{ width: 16, height: 16, objectFit: 'contain' }} />
                     ) : (
                       <Robot size='16' />
                     )}
-                    <span>{getAgentDisplayName(agent)}</span>
+                    <span>{displayName}</span>
                     {agent.agent_source === 'extension' && (
                       <Tag size='small' color='arcoblue'>
                         ext

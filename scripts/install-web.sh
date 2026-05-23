@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # ============================================================================
-# AionUi WebUI — One-Click Installation Script
+# POUNDING WebUI — One-Click Installation Script
 # ============================================================================
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-web.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/halojerry/AionUi-2.0.2-dev-a3881e2/main/scripts/install-web.sh | bash
 #   # Or specify version:
 #   VERSION=1.0.0 bash install-web.sh
 #   # Or install to custom directory:
@@ -18,9 +18,10 @@ VERSION="${VERSION:-__VERSION__}"
 # occurrences above into e.g. "1.9.19". The resolve_version() function uses a
 # regex-based check (looks for letters) to detect the unreplaced placeholder,
 # so never add a literal "__VERSION__" string to any comparison below.
-INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/share/aionui-web}"
+INSTALL_DIR="${INSTALL_DIR:-${HOME}/.local/share/pounding-web}"
 BIN_DIR="${BIN_DIR:-${HOME}/.local/bin}"
-MIRROR="${MIRROR:-https://github.com/iOfficeAI/AionUi/releases/download}"
+MIRROR="${MIRROR:-https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/releases/download}"
+GITHUB_REPO="${GITHUB_REPO:-halojerry/AionUi-2.0.2-dev-a3881e2}"
 CREATE_SYMLINK="${CREATE_SYMLINK:-1}"
 UPDATE_PATH="${UPDATE_PATH:-1}"
 
@@ -43,9 +44,13 @@ die()     { error "$*"; exit 1; }
 banner() {
     echo -e "${CYAN}${BOLD}"
     echo "  ╔══════════════════════════════════════════════╗"
-    echo "  ║     AionUi WebUI Installer (No Electron)     ║"
+    echo "  ║    POUNDING WebUI Installer (No Electron)    ║"
     echo "  ╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
+}
+
+trim_trailing_slash() {
+    printf '%s' "${1%/}"
 }
 
 # ─── Parse Command-Line Arguments ───────────────────────────────────────────
@@ -91,8 +96,8 @@ Usage: install-web.sh [OPTIONS]
 
 Options:
   --version <version>       Specify version to install (default: latest or CI-embedded)
-  --mirror <url>            Specify mirror URL (default: GitHub releases)
-  --install-dir <path>      Specify installation directory (default: ~/.local/share/aionui-web)
+  --mirror <url>            Specify mirror URL (default: POUNDING COS release prefix)
+  --install-dir <path>      Specify installation directory (default: ~/.local/share/pounding-web)
   --no-symlink              Do not create symlink in ~/.local/bin
   --no-path                 Do not add PATH to shell profile
   --help                    Show this help message
@@ -104,7 +109,7 @@ Environment Variables:
 
 Examples:
   # Install latest version
-  curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-web.sh | bash
+  curl -fsSL https://raw.githubusercontent.com/halojerry/AionUi-2.0.2-dev-a3881e2/main/scripts/install-web.sh | bash
 
   # Install specific version
   VERSION=1.0.0 bash install-web.sh
@@ -171,10 +176,10 @@ resolve_version() {
         info "Resolving latest version from GitHub API..."
 
         if command -v curl &>/dev/null; then
-            VERSION=$(curl -fsSL "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         elif command -v wget &>/dev/null; then
-            VERSION=$(wget -qO- "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(wget -qO- "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         else
             die "curl or wget is required to resolve version. Please install curl or wget."
@@ -200,42 +205,48 @@ download_tarball() {
     TARBALL_PATH="${TEMP_DIR}/${TARBALL_NAME}"
     CHECKSUM_PATH="${TEMP_DIR}/${CHECKSUM_NAME}"
 
-    # Build download URL
-    # MIRROR formats:
-    #   - GitHub: https://github.com/iOfficeAI/AionUi/releases/download
-    #   - file: file:///path/to/releases
-    if [[ "$MIRROR" == file://* ]]; then
-        # Local file mirror (for offline installation or testing)
-        local base_path="${MIRROR#file://}"
-        TARBALL_URL="file://${base_path}/v${VERSION}/${TARBALL_NAME}"
-        CHECKSUM_URL="file://${base_path}/v${VERSION}/${CHECKSUM_NAME}"
-    else
-        # GitHub releases
-        TARBALL_URL="${MIRROR}/v${VERSION}/${TARBALL_NAME}"
-        CHECKSUM_URL="${MIRROR}/v${VERSION}/${CHECKSUM_NAME}"
-    fi
+    local release_base
+    release_base="$(trim_trailing_slash "$MIRROR")"
+
+    download_with_candidates() {
+        local label="$1"
+        local dest="$2"
+        shift 2
+
+        local candidate
+        for candidate in "$@"; do
+            info "Trying ${label}: ${BOLD}${candidate}${NC}"
+            if [[ "$candidate" == file://* ]]; then
+                local src_path="${candidate#file://}"
+                if [[ -f "$src_path" ]]; then
+                    cp "$src_path" "$dest"
+                    return 0
+                fi
+            else
+                if command -v curl &>/dev/null; then
+                    if curl -fSL --progress-bar -o "$dest" "$candidate"; then
+                        return 0
+                    fi
+                elif command -v wget &>/dev/null; then
+                    if wget --show-progress -q -O "$dest" "$candidate"; then
+                        return 0
+                    fi
+                else
+                    die "curl or wget is required. Please install curl or wget."
+                fi
+            fi
+        done
+
+        die "Failed to download ${label}; tried all candidate URLs"
+    }
 
     info "Downloading ${BOLD}${TARBALL_NAME}${NC}..."
-    info "URL: $TARBALL_URL"
-
-    # Download tarball
-    if [[ "$TARBALL_URL" == file://* ]]; then
-        # Local file: copy directly
-        local src_path="${TARBALL_URL#file://}"
-        if [[ ! -f "$src_path" ]]; then
-            die "Tarball not found at local mirror: $src_path"
-        fi
-        cp "$src_path" "$TARBALL_PATH"
-    else
-        # Remote file: use curl or wget
-        if command -v curl &>/dev/null; then
-            curl -fSL --progress-bar -o "$TARBALL_PATH" "$TARBALL_URL" || die "Download failed"
-        elif command -v wget &>/dev/null; then
-            wget --show-progress -q -O "$TARBALL_PATH" "$TARBALL_URL" || die "Download failed"
-        else
-            die "curl or wget is required. Please install curl or wget."
-        fi
-    fi
+    download_with_candidates \
+        "tarball" \
+        "$TARBALL_PATH" \
+        "${release_base}/${TARBALL_NAME}" \
+        "${release_base}/${VERSION}/${TARBALL_NAME}" \
+        "${release_base}/v${VERSION}/${TARBALL_NAME}"
 
     local size
     size=$(du -h "$TARBALL_PATH" | cut -f1)
@@ -243,19 +254,12 @@ download_tarball() {
 
     # Download SHA256 checksum
     info "Downloading ${BOLD}${CHECKSUM_NAME}${NC}..."
-    if [[ "$CHECKSUM_URL" == file://* ]]; then
-        local src_path="${CHECKSUM_URL#file://}"
-        if [[ ! -f "$src_path" ]]; then
-            die "Checksum file not found at local mirror: $src_path"
-        fi
-        cp "$src_path" "$CHECKSUM_PATH"
-    else
-        if command -v curl &>/dev/null; then
-            curl -fSL -o "$CHECKSUM_PATH" "$CHECKSUM_URL" || die "Checksum download failed"
-        elif command -v wget &>/dev/null; then
-            wget -q -O "$CHECKSUM_PATH" "$CHECKSUM_URL" || die "Checksum download failed"
-        fi
-    fi
+    download_with_candidates \
+        "checksum" \
+        "$CHECKSUM_PATH" \
+        "${release_base}/${CHECKSUM_NAME}" \
+        "${release_base}/${VERSION}/${CHECKSUM_NAME}" \
+        "${release_base}/v${VERSION}/${CHECKSUM_NAME}"
 
     success "Downloaded checksum"
 }
@@ -417,7 +421,7 @@ update_shell_profile() {
 
     # Add to profile
     echo "" >> "$profile_file"
-    echo "# Added by aionui-web installer" >> "$profile_file"
+    echo "# Added by pounding-web installer" >> "$profile_file"
     echo "$path_line" >> "$profile_file"
 
     success "Added PATH to $profile_file"
@@ -427,7 +431,7 @@ update_shell_profile() {
 print_summary() {
     echo ""
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 AionUi WebUI v${VERSION} Installed!${NC}"
+    echo -e "${GREEN}${BOLD}  🎉 POUNDING WebUI v${VERSION} Installed!${NC}"
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "  ${BOLD}📍 Installation directory:${NC}  ${INSTALL_DIR}"
@@ -438,13 +442,13 @@ print_summary() {
     echo -e "  ${BOLD}🚀 Usage:${NC}"
     echo ""
     if [[ "$CREATE_SYMLINK" == "1" && ":$PATH:" == *":${BIN_DIR}:"* ]]; then
-        echo "    # Start AionUi WebUI"
+        echo "    # Start POUNDING WebUI"
         echo "    aionui-web start"
         echo ""
         echo "    # Check version"
         echo "    aionui-web version"
     else
-        echo "    # Start AionUi WebUI (using full path)"
+        echo "    # Start POUNDING WebUI (using full path)"
         echo "    ${INSTALL_DIR}/aionui-web start"
         echo ""
         echo "    # Or add symlink to PATH:"
@@ -456,8 +460,8 @@ print_summary() {
         fi
     fi
     echo ""
-    echo -e "  ${BOLD}📖 Documentation:${NC}  https://github.com/iOfficeAI/AionUi"
-    echo -e "  ${BOLD}🐛 Report issues:${NC}  https://github.com/iOfficeAI/AionUi/issues"
+    echo -e "  ${BOLD}📖 Documentation:${NC}  https://api.mxou.cn"
+    echo -e "  ${BOLD}🐛 Report issues:${NC}  https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues"
     echo ""
     echo -e "  ${BOLD}🗑️  Uninstall:${NC}"
     echo ""

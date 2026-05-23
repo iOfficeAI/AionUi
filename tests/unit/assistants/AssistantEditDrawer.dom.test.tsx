@@ -112,7 +112,7 @@ describe('AssistantEditDrawer', () => {
         {...defaultProps}
         editVisible={true}
         editAgent='aionrs'
-        availableBackends={[{ id: 'aionrs', name: 'Aion CLI' }]}
+        availableBackends={[{ id: 'aionrs', name: 'POUNDING CLI' }]}
       />
     );
 

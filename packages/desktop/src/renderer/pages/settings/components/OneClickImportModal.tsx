@@ -18,7 +18,9 @@ interface OneClickImportModalProps {
 
 const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCancel, onBatchImport }) => {
   const { t } = useTranslation();
-  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string; displayName: string }>>([]);
+  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string; displayName: string }>>(
+    []
+  );
   const [selectedAgent, setSelectedAgent] = useState<string>('');
   const [importableServers, setImportableServers] = useState<IMcpServer[]>([]);
   const [loadingImport, setLoadingImport] = useState(false);

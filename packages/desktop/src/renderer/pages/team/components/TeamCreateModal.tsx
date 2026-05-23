@@ -10,6 +10,7 @@ import { useConversationAgents } from '@renderer/pages/conversation/hooks/useCon
 import AionModal from '@renderer/components/base/AionModal';
 import AionSelect from '@renderer/components/base/AionSelect';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
+import { buildPresetAssistantParams } from '@renderer/pages/conversation/utils/createConversationParams';
 import {
   agentKey,
   agentFromKey,
@@ -19,6 +20,7 @@ import {
   AgentOptionLabel,
   cliAgentToOption,
   assistantToOption,
+  getTeamAgentOptionLabel,
 } from './agentSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 
@@ -35,7 +37,7 @@ type Props = {
 };
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const { cliAgents, presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
@@ -103,17 +105,40 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agent_type: dispatchAgentType,
         conversation_type: dispatchConversationType,
       });
-      agents.push({
-        slot_id: '',
-        conversation_id: '',
-        role: 'leader',
-        status: 'pending',
-        agent_type: dispatchAgentType,
-        agent_name: 'Leader',
-        conversation_type: dispatchConversationType,
-        custom_agent_id: dispatchAgent?.id,
-        model: resolvedModel,
-      });
+      if (dispatchAgent?.kind === 'preset') {
+        const presetAssistant = presetAssistants.find((assistant) => assistant.id === dispatchAgent.id);
+        if (!presetAssistant) {
+          throw new Error(t('team.create.error', { defaultValue: 'Failed to create team' }));
+        }
+        const presetConversationParams = await buildPresetAssistantParams(presetAssistant, workspace, i18n.language);
+        const presetConversation = await ipcBridge.conversation.create.invoke(presetConversationParams);
+        if (!presetConversation?.id) {
+          throw new Error(t('team.create.error', { defaultValue: 'Failed to create team' }));
+        }
+        agents.push({
+          slot_id: '',
+          conversation_id: presetConversation.id,
+          role: 'leader',
+          status: 'pending',
+          agent_type: dispatchAgentType,
+          agent_name: 'Leader',
+          conversation_type: dispatchConversationType,
+          custom_agent_id: dispatchAgent.id,
+          model: resolvedModel,
+        });
+      } else {
+        agents.push({
+          slot_id: '',
+          conversation_id: '',
+          role: 'leader',
+          status: 'pending',
+          agent_type: dispatchAgentType,
+          agent_name: 'Leader',
+          conversation_type: dispatchConversationType,
+          custom_agent_id: dispatchAgent?.id,
+          model: resolvedModel,
+        });
+      }
 
       const team = await ipcBridge.team.create.invoke({
         user_id,
@@ -224,7 +249,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     if (!optionValue) return false;
                     const agent = agentFromKey(optionValue, allAgents);
                     if (!agent) return false;
-                    return agent.name.toLowerCase().includes(inputValue.toLowerCase());
+                    return getTeamAgentOptionLabel(agent).toLowerCase().includes(inputValue.toLowerCase());
                   }}
                   renderFormat={(_option, value) => {
                     const strVal = value as unknown as string;

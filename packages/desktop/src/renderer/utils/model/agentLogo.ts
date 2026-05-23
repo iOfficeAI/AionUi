@@ -48,17 +48,26 @@ const AGENT_LOGO_PATH_MAP = {
 const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
 const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
 
+function normalizeAgentAlias(value: string | undefined | null): string {
+  return (
+    value
+      ?.trim()
+      .toLowerCase()
+      .replace(/[\s_-]+/g, '') ?? ''
+  );
+}
+
 function buildAssetUrl(path: string): string {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
 }
 
-function isPoundingCliAgent(agent: string | undefined | null): boolean {
-  return typeof agent === 'string' && agent.toLowerCase() === 'aionrs';
+function isLegacyPoundingCliName(name: string | undefined | null): boolean {
+  const normalized = normalizeAgentAlias(name);
+  return normalized === 'aioncli' || normalized === 'aionui' || normalized === 'aionrs' || normalized === 'aion';
 }
 
-function isLegacyPoundingCliName(name: string | undefined | null): boolean {
-  const normalized = name?.trim().toLowerCase();
-  return normalized === 'aion cli' || normalized === 'aioncli' || normalized === 'aion rs';
+function isPoundingCliAgent(agent: string | undefined | null): boolean {
+  return normalizeAgentAlias(agent) === 'aionrs';
 }
 
 function applyThemeVariant(logo: string): string {
@@ -69,6 +78,11 @@ function applyThemeVariant(logo: string): string {
 
 function normalizeLogoUrl(logo: string): string {
   return applyThemeVariant(resolveBackendAssetUrl(logo) ?? logo);
+}
+
+export function isPoundingBrandedLogo(value: string | undefined | null): boolean {
+  const normalized = value?.trim().toLowerCase() ?? '';
+  return normalized.includes('pounding-heart-solid.png');
 }
 
 function isDarkTheme(): boolean {
@@ -116,6 +130,13 @@ export function resolveAgentLogo(opts: {
   name?: string | null;
 }): string | null {
   if (isPoundingCliAgent(opts.backend) || isLegacyPoundingCliName(opts.name)) {
+    return poundingHeartSolid;
+  }
+
+  // Some backend rows still persist the legacy POUNDING icon as a backend-served
+  // path. Prefer the packaged local asset so team/guid UIs do not depend on
+  // /api/assets/logos availability.
+  if (opts.icon && isPoundingBrandedLogo(opts.icon)) {
     return poundingHeartSolid;
   }
 

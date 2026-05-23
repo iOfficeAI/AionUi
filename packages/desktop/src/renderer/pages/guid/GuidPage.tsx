@@ -28,7 +28,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentDisplayName, resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -461,13 +461,14 @@ const GuidPage: React.FC = () => {
           extensionAvatar ||
           resolveAgentLogo({
             icon: a.icon,
+            name: a.name,
             backend: a.backend || a.agent_type,
             custom_agent_id: a.custom_agent_id,
             isExtension: a.isExtension,
           });
         return {
           key,
-          label: a.name,
+          label: getAgentDisplayName(a),
           logo,
           isCurrent: key === currentPresetAgentType,
           isExtension: a.isExtension,
@@ -486,6 +487,7 @@ const GuidPage: React.FC = () => {
     () =>
       resolveAgentLogo({
         icon: effectiveAgentRecord?.icon,
+        name: effectiveAgentRecord?.name,
         backend: effectiveAgentRecord?.backend || agentSelection.currentEffectiveAgentInfo.agent_type,
         custom_agent_id: effectiveAgentRecord?.custom_agent_id,
         isExtension: effectiveAgentRecord?.isExtension,
@@ -515,7 +517,12 @@ const GuidPage: React.FC = () => {
         await ipcBridge.assistants.update.invoke({ id: assistantId, preset_agent_type: nextType });
         await Promise.all([swrMutate('assistants.list'), agentSelection.refreshCustomAgents()]);
         const agent_name =
-          agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType)?.name || nextType;
+          getAgentDisplayName(
+            agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType) || {
+              backend: nextType,
+              agent_type: nextType,
+            }
+          ) || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agent_name }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);

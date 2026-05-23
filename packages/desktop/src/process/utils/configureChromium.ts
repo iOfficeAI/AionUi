@@ -17,12 +17,17 @@ import { getDevAppName } from '@/common/platform';
 // in case Rollup loads initStorage's chunk before this module runs.
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
 if (!app.isPackaged) {
-  const devAppName = getDevAppName();
-  app.setName(devAppName);
-  // In Electron 28+, setName alone no longer updates userData path on macOS.
-  // Explicitly override userData to the dev directory.
-  const appSupportDir = path.dirname(app.getPath('userData'));
-  app.setPath('userData', path.join(appSupportDir, devAppName));
+  const explicitUserDataDir = process.env.AIONUI_DATA_DIR?.trim();
+  if (explicitUserDataDir) {
+    app.setPath('userData', path.resolve(explicitUserDataDir));
+  } else {
+    const devAppName = getDevAppName();
+    app.setName(devAppName);
+    // In Electron 28+, setName alone no longer updates userData path on macOS.
+    // Explicitly override userData to the dev directory.
+    const appSupportDir = path.dirname(app.getPath('userData'));
+    app.setPath('userData', path.join(appSupportDir, devAppName));
+  }
 }
 
 // Configure Chromium command-line flags for WebUI and CLI modes
@@ -67,13 +72,13 @@ if (isWebUI || isResetPassword) {
 //
 // Multi-instance support: a file-based registry tracks all active instances
 // so each one gets a unique port and MCP tools can discover them all.
-// Registry file: ~/.aionui-cdp-registry.json
+// Registry file: ~/.pouding-cdp-registry.json
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CDP_PORT = 9230;
 export const CDP_PORT_RANGE_START = 9230;
 export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
+const CDP_REGISTRY_FILE = path.join(os.homedir(), '.pouding-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */

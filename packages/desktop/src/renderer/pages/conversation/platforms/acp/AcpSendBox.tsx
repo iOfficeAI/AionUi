@@ -32,6 +32,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -170,6 +171,7 @@ const AcpSendBox: React.FC<{
     setAiProcessing,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
+    fetchSlashCommands,
   });
 
   const executeCommand = useCallback(
@@ -365,7 +367,7 @@ Please check your local CLI tool authentication status`,
         loading={isBusy}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || backend,
+          backend: getAgentDisplayName({ name: agent_name, backend, agent_type: backend }),
           defaultValue: `Send message to {{backend}}...`,
         })}
         onStop={handleStop}

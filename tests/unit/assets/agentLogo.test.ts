@@ -127,6 +127,12 @@ describe('agentLogo', () => {
     it('maps legacy Aion CLI name to POUNDING CLI even without backend', () => {
       expect(getAgentDisplayName({ name: 'Aion CLI' })).toBe('POUNDING CLI');
     });
+
+    it('maps legacy AionUI naming variants to POUNDING CLI', () => {
+      expect(getAgentDisplayName({ name: 'AionUi' })).toBe('POUNDING CLI');
+      expect(getAgentDisplayName({ name: 'aion-ui' })).toBe('POUNDING CLI');
+      expect(getAgentDisplayName({ name: 'Aion UI' })).toBe('POUNDING CLI');
+    });
   });
 
   describe('hasAgentLogo', () => {

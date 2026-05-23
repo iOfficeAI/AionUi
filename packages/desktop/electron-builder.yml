@@ -109,9 +109,9 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
-  # aionui-backend binary (pre-compiled per platform/arch, ships its own bun runtime)
-  - from: resources/bundled-aionui-backend
-    to: bundled-aionui-backend
+  # aioncore binary (pre-compiled per platform/arch, ships its own bun runtime)
+  - from: resources/bundled-aioncore
+    to: bundled-aioncore
   - from: resources/hub
     to: hub
 win:
@@ -172,8 +172,8 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: pounding
+  vendor: pounding
   synopsis: ${description}
   description: ${description}
   desktop:

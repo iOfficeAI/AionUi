@@ -34,14 +34,28 @@ cd "$TEMP_DIR/aionui-web"
 #   ├── aionui-web           ← single compiled executable (no bin/, no dist/, no node_modules)
 #   ├── package.json         ← for version lookup
 #   ├── static/              ← SPA assets
-#   └── bundled-aionui-backend/<plat-arch>/...
-for dir in static bundled-aionui-backend; do
+#   └── bundled-aioncore/<plat-arch>/...         (upstream)
+for dir in static; do
   if [ ! -d "$dir" ]; then
     echo "❌ Missing $dir directory"
     exit 1
   fi
   echo "✓ Found $dir/"
 done
+
+BUNDLED_BACKEND_DIR=""
+for candidate in bundled-aioncore; do
+  if [ -d "$candidate" ]; then
+    BUNDLED_BACKEND_DIR="$candidate"
+    echo "✓ Found $candidate/"
+    break
+  fi
+done
+
+if [ -z "$BUNDLED_BACKEND_DIR" ]; then
+  echo "❌ Missing bundled backend directory (bundled-aioncore)"
+  exit 1
+fi
 
 if [ ! -f "package.json" ]; then
   echo "❌ Missing package.json"
@@ -71,14 +85,20 @@ echo "✓ Version: $VERSION"
 # 5. Test backend binary
 echo ""
 echo "5. Checking backend binary..."
-BACKEND_DIR="bundled-aionui-backend/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/; s/x86_64/x64/')"
-BACKEND_BINARY="$BACKEND_DIR/aionui-backend"
-if [ ! -x "$BACKEND_BINARY" ]; then
-  echo "❌ Backend binary missing or not executable: $BACKEND_BINARY"
+BACKEND_DIR="$BUNDLED_BACKEND_DIR/$(uname -s | tr '[:upper:]' '[:lower:]')-$(uname -m | sed 's/aarch64/arm64/; s/x86_64/x64/')"
+BACKEND_BINARY=""
+for candidate in aioncore; do
+  if [ -x "$BACKEND_DIR/$candidate" ]; then
+    BACKEND_BINARY="$BACKEND_DIR/$candidate"
+    break
+  fi
+done
+if [ -z "$BACKEND_BINARY" ]; then
+  echo "❌ Backend binary missing or not executable under: $BACKEND_DIR"
   exit 1
 fi
-# aionui-backend has no --version flag. Read the pinned version from manifest.json
-# (which prepareAionuiBackend writes at pack time) and use --help to confirm the
+# Backend has no --version flag. Read the pinned version from manifest.json
+# (which prepareAioncore writes at pack time) and use --help to confirm the
 # binary loads successfully on this platform's GLIBC / libstdc++ / etc.
 if [ -f "$BACKEND_DIR/manifest.json" ]; then
   BACKEND_VERSION=$(grep -o '"version"[[:space:]]*:[[:space:]]*"[^"]*"' "$BACKEND_DIR/manifest.json" | head -1 | sed 's/.*"\([^"]*\)"$/\1/')

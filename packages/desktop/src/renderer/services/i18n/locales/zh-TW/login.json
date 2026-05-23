@@ -13,8 +13,8 @@
   "showPassword": "顯示密碼",
   "hidePassword": "隱藏密碼",
   "languageToggle": "切換語言",
-  "footerPrimary": "命令列 AI 的現代化體驗",
-  "footerSecondary": "高效且優雅",
+  "footerPrimary": "POUNDING",
+  "footerSecondary": "讓 agent 們只為您服務",
   "errors": {
     "empty": "請輸入使用者名稱與密碼",
     "invalidCredentials": "使用者名稱或密碼錯誤",

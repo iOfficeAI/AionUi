@@ -202,6 +202,7 @@
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent",
+    "notFound": "Conversation does not exist or has been deleted",
     "speech": {
       "recordTooltip": "Start voice input",
       "pickFileTooltip": "Select an audio file",

@@ -59,7 +59,10 @@ export const useGuidModelSelection = (agentKey: ProviderAgentKey = 'aionrs'): Gu
     () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [modelConfig]
   );
-  const managedModels = useMemo(() => getManagedCliSelectableModels(managedProvider), [managedProvider]);
+  const managedModels = useMemo(
+    () => getManagedCliSelectableModels(managedProvider, resolveManagedRuntimeCliTarget(agentKey)),
+    [managedProvider, agentKey]
+  );
   const useManagedCliModels = agentKey !== 'aionrs' && isManagedNewApiLoggedIn && managedModels.length > 0;
 
   const modelList = useMemo(() => {

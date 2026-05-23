@@ -22,7 +22,8 @@ class ElectronWorkerProcess implements IWorkerProcess {
 
 export class ElectronPlatformServices implements IPlatformServices {
   paths = {
-    getDataDir: () => app.getPath('userData'),
+    getDataDir: () =>
+      process.env.AIONUI_DATA_DIR?.trim() ? path.resolve(process.env.AIONUI_DATA_DIR.trim()) : app.getPath('userData'),
     getTempDir: () => app.getPath('temp'),
     getHomeDir: () => app.getPath('home'),
     getLogsDir: () => {

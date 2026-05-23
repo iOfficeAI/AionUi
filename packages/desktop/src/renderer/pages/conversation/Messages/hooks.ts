@@ -364,7 +364,9 @@ function normalizeDbMessage(msg: TMessage): TMessage {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
+  const loadTokenRef = useRef(0);
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
+    const loadToken = ++loadTokenRef.current;
     const result = await ipcBridge.database.getConversationMessages.invoke({
       conversation_id: key,
       page: 0,
@@ -372,6 +374,7 @@ export const useMessageLstCache = (key: string) => {
     });
     const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
+      if (loadToken !== loadTokenRef.current) return messages;
       update((currentList) => {
         if (!currentList.length) return messages;
         const sameConversation = currentList.filter((m) => m.conversation_id === key);
@@ -407,11 +410,13 @@ export const useMessageLstCache = (key: string) => {
   }, [key, update]);
 
   useEffect(() => {
+    loadTokenRef.current += 1;
+    update([]);
     if (!key) return;
     void loadMessages().catch((error) => {
       console.error('[useMessageLstCache] Failed to load messages from database:', error);
     });
-  }, [key, loadMessages]);
+  }, [key, loadMessages, update]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

@@ -41,15 +41,12 @@ export const getTempPath = () => {
  * 在 macOS 上，在用户目录创建符号链接以避免路径中的空格。
  * CLI 工具如 Qwen 无法正确处理路径中的空格。
  */
-const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
+const ensureSingleCliSafeSymlink = (targetPath: string, symlinkPath: string): string => {
   // Only needed when the platform explicitly requires CLI-safe symlinks
   // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
   if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
     return targetPath;
   }
-
-  const homePath = getElectronPathOrFallback('home');
-  const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
   try {
@@ -89,28 +86,53 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
   }
 };
 
+const getLegacyCliSafeSymlinkName = (symlinkName: string): string | null => {
+  if (symlinkName.startsWith('.pouding')) {
+    return symlinkName.replace(/^\.pouding/, '.aionui');
+  }
+  return null;
+};
+
+const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
+  // Only needed when the platform explicitly requires CLI-safe symlinks
+  // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
+  if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
+    return targetPath;
+  }
+
+  const homePath = getElectronPathOrFallback('home');
+  const primarySymlinkPath = path.join(homePath, symlinkName);
+  const legacySymlinkName = getLegacyCliSafeSymlinkName(symlinkName);
+
+  const primaryResult = ensureSingleCliSafeSymlink(targetPath, primarySymlinkPath);
+  if (legacySymlinkName) {
+    ensureSingleCliSafeSymlink(targetPath, path.join(homePath, legacySymlinkName));
+  }
+  return primaryResult;
+};
+
 /**
  * Get data path, using CLI-safe symlink on macOS.
- * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
+ * Release builds use ~/.pouding; dev builds use ~/.pouding-dev.
  * 获取数据目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
+ * Release 使用 ~/.pouding，Dev 模式使用 ~/.pouding-dev。
  */
 export const getDataPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
   const dataPath = path.join(rootPath, 'aionui');
-  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.pouding'));
 };
 
 /**
  * Get config path, using CLI-safe symlink on macOS.
- * Release builds use ~/.aionui-config; dev builds use ~/.aionui-config-dev.
+ * Release builds use ~/.pouding-config; dev builds use ~/.pouding-config-dev.
  * 获取配置目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
+ * Release 使用 ~/.pouding-config，Dev 模式使用 ~/.pouding-config-dev。
  */
 export const getConfigPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
   const configPath = path.join(rootPath, 'config');
-  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.pouding-config'));
 };
 
 /**

@@ -27,9 +27,7 @@ type ManagedCliCardConfig = {
 type InstallState = 'idle' | 'installing' | 'uninstalling';
 
 const MANAGED_CLI_CARDS: ManagedCliCardConfig[] = [
-  { target: 'claude', label: 'Claude Code', backendAliases: ['claude', 'anthropic'] },
   { target: 'hermes', label: 'Hermes', backendAliases: ['hermes'] },
-  { target: 'opencode', label: 'OpenCode', backendAliases: ['opencode'] },
   { target: 'openclaw', label: 'OpenClaw', backendAliases: ['openclaw', 'openclaw-gateway'] },
 ];
 
@@ -105,7 +103,11 @@ const LocalAgents: React.FC = () => {
   const brandedAionrsAgent = aionrsAgent ? { ...aionrsAgent, name: 'POUNDING CLI' } : null;
 
   const managedCliCards = useMemo(() => {
-    return MANAGED_CLI_CARDS.map((card) => {
+    const visibleCards = isPackaged
+      ? MANAGED_CLI_CARDS.filter((card) => card.target === 'hermes' || card.target === 'openclaw')
+      : MANAGED_CLI_CARDS;
+
+    return visibleCards.map((card) => {
       const matchedAgent = detectedAgents.find((agent) =>
         card.backendAliases.includes((agent.backend || agent.agent_type || '').toLowerCase())
       );

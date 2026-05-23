@@ -9,7 +9,7 @@ import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { ConfigProvider } from '@arco-design/web-react';
 
-const managedModels = ['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro'];
+const managedModels = ['claude-sonnet-4-20250514', 'mimo-v2.5', 'deepseek-v4-pro'];
 let dropdownOpen = false;
 
 vi.mock('react-i18next', () => ({
@@ -34,7 +34,7 @@ vi.mock('@/renderer/hooks/agent/useModelProviderList', () => ({
     data: [
       {
         id: 'desktop-newapi-managed-provider',
-        name: 'New API',
+        name: 'POUNDING API',
         platform: 'new-api',
         base_url: 'https://api.mxou.cn',
         api_key: '',
@@ -55,10 +55,7 @@ vi.mock('@/common', () => ({
           model_info: {
             current_model_id: 'default',
             current_model_label: 'Default (recommended)',
-            available_models: [
-              { id: 'default', label: 'Default (recommended)' },
-              { id: 'opus', label: 'MiniMax-M2.7-highspeed' },
-            ],
+            available_models: [{ id: 'claude-sonnet-4-20250514', label: 'claude-sonnet-4-20250514' }],
           },
         }),
       },
@@ -88,10 +85,7 @@ vi.mock('swr', () => ({
           available_models: {
             current_model_id: 'default',
             current_model_label: 'Default (recommended)',
-            available_models: [
-              { id: 'default', label: 'Default (recommended)' },
-              { id: 'opus', label: 'MiniMax-M2.7-highspeed' },
-            ],
+            available_models: [{ id: 'claude-sonnet-4-20250514', label: 'claude-sonnet-4-20250514' }],
           },
         },
       },
@@ -153,16 +147,16 @@ describe('AcpModelSelector managed CLI mapping', () => {
   it('normalizes Claude dropdown to managed provider models only', async () => {
     render(
       <ConfigProvider>
-        <AcpModelSelector conversation_id='conv-1' backend='claude' initialModelId='MiniMax-M2.7-highspeed' />
+        <AcpModelSelector conversation_id='conv-1' backend='claude' initialModelId='claude-sonnet-4-20250514' />
       </ConfigProvider>
     );
 
-    expect((await screen.findAllByText('MiniMax-M2.7-highspeed')).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText('claude-sonnet-4-20250514')).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByTestId('dropdown-trigger'));
 
     const items = screen.getAllByTestId('menu-item').map((node) => node.textContent?.replace(/\s+/g, ' ').trim());
-    expect(items).toEqual(['MiniMax-M2.7-highspeed', 'mimo-v2.5', 'deepseek-v4-pro']);
+    expect(items).toEqual(['claude-sonnet-4-20250514']);
     expect(screen.queryByText('Default (recommended)')).not.toBeInTheDocument();
   });
 });

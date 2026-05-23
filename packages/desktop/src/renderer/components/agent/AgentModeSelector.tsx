@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
 import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -224,7 +225,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const renderLogo = () => (
     <AgentLogoIcon
       backend={backend}
-      agent_name={agent_name}
+      agent_name={getAgentDisplayName({ name: agent_name, backend, agent_type: backend })}
       agentLogo={agentLogo}
       agentLogoIsEmoji={agentLogoIsEmoji}
     />
@@ -259,12 +260,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // Compact mode: render only mode label chip in sendbox area
   if (compact) {
     const legacyCompactBehavior = !showLogoInCompact && compactLabelType === 'mode';
+    const displayAgentName = getAgentDisplayName({ name: agent_name, backend, agent_type: backend });
     const baseCompactLabel =
-      compactLabelType === 'agent'
-        ? agent_name || backend || 'Agent'
-        : can_switchMode
-          ? getCurrentModeLabel()
-          : agent_name || backend || 'Agent';
+      compactLabelType === 'agent' ? displayAgentName : can_switchMode ? getCurrentModeLabel() : displayAgentName;
     const compactLabel =
       compactLabelOverride ||
       (compactLabelPrefix && compactLabelType !== 'agent'
@@ -323,7 +321,9 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       style={{ opacity: isLoading ? 0.6 : 1, transition: 'opacity 0.2s' }}
     >
       {renderLogo()}
-      <span className='text-sm text-t-primary'>{agent_name || backend}</span>
+      <span className='text-sm text-t-primary'>
+        {getAgentDisplayName({ name: agent_name, backend, agent_type: backend })}
+      </span>
       {can_switchMode && (
         <>
           {current_mode !== defaultMode && <span className='text-xs text-t-tertiary'>({getCurrentModeLabel()})</span>}

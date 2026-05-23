@@ -44,7 +44,7 @@ const STORAGE_PATH = {
   config: 'aionui-config.txt',
   chatMessage: 'aionui-chat-message.txt',
   chat: 'aionui-chat.txt',
-  env: '.aionui-env',
+  env: '.pouding-env',
   assistants: 'assistants',
   skills: 'skills',
   cronSkills: 'cron-skills',

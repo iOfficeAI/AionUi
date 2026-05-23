@@ -5,9 +5,8 @@ import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import type { DetectedAgentKind } from '@/common/types/agent/detectedAgent';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { getAgentDisplayName, getAgentLogo, resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
@@ -110,8 +109,9 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
   if (!team_id) return null;
 
   const agent_type = resolveAgentTypeFromConversation(conversation);
-  const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
-  const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
+  const rawAgentName = resolveAgentName(conversation, presetInfo?.name ?? null);
+  const agent_name = presetInfo?.name || getAgentDisplayName({ name: rawAgentName, backend: agent_type, agent_type });
+  const explicitLogo = resolveAgentLogo({ icon, backend: agent_type, name: agent_name });
   const backendLogo = getAgentLogo(agent_type);
 
   const renderAvatar = () => {

@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { IConversationTurnCompletedEvent } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
@@ -76,6 +77,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   // Track whether current turn has content output
   // Only reset aiProcessing when finish arrives after content (not after tool calls)
   const hasContentInTurnRef = useRef(false);
+
+  // Guard against duplicate terminal events and late chunks reopening the turn.
+  const turnFinishedRef = useRef(false);
 
   // Track whether the current turn was triggered by a Star Office install request
   const starOfficeInstallInFlightRef = useRef(false);
@@ -169,6 +173,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
     setHasHydratedRunningState(false);
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
+    turnFinishedRef.current = false;
 
     // Check actual conversation status from backend before resetting aiProcessing
     // to avoid flicker when switching to a running conversation
@@ -220,6 +225,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
       switch (message.type) {
         case 'thought':
+          if (turnFinishedRef.current) {
+            break;
+          }
           // Auto-recover aiProcessing state if thought arrives after finish
           // 如果 thought 在 finish 后到达，自动恢复 aiProcessing 状态
           if (!aiProcessingRef.current) {
@@ -230,6 +238,10 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         case 'finish':
           {
+            if (turnFinishedRef.current) {
+              break;
+            }
+            turnFinishedRef.current = true;
             // Immediate state reset (notification is handled by centralized hook)
             // 立即重置状态（通知由集中化 hook 处理）
             setAiProcessing(false);
@@ -245,6 +257,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
           break;
         case 'content':
         case 'acp_permission': {
+          if (turnFinishedRef.current) {
+            break;
+          }
           // Mark that current turn has content output
           hasContentInTurnRef.current = true;
           // Auto-recover aiProcessing state if content arrives after finish
@@ -278,6 +293,30 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   }, [conversation_id, addOrUpdateMessage]);
 
   useEffect(() => {
+    const handleTurnCompleted = (event: IConversationTurnCompletedEvent) => {
+      if (event.session_id !== conversation_id) {
+        return;
+      }
+      if (event.status !== 'finished') {
+        return;
+      }
+
+      setAiProcessing(false);
+      aiProcessingRef.current = false;
+      setThought({ subject: '', description: '' });
+      hasContentInTurnRef.current = false;
+      turnFinishedRef.current = true;
+
+      if (starOfficeInstallInFlightRef.current) {
+        starOfficeInstallInFlightRef.current = false;
+        emitter.emit('staroffice.install.finished', { conversation_id });
+      }
+    };
+
+    return ipcBridge.conversation.turnCompleted.on(handleTurnCompleted);
+  }, [conversation_id]);
+
+  useEffect(() => {
     void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
@@ -286,17 +325,17 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   useAddEventListener(
     'staroffice.install.request',
-    ({ conversation_id, text }) => {
-      if (conversation_id !== conversation_id) return;
+    ({ conversation_id: targetConversationId, text }) => {
+      if (targetConversationId !== conversation_id) return;
       // Show the simplified prompt to user, inject star-office-helper skill via main process
       setAiProcessing(true);
       aiProcessingRef.current = true;
       starOfficeInstallInFlightRef.current = true;
-      void checkAndUpdateTitle(conversation_id, text);
+      void checkAndUpdateTitle(targetConversationId, text);
       // Fetch the server-assigned msg_id first so the optimistic bubble uses
       // the same id as the persisted DB row.
       ipcBridge.openclawConversation.sendMessage
-        .invoke({ input: text, conversation_id, inject_skills: ['star-office-helper'] })
+        .invoke({ input: text, conversation_id: targetConversationId, inject_skills: ['star-office-helper'] })
         .then((res) => {
           const { msg_id } = res;
           const userMessage: TMessage = {
@@ -534,6 +573,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = false;
       setThought({ subject: '', description: '' });
       hasContentInTurnRef.current = false;
+      turnFinishedRef.current = true;
       resetActiveExecution('stop');
     }
   };

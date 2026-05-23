@@ -36,6 +36,24 @@ export type NewApiLoginResponse = {
   status: NewApiAccountStatus;
 };
 
+export type NewApiManagedCliPrepStage =
+  | 'idle'
+  | 'preparing_environment'
+  | 'installing_hermes'
+  | 'installing_openclaw'
+  | 'completed'
+  | 'failed';
+
+export type NewApiManagedCliPrepStatus = {
+  inProgress: boolean;
+  completed: boolean;
+  stage: NewApiManagedCliPrepStage;
+  currentTarget?: ManagedRuntimeCliTarget;
+  completedTargets: ManagedRuntimeCliTarget[];
+  percent: number;
+  error?: string;
+};
+
 export type NewApiTokenPayload = {
   token?: string;
   access_token?: string;
