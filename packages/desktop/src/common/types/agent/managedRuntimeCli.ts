@@ -3,7 +3,7 @@ import type { ManagedRuntimeCliTarget } from '@/common/types/newApiAccount';
 import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
 
 const CLAUDE_COMPATIBLE_PROTOCOLS = new Set(['anthropic']);
-const ANSI_ESCAPE_PATTERN = /\u001b\[[0-9;]*[A-Za-z]/g;
+const ANSI_ESCAPE_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Za-z]`, 'g');
 const ORPHAN_SGR_SUFFIX_PATTERN = /\[(?:\d{1,3}(?:;\d{1,3})*)m\]?$/i;
 const SET_MODEL_PREFIX_PATTERN = /^set model to\s+/i;
 
