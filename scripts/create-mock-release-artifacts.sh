@@ -3,6 +3,7 @@
 set -euo pipefail
 
 ARTIFACTS_DIR="${1:-build-artifacts}"
+VERSION="${MOCK_VERSION:-$(node -p "require('./package.json').version")}"
 
 rm -rf "$ARTIFACTS_DIR"
 mkdir -p "$ARTIFACTS_DIR/windows-build-x64"
@@ -13,72 +14,78 @@ mkdir -p "$ARTIFACTS_DIR/linux-build-x64"
 mkdir -p "$ARTIFACTS_DIR/linux-build-arm64"
 
 # Windows x64
-touch "$ARTIFACTS_DIR/windows-build-x64/POUNDING-1.0.0-win-x64.exe"
+touch "$ARTIFACTS_DIR/windows-build-x64/POUNDING-${VERSION}-win-x64.exe"
 cat > "$ARTIFACTS_DIR/windows-build-x64/latest.yml" <<'EOF'
-version: 1.0.0
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-win-x64.exe
+  - url: POUNDING-VERSION_PLACEHOLDER-win-x64.exe
     sha512: fake-sha512-x64
     size: 100000
-path: POUNDING-1.0.0-win-x64.exe
+path: POUNDING-VERSION_PLACEHOLDER-win-x64.exe
 sha512: fake-sha512-x64
 releaseDate: '2025-01-01'
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/windows-build-x64/latest.yml"
 
 # Windows arm64
-touch "$ARTIFACTS_DIR/windows-build-arm64/POUNDING-1.0.0-win-arm64.exe"
+touch "$ARTIFACTS_DIR/windows-build-arm64/POUNDING-${VERSION}-win-arm64.exe"
 cat > "$ARTIFACTS_DIR/windows-build-arm64/latest.yml" <<'EOF'
-version: 1.0.0
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-win-arm64.exe
+  - url: POUNDING-VERSION_PLACEHOLDER-win-arm64.exe
     sha512: fake-sha512-arm64
     size: 100000
-path: POUNDING-1.0.0-win-arm64.exe
+path: POUNDING-VERSION_PLACEHOLDER-win-arm64.exe
 sha512: fake-sha512-arm64
 releaseDate: '2025-01-01'
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/windows-build-arm64/latest.yml"
 
 # macOS x64
-touch "$ARTIFACTS_DIR/macos-build-x64/POUNDING-1.0.0-mac-x64.dmg"
-touch "$ARTIFACTS_DIR/macos-build-x64/POUNDING-1.0.0-mac-x64.zip"
-cat > "$ARTIFACTS_DIR/macos-build-x64/latest-mac.yml" <<'EOF'
-version: 1.0.0
+  touch "$ARTIFACTS_DIR/macos-build-x64/POUNDING-${VERSION}-mac-x64.dmg"
+  touch "$ARTIFACTS_DIR/macos-build-x64/POUNDING-${VERSION}-mac-x64.zip"
+  cat > "$ARTIFACTS_DIR/macos-build-x64/latest-mac.yml" <<'EOF'
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-mac-x64.dmg
+  - url: POUNDING-VERSION_PLACEHOLDER-mac-x64.dmg
     sha512: fake-sha512-mac-x64
     size: 200000
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/macos-build-x64/latest-mac.yml"
 
 # macOS arm64
-touch "$ARTIFACTS_DIR/macos-build-arm64/POUNDING-1.0.0-mac-arm64.dmg"
-touch "$ARTIFACTS_DIR/macos-build-arm64/POUNDING-1.0.0-mac-arm64.zip"
-cat > "$ARTIFACTS_DIR/macos-build-arm64/latest-mac.yml" <<'EOF'
-version: 1.0.0
+  touch "$ARTIFACTS_DIR/macos-build-arm64/POUNDING-${VERSION}-mac-arm64.dmg"
+  touch "$ARTIFACTS_DIR/macos-build-arm64/POUNDING-${VERSION}-mac-arm64.zip"
+  cat > "$ARTIFACTS_DIR/macos-build-arm64/latest-mac.yml" <<'EOF'
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-mac-arm64.dmg
+  - url: POUNDING-VERSION_PLACEHOLDER-mac-arm64.dmg
     sha512: fake-sha512-mac-arm64
     size: 200000
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/macos-build-arm64/latest-mac.yml"
 
 # Linux x64
-touch "$ARTIFACTS_DIR/linux-build-x64/POUNDING-1.0.0-linux-x64.deb"
-cat > "$ARTIFACTS_DIR/linux-build-x64/latest-linux.yml" <<'EOF'
-version: 1.0.0
+  touch "$ARTIFACTS_DIR/linux-build-x64/POUNDING-${VERSION}-linux-x64.deb"
+  cat > "$ARTIFACTS_DIR/linux-build-x64/latest-linux.yml" <<'EOF'
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-linux-x64.deb
+  - url: POUNDING-VERSION_PLACEHOLDER-linux-x64.deb
     sha512: fake-sha512-linux
     size: 300000
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/linux-build-x64/latest-linux.yml"
 
 # Linux arm64
-touch "$ARTIFACTS_DIR/linux-build-arm64/POUNDING-1.0.0-linux-arm64.deb"
-cat > "$ARTIFACTS_DIR/linux-build-arm64/latest-linux-arm64.yml" <<'EOF'
-version: 1.0.0
+  touch "$ARTIFACTS_DIR/linux-build-arm64/POUNDING-${VERSION}-linux-arm64.deb"
+  cat > "$ARTIFACTS_DIR/linux-build-arm64/latest-linux-arm64.yml" <<'EOF'
+version: VERSION_PLACEHOLDER
 files:
-  - url: POUNDING-1.0.0-linux-arm64.deb
+  - url: POUNDING-VERSION_PLACEHOLDER-linux-arm64.deb
     sha512: fake-sha512-linux-arm64
     size: 300000
 EOF
+sed -i '' "s/VERSION_PLACEHOLDER/${VERSION}/g" "$ARTIFACTS_DIR/linux-build-arm64/latest-linux-arm64.yml"
 
 # Web-CLI tarballs (5 platforms)
 WEB_PLATFORMS=(
@@ -92,7 +99,7 @@ WEB_PLATFORMS=(
 for plat in "${WEB_PLATFORMS[@]}"; do
   dir="$ARTIFACTS_DIR/web-cli-${plat}"
   mkdir -p "$dir"
-  tarball="aionui-web-1.0.0-${plat}.tar.gz"
+  tarball="aionui-web-${VERSION}-${plat}.tar.gz"
   touch "$dir/$tarball"
   # Produce a deterministic fake SHA256 file in the expected format:
   # "<64 hex chars>  <filename>"
