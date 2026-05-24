@@ -4,11 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { networkInterfaces } from 'os';
 import type { IWebUIStatus } from '@/common/adapter/ipcBridge';
 import { AuthService } from '@process/webserver/auth/service/AuthService';
 import { UserRepository } from '@process/webserver/auth/repository/UserRepository';
 import { AUTH_CONFIG, SERVER_CONFIG } from '@process/webserver/config/constants';
+import { getPreferredRemoteAddress, selectPreferredRemoteAddress } from '@process/webserver/networkAddress';
+
+export { selectPreferredRemoteAddress };
 
 /**
  * WebUI 服务层 - 封装所有 WebUI 相关的业务逻辑
@@ -53,21 +55,7 @@ export class WebuiService {
    * Get LAN IP address
    */
   static getLanIP(): string | null {
-    const nets = networkInterfaces();
-    for (const name of Object.keys(nets)) {
-      const netInfo = nets[name];
-      if (!netInfo) continue;
-
-      for (const net of netInfo) {
-        // Node.js 18.4+ returns number (4/6), older versions return string ('IPv4'/'IPv6')
-        const isIPv4 = net.family === 'IPv4' || (net.family as unknown) === 4;
-        const isNotInternal = !net.internal;
-        if (isIPv4 && isNotInternal) {
-          return net.address;
-        }
-      }
-    }
-    return null;
+    return getPreferredRemoteAddress();
   }
 
   /**

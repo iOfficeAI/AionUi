@@ -96,6 +96,15 @@ function getAuthStatusHandler(app: express.Express): express.RequestHandler {
   return layer?.route?.stack?.[1]?.handle as express.RequestHandler;
 }
 
+function getQrLoginPageHandler(app: express.Express): express.RequestHandler {
+  const layer = app.router.stack.find(
+    (entry: { route?: { path?: string; stack?: Array<{ handle: express.RequestHandler }> } }) =>
+      entry.route?.path === '/qr-login'
+  );
+
+  return layer?.route?.stack?.[0]?.handle as express.RequestHandler;
+}
+
 async function waitForAssertion(assertion: () => void): Promise<void> {
   let lastError: unknown;
 
@@ -219,5 +228,27 @@ describe('registerAuthRoutes /api/auth/status', () => {
         error: 'Internal server error',
       });
     });
+  });
+
+  it('serves the QR login page without browser caching', async () => {
+    const { registerAuthRoutes } = await import('@process/webserver/routes/authRoutes');
+    const app = express();
+    registerAuthRoutes(app);
+
+    const handler = getQrLoginPageHandler(app);
+    const res = {
+      send: vi.fn(),
+      setHeader: vi.fn(),
+    } as unknown as express.Response;
+
+    handler({} as express.Request, res, vi.fn());
+
+    expect(res.setHeader).toHaveBeenCalledWith('Cache-Control', 'no-cache, no-store, must-revalidate');
+    expect(res.setHeader).toHaveBeenCalledWith('Pragma', 'no-cache');
+    expect(res.setHeader).toHaveBeenCalledWith('Expires', '0');
+    const html = vi.mocked(res.send).mock.calls[0]?.[0] as string;
+    expect(html).toContain('/api/auth/qr-login');
+    expect(html).toContain('qr_token: qrToken');
+    expect(html).toContain('/#/guid');
   });
 });

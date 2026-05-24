@@ -537,6 +537,11 @@ const WebuiModalContent: React.FC = () => {
     }
   };
 
+  const buildQrLoginUrl = useCallback(
+    (token: string) => `${getDisplayUrl()}/qr-login?token=${encodeURIComponent(token)}`,
+    [getDisplayUrl]
+  );
+
   // 生成二维码 / Generate QR code
   const generateQRCode = useCallback(async () => {
     if (!status?.running) return;
@@ -546,7 +551,7 @@ const WebuiModalContent: React.FC = () => {
       // 优先使用直接 IPC（Electron 环境）/ Prefer direct IPC (Electron environment)
       let result: {
         success: boolean;
-        data?: { token: string; expiresAt: number; qrUrl: string };
+        data?: { token?: string; expiresAt?: number; expires_at_ms?: number; qrUrl?: string };
         msg?: string;
       } | null = null;
 
@@ -558,8 +563,17 @@ const WebuiModalContent: React.FC = () => {
       }
 
       if (result && result.success && result.data) {
-        setQrUrl(result.data.qrUrl);
-        setQrExpiresAt(result.data.expiresAt);
+        const nextQrUrl = result.data.qrUrl || (result.data.token ? buildQrLoginUrl(result.data.token) : null);
+        const nextExpiresAt = result.data.expiresAt ?? result.data.expires_at_ms ?? null;
+
+        if (!nextQrUrl) {
+          console.error('Generate QR code failed: missing QR URL and token');
+          Message.error(t('settings.webui.qrGenerateFailed'));
+          return;
+        }
+
+        setQrUrl(nextQrUrl);
+        setQrExpiresAt(nextExpiresAt);
 
         // 设置自动刷新定时器（4分钟后自动刷新，因为 token 5分钟过期）
         // Set auto-refresh timer (refresh after 4 minutes, as token expires in 5 minutes)
@@ -582,7 +596,7 @@ const WebuiModalContent: React.FC = () => {
     } finally {
       setQrLoading(false);
     }
-  }, [status?.running, t]);
+  }, [buildQrLoginUrl, status?.running, t]);
 
   // 当服务器启动且允许远程访问时自动生成二维码 / Auto-generate QR code when server starts and remote access is allowed
   useEffect(() => {

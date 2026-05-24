@@ -17,10 +17,22 @@ const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSet
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
 const ExtensionSettingsPage = React.lazy(() => import('@renderer/pages/settings/ExtensionSettingsPage'));
 const LoginPage = React.lazy(() => import('@renderer/pages/login'));
+const QRLoginPage = React.lazy(() => import('@renderer/pages/qr-login'));
 const ComponentsShowcase = React.lazy(() => import('@renderer/pages/TestShowcase'));
 const ScheduledTasksPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage'));
 const TaskDetailPage = React.lazy(() => import('@renderer/pages/cron/ScheduledTasksPage/TaskDetailPage'));
 const TeamIndex = React.lazy(() => import('@renderer/pages/team'));
+
+export function normalizeQRLoginHashRoute(): void {
+  if (typeof window === 'undefined') return;
+
+  const { hash, origin, pathname, search } = window.location;
+  if (pathname !== '/qr-login' || hash.startsWith('#/qr-login')) {
+    return;
+  }
+
+  window.history.replaceState(null, '', `${origin}/#/qr-login${search}`);
+}
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -44,10 +56,12 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 
 const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
+  normalizeQRLoginHashRoute();
 
   return (
     <HashRouter>
       <Routes>
+        <Route path='/qr-login' element={withRouteFallback(QRLoginPage)} />
         <Route
           path='/login'
           element={status === 'authenticated' ? <Navigate to='/guid' replace /> : withRouteFallback(LoginPage)}
