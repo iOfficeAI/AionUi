@@ -97,6 +97,11 @@ export const attachWindowBoundsPersistence = (
   let pendingWrite: Promise<unknown> | null = null;
 
   const fireWrite = (bounds: WindowBounds): Promise<unknown> => {
+    // Update the in-memory cache synchronously so a subsequent
+    // resolveInitialBounds() (e.g. user closes the window then reopens it
+    // without quitting the app) sees the latest bounds rather than the
+    // boot-time snapshot.
+    cachedBounds = bounds;
     const op = Promise.resolve(persist(bounds)).catch((error) => {
       console.error('[AionUi] Failed to persist window bounds:', error);
     });
