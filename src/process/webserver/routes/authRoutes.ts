@@ -56,13 +56,13 @@ const QR_LOGIN_PAGE_HTML = `<!DOCTYPE html>
         var response = await fetch('/api/auth/qr-login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ qrToken: qrToken }),
+          body: JSON.stringify({ qrToken: qrToken, qr_token: qrToken }),
           credentials: 'include'
         });
         var data = await response.json();
         if (data.success) {
           container.innerHTML = '<h2 class="success">Login Successful!</h2><p>Redirecting... / 登录成功，正在跳转...</p>';
-          setTimeout(function() { window.location.href = '/'; }, 1000);
+          setTimeout(function() { window.location.href = '/#/guid'; }, 1000);
         } else {
           // XSS 安全修复：使用 textContent 而非 innerHTML 插入错误消息
           // XSS Security fix: Use textContent instead of innerHTML for error message
@@ -441,6 +441,9 @@ export function registerAuthRoutes(app: Express): void {
    * Security: Return static HTML, JavaScript reads token from URL to prevent XSS
    */
   app.get('/qr-login', (_req: Request, res: Response) => {
+    res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
+    res.setHeader('Pragma', 'no-cache');
+    res.setHeader('Expires', '0');
     res.send(QR_LOGIN_PAGE_HTML);
   });
 }

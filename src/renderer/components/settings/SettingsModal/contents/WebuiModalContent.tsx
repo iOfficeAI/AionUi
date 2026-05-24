@@ -538,7 +538,7 @@ const WebuiModalContent: React.FC = () => {
   };
 
   const buildQrLoginUrl = useCallback(
-    (token: string) => `${getDisplayUrl()}/#/qr-login?token=${encodeURIComponent(token)}`,
+    (token: string) => `${getDisplayUrl()}/qr-login?token=${encodeURIComponent(token)}`,
     [getDisplayUrl]
   );
 
