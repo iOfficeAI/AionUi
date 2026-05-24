@@ -48,16 +48,32 @@ class ConfigServiceImpl {
   private cache = new Map<string, unknown>();
   private subscribers = new Map<string, Set<Subscriber>>();
   private initialized = false;
+  private initPromise: Promise<void> | null = null;
 
-  async initialize(): Promise<void> {
-    const data = await fetchJson<Record<string, unknown>>('GET', '/api/settings/client');
-    this.cache.clear();
-    if (data) {
-      for (const [key, value] of Object.entries(data)) {
-        this.cache.set(key, value);
+  // Idempotent: concurrent callers share the same in-flight promise, and a
+  // resolved init returns immediately. Modules that need persisted settings on
+  // module load (theme/colorScheme/language) await whenReady() before reading.
+  initialize(): Promise<void> {
+    if (this.initPromise) return this.initPromise;
+    this.initPromise = (async () => {
+      const data = await fetchJson<Record<string, unknown>>('GET', '/api/settings/client');
+      this.cache.clear();
+      if (data) {
+        for (const [key, value] of Object.entries(data)) {
+          this.cache.set(key, value);
+        }
       }
-    }
-    this.initialized = true;
+      this.initialized = true;
+    })();
+    this.initPromise.catch(() => {
+      // Allow a future caller to retry after a transient failure
+      this.initPromise = null;
+    });
+    return this.initPromise;
+  }
+
+  whenReady(): Promise<void> {
+    return this.initialize();
   }
 
   get<K extends ConfigKey>(key: K): ConfigKeyMap[K] | undefined {
@@ -107,6 +123,7 @@ class ConfigServiceImpl {
     this.cache.clear();
     this.subscribers.clear();
     this.initialized = false;
+    this.initPromise = null;
   }
 
   private notify(key: ConfigKey, value: unknown): void {

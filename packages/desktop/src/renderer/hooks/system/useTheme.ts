@@ -7,24 +7,39 @@ export type Theme = 'light' | 'dark';
 const DEFAULT_THEME: Theme = 'light';
 const THEME_CACHE_KEY = '__aionui_theme';
 
-// Initialize theme immediately when module loads
-const initTheme = async () => {
+const applyThemeToDom = (value: Theme) => {
+  document.documentElement.setAttribute('data-theme', value);
+  document.body.setAttribute('arco-theme', value);
+};
+
+const readCachedTheme = (): Theme => {
   try {
-    const theme = configService.get('theme') as Theme;
-    const initialTheme = theme || DEFAULT_THEME;
-    document.documentElement.setAttribute('data-theme', initialTheme);
-    document.body.setAttribute('arco-theme', initialTheme);
+    const cached = localStorage.getItem(THEME_CACHE_KEY);
+    if (cached === 'light' || cached === 'dark') return cached;
+  } catch (_e) {
+    /* noop */
+  }
+  return DEFAULT_THEME;
+};
+
+// Apply localStorage hint synchronously to avoid FOUC, then resolve to the
+// authoritative value from configService once it has loaded from the backend.
+const initTheme = async (): Promise<Theme> => {
+  const hint = readCachedTheme();
+  applyThemeToDom(hint);
+  try {
+    await configService.whenReady();
+    const theme = (configService.get('theme') as Theme) || hint;
+    applyThemeToDom(theme);
     try {
-      localStorage.setItem(THEME_CACHE_KEY, initialTheme);
+      localStorage.setItem(THEME_CACHE_KEY, theme);
     } catch (_e) {
       /* noop */
     }
-    return initialTheme;
+    return theme;
   } catch (error) {
     console.error('Failed to load initial theme:', error);
-    document.documentElement.setAttribute('data-theme', DEFAULT_THEME);
-    document.body.setAttribute('arco-theme', DEFAULT_THEME);
-    return DEFAULT_THEME;
+    return hint;
   }
 };
 
@@ -39,8 +54,7 @@ const useTheme = (): [Theme, (theme: Theme) => Promise<void>] => {
 
   // Apply theme to document
   const applyTheme = useCallback((newTheme: Theme) => {
-    document.documentElement.setAttribute('data-theme', newTheme);
-    document.body.setAttribute('arco-theme', newTheme);
+    applyThemeToDom(newTheme);
     try {
       localStorage.setItem(THEME_CACHE_KEY, newTheme);
     } catch (_e) {

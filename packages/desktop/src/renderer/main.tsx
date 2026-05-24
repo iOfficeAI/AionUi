@@ -46,12 +46,18 @@ import 'uno.css';
 import './styles/arco-override.css';
 import './styles/themes/index.css';
 
+// Config service — kick off initialization before i18n / theme modules load,
+// so their startup paths (which await configService.whenReady()) observe the
+// authoritative settings from the backend instead of the empty cache.
+import { configService } from '@/common/config/configService';
+configService.initialize().catch((err) => {
+  console.error('Failed to initialize config:', err);
+});
+
 // i18n
 import './services/i18n';
 import { registerPwa } from './services/registerPwa';
 
-// Config service
-import { configService } from '@/common/config/configService';
 import { mutate as swrMutate } from 'swr';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from './utils/model/agentTypes';
 
