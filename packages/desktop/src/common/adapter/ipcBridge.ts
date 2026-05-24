@@ -24,6 +24,7 @@ import type {
   SetAssistantStateRequest,
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
+import type { AgentWarmupRequest, AgentWarmupResponse } from '@/renderer/utils/model/agentTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
@@ -674,6 +675,7 @@ export const acpConversation = {
   responseStream: conversation.responseStream,
   getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
+  warmupAgent: httpPost<AgentWarmupResponse, AgentWarmupRequest>('/api/agents/warmup'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
     { command: string; acp_args?: string[]; env?: Record<string, string> }

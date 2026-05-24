@@ -863,7 +863,18 @@
     "customAgents": "カスタムエージェント",
     "custom": "カスタム",
     "addCustomAgent": "カスタムエージェントを追加",
-    "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。"
+    "customEmpty": "カスタムエージェントが設定されていません。「カスタムエージェントを追加」をクリックして作成してください。",
+    "warmupStatus": {
+      "idle": "待機中",
+      "warming": "準備中",
+      "ready": "準備完了",
+      "failed": "ウォームアップ失敗",
+      "skipped": "ウォームアップをスキップ",
+      "unsupported": "ウォームアップ非対応",
+      "unknown": "ウォームアップ状態不明"
+    },
+    "warmupCheckedAt": "{{time}} に確認",
+    "warmupLastError": "ウォームアップエラー: {{error}}"
   },
   "remoteAgent": {
     "title": "リモートエージェント",

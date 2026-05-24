@@ -863,7 +863,18 @@
     "customAgents": "커스텀 에이전트",
     "custom": "사용자 정의",
     "addCustomAgent": "사용자 정의 에이전트 추가",
-    "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요."
+    "customEmpty": "구성된 사용자 정의 에이전트가 없습니다. \"사용자 정의 에이전트 추가\"를 클릭하여 생성하세요.",
+    "warmupStatus": {
+      "idle": "대기 중",
+      "warming": "준비 중",
+      "ready": "준비됨",
+      "failed": "워밍업 실패",
+      "skipped": "워밍업 건너뜀",
+      "unsupported": "워밍업 미지원",
+      "unknown": "워밍업 상태 알 수 없음"
+    },
+    "warmupCheckedAt": "{{time}} 확인",
+    "warmupLastError": "워밍업 오류: {{error}}"
   },
   "remoteAgent": {
     "title": "원격 에이전트",

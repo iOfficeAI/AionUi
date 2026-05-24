@@ -861,7 +861,18 @@
     "customAgents": "Custom Agents",
     "custom": "Custom",
     "addCustomAgent": "Add Custom Agent",
-    "customEmpty": "No custom agents configured. Click \"Add Custom Agent\" to create one."
+    "customEmpty": "No custom agents configured. Click \"Add Custom Agent\" to create one.",
+    "warmupStatus": {
+      "idle": "Idle",
+      "warming": "Preparing",
+      "ready": "Ready",
+      "failed": "Warmup failed",
+      "skipped": "Warmup skipped",
+      "unsupported": "Warmup unavailable",
+      "unknown": "Warmup status unknown"
+    },
+    "warmupCheckedAt": "checked {{time}}",
+    "warmupLastError": "Warmup error: {{error}}"
   },
   "remoteAgent": {
     "title": "Remote Agents",
