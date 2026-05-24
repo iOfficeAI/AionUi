@@ -20,7 +20,18 @@ let primaryDisplay: DisplayStub = {
   workAreaSize: { width: 1920, height: 1080 },
 };
 
+const appHandlers: Record<string, Array<(...args: unknown[]) => void>> = {};
+const fireAppEvent = (event: string, ...args: unknown[]) => {
+  for (const fn of appHandlers[event] ?? []) fn(...args);
+};
+
 vi.mock('electron', () => ({
+  app: {
+    on: (event: string, fn: (...args: unknown[]) => void) => {
+      (appHandlers[event] ??= []).push(fn);
+    },
+    quit: vi.fn(),
+  },
   screen: {
     getPrimaryDisplay: () => primaryDisplay,
     getAllDisplays: () => displays,
@@ -162,6 +173,7 @@ describe('attachWindowBoundsPersistence', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
+    for (const key of Object.keys(appHandlers)) delete appHandlers[key];
   });
 
   afterEach(() => {
@@ -232,6 +244,32 @@ describe('attachWindowBoundsPersistence', () => {
     vi.advanceTimersByTime(300);
     win._fire('close');
     expect(persist).not.toHaveBeenCalled();
+  });
+
+  it('defers app.quit until the final persist write resolves on before-quit', async () => {
+    let resolvePersist: (() => void) | undefined;
+    const persist = vi.fn(
+      () =>
+        new Promise<void>((r) => {
+          resolvePersist = r;
+        })
+    );
+    const win = makeWin();
+    attachWindowBoundsPersistence(win as never, persist);
+
+    win._fire('resize');
+    vi.advanceTimersByTime(300);
+    expect(persist).toHaveBeenCalledTimes(1);
+
+    const preventDefault = vi.fn();
+    fireAppEvent('before-quit', { preventDefault });
+    expect(preventDefault).toHaveBeenCalled();
+
+    resolvePersist?.();
+    await Promise.resolve();
+    await Promise.resolve();
+    const { app } = await import('electron');
+    expect(app.quit as ReturnType<typeof vi.fn>).toHaveBeenCalled();
   });
 
   it('swallows rejections from the persist callback without crashing', async () => {

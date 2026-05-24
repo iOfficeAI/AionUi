@@ -11,7 +11,7 @@
  * load-at-startup + attach-per-window pattern per persisted window property.
  */
 
-import { screen } from 'electron';
+import { app, screen } from 'electron';
 import type { BrowserWindow } from 'electron';
 
 export type WindowBounds = {
@@ -83,20 +83,34 @@ const boundsOverlapAnyDisplay = (bounds: WindowBounds): boolean => {
  * round-trip through ProcessConfig. Skips persisting while the window is
  * maximized, fullscreen, or minimized — those are transient states whose
  * bounds would misrepresent the user's preferred "normal" size.
+ *
+ * On quit we hook `before-quit` and defer app exit until the final write
+ * resolves; otherwise the renderer's last bounds change can lose the race
+ * against process teardown and never reach disk (which manifests as the
+ * window resetting to the default size on next launch).
  */
 export const attachWindowBoundsPersistence = (
   win: BrowserWindow,
   persist: (bounds: WindowBounds) => void | Promise<unknown>
 ): void => {
   let saveTimer: NodeJS.Timeout | null = null;
+  let pendingWrite: Promise<unknown> | null = null;
 
-  const saveNow = () => {
+  const fireWrite = (bounds: WindowBounds): Promise<unknown> => {
+    const op = Promise.resolve(persist(bounds)).catch((error) => {
+      console.error('[AionUi] Failed to persist window bounds:', error);
+    });
+    pendingWrite = op.finally(() => {
+      if (pendingWrite === op) pendingWrite = null;
+    });
+    return op;
+  };
+
+  const saveNow = (): Promise<unknown> | undefined => {
     if (win.isDestroyed()) return;
     if (win.isMaximized() || win.isFullScreen() || win.isMinimized()) return;
     const bounds = win.getNormalBounds();
-    Promise.resolve(persist(bounds)).catch((error) => {
-      console.error('[AionUi] Failed to persist window bounds:', error);
-    });
+    return fireWrite(bounds);
   };
 
   const scheduleSave = () => {
@@ -104,13 +118,38 @@ export const attachWindowBoundsPersistence = (
     saveTimer = setTimeout(saveNow, PERSIST_DEBOUNCE_MS);
   };
 
-  win.on('resize', scheduleSave);
-  win.on('move', scheduleSave);
-  win.on('close', () => {
+  const flushOnExit = async () => {
     if (saveTimer) {
       clearTimeout(saveTimer);
       saveTimer = null;
     }
     saveNow();
+    if (pendingWrite) {
+      await pendingWrite;
+    }
+  };
+
+  win.on('resize', scheduleSave);
+  win.on('move', scheduleSave);
+  win.on('close', () => {
+    // Fire-and-forget here keeps the close handler synchronous (Electron
+    // doesn't wait on async close handlers); the actual flush guarantee comes
+    // from the `before-quit` hook below which can hold up app exit.
+    if (saveTimer) {
+      clearTimeout(saveTimer);
+      saveTimer = null;
+    }
+    saveNow();
+  });
+
+  let quitGuardActive = false;
+  app.on('before-quit', (event) => {
+    if (quitGuardActive) return;
+    if (!pendingWrite && saveTimer === null && win.isDestroyed()) return;
+    quitGuardActive = true;
+    event.preventDefault();
+    flushOnExit().finally(() => {
+      app.quit();
+    });
   });
 };
