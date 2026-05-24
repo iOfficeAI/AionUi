@@ -1,10 +1,15 @@
 import { describe, it, expect } from 'vitest';
 import { generateQRLoginUrlDirect, verifyQRTokenDirect } from '../webuiQR';
 
+function getTokenFromQrUrl(qrUrl: string): string {
+  const url = new URL(qrUrl);
+  return new URLSearchParams(url.hash.split('?')[1] ?? url.search).get('token')!;
+}
+
 describe('generateQRLoginUrlDirect', () => {
   it('returns a qrUrl and expiresAt', () => {
     const result = generateQRLoginUrlDirect(3000, false);
-    expect(result.qrUrl).toMatch(/^http:\/\/localhost:3000\/qr-login\?token=/);
+    expect(result.qrUrl).toMatch(/^http:\/\/localhost:3000\/#\/qr-login\?token=/);
     expect(result.expiresAt).toBeGreaterThan(Date.now());
   });
 
@@ -23,7 +28,7 @@ describe('verifyQRTokenDirect', () => {
 
   it('accepts a freshly generated token', async () => {
     const { qrUrl } = generateQRLoginUrlDirect(3000, false);
-    const token = new URL(qrUrl).searchParams.get('token')!;
+    const token = getTokenFromQrUrl(qrUrl);
     const result = await verifyQRTokenDirect(token, '127.0.0.1');
     expect(result.success).toBe(true);
     expect(result.data?.sessionToken).toBeTruthy();
@@ -31,7 +36,7 @@ describe('verifyQRTokenDirect', () => {
 
   it('rejects a token used twice', async () => {
     const { qrUrl } = generateQRLoginUrlDirect(3000, false);
-    const token = new URL(qrUrl).searchParams.get('token')!;
+    const token = getTokenFromQrUrl(qrUrl);
     await verifyQRTokenDirect(token, '127.0.0.1');
     const second = await verifyQRTokenDirect(token, '127.0.0.1');
     expect(second.success).toBe(false);

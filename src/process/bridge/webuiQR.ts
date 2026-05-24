@@ -79,7 +79,7 @@ export function generateQRLoginUrlDirect(port: number, allowRemote: boolean): { 
   // 构建 QR URL / Build QR URL
   const lanIP = WebuiService.getLanIP();
   const baseUrl = allowRemote && lanIP ? `http://${lanIP}:${port}` : `http://localhost:${port}`;
-  const qrUrl = `${baseUrl}/qr-login?token=${token}`;
+  const qrUrl = `${baseUrl}/#/qr-login?token=${token}`;
 
   return { qrUrl, expiresAt };
 }

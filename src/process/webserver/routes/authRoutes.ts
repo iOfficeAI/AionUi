@@ -383,7 +383,12 @@ export function registerAuthRoutes(app: Express): void {
    */
   app.post('/api/auth/qr-login', authRateLimiter, async (req: Request, res: Response) => {
     try {
-      const { qrToken } = req.body;
+      const qrToken =
+        typeof req.body?.qrToken === 'string'
+          ? req.body.qrToken
+          : typeof req.body?.qr_token === 'string'
+            ? req.body.qr_token
+            : '';
 
       if (!qrToken) {
         res.status(400).json({
