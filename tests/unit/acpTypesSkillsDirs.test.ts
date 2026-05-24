@@ -16,6 +16,7 @@ describe('acpTypes — skillsDirs integration', () => {
         vibe: ['.vibe/skills'],
         cursor: ['.cursor/skills'],
         opencode: ['.opencode/skills'],
+        devin: ['.devin/skills'],
       };
 
       for (const [backend, dirs] of Object.entries(expectedSkillsDirs)) {
@@ -54,6 +55,7 @@ describe('acpTypes — skillsDirs integration', () => {
         'vibe',
         'cursor',
         'opencode',
+        'devin',
         'gemini',
         'aionrs',
       ];

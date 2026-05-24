@@ -14,9 +14,37 @@ import { mcpService } from '@/process/services/mcpServices/McpService';
 import { ipcBridge } from '@/common';
 import { LegacyConnectorFactory } from '@process/acp/compat/LegacyConnectorFactory';
 import { noopProtocolHandlers } from '@process/acp/types';
+import { readCodexConfiguredModelInfo } from '@process/task/codexConfig';
+import { ProcessConfig } from '@process/utils/initStorage';
 import * as os from 'os';
 
+async function seedCodexConfiguredModelCache(): Promise<void> {
+  const configured = readCodexConfiguredModelInfo();
+  if (!configured) return;
+  const cached = (await ProcessConfig.get('acp.cachedModels')) || {};
+  const existing = cached.codex;
+  const configuredModel = configured.availableModels[0];
+  if (!configuredModel) return;
+  const availableModels = [
+    configuredModel,
+    ...(existing?.availableModels ?? []).filter((model) => model.id !== configuredModel.id),
+  ];
+
+  await ProcessConfig.set('acp.cachedModels', {
+    ...cached,
+    codex: {
+      ...(existing ?? configured),
+      currentModelId: configured.currentModelId,
+      currentModelLabel: configured.currentModelLabel,
+      availableModels,
+      canSwitch: availableModels.length > 0,
+    },
+  });
+}
+
 export function initAcpConversationBridge(workerTaskManager: IWorkerTaskManager): void {
+  void seedCodexConfiguredModelCache().catch(() => {});
+
   // Debug provider to check environment variables
   ipcBridge.acpConversation.checkEnv.provider(() => {
     return Promise.resolve({

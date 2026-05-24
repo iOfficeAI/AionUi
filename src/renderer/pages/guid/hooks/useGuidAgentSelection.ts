@@ -468,6 +468,27 @@ export const useGuidAgentSelection = ({
       } satisfies AcpModelInfo;
     }
 
+    // Fallback: Devin sends models via config_option_update notification after session/new.
+    // Provide a default list so the model selector appears immediately on first use.
+    if (backend === 'devin') {
+      const DEFAULT_DEVIN_MODELS = [
+        { id: 'swe-1-6-fast', label: 'SWE-1.6 Fast' },
+        { id: 'swe-1-6', label: 'SWE-1.6' },
+        { id: 'claude-opus-4-7-medium', label: 'Claude Opus 4.7 Medium' },
+        { id: 'gpt-5-5-medium', label: 'GPT-5.5 Medium Thinking' },
+        { id: 'deepseek-v4', label: 'DeepSeek V4' },
+        { id: 'kimi-k2-6', label: 'Kimi K2.6' },
+        { id: 'adaptive', label: 'Adaptive' },
+      ];
+      return {
+        source: 'models' as const,
+        currentModelId: DEFAULT_DEVIN_MODELS[0].id,
+        currentModelLabel: DEFAULT_DEVIN_MODELS[0].label,
+        availableModels: DEFAULT_DEVIN_MODELS.map((m) => ({ id: m.id, label: m.label })),
+        canSwitch: true,
+      } satisfies AcpModelInfo;
+    }
+
     return null;
   }, [selectedAgentKey, acpCachedModels, isPresetAgent, currentEffectiveAgentInfo.agentType]);
 

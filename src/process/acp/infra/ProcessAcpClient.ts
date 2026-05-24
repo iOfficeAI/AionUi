@@ -24,6 +24,7 @@ import type {
   NewSessionResponse,
   PromptResponse,
   SetSessionConfigOptionRequest,
+  SetSessionConfigOptionResponse,
 } from '@agentclientprotocol/sdk';
 import { ClientSideConnection, PROTOCOL_VERSION } from '@agentclientprotocol/sdk';
 import { AgentDisconnectedError, AgentSpawnError, AgentStartupError } from '@process/acp/errors/AcpError';
@@ -228,10 +229,14 @@ export class ProcessAcpClient implements AcpClient {
     await this.runConnectionRequest(() => this.conn.setSessionMode({ sessionId, modeId }));
   }
 
-  async setConfigOption(sessionId: string, configId: string, value: string | boolean): Promise<void> {
+  async setConfigOption(
+    sessionId: string,
+    configId: string,
+    value: string | boolean
+  ): Promise<SetSessionConfigOptionResponse> {
     const params: SetSessionConfigOptionRequest =
       typeof value === 'boolean' ? { sessionId, configId, type: 'boolean', value } : { sessionId, configId, value };
-    await this.runConnectionRequest(() => this.conn.setSessionConfigOption(params));
+    return this.runConnectionRequest(() => this.conn.setSessionConfigOption(params));
   }
 
   async authenticate(methodId: string): Promise<unknown> {
@@ -413,7 +418,10 @@ export class ProcessAcpClient implements AcpClient {
 
   // ─── Internals: Startup failure watcher ────────────────────
 
-  private createStartupFailureWatcher(child: ChildProcess): { promise: Promise<never>; dispose: () => void } {
+  private createStartupFailureWatcher(child: ChildProcess): {
+    promise: Promise<never>;
+    dispose: () => void;
+  } {
     let rejectFn: ((err: Error) => void) | null = null;
     let disposed = false;
 

@@ -6,7 +6,7 @@ import type { AcpClient, ClientFactory, DisconnectInfo } from '@process/acp/infr
 import { ProcessAcpClient } from '@process/acp/infra/ProcessAcpClient';
 import type { AcpMetrics } from '@process/acp/metrics/AcpMetrics';
 import { AuthNegotiator } from '@process/acp/session/AuthNegotiator';
-import type { ConfigTracker } from '@process/acp/session/ConfigTracker';
+import { normalizeSessionConfigOptions, type ConfigTracker } from '@process/acp/session/ConfigTracker';
 import { McpConfig } from '@process/acp/session/McpConfig';
 import type { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import type { AgentConfig, ProtocolHandlers, SessionCallbacks, SessionStatus } from '@process/acp/types';
@@ -248,12 +248,7 @@ export class SessionLifecycle {
         name: m.name,
         description: m.description ?? undefined,
       })),
-      configOptions: sessionResult.configOptions?.map((opt) => ({
-        id: opt.id,
-        name: opt.name,
-        type: opt.type,
-        currentValue: opt.currentValue,
-      })),
+      configOptions: normalizeSessionConfigOptions(sessionResult.configOptions),
       cwd: this.host.agentConfig.cwd,
       additionalDirectories: this.host.agentConfig.additionalDirectories,
     });
@@ -307,30 +302,65 @@ export class SessionLifecycle {
   async reassertConfig(): Promise<void> {
     if (!this._client || !this._sessionId) return;
     const pending = this.host.configTracker.getPendingChanges();
+    let changed = false;
 
     if (pending.model) {
+      const configOptionId = this.host.configTracker.getConfigOptionIdForCategory('model');
       try {
-        await this._client.setModel(this._sessionId, pending.model);
+        const response = configOptionId
+          ? await this._client.setConfigOption(this._sessionId, configOptionId, pending.model)
+          : await this._client.setModel(this._sessionId, pending.model);
+        const configOptions = response ? normalizeSessionConfigOptions(response.configOptions) : undefined;
+        if (configOptions) this.host.configTracker.updateConfigOptions(configOptions);
         this.host.configTracker.setCurrentModel(pending.model);
+        changed = true;
       } catch {
-        /* best effort */
+        if (!configOptionId) {
+          const fallbackId = this.host.configTracker.getConfigOptionIdForCategory('model');
+          if (!fallbackId) return;
+          try {
+            const response = await this._client.setConfigOption(this._sessionId, fallbackId, pending.model);
+            const configOptions = normalizeSessionConfigOptions(response.configOptions);
+            if (configOptions) this.host.configTracker.updateConfigOptions(configOptions);
+            this.host.configTracker.setCurrentModel(pending.model);
+            changed = true;
+          } catch {
+            /* best effort */
+          }
+          return;
+        }
       }
     }
     if (pending.mode) {
+      const configOptionId = this.host.configTracker.getConfigOptionIdForCategory('mode');
       try {
-        await this._client.setMode(this._sessionId, pending.mode);
+        const response = configOptionId
+          ? await this._client.setConfigOption(this._sessionId, configOptionId, pending.mode)
+          : await this._client.setMode(this._sessionId, pending.mode);
+        const configOptions = response ? normalizeSessionConfigOptions(response.configOptions) : undefined;
+        if (configOptions) this.host.configTracker.updateConfigOptions(configOptions);
         this.host.configTracker.setCurrentMode(pending.mode);
+        changed = true;
       } catch {
         /* best effort */
       }
     }
     for (const opt of pending.configOptions) {
       try {
-        await this._client.setConfigOption(this._sessionId, opt.id, opt.value);
+        const response = await this._client.setConfigOption(this._sessionId, opt.id, opt.value);
+        const configOptions = normalizeSessionConfigOptions(response.configOptions);
+        if (configOptions) this.host.configTracker.updateConfigOptions(configOptions);
         this.host.configTracker.setCurrentConfigOption(opt.id, opt.value);
+        changed = true;
       } catch {
         /* best effort */
       }
+    }
+
+    if (changed) {
+      this.host.callbacks.onConfigUpdate(this.host.configTracker.configSnapshot());
+      this.host.callbacks.onModelUpdate(this.host.configTracker.modelSnapshot());
+      this.host.callbacks.onModeUpdate(this.host.configTracker.modeSnapshot());
     }
   }
 

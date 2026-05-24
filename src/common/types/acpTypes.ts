@@ -33,6 +33,7 @@ export type AcpBackendAll =
   | 'kiro' // Kiro CLI (AWS)
   | 'hermes' // Hermes Agent CLI (Nous Research)
   | 'snow' // Snow AI CLI
+  | 'devin' // Devin CLI (Cognition)
   | 'custom'; // User-configured custom ACP agent (extension adapters)
 
 // Superset type covering all execution engine backends (ACP + non-ACP).
@@ -472,6 +473,16 @@ export const ACP_BACKENDS_ALL: Record<AcpBackendAll, AcpBackendConfig> = {
     enabled: true,
     supportsStreaming: false,
     acpArgs: ['--acp'],
+  },
+  devin: {
+    id: 'devin',
+    name: 'Devin',
+    cliCommand: 'devin',
+    authRequired: true,
+    enabled: true,
+    supportsStreaming: false,
+    acpArgs: ['acp'],
+    skillsDirs: ['.devin/skills'],
   },
   custom: {
     id: 'custom',

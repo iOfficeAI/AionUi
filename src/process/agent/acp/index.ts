@@ -35,7 +35,12 @@ import { getEnhancedEnv, normalizeNpxArgsForBundledBun, resolveNpxPath } from '@
 import { readClaudeModelInfoFromCcSwitch } from '@process/services/ccSwitchModelSource';
 import { AcpConnection } from './AcpConnection';
 import { AcpApprovalStore, createAcpApprovalKey } from './ApprovalStore';
-import { CLAUDE_YOLO_SESSION_MODE, CODEBUDDY_YOLO_SESSION_MODE, QWEN_YOLO_SESSION_MODE } from './constants';
+import {
+  CLAUDE_YOLO_SESSION_MODE,
+  CODEBUDDY_YOLO_SESSION_MODE,
+  DEVIN_YOLO_SESSION_MODE,
+  QWEN_YOLO_SESSION_MODE,
+} from './constants';
 import { buildAcpModelInfo } from './modelInfo';
 import { buildBuiltinAcpSessionMcpServers, buildTeamMcpServer, type AcpSessionMcpServer } from './mcpSessionConfig';
 import { getClaudeModelSlot } from './utils';
@@ -97,7 +102,12 @@ export interface AcpAgentConfig {
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
-    teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    teamMcpStdioConfig?: {
+      name: string;
+      command: string;
+      args: string[];
+      env: Array<{ name: string; value: string }>;
+    };
     /** Pending config option selections from Guid page (applied after session creation) */
     pendingConfigOptions?: Record<string, string>;
   };
@@ -133,7 +143,12 @@ export class AcpAgent {
     /** Initial session mode to apply at session start (e.g., acceptEdits, auto, dontAsk, plan) */
     sessionMode?: string;
     /** Team MCP server stdio config injected by TeamSessionService */
-    teamMcpStdioConfig?: { name: string; command: string; args: string[]; env: Array<{ name: string; value: string }> };
+    teamMcpStdioConfig?: {
+      name: string;
+      command: string;
+      args: string[];
+      env: Array<{ name: string; value: string }>;
+    };
     /** Pending config option selections from Guid page (applied after session creation) */
     pendingConfigOptions?: Record<string, string>;
   };
@@ -339,6 +354,7 @@ export class AcpAgent {
           claude: CLAUDE_YOLO_SESSION_MODE,
           codebuddy: CODEBUDDY_YOLO_SESSION_MODE,
           qwen: QWEN_YOLO_SESSION_MODE,
+          devin: DEVIN_YOLO_SESSION_MODE,
         };
         const sessionMode = yoloModeMap[this.extra.backend];
         if (sessionMode) {
@@ -382,9 +398,23 @@ export class AcpAgent {
         try {
           await this.connection.setModel(this.extra.currentModelId);
         } catch (error) {
-          console.warn(
-            `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
-          );
+          // Fallback to setConfigOption for backends that expose models as config options
+          // (e.g. Devin sends models via config_option_update notification, not session/new)
+          const configOptions = this.connection.getConfigOptions();
+          const modelOption = configOptions?.find((opt) => opt.category === 'model');
+          if (modelOption) {
+            try {
+              await this.connection.setConfigOption(modelOption.id, this.extra.currentModelId);
+            } catch (configError) {
+              console.warn(
+                `[ACP] Failed to set model via config option: ${configError instanceof Error ? configError.message : String(configError)}`
+              );
+            }
+          } else {
+            console.warn(
+              `[ACP] Failed to set model "${this.extra.currentModelId}": ${error instanceof Error ? error.message : String(error)}`
+            );
+          }
         }
       }
 
@@ -483,6 +513,7 @@ export class AcpAgent {
       const yoloModeMap: Partial<Record<AcpBackend, string>> = {
         claude: CLAUDE_YOLO_SESSION_MODE,
         qwen: QWEN_YOLO_SESSION_MODE,
+        devin: DEVIN_YOLO_SESSION_MODE,
       };
       const sessionMode = yoloModeMap[this.extra.backend];
       if (sessionMode) {
@@ -1061,7 +1092,11 @@ export class AcpAgent {
       // Emit context usage data when usage_update arrives
       if (data.update?.sessionUpdate === 'usage_update') {
         this.hasReceivedUsageUpdate = true;
-        const usageUpdate = data.update as { used: number; size: number; cost?: { amount: number; currency: string } };
+        const usageUpdate = data.update as {
+          used: number;
+          size: number;
+          cost?: { amount: number; currency: string };
+        };
         this.onStreamEvent({
           type: 'acp_context_usage',
           conversation_id: this.id,
@@ -1077,6 +1112,32 @@ export class AcpAgent {
       // Emit updated model info when config_option_update arrives
       if (data.update?.sessionUpdate === 'config_option_update') {
         this.emitModelInfo();
+
+        // Apply pending model selection for backends that send configOptions via notification
+        // (e.g. Devin) — the startup setModel() may have failed before configOptions arrived
+        const modelInfo = this.getModelInfo();
+        if (modelInfo?.source === 'configOption' && modelInfo.configOptionId) {
+          const targetModel = this.userModelOverride || this.extra.currentModelId;
+          if (targetModel && targetModel !== modelInfo.currentModelId) {
+            this.connection.setConfigOption(modelInfo.configOptionId, targetModel).catch((err: Error) => {
+              console.warn(`[ACP] Failed to apply pending model "${targetModel}": ${err.message}`);
+            });
+          }
+        }
+
+        // Re-cache capabilities so the model selector shows updated options
+        // on the next agent selection (e.g. Devin sends models via notification)
+        const updateSnapshot = {
+          modelInfo: this.getModelInfo(),
+          configOptions: this.connection.getConfigOptions(),
+          modes: this.connection.getModes(),
+        };
+        this.cacheSessionCapabilities(updateSnapshot).catch((err) => {
+          console.warn(
+            '[ACP] Failed to re-cache session capabilities:',
+            err instanceof Error ? err.message : String(err)
+          );
+        });
       }
 
       const messages = this.adapter.convertSessionUpdate(data);
@@ -1649,7 +1710,12 @@ export class AcpAgent {
           ? mcpName.slice('aionui-team-'.length)
           : undefined;
       if (tId) {
-        ipcBridge.team.mcpStatus.emit({ teamId: tId, slotId: this.id, phase: 'load_failed', error: errMsg });
+        ipcBridge.team.mcpStatus.emit({
+          teamId: tId,
+          slotId: this.id,
+          phase: 'load_failed',
+          error: errMsg,
+        });
       }
       return [];
     }

@@ -1,6 +1,7 @@
 import type {
   RequestPermissionRequest,
   RequestPermissionResponse,
+  SessionConfigOption,
   SessionNotification,
   UsageUpdate,
 } from '@agentclientprotocol/sdk';
@@ -8,7 +9,7 @@ import * as path from 'node:path';
 import { AcpError } from '@process/acp/errors/AcpError';
 import type { ClientFactory, DisconnectInfo } from '@process/acp/infra/IAcpClient';
 import { noopMetrics, type AcpMetrics } from '@process/acp/metrics/AcpMetrics';
-import { ConfigTracker } from '@process/acp/session/ConfigTracker';
+import { ConfigTracker, normalizeSessionConfigOptions } from '@process/acp/session/ConfigTracker';
 import { InputPreprocessor } from '@process/acp/session/InputPreprocessor';
 import { MessageTranslator } from '@process/acp/session/MessageTranslator';
 import { PermissionResolver } from '@process/acp/session/PermissionResolver';
@@ -226,9 +227,16 @@ export class AcpSession {
     if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
-      client
-        .setModel(sessionId, modelId)
+      const configOptionId = this.configTracker.getConfigOptionIdForCategory('model');
+      const request = configOptionId
+        ? client.setConfigOption(sessionId, configOptionId, modelId).then((response) => {
+            this.applyConfigOptions(response.configOptions);
+          })
+        : client.setModel(sessionId, modelId);
+
+      request
         .then(() => this.configTracker.setCurrentModel(modelId))
+        .then(() => this.callbacks.onConfigUpdate(this.configTracker.configSnapshot()))
         .then(() => this.callbacks.onModelUpdate(this.configTracker.modelSnapshot()))
         .catch((err) => console.warn('[AcpSession] setModel failed:', err));
     }
@@ -239,9 +247,16 @@ export class AcpSession {
     if (this._status === 'idle' || this._status === 'error') return;
     const { client, sessionId } = this.lifecycle;
     if (this._status === 'active' && client && sessionId) {
-      client
-        .setMode(sessionId, modeId)
+      const configOptionId = this.configTracker.getConfigOptionIdForCategory('mode');
+      const request = configOptionId
+        ? client.setConfigOption(sessionId, configOptionId, modeId).then((response) => {
+            this.applyConfigOptions(response.configOptions);
+          })
+        : client.setMode(sessionId, modeId);
+
+      request
         .then(() => this.configTracker.setCurrentMode(modeId))
+        .then(() => this.callbacks.onConfigUpdate(this.configTracker.configSnapshot()))
         .then(() => this.callbacks.onModeUpdate(this.configTracker.modeSnapshot()))
         .catch((err) => console.warn('[AcpSession] setMode failed:', err));
     }
@@ -253,7 +268,11 @@ export class AcpSession {
     if (this._status === 'active' && client && sessionId) {
       client
         .setConfigOption(sessionId, id, value)
+        .then((response) => this.applyConfigOptions(response.configOptions))
         .then(() => this.configTracker.setCurrentConfigOption(id, value))
+        .then(() => this.callbacks.onConfigUpdate(this.configTracker.configSnapshot()))
+        .then(() => this.callbacks.onModelUpdate(this.configTracker.modelSnapshot()))
+        .then(() => this.callbacks.onModeUpdate(this.configTracker.modeSnapshot()))
         .catch((err) => console.warn('[AcpSession] setConfigOption failed:', err));
     }
   }
@@ -320,12 +339,19 @@ export class AcpSession {
         return;
 
       case 'config_option_update':
+        this.applyConfigOptions(update.configOptions);
         this.callbacks.onConfigUpdate(this.configTracker.configSnapshot());
+        this.callbacks.onModelUpdate(this.configTracker.modelSnapshot());
+        this.callbacks.onModeUpdate(this.configTracker.modeSnapshot());
         return;
 
       case 'available_commands_update': {
         const data = update as unknown as {
-          availableCommands?: Array<{ name: string; description?: string; input?: { hint?: string } | null }>;
+          availableCommands?: Array<{
+            name: string;
+            description?: string;
+            input?: { hint?: string } | null;
+          }>;
         };
         const commands = (data.availableCommands ?? []).map((cmd) => ({
           name: cmd.name,
@@ -368,6 +394,11 @@ export class AcpSession {
   }
 
   // ─── Internal helpers ─────────────────────────────────────────
+
+  private applyConfigOptions(options?: SessionConfigOption[] | null): void {
+    const configOptions = normalizeSessionConfigOptions(options);
+    if (configOptions) this.configTracker.updateConfigOptions(configOptions);
+  }
 
   private onDisconnect(info?: DisconnectInfo): void {
     switch (this._status) {

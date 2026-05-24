@@ -12,6 +12,8 @@ const STORAGE_KEY_PREFIX = 'team-pending-permissions-';
  * Subscribes to live IPC events to stay up to date.
  */
 export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
+  const safeTeams = Array.isArray(teams) ? teams : [];
+
   const readFromStorage = (teamId: string): number => {
     try {
       const raw = localStorage.getItem(`${STORAGE_KEY_PREFIX}${teamId}`);
@@ -25,7 +27,7 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
 
   const initCounts = (): Map<string, number> => {
     const map = new Map<string, number>();
-    for (const team of teams) {
+    for (const team of safeTeams) {
       map.set(team.id, readFromStorage(team.id));
     }
     return map;
@@ -36,7 +38,7 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
   useEffect(() => {
     // Build conversationId → teamId lookup
     const cidToTeamId = new Map<string, string>();
-    for (const team of teams) {
+    for (const team of safeTeams) {
       for (const agent of team.agents) {
         if (agent.conversationId) {
           cidToTeamId.set(agent.conversationId, team.id);
@@ -102,7 +104,7 @@ export function useSiderTeamBadges(teams: TTeam[]): Map<string, number> {
     );
     // Include agent conversationIds in deps so the effect re-runs when agents spawn
     // and receive their conversationId (initially undefined until spawn completes).
-  }, [teams.map((t) => `${t.id}:${t.agents.map((a) => a.conversationId || '').join(',')}`).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [safeTeams.map((t) => `${t.id}:${t.agents.map((a) => a.conversationId || '').join(',')}`).join('|')]); // eslint-disable-line react-hooks/exhaustive-deps
 
   return counts;
 }

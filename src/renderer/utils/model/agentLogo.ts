@@ -16,6 +16,7 @@ import ClaudeLogo from '@/renderer/assets/logos/ai-major/claude.svg';
 import CursorLogo from '@/renderer/assets/logos/tools/coding/cursor.png';
 import CodeBuddyLogo from '@/renderer/assets/logos/tools/coding/codebuddy.svg';
 import CodexLogo from '@/renderer/assets/logos/tools/coding/codex.svg';
+import DevinLogo from '@/renderer/assets/logos/brand/devin.svg';
 import DroidLogo from '@/renderer/assets/logos/brand/droid.svg';
 import GeminiLogo from '@/renderer/assets/logos/ai-major/gemini.svg';
 import GitHubLogo from '@/renderer/assets/logos/tools/github.svg';
@@ -45,6 +46,7 @@ const AGENT_LOGO_MAP = {
   qwen: QwenLogo,
   codex: CodexLogo,
   codebuddy: CodeBuddyLogo,
+  devin: DevinLogo,
   droid: DroidLogo,
   goose: GooseLogo,
   hermes: HermesLogo,
