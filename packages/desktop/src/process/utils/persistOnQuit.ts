@@ -24,7 +24,7 @@ const ensureHandlerInstalled = (): void => {
     if (pending.size === 0) return;
     flushing = true;
     event.preventDefault();
-    Promise.allSettled([...pending]).finally(() => {
+    Promise.allSettled(pending).finally(() => {
       app.quit();
     });
   });

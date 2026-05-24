@@ -430,7 +430,10 @@ const ModelModalContent: React.FC = () => {
 
   const [addPlatformModalCtrl, addPlatformModalContext] = AddPlatformModal.useModal({
     onSubmit(platform) {
-      updatePlatform(platform, () => addPlatformModalCtrl.close());
+      updatePlatform(platform, () => {
+        setCollapseKey((prev) => ({ ...prev, [platform.id]: true }));
+        addPlatformModalCtrl.close();
+      });
     },
   });
 
@@ -445,6 +448,7 @@ const ModelModalContent: React.FC = () => {
   const [addModelModalCtrl, addModelModalContext] = AddModelModal.useModal({
     onSubmit(platform) {
       updatePlatform(platform, () => {
+        setCollapseKey((prev) => ({ ...prev, [platform.id]: true }));
         addModelModalCtrl.close();
       });
     },
