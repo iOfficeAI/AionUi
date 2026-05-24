@@ -107,4 +107,30 @@ describe('MessageText attachment paths', () => {
 
     expect(screen.getByTestId('file-preview')).toHaveTextContent('/Users/demo/Desktop/photo.png');
   });
+
+  it('does not turn assistant text that mentions the marker into attachment previews', () => {
+    const message: IMessageText = {
+      id: 'msg-3',
+      msg_id: 'msg-3',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'left',
+      createdAt: Date.now(),
+      content: {
+        content:
+          '是的。我读取的是你附在 `[[AION_FILES]]` 里的这个截图：\n\n' +
+          '`C:\\Users\\lixun\\AppData\\Local\\Temp\\aionui\\general\\image-1.png`',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+    expect(screen.queryByTestId('file-preview')).not.toBeInTheDocument();
+    expect(screen.getByText(/是的。我读取的是你附在/)).toBeInTheDocument();
+    expect(screen.getByText(/image-1\.png/)).toBeInTheDocument();
+  });
 });

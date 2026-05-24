@@ -49,19 +49,22 @@ import TeammateMessageAvatar from './TeammateMessageAvatar';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
-const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
-  if (markerIndex === -1) {
+const parseFileMarker = (content: string, enabled = true) => {
+  if (!enabled) {
     return { text: content, files: [] as string[] };
   }
-  const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + AIONUI_FILES_MARKER.length).trim();
-  const files = afterMarker
-    ? afterMarker
-        .split('\n')
-        .map((line) => line.trim())
-        .filter(Boolean)
-    : [];
+
+  const lines = content.split(/\r?\n/);
+  const markerLineIndex = lines.findIndex((line) => line.trim() === AIONUI_FILES_MARKER);
+  if (markerLineIndex === -1) {
+    return { text: content, files: [] as string[] };
+  }
+
+  const text = lines.slice(0, markerLineIndex).join('\n').trimEnd();
+  const files = lines
+    .slice(markerLineIndex + 1)
+    .map((line) => line.trim())
+    .filter(Boolean);
   return { text, files };
 };
 
@@ -111,12 +114,12 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     return content;
   }, [message.content.content]);
 
-  const { text, files } = parseFileMarker(contentToRender);
-  const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
   const isUserMessage = message.position === 'right';
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
+  const { text, files } = parseFileMarker(contentToRender, isUserMessage);
+  const { data, json } = useFormatContent(text);
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
   const resolvedFiles = useMemo(
