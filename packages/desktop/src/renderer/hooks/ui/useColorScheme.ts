@@ -14,25 +14,40 @@ export type ColorScheme = 'default';
 const DEFAULT_COLOR_SCHEME: ColorScheme = 'default';
 const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
 
-/**
- * Initialize color scheme immediately when module loads
- * 在模块加载时立即初始化配色方案，避免页面闪烁
- */
-const initColorScheme = async () => {
+const applyColorSchemeToDom = (value: ColorScheme) => {
+  document.documentElement.setAttribute('data-color-scheme', value);
+};
+
+const readCachedColorScheme = (): ColorScheme => {
   try {
-    const scheme = configService.get('colorScheme') as ColorScheme;
-    const initialScheme = scheme || DEFAULT_COLOR_SCHEME;
-    document.documentElement.setAttribute('data-color-scheme', initialScheme);
+    const cached = localStorage.getItem(COLOR_SCHEME_CACHE_KEY);
+    if (cached === 'default') return cached;
+  } catch (_e) {
+    /* noop */
+  }
+  return DEFAULT_COLOR_SCHEME;
+};
+
+/**
+ * Apply localStorage hint synchronously to avoid FOUC, then resolve to the
+ * authoritative value from configService once it has loaded from the backend.
+ */
+const initColorScheme = async (): Promise<ColorScheme> => {
+  const hint = readCachedColorScheme();
+  applyColorSchemeToDom(hint);
+  try {
+    await configService.whenReady();
+    const scheme = (configService.get('colorScheme') as ColorScheme) || hint;
+    applyColorSchemeToDom(scheme);
     try {
-      localStorage.setItem(COLOR_SCHEME_CACHE_KEY, initialScheme);
+      localStorage.setItem(COLOR_SCHEME_CACHE_KEY, scheme);
     } catch (_e) {
       /* noop */
     }
-    return initialScheme;
+    return scheme;
   } catch (error) {
     console.error('Failed to load initial color scheme:', error);
-    document.documentElement.setAttribute('data-color-scheme', DEFAULT_COLOR_SCHEME);
-    return DEFAULT_COLOR_SCHEME;
+    return hint;
   }
 };
 
@@ -54,7 +69,7 @@ const useColorScheme = (): [ColorScheme, (scheme: ColorScheme) => Promise<void>]
    * Switch CSS variables by setting data-color-scheme attribute 通过设置 data-color-scheme 属性切换 CSS 变量
    */
   const applyColorScheme = useCallback((newScheme: ColorScheme) => {
-    document.documentElement.setAttribute('data-color-scheme', newScheme);
+    applyColorSchemeToDom(newScheme);
     try {
       localStorage.setItem(COLOR_SCHEME_CACHE_KEY, newScheme);
     } catch (_e) {

@@ -90,9 +90,13 @@ i18n
     console.error('Failed to initialize i18n:', error);
   });
 
-// Load initial language from configService (single source of truth)
+// Load initial language from configService (single source of truth).
+// Wait until configService.whenReady() so we observe the authoritative value
+// fetched from the backend rather than the empty cache that exists during
+// module load.
 async function initLanguage(): Promise<void> {
   try {
+    await configService.whenReady();
     const savedLanguage = configService.get('language');
     const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
     await ensureAndSwitch(i18n, language, loadLocaleModules);

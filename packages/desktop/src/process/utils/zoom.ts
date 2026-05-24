@@ -6,6 +6,7 @@
 
 import { BrowserWindow } from 'electron';
 import type { Input } from 'electron';
+import { trackPersistedWrite } from './persistOnQuit';
 
 // Default to 95% so the app feels slightly roomier on stock DPI displays
 // without looking cramped for fine text. Users can still reset/zoom with
@@ -86,13 +87,17 @@ export const attachZoomShortcutsToWindow = (
 
 export const setupZoomForWindow = (win: BrowserWindow): void => {
   applyZoomToWindow(win);
-  attachZoomShortcutsToWindow(win, async (factor) => {
-    try {
-      const { ProcessConfig } = await import('./initStorage');
-      await ProcessConfig.set('ui.zoomFactor', factor);
-    } catch (error) {
-      console.error('[AionUi] Failed to persist zoom factor from keyboard shortcut:', error);
-    }
+  attachZoomShortcutsToWindow(win, (factor) => {
+    // Track the write so a ⌘± immediately followed by ⌘Q still flushes.
+    const op = (async () => {
+      try {
+        const { ProcessConfig } = await import('./initStorage');
+        await ProcessConfig.set('ui.zoomFactor', factor);
+      } catch (error) {
+        console.error('[AionUi] Failed to persist zoom factor from keyboard shortcut:', error);
+      }
+    })();
+    trackPersistedWrite(op);
   });
 };
 

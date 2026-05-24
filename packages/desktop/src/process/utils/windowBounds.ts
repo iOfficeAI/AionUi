@@ -13,6 +13,7 @@
 
 import { screen } from 'electron';
 import type { BrowserWindow } from 'electron';
+import { trackPersistedWrite } from './persistOnQuit';
 
 export type WindowBounds = {
   x?: number;
@@ -83,6 +84,10 @@ const boundsOverlapAnyDisplay = (bounds: WindowBounds): boolean => {
  * round-trip through ProcessConfig. Skips persisting while the window is
  * maximized, fullscreen, or minimized — those are transient states whose
  * bounds would misrepresent the user's preferred "normal" size.
+ *
+ * Each write is registered with persistOnQuit so a resize immediately
+ * followed by ⌘Q still flushes to disk before the app exits — otherwise the
+ * window would reset to the default size on next launch.
  */
 export const attachWindowBoundsPersistence = (
   win: BrowserWindow,
@@ -90,13 +95,22 @@ export const attachWindowBoundsPersistence = (
 ): void => {
   let saveTimer: NodeJS.Timeout | null = null;
 
-  const saveNow = () => {
-    if (win.isDestroyed()) return;
-    if (win.isMaximized() || win.isFullScreen() || win.isMinimized()) return;
-    const bounds = win.getNormalBounds();
-    Promise.resolve(persist(bounds)).catch((error) => {
+  const fireWrite = (bounds: WindowBounds): void => {
+    // Update the in-memory cache synchronously so a subsequent
+    // resolveInitialBounds() (e.g. user closes the window then reopens it
+    // without quitting the app) sees the latest bounds rather than the
+    // boot-time snapshot.
+    cachedBounds = bounds;
+    const op = Promise.resolve(persist(bounds)).catch((error) => {
       console.error('[AionUi] Failed to persist window bounds:', error);
     });
+    trackPersistedWrite(op);
+  };
+
+  const saveNow = (): void => {
+    if (win.isDestroyed()) return;
+    if (win.isMaximized() || win.isFullScreen() || win.isMinimized()) return;
+    fireWrite(win.getNormalBounds());
   };
 
   const scheduleSave = () => {

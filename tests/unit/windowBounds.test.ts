@@ -21,6 +21,7 @@ let primaryDisplay: DisplayStub = {
 };
 
 vi.mock('electron', () => ({
+  app: { on: vi.fn() },
   screen: {
     getPrimaryDisplay: () => primaryDisplay,
     getAllDisplays: () => displays,
@@ -128,6 +129,40 @@ describe('resolveInitialBounds', () => {
     expect(bounds.height).toBe(700);
     expect(bounds.x).toBeUndefined();
     expect(bounds.y).toBeUndefined();
+  });
+
+  it('reflects bounds written by attachWindowBoundsPersistence in the same session', async () => {
+    vi.useFakeTimers();
+    try {
+      loadSavedWindowBounds({ x: 0, y: 0, width: 800, height: 600 });
+      const handlers: Record<string, Array<() => void>> = {};
+      const win = {
+        isDestroyed: () => false,
+        isMaximized: () => false,
+        isFullScreen: () => false,
+        isMinimized: () => false,
+        getNormalBounds: () => ({ x: 100, y: 100, width: 1400, height: 900 }),
+        on: (event: string, fn: () => void) => {
+          (handlers[event] ??= []).push(fn);
+        },
+      };
+      const fire = (event: string) => {
+        for (const fn of handlers[event] ?? []) fn();
+      };
+
+      const { attachWindowBoundsPersistence } = await import('@/process/utils/windowBounds');
+      attachWindowBoundsPersistence(win as never, () => Promise.resolve());
+
+      fire('resize');
+      vi.advanceTimersByTime(300);
+
+      // Reopening the window in the same session must observe the latest
+      // bounds, not the boot-time snapshot.
+      const bounds = resolveInitialBounds();
+      expect(bounds).toEqual({ x: 100, y: 100, width: 1400, height: 900 });
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
