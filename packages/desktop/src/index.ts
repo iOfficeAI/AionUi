@@ -8,7 +8,7 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
@@ -503,6 +503,7 @@ const handleAppReady = async (): Promise<void> => {
     backendStartedOk = true;
   } catch (error) {
     console.error('[AionUi] Failed to start aioncore:', error);
+    captureBackendStartupFailure(error);
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is

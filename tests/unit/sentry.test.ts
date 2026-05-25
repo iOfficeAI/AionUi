@@ -20,13 +20,22 @@ vi.mock('@sentry/electron/main', () => ({
   init: vi.fn(),
   setTag: vi.fn(),
   setUser: vi.fn(),
+  withScope: vi.fn((callback: (scope: unknown) => void) => {
+    callback({
+      setTag: vi.fn(),
+      setExtra: vi.fn(),
+      setContext: vi.fn(),
+    });
+  }),
+  captureException: vi.fn(),
 }));
 
 vi.mock('@/process/utils/analyticsId', () => ({
   getOrCreateAnalyticsId: () => 'test-device-id',
 }));
 
-import { selectRecentLogFiles, packAndCap } from '@/sentry';
+import * as Sentry from '@sentry/electron/main';
+import { selectRecentLogFiles, packAndCap, captureBackendStartupFailure } from '@/sentry';
 
 describe('selectRecentLogFiles', () => {
   it('returns every file from the N most recent non-empty days', () => {
@@ -79,5 +88,24 @@ describe('packAndCap', () => {
     expect(out.truncated).toBe(true);
     const decompressed = gunzipSync(out.gzipped).toString('utf8');
     expect(decompressed).toContain('MARKER_TAIL');
+  });
+});
+
+describe('captureBackendStartupFailure', () => {
+  it('captures a dedicated backend startup failure with diagnostics', () => {
+    const error = new Error('aioncore failed to start within timeout') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'health_timeout',
+      binaryPath: '/abs/path/aioncore',
+      port: 33334,
+      stderrTail: 'database is locked',
+    };
+
+    captureBackendStartupFailure(error);
+
+    expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    expect(Sentry.withScope).toHaveBeenCalledOnce();
   });
 });
