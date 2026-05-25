@@ -48,8 +48,18 @@ export class TeammateManager extends EventEmitter {
   /** Maps slotId → original name before rename, for "formerly: X" hints in prompts */
   private readonly renamedAgents = new Map<string, string>();
 
-  /** Maximum time (ms) to wait for a turnCompleted event before force-releasing a wake */
-  private static readonly WAKE_TIMEOUT_MS = 60 * 1000;
+  /**
+   * Maximum time (ms) a teammate may go silent between streaming updates before
+   * the wake is escalated to {@link handleInactivityTimeout}. Needs to be long
+   * enough to cover an agent's initial thinking phase on a complex prompt —
+   * Claude Code and Codex regularly spend 1–3 minutes reasoning before their
+   * first streamed token on hard questions (schematic hierarchies, long
+   * reviews, architectural decisions). The old 60 s value killed legitimate
+   * turns mid-thought; 5 minutes aligns with the ACP-level prompt timeout so
+   * a truly stalled agent still gets flagged, but normal long thinking does
+   * not.
+   */
+  private static readonly WAKE_TIMEOUT_MS = 5 * 60 * 1000;
 
   private readonly unsubResponseStream: () => void;
 
@@ -317,8 +327,12 @@ export class TeammateManager extends EventEmitter {
     // Heartbeat: any non-terminal streaming activity (text, tool calls, thoughts)
     // proves the agent is still alive. Reset the inactivity watchdog so a genuinely
     // long-running turn (e.g. Codex emitting extended reasoning before its first
-    // team_send_message) isn't prematurely declared dead.
-    if (agent.status === 'active' && this.wakeTimeouts.has(agent.slotId)) {
+    // team_send_message) isn't prematurely declared dead. `wakeTimeouts.has`
+    // already means there is an armed timer for this slot; gating on status
+    // drops heartbeats that arrive while the slot is briefly in a transitional
+    // state ('pending' immediately after wake, 'idle' between back-to-back
+    // wakes) and leads to false-positive "stopped responding" kills.
+    if (this.wakeTimeouts.has(agent.slotId)) {
       this.resetWakeTimeout(agent.slotId);
     }
   }
