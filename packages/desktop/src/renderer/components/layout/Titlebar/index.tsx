@@ -330,9 +330,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
             const conversation_id = conversationMatch?.[1];
             if (conversation_id) {
-              return (
-                <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={mobileCenterTitle} />
-              );
+              return <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={mobileCenterTitle} />;
             }
             const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
             return (
