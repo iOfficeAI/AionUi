@@ -18,9 +18,9 @@
 }
 
 .app-titlebar--mobile {
-  height: 58px;
-  min-height: 58px;
-  padding: 6px 10px 0;
+  height: 48px;
+  min-height: 48px;
+  padding: 0 8px;
 }
 
 .app-titlebar--mobile-conversation {
@@ -66,21 +66,24 @@
 }
 
 .app-titlebar--mobile .app-titlebar__brand {
-  position: absolute;
-  left: 50%;
-  transform: translateX(calc(-50% + var(--app-titlebar-mobile-center-offset, 0px)));
-  max-width: calc(100% - 180px);
+  position: static;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  text-align: left;
+  min-width: 0;
+  margin: 0 8px;
 }
 
 .app-titlebar__brand-mobile {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   flex-wrap: nowrap;
   gap: 6px;
   min-width: 0;
   white-space: nowrap;
+  width: 100%;
 }
 
 .app-titlebar__brand-text {
@@ -92,7 +95,19 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 42vw;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.app-titlebar__brand-icon {
+  display: inline-flex;
+  width: 16px;
+  height: 16px;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+  color: var(--text-primary);
 }
 
 .app-titlebar__menu {
@@ -108,6 +123,17 @@
   -webkit-app-region: no-drag;
   margin-left: auto;
   min-height: var(--titlebar-height);
+}
+
+/* Mobile slot for chat-header actions (model picker, cron, etc.). */
+.app-titlebar__actions-slot {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.app-titlebar__actions-slot:empty {
+  display: none;
 }
 
 .app-titlebar__button {
@@ -161,14 +187,14 @@
 }
 
 .app-titlebar__button--mobile {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
 }
 
 .app-titlebar__button--mobile svg {
-  width: 24px !important;
-  height: 24px !important;
+  width: 18px !important;
+  height: 18px !important;
 }
 
 .app-window-controls {
