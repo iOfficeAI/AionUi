@@ -316,7 +316,7 @@ export class SqliteTeamRepository implements ITeamRepository {
       JSON.stringify(merged.blocks),
       JSON.stringify(merged.metadata),
       merged.updatedAt,
-      id
+      current.id
     );
     return merged;
   }

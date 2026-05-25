@@ -251,4 +251,35 @@ describeOrSkip('SqliteTeamRepository', () => {
       await expect(repo.removeFromBlockedBy('nonexistent', 't0')).rejects.toThrow('Task "nonexistent" not found');
     });
   });
+
+  describe('updateTask', () => {
+    const makeTask = (id: string, overrides: Partial<TeamTask> = {}): TeamTask => ({
+      id,
+      teamId: 'team-1',
+      subject: `Task ${id}`,
+      status: 'pending',
+      blockedBy: [],
+      blocks: [],
+      metadata: {},
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      ...overrides,
+    });
+
+    beforeEach(async () => {
+      await repo.create(makeTeam());
+    });
+
+    it('updates the full task row when called with a short id prefix', async () => {
+      await repo.createTask(makeTask('12345678-aaaa-bbbb-cccc-1234567890ab'));
+
+      const updated = await repo.updateTask('12345678', { status: 'completed' });
+
+      expect(updated.id).toBe('12345678-aaaa-bbbb-cccc-1234567890ab');
+      expect(updated.status).toBe('completed');
+
+      const persisted = await repo.findTaskById('12345678-aaaa-bbbb-cccc-1234567890ab');
+      expect(persisted?.status).toBe('completed');
+    });
+  });
 });
