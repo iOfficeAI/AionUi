@@ -1,4 +1,4 @@
-import AgentBadge from '@/renderer/components/agent/AgentBadge';
+import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -41,7 +41,6 @@ const ChatLayout: React.FC<{
   /** Fallback agent name (used when no presetAssistant, e.g. from conversation.extra.agent_name) */
   agent_name?: string;
   headerExtra?: React.ReactNode;
-  headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversation_id?: string;
@@ -185,8 +184,7 @@ const ChatLayout: React.FC<{
           layout?.isMobile && 'chat-layout-header--mobile-unified'
         )}
       >
-        <div className='shrink-0'>{props.headerLeft}</div>
-        <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
+        <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
           {!layout?.isMobile && (
             <ChatTitleEditor
               editingTitle={editingTitle}
@@ -199,21 +197,22 @@ const ChatLayout: React.FC<{
               titleAreaMaxWidth={titleAreaMaxWidth}
               title={props.title}
               conversation_id={conversation_id}
+              leading={
+                (backend || presetAssistant) && (
+                  <AgentLogoIcon
+                    backend={backend}
+                    agent_name={display_name}
+                    agentLogo={presetAssistant?.logo}
+                    agentLogoIsEmoji={presetAssistant?.isEmoji}
+                  />
+                )
+              }
             />
           )}
           {layout?.isMobile && <ConversationTitleMinimap conversation_id={conversation_id} hideTrigger />}
         </FlexFullContainer>
         <div className='flex items-center gap-12px shrink-0'>
           {props.headerExtra}
-          {(backend || presetAssistant) && (
-            <AgentBadge
-              backend={backend}
-              agent_name={display_name}
-              agentLogo={presetAssistant?.logo}
-              agentLogoIsEmoji={presetAssistant?.isEmoji}
-              assistantId={presetAssistant?.id}
-            />
-          )}
           {isWindowsRuntime && workspaceEnabled && (
             <button
               type='button'

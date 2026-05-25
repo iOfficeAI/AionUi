@@ -11,7 +11,7 @@ import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Brain } from '@icon-park/react';
+import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -344,6 +344,7 @@ const AcpModelSelector: React.FC<{
         <span className='flex items-center gap-6px min-w-0 leading-none'>
           {renderLogo()}
           <MarqueePillLabel>{display_label}</MarqueePillLabel>
+          <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
         </span>
       </Button>
     </Dropdown>
