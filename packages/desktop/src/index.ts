@@ -8,18 +8,25 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import {
+  captureBackendStartupDiagnosticReport,
+  captureBackendStartupFailure,
+  initSentry,
+  scheduleStartupLogReport,
+  setSentryDeviceId,
+} from './sentry';
 
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, dialog, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
+import { showBackendStartupFailureDialog, startBackendOrExit } from './process/startup/backendStartup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
@@ -27,7 +34,7 @@ import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
-import { setInitialLanguage } from '@process/services/i18n';
+import i18n, { i18nReady, setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
@@ -484,26 +491,58 @@ const handleAppReady = async (): Promise<void> => {
   // Start aioncore only after initializeProcess(). initStorage may open
   // the legacy Electron SQLite catalog for a one-shot v26 migration and must
   // close it before the backend touches the same file.
-  try {
-    const { getDataPath } = await import('./process/utils/utils');
-    const { getSystemDir } = await import('./process/utils/initStorage');
-    const sysDir = getSystemDir();
-    const backendPort = await backendManager.start(getDataPath(), sysDir.logDir, {
-      cacheDir: sysDir.cacheDir,
-      workDir: sysDir.workDir,
-      logDir: sysDir.logDir,
-    });
-    mark(`backendManager.start (port=${backendPort})`);
-    // Expose the backend port to main-process callers of httpBridge (e.g. the
-    // one-shot assistant migration hook below). Must land BEFORE any
-    // ipcBridge.* invoke from the main process — the renderer side reads
-    // window.__backendPort via preload, but main has no `window`.
-    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
-    registerCronResumeBridge(backendPort);
-    backendStartedOk = true;
-  } catch (error) {
-    console.error('[AionUi] Failed to start aioncore:', error);
-    captureBackendStartupFailure(error);
+  const backendStartup = await startBackendOrExit({
+    startBackend: async () => {
+      const { getDataPath } = await import('./process/utils/utils');
+      const { getSystemDir } = await import('./process/utils/initStorage');
+      const sysDir = getSystemDir();
+      return backendManager.start(getDataPath(), sysDir.logDir, {
+        cacheDir: sysDir.cacheDir,
+        workDir: sysDir.workDir,
+        logDir: sysDir.logDir,
+      });
+    },
+    onStarted: (backendPort) => {
+      mark(`backendManager.start (port=${backendPort})`);
+      // Expose the backend port to main-process callers of httpBridge (e.g. the
+      // one-shot assistant migration hook below). Must land BEFORE any
+      // ipcBridge.* invoke from the main process — the renderer side reads
+      // window.__backendPort via preload, but main has no `window`.
+      (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+      registerCronResumeBridge(backendPort);
+      backendStartedOk = true;
+    },
+    captureFailure: captureBackendStartupFailure,
+    showFailureDialog:
+      isWebUIMode || isResetPasswordMode
+        ? undefined
+        : async (error) => {
+            await i18nReady;
+            await showBackendStartupFailureDialog(
+              error,
+              {
+                title: i18n.t('settings.backendStartupFailureTitle'),
+                message: i18n.t('settings.backendStartupFailureMessage'),
+                detail: i18n.t('settings.backendStartupFailureDetail'),
+                sendReport: i18n.t('settings.backendStartupFailureSendReport'),
+                exit: i18n.t('settings.backendStartupFailureExit'),
+                reportSentTitle: i18n.t('settings.backendStartupFailureReportSentTitle'),
+                reportSentMessage: i18n.t('settings.backendStartupFailureReportSentMessage'),
+                reportFailedTitle: i18n.t('settings.backendStartupFailureReportFailedTitle'),
+                reportFailedMessage: i18n.t('settings.backendStartupFailureReportFailedMessage'),
+              },
+              {
+                showMessageBox: (options) => dialog.showMessageBox(options),
+                captureDiagnosticReport: captureBackendStartupDiagnosticReport,
+                logError: console.error,
+              }
+            );
+          },
+    exitApp: (code) => app.exit(code),
+    logError: console.error,
+  });
+  if (!backendStartup.ok) {
+    return;
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is

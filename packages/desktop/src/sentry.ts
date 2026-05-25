@@ -9,6 +9,7 @@ import { app, type BrowserWindow } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
+import { collectFeedbackLogAttachment } from './process/feedback/logs';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
@@ -60,7 +61,9 @@ function getBackendStartupDetails(error: unknown): Record<string, unknown> | und
   return details as Record<string, unknown>;
 }
 
-export function captureBackendStartupFailure(error: unknown): void {
+const BACKEND_STARTUP_FLUSH_TIMEOUT_MS = 2000;
+
+export async function captureBackendStartupFailure(error: unknown): Promise<void> {
   const capturedError = error instanceof Error ? error : new Error(String(error));
   const details = getBackendStartupDetails(error);
   Sentry.withScope((scope) => {
@@ -74,6 +77,59 @@ export function captureBackendStartupFailure(error: unknown): void {
     }
     Sentry.captureException(capturedError);
   });
+  try {
+    await Sentry.flush(BACKEND_STARTUP_FLUSH_TIMEOUT_MS);
+  } catch {
+    // If Sentry cannot flush during fatal startup, keep shutdown deterministic.
+  }
+}
+
+function getFeedbackLogsDir(): string {
+  try {
+    return app.getPath('logs');
+  } catch {
+    return path.join(app.getPath('userData'), 'logs');
+  }
+}
+
+export async function captureBackendStartupDiagnosticReport(error: unknown): Promise<void> {
+  const details = getBackendStartupDetails(error);
+  const errorMessage = error instanceof Error ? error.message : String(error);
+  const logAttachment = collectFeedbackLogAttachment(getFeedbackLogsDir());
+  const attachments = logAttachment
+    ? [
+        {
+          filename: logAttachment.filename,
+          data: logAttachment.data,
+          contentType: logAttachment.contentType,
+        },
+      ]
+    : [];
+
+  Sentry.captureEvent(
+    {
+      level: 'info',
+      message: 'AionUi startup diagnostic report: backend startup failed',
+      tags: {
+        type: 'user-feedback',
+        module: 'startup',
+        'aionui.failure': 'backend_startup',
+        ...(typeof details?.stage === 'string' ? { 'aionui.backend_startup.stage': details.stage } : {}),
+      },
+      contexts: details ? { aioncore_startup: details } : undefined,
+      extra: {
+        errorMessage,
+        description: 'User opted to send a startup diagnostic report after aioncore failed to start.',
+      },
+    },
+    { attachments }
+  );
+
+  try {
+    await Sentry.flush(BACKEND_STARTUP_FLUSH_TIMEOUT_MS);
+  } catch {
+    // Keep fatal startup shutdown deterministic even if the report cannot flush.
+  }
 }
 
 /**
