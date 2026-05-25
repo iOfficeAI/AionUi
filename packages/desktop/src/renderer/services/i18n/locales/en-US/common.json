@@ -74,6 +74,7 @@
   "fileAttach.failed": "Upload failed",
   "fileAttach.uploading": "Uploading...",
   "fileAttach.uploadSuccess": "Upload successful",
+  "fileAttach.cancelUpload": "Cancel upload",
   "expand": "Expand",
   "name": "Name",
   "added": "Added",

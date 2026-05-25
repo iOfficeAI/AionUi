@@ -37,6 +37,7 @@ import { usePasteService } from '@renderer/hooks/file/usePasteService';
 import { useMessageList } from '@renderer/pages/conversation/Messages/hooks';
 import type { FileMetadata } from '@renderer/services/FileService';
 import { useUploadState } from '@renderer/hooks/file/useUploadState';
+import { useAbortUploadsOnConversationChange } from '@renderer/hooks/file/useAbortUploadsOnConversationChange';
 import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
@@ -362,6 +363,9 @@ const SendBox: React.FC<{
   });
 
   const { isUploading } = useUploadState('sendbox');
+  // Bind sendbox uploads to the current conversation's lifecycle: switching
+  // conversations or unmounting the SendBox aborts anything still in flight.
+  useAbortUploadsOnConversationChange(conversationContext?.conversation_id, 'sendbox');
   const [message, context] = Message.useMessage();
   const conversationExport = useConversationExport({
     conversation_id: conversationContext?.conversation_id,

@@ -74,6 +74,7 @@
   "fileAttach.failed": "上传失败",
   "fileAttach.uploading": "上传中...",
   "fileAttach.uploadSuccess": "上传成功",
+  "fileAttach.cancelUpload": "取消上传",
   "expand": "展开",
   "name": "名称",
   "added": "已添加",

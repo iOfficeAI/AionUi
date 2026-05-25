@@ -187,6 +187,7 @@ export type I18nKey =
   | 'common.expandMore'
   | 'common.failed'
   | 'common.file'
+  | 'common.fileAttach.cancelUpload'
   | 'common.fileAttach.failed'
   | 'common.fileAttach.hostFiles'
   | 'common.fileAttach.myDevice'

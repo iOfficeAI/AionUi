@@ -74,6 +74,7 @@
   "fileAttach.failed": "Yükleme başarısız",
   "fileAttach.uploading": "Yükleniyor...",
   "fileAttach.uploadSuccess": "Yükleme başarılı",
+  "fileAttach.cancelUpload": "Yüklemeyi iptal et",
   "expand": "Genişlet",
   "name": "Ad",
   "added": "Eklendi",
