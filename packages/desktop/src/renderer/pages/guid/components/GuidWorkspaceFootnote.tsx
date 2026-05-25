@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import { addRecentWorkspace, getRecentWorkspaces } from '@/renderer/components/workspace';
 import { Tooltip } from '@arco-design/web-react';
-import { Close } from '@icon-park/react';
+import { Close, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
@@ -18,20 +18,6 @@ type GuidWorkspaceFootnoteProps = {
   onSelectWorkspace: (dir: string) => void;
   onClearWorkspace: () => void;
 };
-
-const ChevronDown = () => (
-  <svg
-    width='9'
-    height='9'
-    fill='none'
-    stroke='currentColor'
-    strokeWidth='2'
-    viewBox='0 0 24 24'
-    style={{ flexShrink: 0 }}
-  >
-    <path d='M6 9l6 6 6-6' />
-  </svg>
-);
 
 const FolderIcon = ({ size = 12 }: { size?: number }) => (
   <svg
@@ -256,7 +242,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
               >
                 <FolderIcon size={14} />
                 <span className={styles.workspacePillName}>{workspaceName}</span>
-                <ChevronDown />
+                <Down theme='outline' size='12' fill='currentColor' style={{ flexShrink: 0 }} />
               </button>
               <span
                 role='button'
@@ -283,7 +269,7 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
           >
             <FolderIcon size={14} />
             <span>{t('guid.workspace.workInProject')}</span>
-            {recentWorkspaces.length > 0 && <ChevronDown />}
+            {recentWorkspaces.length > 0 && <Down theme='outline' size='12' fill='currentColor' style={{ flexShrink: 0 }} />}
           </button>
           {dropdownEl}
         </>
