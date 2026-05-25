@@ -4,7 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { CodexToolCallUpdate, IMessageAcpToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
+import type {
+  CodexToolCallUpdate,
+  IMessageAcpToolCall,
+  IMessageAgentStatus,
+  IMessageToolGroup,
+  TMessage,
+} from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
@@ -85,6 +91,15 @@ const highlightStyle: React.CSSProperties = {
 };
 
 const getUnhandledMessageType = (_message: never): string => 'unknown';
+
+export const shouldRenderMessageInList = (message: TMessage): boolean => {
+  if (message.hidden) return false;
+  if (message.type === 'available_commands') return false;
+  if (message.type === 'agent_status') {
+    return (message as IMessageAgentStatus).content.status === 'error';
+  }
+  return true;
+};
 
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
@@ -208,9 +223,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
 
     for (let i = 0, len = list.length; i < len; i++) {
       const message = list[i];
-      // Skip hidden and available_commands messages
-      if (message.hidden) continue;
-      if (message.type === 'available_commands') continue;
+      // Keep transient connection state out of the conversation transcript.
+      if (!shouldRenderMessageInList(message)) continue;
       if (message.type === 'codex_tool_call' && message.content.subtype === 'turn_diff') {
         pushFileDffChanges(parseDiff((message.content as TurnDiffContent).data.unified_diff), message.id);
         continue;
