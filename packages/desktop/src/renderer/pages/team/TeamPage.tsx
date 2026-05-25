@@ -1,5 +1,5 @@
 import { Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
+import { CloseSmall, FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
@@ -351,6 +351,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         isTemporaryWorkspace={isTeamWorkspaceTemporary}
         workspacePreferenceKey={team.id}
         onRenameTitle={onRenameTeam}
+        headerLeading={
+          <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
+            <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+          </span>
+        }
       >
         <div className='relative flex h-full'>
           {fullscreenSlotId ? (
