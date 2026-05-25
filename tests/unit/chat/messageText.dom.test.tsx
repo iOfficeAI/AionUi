@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import type { IMessageText } from '@/common/chat/chatLib';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
-import MessageText from '@/renderer/pages/conversation/Messages/components/MessageText';
+import MessageText, { formatMessageTime } from '@/renderer/pages/conversation/Messages/components/MessageText';
 
 const mockFilePreview = vi.fn(({ path }: { path: string }) => <div data-testid='file-preview'>{path}</div>);
 
@@ -62,6 +62,34 @@ vi.mock('react-i18next', () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
   }),
 }));
+
+describe('MessageText timestamps', () => {
+  it('renders the message creation time without requiring hover', () => {
+    const timestamp = new Date().setHours(9, 5, 0, 0);
+    const message: IMessageText = {
+      id: 'msg-time',
+      msg_id: 'msg-time',
+      conversation_id: 'conv-1',
+      type: 'text',
+      position: 'right',
+      createdAt: timestamp,
+      content: {
+        content: 'hello',
+      },
+    };
+
+    render(
+      <ConversationProvider value={{ conversationId: 'conv-1', workspace: '/workspace/demo', type: 'acp' }}>
+        <MessageText message={message} />
+      </ConversationProvider>
+    );
+
+    const timestampElement = screen.getByText(formatMessageTime(timestamp));
+    expect(timestampElement).toBeVisible();
+    expect(timestampElement).not.toHaveClass('opacity-0');
+    expect(timestampElement).toHaveAttribute('title', new Date(timestamp).toLocaleString());
+  });
+});
 
 describe('MessageText attachment paths', () => {
   it('resolves relative attachment paths against the current workspace before previewing', () => {
