@@ -187,6 +187,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         session_mode={conversation.extra?.session_mode}
         cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+        agent_name={presetAssistantInfo?.name}
       />
     </ChatLayout>
   );
