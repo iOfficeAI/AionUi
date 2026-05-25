@@ -738,6 +738,12 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  // Desktop agent session sync settings
+  getAgentSessionSync: bridge.buildProvider<boolean, void>('system-settings:get-agent-session-sync'),
+  setAgentSessionSync: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-agent-session-sync'),
+  syncAgentSessions: bridge.buildProvider<{ imported: number; errors: string[] }, void>(
+    'system-settings:sync-agent-sessions'
+  ),
 };
 
 // Ambient Mode — M1 bubble window (AC-M1-5 / AC-M1-10 / AC-M1-11 / AC-M1-13)

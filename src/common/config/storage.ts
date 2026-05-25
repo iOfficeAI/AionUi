@@ -130,6 +130,8 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Enable desktop agent session sync
+  'system.agentSessionSync'?: boolean;
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;
@@ -311,6 +313,8 @@ export type TChatConversation =
           isHealthCheck?: boolean;
           /** Cron job ID that spawned this conversation */
           cronJobId?: string;
+          /** Source path of desktop CLI session file, used for dedup during sync */
+          desktopSessionSourcePath?: string;
         }
       >,
       'model'

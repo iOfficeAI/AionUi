@@ -16,6 +16,8 @@ import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+import { SessionScannerService, SessionImportService } from '@process/services/sessionSync';
+import { getDatabase } from '@process/services/database';
 import type { PetSize } from '@process/pet/petTypes';
 
 // Keep-awake power blocker state
@@ -203,4 +205,67 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  // Get "agent session sync" setting / 获取"Agent 会话同步"设置
+  ipcBridge.systemSettings.getAgentSessionSync.provider(async () => {
+    const value = await ProcessConfig.get('system.agentSessionSync');
+    return value ?? false;
+  });
+
+  // Set "agent session sync" / 设置"Agent 会话同步"
+  ipcBridge.systemSettings.setAgentSessionSync.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.agentSessionSync', enabled);
+  });
+
+  // Manually trigger agent session sync / 手动触发 Agent 会话同步
+  ipcBridge.systemSettings.syncAgentSessions.provider(async () => {
+    return performAgentSessionSync();
+  });
+
+  // Auto-sync on startup if enabled / 启动时自动同步
+  ProcessConfig.get('system.agentSessionSync')
+    .then((enabled) => {
+      if (enabled) {
+        performAgentSessionSync()
+          .then((result) => {
+            if (result.imported > 0) {
+              console.log(`[SessionSync] Auto-synced ${result.imported} sessions on startup`);
+            }
+          })
+          .catch((err) => {
+            console.warn('[SessionSync] Auto-sync on startup failed:', err);
+          });
+      }
+    })
+    .catch((err) => {
+      console.warn('[SessionSync] Failed to check sync setting:', err);
+    });
+}
+
+/**
+ * Perform agent session scan and import.
+ * Scans desktop CLI directories and imports new sessions into AionUi.
+ */
+async function performAgentSessionSync(): Promise<{ imported: number; errors: string[] }> {
+  const scanner = new SessionScannerService();
+  const { sessions, errors } = await scanner.scanAll();
+
+  if (sessions.length === 0) {
+    return { imported: 0, errors };
+  }
+
+  const db = await getDatabase();
+  const importer = new SessionImportService(db);
+  const imported = await importer.importSessions(sessions);
+
+  // Notify sidebar to refresh if any sessions were imported
+  if (imported > 0) {
+    ipcBridge.conversation.listChanged.emit({
+      conversationId: '',
+      action: 'created',
+      source: 'desktop-sync',
+    });
+  }
+
+  return { imported, errors };
 }
