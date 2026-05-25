@@ -3,14 +3,14 @@
   /* Message body — keep body type compact so messages don't dominate the screen */
   .message-item .markdown-shadow {
     font-size: 14px !important;
-    line-height: 1.4 !important;
+    line-height: 1.0 !important;
   }
 
   .message-item .markdown-shadow p,
   .message-item .markdown-shadow li,
   .message-item .markdown-shadow blockquote {
     font-size: 14px !important;
-    line-height: 1.4 !important;
+    line-height: 1.0 !important;
   }
 
   /* Vertical rhythm between consecutive messages on mobile.
@@ -23,6 +23,6 @@
 
   /* Apply consistent line-height to user message text */
   .message-item .whitespace-pre-wrap {
-    line-height: 1.4 !important;
+    line-height: 1.0 !important;
   }
 }

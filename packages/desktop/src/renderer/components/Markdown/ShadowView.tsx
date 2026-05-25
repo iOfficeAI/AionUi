@@ -23,7 +23,7 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         .join('\n    ')
     : '';
 
-  const lineHeight = isMobile ? '19.6px' : '28px';
+  const lineHeight = isMobile ? '14px' : '28px';
   const fontSize = isMobile ? '14px' : '16px';
 
   style.innerHTML = `
