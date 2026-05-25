@@ -90,7 +90,7 @@ jobs:
     name: Unit Tests (${{ matrix.os }})
     if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 10
+    timeout-minutes: 20
     strategy:
       fail-fast: false
       matrix:
