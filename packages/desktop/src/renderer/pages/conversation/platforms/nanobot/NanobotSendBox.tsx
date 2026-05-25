@@ -25,6 +25,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
@@ -156,7 +157,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
     setHasHydratedRunningState(false);
     setThought({ subject: '', description: '' });
 
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getConversationOrNull(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }
@@ -364,7 +365,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       try {
         setAiProcessing(true);
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        const res = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+        const res = await getConversationOrNull(conversation_id);
         const resolvedWorkspace = res?.extra?.workspace ?? '';
         setWorkspacePath(resolvedWorkspace);
         const initialDisplayMessage = buildDisplayMessage(input, files, resolvedWorkspace);

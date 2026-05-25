@@ -3,6 +3,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import type { TChatConversation } from '@/common/config/storage';
 import { Button } from '@arco-design/web-react';
 import type { SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import {
   type ExportTranscriptLabels,
   buildConversationExportText,
@@ -97,7 +98,7 @@ export function useConversationExport(options: UseConversationExportOptions): Us
       return conversationRef.current;
     }
 
-    const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+    const conversation = await getConversationOrNull(conversation_id);
     conversationRef.current = conversation;
     transcriptRef.current = null;
     return conversation;

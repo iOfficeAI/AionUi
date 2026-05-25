@@ -6,8 +6,8 @@
 
 import React from 'react';
 import useSWR from 'swr';
-import { ipcBridge } from '@/common';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
   senderName: string;
@@ -26,7 +26,7 @@ const TeammateMessageAvatar: React.FC<Props> = ({ senderName, senderConversation
   // Share the SWR key with AgentChatSlot / TeamAgentIdentity so this hits cache
   // instead of firing another fetch for the same conversation.
   const { data: conversation } = useSWR(senderConversationId ? ['team-conversation', senderConversationId] : null, () =>
-    ipcBridge.conversation.get.invoke({ id: senderConversationId! })
+    getConversationOrNull(senderConversationId!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
 
