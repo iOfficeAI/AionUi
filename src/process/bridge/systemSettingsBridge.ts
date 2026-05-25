@@ -203,4 +203,23 @@ export function initSystemSettingsBridge(): void {
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
   });
+
+  // Sound notification on agent turn completion
+  ipcBridge.systemSettings.getSoundEnabled.provider(async () => {
+    const value = await ProcessConfig.get('system.soundEnabled');
+    return value ?? false;
+  });
+
+  ipcBridge.systemSettings.setSoundEnabled.provider(async ({ enabled }) => {
+    await ProcessConfig.set('system.soundEnabled', enabled);
+  });
+
+  ipcBridge.systemSettings.getSoundPreset.provider(async () => {
+    const value = await ProcessConfig.get('system.soundPreset');
+    return value ?? 'chime';
+  });
+
+  ipcBridge.systemSettings.setSoundPreset.provider(async ({ preset }) => {
+    await ProcessConfig.set('system.soundPreset', preset);
+  });
 }

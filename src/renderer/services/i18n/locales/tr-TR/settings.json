@@ -165,6 +165,8 @@
   "closeToTray": "Tepsiye Kapat",
   "notification": "Bildirimler",
   "cronNotificationEnabled": "Zamanlanmış Görev Tamamlanma",
+  "soundNotificationEnabled": "Ses Bildirimi",
+  "soundNotificationPreset": "Ses Ön Ayarı",
   "promptTimeout": "LLM İstek Zaman Aşımı (sn)",
   "groupAiCore": "AI Çekirdek",
   "groupApp": "Uygulama",

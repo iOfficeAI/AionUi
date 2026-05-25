@@ -165,6 +165,8 @@
   "closeToTray": "トレイに最小化",
   "notification": "通知",
   "cronNotificationEnabled": "定期タスク完了通知",
+  "soundNotificationEnabled": "サウンド通知",
+  "soundNotificationPreset": "サウンドプリセット",
   "promptTimeout": "LLM リクエストタイムアウト（秒）",
   "groupAiCore": "AI コア",
   "groupApp": "アプリケーション",

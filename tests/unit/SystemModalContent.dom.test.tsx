@@ -92,6 +92,10 @@ const mockShowOpen = vi.fn();
 const mockUpdateSystemInfo = vi.fn();
 const mockGetStartOnBootStatus = vi.fn();
 const mockSetStartOnBoot = vi.fn();
+const mockGetSoundEnabled = vi.fn();
+const mockSetSoundEnabled = vi.fn();
+const mockGetSoundPreset = vi.fn();
+const mockSetSoundPreset = vi.fn();
 
 vi.mock('@/common/config/storage', () => ({
   ConfigStorage: {
@@ -137,6 +141,10 @@ vi.mock('@/common', () => ({
       setAutoPreviewOfficeFiles: {
         invoke: (...args: any[]) => mockSetAutoPreviewOfficeFiles(...args),
       },
+      getSoundEnabled: { invoke: (...args: any[]) => mockGetSoundEnabled(...args) },
+      setSoundEnabled: { invoke: (...args: any[]) => mockSetSoundEnabled(...args) },
+      getSoundPreset: { invoke: (...args: any[]) => mockGetSoundPreset(...args) },
+      setSoundPreset: { invoke: (...args: any[]) => mockSetSoundPreset(...args) },
     },
     dialog: {
       showOpen: { invoke: (...args: any[]) => mockShowOpen(...args) },
@@ -146,6 +154,11 @@ vi.mock('@/common', () => ({
       openFile: { invoke: (...args: any[]) => mockOpenFile(...args) },
     },
   },
+}));
+
+vi.mock('@renderer/services/sound/SoundNotificationService', () => ({
+  soundNotificationService: { play: vi.fn() },
+  SOUND_PRESETS: ['chime', 'ding', 'bell', 'pop'],
 }));
 
 // Mock SWR to control data fetching
@@ -247,6 +260,10 @@ describe('SystemModalContent', () => {
     mockSetCronNotificationEnabled.mockResolvedValue(undefined);
     mockSetSaveUploadToWorkspace.mockResolvedValue(undefined);
     mockSetAutoPreviewOfficeFiles.mockResolvedValue(undefined);
+    mockGetSoundEnabled.mockResolvedValue(false);
+    mockSetSoundEnabled.mockResolvedValue(undefined);
+    mockGetSoundPreset.mockResolvedValue('chime');
+    mockSetSoundPreset.mockResolvedValue(undefined);
   });
 
   it('should render system settings with language switcher and preferences', async () => {

@@ -163,6 +163,8 @@
   "closeToTray": "Згортати в трей",
   "notification": "Сповіщення",
   "cronNotificationEnabled": "Завершення запланованих завдань",
+  "soundNotificationEnabled": "Звукове сповіщення",
+  "soundNotificationPreset": "Звуковий пресет",
   "promptTimeout": "Таймаут промпту ШІ (с)",
   "groupAiCore": "Ядро ШІ",
   "groupApp": "Програма",

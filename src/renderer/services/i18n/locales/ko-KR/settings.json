@@ -165,6 +165,8 @@
   "closeToTray": "트레이로 닫기",
   "notification": "알림",
   "cronNotificationEnabled": "예약 작업 완료 알림",
+  "soundNotificationEnabled": "소리 알림",
+  "soundNotificationPreset": "소리 프리셋",
   "promptTimeout": "LLM 요청 시간 초과 (초)",
   "groupAiCore": "AI 코어",
   "groupApp": "애플리케이션",

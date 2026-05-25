@@ -738,6 +738,11 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  // Sound notification on agent turn completion
+  getSoundEnabled: bridge.buildProvider<boolean, void>('system-settings:get-sound-enabled'),
+  setSoundEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-sound-enabled'),
+  getSoundPreset: bridge.buildProvider<string, void>('system-settings:get-sound-preset'),
+  setSoundPreset: bridge.buildProvider<void, { preset: string }>('system-settings:set-sound-preset'),
 };
 
 // Ambient Mode — M1 bubble window (AC-M1-5 / AC-M1-10 / AC-M1-11 / AC-M1-13)
