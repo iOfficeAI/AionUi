@@ -161,7 +161,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     title: conversation.name,
     siderTitle: sliderTitle,
     sider: <ChatSlider conversation={conversation} />,
-    headerLeft: <AionrsModelSelector selection={modelSelection} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <CronJobManager
@@ -169,6 +168,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
           cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
+        <AionrsModelSelector selection={modelSelection} />
       </div>
     ),
     workspaceEnabled,
@@ -188,6 +188,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         session_mode={conversation.extra?.session_mode}
         cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+        agent_name={presetAssistantInfo?.name}
       />
     </ChatLayout>
   );
@@ -371,6 +372,7 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
     </div>
   );
 
@@ -378,7 +380,6 @@ const ChatConversation: React.FC<{
     <ChatLayout
       title={conversation?.name}
       {...chatLayoutProps}
-      headerLeft={modelSelector}
       headerExtra={headerExtraNode}
       siderTitle={sliderTitle}
       sider={<ChatSlider conversation={conversation} />}

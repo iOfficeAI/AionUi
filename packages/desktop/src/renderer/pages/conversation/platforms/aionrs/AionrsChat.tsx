@@ -24,7 +24,17 @@ const AionrsChat: React.FC<{
   cron_job_id?: string;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
-}> = ({ conversation_id, workspace, modelSelection, session_mode, cron_job_id, emptySlot, loadedSkills }) => {
+  agent_name?: string;
+}> = ({
+  conversation_id,
+  workspace,
+  modelSelection,
+  session_mode,
+  cron_job_id,
+  emptySlot,
+  loadedSkills,
+  agent_name,
+}) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -45,6 +55,7 @@ const AionrsChat: React.FC<{
             conversation_id={conversation_id}
             modelSelection={modelSelection}
             session_mode={session_mode}
+            agent_name={agent_name}
           />
         </div>
       </ConversationArtifactProvider>

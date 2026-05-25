@@ -11,7 +11,6 @@ import type { ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -26,6 +25,25 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
+
+const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox='0 0 48 48'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={strokeWidth}
+    strokeLinecap='round'
+    strokeLinejoin='round'
+    aria-hidden='true'
+    focusable='false'
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <rect x='6' y='10' width='36' height='28' rx='5' />
+    <line x1='18' y1='10' x2='18' y2='38' />
+  </svg>
+);
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -479,15 +497,12 @@ const Layout: React.FC<{
                 {isMobile && !collapsed && (
                   <button
                     type='button'
-                    className='app-titlebar__button'
+                    className='app-titlebar__button app-titlebar__button--mobile'
                     onClick={() => setCollapsed(true)}
+                    title='Collapse sidebar'
                     aria-label='Collapse sidebar'
                   >
-                    {collapsed ? (
-                      <MenuUnfold theme='outline' size='18' fill='currentColor' />
-                    ) : (
-                      <MenuFold theme='outline' size='18' fill='currentColor' />
-                    )}
+                    <SidebarIcon size={18} strokeWidth={2.5} />
                   </button>
                 )}
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}

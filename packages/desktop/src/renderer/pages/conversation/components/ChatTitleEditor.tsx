@@ -15,6 +15,8 @@ type ChatTitleEditorProps = {
   titleAreaMaxWidth: number;
   title: React.ReactNode;
   conversation_id?: string;
+  /** Optional leading icon (e.g. agent logo) rendered inside the hover region, just before the title */
+  leading?: React.ReactNode;
 };
 
 // Inline title display with double-click-to-edit rename support
@@ -29,6 +31,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   titleAreaMaxWidth,
   title,
   conversation_id,
+  leading,
 }) => {
   const { t } = useTranslation();
 
@@ -42,7 +45,8 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
       )}
       style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
-      <div className='min-w-0 flex-1 px-10px py-5px'>
+      {leading && <div className='shrink-0 flex items-center pl-8px'>{leading}</div>}
+      <div className='min-w-0 flex-1 px-8px py-5px'>
         {editingTitle && canRenameTitle ? (
           <Input
             autoFocus

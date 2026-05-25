@@ -423,10 +423,34 @@
     display: none;
   }
 
-  /* Sendbox input */
+  /* Sendbox input — 14px to match desktop body type (per product call;
+     accept the iOS auto-zoom trade-off). One-line resting height; autoSize
+     still expands the textarea as soon as the user wraps. The wrapping
+     container shares the same floor, and we trim the gap below the textarea
+     (default inline 8px → 4px) so the toolbar sits closer. */
   .sendbox-input--mobile {
-    font-size: 16px !important;
-    line-height: 24px !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    min-height: 20px !important;
+  }
+
+  .sendbox-highlight-container {
+    min-height: 20px !important;
+    margin-bottom: 4px !important;
+  }
+
+  /* Mobile placeholder shares the input's 14px font for consistency. */
+  .sendbox-input--mobile::placeholder,
+  .sendbox-input--mobile::-webkit-input-placeholder,
+  .sendbox-highlight-textarea.sendbox-input--mobile::placeholder {
+    font-size: 14px !important;
+  }
+
+  /* Tighter mobile sendbox: reduce outer padding so the bottom input takes
+     less vertical space on narrow screens. */
+  .sendbox-panel {
+    padding: 8px 10px !important;
+    border-radius: 16px !important;
   }
 
   .speech-input-feedback {

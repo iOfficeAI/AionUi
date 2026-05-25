@@ -1,20 +1,12 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
-import {
-  ArrowCircleLeft,
-  ArrowLeft,
-  ArrowRight,
-  ExpandLeft,
-  ExpandRight,
-  MenuFold,
-  MenuUnfold,
-  Plus,
-} from '@icon-park/react';
+import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Peoples } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
+import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
 import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
@@ -98,17 +90,15 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const workspaceTooltip = workspaceCollapsed
     ? t('common.expandMore', { defaultValue: 'Expand workspace' })
     : t('common.collapse', { defaultValue: 'Collapse workspace' });
-  const newConversationTooltip = t('conversation.workspace.createNewConversation');
   const backToChatTooltip = t('common.back', { defaultValue: 'Back to Chat' });
   const isSettingsRoute = location.pathname.startsWith('/settings');
-  const iconSize = layout?.isMobile ? 24 : 18;
+  const iconSize = 18;
   // Desktop uses slimmer strokes to match macOS-native chrome aesthetics;
   // mobile keeps the default weight so icons stay legible at larger sizes.
   const desktopIconStroke = layout?.isMobile ? undefined : 2.5;
   // 统一在标题栏左侧展示主侧栏开关 / Always expose sidebar toggle on titlebar left side
   const showSiderToggle = Boolean(layout?.setSiderCollapsed) && !(layout?.isMobile && isSettingsRoute);
   const showBackToChatButton = Boolean(layout?.isMobile && isSettingsRoute);
-  const showNewConversationButton = Boolean(layout?.isMobile && workspaceAvailable);
   const siderTooltip = layout?.siderCollapsed
     ? t('common.expandMore', { defaultValue: 'Expand sidebar' })
     : t('common.collapse', { defaultValue: 'Collapse sidebar' });
@@ -128,10 +118,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       return;
     }
     dispatchWorkspaceToggleEvent();
-  };
-
-  const handleCreateConversation = () => {
-    void navigate('/guid');
   };
 
   const handleBackToChat = () => {
@@ -242,7 +228,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     if (toolbarRef.current) observer.observe(toolbarRef.current);
 
     return () => observer.disconnect();
-  }, [layout?.isMobile, showBackToChatButton, showNewConversationButton, showWorkspaceButton, mobileCenterTitle]);
+  }, [layout?.isMobile, showBackToChatButton, showWorkspaceButton, mobileCenterTitle]);
 
   const mobileCenterStyle = layout?.isMobile
     ? ({
@@ -289,15 +275,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             onClick={handleSiderToggle}
             aria-label={siderTooltip}
           >
-            {layout?.isMobile ? (
-              layout?.siderCollapsed ? (
-                <MenuUnfold theme='outline' size={iconSize} fill='currentColor' />
-              ) : (
-                <MenuFold theme='outline' size={iconSize} fill='currentColor' />
-              )
-            ) : (
-              <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
-            )}
+            <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
           </button>
         )}
         {showHistoryNav && (
@@ -326,27 +304,34 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         )}
       </div>
       <div
-        className='app-titlebar__brand'
+        className={classNames('app-titlebar__brand', {
+          'app-titlebar__brand--centered': !location.pathname.match(/^\/(conversation|team)\//),
+        })}
         aria-label={layout?.isMobile ? mobileCenterTitle : appTitle}
         title={layout?.isMobile ? mobileCenterTitle : appTitle}
       >
-        {layout?.isMobile && (
-          <span className='app-titlebar__brand-mobile'>
-            <span className='app-titlebar__brand-text'>{mobileCenterTitle}</span>
-          </span>
-        )}
+        {layout?.isMobile &&
+          (() => {
+            const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
+            const conversation_id = conversationMatch?.[1];
+            if (conversation_id) {
+              return <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={mobileCenterTitle} />;
+            }
+            const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
+            return (
+              <span className='app-titlebar__brand-mobile'>
+                {isTeamRoute && (
+                  <span className='app-titlebar__brand-icon' aria-hidden='true'>
+                    <Peoples theme='outline' size='16' fill='currentColor' />
+                  </span>
+                )}
+                <span className='app-titlebar__brand-text'>{mobileCenterTitle}</span>
+              </span>
+            );
+          })()}
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
-        {showNewConversationButton && (
-          <button
-            type='button'
-            className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
-            onClick={handleCreateConversation}
-            aria-label={newConversationTooltip}
-          >
-            <Plus theme='outline' size={iconSize} fill='currentColor' />
-          </button>
-        )}
+        {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
         {showWorkspaceButton && (
           <button
             type='button'

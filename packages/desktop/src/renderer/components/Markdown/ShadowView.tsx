@@ -9,11 +9,17 @@ import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
 import { configService } from '@/common/config/configService';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
  */
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string) => {
+const createInitStyle = (
+  currentTheme = 'light',
+  cssVars?: Record<string, string>,
+  customCss?: string,
+  isMobile?: boolean
+) => {
   const style = document.createElement('style');
   // Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
@@ -22,6 +28,9 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
         .join('\n    ')
     : '';
 
+  const lineHeight = isMobile ? '19.6px' : '28px';
+  const fontSize = isMobile ? '14px' : '16px';
+
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
   :host {
@@ -29,8 +38,8 @@ const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string
   }
 
   * {
-    line-height:28px;
-    font-size:16px;
+    line-height:${lineHeight};
+    font-size:${fontSize};
     color: inherit;
   }
 
@@ -253,6 +262,8 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const [root, setRoot] = useState<ShadowRoot | null>(null);
   const styleRef = React.useRef<HTMLStyleElement | null>(null);
   const [customCss, setCustomCss] = useState<string>('');
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
     const css = configService.get('customCss');
@@ -299,7 +310,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
       if (styleRef.current) {
         styleRef.current.remove();
       }
-      const newStyle = createInitStyle(currentTheme, cssVars, customCss);
+      const newStyle = createInitStyle(currentTheme, cssVars, customCss, isMobile);
       styleRef.current = newStyle;
       shadowRoot.appendChild(newStyle);
 
@@ -310,7 +321,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         shadowRoot.adoptedStyleSheets = [...shadowRoot.adoptedStyleSheets, katexSheet];
       }
     },
-    [customCss]
+    [customCss, isMobile]
   );
 
   React.useEffect(() => {
