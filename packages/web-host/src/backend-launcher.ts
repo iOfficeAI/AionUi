@@ -13,6 +13,7 @@ import { createServer } from 'node:net';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
+type BackendStartupStage = 'resolve_binary' | 'find_port' | 'spawn' | 'spawn_error' | 'early_exit' | 'health_timeout';
 
 type SpawnConfig = {
   port: number;
@@ -48,6 +49,33 @@ export type BackendHandle = {
   port: number;
   stop: () => Promise<void>;
 };
+
+export type BackendStartupErrorDetails = {
+  stage: BackendStartupStage;
+  appVersion: string;
+  binaryPath?: string;
+  port?: number;
+  dataDir?: string;
+  logDir?: string;
+  workDir?: string;
+  exitCode?: number;
+  signal?: NodeJS.Signals | string;
+  causeMessage?: string;
+  stdoutTail?: string;
+  stderrTail?: string;
+};
+
+export class BackendStartupError extends Error {
+  readonly details: BackendStartupErrorDetails;
+  readonly cause?: unknown;
+
+  constructor(message: string, details: BackendStartupErrorDetails, cause?: unknown) {
+    super(message);
+    this.name = 'BackendStartupError';
+    this.details = details;
+    this.cause = cause;
+  }
+}
 
 export function buildSpawnArgs(config: SpawnConfig): string[] {
   const logLevel = process.env.AIONUI_LOG_LEVEL || (config.isPackaged ? 'info' : 'debug');
@@ -98,6 +126,16 @@ export function findAvailablePort(): Promise<number> {
   });
 }
 
+function appendOutputTail(current: string, chunk: Buffer, maxLength = 4000): string {
+  return (current + chunk.toString()).slice(-maxLength);
+}
+
+function getErrorMessage(error: unknown): string | undefined {
+  if (error instanceof Error) return error.message;
+  if (typeof error === 'string') return error;
+  return undefined;
+}
+
 export class BackendLifecycleManager {
   private childProcess: ChildProcess | null = null;
   private _port = 0;
@@ -124,13 +162,71 @@ export class BackendLifecycleManager {
   }
 
   async start(dbPath: string, logDir?: string, dirs?: BackendDirConfig): Promise<number> {
-    const binaryPath = this.resolveBackend();
     const appVersion = this.appMeta.version;
-    this._port = await findAvailablePort();
+    let binaryPath: string;
+    try {
+      binaryPath = this.resolveBackend();
+    } catch (error) {
+      throw new BackendStartupError(
+        'aioncore startup failed while resolving backend binary',
+        {
+          stage: 'resolve_binary',
+          appVersion,
+          dataDir: dbPath,
+          logDir,
+          workDir: dirs?.workDir,
+          causeMessage: getErrorMessage(error),
+        },
+        error
+      );
+    }
+    try {
+      this._port = await findAvailablePort();
+    } catch (error) {
+      throw new BackendStartupError(
+        'aioncore startup failed while finding an available port',
+        {
+          stage: 'find_port',
+          appVersion,
+          binaryPath,
+          dataDir: dbPath,
+          logDir,
+          workDir: dirs?.workDir,
+          causeMessage: getErrorMessage(error),
+        },
+        error
+      );
+    }
     this._status = 'starting';
     this._lastDbPath = dbPath;
     this._lastLogDir = logDir;
     this._lastDirs = dirs;
+    let stdoutTail = '';
+    let stderrTail = '';
+    let startupSettled = false;
+    const makeStartupError = (
+      stage: BackendStartupStage,
+      message: string,
+      cause?: unknown,
+      extra?: Partial<BackendStartupErrorDetails>
+    ) =>
+      new BackendStartupError(
+        message,
+        {
+          stage,
+          appVersion,
+          binaryPath,
+          port: this._port,
+          dataDir: dbPath,
+          logDir,
+          workDir: dirs?.workDir,
+          causeMessage: getErrorMessage(cause),
+          stdoutTail: stdoutTail || undefined,
+          stderrTail: stderrTail || undefined,
+          ...extra,
+        },
+        cause
+      );
 
     const args = buildSpawnArgs({
       port: this._port,
@@ -143,10 +239,15 @@ export class BackendLifecycleManager {
     });
     console.log(`[aioncore] starting: ${binaryPath} ${args.join(' ')}`);
 
-    this.childProcess = spawn(binaryPath, args, {
-      stdio: ['pipe', 'pipe', 'pipe'],
-      env: dirs ? buildSpawnEnv(dirs) : process.env,
-    });
+    try {
+      this.childProcess = spawn(binaryPath, args, {
+        stdio: ['pipe', 'pipe', 'pipe'],
+        env: dirs ? buildSpawnEnv(dirs) : process.env,
+      });
+    } catch (error) {
+      this._status = 'error';
+      throw makeStartupError('spawn', 'aioncore process spawn threw before startup', error);
+    }
 
     this.childProcess.stdin?.end();
 
@@ -162,31 +263,53 @@ export class BackendLifecycleManager {
     };
     process.on('exit', killOnExit);
 
-    this.childProcess.on('exit', (code) => {
-      process.removeListener('exit', killOnExit);
-      if (this._status === 'running') this.handleCrash(code);
+    const startupFailure = new Promise<never>((_resolve, reject) => {
+      this.childProcess?.once('error', (error) => {
+        if (startupSettled) return;
+        this._status = 'error';
+        reject(makeStartupError('spawn_error', 'aioncore process emitted an error before startup', error));
+      });
+
+      this.childProcess?.once('exit', (code, signal) => {
+        process.removeListener('exit', killOnExit);
+        if (!startupSettled) {
+          this._status = 'error';
+          reject(
+            makeStartupError('early_exit', 'aioncore exited before health check passed', undefined, {
+              exitCode: code ?? undefined,
+              signal: signal ?? undefined,
+            })
+          );
+          return;
+        }
+        if (this._status === 'running') this.handleCrash(code);
+      });
     });
 
     this.childProcess.stdout?.on('data', (data: Buffer) => {
+      stdoutTail = appendOutputTail(stdoutTail, data);
       for (const line of data.toString().split('\n')) {
         if (line.trim()) console.log(`[aioncore] ${line}`);
       }
     });
 
     this.childProcess.stderr?.on('data', (data: Buffer) => {
+      stderrTail = appendOutputTail(stderrTail, data);
       for (const line of data.toString().split('\n')) {
         if (line.trim()) console.error(`[aioncore] ${line}`);
       }
     });
 
-    const ready = await this.waitForHealth(this._port);
+    const ready = await Promise.race([this.waitForHealth(this._port), startupFailure]);
     if (!ready) {
+      startupSettled = true;
       this.childProcess?.kill('SIGKILL');
       this.childProcess = null;
       this._status = 'error';
-      throw new Error('aioncore failed to start within timeout');
+      throw makeStartupError('health_timeout', 'aioncore failed to start within timeout');
     }
 
+    startupSettled = true;
     this._status = 'running';
     this.restartCount = 0;
     console.log(`[aioncore] listening on port ${this._port}, data-dir: ${dbPath}`);

@@ -47,6 +47,17 @@ function makeFakeServer(port = 54321) {
   return server;
 }
 
+function makeSyncFakeServer(port = 54321) {
+  const server = makeFakeServer(port);
+  server.listen = (_p, _h, cb) => {
+    cb();
+  };
+  server.close = (cb) => {
+    if (cb) cb();
+  };
+  return server;
+}
+
 function makeFakeChild(): ChildProcess {
   const child = new EventEmitter() as EventEmitter & Partial<ChildProcess>;
   child.stdout = new EventEmitter() as ChildProcess['stdout'];
@@ -63,6 +74,7 @@ beforeEach(() => {
 
 afterEach(() => {
   // Do NOT call restoreAllMocks; it would remove vi.mock() module factories.
+  vi.useRealTimers();
 });
 
 describe('buildSpawnArgs', () => {
@@ -186,6 +198,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
       '1.2.3',
       '--log-dir',
       '/log/dir',
+      '--work-dir',
+      '/w',
       '--local',
     ]);
     const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
@@ -212,17 +226,55 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
     const startPromise = mgr.start('/db');
+    const expectedRejection = expect(startPromise).rejects.toThrow(/failed to start within timeout/);
 
     // First await the timer advance so all setTimeout callbacks fire
     await vi.advanceTimersByTimeAsync(31_000);
     // Then await the rejection
-    await expect(startPromise).rejects.toThrow(/failed to start within timeout/);
+    await expectedRejection;
 
     expect(mgr.status).toBe('error');
     expect(child.kill).toHaveBeenCalledWith('SIGKILL');
 
     fetchSpy.mockRestore();
     vi.useRealTimers();
+  }, 15_000);
+
+  it('includes startup diagnostics when health check times out', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33334) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', {
+      cacheDir: '/cache',
+      workDir: '/work',
+      logDir: '/log',
+    });
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        stage: 'health_timeout',
+        binaryPath: '/abs/path/aioncore',
+        port: 33334,
+        dataDir: '/db/path',
+        stderrTail: expect.stringContaining('database is locked'),
+      }),
+    });
+
+    await Promise.resolve();
+    await Promise.resolve();
+    child.stderr?.emit('data', Buffer.from('database is locked\n'));
+    await vi.advanceTimersByTimeAsync(31_000);
+
+    await expectedRejection;
+
+    fetchSpy.mockRestore();
   }, 15_000);
 });
 

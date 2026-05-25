@@ -53,6 +53,29 @@ export function setSentryDeviceId(): void {
   Sentry.setTag('device_id', id);
 }
 
+function getBackendStartupDetails(error: unknown): Record<string, unknown> | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const details = (error as { details?: unknown }).details;
+  if (!details || typeof details !== 'object') return undefined;
+  return details as Record<string, unknown>;
+}
+
+export function captureBackendStartupFailure(error: unknown): void {
+  const capturedError = error instanceof Error ? error : new Error(String(error));
+  const details = getBackendStartupDetails(error);
+  Sentry.withScope((scope) => {
+    scope.setTag('aionui.failure', 'backend_startup');
+    if (typeof details?.stage === 'string') {
+      scope.setTag('aionui.backend_startup.stage', details.stage);
+    }
+    if (details) {
+      scope.setContext('aioncore_startup', details);
+      scope.setExtra('aioncore_startup', details);
+    }
+    Sentry.captureException(capturedError);
+  });
+}
+
 /**
  * How many recent days of logs the next startup report packs. Aligned with
  * the 24h throttle: the previous report covers everything older, so each
