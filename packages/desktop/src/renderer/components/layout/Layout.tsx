@@ -38,7 +38,6 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
     strokeLinejoin='round'
     aria-hidden='true'
     focusable='false'
-    style={{ display: 'inline-block', verticalAlign: 'middle' }}
   >
     <rect x='6' y='10' width='36' height='28' rx='5' />
     <line x1='18' y1='10' x2='18' y2='38' />
@@ -497,12 +496,11 @@ const Layout: React.FC<{
                 {isMobile && !collapsed && (
                   <button
                     type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
+                    className='app-titlebar__button'
                     onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
                     aria-label='Collapse sidebar'
                   >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
+                    <SidebarIcon size={18} />
                   </button>
                 )}
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
