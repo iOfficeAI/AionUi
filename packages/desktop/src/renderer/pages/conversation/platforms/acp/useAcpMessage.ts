@@ -11,6 +11,7 @@ import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -393,7 +394,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setAiProcessing(false);
     aiProcessingRef.current = false;
 
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getConversationOrNull(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }

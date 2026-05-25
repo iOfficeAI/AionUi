@@ -153,7 +153,7 @@ export const conversation = {
     fromApiConversation
   ),
   get: withResponseMap(
-    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
+    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`, { silentStatuses: [404] }),
     fromApiConversation
   ),
   getAssociateConversation: withResponseMap(

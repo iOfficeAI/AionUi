@@ -11,6 +11,7 @@ import type { TChatConversation, TokenUsageData } from '@/common/config/storage'
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { processLocalCronResponse } from './localCronCommands';
 
@@ -351,7 +352,7 @@ export const useAionrsMessage = (
 
     // Check actual conversation status from backend before resetting all running states
     // to avoid flicker when switching to a running conversation
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getConversationOrNull(conversation_id).then((res) => {
       if (cancelled) {
         return;
       }

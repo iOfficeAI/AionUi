@@ -7,6 +7,7 @@ import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
@@ -31,10 +32,8 @@ const ChatConversationIndex: React.FC = () => {
     previousConversationIdRef.current = id;
   }, [id, closePreview]);
 
-  // Swallow fetch errors (e.g. 404 when navigating back to a deleted conversation
-  // via browser history) so they don't bubble up as unhandled promise rejections.
-  const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
-    return ipcBridge.conversation.get.invoke({ id }).catch((): null => null);
+  const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
+    return getConversationOrNull(id!);
   });
 
   useEffect(() => {
