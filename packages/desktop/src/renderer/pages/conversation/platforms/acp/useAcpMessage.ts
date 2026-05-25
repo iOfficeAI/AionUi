@@ -394,39 +394,55 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setAiProcessing(false);
     aiProcessingRef.current = false;
 
-    void getConversationOrNull(conversation_id).then((res) => {
-      if (cancelled) {
-        return;
-      }
+    void getConversationOrNull(conversation_id)
+      .then((res) => {
+        if (cancelled) {
+          return;
+        }
 
-      if (!res) {
+        if (!res) {
+          setRunning(false);
+          runningRef.current = false;
+          setAiProcessing(false);
+          aiProcessingRef.current = false;
+          setHasHydratedRunningState(true);
+          return;
+        }
+        const isRunning = res.status === 'running';
+        setRunning(isRunning);
+        runningRef.current = isRunning;
+        if (isRunning) {
+          setAiProcessing(true);
+          aiProcessingRef.current = true;
+        }
+        setHasHydratedRunningState(true);
+
+        // Restore persisted context usage data
+        if (res.type === 'acp' && res.extra?.last_token_usage) {
+          const { last_token_usage, last_context_limit } = res.extra;
+          if (last_token_usage.total_tokens > 0) {
+            setTokenUsage(last_token_usage);
+          }
+          if (last_context_limit && last_context_limit > 0) {
+            setContextLimit(last_context_limit);
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
         setRunning(false);
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
         setHasHydratedRunningState(true);
-        return;
-      }
-      const isRunning = res.status === 'running';
-      setRunning(isRunning);
-      runningRef.current = isRunning;
-      if (isRunning) {
-        setAiProcessing(true);
-        aiProcessingRef.current = true;
-      }
-      setHasHydratedRunningState(true);
 
-      // Restore persisted context usage data
-      if (res.type === 'acp' && res.extra?.last_token_usage) {
-        const { last_token_usage, last_context_limit } = res.extra;
-        if (last_token_usage.total_tokens > 0) {
-          setTokenUsage(last_token_usage);
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          console.warn('[useAcpMessage] Failed to hydrate conversation state:', error);
+          return;
         }
-        if (last_context_limit && last_context_limit > 0) {
-          setContextLimit(last_context_limit);
-        }
-      }
-    });
+
+        throw error;
+      });
 
     return () => {
       cancelled = true;
