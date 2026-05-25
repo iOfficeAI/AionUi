@@ -149,6 +149,23 @@ export interface IConfigStorageRefer {
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `model.config` → backend providers
+   * migration in {@link migrateProviders}. Once `true`, the migration is
+   * short-circuited on subsequent launches so user-deleted providers don't
+   * resurface from the still-on-disk legacy `model.config` (ELECTRON-1KT).
+   * Stored in the local config file (not the backend) so a downgrade to the
+   * pre-flag build still re-reads the legacy data unchanged.
+   */
+  'migration.providersMigrated_v1'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `assistants` → backend assistants
+   * migration in {@link migrateAssistantsToBackend}. Same rationale as
+   * `migration.providersMigrated_v1` — without it, an assistant the user
+   * deletes after migration would be re-imported on the next launch from the
+   * still-on-disk legacy field.
+   */
+  'migration.assistantsMigrated_v1'?: boolean;
   // Desktop Pet: whether the desktop pet feature is enabled
   'pet.enabled'?: boolean;
   // Desktop Pet: size in pixels (200, 280, or 360)

@@ -169,9 +169,34 @@ type ConfigFile = typeof ProcessConfigType;
 type BuiltinOverride = { id: string; enabled: false };
 type BuiltinAgentTypeOverride = { id: string; preset_agent_type: string };
 
+/**
+ * Local config file key that records "the legacy → backend assistant migration
+ * has already completed once on this machine". Same idempotency rationale as
+ * `migration.providersMigrated_v1` (see ELECTRON-1KT): without it, a user-deleted
+ * assistant would be silently re-imported on every launch from the still-on-disk
+ * legacy `assistants` field (kept on purpose so the user can downgrade).
+ */
+const ASSISTANTS_MIGRATION_FLAG = 'migration.assistantsMigrated_v1';
+
 type LegacyConfigAccessor = {
   get: (key: string) => Promise<unknown>;
+  set?: (key: string, value: unknown) => Promise<unknown>;
 };
+
+async function markAssistantsMigrationDone(configFile: ConfigFile): Promise<void> {
+  const accessor = configFile as unknown as LegacyConfigAccessor;
+  if (typeof accessor.set !== 'function') {
+    // Older fakes (test doubles) may expose only `get`; persist failure is
+    // logged but does not break the migration result — content-aware phases
+    // still make a re-run safe.
+    return;
+  }
+  try {
+    await accessor.set(ASSISTANTS_MIGRATION_FLAG, true);
+  } catch (err) {
+    console.warn('[AionUi] failed to persist assistants migration flag', err);
+  }
+}
 
 /**
  * Collect user-set `enabled=false` overrides on legacy built-in rows so we can
@@ -491,6 +516,19 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
 
   const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
 
+  // Idempotency guard (ELECTRON-1KT): once the flag is set, never replay
+  // legacy assistants. Phase 1 is "insert-only", which means a user-deleted
+  // row would be re-imported on every launch — we suppress that here.
+  let alreadyMigrated = false;
+  try {
+    alreadyMigrated = Boolean(await rawConfigFile.get(ASSISTANTS_MIGRATION_FLAG));
+  } catch {
+    // Treat read errors as "not migrated yet"; we'll set on success.
+  }
+  if (alreadyMigrated) {
+    return true;
+  }
+
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
 
@@ -521,7 +559,9 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     builtinAgentTypeOverrides.length === 0 &&
     customAssistantIds.size === 0
   ) {
-    // Nothing to do — no-op success.
+    // Nothing to do — no-op success. Flag it so future launches don't even
+    // bother reading the legacy field.
+    await markAssistantsMigrationDone(configFile);
     return true;
   }
 
@@ -566,5 +606,8 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     return false;
   }
 
+  // All four phases succeeded — set the completion flag so subsequent launches
+  // short-circuit and we don't re-import assistants the user deletes later.
+  await markAssistantsMigrationDone(configFile);
   return true;
 }
