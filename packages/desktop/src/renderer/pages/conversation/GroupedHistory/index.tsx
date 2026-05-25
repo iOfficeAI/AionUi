@@ -7,6 +7,7 @@
 import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
@@ -39,6 +40,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   // Persist section collapsed state across reloads.
@@ -577,7 +580,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                               role='button'
                               tabIndex={0}
                               aria-label={t('conversation.history.newConversationInProject')}
-                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
+                              className={classNames(
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                              )}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 void navigate('/guid', { state: { workspace: group.workspace } });
@@ -602,7 +608,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                           >
                             <span
                               aria-label='Project actions'
-                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
+                              className={classNames(
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                              )}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
