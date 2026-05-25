@@ -8,6 +8,7 @@ import { afterAll, beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   appOnMock,
+  accessMock,
   browserWindowConstructorMock,
   chmodMock,
   destroyPetWindowMock,
@@ -22,6 +23,7 @@ const {
   statMock,
 } = vi.hoisted(() => ({
   appOnMock: vi.fn(),
+  accessMock: vi.fn(),
   browserWindowConstructorMock: vi.fn(),
   chmodMock: vi.fn(),
   destroyPetWindowMock: vi.fn(),
@@ -54,10 +56,12 @@ vi.mock('electron', () => ({
 
 vi.mock('node:fs/promises', () => ({
   default: {
+    access: accessMock,
     mkdir: mkdirMock,
     stat: statMock,
     chmod: chmodMock,
   },
+  access: accessMock,
   mkdir: mkdirMock,
   stat: statMock,
   chmod: chmodMock,
@@ -105,6 +109,9 @@ type FakeWindow = {
 };
 
 const originalPlatform = process.platform;
+const originalResourcesPath = process.resourcesPath;
+
+const normalizePath = (value: string) => value.replace(/\\/g, '/');
 
 const createChild = (): FakeChild => {
   const handlers = new Map<string, () => void>();
@@ -161,6 +168,7 @@ describe('notchTaskboxWindowManager', () => {
     (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = 25809;
 
     mkdirMock.mockResolvedValue(undefined);
+    accessMock.mockRejectedValue(new Error('missing packaged helper'));
     statMock.mockImplementation((target: string) => {
       if (target.endsWith('AionUiNotchTaskbox.swift')) return Promise.resolve({ mtimeMs: 2000 });
       return Promise.reject(new Error('missing helper binary'));
@@ -180,6 +188,7 @@ describe('notchTaskboxWindowManager', () => {
 
   afterAll(() => {
     Object.defineProperty(process, 'platform', { value: originalPlatform });
+    Object.defineProperty(process, 'resourcesPath', { configurable: true, value: originalResourcesPath });
   });
 
   it('starts the native helper against the backend and disables the desktop pet', async () => {
@@ -191,10 +200,14 @@ describe('notchTaskboxWindowManager', () => {
     expect(processConfigStore.get('notchTaskbox.enabled')).toBe(true);
     expect(processConfigStore.get('pet.enabled')).toBe(false);
     expect(destroyPetWindowMock).toHaveBeenCalled();
-    expect(spawnMock).toHaveBeenCalledWith(
-      '/tmp/aionui-test-user-data/helpers/AionUiNotchTaskbox',
-      ['--api', 'http://127.0.0.1:25809', '--parent-pid', String(process.pid)],
-      { stdio: 'ignore' }
+    const [helperPath, args, options] = spawnMock.mock.calls[0] as [string, string[], { stdio: string }];
+    expect(normalizePath(helperPath)).toBe('/tmp/aionui-test-user-data/helpers/AionUiNotchTaskbox');
+    expect(args).toEqual(['--api', 'http://127.0.0.1:25809', '--parent-pid', String(process.pid)]);
+    expect(options).toEqual({ stdio: 'ignore' });
+    expect(execFileMock).toHaveBeenCalledWith(
+      '/usr/bin/swiftc',
+      expect.arrayContaining(['-framework', 'AppKit', '-framework', 'WebKit']),
+      expect.any(Function)
     );
   });
 
@@ -220,11 +233,10 @@ describe('notchTaskboxWindowManager', () => {
 
     expect(status).toEqual({ enabled: true, open: true, hardwareNotch: true });
     expect(firstChild.kill).toHaveBeenCalled();
-    expect(spawnMock).toHaveBeenCalledWith(
-      '/tmp/aionui-test-user-data/helpers/AionUiNotchTaskbox',
-      ['--api', 'http://127.0.0.1:25809', '--parent-pid', String(process.pid), '--hardware-notch'],
-      { stdio: 'ignore' }
-    );
+    const [helperPath, args, options] = spawnMock.mock.calls[0] as [string, string[], { stdio: string }];
+    expect(normalizePath(helperPath)).toBe('/tmp/aionui-test-user-data/helpers/AionUiNotchTaskbox');
+    expect(args).toEqual(['--api', 'http://127.0.0.1:25809', '--parent-pid', String(process.pid), '--hardware-notch']);
+    expect(options).toEqual({ stdio: 'ignore' });
   });
 
   it('kills the helper when disabled', async () => {
@@ -259,10 +271,92 @@ describe('notchTaskboxWindowManager', () => {
         alwaysOnTop: true,
       })
     );
-    expect(win.loadFile).toHaveBeenCalledWith(expect.stringContaining('resources/notch-taskbox-helper/taskbox.html'));
+    expect(normalizePath(win.loadFile.mock.calls[0][0])).toContain('resources/notch-taskbox-helper/taskbox.html');
 
     const nextStatus = await setNotchTaskboxEnabled(false);
     expect(nextStatus.open).toBe(false);
     expect(win.destroy).toHaveBeenCalled();
+  });
+
+  it('uses the cached native helper binary when it is newer than the source', async () => {
+    statMock.mockImplementation((target: string) => {
+      if (target.endsWith('AionUiNotchTaskbox.swift')) return Promise.resolve({ mtimeMs: 2000 });
+      if (target.endsWith('AionUiNotchTaskbox')) return Promise.resolve({ mtimeMs: 3000 });
+      return Promise.reject(new Error('missing'));
+    });
+    const { setNotchTaskboxEnabled } = await import('@/process/notchTaskbox/notchTaskboxWindowManager');
+
+    await setNotchTaskboxEnabled(true);
+
+    const [helperPath] = spawnMock.mock.calls[0] as [string];
+    expect(normalizePath(helperPath)).toBe('/tmp/aionui-test-user-data/helpers/AionUiNotchTaskbox');
+    expect(execFileMock).not.toHaveBeenCalled();
+    expect(chmodMock).not.toHaveBeenCalled();
+  });
+
+  it('uses a packaged helper binary when it is available', async () => {
+    Object.defineProperty(process, 'resourcesPath', {
+      configurable: true,
+      value: '/Applications/AionUi.app/Contents/Resources',
+    });
+    const { app } = await import('electron');
+    vi.mocked(app).isPackaged = true;
+    accessMock.mockResolvedValue(undefined);
+    const { setNotchTaskboxEnabled } = await import('@/process/notchTaskbox/notchTaskboxWindowManager');
+
+    await setNotchTaskboxEnabled(true);
+
+    const [helperPath] = spawnMock.mock.calls[0] as [string];
+    expect(normalizePath(helperPath)).toBe(
+      '/Applications/AionUi.app/Contents/Resources/notch-taskbox-helper/AionUiNotchTaskbox'
+    );
+    expect(mkdirMock).not.toHaveBeenCalled();
+    expect(execFileMock).not.toHaveBeenCalled();
+  });
+
+  it('surfaces a clear error when the backend port is not ready', async () => {
+    delete (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+    const { setNotchTaskboxEnabled } = await import('@/process/notchTaskbox/notchTaskboxWindowManager');
+
+    await expect(setNotchTaskboxEnabled(true)).rejects.toThrow('aioncore is not running');
+  });
+
+  it('handles Windows taskbox IPC requests safely', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      text: () => Promise.resolve(JSON.stringify({ data: { ok: true } })),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const { setNotchTaskboxEnabled } = await import('@/process/notchTaskbox/notchTaskboxWindowManager');
+
+    await setNotchTaskboxEnabled(true);
+    const handler = ipcHandleMock.mock.calls[0][1];
+    const result = await handler({}, { path: '/api/conversations', options: { method: 'GET' } });
+
+    expect(result).toEqual({ ok: true });
+    expect(fetchMock).toHaveBeenCalledWith('http://127.0.0.1:25809/api/conversations', { method: 'GET' });
+    await expect(handler({}, { path: '/not-api' })).rejects.toThrow('Only local /api requests are allowed');
+    vi.unstubAllGlobals();
+  });
+
+  it('expands and collapses the Windows taskbox from global pointer movement', async () => {
+    vi.useFakeTimers();
+    Object.defineProperty(process, 'platform', { value: 'win32' });
+    screenGetCursorScreenPointMock.mockReturnValueOnce({ x: 500, y: 20 }).mockReturnValue({ x: -100, y: -100 });
+    const { setNotchTaskboxEnabled } = await import('@/process/notchTaskbox/notchTaskboxWindowManager');
+
+    await setNotchTaskboxEnabled(true);
+    const win = browserWindowConstructorMock.mock.results[0]?.value as FakeWindow;
+    vi.advanceTimersByTime(60);
+
+    expect(win.setBounds).toHaveBeenCalledWith({ x: 360, y: 0, width: 560, height: 392 }, true);
+    expect(win.webContents.send).toHaveBeenCalledWith('notch-taskbox:expanded', true);
+    vi.advanceTimersByTime(60);
+    expect(win.setBounds).toHaveBeenCalledWith({ x: 436, y: 0, width: 408, height: 40 }, true);
+
+    await setNotchTaskboxEnabled(false);
+    vi.useRealTimers();
   });
 });

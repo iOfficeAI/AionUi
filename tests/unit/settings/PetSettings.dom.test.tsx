@@ -9,21 +9,23 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import PetSettings from '@/renderer/pages/settings/PetSettings';
 
-const { configValues, isMacOSMock, isWindowsMock, setLocalMock, systemSettingsMock } = vi.hoisted(() => ({
-  configValues: new Map<string, unknown>(),
-  isMacOSMock: vi.fn(),
-  isWindowsMock: vi.fn(),
-  setLocalMock: vi.fn(),
-  systemSettingsMock: {
-    getNotchTaskboxStatus: { invoke: vi.fn() },
-    setNotchTaskboxEnabled: { invoke: vi.fn() },
-    setNotchTaskboxHardwareNotch: { invoke: vi.fn() },
-    setPetEnabled: { invoke: vi.fn() },
-    setPetSize: { invoke: vi.fn() },
-    setPetDnd: { invoke: vi.fn() },
-    setPetConfirmEnabled: { invoke: vi.fn() },
-  },
-}));
+const { configValues, isElectronDesktopMock, isMacOSMock, isWindowsMock, setLocalMock, systemSettingsMock } =
+  vi.hoisted(() => ({
+    configValues: new Map<string, unknown>(),
+    isElectronDesktopMock: vi.fn(),
+    isMacOSMock: vi.fn(),
+    isWindowsMock: vi.fn(),
+    setLocalMock: vi.fn(),
+    systemSettingsMock: {
+      getNotchTaskboxStatus: { invoke: vi.fn() },
+      setNotchTaskboxEnabled: { invoke: vi.fn() },
+      setNotchTaskboxHardwareNotch: { invoke: vi.fn() },
+      setPetEnabled: { invoke: vi.fn() },
+      setPetSize: { invoke: vi.fn() },
+      setPetDnd: { invoke: vi.fn() },
+      setPetConfirmEnabled: { invoke: vi.fn() },
+    },
+  }));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
@@ -43,7 +45,7 @@ vi.mock('@/common/config/configService', () => ({
 }));
 
 vi.mock('@/renderer/utils/platform', () => ({
-  isElectronDesktop: () => true,
+  isElectronDesktop: isElectronDesktopMock,
   isMacOS: isMacOSMock,
   isWindows: isWindowsMock,
 }));
@@ -105,8 +107,18 @@ vi.mock('@arco-design/web-react', () => {
       {children}
     </label>
   );
-  Radio.Group = ({ children, disabled }: { children: React.ReactNode; disabled?: boolean }) => (
-    <fieldset disabled={disabled}>{children}</fieldset>
+  Radio.Group = ({
+    children,
+    disabled,
+    onChange,
+  }: {
+    children: React.ReactNode;
+    disabled?: boolean;
+    onChange?: (value: number) => void;
+  }) => (
+    <fieldset disabled={disabled} onChange={(event) => onChange?.(Number((event.target as HTMLInputElement).value))}>
+      {children}
+    </fieldset>
   );
   return { Radio, Switch };
 });
@@ -121,6 +133,7 @@ describe('PetSettings notch taskbox controls', () => {
     configValues.set('pet.confirmEnabled', true);
     configValues.set('notchTaskbox.enabled', false);
     configValues.set('notchTaskbox.hardwareNotch', false);
+    isElectronDesktopMock.mockReturnValue(true);
     isMacOSMock.mockReturnValue(true);
     isWindowsMock.mockReturnValue(false);
     systemSettingsMock.getNotchTaskboxStatus.invoke.mockResolvedValue({
@@ -216,5 +229,131 @@ describe('PetSettings notch taskbox controls', () => {
     expect(screen.queryByText('pet.notchTaskbox')).not.toBeInTheDocument();
     expect(screen.queryByText('pet.topTaskbox')).not.toBeInTheDocument();
     expect(systemSettingsMock.getNotchTaskboxStatus.invoke).not.toHaveBeenCalled();
+  });
+
+  it('falls back to a disabled taskbox state when status sync fails', async () => {
+    configValues.set('notchTaskbox.enabled', true);
+    systemSettingsMock.getNotchTaskboxStatus.invoke.mockRejectedValue(new Error('offline'));
+
+    render(<PetSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.notchTaskbox')).not.toBeChecked();
+    });
+  });
+
+  it('clears the taskbox flag locally when the desktop pet is enabled', async () => {
+    configValues.set('pet.enabled', false);
+    render(<PetSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.enable')).not.toBeChecked();
+    });
+    fireEvent.click(screen.getByLabelText('pet.enable'));
+
+    await waitFor(() => {
+      expect(systemSettingsMock.setPetEnabled.invoke).toHaveBeenCalledWith({ enabled: true });
+    });
+    expect(setLocalMock).toHaveBeenCalledWith('notchTaskbox.enabled', false);
+  });
+
+  it('restores pet and taskbox state when desktop pet update fails', async () => {
+    systemSettingsMock.setPetEnabled.invoke.mockRejectedValue(new Error('failed'));
+    render(<PetSettings />);
+
+    fireEvent.click(screen.getByLabelText('pet.enable'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.enable')).toBeChecked();
+    });
+    expect(setLocalMock).toHaveBeenCalledWith('pet.enabled', true);
+  });
+
+  it('can turn the taskbox off without changing the desktop pet state', async () => {
+    systemSettingsMock.getNotchTaskboxStatus.invoke.mockResolvedValue({
+      enabled: true,
+      open: true,
+      hardwareNotch: false,
+    });
+    systemSettingsMock.setNotchTaskboxEnabled.invoke.mockResolvedValue({
+      enabled: false,
+      open: false,
+      hardwareNotch: false,
+    });
+    render(<PetSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.notchTaskbox')).toBeChecked();
+    });
+    fireEvent.click(screen.getByLabelText('pet.notchTaskbox'));
+
+    await waitFor(() => {
+      expect(systemSettingsMock.setNotchTaskboxEnabled.invoke).toHaveBeenCalledWith({ enabled: false });
+    });
+    expect(screen.getByLabelText('pet.notchTaskbox')).not.toBeChecked();
+  });
+
+  it('restores taskbox state when taskbox update fails', async () => {
+    systemSettingsMock.setNotchTaskboxEnabled.invoke.mockRejectedValue(new Error('failed'));
+    render(<PetSettings />);
+
+    fireEvent.click(screen.getByLabelText('pet.notchTaskbox'));
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.notchTaskbox')).not.toBeChecked();
+    });
+    expect(screen.getByLabelText('pet.enable')).toBeChecked();
+  });
+
+  it('persists hardware notch changes and restores them on failure', async () => {
+    systemSettingsMock.getNotchTaskboxStatus.invoke.mockResolvedValue({
+      enabled: true,
+      open: true,
+      hardwareNotch: false,
+    });
+    render(<PetSettings />);
+
+    await waitFor(() => {
+      expect(screen.getByLabelText('pet.notchTaskboxHardwareNotch')).not.toBeDisabled();
+    });
+    fireEvent.click(screen.getByLabelText('pet.notchTaskboxHardwareNotch'));
+
+    await waitFor(() => {
+      expect(systemSettingsMock.setNotchTaskboxHardwareNotch.invoke).toHaveBeenCalledWith({ hardwareNotch: true });
+    });
+    expect(setLocalMock).toHaveBeenCalledWith('notchTaskbox.hardwareNotch', true);
+
+    systemSettingsMock.setNotchTaskboxHardwareNotch.invoke.mockRejectedValue(new Error('failed'));
+    fireEvent.click(screen.getByLabelText('pet.notchTaskboxHardwareNotch'));
+
+    await waitFor(() => {
+      expect(setLocalMock).toHaveBeenCalledWith('notchTaskbox.hardwareNotch', true);
+    });
+  });
+
+  it('restores pet size, dnd, and confirm settings when updates fail', async () => {
+    systemSettingsMock.setPetSize.invoke.mockRejectedValue(new Error('size failed'));
+    systemSettingsMock.setPetDnd.invoke.mockRejectedValue(new Error('dnd failed'));
+    systemSettingsMock.setPetConfirmEnabled.invoke.mockRejectedValue(new Error('confirm failed'));
+    render(<PetSettings />);
+
+    fireEvent.click(screen.getByLabelText('pet.sizeLarge:360'));
+    fireEvent.click(screen.getByLabelText('pet.dnd'));
+    fireEvent.click(screen.getByLabelText('pet.confirmBubble'));
+
+    await waitFor(() => {
+      expect(setLocalMock).toHaveBeenCalledWith('pet.size', 280);
+      expect(setLocalMock).toHaveBeenCalledWith('pet.dnd', false);
+      expect(setLocalMock).toHaveBeenCalledWith('pet.confirmEnabled', true);
+    });
+  });
+
+  it('shows a desktop-only message outside Electron desktop', () => {
+    isElectronDesktopMock.mockReturnValue(false);
+
+    render(<PetSettings />);
+
+    expect(screen.getByText('pet.desktopOnly')).toBeInTheDocument();
+    expect(screen.queryByText('pet.enable')).not.toBeInTheDocument();
   });
 });
