@@ -6,8 +6,6 @@ import {
   ArrowRight,
   ExpandLeft,
   ExpandRight,
-  MenuFold,
-  MenuUnfold,
   Peoples,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -284,15 +282,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             onClick={handleSiderToggle}
             aria-label={siderTooltip}
           >
-            {layout?.isMobile ? (
-              layout?.siderCollapsed ? (
-                <MenuUnfold theme='outline' size={iconSize} fill='currentColor' />
-              ) : (
-                <MenuFold theme='outline' size={iconSize} fill='currentColor' />
-              )
-            ) : (
-              <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
-            )}
+            <SidebarIcon size={iconSize} strokeWidth={desktopIconStroke} />
           </button>
         )}
         {showHistoryNav && (
