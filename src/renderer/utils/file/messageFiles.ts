@@ -24,9 +24,11 @@ export const buildDisplayMessage = (input: string, files: string[], workspacePat
         const relativePath = normalizedFile.slice(normalizedWorkspaceWithForwardSlash.length + 1);
         return `${normalizedWorkspace}/${relativePath.replace(AIONUI_TIMESTAMP_REGEX, '$1')}`;
       }
-      // Keep external absolute paths unchanged so preview and metadata lookups
-      // continue to read the real file instead of a non-existent workspace path.
-      return sanitizedPath;
+      // External file outside workspace: keep the original absolute path (WITH any
+      // _aionui_<timestamp> suffix intact) so preview/metadata lookups target the
+      // real on-disk file. Stripping the suffix here would break duplicate-name
+      // pastes, where the actual file is e.g. `image_aionui_1776838887890.png`.
+      return filePath;
     }
     return `${normalizedWorkspace}/${sanitizedPath}`;
   });

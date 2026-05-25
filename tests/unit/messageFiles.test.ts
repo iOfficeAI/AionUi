@@ -29,6 +29,22 @@ describe('buildDisplayMessage', () => {
     expect(result).not.toContain(`${workspace}/external.txt`);
   });
 
+  it('preserves Windows-style absolute paths outside workspace without mixing separators', () => {
+    const winWorkspace = 'C:\\Users\\alice\\AppData\\aionui\\claude-temp-123';
+    const files = ['C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image.png'];
+    const result = buildDisplayMessage('hello', files, winWorkspace);
+    expect(result).toContain('C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image.png');
+    expect(result).not.toContain('claude-temp-123/image.png');
+  });
+
+  it('preserves timestamp suffix on external absolute paths so preview lookups hit the real file', () => {
+    const winWorkspace = 'C:\\Users\\alice\\AppData\\aionui\\claude-temp-123';
+    const files = ['C:\\Users\\alice\\AppData\\aionui\\.aionui-config\\temp\\image_aionui_1776838887890.png'];
+    const result = buildDisplayMessage('hello', files, winWorkspace);
+    expect(result).toContain('image_aionui_1776838887890.png');
+    expect(result).not.toMatch(/temp[\\/]image\.png/);
+  });
+
   it('converts relative paths into workspace-prefixed paths', () => {
     const files = ['relative/file.txt'];
     const result = buildDisplayMessage('hello', files, workspace);
