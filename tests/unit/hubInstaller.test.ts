@@ -1,5 +1,12 @@
+import { createHash } from 'node:crypto';
 import path from 'node:path';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const ARCHIVE_BYTES = Buffer.from('mock-hub-archive');
+
+function buildSri(bytes: Buffer): string {
+  return `sha512-${createHash('sha512').update(bytes).digest('base64')}`;
+}
 
 // ---------------------------------------------------------------------------
 // Mocks
@@ -24,7 +31,7 @@ vi.mock('fs', async () => {
     rmSync: vi.fn(),
     renameSync: vi.fn(),
     writeFileSync: vi.fn(),
-    readFileSync: vi.fn(() => '{}'),
+    readFileSync: vi.fn(() => ARCHIVE_BYTES),
   };
 });
 
@@ -86,13 +93,13 @@ import { hubInstaller } from '../../src/process/extensions/hub/HubInstaller';
 
 const mockedExistsSync = vi.mocked(fs.existsSync);
 
-function makeExtInfo(name: string, bundled = false) {
+function makeExtInfo(name: string, bundled = false, integrity = buildSri(ARCHIVE_BYTES)) {
   return {
     name,
     displayName: name,
     description: 'test',
     author: 'test',
-    dist: { tarball: `extensions/${name}.zip`, integrity: 'sha512-abc', unpackedSize: 100 },
+    dist: { tarball: `extensions/${name}.zip`, integrity, unpackedSize: 100 },
     engines: { aionui: '>=1.0.0' },
     hubs: ['acpAdapters'],
     bundled,
@@ -179,6 +186,30 @@ describe('HubInstaller', () => {
       mockedExistsSync.mockReturnValue(false);
 
       await expect(hubInstaller.install('bad-pkg')).rejects.toThrow('aion-extension.json missing');
+    });
+
+    it('should fail when archive integrity does not match the declared SRI', async () => {
+      mocks.getExtensionResult = makeExtInfo('tampered-ext', false, buildSri(Buffer.from('expected-bytes')));
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+      mockedExistsSync.mockImplementation((p) => String(p).includes('aion-extension.json'));
+
+      await expect(hubInstaller.install('tampered-ext')).rejects.toThrow('Integrity verification failed');
+      expect(mocks.setTransientCalls.at(-1)?.[1]).toBe('install_failed');
+    });
+
+    it('should fail closed when the hub index uses an unsupported integrity algorithm', async () => {
+      mocks.getExtensionResult = makeExtInfo('unsupported-integrity', false, 'sha256-abc');
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        arrayBuffer: async () => new ArrayBuffer(10),
+      });
+      mockedExistsSync.mockImplementation((p) => String(p).includes('aion-extension.json'));
+
+      await expect(hubInstaller.install('unsupported-integrity')).rejects.toThrow('Unsupported integrity algorithm');
+      expect(mocks.setTransientCalls.at(-1)?.[1]).toBe('install_failed');
     });
   });
 

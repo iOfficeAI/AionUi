@@ -119,8 +119,7 @@ export class HubInstallerImpl {
       const zipPath = await this.resolveZipPath(name, extInfo.dist.tarball, extInfo.bundled);
 
       // Step 2: Verify Integrity (SHA-512 SRI)
-      // TODO: 各平台校验有差异，先放在一边，后续完善
-      // await this.verifyIntegrity(zipPath, extInfo.dist.integrity);
+      await this.verifyIntegrity(zipPath, extInfo.dist.integrity);
 
       // Step 3: Extract (.zip)
       fs.mkdirSync(tempDir, { recursive: true });
@@ -272,8 +271,7 @@ export class HubInstallerImpl {
 
   private async verifyIntegrity(filePath: string, expectedSri: string): Promise<void> {
     if (!expectedSri.startsWith('sha512-')) {
-      console.warn(`[HubInstaller] Unsupported integrity algorithm in ${expectedSri}, skipping check.`);
-      return;
+      throw new Error(`Unsupported integrity algorithm: ${expectedSri}`);
     }
 
     const expectedHashBase64 = expectedSri.substring('sha512-'.length);
