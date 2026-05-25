@@ -48,8 +48,9 @@ export class TeamSession extends EventEmitter {
       mailbox: this.mailbox,
       workerTaskManager,
       teamWorkspace: team.workspace || undefined,
-      onAgentRemoved: (teamId, agents) => {
+      onAgentRemoved: (teamId, agents, removed) => {
         void this.repo.update(teamId, { agents, updatedAt: Date.now() });
+        void this.cleanupTasksForRemovedAgent(removed);
       },
     });
 
@@ -213,6 +214,51 @@ export class TeamSession extends EventEmitter {
   /** Get current agent states */
   getAgents(): TeamAgent[] {
     return this.teammateManager.getAgents();
+  }
+
+  /**
+   * Unassign any non-terminal tasks that were owned by the removed agent and
+   * tell the leader what happened, so they can reassign the work explicitly.
+   * Without this, `team_task_list` keeps showing ghost owners that no longer
+   * exist in `team_members`, and pending work silently stalls.
+   */
+  private async cleanupTasksForRemovedAgent(removed: TeamAgent): Promise<void> {
+    try {
+      const ownedTasks = await this.taskManager.getByOwner(this.teamId, removed.agentName);
+      const orphan = ownedTasks.filter((t) => t.status === 'pending' || t.status === 'in_progress');
+      if (orphan.length === 0) return;
+
+      for (const task of orphan) {
+        try {
+          await this.taskManager.update(task.id, { owner: undefined });
+        } catch (err) {
+          console.error(`[TeamSession] Failed to unassign orphaned task ${task.id}:`, err);
+        }
+      }
+
+      const remainingAgents = this.teammateManager.getAgents();
+      const leadAgent = remainingAgents.find((a) => a.role === 'leader');
+      if (!leadAgent) return;
+
+      const orphanList = orphan.map((t) => `[${t.id.slice(0, 8)}] "${t.subject}"`).join(', ');
+      await this.mailbox.write({
+        teamId: this.teamId,
+        toAgentId: leadAgent.slotId,
+        fromAgentId: removed.slotId,
+        type: 'message',
+        summary: `${orphan.length} task(s) orphaned by ${removed.agentName}`,
+        content:
+          `Teammate "${removed.agentName}" has left the team. ` +
+          `${orphan.length} task(s) they owned are now unassigned: ${orphanList}. ` +
+          `Decide whether to reassign them to another teammate, update their status, or drop them.`,
+      });
+
+      void this.teammateManager.wake(leadAgent.slotId).catch((err) => {
+        console.error('[TeamSession] Failed to wake leader after orphan task cleanup:', err);
+      });
+    } catch (err) {
+      console.error('[TeamSession] cleanupTasksForRemovedAgent failed:', err);
+    }
   }
 
   /** Clean up all IPC listeners, MCP server, kill agent processes, and EventEmitter handlers */

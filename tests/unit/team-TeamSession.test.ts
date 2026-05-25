@@ -236,4 +236,130 @@ describe('TeamSession', () => {
       expect(repo.writeMessage).not.toHaveBeenCalled();
     });
   });
+
+  describe('orphan task cleanup on agent removal', () => {
+    it('unassigns pending tasks owned by the removed agent and notifies the leader', async () => {
+      const repo = makeRepo();
+      const now = Date.now();
+      (repo.findTasksByOwner as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'task-1-uuid',
+          teamId: 'team-1',
+          subject: 'Set debate rules',
+          status: 'pending',
+          owner: 'Worker',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+        },
+        {
+          id: 'task-2-uuid',
+          teamId: 'team-1',
+          subject: 'Finished already',
+          status: 'completed',
+          owner: 'Worker',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+        },
+      ]);
+      (repo.findTaskById as ReturnType<typeof vi.fn>).mockImplementation((id: string) =>
+        Promise.resolve({
+          id,
+          teamId: 'team-1',
+          subject: 'stub',
+          status: 'pending',
+          owner: 'Worker',
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+        })
+      );
+      (repo.updateTask as ReturnType<typeof vi.fn>).mockImplementation((_id: string, updates: object) =>
+        Promise.resolve({
+          id: _id,
+          teamId: 'team-1',
+          subject: 'stub',
+          status: 'pending',
+          owner: undefined,
+          blockedBy: [],
+          blocks: [],
+          metadata: {},
+          createdAt: now,
+          updatedAt: now,
+          ...updates,
+        })
+      );
+
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+      const wakeSpy = vi
+        .spyOn(
+          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          'wake'
+        )
+        .mockResolvedValue(undefined);
+
+      session.removeAgent('slot-member');
+
+      // Give the fire-and-forget cleanup a chance to settle
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(repo.findTasksByOwner).toHaveBeenCalledWith('team-1', 'Worker');
+
+      const updateCalls = (repo.updateTask as ReturnType<typeof vi.fn>).mock.calls;
+      const unassignedTaskIds = updateCalls
+        .filter(
+          ([, updates]: [string, { owner?: string }]) =>
+            Object.prototype.hasOwnProperty.call(updates, 'owner') && updates.owner === undefined
+        )
+        .map(([id]: [string]) => id);
+      expect(unassignedTaskIds).toContain('task-1-uuid');
+      expect(unassignedTaskIds).not.toContain('task-2-uuid');
+
+      const writeCalls = (repo.writeMessage as ReturnType<typeof vi.fn>).mock.calls;
+      const leaderNotice = writeCalls.find(
+        ([msg]: [{ toAgentId: string; fromAgentId: string; content: string }]) =>
+          msg.toAgentId === 'slot-lead' && msg.fromAgentId === 'slot-member'
+      );
+      expect(leaderNotice).toBeDefined();
+      expect(leaderNotice![0].content).toContain('Worker');
+      expect(leaderNotice![0].content).toContain('Set debate rules');
+
+      expect(wakeSpy).toHaveBeenCalledWith('slot-lead');
+
+      await session.dispose();
+    });
+
+    it('does not notify the leader when there are no orphan tasks', async () => {
+      const repo = makeRepo();
+      (repo.findTasksByOwner as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+
+      const session = new TeamSession(makeTeam(), repo, makeWorkerTaskManager());
+      const wakeSpy = vi
+        .spyOn(
+          (session as unknown as { teammateManager: { wake: (slotId: string) => Promise<void> } }).teammateManager,
+          'wake'
+        )
+        .mockResolvedValue(undefined);
+
+      session.removeAgent('slot-member');
+      await new Promise((resolve) => setTimeout(resolve, 20));
+
+      expect(repo.findTasksByOwner).toHaveBeenCalledWith('team-1', 'Worker');
+      expect(repo.updateTask).not.toHaveBeenCalled();
+      const leaderNotice = (repo.writeMessage as ReturnType<typeof vi.fn>).mock.calls.find(
+        ([msg]: [{ toAgentId: string; fromAgentId: string }]) => msg.fromAgentId === 'slot-member'
+      );
+      expect(leaderNotice).toBeUndefined();
+      expect(wakeSpy).not.toHaveBeenCalledWith('slot-lead');
+
+      await session.dispose();
+    });
+  });
 });

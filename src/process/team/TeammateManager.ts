@@ -20,8 +20,11 @@ type TeammateManagerParams = {
   workerTaskManager: IWorkerTaskManager;
   hasMcpTools?: boolean;
   teamWorkspace?: string;
-  /** Called after an agent is removed from in-memory list, so the caller can persist the change (e.g. update DB) */
-  onAgentRemoved?: (teamId: string, agents: TeamAgent[]) => void;
+  /**
+   * Called after an agent is removed from the in-memory list so the caller can
+   * persist the change and clean up related state (e.g. orphaned tasks).
+   */
+  onAgentRemoved?: (teamId: string, agents: TeamAgent[], removed: TeamAgent) => void;
 };
 
 /**
@@ -33,7 +36,7 @@ export class TeammateManager extends EventEmitter {
   private agents: TeamAgent[];
   private readonly mailbox: Mailbox;
   private readonly workerTaskManager: IWorkerTaskManager;
-  private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[]) => void;
+  private readonly onAgentRemovedFn?: (teamId: string, agents: TeamAgent[], removed: TeamAgent) => void;
   /** Shared team workspace path (leader's working directory) */
   private readonly teamWorkspace: string | undefined;
 
@@ -576,8 +579,9 @@ export class TeammateManager extends EventEmitter {
     console.log(`[TeammateManager] Agent ${slotId} (${agent.agentName}) removed`);
     ipcBridge.team.agentRemoved.emit({ teamId: this.teamId, slotId });
 
-    // Notify upper layer to persist the removal (e.g. update DB)
-    this.onAgentRemovedFn?.(this.teamId, this.agents);
+    // Notify upper layer to persist the removal and cascade cleanup
+    // (e.g. reassign / unassign tasks owned by the removed agent).
+    this.onAgentRemovedFn?.(this.teamId, this.agents, agent);
   }
 
   /** Normalize agent name for case-insensitive comparison. */

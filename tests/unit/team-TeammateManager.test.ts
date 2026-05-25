@@ -294,6 +294,27 @@ describe('TeammateManager', () => {
       mgr.dispose();
     });
 
+    it('passes the removed agent to the onAgentRemoved callback for cascade cleanup', () => {
+      const onAgentRemoved = vi.fn();
+      const lead = makeAgent({ slotId: 'slot-1' });
+      const member = makeAgent({
+        slotId: 'slot-2',
+        role: 'teammate',
+        agentName: 'moderator',
+        conversationId: 'conv-2',
+      });
+      const { mgr } = makeTeammateManager([lead, member], { onAgentRemoved });
+
+      mgr.removeAgent('slot-2');
+
+      expect(onAgentRemoved).toHaveBeenCalledTimes(1);
+      const [teamId, remaining, removed] = onAgentRemoved.mock.calls[0];
+      expect(teamId).toBe('team-1');
+      expect(remaining.map((a: TeamAgent) => a.slotId)).toEqual(['slot-1']);
+      expect(removed).toMatchObject({ slotId: 'slot-2', agentName: 'moderator' });
+      mgr.dispose();
+    });
+
     it('clears any active wake timeout for the removed agent', async () => {
       const agent = makeAgent({ slotId: 'slot-2', role: 'teammate', status: 'idle', conversationId: 'conv-2' });
       const mockSendMessage = vi.fn().mockResolvedValue(undefined);
