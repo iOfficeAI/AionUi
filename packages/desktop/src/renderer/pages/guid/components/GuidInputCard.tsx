@@ -8,7 +8,6 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import UploadProgressBar from '@/renderer/components/media/UploadProgressBar';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCompositionInput } from '@/renderer/hooks/chat/useCompositionInput';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Input } from '@arco-design/web-react';
 import React from 'react';
 import styles from '../index.module.css';
@@ -75,7 +74,6 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
   onClearWorkspace,
 }) => {
   const layout = useLayoutContext();
-  const isElectron = isElectronDesktop();
   const isMobile = layout?.isMobile ?? false;
   const { compositionHandlers, isComposing } = useCompositionInput();
   const textareaAutoSize = isMobile ? { minRows: 2, maxRows: 8 } : { minRows: 2, maxRows: 20 };
@@ -152,13 +150,11 @@ const GuidInputCard: React.FC<GuidInputCardProps> = ({
         <UploadProgressBar source='sendbox' />
         {actionRow}
       </div>
-      {isElectron && (
-        <GuidWorkspaceFootnote
-          workspaceDir={workspaceDir}
-          onSelectWorkspace={onSelectWorkspace}
-          onClearWorkspace={onClearWorkspace}
-        />
-      )}
+      <GuidWorkspaceFootnote
+        workspaceDir={workspaceDir}
+        onSelectWorkspace={onSelectWorkspace}
+        onClearWorkspace={onClearWorkspace}
+      />
     </div>
   );
 };
