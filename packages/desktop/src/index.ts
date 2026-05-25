@@ -688,6 +688,8 @@ const handleAppReady = async (): Promise<void> => {
     setTimeout(() => {
       void (async () => {
         try {
+          const notchTaskboxEnabled = await ProcessConfig.get('notchTaskbox.enabled');
+          if (notchTaskboxEnabled === true) return;
           const petEnabled = await ProcessConfig.get('pet.enabled');
           if (petEnabled === true) {
             // Read pet sub-settings before creating the pet so flags are honored
@@ -702,6 +704,21 @@ const handleAppReady = async (): Promise<void> => {
         }
       })();
     }, 3000);
+
+    // Initialize notch taskbox (macOS native helper, delayed to not block main window)
+    setTimeout(() => {
+      void (async () => {
+        try {
+          const notchTaskboxEnabled = await ProcessConfig.get('notchTaskbox.enabled');
+          if (notchTaskboxEnabled === true) {
+            const { createNotchTaskboxWindow } = await import('./process/notchTaskbox/notchTaskboxWindowManager');
+            await createNotchTaskboxWindow();
+          }
+        } catch (error) {
+          console.error('[NotchTaskbox] Failed to initialize:', error);
+        }
+      })();
+    }, 3200);
 
     // 读取语言设置并初始化主进程 i18n，然后刷新托盘菜单
     // Read language setting and initialize main process i18n, then refresh tray menu

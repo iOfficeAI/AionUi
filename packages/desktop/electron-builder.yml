@@ -114,6 +114,8 @@ extraResources:
     to: bundled-aioncore
   - from: resources/hub
     to: hub
+  - from: resources/notch-taskbox-helper
+    to: notch-taskbox-helper
 win:
   target:
     - nsis

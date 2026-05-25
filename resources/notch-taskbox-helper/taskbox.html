@@ -1,0 +1,674 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.94);
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+        user-select: none;
+      }
+      button,
+      textarea {
+        font: inherit;
+      }
+      .shell {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 0 0 18px 18px;
+        background: transparent;
+        transform-origin: top center;
+        transition:
+          border-radius 0.38s cubic-bezier(0.18, 1, 0.28, 1),
+          filter 0.38s cubic-bezier(0.18, 1, 0.28, 1);
+      }
+      .shell.expanded {
+        border-radius: 0 0 24px 24px;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.58)) drop-shadow(0 24px 42px rgba(0, 0, 0, 0.36));
+      }
+      .surface {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(5, 5, 6, 0.99), rgba(0, 0, 0, 0.97));
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+      }
+      .compact {
+        height: 40px;
+        padding: 4px 16px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 12px;
+        align-items: center;
+        cursor: default;
+      }
+      .slot {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+      .slot.trailing {
+        justify-content: flex-end;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #74777f;
+        box-shadow: 0 0 12px currentColor;
+        flex: 0 0 auto;
+      }
+      .dot.Working {
+        background: #8f7cff;
+        color: #8f7cff;
+      }
+      .dot.Waiting {
+        background: #ffc247;
+        color: #ffc247;
+      }
+      .dot.Error {
+        background: #ff6868;
+        color: #ff6868;
+      }
+      .dot.Done {
+        background: #47d68a;
+        color: #47d68a;
+      }
+      .dot.Idle {
+        background: #7d828c;
+        color: #7d828c;
+      }
+      .request .dot {
+        animation: pulse 1.15s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.45);
+          opacity: 0.62;
+        }
+      }
+      .label {
+        min-width: 0;
+        font-size: 11px;
+        font-weight: 650;
+        line-height: 14px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .subtle {
+        min-width: 0;
+        color: rgba(255, 255, 255, 0.58);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        font-weight: 620;
+        letter-spacing: 0.2px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .panel {
+        height: calc(100vh - 40px);
+        padding: 9px 15px 16px;
+        overflow-y: auto;
+        opacity: 0;
+        transform: scale(0.94) translateY(-8px);
+        transition:
+          opacity 0.22s ease,
+          transform 0.34s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .expanded .panel {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      .panel::-webkit-scrollbar {
+        width: 0;
+      }
+      .section-title {
+        margin: 7px 2px 8px;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 10px;
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+      }
+      .card,
+      .row,
+      .detail {
+        width: 100%;
+        border: 0;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.075);
+        color: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+      }
+      .card {
+        margin-bottom: 10px;
+        padding: 12px;
+        background: linear-gradient(180deg, rgba(255, 194, 71, 0.14), rgba(255, 255, 255, 0.07));
+      }
+      .permission-title {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 720;
+      }
+      .permission-body {
+        margin: 8px 0 10px;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 12px;
+        line-height: 17px;
+      }
+      .actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .action {
+        border: 0;
+        border-radius: 999px;
+        padding: 6px 11px;
+        background: rgba(255, 255, 255, 0.13);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .action:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .row {
+        margin-bottom: 7px;
+        padding: 10px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        text-align: left;
+        cursor: pointer;
+      }
+      .row:hover {
+        background: rgba(255, 255, 255, 0.105);
+      }
+      .row.selected {
+        background: rgba(143, 124, 255, 0.24);
+      }
+      .title {
+        min-width: 0;
+      }
+      .primary {
+        font-size: 13px;
+        font-weight: 690;
+        line-height: 18px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .secondary {
+        margin-top: 1px;
+        color: rgba(255, 255, 255, 0.54);
+        font-size: 11px;
+        line-height: 15px;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .progress {
+        color: rgba(255, 255, 255, 0.6);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+      }
+      .detail {
+        margin-top: 10px;
+        padding: 11px;
+      }
+      .detail-title {
+        font-size: 11px;
+        color: rgba(255, 255, 255, 0.46);
+        font-weight: 750;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .detail-body {
+        margin-top: 6px;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 12px;
+        line-height: 17px;
+        max-height: 68px;
+        overflow: hidden;
+      }
+      .reply {
+        margin-top: 9px;
+      }
+      .reply textarea {
+        width: 100%;
+        min-height: 58px;
+        resize: none;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+        border-radius: 12px;
+        outline: 0;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.24);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        line-height: 17px;
+        user-select: text;
+      }
+      .reply textarea:focus {
+        border-color: rgba(143, 124, 255, 0.85);
+      }
+      .empty {
+        padding: 36px 10px;
+        color: rgba(255, 255, 255, 0.5);
+        font-size: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <main id="root" class="shell"></main>
+    <script>
+      let sessions = [];
+      let selectedConversationId = '';
+      let expanded = false;
+      let lastError = '';
+      let replyDraft = '';
+      const root = document.getElementById('root');
+
+      window.aionuiTaskbox &&
+        window.aionuiTaskbox.onExpandedChange(function (next) {
+          expanded = !!next;
+          render();
+        });
+
+      async function backend(path, options) {
+        if (window.aionuiTaskbox && window.aionuiTaskbox.request) {
+          return window.aionuiTaskbox.request(path, options || {});
+        }
+        const response = await fetch(path, options);
+        if (!response.ok) throw new Error('HTTP ' + response.status);
+        if (response.status === 204) return null;
+        const json = await response.json();
+        return json && typeof json === 'object' && Object.prototype.hasOwnProperty.call(json, 'data')
+          ? json.data
+          : json;
+      }
+
+      async function refresh() {
+        try {
+          const page = await backend('/api/conversations?limit=8');
+          const conversations = arrayFromPage(page);
+          const loaded = await Promise.all(conversations.map(loadSession));
+          sessions = loaded.filter(Boolean).sort((a, b) => (b.updated_at || 0) - (a.updated_at || 0));
+          lastError = '';
+          if (!selectedConversationId && sessions.length) selectedConversationId = id(sessions[0]);
+          if (selectedConversationId && !sessions.some((item) => id(item) === selectedConversationId)) {
+            selectedConversationId = sessions[0] ? id(sessions[0]) : '';
+          }
+        } catch (error) {
+          lastError = String(error);
+        }
+        if (!(document.activeElement instanceof HTMLTextAreaElement)) render();
+      }
+
+      async function loadSession(conversation) {
+        const conversationId = String(
+          conversation.id || conversation.conversation_id || conversation.conversationId || ''
+        );
+        if (!conversationId) return null;
+        const [messagesPage, confirmationsPage] = await Promise.all([
+          backend(
+            '/api/conversations/' + encodeURIComponent(conversationId) + '/messages?page=1&page_size=8&order=DESC'
+          ).catch(() => null),
+          backend('/api/conversations/' + encodeURIComponent(conversationId) + '/confirmations').catch(() => []),
+        ]);
+        const messages = arrayFromPage(messagesPage);
+        const confirmations = Array.isArray(confirmationsPage) ? confirmationsPage : arrayFromPage(confirmationsPage);
+        const modelMessage = messages.find(isModelMessage) || messages.find((message) => messageText(message)) || null;
+        const pending = confirmations.find(Boolean) || null;
+        const state = sessionState(conversation, pending);
+        return {
+          conversationId,
+          session_id: conversationId,
+          agent: conversation.type || conversation.agent || 'AionUi',
+          state,
+          title: conversation.name || conversation.title || 'AI conversation',
+          currentStep: currentStep(conversation, pending, state),
+          progress: progressFor(state),
+          lastMessage: messageText(modelMessage),
+          updated_at: Number(
+            conversation.modified_at || conversation.updated_at || conversation.created_at || Date.now()
+          ),
+          alive: state === 'Working',
+          pending_permission: pending ? permissionFrom(pending, conversationId) : null,
+        };
+      }
+
+      function arrayFromPage(value) {
+        if (Array.isArray(value)) return value;
+        if (!value || typeof value !== 'object') return [];
+        if (Array.isArray(value.items)) return value.items;
+        if (Array.isArray(value.conversations)) return value.conversations;
+        if (Array.isArray(value.messages)) return value.messages;
+        if (Array.isArray(value.data)) return value.data;
+        return [];
+      }
+
+      function sessionState(conversation, permission) {
+        if (permission) return 'Waiting';
+        const state = String(conversation.status || conversation.state || '').toLowerCase();
+        if (state === 'running' || state === 'pending' || state === 'working' || state === 'processing')
+          return 'Working';
+        if (state === 'finished' || state === 'done' || state === 'completed') return 'Done';
+        return 'Idle';
+      }
+
+      function currentStep(conversation, permission, state) {
+        if (permission) return 'Waiting for permission';
+        if (state === 'Working') return 'Agent is working';
+        if (state === 'Done') return 'Ready';
+        return conversation.desc || conversation.workspace || conversation.type || '';
+      }
+
+      function progressFor(state) {
+        if (state === 'Waiting') return 0.2;
+        if (state === 'Working') return 0.62;
+        if (state === 'Done') return 1;
+        return null;
+      }
+
+      function permissionFrom(permission, conversationId) {
+        const options =
+          Array.isArray(permission.options) && permission.options.length
+            ? permission.options
+            : [
+                { label: 'Allow', value: 'allow' },
+                { label: 'Deny', value: 'deny' },
+              ];
+        return {
+          permissionId: permission.id || permission.permissionId || permission.call_id,
+          permission_id: permission.id || permission.permission_id || permission.call_id,
+          conversationId,
+          msgId: permission.msg_id || permission.msgId || permission.message_id || permission.id,
+          callId: permission.call_id || permission.callId || permission.id,
+          header: permission.title || permission.action || 'Permission requested',
+          question: permission.description || permission.question || permission.body || 'AI is asking for permission.',
+          body: permission.description || permission.body,
+          options: options.map((option) => ({
+            label: option.label || String(option.value),
+            value: option.value !== undefined ? option.value : option.label,
+          })),
+        };
+      }
+
+      setInterval(refresh, 1000);
+      refresh();
+
+      function render() {
+        const top = sessions[0] || null;
+        const requests = sessions.filter((session) => session.pending_permission).length;
+        root.className = 'shell' + (expanded ? ' expanded' : '') + (requests ? ' request' : '');
+        root.innerHTML =
+          '<div class="surface"><section class="compact"><div class="slot leading"><span class="dot ' +
+          status(top) +
+          '"></span><span class="label">' +
+          esc(compactLeft(top, requests)) +
+          '</span></div><div class="slot trailing"><span class="subtle">' +
+          esc(compactRight(requests)) +
+          '</span></div></section>' +
+          (expanded ? panel() : '') +
+          '</div>';
+      }
+
+      function panel() {
+        if (lastError) return '<section class="panel"><div class="empty">' + esc(lastError) + '</div></section>';
+        if (!sessions.length)
+          return '<section class="panel"><div class="empty">No AI conversations yet</div></section>';
+        const permissions = sessions
+          .filter((session) => session.pending_permission)
+          .map(permission)
+          .join('');
+        const rows = sessions.map(row).join('');
+        const session = selected();
+        return (
+          '<section class="panel">' +
+          permissions +
+          '<div class="section-title">Conversations</div>' +
+          rows +
+          (session ? detail(session) : '') +
+          (session ? reply(session) : '') +
+          '</section>'
+        );
+      }
+
+      function permission(session) {
+        const permission = session.pending_permission;
+        if (!permission) return '';
+        const permissionId = permission.permissionId || permission.permission_id;
+        const actions = (permission.options || [])
+          .map(
+            (option, index) =>
+              '<button class="action" data-action="permission" data-permission-id="' +
+              attr(permissionId) +
+              '" data-option-index="' +
+              index +
+              '">' +
+              esc(option.label || String(option.value)) +
+              '</button>'
+          )
+          .join('');
+        return (
+          '<article class="card"><div class="permission-title"><span class="dot Waiting"></span>' +
+          esc(permission.header || 'Permission requested') +
+          '</div><div class="permission-body">' +
+          esc(permission.question || permission.body || 'AI is asking for permission.') +
+          '</div><div class="actions">' +
+          actions +
+          '</div></article>'
+        );
+      }
+
+      function row(session) {
+        const sessionId = id(session);
+        const selectedClass = sessionId === selectedConversationId ? ' selected' : '';
+        return (
+          '<button class="row' +
+          selectedClass +
+          '" data-action="select" data-conversation-id="' +
+          attr(sessionId) +
+          '"><span class="dot ' +
+          session.state +
+          '"></span><div class="title"><div class="primary">' +
+          esc(sessionTitle(session)) +
+          '</div><div class="secondary">' +
+          esc(session.lastMessage || session.currentStep || session.agent || '') +
+          '</div></div><span class="progress">' +
+          esc(progress(session)) +
+          '</span></button>'
+        );
+      }
+
+      function detail(session) {
+        return (
+          '<article class="detail"><div class="detail-title">Latest model message</div><div class="detail-body">' +
+          esc(session.lastMessage || session.currentStep || 'No recent message.') +
+          '</div></article>'
+        );
+      }
+
+      function reply(session) {
+        return (
+          '<form class="reply" data-action="reply"><textarea aria-label="Reply" placeholder="Reply to ' +
+          attr(sessionTitle(session)) +
+          '...">' +
+          esc(replyDraft) +
+          '</textarea></form>'
+        );
+      }
+
+      root.addEventListener('click', (event) => {
+        const element = event.target.closest('[data-action]');
+        if (!element) return;
+        event.stopPropagation();
+        const action = element.dataset.action;
+        if (action === 'select') {
+          selectedConversationId = element.dataset.conversationId || '';
+          render();
+          return;
+        }
+        if (action === 'permission') resolvePermission(element);
+      });
+      root.addEventListener('input', (event) => {
+        if (event.target instanceof HTMLTextAreaElement) replyDraft = event.target.value;
+      });
+      root.addEventListener('keydown', (event) => {
+        if (!(event.target instanceof HTMLTextAreaElement) || event.key !== 'Enter' || event.shiftKey) return;
+        event.preventDefault();
+        sendReply(event.target.closest('form'));
+      });
+      root.addEventListener('submit', (event) => {
+        event.preventDefault();
+        sendReply(event.target);
+      });
+
+      async function resolvePermission(element) {
+        const permissionId = element.dataset.permissionId || '';
+        const optionIndex = Number(element.dataset.optionIndex || 0);
+        const owner = sessions.find(
+          (session) =>
+            session.pending_permission &&
+            (session.pending_permission.permissionId === permissionId ||
+              session.pending_permission.permission_id === permissionId)
+        );
+        const permission = owner && owner.pending_permission;
+        if (!owner || !permission) return;
+        const option = permission.options ? permission.options[optionIndex] : null;
+        await backend(
+          '/api/conversations/' +
+            encodeURIComponent(id(owner)) +
+            '/confirmations/' +
+            encodeURIComponent(permission.callId || permissionId) +
+            '/confirm',
+          {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              msg_id: permission.msgId || permissionId,
+              data: option ? (option.value ?? option.label) : 'allow',
+              always_allow: false,
+            }),
+          }
+        );
+        refresh();
+      }
+
+      async function sendReply(form) {
+        const textarea = form && form.querySelector('textarea');
+        const text = ((textarea && textarea.value) || '').trim();
+        const session = selected();
+        if (!session || !text) return;
+        textarea.value = '';
+        replyDraft = '';
+        await backend('/api/conversations/' + encodeURIComponent(id(session)) + '/messages', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ content: text, files: [] }),
+        });
+        refresh();
+      }
+
+      function selected() {
+        return sessions.find((session) => id(session) === selectedConversationId) || sessions[0] || null;
+      }
+      function id(session) {
+        return session.conversationId || session.session_id;
+      }
+      function sessionTitle(session) {
+        return session.title || session.currentStep || session.agent || id(session) || 'AI task';
+      }
+      function status(session) {
+        if (lastError) return 'Error';
+        if (!session) return 'Idle';
+        if (session.pending_permission) return 'Waiting';
+        return session.state;
+      }
+      function compactLeft(session, requests) {
+        if (lastError) return 'Offline';
+        if (requests) return requests + ' permission request' + (requests > 1 ? 's' : '');
+        if (!session) return 'AionUi';
+        return session.state === 'Working' ? 'Working: ' + sessionTitle(session) : sessionTitle(session);
+      }
+      function compactRight(requests) {
+        if (requests) return 'ASK';
+        const working = sessions.filter((session) => session.state === 'Working').length;
+        if (working) return working + ' RUN';
+        return sessions.length ? sessions.length + ' AI' : 'AI';
+      }
+      function progress(session) {
+        return typeof session.progress === 'number'
+          ? Math.round(session.progress * 100) + '%'
+          : session.alive
+            ? session.state
+            : 'Idle';
+      }
+      function isModelMessage(message) {
+        if (!message) return false;
+        const role = String(message.role || message.sender || message.author || '').toLowerCase();
+        const type = String(message.type || '').toLowerCase();
+        if (role.includes('user') || type === 'user' || type === 'input') return false;
+        return !!messageText(message);
+      }
+      function messageText(message) {
+        if (!message) return '';
+        const content =
+          message.content !== undefined
+            ? message.content
+            : message.text !== undefined
+              ? message.text
+              : message.message !== undefined
+                ? message.message
+                : message.data;
+        const raw = textFrom(content) || message.title || message.description || '';
+        return String(raw).replace(/\s+/g, ' ').trim().slice(0, 500);
+      }
+      function textFrom(value) {
+        if (value == null) return '';
+        if (typeof value === 'string') return value;
+        if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+        if (Array.isArray(value)) return value.map(textFrom).filter(Boolean).join(' ');
+        if (typeof value === 'object') {
+          return textFrom(
+            value.text || value.content || value.message || value.description || value.title || value.value || ''
+          );
+        }
+        return '';
+      }
+      function esc(value) {
+        return String(value || '').replace(/[&<>"']/g, (character) => {
+          return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[character];
+        });
+      }
+      function attr(value) {
+        return esc(value);
+      }
+    </script>
+  </body>
+</html>

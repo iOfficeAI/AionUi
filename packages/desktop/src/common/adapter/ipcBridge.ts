@@ -985,6 +985,12 @@ export const windowControls = {
 // System Settings — routed to /api/settings/*
 // ---------------------------------------------------------------------------
 
+export type INotchTaskboxStatus = {
+  enabled: boolean;
+  open: boolean;
+  hardwareNotch: boolean;
+};
+
 export const systemSettings = {
   getCloseToTray: httpGet<boolean, void>('/api/settings/client?key=closeToTray'),
   setCloseToTray: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ closeToTray: p.enabled })),
@@ -1016,6 +1022,13 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getNotchTaskboxStatus: bridge.buildProvider<INotchTaskboxStatus, void>('system-settings:get-notch-taskbox-status'),
+  setNotchTaskboxEnabled: bridge.buildProvider<INotchTaskboxStatus, { enabled: boolean }>(
+    'system-settings:set-notch-taskbox-enabled'
+  ),
+  setNotchTaskboxHardwareNotch: bridge.buildProvider<INotchTaskboxStatus, { hardwareNotch: boolean }>(
+    'system-settings:set-notch-taskbox-hardware-notch'
+  ),
 };
 
 // ---------------------------------------------------------------------------

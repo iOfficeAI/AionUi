@@ -1,4 +1,5 @@
 const { Arch } = require('builder-util');
+const { execFileSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
@@ -21,6 +22,9 @@ module.exports = async function afterPack(context) {
 
   console.log(`\n🔧 afterPack hook started`);
   console.log(`   Platform: ${electronPlatformName}, Build arch: ${buildArch}, Target arch: ${targetArch}`);
+
+  const resourcesDir = resolveResourcesDir(electronPlatformName, appOutDir, packager);
+  compileNotchTaskboxHelper(electronPlatformName, resourcesDir);
 
   const isCrossCompile = buildArch !== targetArch;
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
@@ -53,17 +57,6 @@ module.exports = async function afterPack(context) {
     packager?.info?.electronVersion ??
     packager?.config?.electronVersion ??
     require('../package.json').devDependencies?.electron?.replace(/^\D*/, '');
-
-  // Determine resources directory based on platform
-  // macOS: appOutDir/AionUi.app/Contents/Resources
-  // Windows/Linux: appOutDir/resources
-  let resourcesDir;
-  if (electronPlatformName === 'darwin') {
-    const appName = packager?.appInfo?.productFilename || 'AionUi';
-    resourcesDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
-  } else {
-    resourcesDir = path.join(appOutDir, 'resources');
-  }
 
   // Debug: check what's in resources directory
   console.log(`   Checking resources directory: ${resourcesDir}`);
@@ -213,3 +206,28 @@ module.exports = async function afterPack(context) {
 
   console.log(`✅ All native modules rebuilt successfully for ${targetArch}\n`);
 };
+
+function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
+  if (electronPlatformName === 'darwin') {
+    const appName = packager?.appInfo?.productFilename || 'AionUi';
+    return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
+  }
+  return path.join(appOutDir, 'resources');
+}
+
+function compileNotchTaskboxHelper(electronPlatformName, resourcesDir) {
+  if (electronPlatformName !== 'darwin') return;
+
+  const helperDir = path.join(resourcesDir, 'notch-taskbox-helper');
+  const sourcePath = path.join(helperDir, 'AionUiNotchTaskbox.swift');
+  const outputPath = path.join(helperDir, 'AionUiNotchTaskbox');
+
+  if (!fs.existsSync(sourcePath)) {
+    console.warn(`   ⚠️  Notch taskbox helper source not found: ${sourcePath}`);
+    return;
+  }
+
+  console.log(`   Compiling notch taskbox helper: ${outputPath}`);
+  execFileSync('/usr/bin/swiftc', [sourcePath, '-o', outputPath, '-framework', 'AppKit', '-framework', 'WebKit']);
+  fs.chmodSync(outputPath, 0o755);
+}
