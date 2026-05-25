@@ -317,12 +317,17 @@ fmt-check:
 typecheck:
     bunx tsc --noEmit
 
-# Run all checks (lint + format + typecheck) — mirrors CI code-quality job
-check: lint fmt-check typecheck
+# Run i18n type generation and validation
+i18n-check:
+    bun run i18n:types
+    node scripts/check-i18n.js
 
-# Pre-push gate: lint + format check + typecheck + test, then push
+# Run all checks (lint + format + typecheck + i18n) — mirrors CI code-quality job
+check: lint fmt-check typecheck i18n-check
+
+# Pre-push gate: lint + format check + typecheck + i18n + test, then push
 # Uses --quiet to suppress warnings (exit code is still non-zero on errors)
-push *ARGS: lint-strict fmt-check typecheck test
+push *ARGS: lint-strict fmt-check typecheck i18n-check test
     git push {{ ARGS }}
 
 # Lint with only errors reported (for CI/push gates)
