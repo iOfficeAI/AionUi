@@ -66,24 +66,21 @@
 }
 
 .app-titlebar--mobile .app-titlebar__brand {
-  position: static;
-  flex: 1 1 auto;
-  justify-content: flex-start;
-  text-align: left;
-  min-width: 0;
-  margin: 0 8px;
+  position: absolute;
+  left: 50%;
+  transform: translateX(calc(-50% + var(--app-titlebar-mobile-center-offset, 0px)));
+  max-width: calc(100% - 180px);
 }
 
 .app-titlebar__brand-mobile {
   display: inline-flex;
   flex-direction: row;
   align-items: center;
-  justify-content: flex-start;
+  justify-content: center;
   flex-wrap: nowrap;
   gap: 6px;
   min-width: 0;
   white-space: nowrap;
-  width: 100%;
 }
 
 .app-titlebar__brand-text {
