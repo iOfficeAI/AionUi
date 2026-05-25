@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { emitter } from '@/renderer/utils/emitter';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 export const useAutoTitle = () => {
   const { t } = useTranslation();
@@ -11,7 +12,7 @@ export const useAutoTitle = () => {
     async (conversation_id: string, fallbackContent?: string) => {
       const defaultTitle = t('conversation.welcome.newConversation');
       try {
-        const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+        const conversation = await getConversationOrNull(conversation_id);
         if (!conversation || conversation.name !== defaultTitle) {
           return;
         }

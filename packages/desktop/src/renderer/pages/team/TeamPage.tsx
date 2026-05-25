@@ -19,6 +19,7 @@ import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
   team: TTeam;
@@ -57,7 +58,7 @@ const AgentChatSlot: React.FC<{
 }> = ({ agent, team_id, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
   const { data: conversation } = useSWR(
     agent.conversation_id ? ['team-conversation', agent.conversation_id] : null,
-    () => ipcBridge.conversation.get.invoke({ id: agent.conversation_id })
+    () => getConversationOrNull(agent.conversation_id)
   );
 
   const isAionrs = conversation?.type === 'aionrs';
@@ -202,7 +203,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Fetch leader agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
     leadAgent?.conversation_id ? ['team-conversation', leadAgent.conversation_id] : null,
-    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversation_id })
+    () => getConversationOrNull(leadAgent!.conversation_id)
   );
 
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)

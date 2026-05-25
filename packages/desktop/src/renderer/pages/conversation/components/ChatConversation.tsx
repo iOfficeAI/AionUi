@@ -25,6 +25,7 @@ import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
@@ -103,7 +104,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           try {
             const id = uuid();
             // Fetch latest conversation from DB to ensure session_mode is current
-            const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
+            const latest = await getConversationOrNull(conversation.id);
             const source = latest || conversation;
             await ipcBridge.conversation.createWithConversation.invoke({
               conversation: {
