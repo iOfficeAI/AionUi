@@ -242,7 +242,12 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
               >
                 <FolderIcon size={14} />
                 <span className={styles.workspacePillName}>{workspaceName}</span>
-                <Down theme='outline' size='12' fill='currentColor' style={{ flexShrink: 0, transform: 'translateY(1px)' }} />
+                <Down
+                  theme='outline'
+                  size='12'
+                  fill='currentColor'
+                  style={{ flexShrink: 0, transform: 'translateY(1px)' }}
+                />
               </button>
               <span
                 role='button'
@@ -269,7 +274,14 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
           >
             <FolderIcon size={14} />
             <span>{t('guid.workspace.workInProject')}</span>
-            {recentWorkspaces.length > 0 && <Down theme='outline' size='12' fill='currentColor' style={{ flexShrink: 0, transform: 'translateY(1px)' }} />}
+            {recentWorkspaces.length > 0 && (
+              <Down
+                theme='outline'
+                size='12'
+                fill='currentColor'
+                style={{ flexShrink: 0, transform: 'translateY(1px)' }}
+              />
+            )}
           </button>
           {dropdownEl}
         </>
