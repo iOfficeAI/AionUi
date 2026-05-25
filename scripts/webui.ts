@@ -117,6 +117,23 @@ function resolveStaticDir(): string {
   throw new Error(`Renderer assets not found at ${candidate}. Run "bun run package" first, or set AIONUI_STATIC_DIR.`);
 }
 
+/**
+ * Rebuild renderer/main bundles before launching, so that `bun run webui` always
+ * serves the latest source. Skipped when:
+ *   --no-build flag           : explicit opt-out (e.g., iterating on this script)
+ *   $AIONUI_NO_BUILD=1        : env-level opt-out
+ *   $AIONUI_STATIC_DIR is set : caller is pointing us at a prebuilt artifact dir
+ */
+function runPackageIfNeeded(): void {
+  if (has('--no-build')) return;
+  if (parseBoolean(process.env.AIONUI_NO_BUILD)) return;
+  if (process.env.AIONUI_STATIC_DIR) return;
+  console.log('[webui] running "bun run package" to refresh out/renderer (pass --no-build to skip)...');
+  const start = Date.now();
+  execSync('bun run package', { cwd: repoRoot, stdio: 'inherit' });
+  console.log(`[webui] package finished in ${((Date.now() - start) / 1000).toFixed(1)}s`);
+}
+
 function resolveBackendBinary(): string {
   if (process.env.AIONUI_BACKEND_BIN) return process.env.AIONUI_BACKEND_BIN;
 
@@ -182,6 +199,7 @@ async function fetchAdminUsername(backendPort: number): Promise<string> {
 
 async function main(): Promise<void> {
   augmentPathWithNvm();
+  runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();
   // One working dir for the whole standalone webui: backend SQLite and chat
