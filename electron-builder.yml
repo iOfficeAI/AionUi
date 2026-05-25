@@ -1,7 +1,7 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: kaiwu-web
+executableName: kaiwu-web
+copyright: Copyright © 2024 kaiwu-web
 
 protocols:
   - name: AionUi Protocol

@@ -6,12 +6,10 @@ import { addMessage } from '@process/utils/message';
 import type { IWorkerTaskManager } from '@process/task/IWorkerTaskManager';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TeamAgent, TeammateStatus } from './types';
-import { isTeamCapableBackend } from '@/common/types/teamTypes';
-import { ProcessConfig } from '@process/utils/initStorage';
 import type { Mailbox } from './Mailbox';
 import { buildRolePrompt } from './prompts/buildRolePrompt';
 import { formatMessages } from './prompts/formatHelpers';
-import { agentRegistry } from '@process/agent/AgentRegistry';
+import { teamAgentCatalog } from './TeamAgentCatalog';
 
 type TeammateManagerParams = {
   teamId: string;
@@ -173,26 +171,31 @@ export class TeammateManager extends EventEmitter {
           | Array<{ customAgentId: string; name: string; backend: string; description?: string; skills?: string[] }>
           | undefined;
         if (agent.role === 'leader') {
-          const cachedInitResults = await ProcessConfig.get('acp.cachedInitializeResult');
-          availableAgentTypes = agentRegistry
-            .getDetectedAgents()
-            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults))
-            .map((a) => ({
-              type: a.backend,
-              name: a.name,
-            }));
+          // Single catalog call replaces: agentRegistry.getDetectedAgents() +
+          // assistants config + isTeamCapableBackend filter. Both the type list
+          // (bare backends) and the preset list come out of the same source
+          // deduplicated and capability-filtered.
+          const capable = await teamAgentCatalog.listTeamCapable();
 
-          const assistants = (await ProcessConfig.get('assistants')) ?? [];
-          availableAssistants = assistants
-            .filter((a) => a.isPreset && a.enabled !== false)
-            .map((a) => ({
-              customAgentId: a.id,
-              name: a.name,
-              backend: a.presetAgentType || 'gemini',
-              description: a.description,
-              skills: a.enabledSkills,
-            }))
-            .filter((a) => isTeamCapableBackend(a.backend, cachedInitResults));
+          // Bare backends — dedup by backend id, prefer non-preset entries so
+          // the name shown is the underlying CLI's name.
+          const byBackend = new Map<string, { type: string; name: string }>();
+          for (const e of capable) {
+            if (e.source === 'preset') continue;
+            if (!byBackend.has(e.backend)) byBackend.set(e.backend, { type: e.backend, name: e.displayName });
+          }
+          availableAgentTypes = Array.from(byBackend.values());
+
+          // Preset / extension entries surfaced as spawnable identities.
+          availableAssistants = capable
+            .filter((e) => e.source === 'preset')
+            .map((e) => ({
+              customAgentId: e.customAgentId ?? e.key,
+              name: e.displayName,
+              backend: e.backend,
+              description: e.description,
+              skills: e.enabledSkills,
+            }));
         }
 
         const staticPrompt = buildRolePrompt({

@@ -26,7 +26,7 @@ import type {
   AvailableCommandsUpdate,
   ToolCallUpdate,
 } from '@/common/types/acpTypes';
-import { AcpErrorType, createAcpError } from '@/common/types/acpTypes';
+import { AcpErrorType, createAcpError, isValidInitResult } from '@/common/types/acpTypes';
 import { spawn } from 'child_process';
 import { promises as fs } from 'fs';
 import * as path from 'path';
@@ -1783,6 +1783,9 @@ export class AcpAgent {
   private async cacheInitializeResult(): Promise<void> {
     const result = this.connection.getInitializeResult();
     if (!result) return;
+    // Never cache a ghost handshake (no agentInfo + all transports false) —
+    // it would permanently misclassify the backend as not-team-capable.
+    if (!isValidInitResult(result)) return;
     const cached = (await ProcessConfig.get('acp.cachedInitializeResult')) || {};
     await ProcessConfig.set('acp.cachedInitializeResult', {
       ...cached,

@@ -24,6 +24,7 @@ import { ACP_BACKENDS_ALL } from '@/common/types/acpTypes';
 import { ExtensionRegistry } from '@process/extensions';
 import { getDatabase } from '@process/services/database';
 import { ProcessConfig } from '@process/utils/initStorage';
+import { teamAgentCatalog } from '@process/team/TeamAgentCatalog';
 import { addMessage, addOrUpdateMessage, nextTickToLocalFinish } from '@process/utils/message';
 import { handlePreviewOpenEvent } from '@process/utils/previewUtils';
 import { cronBusyGuard } from '@process/services/cron/CronBusyGuard';
@@ -569,6 +570,20 @@ ${collectedResponses.join('\n')}`;
     // If cliPath is not configured, fallback to default cliCommand from ACP_BACKENDS_ALL
     if (!cliPath && backendConfig?.cliCommand) {
       cliPath = backendConfig.cliCommand;
+    }
+
+    // Final defensive fallback through the catalog — covers extension adapters
+    // (e.g. kaiwu) that have no ACP_BACKENDS_ALL entry. Any spawn caller that
+    // forgot to set cliPath on the conversation extra still recovers here, so
+    // "No CLI path for backend X" can never reappear silently.
+    if (!cliPath) {
+      const entry = await teamAgentCatalog.resolveByBackend(data.backend);
+      if (entry?.cliPath) {
+        cliPath = entry.cliPath;
+        if (!customArgs && entry.acpArgs) {
+          customArgs = entry.acpArgs;
+        }
+      }
     }
 
     if (data.backend === 'codex') {

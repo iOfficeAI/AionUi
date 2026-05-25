@@ -64,7 +64,7 @@ function convertModelProvider(
     } else {
       const absPath = path.resolve(ext.directory, provider.logo);
       if (isPathWithinDirectory(absPath, ext.directory) && existsSync(absPath)) {
-        logoUrl = toAssetUrl(absPath);
+        logoUrl = toAssetUrl(ext.manifest.name, path.relative(ext.directory, absPath));
       }
     }
   }

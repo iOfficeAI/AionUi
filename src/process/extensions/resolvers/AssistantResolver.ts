@@ -66,7 +66,7 @@ async function convertAssistant(
     id: `ext-${assistant.id}`,
     name: assistant.name,
     description: assistant.description,
-    avatar: assistant.avatar ? resolveIconPath(assistant.avatar, ext.directory) : undefined,
+    avatar: assistant.avatar ? resolveIconPath(assistant.avatar, ext.manifest.name, ext.directory) : undefined,
     presetAgentType: assistant.presetAgentType,
     context: context || '',
     models: assistant.models,
@@ -102,7 +102,7 @@ async function readContextFile(relativePath: string, extensionDir: string): Prom
   }
 }
 
-function resolveIconPath(icon: string, extensionDir: string): string | undefined {
+function resolveIconPath(icon: string, extName: string, extensionDir: string): string | undefined {
   if (icon.startsWith('http://') || icon.startsWith('https://')) return icon;
   if (!icon.includes('/') && !icon.includes('\\') && !icon.includes('.')) return icon;
   const absPath = path.isAbsolute(icon) ? icon : path.resolve(extensionDir, icon);
@@ -110,5 +110,5 @@ function resolveIconPath(icon: string, extensionDir: string): string | undefined
     console.warn(`[Extensions] Assistant icon path traversal attempt: ${icon}`);
     return undefined;
   }
-  return toAssetUrl(absPath);
+  return toAssetUrl(extName, path.relative(extensionDir, absPath));
 }

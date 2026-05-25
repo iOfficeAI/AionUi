@@ -51,14 +51,33 @@ class JsonErrorCommand implements ErrorCommand {
  * 处理所有未被捕获的错误，统一返回格式化的错误响应
  * Handles all uncaught errors and returns formatted error responses
  */
+/**
+ * Shape of http-errors instances (express sendFile, body-parser, etc).
+ * Duck-typed: any error carrying a 4xx/5xx numeric `statusCode` is honored.
+ */
+function extractHttpErrorStatus(err: unknown): number | null {
+  if (!err || typeof err !== 'object') return null;
+  const status = (err as { statusCode?: unknown; status?: unknown }).statusCode ?? (err as { status?: unknown }).status;
+  if (typeof status !== 'number' || !Number.isInteger(status) || status < 400 || status > 599) return null;
+  return status;
+}
+
 export const errorHandler: ErrorRequestHandler = (err, _req, res, _next) => {
   const isAppError = err instanceof AppError;
-  const statusCode = isAppError ? err.statusCode : 500;
-  const code = isAppError ? err.code : 'internal_error';
-  const message = isAppError ? err.message : 'Internal server error';
+  const httpStatus = isAppError ? null : extractHttpErrorStatus(err);
+
+  const statusCode = isAppError ? err.statusCode : (httpStatus ?? 500);
+  const code = isAppError ? err.code : httpStatus ? `http_${httpStatus}` : 'internal_error';
+  const message = isAppError
+    ? err.message
+    : httpStatus
+      ? err instanceof Error
+        ? err.message
+        : `HTTP ${httpStatus}`
+      : 'Internal server error';
 
   // 仅记录非预期错误 / Only log unexpected errors
-  if (!isAppError) {
+  if (!isAppError && !httpStatus) {
     console.error('[Error]', err);
   }
 

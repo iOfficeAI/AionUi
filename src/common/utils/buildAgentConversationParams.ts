@@ -88,6 +88,12 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
       extra.presetContext = presetResources?.rules;
       if (type === 'acp') {
         extra.backend = effectivePresetType as AcpBackend;
+        // Also carry connection info for ACP preset/extension agents so the
+        // spawn layer (AcpAgentManager → LegacyConnectorFactory) can resolve
+        // the CLI. Without these, team-mode extension agents end up with an
+        // empty `AgentConfig.command` and fail with "No CLI path for backend".
+        if (cliPath) extra.cliPath = cliPath;
+        if (customAgentId) extra.customAgentId = customAgentId;
       }
     }
   } else if (type === 'remote') {

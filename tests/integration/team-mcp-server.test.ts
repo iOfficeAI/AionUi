@@ -46,6 +46,21 @@ vi.mock('@process/agent/acp/AcpDetector', () => ({
   },
 }));
 
+// Mock agentRegistry + mcpService so TeamAgentCatalog can resolve backends.
+vi.mock('@process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    getDetectedAgents: vi.fn(() => [
+      { id: 'claude', name: 'Claude', kind: 'acp', available: true, backend: 'claude', cliPath: 'claude' },
+      { id: 'codex', name: 'Codex', kind: 'acp', available: true, backend: 'codex', cliPath: 'codex' },
+    ]),
+  },
+}));
+vi.mock('@process/services/mcpServices/McpService', () => ({
+  mcpService: {
+    getSupportedTransportsForAgent: vi.fn(() => ['stdio']),
+  },
+}));
+
 import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';
 import type { TeamAgent } from '@/common/types/teamTypes';
 import type { Mailbox } from '../../src/process/team/Mailbox';

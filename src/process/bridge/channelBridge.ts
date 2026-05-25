@@ -74,7 +74,17 @@ export function initChannelBridge(channelRepo: IChannelRepository): void {
                 extensionMeta.icon = iconField;
               } else {
                 const absPath = path.isAbsolute(iconField) ? iconField : path.resolve(ext.directory, iconField);
-                extensionMeta.icon = toAssetUrl(absPath);
+                const relPath = path.relative(ext.directory, absPath);
+                // Register dynamically so the /api/ext-asset + protocol handlers will serve it
+                try {
+                  registry.registerAsset(ext.manifest.name, relPath);
+                  extensionMeta.icon = toAssetUrl(ext.manifest.name, relPath);
+                } catch (err) {
+                  console.warn(
+                    `[ChannelBridge] Invalid channel plugin icon "${iconField}" in "${ext.manifest.name}":`,
+                    err instanceof Error ? err.message : err
+                  );
+                }
               }
             }
           }

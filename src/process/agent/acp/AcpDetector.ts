@@ -210,6 +210,7 @@ class AcpDetector {
             acpArgs,
             isExtension: true,
             extensionName,
+            customAgentId: `ext:${extensionName}:${id}`,
           },
         });
       }

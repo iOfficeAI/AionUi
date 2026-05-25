@@ -793,6 +793,29 @@ export function parseAgentCapabilities(raw: unknown): AcpAgentCapabilities {
   return parseAgentCapabilitiesObject(result?.agentCapabilities);
 }
 
+/**
+ * Decide whether a parsed initialize result carries any usable information.
+ *
+ * A well-formed ACP handshake always identifies the agent and/or declares at
+ * least one transport capability. When the raw payload is malformed — e.g. a
+ * legacy agent that returned `serverCapabilities` instead of `agentCapabilities`
+ * — `parseInitializeResult()` silently fills every field with defaults, giving
+ * us `agentInfo=null` and all-`false` capabilities. Caching that result
+ * permanently pins the backend as "not team-capable" and no amount of healthy
+ * reconnects can fix it. This helper lets callers detect and skip such
+ * ghost entries on both the read and write paths.
+ */
+export function isValidInitResult(result: AcpInitializeResult | null | undefined): boolean {
+  if (!result) return false;
+  if (result.agentInfo) return true;
+  const caps = result.capabilities;
+  if (!caps) return false;
+  const mcp = caps.mcpCapabilities;
+  if (mcp && (mcp.stdio || mcp.http || mcp.sse)) return true;
+  if (caps.loadSession) return true;
+  return false;
+}
+
 // 所有会话更新的基础接口 / Base interface for all session updates
 export interface BaseSessionUpdate {
   sessionId: string;

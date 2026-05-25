@@ -41,7 +41,15 @@ vi.mock('../../src/process/team/googleAuthCheck', () => ({
 
 vi.mock('@process/agent/AgentRegistry', () => ({
   agentRegistry: {
-    getDetectedAgents: vi.fn(() => [{ backend: 'claude', name: 'Claude' }]),
+    getDetectedAgents: vi.fn(() => [
+      { id: 'claude', backend: 'claude', name: 'Claude', kind: 'acp', available: true, cliPath: 'claude' },
+    ]),
+  },
+}));
+
+vi.mock('@process/services/mcpServices/McpService', () => ({
+  mcpService: {
+    getSupportedTransportsForAgent: vi.fn(() => ['stdio']),
   },
 }));
 

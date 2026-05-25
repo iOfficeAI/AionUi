@@ -100,6 +100,24 @@ vi.mock('../../src/process/agent/acp/AcpDetector', () => ({
   },
 }));
 
+// Mock agentRegistry + mcpService for TeamAgentCatalog.
+// handleSpawnAgent resolves backends through the catalog now; without these
+// mocks the catalog sees no agents and every backend fails validation.
+vi.mock('../../src/process/agent/AgentRegistry', () => ({
+  agentRegistry: {
+    getDetectedAgents: vi.fn(() => [
+      { id: 'claude', name: 'Claude', kind: 'acp', available: true, backend: 'claude', cliPath: 'claude' },
+      { id: 'codex', name: 'Codex', kind: 'acp', available: true, backend: 'codex', cliPath: 'codex' },
+      { id: 'gemini', name: 'Gemini', kind: 'gemini', available: true, backend: 'gemini' },
+    ]),
+  },
+}));
+vi.mock('../../src/process/services/mcpServices/McpService', () => ({
+  mcpService: {
+    getSupportedTransportsForAgent: vi.fn(() => ['stdio']),
+  },
+}));
+
 // ─── imports ─────────────────────────────────────────────────────────────────
 
 import { TeamMcpServer } from '../../src/process/team/mcp/team/TeamMcpServer';

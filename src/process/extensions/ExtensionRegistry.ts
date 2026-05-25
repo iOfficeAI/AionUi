@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import * as path from 'path';
 import type { ICssTheme } from '@/common/config/storage';
 import type { LoadedExtension, ExtensionState } from './types';
 import { ExtensionLoader } from './ExtensionLoader';
+import { parseAssetUrl } from './protocol/assetProtocol';
 import { resolveAcpAdapters } from './resolvers/AcpAdapterResolver';
 import { resolveMcpServers } from './resolvers/McpServerResolver';
 import { resolveAssistants, resolveAgents } from './resolvers/AssistantResolver';
@@ -48,6 +50,13 @@ export class ExtensionRegistry {
   private _settingsTabs: ResolvedSettingsTab[] = [];
   private _modelProviders: ResolvedModelProvider[] = [];
   private _extI18n: AggregatedExtI18n = {};
+
+  /**
+   * Whitelist of extension assets that are allowed to be served via aion-asset:// or /api/ext-asset.
+   * Key format: `${extName}/${posixRelPath}`. Populated during resolveContributions() by scanning
+   * resolver outputs for aion-asset:// URLs. Cleared and rebuilt on every re-resolve.
+   */
+  private _allowedAssets = new Set<string>();
 
   static getInstance(): ExtensionRegistry {
     if (!ExtensionRegistry.instance) {
@@ -336,6 +345,82 @@ export class ExtensionRegistry {
     this._assistants = assistants;
     this._agents = agents;
     this._extI18n = extI18n;
+
+    // Rebuild the asset whitelist by scanning all resolver outputs for aion-asset:// URLs.
+    this.rebuildAssetWhitelist();
+  }
+
+  /**
+   * Scan every string in resolver output for aion-asset:// URLs and register each unique
+   * (extName, relPath) pair. This is the source of truth for the whitelist.
+   */
+  private rebuildAssetWhitelist(): void {
+    this._allowedAssets.clear();
+    const roots: unknown[] = [
+      this._acpAdapters,
+      this._mcpServers,
+      this._assistants,
+      this._agents,
+      this._themes,
+      this._modelProviders,
+      this._settingsTabs,
+      this._webuiContributions,
+      // Channel plugins live in a Map — expose just the meta values for scanning
+      Array.from(this._channelPlugins.values()).map((v) => v.meta),
+    ];
+    const seenObjects = new WeakSet<object>();
+    const collect = (obj: unknown): void => {
+      if (typeof obj === 'string') {
+        const parsed = parseAssetUrl(obj);
+        if (parsed) {
+          this._allowedAssets.add(`${parsed.extName}/${parsed.relPath}`);
+        }
+        return;
+      }
+      if (!obj || typeof obj !== 'object') return;
+      if (seenObjects.has(obj as object)) return;
+      seenObjects.add(obj as object);
+      if (Array.isArray(obj)) {
+        for (const item of obj) collect(item);
+        return;
+      }
+      for (const value of Object.values(obj as Record<string, unknown>)) {
+        collect(value);
+      }
+    };
+    for (const root of roots) collect(root);
+  }
+
+  /** Look up a loaded extension by manifest name (regardless of enabled state). */
+  getExtension(name: string): LoadedExtension | undefined {
+    return this.extensions.find((e) => e.manifest.name === name);
+  }
+
+  /**
+   * Explicitly allow an extension asset. Prefer scanning resolver output;
+   * callers outside the resolver pipeline (e.g. channelBridge) may register dynamically.
+   */
+  registerAsset(extName: string, relPath: string): void {
+    const posix = relPath.split(path.sep).join('/');
+    const normalized = path.posix.normalize(posix);
+    if (
+      normalized === '' ||
+      normalized === '.' ||
+      normalized === '..' ||
+      normalized.startsWith('/') ||
+      normalized.startsWith('../') ||
+      normalized.includes('\0')
+    ) {
+      throw new Error(`[Extensions] Invalid asset rel path for "${extName}": ${JSON.stringify(relPath)}`);
+    }
+    this._allowedAssets.add(`${extName}/${normalized}`);
+  }
+
+  /** Check whether an extension asset has been registered for serving. */
+  isAssetAllowed(extName: string, relPath: string): boolean {
+    const posix = relPath.split(path.sep).join('/');
+    const normalized = path.posix.normalize(posix);
+    return this._allowedAssets.has(`${extName}/${normalized}`);
   }
 
   /** Get all loaded extensions */

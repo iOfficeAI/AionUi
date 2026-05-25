@@ -16,6 +16,7 @@ import { getSystemDir } from '@process/utils/initStorage';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { TokenMiddleware } from '@process/webserver/auth/middleware/TokenMiddleware';
 import { ExtensionRegistry } from '@process/extensions';
+import { safeResolveExtensionAsset } from '@process/extensions/protocol/safeResolveExtensionAsset';
 import { SpeechToTextService } from '@process/bridge/services/SpeechToTextService';
 import { isActivePreviewPort } from '@process/bridge/pptPreviewBridge';
 import { isActiveOfficeWatchPort } from '@process/bridge/officeWatchBridge';
@@ -213,7 +214,7 @@ function registerExtensionWebuiRoutes(app: Express, validateApiAccess: RequestHa
           middlewareNext();
         },
         (_req, response, middlewareNext) => {
-          response.sendFile(staticMatch.filePath, (error) => {
+          response.sendFile(staticMatch.filePath, { dotfiles: 'allow' }, (error) => {
             if (error) middlewareNext(error);
           });
         },
@@ -449,47 +450,41 @@ export function registerApiRoutes(app: Express): void {
 
   /**
    * 扩展资产 API（WebUI）- Extension asset API (WebUI)
-   * GET /api/ext-asset?path={absolutePath}
+   * GET /api/ext-asset/:extName/{relativePathWithinExtension}
+   *
+   * Only serves files that have been registered by the extension resolver pipeline
+   * (icons, logos, covers, settings-tab assets, etc). All path traversal + symlink
+   * escape checks live in safeResolveExtensionAsset, shared with the Electron
+   * aion-asset:// protocol handler.
    */
-  app.get('/api/ext-asset', apiRateLimiter, validateApiAccess, (req: Request, res: Response) => {
-    const rawPath = typeof req.query.path === 'string' ? req.query.path : '';
-    if (!rawPath) {
-      return res.status(400).json({ message: 'Missing path query parameter' });
+  app.get(
+    // path-to-regexp v8 (Express 5) requires named wildcards: `*splat` → req.params.splat (string[]).
+    '/api/ext-asset/:extName/*splat',
+    apiRateLimiter,
+    validateApiAccess,
+    async (req: Request, res: Response, next: NextFunction) => {
+      const extName = typeof req.params.extName === 'string' ? req.params.extName : '';
+      const splat = (req.params as { splat?: unknown }).splat;
+      const relPath = Array.isArray(splat) ? splat.join('/') : typeof splat === 'string' ? splat : '';
+      if (!extName || !relPath) {
+        return res.status(400).json({ message: 'Missing extension name or asset path' });
+      }
+      try {
+        const resolution = await safeResolveExtensionAsset(extName, relPath);
+        if (!resolution.ok) {
+          const status = resolution.error === 'not-allowed' || resolution.error === 'escape' ? 403 : 404;
+          return res.status(status).json({ message: `Asset ${resolution.error}` });
+        }
+        // dotfiles: 'allow' — extension directories on Linux live under ~/.config/...,
+        // which send.js's default "ignore" mode would otherwise reject as a dotfile.
+        return res.sendFile(resolution.absPath, { dotfiles: 'allow' }, (err) => {
+          if (err) next(err);
+        });
+      } catch (err) {
+        return next(err);
+      }
     }
-
-    const normalizedPath = path.resolve(rawPath);
-    const registry = ExtensionRegistry.getInstance();
-    const allowedRoots = registry.getLoadedExtensions().map((ext) => path.resolve(ext.directory));
-
-    // Find which trusted root contains this path
-    const matchingRoot = allowedRoots.find(
-      (root) => normalizedPath === root || normalizedPath.startsWith(`${root}${path.sep}`)
-    );
-
-    if (!matchingRoot) {
-      return res.status(403).json({
-        message: 'Access denied: path is outside extension directories',
-      });
-    }
-
-    // Reconstruct path from the trusted root so CodeQL can verify no path traversal occurs.
-    // path.relative() computes the relative portion; verifying it doesn't start with '..'
-    // confirms containment; path.join() re-anchors to the trusted base.
-    const relativePath = path.relative(matchingRoot, normalizedPath);
-    if (relativePath.startsWith('..')) {
-      return res.status(403).json({
-        message: 'Access denied: path is outside extension directories',
-      });
-    }
-
-    const safePath = path.join(matchingRoot, relativePath);
-
-    if (!fs.existsSync(safePath) || !fs.statSync(safePath).isFile()) {
-      return res.status(404).json({ message: 'Asset not found' });
-    }
-
-    return res.sendFile(safePath);
-  });
+  );
 
   /**
    * Shared reverse proxy handler for officecli watch servers.

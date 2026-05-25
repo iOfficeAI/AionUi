@@ -25,7 +25,7 @@ export function filterTeamSupportedAgents(
 ): AvailableAgent[] {
   return agents.filter((a) => {
     const backend = a.presetAgentType || a.backend;
-    return isTeamCapableBackend(backend, cachedInitResults);
+    return isTeamCapableBackend(backend, cachedInitResults, a.customAgentId);
   });
 }
 
