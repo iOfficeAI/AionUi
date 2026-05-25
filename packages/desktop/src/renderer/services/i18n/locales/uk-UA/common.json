@@ -75,6 +75,7 @@
   "fileAttach.failed": "Помилка завантаження",
   "fileAttach.uploading": "Завантаження...",
   "fileAttach.uploadSuccess": "Завантажено успішно",
+  "fileAttach.cancelUpload": "Скасувати завантаження",
   "expand": "Розгорнути",
   "name": "Ім'я",
   "added": "Додано",

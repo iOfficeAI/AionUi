@@ -74,6 +74,7 @@
   "fileAttach.failed": "업로드 실패",
   "fileAttach.uploading": "업로드 중...",
   "fileAttach.uploadSuccess": "업로드 성공",
+  "fileAttach.cancelUpload": "업로드 취소",
   "expand": "펼치기",
   "name": "이름",
   "added": "추가됨",

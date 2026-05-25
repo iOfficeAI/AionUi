@@ -73,6 +73,7 @@
   "fileAttach.failed": "Ошибка загрузки",
   "fileAttach.uploading": "Загрузка...",
   "fileAttach.uploadSuccess": "Загружено успешно",
+  "fileAttach.cancelUpload": "Отменить загрузку",
   "expand": "Развернуть",
   "name": "Имя",
   "added": "Добавлено",

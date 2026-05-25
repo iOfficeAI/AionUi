@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { usePasteService } from '@/renderer/hooks/file/usePasteService';
-import { uploadFileViaHttp } from '@/renderer/services/FileService';
+import { UPLOAD_ABORTED_ERROR, uploadFileViaHttp } from '@/renderer/services/FileService';
 import { trackUpload } from '@/renderer/hooks/file/useUploadState';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -114,12 +114,24 @@ export function useWorkspacePaste(options: UseWorkspacePasteOptions) {
         let successCount = 0;
         try {
           for (let i = 0; i < fileList.length; i++) {
-            const tracker = trackUpload(fileList[i].size, 'workspace');
+            const file = fileList[i];
+            const controller = new AbortController();
+            const tracker = trackUpload(file.size, {
+              source: 'workspace',
+              name: file.name,
+              conversationId: conversation_id,
+              onAbort: () => controller.abort(),
+            });
             try {
-              await uploadFileViaHttp(fileList[i], conversation_id, tracker.onProgress);
+              await uploadFileViaHttp(file, conversation_id, tracker.onProgress, undefined, {
+                signal: controller.signal,
+              });
               successCount++;
             } catch (error) {
-              messageApi.error(t('common.unknownError') || 'Upload failed');
+              // Quietly swallow user-initiated aborts; surface real failures.
+              if (!(error instanceof Error && error.message === UPLOAD_ABORTED_ERROR)) {
+                messageApi.error(t('common.unknownError') || 'Upload failed');
+              }
             } finally {
               tracker.finish();
             }

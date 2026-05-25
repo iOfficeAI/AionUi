@@ -74,6 +74,7 @@
   "fileAttach.failed": "アップロードに失敗しました",
   "fileAttach.uploading": "アップロード中...",
   "fileAttach.uploadSuccess": "アップロード成功",
+  "fileAttach.cancelUpload": "アップロードをキャンセル",
   "expand": "展開",
   "name": "名前",
   "added": "追加済み",
