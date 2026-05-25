@@ -60,7 +60,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
   const [loginState, setLoginState] = useState<LoginState>(
     pluginStatus?.hasToken && pluginStatus?.enabled ? 'connected' : 'idle'
   );
-  // In Electron mode this holds a base64 data URL; in WebUI mode it holds the raw QR ticket string.
+  // In Electron mode this holds a base64 data URL; in WebUI mode it holds the scannable liteapp URL.
   const [qrcodeDataUrl, setQrcodeDataUrl] = useState<string | null>(null);
   const [isWebUIMode, setIsWebUIMode] = useState(false);
   const eventSourceRef = useRef<EventSource | null>(null);
@@ -286,8 +286,8 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     eventSourceRef.current = es;
 
     es.addEventListener('qr', (e: MessageEvent) => {
-      const { qrcodeData } = JSON.parse(e.data) as { qrcodeData: string };
-      setQrcodeDataUrl(qrcodeData);
+      const { qrcodeUrl } = JSON.parse(e.data) as { qrcodeUrl: string };
+      setQrcodeDataUrl(qrcodeUrl);
       setLoginState('showing_qr');
     });
 

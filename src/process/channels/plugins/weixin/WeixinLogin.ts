@@ -13,8 +13,8 @@ const REQUEST_TIMEOUT_MS = 15_000;
 const MAX_QR_RETRIES = 3;
 
 export interface LoginCallbacks {
-  /** @param qrcodeUrl  The page/image URL from the API (used in Electron to render via canvas).
-   *  @param qrcodeData The raw QR code ticket — encode this directly when generating your own image. */
+  /** @param qrcodeUrl  The scannable liteapp URL from qrcode_img_content — encode this in the QR image.
+   *  @param qrcodeData The raw QR ticket — used only for polling login status, not for QR encoding. */
   onQR: (qrcodeUrl: string, qrcodeData: string) => void;
   onScanned: () => void;
   onDone: (result: { accountId: string; botToken: string; baseUrl: string }) => void;
