@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Equipo",
+    "createTeam": "Nuevo equipo",
+    "pin": "Clavillo",
+    "unpin": "Deshacer la pinza",
+    "rename": "Renombrar",
+    "delete": "Eliminar",
+    "renameTitle": "Renombrar Equipo",
+    "renamePlaceholder": "Nombre del equipo",
+    "deleteConfirm": "Eliminar este equipo?",
+    "deleteConfirmContent": "Esta acción no puede deshacerse.",
+    "deleteOk": "Eliminar",
+    "deleteCancel": "Cancelar",
+    "renameOk": "Guardar",
+    "renameCancel": "Cancelar",
+    "renameSuccess": "El equipo ha sido renombrado",
+    "deleteSuccess": "El equipo ha sido eliminado"
+  },
+  "newAgent": "Nuevo Agente",
+  "noMessages": "No tienes mensajes aún.",
+  "agentNotConfigured": "El agente no está configurado todavía.",
+  "sendBox": {
+    "placeholder": "Disparar el mensaje del agente..."
+  },
+  "create": {
+    "title": "Crear Equipo",
+    "namePlaceholder": "Nombre del equipo",
+    "dispatchAgentPlaceholder": "Seleccionar líder de equipo",
+    "subAgentsPlaceholder": "Seleccionar subagentes",
+    "workspacePlaceholder": "Ruta del espacio de trabajo (opcional)",
+    "confirm": "Crear Equipo",
+    "noSupportedAgents": "No hay agentes soportados instalados",
+    "supportedAgentsHint": "Actualmente soporta Claude y Codex. Más agentes en desarrollo.",
+    "leaderDesc": "Entiende tus objetivos y coordina a los agentes para completar tareas",
+    "step": {
+      "dispatch": "Líder del equipo",
+      "subAgents": "Subagentes",
+      "workspace": "Espacio de trabajo"
+    },
+    "nameRequired": "Por favor, ingresa un nombre de equipo",
+    "leaderRequired": "Por favor selecciona un líder de equipo",
+    "selectFolder": "Seleccionar carpeta",
+    "recentLabel": "Recientes",
+    "chooseDifferentFolder": "Elegir una carpeta diferente",
+    "error": "Error al crear el equipo"
+  },
+  "removeAgent": {
+    "confirmTitle": "Eliminar Miembro del Equipo",
+    "confirmContent": "Este miembro está activo actualmente. Quieres forzar eliminarlo?"
+  },
+  "emptyState": {
+    "subtitle": "Describe tu objetivo y te ayudaré a crear un equipo trabajando en él",
+    "suggestions": {
+      "debate": "Organizar una discusión con agentes tomando diferentes posturas",
+      "interview": "Planear una entrevista exhaustiva entre agentes",
+      "expert_review": "Hacer que varios expertos analicen el mismo problema"
+    }
+  }
+}

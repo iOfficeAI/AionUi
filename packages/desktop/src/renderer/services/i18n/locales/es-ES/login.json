@@ -1,0 +1,26 @@
+{
+  "pageTitle": "AionUi - Iniciar Sesión",
+  "brand": "Aión UI",
+  "subtitle": "Bienvenido de nuevo, por favor inicia sesión en tu cuenta",
+  "username": "Nombre de usuario",
+  "usernamePlaceholder": "Ingrese su nombre de usuario",
+  "password": "Contraseña",
+  "passwordPlaceholder": "Ingrese su contraseña",
+  "rememberMe": "Recuerda sesión",
+  "submit": "Iniciar Sesión",
+  "submitting": "Iniciando sesión...",
+  "success": "Ingreso exitoso! Redirigiendo...",
+  "showPassword": "Mostrar contraseña",
+  "hidePassword": "Ocultar contraseña",
+  "languageToggle": "Cambiar idioma",
+  "footerPrimary": "Transforma tu inteligencia artificial de línea de comandos",
+  "footerSecondary": "Moderno y Eficiente",
+  "errors": {
+    "empty": "Por favor, ingrese nombre de usuario y contraseña",
+    "invalidCredentials": "Nombre de usuario o contraseña inválida",
+    "tooManyAttempts": "Intentos demasiados, por favor intente de nuevo más tarde",
+    "networkError": "Falla de conexión, por favor intente de nuevo",
+    "serverError": "Error del servidor, por favor intente de nuevo más tarde",
+    "unknown": "Falló el acceso, por favor intente de nuevo"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "unknownFile": "Archivo desconocido",
+  "newFile": "Nuevo archivo",
+  "deletedFile": "Archivo eliminado",
+  "modified": "Modificado",
+  "fileChanges": "Cambios de archivo",
+  "shell": {
+    "displayName": "Comando de shell",
+    "description": "Ejecutar comandos del shell"
+  },
+  "fileOps": {
+    "displayName": "Operaciones de archivos",
+    "description": "Leer, escribir y modificar archivos"
+  },
+  "webSearch": {
+    "displayName": "Búsqueda web",
+    "description": "Buscar contenido en internet"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "Herramienta MCP: {{toolName}}",
+      "description": "Llamar a la herramienta MCP: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": " Herramienta desconocida",
+    "description": "Tipo de herramienta desconocido"
+  },
+  "status": {
+    "pending": "En espera",
+    "executing": "Ejecutando",
+    "success": "Éxito",
+    "error": "Error",
+    "canceled": "Cancelado"
+  },
+  "titles": {
+    "web_search_started": "Comienzo de la búsqueda web",
+    "web_search_completed": "Fin de la búsqueda web",
+    "web_search": "Búsqueda web",
+    "applying_patch": "Aplicar parche",
+    "patch_applied": "Parche aplicado",
+    "file_patch": "Parche de archivo",
+    "mcp_tool_starting": "Herramienta MCP: {{toolName}} (iniciando)",
+    "mcp_tool": "Herramienta MCP: {{toolName}}",
+    "execute_command": "Ejecutar: {{command}}",
+    "command_output": "Salida del comando",
+    "command_completed": "Comando completado",
+    "shell_command": "Comando del shell"
+  },
+  "labels": {
+    "search_query": "Pregunta de búsqueda: ",
+    "file_changes": "Cambios de archivo: ",
+    "tool_details": "Detalles del tool: ",
+    "tool": "Herramienta",
+    "arguments": "Argumentos: ",
+    "result": "Resultado: ",
+    "command": "Comando: ",
+    "working_directory": "Directorio de trabajo: ",
+    "exit_code": "Salida: {{code}}",
+    "duration": "Duración: {{seconds}}",
+    "auto_approved": "Aprobado automáticamente",
+    "manual_approval": "Aprobación manual"
+  },
+  "actions": {
+    "create": "Crear",
+    "modify": "Modificar",
+    "delete": "Eliminar"
+  }
+}

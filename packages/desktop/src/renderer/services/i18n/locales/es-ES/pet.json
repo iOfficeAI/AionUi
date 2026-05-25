@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Pez de escritorio",
+  "enable": "Habilitar Pez de escritorio",
+  "size": "Tamaño del pez",
+  "sizeSmall": "Pequeño ({{px}}px)",
+  "sizeMedium": "Mediano ({{px}}px)",
+  "sizeLarge": "Gran ({{px}}px)",
+  "dnd": "No molestar",
+  "dndDescription": "El pez permanece inmóvil, ignora eventos del AI",
+  "confirmBubble": "Muestre autorizaciones en el pez",
+  "confirmBubbleDescription": "Cuando se desactiva, las autorizaciones de herramientas del AI permanecen en la ventana principal del chat",
+  "pat": "Patato",
+  "resetPosition": "Posición original",
+  "hide": "Esconder",
+  "showHide": "Mostrar/Esconder",
+  "desktopOnly": "El Pez de escritorio solo está disponible en la aplicación de escritorio. No puede ser utilizado en modo de navegador de WebUI"
+}

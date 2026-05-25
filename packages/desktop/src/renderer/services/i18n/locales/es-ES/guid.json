@@ -1,0 +1,30 @@
+{
+  "agentFallbackNotice": "{{original}} no está disponible, usando {{fallback}} en su lugar.",
+  "noAgentAvailable": "No hay ningún Agente principal disponible. Inicia sesión en Google o instala Claude/Codex CLI. ¿Ir a ajustes?",
+  "noAgentAvailableShort": "No hay Agente principal disponible. Haz clic para configurar.",
+  "agentTabAutoSwitch": "Modelo incompatible con Gemini, cambiado automáticamente a {{fallback}}",
+  "autoSwitchToAgent": "Gemini no está configurado, cambiando automáticamente a {{agent}}",
+  "autoSwitchedAgent": "{{from}} no está disponible, cambiado a {{to}}",
+  "promptExamplesHint": "Prueba con ejemplos de prompts:",
+  "selectAssistantHint": "Seleccione un asistente para comenzar una tarea",
+  "agentSwitcherLabel": "Agente",
+  "switchedToAgent": "Cambiado a {{agent}}",
+  "workspace": {
+    "workInProject": "Trabajar en un proyecto",
+    "optional": "Opcional",
+    "clearWorkspace": "Claro",
+    "specifyWorkspace": "Seleccionar carpeta de proyecto",
+    "searchPlaceholder": "Buscar proyectos…",
+    "noProject": "Sin proyecto"
+  },
+  "scanning": {
+    "initialMessage": "El Agente actual no está disponible, detectando otros agentes disponibles...",
+    "scanningMessage": "Buscando agentes disponibles localmente...",
+    "connectingMessage": "Conectado correctamente, por favor espera...",
+    "establishingConnection": "Estableciendo conexión...",
+    "statusQueued": "En cola",
+    "statusTesting": "Probando latencia...",
+    "statusUnreachable": "Inalcanzable",
+    "statusAvailable": "Disponible"
+  }
+}
