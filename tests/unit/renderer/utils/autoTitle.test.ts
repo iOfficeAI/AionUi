@@ -4,17 +4,28 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect, vi } from 'vitest';
-import { buildAutoTitleFromContent, deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { buildAutoTitleFromContent, deriveAutoTitleFromMessages, generateTitleWithAI } from '@/renderer/utils/chat/autoTitle';
 import type { TMessage } from '@/common/chat/chatLib';
+import type { TProviderWithModel } from '@/common/config/storage';
 
 vi.mock('@/renderer/utils/chat/thinkTagFilter', () => ({
-  hasThinkTags: (content: string) => content.includes('<think>'),
-  stripThinkTags: (content: string) => content.replace(/<think>.*?<\/think>/g, ''),
+  hasThinkTags: (content: string) => content.includes('<' + 'think>'),
+  stripThinkTags: (content: string) => content.replace(new RegExp('<' + 'think>.*?<\\/think>', 'g'), ''),
 }));
 
 vi.mock('@/renderer/utils/chat/conversationExport', () => ({
   readMessageContent: (message: TMessage) => message.content || '',
+}));
+
+// Mock ClientFactory
+const mockCreateChatCompletion = vi.fn();
+vi.mock('@/common/api/ClientFactory', () => ({
+  ClientFactory: {
+    createRotatingClient: vi.fn().mockResolvedValue({
+      createChatCompletion: mockCreateChatCompletion,
+    }),
+  },
 }));
 
 describe('autoTitle', () => {
@@ -137,6 +148,129 @@ describe('autoTitle', () => {
     it('processes markdown in user messages', () => {
       const messages = [mockUserMessage('## Title')];
       expect(deriveAutoTitleFromMessages(messages)).toBe('Title');
+    });
+  });
+
+  describe('generateTitleWithAI', () => {
+    const mockProvider: TProviderWithModel = {
+      id: 'test-provider',
+      platform: 'openai',
+      name: 'Test Provider',
+      base_url: 'https://api.openai.com/v1',
+      api_key: 'test-key',
+      models: ['gpt-4'],
+      use_model: 'gpt-4',
+    };
+
+    beforeEach(() => {
+      vi.clearAllMocks();
+    });
+
+    it('returns null for empty message', async () => {
+      const result = await generateTitleWithAI('', mockProvider, 'en');
+      expect(result).toBeNull();
+      expect(mockCreateChatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('returns null for whitespace-only message', async () => {
+      const result = await generateTitleWithAI('   ', mockProvider, 'en');
+      expect(result).toBeNull();
+      expect(mockCreateChatCompletion).not.toHaveBeenCalled();
+    });
+
+    it('generates title from AI response', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Python Tutorial' } }],
+      });
+
+      const result = await generateTitleWithAI('How to learn Python programming', mockProvider, 'en');
+      expect(result).toBe('Python Tutorial');
+      expect(mockCreateChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          model: 'gpt-4',
+          max_tokens: 30,
+          temperature: 0.3,
+        }),
+      );
+    });
+
+    it('cleans up quotes from AI response', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '"Python Tutorial"' } }],
+      });
+
+      const result = await generateTitleWithAI('How to learn Python', mockProvider, 'en');
+      expect(result).toBe('Python Tutorial');
+    });
+
+    it('cleans up Japanese quotes from AI response', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '「Python入門」' } }],
+      });
+
+      const result = await generateTitleWithAI('Pythonの勉強方法', mockProvider, 'ja');
+      expect(result).toBe('Python入門');
+    });
+
+    it('truncates to 15 characters', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'This is a very long title that should be truncated' } }],
+      });
+
+      const result = await generateTitleWithAI('Long message', mockProvider, 'en');
+      expect(result?.length).toBeLessThanOrEqual(15);
+    });
+
+    it('returns null when AI returns empty response', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: '' } }],
+      });
+
+      const result = await generateTitleWithAI('Hello', mockProvider, 'en');
+      expect(result).toBeNull();
+    });
+
+    it('returns null when AI call fails', async () => {
+      mockCreateChatCompletion.mockRejectedValue(new Error('API error'));
+
+      const result = await generateTitleWithAI('Hello', mockProvider, 'en');
+      expect(result).toBeNull();
+    });
+
+    it('uses Chinese instruction for zh locale', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Python教程' } }],
+      });
+
+      await generateTitleWithAI('如何学习Python', mockProvider, 'zh');
+
+      expect(mockCreateChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              content: expect.stringContaining('请用中文回复'),
+            }),
+          ]),
+        }),
+      );
+    });
+
+    it('uses Japanese instruction for ja locale', async () => {
+      mockCreateChatCompletion.mockResolvedValue({
+        choices: [{ message: { content: 'Python入門' } }],
+      });
+
+      await generateTitleWithAI('Pythonの勉強方法', mockProvider, 'ja');
+
+      expect(mockCreateChatCompletion).toHaveBeenCalledWith(
+        expect.objectContaining({
+          messages: expect.arrayContaining([
+            expect.objectContaining({
+              content: expect.stringContaining('日本語で返信してください'),
+            }),
+          ]),
+        }),
+      );
     });
   });
 });

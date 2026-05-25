@@ -199,7 +199,7 @@ const AionrsSendBox: React.FC<{
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
       let msg_id: string | null = null;
       try {
-        void checkAndUpdateTitle(conversation_id, input);
+        void checkAndUpdateTitle(conversation_id, input, current_model);
         // Wait for the server-assigned msg_id before rendering the optimistic
         // user bubble so the local row uses the same id as the DB row and
         // subsequent WebSocket stream events — avoids duplicate bubbles when
