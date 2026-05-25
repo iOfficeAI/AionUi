@@ -86,12 +86,13 @@ const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
-}> = ({ conversation_id, modelSelection, session_mode }) => {
+  agent_name?: string;
+}> = ({ conversation_id, modelSelection, session_mode, agent_name }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const { current_model, getDisplayModelName } = modelSelection;
+  const { current_model } = modelSelection;
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
@@ -392,7 +393,10 @@ const AionrsSendBox: React.FC<{
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.use_model) })
+            ? t('acp.sendbox.placeholder', {
+                backend: agent_name || 'AionCLI',
+                defaultValue: `Send message to {{backend}}...`,
+              })
             : t('conversation.chat.noModelSelected')
         }
         onStop={handleStop}
