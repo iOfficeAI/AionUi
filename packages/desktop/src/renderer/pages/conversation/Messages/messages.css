@@ -1,15 +1,23 @@
 /* Mobile typography tuning: conversation readability */
 @media (max-width: 767px) {
-  /* Message body */
+  /* Message body — keep body type compact so messages don't dominate the screen */
   .message-item .markdown-shadow-body {
-    font-size: 16px !important;
+    font-size: 14px !important;
     line-height: 1.6 !important;
   }
 
   .message-item .markdown-shadow-body p,
   .message-item .markdown-shadow-body li,
   .message-item .markdown-shadow-body blockquote {
-    font-size: 16px !important;
+    font-size: 14px !important;
     line-height: 1.6 !important;
+  }
+
+  /* Vertical rhythm between consecutive messages on mobile.
+     Desktop reserves space for the hover-revealed copy/time row beneath each
+     bubble; that row is hidden on mobile, so add the spacing back here so
+     bubbles don't visually merge. */
+  .message-item {
+    margin-top: 16px !important;
   }
 }
