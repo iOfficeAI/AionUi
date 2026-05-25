@@ -20,14 +20,12 @@ import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
 import { useFileChanges } from './hooks/useFileChanges';
+import { useWorkspace } from './hooks/useWorkspace';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
-import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
-import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
-import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
-import { useWorkspaceTree } from './hooks/useWorkspaceTree';
+import { WorkspaceProvider } from './store/WorkspaceProvider';
 import type { WorkspaceProps, WorkspaceTab } from './types';
 import {
   computeContextMenuPosition,
@@ -38,7 +36,7 @@ import {
 } from './utils/treeHelpers';
 import './workspace.css';
 
-const ChatWorkspace: React.FC<WorkspaceProps> = ({
+const ChatWorkspaceInner: React.FC<WorkspaceProps> = ({
   conversation_id,
   workspace,
   isTemporaryWorkspace: isTemporaryWorkspaceProp,
@@ -50,149 +48,98 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
 
-  // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
   const messageApi = externalMessageApi ?? internalMessageApi;
   const shouldRenderLocalMessageContext = !externalMessageApi;
 
-  // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
 
-  // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
-  const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
-  const modalsHook = useWorkspaceModals();
-  const pasteHook = useWorkspacePaste({
-    conversation_id: conversation_id,
-    workspace,
+  const modals = useWorkspaceModals();
+
+  // Single source of truth for everything tree-related (data, ws, ops, paste).
+  const ws = useWorkspace({
     messageApi,
     t,
-    files: treeHook.files,
-    selected: treeHook.selected,
-    selectedNodeRef: treeHook.selectedNodeRef,
-    refreshWorkspace: treeHook.refreshWorkspace,
-    pasteConfirm: modalsHook.pasteConfirm,
-    setPasteConfirm: modalsHook.setPasteConfirm,
-    closePasteConfirm: modalsHook.closePasteConfirm,
-  });
-
-  const dragImportHook = useWorkspaceDragImport({
-    messageApi,
-    t,
-    onFilesDropped: pasteHook.handleFilesToAdd,
-    conversation_id: conversation_id,
-  });
-
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
-
-  const fileOpsHook = useWorkspaceFileOps({
-    workspace,
-    eventPrefix,
-    messageApi,
-    t,
-    setFiles: treeHook.setFiles,
-    setSelected: treeHook.setSelected,
-    setExpandedKeys: treeHook.setExpandedKeys,
-    selectedKeysRef: treeHook.selectedKeysRef,
-    selectedNodeRef: treeHook.selectedNodeRef,
-    ensureNodeSelected: treeHook.ensureNodeSelected,
-    refreshWorkspace: treeHook.refreshWorkspace,
-    renameModal: modalsHook.renameModal,
-    deleteModal: modalsHook.deleteModal,
-    renameLoading: modalsHook.renameLoading,
-    setRenameLoading: modalsHook.setRenameLoading,
-    closeRenameModal: modalsHook.closeRenameModal,
-    closeDeleteModal: modalsHook.closeDeleteModal,
-    closeContextMenu: modalsHook.closeContextMenu,
-    setRenameModal: modalsHook.setRenameModal,
-    setDeleteModal: modalsHook.setDeleteModal,
+    collapsed: isWorkspaceCollapsed,
     openPreview,
+    renameModal: modals.renameModal,
+    deleteModal: modals.deleteModal,
+    renameLoading: modals.renameLoading,
+    setRenameLoading: modals.setRenameLoading,
+    closeRenameModal: modals.closeRenameModal,
+    closeDeleteModal: modals.closeDeleteModal,
+    closeContextMenu: modals.closeContextMenu,
+    setRenameModal: modals.setRenameModal,
+    setDeleteModal: modals.setDeleteModal,
+    pasteConfirm: modals.pasteConfirm,
+    setPasteConfirm: modals.setPasteConfirm,
+    closePasteConfirm: modals.closePasteConfirm,
   });
 
-  // Setup events
-  useWorkspaceEvents({
+  const dragImport = useWorkspaceDragImport({
+    messageApi,
+    t,
+    onFilesDropped: ws.handleFilesToAdd,
     conversation_id,
-    eventPrefix,
-    refreshWorkspace: treeHook.refreshWorkspace,
-    clearSelection: treeHook.clearSelection,
-    setFiles: treeHook.setFiles,
-    setSelected: treeHook.setSelected,
-    setExpandedKeys: treeHook.setExpandedKeys,
-    setTreeKey: treeHook.setTreeKey,
-    selectedNodeRef: treeHook.selectedNodeRef,
-    selectedKeysRef: treeHook.selectedKeysRef,
-    closeContextMenu: modalsHook.closeContextMenu,
-    setContextMenu: modalsHook.setContextMenu,
-    closeRenameModal: modalsHook.closeRenameModal,
-    closeDeleteModal: modalsHook.closeDeleteModal,
   });
 
-  // Context menu calculations
-  const hasOriginalFiles = treeHook.files.length > 0 && treeHook.files[0]?.children?.length > 0;
-  const rootName = treeHook.files[0]?.name ?? '';
+  const search = useWorkspaceSearch({ workspace, loadWorkspace: ws.loadWorkspace });
 
-  // Hide root directory when there's a single root with children, as Toolbar serves as the first-level directory
-  const treeData = flattenSingleRoot(treeHook.files);
+  const hasOriginalFiles = ws.files.length > 0 && (ws.files[0]?.children?.length ?? 0) > 0;
+  const treeData = flattenSingleRoot(ws.files);
 
-  // Authoritative source: `conversation.extra.is_temporary_workspace` is
-  // derived by the backend on every response (see
-  // aionui-conversation::convert::row_to_response). We never inspect the
-  // directory path shape — the backend's temp-workspace layout is not a
-  // public contract. Default to false when the prop is unavailable (e.g.
-  // tests that render the panel outside a conversation).
   const isTemporaryWorkspace = isTemporaryWorkspaceProp ?? false;
-  void rootName; // reserved for future UI hints; no longer used for detection.
 
-  // Get workspace display name using shared utility
   const workspaceDisplayName = useMemo(
     () => getDisplayName(workspace, isTemporaryWorkspace, t),
     [workspace, isTemporaryWorkspace, t]
   );
 
   let contextMenuStyle: React.CSSProperties | undefined;
-  if (modalsHook.contextMenu.visible) {
-    contextMenuStyle = computeContextMenuPosition(modalsHook.contextMenu.x, modalsHook.contextMenu.y);
+  if (modals.contextMenu.visible) {
+    contextMenuStyle = computeContextMenuPosition(modals.contextMenu.x, modals.contextMenu.y);
   }
 
   const openNodeContextMenu = useCallback(
     (node: IDirOrFile, x: number, y: number) => {
-      treeHook.ensureNodeSelected(node);
-      modalsHook.setContextMenu({
-        visible: true,
-        x,
-        y,
-        node,
-      });
+      ws.ensureNodeSelected(node);
+      modals.setContextMenu({ visible: true, x, y, node });
     },
-    [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
+    [ws, modals]
   );
 
   const handleOpenChangeDiff = useCallback(
     (diffContent: string, file_name: string, file_path: string) => {
-      openPreview(diffContent, 'diff', {
-        file_name,
-        file_path,
-        workspace,
-      });
+      openPreview(diffContent, 'diff', { file_name, file_path, workspace });
     },
     [openPreview, workspace]
   );
 
-  // Auto-refresh changes when switching to changes tab
   useEffect(() => {
     if (activeTab === 'changes') {
       fileChangesHook.refreshChanges();
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
 
-  // Get target folder path for paste confirm modal
-  const targetFolderPathForModal = getTargetFolderPath(
-    treeHook.selectedNodeRef.current,
-    treeHook.selected,
-    treeHook.files,
-    workspace
-  );
+  // Context menu close handlers (kept inline since they're trivial DOM listeners).
+  useEffect(() => {
+    const handleClose = () => modals.closeContextMenu();
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') modals.closeContextMenu();
+    };
+    window.addEventListener('click', handleClose);
+    window.addEventListener('scroll', handleClose, true);
+    window.addEventListener('keydown', handleKeyDown);
+    return () => {
+      window.removeEventListener('click', handleClose);
+      window.removeEventListener('scroll', handleClose, true);
+      window.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [modals.closeContextMenu]);
+
+  const targetFolderPathForModal = getTargetFolderPath(ws.selectedNodeRef.current, ws.selected, ws.files, workspace);
 
   return (
     <>
@@ -200,11 +147,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
       <div
         className='chat-workspace size-full flex flex-col relative'
         tabIndex={0}
-        onFocus={pasteHook.onFocusPaste}
-        onClick={pasteHook.onFocusPaste}
-        {...dragImportHook.dragHandlers}
+        onFocus={ws.onFocusPaste}
+        onClick={ws.onFocusPaste}
+        {...dragImport.dragHandlers}
         style={
-          dragImportHook.isDragging
+          dragImport.isDragging
             ? {
                 border: '1px dashed rgb(var(--primary-6))',
                 borderRadius: '18px',
@@ -214,7 +161,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             : undefined
         }
       >
-        {dragImportHook.isDragging && (
+        {dragImport.isDragging && (
           <div className='absolute inset-0 pointer-events-none z-30 flex items-center justify-center px-32px'>
             <div
               className='w-full max-w-480px text-center text-white rounded-16px px-32px py-28px'
@@ -225,9 +172,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               }}
             >
               <div className='text-18px font-semibold mb-8px'>
-                {t('conversation.workspace.dragOverlayTitle', {
-                  defaultValue: 'Drop to import',
-                })}
+                {t('conversation.workspace.dragOverlayTitle', { defaultValue: 'Drop to import' })}
               </div>
               <div className='text-14px opacity-90 mb-4px'>
                 {t('conversation.workspace.dragOverlayDesc', {
@@ -243,30 +188,27 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </div>
         )}
 
-        {/* Paste Confirm Modal */}
         <PasteConfirmModal
-          pasteConfirm={modalsHook.pasteConfirm}
-          setPasteConfirm={modalsHook.setPasteConfirm}
-          closePasteConfirm={modalsHook.closePasteConfirm}
-          handlePasteConfirm={pasteHook.handlePasteConfirm}
+          pasteConfirm={modals.pasteConfirm}
+          setPasteConfirm={modals.setPasteConfirm}
+          closePasteConfirm={modals.closePasteConfirm}
+          handlePasteConfirm={ws.handlePasteConfirm}
           targetFolderPath={targetFolderPathForModal}
           t={t}
         />
 
-        {/* Rename + Delete Modals */}
         <WorkspaceDialogs
           t={t}
-          renameModal={modalsHook.renameModal}
-          setRenameModal={modalsHook.setRenameModal}
-          closeRenameModal={modalsHook.closeRenameModal}
-          handleRenameConfirm={fileOpsHook.handleRenameConfirm}
-          renameLoading={modalsHook.renameLoading}
-          deleteModal={modalsHook.deleteModal}
-          closeDeleteModal={modalsHook.closeDeleteModal}
-          handleDeleteConfirm={fileOpsHook.handleDeleteConfirm}
+          renameModal={modals.renameModal}
+          setRenameModal={modals.setRenameModal}
+          closeRenameModal={modals.closeRenameModal}
+          handleRenameConfirm={ws.handleRenameConfirm}
+          renameLoading={modals.renameLoading}
+          deleteModal={modals.deleteModal}
+          closeDeleteModal={modals.closeDeleteModal}
+          handleDeleteConfirm={ws.handleDeleteConfirm}
         />
 
-        {/* Tab bar */}
         <WorkspaceTabBar
           t={t}
           activeTab={activeTab}
@@ -275,58 +217,54 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
         />
 
-        {/* Toolbar: search input + directory name + action buttons */}
         {activeTab === 'files' && (
           <WorkspaceToolbar
             t={t}
             isWorkspaceCollapsed={isWorkspaceCollapsed}
             setIsWorkspaceCollapsed={setIsWorkspaceCollapsed}
             workspaceDisplayName={workspaceDisplayName}
-            showSearch={searchHook.showSearch}
-            searchText={searchHook.searchText}
-            setSearchText={searchHook.setSearchText}
-            onSearch={searchHook.onSearch}
-            searchInputRef={searchHook.searchInputRef}
-            loading={treeHook.loading}
-            refreshWorkspace={treeHook.refreshWorkspace}
-            handleSelectHostFiles={pasteHook.handleSelectHostFiles}
-            handleUploadDeviceFiles={pasteHook.handleUploadDeviceFiles}
-            setShowHostFileSelector={searchHook.setShowHostFileSelector}
+            showSearch={search.showSearch}
+            searchText={search.searchText}
+            setSearchText={search.setSearchText}
+            onSearch={search.onSearch}
+            searchInputRef={search.searchInputRef}
+            loading={ws.loading}
+            refreshWorkspace={ws.refreshWorkspace}
+            handleSelectHostFiles={ws.handleSelectHostFiles}
+            handleUploadDeviceFiles={ws.handleUploadDeviceFiles}
+            setShowHostFileSelector={search.setShowHostFileSelector}
           />
         )}
 
-        {/* Main content area */}
         {!isWorkspaceCollapsed && activeTab === 'files' && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
-            {/* Context Menu */}
             <WorkspaceContextMenu
-              visible={modalsHook.contextMenu.visible}
+              visible={modals.contextMenu.visible}
               style={contextMenuStyle}
-              node={modalsHook.contextMenu.node}
+              node={modals.contextMenu.node}
               t={t}
-              handleAddToChat={fileOpsHook.handleAddToChat}
-              handleOpenNode={fileOpsHook.handleOpenNode}
-              handleRevealNode={fileOpsHook.handleRevealNode}
-              handlePreviewFile={fileOpsHook.handlePreviewFile}
-              handleDownloadFile={fileOpsHook.handleDownloadFile}
-              handleDeleteNode={fileOpsHook.handleDeleteNode}
-              openRenameModal={fileOpsHook.openRenameModal}
-              closeContextMenu={modalsHook.closeContextMenu}
+              handleAddToChat={ws.handleAddToChat}
+              handleOpenNode={ws.handleOpenNode}
+              handleRevealNode={ws.handleRevealNode}
+              handlePreviewFile={ws.handlePreviewFile}
+              handleDownloadFile={ws.handleDownloadFile}
+              handleDeleteNode={ws.handleDeleteNode}
+              openRenameModal={ws.openRenameModal}
+              closeContextMenu={modals.closeContextMenu}
             />
 
-            {/* Empty state or Tree */}
             {!hasOriginalFiles ? (
               <div className=' flex-1 size-full flex items-center justify-center px-12px box-border'>
                 <Empty
                   description={
                     <div>
                       <span className='text-t-secondary font-bold text-14px'>
-                        {searchHook.searchText
+                        {search.searchText
                           ? t('conversation.workspace.search.empty')
                           : t('conversation.workspace.empty')}
                       </span>
                       <div className='text-t-secondary'>
-                        {searchHook.searchText ? '' : t('conversation.workspace.emptyDescription')}
+                        {search.searchText ? '' : t('conversation.workspace.emptyDescription')}
                       </div>
                     </div>
                   }
@@ -336,9 +274,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               <Tree
                 className={`${isMobile ? '!pl-20px !pr-10px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
                 showLine
-                key={treeHook.treeKey}
-                selectedKeys={treeHook.selected}
-                expandedKeys={treeHook.expandedKeys}
+                key={ws.treeKey}
+                selectedKeys={ws.selected}
+                expandedKeys={ws.expandedKeys}
                 actionOnClick={['select', 'expand']}
                 // Reuse the +/- glyph during lazy-load so the switcher doesn't
                 // flash a spinner on first expand of each folder.
@@ -356,7 +294,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 renderTitle={(node) => {
                   const relativePath = node.dataRef.relativePath;
                   const isFile = node.dataRef.isFile;
-                  const isPasteTarget = !isFile && pasteHook.pasteTargetFolder === relativePath;
+                  const isPasteTarget = !isFile && ws.pasteTargetFolder === relativePath;
                   const nodeData = node.dataRef as IDirOrFile;
 
                   return (
@@ -364,9 +302,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       className='flex items-center justify-between gap-6px min-w-0'
                       style={{ color: 'inherit' }}
                       onDoubleClick={() => {
-                        if (isFile) {
-                          fileOpsHook.handleAddToChat(nodeData);
-                        }
+                        if (isFile) ws.handleAddToChat(nodeData);
                       }}
                       onContextMenu={(event) => {
                         event.preventDefault();
@@ -425,18 +361,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   const clickedKey = extractNodeKey(extra?.node);
                   const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
                   const isFileNode = Boolean(nodeData?.isFile);
-                  const wasSelected = clickedKey ? treeHook.selectedKeysRef.current.includes(clickedKey) : false;
+                  const wasSelected = clickedKey ? ws.selectedKeysRef.current.includes(clickedKey) : false;
 
                   if (isFileNode) {
-                    // Single-click file only opens preview without changing selection state
                     if (clickedKey) {
-                      const filteredKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
-                      treeHook.selectedKeysRef.current = filteredKeys;
-                      treeHook.setSelected(filteredKeys);
+                      const filteredKeys = ws.selectedKeysRef.current.filter((key) => key !== clickedKey);
+                      ws.setSelected(filteredKeys);
                     }
-                    treeHook.selectedNodeRef.current = null;
+                    ws.selectedNodeRef.current = null;
                     if (nodeData && clickedKey && !wasSelected) {
-                      void fileOpsHook.handlePreviewFile(nodeData);
+                      void ws.handlePreviewFile(nodeData);
                     }
                     return;
                   }
@@ -445,7 +379,15 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   // remains the entry point for "Add to Chat".
                 }}
                 onExpand={(keys) => {
-                  treeHook.setExpandedKeys(keys);
+                  const prevKeys = ws.expandedKeys;
+                  // arco Tree onExpand never returns the implicit root key "" — filtering it
+                  // out of both diffs preserves the panel-lifetime root subscription that
+                  // user expand/collapse must never tear down.
+                  const expanded = (keys as string[]).filter((k) => k !== '' && !prevKeys.includes(k));
+                  const collapsed = prevKeys.filter((k) => k !== '' && !(keys as string[]).includes(k));
+                  ws.setExpandedKeys(keys as string[]);
+                  if (expanded.length > 0) ws.onDirsExpand(expanded);
+                  if (collapsed.length > 0) ws.onDirsCollapse(collapsed);
                 }}
                 loadMore={(treeNode) => {
                   const path = treeNode.props.dataRef.fullPath;
@@ -455,15 +397,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     .then((res) => {
                       const newChildren = res[0]?.children;
                       if (!newChildren?.length) return;
-                      treeHook.setFiles((prev) => {
-                        const assign = (nodes: IDirOrFile[]): IDirOrFile[] =>
-                          nodes.map((n) => {
-                            if (n.relativePath === targetRelPath) return { ...n, children: newChildren };
-                            if (n.children) return { ...n, children: assign(n.children) };
-                            return n;
-                          });
-                        return assign(prev);
-                      });
+                      ws.store.replaceChildren(targetRelPath, newChildren);
                     })
                     .catch((err) => {
                       console.error('[Workspace] loadMore failed:', err);
@@ -474,7 +408,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Changes tab content */}
         {!isWorkspaceCollapsed && activeTab === 'changes' && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
             <FileChangeList
@@ -497,6 +430,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         )}
       </div>
     </>
+  );
+};
+
+const ChatWorkspace: React.FC<WorkspaceProps> = (props) => {
+  return (
+    <WorkspaceProvider
+      workspace={props.workspace}
+      conversationId={props.conversation_id}
+      eventPrefix={props.eventPrefix ?? 'acp'}
+    >
+      <ChatWorkspaceInner {...props} />
+    </WorkspaceProvider>
   );
 };
 

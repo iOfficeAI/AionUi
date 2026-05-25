@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useAutoPreviewOfficeFilesEnabled } from '@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled';
+import { emitter } from '@/renderer/utils/emitter';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { useCallback, useEffect, useRef } from 'react';
 
@@ -60,17 +61,32 @@ export const useAutoPreviewOfficeFiles = (
       if (!OFFICE_CONTENT_TYPES.has(contentType)) return;
 
       const file_name = file_path.split(/[\\/]/).pop() ?? file_path;
+      const normalizedWs = normalizeWatchPath(workspace);
+      const normalizedFp = normalizeWatchPath(file_path);
+      const relativePath = normalizedFp.startsWith(normalizedWs + '/')
+        ? normalizedFp.slice(normalizedWs.length + 1)
+        : file_name;
+      const conversationId = conversation?.conversation_id;
+
       const timer = setTimeout(() => {
         openTimersRef.current.delete(normalizedFilePath);
 
         if (!findPreviewTab(contentType, '', { file_path, file_name })) {
-          openPreview('', contentType, { file_path, file_name, title: file_name, workspace, editable: false });
+          openPreview('', contentType, {
+            file_path,
+            file_name,
+            title: file_name,
+            workspace,
+            relativePath,
+            conversationId,
+            editable: false,
+          });
         }
       }, OFFICE_OPEN_DELAY_MS);
 
       openTimersRef.current.set(normalizedFilePath, timer);
     },
-    [findPreviewTab, openPreview, workspace]
+    [conversation?.conversation_id, findPreviewTab, openPreview, workspace]
   );
 
   useEffect(() => {
@@ -106,7 +122,9 @@ export const useAutoPreviewOfficeFiles = (
         if (normalizedEventWorkspace !== normalizedWorkspace) return;
 
         const normalizedFilePath = normalizeWatchPath(event.file_path);
-        if (knownOfficeFilesRef.current.has(normalizedFilePath)) return;
+        if (knownOfficeFilesRef.current.has(normalizedFilePath)) {
+          return;
+        }
 
         knownOfficeFilesRef.current.add(normalizedFilePath);
         openOfficePreview(event.file_path);
@@ -115,9 +133,18 @@ export const useAutoPreviewOfficeFiles = (
       }
     });
 
+    const handleDeleted = ({ workspace: ws, relativePath }: { workspace: string; relativePath: string }) => {
+      const normalizedWs = normalizeWatchPath(ws);
+      if (normalizedWs !== normalizedWorkspace) return;
+      const fullPath = normalizeWatchPath(`${ws}/${relativePath}`);
+      knownOfficeFilesRef.current.delete(fullPath);
+    };
+    emitter.on('workspace.file.deleted', handleDeleted);
+
     return () => {
       cancelled = true;
       unsubscribeFileAdded();
+      emitter.off('workspace.file.deleted', handleDeleted);
       clearPendingOpenTimers();
       knownOfficeFilesRef.current.clear();
       void ipcBridge.workspaceOfficeWatch.stop.invoke({ workspace }).catch(() => {});

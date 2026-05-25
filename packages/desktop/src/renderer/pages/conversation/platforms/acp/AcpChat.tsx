@@ -11,7 +11,8 @@ import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
-import React from 'react';
+import React, { useEffect } from 'react';
+import LocalImageView from '@renderer/components/media/LocalImageView';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
 
@@ -39,6 +40,10 @@ const AcpChat: React.FC<{
   useMessageLstCache(conversation_id);
   const teamPermission = useTeamPermission();
   const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
+  const updateLocalImage = LocalImageView.useUpdateLocalImage();
+  useEffect(() => {
+    updateLocalImage({ root: workspace || '', conversationId: conversation_id });
+  }, [workspace, conversation_id]);
 
   return (
     <ConversationProvider
@@ -65,4 +70,4 @@ const AcpChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider)(AcpChat);
+export default HOC.Wrapper(MessageListProvider, LocalImageView.Provider)(AcpChat);

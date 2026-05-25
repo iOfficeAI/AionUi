@@ -54,6 +54,11 @@ interface EventTypes {
   'sendbox.reply.clear': void; // clear reply quote
   'staroffice.install.request': [{ conversation_id: string; text: string; detectedUrl?: string | null }];
   'staroffice.install.finished': [{ conversation_id: string }];
+  'workspace.file.modified': [{ workspace: string; relativePath: string }];
+  'workspace.file.deleted': [{ workspace: string; relativePath: string }];
+  'workspace.preview.subscribe': [{ workspace: string; dir: string }];
+  'workspace.preview.unsubscribe': [{ workspace: string; dir: string }];
+  'workspace.preview.refetch': [{ workspace: string }];
 }
 
 export const emitter = new EventEmitter<EventTypes>();

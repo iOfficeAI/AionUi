@@ -8,11 +8,14 @@ import { Message } from '@arco-design/web-react';
 import MonacoEditor from '@monaco-editor/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildFileUrl } from '@/renderer/utils/file/staticFile';
 
 interface HTMLPreviewProps {
   content: string;
   file_path?: string;
   hideToolbar?: boolean;
+  conversationId?: string;
+  relativePath?: string;
 }
 
 interface SelectedElement {
@@ -28,7 +31,13 @@ interface SelectedElement {
  * - 支持元素选择器（类似 DevTools）
  * - 支持双向定位：预览 ↔ 代码
  */
-const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolbar = false }) => {
+const HTMLPreview: React.FC<HTMLPreviewProps> = ({
+  content,
+  file_path,
+  hideToolbar = false,
+  conversationId,
+  relativePath,
+}) => {
   const { t } = useTranslation();
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [editMode, setEditMode] = useState(false);
@@ -69,23 +78,25 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolb
     // 写入 HTML 内容 / Write HTML content
     iframeDoc.open();
 
-    // 注入 <base> 标签以支持相对路径 / Inject <base> tag to support relative paths
     let finalHtml = htmlCode;
-    if (file_path) {
-      // 获取文件所在目录 / Get directory of the file
-      const fileDir = file_path.substring(0, file_path.lastIndexOf('/') + 1);
-      // 构造 file:// 协议的 base URL / Construct file:// protocol base URL
-      const base_url = `file://${fileDir}`;
+    let base_url = '';
 
-      // 检查是否已有 base 标签 / Check if base tag exists
-      if (!finalHtml.match(/<base\s+href=/i)) {
-        if (finalHtml.match(/<head>/i)) {
-          finalHtml = finalHtml.replace(/<head>/i, `<head><base href="${base_url}">`);
-        } else if (finalHtml.match(/<html>/i)) {
-          finalHtml = finalHtml.replace(/<html>/i, `<html><head><base href="${base_url}"></head>`);
-        } else {
-          finalHtml = `<head><base href="${base_url}"></head>${finalHtml}`;
-        }
+    if (conversationId && relativePath) {
+      const dir = relativePath.substring(0, relativePath.lastIndexOf('/') + 1);
+      base_url = dir ? `${buildFileUrl(conversationId, dir)}` : buildFileUrl(conversationId, '');
+      if (!base_url.endsWith('/')) base_url += '/';
+    } else if (file_path) {
+      const fileDir = file_path.substring(0, file_path.lastIndexOf('/') + 1);
+      base_url = `file://${fileDir}`;
+    }
+
+    if (base_url && !finalHtml.match(/<base\s+href=/i)) {
+      if (finalHtml.match(/<head>/i)) {
+        finalHtml = finalHtml.replace(/<head>/i, `<head><base href="${base_url}">`);
+      } else if (finalHtml.match(/<html>/i)) {
+        finalHtml = finalHtml.replace(/<html>/i, `<html><head><base href="${base_url}"></head>`);
+      } else {
+        finalHtml = `<head><base href="${base_url}"></head>${finalHtml}`;
       }
     }
 

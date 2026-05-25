@@ -14,6 +14,7 @@ import {
   LARGE_TEXT_PREVIEW_THRESHOLD,
 } from '@/renderer/pages/conversation/Preview/constants';
 import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/previewError';
+import { fetchFileAsText } from '@/renderer/utils/file/staticFile';
 import { useCallback, useState } from 'react';
 
 const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
@@ -102,12 +103,13 @@ export const usePreviewLauncher = () => {
         file_name || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
       const previewTitle = title || computedFileName || relativePath || contentType.toUpperCase();
 
-      // 预览元数据 / Preview metadata
       const metadata = {
         title: previewTitle,
         file_name: computedFileName || previewTitle,
         file_path: resolvedPath,
         workspace,
+        conversationId: conversationContext?.conversation_id,
+        relativePath,
         language,
         truncated: false,
       };
@@ -131,12 +133,7 @@ export const usePreviewLauncher = () => {
             const pathToRead = absolutePath || originalPath;
 
             if (contentType === 'image') {
-              const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: pathToRead!, workspace });
-              if (!base64) {
-                setErrorKind(classifyPreviewError(base64));
-                return;
-              }
-              openPreview(base64, contentType, {
+              openPreview('', contentType, {
                 ...metadata,
                 editable,
               });
@@ -145,8 +142,6 @@ export const usePreviewLauncher = () => {
 
             const binaryOnlyTypes: PreviewContentType[] = ['pdf', 'ppt', 'word', 'excel'];
             if (binaryOnlyTypes.includes(contentType)) {
-              // 这类格式仅依赖文件路径渲染，不需要实际读取内容
-              // These formats rely on file path; no need to read file content
               openPreview('', contentType, {
                 ...metadata,
                 editable,
@@ -154,11 +149,23 @@ export const usePreviewLauncher = () => {
               return;
             }
 
-            // 使用 Promise.race 防止长时间卡死 / Use Promise.race to prevent hanging
-            const content = await Promise.race([
-              ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }),
-              new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
-            ]);
+            const convId = conversationContext?.conversation_id;
+            let content: string | null = null;
+            const withTimeout = <T>(p: Promise<T>) =>
+              Promise.race([
+                p,
+                new Promise<never>((_, reject) => setTimeout(() => reject(new Error('File read timeout')), 5000)),
+              ]);
+
+            if (convId && relativePath) {
+              try {
+                content = await withTimeout(fetchFileAsText(convId, relativePath));
+              } catch {
+                content = await withTimeout(ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }));
+              }
+            } else {
+              content = await withTimeout(ipcBridge.fs.readFile.invoke({ path: pathToRead!, workspace }));
+            }
             if (content == null) {
               setErrorKind(classifyPreviewError(content));
               return;

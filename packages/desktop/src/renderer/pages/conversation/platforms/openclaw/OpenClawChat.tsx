@@ -24,8 +24,8 @@ const OpenClawChat: React.FC<{
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
-    updateLocalImage({ root: workspace });
-  }, [workspace]);
+    updateLocalImage({ root: workspace, conversationId: conversation_id });
+  }, [workspace, conversation_id]);
   return (
     <ConversationProvider
       value={{
@@ -47,4 +47,4 @@ const OpenClawChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider)(OpenClawChat);
+export default HOC.Wrapper(MessageListProvider, LocalImageView.Provider)(OpenClawChat);

@@ -433,7 +433,17 @@ export const dialog = {
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
-  listWorkspaceFiles: httpPost<Array<IWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+  listWorkspaceFiles: withResponseMap(
+    httpPost<Array<Record<string, unknown>>, { root: string }>('/api/fs/list'),
+    (items) =>
+      items.map(
+        (e): IWorkspaceFlatFile => ({
+          name: (e.name as string) ?? '',
+          fullPath: (e.full_path as string) ?? (e.fullPath as string) ?? '',
+          relativePath: (e.relative_path as string) ?? (e.relativePath as string) ?? '',
+        })
+      )
+  ),
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
@@ -556,6 +566,21 @@ export const fileStream = {
     relative_path: string;
     operation: 'write' | 'delete';
   }>('fileStream.contentUpdate'),
+};
+
+// Workspace watcher — real-time directory change subscriptions
+// ---------------------------------------------------------------------------
+
+export type WorkspaceChangeKind = 'create' | 'modify' | 'delete' | 'rename';
+
+export interface WorkspaceChange {
+  path: string;
+  kind: WorkspaceChangeKind;
+}
+
+export const workspaceWatcher = {
+  changed: wsEmitter<{ workspace: string; changes: WorkspaceChange[] }>('workspace.changed'),
+  overflow: wsEmitter<{ workspace: string }>('workspace.overflow'),
 };
 
 // File snapshot providers

@@ -6,8 +6,14 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
+import { fetchFileAsText } from '@/renderer/utils/file/staticFile';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+
+function getDirFromRelativePath(relativePath: string): string {
+  const lastSlash = relativePath.lastIndexOf('/');
+  return lastSlash >= 0 ? relativePath.substring(0, lastSlash) : '';
+}
 
 /** DOM 片段数据结构 / DOM snippet data structure */
 export interface DomSnippet {
@@ -24,10 +30,12 @@ export interface PreviewMetadata {
   title?: string;
   diff?: string;
   file_name?: string;
-  file_path?: string; // 工作空间文件的绝对路径 / Absolute file path in workspace
-  workspace?: string; // 工作空间根目录 / Workspace root directory
-  editable?: boolean; // 是否可编辑 / Whether editable
-  truncated?: boolean; // 预览内容是否被截断 / Whether preview content was truncated
+  file_path?: string;
+  workspace?: string;
+  conversationId?: string;
+  relativePath?: string;
+  editable?: boolean;
+  truncated?: boolean;
 }
 
 export interface PreviewTab {
@@ -328,29 +336,43 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         setActiveTabId(nextActiveTabId);
       }
       setIsOpen(true);
+
+      if (meta?.workspace && meta?.relativePath) {
+        const dir = getDirFromRelativePath(meta.relativePath);
+        emitter.emit('workspace.preview.subscribe', { workspace: meta.workspace, dir });
+      }
     },
     [extractFileName, findPreviewTabInList]
   );
 
   const closePreview = useCallback(() => {
+    setTabs((prevTabs) => {
+      const dirsToUnsub = new Map<string, Set<string>>();
+      for (const tab of prevTabs) {
+        if (tab.metadata?.workspace && tab.metadata?.relativePath) {
+          const dir = getDirFromRelativePath(tab.metadata.relativePath);
+          if (!dirsToUnsub.has(tab.metadata.workspace)) {
+            dirsToUnsub.set(tab.metadata.workspace, new Set());
+          }
+          dirsToUnsub.get(tab.metadata.workspace)!.add(dir);
+        }
+      }
+      for (const [ws, dirs] of dirsToUnsub) {
+        for (const dir of dirs) {
+          emitter.emit('workspace.preview.unsubscribe', { workspace: ws, dir });
+        }
+      }
+      return [];
+    });
     setIsOpen(false);
-    setTabs([]);
     setActiveTabId(null);
     setDomSnippets([]);
   }, []);
 
-  // Track last-known mtime per file path for external change detection
-  const fileMtimeRef = useRef<Map<string, number>>(new Map());
-
   const closeTab = useCallback(
     (tabId: string) => {
       setTabs((prevTabs) => {
-        // Clean up mtime record for the closed tab
-        const tabToClose = prevTabs.find((tab) => tab.id === tabId);
-        if (tabToClose?.metadata?.file_path) {
-          fileMtimeRef.current.delete(tabToClose.metadata.file_path);
-        }
-
+        const closedTab = prevTabs.find((t) => t.id === tabId);
         const newTabs = prevTabs.filter((tab) => tab.id !== tabId);
 
         // 如果关闭的是当前激活的 tab / If closing the active tab
@@ -362,6 +384,18 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
             // 没有 tab 了，关闭预览面板 / No more tabs, close preview panel
             setIsOpen(false);
             setActiveTabId(null);
+          }
+        }
+
+        if (closedTab?.metadata?.workspace && closedTab?.metadata?.relativePath) {
+          const dir = getDirFromRelativePath(closedTab.metadata.relativePath);
+          const remaining = newTabs.filter(
+            (t) =>
+              t.metadata?.workspace === closedTab.metadata!.workspace &&
+              getDirFromRelativePath(t.metadata?.relativePath || '') === dir
+          );
+          if (remaining.length === 0) {
+            emitter.emit('workspace.preview.unsubscribe', { workspace: closedTab.metadata.workspace, dir });
           }
         }
 
@@ -489,151 +523,82 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setDomSnippets([]);
   }, []);
 
-  // 流式内容订阅：订阅 agent 写入文件时的流式更新（替代文件监听）
-  // Streaming content subscription: Subscribe to streaming updates when agent writes files (replaces file watching)
-  // 使用防抖优化：等待 agent 完成写入后再更新预览，避免打字动画被频繁中断
-  // Use debounce optimization: Wait for agent to finish writing before updating preview, avoiding frequent animation interruptions
   useEffect(() => {
-    // 防抖定时器映射：每个文件路径对应一个定时器 / Debounce timer map: one timer per file path
-    const debounceTimers = new Map<string, NodeJS.Timeout>();
+    const handler = ({ workspace, relativePath }: { workspace: string; relativePath: string }) => {
+      const filePath = `${workspace}/${relativePath}`;
+      setTabs((prevTabs) => {
+        const tab = prevTabs.find((t) => t.metadata?.file_path === filePath);
+        if (!tab || tab.isDirty || savingFilesRef.current.has(filePath)) return prevTabs;
 
-    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(({ file_path, content, operation }) => {
-      // 如果是删除操作，立即处理，不需要防抖 / If delete operation, handle immediately without debounce
-      if (operation === 'delete') {
-        // 清除该文件的防抖定时器 / Clear debounce timer for this file
-        const existingTimer = debounceTimers.get(file_path);
-        if (existingTimer) {
-          clearTimeout(existingTimer);
-          debounceTimers.delete(file_path);
+        const convId = tab.metadata?.conversationId;
+        const relPath = tab.metadata?.relativePath || relativePath;
+        if (convId && relPath) {
+          void fetchFileAsText(convId, relPath).then((content) => {
+            setTabs((latest) =>
+              latest.map((t) => {
+                if (t.metadata?.file_path !== filePath) return t;
+                if (t.isDirty || savingFilesRef.current.has(filePath)) return t;
+                return { ...t, content, originalContent: content, isDirty: false };
+              })
+            );
+          });
         }
 
-        setTabs((prevTabs) => {
-          const tabToClose = prevTabs.find((tab) => tab.metadata?.file_path === file_path);
-          if (tabToClose) {
-            closeTab(tabToClose.id);
-          }
-          return prevTabs;
-        });
-        return;
-      }
-
-      // 对写入操作进行防抖：500ms 内没有新的更新才真正更新内容
-      // Debounce write operations: Only update content if no new updates within 500ms
-      const existingTimer = debounceTimers.get(file_path);
-      if (existingTimer) {
-        clearTimeout(existingTimer);
-      }
-
-      const timer = setTimeout(() => {
-        // 使用函数式更新来访问最新的 tabs 状态 / Use functional update to access latest tabs state
-        setTabs((prevTabs) => {
-          // 查找受影响的 tabs / Find affected tabs
-          const affectedTabs = prevTabs.filter((tab) => tab.metadata?.file_path === file_path);
-
-          if (affectedTabs.length === 0) {
-            return prevTabs;
-          }
-
-          return prevTabs.map((tab) => {
-            if (tab.metadata?.file_path !== file_path) return tab;
-
-            // 如果正在保存或用户已编辑，不更新 / Don't update if saving or user has edited
-            if (savingFilesRef.current.has(file_path) || tab.isDirty) {
-              return tab;
-            }
-
-            return {
-              ...tab,
-              content,
-              originalContent: content,
-              isDirty: false,
-            };
-          });
-        });
-
-        // 清除定时器 / Clean up timer
-        debounceTimers.delete(file_path);
-      }, 500); // 500ms 防抖时间 / 500ms debounce delay
-
-      debounceTimers.set(file_path, timer);
-    });
-
-    return () => {
-      unsubscribe();
-      // 清理所有防抖定时器 / Clean up all debounce timers
-      debounceTimers.forEach((timer) => clearTimeout(timer));
-      debounceTimers.clear();
+        return prevTabs;
+      });
     };
-  }, [closeTab]); // 只依赖 closeTab，不依赖 tabs，避免重复订阅 / Only depend on closeTab, not tabs, to avoid re-subscribing
 
-  // File mtime polling: detect external file changes (Claude Code CLI, Gemini, etc.) by comparing lastModified.
-  // Only polls the active tab to minimize IPC overhead; checks other tabs once on tab switch.
-  // Uses polling instead of fileWatch IPC events because buildEmitter's main→renderer event delivery
-  // is unreliable after the first emission in Electron (only the first event reaches the renderer).
-  const checkFileUpdate = useCallback(
-    (tab: PreviewTab) => {
-      const file_path = tab.metadata?.file_path;
-      if (!file_path || tab.isDirty || savingFilesRef.current.has(file_path)) return;
+    emitter.on('workspace.file.modified', handler);
+    return () => {
+      emitter.off('workspace.file.modified', handler);
+    };
+  }, [setTabs]);
 
-      void ipcBridge.fs.getFileMetadata
-        .invoke({ path: file_path, workspace: tab.metadata?.workspace })
-        .then((metadata) => {
-          if (!metadata) return;
-          const prevMtime = fileMtimeRef.current.get(file_path);
-          fileMtimeRef.current.set(file_path, metadata.lastModified);
-          if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
-
-          const readPromise =
-            tab.content_type === 'image'
-              ? ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace: tab.metadata?.workspace })
-              : ipcBridge.fs.readFile.invoke({ path: file_path, workspace: tab.metadata?.workspace });
-
-          void readPromise
-            .then((content) => {
-              if (content == null) return;
-              setTabs((latest) =>
-                latest.map((t) => {
-                  if (t.metadata?.file_path !== file_path) return t;
-                  if (savingFilesRef.current.has(file_path) || t.isDirty) return t;
-                  return { ...t, content, originalContent: content, isDirty: false };
-                })
-              );
-            })
-            .catch((error) => {
-              console.error('[PreviewContext] Failed to read file after mtime change:', file_path, error);
-            });
-        })
-        .catch((error) => {
-          console.error('[PreviewContext] Failed to get file metadata:', file_path, error);
-        });
-    },
-    [setTabs]
-  );
-
-  // Keep a ref to activeTab so the polling interval always sees the latest object
-  // without re-running the effect on every tabs state change.
-  const activeTabRef = useRef<PreviewTab | null>(null);
-  activeTabRef.current = activeTab;
-
-  const activeFilePath = activeTab?.metadata?.file_path;
-
-  // Poll active tab every 1s
   useEffect(() => {
-    if (!activeFilePath) return;
-
-    const pollId = setInterval(() => {
-      const current = activeTabRef.current;
-      if (current) checkFileUpdate(current);
-    }, 1000);
-
-    // Check immediately on tab switch
-    const current = activeTabRef.current;
-    if (current) checkFileUpdate(current);
-
-    return () => {
-      clearInterval(pollId);
+    const handler = ({ workspace, relativePath }: { workspace: string; relativePath: string }) => {
+      const filePath = `${workspace}/${relativePath}`;
+      setTabs((prevTabs) => {
+        const tabToClose = prevTabs.find((t) => t.metadata?.file_path === filePath);
+        if (tabToClose) {
+          closeTab(tabToClose.id);
+        }
+        return prevTabs;
+      });
     };
-  }, [activeFilePath, checkFileUpdate]);
+
+    emitter.on('workspace.file.deleted', handler);
+    return () => {
+      emitter.off('workspace.file.deleted', handler);
+    };
+  }, [closeTab]);
+
+  useEffect(() => {
+    const handler = ({ workspace }: { workspace: string }) => {
+      setTabs((prevTabs) => {
+        for (const tab of prevTabs) {
+          if (tab.metadata?.workspace !== workspace) continue;
+          if (tab.isDirty || !tab.metadata?.conversationId || !tab.metadata?.relativePath) continue;
+          if (savingFilesRef.current.has(tab.metadata.file_path || '')) continue;
+
+          void fetchFileAsText(tab.metadata.conversationId, tab.metadata.relativePath).then((content) => {
+            setTabs((latest) =>
+              latest.map((t) => {
+                if (t.id !== tab.id) return t;
+                if (t.isDirty) return t;
+                return { ...t, content, originalContent: content, isDirty: false };
+              })
+            );
+          });
+        }
+        return prevTabs;
+      });
+    };
+
+    emitter.on('workspace.preview.refetch', handler);
+    return () => {
+      emitter.off('workspace.preview.refetch', handler);
+    };
+  }, []);
 
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter

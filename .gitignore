@@ -212,3 +212,6 @@ graphify-out/
 .graphify_python
 
 .snow/
+
+# bundled aionui-backend native binary (per-platform, build artifact)
+resources/bundled-aionui-backend

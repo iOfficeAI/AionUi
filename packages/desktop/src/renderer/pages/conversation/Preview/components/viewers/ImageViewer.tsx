@@ -6,24 +6,35 @@
 
 import { ipcBridge } from '@/common';
 import { Image } from '@arco-design/web-react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { fetchFileAsBlob, revokeFileBlob } from '@/renderer/utils/file/staticFile';
 
 interface ImagePreviewProps {
   file_path?: string;
   content?: string;
   file_name?: string;
   workspace?: string;
+  conversationId?: string;
+  relativePath?: string;
 }
 
-const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_name, workspace }) => {
+const ImagePreview: React.FC<ImagePreviewProps> = ({
+  file_path,
+  content,
+  file_name,
+  workspace,
+  conversationId,
+  relativePath,
+}) => {
   const { t } = useTranslation();
   const [imageSrc, setImageSrc] = useState<string>(content || '');
   const [loading, setLoading] = useState<boolean>(!!file_path && !content);
   const [error, setError] = useState<string | null>(null);
+  const blobRef = useRef<{ conversationId: string; relativePath: string } | null>(null);
 
   useEffect(() => {
-    let isMounted = true;
+    const controller = new AbortController();
 
     const loadImage = async () => {
       if (content) {
@@ -33,7 +44,7 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
         return;
       }
 
-      if (!file_path) {
+      if (!file_path && !relativePath) {
         setImageSrc('');
         setLoading(false);
         return;
@@ -42,18 +53,37 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
       try {
         setLoading(true);
         setError(null);
-        const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
-        if (!base64) {
-          throw new Error('Image file not found');
+
+        let loaded = false;
+
+        if (conversationId && relativePath) {
+          try {
+            const blobUrl = await fetchFileAsBlob(conversationId, relativePath, controller.signal);
+            if (controller.signal.aborted) return;
+            blobRef.current = { conversationId, relativePath };
+            setImageSrc(blobUrl);
+            loaded = true;
+          } catch {
+            if (controller.signal.aborted) return;
+          }
         }
-        if (!isMounted) return;
-        setImageSrc(base64);
+
+        if (!loaded && file_path) {
+          const base64 = await ipcBridge.fs.getImageBase64.invoke({ path: file_path, workspace });
+          if (controller.signal.aborted) return;
+          if (!base64) {
+            throw new Error('Image file not found');
+          }
+          setImageSrc(base64);
+        } else if (!loaded) {
+          throw new Error('No source available');
+        }
       } catch (err) {
-        if (!isMounted) return;
+        if (controller.signal.aborted) return;
         console.error('[ImagePreview] Failed to load image:', err);
         setError(t('messages.imageLoadFailed', { defaultValue: 'Failed to load image' }));
       } finally {
-        if (isMounted) {
+        if (!controller.signal.aborted) {
           setLoading(false);
         }
       }
@@ -62,9 +92,13 @@ const ImagePreview: React.FC<ImagePreviewProps> = ({ file_path, content, file_na
     void loadImage();
 
     return () => {
-      isMounted = false;
+      controller.abort();
+      if (blobRef.current) {
+        revokeFileBlob(blobRef.current.conversationId, blobRef.current.relativePath);
+        blobRef.current = null;
+      }
     };
-  }, [content, file_path, t, workspace]);
+  }, [content, file_path, t, workspace, conversationId, relativePath]);
 
   const renderStatus = () => {
     if (loading) {

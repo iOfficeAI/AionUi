@@ -28,8 +28,8 @@ const AionrsChat: React.FC<{
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
-    updateLocalImage({ root: workspace });
-  }, [workspace]);
+    updateLocalImage({ root: workspace, conversationId: conversation_id });
+  }, [workspace, conversation_id]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
     return { conversation_id: conversation_id, workspace, type: 'aionrs', cron_job_id, loadedSkills };
   }, [conversation_id, workspace, cron_job_id, loadedSkills]);

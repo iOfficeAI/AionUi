@@ -9,6 +9,7 @@ import { useTypingAnimation } from '@/renderer/hooks/chat/useTypingAnimation';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 import { generateInspectScript } from './htmlInspectScript';
+import { buildFileUrl } from '@/renderer/utils/file/staticFile';
 
 /** 选中元素的数据结构 / Selected element data structure */
 export interface InspectedElement {
@@ -22,11 +23,12 @@ interface HTMLRendererProps {
   content: string;
   file_path?: string;
   workspace?: string;
+  conversationId?: string;
+  relativePath?: string;
   containerRef?: React.RefObject<HTMLDivElement>;
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void;
-  inspectMode?: boolean; // 是否开启检查模式 / Whether inspect mode is enabled
+  inspectMode?: boolean;
   copySuccessMessage?: string;
-  /** 元素选中回调 / Element selected callback */
   onElementSelected?: (element: InspectedElement) => void;
 }
 
@@ -185,6 +187,8 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
   content,
   file_path,
   workspace,
+  conversationId,
+  relativePath,
   containerRef,
   onScroll,
   inspectMode = false,
@@ -256,24 +260,26 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
     [shouldLoadFromFile, content, displayedContent]
   );
 
-  // 在 browser 环境下，当有相对资源时进行内联化处理
-  // In browser environment, inline relative resources when present
-  useEffect(() => {
-    if (isElectron) {
-      // Electron 环境不需要内联化，使用 webview 加载
-      // Electron environment doesn't need inlining, uses webview loading
-      return;
-    }
+  const staticFileBaseUrl = useMemo(() => {
+    if (!conversationId || !relativePath) return '';
+    const dir = relativePath.substring(0, relativePath.lastIndexOf('/') + 1);
+    const url = dir ? buildFileUrl(conversationId, dir) : buildFileUrl(conversationId, '');
+    return url.endsWith('/') ? url : url + '/';
+  }, [conversationId, relativePath]);
 
-    if (!hasRelativeResources || !file_path) {
-      // 没有相对资源或没有文件路径，使用原始内容
-      // No relative resources or no file path, use original content
+  useEffect(() => {
+    if (isElectron) return;
+
+    if (staticFileBaseUrl) {
       setInlinedHtmlContent(content);
       return;
     }
 
-    // Browser 环境且有相对资源，进行内联化处理
-    // Browser environment with relative resources, perform inlining
+    if (!hasRelativeResources || !file_path) {
+      setInlinedHtmlContent(content);
+      return;
+    }
+
     let cancelled = false;
     inlineRelativeResources(content, file_path, workspace)
       .then((inlined) => {
@@ -284,23 +290,34 @@ const HTMLRenderer: React.FC<HTMLRendererProps> = ({
       .catch((e) => {
         console.warn('[HTMLRenderer] Failed to inline resources:', e);
         if (!cancelled) {
-          setInlinedHtmlContent(content); // 回退到原始内容 / Fallback to original content
+          setInlinedHtmlContent(content);
         }
       });
 
     return () => {
       cancelled = true;
     };
-  }, [content, file_path, isElectron, hasRelativeResources, workspace]);
+  }, [content, file_path, isElectron, hasRelativeResources, workspace, staticFileBaseUrl]);
 
-  // 用于 browser iframe 的最终 HTML 内容
-  // Final HTML content for browser iframe
   const browserHtmlContent = useMemo(() => {
+    if (staticFileBaseUrl) {
+      let html = inlinedHtmlContent || content;
+      if (!html.match(/<base\s+href=/i)) {
+        if (html.match(/<head>/i)) {
+          html = html.replace(/<head>/i, `<head><base href="${staticFileBaseUrl}">`);
+        } else if (html.match(/<html>/i)) {
+          html = html.replace(/<html>/i, `<html><head><base href="${staticFileBaseUrl}"></head>`);
+        } else {
+          html = `<head><base href="${staticFileBaseUrl}"></head>${html}`;
+        }
+      }
+      return html;
+    }
     if (hasRelativeResources && file_path) {
-      return inlinedHtmlContent || content; // 在内联化完成前显示原始内容 / Show original content before inlining completes
+      return inlinedHtmlContent || content;
     }
     return displayedContent;
-  }, [hasRelativeResources, file_path, inlinedHtmlContent, content, displayedContent]);
+  }, [hasRelativeResources, file_path, inlinedHtmlContent, content, displayedContent, staticFileBaseUrl]);
 
   // 计算 webview 的 src
   // Calculate webview src

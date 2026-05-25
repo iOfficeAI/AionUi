@@ -24,8 +24,8 @@ const RemoteChat: React.FC<{
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
-    updateLocalImage({ root: workspace });
-  }, [workspace]);
+    updateLocalImage({ root: workspace, conversationId: conversation_id });
+  }, [workspace, conversation_id]);
   return (
     <ConversationProvider
       value={{ conversation_id: conversation_id, workspace, type: 'remote', cron_job_id, hideSendBox, loadedSkills }}
@@ -40,4 +40,4 @@ const RemoteChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider)(RemoteChat);
+export default HOC.Wrapper(MessageListProvider, LocalImageView.Provider)(RemoteChat);

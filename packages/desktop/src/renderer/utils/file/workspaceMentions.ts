@@ -13,7 +13,7 @@ function computeMentionScore(item: FileOrFolderItem, query: string): number {
   }
 
   const normalizedName = item.name.toLowerCase();
-  const normalizedPath = (item.relativePath || item.path).toLowerCase();
+  const normalizedPath = (item.relativePath || item.path || '').toLowerCase();
   const normalizedStem = normalizedName.replace(/\.[^.]+$/, '');
 
   if (normalizedName === normalizedQuery) {

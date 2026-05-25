@@ -310,6 +310,7 @@ export function stubProvider<Data, Params = undefined>(name: string, defaultValu
 
 type WsCallback = (data: unknown) => void;
 const wsListeners = new Map<string, Set<WsCallback>>();
+const wsReconnectCallbacks = new Set<() => void>();
 let ws: WebSocket | null = null;
 let wsReconnectTimer: ReturnType<typeof setTimeout> | null = null;
 let wsReconnectAttempt = 0;
@@ -339,6 +340,13 @@ function ensureWs(): void {
   current.addEventListener('open', () => {
     console.debug('[ensureWs] CONNECTED');
     wsReconnectAttempt = 0;
+    for (const cb of wsReconnectCallbacks) {
+      try {
+        cb();
+      } catch {
+        /* never crash reconnect handler */
+      }
+    }
   });
 
   current.addEventListener('close', (e) => {
@@ -429,6 +437,20 @@ export function wsMappedEmitter<Params = undefined>(
       });
     },
     emit: (() => {}) as EmitterLike<Params>['emit'],
+  };
+}
+
+export function wsSend(name: string, data: unknown): void {
+  ensureWs();
+  if (ws && ws.readyState === WebSocket.OPEN) {
+    ws.send(JSON.stringify({ name, data }));
+  }
+}
+
+export function wsOnReconnect(callback: () => void): () => void {
+  wsReconnectCallbacks.add(callback);
+  return () => {
+    wsReconnectCallbacks.delete(callback);
   };
 }
 

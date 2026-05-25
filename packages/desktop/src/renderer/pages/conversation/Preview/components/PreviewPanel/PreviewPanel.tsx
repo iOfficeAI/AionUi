@@ -427,6 +427,7 @@ const PreviewPanel: React.FC = () => {
                 hideToolbar
                 file_path={metadata?.file_path}
                 workspace={metadata?.workspace}
+                conversationId={metadata?.conversationId}
               />
             </div>
           );
@@ -466,6 +467,7 @@ const PreviewPanel: React.FC = () => {
                   onScroll={handlePreviewScroll}
                   file_path={metadata?.file_path}
                   workspace={metadata?.workspace}
+                  conversationId={metadata?.conversationId}
                 />
               </div>
             </div>
@@ -483,6 +485,7 @@ const PreviewPanel: React.FC = () => {
           onContentChange={updateContent}
           file_path={metadata?.file_path}
           workspace={metadata?.workspace}
+          conversationId={metadata?.conversationId}
         />
       );
     }
@@ -499,6 +502,8 @@ const PreviewPanel: React.FC = () => {
                 content={content}
                 file_path={metadata?.file_path}
                 workspace={metadata?.workspace}
+                conversationId={metadata?.conversationId}
+                relativePath={metadata?.relativePath}
                 copySuccessMessage={t('preview.html.copySuccess')}
                 inspectMode={inspectMode}
                 onElementSelected={handleElementSelected}
@@ -541,6 +546,8 @@ const PreviewPanel: React.FC = () => {
                   content={content}
                   file_path={metadata?.file_path}
                   workspace={metadata?.workspace}
+                  conversationId={metadata?.conversationId}
+                  relativePath={metadata?.relativePath}
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   inspectMode={inspectMode}
@@ -642,7 +649,14 @@ const PreviewPanel: React.FC = () => {
         />
       );
     } else if (content_type === 'pdf') {
-      return <PDFPreview file_path={metadata?.file_path} content={content} />;
+      return (
+        <PDFPreview
+          file_path={metadata?.file_path}
+          content={content}
+          conversationId={metadata?.conversationId}
+          relativePath={metadata?.relativePath}
+        />
+      );
     } else if (content_type === 'ppt') {
       return <PptViewer file_path={metadata?.file_path} content={content} workspace={metadata?.workspace} />;
     } else if (content_type === 'word') {
@@ -656,6 +670,8 @@ const PreviewPanel: React.FC = () => {
           content={content}
           file_name={metadata?.file_name || metadata?.title}
           workspace={metadata?.workspace}
+          conversationId={metadata?.conversationId}
+          relativePath={metadata?.relativePath}
         />
       );
     } else if (content_type === 'url') {

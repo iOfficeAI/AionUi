@@ -10,19 +10,14 @@ import { usePreviewToolbarExtras } from '../../context/PreviewToolbarExtrasConte
 import { Button, Message } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { fetchFileAsBlob, revokeFileBlob } from '@/renderer/utils/file/staticFile';
 
 interface PDFPreviewProps {
-  /**
-   * PDF file path (absolute path on disk)
-   * PDF 文件路径（磁盘上的绝对路径）
-   */
   file_path?: string;
-  /**
-   * PDF content as base64 or blob URL
-   * PDF 内容（base64 或 blob URL）
-   */
   content?: string;
   hideToolbar?: boolean;
+  conversationId?: string;
+  relativePath?: string;
 }
 
 // Electron webview 元素的类型定义 / Type definition for Electron webview element
@@ -30,14 +25,46 @@ interface ElectronWebView extends HTMLElement {
   src: string;
 }
 
-const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar = false }) => {
+const PDFPreview: React.FC<PDFPreviewProps> = ({
+  file_path,
+  content,
+  hideToolbar = false,
+  conversationId,
+  relativePath,
+}) => {
   const { t } = useTranslation();
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
+  const [blobSrc, setBlobSrc] = useState<string | null>(null);
   const webviewRef = useRef<ElectronWebView>(null);
+  const blobRef = useRef<{ conversationId: string; relativePath: string } | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
   const toolbarExtrasContext = usePreviewToolbarExtras();
   const usePortalToolbar = Boolean(toolbarExtrasContext) && !hideToolbar;
+
+  useEffect(() => {
+    if (!conversationId || !relativePath) return;
+    const controller = new AbortController();
+    fetchFileAsBlob(conversationId, relativePath, controller.signal)
+      .then((url) => {
+        if (controller.signal.aborted) return;
+        blobRef.current = { conversationId, relativePath };
+        setBlobSrc(url);
+      })
+      .catch((err) => {
+        if (controller.signal.aborted) return;
+        console.error('[PDFPreview] Failed to fetch PDF:', err);
+        setError(t('preview.pdf.loadFailed'));
+        setLoading(false);
+      });
+    return () => {
+      controller.abort();
+      if (blobRef.current) {
+        revokeFileBlob(blobRef.current.conversationId, blobRef.current.relativePath);
+        blobRef.current = null;
+      }
+    };
+  }, [conversationId, relativePath, t]);
 
   const handleOpenInSystem = useCallback(async () => {
     if (!file_path) {
@@ -108,9 +135,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
     return () => toolbarExtrasContext.setExtras(null);
   }, [usePortalToolbar, toolbarExtrasContext, t, loading, error]);
 
-  // 使用 Electron webview 加载本地 PDF 文件
-  // Use Electron webview to load local PDF files
-  const pdfSrc = buildPdfSrc(file_path, content);
+  const pdfSrc = blobSrc || buildPdfSrc(file_path, content);
 
   if (error) {
     return (
