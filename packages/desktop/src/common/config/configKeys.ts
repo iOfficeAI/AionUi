@@ -76,6 +76,8 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
+  'notchTaskbox.enabled': boolean | undefined;
+  'notchTaskbox.hardwareNotch': boolean | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

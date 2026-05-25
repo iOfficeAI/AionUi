@@ -169,6 +169,7 @@ export default defineConfig(({ mode }) => {
             petPreload: resolve('packages/desktop/src/preload/petPreload.ts'),
             petHitPreload: resolve('packages/desktop/src/preload/petHitPreload.ts'),
             petConfirmPreload: resolve('packages/desktop/src/preload/petConfirmPreload.ts'),
+            notchTaskboxPreload: resolve('packages/desktop/src/preload/notchTaskboxPreload.ts'),
           },
         },
       },
