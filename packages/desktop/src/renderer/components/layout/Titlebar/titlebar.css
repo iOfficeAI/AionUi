@@ -66,10 +66,21 @@
 }
 
 .app-titlebar--mobile .app-titlebar__brand {
+  position: static;
+  flex: 1 1 auto;
+  justify-content: flex-start;
+  text-align: left;
+  min-width: 0;
+  margin: 0 8px;
+}
+
+.app-titlebar--mobile .app-titlebar__brand--centered {
   position: absolute;
   left: 50%;
   transform: translateX(calc(-50% + var(--app-titlebar-mobile-center-offset, 0px)));
   max-width: calc(100% - 180px);
+  text-align: center;
+  margin: 0;
 }
 
 .app-titlebar__brand-mobile {
