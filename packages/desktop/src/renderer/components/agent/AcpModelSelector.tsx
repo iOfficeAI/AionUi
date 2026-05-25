@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { iconColors } from '@/renderer/styles/colors';
@@ -54,6 +55,8 @@ const AcpModelSelector: React.FC<{
   initialModelId?: string;
 }> = ({ conversation_id, backend, initialModelId }) => {
   const { t } = useTranslation();
+  const layout = useLayoutContext();
+  const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const [model_info, setModelInfo] = useState<AcpModelInfo | null>(null);
   // Track whether user has manually switched model via dropdown
   const hasUserChangedModel = useRef(false);
@@ -324,6 +327,9 @@ const AcpModelSelector: React.FC<{
   return (
     <Dropdown
       trigger='click'
+      // Mobile: portal the popup to <body> so it escapes the titlebar slot.
+      // Desktop: leave default container so click events reach Menu.Item normally.
+      {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
         <Menu>
           {model_info.available_models.map((model) => (
