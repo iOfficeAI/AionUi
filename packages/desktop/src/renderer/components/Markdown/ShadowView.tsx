@@ -14,7 +14,12 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 /**
  * Create the base style element for Shadow DOM with CSS variables, theme styles, and optional custom CSS.
  */
-const createInitStyle = (currentTheme = 'light', cssVars?: Record<string, string>, customCss?: string, isMobile?: boolean) => {
+const createInitStyle = (
+  currentTheme = 'light',
+  cssVars?: Record<string, string>,
+  customCss?: string,
+  isMobile?: boolean
+) => {
   const style = document.createElement('style');
   // Inject external CSS variables into Shadow DOM for dark mode support
   const cssVarsDeclaration = cssVars
