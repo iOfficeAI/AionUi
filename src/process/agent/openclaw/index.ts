@@ -112,10 +112,12 @@ export class OpenClawAgent {
     try {
       this.emitStatusMessage('connecting');
 
-      const gatewayConfig: OpenClawGatewayConfig = this.config.gateway || { port: 18789 };
+      const gatewayConfig = (this.config.gateway ?? {}) as Partial<OpenClawGatewayConfig>;
       const useExternal = gatewayConfig.useExternalGateway ?? false;
-      const port = gatewayConfig.port || getGatewayPort();
-      const host = gatewayConfig.host || 'localhost';
+      const envPort = Number(process.env.OPENCLAW_GATEWAY_PORT);
+      const port =
+        (Number.isFinite(envPort) && envPort > 0 ? envPort : undefined) || gatewayConfig.port || getGatewayPort();
+      const host = process.env.OPENCLAW_GATEWAY_HOST || gatewayConfig.host || 'localhost';
 
       // Auto-load token/password from OpenClaw config if not explicitly provided
       const token = gatewayConfig.token ?? getGatewayAuthToken() ?? undefined;

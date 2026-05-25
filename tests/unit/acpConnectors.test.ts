@@ -64,6 +64,7 @@ vi.mock('@process/services/ccSwitchModelSource', () => ccSwitchMock);
 import { execFile as execFileCb, spawn } from 'child_process';
 import { execFileSync } from 'child_process';
 import {
+  applyAcpRuntimePreferenceToBridgeEnv,
   connectClaude,
   connectCodex,
   createGenericSpawnConfig,
@@ -170,6 +171,79 @@ describe('spawnNpxBackend - Windows UTF-8 fix', () => {
   });
 });
 
+describe('ACP runtime preference helpers', () => {
+  it('leaves bridge env unchanged by default so Windows-native Claude/Codex remain the safe fallback', () => {
+    const env = { PATH: 'C:\\Windows', Path: 'C:\\Windows' };
+
+    const result = applyAcpRuntimePreferenceToBridgeEnv('claude', env, {});
+
+    expect(result).toBe(env);
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBeUndefined();
+    expect(result.PATH).toBe('C:\\Windows');
+    expect(result.Path).toBe('C:\\Windows');
+  });
+
+  it('points Claude ACP at the WSL executable shim only when explicitly requested', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
+    expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+    expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+  });
+
+  it('overrides Windows Claude config dir with the WSL Claude config dir', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows', CLAUDE_CONFIG_DIR: 'C:\\Users\\Administrator\\.claude' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
+
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
+  });
+
+  it('points Codex ACP at WSL wrappers via PATH only when explicitly requested', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'codex',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'wsl' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBeUndefined();
+    expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+    expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+  });
+
+  it('falls back to Windows-native ACP when auto mode has not been marked WSL-ready', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'auto' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBeUndefined();
+    expect(result.PATH).toBe('C:\\Windows');
+    expect(result.Path).toBeUndefined();
+  });
+
+  it('uses WSL ACP when auto mode has been marked WSL-ready by the launcher preflight', () => {
+    const result = applyAcpRuntimePreferenceToBridgeEnv(
+      'claude',
+      { PATH: 'C:\\Windows' },
+      { AIONUI_ACP_RUNTIME: 'auto', AIONUI_ACP_AUTO_WSL_READY: '1' }
+    );
+
+    expect(result.CLAUDE_CODE_EXECUTABLE).toBe('C:\\AI_LAB\\bin\\claude-wsl.exe');
+    expect(result.CLAUDE_CONFIG_DIR).toBe('/home/totti/.claude');
+    expect(result.PATH).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+    expect(result.Path).toBe('C:\\AI_LAB\\bin;C:\\Windows');
+  });
+});
+
 const setWindowsPlatform = () => {
   Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
 };
@@ -256,6 +330,7 @@ describe('connectCodex - Windows diagnostics', () => {
   });
 
   afterEach(() => {
+    delete process.env.AIONUI_ACP_RUNTIME;
     vi.clearAllMocks();
     if (originalPlatform) {
       Object.defineProperty(process, 'platform', originalPlatform);
@@ -297,6 +372,39 @@ describe('connectCodex - Windows diagnostics', () => {
     expect(setup).toHaveBeenCalledTimes(1);
     expect(cleanup).not.toHaveBeenCalled();
   });
+
+  it('puts C:\\AI_LAB\\bin first for Codex diagnostics and bridge spawn when AIONUI_ACP_RUNTIME=wsl', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    process.env.AIONUI_ACP_RUNTIME = 'wsl';
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectCodex('C:\\cwd', { setup, cleanup });
+
+    expect(mockExecFile).toHaveBeenNthCalledWith(
+      1,
+      'codex.cmd',
+      ['--version'],
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: 'C:\\AI_LAB\\bin;/usr/bin',
+          Path: 'C:\\AI_LAB\\bin;/usr/bin',
+        }),
+      }),
+      expect.any(Function)
+    );
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('chcp 65001 >nul &&'),
+      expect.any(Array),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: 'C:\\AI_LAB\\bin;/usr/bin',
+          Path: 'C:\\AI_LAB\\bin;/usr/bin',
+        }),
+      })
+    );
+  });
 });
 
 describe('connectClaude - detached process group', () => {
@@ -309,6 +417,8 @@ describe('connectClaude - detached process group', () => {
   });
 
   afterEach(() => {
+    delete process.env.AIONUI_ACP_RUNTIME;
+    ccSwitchMock.readClaudeProviderEnvFromCcSwitch.mockReturnValue({});
     vi.clearAllMocks();
     if (originalPlatform) {
       Object.defineProperty(process, 'platform', originalPlatform);
@@ -339,7 +449,7 @@ describe('connectClaude - detached process group', () => {
     Object.defineProperty(process, 'platform', { value: 'linux', configurable: true });
     ccSwitchMock.readClaudeProviderEnvFromCcSwitch.mockReturnValue({
       ANTHROPIC_BASE_URL: 'http://localhost:4000',
-      ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+      ANTHROPIC_AUTH_TOKEN: '***',
     });
 
     const setup = vi.fn().mockResolvedValue(undefined);
@@ -354,7 +464,29 @@ describe('connectClaude - detached process group', () => {
         env: expect.objectContaining({
           PATH: '/usr/bin',
           ANTHROPIC_BASE_URL: 'http://localhost:4000',
-          ANTHROPIC_AUTH_TOKEN: 'sk-test-token',
+          ANTHROPIC_AUTH_TOKEN: '***',
+        }),
+      })
+    );
+  });
+
+  it('uses the WSL Claude executable shim when AIONUI_ACP_RUNTIME=wsl', async () => {
+    Object.defineProperty(process, 'platform', { value: 'win32', configurable: true });
+    process.env.AIONUI_ACP_RUNTIME = 'wsl';
+
+    const setup = vi.fn().mockResolvedValue(undefined);
+    const cleanup = vi.fn().mockResolvedValue(undefined);
+
+    await connectClaude('C:\\cwd', { setup, cleanup });
+
+    expect(mockSpawn).toHaveBeenCalledWith(
+      expect.stringContaining('chcp 65001 >nul &&'),
+      expect.arrayContaining(['x', '--bun', '@agentclientprotocol/claude-agent-acp@0.29.2']),
+      expect.objectContaining({
+        env: expect.objectContaining({
+          PATH: 'C:\\AI_LAB\\bin;/usr/bin',
+          Path: 'C:\\AI_LAB\\bin;/usr/bin',
+          CLAUDE_CODE_EXECUTABLE: 'C:\\AI_LAB\\bin\\claude-wsl.exe',
         }),
       })
     );

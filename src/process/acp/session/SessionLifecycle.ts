@@ -210,6 +210,15 @@ export class SessionLifecycle {
     this.resume();
   }
 
+  /** Drop a stale backend session id and create a fresh session, then flush pending prompt work. */
+  recoverWithFreshSession(): void {
+    this._sessionId = null;
+    this.resumeRetryCount = 0;
+    void this.teardown()
+      .then(() => this.doStart())
+      .catch((err) => this.handleStartError(err));
+  }
+
   // ─── Auth ─────────────────────────────────────────────────────
 
   retryAuth(credentials?: Record<string, string>): void {

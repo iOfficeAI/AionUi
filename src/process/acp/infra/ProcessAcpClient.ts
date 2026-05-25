@@ -213,7 +213,13 @@ export class ProcessAcpClient implements AcpClient {
   }
 
   async cancel(sessionId: string): Promise<void> {
-    await this.runConnectionRequest(() => this.conn.cancel({ sessionId }));
+    try {
+      await this.runConnectionRequest(() => this.conn.cancel({ sessionId }));
+      await this.terminateIfPromptStillActiveAfterCancel();
+    } catch (error) {
+      if (!this.isUnsupportedCancelError(error)) throw error;
+      await this.terminateForUnsupportedCancel();
+    }
   }
 
   async closeSession(sessionId: string): Promise<void> {
@@ -326,6 +332,24 @@ export class ProcessAcpClient implements AcpClient {
           (error) => finish(() => reject(error))
         );
     });
+  }
+
+  private isUnsupportedCancelError(error: unknown): boolean {
+    if (!(error instanceof Error)) return false;
+    const code = (error as { code?: unknown }).code;
+    return code === -32601 || /method not found/i.test(error.message);
+  }
+
+  private async terminateIfPromptStillActiveAfterCancel(): Promise<void> {
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    if (!this.hasActivePrompt) return;
+    await this.terminateForUnsupportedCancel();
+  }
+
+  private async terminateForUnsupportedCancel(): Promise<void> {
+    const child = this.child;
+    if (!child) return;
+    await gracefulShutdown(child, this.options.gracePeriodMs ?? 100);
   }
 
   private rejectPendingRequests(error: unknown): void {

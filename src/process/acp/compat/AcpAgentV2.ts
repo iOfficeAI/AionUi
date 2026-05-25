@@ -64,6 +64,7 @@ async function runBackendLogin(backend: string, cliCommand?: string): Promise<vo
     stdio: 'pipe',
     timeout: LOGIN_TIMEOUT_MS,
     env,
+    shell: process.platform === 'win32',
   });
 
   return new Promise<void>((resolve, reject) => {
@@ -153,7 +154,14 @@ export class AcpAgentV2 {
     // Inject team-guide MCP server for solo agents (not in team mode) so the
     // agent has the aion_create_team tool available — mirrors AcpAgent.loadBuiltinSessionMcpServers().
     if (!this.agentConfig.teamMcpConfig) {
-      if (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend)) {
+      // Do not inject the Windows-side team-guide MCP into Claude Code when
+      // Claude is bridged through WSL. claude-agent-acp forwards the MCP config
+      // as JSON to the CLI, but WSL Claude Code treats --mcp-config as a file
+      // path and also cannot execute Windows node paths from inside WSL.
+      if (
+        this.agentConfig.agentBackend !== 'claude' &&
+        (await shouldInjectTeamGuideMcp(this.agentConfig.agentBackend))
+      ) {
         const aionStdioConfig = getTeamGuideStdioConfig();
         if (aionStdioConfig) {
           const guideServer: McpServer = {

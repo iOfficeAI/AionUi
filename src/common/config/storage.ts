@@ -291,6 +291,8 @@ export type TChatConversation =
           pinnedAt?: number;
           /** ACP 后端的 session UUID，用于会话恢复 / ACP backend session UUID for session resume */
           acpSessionId?: string;
+          /** Runtime that created the ACP session ID. Prevents Windows/WSL resume mismatches. */
+          acpRuntime?: 'windows' | 'wsl';
           /** Conversation ID that owns the ACP session / 拥有该 ACP session 的会话 ID */
           acpSessionConversationId?: string;
           /** ACP session 最后更新时间 / Last update time of ACP session */

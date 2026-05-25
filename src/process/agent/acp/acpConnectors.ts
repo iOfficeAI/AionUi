@@ -36,6 +36,52 @@ import { getPlatformServices } from '@/common/platform';
 
 const execFile = promisify(execFileCb);
 
+const WSL_AGENT_BIN_DIR = 'C:\\AI_LAB\\bin';
+const CLAUDE_WSL_EXECUTABLE = 'C:\\AI_LAB\\bin\\claude-wsl.exe';
+
+type AcpRuntimePreference = 'windows' | 'wsl' | 'auto';
+
+function isAutoWslReady(env: NodeJS.ProcessEnv): boolean {
+  const raw = (env.AIONUI_ACP_AUTO_WSL_READY || '').trim().toLowerCase();
+  return raw === '1' || raw === 'true' || raw === 'yes';
+}
+
+function resolveAcpRuntimePreference(env: NodeJS.ProcessEnv = process.env): AcpRuntimePreference {
+  const raw = (env.AIONUI_ACP_RUNTIME || '').trim().toLowerCase();
+  if (raw === 'wsl') return 'wsl';
+  if (raw === 'auto') return isAutoWslReady(env) ? 'wsl' : 'windows';
+  return 'windows';
+}
+
+function prependWindowsPath(env: Record<string, string | undefined>, dir: string): void {
+  const currentPath = env.PATH || env.Path || '';
+  const parts = currentPath.split(';').filter(Boolean);
+  const alreadyFirst = parts[0]?.toLowerCase() === dir.toLowerCase();
+  const nextPath = alreadyFirst
+    ? currentPath
+    : [dir, ...parts.filter((part) => part.toLowerCase() !== dir.toLowerCase())].join(';');
+
+  env.PATH = nextPath;
+  env.Path = nextPath;
+}
+
+export function applyAcpRuntimePreferenceToBridgeEnv(
+  backend: 'claude' | 'codex',
+  cleanEnv: Record<string, string | undefined>,
+  sourceEnv: NodeJS.ProcessEnv = process.env
+): Record<string, string | undefined> {
+  const preference = resolveAcpRuntimePreference(sourceEnv);
+  if (preference !== 'wsl') return cleanEnv;
+
+  prependWindowsPath(cleanEnv, WSL_AGENT_BIN_DIR);
+  if (backend === 'claude') {
+    cleanEnv.CLAUDE_CODE_EXECUTABLE = CLAUDE_WSL_EXECUTABLE;
+    cleanEnv.CLAUDE_CONFIG_DIR = '/home/totti/.claude';
+  }
+
+  return cleanEnv;
+}
+
 function normalizeWindowsCommand(command: string): string {
   const trimmed = command.trim();
   if (trimmed.startsWith('"') && trimmed.endsWith('"')) {
@@ -238,12 +284,12 @@ export function ensureMinNodeVersion(
 
       // Verify the corrected PATH actually resolves to a good node (npx uses the same PATH)
       try {
-        const correctedVersion = execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], {
+        execFileSync(isWindows ? 'node.exe' : 'node', ['--version'], {
           env: cleanEnv,
           encoding: 'utf-8',
           timeout: 5000,
           stdio: ['pipe', 'pipe', 'pipe'],
-        }).trim();
+        });
         // Version auto-corrected silently
       } catch {
         console.warn(`[ACP] PATH corrected with ${suitableBinDir} but node verification failed — proceeding anyway`);
@@ -433,12 +479,14 @@ export function spawnNpxBackend(
 async function prepareClaude(): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
   Object.assign(cleanEnv, readClaudeProviderEnvFromCcSwitch());
+  applyAcpRuntimePreferenceToBridgeEnv('claude', cleanEnv);
   return { cleanEnv, npxCommand: resolveNpxPath(cleanEnv) };
 }
 
 /** Prepare clean env + resolve npx + run diagnostics for Codex ACP bridge. */
 async function prepareCodex(codexAcpPackage: string = CODEX_ACP_NPX_PACKAGE): Promise<NpxPrepareResult> {
   const cleanEnv = await prepareCleanEnv();
+  applyAcpRuntimePreferenceToBridgeEnv('codex', cleanEnv);
 
   const diagStart = Date.now();
   const codexCommand = process.platform === 'win32' ? 'codex.cmd' : 'codex';

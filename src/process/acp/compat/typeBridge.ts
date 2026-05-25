@@ -33,6 +33,7 @@ export type OldAcpAgentConfig = {
     yoloMode?: boolean;
     agentName?: string;
     acpSessionId?: string;
+    acpRuntime?: 'windows' | 'wsl';
     acpSessionConversationId?: string;
     acpSessionUpdatedAt?: number;
     currentModelId?: string;

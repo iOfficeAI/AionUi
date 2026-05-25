@@ -351,6 +351,7 @@ export class AcpSession {
 
     this.promptExecutor.resetTimer();
     const messages = this.messageTranslator.translate(notification);
+    if (messages.length > 0) this.promptExecutor.markStreamActivity();
     for (const msg of messages) {
       this.callbacks.onMessage(msg);
     }
