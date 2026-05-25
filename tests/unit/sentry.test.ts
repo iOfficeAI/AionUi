@@ -28,6 +28,16 @@ vi.mock('@sentry/electron/main', () => ({
     });
   }),
   captureException: vi.fn(),
+  captureEvent: vi.fn(),
+  flush: vi.fn(async () => true),
+}));
+
+vi.mock('@/process/feedback/logs', () => ({
+  collectFeedbackLogAttachment: vi.fn(() => ({
+    filename: 'logs.gz',
+    data: Buffer.from([1, 2, 3]),
+    contentType: 'application/gzip',
+  })),
 }));
 
 vi.mock('@/process/utils/analyticsId', () => ({
@@ -35,7 +45,13 @@ vi.mock('@/process/utils/analyticsId', () => ({
 }));
 
 import * as Sentry from '@sentry/electron/main';
-import { selectRecentLogFiles, packAndCap, captureBackendStartupFailure } from '@/sentry';
+import {
+  selectRecentLogFiles,
+  packAndCap,
+  captureBackendStartupFailure,
+  captureBackendStartupDiagnosticReport,
+} from '@/sentry';
+import { collectFeedbackLogAttachment } from '@/process/feedback/logs';
 
 describe('selectRecentLogFiles', () => {
   it('returns every file from the N most recent non-empty days', () => {
@@ -92,7 +108,7 @@ describe('packAndCap', () => {
 });
 
 describe('captureBackendStartupFailure', () => {
-  it('captures a dedicated backend startup failure with diagnostics', () => {
+  it('captures and flushes a dedicated backend startup failure with diagnostics', async () => {
     const error = new Error('aioncore failed to start within timeout') as Error & {
       details?: Record<string, unknown>;
     };
@@ -103,9 +119,51 @@ describe('captureBackendStartupFailure', () => {
       stderrTail: 'database is locked',
     };
 
-    captureBackendStartupFailure(error);
+    await captureBackendStartupFailure(error);
 
     expect(Sentry.captureException).toHaveBeenCalledWith(error);
+    expect(Sentry.flush).toHaveBeenCalledWith(2000);
     expect(Sentry.withScope).toHaveBeenCalledOnce();
+  });
+});
+
+describe('captureBackendStartupDiagnosticReport', () => {
+  it('captures a user-feedback startup diagnostic report with recent logs', async () => {
+    const error = new Error('aioncore failed to start within timeout') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'health_timeout',
+      port: 33334,
+    };
+
+    await captureBackendStartupDiagnosticReport(error);
+
+    expect(collectFeedbackLogAttachment).toHaveBeenCalled();
+    expect(Sentry.captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        level: 'info',
+        message: 'AionUi startup diagnostic report: backend startup failed',
+        tags: expect.objectContaining({
+          type: 'user-feedback',
+          module: 'startup',
+          'aionui.failure': 'backend_startup',
+          'aionui.backend_startup.stage': 'health_timeout',
+        }),
+        extra: expect.objectContaining({
+          errorMessage: 'aioncore failed to start within timeout',
+        }),
+      }),
+      {
+        attachments: [
+          {
+            filename: 'logs.gz',
+            data: Buffer.from([1, 2, 3]),
+            contentType: 'application/gzip',
+          },
+        ],
+      }
+    );
+    expect(Sentry.flush).toHaveBeenCalledWith(2000);
   });
 });
