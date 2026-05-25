@@ -463,9 +463,14 @@ const AddPlatformModal = ModalHOC<{
             />
           </Form.Item>
 
-          {/* Full URL toggle - only for custom and new-api platforms */}
+          {/*
+            Full URL toggle - only for custom and new-api platforms.
+            Use a positive marginTop so the Switch row sits below the Input.
+            A negative marginTop would overlap the Input's bottom edge and
+            intercept clicks on its lower rim (see ELECTRON-1K4).
+          */}
           {(isCustom || isNewApi) && !isBedrock && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: -8, marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 4, marginBottom: 12 }}>
               <Switch size='small' checked={isFullUrl} onChange={setIsFullUrl} />
               <span className='text-12px text-t-secondary'>{t('settings.fullUrlMode', '完整 URL')}</span>
               <span className='text-11px text-t-tertiary'>
