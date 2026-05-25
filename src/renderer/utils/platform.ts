@@ -116,10 +116,24 @@ export const resolveExtensionAssetUrl = (url: string | undefined): string | unde
 export const openExternalUrl = async (url: string): Promise<void> => {
   if (!url) return;
 
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(url);
+  } catch {
+    console.warn(`[platform] Invalid URL passed to openExternalUrl: ${url}`);
+    return;
+  }
+
+  const allowedProtocols = new Set(['http:', 'https:', 'mailto:']);
+  if (!allowedProtocols.has(parsedUrl.protocol)) {
+    console.warn(`[platform] Blocked unsupported external URL protocol: ${parsedUrl.protocol}`);
+    return;
+  }
+
   if (isElectronDesktop()) {
     const { ipcBridge } = await import('@/common');
-    await ipcBridge.shell.openExternal.invoke(url);
+    await ipcBridge.shell.openExternal.invoke(parsedUrl.toString());
   } else {
-    window.open(url, '_blank', 'noopener,noreferrer');
+    window.open(parsedUrl.toString(), '_blank', 'noopener,noreferrer');
   }
 };
