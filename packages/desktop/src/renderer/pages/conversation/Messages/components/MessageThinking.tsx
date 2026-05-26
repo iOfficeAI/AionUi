@@ -39,8 +39,11 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   const duration = message.content.duration ?? (message.content as { duration_ms?: number }).duration_ms;
   const isDone = status === 'done';
   const [expanded, setExpanded] = useState(!isDone);
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const startTimeRef = useRef<number>(Date.now());
+  const [elapsedTime, setElapsedTime] = useState(() => {
+    const initialStartedAt = message.created_at ?? Date.now();
+    return isDone ? 0 : Math.max(0, Math.floor((Date.now() - initialStartedAt) / 1000));
+  });
+  const startTimeRef = useRef<number>(message.created_at ?? Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
 
   // Auto-collapse when status changes to done
@@ -54,13 +57,14 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   useEffect(() => {
     if (isDone) return;
 
-    startTimeRef.current = Date.now();
+    startTimeRef.current = message.created_at ?? Date.now();
+    setElapsedTime(Math.max(0, Math.floor((Date.now() - startTimeRef.current) / 1000)));
     const timer = setInterval(() => {
       setElapsedTime(Math.floor((Date.now() - startTimeRef.current) / 1000));
     }, 1000);
 
     return () => clearInterval(timer);
-  }, [isDone]);
+  }, [isDone, message.created_at, message.msg_id]);
 
   // Auto-scroll to bottom during streaming
   useEffect(() => {
