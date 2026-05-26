@@ -38,8 +38,28 @@ import styles from './index.module.css';
 const COMMAND_EVE_GUID_ENABLED = true;
 const COMMAND_EVE_AGENT_BACKEND = 'hermes';
 const COMMAND_EVE_DISPLAY_NAME = 'EVE';
-const COMMAND_EVE_WAIT_VIDEO_SRC = '/eve-intent-wait.mp4?v=command-eve-face-20260526';
-const COMMAND_EVE_WAIT_POSTER_SRC = '/eve-intent-wait-anchor.png?v=command-eve-face-20260526';
+const COMMAND_EVE_WAIT_VIDEO_OPTIONS = [
+  {
+    src: '/eve-intent-wait.mp4?v=command-eve-wait-20260526b',
+    poster: '/eve-intent-wait-anchor.png?v=command-eve-wait-20260526b',
+  },
+  {
+    src: '/eve-wait-focus.mp4?v=command-eve-wait-20260526b',
+    poster: '/eve-wait-focus-anchor.png?v=command-eve-wait-20260526b',
+  },
+  {
+    src: '/eve-wait-companion.mp4?v=command-eve-wait-20260526b',
+    poster: '/eve-wait-companion-anchor.png?v=command-eve-wait-20260526b',
+  },
+  {
+    src: '/eve-wait-review.mp4?v=command-eve-wait-20260526b',
+    poster: '/eve-wait-review-anchor.png?v=command-eve-wait-20260526b',
+  },
+  {
+    src: '/eve-wait-call.mp4?v=command-eve-wait-20260526b',
+    poster: '/eve-wait-call-anchor.png?v=command-eve-wait-20260526b',
+  },
+] as const;
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -52,6 +72,10 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [commandEveWaitVideoIndex, setCommandEveWaitVideoIndex] = useState(() =>
+    Math.floor(Math.random() * COMMAND_EVE_WAIT_VIDEO_OPTIONS.length)
+  );
+  const commandEveWaitVideo = COMMAND_EVE_WAIT_VIDEO_OPTIONS[commandEveWaitVideoIndex];
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -604,14 +628,17 @@ const GuidPage: React.FC = () => {
             {COMMAND_EVE_GUID_ENABLED ? (
               <div className={styles.commandEveHero} data-testid='command-eve-hero'>
                 <video
-                  src={COMMAND_EVE_WAIT_VIDEO_SRC}
-                  poster={COMMAND_EVE_WAIT_POSTER_SRC}
+                  key={commandEveWaitVideo.src}
+                  src={commandEveWaitVideo.src}
+                  poster={commandEveWaitVideo.poster}
                   className={styles.commandEveWaitVideo}
                   aria-hidden='true'
                   autoPlay
                   muted
-                  loop
                   playsInline
+                  onEnded={() => {
+                    setCommandEveWaitVideoIndex((index) => (index + 1) % COMMAND_EVE_WAIT_VIDEO_OPTIONS.length);
+                  }}
                 />
                 <p className={styles.commandEvePrompt}>{commandEvePrompt}</p>
               </div>

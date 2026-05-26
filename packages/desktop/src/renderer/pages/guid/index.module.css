@@ -674,7 +674,9 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 0 12px;
     padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
     box-sizing: border-box;
