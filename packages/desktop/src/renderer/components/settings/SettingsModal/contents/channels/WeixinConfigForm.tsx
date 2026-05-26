@@ -81,7 +81,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend?: string;
     name?: string;
     id?: string;
-  }>({ agent_type: 'aionrs' });
+  }>({ agent_type: '' });
 
   // Close EventSource on unmount to prevent connection leaks.
   useEffect(() => {
@@ -335,7 +335,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [];
 
   const handleDisconnect = async () => {
     try {

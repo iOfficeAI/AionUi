@@ -79,7 +79,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     backend?: string;
     name?: string;
     id?: string;
-  }>({ agent_type: 'aionrs' });
+  }>({ agent_type: '' });
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -347,7 +347,7 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [];
 
   return (
     <div className='flex flex-col gap-24px'>

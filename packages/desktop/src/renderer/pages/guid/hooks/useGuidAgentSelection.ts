@@ -127,7 +127,7 @@ export const useGuidAgentSelection = ({
   preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('');
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -330,12 +330,14 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-      _setSelectedAgentKey(fallbackKey);
-      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-        console.error('Failed to save reset agent key:', error);
-      });
+      const firstCliAgent = availableAgents.find((a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli');
+      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : '';
+      if (fallbackKey) {
+        _setSelectedAgentKey(fallbackKey);
+        configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+          console.error('Failed to save reset agent key:', error);
+        });
+      }
     }
   }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 
@@ -537,8 +539,8 @@ export const useGuidAgentSelection = ({
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
-    const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
-    return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+    const firstCliAgent = availableAgents?.find((a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli');
+    return firstCliAgent ? getAgentKey(firstCliAgent) : '';
   }, [availableAgents]);
 
   return {

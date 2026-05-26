@@ -68,7 +68,8 @@ export const useCustomAgentsLoader = ({
   // all see the same list without duplicate HTTP calls.
   const { data: assistantList } = useSWR('assistants.list', async () => {
     try {
-      return await ipcBridge.assistants.list.invoke();
+      const list = await ipcBridge.assistants.list.invoke();
+      return list.filter((a) => a.preset_agent_type !== 'aionrs' && a.preset_agent_type !== 'aion-cli');
     } catch (error) {
       console.error('Failed to load assistants:', error);
       return [] as Assistant[];
