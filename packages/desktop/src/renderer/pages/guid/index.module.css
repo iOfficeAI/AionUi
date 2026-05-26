@@ -12,7 +12,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
 }
 
 .commandEveHero {
@@ -20,15 +20,17 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 14px;
+  gap: 18px;
   text-align: center;
 }
 
 .commandEveWaitVideo {
-  width: clamp(112px, 13vw, 152px);
+  width: clamp(132px, 12vw, 164px);
   aspect-ratio: 1 / 1;
-  border-radius: 28px;
+  flex: 0 0 auto;
+  border-radius: 30px;
   object-fit: cover;
+  object-position: center center;
   display: block;
   background: var(--color-fill-2);
   box-shadow: 0 14px 34px color-mix(in srgb, var(--color-text-1) 16%, transparent);
@@ -682,8 +684,16 @@
     width: 100%;
   }
 
+  .heroHeader {
+    margin-bottom: 18px;
+  }
+
+  .commandEveHero {
+    gap: 12px;
+  }
+
   .commandEveWaitVideo {
-    width: 104px;
+    width: 112px;
     border-radius: 24px;
   }
 

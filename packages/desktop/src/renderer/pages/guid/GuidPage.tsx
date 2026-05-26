@@ -38,8 +38,8 @@ import styles from './index.module.css';
 const COMMAND_EVE_GUID_ENABLED = true;
 const COMMAND_EVE_AGENT_BACKEND = 'hermes';
 const COMMAND_EVE_DISPLAY_NAME = 'EVE';
-const COMMAND_EVE_WAIT_VIDEO_SRC = '/eve-intent-wait.mp4';
-const COMMAND_EVE_WAIT_POSTER_SRC = '/eve-intent-wait-anchor.png';
+const COMMAND_EVE_WAIT_VIDEO_SRC = '/eve-intent-wait.mp4?v=command-eve-face-20260526';
+const COMMAND_EVE_WAIT_POSTER_SRC = '/eve-intent-wait-anchor.png?v=command-eve-face-20260526';
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
