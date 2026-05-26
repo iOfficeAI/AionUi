@@ -106,7 +106,11 @@ export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return (agents as AgentMetadata[]).filter((a) => {
+        const type = a.agent_type as string;
+        const backend = a.backend as string | undefined;
+        return type !== 'aionrs' && type !== 'aion-cli' && backend !== 'aionrs' && backend !== 'aion-cli';
+      });
     }
   } catch {
     // fallback to empty

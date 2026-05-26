@@ -26,7 +26,9 @@ const LocalAgents: React.FC = () => {
   // Single fetch for all agents; both detected and custom lists are derived from it.
   const { agents: allAgents, revalidate: mutateAgents } = useAgents();
 
-  const detectedAgents = allAgents.filter((a) => a.agent_type !== 'remote' && a.agent_source !== 'custom');
+  const detectedAgents = allAgents.filter(
+    (a) => a.agent_type !== 'remote' && a.agent_source !== 'custom' && a.agent_type !== 'aionrs' && a.backend !== 'aionrs'
+  );
 
   const customAgents: AgentMetadata[] = allAgents.filter((a) => a.agent_source === 'custom');
 
@@ -84,9 +86,8 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // Aion CLI first among detected agents
-  const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
+  // Removed Aion CLI special handling
+  const otherDetected = detectedAgents ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -151,9 +152,6 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && (
-          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
-        )}
         {otherDetected.map((agent) => (
           <AgentCard
             key={agent.backend || agent.agent_type}
