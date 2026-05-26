@@ -33,6 +33,9 @@ import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
+const COMMAND_EVE_AGENT_BACKEND = 'hermes';
+const COMMAND_EVE_DISPLAY_NAME = 'EVE';
+
 /** Check whether a specific skill is mounted on the conversation. */
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
   const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
@@ -201,6 +204,8 @@ const ChatConversation: React.FC<{
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
 
   const isAionrsConversation = conversation?.type === 'aionrs';
+  const isCommandEveConversation =
+    conversation?.type === 'acp' && conversation.extra?.backend === COMMAND_EVE_AGENT_BACKEND;
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -209,7 +214,9 @@ const ChatConversation: React.FC<{
   const acpAssistantId = acpConversation ? (resolveAssistantConfigId(acpConversation) ?? undefined) : undefined;
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
-  const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
+  const assistantDisplayName = isCommandEveConversation
+    ? COMMAND_EVE_DISPLAY_NAME
+    : presetAssistantInfo?.name || conversationAgentName;
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
@@ -308,6 +315,7 @@ const ChatConversation: React.FC<{
     if (!conversation || isAionrsConversation) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      if (extra.backend === COMMAND_EVE_AGENT_BACKEND) return undefined;
       return (
         <AcpModelSelector
           conversation_id={conversation.id}
@@ -346,7 +354,7 @@ const ChatConversation: React.FC<{
                       : conversation?.type === 'remote'
                         ? 'remote'
                         : undefined,
-          agent_name: conversationAgentName,
+          agent_name: isCommandEveConversation ? COMMAND_EVE_DISPLAY_NAME : conversationAgentName,
         };
 
   const headerExtraNode = (

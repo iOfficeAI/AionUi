@@ -15,6 +15,34 @@
   margin-bottom: 16px;
 }
 
+.commandEveHero {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  text-align: center;
+}
+
+.commandEveWaitVideo {
+  width: clamp(112px, 13vw, 152px);
+  aspect-ratio: 1 / 1;
+  border-radius: 28px;
+  object-fit: cover;
+  display: block;
+  background: var(--color-fill-2);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--color-text-1) 16%, transparent);
+}
+
+.commandEvePrompt {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: 0;
+}
+
 .heroHeaderControls {
   width: 100%;
   max-width: 760px;
@@ -652,6 +680,16 @@
 
   .guidInputCard {
     width: 100%;
+  }
+
+  .commandEveWaitVideo {
+    width: 104px;
+    border-radius: 24px;
+  }
+
+  .commandEvePrompt {
+    font-size: 23px;
+    line-height: 30px;
   }
 
   .actionRow {

@@ -9,6 +9,9 @@
   "selectAssistantHint": "アシスタントを選択してタスクを開始",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "{{agent}} に切り替えました",
+  "commandEve": {
+    "prompt": "今日は何を進めますか？"
+  },
   "workspace": {
     "workInProject": "プロジェクトで作業",
     "optional": "任意",

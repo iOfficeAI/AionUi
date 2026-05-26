@@ -622,6 +622,7 @@ export type I18nKey =
   | 'guid.agentTabAutoSwitch'
   | 'guid.autoSwitchToAgent'
   | 'guid.autoSwitchedAgent'
+  | 'guid.commandEve.prompt'
   | 'guid.noAgentAvailable'
   | 'guid.noAgentAvailableShort'
   | 'guid.promptExamplesHint'

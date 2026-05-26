@@ -43,6 +43,8 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
+const COMMAND_EVE_AGENT_BACKEND = 'hermes';
+const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
@@ -101,6 +103,7 @@ const AcpSendBox: React.FC<{
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+  const displayBackendName = backend === COMMAND_EVE_AGENT_BACKEND ? COMMAND_EVE_DISPLAY_NAME : agent_name || backend;
 
   // In team mode, warmup the agent then fetch slash commands
   useEffect(() => {
@@ -366,7 +369,7 @@ Please check your local CLI tool authentication status`,
         loading={isBusy}
         disabled={false}
         placeholder={t('acp.sendbox.placeholder', {
-          backend: agent_name || backend,
+          backend: displayBackendName,
           defaultValue: `Send message to {{backend}}...`,
         })}
         onStop={handleStop}

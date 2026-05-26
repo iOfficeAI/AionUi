@@ -12,6 +12,8 @@ import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 
 const { Text } = Typography;
+const COMMAND_EVE_AGENT_BACKEND = 'hermes';
+const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 
 interface MessageAgentStatusProps {
   message: IMessageAgentStatus;
@@ -27,9 +29,11 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
 
   // Resolve display name: agent_name (extension/custom) > detected agent name > capitalized backend
   const display_name =
-    agent_name ||
-    cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name ||
-    backend.charAt(0).toUpperCase() + backend.slice(1);
+    backend === COMMAND_EVE_AGENT_BACKEND
+      ? COMMAND_EVE_DISPLAY_NAME
+      : agent_name ||
+        cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name ||
+        backend.charAt(0).toUpperCase() + backend.slice(1);
 
   // Hide disconnected status from historical messages (no longer emitted but may exist in DB)
   if ((status as string) === 'disconnected') return null;

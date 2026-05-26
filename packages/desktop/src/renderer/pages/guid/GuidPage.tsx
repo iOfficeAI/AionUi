@@ -35,6 +35,12 @@ import { mutate as swrMutate } from 'swr';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
 
+const COMMAND_EVE_GUID_ENABLED = true;
+const COMMAND_EVE_AGENT_BACKEND = 'hermes';
+const COMMAND_EVE_DISPLAY_NAME = 'EVE';
+const COMMAND_EVE_WAIT_VIDEO_SRC = '/eve-intent-wait.mp4';
+const COMMAND_EVE_WAIT_POSTER_SRC = '/eve-intent-wait-anchor.png';
+
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -110,6 +116,22 @@ const GuidPage: React.FC = () => {
     preselectAgentKey,
     locationKey: location.key,
   });
+
+  const commandEveAgentKey = useMemo(() => {
+    if (!COMMAND_EVE_GUID_ENABLED || !agentSelection.availableAgents) return undefined;
+    const hermesAgent = agentSelection.availableAgents.find(
+      (agent) =>
+        !agent.is_preset &&
+        (agent.backend === COMMAND_EVE_AGENT_BACKEND || agent.agent_type === COMMAND_EVE_AGENT_BACKEND)
+    );
+    return hermesAgent ? agentSelection.getAgentKey(hermesAgent) : undefined;
+  }, [agentSelection.availableAgents, agentSelection.getAgentKey]);
+
+  useEffect(() => {
+    if (!COMMAND_EVE_GUID_ENABLED || !commandEveAgentKey) return;
+    if (agentSelection.selectedAgentKey === commandEveAgentKey) return;
+    agentSelection.setSelectedAgentKey(commandEveAgentKey);
+  }, [agentSelection, commandEveAgentKey]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -295,6 +317,7 @@ const GuidPage: React.FC = () => {
 
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
+  const commandEvePrompt = t('guid.commandEve.prompt');
   const selectedAssistantRecord = useMemo(() => {
     if (!agentSelection.is_presetAgent || !agentSelection.selectedAgentInfo?.custom_agent_id) return undefined;
     const selectedId = agentSelection.selectedAgentInfo.custom_agent_id;
@@ -543,7 +566,7 @@ const GuidPage: React.FC = () => {
     <GuidActionRow
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
-      modelSelectorNode={modelSelectorNode}
+      modelSelectorNode={COMMAND_EVE_GUID_ENABLED ? null : modelSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
       selectedMode={agentSelection.selectedMode}
@@ -578,7 +601,21 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            {agentSelection.is_presetAgent ? (
+            {COMMAND_EVE_GUID_ENABLED ? (
+              <div className={styles.commandEveHero} data-testid='command-eve-hero'>
+                <video
+                  src={COMMAND_EVE_WAIT_VIDEO_SRC}
+                  poster={COMMAND_EVE_WAIT_POSTER_SRC}
+                  className={styles.commandEveWaitVideo}
+                  aria-hidden='true'
+                  autoPlay
+                  muted
+                  loop
+                  playsInline
+                />
+                <p className={styles.commandEvePrompt}>{commandEvePrompt}</p>
+              </div>
+            ) : agentSelection.is_presetAgent ? (
               <div className={styles.heroHeaderControls}>
                 <div className={styles.heroHeaderLeft}>
                   <Button
@@ -686,7 +723,7 @@ const GuidPage: React.FC = () => {
             )}
           </div>
 
-          {agentSelection.is_presetAgent && selectedAssistantDescription ? (
+          {COMMAND_EVE_GUID_ENABLED ? null : agentSelection.is_presetAgent && selectedAssistantDescription ? (
             <div
               className={`${styles.heroSubtitle} ${isDescriptionExpanded ? styles.heroSubtitleExpanded : ''}`}
               onClick={() => {
@@ -738,7 +775,9 @@ const GuidPage: React.FC = () => {
             onPaste={guidInput.onPaste}
             onFocus={guidInput.handleTextareaFocus}
             onBlur={guidInput.handleTextareaBlur}
-            placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
+            placeholder={`${
+              COMMAND_EVE_GUID_ENABLED ? COMMAND_EVE_DISPLAY_NAME : mention.selectedAgentLabel
+            }, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
             isInputActive={guidInput.isInputFocused}
             isFileDragging={guidInput.isFileDragging}
             activeBorderColor={activeBorderColor}
@@ -765,27 +804,31 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
 
-          <AssistantSelectionArea
-            is_presetAgent={agentSelection.is_presetAgent}
-            selectedAgentInfo={agentSelection.selectedAgentInfo}
-            assistants={agentSelection.assistants}
-            localeKey={localeKey}
-            currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
-            onSelectAssistant={handleSelectAssistant}
-            onSetInput={guidInput.setInput}
-            onFocusInput={guidInput.handleTextareaFocus}
-            onRegisterOpenDetails={(openDetails) => {
-              openAssistantDetailsRef.current = openDetails;
-            }}
-          />
+          {!COMMAND_EVE_GUID_ENABLED && (
+            <AssistantSelectionArea
+              is_presetAgent={agentSelection.is_presetAgent}
+              selectedAgentInfo={agentSelection.selectedAgentInfo}
+              assistants={agentSelection.assistants}
+              localeKey={localeKey}
+              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+              onSelectAssistant={handleSelectAssistant}
+              onSetInput={guidInput.setInput}
+              onFocusInput={guidInput.handleTextareaFocus}
+              onRegisterOpenDetails={(openDetails) => {
+                openAssistantDetailsRef.current = openDetails;
+              }}
+            />
+          )}
         </div>
 
-        <QuickActionButtons
-          onOpenLink={openLink}
-          onOpenBugReport={() => setShowFeedbackModal(true)}
-          inactiveBorderColor={inactiveBorderColor}
-          activeShadow={activeShadow}
-        />
+        {!COMMAND_EVE_GUID_ENABLED && (
+          <QuickActionButtons
+            onOpenLink={openLink}
+            onOpenBugReport={() => setShowFeedbackModal(true)}
+            inactiveBorderColor={inactiveBorderColor}
+            activeShadow={activeShadow}
+          />
+        )}
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
       </div>
     </ConfigProvider>

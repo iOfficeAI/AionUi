@@ -9,6 +9,9 @@
   "selectAssistantHint": "Göreve başlamak için bir asistan seçin",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "{{agent}} olarak değiştirildi",
+  "commandEve": {
+    "prompt": "Bugün planın ne?"
+  },
   "workspace": {
     "workInProject": "Projede çalış",
     "optional": "İsteğe bağlı",
