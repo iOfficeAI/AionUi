@@ -75,6 +75,11 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
 // Index-optimized message compose function
 function composeMessageWithIndex(message: TMessage, list: TMessage[], index: MessageIndex): TMessage[] {
   if (!message) return list || [];
+
+  if (message.type === 'tool_call' && !message.content?.call_id) {
+    return list || [];
+  }
+
   if (!list?.length) {
     // Update index when adding first message
     if (message.msg_id) {
@@ -277,6 +282,10 @@ export const useAddOrUpdateMessage = () => {
       let newList = list;
 
       for (const item of pending) {
+        if (item.message.type === 'tool_call' && !item.message.content?.call_id) {
+          continue;
+        }
+
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index

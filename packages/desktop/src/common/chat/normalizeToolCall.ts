@@ -173,7 +173,7 @@ function normalizeToolCallStatus(status?: string): NormalizedToolStatus {
 
 export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall | undefined {
   const { call_id, name, status, input, output, args, description } = message.content;
-  if (!call_id && !name) return undefined;
+  if (!call_id) return undefined;
 
   const displayInput = input
     ? formatValue(input)
@@ -182,7 +182,7 @@ export function normalizeToolCall(message: IMessageToolCall): NormalizedToolCall
       : undefined;
 
   return {
-    key: call_id || name,
+    key: call_id,
     name,
     status: normalizeToolCallStatus(status),
     description: description || undefined,
