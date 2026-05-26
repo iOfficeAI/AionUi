@@ -16,8 +16,12 @@ vi.mock('electron', () => ({
   app: { getVersion: () => '0.0.0-test', getPath: () => '/tmp', isPackaged: false },
 }));
 
+let sentryInitOptions: { beforeSend?: (event: unknown) => unknown } | undefined;
+
 vi.mock('@sentry/electron/main', () => ({
-  init: vi.fn(),
+  init: vi.fn((options: { beforeSend?: (event: unknown) => unknown }) => {
+    sentryInitOptions = options;
+  }),
   setTag: vi.fn(),
   setUser: vi.fn(),
   withScope: vi.fn((callback: (scope: unknown) => void) => {
@@ -32,26 +36,12 @@ vi.mock('@sentry/electron/main', () => ({
   flush: vi.fn(async () => true),
 }));
 
-vi.mock('@/process/feedback/logs', () => ({
-  collectFeedbackLogAttachment: vi.fn(() => ({
-    filename: 'logs.gz',
-    data: Buffer.from([1, 2, 3]),
-    contentType: 'application/gzip',
-  })),
-}));
-
 vi.mock('@/process/utils/analyticsId', () => ({
   getOrCreateAnalyticsId: () => 'test-device-id',
 }));
 
 import * as Sentry from '@sentry/electron/main';
-import {
-  selectRecentLogFiles,
-  packAndCap,
-  captureBackendStartupFailure,
-  captureBackendStartupDiagnosticReport,
-} from '@/sentry';
-import { collectFeedbackLogAttachment } from '@/process/feedback/logs';
+import { selectRecentLogFiles, packAndCap, captureBackendStartupFailure, initSentry } from '@/sentry';
 
 describe('selectRecentLogFiles', () => {
   it('returns every file from the N most recent non-empty days', () => {
@@ -127,43 +117,45 @@ describe('captureBackendStartupFailure', () => {
   });
 });
 
-describe('captureBackendStartupDiagnosticReport', () => {
-  it('captures a user-feedback startup diagnostic report with recent logs', async () => {
-    const error = new Error('aioncore failed to start within timeout') as Error & {
-      details?: Record<string, unknown>;
-    };
-    error.details = {
-      stage: 'health_timeout',
-      port: 33334,
-    };
+describe('initSentry beforeSend', () => {
+  it('drops backend-port secondary errors after backend startup already failed', () => {
+    initSentry();
+    (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
 
-    await captureBackendStartupDiagnosticReport(error);
-
-    expect(collectFeedbackLogAttachment).toHaveBeenCalled();
-    expect(Sentry.captureEvent).toHaveBeenCalledWith(
-      expect.objectContaining({
-        level: 'info',
-        message: 'AionUi startup diagnostic report: backend startup failed',
-        tags: expect.objectContaining({
-          type: 'user-feedback',
-          module: 'startup',
-          'aionui.failure': 'backend_startup',
-          'aionui.backend_startup.stage': 'health_timeout',
-        }),
-        extra: expect.objectContaining({
-          errorMessage: 'aioncore failed to start within timeout',
-        }),
-      }),
-      {
-        attachments: [
+    const event = {
+      exception: {
+        values: [
           {
-            filename: 'logs.gz',
-            data: Buffer.from([1, 2, 3]),
-            contentType: 'application/gzip',
+            value: '[WebUI] Cannot start: aioncore is not running (globalThis.__backendPort unset)',
           },
         ],
-      }
-    );
-    expect(Sentry.flush).toHaveBeenCalledWith(2000);
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBeNull();
+
+    delete (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed;
+  });
+
+  it('keeps the primary backend startup failure even when its details contain secondary text', () => {
+    initSentry();
+    (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+
+    const event = {
+      tags: {
+        'aionui.failure': 'backend_startup',
+      },
+      exception: {
+        values: [
+          {
+            value: 'BackendStartupError: connect ECONNREFUSED 127.0.0.1:33334',
+          },
+        ],
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBe(event);
+
+    delete (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed;
   });
 });

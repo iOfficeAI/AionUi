@@ -9,7 +9,27 @@
 // browser SDK when running as a web server (no window.electronAPI).
 if ((window as { electronAPI?: unknown }).electronAPI) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
-  import('@sentry/electron/renderer').then((Sentry) => Sentry.init()).catch(() => {});
+  import('@sentry/electron/renderer')
+    .then((Sentry) =>
+      Sentry.init({
+        beforeSend(event) {
+          if (!(window as { __backendStartupFailed?: boolean }).__backendStartupFailed) {
+            return event;
+          }
+          const haystacks: string[] = [];
+          if (event.message) haystacks.push(event.message);
+          const exceptions = event.exception?.values ?? [];
+          for (const ex of exceptions) {
+            if (ex.value) haystacks.push(ex.value);
+          }
+          if (haystacks.some((h) => /Failed to fetch|window\.__backendPort|__backendPort unset/.test(h))) {
+            return null;
+          }
+          return event;
+        },
+      })
+    )
+    .catch(() => {});
 }
 
 // Runtime patches must be imported early

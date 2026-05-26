@@ -8,25 +8,19 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import {
-  captureBackendStartupDiagnosticReport,
-  captureBackendStartupFailure,
-  initSentry,
-  scheduleStartupLogReport,
-  setSentryDeviceId,
-} from './sentry';
+import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
 import './process/utils/configureConsoleLog';
-import { app, BrowserWindow, dialog, ipcMain, nativeImage, powerMonitor } from 'electron';
+import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
-import { showBackendStartupFailureDialog, startBackendOrExit } from './process/startup/backendStartup';
+import { startBackendOrExit } from './process/startup/backendStartup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
@@ -34,7 +28,7 @@ import { resolveBinaryPath } from '@process/backend';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
-import i18n, { i18nReady, setInitialLanguage } from '@process/services/i18n';
+import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
@@ -204,10 +198,15 @@ let disposeCronResumeListener: (() => void) | null = null;
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
+let backendStartupFailed = false;
 let backendMigrationsScheduled = false;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
+});
+
+ipcMain.on('get-backend-startup-failed', (event) => {
+  event.returnValue = backendStartupFailed;
 });
 
 function registerCronResumeBridge(backendPort: number): void {
@@ -513,36 +512,16 @@ const handleAppReady = async (): Promise<void> => {
       backendStartedOk = true;
     },
     captureFailure: captureBackendStartupFailure,
-    showFailureDialog:
-      isWebUIMode || isResetPasswordMode
-        ? undefined
-        : async (error) => {
-            await i18nReady;
-            await showBackendStartupFailureDialog(
-              error,
-              {
-                title: i18n.t('settings.backendStartupFailureTitle'),
-                message: i18n.t('settings.backendStartupFailureMessage'),
-                detail: i18n.t('settings.backendStartupFailureDetail'),
-                sendReport: i18n.t('settings.backendStartupFailureSendReport'),
-                exit: i18n.t('settings.backendStartupFailureExit'),
-                reportSentTitle: i18n.t('settings.backendStartupFailureReportSentTitle'),
-                reportSentMessage: i18n.t('settings.backendStartupFailureReportSentMessage'),
-                reportFailedTitle: i18n.t('settings.backendStartupFailureReportFailedTitle'),
-                reportFailedMessage: i18n.t('settings.backendStartupFailureReportFailedMessage'),
-              },
-              {
-                showMessageBox: (options) => dialog.showMessageBox(options),
-                captureDiagnosticReport: captureBackendStartupDiagnosticReport,
-                logError: console.error,
-              }
-            );
-          },
     exitApp: (code) => app.exit(code),
+    exitOnFailure: isWebUIMode || isResetPasswordMode,
     logError: console.error,
   });
   if (!backendStartup.ok) {
-    return;
+    backendStartupFailed = true;
+    (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+    if (isWebUIMode || isResetPasswordMode) {
+      return;
+    }
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is

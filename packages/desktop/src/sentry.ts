@@ -9,29 +9,63 @@ import { app, type BrowserWindow } from 'electron';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
-import { collectFeedbackLogAttachment } from './process/feedback/logs';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
 // 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
 const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
+const BACKEND_STARTUP_SECONDARY_DROP_PATTERNS = [
+  /globalThis\.__backendPort unset/,
+  /window\.__backendPort/,
+  /Failed to fetch/,
+  /ECONNREFUSED/,
+];
+
+function collectEventSearchText(event: { message?: unknown; exception?: { values?: unknown[] } }): string[] {
+  const haystacks: string[] = [];
+  if (typeof event.message === 'string') haystacks.push(event.message);
+  const exceptions = event.exception?.values ?? [];
+  for (const ex of exceptions) {
+    if (!ex || typeof ex !== 'object') continue;
+    const value = (ex as { value?: unknown }).value;
+    if (typeof value === 'string') haystacks.push(value);
+    const frames = (ex as { stacktrace?: { frames?: unknown[] } }).stacktrace?.frames ?? [];
+    for (const frame of frames) {
+      if (!frame || typeof frame !== 'object') continue;
+      const fn = (frame as { function?: unknown }).function;
+      if (typeof fn === 'string') haystacks.push(fn);
+    }
+  }
+  return haystacks;
+}
+
+function hasBackendStartupFailed(): boolean {
+  return (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed === true;
+}
+
+function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> }): boolean {
+  return event.tags?.['aionui.failure'] === 'backend_startup';
+}
+
+function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
+  if (isBackendStartupFailureEvent(event)) {
+    return false;
+  }
+  return (
+    hasBackendStartupFailed() && BACKEND_STARTUP_SECONDARY_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))
+  );
+}
 
 export function initSentry(): void {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: app.isPackaged ? 'production' : 'development',
     beforeSend(event) {
-      const haystacks: string[] = [];
-      if (event.message) haystacks.push(event.message);
-      const exceptions = event.exception?.values ?? [];
-      for (const ex of exceptions) {
-        if (ex.value) haystacks.push(ex.value);
-        const frames = ex.stacktrace?.frames ?? [];
-        for (const frame of frames) {
-          if (frame.function) haystacks.push(frame.function);
-        }
-      }
+      const haystacks = collectEventSearchText(event);
       if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
+        return null;
+      }
+      if (isBackendStartupSecondaryEvent(event, haystacks)) {
         return null;
       }
       return event;
@@ -64,6 +98,7 @@ function getBackendStartupDetails(error: unknown): Record<string, unknown> | und
 const BACKEND_STARTUP_FLUSH_TIMEOUT_MS = 2000;
 
 export async function captureBackendStartupFailure(error: unknown): Promise<void> {
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
   const capturedError = error instanceof Error ? error : new Error(String(error));
   const details = getBackendStartupDetails(error);
   Sentry.withScope((scope) => {
@@ -81,54 +116,6 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
     await Sentry.flush(BACKEND_STARTUP_FLUSH_TIMEOUT_MS);
   } catch {
     // If Sentry cannot flush during fatal startup, keep shutdown deterministic.
-  }
-}
-
-function getFeedbackLogsDir(): string {
-  try {
-    return app.getPath('logs');
-  } catch {
-    return path.join(app.getPath('userData'), 'logs');
-  }
-}
-
-export async function captureBackendStartupDiagnosticReport(error: unknown): Promise<void> {
-  const details = getBackendStartupDetails(error);
-  const errorMessage = error instanceof Error ? error.message : String(error);
-  const logAttachment = collectFeedbackLogAttachment(getFeedbackLogsDir());
-  const attachments = logAttachment
-    ? [
-        {
-          filename: logAttachment.filename,
-          data: logAttachment.data,
-          contentType: logAttachment.contentType,
-        },
-      ]
-    : [];
-
-  Sentry.captureEvent(
-    {
-      level: 'info',
-      message: 'AionUi startup diagnostic report: backend startup failed',
-      tags: {
-        type: 'user-feedback',
-        module: 'startup',
-        'aionui.failure': 'backend_startup',
-        ...(typeof details?.stage === 'string' ? { 'aionui.backend_startup.stage': details.stage } : {}),
-      },
-      contexts: details ? { aioncore_startup: details } : undefined,
-      extra: {
-        errorMessage,
-        description: 'User opted to send a startup diagnostic report after aioncore failed to start.',
-      },
-    },
-    { attachments }
-  );
-
-  try {
-    await Sentry.flush(BACKEND_STARTUP_FLUSH_TIMEOUT_MS);
-  } catch {
-    // Keep fatal startup shutdown deterministic even if the report cannot flush.
   }
 }
 
