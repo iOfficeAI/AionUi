@@ -9,6 +9,7 @@ import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
@@ -156,6 +157,10 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
+  const layout = useLayoutContext();
+  // Mobile: model selection moved into the sendbox `+` action sheet to free up
+  // header space; the dropdown stays available on desktop and tablets ≥768px.
+  const isMobile = Boolean(layout?.isMobile);
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -168,7 +173,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
           cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
-        <AionrsModelSelector selection={modelSelection} />
+        {!isMobile && <AionrsModelSelector selection={modelSelection} />}
       </div>
     ),
     workspaceEnabled,
@@ -201,6 +206,8 @@ const ChatConversation: React.FC<{
   const { t } = useTranslation();
   const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const layout = useLayoutContext();
+  const isMobile = Boolean(layout?.isMobile);
 
   const isAionrsConversation = conversation?.type === 'aionrs';
 
@@ -306,8 +313,11 @@ const ChatConversation: React.FC<{
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
+  // Mobile: model selection moves into the sendbox `+` action sheet, so the
+  // header selector is suppressed to free up vertical space.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
+    if (isMobile) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
       return (
@@ -319,7 +329,7 @@ const ChatConversation: React.FC<{
       );
     }
     return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation]);
+  }, [conversation, isAionrsConversation, isMobile]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;

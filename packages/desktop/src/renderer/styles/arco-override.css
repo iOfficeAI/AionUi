@@ -351,3 +351,47 @@ body[arco-theme='dark'] .arco-message-error {
     background: var(--color-primary);
   }
 }
+
+/* Guid (homepage) mobile: cap model / permission pills so long values
+ * truncate instead of pushing the `+` and send buttons off-screen.
+ * Driven by LayoutContext.isMobile (data-mobile attribute) so it fires
+ * even when CSS media queries don't — Electron windows can report widths
+ * wider than 768px while still being shaped like mobile. Lives here in
+ * the global stylesheet because the homepage doesn't import sendbox.css. */
+[data-mobile='true'] .agent-mode-compact-pill,
+[data-mobile='true'] [data-testid='guid-model-selector'],
+[data-mobile='true'] [data-testid='mode-selector'] {
+  max-width: 130px !important;
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+[data-mobile='true'] .agent-mode-compact-pill .arco-btn-content {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+/* Inside the guid model selector, only the label text shrinks/truncates;
+ * the leading brain icon and trailing down chevron stay at their natural
+ * size so the dropdown affordance never disappears. The button's direct
+ * child is a flex span containing [icon, label, chevron]. */
+[data-mobile='true'] [data-testid='guid-model-selector'] > span {
+  min-width: 0 !important;
+  overflow: hidden !important;
+}
+
+[data-mobile='true'] [data-testid='guid-model-selector'] > span > span:nth-child(2) {
+  min-width: 0 !important;
+  overflow: hidden !important;
+  text-overflow: clip !important;
+  white-space: nowrap !important;
+}
+
+/* Tighten the gap between model and mode pills on mobile by trimming
+ * each pill's horizontal padding — Arco's round buttons default to
+ * ~12px each side, leaving a visible ~24px chasm even with gap:0. */
+[data-mobile='true'] [data-testid='guid-model-selector'].arco-btn-shape-round,
+[data-mobile='true'] [data-testid='mode-selector'] .arco-btn-shape-round {
+  padding-left: 4px !important;
+  padding-right: 4px !important;
+}
