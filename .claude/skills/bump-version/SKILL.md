@@ -64,6 +64,7 @@ gh release view <tag> --repo iOfficeAI/AionCore --json assets --jq '.assets[].na
 ```
 
 Verify all 7 expected assets exist:
+
 - `aioncore-<tag>-x86_64-unknown-linux-gnu.tar.gz`
 - `aioncore-<tag>-aarch64-unknown-linux-gnu.tar.gz`
 - `aioncore-<tag>-x86_64-apple-darwin.tar.gz`
@@ -123,20 +124,24 @@ Prepend the new entry in this format:
 ### Desktop
 
 #### Bug Fixes
+
 - **upload:** abort in-flight uploads when switching conversations (#3019)
 
 #### Features
+
 - **thinking:** add streaming indicator (#3015)
 
 ### Core ([{core tag}](https://github.com/iOfficeAI/AionCore/releases/tag/{core tag}))
 
 #### Bug Fixes
+
 - **acp:** load user MCP servers and emit empty-finish diagnostic (#327)
 
 ---
 ```
 
 Rules:
+
 - If `--skip-core`: omit the entire "### Core" section
 - If no frontend commits since last tag: show `_No frontend changes in this release._` under "### Desktop"
 - Date format: `YYYY-MM-DD`
@@ -172,6 +177,7 @@ git push -u origin chore/bump-version-{target}
 ```
 
 If `--skip-core`:
+
 ```bash
 git commit -m "chore: bump version to {target}"
 ```
@@ -199,13 +205,16 @@ git branch -d chore/bump-version-{target}
 ```
 
 Check if remote branch still exists:
+
 ```bash
 git ls-remote --heads origin chore/bump-version-{target}
 ```
+
 - Has output → `git push origin --delete chore/bump-version-{target}`
 - No output → skip
 
 Create and push tag:
+
 ```bash
 git tag v{target}
 git push origin v{target}
