@@ -1,4 +1,3 @@
-import loginLogo from '@renderer/assets/logos/brand/app.png';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/renderer/services/i18n';
@@ -15,6 +14,7 @@ type MessageState = {
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
 const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
+const loginLogo = '/command-eve-logo.svg?v=command-eve-20260526';
 
 // Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
 const obfuscate = (text: string): string => {

@@ -1,0 +1,22 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" role="img" aria-labelledby="title desc">
+  <title id="title">Command EVE</title>
+  <desc id="desc">Command key mark for the Command EVE operator shell.</desc>
+  <rect width="256" height="256" rx="56" fill="#080B12"/>
+  <path
+    d="M98 98H158M98 158H158M98 98V158M158 98V158M98 98C76 98 64 86 64 70C64 54 76 42 92 42C108 42 120 54 120 70C120 86 108 98 98 98ZM158 98C180 98 192 86 192 70C192 54 180 42 164 42C148 42 136 54 136 70C136 86 148 98 158 98ZM98 158C76 158 64 170 64 186C64 202 76 214 92 214C108 214 120 202 120 186C120 170 108 158 98 158ZM158 158C180 158 192 170 192 186C192 202 180 214 164 214C148 214 136 202 136 186C136 170 148 158 158 158Z"
+    fill="none"
+    stroke="#71E8F6"
+    stroke-width="14"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+  />
+  <path
+    d="M98 98H158M98 158H158M98 98V158M158 98V158"
+    fill="none"
+    stroke="#FFFFFF"
+    stroke-width="7"
+    stroke-linecap="round"
+    stroke-linejoin="round"
+    opacity="0.86"
+  />
+</svg>
