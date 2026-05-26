@@ -1,0 +1,13 @@
+{
+  "panelLabel": "整合終端機",
+  "tabsLabel": "終端機工作階段",
+  "new": "新增終端機",
+  "close": "關閉終端機",
+  "collapse": "隱藏面板",
+  "rename": "重新命名終端機",
+  "empty": "終端機面板已隱藏。按 Ctrl+` 開啟。",
+  "startingShell": "正在啟動 shell…",
+  "exitedWithCode": "{{title}} — 已結束 (代碼 {{code}})",
+  "exitedUnknown": "{{title}} — 已結束",
+  "shellNotFound": "在此系統上找不到可用的 shell。"
+}

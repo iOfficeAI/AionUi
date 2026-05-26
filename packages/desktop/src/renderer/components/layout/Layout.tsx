@@ -16,6 +16,8 @@ import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
+import { TerminalPanelProvider } from '@renderer/hooks/context/TerminalPanelContext';
+import TerminalPanelHost from '@renderer/components/layout/TerminalPanel/TerminalPanelHost';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
@@ -77,13 +79,13 @@ const useDebug = () => {
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
-const DEFAULT_SIDER_WIDTH = 260;
+const DEFAULT_SIDER_WIDTH = 200;
 const DESKTOP_COLLAPSED_WIDTH = 0;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
-const MOBILE_SIDER_WIDTH_RATIO = 0.67;
-const MOBILE_SIDER_MIN_WIDTH = 260;
-const MOBILE_SIDER_MAX_WIDTH = 420;
+const MOBILE_SIDER_WIDTH_RATIO = 0.7;
+const MOBILE_SIDER_MIN_WIDTH = 240;
+const MOBILE_SIDER_MAX_WIDTH = 320;
 
 const detectMobileViewportOrTouch = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -438,120 +440,124 @@ const Layout: React.FC<{
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
-        <div className='app-shell flex flex-col size-full min-h-0'>
-          <Titlebar workspaceAvailable={workspaceAvailable} />
-          {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-          {isMobile && !collapsed && (
-            <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
-          )}
+        <TerminalPanelProvider>
+          <div className='app-shell flex flex-col size-full min-h-0'>
+            <Titlebar workspaceAvailable={workspaceAvailable} />
+            {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
+            {isMobile && !collapsed && (
+              <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
+            )}
 
-          <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
-            <ArcoLayout.Sider
-              collapsedWidth={isMobile ? 0 : 0}
-              collapsed={collapsed}
-              width={siderWidth}
-              className={classNames('!bg-2 layout-sider', {
-                collapsed: collapsed,
-              })}
-              style={siderStyle}
-            >
-              <ArcoLayout.Header
-                className={classNames(
-                  'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
-                  isMobile && 'layout-sider-header--mobile',
-                  {
-                    'cursor-pointer group ': collapsed,
-                  }
-                )}
+            <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
+              <ArcoLayout.Sider
+                collapsedWidth={isMobile ? 0 : 0}
+                collapsed={collapsed}
+                width={siderWidth}
+                className={classNames('!bg-2 layout-sider', {
+                  collapsed: collapsed,
+                })}
+                style={siderStyle}
               >
-                <div
-                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
-                    '!size-24px': collapsed,
-                  })}
-                  onClick={onClick}
-                >
-                  <svg
-                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      'scale-140': !collapsed,
-                    })}
-                    viewBox='0 0 80 80'
-                    fill='none'
-                  >
-                    <path
-                      key='logo-path-1'
-                      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-                      fill='white'
-                    ></path>
-                    <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                    <path
-                      key='logo-path-2'
-                      d='M18 50 Q40 70 62 50'
-                      stroke='white'
-                      strokeWidth='3.5'
-                      fill='none'
-                      strokeLinecap='round'
-                    ></path>
-                  </svg>
-                </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
-                {isMobile && !collapsed && (
-                  <button
-                    type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
-                    onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
-                    aria-label='Collapse sidebar'
-                  >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
-                  </button>
-                )}
-                {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-              </ArcoLayout.Header>
-              <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
-                {React.isValidElement(sider)
-                  ? React.cloneElement(sider, {
-                      onSessionClick: () => {
-                        cleanupSiderTooltips();
-                        if (isMobile) setCollapsed(true);
-                      },
-                      collapsed,
-                    } as any)
-                  : sider}
-              </ArcoLayout.Content>
-              {!isMobile && (
-                <div
-                  className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                  style={{ right: '-4px' }}
-                  onMouseDown={beginSiderResizeDrag}
-                  aria-hidden='true'
-                >
-                  <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
-                </div>
-              )}
-            </ArcoLayout.Sider>
-
-            <ArcoLayout.Content
-              className={'bg-1 layout-content flex flex-col min-h-0'}
-              onClick={() => {
-                if (isMobile && !collapsed) setCollapsed(true);
-              }}
-              style={
-                isMobile
-                  ? {
-                      width: '100%',
+                <ArcoLayout.Header
+                  className={classNames(
+                    'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                    isMobile && 'layout-sider-header--mobile',
+                    {
+                      'cursor-pointer group ': collapsed,
                     }
-                  : undefined
-              }
-            >
-              <Outlet />
-              {directorySelectionContextHolder}
-              <PwaPullToRefresh />
-              <Suspense fallback={null}>
-                <UpdateModal />
-              </Suspense>
-            </ArcoLayout.Content>
-          </ArcoLayout>
-        </div>
+                  )}
+                >
+                  <div
+                    className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
+                      '!size-24px': collapsed,
+                    })}
+                    onClick={onClick}
+                  >
+                    <svg
+                      className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
+                        'scale-140': !collapsed,
+                      })}
+                      viewBox='0 0 80 80'
+                      fill='none'
+                    >
+                      <path
+                        key='logo-path-1'
+                        d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
+                        fill='white'
+                      ></path>
+                      <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
+                      <path
+                        key='logo-path-2'
+                        d='M18 50 Q40 70 62 50'
+                        stroke='white'
+                        strokeWidth='3.5'
+                        fill='none'
+                        strokeLinecap='round'
+                      ></path>
+                    </svg>
+                  </div>
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                  {isMobile && !collapsed && (
+                    <button
+                      type='button'
+                      className='app-titlebar__button app-titlebar__button--mobile'
+                      onClick={() => setCollapsed(true)}
+                      title='Collapse sidebar'
+                      aria-label='Collapse sidebar'
+                    >
+                      <SidebarIcon size={18} strokeWidth={2.5} />
+                    </button>
+                  )}
+                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                </ArcoLayout.Header>
+                <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
+                  {React.isValidElement(sider)
+                    ? React.cloneElement(sider, {
+                        onSessionClick: () => {
+                          cleanupSiderTooltips();
+                          if (isMobile) setCollapsed(true);
+                        },
+                        collapsed,
+                      } as any)
+                    : sider}
+                </ArcoLayout.Content>
+                {!isMobile && (
+                  <div
+                    className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
+                    style={{ right: '-4px' }}
+                    onMouseDown={beginSiderResizeDrag}
+                    aria-hidden='true'
+                  >
+                    <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
+                  </div>
+                )}
+              </ArcoLayout.Sider>
+
+              <ArcoLayout.Content
+                className={'bg-1 layout-content flex flex-col min-h-0'}
+                onClick={() => {
+                  if (isMobile && !collapsed) setCollapsed(true);
+                }}
+                style={
+                  isMobile
+                    ? {
+                        width: '100%',
+                      }
+                    : undefined
+                }
+              >
+                <TerminalPanelHost isMobile={isMobile}>
+                  <Outlet />
+                </TerminalPanelHost>
+                {directorySelectionContextHolder}
+                <PwaPullToRefresh />
+                <Suspense fallback={null}>
+                  <UpdateModal />
+                </Suspense>
+              </ArcoLayout.Content>
+            </ArcoLayout>
+          </div>
+        </TerminalPanelProvider>
       </NavigationHistoryProvider>
     </LayoutContext.Provider>
   );

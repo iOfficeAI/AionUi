@@ -1,0 +1,13 @@
+{
+  "panelLabel": "集成终端",
+  "tabsLabel": "终端会话",
+  "new": "新建终端",
+  "close": "关闭终端",
+  "collapse": "隐藏面板",
+  "rename": "重命名终端",
+  "empty": "终端面板已隐藏。按 Ctrl+` 打开。",
+  "startingShell": "正在启动 shell…",
+  "exitedWithCode": "{{title}} — 已退出 (代码 {{code}})",
+  "exitedUnknown": "{{title}} — 已退出",
+  "shellNotFound": "在此系统上未找到可用的 shell。"
+}

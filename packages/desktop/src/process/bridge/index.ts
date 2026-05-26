@@ -6,6 +6,7 @@
 
 import { initApplicationBridge } from './applicationBridge';
 import { initDialogBridge } from './dialogBridge';
+import { initTerminalBridge } from './terminalBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
@@ -17,6 +18,7 @@ export type BridgeDependencies = Record<string, never>;
 export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initDialogBridge();
   initApplicationBridge();
+  initTerminalBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
@@ -29,9 +31,11 @@ export {
   initDialogBridge,
   initNotificationBridge,
   initSystemSettingsBridge,
+  initTerminalBridge,
   initUpdateBridge,
   initWindowControlsBridge,
   initWebuiBridge,
 };
+export { disposeTerminalBridge } from './terminalBridge';
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
 export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();

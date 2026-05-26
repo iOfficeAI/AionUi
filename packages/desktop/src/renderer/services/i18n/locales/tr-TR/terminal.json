@@ -1,0 +1,13 @@
+{
+  "panelLabel": "Tümleşik terminal",
+  "tabsLabel": "Terminal oturumları",
+  "new": "Yeni Terminal",
+  "close": "Terminali kapat",
+  "collapse": "Paneli gizle",
+  "rename": "Terminali yeniden adlandır",
+  "empty": "Terminal paneli gizli. Açmak için Ctrl+` tuşlarına basın.",
+  "startingShell": "Kabuk başlatılıyor…",
+  "exitedWithCode": "{{title}} — çıkıldı (kod {{code}})",
+  "exitedUnknown": "{{title}} — çıkıldı",
+  "shellNotFound": "Bu sistemde kullanılabilir bir kabuk bulunamadı."
+}

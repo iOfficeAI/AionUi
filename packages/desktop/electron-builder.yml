@@ -28,6 +28,13 @@ files:
   - node_modules/better-sqlite3/**/*
   - node_modules/bcrypt/**/*
   - node_modules/node-pty/**/*
+  # @lydell/node-pty: prebuilt-binaries variant used by the integrated terminal panel
+  - node_modules/@lydell/node-pty/**/*
+  - node_modules/@lydell/node-pty-darwin-arm64/**/*
+  - node_modules/@lydell/node-pty-darwin-x64/**/*
+  - node_modules/@lydell/node-pty-linux-x64/**/*
+  - node_modules/@lydell/node-pty-win32-arm64/**/*
+  - node_modules/@lydell/node-pty-win32-x64/**/*
   - node_modules/@mapbox/**/*
   - node_modules/detect-libc/**/*
   - node_modules/prebuild-install/**/*
@@ -192,6 +199,14 @@ asarUnpack:
   - '**/node_modules/better-sqlite3/**/*'
   - '**/node_modules/bcrypt/**/*'
   - '**/node_modules/node-pty/**/*'
+  # @lydell/node-pty + its prebuilt platform binaries must live outside the asar
+  # so the integrated terminal can dlopen the .node addon at runtime.
+  - '**/node_modules/@lydell/node-pty/**/*'
+  - '**/node_modules/@lydell/node-pty-darwin-arm64/**/*'
+  - '**/node_modules/@lydell/node-pty-darwin-x64/**/*'
+  - '**/node_modules/@lydell/node-pty-linux-x64/**/*'
+  - '**/node_modules/@lydell/node-pty-win32-arm64/**/*'
+  - '**/node_modules/@lydell/node-pty-win32-x64/**/*'
   - '**/node_modules/@mapbox/**/*'
   - '**/node_modules/detect-libc/**/*'
   - '**/node_modules/prebuild-install/**/*'

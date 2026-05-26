@@ -76,6 +76,8 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
+  'terminal.panel.open': boolean | undefined;
+  'terminal.panel.heightPct': number | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

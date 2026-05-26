@@ -1,0 +1,13 @@
+{
+  "panelLabel": "統合ターミナル",
+  "tabsLabel": "ターミナルセッション",
+  "new": "新しいターミナル",
+  "close": "ターミナルを閉じる",
+  "collapse": "パネルを隠す",
+  "rename": "ターミナル名を変更",
+  "empty": "ターミナルパネルは非表示です。Ctrl+` で開きます。",
+  "startingShell": "シェルを起動中…",
+  "exitedWithCode": "{{title}} — 終了 (コード {{code}})",
+  "exitedUnknown": "{{title}} — 終了",
+  "shellNotFound": "このシステムで使用可能なシェルが見つかりませんでした。"
+}

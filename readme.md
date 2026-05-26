@@ -30,10 +30,10 @@ That’s the thesis. Whether it pans out is what this project is for.
 
 Chisel is a desktop application with a separate backend service:
 
-| Repo | What it is |
-|---|---|
-| [`chisel-ui`](https://github.com/schlambos/chisel-ui) (this repo) | Electron + React desktop client. The window you interact with. |
-| [`chisel-core`](https://github.com/schlambos/chisel-core) | Rust backend (Axum + Tokio). Owns agent orchestration, remote agent protocols, conversation state, and IPC with the desktop client. |
+| Repo                                                              | What it is                                                                                                                          |
+| ----------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------- |
+| [`chisel-ui`](https://github.com/schlambos/chisel-ui) (this repo) | Electron + React desktop client. The window you interact with.                                                                      |
+| [`chisel-core`](https://github.com/schlambos/chisel-core)         | Rust backend (Axum + Tokio). Owns agent orchestration, remote agent protocols, conversation state, and IPC with the desktop client. |
 
 The two run as separate processes and communicate over a local socket / HTTP. Agents themselves run either embedded in `chisel-core` or as external CLI tools (Claude Code, Codex, OpenCode, etc.) that Chisel detects and routes work to.
 

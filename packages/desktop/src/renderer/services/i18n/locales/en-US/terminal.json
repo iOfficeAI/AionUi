@@ -1,0 +1,13 @@
+{
+  "panelLabel": "Integrated terminal",
+  "tabsLabel": "Terminal sessions",
+  "new": "New Terminal",
+  "close": "Close terminal",
+  "collapse": "Hide panel",
+  "rename": "Rename terminal",
+  "empty": "Terminal panel is hidden. Press Ctrl+` to open.",
+  "startingShell": "Starting shell…",
+  "exitedWithCode": "{{title}} — exited (code {{code}})",
+  "exitedUnknown": "{{title}} — exited",
+  "shellNotFound": "Could not find a usable shell on this system."
+}

@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
-import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Peoples } from '@icon-park/react';
+import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Peoples, Terminal } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -12,6 +12,7 @@ import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/u
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
+import { useTerminalPanelSafe } from '@/renderer/hooks/context/TerminalPanelContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
@@ -56,6 +57,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
   const navigationHistory = useNavigationHistory();
+  const terminalPanel = useTerminalPanelSafe();
   const location = useLocation();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -107,6 +109,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const showHistoryNav = Boolean(navigationHistory) && !layout?.isMobile;
   const historyBackTooltip = t('common.historyBack', { defaultValue: 'Back' });
   const historyForwardTooltip = t('common.forward', { defaultValue: 'Forward' });
+  const terminalTooltip = terminalPanel?.open
+    ? t('terminal.collapse', { defaultValue: 'Hide terminal' })
+    : t('terminal.panelLabel', { defaultValue: 'Integrated terminal' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
@@ -332,6 +337,17 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
+        {terminalPanel && !layout?.isMobile && (
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', terminalPanel.open && 'text-primary')}
+            onClick={() => terminalPanel.toggle()}
+            aria-label={terminalTooltip}
+            title={terminalTooltip}
+          >
+            <Terminal theme='outline' size={iconSize} fill='currentColor' />
+          </button>
+        )}
         {showWorkspaceButton && (
           <button
             type='button'

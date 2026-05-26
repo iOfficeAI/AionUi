@@ -34,6 +34,15 @@ import type {
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
+  TerminalExitEvent,
+  TerminalKillRequest,
+  TerminalOutputEvent,
+  TerminalResizeRequest,
+  TerminalSpawnOptions,
+  TerminalSpawnResult,
+  TerminalWriteRequest,
+} from '../types/terminal/terminalTypes';
+import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
@@ -382,6 +391,19 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Terminal — stays IPC (PTY is owned by Electron main process)
+// ---------------------------------------------------------------------------
+
+export const terminal = {
+  spawn: bridge.buildProvider<IBridgeResponse<TerminalSpawnResult>, TerminalSpawnOptions>('terminal.spawn'),
+  write: bridge.buildProvider<IBridgeResponse, TerminalWriteRequest>('terminal.write'),
+  resize: bridge.buildProvider<IBridgeResponse, TerminalResizeRequest>('terminal.resize'),
+  kill: bridge.buildProvider<IBridgeResponse, TerminalKillRequest>('terminal.kill'),
+  output: bridge.buildEmitter<TerminalOutputEvent>('terminal.output'),
+  exit: bridge.buildEmitter<TerminalExitEvent>('terminal.exit'),
 };
 
 // ---------------------------------------------------------------------------
