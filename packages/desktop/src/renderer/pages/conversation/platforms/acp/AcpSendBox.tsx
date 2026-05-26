@@ -392,9 +392,7 @@ Please check your local CLI tool authentication status`,
       : [];
 
     const currentModelLabel =
-      model_info?.current_model_label ||
-      model_info?.current_model_id ||
-      t('conversation.welcome.useCliModel');
+      model_info?.current_model_label || model_info?.current_model_id || t('conversation.welcome.useCliModel');
     const currentModeLabel =
       modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
 

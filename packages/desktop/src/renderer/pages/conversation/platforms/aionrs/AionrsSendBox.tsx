@@ -437,8 +437,7 @@ const AionrsSendBox: React.FC<{
     );
 
     const currentModeLabel =
-      modeOptions.find((opt) => opt.active)?.label ??
-      t('agentMode.default', { defaultValue: 'Default' });
+      modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
     const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
 
     const entries: MobileActionSheetEntry[] = [
