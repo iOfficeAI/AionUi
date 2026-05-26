@@ -403,6 +403,34 @@
   -webkit-text-fill-color: #a1a2aa !important;
 }
 
+/* Mobile compact: `+` launcher button replaces inline tools when the
+ * action sheet pattern is active. Sized to match the send button so the
+ * left/right poles feel balanced. */
+.sendbox-mobile-plus-btn,
+.sendbox-mobile-plus-btn.arco-btn,
+.sendbox-mobile-plus-btn.arco-btn-secondary {
+  width: 32px !important;
+  height: 32px !important;
+  min-width: 32px !important;
+  padding: 0 !important;
+  border: none !important;
+  background: var(--color-fill-2) !important;
+  color: var(--color-text-1) !important;
+  flex-shrink: 0 !important;
+}
+
+.sendbox-mobile-plus-btn:hover,
+.sendbox-mobile-plus-btn:active,
+.sendbox-mobile-plus-btn:focus,
+.sendbox-mobile-plus-btn:focus-visible {
+  background: var(--color-fill-3) !important;
+}
+
+.sendbox-tools-mobile-compact {
+  display: flex;
+  align-items: center;
+}
+
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
 @media (max-width: 767px) {
   .sendbox-tools-scroll-mobile {
@@ -430,12 +458,24 @@
      (default inline 8px → 4px) so the toolbar sits closer. */
   .sendbox-input--mobile {
     font-size: 14px !important;
-    line-height: 20px !important;
-    min-height: 20px !important;
+    line-height: 22px !important;
+    min-height: 22px !important;
+  }
+
+  /* Strip Arco's default 4px 12px padding from the textarea wrapper on mobile —
+     long placeholders ("Send message to Claude Code...") were getting clipped
+     on narrow screens because the wrapper's right-side 12px ate trailing chars.
+     Force the wrapper to fill the available flex slot so the textarea (and the
+     hit area) grows to the right edge instead of shrinking to placeholder width. */
+  .sendbox-panel .arco-textarea-wrapper,
+  .sendbox-panel .arco-textarea {
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+    width: 100% !important;
   }
 
   .sendbox-highlight-container {
-    min-height: 20px !important;
+    min-height: 22px !important;
     margin-bottom: 4px !important;
   }
 

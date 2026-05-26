@@ -24,7 +24,7 @@ import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMent
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Plus, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -177,6 +177,12 @@ const SendBox: React.FC<{
   selectedWorkspaceItems?: FileSelectionItem[];
   onSelectedWorkspaceItemsChange?: (items: FileSelectionItem[]) => void;
   bottomHint?: React.ReactNode;
+  /**
+   * Mobile-only: open a parent-supplied action sheet via the `+` button.
+   * When provided, mobile renders a single `+` button (left) and send/stop button (right);
+   * `tools` and `rightTools` are not rendered inline on mobile.
+   */
+  onMobilePlusClick?: () => void;
 }> = ({
   onSend,
   onStop,
@@ -203,14 +209,20 @@ const SendBox: React.FC<{
   selectedWorkspaceItems,
   onSelectedWorkspaceItemsChange,
   bottomHint,
+  onMobilePlusClick,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
+  // Mobile compact mode: parent supplies the `+` action sheet, which collapses
+  // tools/rightTools into a single launcher and lets the textarea start as a single line.
+  const isMobileCompact = isMobile && Boolean(onMobilePlusClick);
+  const effectiveLockMultiLine = lockMultiLine && !isMobileCompact;
+  const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
   const teamPermission = useTeamPermission();
   const { t, i18n } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
-  const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
+  const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
@@ -341,7 +353,7 @@ const SendBox: React.FC<{
       // Switch to multi-line when text width exceeds baseline width
       if (textWidth >= baseWidth) {
         setIsSingleLine(false);
-      } else if (textWidth < baseWidth - 30 && !lockMultiLine) {
+      } else if (textWidth < baseWidth - 30 && !effectiveLockMultiLine) {
         // 文本宽度小于基准宽度减30px时切回单行，留出小缓冲区避免临界点抖动
         // 如果 lockMultiLine 为 true，则不切换回单行
         // Switch back to single-line when text width is less than baseline minus 30px, leaving a small buffer to avoid flickering at the threshold
@@ -353,7 +365,7 @@ const SendBox: React.FC<{
     });
 
     return () => cancelAnimationFrame(frame);
-  }, [input, lockMultiLine]);
+  }, [input, effectiveLockMultiLine]);
 
   // 使用拖拽 hook
   const { isFileDragging, dragHandlers } = useDragUpload({
@@ -1310,6 +1322,30 @@ const SendBox: React.FC<{
 
   const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
 
+  const mobilePlusButton = isMobileCompact ? (
+    <Button
+      shape='circle'
+      type='secondary'
+      className='sendbox-mobile-plus-btn'
+      icon={<Plus theme='outline' size='16' />}
+      onClick={onMobilePlusClick}
+      data-testid='sendbox-mobile-plus-btn'
+      aria-label={t('common.more', { defaultValue: 'More' })}
+    />
+  ) : null;
+
+  // On mobile compact mode, the parent supplies the action sheet — collapse
+  // tools/rightTools into the `+` launcher and skip the inline speech button.
+  const renderedTools = isMobileCompact ? mobilePlusButton : tools;
+  const renderedRightTools = isMobileCompact ? null : rightTools;
+  const renderedSpeechButton = isMobileCompact ? null : (
+    <SpeechInputButton
+      disabled={disabled || isLoading || loading || isUploading}
+      locale={speechLocale}
+      onTranscript={handleSpeechTranscript}
+    />
+  );
+
   const renderHighlightedInputValue = useCallback(() => {
     if (!input) {
       return <span className='sendbox-highlight-text'>{'\u200b'}</span>;
@@ -1507,8 +1543,16 @@ const SendBox: React.FC<{
           className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
         >
           {isSingleLine && (
-            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>
-              {tools}
+            <div
+              className={
+                isMobileCompact
+                  ? 'flex-shrink-0 sendbox-tools sendbox-tools-mobile-compact'
+                  : isMobile
+                    ? 'sendbox-tools sendbox-tools-scroll-mobile'
+                    : 'flex-shrink-0 sendbox-tools'
+              }
+            >
+              {renderedTools}
             </div>
           )}
           <div
@@ -1537,23 +1581,27 @@ const SendBox: React.FC<{
               spellCheck={false}
               value={input}
               placeholder={
-                placeholder
-                  ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
-                  : ((bottomHint as string | undefined) ??
+                isMobileCompact
+                  ? (placeholder ??
+                    (bottomHint as string | undefined) ??
                     t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
+                  : placeholder
+                    ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
+                    : ((bottomHint as string | undefined) ??
+                      t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
               }
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
-                width: isSingleLine ? 'auto' : '100%',
+                width: '100%',
                 flex: isSingleLine ? 1 : 'none',
                 minWidth: 0,
                 maxWidth: '100%',
                 marginLeft: 0,
                 marginRight: 0,
                 marginBottom: 0,
-                height: isSingleLine ? '20px' : 'auto',
-                minHeight: isSingleLine ? '20px' : '40px',
+                height: isSingleLine ? (isMobile ? '22px' : '20px') : 'auto',
+                minHeight: isSingleLine ? (isMobile ? '22px' : '20px') : '40px',
                 overflowY: isSingleLine ? 'hidden' : 'auto',
                 overflowX: 'hidden',
                 whiteSpace: isSingleLine ? 'nowrap' : 'pre-wrap',
@@ -1588,11 +1636,7 @@ const SendBox: React.FC<{
           </div>
           {isSingleLine && (
             <div className='flex items-center gap-2'>
-              <SpeechInputButton
-                disabled={disabled || isLoading || loading || isUploading}
-                locale={speechLocale}
-                onTranscript={handleSpeechTranscript}
-              />
+              {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
             </div>
@@ -1600,14 +1644,20 @@ const SendBox: React.FC<{
         </div>
         {!isSingleLine && (
           <div className='flex items-center justify-between gap-2 w-full'>
-            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
+            <div
+              className={
+                isMobileCompact
+                  ? 'flex-shrink-0 sendbox-tools sendbox-tools-mobile-compact'
+                  : isMobile
+                    ? 'sendbox-tools sendbox-tools-scroll-mobile'
+                    : 'sendbox-tools'
+              }
+            >
+              {renderedTools}
+            </div>
             <div className='sendbox-actions flex items-center gap-2'>
-              {rightTools}
-              <SpeechInputButton
-                disabled={disabled || isLoading || loading || isUploading}
-                locale={speechLocale}
-                onTranscript={handleSpeechTranscript}
-              />
+              {renderedRightTools}
+              {renderedSpeechButton}
               {sendButtonPrefix}
               {renderActionButtons()}
             </div>
