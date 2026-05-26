@@ -161,7 +161,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
         )}
         <MenuItem
           icon={<Paperclip theme='outline' size={15} strokeWidth={2.5} />}
-          label={t('common.fileAttach.hostFiles', { defaultValue: 'Add files or photos' })}
+          label={t('common.fileAttach.addFiles', { defaultValue: 'Add files' })}
           onClick={() => {
             openFileSelector();
             setOpen(false);
