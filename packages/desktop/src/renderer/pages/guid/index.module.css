@@ -683,7 +683,7 @@
   }
 
   .actionConfigGroup {
-    gap: 12px;
+    gap: 0;
   }
 
   .actionConfigGroupWithDivider > :first-child::after {
