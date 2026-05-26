@@ -52,10 +52,11 @@ export const useGuidInput = ({ locationState }: UseGuidInputOptions): GuidInputR
   }, [locationState]);
 
   // Handle pasted files (append mode to support multiple pastes)
+  // Do NOT clear dir here: paste/drag should coexist with a selected workspace,
+  // matching the dialog-upload path (handleFilesUploaded).
   const handleFilesPasted = useCallback((pastedFiles: FileMetadata[]) => {
     const file_paths = pastedFiles.map((file) => file.path);
     setFiles((prevFiles) => [...prevFiles, ...file_paths]);
-    setDir('');
   }, []);
 
   // Handle files uploaded via dialog (append mode)
