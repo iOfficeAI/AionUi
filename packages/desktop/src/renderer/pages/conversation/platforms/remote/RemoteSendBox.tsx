@@ -244,10 +244,14 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     });
   }, [conversation_id]);
 
-  // Handle initial message from Guid page
+  // Handle initial message from Guid page.
+  // Key matches the writer in `useGuidSend.ts` (`acp_initial_message_*`) —
+  // the "acp" prefix is a historical name shared by all platforms, not an
+  // ACP-only marker.  Without this, the first message stashed on the Guid
+  // page never reaches the chat thread for remote agents.
   useEffect(() => {
-    const storageKey = `remote_initial_message_${conversation_id}`;
-    const processedKey = `remote_initial_processed_${conversation_id}`;
+    const storageKey = `acp_initial_message_${conversation_id}`;
+    const processedKey = `acp_initial_processed_${conversation_id}`;
 
     const processInitialMessage = async () => {
       const stored = sessionStorage.getItem(storageKey);

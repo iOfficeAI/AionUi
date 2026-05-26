@@ -840,10 +840,26 @@ export const remoteAgent = {
   delete: httpDelete<boolean, { id: string }>((p) => `/api/remote-agents/${p.id}`),
   testConnection: httpPost<
     { success: boolean; error?: string },
-    { url: string; auth_type: string; auth_token?: string; allow_insecure?: boolean }
+    {
+      url: string;
+      protocol: import('@/common/types/agent/remoteAgentTypes').RemoteAgentProtocol;
+      auth_type: string;
+      auth_token?: string;
+      allow_insecure?: boolean;
+    }
   >('/api/remote-agents/test-connection'),
   handshake: httpPost<{ status: 'ok' | 'pending_approval' | 'error'; error?: string }, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/handshake`
+  ),
+  /**
+   * Fetch available models from a remote OpenCode agent's `/provider`
+   * endpoint.  aioncore performs the upstream call so it can decrypt the
+   * stored `auth_token` (the plaintext never leaves the Rust process).
+   * Used by the Guid (New Chat) page to populate the model selector
+   * before any session exists.
+   */
+  refreshModels: httpGet<import('@/common/types/platform/acpTypes').AcpModelInfo, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/models`
   ),
 };
 

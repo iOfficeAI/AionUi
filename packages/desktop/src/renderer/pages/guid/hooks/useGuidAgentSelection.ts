@@ -18,6 +18,7 @@ import {
   type AgentMetadata,
   type AgentSource,
 } from '@/renderer/utils/model/agentTypes';
+import { REMOTE_AGENT_MODELS_SWR_KEY, fetchRemoteAgentModels } from '@/renderer/utils/model/remoteAgentModels';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -260,6 +261,13 @@ export const useGuidAgentSelection = ({
   // Fetch remote agents from DB and merge into available agents
   const { data: remoteAgentsData } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
 
+  // Pre-fetch remote OpenCode agent models so the Guid model selector is
+  // populated without requiring a conversation session.
+  const { data: remoteAgentModels } = useSWR(
+    (remoteAgentsData?.length ?? 0) > 0 ? REMOTE_AGENT_MODELS_SWR_KEY : null,
+    fetchRemoteAgentModels
+  );
+
   useEffect(() => {
     if (!availableAgentsData) return;
     // Normalise backend /api/agents rows into AvailableAgent shape.
@@ -476,6 +484,21 @@ export const useGuidAgentSelection = ({
     // For preset agents, resolve to the actual backend type for model list lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
+    // Remote agents: model info comes from the OpenCode daemon's /provider
+    // endpoint (HTTP pre-fetch) rather than from the ACP handshake.
+    // Look up by `remote:<agentId>` in the SWR-fetched remote-agent-models
+    // cache, which is populated on page load by `refreshModels` IPC.
+    if (!is_presetAgent && selectedAgentInfo?.agent_type === 'remote' && selectedAgentInfo.id) {
+      const cacheKey = `remote:${selectedAgentInfo.id}`;
+      const cached = remoteAgentModels?.[cacheKey];
+      if (cached && cached.available_models.length > 0) {
+        return cached;
+      }
+      // Remote agent selected but models not yet fetched — return null so the
+      // UI shows the loading/fallback state until the fetch completes.
+      return null;
+    }
+
     // Source: `handshake.available_models` from `/api/agents`.
     // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
     // the agent_metadata row, so this is populated across restarts without
@@ -503,7 +526,14 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [
+    selectedAgentKey,
+    is_presetAgent,
+    currentEffectiveAgentInfo.agent_type,
+    availableAgentsData,
+    selectedAgentInfo,
+    remoteAgentModels,
+  ]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {

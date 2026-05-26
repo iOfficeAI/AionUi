@@ -304,16 +304,16 @@ const ChatConversation: React.FC<{
     );
   }, [t]);
 
-  // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
+  // For ACP/Codex/Remote conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
-    if (conversation.type === 'acp') {
+    if (conversation.type === 'acp' || conversation.type === 'remote') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
       return (
         <AcpModelSelector
           conversation_id={conversation.id}
-          backend={extra.backend}
+          backend={extra.backend || 'opencode'}
           initialModelId={extra.current_model_id}
         />
       );

@@ -64,7 +64,23 @@ const AcpModelSelector: React.FC<{
   const prevConversationIdRef = useRef(conversation_id);
 
   const updateModelInfo = useCallback((nextModelInfo: AcpModelInfo) => {
-    setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
+    setModelInfo((prev) => {
+      let finalNext = nextModelInfo;
+      // Preserve existing available_models if the incoming update omits them
+      // (e.g. OpenCode emitting current model switch without the full list)
+      if (prev && !nextModelInfo.available_models) {
+        finalNext = {
+          ...nextModelInfo,
+          available_models: prev.available_models,
+        };
+      } else if (!nextModelInfo.available_models) {
+        finalNext = {
+          ...nextModelInfo,
+          available_models: [],
+        };
+      }
+      return isSameModelInfo(prev, finalNext) ? prev : finalNext;
+    });
   }, []);
 
   // Primary fallback: `handshake.available_models` persisted on the
@@ -173,18 +189,27 @@ const AcpModelSelector: React.FC<{
     loadFallbackModelInfo(backend, { preserveInitialModel: true });
   }, [backend, handshakeModelInfo, model_info, loadFallbackModelInfo]);
 
+  const reloadModelInfoRef = useRef(reloadModelInfo);
+  reloadModelInfoRef.current = reloadModelInfo;
+
+  // Retry model info fetch periodically when not yet available.
+  // Covers backends where the agent may not be fully initialized on first mount
+  // (e.g. OpenCode remote agents warm up asynchronously).
+  // Uses a ref to avoid resetting the interval when useSWR re-fetches change
+  // reloadModelInfo's identity.
   useEffect(() => {
-    if (backend !== 'claude') return;
     if (model_info) return;
 
     const refresh = () => {
-      void reloadModelInfo().catch(() => {});
+      void reloadModelInfoRef.current().catch(() => {});
     };
     const handleVisibilityChange = () => {
       if (document.visibilityState === 'visible') {
         refresh();
       }
     };
+
+    refresh(); // immediate first attempt
 
     window.addEventListener('focus', refresh);
     document.addEventListener('visibilitychange', handleVisibilityChange);
@@ -195,7 +220,7 @@ const AcpModelSelector: React.FC<{
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.clearInterval(intervalId);
     };
-  }, [backend, model_info, reloadModelInfo]);
+  }, [model_info]);
 
   // Listen for acp_model_info / codex_model_info events from responseStream
   useEffect(() => {

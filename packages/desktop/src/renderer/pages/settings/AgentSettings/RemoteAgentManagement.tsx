@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { RemoteAgentConfig, RemoteAgentInput } from '@/common/types/agent/remoteAgentTypes';
+import type { RemoteAgentConfig, RemoteAgentInput, RemoteAgentProtocol } from '@/common/types/agent/remoteAgentTypes';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import {
@@ -27,6 +27,7 @@ import { Attention, Edit, Plus, ReduceOne, Robot, Speed } from '@icon-park/react
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import { getRemoteProtocolOption, REMOTE_PROTOCOL_OPTIONS } from './remoteAgentProtocolOptions';
 
 const FormItem = Form.Item;
 
@@ -70,7 +71,7 @@ const RemoteAgentFormModal: React.FC<{
   const [form] = Form.useForm<RemoteAgentInput>();
   const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [activeProtocol, setActiveProtocol] = useState<string>('openclaw');
+  const [activeProtocol, setActiveProtocol] = useState<RemoteAgentProtocol>('openclaw');
   const [avatar, setAvatar] = useState<string>('\u{1F916}');
   const [pairingState, setPairingState] = useState<PairingState>('idle');
   const [pairingTimeLeft, setPairingTimeLeft] = useState(0);
@@ -143,6 +144,7 @@ const RemoteAgentFormModal: React.FC<{
     try {
       const result = await ipcBridge.remoteAgent.testConnection.invoke({
         url: values.url,
+        protocol: activeProtocol,
         auth_type: values.auth_type || 'none',
         auth_token: values.auth_token,
         allow_insecure: values.allow_insecure,
@@ -157,13 +159,13 @@ const RemoteAgentFormModal: React.FC<{
     } finally {
       setTesting(false);
     }
-  }, [form, t]);
+  }, [form, t, activeProtocol]);
 
   const handleSave = useCallback(async () => {
     try {
       const values = await form.validate();
       setSaving(true);
-      const payload: RemoteAgentInput = { ...values, protocol: activeProtocol as RemoteAgentInput['protocol'], avatar };
+      const payload: RemoteAgentInput = { ...values, protocol: activeProtocol, avatar };
 
       let agentId: string;
       if (editAgent) {
@@ -175,8 +177,7 @@ const RemoteAgentFormModal: React.FC<{
       }
       savedAgentIdRef.current = agentId;
 
-      // For openclaw protocol, perform full handshake
-      if (activeProtocol === 'openclaw') {
+      if (activeProtocol === 'openclaw' || activeProtocol === 'opencode') {
         setPairingState('handshaking');
         const result = await ipcBridge.remoteAgent.handshake.invoke({ id: agentId });
 
@@ -184,12 +185,15 @@ const RemoteAgentFormModal: React.FC<{
           Message.success(editAgent ? t('settings.remoteAgent.updated') : t('settings.remoteAgent.created'));
           onSaved();
           onClose();
-        } else if (result.status === 'pending_approval') {
+        } else if (activeProtocol === 'openclaw' && result.status === 'pending_approval') {
           startPairingPoll(agentId);
           onSaved(); // refresh list to show 'pending' status
         } else {
           Message.warning(
-            `${editAgent ? t('settings.remoteAgent.updated') : t('settings.remoteAgent.created')} — ${result.error || 'Handshake failed'}`
+            t('settings.remoteAgent.handshakeWarning', {
+              action: editAgent ? t('settings.remoteAgent.updated') : t('settings.remoteAgent.created'),
+              error: result.error || t('settings.remoteAgent.handshakeFailed'),
+            })
           );
           onSaved();
           onClose();
@@ -343,30 +347,64 @@ const RemoteAgentFormModal: React.FC<{
 
         {/* Connection fields */}
         <Form form={form} layout='vertical' autoComplete='off'>
+          <FormItem label={t('settings.remoteAgent.protocol')} required>
+            <Select
+              value={activeProtocol}
+              onChange={(value) => setActiveProtocol(value as RemoteAgentProtocol)}
+              aria-label={t('settings.remoteAgent.protocol')}
+            >
+              {REMOTE_PROTOCOL_OPTIONS.map((option) => (
+                <Select.Option key={option.value} value={option.value} disabled={option.disabled}>
+                  <div className='flex items-center justify-between gap-8px'>
+                    <span>{t(`settings.remoteAgent.${option.labelKey}`)}</span>
+                    <Tag size='small' color={option.statusKey === 'protocolStable' ? 'green' : 'orange'}>
+                      {t(`settings.remoteAgent.${option.statusKey}`)}
+                    </Tag>
+                  </div>
+                </Select.Option>
+              ))}
+            </Select>
+          </FormItem>
+
+          <Typography.Text type='secondary' className='block text-12px leading-18px -mt-8px mb-8px'>
+            {t(`settings.remoteAgent.${getRemoteProtocolOption(activeProtocol).hintKey}`)}
+          </Typography.Text>
+
           <FormItem
             label={t('settings.remoteAgent.url')}
             field='url'
             rules={[{ required: true, message: t('settings.remoteAgent.urlRequired') }]}
           >
-            <Input placeholder='wss://example.com/gateway' />
+            <Input placeholder={getRemoteProtocolOption(activeProtocol).urlPlaceholder} />
           </FormItem>
 
-          <FormItem label={t('settings.remoteAgent.auth_type')} field='auth_type' rules={[{ required: true }]}>
+          <FormItem label={t('settings.remoteAgent.authType')} field='auth_type' rules={[{ required: true }]}>
             <Select>
               <Select.Option value='none'>{t('settings.remoteAgent.authNone')}</Select.Option>
               <Select.Option value='bearer'>{t('settings.remoteAgent.authBearer')}</Select.Option>
+              <Select.Option value='password'>{t('settings.remoteAgent.authPassword')}</Select.Option>
             </Select>
           </FormItem>
 
           <Form.Item shouldUpdate noStyle>
             {(values: Record<string, unknown>) =>
-              values.auth_type === 'bearer' ? (
+              values.auth_type === 'bearer' || values.auth_type === 'password' ? (
                 <FormItem
-                  label={t('settings.remoteAgent.auth_token')}
+                  label={
+                    values.auth_type === 'password'
+                      ? t('settings.remoteAgent.authPassword')
+                      : t('settings.remoteAgent.authToken')
+                  }
                   field='auth_token'
                   rules={[{ required: true, message: t('settings.remoteAgent.tokenRequired') }]}
                 >
-                  <Input.Password placeholder={t('settings.remoteAgent.tokenPlaceholder')} />
+                  <Input.Password
+                    placeholder={
+                      values.auth_type === 'password'
+                        ? t('settings.remoteAgent.passwordPlaceholder')
+                        : t('settings.remoteAgent.tokenPlaceholder')
+                    }
+                  />
                 </FormItem>
               ) : null
             }
@@ -374,9 +412,10 @@ const RemoteAgentFormModal: React.FC<{
 
           <Form.Item shouldUpdate noStyle>
             {(values: Record<string, unknown>) =>
-              typeof values.url === 'string' && values.url.startsWith('wss://') ? (
+              typeof values.url === 'string' &&
+              (values.url.startsWith('wss://') || values.url.startsWith('https://')) ? (
                 <FormItem
-                  label={t('settings.remoteAgent.allow_insecure')}
+                  label={t('settings.remoteAgent.allowInsecure')}
                   field='allow_insecure'
                   triggerPropName='checked'
                   extra={

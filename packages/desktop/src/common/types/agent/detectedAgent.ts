@@ -18,7 +18,7 @@
  */
 
 /** Remote agent communication protocol */
-export type RemoteAgentProtocol = 'openclaw' | 'zeroclaw' | 'acp';
+export type RemoteAgentProtocol = 'openclaw' | 'opencode' | 'zeroclaw' | 'acp';
 
 /** Remote agent authentication method */
 export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
@@ -44,7 +44,7 @@ type KindFields = {
   remote: {
     /** Remote agent config ID (FK to remote_agents table) */
     remoteAgentId: string;
-    /** WebSocket endpoint URL */
+    /** Remote endpoint URL (WebSocket for OpenClaw/ACP, HTTP for OpenCode) */
     url: string;
     /** Remote communication protocol */
     protocol: RemoteAgentProtocol;
