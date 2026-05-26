@@ -118,6 +118,34 @@ describe('captureBackendStartupFailure', () => {
 });
 
 describe('initSentry beforeSend', () => {
+  it('drops native GPU unusable crashes reported only through crashpad context', () => {
+    initSentry();
+
+    const event = {
+      contexts: {
+        electron: {
+          'crashpad.LOG_FATAL': "gpu_data_manager_impl_private.cc:415: GPU process isn't usable. Goodbye.\n",
+        },
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBeNull();
+  });
+
+  it('keeps native shutdown fatal crashes while filtering GPU crashpad noise', () => {
+    initSentry();
+
+    const event = {
+      contexts: {
+        electron: {
+          'crashpad.LOG_FATAL': 'electron_browser_main_parts.cc:501: Failed to shutdown.\n',
+        },
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBe(event);
+  });
+
   it('drops backend-port secondary errors after backend startup already failed', () => {
     initSentry();
     (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed = true;

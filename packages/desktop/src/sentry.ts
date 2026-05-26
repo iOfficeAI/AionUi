@@ -13,7 +13,11 @@ import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
 // 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
-const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
+const GPU_CRASH_DROP_PATTERNS = [
+  /'GPU' process exited with /,
+  /IntentionallyCrashBrowserForUnusableGpuProcess/,
+  /GPU process isn't usable\. Goodbye/,
+];
 const BACKEND_STARTUP_SECONDARY_DROP_PATTERNS = [
   /globalThis\.__backendPort unset/,
   /window\.__backendPort/,
@@ -21,7 +25,37 @@ const BACKEND_STARTUP_SECONDARY_DROP_PATTERNS = [
   /ECONNREFUSED/,
 ];
 
-function collectEventSearchText(event: { message?: unknown; exception?: { values?: unknown[] } }): string[] {
+type SearchableEvent = {
+  message?: unknown;
+  exception?: { values?: unknown[] };
+  contexts?: Record<string, unknown>;
+  extra?: Record<string, unknown>;
+};
+
+function collectStringLeaves(value: unknown, haystacks: string[], seen = new WeakSet<object>(), depth = 0): void {
+  if (typeof value === 'string') {
+    haystacks.push(value);
+    return;
+  }
+  if (!value || typeof value !== 'object' || depth > 6) {
+    return;
+  }
+  if (seen.has(value)) {
+    return;
+  }
+  seen.add(value);
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      collectStringLeaves(item, haystacks, seen, depth + 1);
+    }
+    return;
+  }
+  for (const item of Object.values(value as Record<string, unknown>)) {
+    collectStringLeaves(item, haystacks, seen, depth + 1);
+  }
+}
+
+function collectEventSearchText(event: SearchableEvent): string[] {
   const haystacks: string[] = [];
   if (typeof event.message === 'string') haystacks.push(event.message);
   const exceptions = event.exception?.values ?? [];
@@ -36,6 +70,8 @@ function collectEventSearchText(event: { message?: unknown; exception?: { values
       if (typeof fn === 'string') haystacks.push(fn);
     }
   }
+  collectStringLeaves(event.contexts, haystacks);
+  collectStringLeaves(event.extra, haystacks);
   return haystacks;
 }
 
