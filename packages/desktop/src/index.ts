@@ -21,6 +21,7 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
+import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
@@ -795,41 +796,28 @@ app.on('activate', () => {
   }
 });
 
-app.on('before-quit', async () => {
-  console.log('[AionUi] before-quit');
-  setIsQuitting(true);
-  isExplicitQuit = true;
-  destroyTray();
-
-  const cleanup = async () => {
+installQuitCleanup({
+  onBeforeQuit: (handler) => app.on('before-quit', (event) => handler(event)),
+  quitApp: () => app.quit(),
+  setIsQuitting,
+  markExplicitQuit: () => {
+    isExplicitQuit = true;
+  },
+  destroyTray,
+  disposeCronResumeListener: () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
-
-    // Stop aioncore subprocess — backend shutdown kills all agent
-    // children transitively (no separate frontend workerTaskManager remains)
-    await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
-
-    // Destroy desktop pet windows
-    try {
-      const { destroyPetWindow } = await import('./process/pet/petManager');
-      destroyPetWindow();
-    } catch {
-      /* pet not initialized */
-    }
-
-    // Web Server lifecycle is managed by aioncore subprocess
-    // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
-  };
-
-  // Master timeout: force quit if cleanup hangs
-  const timeout = new Promise<void>((resolve) => {
-    setTimeout(() => {
-      console.warn('[AionUi] Cleanup timed out after 10s, forcing quit');
-      resolve();
-    }, 10000);
-  });
-
-  await Promise.race([cleanup(), timeout]);
+  },
+  // Stop aioncore subprocess — backend shutdown kills all agent children
+  // transitively (no separate frontend workerTaskManager remains).
+  stopBackend: () => backendManager.stop(),
+  destroyPetWindow: async () => {
+    const { destroyPetWindow } = await import('./process/pet/petManager');
+    destroyPetWindow();
+  },
+  logInfo: console.log,
+  logWarn: console.warn,
+  logError: console.error,
 });
 
 app.on('will-quit', () => {
