@@ -645,28 +645,31 @@ export const composeMessage = (
     // If no existing plan found, add new one
   }
 
-  // Handle thinking message merging — append streaming content by msg_id
+  // Handle thinking message merging — only merge contiguous streaming chunks
   if (message.type === 'thinking') {
-    for (let i = list.length - 1; i >= 0; i--) {
-      const msg = list[i];
-      if (msg.type === 'thinking' && msg.msg_id === message.msg_id) {
-        // If incoming is 'done', update status and duration but keep accumulated content
-        if (message.content.status === 'done') {
-          const merged = {
-            ...msg.content,
-            status: message.content.status as 'done',
-            duration: message.content.duration,
-          };
-          return updateMessage(i, { ...msg, content: merged });
-        }
-        // Otherwise append content
+    if (message.content.status === 'done') {
+      for (let i = list.length - 1; i >= 0; i--) {
+        const msg = list[i];
+        if (msg.type !== 'thinking' || msg.msg_id !== message.msg_id) continue;
+
         const merged = {
           ...msg.content,
-          content: msg.content.content + message.content.content,
+          status: 'done' as const,
+          duration: message.content.duration,
           subject: message.content.subject || msg.content.subject,
         };
         return updateMessage(i, { ...msg, content: merged });
       }
+    }
+
+    if (last.type === 'thinking' && last.msg_id === message.msg_id) {
+      // Otherwise append content
+      const merged = {
+        ...last.content,
+        content: last.content.content + message.content.content,
+        subject: message.content.subject || last.content.subject,
+      };
+      return updateMessage(list.length - 1, { ...last, content: merged });
     }
     return pushMessage(message);
   }

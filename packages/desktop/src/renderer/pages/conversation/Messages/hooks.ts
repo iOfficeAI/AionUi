@@ -29,6 +29,11 @@ interface MessageIndex {
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
 }
 
+function getMessageIndexKey(message: TMessage): string | undefined {
+  if (!message.msg_id) return undefined;
+  return message.type === 'thinking' ? `thinking:${message.msg_id}` : message.msg_id;
+}
+
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
 // Use WeakMap to cache index, auto-cleanup when list is GC'd
 const indexCache = new WeakMap<TMessage[], MessageIndex>();
@@ -54,12 +59,9 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
-    if (msg.msg_id) {
-      if (msg.type === 'thinking') {
-        msgIdIndex.set(`thinking:${msg.msg_id}`, i);
-      } else {
-        msgIdIndex.set(msg.msg_id, i);
-      }
+    const msgIndexKey = getMessageIndexKey(msg);
+    if (msgIndexKey) {
+      msgIdIndex.set(msgIndexKey, i);
     }
     if (msg.type === 'tool_call' && msg.content?.call_id) {
       call_idIndex.set(msg.content.call_id, i);
@@ -94,11 +96,14 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   if (!list?.length) {
     // Update index when adding first message
-    if (message.msg_id) {
-      index.msgIdIndex.set(message.msg_id, 0);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) {
+      index.msgIdIndex.set(msgIndexKey, 0);
     }
     return [message];
   }
+
+  const last = list[list.length - 1];
 
   // 对于 tool_group 类型，使用原始的 composeMessage（因为涉及内部数组匹配）
   // For tool_group type, use original composeMessage (involves inner array matching)
@@ -132,7 +137,8 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.call_idIndex.set(message.content.call_id, newIdx);
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
@@ -151,12 +157,13 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
-  // text message: use msgIdIndex for fast lookup (handles interleaved messages)
-  // text 消息: 使用 msgIdIndex 快速查找（处理消息交错的情况）
+  // text message: merge only with the latest contiguous streaming chunk.
+  // text 消息: 只与最后一条连续的流式片段合并，保留被工具/思考打断后的消息边界。
   if (message.type === 'text' && message.msg_id) {
     const existingIdx = index.msgIdIndex.get(message.msg_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
@@ -170,53 +177,60 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
         if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
           return list;
         }
-        // AI streaming messages (left position) — append by default, replace when explicitly signaled
-        const newList = list.slice();
-        newList[existingIdx] = {
-          ...existingMsg,
-          content: mergeTextMessageContent(existingMsg.content, message.content),
-        };
-        return newList;
       }
     }
-    // Not found in index, add as new message
+
+    if (last.type === 'text' && last.msg_id === message.msg_id) {
+      const newList = list.slice();
+      newList[newList.length - 1] = {
+        ...last,
+        content: mergeTextMessageContent(last.content, message.content),
+      };
+      return newList;
+    }
+
     const newIdx = list.length;
     index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
 
-  // thinking message: accumulate content chunks by msg_id (same logic as composeMessage)
-  // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id
+  // thinking message: merge only with the latest contiguous thinking chunk.
+  // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id.
   if (message.type === 'thinking' && message.msg_id) {
     const thinkingKey = `thinking:${message.msg_id}`;
-    const existingIdx = index.msgIdIndex.get(thinkingKey);
-    if (existingIdx !== undefined && existingIdx < list.length) {
-      const existingMsg = list[existingIdx];
-      if (existingMsg.type === 'thinking') {
-        const newList = list.slice();
-        if (message.content.status === 'done') {
+    if (message.content.status === 'done') {
+      const existingIdx = index.msgIdIndex.get(thinkingKey);
+      if (existingIdx !== undefined && existingIdx < list.length) {
+        const existingMsg = list[existingIdx];
+        if (existingMsg.type === 'thinking') {
+          const newList = list.slice();
           newList[existingIdx] = {
             ...existingMsg,
             content: {
               ...existingMsg.content,
               status: 'done' as const,
               duration: message.content.duration,
-            },
-          };
-        } else {
-          newList[existingIdx] = {
-            ...existingMsg,
-            content: {
-              ...existingMsg.content,
-              content: existingMsg.content.content + message.content.content,
               subject: message.content.subject || existingMsg.content.subject,
             },
           };
+          return newList;
         }
-        return newList;
       }
     }
-    // First thinking message — add and index
+
+    if (last.type === 'thinking' && last.msg_id === message.msg_id) {
+      const newList = list.slice();
+      newList[newList.length - 1] = {
+        ...last,
+        content: {
+          ...last.content,
+          content: last.content.content + message.content.content,
+          subject: message.content.subject || last.content.subject,
+        },
+      };
+      return newList;
+    }
+
     const newIdx = list.length;
     index.msgIdIndex.set(thinkingKey, newIdx);
     return list.concat(message);
@@ -261,11 +275,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   // Other types: fallback to last message check
   // 其他类型: 回退到检查最后一条消息
-  const last = list[list.length - 1];
   if (last.msg_id !== message.msg_id || last.type !== message.type) {
     // Add new message and update index
     const newIdx = list.length;
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
@@ -303,7 +317,8 @@ export const useAddOrUpdateMessage = () => {
           // New message, update index
           const msg = item.message;
           const newIdx = newList.length;
-          if (msg.msg_id) index.msgIdIndex.set(msg.msg_id, newIdx);
+          const msgIndexKey = getMessageIndexKey(msg);
+          if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
           if (msg.type === 'tool_call' && msg.content?.call_id) {
             index.call_idIndex.set(msg.content.call_id, newIdx);
           }

@@ -61,6 +61,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
+  const activeThinkingRef = useRef<{ msgId: string; startedAt: number } | null>(null);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -118,6 +119,38 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     };
   }, []);
 
+  const completeActiveThinking = useCallback(
+    (
+      boundaryMessage: Pick<IResponseMessage, 'conversation_id' | 'created_at'>,
+      completeOptions?: {
+        duration?: number;
+      }
+    ) => {
+      const activeThinking = activeThinkingRef.current;
+      if (!activeThinking) return;
+
+      const endTime = boundaryMessage.created_at ?? Date.now();
+      const duration = completeOptions?.duration ?? Math.max(0, endTime - activeThinking.startedAt);
+
+      addOrUpdateMessage({
+        id: `${activeThinking.msgId}-thinking-done`,
+        type: 'thinking',
+        msg_id: activeThinking.msgId,
+        conversation_id: boundaryMessage.conversation_id,
+        position: 'left',
+        created_at: endTime,
+        content: {
+          content: '',
+          duration,
+          status: 'done',
+        },
+      });
+
+      activeThinkingRef.current = null;
+    },
+    [addOrUpdateMessage]
+  );
+
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -126,6 +159,27 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
 
       if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
         return;
+      }
+
+      const shouldCompleteThinking =
+        activeThinkingRef.current &&
+        ![
+          'thought',
+          'thinking',
+          'start',
+          'request_trace',
+          'acp_context_usage',
+          'acp_model_info',
+          'codex_model_info',
+          'available_commands',
+          'slash_commands_updated',
+          'agent_status',
+          'user_content',
+          'teammate_message',
+        ].includes(message.type);
+
+      if (shouldCompleteThinking) {
+        completeActiveThinking(message);
       }
 
       const transformedMessage = transformMessage(message);
@@ -139,11 +193,31 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           break;
         case 'thinking': {
-          const thinkingData = message.data as { status?: string };
+          const thinkingData = message.data as { status?: string; duration?: number; duration_ms?: number };
+          if (thinkingData?.status === 'done') {
+            if (activeThinkingRef.current?.msgId === message.msg_id) {
+              completeActiveThinking(message, {
+                duration: thinkingData.duration ?? thinkingData.duration_ms,
+              });
+            }
+            break;
+          }
+
           // Only set running for active thinking, not for done signal
-          if (thinkingData?.status !== 'done' && !runningRef.current && !turnFinishedRef.current) {
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
+          }
+          if (!activeThinkingRef.current) {
+            activeThinkingRef.current = {
+              msgId: message.msg_id,
+              startedAt: message.created_at ?? Date.now(),
+            };
+          } else if (activeThinkingRef.current.msgId !== message.msg_id) {
+            activeThinkingRef.current = {
+              msgId: message.msg_id,
+              startedAt: message.created_at ?? Date.now(),
+            };
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
@@ -170,6 +244,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
+            activeThinkingRef.current = null;
             setHasThinkingMessage(false);
             // Log request completion
             if (requestTraceRef.current) {
@@ -340,6 +415,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          activeThinkingRef.current = null;
           addOrUpdateMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
@@ -363,7 +439,16 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus]
+    [
+      conversation_id,
+      addOrUpdateMessage,
+      completeActiveThinking,
+      throttledSetThought,
+      setThought,
+      setRunning,
+      setAiProcessing,
+      setAcpStatus,
+    ]
   );
 
   useEffect(() => {
@@ -382,6 +467,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
 
@@ -491,6 +577,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setThought({ subject: '', description: '' });
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
   }, []);
 
