@@ -16,6 +16,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
 import PasteConfirmModal from './components/PasteConfirmModal';
+import TodoList from './components/TodoList';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
@@ -29,6 +30,7 @@ import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAbortUploadsOnConversationChange';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
+import { useWorkspaceTodos } from './hooks/useWorkspaceTodos';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
 import {
@@ -61,6 +63,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
+  const todosHook = useWorkspaceTodos(conversation_id);
 
   // Bind workspace uploads to the conversation lifecycle: switching the
   // workspace conversation or unmounting the panel cancels in-flight uploads.
@@ -193,6 +196,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
 
+  const prevHasTodosRef = React.useRef(false);
+  useEffect(() => {
+    if (todosHook.hasTodos && !prevHasTodosRef.current) {
+      setActiveTab('todos');
+    }
+    prevHasTodosRef.current = todosHook.hasTodos;
+  }, [todosHook.hasTodos]);
+
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
     treeHook.selectedNodeRef.current,
@@ -280,6 +291,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
+          hasTodos={todosHook.hasTodos}
+          todoPendingCount={todosHook.totalCount - todosHook.completedCount}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -499,6 +512,18 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               onUnstageAll={fileChangesHook.unstageAll}
               onDiscardFile={fileChangesHook.discardFile}
               onResetFile={fileChangesHook.resetFile}
+            />
+          </FlexFullContainer>
+        )}
+
+        {/* Todos tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'todos' && todosHook.hasTodos && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <TodoList
+              t={t}
+              entries={todosHook.entries}
+              completedCount={todosHook.completedCount}
+              totalCount={todosHook.totalCount}
             />
           </FlexFullContainer>
         )}

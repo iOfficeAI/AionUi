@@ -168,6 +168,15 @@
       "noUnstaged": "ステージされていない変更はありません",
       "noStaged": "ステージ済みの変更はありません"
     },
+    "todos": {
+      "tab": "タスク",
+      "progress": "{{completed}} / {{total}} 完了",
+      "priority": {
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      }
+    },
     "openWorkspace": "プロジェクトフォルダを開く",
     "openWith": {
       "vscode": "VS Code",

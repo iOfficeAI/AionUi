@@ -163,6 +163,15 @@
       "noUnstaged": "Hazırlanmamış değişiklik yok",
       "noStaged": "Hazırlanmış değişiklik yok"
     },
+    "todos": {
+      "tab": "Yapılacaklar",
+      "progress": "{{completed}} / {{total}} tamamlandı",
+      "priority": {
+        "high": "Yüksek",
+        "medium": "Orta",
+        "low": "Düşük"
+      }
+    },
     "openWorkspace": "Proje klasörünü aç",
     "openWith": {
       "vscode": "VS Code",

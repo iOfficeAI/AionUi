@@ -168,6 +168,15 @@
       "noUnstaged": "No unstaged changes",
       "noStaged": "No staged changes"
     },
+    "todos": {
+      "tab": "Todos",
+      "progress": "{{completed}} of {{total}} completed",
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    },
     "openWorkspace": "Open project folder",
     "openWith": {
       "vscode": "VS Code",

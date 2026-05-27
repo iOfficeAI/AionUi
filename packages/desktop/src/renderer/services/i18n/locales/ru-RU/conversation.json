@@ -168,6 +168,15 @@
       "noUnstaged": "Нет неиндексированных изменений",
       "noStaged": "Нет индексированных изменений"
     },
+    "todos": {
+      "tab": "Задачи",
+      "progress": "{{completed}} из {{total}} выполнено",
+      "priority": {
+        "high": "Высокий",
+        "medium": "Средний",
+        "low": "Низкий"
+      }
+    },
     "openWorkspace": "Открыть папку проекта",
     "openWith": {
       "vscode": "VS Code",

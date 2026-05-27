@@ -16,9 +16,19 @@ type WorkspaceTabBarProps = {
   onTabChange: (tab: WorkspaceTab) => void;
   changeCount: number;
   branch: string | null;
+  hasTodos?: boolean;
+  todoPendingCount?: number;
 };
 
-const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabChange, changeCount, branch }) => {
+const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
+  t,
+  activeTab,
+  onTabChange,
+  changeCount,
+  branch,
+  hasTodos,
+  todoPendingCount,
+}) => {
   const changesTitle = (
     <span className='flex items-center'>
       {t('conversation.workspace.changes.tab')}
@@ -56,6 +66,15 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
     </Dropdown>
   ) : null;
 
+  const todosTitle = (
+    <span className='flex items-center'>
+      {t('conversation.workspace.todos.tab')}
+      {todoPendingCount !== undefined && todoPendingCount > 0 && (
+        <span className='ml-2px text-t-tertiary'>({todoPendingCount > 99 ? '99+' : todoPendingCount})</span>
+      )}
+    </span>
+  );
+
   return (
     <Tabs
       activeTab={activeTab}
@@ -67,6 +86,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({ t, activeTab, onTabCh
     >
       <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
       <Tabs.TabPane key='changes' title={changesTitle} />
+      {hasTodos && <Tabs.TabPane key='todos' title={todosTitle} />}
     </Tabs>
   );
 };

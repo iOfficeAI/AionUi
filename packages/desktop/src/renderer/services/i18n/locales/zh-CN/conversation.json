@@ -168,6 +168,15 @@
       "noUnstaged": "没有未暂存的更改",
       "noStaged": "没有已暂存的更改"
     },
+    "todos": {
+      "tab": "待办事项",
+      "progress": "已完成 {{completed}} / {{total}}",
+      "priority": {
+        "high": "高",
+        "medium": "中",
+        "low": "低"
+      }
+    },
     "openWorkspace": "打开项目文件夹",
     "openWith": {
       "vscode": "VS Code",
