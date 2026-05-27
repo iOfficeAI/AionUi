@@ -6,11 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
-import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
@@ -35,8 +35,9 @@ import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileSer
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useRemoteMessage } from './useRemoteMessage';
 
 interface RemoteDraftData {
   _type: 'remote';
@@ -84,58 +85,18 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
     conversation_type: slashConversationType,
     agentStatus: protocol === 'opencode' ? 'active' : null,
   });
-  const [aiProcessing, setAiProcessing] = useState(false);
-  const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
-  const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
-
-  const aiProcessingRef = useRef(aiProcessing);
-  const hasContentInTurnRef = useRef(false);
-
-  const thoughtThrottleRef = useRef<{
-    lastUpdate: number;
-    pending: ThoughtData | null;
-    timer: ReturnType<typeof setTimeout> | null;
-  }>({ lastUpdate: 0, pending: null, timer: null });
-
-  const throttledSetThought = useMemo(() => {
-    const THROTTLE_MS = 50;
-    return (data: ThoughtData) => {
-      const now = Date.now();
-      const ref = thoughtThrottleRef.current;
-      if (now - ref.lastUpdate >= THROTTLE_MS) {
-        ref.lastUpdate = now;
-        ref.pending = null;
-        if (ref.timer) {
-          clearTimeout(ref.timer);
-          ref.timer = null;
-        }
-        setThought(data);
-      } else {
-        ref.pending = data;
-        if (!ref.timer) {
-          ref.timer = setTimeout(
-            () => {
-              ref.lastUpdate = Date.now();
-              ref.timer = null;
-              if (ref.pending) {
-                setThought(ref.pending);
-                ref.pending = null;
-              }
-            },
-            THROTTLE_MS - (now - ref.lastUpdate)
-          );
-        }
-      }
-    };
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (thoughtThrottleRef.current.timer) {
-        clearTimeout(thoughtThrottleRef.current.timer);
-      }
-    };
-  }, []);
+  // Stream-state machine (event handling, hydration, thought/processing state)
+  // lives in the hook; the send box only consumes the parts it renders.
+  const {
+    thought,
+    aiProcessing,
+    setAiProcessing,
+    hasHydratedRunningState,
+    hasThinkingMessage,
+    tokenUsage,
+    context_limit,
+    resetState,
+  } = useRemoteMessage(conversation_id);
 
   const { data: draftData, mutate: mutateDraft } = useRemoteSendBoxDraft(conversation_id);
   const atPath = draftData?.atPath ?? EMPTY_AT_PATH;
@@ -171,25 +132,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
   const atPathRef = useLatestRef(atPath);
 
   useEffect(() => {
-    setThought({ subject: '', description: '' });
-    hasContentInTurnRef.current = false;
-    setHasHydratedRunningState(false);
-
-    void getConversationOrNull(conversation_id).then((res) => {
-      if (!res) {
-        setAiProcessing(false);
-        aiProcessingRef.current = false;
-        setHasHydratedRunningState(true);
-        return;
-      }
-      const isRunning = res.status === 'running';
-      setAiProcessing(isRunning);
-      aiProcessingRef.current = isRunning;
-      setHasHydratedRunningState(true);
-    });
-  }, [conversation_id]);
-
-  useEffect(() => {
     const handler = (text: string) => {
       const new_content = content ? `${content}\n${text}` : text;
       setContentRef.current(new_content);
@@ -205,97 +147,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
     },
     []
   );
-
-  useEffect(() => {
-    return ipcBridge.conversation.responseStream.on((message) => {
-      if (conversation_id !== message.conversation_id) return;
-
-      switch (message.type) {
-        case 'thought':
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
-          throttledSetThought(message.data as ThoughtData);
-          break;
-        case 'finish':
-          setAiProcessing(false);
-          aiProcessingRef.current = false;
-          setThought({ subject: '', description: '' });
-          hasContentInTurnRef.current = false;
-          break;
-        case 'content': {
-          hasContentInTurnRef.current = true;
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
-          setThought({ subject: '', description: '' });
-          const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-          break;
-        }
-        case 'assistant_model_info': {
-          // OpenCode-only: stamp the producing model onto the in-flight
-          // assistant text bubble. Arrives once per assistant message at
-          // creation (before the first text delta) with the same msg_id
-          // that the first text segment will use, so composeMessage merges
-          // the `model` field onto the same bubble.
-          const modelData = message.data as
-            | { message_id?: string; provider_id?: string; model_id?: string }
-            | undefined;
-          if (modelData?.provider_id && modelData?.model_id) {
-            const placeholder: TMessage = {
-              id: message.msg_id,
-              msg_id: message.msg_id,
-              conversation_id: message.conversation_id,
-              type: 'text',
-              position: 'left',
-              content: {
-                content: '',
-                model: {
-                  providerId: modelData.provider_id,
-                  modelId: modelData.model_id,
-                },
-              },
-              created_at: message.created_at ?? Date.now(),
-            };
-            addOrUpdateMessage(placeholder);
-          }
-          break;
-        }
-        case 'acp_permission': {
-          hasContentInTurnRef.current = true;
-          if (!aiProcessingRef.current) {
-            setAiProcessing(true);
-            aiProcessingRef.current = true;
-          }
-          setThought({ subject: '', description: '' });
-          const transformedMessage = transformMessage({ ...message, type: 'permission' });
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-          break;
-        }
-        case 'agent_status': {
-          const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-          break;
-        }
-        default: {
-          setThought({ subject: '', description: '' });
-          const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
-        }
-      }
-    });
-  }, [conversation_id, addOrUpdateMessage]);
 
   useEffect(() => {
     void getConversationOrNull(conversation_id).then(async (res) => {
@@ -333,7 +184,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
         const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
 
         setAiProcessing(true);
-        aiProcessingRef.current = true;
 
         void checkAndUpdateTitle(conversation_id, input);
         // Fetch the server-assigned msg_id before rendering the optimistic
@@ -363,7 +213,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
       } catch {
         sessionStorage.removeItem(processedKey);
         setAiProcessing(false);
-        aiProcessingRef.current = false;
       }
     };
 
@@ -401,7 +250,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
       setAiProcessing(true);
-      aiProcessingRef.current = true;
 
       let msg_id: string | null = null;
       try {
@@ -432,7 +280,6 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
       } catch (error) {
         if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
-        aiProcessingRef.current = false;
         throw error;
       }
     },
@@ -519,10 +366,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
     } catch (error) {
       console.warn('[RemoteSendBox] stop request failed', error);
     } finally {
-      setAiProcessing(false);
-      aiProcessingRef.current = false;
-      setThought({ subject: '', description: '' });
-      hasContentInTurnRef.current = false;
+      resetState();
       resetActiveExecution('stop');
     }
   };
@@ -542,7 +386,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={aiProcessing} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
 
       <SendBox
         value={content}
@@ -568,18 +412,26 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
         lockMultiLine={true}
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         rightTools={
-          protocol === 'opencode' ? (
-            <AgentModeSelector
-              backend='opencode'
-              conversation_id={conversation_id}
-              compact
-              initialMode={session_mode}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
+          <div className='flex items-center gap-8px'>
+            {/* Self-hides until the backend reports usage (OpenCode emits it on
+                turn finish; other remote protocols may not — then it stays hidden). */}
+            <ContextUsageIndicator
+              tokenUsage={tokenUsage}
+              context_limit={context_limit > 0 ? context_limit : undefined}
             />
-          ) : undefined
+            {protocol === 'opencode' ? (
+              <AgentModeSelector
+                backend='opencode'
+                conversation_id={conversation_id}
+                compact
+                initialMode={session_mode}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+              />
+            ) : null}
+          </div>
         }
         prefix={
           uploadFile.length > 0 ? (
