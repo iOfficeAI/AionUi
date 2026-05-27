@@ -2,6 +2,7 @@
   "welcome": {
     "title": "Merhaba, bugünkü planın nedir?",
     "placeholder": "Mesaj gönder, dosya yükle veya klasör aç...",
+    "uploadFile": "Dosya Yükle",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
     "selectModel": "Model Seç",
@@ -12,10 +13,10 @@
     "clearWorkspace": "Projeyi kaldır",
     "openFolder": "Klasör Aç",
     "none": "Hiçbiri",
-    "quickActionsTitle": "AionUi neler yapabilir?",
-    "quickActionFeedback": "Sorun Bildir",
+    "quickActionsTitle": "POUNDING neler yapabilir?",
+    "quickActionFeedback": "Geri bildirim veya öneriniz mi var?",
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "POUNDING Skills Market",
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
     "skillsMarketDetails": "Ayrıntılar >>"
   },
@@ -84,6 +85,12 @@
     "loadingMore": "Daha fazla yükleniyor...",
     "untitled": "Adsız sohbet"
   },
+  "tabs": {
+    "closeAll": "Tümünü Kapat",
+    "closeLeft": "Sol tarafı kapat",
+    "closeRight": "Sağ tarafı kapat",
+    "closeOthers": "Diğerlerini Kapat"
+  },
   "workspace": {
     "title": "Proje",
     "pasteConfirm_title": "Dosyaları yapıştır",
@@ -143,7 +150,6 @@
     "changes": {
       "tab": "Değişiklikler",
       "filesTab": "Dosyalar",
-      "currentBranchLabel": "Geçerli dal",
       "summary": "{{count}} dosya değiştirildi",
       "insertions": "+{{count}} ekleme",
       "deletions": "-{{count}} silme",
@@ -287,6 +293,5 @@
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
-  },
-  "notFound": "Konuşma bulunamadı veya silinmiş"
+  }
 }

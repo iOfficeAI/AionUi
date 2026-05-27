@@ -4,7 +4,7 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Pure Node/Bun CLI — resets the WebUI admin password for the standalone
+ * Pure Node/Bun CLI — resets the POUNDING WebUI admin password for the standalone
  * `bun run webui` host (independent of Electron).
  *
  * After the M6 auth cleanup, SQLite `users` is the single source of truth.
@@ -12,7 +12,7 @@
  *   1. A `bun run webui` is already running on the default port → reach its
  *      reverse-proxied /api/webui/reset-password directly. Users don't have to
  *      stop the server first; the just-reset password can be used immediately.
- *   2. No webui running → spawn a short-lived aioncore against the same
+ *   2. No webui running → spawn a short-lived backend against the same
  *      data-dir, POST /api/webui/reset-password, and stop the backend. This is
  *      the offline / cold-start path.
  *
@@ -30,7 +30,8 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { startBackend, stopBackend } from '@aionui/web-host';
 
-const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+const BACKEND_BINARY_NAMES = process.platform === 'win32' ? ['aioncore.exe'] : ['aioncore'];
+const BACKEND_BUNDLED_DIR_NAMES = ['bundled-aioncore'];
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -63,7 +64,7 @@ function getFlag(name: string): string | undefined {
 /**
  * Same resolution as scripts/webui.ts:resolveBackendDataDir — keep both in sync
  * so `bun run webui` and `bun run resetpass` always target the same SQLite DB.
- * See the comment there for why the default is `~/.aionui-web*` (not `~/.aionui*`).
+ * See the comment there for why the default is `~/.pouding-web*` (not `~/.pouding*`).
  */
 function resolveWorkDir(): string {
   const override = getFlag('--data-dir') ?? process.env.AIONUI_DATA_DIR;
@@ -74,29 +75,38 @@ function resolveWorkDir(): string {
   }
   const suffix =
     process.env.NODE_ENV === 'production' ? '' : process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
-  const dir = path.join(os.homedir(), `.aionui-web${suffix}`);
+  const dir = path.join(os.homedir(), `.pouding-web${suffix}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
 
 function resolveBackendBinary(): string {
-  if (process.env.AIONUI_BACKEND_BIN) return process.env.AIONUI_BACKEND_BIN;
+  if (process.env.AIONCORE_BIN) return process.env.AIONCORE_BIN;
 
-  const bundledBase = process.env.AIONUI_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncore');
   const runtimeKey = `${process.platform}-${process.arch}`;
-  const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
-  if (fs.existsSync(bundled)) return bundled;
+  const bundledOverrideBase = process.env.AIONCORE_BUNDLED_DIR;
+  const bundledBaseDirs = bundledOverrideBase
+    ? [bundledOverrideBase]
+    : BACKEND_BUNDLED_DIR_NAMES.map((dirName) => path.join(repoRoot, 'resources', dirName));
+  for (const bundledBase of bundledBaseDirs) {
+    for (const binaryName of BACKEND_BINARY_NAMES) {
+      const bundled = path.join(bundledBase, runtimeKey, binaryName);
+      if (fs.existsSync(bundled)) return bundled;
+    }
+  }
 
-  try {
-    const cmd = process.platform === 'win32' ? `where ${BACKEND_BINARY}` : `which ${BACKEND_BINARY}`;
-    const found = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim().split(/\r?\n/)[0];
-    if (found && fs.existsSync(found)) return found;
-  } catch {
-    // fall through
+  for (const binaryName of BACKEND_BINARY_NAMES) {
+    try {
+      const cmd = process.platform === 'win32' ? `where ${binaryName}` : `which ${binaryName}`;
+      const found = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim().split(/\r?\n/)[0];
+      if (found && fs.existsSync(found)) return found;
+    } catch {
+      // try next name
+    }
   }
 
   throw new Error(
-    `Cannot find "${BACKEND_BINARY}". Set AIONUI_BACKEND_BIN, put it on PATH, or place it at ${bundled}.`
+    `Cannot find backend binary. Set AIONCORE_BIN, put aioncore on PATH, or place it under resources/${BACKEND_BUNDLED_DIR_NAMES.join(' or resources/')}/<platform-arch>/.`
   );
 }
 

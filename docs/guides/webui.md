@@ -1,6 +1,6 @@
-# AionUi WebUI Mode - Startup Guide
+# POUNDING WebUI Mode - Startup Guide
 
-AionUi supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
+POUNDING supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
 
 ## Table of Contents
 
@@ -16,10 +16,10 @@ AionUi supports WebUI mode, allowing you to access the application through a web
 
 ## What is WebUI Mode?
 
-WebUI mode starts AionUi with an embedded web server, allowing you to:
+WebUI mode starts POUNDING with an embedded web server, allowing you to:
 
 - Access the application through any modern web browser
-- Use AionUi from remote devices on the same network (with `--remote` flag)
+- Use POUNDING from remote devices on the same network (with `--remote` flag)
 - Run the application headless on servers
 
 Default access URL: `http://localhost:3000` (port may vary, check the application output)
@@ -47,7 +47,7 @@ AionUi.exe --webui
    ```
    "C:\Program Files\AionUi\AionUi.exe" --webui
    ```
-3. Name it **AionUi WebUI**
+3. Name it **POUNDING WebUI**
 4. Click **Finish**
 5. Double-click the shortcut to launch
 
@@ -104,13 +104,13 @@ chmod +x start-aionui-webui.sh
    ```bash
    /Applications/AionUi.app/Contents/MacOS/AionUi --webui
    ```
-5. Save as **AionUi WebUI.app**
+5. Save as **POUNDING WebUI.app**
 6. Double-click to launch
 
 ### Method 4: Add to Dock
 
 1. Create an Automator app (Method 3)
-2. Drag **AionUi WebUI.app** to your Dock
+2. Drag **POUNDING WebUI.app** to your Dock
 3. Click the Dock icon to start WebUI mode anytime
 
 ---
@@ -145,7 +145,7 @@ Create `~/.local/share/applications/aionui-webui.desktop`:
 
 ```ini
 [Desktop Entry]
-Name=AionUi WebUI
+Name=POUNDING WebUI
 Comment=Start AionUi in WebUI mode
 Exec=/opt/AionUi/aionui --webui
 Icon=aionui
@@ -189,7 +189,7 @@ Create `/etc/systemd/system/aionui-webui.service`:
 
 ```ini
 [Unit]
-Description=AionUi WebUI Service
+Description=POUNDING WebUI Service
 After=network.target
 
 [Service]
@@ -220,11 +220,11 @@ sudo systemctl status aionui-webui.service
 
 **Important Note**: Electron desktop mode is **not supported** on Android. However, you can run AionUi in WebUI mode using Termux with a prooted Linux environment.
 
-> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making AionUi accessible on Android devices! 🙏
+> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making POUNDING accessible on Android devices! 🙏
 >
-> **Original Tutorial**: [Running AionUi WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
+> **Original Tutorial**: [Running POUNDING WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
 >
-> **Related Issues**: [#217 - Android Support Discussion](https://github.com/iOfficeAI/AionUi/issues/217)
+> **Related Issues**: [Android Support Discussion](https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues)
 
 ### Prerequisites
 
@@ -285,11 +285,11 @@ apt install -y \
 
 ```bash
 # Download the ARM64 .deb package (replace VERSION with the actual version)
-# Check latest version at: https://github.com/iOfficeAI/AionUi/releases
-wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
+# Check latest version at: https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/releases
+wget https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/releases/download/vVERSION/POUNDING-VERSION-linux-arm64.deb
 
 # Example (replace VERSION with the release tag, e.g. v1.5.2):
-wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
+wget https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/releases/download/vVERSION/POUNDING-VERSION-linux-arm64.deb
 
 # Install the package
 apt install -y ./AionUi_*.deb
@@ -298,7 +298,7 @@ apt install -y ./AionUi_*.deb
 which AionUi
 ```
 
-#### 5. Launch AionUi WebUI
+#### 5. Launch POUNDING WebUI
 
 ```bash
 # Start AionUi in WebUI mode with no-sandbox flag
@@ -383,7 +383,7 @@ AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
 
 - **Device**: Android 14
 - **Termux Version**: 0.118.0
-- **AionUi Version**: Latest release (e.g. 1.5.2)
+- **POUNDING Version**: Latest release (e.g. 1.5.2)
 - **Proot-distro**: Ubuntu (latest)
 
 ### Creating a Startup Script
@@ -394,7 +394,7 @@ For convenience, create a script to launch AionUi quickly:
 # Create script in Ubuntu (proot)
 cat > ~/start-aionui.sh << 'EOF'
 #!/bin/bash
-echo "Starting AionUi WebUI..."
+echo "Starting POUNDING WebUI..."
 AionUi --no-sandbox --webui --remote
 EOF
 
@@ -418,7 +418,7 @@ proot-distro login ubuntu -- bash -c "AionUi --no-sandbox --webui --remote"
 If you encounter issues or have suggestions for improving Android support:
 
 1. Check the [original community guide](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
-2. Report issues at [GitHub Issues #217](https://github.com/iOfficeAI/AionUi/issues/217)
+2. Report issues at [POUNDING Issues](https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues)
 3. Share your experience to help other Android users!
 
 ---
@@ -494,7 +494,7 @@ If port 3000 is already in use, the application will automatically try the next 
 
 ```cmd
 # Allow through Windows Firewall
-netsh advfirewall firewall add rule name="AionUi WebUI" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="POUNDING WebUI" dir=in action=allow protocol=TCP localport=3000
 ```
 
 **Linux (UFW):**
@@ -678,7 +678,7 @@ npm run resetpass -- username
 - [Main README](../readme.md)
 - [中文说明](./readme/readme_ch.md)
 - [日本語ドキュメント](./readme/readme_jp.md)
-- [GitHub Issues](https://github.com/iOfficeAI/AionUi/issues)
+- [GitHub Issues](https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues)
 
 ---
 
@@ -687,8 +687,8 @@ npm run resetpass -- username
 If you encounter any issues:
 
 1. Check the [Troubleshooting](#troubleshooting) section
-2. Search [existing issues](https://github.com/iOfficeAI/AionUi/issues)
-3. Create a [new issue](https://github.com/iOfficeAI/AionUi/issues/new) with:
+2. Search [existing issues](https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues)
+3. Create a [new issue](https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues/new) with:
    - Your OS and version
    - AionUi version
    - Steps to reproduce
@@ -696,4 +696,4 @@ If you encounter any issues:
 
 ---
 
-**Happy using AionUi in WebUI mode!** 🚀
+**Happy using POUNDING in WebUI mode!** 🚀

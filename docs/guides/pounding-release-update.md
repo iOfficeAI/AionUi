@@ -39,7 +39,7 @@ AIONUI_GITHUB_REPO=halojerry/AionUi-2.0.2-dev-a3881e2
 覆盖“手动下载更新包”的基础下载地址：
 
 ```bash
-AIONUI_UPDATE_BASE_URL=https://download.example.com/releases/download
+AIONUI_UPDATE_BASE_URL=https://download.api.mxou.cn/releases/download
 ```
 
 代码会把更新包 URL 组装成：
@@ -51,7 +51,7 @@ ${AIONUI_UPDATE_BASE_URL}/${version}/${assetName}
 例如：
 
 ```text
-https://download.example.com/releases/download/2.0.3/POUNDING-2.0.3-win-x64.exe
+https://download.api.mxou.cn/releases/download/2.0.3/POUNDING-2.0.3-win-x64.exe
 ```
 
 适合：
@@ -65,7 +65,7 @@ https://download.example.com/releases/download/2.0.3/POUNDING-2.0.3-win-x64.exe
 覆盖 `electron-updater` 的自动更新源，要求是 **generic feed 根目录**：
 
 ```bash
-AIONUI_AUTO_UPDATE_URL=https://download.example.com/releases/latest
+AIONUI_AUTO_UPDATE_URL=https://download.api.mxou.cn/releases/latest
 ```
 
 该目录下必须能访问：

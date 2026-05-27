@@ -2,6 +2,7 @@
   "welcome": {
     "title": "Привіт, які плани на сьогодні?",
     "placeholder": "Надішліть повідомлення, завантажте файли, відкрийте папку або створіть заплановане завдання...",
+    "uploadFile": "Завантажити файли",
     "linkFolder": "Відкрити папку",
     "newConversation": "Новий чат",
     "selectModel": "Вибрати модель",
@@ -12,10 +13,10 @@
     "clearWorkspace": "Видалити проєкт",
     "openFolder": "Відкрити папку",
     "none": "Немає",
-    "quickActionsTitle": "Що вміє AionUi?",
-    "quickActionFeedback": "Повідомити про проблему",
+    "quickActionsTitle": "Що вміє POUNDING?",
+    "quickActionFeedback": "Є відгуки або пропозиції?",
     "quickActionStar": "Подобається? Поставте нам зірку!",
-    "skillsMarket": "Маркет навичок AionUi",
+    "skillsMarket": "Маркет навичок POUNDING",
     "skillsMarketDesc": "Шукайте та активуйте навички спільноти за запитом. Налаштуйте один раз — доступно для всіх агентів.",
     "skillsMarketDetails": "Докладніше >>"
   },
@@ -84,6 +85,12 @@
     "loadingMore": "Завантаження...",
     "untitled": "Діалог без назви"
   },
+  "tabs": {
+    "closeAll": "Закрити всі",
+    "closeLeft": "Закрити зліва",
+    "closeRight": "Закрити справа",
+    "closeOthers": "Закрити інші"
+  },
   "dropdown": {
     "cliAgents": "CLI Агенти",
     "presetAssistants": "Встановлені асистенти"
@@ -148,7 +155,6 @@
     "changes": {
       "tab": "Зміни",
       "filesTab": "Файли",
-      "currentBranchLabel": "Поточна гілка",
       "summary": "{{count}} файл(ів) змінено",
       "insertions": "+{{count}} додано",
       "deletions": "-{{count}} видалено",
@@ -284,6 +290,5 @@
   },
   "sendbox": {
     "hint": "Введіть / для команд, @ для посилань на файли"
-  },
-  "notFound": "Розмову не знайдено або її видалено"
+  }
 }

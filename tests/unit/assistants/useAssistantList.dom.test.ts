@@ -52,6 +52,37 @@ describe('useAssistantList', () => {
     expect(result.current.activeAssistant?.id).toBe('1');
   });
 
+  it('preserves builtin enabled_skills payload from backend list responses', async () => {
+    const mockList: Assistant[] = [
+      {
+        id: 'ozon-assistants',
+        name: 'Ozon Assistants',
+        sort_order: 1,
+        source: 'builtin',
+        enabled: true,
+        preset_agent_type: 'aionrs',
+        enabled_skills: ['pounding-ozon'],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        name_i18n: {},
+        description_i18n: {},
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+      },
+    ];
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue(mockList);
+
+    const { result } = renderHook(() => useAssistantList());
+
+    await waitFor(() => expect(result.current.assistants).toHaveLength(1));
+
+    expect(result.current.assistants[0].id).toBe('ozon-assistants');
+    expect(result.current.assistants[0].enabled_skills).toEqual(['pounding-ozon']);
+    expect(result.current.activeAssistant?.enabled_skills).toEqual(['pounding-ozon']);
+  });
+
   it('handles empty list', async () => {
     (ipcBridge.assistants.list.invoke as any).mockResolvedValue([]);
 

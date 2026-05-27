@@ -14,8 +14,8 @@
  *   AIONUI_DATA_DIR       : override userData path (default Electron-compatible)
  *   AIONUI_LOG_DIR        : override log dir (default <dataDir>/logs)
  *   AIONUI_STATIC_DIR     : override static dir (default out/renderer)
- *   AIONUI_BACKEND_BIN    : absolute path to aioncore binary (else PATH lookup)
- *   AIONUI_BACKEND_BUNDLED_DIR : dir containing bundled-aioncore/<plat-arch>/binary
+ *   AIONCORE_BIN    : absolute path to backend binary (else PATH lookup)
+ *   AIONCORE_BUNDLED_DIR : dir containing bundled-aioncore/<plat-arch>/binary
  */
 
 import { execSync } from 'child_process';
@@ -31,7 +31,8 @@ const DEFAULT_PORT = (() => {
   if (process.env.AIONUI_MULTI_INSTANCE === '1') return 25810;
   return 25809;
 })();
-const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+const BACKEND_BINARY_NAMES = process.platform === 'win32' ? ['aioncore.exe'] : ['aioncore'];
+const BACKEND_BUNDLED_DIR_NAMES = ['bundled-aioncore'];
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -54,13 +55,13 @@ const getFlag = (name: string): string | undefined => {
  *
  *   --data-dir <path>       CLI override (highest priority)
  *   $AIONUI_DATA_DIR        env override (same effect)
- *   otherwise               ~/.aionui-web         (production)
- *                           ~/.aionui-web-dev     (dev, default)
- *                           ~/.aionui-web-dev-2   (dev + AIONUI_MULTI_INSTANCE=1)
+ *   otherwise               ~/.pouding-web         (production)
+ *                           ~/.pouding-web-dev     (dev, default)
+ *                           ~/.pouding-web-dev-2   (dev + AIONUI_MULTI_INSTANCE=1)
  *
- * Why a dedicated `-web` name, not the same `~/.aionui[-dev]` that Electron
+ * Why a dedicated `-web` name, not the same `~/.pouding[-dev]` that Electron
  * uses: on macOS, Electron's getDataPath() (packages/desktop/src/process/utils/
- * utils.ts) creates `~/.aionui-dev` as a **symlink** to
+ * utils.ts) creates `~/.pouding-dev` as a **symlink** to
  * `~/Library/Application Support/AionUi-Dev/aionui` so CLI tools (claude,
  * gemini, qwen…) don't choke on the literal space in "Application Support".
  * If standalone webui runs first on a clean machine, it would create the
@@ -68,11 +69,11 @@ const getFlag = (name: string): string | undefined => {
  * installed, its `ensureCliSafeSymlink` refuses to overwrite a real dir and
  * falls back to returning the space-containing path — and then every ACP
  * agent inside the desktop app starts failing on CLI commands. Using
- * `.aionui-web` keeps standalone webui's data dir off of the path Electron's
+ * `.pouding-web` keeps standalone webui's data dir off of the path Electron's
  * symlink needs.
  *
  * If the user wants the two to share data they opt-in explicitly via
- *   --data-dir ~/.aionui-dev                     (or equivalent on other OSes)
+ *   --data-dir ~/.pouding-dev                     (or equivalent on other OSes)
  * which is safe because by that point Electron has created the symlink and
  * `bun run webui` just follows it.
  */
@@ -85,7 +86,7 @@ function resolveBackendDataDir(): string {
   }
   const suffix =
     process.env.NODE_ENV === 'production' ? '' : process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
-  const dir = path.join(os.homedir(), `.aionui-web${suffix}`);
+  const dir = path.join(os.homedir(), `.pouding-web${suffix}`);
   fs.mkdirSync(dir, { recursive: true });
   return dir;
 }
@@ -117,41 +118,33 @@ function resolveStaticDir(): string {
   throw new Error(`Renderer assets not found at ${candidate}. Run "bun run package" first, or set AIONUI_STATIC_DIR.`);
 }
 
-/**
- * Rebuild renderer/main bundles before launching, so that `bun run webui` always
- * serves the latest source. Skipped when:
- *   --no-build flag           : explicit opt-out (e.g., iterating on this script)
- *   $AIONUI_NO_BUILD=1        : env-level opt-out
- *   $AIONUI_STATIC_DIR is set : caller is pointing us at a prebuilt artifact dir
- */
-function runPackageIfNeeded(): void {
-  if (has('--no-build')) return;
-  if (parseBoolean(process.env.AIONUI_NO_BUILD)) return;
-  if (process.env.AIONUI_STATIC_DIR) return;
-  console.log('[webui] running "bun run package" to refresh out/renderer (pass --no-build to skip)...');
-  const start = Date.now();
-  execSync('bun run package', { cwd: repoRoot, stdio: 'inherit' });
-  console.log(`[webui] package finished in ${((Date.now() - start) / 1000).toFixed(1)}s`);
-}
-
 function resolveBackendBinary(): string {
-  if (process.env.AIONUI_BACKEND_BIN) return process.env.AIONUI_BACKEND_BIN;
+  if (process.env.AIONCORE_BIN) return process.env.AIONCORE_BIN;
 
-  const bundledBase = process.env.AIONUI_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncore');
   const runtimeKey = `${process.platform}-${process.arch}`;
-  const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
-  if (fs.existsSync(bundled)) return bundled;
+  const bundledOverrideBase = process.env.AIONCORE_BUNDLED_DIR;
+  const bundledBaseDirs = bundledOverrideBase
+    ? [bundledOverrideBase]
+    : BACKEND_BUNDLED_DIR_NAMES.map((dirName) => path.join(repoRoot, 'resources', dirName));
+  for (const bundledBase of bundledBaseDirs) {
+    for (const binaryName of BACKEND_BINARY_NAMES) {
+      const bundled = path.join(bundledBase, runtimeKey, binaryName);
+      if (fs.existsSync(bundled)) return bundled;
+    }
+  }
 
-  try {
-    const cmd = process.platform === 'win32' ? `where ${BACKEND_BINARY}` : `which ${BACKEND_BINARY}`;
-    const found = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim().split(/\r?\n/)[0];
-    if (found && fs.existsSync(found)) return found;
-  } catch {
-    // fall through
+  for (const binaryName of BACKEND_BINARY_NAMES) {
+    try {
+      const cmd = process.platform === 'win32' ? `where ${binaryName}` : `which ${binaryName}`;
+      const found = execSync(cmd, { encoding: 'utf-8', timeout: 5000 }).trim().split(/\r?\n/)[0];
+      if (found && fs.existsSync(found)) return found;
+    } catch {
+      // try next name
+    }
   }
 
   throw new Error(
-    `Cannot find "${BACKEND_BINARY}". Set AIONUI_BACKEND_BIN, put it on PATH, or place it at ${bundled}.`
+    `Cannot find backend binary. Set AIONCORE_BIN, put aioncore on PATH, or place it under resources/${BACKEND_BUNDLED_DIR_NAMES.join(' or resources/')}/<platform-arch>/.`
   );
 }
 
@@ -199,7 +192,6 @@ async function fetchAdminUsername(backendPort: number): Promise<string> {
 
 async function main(): Promise<void> {
   augmentPathWithNvm();
-  runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();
   // One working dir for the whole standalone webui: backend SQLite and chat
@@ -242,7 +234,7 @@ async function main(): Promise<void> {
   });
 
   console.log('');
-  console.log('AionUi WebUI is ready');
+  console.log('POUNDING WebUI is ready');
   console.log(`  Local  : ${handle.localUrl}`);
   if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
 

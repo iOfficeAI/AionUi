@@ -2,6 +2,7 @@
   "welcome": {
     "title": "Привет! Каковы ваши планы на сегодня?",
     "placeholder": "Отправьте сообщение, загрузите файлы, откройте папку или создайте запланированную задачу...",
+    "uploadFile": "Загрузить файлы",
     "linkFolder": "Открыть папку",
     "newConversation": "Новый чат",
     "selectModel": "Выбрать модель",
@@ -12,10 +13,10 @@
     "clearWorkspace": "Удалить проект",
     "openFolder": "Открыть папку",
     "none": "Нет",
-    "quickActionsTitle": "Что умеет AionUi?",
-    "quickActionFeedback": "Сообщить о проблеме",
+    "quickActionsTitle": "Что умеет POUNDING?",
+    "quickActionFeedback": "Есть отзывы или предложения?",
     "quickActionStar": "Нравится? Поставьте нам звезду!",
-    "skillsMarket": "Маркет навыков AionUi",
+    "skillsMarket": "Маркет навыков POUNDING",
     "skillsMarketDesc": "Находите и активируйте навыки сообщества по запросу. Настройте один раз — доступно для всех агентов.",
     "skillsMarketDetails": "Подробнее >>"
   },
@@ -84,6 +85,12 @@
     "loadingMore": "Загрузка...",
     "untitled": "Безымянный диалог"
   },
+  "tabs": {
+    "closeAll": "Закрыть все",
+    "closeLeft": "Закрыть слева",
+    "closeRight": "Закрыть справа",
+    "closeOthers": "Закрыть остальные"
+  },
   "dropdown": {
     "cliAgents": "CLI-агенты",
     "presetAssistants": "Предустановленные ассистенты"
@@ -148,7 +155,6 @@
     "changes": {
       "tab": "Изменения",
       "filesTab": "Файлы",
-      "currentBranchLabel": "Текущая ветка",
       "summary": "{{count}} файл(ов) изменено",
       "insertions": "+{{count}} добавлено",
       "deletions": "-{{count}} удалено",
@@ -285,6 +291,5 @@
   },
   "sendbox": {
     "hint": "Введите / для команд, @ для ссылок на файлы"
-  },
-  "notFound": "Беседа не найдена или была удалена"
+  }
 }

@@ -48,7 +48,8 @@ const isPackaged = (() => {
   return exeName === 'aionui-web' || exeName === 'aionui-web.exe';
 })();
 
-const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+const BACKEND_BINARY_NAMES = process.platform === 'win32' ? ['aioncore.exe'] : ['aioncore'];
+const BACKEND_BUNDLED_DIR_NAMES = ['bundled-aioncore'];
 const DEFAULT_PORT = 25808;
 const RESET_COMMAND = isPackaged ? 'aionui-web resetpass' : 'bun run resetpass';
 
@@ -75,11 +76,16 @@ function parseArgs(argv: string[]): { command: string; flags: Map<string, string
 function resolveBackendBinary(flags: Map<string, string | true>): string {
   const override = flags.get('backend-bin');
   if (typeof override === 'string') return path.resolve(override);
-  const envOverride = process.env.AIONUI_BACKEND_BIN;
+  const envOverride = process.env.AIONCORE_BIN;
   if (envOverride) return path.resolve(envOverride);
   const platArch = `${process.platform}-${process.arch}`;
-  const bundled = path.join(cliRoot, 'bundled-aioncore', platArch, BACKEND_BINARY);
-  return bundled;
+  for (const bundledDirName of BACKEND_BUNDLED_DIR_NAMES) {
+    for (const binaryName of BACKEND_BINARY_NAMES) {
+      const bundled = path.join(cliRoot, bundledDirName, platArch, binaryName);
+      if (fs.existsSync(bundled)) return bundled;
+    }
+  }
+  return path.join(cliRoot, 'bundled-aioncore', platArch, BACKEND_BINARY_NAMES[0]);
 }
 
 function resolveStaticDir(flags: Map<string, string | true>): string {
@@ -93,7 +99,7 @@ function resolveDataDir(flags: Map<string, string | true>): string {
   if (typeof override === 'string') return path.resolve(override);
   const envOverride = process.env.AIONUI_DATA_DIR;
   if (envOverride) return path.resolve(envOverride);
-  return path.join(os.homedir(), '.aionui-web');
+  return path.join(os.homedir(), '.pouding-web');
 }
 
 function resolveLogDir(flags: Map<string, string | true>, dataDir: string): string {
@@ -163,7 +169,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.warn('⚠️  Backend binary not found — starting in FRONTEND-ONLY mode.');
     console.warn(`   Missing: ${backendBin}`);
     console.warn('   The web UI will load but API calls will fail until a backend is available.');
-    console.warn('   To enable backend: download aioncore and set AIONUI_BACKEND_BIN.');
+    console.warn('   To enable backend: download aioncore and set AIONCORE_BIN.');
     console.warn('');
 
     const handle = await startStaticServer({
@@ -175,7 +181,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     currentHandle = handle;
 
     console.log('');
-    console.log('AionUi WebUI (frontend only) is ready');
+    console.log('POUNDING WebUI (frontend only) is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
     console.log('');
@@ -207,7 +213,7 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     currentHandle = handle;
 
     console.log('');
-    console.log('AionUi WebUI is ready');
+    console.log('POUNDING WebUI is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
 
@@ -255,7 +261,7 @@ async function runResetPassword(flags: Map<string, string | true>): Promise<void
   const backendBin = resolveBackendBinary(flags);
   if (!fs.existsSync(backendBin)) {
     console.error(`[aionui-web] backend binary not found: ${backendBin}`);
-    console.error('  hint: pass --backend-bin <path> or set AIONUI_BACKEND_BIN');
+    console.error('  hint: pass --backend-bin <path> or set AIONCORE_BIN');
     process.exit(1);
   }
   const dataDir = resolveDataDir(flags);
@@ -359,18 +365,18 @@ Commands:
 Options for start:
   --port <n>              Listen port (default: ${DEFAULT_PORT})
   --remote                Bind 0.0.0.0 instead of 127.0.0.1
-  --data-dir <path>       Override data dir (default: ~/.aionui-web)
+  --data-dir <path>       Override data dir (default: ~/.pouding-web)
   --log-dir <path>        Override log dir (default: <data-dir>/logs)
   --static-dir <path>     Override static assets dir
   --backend-bin <path>    Override backend binary path
 
 Options for resetpass:
-  --data-dir <path>       Which data dir to reset (default: ~/.aionui-web)
+  --data-dir <path>       Which data dir to reset (default: ~/.pouding-web)
   --backend-bin <path>    Override backend binary path
 
 Environment variables:
   AIONUI_PORT, AIONUI_ALLOW_REMOTE, AIONUI_DATA_DIR, AIONUI_LOG_DIR,
-  AIONUI_BACKEND_BIN
+  AIONCORE_BIN
 `);
     return;
   }

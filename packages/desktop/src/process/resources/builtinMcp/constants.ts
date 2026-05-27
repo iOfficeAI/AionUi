@@ -8,7 +8,7 @@
 // when the built-in MCP server boots in a standalone stdio process.
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
 export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
-export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
+export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['POUNDING Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export function isBuiltinImageGenName(name?: string | null): boolean {
   if (!name) return false;

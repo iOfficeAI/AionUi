@@ -2,6 +2,7 @@
   "welcome": {
     "title": "안녕하세요, 오늘의 계획은 무엇인가요?",
     "placeholder": "메시지 전송, 파일 업로드, 폴더 열기 또는 예약 작업 만들기...",
+    "uploadFile": "파일 업로드",
     "linkFolder": "폴더 열기",
     "newConversation": "새 채팅",
     "selectModel": "모델 선택",
@@ -12,10 +13,10 @@
     "clearWorkspace": "프로젝트 제거",
     "openFolder": "폴더 열기",
     "none": "없음",
-    "quickActionsTitle": "AionUi로 무엇을 할 수 있나요?",
-    "quickActionFeedback": "문제 보고",
+    "quickActionsTitle": "POUNDING로 무엇을 할 수 있나요?",
+    "quickActionFeedback": "피드백이나 제안이 있으신가요?",
     "quickActionStar": "마음에 드시나요? 별을 주세요!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "POUNDING Skills Market",
     "skillsMarketDesc": "커뮤니티 Skills를 필요에 따라 검색하고 활성화. 한 번 설정하면 모든 Agent에서 사용 가능.",
     "skillsMarketDetails": "자세히 >>"
   },
@@ -91,6 +92,12 @@
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",
+  "tabs": {
+    "closeAll": "모두 닫기",
+    "closeLeft": "왼쪽 닫기",
+    "closeRight": "오른쪽 닫기",
+    "closeOthers": "다른 탭 닫기"
+  },
   "workspace": {
     "title": "프로젝트",
     "pasteConfirm_title": "파일 붙여넣기",
@@ -148,7 +155,6 @@
     "changes": {
       "tab": "변경",
       "filesTab": "파일",
-      "currentBranchLabel": "현재 브랜치",
       "summary": "{{count}}개 파일 변경됨",
       "insertions": "+{{count}} 줄 추가",
       "deletions": "-{{count}} 줄 삭제",
@@ -285,6 +291,5 @@
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"
-  },
-  "notFound": "대화를 찾을 수 없거나 삭제되었습니다"
+  }
 }

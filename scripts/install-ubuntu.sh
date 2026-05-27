@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # ============================================================================
-# AionUi — Ubuntu / Debian 一鍵自動化安裝腳本
+# POUNDING — Ubuntu / Debian 一鍵自動化安裝腳本
 # ============================================================================
 # 功能：
 #   1. 自動偵測系統架構 (amd64 / arm64)
 #   2. 從 GitHub Release 下載指定版本的 .deb 套件（預設 latest）
 #   3. 安裝 .deb + 自動修復依賴
 #   4. 安裝 Xvfb 等 headless 運行所需套件
-#   5. 建立服務管理腳本 (/opt/AionUi/start-aionui.sh)
+#   5. 建立服務管理腳本 (/opt/POUNDING/start-aionui.sh)
 #   6. (可選) 建立 systemd service
 #   7. (可選) 建立桌面捷徑
 #
 # 用法：
-#   curl -fsSL https://raw.githubusercontent.com/iOfficeAI/AionUi/main/scripts/install-ubuntu.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/halojerry/AionUi-2.0.2-dev-a3881e2/main/scripts/install-ubuntu.sh | bash
 #   # 或指定版本：
 #   AIONUI_VERSION=1.8.25 bash install-ubuntu.sh
 #   # 僅安裝桌面版（跳過 headless 設定）：
@@ -20,6 +20,9 @@
 # ============================================================================
 
 set -euo pipefail
+
+DOWNLOAD_BASE="${AIONUI_DOWNLOAD_BASE:-https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/releases/download}"
+GITHUB_REPO="${GITHUB_REPO:-halojerry/AionUi-2.0.2-dev-a3881e2}"
 
 # ─── 顏色定義 ───────────────────────────────────────────────────────────────
 RED='\033[0;31m'
@@ -37,10 +40,14 @@ warn()    { echo -e "${YELLOW}[!]${NC} $*"; }
 error()   { echo -e "${RED}[✗]${NC} $*" >&2; }
 die()     { error "$*"; exit 1; }
 
+trim_trailing_slash() {
+    printf '%s' "${1%/}"
+}
+
 banner() {
     echo -e "${CYAN}${BOLD}"
     echo "  ╔══════════════════════════════════════════════╗"
-    echo "  ║          AionUi Installer for Ubuntu         ║"
+    echo "  ║         POUNDING Installer for Ubuntu        ║"
     echo "  ╚══════════════════════════════════════════════╝"
     echo -e "${NC}"
 }
@@ -93,10 +100,10 @@ resolve_version() {
         info "正在查詢最新版本..."
         # 透過 GitHub API 取得 latest release tag
         if command -v curl &>/dev/null; then
-            VERSION=$(curl -fsSL "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(curl -fsSL "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         elif command -v wget &>/dev/null; then
-            VERSION=$(wget -qO- "https://api.github.com/repos/iOfficeAI/AionUi/releases/latest" \
+            VERSION=$(wget -qO- "https://api.github.com/repos/${GITHUB_REPO}/releases/latest" \
                 | grep '"tag_name"' | head -1 | sed 's/.*"v\([^"]*\)".*/\1/')
         else
             die "需要 curl 或 wget 來下載，請先安裝: sudo apt-get install -y curl"
@@ -108,8 +115,13 @@ resolve_version() {
         info "最新版本: ${BOLD}v$VERSION${NC}"
     fi
 
-    DEB_FILENAME="AionUi-${VERSION}-linux-${DEB_ARCH}.deb"
-    DOWNLOAD_URL="https://github.com/iOfficeAI/AionUi/releases/download/v${VERSION}/${DEB_FILENAME}"
+    DEB_FILENAME="POUNDING-${VERSION}-linux-${DEB_ARCH}.deb"
+    DOWNLOAD_URLS=(
+        "$(trim_trailing_slash "$DOWNLOAD_BASE")/${DEB_FILENAME}"
+        "$(trim_trailing_slash "$DOWNLOAD_BASE")/${VERSION}/${DEB_FILENAME}"
+        "$(trim_trailing_slash "$DOWNLOAD_BASE")/v${VERSION}/${DEB_FILENAME}"
+        "https://github.com/${GITHUB_REPO}/releases/download/v${VERSION}/${DEB_FILENAME}"
+    )
 }
 
 # ─── 下載 .deb 套件 ──────────────────────────────────────────────────────────
@@ -119,13 +131,21 @@ download_deb() {
     DEB_PATH="${tmpdir}/${DEB_FILENAME}"
 
     info "下載 ${BOLD}$DEB_FILENAME${NC} ..."
-    info "網址: $DOWNLOAD_URL"
+    local url
+    for url in "${DOWNLOAD_URLS[@]}"; do
+        info "嘗試下載: $url"
+        if command -v curl &>/dev/null; then
+            if curl -fSL --progress-bar -o "$DEB_PATH" "$url"; then
+                break
+            fi
+        elif command -v wget &>/dev/null; then
+            if wget --show-progress -q -O "$DEB_PATH" "$url"; then
+                break
+            fi
+        fi
+    done
 
-    if command -v curl &>/dev/null; then
-        curl -fSL --progress-bar -o "$DEB_PATH" "$DOWNLOAD_URL" || die "下載失敗"
-    elif command -v wget &>/dev/null; then
-        wget --show-progress -q -O "$DEB_PATH" "$DOWNLOAD_URL" || die "下載失敗"
-    fi
+    [[ -f "$DEB_PATH" && -s "$DEB_PATH" ]] || die "下載失敗"
 
     local size
     size=$(du -h "$DEB_PATH" | cut -f1)
@@ -134,7 +154,7 @@ download_deb() {
 
 # ─── 安裝 .deb + 修復依賴 ────────────────────────────────────────────────────
 install_deb() {
-    info "安裝 AionUi .deb 套件..."
+    info "安裝 POUNDING .deb 套件..."
 
     # dpkg 安裝（可能會缺依賴）
     $SUDO dpkg -i "$DEB_PATH" 2>/dev/null || true
@@ -143,13 +163,13 @@ install_deb() {
     info "修復依賴套件..."
     $SUDO apt-get install -f -y
 
-    success "AionUi v${VERSION} 安裝完成"
+    success "POUNDING v${VERSION} 安裝完成"
 
     # 驗證安裝
     if command -v AionUi &>/dev/null || [[ -x /usr/bin/AionUi ]]; then
-        success "AionUi 已安裝至 $(which AionUi 2>/dev/null || echo '/usr/bin/AionUi')"
+        success "POUNDING 已安裝至 $(which AionUi 2>/dev/null || echo '/usr/bin/AionUi')"
     else
-        warn "安裝可能不完整，找不到 AionUi 執行檔"
+        warn "安裝可能不完整，找不到 POUNDING 執行檔"
     fi
 
     # 清理暫存
@@ -177,7 +197,7 @@ install_headless_deps() {
 
 # ─── 建立服務管理腳本 ─────────────────────────────────────────────────────────
 create_service_script() {
-    local script_dir="/opt/AionUi"
+    local script_dir="/opt/POUNDING"
     local script_path="${script_dir}/start-aionui.sh"
 
     info "建立服務管理腳本: $script_path"
@@ -186,7 +206,7 @@ create_service_script() {
     $SUDO tee "$script_path" > /dev/null << 'SCRIPT_EOF'
 #!/bin/bash
 # ============================================================================
-# AionUi WebUI Headless 服務管理腳本
+# POUNDING WebUI Headless 服務管理腳本
 # 用法: ./start-aionui.sh [start|stop|restart|status|logs]
 # ============================================================================
 
@@ -196,11 +216,11 @@ WORKDIR="${AIONUI_WORKDIR:-$HOME}"
 
 start() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "⚡ AionUi 已在執行中 (PID: $(cat "$PIDFILE"))"
+        echo "⚡ POUNDING 已在執行中 (PID: $(cat "$PIDFILE"))"
         return 1
     fi
 
-    echo "🚀 正在啟動 AionUi WebUI..."
+    echo "🚀 正在啟動 POUNDING WebUI..."
     cd "$WORKDIR" || exit 1
 
     nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
@@ -211,12 +231,12 @@ start() {
     sleep 3
 
     if kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 啟動成功 (PID: $(cat "$PIDFILE"))"
+        echo "✅ POUNDING 啟動成功 (PID: $(cat "$PIDFILE"))"
         local ip
         ip=$(hostname -I 2>/dev/null | awk '{print $1}')
         echo "🌐 WebUI: http://${ip:-localhost}:25808"
     else
-        echo "❌ AionUi 啟動失敗，請查看日誌: $LOGFILE"
+        echo "❌ POUNDING 啟動失敗，請查看日誌: $LOGFILE"
         rm -f "$PIDFILE"
         return 1
     fi
@@ -224,18 +244,18 @@ start() {
 
 stop() {
     if [ ! -f "$PIDFILE" ]; then
-        echo "⚠️  AionUi 未在執行"
+        echo "⚠️  POUNDING 未在執行"
         return 1
     fi
     local pid
     pid=$(cat "$PIDFILE")
-    echo "🛑 正在停止 AionUi (PID: $pid)..."
+    echo "🛑 正在停止 POUNDING (PID: $pid)..."
     kill "$pid" 2>/dev/null
     sleep 2
     kill -9 "$pid" 2>/dev/null
     pkill -f "AionUi --webui" 2>/dev/null
     rm -f "$PIDFILE"
-    echo "✅ AionUi 已停止"
+    echo "✅ POUNDING 已停止"
 }
 
 restart() {
@@ -246,10 +266,10 @@ restart() {
 
 status() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat "$PIDFILE")" 2>/dev/null; then
-        echo "✅ AionUi 執行中 (PID: $(cat "$PIDFILE"))"
+        echo "✅ POUNDING 執行中 (PID: $(cat "$PIDFILE"))"
         ss -tlnp 2>/dev/null | grep 25808 || netstat -tlnp 2>/dev/null | grep 25808 || true
     else
-        echo "⚠️  AionUi 未在執行"
+        echo "⚠️  POUNDING 未在執行"
         rm -f "$PIDFILE" 2>/dev/null
     fi
 }
@@ -272,7 +292,7 @@ case "${1:-}" in
         echo "用法: $0 {start|stop|restart|status|logs}"
         echo ""
         echo "環境變數:"
-        echo "  AIONUI_WORKDIR  - AionUi 工作目錄 (預設: \$HOME)"
+        echo "  AIONUI_WORKDIR  - POUNDING 工作目錄 (預設: \$HOME)"
         ;;
     *)
         echo "用法: $0 {start|stop|restart|status|logs}"
@@ -299,8 +319,8 @@ create_systemd_service() {
 
     $SUDO tee "$service_path" > /dev/null << 'SERVICE_EOF'
 [Unit]
-Description=AionUi AI Agent Desktop App (WebUI Mode)
-Documentation=https://github.com/iOfficeAI/AionUi
+    Description=POUNDING AI Agent Desktop App (WebUI Mode)
+Documentation=https://api.mxou.cn
 After=network-online.target
 Wants=network-online.target
 
@@ -335,21 +355,21 @@ SERVICE_EOF
 # ─── 建立桌面捷徑 ─────────────────────────────────────────────────────────────
 create_desktop_entry() {
     local desktop_dir="${HOME}/.local/share/applications"
-    local desktop_file="${desktop_dir}/aionui.desktop"
+    local desktop_file="${desktop_dir}/pounding.desktop"
 
     mkdir -p "$desktop_dir"
 
     cat > "$desktop_file" << 'DESKTOP_EOF'
 [Desktop Entry]
-Name=AionUi
-Comment=AI Agent Cowork Platform
+Name=POUNDING
+Comment=POUNDING AI Agent Desktop App
 Exec=/usr/bin/AionUi --no-sandbox %U
-Icon=AionUi
+Icon=POUNDING
 Terminal=false
 Type=Application
 Categories=Office;Utility;Development;
-MimeType=x-scheme-handler/aionui;
-StartupWMClass=AionUi
+MimeType=x-scheme-handler/pounding;
+StartupWMClass=POUNDING
 DESKTOP_EOF
 
     success "桌面捷徑已建立: $desktop_file"
@@ -359,20 +379,20 @@ DESKTOP_EOF
 print_summary() {
     echo ""
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
-    echo -e "${GREEN}${BOLD}  🎉 AionUi v${VERSION} 安裝完成！${NC}"
+    echo -e "${GREEN}${BOLD}  🎉 POUNDING v${VERSION} 安裝完成！${NC}"
     echo -e "${GREEN}${BOLD}══════════════════════════════════════════════════${NC}"
     echo ""
     echo -e "  ${BOLD}📍 執行檔位置:${NC}  /usr/bin/AionUi"
-    echo -e "  ${BOLD}📍 管理腳本:${NC}    /opt/AionUi/start-aionui.sh"
+    echo -e "  ${BOLD}📍 管理腳本:${NC}    /opt/POUNDING/start-aionui.sh"
     echo ""
 
     if [[ "${MODE}" == "headless" ]]; then
         echo -e "  ${BOLD}🖥️  Headless 模式使用方式:${NC}"
         echo ""
         echo "    # 使用管理腳本"
-        echo "    /opt/AionUi/start-aionui.sh start"
-        echo "    /opt/AionUi/start-aionui.sh status"
-        echo "    /opt/AionUi/start-aionui.sh stop"
+        echo "    /opt/POUNDING/start-aionui.sh start"
+        echo "    /opt/POUNDING/start-aionui.sh status"
+        echo "    /opt/POUNDING/start-aionui.sh stop"
         echo ""
         if command -v systemctl &>/dev/null; then
             echo "    # 或使用 systemd"
@@ -386,14 +406,14 @@ print_summary() {
         echo -e "  ${BOLD}🖥️  桌面模式使用方式:${NC}"
         echo ""
         echo "    # 直接啟動（桌面環境）"
-        echo "    AionUi --no-sandbox"
+        echo "    POUNDING --no-sandbox"
         echo ""
-        echo "    # 或從應用程式選單尋找 AionUi"
+        echo "    # 或從應用程式選單尋找 POUNDING"
         echo ""
     fi
 
-    echo -e "  ${BOLD}📖 文件:${NC}  https://github.com/iOfficeAI/AionUi"
-    echo -e "  ${BOLD}🐛 回報:${NC}  https://github.com/iOfficeAI/AionUi/issues"
+    echo -e "  ${BOLD}📖 文件:${NC}  https://api.mxou.cn"
+    echo -e "  ${BOLD}🐛 回報:${NC}  https://github.com/halojerry/AionUi-2.0.2-dev-a3881e2/issues"
     echo ""
 
     if [[ "${MODE}" == "headless" ]]; then

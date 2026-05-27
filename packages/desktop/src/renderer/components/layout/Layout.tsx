@@ -493,7 +493,7 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>POUNDING</div>
                 {isMobile && !collapsed && (
                   <button
                     type='button'

@@ -102,7 +102,7 @@ export const attachWindowBoundsPersistence = (
     // boot-time snapshot.
     cachedBounds = bounds;
     const op = Promise.resolve(persist(bounds)).catch((error) => {
-      console.error('[AionUi] Failed to persist window bounds:', error);
+      console.error('[POUNDING] Failed to persist window bounds:', error);
     });
     trackPersistedWrite(op);
   };

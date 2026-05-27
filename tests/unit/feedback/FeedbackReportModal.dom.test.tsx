@@ -18,9 +18,39 @@ vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
 }));
 
+const captureEvent = vi.fn();
+const setTag = vi.fn();
+
+vi.mock('@arco-design/web-react', async () => {
+  const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
+  return {
+    ...actual,
+    Message: {
+      ...actual.Message,
+      success: vi.fn(),
+      error: vi.fn(),
+    },
+  };
+});
+
+vi.mock('@/renderer/utils/telemetry/sentry', () => ({
+  desktopSentryConfig: {
+    enabled: true,
+    dsn: 'https://examplePublicKey@o0.ingest.sentry.io/0',
+    brand: 'POUNDING',
+  },
+}));
+
+vi.mock('@sentry/electron/renderer', () => ({
+  captureEvent,
+  withScope: (callback: (scope: { setTag: typeof setTag }) => void) => callback({ setTag }),
+}));
+
 import FeedbackReportModal, {
   type PrefilledScreenshot,
 } from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
+
+const { Message } = await import('@arco-design/web-react');
 
 const renderModal = (ui: React.ReactElement) => render(<ConfigProvider>{ui}</ConfigProvider>);
 
@@ -34,10 +64,14 @@ describe('FeedbackReportModal — prefill', () => {
   beforeEach(() => {
     // Ensure no leftover global electronAPI from other tests interferes.
     (window as unknown as { electronAPI?: unknown }).electronAPI = undefined;
+    captureEvent.mockReset();
+    setTag.mockReset();
+    vi.mocked(Message.success).mockReset();
   });
 
   afterEach(() => {
     cleanup();
+    document.body.innerHTML = '';
   });
 
   it('does not render form content when visible=false', () => {
@@ -119,5 +153,25 @@ describe('FeedbackReportModal — prefill', () => {
     await user.click(closeBtn!);
 
     expect(onCancel).toHaveBeenCalledTimes(1);
-  });
+  }, 20000);
+
+  it('submits feedback to Sentry when form is valid', async () => {
+    const onCancel = vi.fn();
+    const user = userEvent.setup();
+    renderModal(<FeedbackReportModal visible={true} onCancel={onCancel} defaultModule='mcp-tools' />);
+
+    const textarea = document.querySelector('textarea');
+    expect(textarea).not.toBeNull();
+    await user.type(textarea!, 'Feedback submit smoke test');
+
+    const submitButton = screen.getByText('settings.bugReportSubmit');
+    await user.click(submitButton);
+
+    expect(captureEvent).toHaveBeenCalledTimes(1);
+    expect(setTag).toHaveBeenCalledWith('brand', 'POUNDING');
+    expect(setTag).toHaveBeenCalledWith('type', 'user-feedback');
+    expect(setTag).toHaveBeenCalledWith('module', 'mcp-tools');
+    expect(Message.success).toHaveBeenCalledTimes(1);
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  }, 20000);
 });
