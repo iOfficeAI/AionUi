@@ -7,7 +7,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 
 export type AgentCheckResult = {
   backend: string;
@@ -154,7 +153,7 @@ export function useAgentReadinessCheck(options: UseAgentReadinessCheckOptions) {
           const backendKey = (agent.backend || agent.agent_type) as string;
           return {
             backend: backendKey,
-            name: AGENT_NAMES[backendKey] || getAgentDisplayName(agent),
+            name: AGENT_NAMES[backendKey] || agent.name,
             available: false,
             checking: true,
           };

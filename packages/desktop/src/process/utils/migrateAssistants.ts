@@ -55,7 +55,7 @@ function normalisePresetAgentType(raw: unknown): string {
 /**
  * Frozen snapshot of built-in assistant ids. Must stay in sync with the
  * backend manifest at
- * `aioncore/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
+ * `AionCore/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
  * — add/remove ids in the same PR. Drift means a user-authored assistant
  * whose id accidentally matches a built-in slug will be imported into the
  * user table and then silently overwritten the next time the backend ships
@@ -169,9 +169,34 @@ type ConfigFile = typeof ProcessConfigType;
 type BuiltinOverride = { id: string; enabled: false };
 type BuiltinAgentTypeOverride = { id: string; preset_agent_type: string };
 
+/**
+ * Local config file key that records "the legacy → backend assistant migration
+ * has already completed once on this machine". Same idempotency rationale as
+ * `migration.providersMigrated_v1` (see ELECTRON-1KT): without it, a user-deleted
+ * assistant would be silently re-imported on every launch from the still-on-disk
+ * legacy `assistants` field (kept on purpose so the user can downgrade).
+ */
+const ASSISTANTS_MIGRATION_FLAG = 'migration.assistantsMigrated_v1';
+
 type LegacyConfigAccessor = {
   get: (key: string) => Promise<unknown>;
+  set?: (key: string, value: unknown) => Promise<unknown>;
 };
+
+async function markAssistantsMigrationDone(configFile: ConfigFile): Promise<void> {
+  const accessor = configFile as unknown as LegacyConfigAccessor;
+  if (typeof accessor.set !== 'function') {
+    // Older fakes (test doubles) may expose only `get`; persist failure is
+    // logged but does not break the migration result — content-aware phases
+    // still make a re-run safe.
+    return;
+  }
+  try {
+    await accessor.set(ASSISTANTS_MIGRATION_FLAG, true);
+  } catch (err) {
+    console.warn('[AionUi] failed to persist assistants migration flag', err);
+  }
+}
 
 /**
  * Collect user-set `enabled=false` overrides on legacy built-in rows so we can
@@ -222,20 +247,20 @@ async function applyBuiltinOverrides(overrides: BuiltinOverride[]): Promise<numb
       if (isBackendHttpError(reason) && reason.status === 404) {
         skipped += 1;
         console.warn(
-          `[POUNDING] Skipped override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+          `[AionUi] Skipped override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
         );
         return;
       }
       failed += 1;
-      console.error(`[POUNDING] Failed to apply builtin override for ${overrides[i].id}:`, reason);
+      console.error(`[AionUi] Failed to apply builtin override for ${overrides[i].id}:`, reason);
     }
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[POUNDING] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
+    console.log(`[AionUi] Applied ${applied} builtin disabled-state override(s) (skipped ${skipped} retired id(s))`);
   } else {
     console.error(
-      `[POUNDING] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+      `[AionUi] Builtin override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
     );
   }
   return failed;
@@ -310,22 +335,20 @@ async function applyBuiltinPresetAgentTypeOverrides(overrides: BuiltinAgentTypeO
       if (isBackendHttpError(reason) && reason.status === 404) {
         skipped += 1;
         console.warn(
-          `[POUNDING] Skipped preset_agent_type override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
+          `[AionUi] Skipped preset_agent_type override for retired built-in '${overrides[i].id}' (no longer in backend manifest)`
         );
         return;
       }
       failed += 1;
-      console.error(`[POUNDING] Failed to apply preset_agent_type override for ${overrides[i].id}:`, reason);
+      console.error(`[AionUi] Failed to apply preset_agent_type override for ${overrides[i].id}:`, reason);
     }
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(
-      `[POUNDING] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`
-    );
+    console.log(`[AionUi] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`);
   } else {
     console.error(
-      `[POUNDING] Builtin preset_agent_type override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
+      `[AionUi] Builtin preset_agent_type override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`
     );
   }
   return failed;
@@ -348,7 +371,7 @@ async function fetchCurrentBuiltinAgentTypes(): Promise<Map<string, string>> {
     }
     return map;
   } catch (error) {
-    console.error('[POUNDING] Failed to fetch current builtin preset_agent_type map:', error);
+    console.error('[AionUi] Failed to fetch current builtin preset_agent_type map:', error);
     return new Map();
   }
 }
@@ -393,7 +416,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
       // No legacy assistants dir at all — nothing to upload.
       return 0;
     }
-    console.error('[POUNDING] Failed to read legacy assistant rules dir:', error);
+    console.error('[AionUi] Failed to read legacy assistant rules dir:', error);
     return 1;
   }
 
@@ -435,7 +458,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
     if (r.status === 'rejected') {
       failed += 1;
       console.error(
-        `[POUNDING] Failed to upload legacy rule for '${ruleEntries[i].id}' (${ruleEntries[i].locale}):`,
+        `[AionUi] Failed to upload legacy rule for '${ruleEntries[i].id}' (${ruleEntries[i].locale}):`,
         r.reason
       );
       return;
@@ -445,10 +468,10 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
   });
   if (failed === 0) {
     if (uploaded > 0 || skipped > 0) {
-      console.log(`[POUNDING] Legacy rule upload: ${uploaded} uploaded, ${skipped} skipped`);
+      console.log(`[AionUi] Legacy rule upload: ${uploaded} uploaded, ${skipped} skipped`);
     }
   } else {
-    console.error(`[POUNDING] Legacy rule upload partial: ${failed}/${ruleEntries.length} failed`);
+    console.error(`[AionUi] Legacy rule upload partial: ${failed}/${ruleEntries.length} failed`);
   }
   return failed;
 }
@@ -487,11 +510,24 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
  */
 export async function migrateAssistantsToBackend(configFile: ConfigFile): Promise<boolean> {
   if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
-    console.log('[POUNDING] Assistant migration skipped (env flag set)');
+    console.log('[AionUi] Assistant migration skipped (env flag set)');
     return false;
   }
 
   const rawConfigFile = configFile as unknown as LegacyConfigAccessor;
+
+  // Idempotency guard (ELECTRON-1KT): once the flag is set, never replay
+  // legacy assistants. Phase 1 is "insert-only", which means a user-deleted
+  // row would be re-imported on every launch — we suppress that here.
+  let alreadyMigrated = false;
+  try {
+    alreadyMigrated = Boolean(await rawConfigFile.get(ASSISTANTS_MIGRATION_FLAG));
+  } catch {
+    // Treat read errors as "not migrated yet"; we'll set on success.
+  }
+  if (alreadyMigrated) {
+    return true;
+  }
 
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
@@ -523,7 +559,9 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     builtinAgentTypeOverrides.length === 0 &&
     customAssistantIds.size === 0
   ) {
-    // Nothing to do — no-op success.
+    // Nothing to do — no-op success. Flag it so future launches don't even
+    // bother reading the legacy field.
+    await markAssistantsMigrationDone(configFile);
     return true;
   }
 
@@ -534,14 +572,14 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
         assistants: userAssistants.map(legacyAssistantToCreateRequest),
       });
       if (result.failed !== 0) {
-        console.error(`[POUNDING] Assistant migration partial: ${result.failed} failed`, result.errors);
+        console.error(`[AionUi] Assistant migration partial: ${result.failed} failed`, result.errors);
         return false;
       }
       if (result.imported > 0 || result.skipped > 0) {
-        console.log(`[POUNDING] migrated ${result.imported} assistants (skipped ${result.skipped})`);
+        console.log(`[AionUi] migrated ${result.imported} assistants (skipped ${result.skipped})`);
       }
     } catch (error) {
-      console.error('[POUNDING] Assistant migration failed:', error);
+      console.error('[AionUi] Assistant migration failed:', error);
       return false;
     }
   }
@@ -568,5 +606,8 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
     return false;
   }
 
+  // All four phases succeeded — set the completion flag so subsequent launches
+  // short-circuit and we don't re-import assistants the user deletes later.
+  await markAssistantsMigrationDone(configFile);
   return true;
 }

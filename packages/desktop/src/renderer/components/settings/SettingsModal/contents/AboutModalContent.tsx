@@ -5,14 +5,14 @@
  */
 
 import { Divider, Typography, Button, Switch } from '@arco-design/web-react';
-import { Right } from '@icon-park/react';
+import { Github, Right } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
-import { useFeedback } from '@renderer/hooks/context/FeedbackContext';
-import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
+import FeedbackReportModal from './FeedbackReportModal';
+
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
 // '../../../../../../package.json'` resolved to packages/desktop/package.json
@@ -28,9 +28,10 @@ const AboutModalContent: React.FC = () => {
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const isElectron = isElectronDesktop();
-  const { openFeedback } = useFeedback();
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
     setIncludePrerelease(saved === 'true');
@@ -58,24 +59,27 @@ const AboutModalContent: React.FC = () => {
   const linkItems: LinkItem[] = [
     {
       title: t('settings.helpDocumentation'),
-      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI',
+      url: 'https://github.com/iOfficeAI/AionUi/wiki',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.updateLog'),
-      url: 'https://wcnb2ddshm1z.feishu.cn/wiki/EA0lw5xjhiSR2AkOSeacIhsCnab?from=from_copylink',
+      url: 'https://github.com/iOfficeAI/AionUi/releases',
       icon: <Right theme='outline' size='16' />,
     },
     {
-      title: t('settings.feedback'),
-      onClick: () => {
-        void openFeedback({ autoScreenshot: true });
-      },
+      title: t('settings.bugReport'),
+      onClick: () => setShowFeedbackModal(true),
+      icon: <Right theme='outline' size='16' />,
+    },
+    {
+      title: t('settings.contactMe'),
+      url: 'https://x.com/WailiVery',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://api.mxou.cn',
+      url: 'https://www.aionui.com',
       icon: <Right theme='outline' size='16' />,
     },
   ];
@@ -92,11 +96,8 @@ const AboutModalContent: React.FC = () => {
         <div className='flex flex-col max-w-500px mx-auto'>
           {/* App Info Section */}
           <div className='flex flex-col items-center pb-24px'>
-            <div className='w-88px h-88px mb-12px' aria-hidden='true'>
-              <PoundingInteractiveLogo className='size-full' />
-            </div>
             <Typography.Title heading={3} className='text-24px font-bold text-t-primary mb-8px'>
-              POUNDING
+              AionUi
             </Typography.Title>
             <Typography.Text className='text-14px text-t-secondary mb-12px text-center'>
               {t('settings.appDescription')}
@@ -105,6 +106,16 @@ const AboutModalContent: React.FC = () => {
               <span className='px-10px py-4px rd-6px text-13px bg-fill-2 text-t-primary font-500'>
                 v{__APP_VERSION__}
               </span>
+              <div
+                className='text-t-primary cursor-pointer hover:text-t-secondary transition-colors p-4px'
+                onClick={() =>
+                  openLink('https://github.com/iOfficeAI/AionUi').catch((error) =>
+                    console.error('Failed to open link:', error)
+                  )
+                }
+              >
+                <Github theme='outline' size='20' />
+              </div>
             </div>
 
             {/* Check Update Section */}
@@ -149,6 +160,7 @@ const AboutModalContent: React.FC = () => {
           </div>
         </div>
       </div>
+      <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
     </div>
   );
 };

@@ -23,10 +23,7 @@ mkdir -p "$OUTPUT_DIR"
 # 1) Copy all distributables (unique file names)
 # ---------------------------------------------------------------------------
 echo "==> Copying distributables from $ARTIFACTS_DIR ..."
-DISTRIBUTABLES=()
-while IFS= read -r file; do
-  DISTRIBUTABLES+=("$file")
-done < <(find "$ARTIFACTS_DIR" -type f \( \
+mapfile -t DISTRIBUTABLES < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "*.exe" -o \
   -name "*.msi" -o \
   -name "*.dmg" -o \
@@ -49,10 +46,7 @@ done
 # 1b) Copy web-cli tarballs (+ sha256 checksums)
 # ---------------------------------------------------------------------------
 echo "==> Copying web-cli tarballs from $ARTIFACTS_DIR ..."
-WEB_CLI_FILES=()
-while IFS= read -r file; do
-  WEB_CLI_FILES+=("$file")
-done < <(find "$ARTIFACTS_DIR" -type f \( \
+mapfile -t WEB_CLI_FILES < <(find "$ARTIFACTS_DIR" -type f \( \
   -name "aionui-web-*.tar.gz" -o \
   -name "aionui-web-*.tar.gz.sha256" \
 \) | sort)

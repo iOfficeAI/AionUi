@@ -9,7 +9,6 @@ import { channel } from '@/common/adapter/ipcBridge';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -207,7 +206,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
             agentsResp.map((a) => ({
               agent_type: a.agent_type,
               backend: a.backend,
-              name: getAgentDisplayName(a),
+              name: a.name,
               id: a.id,
             }))
           );
@@ -336,7 +335,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'POUNDING CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
 
   const handleDisconnect = async () => {
     try {
@@ -447,7 +446,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                         agent_type: a.agent_type,
                         backend: a.backend,
                         id: a.id,
-                        name: getAgentDisplayName(a),
+                        name: a.name,
                       };
                       setSelectedAgent(next);
                       void persistSelectedAgent(next);
@@ -465,7 +464,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       }
                     }}
                   >
-                    {getAgentDisplayName(a)}
+                    {a.name}
                   </Menu.Item>
                 );
               })}
@@ -474,15 +473,15 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         >
           <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
             <span className='truncate'>
-              {getAgentDisplayName(
+              {selectedAgent.name ||
                 availableAgents.find(
                   (a) =>
                     (a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type) ===
                     (selectedAgent.id
                       ? `${selectedAgent.agent_type}|${selectedAgent.id}`
                       : selectedAgent.backend || selectedAgent.agent_type)
-                ) || selectedAgent
-              )}
+                )?.name ||
+                selectedAgent.agent_type}
             </span>
             <Down theme='outline' size={14} />
           </Button>

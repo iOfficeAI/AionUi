@@ -11,7 +11,6 @@ import {
   hasAgentLogo,
   isDefaultModel,
   getModelDisplayLabel,
-  getAgentDisplayName,
 } from '@/renderer/utils/model/agentLogo';
 
 vi.mock('@/renderer/utils/platform', () => ({
@@ -108,30 +107,6 @@ describe('agentLogo', () => {
         backend: 'unknown',
       });
       expect(result).toBeNull();
-    });
-
-    it('maps legacy Aion CLI name to POUNDING heart logo', () => {
-      const result = resolveAgentLogo({
-        name: 'Aion CLI',
-        backend: 'unknown',
-      });
-      expect(result).toContain('pounding-heart-solid.png');
-    });
-  });
-
-  describe('getAgentDisplayName', () => {
-    it('maps aionrs backend to POUNDING CLI', () => {
-      expect(getAgentDisplayName({ backend: 'aionrs', name: 'Aion CLI' })).toBe('POUNDING CLI');
-    });
-
-    it('maps legacy Aion CLI name to POUNDING CLI even without backend', () => {
-      expect(getAgentDisplayName({ name: 'Aion CLI' })).toBe('POUNDING CLI');
-    });
-
-    it('maps legacy AionUI naming variants to POUNDING CLI', () => {
-      expect(getAgentDisplayName({ name: 'AionUi' })).toBe('POUNDING CLI');
-      expect(getAgentDisplayName({ name: 'aion-ui' })).toBe('POUNDING CLI');
-      expect(getAgentDisplayName({ name: 'Aion UI' })).toBe('POUNDING CLI');
     });
   });
 

@@ -2,8 +2,16 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 
 const DEFAULT_MENTION_RESULT_LIMIT = 8;
 
-function normalizeSearchValue(value: string): string {
-  return value.trim().toLowerCase();
+function normalizeSearchValue(value: string | null | undefined): string {
+  return typeof value === 'string' ? value.trim().toLowerCase() : '';
+}
+
+function getItemNameSearchValue(item: FileOrFolderItem): string {
+  return normalizeSearchValue(item.name || item.relativePath || item.path);
+}
+
+function getItemPathSearchValue(item: FileOrFolderItem): string {
+  return normalizeSearchValue(item.relativePath || item.path || item.name);
 }
 
 function computeMentionScore(item: FileOrFolderItem, query: string): number {
@@ -12,8 +20,12 @@ function computeMentionScore(item: FileOrFolderItem, query: string): number {
     return 0;
   }
 
-  const normalizedName = item.name.toLowerCase();
-  const normalizedPath = (item.relativePath || item.path).toLowerCase();
+  const normalizedName = getItemNameSearchValue(item);
+  const normalizedPath = getItemPathSearchValue(item);
+  if (!normalizedName && !normalizedPath) {
+    return -1;
+  }
+
   const normalizedStem = normalizedName.replace(/\.[^.]+$/, '');
 
   if (normalizedName === normalizedQuery) {
@@ -58,8 +70,8 @@ export function filterWorkspaceMentionItems(
         return right.score - left.score;
       }
 
-      const leftPath = left.item.relativePath || left.item.path;
-      const rightPath = right.item.relativePath || right.item.path;
+      const leftPath = left.item.relativePath || left.item.path || left.item.name || '';
+      const rightPath = right.item.relativePath || right.item.path || right.item.name || '';
       return leftPath.localeCompare(rightPath);
     });
 

@@ -13,7 +13,7 @@ import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
-import { getAgentDisplayName, resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
@@ -23,11 +23,7 @@ import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
-import {
-  getManagedCliSelectableModels,
-  MANAGED_NEWAPI_PROVIDER_ID,
-  resolveManagedRuntimeCliTarget,
-} from '@/common/types/agent/managedRuntimeCli';
+import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -241,16 +237,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     () => (resolvedBackend === 'aionrs' ? aionrsProviders : providers),
     [resolvedBackend, providers, aionrsProviders]
   );
-  const managedCliTarget = useMemo(() => resolveManagedRuntimeCliTarget(resolvedBackend), [resolvedBackend]);
-  const managedProvider = useMemo(
-    () => providers.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
-    [providers]
-  );
-  const managedSelectableModels = useMemo(
-    () => getManagedCliSelectableModels(managedProvider, managedCliTarget),
-    [managedProvider, managedCliTarget]
-  );
-  const isManagedCliSelection = Boolean(managedCliTarget && managedSelectableModels.length > 0);
 
   // Build Gemini current_model from model_id for GuidModelSelector.
   // For aionrs edit mode, prefer the exact provider_id stored on the job —
@@ -292,21 +278,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // ACP model info derived from the backend `/api/agents` handshake.
   const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
-    if (isManagedCliSelection) {
-      const currentManagedModelId = model_id || managedSelectableModels[0] || null;
-      return {
-        current_model_id: currentManagedModelId,
-        current_model_label: currentManagedModelId,
-        available_models: managedSelectableModels.map((modelId) => ({
-          id: modelId,
-          label: modelId,
-        })),
-      } satisfies AcpModelInfo;
-    }
     const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     return info?.available_models?.length ? info : null;
-  }, [resolvedBackend, detectedAgents, isManagedCliSelection, managedSelectableModels, model_id]);
+  }, [resolvedBackend, detectedAgents]);
 
   // Auto-pick the first available model from /api/providers when aionrs is
   // selected but none is set yet. Source of truth is the backend provider
@@ -426,7 +401,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           // cli_path is no longer sent from the frontend — the backend
           // resolves it server-side from the `agent_metadata` catalog.
           backend,
-          name: getAgentDisplayName(agent) || capitalizedBackend,
+          name: agent.name || capitalizedBackend,
           mode: getFullAutoMode(backend),
           model_id,
           config_options,
@@ -464,6 +439,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
+      const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
 
       const { agent_config, resolvedAgentType } = resolveAgentConfig(values.agent);
 
@@ -474,7 +450,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates: {
             name: values.name,
             description: values.description,
-            schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+            schedule,
             target: {
               ...editJob!.target,
               payload: { kind: 'message', text: values.prompt },
@@ -494,7 +470,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         const params: ICreateCronJobParams = {
           name: values.name,
           description: values.description,
-          schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+          schedule,
           prompt: values.prompt,
           conversation_id: _conversation_id ?? '',
           conversation_title,
@@ -565,16 +541,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 if (type === 'cli') {
                   const agent = cliAgents.find((a) => (a.backend || a.agent_type) === id);
                   if (agent) {
-                    name = getAgentDisplayName(agent);
+                    name = agent.name;
                     const logoSrc = resolveAgentLogo({
                       icon: agent.icon,
-                      name: agent.name,
                       backend: agent.backend || agent.agent_type,
                     });
                     if (logoSrc) {
-                      logo = (
-                        <img src={logoSrc} alt={getAgentDisplayName(agent)} className='w-16px h-16px object-contain' />
-                      );
+                      logo = <img src={logoSrc} alt={agent.name} className='w-16px h-16px object-contain' />;
                     }
                   }
                 } else if (type === 'preset') {
@@ -604,7 +577,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     const agentKey = agent.backend || agent.agent_type;
                     const logo = resolveAgentLogo({
                       icon: agent.icon,
-                      name: agent.name,
                       backend: agentKey,
                     });
                     const disabled = agentKey === 'aionrs' && !hasAionrsProvider;
@@ -615,11 +587,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                           title={disabled ? t('cron.page.form.aionrsNoProvider') : undefined}
                         >
                           {logo ? (
-                            <img src={logo} alt={getAgentDisplayName(agent)} className='w-16px h-16px object-contain' />
+                            <img src={logo} alt={agent.name} className='w-16px h-16px object-contain' />
                           ) : (
                             <Robot size='16' />
                           )}
-                          <span>{getAgentDisplayName(agent)}</span>
+                          <span>{agent.name}</span>
                           {disabled && (
                             <span className='text-12px text-t-tertiary'>{t('cron.page.form.aionrsNoProvider')}</span>
                           )}
@@ -763,7 +735,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                       currentAcpCachedModelInfo={acpCachedModelInfo}
                       selectedAcpModel={model_id ?? null}
                       setSelectedAcpModel={handleAcpModelSelect}
-                      selectedAgentBackend={resolvedBackend}
                     />
                   </div>
                 )}

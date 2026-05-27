@@ -13,7 +13,7 @@
   "smart": "Akıllı",
   "build": "Build Mode",
   "permission": "İzin",
-  "switchMode": "Switch Mode",
+  "switchMode": "İzin Modu",
   "switchSuccess": "Mode switched successfully",
   "switchFailed": "Failed to switch mode"
 }

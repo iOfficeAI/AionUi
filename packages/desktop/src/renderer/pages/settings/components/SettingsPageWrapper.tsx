@@ -21,8 +21,6 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { BUILTIN_TAB_IDS, LEGACY_ANCHOR_REMAP } from './SettingsSider';
-import { ipcBridge } from '@/common';
-import useSWR from 'swr';
 import './settings.css';
 
 interface SettingsPageWrapperProps {
@@ -35,7 +33,7 @@ type NavItem = { label: string; icon: React.ReactElement; path: string; id: stri
 
 type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
-export function getBuiltinSettingsNavItems(isDesktop: boolean, isPackaged: boolean, t: TranslateFn): NavItem[] {
+export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
     model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
     assistants: {
@@ -73,11 +71,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, isPackaged: boole
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };
 
-  return BUILTIN_TAB_IDS.filter((id) => {
-    if (!isDesktop && id === 'pet') return false;
-    if (!isPackaged) return true;
-    return id !== 'display' && id !== 'pet';
-  }).map((id) => builtinMap[id]);
+  return BUILTIN_TAB_IDS.map((id) => builtinMap[id]);
 }
 
 const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, className, contentClassName }) => {
@@ -87,17 +81,13 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
   const { pathname } = useLocation();
   const { t } = useTranslation();
   const isDesktop = isElectronDesktop();
-  const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () =>
-    ipcBridge.application.getStartOnBootStatus.invoke()
-  );
-  const isPackaged = startOnBootStatus?.data?.isPackaged ?? false;
 
   const extensionTabs = useExtensionSettingsTabs();
 
   const { resolveExtTabName } = useExtI18n();
 
   const menuItems = React.useMemo(() => {
-    const builtins = getBuiltinSettingsNavItems(isDesktop, isPackaged, t);
+    const builtins = getBuiltinSettingsNavItems(isDesktop, t);
 
     // Insert extension tabs before system (unanchored default) or at anchor position
     const result = [...builtins];
@@ -154,7 +144,7 @@ const SettingsPageWrapper: React.FC<SettingsPageWrapperProps> = ({ children, cla
     }
 
     return result;
-  }, [isDesktop, isPackaged, t, extensionTabs, resolveExtTabName]);
+  }, [isDesktop, t, extensionTabs, resolveExtTabName]);
 
   const containerClass = classNames(
     'settings-page-wrapper w-full min-h-full box-border overflow-y-auto',

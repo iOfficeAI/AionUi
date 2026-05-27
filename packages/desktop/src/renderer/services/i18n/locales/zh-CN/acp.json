@@ -4,6 +4,9 @@
     "console_error": "ACP认证错误详情:",
     "failed_confirm": "ACP {{backend}} 认证失败：\n\n{{error}}\n\n是否现在前往设置页面配置？"
   },
+  "send": {
+    "failed": "发送消息失败：{{error}}"
+  },
   "sendbox": {
     "placeholder": "发送消息到 {{backend}}..."
   },

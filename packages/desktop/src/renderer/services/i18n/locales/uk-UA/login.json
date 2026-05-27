@@ -13,8 +13,8 @@
   "showPassword": "Показати пароль",
   "hidePassword": "Приховати пароль",
   "languageToggle": "Змінити мову",
-  "footerPrimary": "POUNDING",
-  "footerSecondary": "Агенти до ваших послуг",
+  "footerPrimary": "Трансформуйте свій ШІ у командному рядку",
+  "footerSecondary": "Сучасно та ефективно",
   "errors": {
     "empty": "Будь ласка, введіть ім'я користувача та пароль",
     "invalidCredentials": "Невірне ім'я користувача або пароль",

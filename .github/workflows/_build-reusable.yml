@@ -27,6 +27,7 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   code-quality:
@@ -48,7 +49,7 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.13
+          bun-version: latest
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -103,7 +104,7 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: 1.3.13
+          bun-version: latest
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -121,10 +122,11 @@ jobs:
             ~/.cache/electron
             ~/.cache/electron-builder
             ${{ env.LOCALAPPDATA }}\electron-builder\Cache
-          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
+          key: electron-cache-${{ runner.os }}-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
-            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
-            electron-cache-${{ matrix.platform }}-
+            electron-cache-${{ runner.os }}-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ runner.os }}-${{ matrix.platform }}-
+            electron-cache-${{ runner.os }}-
 
       - name: Cache status
         run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"
@@ -304,13 +306,12 @@ jobs:
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
-      - name: Prepare packaged backend binary
+      - name: Prepare aioncore binary
         shell: bash
         run: node scripts/prepareAioncore.js
         env:
-          # Version is pinned in repo-root package.json (prefer aioncoreVersion, fallback aionuiBackendVersion).
-          # Set AIONCORE_VERSION here only to override for ad-hoc builds.
-          # Set AIONCORE_GITHUB_OWNER/REPO/SOURCE_BINARY_NAME to switch to our forked backend releases.
+          # Version is pinned in repo-root package.json (aioncoreVersion).
+          # Set AIONUI_BACKEND_VERSION here only to override for ad-hoc builds.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -367,10 +368,10 @@ jobs:
           WindowsTargetPlatformVersion: 10.0.19041.0
           _WIN32_WINNT: 0x0A00
           # Sentry DSN (injected at build time via vite define)
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -458,10 +459,10 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -487,10 +488,10 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -593,8 +594,8 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/POUNDING-*-win32-*.zip
-            out/POUNDING-*-mac-*.zip
+            out/AionUi-*-win32-*.zip
+            out/AionUi-*-mac-*.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7

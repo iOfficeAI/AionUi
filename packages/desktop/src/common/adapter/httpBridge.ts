@@ -135,9 +135,35 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 // HTTP request helper
 // ---------------------------------------------------------------------------
 
+/**
+ * Per-request overrides for `httpRequest`.
+ *
+ * `silentStatuses` lets known-soft failures (e.g. `GET /:id/model` returning
+ * 404 before the agent has attached) skip the noisy `console.error` and the
+ * Sentry breadcrumb that comes with it. The error is still thrown so the
+ * caller's existing try/catch keeps working.
+ */
 export type HttpRequestOptions = {
   silentStatuses?: number[];
 };
+
+const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
+
+function redactForLog(value: unknown, depth = 0): unknown {
+  if (depth > 8 || value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForLog(item, depth + 1));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      SENSITIVE_LOG_KEY_PATTERN.test(key) ? '[REDACTED]' : redactForLog(entry, depth + 1),
+    ])
+  );
+}
 
 export async function httpRequest<T>(
   method: string,
@@ -154,7 +180,7 @@ export async function httpRequest<T>(
 
   console.debug(
     `[httpBridge] ${method} ${path}`,
-    body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)'
+    body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
   );
 
   const response = await fetch(url, {
@@ -163,41 +189,29 @@ export async function httpRequest<T>(
     body: body !== undefined ? JSON.stringify(body) : undefined,
   });
 
-  const contentType = response.headers.get('Content-Type') || '';
-  const rawText = await response.text();
-  let parsedBody: unknown = rawText;
-  if (rawText && contentType.includes('application/json')) {
-    try {
-      parsedBody = JSON.parse(rawText);
-    } catch {
-      parsedBody = rawText;
-    }
-  } else if (rawText) {
-    try {
-      parsedBody = JSON.parse(rawText);
-    } catch {
-      parsedBody = rawText;
-    }
-  } else {
-    parsedBody = undefined;
-  }
-
   if (!response.ok) {
-    if (options?.silentStatuses?.includes(response.status)) {
-      console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, parsedBody);
-    } else {
-      console.error(`[httpBridge] ${method} ${path} → ${response.status}`, parsedBody);
+    let errorBody: unknown;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = await response.text();
     }
-    throw new BackendHttpError({ method, path, status: response.status, body: parsedBody });
+    if (options?.silentStatuses?.includes(response.status)) {
+      console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
+    } else {
+      console.error(`[httpBridge] ${method} ${path} → ${response.status}`, errorBody);
+    }
+    throw new BackendHttpError({ method, path, status: response.status, body: errorBody });
   }
 
   console.debug(`[httpBridge] ${method} ${path} → ${response.status} OK`);
 
-  if (!contentType.includes('application/json')) {
+  const contentType = response.headers.get('Content-Type');
+  if (!contentType?.includes('application/json')) {
     return undefined as T;
   }
 
-  const json = parsedBody;
+  const json = await response.json();
   // Backend wraps in { success, data, ... } — unwrap when present
   if (json && typeof json === 'object' && 'data' in json) {
     return json.data as T;

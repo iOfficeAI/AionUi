@@ -1,6 +1,6 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
-import { getAgentDisplayName, getAgentLogo, isPoundingBrandedLogo } from '@renderer/utils/model/agentLogo';
+import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -14,7 +14,6 @@ import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 export type TeamAgentOption = {
   id: string;
   name: string;
-  kind: 'cli' | 'preset';
   /** Execution backend (claude, gemini, qwen, …). For assistants this is
    *  `preset_agent_type`; for CLI agents it's `backend`. */
   backend?: string;
@@ -28,8 +27,7 @@ export type TeamAgentOption = {
 export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
   return {
     id: agent.id,
-    name: getAgentDisplayName(agent),
-    kind: 'cli',
+    name: agent.name,
     backend: agent.backend || agent.agent_type,
     icon: agent.icon,
     team_capable: agent.team_capable,
@@ -40,7 +38,6 @@ export function assistantToOption(assistant: Assistant, teamCapableKeys?: Set<st
   return {
     id: assistant.id,
     name: assistant.name,
-    kind: 'preset',
     backend: assistant.preset_agent_type,
     icon: assistant.avatar,
     team_capable: teamCapableKeys ? teamCapableKeys.has(assistant.preset_agent_type) : undefined,
@@ -64,10 +61,6 @@ export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentO
   return agents.filter((a) => a.team_capable);
 }
 
-export function getTeamAgentOptionLabel(agent: TeamAgentOption): string {
-  return agent.kind === 'preset' ? agent.name : getAgentDisplayName(agent);
-}
-
 export function resolveConversationType(
   backend: string
 ): 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
@@ -80,32 +73,29 @@ export function resolveConversationType(
 }
 
 export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
-  const displayName = getTeamAgentOptionLabel(agent);
-  const logo = getAgentLogo(agent.backend) || (displayName === 'POUNDING CLI' ? getAgentLogo('aionrs') : null);
+  const logo = getAgentLogo(agent.backend);
   const avatarImage = agent.icon ? CUSTOM_AVATAR_IMAGE_MAP[agent.icon] : undefined;
   const directIcon =
     agent.icon &&
     !avatarImage &&
     (/^(?:[a-z][a-z\d+.-]*:|\/)/i.test(agent.icon) || /\.(svg|png|jpe?g|gif|webp)$/i.test(agent.icon))
-      ? isPoundingBrandedLogo(agent.icon)
-        ? getAgentLogo('aionrs')
-        : (resolveBackendAssetUrl(agent.icon) ?? agent.icon)
+      ? (resolveBackendAssetUrl(agent.icon) ?? agent.icon)
       : undefined;
   const isEmoji = Boolean(agent.icon && !avatarImage && !directIcon);
   return (
     <div className='flex items-center gap-8px'>
       {avatarImage ? (
-        <img src={avatarImage} alt={displayName} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+        <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : isEmoji ? (
         <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.icon}</span>
       ) : directIcon ? (
-        <img src={directIcon} alt={displayName} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+        <img src={directIcon} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : logo ? (
-        <img src={logo} alt={displayName} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+        <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (
         <Robot size='16' />
       )}
-      <span>{displayName}</span>
+      <span>{agent.name}</span>
     </div>
   );
 };

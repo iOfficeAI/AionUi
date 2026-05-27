@@ -19,18 +19,17 @@
 
 import { describe, it, expect } from 'vitest';
 
-describe.sequential('OfficeWatchViewer module shape', () => {
-
+describe('OfficeWatchViewer module shape', () => {
   it('module loads and exposes a default export', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
     expect(mod).toBeDefined();
     expect(mod.default).toBeDefined();
-  }, 20000);
+  });
 
   it('default export is a function (React component)', async () => {
     const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
     expect(typeof mod.default).toBe('function');
-  }, 20000);
+  });
 
   it('module exports object has no thrown side effects during import', async () => {
     // Importing the module a second time should use the cached copy and not throw.
@@ -38,5 +37,5 @@ describe.sequential('OfficeWatchViewer module shape', () => {
     expect(mod.default).toBeDefined();
     // Component functions in React typically have at most one required argument (props).
     expect((mod.default as { length: number }).length).toBeLessThanOrEqual(2);
-  }, 20000);
+  });
 });

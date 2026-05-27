@@ -8,11 +8,7 @@ import { ipcBridge } from '@/common';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
-import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
-import { useGoogleAuthModels } from '@/renderer/hooks/agent/useGoogleAuthModels';
-import { useModelProviderList } from '@/renderer/hooks/agent/useModelProviderList';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -22,13 +18,14 @@ import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
 import QuickActionButtons from './components/QuickActionButtons';
+import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
-import { getAgentDisplayName, resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -38,8 +35,6 @@ import { mutate as swrMutate } from 'swr';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
 
-type GuidModelAgentKey = Parameters<typeof useGuidModelSelection>[0];
-
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
@@ -47,13 +42,10 @@ const GuidPage: React.FC = () => {
   const guidContainerRef = useRef<HTMLDivElement>(null);
   const openAssistantDetailsRef = useRef<(() => void) | null>(null);
   const descriptionTextRef = useRef<HTMLDivElement>(null);
-  const { closeAllTabs, openTab } = useConversationTabs();
-  const { openFeedback } = useFeedback();
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
 
   const localeKey = resolveLocaleKey(i18n.language);
-  const { isGoogleAuth } = useGoogleAuthModels();
-  const { providers: availableProviderList } = useModelProviderList();
+  const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -102,12 +94,20 @@ const GuidPage: React.FC = () => {
     }
   }, []);
 
-  const resetAssistantRequested = (location.state as { resetAssistant?: boolean } | null)?.resetAssistant === true;
+  // --- Hooks ---
+  // Only aionrs uses this provider-based model picker now (Gemini runs as a
+  // regular ACP backend with its own model selector).
+  const modelSelection = useGuidModelSelection('aionrs');
+
+  const navState = location.state as { resetAssistant?: boolean; selectedAgentKey?: string } | null;
+  const resetAssistantRequested = navState?.resetAssistant === true;
+  const preselectAgentKey = navState?.selectedAgentKey;
   const agentSelection = useGuidAgentSelection({
-    modelList: availableProviderList,
-    isGoogleAuth,
+    modelList: modelSelection.modelList,
+    isGoogleAuth: modelSelection.isGoogleAuth,
     localeKey,
     resetAssistant: resetAssistantRequested,
+    preselectAgentKey,
     locationKey: location.key,
   });
 
@@ -123,26 +123,6 @@ const GuidPage: React.FC = () => {
     setInput: guidInput.setInput,
     selectedAgentInfo: agentSelection.selectedAgentInfo,
   });
-
-  const effectiveAgentType = agentSelection.is_presetAgent
-    ? agentSelection.currentEffectiveAgentInfo.agent_type
-    : agentSelection.selectedAgent;
-
-  const modelSelectionAgentKey = useMemo<GuidModelAgentKey>(() => {
-    if (effectiveAgentType === 'openclaw-gateway') return 'openclaw';
-    if (
-      effectiveAgentType === 'aionrs' ||
-      effectiveAgentType === 'claude' ||
-      effectiveAgentType === 'hermes' ||
-      effectiveAgentType === 'opencode' ||
-      effectiveAgentType === 'openclaw'
-    ) {
-      return effectiveAgentType;
-    }
-    return 'aionrs';
-  }, [effectiveAgentType]);
-
-  const modelSelection = useGuidModelSelection(modelSelectionAgentKey);
 
   const send = useGuidSend({
     // Input state
@@ -174,7 +154,7 @@ const GuidPage: React.FC = () => {
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
-    isGoogleAuth,
+    isGoogleAuth: modelSelection.isGoogleAuth,
 
     // Mention state reset
     setMentionOpen: mention.setMentionOpen,
@@ -182,10 +162,8 @@ const GuidPage: React.FC = () => {
     setMentionSelectorOpen: mention.setMentionSelectorOpen,
     setMentionActiveIndex: mention.setMentionActiveIndex,
 
-    // Navigation & tabs
+    // Navigation
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   });
 
@@ -394,9 +372,9 @@ const GuidPage: React.FC = () => {
   // next hard reload, the browser would then request '/guid' directly from
   // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
-    if (!resetAssistantRequested) return;
+    if (!resetAssistantRequested && !preselectAgentKey) return;
     navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
-  }, [resetAssistantRequested, location.pathname, location.search, location.hash, navigate]);
+  }, [resetAssistantRequested, preselectAgentKey, location.pathname, location.search, location.hash, navigate]);
 
   useEffect(() => {
     const node = descriptionTextRef.current;
@@ -447,7 +425,7 @@ const GuidPage: React.FC = () => {
     return () => observer.disconnect();
   }, [agentSelection.is_presetAgent, selectedAssistantDescription]);
 
-  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'aionrs';
+  const currentPresetAgentType = selectedAssistantRecord?.preset_agent_type || 'gemini';
   // Mirrors AssistantEditDrawer's Main Agent options — detected execution
   // engines from AgentPillBar's data source, so avatars resolve the same way.
   const agentSwitcherItems = useMemo(() => {
@@ -461,14 +439,13 @@ const GuidPage: React.FC = () => {
           extensionAvatar ||
           resolveAgentLogo({
             icon: a.icon,
-            name: a.name,
             backend: a.backend || a.agent_type,
             custom_agent_id: a.custom_agent_id,
             isExtension: a.isExtension,
           });
         return {
           key,
-          label: getAgentDisplayName(a),
+          label: a.name,
           logo,
           isCurrent: key === currentPresetAgentType,
           isExtension: a.isExtension,
@@ -487,7 +464,6 @@ const GuidPage: React.FC = () => {
     () =>
       resolveAgentLogo({
         icon: effectiveAgentRecord?.icon,
-        name: effectiveAgentRecord?.name,
         backend: effectiveAgentRecord?.backend || agentSelection.currentEffectiveAgentInfo.agent_type,
         custom_agent_id: effectiveAgentRecord?.custom_agent_id,
         isExtension: effectiveAgentRecord?.isExtension,
@@ -517,12 +493,7 @@ const GuidPage: React.FC = () => {
         await ipcBridge.assistants.update.invoke({ id: assistantId, preset_agent_type: nextType });
         await Promise.all([swrMutate('assistants.list'), agentSelection.refreshCustomAgents()]);
         const agent_name =
-          getAgentDisplayName(
-            agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType) || {
-              backend: nextType,
-              agent_type: nextType,
-            }
-          ) || nextType;
+          agentSelection.availableAgents?.find((a) => (a.backend || a.agent_type) === nextType)?.name || nextType;
         Message.success(t('guid.switchedToAgent', { agent: agent_name }));
       } catch (error) {
         console.error('[GuidPage] Failed to switch preset agent type:', error);
@@ -531,6 +502,11 @@ const GuidPage: React.FC = () => {
     },
     [agentSelection, currentPresetAgentType, t]
   );
+
+  // Resolve the effective agent type once — covers both direct selection and preset assistants
+  const effectiveAgentType = agentSelection.is_presetAgent
+    ? agentSelection.currentEffectiveAgentInfo.agent_type
+    : agentSelection.selectedAgent;
 
   // Agents that use configured model providers instead of ACP probe-based models.
   // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
@@ -559,7 +535,6 @@ const GuidPage: React.FC = () => {
       currentAcpCachedModelInfo={agentSelection.currentAcpCachedModelInfo}
       selectedAcpModel={agentSelection.selectedAcpModel}
       setSelectedAcpModel={agentSelection.setSelectedAcpModel}
-      selectedAgentBackend={effectiveAgentType}
     />
   );
 
@@ -568,9 +543,6 @@ const GuidPage: React.FC = () => {
     <GuidActionRow
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
-      workspaceDir={guidInput.dir}
-      onSelectWorkspace={(dir) => guidInput.setDir(dir)}
-      onClearWorkspace={() => guidInput.setDir('')}
       modelSelectorNode={modelSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
@@ -788,6 +760,9 @@ const GuidPage: React.FC = () => {
             files={guidInput.files}
             onRemoveFile={guidInput.handleRemoveFile}
             actionRow={actionRowNode}
+            workspaceDir={guidInput.dir}
+            onSelectWorkspace={(dir) => guidInput.setDir(dir)}
+            onClearWorkspace={() => guidInput.setDir('')}
           />
 
           <AssistantSelectionArea
@@ -807,12 +782,11 @@ const GuidPage: React.FC = () => {
 
         <QuickActionButtons
           onOpenLink={openLink}
-          onOpenBugReport={() => {
-            void openFeedback({ autoScreenshot: true });
-          }}
+          onOpenBugReport={() => setShowFeedbackModal(true)}
           inactiveBorderColor={inactiveBorderColor}
           activeShadow={activeShadow}
         />
+        <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
       </div>
     </ConfigProvider>
   );

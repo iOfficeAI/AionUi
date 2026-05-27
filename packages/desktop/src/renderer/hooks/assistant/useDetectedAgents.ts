@@ -1,4 +1,3 @@
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import { ipcBridge } from '@/common';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
@@ -30,7 +29,7 @@ export const useDetectedAgents = () => {
           // `preset_agent_type` stores the backend slug (e.g. "claude", "gemini"),
           // not the AgentMetadata row id. Align the Select value with that contract.
           id: a.backend || a.agent_type,
-          name: getAgentDisplayName(a),
+          name: a.name,
           isExtension: a.agent_source === 'extension',
         })),
     [rawAgents]

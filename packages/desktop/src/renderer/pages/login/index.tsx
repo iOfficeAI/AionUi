@@ -5,8 +5,6 @@ import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '../../hooks/context/AuthContext';
-import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
-import { isElectronDesktop } from '@renderer/utils/platform';
 import './LoginPage.css';
 
 type MessageState = {
@@ -37,8 +35,6 @@ const LoginPage: React.FC = () => {
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const { status, login } = useAuth();
-  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn, login: loginNewApi } = useNewApiAccount();
-  const isDesktop = isElectronDesktop();
 
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -90,10 +86,10 @@ const LoginPage: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if ((isDesktop && isNewApiLoggedIn) || (!isDesktop && status === 'authenticated')) {
+    if (status === 'authenticated') {
       void navigate('/guid', { replace: true });
     }
-  }, [isDesktop, isNewApiLoggedIn, navigate, status]);
+  }, [navigate, status]);
 
   const clearMessageLater = useCallback(() => {
     if (messageTimer.current) {
@@ -147,9 +143,7 @@ const LoginPage: React.FC = () => {
       setLoading(true);
       setMessage(null);
 
-      const result = isDesktop
-        ? await loginNewApi({ username: trimmedUsername, password })
-        : await login({ username: trimmedUsername, password, remember: rememberMe });
+      const result = await login({ username: trimmedUsername, password, remember: rememberMe });
 
       if (result.success) {
         if (rememberMe) {
@@ -170,7 +164,7 @@ const LoginPage: React.FC = () => {
         }, 600);
       } else {
         const errorText = (() => {
-          switch ('code' in result ? result.code : undefined) {
+          switch (result.code) {
             case 'invalidCredentials':
               return t('login.errors.invalidCredentials');
             case 'tooManyAttempts':
@@ -181,10 +175,7 @@ const LoginPage: React.FC = () => {
               return t('login.errors.serverError');
             case 'unknown':
             default:
-              return (
-                ('message' in result ? result.message : 'msg' in result ? result.msg : undefined) ??
-                t('login.errors.unknown')
-              );
+              return result.message ?? t('login.errors.unknown');
           }
         })();
 
@@ -193,10 +184,10 @@ const LoginPage: React.FC = () => {
 
       setLoading(false);
     },
-    [isDesktop, login, loginNewApi, navigate, password, rememberMe, showMessage, t, username]
+    [login, navigate, password, rememberMe, showMessage, t, username]
   );
 
-  if ((isDesktop && !newApiReady) || (!isDesktop && status === 'checking')) {
+  if (status === 'checking') {
     return <AppLoader />;
   }
 

@@ -5,7 +5,6 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -49,7 +48,6 @@ export interface IConfigStorageRefer {
   'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
   'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
-  'mcp.config': IMcpServer[];
   'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
   theme: string;
@@ -72,8 +70,6 @@ export interface IConfigStorageRefer {
     preferredMode?: string;
   };
   'aionrs.defaultModel'?: { id: string; use_model: string };
-  'newApi.desktop.account'?: NewApiAccountStatus;
-  'newApi.desktop.cliModelPrefs'?: Partial<Record<ManagedRuntimeCliTarget, string>>;
   'tools.imageGenerationModel': TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
@@ -152,6 +148,23 @@ export interface IConfigStorageRefer {
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `model.config` → backend providers
+   * migration in {@link migrateProviders}. Once `true`, the migration is
+   * short-circuited on subsequent launches so user-deleted providers don't
+   * resurface from the still-on-disk legacy `model.config` (ELECTRON-1KT).
+   * Stored in the local config file (not the backend) so a downgrade to the
+   * pre-flag build still re-reads the legacy data unchanged.
+   */
+  'migration.providersMigrated_v1'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `assistants` → backend assistants
+   * migration in {@link migrateAssistantsToBackend}. Same rationale as
+   * `migration.providersMigrated_v1` — without it, an assistant the user
+   * deletes after migration would be re-imported on the next launch from the
+   * still-on-disk legacy field.
+   */
+  'migration.assistantsMigrated_v1'?: boolean;
   // Desktop Pet: whether the desktop pet feature is enabled
   'pet.enabled'?: boolean;
   // Desktop Pet: size in pixels (200, 280, or 360)
@@ -324,7 +337,7 @@ export type TChatConversation =
   // open historical rows with type='gemini' (message history is served
   // by the shared messages table). The backend factory rejects any
   // attempt to resume this conversation — see
-  // aioncore/crates/aionui-common/src/enums.rs and factory.rs.
+  // AionCore/crates/aionui-common/src/enums.rs and factory.rs.
   // Every field is optional because legacy rows shape-varies across
   // several older Gemini-runtime versions.
   | Omit<
@@ -509,6 +522,7 @@ export interface IProvider {
       error?: string; // 错误信息 / error message
     }
   >;
+  is_full_url?: boolean;
 }
 
 export type TProviderWithModel = Omit<IProvider, 'models'> & {
@@ -567,6 +581,8 @@ export interface IMcpServer {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
+export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {
   name: string;

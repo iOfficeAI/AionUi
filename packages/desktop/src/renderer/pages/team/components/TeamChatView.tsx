@@ -18,7 +18,8 @@ type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
   emptySlot?: React.ReactNode;
-}> = ({ conversation, emptySlot }) => {
+  agent_name?: string;
+}> = ({ conversation, emptySlot, agent_name }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -36,6 +37,7 @@ const AionrsTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       emptySlot={emptySlot}
+      agent_name={agent_name}
     />
   );
 };
@@ -101,6 +103,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
+            agent_name={agent_name}
           />
         );
       case 'openclaw-gateway':

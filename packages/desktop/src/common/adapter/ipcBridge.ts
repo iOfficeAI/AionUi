@@ -34,12 +34,6 @@ import type {
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
-  ManagedRuntimeCliTarget,
-  NewApiAccountStatus,
-  NewApiLoginParams,
-  NewApiLoginResponse,
-} from '../types/newApiAccount';
-import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
@@ -81,32 +75,13 @@ import {
   fromBackendTeamOptional,
   toBackendAgent,
 } from './teamMapper';
-import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
-
-type RawFileChangeInfo = {
-  file_path: string;
-  relativePath?: string;
-  relative_path?: string;
-  operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-};
-
-type RawCompareResult = {
-  staged?: RawFileChangeInfo[];
-  unstaged?: RawFileChangeInfo[];
-};
-
-function fromBackendCompareResult(raw: RawCompareResult): import('@/common/types/platform/fileSnapshot').CompareResult {
-  const mapFileChange = (item: RawFileChangeInfo): import('@/common/types/platform/fileSnapshot').FileChangeInfo => ({
-    file_path: item.file_path,
-    relativePath: item.relativePath ?? item.relative_path ?? item.file_path,
-    operation: item.operation,
-  });
-
-  return {
-    staged: (raw.staged ?? []).map(mapFileChange),
-    unstaged: (raw.unstaged ?? []).map(mapFileChange),
-  };
-}
+import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
+import {
+  absoluteToRelativePath,
+  fromBackendWorkspaceFlatFiles,
+  fromBackendWorkspaceList,
+  type RawWorkspaceFlatFile,
+} from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -183,7 +158,7 @@ export const conversation = {
     fromApiConversation
   ),
   get: withResponseMap(
-    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`),
+    httpGet<TChatConversation, { id: string }>((p) => `/api/conversations/${p.id}`, { silentStatuses: [404] }),
     fromApiConversation
   ),
   getAssociateConversation: withResponseMap(
@@ -360,6 +335,18 @@ export interface IStartOnBootStatus {
   platform: string;
 }
 
+/** Hardware acceleration / GPU recovery status — see process/utils/gpuRecovery */
+export type IGpuOverride = 'force-on' | 'force-off';
+
+export interface IGpuStatus {
+  /** User-set override; null means follow auto-recovery */
+  userOverride: IGpuOverride | null;
+  /** Whether auto-recovery has disabled hardware acceleration after repeated crashes */
+  autoDisabled: boolean;
+  crashCount: number;
+  lastCrashAt: number | null;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -391,6 +378,10 @@ export const application = {
   getStartOnBootStatus: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, void>('app.get-start-on-boot-status'),
   setStartOnBoot: bridge.buildProvider<IBridgeResponse<IStartOnBootStatus>, { enabled: boolean }>(
     'app.set-start-on-boot'
+  ),
+  getGpuStatus: bridge.buildProvider<IBridgeResponse<IGpuStatus>, void>('app.get-gpu-status'),
+  setGpuOverride: bridge.buildProvider<IBridgeResponse<IGpuStatus>, { override: IGpuOverride | null }>(
+    'app.set-gpu-override'
   ),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
@@ -447,7 +438,10 @@ export const dialog = {
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
-  listWorkspaceFiles: httpPost<Array<IWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+  listWorkspaceFiles: withResponseMap(
+    httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+    fromBackendWorkspaceFlatFiles
+  ),
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),
@@ -613,15 +607,6 @@ export const fileSnapshot = {
 // Google Auth — stubbed (Electron-native OAuth flow)
 // ---------------------------------------------------------------------------
 
-export const newApiAccount = {
-  getStatus: bridge.buildProvider<IBridgeResponse<NewApiAccountStatus>, void>('newapi-account.get-status'),
-  login: bridge.buildProvider<IBridgeResponse<NewApiLoginResponse>, NewApiLoginParams>('newapi-account.login'),
-  logout: bridge.buildProvider<IBridgeResponse, void>('newapi-account.logout'),
-  reconcileModel: bridge.buildProvider<IBridgeResponse, { cliTarget?: ManagedRuntimeCliTarget; modelId?: string }>(
-    'newapi-account.reconcile-model'
-  ),
-};
-
 export const googleAuth = {
   status: stubProvider<IBridgeResponse<{ account: string }>, { proxy?: string }>('googleAuth.status', {
     success: false,
@@ -752,6 +737,11 @@ export const acpConversation = {
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
   ),
+  // 404 is the expected pre-warmup response from `/api/conversations/:id/mode`
+  // and `/api/conversations/:id/model` — the agent has not attached yet, so
+  // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
+  // to handshake metadata in that case. Silence the bridge log so this
+  // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
   getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     { silentStatuses: [404] }
@@ -771,6 +761,33 @@ export const acpConversation = {
 // ---------------------------------------------------------------------------
 
 export const mcpService = {
+  listServers: httpGet<IMcpServer[], void>('/api/mcp/servers'),
+  createServer: httpPost<
+    IMcpServer,
+    Omit<IMcpServer, 'id' | 'created_at' | 'updated_at' | 'status' | 'last_connected' | 'tools'>
+  >('/api/mcp/servers', (server) => ({
+    name: server.name,
+    description: server.description,
+    transport: server.transport,
+    original_json: server.original_json,
+    builtin: server.builtin,
+  })),
+  updateServer: httpPut<
+    IMcpServer,
+    { id: string; data: Partial<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json'>> }
+  >(
+    (p) => `/api/mcp/servers/${p.id}`,
+    (p) => p.data
+  ),
+  deleteServer: httpDelete<void, string>((id) => `/api/mcp/servers/${id}`),
+  toggleServer: httpPost<IMcpServer, string>(
+    (id) => `/api/mcp/servers/${id}/toggle`,
+    () => undefined
+  ),
+  batchImportServers: httpPost<
+    IMcpServer[],
+    { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
+  >('/api/mcp/servers/import'),
   getAgentMcpConfigs: httpGet<
     Array<{ source: string; servers: IMcpServer[] }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
@@ -788,14 +805,11 @@ export const mcpService = {
   >('/api/mcp/test-connection'),
   syncMcpToAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    {
-      mcpServers: IMcpServer[];
-      agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>;
-    }
+    { servers: string[] }
   >('/api/mcp/sync-to-agents'),
   removeMcpFromAgents: httpPost<
     { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { mcpServerName: string; agents: Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }> }
+    { server_names: string[] }
   >('/api/mcp/remove-from-agents'),
   checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
     '/api/mcp/oauth/check-status'
@@ -1634,7 +1648,6 @@ export const channel = {
 // ---------------------------------------------------------------------------
 
 import type { HubExtensionStatus, IHubAgentItem } from '@/common/types/agent/hub';
-import type { ManagedCliInstallOptions, ManagedCliInstallResult } from '@/common/types/agent/managedCliInstaller';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 export const hub = {
@@ -1645,13 +1658,6 @@ export const hub = {
   checkUpdates: httpPost<{ name: string }[], void>('/api/hub/check-updates'),
   update: httpPost<void, { name: string }>('/api/hub/update'),
   onStateChanged: wsEmitter<{ name: string; status: HubExtensionStatus; error?: string }>('hub.state-changed'),
-};
-
-export const managedCliInstaller = {
-  install: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallOptions>('managed-cli-installer.install'),
-  uninstall: bridge.buildProvider<ManagedCliInstallResult, { target: ManagedCliInstallOptions['target'] }>(
-    'managed-cli-installer.uninstall'
-  ),
 };
 
 // ---------------------------------------------------------------------------

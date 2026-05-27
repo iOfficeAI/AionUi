@@ -12,9 +12,9 @@ import { getPlatformServices } from '@/common/platform';
  * Used to isolate symlink and directory names between environments.
  *
  * @example
- * getEnvAwareName('.pouding')        // release → '.pouding',        dev → '.pouding-dev'
- * getEnvAwareName('.pouding-config') // release → '.pouding-config', dev → '.pouding-config-dev'
- * // with AIONUI_MULTI_INSTANCE=1:   dev → '.pouding-dev-2'
+ * getEnvAwareName('.aionui')        // release → '.aionui',        dev → '.aionui-dev'
+ * getEnvAwareName('.aionui-config') // release → '.aionui-config', dev → '.aionui-config-dev'
+ * // with AIONUI_MULTI_INSTANCE=1:  dev → '.aionui-dev-2'
  */
 export function getEnvAwareName(baseName: string): string {
   if (getPlatformServices().paths.isPackaged() === true) return baseName;

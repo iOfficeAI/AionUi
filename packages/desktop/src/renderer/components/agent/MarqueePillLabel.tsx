@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import React, { useCallback, useLayoutEffect, useRef, useState } from 'react';
 
 /** Gap between duplicated texts in px */
@@ -31,11 +32,16 @@ const MarqueePillLabel: React.FC<{
   const measureRef = useRef<HTMLSpanElement>(null);
   const marqueeRef = useRef<HTMLSpanElement>(null);
 
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
+
   const [active, setActive] = useState(false);
   // Store computed scroll distance for useLayoutEffect
   const scrollDistRef = useRef(0);
 
   const handleMouseEnter = useCallback(() => {
+    // Touch devices have no hover affordance — skip the marquee animation entirely.
+    if (isMobile) return;
     const container = containerRef.current;
     const measure = measureRef.current;
     if (!container || !measure) return;
@@ -46,7 +52,7 @@ const MarqueePillLabel: React.FC<{
 
     scrollDistRef.current = textWidth + MARQUEE_GAP;
     setActive(true);
-  }, []);
+  }, [isMobile]);
 
   const handleMouseLeave = useCallback(() => {
     setActive(false);
@@ -86,8 +92,19 @@ const MarqueePillLabel: React.FC<{
       >
         {children}
       </span>
-      {/* Static text: visible by default, hidden when marquee is active */}
-      <span className={active ? 'leading-none invisible' : 'leading-none'}>{children}</span>
+      {/* Static text: visible by default, hidden when marquee is active.
+          On mobile we clip with ellipsis since hover marquee never fires. */}
+      <span
+        className={
+          active
+            ? 'leading-none invisible'
+            : isMobile
+              ? 'leading-none block overflow-hidden text-ellipsis'
+              : 'leading-none'
+        }
+      >
+        {children}
+      </span>
       {/* Marquee track: overlaid via absolute, visible only when active */}
       <span
         ref={marqueeRef}

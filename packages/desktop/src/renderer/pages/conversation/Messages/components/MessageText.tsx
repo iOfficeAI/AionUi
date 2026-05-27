@@ -7,6 +7,7 @@
 import type { IMessageText } from '@/common/chat/chatLib';
 import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
@@ -119,6 +120,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const isTeammateMessage = message.position === 'left' && message.content.teammateMessage === true;
   const shouldRenderPlainText = isUserMessage;
   const conversationContext = useConversationContextSafe();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const resolvedFiles = useMemo(
     () => files.map((file_path) => resolveMessageFilePath(file_path, conversationContext?.workspace)),
     [conversationContext?.workspace, files]
@@ -192,8 +195,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         )}
         <div
           className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
-            'bg-aou-2 p-8px': isUserMessage || cronMeta,
-            'bg-3 p-8px': isTeammateMessage,
+            'bg-aou-2 p-6px md:p-8px': isUserMessage || cronMeta,
+            'bg-3 p-6px md:p-8px': isTeammateMessage,
             'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
           })}
           style={{
@@ -223,18 +226,22 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
-        <div
-          className={classNames('h-32px flex items-center mt-4px gap-8px', {
-            'flex-row-reverse': isUserMessage,
-          })}
-        >
-          {copyButton}
-          {message.created_at && (
-            <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
-              {formatMessageTime(message.created_at)}
-            </span>
-          )}
-        </div>
+        {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
+            so we drop the row entirely — system-level long-press still copies. */}
+        {!isMobile && (
+          <div
+            className={classNames('h-32px flex items-center mt-4px gap-8px', {
+              'flex-row-reverse': isUserMessage,
+            })}
+          >
+            {copyButton}
+            {message.created_at && (
+              <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
+                {formatMessageTime(message.created_at)}
+              </span>
+            )}
+          </div>
+        )}
       </div>
       {showCopyAlert && (
         <Alert

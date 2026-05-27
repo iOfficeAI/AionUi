@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-8.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -56,14 +56,14 @@
 
 **AionUi — це більше, ніж просто чат-клієнт.** Це платформа для спільної роботи (Cowork), де AI-агенти працюють пліч-о-пліч із вами на вашому комп'ютері: читають файли, пишуть код, шукають в інтернеті та автоматизують завдання. Ви бачите все, що робить агент, і завжди зберігаєте контроль.
 
-|                                    | Традиційні AI чат-клієнти | **AionUi (Cowork)**                                                                                                        |
-| :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------------- |
-| AI може працювати з вашими файлами | Обмежено або ні           | **Так — вбудований агент із повним доступом до файлів**                                                                    |
-| AI може виконувати багато кроків   | Обмежено                  | **Так — автономно за вашим підтвердженням**                                                                                |
-| Віддалений доступ із телефону      | Рідко                     | **WebUI + Telegram / Lark / DingTalk / WeChat / WeCom**                                                                    |
-| Автоматизація за розкладом         | Ні                        | **Cron — 24/7 без нагляду**                                                                                                |
-| Кілька AI-агентів одночасно        | Ні                        | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent та ще 16+ — автовизначення, єдиний інтерфейс** |
-| Ціна                               | Безкоштовно / Платно      | **Безкоштовно та з відкритим кодом**                                                                                       |
+|                                    | Традиційні AI чат-клієнти | **AionUi (Cowork)**                                                                                                  |
+| :--------------------------------- | :------------------------ | :------------------------------------------------------------------------------------------------------------------- |
+| AI може працювати з вашими файлами | Обмежено або ні           | **Так — вбудований агент із повним доступом до файлів**                                                              |
+| AI може виконувати багато кроків   | Обмежено                  | **Так — автономно за вашим підтвердженням**                                                                          |
+| Віддалений доступ із телефону      | Рідко                     | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                      |
+| Автоматизація за розкладом         | Ні                        | **Cron — 24/7 без нагляду**                                                                                          |
+| Кілька AI-агентів одночасно        | Ні                        | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent та ще 13+ — автовизначення, єдиний інтерфейс** |
+| Ціна                               | Безкоштовно / Платно      | **Безкоштовно та з відкритим кодом**                                                                                 |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -78,7 +78,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 - **Не потрібно встановлювати CLI-інструменти** — рушій агента вже вбудований
 - **Жодних складних налаштувань** — увійдіть через Google або додайте будь-який API ключ
 - **Повні можливості агента** — читання/запис файлів, веб-пошук, генерація зображень, MCP інструменти
-- **Готові до використання асистенти** — 20 вбудованих професійних асистентів (Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator та інші)
+- **Готові до використання асистенти** — 21 вбудований професійний асистент (Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator та інші)
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Вбудовані агенти" width="800">
@@ -142,7 +142,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 Якщо ви вже використовуєте Claude Code, Codex, Hermes Agent або OpenClaw, AionUi автоматично виявить їх і дозволить працювати з усіма ними разом із вбудованим агентом.
 
-**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс у складі AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent та інші
+**Підтримувані агенти:** Вбудований агент • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, Rust-бекенд-сервіс, що постачається з AionUi) • Snow CLI • Hermes Agent • Cursor Agent та інші
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Мульти-агентний режим" width="800">
@@ -193,14 +193,14 @@ AionUi постачається з повноцінним рушієм AI-аге
 | Ollama / LM Studio (локально)               | Локальний Cowork агент      |
 | Шлюз NewAPI                                 | Доступ до 20+ моделей       |
 
-Ті ж самі можливості — читання/запис файлів, веб-пошук, генерація зображень — незалежно від того, яка модель використовується. AionUi підтримує **20+ AI-платформ**.
+Ті ж самі можливості — читання/запис файлів, веб-пошук, генерація зображень — незалежно від того, яка модель використовується. AionUi підтримує **30+ AI-платформ**.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Підтримка багатьох моделей" width="800">
 </p>
 
 <details>
-<summary><strong>🔍 Переглянути всі 20+ підтримуваних платформ ▶️</strong></summary>
+<summary><strong>🔍 Переглянути всі 30+ підтримуваних платформ ▶️</strong></summary>
 
 <br>
 
@@ -208,8 +208,8 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 - **Офіційні платформи** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Хмарні провайдери** — AWS Bedrock, New API
-- **Китайські платформи** — Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
-- **Міжнародні платформи** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Китайські платформи** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
+- **Міжнародні платформи** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Локальні моделі** — Ollama, LM Studio (через Custom платформу)
 
 </details>
@@ -218,7 +218,7 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 ## Асистенти та навички, що розширюються
 
-_Система асистентів із 20 вбудованими професіоналами та трирівневою системою навичок. Створюйте та керуйте власними асистентами та навичками._
+_Система асистентів із 21 вбудованим професіоналом та трирівневою системою навичок. Створюйте та керуйте власними асистентами та навичками._
 
 - **Створюйте власних асистентів** — визначте правила та можливості
 - **Трирівневі навички** — вбудовані навички (поставляються з AionUi), власні навички (ваші особисті) та Extension-навички (від сторонніх розширень); вмикайте/вимикайте для кожної розмови з індикатором навичок
@@ -233,18 +233,18 @@ _Система асистентів із 20 вбудованими профес
 
 <br>
 
-Включено **20 професійних асистентів**:
+Включено **21 професійний асистент**:
 
 - **🤝 Cowork** — Автономне виконання завдань (файли, документи, планування)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Генерація та анімація PPTX-презентацій із Morph-переходами
 - **📐 Pitch Deck Creator** — Генерація презентації для інвесторів
 - **📊 Dashboard Creator** — Генерація інформаційних панелей даних
 - **📝 Word Creator** — Генерація готових документів Word (`.docx`)
+- **📋 Word Form Creator** — Структурована генерація Word-форм та шаблонів договорів
 - **📗 Excel Creator** — Генерація електронних таблиць із аналізом, графіками та автоформатуванням
 - **🎓 Academic Paper Writer** — Структуроване написання наукових статей
 - **💰 Financial Model Creator** — Фінансові моделі та прогнози
 - **⭐ Star Office Helper** — Асистент для офісної продуктивності
-- **📄 PDF to PPT** — Конвертація PDF у PPT
 - **🎮 3D Game** — Створення 3D ігор в одному файлі
 - **🎨 UI/UX Pro Max** — Професійний дизайн (57 стилів, 95 палітр)
 - **📋 Planning with Files** — Планування на основі файлів (у стилі Manus)
@@ -271,8 +271,7 @@ _Ваш AI-помічник 24/7 — доступ з будь-якого при�
   - **Lark (Feishu)** — боти для корпоративної співпраці
   - **DingTalk** — потокова передача карток
   - **WeChat** — інтеграція з особистим акаунтом WeChat
-  - **WeCom (企业微信)** — корпоративний бот WeChat для командної роботи
-  - **Slack** та інші платформи скоро з'являться
+  - **WeCom (企业微信), Slack, Discord** та інші платформи скоро з'являться
 
 <p align="center">
   <img src="../../resources/webui-remote.gif" alt="Демо віддаленого доступу WebUI" width="800">
@@ -347,13 +346,13 @@ _Пакетне перейменування, автоматичне впоря�
 
 AionUi — це **безкоштовний Multi-AI Agent десктоп**. На відміну від Claude Cowork, який працює лише на macOS і обмежений лише Claude, AionUi — це версія з підтримкою всіх моделей та платформ.
 
-| Параметр      | Claude Cowork | AionUi                                                        |
-| :------------ | :------------ | :------------------------------------------------------------ |
-| ОС            | Тільки macOS  | macOS / Windows / Linux                                       |
-| Моделі        | Тільки Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...                 |
-| Інтерфейс     | Десктоп GUI   | Десктоп + WebUI + Telegram / Lark / DingTalk / WeChat / WeCom |
-| Автоматизація | Тільки вручну | Cron завдання — 24/7 без нагляду                              |
-| Вартість      | $100/місяць   | Безкоштовно та з відкритим кодом                              |
+| Параметр      | Claude Cowork | AionUi                                                |
+| :------------ | :------------ | :---------------------------------------------------- |
+| ОС            | Тільки macOS  | macOS / Windows / Linux                               |
+| Моделі        | Тільки Claude | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...         |
+| Інтерфейс     | Десктоп GUI   | Десктоп + WebUI + Telegram / Lark / DingTalk / WeChat |
+| Автоматизація | Тільки вручну | Cron завдання — 24/7 без нагляду                      |
+| Вартість      | $100/місяць   | Безкоштовно та з відкритим кодом                      |
 
 ---
 

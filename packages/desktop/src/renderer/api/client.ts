@@ -39,23 +39,18 @@ async function request<T>(
     signal: options?.signal,
   });
 
-  const contentType = response.headers.get('Content-Type');
-  const rawBody = await response.text();
-  let parsedBody: unknown = rawBody;
-
-  if (contentType?.includes('application/json') && rawBody) {
-    try {
-      parsedBody = JSON.parse(rawBody) as unknown;
-    } catch {
-      parsedBody = rawBody;
-    }
-  }
-
   if (!response.ok) {
-    throw new ApiError(response.status, response.statusText, parsedBody);
+    let errorBody: unknown;
+    try {
+      errorBody = await response.json();
+    } catch {
+      errorBody = await response.text();
+    }
+    throw new ApiError(response.status, response.statusText, errorBody);
   }
 
-  if (contentType?.includes('application/json')) return parsedBody as T;
+  const contentType = response.headers.get('Content-Type');
+  if (contentType?.includes('application/json')) return (await response.json()) as T;
   return undefined as T;
 }
 

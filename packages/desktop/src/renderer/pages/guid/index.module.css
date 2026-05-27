@@ -332,13 +332,31 @@
   box-sizing: border-box;
 }
 
+.guidInputCardWrap {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--bg-2);
+}
+
+.guidInputInner {
+  background: var(--bg-base, #fff);
+  border: 1px solid var(--color-border-3);
+  border-radius: 24px;
+  box-sizing: border-box;
+}
+
+:global([data-theme='dark']) .guidInputInner {
+  background: #262626;
+  border-color: #3a3a3a;
+}
+
 .actionRow {
   display: flex;
-  align-items: center;
+  align-items: flex-end;
   justify-content: space-between;
   width: 100%;
   gap: 8px;
-  margin-top: 12px;
+  margin-top: auto;
 }
 
 .actionTools {
@@ -356,45 +374,32 @@
   margin-right: 0;
 }
 
+/* 方案E：模型 + 权限各自独立 tb-btn，中间有竖线分隔 */
 .actionConfigGroup {
   display: inline-flex;
   align-items: center;
-  gap: 24px;
+  gap: 0;
   min-width: 0;
   flex: 0 1 auto;
 }
 
-.actionConfigGroupWithDivider > :first-child {
-  position: relative;
-}
-
-.actionConfigGroupWithDivider > :first-child::after {
-  content: '';
-  position: absolute;
-  top: 50%;
-  right: -12px;
-  width: 1px;
-  height: 18px;
-  transform: translateY(-50%);
-  border-radius: 999px;
-  background: color-mix(in srgb, var(--color-text-4) 55%, transparent);
-}
-
-/* 首页输入框下方「模型 / 模式」按钮：弱化视觉，不抢主输入区 */
-.actionTools :global(.sendbox-model-btn) {
-  background-color: transparent !important;
+/* 首页输入框右下「模型 / 模式」按钮：与对话框 .sendbox-tools/.sendbox-actions 同款 */
+.actionSubmit :global(.sendbox-model-btn),
+.actionSubmit :global(.sendbox-model-btn:hover),
+.actionSubmit :global(.sendbox-model-btn:active),
+.actionSubmit :global(.sendbox-model-btn:focus),
+.actionSubmit :global(.sendbox-model-btn:focus-visible) {
+  background: transparent !important;
   border: none !important;
   box-shadow: none !important;
-  color: var(--color-text-2) !important;
-  padding-inline: 10px !important;
-  min-height: 28px !important;
+  color: var(--text-secondary) !important;
 }
 
-.actionTools :global(.sendbox-model-btn:hover) {
-  background-color: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
-  color: var(--color-text-1) !important;
+.actionSubmit :global(.sendbox-model-btn:hover),
+.actionSubmit :global(.sendbox-model-btn:active),
+.actionSubmit :global(.sendbox-model-btn:focus),
+.actionSubmit :global(.sendbox-model-btn:focus-visible) {
+  color: var(--text-primary) !important;
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
@@ -402,18 +407,200 @@
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
-  gap: 6px !important;
+  gap: 4px !important;
 }
 
 .actionSubmit {
   display: flex;
   align-items: center;
+  gap: 6px;
   flex-shrink: 0;
   margin-left: auto;
+  min-width: 0;
+}
+
+.workspaceFootnote {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 6px 10px 14px;
+  background: transparent;
+}
+
+.workspaceEmptyBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-3);
+  background: transparent;
+  border: none;
+  padding: 4px 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    color 0.15s,
+    background 0.15s;
+  line-height: 1;
+}
+
+.workspaceEmptyBtn:hover {
+  color: var(--color-text-2);
+  background: var(--color-fill-3);
+}
+
+/* 选中态：和空状态同色系，不做颜色跳变 */
+.workspacePill {
+  display: inline-flex;
+  align-items: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  overflow: hidden;
+  max-width: 280px;
+}
+
+.workspacePillMain {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--color-text-2);
+  background: transparent;
+  border: none;
+  padding: 4px 4px 4px 6px;
+  cursor: pointer;
+  font-family: inherit;
+  transition:
+    background 0.12s,
+    color 0.12s;
+  max-width: 220px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.workspacePillMain:hover {
+  background: var(--color-fill-3);
+  color: var(--color-text-1);
+}
+
+.workspacePillName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspacePillClose {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  margin-right: 2px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  border-radius: 4px;
+  color: var(--color-text-4);
+  flex-shrink: 0;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.workspacePillClose:hover {
+  background: var(--color-fill-3);
+  color: var(--color-text-2);
+}
+
+/* workspace dropdown popup — portal-rendered, position set via JS */
+.wsDropdown {
+  background: var(--bg-base, #fff);
+  border: 1px solid var(--color-border-2);
+  border-radius: 12px;
+  padding: 6px;
+  box-shadow:
+    0 10px 32px rgba(0, 0, 0, 0.1),
+    0 2px 6px rgba(0, 0, 0, 0.06);
+  min-width: 230px;
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+.wsDropdownSearch {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px;
+  margin-bottom: 4px;
+  background: var(--color-fill-2);
+  border-radius: 8px;
+}
+
+.wsDropdownSearchInput {
+  border: none;
+  outline: none;
+  background: transparent;
+  font-size: 12px;
+  color: var(--color-text-1);
+  width: 100%;
+  font-family: inherit;
+}
+
+.wsDropdownSearchInput::placeholder {
+  color: var(--color-text-4);
+}
+
+.wsDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--color-text-1);
+  transition: background 0.1s;
+}
+
+.wsDropdownItem:hover {
+  background: var(--color-fill-2);
+}
+
+.wsDropdownItemActive {
+  color: var(--aou-7);
+  font-weight: 600;
+}
+
+.wsDropdownItemAccent {
+  color: var(--aou-7);
+}
+
+.wsDropdownItemMuted {
+  color: var(--color-text-2);
+  font-style: italic;
+}
+
+.wsDropdownItemMuted:hover {
+  color: var(--color-text-1);
+}
+
+.wsDropdownItemMutedDisabled {
+  color: var(--color-text-3);
+  font-style: italic;
+}
+
+.wsDropdownSep {
+  height: 1px;
+  background: var(--color-border-2);
+  margin: 4px 0;
 }
 
 .lightPlaceholder::placeholder {
-  color: #a1a2aa;
+  color: #b4b5bc;
   opacity: 1;
 }
 
@@ -496,7 +683,7 @@
   }
 
   .actionConfigGroup {
-    gap: 12px;
+    gap: 0;
   }
 
   .actionConfigGroupWithDivider > :first-child::after {
@@ -576,8 +763,142 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #a1a2aa !important;
+  color: #b4b5bc !important;
   opacity: 1 !important;
+}
+
+/* 助手卡片网格（首页 list view） */
+.assistantCardScrollWrap {
+  position: relative;
+  max-height: 200px;
+  overflow-y: auto;
+  padding: 4px 6px 4px 4px;
+  scrollbar-width: thin;
+}
+
+.assistantCardScrollWrapScrollable {
+  -webkit-mask-image: linear-gradient(to bottom, black 0, black calc(100% - 56px), transparent 100%);
+  mask-image: linear-gradient(to bottom, black 0, black calc(100% - 56px), transparent 100%);
+}
+
+.assistantCardScrollWrap::-webkit-scrollbar {
+  width: 6px;
+}
+
+.assistantCardScrollWrap::-webkit-scrollbar-thumb {
+  background: var(--color-fill-3);
+  border-radius: 3px;
+}
+
+.assistantCardScrollWrap::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.assistantCardGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.assistantCard {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  padding: 12px 14px;
+  background: var(--bg-base, #fff);
+  border: 1px solid color-mix(in srgb, var(--color-border-2) 70%, transparent);
+  border-radius: 14px;
+  cursor: pointer;
+  transition:
+    border-color 0.15s,
+    box-shadow 0.15s;
+}
+
+.assistantCard:hover {
+  border-color: var(--color-border-3);
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+}
+
+:global([data-theme='dark']) .assistantCard {
+  background: #262626;
+}
+
+:global([data-theme='dark']) .assistantCard:hover {
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+}
+
+.assistantCardAvatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--color-fill-2);
+  overflow: hidden;
+}
+
+.assistantCardAvatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.assistantCardEmoji {
+  font-size: 18px;
+  line-height: 1;
+}
+
+.assistantCardMeta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.assistantCardName {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text-1);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assistantCardDesc {
+  font-size: 12px;
+  color: var(--color-text-3);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.assistantCardAdd {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 60px;
+  padding: 12px 14px;
+  background: var(--color-fill-1);
+  border: 1px dashed color-mix(in srgb, var(--color-border-2) 70%, transparent);
+  border-radius: 14px;
+  cursor: pointer;
+  transition: background-color 0.15s;
+  color: var(--color-text-3);
+}
+
+.assistantCardAdd:hover {
+  background: var(--color-fill-2);
+  color: var(--color-text-2);
+}
+
+@media (max-width: 640px) {
+  .assistantCardGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 /* 预设助手标签 */

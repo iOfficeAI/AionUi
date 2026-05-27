@@ -4,13 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
-import {
-  buildManagedRuntimeModelId,
-  resolveManagedRuntimeCliTarget,
-  sanitizeManagedRuntimeModelValue,
-} from '@/common/types/agent/managedRuntimeCli';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 
 /** Save preferred mode to the agent's own config key */
@@ -32,26 +26,9 @@ export async function savePreferredMode(agentKey: string, mode: string): Promise
 /** Save preferred model ID to the agent's acp.config key */
 export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
   try {
-    const sanitizedModelId = sanitizeManagedRuntimeModelValue(model_id) || model_id.trim();
-    if (!sanitizedModelId) return;
-    const cliTarget = resolveManagedRuntimeCliTarget(agentKey);
-
-    if (agentKey === 'aionrs') {
-      const config = configService.get('aionrs.defaultModel');
-      await configService.set('aionrs.defaultModel', { id: config?.id, use_model: sanitizedModelId });
-      return;
-    }
-
     const config = configService.get('acp.config');
     const backendConfig = config?.[agentKey as string] || {};
-    await configService.set('acp.config', {
-      ...config,
-      [agentKey]: { ...backendConfig, preferredModelId: sanitizedModelId },
-    });
-
-    if (cliTarget) {
-      await ipcBridge.newApiAccount.reconcileModel.invoke({ cliTarget, modelId: sanitizedModelId });
-    }
+    await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
   } catch {
     /* silent */
   }

@@ -65,10 +65,10 @@
   },
   "page": {
     "newTask": "Yeni görev",
-    "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada POUNDING'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
+    "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada AionUi'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
     "awakeBanner": "Zamanlanmış görevler yalnızca bilgisayarınız açıkken çalışır.",
     "keepAwake": "Uyanık tut",
-    "keepAwakeTooltip": "Etkinleştirildiğinde POUNDING bilgisayarınızın uyku moduna geçmesini engeller",
+    "keepAwakeTooltip": "Etkinleştirildiğinde AionUi bilgisayarınızın uyku moduna geçmesini engeller",
     "createTask": "Zamanlanmış Görev Oluştur",
     "editTask": "Zamanlanmış Görevi Düzenle",
     "createSuccess": "Görev başarıyla oluşturuldu",
@@ -118,7 +118,7 @@
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",
       "model": "Model",
-      "aionrsModelRequired": "POUNDING CLI için bir model seçin",
+      "aionrsModelRequired": "Aion CLI için bir model seçin",
       "aionrsNoProvider": "Kullanılabilir model yok"
     },
     "freq": {

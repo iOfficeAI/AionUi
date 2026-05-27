@@ -6,11 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TProviderWithModel } from '@/common/config/storage';
-import type { TChatConversation } from '@/common/config/storage';
-import { configService } from '@/common/config/configService';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
-import { buildManagedRuntimeModelId, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
-import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -19,26 +15,6 @@ import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
-
-function resolveManagedConversationModelId(params: {
-  backend: string | undefined;
-  selectedAcpModel: string | null;
-  currentAcpCachedModelInfo: AcpModelInfo | null;
-}): string | undefined {
-  const { backend, selectedAcpModel, currentAcpCachedModelInfo } = params;
-  const managedCliTarget = resolveManagedRuntimeCliTarget(backend);
-  const chosenManagedModelId = selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
-
-  if (!managedCliTarget || !chosenManagedModelId) {
-    return chosenManagedModelId;
-  }
-
-  if (managedCliTarget === 'openclaw') {
-    return chosenManagedModelId;
-  }
-
-  return buildManagedRuntimeModelId(managedCliTarget, chosenManagedModelId);
-}
 
 export type GuidSendDeps = {
   // Input state
@@ -86,10 +62,8 @@ export type GuidSendDeps = {
   setMentionSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setMentionActiveIndex: React.Dispatch<React.SetStateAction<number>>;
 
-  // Navigation & tabs
+  // Navigation
   navigate: NavigateFunction;
-  closeAllTabs: () => void;
-  openTab: (conversation: TChatConversation) => void;
   t: TFunction;
 };
 
@@ -103,7 +77,6 @@ export type GuidSendResult = {
  * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
-  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
   const {
     input,
     setInput,
@@ -135,23 +108,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     setMentionSelectorOpen,
     setMentionActiveIndex,
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   } = deps;
   const sendingRef = useRef(false);
 
-  const selectedManagedCliTarget = resolveManagedRuntimeCliTarget(selectedAgentInfo?.backend || selectedAgent);
-  const requiresManagedLogin = Boolean(
-    selectedAgent === 'aionrs' && current_model?.id === 'desktop-newapi-managed-provider' && !isManagedNewApiLoggedIn
-  );
-
   const handleSend = useCallback(async () => {
-    if (requiresManagedLogin && !isManagedNewApiLoggedIn) {
-      Message.warning(t('settings.newApi.loginRequired'));
-      return;
-    }
-
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
@@ -181,31 +142,24 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-      const managedCurrentModelId = resolveManagedConversationModelId({
-        backend: openclawAgentInfo?.backend || 'openclaw-gateway',
-        selectedAcpModel,
-        currentAcpCachedModelInfo,
-      });
       const openclawConversationParams = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
         agent_name: openclawAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,
-        model: {} as TProviderWithModel,
+        model: current_model!,
         cli_path: openclawAgentInfo?.cli_path,
         custom_agent_id: openclawAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
-        current_model_id: managedCurrentModelId,
         extra: {
-          backend: openclawAgentInfo?.backend || 'openclaw-gateway',
           default_files: files,
           runtime_validation: {
             expected_workspace: finalWorkspace,
-            expected_backend: openclawAgentInfo?.backend || 'openclaw-gateway',
+            expected_backend: openclawAgentInfo?.backend,
             expected_agent_name: openclawAgentInfo?.name,
             expected_cli_path: openclawAgentInfo?.cli_path,
-            expected_model: managedCurrentModelId,
+            expected_model: current_model?.use_model,
             switched_at: Date.now(),
           },
           preset_enabled_skills: enabled_skills_to_send,
@@ -222,9 +176,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -272,9 +224,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -318,14 +268,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create POUNDING CLI conversation. Please ensure aionrs is installed.');
+          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
           return;
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -339,7 +287,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create POUNDING CLI conversation: ${errorMessage}`);
+        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -366,12 +314,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
-      const managedCurrentModelId = resolveManagedConversationModelId({
-        backend: agentBackend,
-        selectedAcpModel,
-        currentAcpCachedModelInfo,
-      });
-
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
@@ -396,7 +338,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             }
           : undefined,
         session_mode: selectedMode,
-        current_model_id: managedCurrentModelId,
+        current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,
@@ -415,9 +357,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         }
 
         if (isCustomWorkspace) {
-          closeAllTabs();
           updateWorkspaceTime(finalWorkspace);
-          openTab(conversation);
         }
 
         emitter.emit('chat.history.refresh');
@@ -435,8 +375,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       }
     }
   }, [
-    isManagedNewApiLoggedIn,
-    requiresManagedLogin,
     input,
     files,
     dir,
@@ -455,8 +393,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     navigate,
-    closeAllTabs,
-    openTab,
     t,
   ]);
 
@@ -495,7 +431,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   ]);
 
   // Calculate button disabled state
-  const isButtonDisabled = loading || !input.trim() || (requiresManagedLogin && !isManagedNewApiLoggedIn);
+  const isButtonDisabled = loading || !input.trim();
 
   return {
     handleSend,

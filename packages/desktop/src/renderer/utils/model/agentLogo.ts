@@ -11,7 +11,6 @@
  */
 
 import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
-import poundingHeartSolid from '@renderer/assets/logos/brand/pounding-heart-solid.png';
 
 /**
  * Agent Logo 映射表
@@ -21,7 +20,7 @@ import poundingHeartSolid from '@renderer/assets/logos/brand/pounding-heart-soli
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
 const AGENT_LOGO_PATH_MAP = {
-  aionrs: 'brand/pounding-heart-solid.png',
+  aionrs: 'brand/aion.svg',
   claude: 'ai-major/claude.svg',
   gemini: 'ai-major/gemini.svg',
   qwen: 'ai-china/qwen.svg',
@@ -48,26 +47,8 @@ const AGENT_LOGO_PATH_MAP = {
 const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
 const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
 
-function normalizeAgentAlias(value: string | undefined | null): string {
-  return (
-    value
-      ?.trim()
-      .toLowerCase()
-      .replace(/[\s_-]+/g, '') ?? ''
-  );
-}
-
 function buildAssetUrl(path: string): string {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
-}
-
-function isLegacyPoundingCliName(name: string | undefined | null): boolean {
-  const normalized = normalizeAgentAlias(name);
-  return normalized === 'aioncli' || normalized === 'aionui' || normalized === 'aionrs' || normalized === 'aion';
-}
-
-function isPoundingCliAgent(agent: string | undefined | null): boolean {
-  return normalizeAgentAlias(agent) === 'aionrs';
 }
 
 function applyThemeVariant(logo: string): string {
@@ -78,11 +59,6 @@ function applyThemeVariant(logo: string): string {
 
 function normalizeLogoUrl(logo: string): string {
   return applyThemeVariant(resolveBackendAssetUrl(logo) ?? logo);
-}
-
-export function isPoundingBrandedLogo(value: string | undefined | null): boolean {
-  const normalized = value?.trim().toLowerCase() ?? '';
-  return normalized.includes('pounding-heart-solid.png');
 }
 
 function isDarkTheme(): boolean {
@@ -105,9 +81,6 @@ function isDarkTheme(): boolean {
  */
 export function getAgentLogo(agent: string | undefined | null): string | null {
   if (!agent || typeof agent !== 'string') return null;
-  if (isPoundingCliAgent(agent)) {
-    return poundingHeartSolid;
-  }
   const key = agent.toLowerCase() as keyof typeof AGENT_LOGO_PATH_MAP;
   const path = AGENT_LOGO_PATH_MAP[key];
   return path ? normalizeLogoUrl(buildAssetUrl(path)) : null;
@@ -127,19 +100,7 @@ export function resolveAgentLogo(opts: {
   backend?: string | null;
   custom_agent_id?: string | null;
   isExtension?: boolean;
-  name?: string | null;
 }): string | null {
-  if (isPoundingCliAgent(opts.backend) || isLegacyPoundingCliName(opts.name)) {
-    return poundingHeartSolid;
-  }
-
-  // Some backend rows still persist the legacy POUNDING icon as a backend-served
-  // path. Prefer the packaged local asset so team/guid UIs do not depend on
-  // /api/assets/logos availability.
-  if (opts.icon && isPoundingBrandedLogo(opts.icon)) {
-    return poundingHeartSolid;
-  }
-
   if (opts.icon) return normalizeLogoUrl(opts.icon);
 
   // For extension agents, extract adapter ID from custom_agent_id
@@ -150,21 +111,6 @@ export function resolveAgentLogo(opts: {
   }
 
   return getAgentLogo(opts.backend);
-}
-
-export function getAgentDisplayName(agent: {
-  name?: string | null;
-  backend?: string | null;
-  agent_type?: string | null;
-}): string {
-  if (
-    isPoundingCliAgent(agent.backend) ||
-    isPoundingCliAgent(agent.agent_type) ||
-    isLegacyPoundingCliName(agent.name)
-  ) {
-    return 'POUNDING CLI';
-  }
-  return agent.name?.trim() || agent.backend?.trim() || agent.agent_type?.trim() || 'Agent';
 }
 
 /**

@@ -15,10 +15,11 @@ name: Distribute Release Assets
 #   Secrets:
 #   - TENCENT_COS_SECRET_ID
 #   - TENCENT_COS_SECRET_KEY
-#   Variables:
+#   Secrets:
 #   - TENCENT_COS_BUCKET
 #   - TENCENT_COS_REGION
 #   - POUNDING_UPDATE_PUBLIC_BASE (optional, e.g. https://download.api.mxou.cn)
+#   Variables:
 # Do NOT hardcode secrets in this file.
 
 on:
@@ -70,13 +71,13 @@ jobs:
 
       - name: Validate COS configuration
         env:
-          TENCENT_COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
-          TENCENT_COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+          TENCENT_COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          TENCENT_COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
           TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
           TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
         run: |
-          test -n "$TENCENT_COS_BUCKET" || { echo "::error::Missing repository variable TENCENT_COS_BUCKET"; exit 1; }
-          test -n "$TENCENT_COS_REGION" || { echo "::error::Missing repository variable TENCENT_COS_REGION"; exit 1; }
+          test -n "$TENCENT_COS_BUCKET" || { echo "::error::Missing repository secret TENCENT_COS_BUCKET"; exit 1; }
+          test -n "$TENCENT_COS_REGION" || { echo "::error::Missing repository secret TENCENT_COS_REGION"; exit 1; }
           test -n "$TENCENT_COS_SECRET_ID" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_ID"; exit 1; }
           test -n "$TENCENT_COS_SECRET_KEY" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_KEY"; exit 1; }
 
@@ -91,8 +92,8 @@ jobs:
 
       - name: Guard against same-version overwrite
         env:
-          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
-          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
           COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
           COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -127,29 +128,34 @@ jobs:
 
       - name: Download release assets from GitHub
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
         run: |
+          set -euo pipefail
           mkdir -p dist
-          gh release download "${{ steps.version.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --dir dist \
-            --pattern "*.dmg" \
-            --pattern "*.exe" \
-            --pattern "*.msi" \
-            --pattern "*.deb" \
-            --pattern "*.zip" \
-            --pattern "*.yml" \
-            --pattern "*.blockmap" \
-            --pattern "*.tar.gz" \
-            --pattern "*.sha256" \
-            --pattern "install-web.sh"
+          gh api "repos/${{ github.repository }}/releases" --paginate \
+            --jq '.[] | select(.tag_name == "${{ steps.version.outputs.tag }}") | .assets[] | [.name, .url] | @tsv' \
+            | while IFS=$'\t' read -r name url; do
+                case "$name" in
+                  *.dmg|*.exe|*.msi|*.deb|*.zip|*.yml|*.blockmap|*.tar.gz|*.sha256|install-web.sh)
+                    echo "Downloading $name"
+                    gh api --header "Accept: application/octet-stream" "$url" > "dist/$name"
+                    ;;
+                  *)
+                    echo "Skipping $name"
+                    ;;
+                esac
+              done
+          test -n "$(find dist -maxdepth 1 -type f -print -quit)" || {
+            echo "::error::No release assets were downloaded for tag ${{ steps.version.outputs.tag }}"
+            exit 1
+          }
           echo "Downloaded files:"
           ls -la dist
 
       - name: Upload assets to versioned and latest prefixes
         env:
-          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
-          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
           COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
           COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
@@ -190,9 +196,9 @@ jobs:
       - name: Verify public distribution endpoints
         env:
           VERSION: ${{ steps.version.outputs.version }}
-          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
-          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
-          PUBLIC_BASE: ${{ vars.POUNDING_UPDATE_PUBLIC_BASE }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE }}
         run: |
           set -euo pipefail
 
@@ -212,9 +218,9 @@ jobs:
         env:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
-          COS_BUCKET: ${{ vars.TENCENT_COS_BUCKET }}
-          COS_REGION: ${{ vars.TENCENT_COS_REGION }}
-          PUBLIC_BASE: ${{ vars.POUNDING_UPDATE_PUBLIC_BASE }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE }}
         run: |
           BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
           {

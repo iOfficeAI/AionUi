@@ -18,6 +18,7 @@
   "readyToInstall": "Yüklemeye hazır",
   "readyToInstallDesc": "Güncelleme indirildi. Yeniden başlatmak ve güncellemeyi yüklemek için aşağıdaki düğmeye tıklayın.",
   "installNow": "Şimdi yükle ve yeniden başlat",
+  "installWarning": "Kurulum sırasında uygulamayı manuel olarak açmayın. Uygulama otomatik olarak yeniden başlayacaktır.",
   "autoUpdateMode": "Otomatik güncelleme modu",
   "showInFolder": "Klasörde göster",
   "openFile": "Dosyayı aç",

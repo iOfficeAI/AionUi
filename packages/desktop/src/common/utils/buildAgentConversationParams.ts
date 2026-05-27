@@ -101,12 +101,6 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     if (custom_agent_id) {
       extra.custom_agent_id = custom_agent_id;
     }
-  } else if (type === 'aionrs') {
-    extra.backend = backend as string;
-    extra.agent_name = agent_name || name;
-    if (custom_agent_id) {
-      extra.custom_agent_id = custom_agent_id;
-    }
   } else if (type === 'acp') {
     extra.backend = backend as string;
     extra.agent_name = agent_name || name;

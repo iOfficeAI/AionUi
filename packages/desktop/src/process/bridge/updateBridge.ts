@@ -30,51 +30,55 @@ const getI18n = async () => {
   return m.default;
 };
 
+type GitHubReleaseApiAsset = {
+  name: string;
+  browser_download_url: string;
+  size: number;
+  content_type?: string;
+};
+
+type GitHubReleaseApi = {
+  tag_name: string;
+  name?: string;
+  body?: string;
+  html_url: string;
+  published_at?: string;
+  prerelease: boolean;
+  draft: boolean;
+  assets?: GitHubReleaseApiAsset[];
+};
+
 /** Parameters for auto-update check via electron-updater */
 interface AutoUpdateCheckParams {
   /** Whether to include prerelease/dev builds in update check */
   includePrerelease?: boolean;
 }
 
-const DEFAULT_USER_AGENT = 'POUNDING';
+const DEFAULT_REPO = 'iOfficeAI/AionUi';
+const DEFAULT_USER_AGENT = 'AionUi';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const DEFAULT_UPDATE_BASE_URL = 'https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/releases/download';
-const GITHUB_RELEASE_HOSTS = [
+const CDN_HOST = 'static.aionui.com';
+const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
+const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
+  CDN_HOST,
   'github.com',
   'objects.githubusercontent.com',
   'github-releases.githubusercontent.com',
   'release-assets.githubusercontent.com',
-] as const;
-
-const getUpdateBaseUrl = (): string => {
-  const configuredBase = process.env.AIONUI_UPDATE_BASE_URL?.trim();
-  return configuredBase && configuredBase.length > 0 ? configuredBase.replace(/\/+$/, '') : DEFAULT_UPDATE_BASE_URL;
-};
-
-const getManifestBaseUrl = (): string => {
-  const updateBaseUrl = getUpdateBaseUrl();
-  return updateBaseUrl.endsWith('/download') ? updateBaseUrl.slice(0, -'/download'.length) : updateBaseUrl;
-};
-
-const getAllowedDownloadHosts = (): Set<string> => {
-  const hosts = new Set<string>(GITHUB_RELEASE_HOSTS);
-  const candidateBases = [getUpdateBaseUrl(), process.env.AIONUI_UPDATE_BASE_URL?.trim()].filter(
-    (value): value is string => Boolean(value && value.trim())
-  );
-  for (const configuredBase of candidateBases) {
-    try {
-      hosts.add(new URL(configuredBase).hostname);
-    } catch {
-      // ignore invalid runtime override here; concrete requests will still be validated later.
-    }
-  }
-  return hosts;
-};
+]);
 const MAX_REDIRECTS = 8;
 
 const isAllowedAssetName = (name: string) => {
   const ext = path.extname(name);
   return ALLOWED_ASSET_EXTS.has(ext);
+};
+
+const normalizeTagToSemver = (tag: string): string | null => {
+  const trimmed = tag.trim();
+  const withoutV = trimmed.startsWith('v') ? trimmed.slice(1) : trimmed;
+  // Ensure it looks like a semver prefix at least.
+  if (!/^\d+\.\d+\.\d+/.test(withoutV)) return null;
+  return semver.valid(withoutV);
 };
 
 /**
@@ -83,8 +87,16 @@ const isAllowedAssetName = (name: string) => {
  * matching electron-builder's artifactName output, so no name conversion is needed.
  */
 const rewriteAssetUrlToCDN = (assetName: string, version: string): string => {
-  return `${getUpdateBaseUrl()}/${version}/${assetName}`;
+  return `${CDN_BASE_URL}/${version}/${assetName}`;
 };
+
+const mapAsset = (asset: GitHubReleaseApiAsset, version: string): GitHubReleaseAsset => ({
+  name: asset.name,
+  url: rewriteAssetUrlToCDN(asset.name, version),
+  fallbackUrl: asset.browser_download_url,
+  size: asset.size,
+  contentType: asset.content_type,
+});
 
 type RuntimePlatformInfo = {
   platform: NodeJS.Platform;
@@ -180,6 +192,12 @@ export const pickRecommendedAsset = (
   return scored[0]?.asset;
 };
 
+const resolveRepo = (requestRepo?: string): string => {
+  const envRepo = process.env.AIONUI_GITHUB_REPO?.trim();
+  const repo = (requestRepo || envRepo || DEFAULT_REPO).trim();
+  return repo || DEFAULT_REPO;
+};
+
 const assertAllowedUrl = async (rawUrl: string) => {
   let parsed: URL;
   try {
@@ -191,7 +209,7 @@ const assertAllowedUrl = async (rawUrl: string) => {
   if (parsed.protocol !== 'https:') {
     throw new Error((await getI18n()).t('update.errors.httpsOnly'));
   }
-  if (!getAllowedDownloadHosts().has(parsed.hostname)) {
+  if (!ALLOWED_DOWNLOAD_HOSTS.has(parsed.hostname)) {
     throw new Error((await getI18n()).t('update.errors.hostNotAllowed', { host: parsed.hostname }));
   }
 };
@@ -225,61 +243,61 @@ const fetchWithAllowlistedRedirects = async (rawUrl: string, signal: AbortSignal
   throw new Error((await getI18n()).t('update.errors.tooManyRedirects'));
 };
 
-const getManifestName = (): string => {
-  if (process.platform === 'win32') {
-    return process.arch === 'arm64' ? 'latest-win-arm64.yml' : 'latest.yml';
+const fetchGitHubReleases = async (repo: string): Promise<GitHubReleaseApi[]> => {
+  const url = `https://api.github.com/repos/${repo}/releases`;
+
+  // 添加超时控制，防止网络问题导致无限等待 / Add timeout to prevent infinite wait on network issues
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 30000); // 30 秒超时 / 30 second timeout
+
+  try {
+    const res = await fetch(url, {
+      headers: {
+        Accept: 'application/vnd.github+json',
+        'User-Agent': DEFAULT_USER_AGENT,
+      },
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      throw new Error((await getI18n()).t('update.errors.githubApiFailed', { status: res.status }));
+    }
+
+    const json = (await res.json()) as unknown;
+    if (!Array.isArray(json)) {
+      throw new Error((await getI18n()).t('update.errors.githubApiNotArray'));
+    }
+    return json as GitHubReleaseApi[];
+  } catch (err: unknown) {
+    if (err instanceof Error && err.name === 'AbortError') {
+      throw new Error((await getI18n()).t('update.errors.githubApiTimeout'), { cause: err });
+    }
+    throw err;
+  } finally {
+    clearTimeout(timeoutId);
   }
-  if (process.platform === 'darwin') {
-    return process.arch === 'arm64' ? 'latest-arm64-mac.yml' : 'latest-mac.yml';
-  }
-  return process.arch === 'arm64' ? 'latest-linux-arm64.yml' : 'latest-linux.yml';
 };
 
-const loadReleaseManifest = async (): Promise<UpdateReleaseInfo | null> => {
-  const manifestUrl = `${getManifestBaseUrl()}/latest/${getManifestName()}`;
-  const res = await fetch(manifestUrl, {
-    headers: {
-      'User-Agent': DEFAULT_USER_AGENT,
-    },
-  });
-  if (!res.ok) {
-    throw new Error((await getI18n()).t('update.errors.feedUnavailable', { status: res.status }));
-  }
-  const text = await res.text();
-  const lines = text.split(/\r?\n/);
-  const readValue = (key: string): string | undefined => {
-    const line = lines.find((item) => item.startsWith(`${key}: `));
-    return line
-      ? line
-          .slice(key.length + 2)
-          .trim()
-          .replace(/^'|'$/g, '')
-      : undefined;
-  };
-  const version = readValue('version');
-  const pathValue = readValue('path');
-  const releaseDate = readValue('releaseDate');
-  if (!version || !pathValue || !semver.valid(version)) {
-    return null;
-  }
-  const assetName = path.basename(pathValue);
-  const asset: GitHubReleaseAsset = {
-    name: assetName,
-    url: rewriteAssetUrlToCDN(assetName, version),
-    fallbackUrl: `${getManifestBaseUrl()}/latest/${assetName}`,
-    size: 0,
-  };
+const mapRelease = (rel: GitHubReleaseApi): UpdateReleaseInfo | null => {
+  const version = normalizeTagToSemver(rel.tag_name);
+  if (!version) return null;
+
+  const assets = (rel.assets || [])
+    .filter((asset) => asset && asset.name && asset.browser_download_url)
+    .filter((asset) => isAllowedAssetName(asset.name))
+    .map((asset) => mapAsset(asset, version));
+
   return {
-    tagName: `v${version}`,
+    tagName: rel.tag_name,
     version,
-    name: `POUNDING ${version}`,
-    body: '',
-    htmlUrl: manifestUrl,
-    publishedAt: releaseDate,
-    prerelease: false,
-    draft: false,
-    assets: [asset],
-    recommendedAsset: asset,
+    name: rel.name,
+    body: rel.body,
+    htmlUrl: rel.html_url,
+    publishedAt: rel.published_at,
+    prerelease: Boolean(rel.prerelease),
+    draft: Boolean(rel.draft),
+    assets,
+    recommendedAsset: pickRecommendedAsset(assets),
   };
 };
 
@@ -294,7 +312,7 @@ const sanitizeFileName = (name: string): string => {
   // Keep only base name and trim weird whitespace.
   const base = path.basename(name).trim();
   // Avoid empty names.
-  return base || `POUNDING-update-${Date.now()}`;
+  return base || `AionUi-update-${Date.now()}`;
 };
 
 const ensureUniquePath = (target: string): string => {
@@ -504,15 +522,42 @@ export function initUpdateBridge(): void {
   ipcBridge.update.check.provider(
     async (params): Promise<{ success: boolean; data?: UpdateCheckResult; msg?: string }> => {
       try {
+        const repo = resolveRepo(params?.repo);
+        const includePrerelease = Boolean(params?.includePrerelease);
         const currentVersion = app.getVersion();
-        const latest = await loadReleaseManifest();
+
+        // EN: Versioning note
+        // Update comparisons are pure semver: `app.getVersion()` (packaged app version) vs release `tag_name`.
+        // If you want dev/prerelease updates to work reliably, CI must inject a prerelease semver into
+        // `package.json#version` for dev builds (e.g. `1.7.2-dev.1234+sha.abcdef0`) so semver ordering holds.
+        // We intentionally avoid heuristics based on tag strings when the app version is a stable semver.
+        //
+        // 中文：版本号说明
+        // 更新比较严格使用 semver：`app.getVersion()`（应用自身版本号）对比 Release 的 `tag_name`。
+        // 若要 dev/预发布版本更新可靠生效，需要 CI 在 dev 构建时把 `package.json#version`
+        // 注入为带 prerelease 的 semver（如 `1.7.2-dev.1234+sha.abcdef0`），以保证比较顺序正确。
+        // 这里刻意不对“当前是稳定版版本号但用户勾选了 prerelease”做字符串猜测。
+
+        const releases = await fetchGitHubReleases(repo);
+        const candidates = releases
+          .filter((r) => r && !r.draft)
+          .filter((r) => (includePrerelease ? true : !r.prerelease))
+          .map(mapRelease)
+          .filter((r): r is UpdateReleaseInfo => Boolean(r));
+
+        const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
+        if (!currentSemver) {
+          return { success: true, data: { currentVersion, updateAvailable: false } };
+        }
+
+        const latest = candidates
+          .filter((r) => semver.valid(r.version))
+          .toSorted((a, b) => semver.rcompare(a.version, b.version))[0];
+
         if (!latest) {
           return { success: true, data: { currentVersion, updateAvailable: false } };
         }
-        const currentSemver = semver.valid(currentVersion) || semver.coerce(currentVersion)?.version;
-        if (!currentSemver) {
-          return { success: true, data: { currentVersion, updateAvailable: false, latest } };
-        }
+
         const updateAvailable = semver.gt(latest.version, currentSemver);
         return {
           success: true,

@@ -30,55 +30,6 @@ POUNDING 的技能与工具链路必须满足以下原则：
 
 图片生成工具已经实现了完整的“配置中心 -> 环境变量 -> 工具执行”链路，可作为未来所有 skill 的标准模板。
 
-### Claude / 托管 CLI 的 CC Switch 对齐方式
-
-我们当前的托管模型链路，和 CC Switch 的目录/配置模式保持一致：
-
-- `~/.cc-switch/settings.json` 负责保存设备级设置
-- `claudeConfigDir` 决定 Claude Code 的配置目录，默认回落到 `~/.claude/`
-- Claude 的实际模型/网关信息写入目标目录的 `settings.json`
-- `settings.json.env` 内使用 `ANTHROPIC_BASE_URL`、`ANTHROPIC_API_KEY`、`ANTHROPIC_AUTH_TOKEN`、`ANTHROPIC_MODEL`
-
-也就是说：
-
-1. **宿主负责写配置**
-2. **skill / tool 只读宿主注入的 env**
-3. **不允许 skill 自己再维护第二份 provider 配置**
-
-如果某个 skill 需要直接接入托管 Claude / 相关 CLI，请优先复用宿主已经写好的模型配置，而不是自己再做一套独立配置页。
-
-### 对用户体验的最终要求
-
-从用户视角看，正确流程只有一条：
-
-1. 在 POUNDING 客户端登录
-2. 选择想用的模型
-3. 客户端自动把 Claude / Hermes / OpenCode / OpenClaw 配好
-4. skill / tool 直接复用这套配置开箱即用
-
-用户不应该再分别处理：
-
-- `.cc-switch/settings.json`
-- `~/.claude/settings.json`
-- `~/.hermes`
-- `~/.config/opencode/opencode.json`
-- `~/.openclaw/openclaw.json`
-
-### POUNDING CLI 的托管模型规则
-
-当用户登录后，POUNDING 会自动下发一套统一的 **POUNDING API** 凭据；各个 CLI（Claude / Hermes / OpenCode / OpenClaw）：
-
-- **共用同一套 POUNDING API Base URL + API Key**
-- **各自独立选择模型**
-- **不允许用户重复手填 URL / Key**
-- **切换模型后，由宿主自动同步配置**
-
-也就是说，未来任何 skill / MCP / tool 只要依赖这些托管 CLI，就应该：
-
-1. 读取宿主注入的配置
-2. 不自己维护第二份 provider 配置
-3. 允许每个 CLI 使用不同模型，但都来自同一套 POUNDING API
-
 ### 现有参考实现
 
 - 配置存储：
@@ -129,8 +80,6 @@ POUNDING 的技能与工具链路必须满足以下原则：
 - `AIONUI_LLM_BASE_URL`
 - `AIONUI_LLM_API_KEY`
 - `AIONUI_LLM_MODEL`
-
-> 推荐默认策略：文本类 skill / MCP 优先消费 `AIONUI_LLM_*`，而不是自己直接解析 `~/.cc-switch` 或 `~/.claude/settings.json`。只有“专门为 Claude CLI 做兼容适配”的宿主层代码，才应直接读写这些配置文件。
 
 ### 2) 图片生成 / 图片编辑模型
 

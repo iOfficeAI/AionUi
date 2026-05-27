@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
 import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium';
+import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
 
@@ -191,6 +192,22 @@ export function initApplicationBridge(): void {
         return { success: false, msg: START_ON_BOOT_UNSUPPORTED_MESSAGE, data: status };
       }
       return { success: true, data: status };
+    } catch (e) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  ipcBridge.application.getGpuStatus.provider(async () => {
+    try {
+      return { success: true, data: getGpuStatus() };
+    } catch (e) {
+      return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  ipcBridge.application.setGpuOverride.provider(async ({ override }) => {
+    try {
+      return { success: true, data: setGpuUserOverride(override) };
     } catch (e) {
       return { success: false, msg: e.message || e.toString() };
     }

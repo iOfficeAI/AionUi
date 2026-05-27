@@ -55,6 +55,45 @@ export function findNodeByKey(list: IDirOrFile[], key: string): IDirOrFile | nul
 }
 
 /**
+ * Merge children that were lazy-loaded in the old tree back into a freshly
+ * fetched tree. The backend's getWorkspace only returns one level at a time;
+ * a full refresh of the root therefore arrives with deep dirs collapsed to
+ * empty children, even when the user had expanded them via loadMore.
+ *
+ * For every directory node in the new tree that has no children loaded, we
+ * substitute the old node's children (matched by relativePath). Files are
+ * left untouched. Dirs that were deleted on disk simply don't appear in the
+ * new tree, so they drop out naturally.
+ */
+export function mergeLoadedChildren(newRes: IDirOrFile[], oldFiles: IDirOrFile[]): IDirOrFile[] {
+  if (oldFiles.length === 0) return newRes;
+
+  const oldByPath = new Map<string, IDirOrFile>();
+  const indexNode = (n: IDirOrFile) => {
+    if (n.relativePath != null) oldByPath.set(n.relativePath, n);
+    n.children?.forEach(indexNode);
+  };
+  oldFiles.forEach(indexNode);
+
+  const visit = (node: IDirOrFile): IDirOrFile => {
+    if (node.isFile) return node;
+    const oldNode = node.relativePath != null ? oldByPath.get(node.relativePath) : undefined;
+    const newHasChildren = (node.children?.length ?? 0) > 0;
+    const oldHasChildren = (oldNode?.children?.length ?? 0) > 0;
+
+    if (newHasChildren) {
+      return { ...node, children: node.children!.map(visit) };
+    }
+    if (oldHasChildren) {
+      return { ...node, children: oldNode!.children };
+    }
+    return node;
+  };
+
+  return newRes.map(visit);
+}
+
+/**
  * 获取第一层节点的 keys（用于初始展开）
  * Get first level node keys (for initial expansion)
  */

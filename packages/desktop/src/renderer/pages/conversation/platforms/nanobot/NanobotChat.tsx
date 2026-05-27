@@ -7,7 +7,11 @@
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
-import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
+import {
+  MessageListLoadingProvider,
+  MessageListProvider,
+  useMessageLstCache,
+} from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
@@ -40,4 +44,4 @@ const NanobotChat: React.FC<{
   );
 };
 
-export default HOC(MessageListProvider)(NanobotChat);
+export default HOC.Wrapper(MessageListProvider, MessageListLoadingProvider)(NanobotChat);

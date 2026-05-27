@@ -5,37 +5,23 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { ManagedCliInstallTarget } from '@/common/types/agent/managedCliInstaller';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useAgents } from '@/renderer/hooks/agent/useAgents';
-import { Button, Message, Typography } from '@arco-design/web-react';
+import { Button, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { isPackagedElectronDesktop } from '@/renderer/utils/platform';
+import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
-
-type ManagedCliCardConfig = {
-  target: ManagedCliInstallTarget;
-  label: string;
-  backendAliases: string[];
-};
-
-type InstallState = 'idle' | 'installing' | 'uninstalling';
-
-const MANAGED_CLI_CARDS: ManagedCliCardConfig[] = [
-  { target: 'hermes', label: 'Hermes', backendAliases: ['hermes'] },
-  { target: 'openclaw', label: 'OpenClaw', backendAliases: ['openclaw', 'openclaw-gateway'] },
-];
+import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
-  const [installingState, setInstallingState] = useState<Partial<Record<ManagedCliInstallTarget, InstallState>>>({});
-  const isPackaged = isPackagedElectronDesktop();
 
   // Single fetch for all agents; both detected and custom lists are derived from it.
   const { agents: allAgents, revalidate: mutateAgents } = useAgents();
@@ -98,105 +84,21 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // POUNDING CLI first among detected agents
+  // Aion CLI first among detected agents
   const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const brandedAionrsAgent = aionrsAgent ? { ...aionrsAgent, name: 'POUNDING CLI' } : null;
-
-  const managedCliCards = useMemo(() => {
-    const visibleCards = isPackaged
-      ? MANAGED_CLI_CARDS.filter((card) => card.target === 'hermes' || card.target === 'openclaw')
-      : MANAGED_CLI_CARDS;
-
-    return visibleCards.map((card) => {
-      const matchedAgent = detectedAgents.find((agent) =>
-        card.backendAliases.includes((agent.backend || agent.agent_type || '').toLowerCase())
-      );
-
-      const fallbackAgent: AgentMetadata = {
-        id: `managed-cli-${card.target}`,
-        name: card.label,
-        backend: card.backendAliases[0],
-        agent_type: 'acp',
-        agent_source: 'builtin',
-        available: false,
-        enabled: true,
-      };
-
-      return {
-        ...card,
-        agent: matchedAgent ?? fallbackAgent,
-      };
-    });
-  }, [detectedAgents]);
-
-  const setTargetState = useCallback((target: ManagedCliInstallTarget, state: InstallState) => {
-    setInstallingState((prev) => ({ ...prev, [target]: state }));
-  }, []);
-
-  const clearTargetState = useCallback((target: ManagedCliInstallTarget) => {
-    setInstallingState((prev) => {
-      const next = { ...prev };
-      delete next[target];
-      return next;
-    });
-  }, []);
-
-  const revalidateAfterCliMutation = useCallback(async () => {
-    await mutateAgents();
-  }, [mutateAgents]);
-
-  const handleInstallManagedCli = useCallback(
-    async (target: ManagedCliInstallTarget) => {
-      setTargetState(target, 'installing');
-      try {
-        const result = await ipcBridge.managedCliInstaller.install.invoke({ target });
-        if (!result.success) {
-          throw new Error(result.message || 'Install failed');
-        }
-        await revalidateAfterCliMutation();
-        Message.success(
-          t('settings.agentManagement.installSuccess', {
-            defaultValue: 'Installed successfully',
-          })
-        );
-      } catch (error) {
-        console.error(`Failed to install ${target}:`, error);
-        Message.error(error instanceof Error ? error.message : t('common.failed', { defaultValue: 'Failed' }));
-      } finally {
-        clearTargetState(target);
-      }
-    },
-    [clearTargetState, revalidateAfterCliMutation, setTargetState, t]
-  );
-
-  const handleUninstallManagedCli = useCallback(
-    async (target: ManagedCliInstallTarget) => {
-      setTargetState(target, 'uninstalling');
-      try {
-        const result = await ipcBridge.managedCliInstaller.uninstall.invoke({ target });
-        if (!result.success) {
-          throw new Error(result.message || 'Uninstall failed');
-        }
-        await revalidateAfterCliMutation();
-        Message.success(
-          t('settings.agentManagement.uninstallSuccess', {
-            defaultValue: 'Uninstalled successfully',
-          })
-        );
-      } catch (error) {
-        console.error(`Failed to uninstall ${target}:`, error);
-        Message.error(error instanceof Error ? error.message : t('common.failed', { defaultValue: 'Failed' }));
-      } finally {
-        clearTargetState(target);
-      }
-    },
-    [clearTargetState, revalidateAfterCliMutation, setTargetState, t]
-  );
+  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
     setEditorVisible(true);
   }, []);
+
+  const goToChatWithAgent = useCallback(
+    (agent: AgentMetadata) => {
+      navigate('/guid', { state: { selectedAgentKey: getAgentKey(agent) } });
+    },
+    [navigate]
+  );
 
   return (
     <div className='flex flex-col gap-8px py-16px'>
@@ -212,7 +114,7 @@ const LocalAgents: React.FC = () => {
         </Button>
       </div>
 
-      {process.env.NODE_ENV === 'development' && !isPackaged && (
+      {process.env.NODE_ENV === 'development' && (
         <div className='px-16px mt-8px'>
           <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
             <div className='flex items-center gap-12px'>
@@ -249,22 +151,15 @@ const LocalAgents: React.FC = () => {
         </Typography.Text>
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {brandedAionrsAgent && <AgentCard type='detected' agent={brandedAionrsAgent} variant='grid' />}
-        {managedCliCards.map(({ target, agent }) => (
+        {aionrsAgent && (
+          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
+        )}
+        {otherDetected.map((agent) => (
           <AgentCard
-            key={target}
+            key={agent.backend || agent.agent_type}
             type='detected'
             agent={agent}
-            variant='grid'
-            managedCliTarget={target}
-            canManageInstall={true}
-            installState={installingState[target] ?? 'idle'}
-            onInstall={() => {
-              void handleInstallManagedCli(target);
-            }}
-            onUninstall={() => {
-              void handleUninstallManagedCli(target);
-            }}
+            onGoToChat={() => goToChatWithAgent(agent)}
           />
         ))}
       </div>
@@ -328,6 +223,7 @@ const LocalAgents: React.FC = () => {
             key={agent.id}
             type='custom'
             agent={agent}
+            onGoToChat={() => goToChatWithAgent(agent)}
             onEdit={() => {
               setEditingAgent(agent);
               setEditorVisible(true);

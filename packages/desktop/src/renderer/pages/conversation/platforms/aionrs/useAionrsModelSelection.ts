@@ -33,7 +33,7 @@ export const useAionrsModelSelection = ({
 
   const { providers: allProviders, getAvailableModels, formatModelLabel } = useModelProviderList();
 
-  // AionCLI does not support Google Auth — filter it out
+  // AionCore does not support Google Auth — filter it out
   const providers = useMemo(
     () => allProviders.filter((p) => !p.platform?.toLowerCase().includes('gemini-with-google-auth')),
     [allProviders]

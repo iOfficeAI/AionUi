@@ -13,7 +13,7 @@ export type ICreateTeamParams = {
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  agents: Array<Omit<TeamAgent, 'slot_id'> & { conversation_id?: string }>;
+  agents: Omit<TeamAgent, 'slot_id' | 'conversation_id'>[];
 };
 
 export type IAddTeamAgentParams = {
@@ -101,18 +101,12 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 
 // ── Frontend → Backend ─────────────────────────────────────────────────
 
-export function toBackendAgent(
-  a: (Omit<TeamAgent, 'slot_id' | 'conversation_id'> & { conversation_id?: string }) | Omit<TeamAgent, 'slot_id'>
-): Record<string, unknown> {
-  const base: Record<string, unknown> = {
+export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
+  return {
     name: a.agent_name,
     role: a.role === 'leader' ? 'lead' : a.role,
     backend: a.agent_type,
     model: a.model || 'default',
     ...(a.custom_agent_id ? { custom_agent_id: a.custom_agent_id } : {}),
   };
-  if ('conversation_id' in a && a.conversation_id) {
-    base.conversation_id = a.conversation_id;
-  }
-  return base;
 }

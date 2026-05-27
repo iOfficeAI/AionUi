@@ -6,8 +6,17 @@
   "autoSwitchToAgent": "Gemini не настроен, автоматическое переключение на {{agent}}",
   "autoSwitchedAgent": "{{from}} недоступен, переключено на {{to}}",
   "promptExamplesHint": "Попробуйте примеры промптов:",
+  "selectAssistantHint": "Выберите ассистента, чтобы начать задачу",
   "agentSwitcherLabel": "Агент",
   "switchedToAgent": "Переключено на {{agent}}",
+  "workspace": {
+    "workInProject": "Работать в проекте",
+    "optional": "Необязательно",
+    "clearWorkspace": "Очистить",
+    "specifyWorkspace": "Выбрать папку проекта",
+    "searchPlaceholder": "Поиск проектов…",
+    "noProject": "Без проекта"
+  },
   "scanning": {
     "initialMessage": "Текущий агент недоступен, обнаружение других доступных агентов...",
     "scanningMessage": "Сканирование локальных доступных агентов...",

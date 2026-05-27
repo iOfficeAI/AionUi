@@ -28,7 +28,7 @@ export function usePreviewAutoCollapse({
   const previousPreviewOpenRef = useRef(false);
 
   useEffect(() => {
-    if (!workspaceEnabled || !isDesktop) {
+    if (!workspaceEnabled) {
       previousPreviewOpenRef.current = false;
       return;
     }
@@ -37,17 +37,19 @@ export function usePreviewAutoCollapse({
       if (previousWorkspaceCollapsedRef.current === null) {
         previousWorkspaceCollapsedRef.current = rightSiderCollapsed;
       }
-      if (previousSiderCollapsedRef.current === null && typeof siderCollapsed !== 'undefined') {
+      if (isDesktop && previousSiderCollapsedRef.current === null && typeof siderCollapsed !== 'undefined') {
         previousSiderCollapsedRef.current = siderCollapsed;
       }
       setRightSiderCollapsed(true);
-      setSiderCollapsed?.(true);
+      if (isDesktop) {
+        setSiderCollapsed?.(true);
+      }
     } else if (!isPreviewOpen && previousPreviewOpenRef.current) {
       if (previousWorkspaceCollapsedRef.current !== null) {
         setRightSiderCollapsed(previousWorkspaceCollapsedRef.current);
         previousWorkspaceCollapsedRef.current = null;
       }
-      if (previousSiderCollapsedRef.current !== null && setSiderCollapsed) {
+      if (isDesktop && previousSiderCollapsedRef.current !== null && setSiderCollapsed) {
         setSiderCollapsed(previousSiderCollapsedRef.current);
         previousSiderCollapsedRef.current = null;
       }

@@ -1,7 +1,8 @@
 import type React from 'react';
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
+import { mcpService } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 
@@ -11,105 +12,49 @@ import type { IMcpServer } from '@/common/config/storage';
  */
 export const useMcpServerCRUD = (
   mcpServers: IMcpServer[],
-  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>,
-  syncMcpToAgents: (server: IMcpServer, skipRecheck?: boolean) => Promise<void>,
-  removeMcpFromAgents: (server_name: string, successMessage?: string, transport_type?: string) => Promise<void>,
+  reloadMcpServers: () => Promise<IMcpServer[]>,
   checkSingleServerInstallStatus: (server_name: string) => Promise<void>,
   setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
 ) => {
   const { t } = useTranslation();
+  const togglingServerIdsRef = useRef<Set<string>>(new Set());
+  const [togglingServerIds, setTogglingServerIds] = useState<Set<string>>(() => new Set());
+
+  const setServerToggling = useCallback((serverId: string, isToggling: boolean) => {
+    const next = new Set(togglingServerIdsRef.current);
+
+    if (isToggling) {
+      next.add(serverId);
+    } else {
+      next.delete(serverId);
+    }
+
+    togglingServerIdsRef.current = next;
+    setTogglingServerIds(next);
+  }, []);
 
   // 添加MCP服务器
   const handleAddMcpServer = useCallback(
     async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
-      const now = Date.now();
-      let serverToSync: IMcpServer | null = null;
-
-      // 使用函数式更新，避免闭包问题
-      await saveMcpServers((prevServers) => {
-        const existingServerIndex = prevServers.findIndex((server) => server.name === serverData.name);
-
-        if (existingServerIndex !== -1) {
-          // 如果存在同名服务器，更新现有服务器
-          const updatedServers = [...prevServers];
-          updatedServers[existingServerIndex] = {
-            ...updatedServers[existingServerIndex],
-            ...serverData,
-            updated_at: now,
-          };
-          serverToSync = updatedServers[existingServerIndex];
-          return updatedServers;
-        } else {
-          // 如果不存在同名服务器，添加新服务器
-          const newServer: IMcpServer = {
-            ...serverData,
-            id: `mcp_${now}`,
-            created_at: now,
-            updated_at: now,
-          };
-          serverToSync = newServer;
-          return [...prevServers, newServer];
-        }
-      });
-
-      // 检查安装状态
-      if (serverToSync) {
-        setTimeout(() => void checkSingleServerInstallStatus(serverToSync.name), 100);
-      }
-
-      // 返回新添加/更新的服务器，用于后续的连接测试
-      return serverToSync;
+      const server = await mcpService.createServer.invoke(serverData);
+      await reloadMcpServers();
+      setTimeout(() => void checkSingleServerInstallStatus(server.name), 100);
+      return server;
     },
-    [saveMcpServers, syncMcpToAgents, t, checkSingleServerInstallStatus]
+    [reloadMcpServers, checkSingleServerInstallStatus]
   );
 
   // 批量导入MCP服务器
   const handleBatchImportMcpServers = useCallback(
     async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
-      const now = Date.now();
-      const addedServers: IMcpServer[] = [];
-
-      // 使用函数式更新，避免闭包问题
-      await saveMcpServers((prevServers) => {
-        const updatedServers = [...prevServers];
-
-        serversData.forEach((serverData, index) => {
-          const existingServerIndex = updatedServers.findIndex((server) => server.name === serverData.name);
-
-          if (existingServerIndex !== -1) {
-            // 如果存在同名服务器，更新现有服务器
-            updatedServers[existingServerIndex] = {
-              ...updatedServers[existingServerIndex],
-              ...serverData,
-              updated_at: now,
-            };
-          } else {
-            // 如果不存在同名服务器，添加新服务器
-            const newServer: IMcpServer = {
-              ...serverData,
-              id: `mcp_${now}_${index}`,
-              created_at: now,
-              updated_at: now,
-            };
-            updatedServers.push(newServer);
-            addedServers.push(newServer);
-          }
-        });
-
-        return updatedServers;
-      });
-
-      // 检查安装状态
+      const servers = await mcpService.batchImportServers.invoke({ servers: serversData });
+      await reloadMcpServers();
       setTimeout(() => {
-        serversData.forEach((serverData) => {
-          void checkSingleServerInstallStatus(serverData.name);
-        });
+        servers.forEach((server) => void checkSingleServerInstallStatus(server.name));
       }, 100);
-
-      // 返回新添加的服务器列表，用于后续的连接测试
-      return addedServers;
+      return servers;
     },
-    [saveMcpServers, syncMcpToAgents, t, checkSingleServerInstallStatus]
+    [reloadMcpServers, checkSingleServerInstallStatus]
   );
 
   // 编辑MCP服务器
@@ -120,123 +65,88 @@ export const useMcpServerCRUD = (
     ): Promise<IMcpServer | undefined> => {
       if (!editingMcpServer) return undefined;
 
-      let updatedServer: IMcpServer | undefined;
-
-      // 使用函数式更新，避免闭包问题
-      await saveMcpServers((prevServers) => {
-        updatedServer = {
-          ...editingMcpServer,
-          ...serverData,
-          updated_at: Date.now(),
-        };
-
-        return prevServers.map((server) => (server.id === editingMcpServer.id ? updatedServer : server));
+      const updated = await mcpService.updateServer.invoke({
+        id: editingMcpServer.id,
+        data: {
+          name: serverData.name,
+          description: serverData.description,
+          transport: serverData.transport,
+          original_json: serverData.original_json,
+        },
       });
+      await reloadMcpServers();
 
       Message.success(t('settings.mcpImportSuccess'));
-      // 编辑后立即检查该服务器的安装状态（仅安装状态）
-      setTimeout(() => void checkSingleServerInstallStatus(serverData.name), 100);
-
-      // 返回更新后的服务器对象，用于后续的连接测试
-      return updatedServer;
+      setTimeout(() => void checkSingleServerInstallStatus(updated.name), 100);
+      return updated;
     },
-    [saveMcpServers, t, checkSingleServerInstallStatus]
+    [reloadMcpServers, t, checkSingleServerInstallStatus]
   );
 
   // 删除MCP服务器
   const handleDeleteMcpServer = useCallback(
     async (serverId: string) => {
-      let targetServer: IMcpServer | undefined;
+      const targetServer = mcpServers.find((server) => server.id === serverId);
 
-      // 使用函数式更新，避免闭包问题
-      await saveMcpServers((prevServers) => {
-        targetServer = prevServers.find((server) => server.id === serverId);
-        if (!targetServer) return prevServers;
+      await mcpService.deleteServer.invoke(serverId);
+      await reloadMcpServers();
 
-        return prevServers.filter((server) => server.id !== serverId);
-      });
-
-      if (!targetServer) return;
-
-      // 删除后直接更新安装状态，不触发检测
-      setAgentInstallStatus((prev) => {
-        const updated = { ...prev };
-        delete updated[targetServer.name];
-        // 同时更新本地存储
-        void configService.set('mcp.agentInstallStatus', updated).catch(() => {
-          // Handle storage error silently
+      if (targetServer) {
+        setAgentInstallStatus((prev) => {
+          const updated = { ...prev };
+          delete updated[targetServer.name];
+          void configService.set('mcp.agentInstallStatus', updated).catch(() => {
+            // Handle storage error silently
+          });
+          return updated;
         });
-        return updated;
-      });
-
-      try {
-        // 如果服务器是启用状态，需要从所有agents中删除MCP配置
-        if (targetServer.enabled) {
-          await removeMcpFromAgents(
-            targetServer.name,
-            t('settings.mcpDeletedWithCleanup'),
-            targetServer.transport.type
-          );
-        } else {
-          Message.success(t('settings.mcpDeleted'));
-        }
-      } catch (error) {
-        Message.error(t('settings.mcpDeleteError'));
       }
+
+      Message.success(targetServer?.enabled ? t('settings.mcpDeletedWithCleanup') : t('settings.mcpDeleted'));
     },
-    [saveMcpServers, setAgentInstallStatus, removeMcpFromAgents, t]
+    [mcpServers, reloadMcpServers, setAgentInstallStatus, t]
   );
 
   // 启用/禁用MCP服务器
   const handleToggleMcpServer = useCallback(
     async (serverId: string, enabled: boolean) => {
-      let targetServer: IMcpServer | undefined;
-      let updatedTargetServer: IMcpServer | undefined;
+      if (togglingServerIdsRef.current.has(serverId)) return;
 
-      // 使用函数式更新，避免闭包问题
-      await saveMcpServers((prevServers) => {
-        targetServer = prevServers.find((server) => server.id === serverId);
-        if (!targetServer) return prevServers;
-
-        return prevServers.map((server) => {
-          if (server.id === serverId) {
-            updatedTargetServer = { ...server, enabled, updated_at: Date.now() };
-            return updatedTargetServer;
-          }
-          return server;
-        });
-      });
-
-      if (!targetServer || !updatedTargetServer) return;
+      setServerToggling(serverId, true);
 
       try {
-        if (enabled) {
-          // 如果启用了MCP服务器，只将当前服务器同步到所有检测到的agent
-          await syncMcpToAgents(updatedTargetServer, true);
-          // 启用后立即检查该服务器的安装状态（仅安装状态）
-          setTimeout(() => void checkSingleServerInstallStatus(targetServer.name), 100);
-        } else {
-          // 如果禁用了MCP服务器，从所有agent中删除该配置
-          await removeMcpFromAgents(targetServer.name, undefined, targetServer.transport.type);
-          // 禁用后直接更新UI状态，不需要重新检测
-          setAgentInstallStatus((prev) => {
-            const updated = { ...prev };
-            delete updated[targetServer.name];
-            // 同时更新本地存储
-            void configService.set('mcp.agentInstallStatus', updated).catch(() => {
-              // Handle storage error silently
-            });
-            return updated;
-          });
+        const updatedServer = await mcpService.toggleServer.invoke(serverId);
+        await reloadMcpServers();
+
+        if (updatedServer.enabled !== enabled) {
+          Message.error(enabled ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
+          return;
         }
-      } catch (error) {
+
+        if (enabled) {
+          setTimeout(() => void checkSingleServerInstallStatus(updatedServer.name), 100);
+          return;
+        }
+
+        setAgentInstallStatus((prev) => {
+          const updated = { ...prev };
+          delete updated[updatedServer.name];
+          void configService.set('mcp.agentInstallStatus', updated).catch(() => {
+            // Handle storage error silently
+          });
+          return updated;
+        });
+      } catch {
         Message.error(enabled ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
+      } finally {
+        setServerToggling(serverId, false);
       }
     },
-    [saveMcpServers, syncMcpToAgents, removeMcpFromAgents, checkSingleServerInstallStatus, setAgentInstallStatus, t]
+    [reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus, setServerToggling, t]
   );
 
   return {
+    togglingServerIds,
     handleAddMcpServer,
     handleBatchImportMcpServers,
     handleEditMcpServer,

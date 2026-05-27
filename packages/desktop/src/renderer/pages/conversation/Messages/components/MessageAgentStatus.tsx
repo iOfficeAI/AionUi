@@ -10,7 +10,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 
 const { Text } = Typography;
 
@@ -27,12 +26,10 @@ const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const { cliAgents } = useConversationAgents();
 
   // Resolve display name: agent_name (extension/custom) > detected agent name > capitalized backend
-  const detectedAgent = cliAgents.find((a) => a.backend === backend || a.agent_type === backend);
-  const display_name = getAgentDisplayName({
-    name: agent_name || detectedAgent?.name,
-    backend,
-    agent_type: backend,
-  });
+  const display_name =
+    agent_name ||
+    cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name ||
+    backend.charAt(0).toUpperCase() + backend.slice(1);
 
   // Hide disconnected status from historical messages (no longer emitted but may exist in DB)
   if ((status as string) === 'disconnected') return null;

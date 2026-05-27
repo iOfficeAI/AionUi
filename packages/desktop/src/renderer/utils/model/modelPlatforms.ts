@@ -59,7 +59,7 @@ export const MODEL_PLATFORMS: PlatformConfig[] = [
 
   // New API 多模型网关 / New API multi-model gateway
   {
-    name: 'POUNDING API',
+    name: 'New API',
     value: 'new-api',
     logo: buildLogoAssetUrl('ai-cloud/newapi.svg'),
     platform: 'new-api',

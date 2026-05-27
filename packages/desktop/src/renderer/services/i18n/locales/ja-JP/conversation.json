@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Hi、今日の予定は何ですか？",
     "placeholder": "メッセージの送信、ファイルの追加、フォルダーの追加、またはスケジュールタスクの作成...",
-    "uploadFile": "ファイルを追加",
     "linkFolder": "フォルダを追加",
     "newConversation": "新しいチャット",
     "selectModel": "モデルを選択",
@@ -13,10 +12,10 @@
     "clearWorkspace": "プロジェクトを解除",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "POUNDING で何ができる？",
-    "quickActionFeedback": "フィードバックや提案は？",
+    "quickActionsTitle": "AionUi で何ができる？",
+    "quickActionFeedback": "問題を報告",
     "quickActionStar": "気に入った？スターをください！",
-    "skillsMarket": "POUNDING Skills Market",
+    "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "コミュニティ Skills をオンデマンドで検索・有効化。一度設定すれば、すべてのAgentで利用可能。",
     "skillsMarketDetails": "詳細 >>"
   },
@@ -92,12 +91,6 @@
   "noAgentsAvailable": "利用可能なエージェントはありません",
   "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
   "createFailed": "会話の作成に失敗しました",
-  "tabs": {
-    "closeAll": "すべて閉じる",
-    "closeLeft": "左側を閉じる",
-    "closeRight": "右側を閉じる",
-    "closeOthers": "他を閉じる"
-  },
   "workspace": {
     "title": "プロジェクト",
     "pasteConfirm_title": "ファイルを貼り付け",
@@ -155,6 +148,7 @@
     "changes": {
       "tab": "変更",
       "filesTab": "ファイル",
+      "currentBranchLabel": "現在のブランチ",
       "summary": "{{count}} 個のファイルが変更されました",
       "insertions": "+{{count}} 行追加",
       "deletions": "-{{count}} 行削除",
@@ -291,5 +285,6 @@
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照"
-  }
+  },
+  "notFound": "会話が存在しないか、削除されました"
 }

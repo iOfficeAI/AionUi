@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Hi，今天有什麼安排？",
     "placeholder": "發送訊息、上傳檔案、開啟資料夾或建立定時任務...",
-    "uploadFile": "上傳檔案",
     "linkFolder": "開啟資料夾",
     "newConversation": "新會話",
     "selectModel": "選擇模型",
@@ -13,10 +12,10 @@
     "clearWorkspace": "移除專案",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "POUNDING 能做什麼？",
-    "quickActionFeedback": "想吐槽或提建議?",
+    "quickActionsTitle": "AionUi 能做什麼？",
+    "quickActionFeedback": "反饋問題",
     "quickActionStar": "喜歡我們？點個星吧",
-    "skillsMarket": "POUNDING Skills Market",
+    "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "按需搜尋並啟用社區 Skills，一次設定，所有Agent通用。",
     "skillsMarketDetails": "詳情 >>"
   },
@@ -92,12 +91,6 @@
   "noAgentsAvailable": "沒有可用的 Agent",
   "noModelConfigured": "未設定模型，請前往設定頁面設定。",
   "createFailed": "建立對話失敗",
-  "tabs": {
-    "closeAll": "全部關閉",
-    "closeLeft": "關閉左側",
-    "closeRight": "關閉右側",
-    "closeOthers": "關閉其他"
-  },
   "workspace": {
     "title": "專案",
     "pasteConfirm_title": "貼上檔案",
@@ -155,6 +148,7 @@
     "changes": {
       "tab": "變更",
       "filesTab": "檔案",
+      "currentBranchLabel": "目前分支",
       "summary": "{{count}} 個檔案已變更",
       "insertions": "+{{count}} 行新增",
       "deletions": "-{{count}} 行刪除",
@@ -291,5 +285,6 @@
   },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"
-  }
+  },
+  "notFound": "會話不存在或已被刪除"
 }

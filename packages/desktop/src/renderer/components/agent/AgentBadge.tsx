@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentDisplayName, getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Robot } from '@icon-park/react';
 import React, { useCallback } from 'react';
@@ -73,9 +73,7 @@ const AgentBadge: React.FC<AgentBadgeProps> = ({ backend, agent_name, agentLogo,
         agentLogo={agentLogo}
         agentLogoIsEmoji={agentLogoIsEmoji}
       />
-      <span className='text-sm text-t-primary'>
-        {getAgentDisplayName({ name: agent_name, backend, agent_type: backend })}
-      </span>
+      <span className='text-sm text-t-primary'>{agent_name || backend}</span>
     </div>
   );
 };

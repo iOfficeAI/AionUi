@@ -6,81 +6,14 @@
 
 import { ipcBridge } from '@/common';
 import { transformMessage } from '@/common/chat/chatLib';
-import type { IMessageAcpToolCall, IMessageText } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
-import type { IConversationTurnCompletedEvent, IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-
-export function extractCompletedToolFallbackText(message: IMessageAcpToolCall): string | null {
-  const update = message.content.update;
-  const sessionUpdate =
-    (update as { sessionUpdate?: string; session_update?: string } | undefined)?.sessionUpdate ??
-    (update as { sessionUpdate?: string; session_update?: string } | undefined)?.session_update;
-  if (!update || sessionUpdate !== 'tool_call_update' || update.status !== 'completed') {
-    return null;
-  }
-
-  const contentItems = Array.isArray(update.content) ? update.content : [];
-  for (let i = contentItems.length - 1; i >= 0; i--) {
-    const item = contentItems[i];
-    if (item?.type !== 'content') continue;
-    const content = item.content;
-    if (content?.type !== 'text' || typeof content.text !== 'string') continue;
-    const trimmed = content.text.trim();
-    if (!trimmed) continue;
-
-    const outputMatch = trimmed.match(/- \*\*output:\*\*\s*([^\n]+)/);
-    if (outputMatch?.[1]?.trim()) {
-      return outputMatch[1].trim();
-    }
-
-    return trimmed;
-  }
-
-  const rawOutput =
-    (update as { rawOutput?: unknown; raw_output?: unknown }).rawOutput ??
-    (update as { rawOutput?: unknown; raw_output?: unknown }).raw_output;
-  if (rawOutput && typeof rawOutput === 'object') {
-    const output = 'output' in rawOutput ? rawOutput.output : undefined;
-    if (typeof output === 'string' && output.trim()) {
-      return output.trim();
-    }
-  }
-
-  return null;
-}
-
-export function buildAcpFallbackAssistantText(params: {
-  conversationId: string;
-  msgId: string;
-  content: string;
-  createdAt?: number;
-}): IMessageText {
-  return {
-    id: params.msgId,
-    msg_id: params.msgId,
-    type: 'text',
-    position: 'left',
-    conversation_id: params.conversationId,
-    created_at: params.createdAt ?? Date.now(),
-    content: {
-      content: params.content,
-      replace: true,
-    },
-  };
-}
-
-function extractCompletedThinkingFallbackText(message: ReturnType<typeof transformMessage>): string | null {
-  if (message.type !== 'thinking') return null;
-  const content = message.content;
-  if (!content || typeof content !== 'object' || !('content' in content)) return null;
-  const text = content.content;
-  return typeof text === 'string' && text.trim() ? text.trim() : null;
-}
 
 export type UseAcpMessageReturn = {
   thought: ThoughtData;
@@ -98,7 +31,7 @@ export type UseAcpMessageReturn = {
   fetchSlashCommands: () => void;
 };
 
-export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
+export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
@@ -113,7 +46,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
-  const acpSessionIdRef = useRef<string | null>(null);
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -121,9 +53,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
   // Track whether current turn has content output
   const hasContentInTurnRef = useRef(false);
-  const lastCompletedToolTextRef = useRef<string | null>(null);
-  const lastCompletedThinkingTextRef = useRef<string | null>(null);
-  const lastFallbackTextMsgIdRef = useRef<string | null>(null);
 
   // Guard: after finish arrives, prevent auto-recover from setting running=true
   // until a new 'start' signal arrives for the next turn
@@ -132,6 +61,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
   // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
+  const activeThinkingRef = useRef<{ msgId: string; startedAt: number } | null>(null);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -189,47 +119,36 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     };
   }, []);
 
-  const finalizeTurn = useCallback(
-    (params?: { createdAt?: number; msgId?: string }) => {
-      const fallbackText = lastCompletedToolTextRef.current || lastCompletedThinkingTextRef.current;
-      if (!hasContentInTurnRef.current && fallbackText) {
-        const fallbackMsgId =
-          params?.msgId || lastFallbackTextMsgIdRef.current || `acp-fallback-${conversation_id}-${Date.now()}`;
-        addOrUpdateMessage(
-          buildAcpFallbackAssistantText({
-            conversationId: conversation_id,
-            msgId: fallbackMsgId,
-            content: fallbackText,
-            createdAt: params?.createdAt,
-          })
-        );
-        hasContentInTurnRef.current = true;
+  const completeActiveThinking = useCallback(
+    (
+      boundaryMessage: Pick<IResponseMessage, 'conversation_id' | 'created_at'>,
+      completeOptions?: {
+        duration?: number;
       }
+    ) => {
+      const activeThinking = activeThinkingRef.current;
+      if (!activeThinking) return;
 
-      turnFinishedRef.current = true;
-      setRunning(false);
-      runningRef.current = false;
-      setAiProcessing(false);
-      aiProcessingRef.current = false;
-      setThought({ subject: '', description: '' });
-      hasContentInTurnRef.current = false;
-      lastCompletedToolTextRef.current = null;
-      lastCompletedThinkingTextRef.current = null;
-      lastFallbackTextMsgIdRef.current = null;
-      hasThinkingMessageRef.current = false;
-      setHasThinkingMessage(false);
+      const endTime = boundaryMessage.created_at ?? Date.now();
+      const duration = completeOptions?.duration ?? Math.max(0, endTime - activeThinking.startedAt);
 
-      if (requestTraceRef.current) {
-        const duration = Date.now() - requestTraceRef.current.startTime;
-        console.log(
-          `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-          'color: #52c41a; font-weight: bold',
-          'color: inherit'
-        );
-        requestTraceRef.current = null;
-      }
+      addOrUpdateMessage({
+        id: `${activeThinking.msgId}-thinking-done`,
+        type: 'thinking',
+        msg_id: activeThinking.msgId,
+        conversation_id: boundaryMessage.conversation_id,
+        position: 'left',
+        created_at: endTime,
+        content: {
+          content: '',
+          duration,
+          status: 'done',
+        },
+      });
+
+      activeThinkingRef.current = null;
     },
-    [addOrUpdateMessage, conversation_id, setAiProcessing, setRunning, setThought]
+    [addOrUpdateMessage]
   );
 
   const handleResponseMessage = useCallback(
@@ -240,6 +159,27 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
 
       if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
         return;
+      }
+
+      const shouldCompleteThinking =
+        activeThinkingRef.current &&
+        ![
+          'thought',
+          'thinking',
+          'start',
+          'request_trace',
+          'acp_context_usage',
+          'acp_model_info',
+          'codex_model_info',
+          'available_commands',
+          'slash_commands_updated',
+          'agent_status',
+          'user_content',
+          'teammate_message',
+        ].includes(message.type);
+
+      if (shouldCompleteThinking) {
+        completeActiveThinking(message);
       }
 
       const transformedMessage = transformMessage(message);
@@ -253,17 +193,34 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           }
           break;
         case 'thinking': {
-          const thinkingData = message.data as { status?: string };
+          const thinkingData = message.data as { status?: string; duration?: number; duration_ms?: number };
+          if (thinkingData?.status === 'done') {
+            if (activeThinkingRef.current?.msgId === message.msg_id) {
+              completeActiveThinking(message, {
+                duration: thinkingData.duration ?? thinkingData.duration_ms,
+              });
+            }
+            break;
+          }
+
           // Only set running for active thinking, not for done signal
-          if (thinkingData?.status !== 'done' && !runningRef.current && !turnFinishedRef.current) {
+          if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
           }
+          if (!activeThinkingRef.current) {
+            activeThinkingRef.current = {
+              msgId: message.msg_id,
+              startedAt: message.created_at ?? Date.now(),
+            };
+          } else if (activeThinkingRef.current.msgId !== message.msg_id) {
+            activeThinkingRef.current = {
+              msgId: message.msg_id,
+              startedAt: message.created_at ?? Date.now(),
+            };
+          }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
-          if (thinkingData?.status === 'done') {
-            lastCompletedThinkingTextRef.current = extractCompletedThinkingFallbackText(transformedMessage);
-          }
           addOrUpdateMessage(transformedMessage);
           break;
         }
@@ -271,18 +228,35 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           // New turn starting — clear the finished guard and content flag
           turnFinishedRef.current = false;
           hasContentInTurnRef.current = false;
-          lastCompletedToolTextRef.current = null;
-          lastCompletedThinkingTextRef.current = null;
-          lastFallbackTextMsgIdRef.current = null;
           setRunning(true);
           runningRef.current = true;
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
-          finalizeTurn({
-            createdAt: message.created_at,
-            msgId: lastFallbackTextMsgIdRef.current ?? message.msg_id,
-          });
+          {
+            // Mark turn as finished to prevent auto-recover from late messages
+            turnFinishedRef.current = true;
+            // Immediate state reset (notification is handled by centralized hook)
+            setRunning(false);
+            runningRef.current = false;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            setThought({ subject: '', description: '' });
+            hasContentInTurnRef.current = false;
+            hasThinkingMessageRef.current = false;
+            activeThinkingRef.current = null;
+            setHasThinkingMessage(false);
+            // Log request completion
+            if (requestTraceRef.current) {
+              const duration = Date.now() - requestTraceRef.current.startTime;
+              console.log(
+                `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
+                'color: #52c41a; font-weight: bold',
+                'color: inherit'
+              );
+              requestTraceRef.current = null;
+            }
+          }
           break;
         case 'text':
         case 'content': {
@@ -292,9 +266,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             setAiProcessing(false);
             aiProcessingRef.current = false;
           }
-          lastCompletedToolTextRef.current = null;
-          lastCompletedThinkingTextRef.current = null;
-          lastFallbackTextMsgIdRef.current = null;
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
@@ -315,11 +286,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           const agentData = message.data as {
             status?: 'connecting' | 'connected' | 'authenticated' | 'session_active' | 'disconnected' | 'error';
             backend?: string;
-            session_id?: string;
           };
-          if (typeof agentData?.session_id === 'string' && agentData.session_id.trim()) {
-            acpSessionIdRef.current = agentData.session_id;
-          }
           if (agentData?.status) {
             setAcpStatus(agentData.status);
             // Reset running state when authentication is complete
@@ -380,20 +347,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
             }
             addOrUpdateMessage(tmMsg);
           }
-          break;
-        }
-        case 'acp_tool_call': {
-          const fallbackText = extractCompletedToolFallbackText(transformedMessage as IMessageAcpToolCall);
-          if (fallbackText) {
-            lastCompletedToolTextRef.current = fallbackText;
-            lastFallbackTextMsgIdRef.current = message.msg_id;
-          }
-          // Auto-recover running state only if turn hasn't finished
-          if (!runningRef.current && !turnFinishedRef.current) {
-            setRunning(true);
-            runningRef.current = true;
-          }
-          addOrUpdateMessage(transformedMessage);
           break;
         }
         case 'acp_permission':
@@ -462,6 +415,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
+          activeThinkingRef.current = null;
           addOrUpdateMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
@@ -488,7 +442,7 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     [
       conversation_id,
       addOrUpdateMessage,
-      finalizeTurn,
+      completeActiveThinking,
       throttledSetThought,
       setThought,
       setRunning,
@@ -501,32 +455,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     return ipcBridge.acpConversation.responseStream.on(handleResponseMessage);
   }, [handleResponseMessage]);
 
-  const handleTurnCompleted = useCallback(
-    (event: IConversationTurnCompletedEvent) => {
-      const currentSessionId = acpSessionIdRef.current;
-      if (!currentSessionId || event.session_id !== currentSessionId) {
-        return;
-      }
-      if (event.status !== 'finished') {
-        return;
-      }
-      if (turnFinishedRef.current) {
-        return;
-      }
-      finalizeTurn({
-        createdAt: event.last_message?.created_at,
-        msgId:
-          lastFallbackTextMsgIdRef.current ||
-          `acp-turn-completed-${conversation_id}-${event.last_message?.created_at ?? Date.now()}`,
-      });
-    },
-    [conversation_id, finalizeTurn]
-  );
-
-  useEffect(() => {
-    return ipcBridge.conversation.turnCompleted.on(handleTurnCompleted);
-  }, [handleTurnCompleted]);
-
   // Reset state when conversation changes and restore actual running status
   useEffect(() => {
     let cancelled = false;
@@ -536,13 +464,10 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setTokenUsage(null);
     setContextLimit(0);
     setSlashCommands([]);
-    acpSessionIdRef.current = null;
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
-    lastCompletedToolTextRef.current = null;
-    lastCompletedThinkingTextRef.current = null;
-    lastFallbackTextMsgIdRef.current = null;
     hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
 
@@ -555,84 +480,106 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
     setAiProcessing(false);
     aiProcessingRef.current = false;
 
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
-      if (cancelled) {
-        return;
-      }
+    void getConversationOrNull(conversation_id)
+      .then((res) => {
+        if (cancelled) {
+          return;
+        }
 
-      if (!res) {
+        if (!res) {
+          setRunning(false);
+          runningRef.current = false;
+          setAiProcessing(false);
+          aiProcessingRef.current = false;
+          setHasHydratedRunningState(true);
+          return;
+        }
+        const isRunning = res.status === 'running';
+        setRunning(isRunning);
+        runningRef.current = isRunning;
+        if (isRunning) {
+          setAiProcessing(true);
+          aiProcessingRef.current = true;
+        }
+        setHasHydratedRunningState(true);
+
+        // Restore persisted context usage data
+        if (res.type === 'acp' && res.extra?.last_token_usage) {
+          const { last_token_usage, last_context_limit } = res.extra;
+          if (last_token_usage.total_tokens > 0) {
+            setTokenUsage(last_token_usage);
+          }
+          if (last_context_limit && last_context_limit > 0) {
+            setContextLimit(last_context_limit);
+          }
+        }
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return;
         setRunning(false);
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
         setHasHydratedRunningState(true);
-        return;
-      }
-      acpSessionIdRef.current =
-        (res.type === 'acp' ? res.extra?.acp_session_id : undefined) ||
-        (res.type === 'acp' ? res.extra?.acp_session_conversation_id : undefined) ||
-        null;
-      const isRunning = res.status === 'running';
-      setRunning(isRunning);
-      runningRef.current = isRunning;
-      if (isRunning) {
-        setAiProcessing(true);
-        aiProcessingRef.current = true;
-      }
-      setHasHydratedRunningState(true);
 
-      // Restore persisted context usage data
-      if (res.type === 'acp' && res.extra?.last_token_usage) {
-        const { last_token_usage, last_context_limit } = res.extra;
-        if (last_token_usage.total_tokens > 0) {
-          setTokenUsage(last_token_usage);
+        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
+          console.warn('[useAcpMessage] Failed to hydrate conversation state:', error);
+          return;
         }
-        if (last_context_limit && last_context_limit > 0) {
-          setContextLimit(last_context_limit);
-        }
-      }
-    });
+
+        throw error;
+      });
 
     return () => {
       cancelled = true;
     };
   }, [conversation_id]);
 
+  // Fetch slash commands via HTTP after warmup completes.
+  // WebSocket push of available_commands arrives during warmup when no
+  // StreamRelay is listening, so the initial load must come from HTTP.
+  // Mirrors the aionrs pattern: warmup first, then fetch.
+  // In team mode, warmup is deferred to first user input — skip here.
   useEffect(() => {
-    if (acpSessionIdRef.current) {
-      return;
-    }
-
+    if (options?.skipWarmup) return;
     let cancelled = false;
-    let attempts = 0;
-    const maxAttempts = 20;
-
-    const hydrateSessionId = async () => {
-      while (!cancelled && !acpSessionIdRef.current && attempts < maxAttempts) {
-        attempts += 1;
-        try {
-          const res = await ipcBridge.conversation.get.invoke({ id: conversation_id });
-          const sessionId =
-            (res?.type === 'acp' ? res.extra?.acp_session_id : undefined) ||
-            (res?.type === 'acp' ? res.extra?.acp_session_conversation_id : undefined) ||
-            null;
-          if (sessionId) {
-            acpSessionIdRef.current = sessionId;
-            return;
-          }
-        } catch {
-          // swallow and retry
-        }
-        await new Promise((resolve) => setTimeout(resolve, 500));
-      }
-    };
-
-    void hydrateSessionId();
-
+    void ipcBridge.conversation.warmup
+      .invoke({ conversation_id })
+      .then(() => {
+        if (cancelled) return;
+        return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
+      })
+      .then((result) => {
+        if (cancelled) return;
+        if (!result || !Array.isArray(result) || result.length === 0) return;
+        setSlashCommands(
+          result.map((c) => ({
+            name: c.command,
+            description: c.description,
+            kind: 'template' as const,
+            source: 'acp' as const,
+            selectionBehavior: 'insert' as const,
+          }))
+        );
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, options?.skipWarmup]);
+
+  const resetState = useCallback(() => {
+    turnFinishedRef.current = true;
+    setRunning(false);
+    runningRef.current = false;
+    setAiProcessing(false);
+    aiProcessingRef.current = false;
+    setThought({ subject: '', description: '' });
+    hasContentInTurnRef.current = false;
+    hasThinkingMessageRef.current = false;
+    activeThinkingRef.current = null;
+    setHasThinkingMessage(false);
+  }, []);
 
   const fetchSlashCommands = useCallback(() => {
     void ipcBridge.conversation.getSlashCommands
@@ -651,45 +598,6 @@ export const useAcpMessage = (conversation_id: string): UseAcpMessageReturn => {
       })
       .catch(() => {});
   }, [conversation_id]);
-
-  // Fetch slash commands via HTTP after warmup completes.
-  // WebSocket push of available_commands arrives during warmup when no
-  // StreamRelay is listening, so the initial load must come from HTTP.
-  useEffect(() => {
-    const inflightKey = `acp_initial_message_inflight_${conversation_id}`;
-    const inflightSince = Number(sessionStorage.getItem(inflightKey) || '0');
-    if (Number.isFinite(inflightSince) && inflightSince > 0 && Date.now() - inflightSince < 15_000) {
-      return;
-    }
-
-    let cancelled = false;
-    void ipcBridge.conversation.warmup
-      .invoke({ conversation_id })
-      .then(() => {
-        if (!cancelled) {
-          fetchSlashCommands();
-        }
-      })
-      .catch(() => {});
-    return () => {
-      cancelled = true;
-    };
-  }, [conversation_id, fetchSlashCommands]);
-
-  const resetState = useCallback(() => {
-    turnFinishedRef.current = true;
-    setRunning(false);
-    runningRef.current = false;
-    setAiProcessing(false);
-    aiProcessingRef.current = false;
-    setThought({ subject: '', description: '' });
-    hasContentInTurnRef.current = false;
-    lastCompletedToolTextRef.current = null;
-    lastCompletedThinkingTextRef.current = null;
-    lastFallbackTextMsgIdRef.current = null;
-    hasThinkingMessageRef.current = false;
-    setHasThinkingMessage(false);
-  }, []);
 
   return {
     thought,

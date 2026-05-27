@@ -19,6 +19,16 @@ describe('platformAuthType', () => {
       expect(getAuthTypeFromPlatform('GEMINI-WITH-GOOGLE-AUTH')).toBe(AuthType.LOGIN_WITH_GOOGLE);
     });
 
+    it('returns USE_VERTEX_AI for gemini vertex platforms', () => {
+      expect(getAuthTypeFromPlatform('gemini-vertex-ai')).toBe(AuthType.USE_VERTEX_AI);
+      expect(getAuthTypeFromPlatform('GEMINI-VERTEX-AI')).toBe(AuthType.USE_VERTEX_AI);
+    });
+
+    it('returns USE_GEMINI for Gemini API key platforms', () => {
+      expect(getAuthTypeFromPlatform('gemini')).toBe(AuthType.USE_GEMINI);
+      expect(getAuthTypeFromPlatform('GEMINI')).toBe(AuthType.USE_GEMINI);
+    });
+
     it('returns USE_ANTHROPIC for anthropic platforms', () => {
       expect(getAuthTypeFromPlatform('anthropic')).toBe(AuthType.USE_ANTHROPIC);
       expect(getAuthTypeFromPlatform('ANTHROPIC')).toBe(AuthType.USE_ANTHROPIC);
@@ -87,6 +97,7 @@ describe('platformAuthType', () => {
     it('infers auth type from platform when auth_type not specified', () => {
       expect(getProviderAuthType({ platform: 'anthropic' })).toBe(AuthType.USE_ANTHROPIC);
       expect(getProviderAuthType({ platform: 'bedrock' })).toBe(AuthType.USE_BEDROCK);
+      expect(getProviderAuthType({ platform: 'gemini' })).toBe(AuthType.USE_GEMINI);
       expect(getProviderAuthType({ platform: 'openai' })).toBe(AuthType.USE_OPENAI);
     });
 

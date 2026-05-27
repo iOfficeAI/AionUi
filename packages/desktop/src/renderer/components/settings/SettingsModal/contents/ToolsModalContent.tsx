@@ -6,7 +6,10 @@
 
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
-import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
+import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/common/config/imageGenerationMcpEnv';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
+import { isImageGenSupported } from '@/common/utils/imageModelAllowlist';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/provider/speech';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
@@ -22,25 +25,24 @@ import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem
 import {
   useMcpServers,
   useMcpAgentStatus,
-  useMcpOperations,
   useMcpConnection,
   useMcpModal,
   useMcpServerCRUD,
   useMcpOAuth,
 } from '@/renderer/hooks/mcp';
-import {
-  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
-  MANAGED_NEWAPI_PROVIDER_ID,
-} from '@/common/types/agent/managedRuntimeCli';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
 type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
-const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
-const getProviderDisplayName = (platform: { id: string; name: string }): string =>
-  platform.id === MANAGED_NEWAPI_PROVIDER_ID ? MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME : platform.name;
+const isBuiltinImageGenServer = (server: IMcpServer) =>
+  server.builtin === true && (server.id === BUILTIN_IMAGE_GEN_ID || server.name === BUILTIN_IMAGE_GEN_NAME);
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const areEnvRecordsEqual = (a: Record<string, string>, b: Record<string, string>) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+};
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
   provider: 'openai',
@@ -145,74 +147,84 @@ const SpeechToTextSettingsSection: React.FC<{
         />
       </div>
 
-      <Divider className='mt-0px mb-20px' />
+      {config.enabled && (
+        <>
+          <Divider className='mt-0px mb-20px' />
 
-      <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
-        <Form.Item label={t('settings.speechToTextProvider')}>
-          <AionSelect value={config.provider} onChange={handleProviderChange}>
-            <AionSelect.Option value='openai'>{t('settings.speechToTextProviderOpenAI')}</AionSelect.Option>
-            <AionSelect.Option value='deepgram'>{t('settings.speechToTextProviderDeepgram')}</AionSelect.Option>
-          </AionSelect>
-        </Form.Item>
+          <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
+            <Form.Item label={t('settings.speechToTextProvider')}>
+              <AionSelect value={config.provider} onChange={handleProviderChange}>
+                <AionSelect.Option value='openai'>{t('settings.speechToTextProviderOpenAI')}</AionSelect.Option>
+                <AionSelect.Option value='deepgram'>{t('settings.speechToTextProviderDeepgram')}</AionSelect.Option>
+              </AionSelect>
+            </Form.Item>
 
-        {config.provider === 'openai' ? (
-          <>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
-              <Input.Password
-                value={config.openai?.api_key}
-                visibilityToggle
-                onChange={(value) => handleOpenAIChange('api_key', value)}
-              />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
-              <Input value={config.openai?.base_url} onChange={(value) => handleOpenAIChange('base_url', value)} />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
-              <Input value={config.openai?.model} onChange={(value) => handleOpenAIChange('model', value)} />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
-              <Input value={config.openai?.language} onChange={(value) => handleOpenAIChange('language', value)} />
-            </Form.Item>
-          </>
-        ) : (
-          <>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
-              <Input.Password
-                value={config.deepgram?.api_key}
-                visibilityToggle
-                onChange={(value) => handleDeepgramChange('api_key', value)}
-              />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
-              <Input value={config.deepgram?.base_url} onChange={(value) => handleDeepgramChange('base_url', value)} />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
-              <Input value={config.deepgram?.model} onChange={(value) => handleDeepgramChange('model', value)} />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
-              <Input value={config.deepgram?.language} onChange={(value) => handleDeepgramChange('language', value)} />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextDetectLanguage', 'optional')}>
-              <Switch
-                checked={config.deepgram?.detectLanguage !== false}
-                onChange={(checked) => handleDeepgramChange('detectLanguage', checked)}
-              />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextPunctuate', 'optional')}>
-              <Switch
-                checked={config.deepgram?.punctuate !== false}
-                onChange={(checked) => handleDeepgramChange('punctuate', checked)}
-              />
-            </Form.Item>
-            <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextSmartFormat', 'optional')}>
-              <Switch
-                checked={config.deepgram?.smartFormat !== false}
-                onChange={(checked) => handleDeepgramChange('smartFormat', checked)}
-              />
-            </Form.Item>
-          </>
-        )}
-      </Form>
+            {config.provider === 'openai' ? (
+              <>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
+                  <Input.Password
+                    value={config.openai?.api_key}
+                    visibilityToggle
+                    onChange={(value) => handleOpenAIChange('api_key', value)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
+                  <Input value={config.openai?.base_url} onChange={(value) => handleOpenAIChange('base_url', value)} />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
+                  <Input value={config.openai?.model} onChange={(value) => handleOpenAIChange('model', value)} />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
+                  <Input value={config.openai?.language} onChange={(value) => handleOpenAIChange('language', value)} />
+                </Form.Item>
+              </>
+            ) : (
+              <>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextApiKey', 'required')}>
+                  <Input.Password
+                    value={config.deepgram?.api_key}
+                    visibilityToggle
+                    onChange={(value) => handleDeepgramChange('api_key', value)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextBaseUrl', 'optional')}>
+                  <Input
+                    value={config.deepgram?.base_url}
+                    onChange={(value) => handleDeepgramChange('base_url', value)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextModel', 'optional')}>
+                  <Input value={config.deepgram?.model} onChange={(value) => handleDeepgramChange('model', value)} />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextLanguage', 'optional')}>
+                  <Input
+                    value={config.deepgram?.language}
+                    onChange={(value) => handleDeepgramChange('language', value)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextDetectLanguage', 'optional')}>
+                  <Switch
+                    checked={config.deepgram?.detectLanguage !== false}
+                    onChange={(checked) => handleDeepgramChange('detectLanguage', checked)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextPunctuate', 'optional')}>
+                  <Switch
+                    checked={config.deepgram?.punctuate !== false}
+                    onChange={(checked) => handleDeepgramChange('punctuate', checked)}
+                  />
+                </Form.Item>
+                <Form.Item label={renderSpeechToTextFieldLabel('settings.speechToTextSmartFormat', 'optional')}>
+                  <Switch
+                    checked={config.deepgram?.smartFormat !== false}
+                    onChange={(checked) => handleDeepgramChange('smartFormat', checked)}
+                  />
+                </Form.Item>
+              </>
+            )}
+          </Form>
+        </>
+      )}
     </div>
   );
 };
@@ -221,13 +233,13 @@ const ModalMcpManagementSection: React.FC<{
   message: MessageInstance;
   mcpServers: IMcpServer[];
   extensionMcpServers: IMcpServer[];
-  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
+  setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>;
+  reloadMcpServers: () => Promise<IMcpServer[]>;
   isPageMode?: boolean;
-}> = ({ message, mcpServers, extensionMcpServers, saveMcpServers, isPageMode }) => {
+}> = ({ message, mcpServers, extensionMcpServers, setMcpServers, reloadMcpServers, isPageMode }) => {
   const { t } = useTranslation();
   const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
     useMcpAgentStatus();
-  const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
   const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
   const visibleMcpServers = useMemo(
     () => mcpServers.filter((server) => !isBuiltinImageGenServer(server)),
@@ -241,12 +253,7 @@ const ModalMcpManagementSection: React.FC<{
     [checkOAuthStatus]
   );
 
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(
-    mcpServers,
-    saveMcpServers,
-    message,
-    handleAuthRequired
-  );
+  const { testingServers, handleTestMcpConnection } = useMcpConnection(setMcpServers, message, handleAuthRequired);
   const {
     showMcpModal,
     editingMcpServer,
@@ -266,14 +273,8 @@ const ModalMcpManagementSection: React.FC<{
     handleEditMcpServer,
     handleDeleteMcpServer,
     handleToggleMcpServer,
-  } = useMcpServerCRUD(
-    mcpServers,
-    saveMcpServers,
-    syncMcpToAgents,
-    removeMcpFromAgents,
-    checkSingleServerInstallStatus,
-    setAgentInstallStatus
-  );
+    togglingServerIds,
+  } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
 
   const handleOAuthLogin = useCallback(
     async (server: IMcpServer) => {
@@ -297,12 +298,9 @@ const ModalMcpManagementSection: React.FC<{
         if (addedServer.transport.type === 'http' || addedServer.transport.type === 'sse') {
           void checkOAuthStatus(addedServer);
         }
-        if (serverData.enabled) {
-          void syncMcpToAgents(addedServer, true);
-        }
       }
     },
-    [handleAddMcpServer, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleAddMcpServer, handleTestMcpConnection, checkOAuthStatus]
   );
 
   const wrappedHandleEditMcpServer = useCallback(
@@ -313,12 +311,9 @@ const ModalMcpManagementSection: React.FC<{
         if (updatedServer.transport.type === 'http' || updatedServer.transport.type === 'sse') {
           void checkOAuthStatus(updatedServer);
         }
-        if (serverData.enabled) {
-          void syncMcpToAgents(updatedServer, true);
-        }
       }
     },
-    [handleEditMcpServer, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleEditMcpServer, handleTestMcpConnection, checkOAuthStatus]
   );
 
   const wrappedHandleBatchImportMcpServers = useCallback(
@@ -330,13 +325,10 @@ const ModalMcpManagementSection: React.FC<{
           if (server.transport.type === 'http' || server.transport.type === 'sse') {
             void checkOAuthStatus(server);
           }
-          if (server.enabled) {
-            void syncMcpToAgents(server, true);
-          }
         });
       }
     },
-    [handleBatchImportMcpServers, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleBatchImportMcpServers, handleTestMcpConnection, checkOAuthStatus]
   );
 
   const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
@@ -452,6 +444,7 @@ const ModalMcpManagementSection: React.FC<{
                   agentInstallStatus={agentInstallStatus}
                   isServerLoading={isServerLoading}
                   isTestingConnection={testingServers[server.id] || false}
+                  isToggling={togglingServerIds.has(server.id)}
                   oauthStatus={oauthStatus[server.id]}
                   isLoggingIn={loggingIn[server.id]}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
@@ -520,10 +513,9 @@ const ToolsModalContent: React.FC = () => {
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
-  const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
+  const { mcpServers, extensionMcpServers, setMcpServers, reloadMcpServers } = useMcpServers();
   const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
     useMcpAgentStatus();
-  const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, mcpMessage);
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
   const skipNextImageGenerationAutoCheckRef = useRef(false);
   const imageGenerationInstalledAgents = builtinImageGenServer?.name
@@ -532,20 +524,12 @@ const ToolsModalContent: React.FC = () => {
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
-    // Filter models that support image generation
-    const isImageModel = (modelName: string) => {
-      const name = modelName.toLowerCase();
-      return name.includes('image') || name.includes('banana') || name.includes('imagine');
-    };
     return (data || [])
-      .filter((v) => {
-        const filteredModels = v.models.filter(isImageModel);
-        return filteredModels.length > 0;
-      })
-      .map((v) => {
-        const filteredModels = v.models.filter(isImageModel);
-        return Object.assign({}, v, { models: filteredModels });
-      });
+      .map((provider) => ({
+        ...provider,
+        models: provider.models.filter((modelName) => isImageGenSupported(provider, modelName)),
+      }))
+      .filter((provider) => provider.models.length > 0);
   }, [data]);
 
   useEffect(() => {
@@ -605,100 +589,159 @@ const ToolsModalContent: React.FC = () => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
-      const env: Record<string, string> = { ...builtinServer.transport.env };
-      if (model.platform) {
-        env.AIONUI_IMG_PLATFORM = model.platform;
+      const existingEnv = builtinServer.transport.env || {};
+      let env: Record<string, string>;
+
+      if (!model.id && !model.use_model) {
+        env = removeImageGenerationEnvKeys(existingEnv);
+        console.info('[ImageGen] Cleared built-in MCP image env because image generation model is unset');
       } else {
-        delete env.AIONUI_IMG_PLATFORM;
-      }
-      if (model.base_url) {
-        env.AIONUI_IMG_BASE_URL = model.base_url;
-      } else {
-        delete env.AIONUI_IMG_BASE_URL;
-      }
-      if (model.api_key) {
-        env.AIONUI_IMG_API_KEY = model.api_key;
-      } else {
-        delete env.AIONUI_IMG_API_KEY;
-      }
-      if (model.use_model) {
-        env.AIONUI_IMG_MODEL = model.use_model;
-      } else {
-        delete env.AIONUI_IMG_MODEL;
+        const resolution = resolveImageGenerationMcpEnv(model, data || [], existingEnv);
+        if (resolution.ok === false) {
+          console.error('[ImageGen] Failed to resolve image MCP provider', {
+            reason: resolution.reason,
+            message: resolution.message,
+            candidates: resolution.candidates,
+          });
+          throw new Error(resolution.message);
+        }
+
+        env = {
+          ...removeImageGenerationEnvKeys(existingEnv),
+          ...resolution.env,
+        };
+        console.info(
+          '[ImageGen] Syncing built-in MCP image env via %s, provider id: %s, platform: %s, model: %s, api key present: %s',
+          resolution.source,
+          resolution.provider.id,
+          resolution.provider.platform,
+          resolution.model,
+          resolution.provider.api_key ? 'yes' : 'no'
+        );
       }
 
-      const updatedServer: IMcpServer = {
-        ...builtinServer,
-        transport: { ...builtinServer.transport, env },
-        updated_at: Date.now(),
-      };
+      if (areEnvRecordsEqual(existingEnv, env)) {
+        return;
+      }
 
-      const updatedServers = mcpServers.map((s) => (s.id === BUILTIN_IMAGE_GEN_ID ? updatedServer : s));
-      await saveMcpServers(updatedServers);
+      const updatedTransport = { ...builtinServer.transport, env };
+      const original_json = JSON.stringify(
+        {
+          mcpServers: {
+            [builtinServer.name]: {
+              command: updatedTransport.command,
+              args: updatedTransport.args || [],
+              env,
+            },
+          },
+        },
+        null,
+        2
+      );
+
+      const updatedServer = await mcpService.updateServer.invoke({
+        id: builtinServer.id,
+        data: {
+          transport: updatedTransport,
+          original_json,
+        },
+      });
+      await reloadMcpServers();
       if (updatedServer.enabled) {
-        await syncMcpToAgents(updatedServer, true);
+        await mcpService.syncMcpToAgents.invoke({ servers: [updatedServer.id] });
+        console.info(
+          '[ImageGen] Synced built-in image MCP server to installed agents, server id: %s',
+          updatedServer.id
+        );
       }
     },
-    [mcpServers, saveMcpServers, syncMcpToAgents]
+    [data, mcpServers, reloadMcpServers]
   );
 
-  // Sync imageGenerationModel api_key when provider api_key changes
+  // Keep the saved image model as a provider/model reference. Secrets stay in providers.
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
 
     const currentProvider = data.find((p) => p.id === imageGenerationModel.id);
 
-    if (currentProvider && currentProvider.api_key !== imageGenerationModel.api_key) {
-      const updatedModel = {
-        ...imageGenerationModel,
-        api_key: currentProvider.api_key,
-      };
-
-      setImageGenerationModel(updatedModel);
-      configService.set('tools.imageGenerationModel', updatedModel).catch((error) => {
-        console.error('Failed to save image generation model config:', error);
-      });
-      void syncMcpServerEnv(updatedModel);
-    } else if (!currentProvider) {
+    if (!currentProvider) {
       setImageGenerationModel(undefined);
       configService.remove('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
-      void syncMcpServerEnv({});
+      void syncMcpServerEnv({}).catch((error) => {
+        console.error('Failed to clear image generation MCP env after provider removal:', error);
+      });
+      return;
     }
-  }, [data, imageGenerationModel?.id, imageGenerationModel?.api_key, syncMcpServerEnv]);
+
+    const sanitizedModel = {
+      ...imageGenerationModel,
+      name: currentProvider.name,
+      platform: currentProvider.platform,
+      base_url: '',
+      api_key: '',
+    };
+
+    if (imageGenerationModel.api_key || imageGenerationModel.base_url) {
+      setImageGenerationModel(sanitizedModel);
+      configService.set('tools.imageGenerationModel', sanitizedModel).catch((error) => {
+        console.error('Failed to sanitize image generation model config:', error);
+      });
+    }
+
+    void syncMcpServerEnv(sanitizedModel).catch((error) => {
+      console.error('Failed to sync image generation MCP env after provider change:', error);
+    });
+  }, [data, imageGenerationModel, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
     (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       setImageGenerationModel((prev) => {
-        const newImageGenerationModel = { ...prev, ...value };
+        const newImageGenerationModel = {
+          ...prev,
+          id: value.id,
+          name: value.name,
+          platform: value.platform,
+          base_url: '',
+          api_key: '',
+          use_model: value.use_model,
+        } as ConfigKeyMap['tools.imageGenerationModel'];
         configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
-        void syncMcpServerEnv(newImageGenerationModel);
+        void syncMcpServerEnv(newImageGenerationModel).catch((error) => {
+          console.error('Failed to sync image generation MCP env:', error);
+          mcpMessage.error(error instanceof Error ? error.message : t('settings.mcpSyncError'));
+        });
         return newImageGenerationModel;
       });
     },
-    [syncMcpServerEnv]
+    [mcpMessage, syncMcpServerEnv, t]
   );
 
   const handleImageGenerationToggle = useCallback(
     async (checked: boolean) => {
       if (!builtinImageGenServer) return;
 
-      const updatedServer: IMcpServer = {
-        ...builtinImageGenServer,
-        enabled: checked,
-        updated_at: Date.now(),
-      };
-
       setIsUpdatingImageGeneration(true);
       skipNextImageGenerationAutoCheckRef.current = checked;
       try {
-        await saveMcpServers((prevServers) =>
-          prevServers.map((server) => (isBuiltinImageGenServer(server) ? updatedServer : server))
-        );
+        if (checked) {
+          if (!imageGenerationModel?.id || !imageGenerationModel.use_model) {
+            mcpMessage.error(t('settings.mcpSyncError'));
+            return;
+          }
+          await syncMcpServerEnv(imageGenerationModel);
+        }
+        const updatedServer = await mcpService.toggleServer.invoke(builtinImageGenServer.id);
+        await reloadMcpServers();
+
+        if (updatedServer.enabled !== checked) {
+          mcpMessage.error(checked ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
+          return;
+        }
 
         setImageGenerationModel((prev) => {
           if (!prev) return prev;
@@ -711,10 +754,8 @@ const ToolsModalContent: React.FC = () => {
 
         if (checked) {
           clearImageGenerationAgentStatus(updatedServer.name);
-          await syncMcpToAgents(updatedServer, true);
           await checkSingleServerInstallStatus(updatedServer.name);
         } else {
-          await removeMcpFromAgents(updatedServer.name, undefined, updatedServer.transport.type);
           clearImageGenerationAgentStatus(updatedServer.name);
         }
       } catch (error) {
@@ -731,9 +772,11 @@ const ToolsModalContent: React.FC = () => {
       builtinImageGenServer,
       checkSingleServerInstallStatus,
       clearImageGenerationAgentStatus,
-      removeMcpFromAgents,
-      saveMcpServers,
-      syncMcpToAgents,
+      imageGenerationModel,
+      mcpMessage,
+      reloadMcpServers,
+      syncMcpServerEnv,
+      t,
     ]
   );
 
@@ -758,7 +801,8 @@ const ToolsModalContent: React.FC = () => {
                   message={mcpMessage}
                   mcpServers={mcpServers}
                   extensionMcpServers={extensionMcpServers}
-                  saveMcpServers={saveMcpServers}
+                  setMcpServers={setMcpServers}
+                  reloadMcpServers={reloadMcpServers}
                   isPageMode={isPageMode}
                 />
               </AionScrollArea>
@@ -795,7 +839,20 @@ const ToolsModalContent: React.FC = () => {
             <Divider className='mt-0px mb-20px' />
 
             <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
-              <Form.Item label={t('settings.imageGenerationModel')}>
+              <Form.Item
+                label={t('settings.imageGenerationModel')}
+                tooltip={
+                  <div className='space-y-4px'>
+                    <div>{t('settings.imageGenSupportedTooltipTitle')}</div>
+                    <ul className='list-disc pl-16px m-0'>
+                      <li>{t('settings.imageGenSupportedTooltipGemini')}</li>
+                      <li>{t('settings.imageGenSupportedTooltipOpenRouter')}</li>
+                      <li>{t('settings.imageGenSupportedTooltipAntigravity')}</li>
+                    </ul>
+                    <div>{t('settings.imageGenUnsupportedTooltip')}</div>
+                  </div>
+                }
+              >
                 {imageGenerationModelList.length > 0 ? (
                   <AionSelect
                     value={
@@ -815,7 +872,7 @@ const ToolsModalContent: React.FC = () => {
                     }}
                   >
                     {imageGenerationModelList.map(({ models, ...platform }) => (
-                      <AionSelect.OptGroup label={getProviderDisplayName(platform)} key={platform.id}>
+                      <AionSelect.OptGroup label={platform.name} key={platform.id}>
                         {models.map((modelName) => (
                           <AionSelect.Option key={platform.id + modelName} value={platform.id + '|' + modelName}>
                             {modelName}
@@ -832,7 +889,7 @@ const ToolsModalContent: React.FC = () => {
                         <div>
                           {t('settings.needHelpTooltip')}
                           <a
-                            href='https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI'
+                            href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
                             target='_blank'
                             rel='noopener noreferrer'
                             className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'
@@ -844,7 +901,7 @@ const ToolsModalContent: React.FC = () => {
                       }
                     >
                       <a
-                        href='https://wcnb2ddshm1z.feishu.cn/wiki/MKMSwCUE0ii7Itkv71ScJCdOniI'
+                        href='https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide'
                         target='_blank'
                         rel='noopener noreferrer'
                         className='ml-8px text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] cursor-pointer'

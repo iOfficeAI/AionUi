@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-8.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 커뮤니티:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -56,14 +56,14 @@
 
 **AionUi는 단순한 채팅 클라이언트가 아닙니다.** 컴퓨터에서 AI Agent가 함께 작업하는 Cowork 플랫폼입니다——파일 읽기, 코드 작성, 웹 브라우징, 작업 자동화. Agent의 모든 동작을 볼 수 있으며, 항상 제어권은 여러분에게 있습니다.
 
-|                                   | 기존 AI 채팅 클라이언트 | **AionUi (Cowork)**                                                                                                  |
-| :-------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------------- |
-| AI가 파일을 조작할 수 있음        | 제한적 또는 불가        | **예 — 내장 Agent, 완전한 파일 접근**                                                                                |
-| AI가 다단계 작업을 실행할 수 있음 | 제한적                  | **예 — 자율 실행, 승인 필요**                                                                                        |
-| 스마트폰에서 원격 접근            | 거의 없음               | **WebUI + Telegram / Lark / DingTalk**                                                                               |
-| 스케줄 자동화                     | 아니오                  | **Cron — 24/7 무인 운영**                                                                                            |
-| 여러 AI Agent 동시 실행           | 아니오                  | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent 등 20+ 개 — 자동 감지, 통합 인터페이스** |
-| 가격                              | 무료 / 유료             | **무료 및 오픈소스**                                                                                                 |
+|                                   | 기존 AI 채팅 클라이언트 | **AionUi (Cowork)**                                                                                            |
+| :-------------------------------- | :---------------------- | :------------------------------------------------------------------------------------------------------------- |
+| AI가 파일을 조작할 수 있음        | 제한적 또는 불가        | **예 — 내장 Agent, 완전한 파일 접근**                                                                          |
+| AI가 다단계 작업을 실행할 수 있음 | 제한적                  | **예 — 자율 실행, 승인 필요**                                                                                  |
+| 스마트폰에서 원격 접근            | 거의 없음               | **WebUI + Telegram / Lark / DingTalk**                                                                         |
+| 스케줄 자동화                     | 아니오                  | **Cron — 24/7 무인 운영**                                                                                      |
+| 여러 AI Agent 동시 실행           | 아니오                  | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent 등 13+ 개 — 자동 감지, 통합 인터페이스** |
+| 가격                              | 무료 / 유료             | **무료 및 오픈소스**                                                                                           |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -78,7 +78,7 @@ AionUi는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 �
 - **CLI 도구 설치 불필요** — Agent 엔진이 내장되어 있습니다
 - **복잡한 설정 불필요** — Google로 로그인하거나 API 키를 붙여넣기만 하면 됩니다
 - **완전한 Agent 기능** — 파일 읽기/쓰기, 웹 검색, 이미지 생성, MCP 도구
-- **즉시 사용 가능한 어시스턴트** — 내장 20개의 전문 어시스턴트(Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator 등)가 즉시 사용 가능합니다
+- **즉시 사용 가능한 어시스턴트** — 내장 21개의 전문 어시스턴트(Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator 등)가 즉시 사용 가능합니다
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
@@ -90,7 +90,7 @@ AionUi는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 �
 
 이미 Claude Code, Codex, Hermes Agent 또는 OpenClaw를 사용 중이라면, AionUi가 자동으로 감지하여 모두와 Cowork할 수 있게 해줍니다——내장 Agent와 함께.
 
-**지원되는 Agent:** 내장 Agent(제로 설정) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI(aionrs, AionUi에 번들된 Rust 기반 백엔드 서비스) • Snow CLI • Kiro • Hermes Agent • Cursor Agent 등
+**지원되는 Agent:** 내장 Agent(제로 설정) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI(aionrs, AionUi에 함께 제공되는 Rust 기반 백엔드 서비스) • Snow CLI • Hermes Agent • Cursor Agent 등
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -141,14 +141,14 @@ AionUi는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 �
 | Ollama / LM Studio(로컬)                 | 로컬 모델 Cowork Agent    |
 | NewAPI 게이트웨이                        | 20+ 모델에 대한 통합 접근 |
 
-어떤 모델로 구동하든 Agent의 기능은 동일합니다——파일 읽기/쓰기, 웹 검색, 이미지 생성, 도구 사용. AionUi는 클라우드 서비스와 로컬 배포를 포함한 **20+ AI 플랫폼**을 지원합니다.
+어떤 모델로 구동하든 Agent의 기능은 동일합니다——파일 읽기/쓰기, 웹 검색, 이미지 생성, 도구 사용. AionUi는 클라우드 서비스와 로컬 배포를 포함한 **30+ AI 플랫폼**을 지원합니다.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
-<summary><strong>🔍 지원되는 20+ 플랫폼 모두 보기 ▶️</strong></summary>
+<summary><strong>🔍 지원되는 30+ 플랫폼 모두 보기 ▶️</strong></summary>
 
 <br>
 
@@ -156,8 +156,8 @@ AionUi는 완전한 AI Agent 엔진을 내장하고 있습니다. CLI Agent를 �
 
 - **공식 플랫폼** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **클라우드 제공업체** — AWS Bedrock, New API(통합 AI 모델 게이트웨이)
-- **중국 플랫폼** — Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
-- **국제 플랫폼** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **중국 플랫폼** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
+- **국제 플랫폼** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **로컬 모델** — Ollama, LM Studio(로컬 API 엔드포인트가 있는 커스텀 플랫폼을 통해)
 
 AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 게이트웨이 서비스도 지원합니다——다양한 LLM을 집계하고 배포하는 통합 AI 모델 허브입니다. 같은 인터페이스에서 다양한 모델을 유연하게 전환하여 다양한 작업 요구사항을 충족할 수 있습니다.
@@ -168,7 +168,7 @@ AionUi는 [NewAPI](https://github.com/QuantumNous/new-api) 게이트웨이 서�
 
 ## 확장 가능한 어시스턴트 및 스킬
 
-_20개의 내장 전문 어시스턴트와 3단계 스킬 시스템을 갖춘 확장 가능한 어시스턴트 시스템. 자신만의 어시스턴트와 스킬을 만들고 관리하세요._
+_21개의 내장 전문 어시스턴트와 3단계 스킬 시스템을 갖춘 확장 가능한 어시스턴트 시스템. 자신만의 어시스턴트와 스킬을 만들고 관리하세요._
 
 - **커스텀 어시스턴트 만들기** — 커스텀 규칙과 기능을 가진 자신만의 어시스턴트 정의
 - **3단계 스킬** — 내장 스킬(AionUi 기본 제공), 커스텀 스킬(사용자 정의), Extension 스킬(서드파티 Extension 제공); 스킬 인디케이터로 대화별 활성화/비활성화
@@ -183,18 +183,18 @@ _20개의 내장 전문 어시스턴트와 3단계 스킬 시스템을 갖춘 �
 
 <br>
 
-AionUi는 사전 정의된 기능을 가진 **20개의 전문 어시스턴트**를 포함하며, 커스텀 스킬을 통해 확장 가능합니다:
+AionUi는 사전 정의된 기능을 가진 **21개의 전문 어시스턴트**를 포함하며, 커스텀 스킬을 통해 확장 가능합니다:
 
 - **🤝 Cowork** — 자율 작업 실행(파일 작업, 문서 처리, 워크플로우 계획)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph 전환으로 PPTX 프레젠테이션 생성 및 애니메이션
 - **📐 Pitch Deck Creator** — 투자자용 Pitch Deck 생성
 - **📊 Dashboard Creator** — 데이터 대시보드 생성
 - **📝 Word Creator** — 즉시 사용 가능한 Word(`.docx`) 문서 생성
+- **📋 Word Form Creator** — 구조화된 Word 양식/계약서 템플릿 생성
 - **📗 Excel Creator** — 분석, 차트, 자동 서식이 포함된 스프레드시트 생성
 - **🎓 Academic Paper Writer** — 구조화된 학술 논문 작성
 - **💰 Financial Model Creator** — 재무 모델 및 예측
 - **⭐ Star Office Helper** — 오피스 생산성 어시스턴트
-- **📄 PDF to PPT** — PDF를 PPT로 변환
 - **🎮 3D 게임** — 단일 파일 3D 게임 생성
 - **🎨 UI/UX Pro Max** — 전문 UI/UX 디자인(57 스타일, 95 컬러 팔레트)
 - **📋 파일로 계획하기** — 복잡한 작업을 위한 파일 기반 계획(Manus 스타일의 지속적인 Markdown 계획)
@@ -224,8 +224,7 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
   - **Lark (Feishu)** — 기업 협업을 위한 Feishu 봇을 통해 Cowork
   - **DingTalk** — 자동 폴백이 있는 AI Card 스트리밍
   - **WeChat** — 위챗 개인 계정 연동
-  - **WeCom(企业微信)** — 팀 협업을 위한 엔터프라이즈 WeChat 봇
-  - **Slack** 등 더 많은 플랫폼이 곧 출시됩니다
+  - **WeCom(企业微信)**, **Slack**, **Discord** 등 더 많은 플랫폼이 곧 출시됩니다
 
 > **설정:** AionUi 설정 → WebUI 설정 → Channel, Bot Token을 구성하세요.
 
@@ -617,7 +616,7 @@ brew install aionui
 - [문제 보고](https://github.com/iOfficeAI/AionUi/issues) — 버그 및 기능 요청
 - [릴리스 업데이트](https://github.com/iOfficeAI/AionUi/releases) — 최신 버전 받기
 - [Discord 커뮤니티](https://discord.gg/2QAwJn7Egx) — 영어 커뮤니티
-- [WeChat 그룹](../../resources/wx-8.png) — 중국어 커뮤니티
+- [WeChat 그룹](../../resources/wx-9.png) — 중국어 커뮤니티
 
 ### 기여하기
 

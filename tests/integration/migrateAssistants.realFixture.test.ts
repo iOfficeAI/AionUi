@@ -33,14 +33,14 @@ const describeIfFixtures = FIXTURES_AVAILABLE ? describe : describe.skip;
 
 function resolveBackendBinary(): string {
   const candidates = [
-    process.env.AIONCORE_BINARY,
+    process.env.AIONUI_BACKEND_BINARY,
     path.join(os.homedir(), '.cargo', 'bin', 'aioncore'),
-    path.resolve(__dirname, '../../../aioncore/target/debug/aioncore'),
+    path.resolve(__dirname, '../../../AionCore/target/debug/aioncore'),
   ].filter((x): x is string => typeof x === 'string' && x.length > 0);
   for (const c of candidates) {
     if (existsSync(c)) return c;
   }
-  throw new Error('aioncore binary not found (set AIONCORE_BINARY or build it)');
+  throw new Error('aioncore binary not found (set AIONUI_BACKEND_BINARY or build it)');
 }
 
 async function findFreePort(): Promise<number> {

@@ -1,5 +1,5 @@
 import { ipcBridge } from '@/common';
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef } from 'react';
+import React, { createContext, useCallback, useContext, useMemo, useRef } from 'react';
 
 type TeamPermissionContextValue = {
   /** Whether we are in team mode */
@@ -12,7 +12,7 @@ type TeamPermissionContextValue = {
   allConversationIds: string[];
   /** Propagate a permission mode change from the leader to all member agents */
   propagateMode: (mode: string) => void;
-  /** Warm up the team session lazily and idempotently */
+  /** Trigger session warmup (idempotent, returns cached promise) */
   warmupSession: () => Promise<void>;
 };
 
@@ -39,16 +39,10 @@ export const TeamPermissionProvider: React.FC<{
 
   const warmupSession = useCallback((): Promise<void> => {
     if (!warmupPromiseRef.current) {
-      warmupPromiseRef.current = ipcBridge.team.ensureSession.invoke({ team_id }).catch(() => {
-        warmupPromiseRef.current = null;
-      });
+      warmupPromiseRef.current = ipcBridge.team.ensureSession.invoke({ team_id }).catch(() => {});
     }
     return warmupPromiseRef.current;
   }, [team_id]);
-
-  useEffect(() => {
-    void warmupSession();
-  }, [warmupSession]);
 
   const value = useMemo<TeamPermissionContextValue>(
     () => ({

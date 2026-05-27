@@ -1,10 +1,7 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
-import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
-import { getSupportedMcpTransports } from '@renderer/utils/model/agentTypes';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { globalMessageQueue } from './messageQueue';
 
 /**
@@ -75,12 +72,7 @@ export const useMcpOperations = (
         }
 
         // 然后更新UI状态
-        if (!skipRecheck) {
-          const latestServers = configService.get('mcp.config');
-          if (latestServers) {
-            // Can trigger status check here, but needs callback from the caller
-          }
-        }
+        void skipRecheck;
       } else {
         const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';
         const errorMsg = truncateErrorMessage(t('settings.unknownError'));
@@ -94,25 +86,15 @@ export const useMcpOperations = (
 
   // 从agents中删除MCP配置
   const removeMcpFromAgents = useCallback(
-    async (server_name: string, successMessage?: string, transport_type?: string) => {
-      const agents = await getAgents();
-      if (Array.isArray(agents) && agents.length > 0) {
-        // Filter agents by transport type support if transport type is known
-        const compatibleCount = transport_type
-          ? agents.filter((a) => getSupportedMcpTransports(a)?.includes(transport_type)).length
-          : agents.length;
+    async (server_name: string, successMessage?: string, _transport_type?: string) => {
+      await globalMessageQueue.add(() => {
+        message.info(t('settings.mcpRemoveStarted'));
+      });
 
-        // 显示开始移除的消息（通过队列）
-        await globalMessageQueue.add(() => {
-          message.info(t('settings.mcpRemoveStarted', { count: compatibleCount }));
-        });
-
-        const removeResponse = await mcpService.removeMcpFromAgents.invoke({
-          mcpServerName: server_name,
-          agents,
-        });
-        await handleMcpOperationResult(removeResponse, 'remove', successMessage, true); // 跳过重新检测
-      }
+      const removeResponse = await mcpService.removeMcpFromAgents.invoke({
+        server_names: [server_name],
+      });
+      await handleMcpOperationResult(removeResponse, 'remove', successMessage, true);
     },
     [message, t, handleMcpOperationResult]
   );
@@ -120,30 +102,15 @@ export const useMcpOperations = (
   // 向agents同步MCP配置
   const syncMcpToAgents = useCallback(
     async (server: IMcpServer, skipRecheck = false) => {
-      const agents = await getAgents();
-      if (Array.isArray(agents) && agents.length > 0) {
-        // Filter agents by transport type support to show accurate count
-        const compatibleCount = agents.filter((a) =>
-          getSupportedMcpTransports(a)?.includes(server.transport.type)
-        ).length;
+      await globalMessageQueue.add(() => {
+        message.info(t('settings.mcpSyncStarted'));
+      });
 
-        // 显示开始同步的消息（通过队列）
-        await globalMessageQueue.add(() => {
-          message.info(t('settings.mcpSyncStarted', { count: compatibleCount }));
-        });
+      const syncResponse = await mcpService.syncMcpToAgents.invoke({
+        servers: [server.id],
+      });
 
-        const syncResponse = await mcpService.syncMcpToAgents.invoke({
-          mcpServers: [server],
-          agents,
-        });
-
-        await handleMcpOperationResult(syncResponse, 'sync', undefined, skipRecheck);
-      } else {
-        // Fix: Handle case when no agents are available, show user-friendly error message
-        await globalMessageQueue.add(() => {
-          message.error(t('settings.mcpSyncFailedNoAgents'));
-        });
-      }
+      await handleMcpOperationResult(syncResponse, 'sync', undefined, skipRecheck);
     },
     [message, t, handleMcpOperationResult]
   );

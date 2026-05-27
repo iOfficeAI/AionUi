@@ -16,6 +16,7 @@ import { useCallback, useEffect, useRef } from 'react';
 import { createContext } from '@renderer/utils/ui/createContext';
 
 const [useMessageList, MessageListProvider, useUpdateMessageList] = createContext([] as TMessage[]);
+const [useMessageListLoading, MessageListLoadingProvider, useUpdateMessageListLoading] = createContext(false);
 
 const [useChatKey, ChatKeyProvider] = createContext('');
 
@@ -27,11 +28,30 @@ interface MessageIndex {
   msgIdIndex: Map<string, number>; // msg_id -> index
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
+  permission_call_idIndex: Map<string, number>; // permission.content.call_id -> index
+}
+
+function getMessageIndexKey(message: TMessage): string | undefined {
+  if (!message.msg_id) return undefined;
+  return message.type === 'thinking' ? `thinking:${message.msg_id}` : message.msg_id;
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
 // Use WeakMap to cache index, auto-cleanup when list is GC'd
 const indexCache = new WeakMap<TMessage[], MessageIndex>();
+
+export function logDroppedToolCallWithoutCallId(message: TMessage | undefined): boolean {
+  if (!message) return false;
+  if (message.type !== 'tool_call' || message.content?.call_id) return false;
+
+  console.warn('[tool-call] dropped tool_call without call_id', {
+    conversation_id: message.conversation_id,
+    msg_id: message.msg_id,
+    name: message.content?.name,
+    status: message.content?.status,
+  });
+  return true;
+}
 
 // 构建消息索引
 // Build message index
@@ -39,15 +59,13 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
+  const permission_call_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
-    if (msg.msg_id) {
-      if (msg.type === 'thinking') {
-        msgIdIndex.set(`thinking:${msg.msg_id}`, i);
-      } else {
-        msgIdIndex.set(msg.msg_id, i);
-      }
+    const msgIndexKey = getMessageIndexKey(msg);
+    if (msgIndexKey) {
+      msgIdIndex.set(msgIndexKey, i);
     }
     if (msg.type === 'tool_call' && msg.content?.call_id) {
       call_idIndex.set(msg.content.call_id, i);
@@ -55,9 +73,12 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
       tool_call_idIndex.set(msg.content.update.tool_call_id, i);
     }
+    if (msg.type === 'permission' && msg.content?.call_id) {
+      permission_call_idIndex.set(msg.content.call_id, i);
+    }
   }
 
-  return { msgIdIndex, call_idIndex, tool_call_idIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -73,15 +94,23 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
 
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
-function composeMessageWithIndex(message: TMessage, list: TMessage[], index: MessageIndex): TMessage[] {
+function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
   if (!message) return list || [];
+
+  if (logDroppedToolCallWithoutCallId(message)) {
+    return list || [];
+  }
+
   if (!list?.length) {
     // Update index when adding first message
-    if (message.msg_id) {
-      index.msgIdIndex.set(message.msg_id, 0);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) {
+      index.msgIdIndex.set(msgIndexKey, 0);
     }
     return [message];
   }
+
+  const last = list[list.length - 1];
 
   // 对于 tool_group 类型，使用原始的 composeMessage（因为涉及内部数组匹配）
   // For tool_group type, use original composeMessage (involves inner array matching)
@@ -95,6 +124,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
     }
     return result;
   }
@@ -115,7 +145,8 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.call_idIndex.set(message.content.call_id, newIdx);
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
@@ -134,12 +165,31 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
-  // text message: use msgIdIndex for fast lookup (handles interleaved messages)
-  // text 消息: 使用 msgIdIndex 快速查找（处理消息交错的情况）
+  // permission: use call_id for recovery/live stream dedupe.
+  if (message.type === 'permission' && message.content?.call_id) {
+    const existingIdx = index.permission_call_idIndex.get(message.content.call_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      if (existingMsg.type === 'permission') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, ...message, content: message.content };
+        return newList;
+      }
+    }
+    const newIdx = list.length;
+    index.permission_call_idIndex.set(message.content.call_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
+  // text message: merge only with the latest contiguous streaming chunk.
+  // text 消息: 只与最后一条连续的流式片段合并，保留被工具/思考打断后的消息边界。
   if (message.type === 'text' && message.msg_id) {
     const existingIdx = index.msgIdIndex.get(message.msg_id);
     if (existingIdx !== undefined && existingIdx < list.length) {
@@ -153,53 +203,60 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
         if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
           return list;
         }
-        // AI streaming messages (left position) — append by default, replace when explicitly signaled
-        const newList = list.slice();
-        newList[existingIdx] = {
-          ...existingMsg,
-          content: mergeTextMessageContent(existingMsg.content, message.content),
-        };
-        return newList;
       }
     }
-    // Not found in index, add as new message
+
+    if (last.type === 'text' && last.msg_id === message.msg_id) {
+      const newList = list.slice();
+      newList[newList.length - 1] = {
+        ...last,
+        content: mergeTextMessageContent(last.content, message.content),
+      };
+      return newList;
+    }
+
     const newIdx = list.length;
     index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
   }
 
-  // thinking message: accumulate content chunks by msg_id (same logic as composeMessage)
-  // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id
+  // thinking message: merge only with the latest contiguous thinking chunk.
+  // Uses "thinking:${msg_id}" key to avoid collision with text messages sharing the same msg_id.
   if (message.type === 'thinking' && message.msg_id) {
     const thinkingKey = `thinking:${message.msg_id}`;
-    const existingIdx = index.msgIdIndex.get(thinkingKey);
-    if (existingIdx !== undefined && existingIdx < list.length) {
-      const existingMsg = list[existingIdx];
-      if (existingMsg.type === 'thinking') {
-        const newList = list.slice();
-        if (message.content.status === 'done') {
+    if (message.content.status === 'done') {
+      const existingIdx = index.msgIdIndex.get(thinkingKey);
+      if (existingIdx !== undefined && existingIdx < list.length) {
+        const existingMsg = list[existingIdx];
+        if (existingMsg.type === 'thinking') {
+          const newList = list.slice();
           newList[existingIdx] = {
             ...existingMsg,
             content: {
               ...existingMsg.content,
               status: 'done' as const,
               duration: message.content.duration,
-            },
-          };
-        } else {
-          newList[existingIdx] = {
-            ...existingMsg,
-            content: {
-              ...existingMsg.content,
-              content: existingMsg.content.content + message.content.content,
               subject: message.content.subject || existingMsg.content.subject,
             },
           };
+          return newList;
         }
-        return newList;
       }
     }
-    // First thinking message — add and index
+
+    if (last.type === 'thinking' && last.msg_id === message.msg_id) {
+      const newList = list.slice();
+      newList[newList.length - 1] = {
+        ...last,
+        content: {
+          ...last.content,
+          content: last.content.content + message.content.content,
+          subject: message.content.subject || last.content.subject,
+        },
+      };
+      return newList;
+    }
+
     const newIdx = list.length;
     index.msgIdIndex.set(thinkingKey, newIdx);
     return list.concat(message);
@@ -219,6 +276,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
       return newList;
     }
     const newIdx = list.length;
@@ -244,11 +302,11 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
 
   // Other types: fallback to last message check
   // 其他类型: 回退到检查最后一条消息
-  const last = list[list.length - 1];
   if (last.msg_id !== message.msg_id || last.type !== message.type) {
     // Add new message and update index
     const newIdx = list.length;
-    if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
   }
 
@@ -277,17 +335,29 @@ export const useAddOrUpdateMessage = () => {
       let newList = list;
 
       for (const item of pending) {
+        if (!item.message) {
+          continue;
+        }
+
+        if (logDroppedToolCallWithoutCallId(item.message)) {
+          continue;
+        }
+
         if (item.add) {
           // 新增消息，更新索引
           // New message, update index
           const msg = item.message;
           const newIdx = newList.length;
-          if (msg.msg_id) index.msgIdIndex.set(msg.msg_id, newIdx);
+          const msgIndexKey = getMessageIndexKey(msg);
+          if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
           if (msg.type === 'tool_call' && msg.content?.call_id) {
             index.call_idIndex.set(msg.content.call_id, newIdx);
           }
           if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
             index.tool_call_idIndex.set(msg.content.update.tool_call_id, newIdx);
+          }
+          if (msg.type === 'permission' && msg.content?.call_id) {
+            index.permission_call_idIndex.set(msg.content.call_id, newIdx);
           }
           newList = newList.concat(msg);
         } else {
@@ -315,7 +385,10 @@ export const useAddOrUpdateMessage = () => {
   }, []);
 
   return useCallback(
-    (message: TMessage, add = false) => {
+    (message: TMessage | undefined, add = false) => {
+      if (!message) {
+        return;
+      }
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
         rafRef.current = setTimeout(flush);
@@ -364,9 +437,8 @@ function normalizeDbMessage(msg: TMessage): TMessage {
 
 export const useMessageLstCache = (key: string) => {
   const update = useUpdateMessageList();
-  const loadTokenRef = useRef(0);
+  const setLoading = useUpdateMessageListLoading();
   const loadMessages = useCallback(async (): Promise<TMessage[]> => {
-    const loadToken = ++loadTokenRef.current;
     const result = await ipcBridge.database.getConversationMessages.invoke({
       conversation_id: key,
       page: 0,
@@ -374,7 +446,6 @@ export const useMessageLstCache = (key: string) => {
     });
     const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
-      if (loadToken !== loadTokenRef.current) return messages;
       update((currentList) => {
         if (!currentList.length) return messages;
         const sameConversation = currentList.filter((m) => m.conversation_id === key);
@@ -410,13 +481,22 @@ export const useMessageLstCache = (key: string) => {
   }, [key, update]);
 
   useEffect(() => {
-    loadTokenRef.current += 1;
-    update([]);
     if (!key) return;
-    void loadMessages().catch((error) => {
-      console.error('[useMessageLstCache] Failed to load messages from database:', error);
-    });
-  }, [key, loadMessages, update]);
+    let cancelled = false;
+    setLoading(true);
+    void loadMessages()
+      .catch((error) => {
+        console.error('[useMessageLstCache] Failed to load messages from database:', error);
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoading(false);
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [key, loadMessages, setLoading]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {
@@ -425,4 +505,12 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
     beforeUpdateMessageListStack.splice(beforeUpdateMessageListStack.indexOf(fn), 1);
   };
 };
-export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList, useUpdateMessageList };
+export {
+  ChatKeyProvider,
+  MessageListLoadingProvider,
+  MessageListProvider,
+  useChatKey,
+  useMessageList,
+  useMessageListLoading,
+  useUpdateMessageList,
+};

@@ -6,15 +6,14 @@ import { useNavigate, useParams } from 'react-router-dom';
 import useSWR from 'swr';
 import ChatConversation from './components/ChatConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useConversationTabs } from './hooks/ConversationTabsContext';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 const ChatConversationIndex: React.FC = () => {
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { closePreview } = usePreviewContext();
-  const { openTab } = useConversationTabs();
   const { syncTitleFromHistory } = useAutoTitle();
   const previousConversationIdRef = useRef<string | undefined>(undefined);
   const notFoundHandledIdRef = useRef<string | undefined>(undefined);
@@ -33,8 +32,8 @@ const ChatConversationIndex: React.FC = () => {
     previousConversationIdRef.current = id;
   }, [id, closePreview]);
 
-  const { data, isLoading, mutate } = useSWR(`conversation/${id}`, () => {
-    return ipcBridge.conversation.get.invoke({ id }).catch((): null => null);
+  const { data, isLoading, mutate } = useSWR(id ? `conversation/${id}` : null, () => {
+    return getConversationOrNull(id!);
   });
 
   useEffect(() => {
@@ -57,18 +56,15 @@ const ChatConversationIndex: React.FC = () => {
     void syncTitleFromHistory(data.id);
   }, [data, defaultConversationTitle, syncTitleFromHistory]);
 
-  // 当会话数据加载完成后，自动打开 tab
-  // Automatically open tab when conversation data is loaded
-  useEffect(() => {
-    if (data) {
-      openTab(data);
-    }
-  }, [data, openTab]);
-
+  // 会话不存在（例如从历史栈回到已删除会话）时，提示并替换路由到首页，
+  // 避免渲染空骨架。每个 id 只触发一次。
+  // Conversation does not exist (e.g. navigating back to a deleted one via
+  // browser history): show a toast and replace the route with home, so we
+  // don't render an empty skeleton. Fire at most once per id.
   useEffect(() => {
     if (!id || isLoading || data || notFoundHandledIdRef.current === id) return;
     notFoundHandledIdRef.current = id;
-    Message.warning(t('conversation.chat.notFound'));
+    Message.warning(t('conversation.notFound'));
     navigate('/', { replace: true });
   }, [id, isLoading, data, navigate, t]);
 

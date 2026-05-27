@@ -10,6 +10,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
 import { getDevAppName } from '@/common/platform';
+import { applyGpuRecoveryFlags } from './gpuRecovery';
 
 // ============ Environment Separation ============
 // Set app name before any getPath() call so userData is isolated from production.
@@ -17,18 +18,16 @@ import { getDevAppName } from '@/common/platform';
 // in case Rollup loads initStorage's chunk before this module runs.
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
 if (!app.isPackaged) {
-  const explicitUserDataDir = process.env.AIONUI_DATA_DIR?.trim();
-  if (explicitUserDataDir) {
-    app.setPath('userData', path.resolve(explicitUserDataDir));
-  } else {
-    const devAppName = getDevAppName();
-    app.setName(devAppName);
-    // In Electron 28+, setName alone no longer updates userData path on macOS.
-    // Explicitly override userData to the dev directory.
-    const appSupportDir = path.dirname(app.getPath('userData'));
-    app.setPath('userData', path.join(appSupportDir, devAppName));
-  }
+  const devAppName = getDevAppName();
+  app.setName(devAppName);
+  // In Electron 28+, setName alone no longer updates userData path on macOS.
+  // Explicitly override userData to the dev directory.
+  const appSupportDir = path.dirname(app.getPath('userData'));
+  app.setPath('userData', path.join(appSupportDir, devAppName));
 }
+
+// app.disableHardwareAcceleration() must run before app is ready.
+applyGpuRecoveryFlags();
 
 // Configure Chromium command-line flags for WebUI and CLI modes
 // 为 WebUI 和 CLI 模式配置 Chromium 命令行参数
@@ -72,13 +71,13 @@ if (isWebUI || isResetPassword) {
 //
 // Multi-instance support: a file-based registry tracks all active instances
 // so each one gets a unique port and MCP tools can discover them all.
-// Registry file: ~/.pouding-cdp-registry.json
+// Registry file: ~/.aionui-cdp-registry.json
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CDP_PORT = 9230;
 export const CDP_PORT_RANGE_START = 9230;
 export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), '.pouding-cdp-registry.json');
+const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */
@@ -165,7 +164,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.log(
-    `[CDP] Port ${preferredPort} is occupied by another POUNDING instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
+    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
   );
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
@@ -176,7 +175,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.warn(
-    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active POUNDING instances, trying ${preferredPort}`
+    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
   );
   return preferredPort;
 }

@@ -11,8 +11,6 @@ import { initSystemSettingsBridge } from './systemSettingsBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
-import { initNewApiAccountBridge } from './newApiAccountBridge';
-import { initManagedCliInstallerBridge } from './managedCliInstallerBridge';
 
 export type BridgeDependencies = Record<string, never>;
 
@@ -24,8 +22,6 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initSystemSettingsBridge();
   initNotificationBridge();
   initWebuiBridge();
-  initNewApiAccountBridge();
-  initManagedCliInstallerBridge();
 }
 
 export {
@@ -36,8 +32,6 @@ export {
   initUpdateBridge,
   initWindowControlsBridge,
   initWebuiBridge,
-  initNewApiAccountBridge,
-  initManagedCliInstallerBridge,
 };
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
 export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();

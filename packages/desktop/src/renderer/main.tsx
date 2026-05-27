@@ -7,16 +7,26 @@
 // Sentry must be initialized first
 // Use electron-specific renderer package only inside Electron; fall back to the
 // browser SDK when running as a web server (no window.electronAPI).
-import { desktopSentryConfig, isDesktopSentryEnabled } from './utils/telemetry/sentry';
-
-if (isDesktopSentryEnabled() && desktopSentryConfig.dsn) {
+if ((window as { electronAPI?: unknown }).electronAPI) {
   // Dynamic import avoids bundling sentry-ipc:// protocol code into the web build
   import('@sentry/electron/renderer')
     .then((Sentry) =>
       Sentry.init({
-        dsn: desktopSentryConfig.dsn,
-        release: desktopSentryConfig.release,
-        environment: desktopSentryConfig.environment,
+        beforeSend(event) {
+          if (!(window as { __backendStartupFailed?: boolean }).__backendStartupFailed) {
+            return event;
+          }
+          const haystacks: string[] = [];
+          if (event.message) haystacks.push(event.message);
+          const exceptions = event.exception?.values ?? [];
+          for (const ex of exceptions) {
+            if (ex.value) haystacks.push(ex.value);
+          }
+          if (haystacks.some((h) => /Failed to fetch|window\.__backendPort|__backendPort unset/.test(h))) {
+            return null;
+          }
+          return event;
+        },
       })
     )
     .catch(() => {});
@@ -37,12 +47,10 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './hooks/context/AuthContext';
 import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
-import { NewApiAccountProvider } from './hooks/context/NewApiAccountContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
-import { ConversationTabsProvider } from './pages/conversation/hooks/ConversationTabsContext';
 
 // Arco Design
-import { ConfigProvider } from '@arco-design/web-react';
+import { ConfigProvider, Result, Typography } from '@arco-design/web-react';
 // Configure Arco Design to use React 18's createRoot, fixing Message component's CopyReactDOM.render error
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -58,14 +66,21 @@ import 'uno.css';
 import './styles/arco-override.css';
 import './styles/themes/index.css';
 
+// Config service — kick off initialization before i18n / theme modules load,
+// so their startup paths (which await configService.whenReady()) observe the
+// authoritative settings from the backend instead of the empty cache.
+import { configService } from '@/common/config/configService';
+configService.initialize().catch((err) => {
+  console.error('Failed to initialize config:', err);
+});
+
 // i18n
 import './services/i18n';
 import { registerPwa } from './services/registerPwa';
 
-// Config service
-import { configService } from '@/common/config/configService';
 import { mutate as swrMutate } from 'swr';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from './utils/model/agentTypes';
+import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJobTimeZone';
 
 // Components and utilities
 import Layout from './components/layout/Layout';
@@ -74,6 +89,7 @@ import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
+import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -110,15 +126,7 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
     React.createElement(
       ThemeProvider,
       null,
-      React.createElement(
-        NewApiAccountProvider,
-        null,
-        React.createElement(
-          PreviewProvider,
-          null,
-          React.createElement(ConversationTabsProvider, null, React.createElement(FeedbackProvider, null, children))
-        )
-      )
+      React.createElement(PreviewProvider, null, React.createElement(FeedbackProvider, null, children))
     )
   );
 
@@ -153,6 +161,11 @@ const Main = () => {
     ]).finally(() => setConfigReady(true));
   }, [ready]);
 
+  useEffect(() => {
+    if (!ready) return;
+    void repairAllCronJobTimeZonesOnce();
+  }, [ready]);
+
   if (!ready || !configReady) {
     return null;
   }
@@ -170,7 +183,44 @@ const Main = () => {
 
 const App = HOC.Wrapper(Config)(Main);
 
+const BackendIncompatibleRuntimeScreen: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
+  const { t } = useTranslation();
+  const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
+
+  return (
+    <div className='min-h-screen flex items-center justify-center bg-bg-1 px-6 text-center text-t-1'>
+      <Result
+        status='warning'
+        title={t('common.backendStartup.incompatibleRuntime.title')}
+        subTitle={
+          <div className='mx-auto max-w-[560px] text-t-secondary'>
+            <Typography.Paragraph className='m-0'>
+              {t('common.backendStartup.incompatibleRuntime.description')}
+            </Typography.Paragraph>
+            {requiredVersions ? (
+              <Typography.Paragraph className='mt-3 mb-0 text-12px text-t-tertiary'>
+                {t('common.backendStartup.incompatibleRuntime.requiredVersions', { versions: requiredVersions })}
+              </Typography.Paragraph>
+            ) : null}
+          </div>
+        }
+      />
+    </div>
+  );
+};
+
 void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
-root.render(React.createElement(AppProviders, null, React.createElement(App)));
+const backendStartupFailure = window.__backendStartupFailure;
+root.render(
+  backendStartupFailure?.reason === 'backend_incompatible_runtime' ? (
+    <Config>
+      <BackendIncompatibleRuntimeScreen failure={backendStartupFailure} />
+    </Config>
+  ) : (
+    <AppProviders>
+      <App />
+    </AppProviders>
+  )
+);

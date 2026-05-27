@@ -18,11 +18,9 @@
   "readyToInstall": "Ready to install",
   "readyToInstallDesc": "Update has been downloaded. Click the button below to restart and install the update.",
   "installNow": "Install and restart",
+  "installWarning": "Do not reopen the app during installation. It will restart automatically.",
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
   "openFile": "Open file",
-  "errorTitle": "Update failed",
-  "errors": {
-    "feedUnavailable": "Update feed is unavailable ({{status}})"
-  }
+  "errorTitle": "Update failed"
 }

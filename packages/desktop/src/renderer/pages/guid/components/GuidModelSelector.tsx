@@ -8,33 +8,25 @@ import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';
-import { resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
 import { getAvailableModels } from '../utils/modelUtils';
-import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
-import { Brain, Down } from '@icon-park/react';
+import { Brain, Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import {
-  getManagedRuntimeModelDisplayLabel,
-  normalizeManagedRuntimeModelLabel,
-  getManagedCliSelectableModels,
-  MANAGED_NEWAPI_PROVIDER_ID,
-  MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
-} from '@/common/types/agent/managedRuntimeCli';
-import useSWR from 'swr';
-import { ipcBridge } from '@/common';
 
 type GuidModelSelectorProps = {
+  // Gemini model state
   isGeminiMode: boolean;
   modelList: IProvider[];
   current_model: TProviderWithModel | undefined;
   setCurrentModel: (model: TProviderWithModel) => Promise<void>;
+
+  // ACP model state
   currentAcpCachedModelInfo: AcpModelInfo | null;
   selectedAcpModel: string | null;
   setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
-  selectedAgentBackend?: string;
 };
 
 const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
@@ -45,57 +37,18 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   currentAcpCachedModelInfo,
   selectedAcpModel,
   setSelectedAcpModel,
-  selectedAgentBackend,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const defaultModelLabel = t('common.defaultModel');
-  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
-  const { data: startOnBootStatus } = useSWR('app.startOnBootStatus', () =>
-    ipcBridge.application.getStartOnBootStatus.invoke()
-  );
-  const isPackaged = startOnBootStatus?.data?.isPackaged ?? false;
 
   // 获取模型配置数据（包含健康状态）
   const { data: modelConfig } = useProvidersQuery();
-  const managedProvider = React.useMemo(
-    () => modelConfig?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
-    [modelConfig]
-  );
-  const managedSelectableModels = React.useMemo(
-    () => getManagedCliSelectableModels(managedProvider, resolveManagedRuntimeCliTarget(selectedAgentBackend)),
-    [managedProvider, selectedAgentBackend]
-  );
-  const isManagedCliSelection = Boolean(
-    resolveManagedRuntimeCliTarget(selectedAgentBackend) &&
-    isManagedNewApiLoggedIn &&
-    managedSelectableModels.length > 0
-  );
+
   // 过滤掉被禁用的 provider
   const enabledModelList = React.useMemo(() => {
     return modelList.filter((p) => p.enabled !== false);
   }, [modelList]);
-  const managedCliProvider = React.useMemo<IProvider | null>(() => {
-    if (!isManagedCliSelection || !managedProvider) return null;
-    return {
-      ...managedProvider,
-      name: MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME,
-      models: managedSelectableModels,
-      model: managedSelectableModels,
-      enabled: true,
-      model_enabled: Object.fromEntries(managedSelectableModels.map((modelId) => [modelId, true])),
-    } as IProvider;
-  }, [isManagedCliSelection, managedProvider, managedSelectableModels]);
-  const getProviderGroupLabel = React.useCallback(
-    (provider: IProvider) =>
-      provider.id === MANAGED_NEWAPI_PROVIDER_ID ? MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME : provider.name,
-    []
-  );
-  const dropdownProviders = React.useMemo(() => {
-    if (isManagedCliSelection) {
-      return managedCliProvider ? [managedCliProvider] : [];
-    }
-    return enabledModelList;
-  }, [enabledModelList, isManagedCliSelection, managedCliProvider]);
 
   const geminiSelectedLabel = React.useMemo(() => {
     if (!current_model?.use_model) return '';
@@ -103,7 +56,6 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [current_model?.use_model]);
 
   const geminiButtonLabel = React.useMemo(() => {
-    if (geminiSelectedLabel) return geminiSelectedLabel;
     return getModelDisplayLabel({
       selected_value: current_model?.use_model,
       selectedLabel: geminiSelectedLabel,
@@ -113,18 +65,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   }, [current_model?.use_model, defaultModelLabel, geminiSelectedLabel]);
 
   const acpSelectedLabel = React.useMemo(() => {
-    const cliTarget = resolveManagedRuntimeCliTarget(selectedAgentBackend);
-    const normalizedManagedLabel =
-      cliTarget &&
-      normalizeManagedRuntimeModelLabel(
-        cliTarget,
-        currentAcpCachedModelInfo?.available_models?.find((m) => m.id === selectedAcpModel)?.label ||
-          currentAcpCachedModelInfo?.current_model_label ||
-          currentAcpCachedModelInfo?.current_model_id ||
-          ''
-      );
     return (
-      normalizedManagedLabel ||
       currentAcpCachedModelInfo?.available_models?.find((m) => m.id === selectedAcpModel)?.label ||
       currentAcpCachedModelInfo?.current_model_label ||
       currentAcpCachedModelInfo?.current_model_id ||
@@ -134,36 +75,25 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     currentAcpCachedModelInfo?.available_models,
     currentAcpCachedModelInfo?.current_model_id,
     currentAcpCachedModelInfo?.current_model_label,
-    selectedAgentBackend,
     selectedAcpModel,
   ]);
 
   const acpButtonLabel = React.useMemo(() => {
-    const rawLabel = getModelDisplayLabel({
+    return getModelDisplayLabel({
       selected_value: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id,
       selectedLabel: acpSelectedLabel,
       defaultModelLabel,
       fallbackLabel: defaultModelLabel,
     });
-    if (isManagedCliSelection) {
-      return getManagedRuntimeModelDisplayLabel(rawLabel) || rawLabel;
-    }
-    return rawLabel;
-  }, [
-    acpSelectedLabel,
-    currentAcpCachedModelInfo?.current_model_id,
-    defaultModelLabel,
-    isManagedCliSelection,
-    selectedAcpModel,
-  ]);
+  }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
 
-  if (isGeminiMode || isManagedCliSelection) {
+  if (isGeminiMode) {
     return (
       <Dropdown
-        trigger='click'
+        trigger='hover'
         droplist={
           <Menu selectedKeys={current_model ? [current_model.id + current_model.use_model] : []}>
-            {!dropdownProviders || dropdownProviders.length === 0
+            {!enabledModelList || enabledModelList.length === 0
               ? [
                   <Menu.Item
                     key='no-models'
@@ -172,50 +102,65 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   >
                     {t('settings.noAvailableModels')}
                   </Menu.Item>,
+                  <Menu.Item
+                    key='add-model'
+                    className='text-12px text-t-secondary'
+                    onClick={() => navigate('/settings/model')}
+                  >
+                    <Plus theme='outline' size='12' />
+                    {t('settings.addModel')}
+                  </Menu.Item>,
                 ]
-              : (dropdownProviders || []).map((provider) => {
-                  const available_models = getAvailableModels(provider);
-                  if (available_models.length === 0) return null;
-                  return (
-                    <Menu.ItemGroup title={getProviderGroupLabel(provider)} key={provider.id}>
-                      {available_models.map((modelName) => {
-                        // 获取模型健康状态
-                        const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
-                        const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
-                        const healthColor =
-                          healthStatus === 'healthy'
-                            ? 'bg-green-500'
-                            : healthStatus === 'unhealthy'
-                              ? 'bg-red-500'
-                              : 'bg-gray-400';
+              : [
+                  ...(enabledModelList || []).map((provider) => {
+                    const available_models = getAvailableModels(provider);
+                    if (available_models.length === 0) return null;
+                    return (
+                      <Menu.ItemGroup title={provider.name} key={provider.id}>
+                        {available_models.map((modelName) => {
+                          // 获取模型健康状态
+                          const matchedProvider = modelConfig?.find((p) => p.id === provider.id);
+                          const healthStatus = matchedProvider?.model_health?.[modelName]?.status || 'unknown';
+                          const healthColor =
+                            healthStatus === 'healthy'
+                              ? 'bg-green-500'
+                              : healthStatus === 'unhealthy'
+                                ? 'bg-red-500'
+                                : 'bg-gray-400';
 
-                        return (
-                          <Menu.Item
-                            key={provider.id + modelName}
-                            className={
-                              current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
-                            }
-                            onClick={() => {
-                              setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
-                                console.error('Failed to set current model:', error);
-                              });
-                              if (isManagedCliSelection) {
-                                setSelectedAcpModel(modelName);
+                          return (
+                            <Menu.Item
+                              key={provider.id + modelName}
+                              className={
+                                current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''
                               }
-                            }}
-                          >
-                            <div className='flex items-center gap-8px w-full'>
-                              {healthStatus !== 'unknown' && (
-                                <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
-                              )}
-                              <span>{modelName}</span>
-                            </div>
-                          </Menu.Item>
-                        );
-                      })}
-                    </Menu.ItemGroup>
-                  );
-                })}
+                              onClick={() => {
+                                setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
+                                  console.error('Failed to set current model:', error);
+                                });
+                              }}
+                            >
+                              <div className='flex items-center gap-8px w-full'>
+                                {healthStatus !== 'unknown' && (
+                                  <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
+                                )}
+                                <span>{modelName}</span>
+                              </div>
+                            </Menu.Item>
+                          );
+                        })}
+                      </Menu.ItemGroup>
+                    );
+                  }),
+                  <Menu.Item
+                    key='add-model'
+                    className='text-12px text-t-secondary'
+                    onClick={() => navigate('/settings/model')}
+                  >
+                    <Plus theme='outline' size='12' />
+                    {t('settings.addModel')}
+                  </Menu.Item>,
+                ]}
           </Menu>
         }
       >
@@ -227,17 +172,15 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <span>{isManagedCliSelection ? geminiSelectedLabel || geminiButtonLabel : geminiButtonLabel}</span>
-            {dropdownProviders.length > 0 ? (
-              <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
-            ) : null}
+            <span>{geminiButtonLabel}</span>
+            <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
           </span>
         </Button>
       </Dropdown>
     );
   }
 
-  // ACP cached / managed CLI model selector
+  // ACP cached model selector
   if (currentAcpCachedModelInfo && currentAcpCachedModelInfo.available_models?.length > 0) {
     if (currentAcpCachedModelInfo.available_models.length > 0) {
       return (
@@ -247,7 +190,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <Menu selectedKeys={selectedAcpModel ? [selectedAcpModel] : []}>
               {currentAcpCachedModelInfo.available_models.map((model) => {
                 // 获取模型健康状态
-                const providerConfig = modelConfig?.find((p) => p.id === 'desktop-newapi-managed-provider');
+                const providerConfig = modelConfig?.find((p) => p.platform?.includes(''));
                 const healthStatus = providerConfig?.model_health?.[model.id]?.status || 'unknown';
                 const healthColor =
                   healthStatus === 'healthy'
@@ -263,7 +206,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                     onClick={() => setSelectedAcpModel(model.id)}
                   >
                     <div className='flex items-center gap-8px w-full'>
-                      {!isManagedCliSelection && healthStatus !== 'unknown' && (
+                      {healthStatus !== 'unknown' && (
                         <div className={`w-6px h-6px rounded-full shrink-0 ${healthColor}`} />
                       )}
                       <span>{model.label}</span>
@@ -278,9 +221,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
               <span>{acpButtonLabel}</span>
-              {currentAcpCachedModelInfo.available_models.length > 1 ? (
-                <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
-              ) : null}
+              <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>
         </Dropdown>
@@ -304,7 +245,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     );
   }
 
-  // Fallback: no model switching / managed model not ready
+  // Fallback: no model switching
   return (
     <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
       <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>

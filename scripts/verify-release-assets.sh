@@ -3,7 +3,6 @@
 set -euo pipefail
 
 OUTPUT_DIR="${1:-release-assets}"
-VERSION="${VERIFY_VERSION:-$(node -p "require('./package.json').version")}"
 ERRORS=0
 
 for f in latest.yml latest-mac.yml latest-linux.yml latest-linux-arm64.yml; do
@@ -66,13 +65,7 @@ for f in latest-win-arm64.yml latest-arm64-mac.yml; do
   fi
 done
 
-for f in \
-  "POUNDING-${VERSION}-win-x64.exe" \
-  "POUNDING-${VERSION}-win-arm64.exe" \
-  "POUNDING-${VERSION}-mac-x64.dmg" \
-  "POUNDING-${VERSION}-mac-arm64.dmg" \
-  "POUNDING-${VERSION}-linux-x64.deb" \
-  "POUNDING-${VERSION}-linux-arm64.deb"; do
+for f in AionUi-1.0.0-win-x64.exe AionUi-1.0.0-win-arm64.exe AionUi-1.0.0-mac-x64.dmg AionUi-1.0.0-mac-arm64.dmg AionUi-1.0.0.deb AionUi-1.0.0-arm64.deb; do
   if [ ! -f "$OUTPUT_DIR/$f" ]; then
     echo "FAIL: missing distributable: $f"
     ERRORS=$((ERRORS + 1))
@@ -83,7 +76,7 @@ done
 
 # Web-CLI tarballs + checksums
 for plat in darwin-arm64 darwin-x86_64 linux-arm64 linux-x86_64 win-x86_64; do
-  tarball="aionui-web-${VERSION}-${plat}.tar.gz"
+  tarball="aionui-web-1.0.0-${plat}.tar.gz"
   for f in "$tarball" "${tarball}.sha256"; do
     if [ ! -f "$OUTPUT_DIR/$f" ]; then
       echo "FAIL: missing web-cli asset: $f"

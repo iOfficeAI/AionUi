@@ -1,19 +1,18 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { deriveAutoTitleFromMessages } from '@/renderer/utils/chat/autoTitle';
 import { emitter } from '@/renderer/utils/emitter';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 export const useAutoTitle = () => {
   const { t } = useTranslation();
-  const { updateTabName } = useConversationTabs();
 
   const syncTitleFromHistory = useCallback(
     async (conversation_id: string, fallbackContent?: string) => {
       const defaultTitle = t('conversation.welcome.newConversation');
       try {
-        const conversation = await ipcBridge.conversation.get.invoke({ id: conversation_id });
+        const conversation = await getConversationOrNull(conversation_id);
         if (!conversation || conversation.name !== defaultTitle) {
           return;
         }
@@ -36,13 +35,12 @@ export const useAutoTitle = () => {
           return;
         }
 
-        updateTabName(conversation_id, newTitle);
         emitter.emit('chat.history.refresh');
       } catch (error) {
         console.error('Failed to auto-update conversation title:', error);
       }
     },
-    [t, updateTabName]
+    [t]
   );
 
   const checkAndUpdateTitle = useCallback(

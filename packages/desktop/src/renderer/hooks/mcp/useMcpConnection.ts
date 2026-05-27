@@ -1,3 +1,4 @@
+import type React from 'react';
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
@@ -20,8 +21,7 @@ const truncateErrorMessage = (message: string, maxLength: number = 150): string 
  * 处理MCP服务器的连接测试和状态更新
  */
 export const useMcpConnection = (
-  mcpServers: IMcpServer[],
-  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>,
+  setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>,
   message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0],
   onAuthRequired?: (server: IMcpServer) => void // 新增：当需要认证时的回调
 ) => {
@@ -35,15 +35,9 @@ export const useMcpConnection = (
 
       // 更新服务器状态 - 使用统一的保存函数，避免竞态条件
       const updateServerStatus = async (status: IMcpServer['status'], additionalData?: Partial<IMcpServer>) => {
-        try {
-          await saveMcpServers((prevServers) =>
-            prevServers.map((s) =>
-              s.id === server.id ? { ...s, status, updated_at: Date.now(), ...additionalData } : s
-            )
-          );
-        } catch (error) {
-          console.error('Failed to update server status:', error);
-        }
+        setMcpServers((prevServers) =>
+          prevServers.map((s) => (s.id === server.id ? { ...s, status, updated_at: Date.now(), ...additionalData } : s))
+        );
       };
 
       await updateServerStatus('testing');
@@ -105,7 +99,7 @@ export const useMcpConnection = (
         setTestingServers((prev) => ({ ...prev, [server.id]: false }));
       }
     },
-    [saveMcpServers, message, t, onAuthRequired]
+    [setMcpServers, message, t, onAuthRequired]
   );
 
   return {

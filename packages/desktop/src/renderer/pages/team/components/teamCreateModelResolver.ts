@@ -5,15 +5,7 @@
  */
 
 import { configService } from '@/common/config/configService';
-import { ipcBridge } from '@/common';
-import type { IProvider } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import {
-  buildManagedRuntimeModelId,
-  getManagedCliSelectableModels,
-  resolveManagedModelIdFromRuntime,
-  resolveManagedRuntimeCliTarget,
-} from '@/common/types/agent/managedRuntimeCli';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 
 /**
@@ -51,36 +43,13 @@ export async function resolveDefaultTeamAgentModel(params: {
 }
 
 async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
-  const cliTarget = resolveManagedRuntimeCliTarget(agent_type);
-  if (cliTarget) {
-    try {
-      const providers = await ipcBridge.mode.listProviders.invoke();
-      const managedProvider = providers.find(
-        (provider: IProvider) => provider.id === 'desktop-newapi-managed-provider'
-      );
-      const managedModels = getManagedCliSelectableModels(managedProvider, cliTarget);
-      if (managedModels.length > 0) {
-        const savedModel = configService.get('newApi.desktop.cliModelPrefs')?.[cliTarget];
-        if (savedModel && managedModels.includes(savedModel)) {
-          return buildManagedRuntimeModelId(cliTarget, savedModel);
-        }
-        return buildManagedRuntimeModelId(cliTarget, managedModels[0]);
-      }
-    } catch {
-      // fall through to handshake/cached model info
-    }
-  }
-
   // 1. Try handshake data from /api/agents
   try {
     const agents = await getAgents();
     const matched = agents.find((a) => (a.backend ?? a.agent_type) === agent_type);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (handshakeModels?.current_model_id) {
-      return cliTarget
-        ? resolveManagedModelIdFromRuntime(cliTarget, handshakeModels.current_model_id) ||
-            handshakeModels.current_model_id
-        : handshakeModels.current_model_id;
+      return handshakeModels.current_model_id;
     }
   } catch {
     // Fall through to cached models

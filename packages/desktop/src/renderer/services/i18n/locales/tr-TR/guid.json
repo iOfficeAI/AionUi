@@ -6,8 +6,17 @@
   "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
   "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
   "promptExamplesHint": "Try example prompts:",
+  "selectAssistantHint": "Göreve başlamak için bir asistan seçin",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "{{agent}} olarak değiştirildi",
+  "workspace": {
+    "workInProject": "Projede çalış",
+    "optional": "İsteğe bağlı",
+    "clearWorkspace": "Temizle",
+    "specifyWorkspace": "Proje klasörü seç",
+    "searchPlaceholder": "Proje ara…",
+    "noProject": "Proje Yok"
+  },
   "scanning": {
     "initialMessage": "Current Agent is unavailable, detecting other available agents...",
     "scanningMessage": "Scanning local available agents...",

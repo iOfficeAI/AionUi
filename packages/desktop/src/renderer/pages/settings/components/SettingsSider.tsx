@@ -22,7 +22,6 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
-import { isPackagedElectronDesktop } from '@/renderer/utils/platform';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
 export const BUILTIN_TAB_IDS = [
@@ -75,7 +74,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { t } = useTranslation();
   const { pathname } = useLocation();
   const isDesktop = isElectronDesktop();
-  const isPackaged = isPackagedElectronDesktop();
 
   const extensionTabs = useExtensionSettingsTabs();
   const { resolveExtTabName } = useExtI18n();
@@ -115,11 +113,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     };
 
     // Start with ordered builtin IDs, hiding desktop-only tabs in browser mode
-    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => {
-      if (!isDesktop && id === 'pet') return false;
-      if (!isPackaged) return true;
-      return id !== 'display' && id !== 'pet';
-    }).map((id) => builtinMap[id]);
+    const result: SiderItem[] = BUILTIN_TAB_IDS.filter((id) => isDesktop || id !== 'pet').map((id) => builtinMap[id]);
 
     // Extension tabs with position anchoring
     const beforeMap = new Map<string, IExtensionSettingsTab[]>();
@@ -193,7 +187,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
     }
 
     return { menus: result, groupHeaderAt: headerAt };
-  }, [t, isDesktop, isPackaged, extensionTabs, resolveExtTabName]);
+  }, [t, isDesktop, extensionTabs, resolveExtTabName]);
 
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   return (

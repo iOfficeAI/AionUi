@@ -223,32 +223,6 @@ export async function goToNewChat(page: Page): Promise<void> {
  * The actual text content lives in a nested child element.
  * @returns The text content of the AI reply.
  */
-function countAiRepliesInDom(): number {
-  const items = document.querySelectorAll('.message-item.text.justify-start');
-  let count = 0;
-  for (const item of items) {
-    const shadow = item.querySelector('.markdown-shadow');
-    const text = shadow?.shadowRoot?.textContent?.trim() ?? item.textContent?.trim() ?? '';
-    if (text) count += 1;
-  }
-  return count;
-}
-
-export async function getAiReplyCount(page: Page): Promise<number> {
-  return page.evaluate(countAiRepliesInDom);
-}
-
-export async function waitForNewAiReply(page: Page, previousCount: number, timeoutMs = 120_000): Promise<string> {
-  await expect
-    .poll(() => page.evaluate(countAiRepliesInDom), {
-      timeout: timeoutMs,
-      message: 'Waiting for a new AI reply to be appended',
-    })
-    .toBeGreaterThan(previousCount);
-
-  return waitForAiReply(page, timeoutMs);
-}
-
 export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<string> {
   // AI text messages are left-aligned. The actual reply text is rendered
   // inside a Shadow DOM (`ShadowView` component), so normal textContent /
@@ -257,194 +231,36 @@ export async function waitForAiReply(page: Page, timeoutMs = 120_000): Promise<s
   const aiSelector = '.message-item.text.justify-start';
   await page.locator(aiSelector).last().waitFor({ state: 'visible', timeout: timeoutMs });
 
-  const readLastAiText = async (): Promise<string> =>
-    page.evaluate((sel) => {
-      const items = document.querySelectorAll(sel);
-      if (!items.length) return '';
-      const last = items[items.length - 1];
-      const direct = last.querySelector('[data-testid="message-text-content"]')?.textContent?.trim();
-      if (direct) return direct;
-      const shadow = last.querySelector('.markdown-shadow');
-      if (shadow?.shadowRoot) {
-        const body = shadow.shadowRoot.querySelector('.markdown-shadow-body');
-        if (body?.textContent?.trim()) {
-          return body.textContent.trim();
-        }
-        return shadow.shadowRoot.textContent?.trim() ?? '';
-      }
-      return last.textContent?.trim() ?? '';
-    }, aiSelector);
-
-  let lastStable = '';
-  let stableReads = 0;
-
   await expect
     .poll(
       async () => {
-        const next = await readLastAiText();
-        if (!next) {
-          lastStable = '';
-          stableReads = 0;
-          return '';
-        }
-        if (next === lastStable) {
-          stableReads += 1;
-        } else {
-          lastStable = next;
-          stableReads = 1;
-        }
-        return stableReads >= 2 ? lastStable : '';
+        return page.evaluate((sel) => {
+          const items = document.querySelectorAll(sel);
+          if (!items.length) return '';
+          const last = items[items.length - 1];
+          // Try shadow DOM first (MarkdownView renders via ShadowView)
+          const shadow = last.querySelector('.markdown-shadow');
+          if (shadow?.shadowRoot) {
+            return shadow.shadowRoot.textContent?.trim() ?? '';
+          }
+          // Fallback: plain text messages (user messages, non-shadow)
+          return last.textContent?.trim() ?? '';
+        }, aiSelector);
       },
-      { timeout: timeoutMs, message: 'Waiting for stabilized AI reply text' }
+      { timeout: timeoutMs, message: 'Waiting for AI reply text inside Shadow DOM' }
     )
     .toBeTruthy();
 
-  return lastStable;
-}
-
-export async function waitForConversationAiReply(
-  page: Page,
-  conversationId: string,
-  timeoutMs = 120_000
-): Promise<string> {
-  let lastStable = '';
-  let stableReads = 0;
-
-  const readMessageSnapshot = async (): Promise<
-    Array<{ type?: string; position?: string; content?: unknown; msg_id?: string | null }>
-  > =>
-    page.evaluate(async (cid) => {
-      const port = (window as unknown as { __backendPort?: number }).__backendPort;
-      if (!port) return [];
-      const res = await fetch(
-        `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(cid)}/messages?page=1&page_size=100&order=ASC`
-      );
-      if (!res.ok) return [];
-      const payload = (await res.json()) as
-        | {
-            items?: Array<{
-              type?: string;
-              position?: string;
-              content?: unknown;
-              msg_id?: string | null;
-            }>;
-          }
-        | {
-            data?: {
-              items?: Array<{
-                type?: string;
-                position?: string;
-                content?: unknown;
-                msg_id?: string | null;
-              }>;
-            };
-          };
-      return Array.isArray((payload as { items?: unknown[] }).items)
-        ? ((
-            payload as { items: Array<{ type?: string; position?: string; content?: unknown; msg_id?: string | null }> }
-          ).items ?? [])
-        : Array.isArray((payload as { data?: { items?: unknown[] } }).data?.items)
-          ? ((
-              payload as {
-                data: {
-                  items: Array<{ type?: string; position?: string; content?: unknown; msg_id?: string | null }>;
-                };
-              }
-            ).data.items ?? [])
-          : [];
-    }, conversationId);
-
-  const readLatestReply = async (): Promise<string> =>
-    page.evaluate(async (cid) => {
-      const port = (window as unknown as { __backendPort?: number }).__backendPort;
-      if (!port) return '';
-      const res = await fetch(
-        `http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(cid)}/messages?page=1&page_size=100&order=ASC`
-      );
-      if (!res.ok) return '';
-      const payload = (await res.json()) as
-        | {
-            items?: Array<{
-              type?: string;
-              position?: string;
-              content?: string | { content?: string };
-            }>;
-          }
-        | {
-            data?: {
-              items?: Array<{
-                type?: string;
-                position?: string;
-                content?: string | { content?: string };
-              }>;
-            };
-          };
-      const items = Array.isArray((payload as { items?: unknown[] }).items)
-        ? (
-            payload as {
-              items: Array<{
-                type?: string;
-                position?: string;
-                content?: string | { content?: string };
-              }>;
-            }
-          ).items
-        : Array.isArray((payload as { data?: { items?: unknown[] } }).data?.items)
-          ? (
-              payload as {
-                data: {
-                  items: Array<{
-                    type?: string;
-                    position?: string;
-                    content?: string | { content?: string };
-                  }>;
-                };
-              }
-            ).data.items
-          : [];
-      const replies = items.filter((item) => item?.type === 'text' && item?.position === 'left');
-      const last = replies[replies.length - 1];
-      if (!last) return '';
-      if (typeof last.content === 'string') {
-        try {
-          const parsed = JSON.parse(last.content) as { content?: string };
-          return parsed.content?.trim() ?? '';
-        } catch {
-          return last.content.trim();
-        }
-      }
-      return last.content?.content?.trim() ?? '';
-    }, conversationId);
-
-  try {
-    await expect
-      .poll(
-        async () => {
-          const next = await readLatestReply();
-          if (!next) {
-            lastStable = '';
-            stableReads = 0;
-            return '';
-          }
-          if (next === lastStable) {
-            stableReads += 1;
-          } else {
-            lastStable = next;
-            stableReads = 1;
-          }
-          return stableReads >= 2 ? lastStable : '';
-        },
-        { timeout: timeoutMs, message: `Waiting for stabilized AI reply in conversation ${conversationId}` }
-      )
-      .toBeTruthy();
-  } catch (error) {
-    const snapshot = await readMessageSnapshot().catch(() => []);
-    throw new Error(
-      `Waiting for stabilized AI reply in conversation ${conversationId}. Snapshot: ${JSON.stringify(snapshot.slice(-8))}`
-    );
-  }
-
-  return lastStable;
+  const text = await page.evaluate((sel) => {
+    const items = document.querySelectorAll(sel);
+    const last = items[items.length - 1];
+    const shadow = last?.querySelector('.markdown-shadow');
+    if (shadow?.shadowRoot) {
+      return shadow.shadowRoot.textContent?.trim() ?? '';
+    }
+    return last?.textContent?.trim() ?? '';
+  }, aiSelector);
+  return text;
 }
 
 /**

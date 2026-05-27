@@ -9,7 +9,12 @@ import { ConversationProvider } from '@/renderer/hooks/context/ConversationConte
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
-import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
+import {
+  MessageListLoadingProvider,
+  MessageListProvider,
+  useMessageLstCache,
+} from '@renderer/pages/conversation/Messages/hooks';
+import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
@@ -24,8 +29,19 @@ const AionrsChat: React.FC<{
   cron_job_id?: string;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
-}> = ({ conversation_id, workspace, modelSelection, session_mode, cron_job_id, emptySlot, loadedSkills }) => {
+  agent_name?: string;
+}> = ({
+  conversation_id,
+  workspace,
+  modelSelection,
+  session_mode,
+  cron_job_id,
+  emptySlot,
+  loadedSkills,
+  agent_name,
+}) => {
   useMessageLstCache(conversation_id);
+  usePendingConfirmationsRecovery(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });
@@ -45,6 +61,7 @@ const AionrsChat: React.FC<{
             conversation_id={conversation_id}
             modelSelection={modelSelection}
             session_mode={session_mode}
+            agent_name={agent_name}
           />
         </div>
       </ConversationArtifactProvider>
@@ -52,4 +69,4 @@ const AionrsChat: React.FC<{
   );
 };
 
-export default HOC.Wrapper(MessageListProvider, LocalImageView.Provider)(AionrsChat);
+export default HOC.Wrapper(MessageListProvider, MessageListLoadingProvider, LocalImageView.Provider)(AionrsChat);

@@ -9,7 +9,6 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { emitter } from '@/renderer/utils/emitter';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -27,6 +26,7 @@ import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
+import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAbortUploadsOnConversationChange';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
@@ -34,7 +34,6 @@ import {
   computeContextMenuPosition,
   extractNodeData,
   extractNodeKey,
-  findNodeByKey,
   flattenSingleRoot,
   getTargetFolderPath,
 } from './utils/treeHelpers';
@@ -60,6 +59,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
+
+  // Bind workspace uploads to the conversation lifecycle: switching the
+  // workspace conversation or unmounting the panel cancels in-flight uploads.
+  useAbortUploadsOnConversationChange(conversation_id, 'workspace');
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
@@ -275,7 +278,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           onTabChange={setActiveTab}
           changeCount={fileChangesHook.changeCount}
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
-          branches={fileChangesHook.branches}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -337,11 +339,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               </div>
             ) : (
               <Tree
-                className={`${isMobile ? '!pl-20px !pr-10px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
+                className={`${isMobile ? '!pl-12px !pr-8px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
                 showLine
                 key={treeHook.treeKey}
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
+                actionOnClick={['select', 'expand']}
+                // Reuse the +/- glyph during lazy-load so the switcher doesn't
+                // flash a spinner on first expand of each folder.
+                icons={(nodeProps) => ({
+                  loadingIcon: <span className={`arco-tree-node-${nodeProps.expanded ? 'minus' : 'plus'}-icon`} />,
+                })}
                 treeData={treeData}
                 fieldNames={{
                   children: 'children',
@@ -382,7 +390,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       {isMobile && (
                         <button
                           type='button'
-                          className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
+                          className='workspace-header__toggle workspace-node-more-btn h-24px w-24px rd-6px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
                           aria-label={t('common.more')}
                           onMouseDown={(event) => {
                             event.stopPropagation();
@@ -406,19 +414,19 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                           }}
                         >
                           <div
-                            className='flex flex-col gap-2px items-center justify-center'
-                            style={{ width: '12px', height: '12px' }}
+                            className='flex flex-col gap-1.5px items-center justify-center'
+                            style={{ width: '10px', height: '10px' }}
                           >
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
                           </div>
                         </button>
                       )}
                     </div>
                   );
                 }}
-                onSelect={(keys, extra) => {
+                onSelect={(_keys, extra) => {
                   const clickedKey = extractNodeKey(extra?.node);
                   const nodeData = extra && extra.node ? extractNodeData(extra.node) : null;
                   const isFileNode = Boolean(nodeData?.isFile);
@@ -437,42 +445,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                     }
                     return;
                   }
-
-                  // Keep existing selection logic for folders
-                  let newKeys: string[];
-
-                  if (clickedKey && wasSelected) {
-                    newKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
-                  } else if (clickedKey) {
-                    newKeys = [...treeHook.selectedKeysRef.current, clickedKey];
-                  } else {
-                    newKeys = keys.filter((key) => key !== workspace);
-                  }
-
-                  treeHook.setSelected(newKeys);
-                  treeHook.selectedKeysRef.current = newKeys;
-
-                  if (extra && extra.node && nodeData && nodeData.fullPath && nodeData.relativePath != null) {
-                    treeHook.selectedNodeRef.current = {
-                      relativePath: nodeData.relativePath,
-                      fullPath: nodeData.fullPath,
-                    };
-                  } else {
-                    treeHook.selectedNodeRef.current = null;
-                  }
-
-                  const items: Array<{ path: string; name: string; isFile: boolean }> = [];
-                  for (const k of newKeys) {
-                    const node = findNodeByKey(treeHook.files, k);
-                    if (node && node.fullPath) {
-                      items.push({
-                        path: node.fullPath,
-                        name: node.name,
-                        isFile: node.isFile,
-                      });
-                    }
-                  }
-                  emitter.emit(`${eventPrefix}.selected.file`, items);
+                  // Folder: actionOnClick={['select','expand']} on the Tree
+                  // already toggles expand via onExpand. Right-click menu
+                  // remains the entry point for "Add to Chat".
                 }}
                 onExpand={(keys) => {
                   treeHook.setExpandedKeys(keys);

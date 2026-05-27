@@ -41,12 +41,15 @@ export const getTempPath = () => {
  * 在 macOS 上，在用户目录创建符号链接以避免路径中的空格。
  * CLI 工具如 Qwen 无法正确处理路径中的空格。
  */
-const ensureSingleCliSafeSymlink = (targetPath: string, symlinkPath: string): string => {
+const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
   // Only needed when the platform explicitly requires CLI-safe symlinks
   // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
   if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
     return targetPath;
   }
+
+  const homePath = getElectronPathOrFallback('home');
+  const symlinkPath = path.join(homePath, symlinkName);
 
   // Ensure symlink exists
   try {
@@ -86,53 +89,28 @@ const ensureSingleCliSafeSymlink = (targetPath: string, symlinkPath: string): st
   }
 };
 
-const getLegacyCliSafeSymlinkName = (symlinkName: string): string | null => {
-  if (symlinkName.startsWith('.pouding')) {
-    return symlinkName.replace(/^\.pouding/, '.aionui');
-  }
-  return null;
-};
-
-const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string => {
-  // Only needed when the platform explicitly requires CLI-safe symlinks
-  // (Electron on macOS, where userData lives under "Application Support" which contains spaces)
-  if (!getPlatformServices().paths.needsCliSafeSymlinks()) {
-    return targetPath;
-  }
-
-  const homePath = getElectronPathOrFallback('home');
-  const primarySymlinkPath = path.join(homePath, symlinkName);
-  const legacySymlinkName = getLegacyCliSafeSymlinkName(symlinkName);
-
-  const primaryResult = ensureSingleCliSafeSymlink(targetPath, primarySymlinkPath);
-  if (legacySymlinkName) {
-    ensureSingleCliSafeSymlink(targetPath, path.join(homePath, legacySymlinkName));
-  }
-  return primaryResult;
-};
-
 /**
  * Get data path, using CLI-safe symlink on macOS.
- * Release builds use ~/.pouding; dev builds use ~/.pouding-dev.
+ * Release builds use ~/.aionui; dev builds use ~/.aionui-dev.
  * 获取数据目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.pouding，Dev 模式使用 ~/.pouding-dev。
+ * Release 使用 ~/.aionui，Dev 模式使用 ~/.aionui-dev。
  */
 export const getDataPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
   const dataPath = path.join(rootPath, 'aionui');
-  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.pouding'));
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
 };
 
 /**
  * Get config path, using CLI-safe symlink on macOS.
- * Release builds use ~/.pouding-config; dev builds use ~/.pouding-config-dev.
+ * Release builds use ~/.aionui-config; dev builds use ~/.aionui-config-dev.
  * 获取配置目录路径，macOS 上使用符号链接。
- * Release 使用 ~/.pouding-config，Dev 模式使用 ~/.pouding-config-dev。
+ * Release 使用 ~/.aionui-config，Dev 模式使用 ~/.aionui-config-dev。
  */
 export const getConfigPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
   const configPath = path.join(rootPath, 'config');
-  return ensureCliSafeSymlink(configPath, getEnvAwareName('.pouding-config'));
+  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
 };
 
 /**
@@ -384,7 +362,7 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 
     return true;
   } catch (error) {
-    console.warn('[POUNDING] Error verifying directory files:', error);
+    console.warn('[AionUi] Error verifying directory files:', error);
     return false;
   }
 }
@@ -409,8 +387,8 @@ export const copyFilesToDirectory = async (
     try {
       await fs.access(absoluteFilePath);
     } catch (error) {
-      console.warn(`[POUNDING] Source file does not exist, skipping: ${absoluteFilePath}`);
-      console.warn(`[POUNDING] Original path: ${file}`);
+      console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
+      console.warn(`[AionUi] Original path: ${file}`);
       // 跳过不存在的文件，而不是抛出错误
       continue;
     }
@@ -441,7 +419,7 @@ export const copyFilesToDirectory = async (
       await fs.copyFile(absoluteFilePath, destPath);
       copiedFiles.push(destPath);
     } catch (error) {
-      console.error(`[POUNDING] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
+      console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
       // 继续处理其他文件，而不是完全失败
     }
 

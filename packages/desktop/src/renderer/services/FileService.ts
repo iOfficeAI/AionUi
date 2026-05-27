@@ -7,6 +7,14 @@
 import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 
+/** Sentinel error message used when an upload is cancelled by the caller. */
+export const UPLOAD_ABORTED_ERROR = 'Upload aborted';
+
+export interface UploadFileOptions {
+  /** Cancel the upload from the outside. Closing the XHR also frees the backend connection. */
+  signal?: AbortSignal;
+}
+
 /**
  * Upload a file to the backend via HTTP multipart.
  *
@@ -19,12 +27,14 @@ import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadS
  * `ApiResponse<String>` where `data` is the absolute file path on disk.
  *
  * @param onProgress Optional callback receiving upload percentage (0-100).
+ * @param options    Optional bag — currently supports an `AbortSignal` so callers can cancel.
  */
 export async function uploadFileViaHttp(
   file: File,
   conversation_id?: string,
   onProgress?: (percent: number) => void,
-  file_name?: string
+  file_name?: string,
+  options?: UploadFileOptions
 ): Promise<string> {
   const formData = new FormData();
   formData.append('file', file);
@@ -39,6 +49,34 @@ export async function uploadFileViaHttp(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${getBaseUrl()}/api/fs/upload`);
 
+    // Wire AbortSignal → xhr.abort. Closing the XHR tears down the underlying
+    // socket; the backend (axum/multer) treats the truncated multipart body as
+    // a client disconnect and stops reading. No explicit cancel IPC needed.
+    const signal = options?.signal;
+    let onSignalAbort: (() => void) | null = null;
+    if (signal) {
+      if (signal.aborted) {
+        // Caller asked to abort before send — bail out without opening a socket.
+        reject(new Error(UPLOAD_ABORTED_ERROR));
+        return;
+      }
+      onSignalAbort = () => {
+        try {
+          xhr.abort();
+        } catch {
+          /* ignore */
+        }
+      };
+      signal.addEventListener('abort', onSignalAbort);
+    }
+
+    const detachSignal = (): void => {
+      if (signal && onSignalAbort) {
+        signal.removeEventListener('abort', onSignalAbort);
+        onSignalAbort = null;
+      }
+    };
+
     if (onProgress) {
       xhr.upload.addEventListener('progress', (e) => {
         if (e.lengthComputable) {
@@ -48,6 +86,7 @@ export async function uploadFileViaHttp(
     }
 
     xhr.addEventListener('load', () => {
+      detachSignal();
       if (xhr.status === 413) {
         reject(new Error('FILE_TOO_LARGE'));
         return;
@@ -69,11 +108,13 @@ export async function uploadFileViaHttp(
     });
 
     xhr.addEventListener('error', () => {
+      detachSignal();
       reject(new Error('Upload failed: network error'));
     });
 
     xhr.addEventListener('abort', () => {
-      reject(new Error('Upload aborted'));
+      detachSignal();
+      reject(new Error(UPLOAD_ABORTED_ERROR));
     });
 
     xhr.send(formData);
@@ -282,13 +323,28 @@ class FileServiceClass {
 
       // If no valid path (WebUI or some dragged files may not have paths), upload via HTTP multipart
       if (!file_path) {
-        const tracker = trackUpload(file.size, source);
+        // Each upload owns its own AbortController; the tracker exposes an `abort()`
+        // that triggers the signal so user-driven cancel and conversation-switch
+        // bulk-abort go through the same path.
+        const controller = new AbortController();
+        const tracker = trackUpload(file.size, {
+          source,
+          name: file.name,
+          conversationId: conversation_id || undefined,
+          onAbort: () => controller.abort(),
+        });
         try {
-          file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
+          file_path = await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
+            signal: controller.signal,
+          });
         } catch (error) {
           // Re-throw size errors so caller can show user-facing toast
           if (error instanceof Error && error.message === 'FILE_TOO_LARGE') {
             throw error;
+          }
+          if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
+            // User-initiated abort: drop this file silently (the UI already reflects it).
+            continue;
           }
           console.error('Failed to upload dragged file:', error);
           continue;

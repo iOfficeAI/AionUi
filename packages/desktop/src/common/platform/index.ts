@@ -10,12 +10,7 @@ let _services: IPlatformServices | null = null;
  */
 export function getDevAppName(): string {
   const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
-  return isMultiInstance ? 'POUNDING-Dev-2' : 'POUNDING-Dev';
-}
-
-function getExplicitUserDataDir(): string | null {
-  const explicit = process.env.AIONUI_DATA_DIR?.trim();
-  return explicit ? path.resolve(explicit) : null;
+  return isMultiInstance ? 'AionUi-Dev-2' : 'AionUi-Dev';
 }
 
 export function registerPlatformServices(services: IPlatformServices): void {
@@ -41,13 +36,10 @@ export function getPlatformServices(): IPlatformServices {
       } else {
         // eslint-disable-next-line @typescript-eslint/no-require-imports
         const { app, net } = require('electron') as typeof import('electron');
-        const explicitUserDataDir = getExplicitUserDataDir();
         // Dev isolation: set app name before any getPath('userData') call.
         // Rollup may load this chunk before configureChromium.ts runs, so we
         // must apply the dev name here as a safety net.
-        if (explicitUserDataDir) {
-          app.setPath('userData', explicitUserDataDir);
-        } else if (!app.isPackaged) {
+        if (!app.isPackaged) {
           const devAppName = getDevAppName();
           app.setName(devAppName);
           app.setPath('userData', path.join(path.dirname(app.getPath('userData')), devAppName));

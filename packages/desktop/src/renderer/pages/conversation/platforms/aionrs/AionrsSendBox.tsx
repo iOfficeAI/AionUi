@@ -6,13 +6,19 @@
 
 import { ipcBridge } from '@/common';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
-import SendBox from '@/renderer/components/chat/sendbox';
+import MobileActionSheet, {
+  type MobileActionSheetEntry,
+  type MobileActionSheetOption,
+  useAttachEntry,
+} from '@/renderer/components/chat/MobileActionSheet';
+import SendBox from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -25,6 +31,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -33,10 +40,9 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import { getModelContextLimit } from '@/renderer/utils/model/modelContextLimits';
 import { Message, Tag } from '@arco-design/web-react';
-import { Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useState } from 'react';
+import { Brain, MagicHat, Shield } from '@icon-park/react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
@@ -88,16 +94,23 @@ const AionrsSendBox: React.FC<{
   conversation_id: string;
   modelSelection: AionrsModelSelection;
   session_mode?: string;
-}> = ({ conversation_id, modelSelection, session_mode }) => {
+  agent_name?: string;
+}> = ({ conversation_id, modelSelection, session_mode, agent_name }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
+  const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
+  const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
+  const layout = useLayoutContext();
+  const isMobile = Boolean(layout?.isMobile);
+  const conversationContext = useConversationContextSafe();
+  const loadedSkills = conversationContext?.loadedSkills ?? [];
   const { t } = useTranslation();
   const { checkAndUpdateTitle } = useAutoTitle();
-  const { current_model, getDisplayModelName } = modelSelection;
+  const { current_model } = modelSelection;
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, hasHydratedRunningState, tokenUsage, setActiveMsgId, setWaitingResponse, resetState } =
+  const { thought, running, hasHydratedRunningState, setActiveMsgId, setWaitingResponse, resetState } =
     useAionrsMessage(conversation_id, {
       onConfigChanged: (capabilities) => {
         const modes = (capabilities as { modes?: string[] })?.modes;
@@ -108,24 +121,36 @@ const AionrsSendBox: React.FC<{
     });
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
+
   const handleContentChange = useCallback(
     (val: string) => {
-      if (val && teamPermission) void teamPermission.warmupSession();
+      if (val && teamPermission) teamPermission.warmupSession();
       setContent(val);
     },
     [teamPermission, setContent]
   );
+
   const [agentWarmed, setAgentWarmed] = useState(false);
 
   useEffect(() => {
-    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+    void getConversationOrNull(conversation_id).then((res) => {
       if (!res?.extra?.workspace) return;
       setWorkspacePath(res.extra.workspace);
     });
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!conversation_id || teamPermission) return;
+    if (!conversation_id) return;
+    if (teamPermission) {
+      void teamPermission
+        .warmupSession()
+        .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+        .then(() => {
+          setAgentWarmed(true);
+        })
+        .catch(() => {});
+      return;
+    }
     setAgentWarmed(false);
     void ipcBridge.conversation.warmup
       .invoke({ conversation_id })
@@ -232,7 +257,6 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
-      teamPermission,
       workspacePath,
     ]
   );
@@ -331,6 +355,153 @@ const AionrsSendBox: React.FC<{
     onFilesSelected: appendSelectedFiles,
   });
 
+  const { entries: attachEntries, hiddenFileInput: attachHiddenInput } = useAttachEntry({
+    openFileSelector,
+    onLocalFilesAdded: handleFilesAdded,
+    dividerBefore: true,
+  });
+
+  // Mode switching for the mobile action sheet — mirrors AgentModeSelector's
+  // setMode call so the bottom-sheet path stays in lockstep with the desktop dropdown.
+  const handleSheetModeChange = useCallback(
+    async (mode: string) => {
+      if (mode === currentMode) return;
+      try {
+        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        setCurrentMode(mode);
+        propagateMode?.(mode);
+        Message.success('Mode switched');
+      } catch (error) {
+        console.error('[AionrsSendBox] Failed to switch mode via sheet:', error);
+        Message.error('Switch failed');
+      }
+    },
+    [conversation_id, currentMode, propagateMode]
+  );
+
+  // Sync currentMode from backend when the sheet first opens / conversation switches
+  useEffect(() => {
+    if (!conversation_id) return;
+    let cancelled = false;
+    void ipcBridge.acpConversation.getMode
+      .invoke({ conversation_id })
+      .then((result) => {
+        if (cancelled || !result) return;
+        if (result.initialized !== false) {
+          setCurrentMode(result.mode);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation_id]);
+
+  const handleSheetModelSelect = useCallback(
+    (value: string) => {
+      // value format: `${providerId}::${modelName}`
+      const [providerId, modelName] = value.split('::');
+      const provider = modelSelection.providers.find((p) => p.id === providerId);
+      if (!provider || !modelName) return;
+      void modelSelection.handleSelectModel(provider, modelName);
+    },
+    [modelSelection]
+  );
+
+  const sheetEntries = useMemo<MobileActionSheetEntry[]>(() => {
+    if (!isMobile) return [];
+
+    const availableModes: AgentModeOption[] =
+      dynamicModes.length > 0
+        ? dynamicModes
+        : [
+            { value: 'default', label: 'Default' },
+            { value: 'auto_edit', label: 'Auto-Accept Edits' },
+            { value: 'yolo', label: 'YOLO' },
+          ];
+    const modeOptions: MobileActionSheetOption[] = availableModes.map((mode) => ({
+      key: mode.value,
+      label: t(`agentMode.${mode.value}`, { defaultValue: mode.label }),
+      description: mode.description,
+      active: currentMode === mode.value,
+    }));
+
+    const modelOptions: MobileActionSheetOption[] = modelSelection.providers.flatMap((provider) =>
+      modelSelection.getAvailableModels(provider).map((modelName) => ({
+        key: `${provider.id}::${modelName}`,
+        label: modelName,
+        description: provider.name,
+        active:
+          modelSelection.current_model?.id === provider.id && modelSelection.current_model?.use_model === modelName,
+      }))
+    );
+
+    const currentModeLabel =
+      modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
+    const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
+
+    const entries: MobileActionSheetEntry[] = [
+      {
+        key: 'model',
+        icon: <Brain theme='outline' size='16' />,
+        label: t('common.model', { defaultValue: 'Model' }),
+        meta: currentModelLabel,
+        submenu: {
+          title: t('common.model', { defaultValue: 'Model' }),
+          options: modelOptions,
+          onSelect: handleSheetModelSelect,
+          emptyText: t('conversation.welcome.selectModel'),
+        },
+      },
+      {
+        key: 'permission',
+        icon: <Shield theme='outline' size='16' />,
+        label: t('agentMode.permission', { defaultValue: 'Permission' }),
+        meta: currentModeLabel,
+        submenu: {
+          title: t('agentMode.permission', { defaultValue: 'Permission' }),
+          options: modeOptions,
+          onSelect: (key) => void handleSheetModeChange(key),
+        },
+      },
+      ...attachEntries,
+    ];
+
+    if (loadedSkills.length > 0) {
+      const skillOptions: MobileActionSheetOption[] = loadedSkills.map((name) => ({
+        key: name,
+        label: `/${name}`,
+      }));
+      entries.push({
+        key: 'skills',
+        icon: <MagicHat theme='outline' size='16' />,
+        label: t('common.skills', { defaultValue: 'Skills' }),
+        variant: 'muted',
+        submenu: {
+          title: t('common.skills', { defaultValue: 'Skills' }),
+          selectable: false,
+          options: skillOptions,
+          onSelect: (name) => {
+            setContent(`/${name} `);
+          },
+        },
+      });
+    }
+
+    return entries;
+  }, [
+    attachEntries,
+    currentMode,
+    dynamicModes,
+    handleSheetModeChange,
+    handleSheetModelSelect,
+    isMobile,
+    loadedSkills,
+    modelSelection,
+    setContent,
+    t,
+  ]);
+
   useAddEventListener('aionrs.selected.file', setAtPath);
   useAddEventListener('aionrs.selected.file.append', (selectedItems: Array<string | FileOrFolderItem>) => {
     const merged = mergeFileSelectionItems(atPathRef.current, selectedItems);
@@ -341,6 +512,8 @@ const AionrsSendBox: React.FC<{
 
   // Stop conversation handler
   const handleStop = async (): Promise<void> => {
+    // Best-effort cancel: swallow rejections so they don't bubble up as
+    // unhandled rejections. UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
@@ -370,6 +543,7 @@ const AionrsSendBox: React.FC<{
 
       <SendBox
         data-testid='aionrs-sendbox'
+        onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
@@ -381,7 +555,10 @@ const AionrsSendBox: React.FC<{
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model
-            ? t('conversation.chat.sendMessageTo', { model: getDisplayModelName(current_model.use_model) })
+            ? t('acp.sendbox.placeholder', {
+                backend: agent_name || 'AionCLI',
+                defaultValue: `Send message to {{backend}}...`,
+              })
             : t('conversation.chat.noModelSelected')
         }
         onStop={handleStop}
@@ -389,30 +566,21 @@ const AionrsSendBox: React.FC<{
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
-        defaultMultiLine={true}
-        lockMultiLine={true}
-        tools={
-          <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
-            <AgentModeSelector
-              backend='aionrs'
-              conversation_id={conversation_id}
-              compact
-              initialMode={session_mode}
-              dynamicModes={dynamicModes}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-              onModeChanged={propagateMode}
-            />
-          </div>
-        }
-        sendButtonPrefix={
-          <ContextUsageIndicator
-            tokenUsage={tokenUsage}
-            context_limit={getModelContextLimit(current_model?.use_model)}
-            size={24}
+        defaultMultiLine={!isMobile}
+        lockMultiLine={!isMobile}
+        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        rightTools={
+          <AgentModeSelector
+            backend='aionrs'
+            conversation_id={conversation_id}
+            compact
+            initialMode={session_mode}
+            dynamicModes={dynamicModes}
+            compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+            modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+            compactLabelPrefix={t('agentMode.permission')}
+            hideCompactLabelPrefixOnMobile
+            onModeChanged={propagateMode}
           />
         }
         prefix={
@@ -462,6 +630,17 @@ const AionrsSendBox: React.FC<{
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
       />
+      {isMobile && (
+        <>
+          <MobileActionSheet
+            open={isMobileSheetOpen}
+            onClose={() => setIsMobileSheetOpen(false)}
+            title={t('common.more', { defaultValue: 'More' })}
+            entries={sheetEntries}
+          />
+          {attachHiddenInput}
+        </>
+      )}
     </div>
   );
 };

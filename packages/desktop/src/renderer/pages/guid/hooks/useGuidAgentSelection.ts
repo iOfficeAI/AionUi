@@ -5,10 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { IProvider } from '@/common/config/storage';
+import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
@@ -19,24 +19,12 @@ import {
   type AgentSource,
 } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
-import { useNewApiAccount } from '@/renderer/hooks/context/NewApiAccountContext';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil } from './agentSelectionUtils';
-import {
-  getManagedCliSelectableModels,
-  MANAGED_NEWAPI_PROVIDER_ID,
-  resolveManagedModelIdFromRuntime,
-  resolveManagedRuntimeCliTarget,
-  sanitizeManagedRuntimeModelValue,
-} from '@/common/types/agent/managedRuntimeCli';
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
-
-const DEFAULT_MANAGED_NEWAPI_AGENT_KEY = 'aionrs';
-const LEGACY_MANAGED_NEWAPI_AGENT_KEYS = new Set(['gemini', 'claude']);
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -121,6 +109,8 @@ type UseGuidAgentSelectionOptions = {
   isGoogleAuth: boolean;
   localeKey: string;
   resetAssistant?: boolean;
+  /** Pre-select a specific agent by key (e.g. from "Go to Chat" deep-links). */
+  preselectAgentKey?: string;
   /** React Router location.key — changes on every navigation, used to detect new resets. */
   locationKey?: string;
 };
@@ -133,9 +123,16 @@ export const useGuidAgentSelection = ({
   isGoogleAuth,
   localeKey,
   resetAssistant,
+  preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(() => {
+    try {
+      return configService.get('guid.lastSelectedAgent') || 'aionrs';
+    } catch {
+      return 'aionrs';
+    }
+  });
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -176,16 +173,6 @@ export const useGuidAgentSelection = ({
       return newModelId;
     });
   }, []);
-
-  const { isLoggedIn: isManagedNewApiLoggedIn } = useNewApiAccount();
-  const managedProvider = useMemo(
-    () => modelList.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
-    [modelList]
-  );
-  const managedSelectableModels = useMemo(
-    () => getManagedCliSelectableModels(managedProvider, resolveManagedRuntimeCliTarget(selectedAgentKey)),
-    [managedProvider, selectedAgentKey]
-  );
 
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
@@ -237,10 +224,9 @@ export const useGuidAgentSelection = ({
       const assistantId = key.slice(7);
       const assistant = assistants.find((a) => a.id === assistantId);
       if (assistant) {
-        const presetAgentType = assistant.preset_agent_type || DEFAULT_MANAGED_NEWAPI_AGENT_KEY;
         return {
-          agent_type: presetAgentType,
-          backend: presetAgentType,
+          agent_type: assistant.preset_agent_type || 'gemini',
+          backend: assistant.preset_agent_type || 'gemini',
           name: assistant.name,
           id: assistant.id,
           custom_agent_id: assistant.id,
@@ -293,7 +279,6 @@ export const useGuidAgentSelection = ({
       const isCustomRow = asAgent.agent_source === 'custom';
       return {
         ...a,
-        name: getAgentDisplayName(a),
         id: asAgent.id,
         custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
         avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
@@ -319,33 +304,53 @@ export const useGuidAgentSelection = ({
     resetHandledRef.current = false;
   }
 
-  // Apply sidebar "new chat" resets before paint so the previous assistant
-  // selection does not flash for a frame when navigating to /guid again.
+  // Apply sidebar "new chat" resets and explicit "Go to Chat" pre-selections
+  // before paint so the previous assistant selection does not flash for a
+  // frame when navigating to /guid again.
   useLayoutEffect(() => {
     if (!availableAgents || availableAgents.length === 0) return;
+    if (resetHandledRef.current) return;
 
-    if (resetAssistant && !resetHandledRef.current) {
-      resetHandledRef.current = true;
-      const preferredDefaultAgent = availableAgents.find(
-        (a) => !a.is_preset && getAgentKey(a) === DEFAULT_MANAGED_NEWAPI_AGENT_KEY
-      );
-      const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-      const fallbackKey = preferredDefaultAgent
-        ? getAgentKey(preferredDefaultAgent)
-        : firstCliAgent
-          ? getAgentKey(firstCliAgent)
-          : DEFAULT_MANAGED_NEWAPI_AGENT_KEY;
-      _setSelectedAgentKey(fallbackKey);
-      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-        console.error('Failed to save reset agent key:', error);
-      });
+    // Explicit pre-selection (e.g. from Settings → Agent "Go to Chat") wins
+    // over reset and saved-selection when the agent is actually present.
+    if (preselectAgentKey) {
+      const matched = availableAgents.find((a) => getAgentKey(a) === preselectAgentKey);
+      if (matched) {
+        resetHandledRef.current = true;
+        const key = getAgentKey(matched);
+        _setSelectedAgentKey(key);
+        configService.set('guid.lastSelectedAgent', key).catch((error) => {
+          console.error('Failed to save preselected agent key:', error);
+        });
+        return;
+      }
     }
-  }, [availableAgents, resetAssistant, locationKey, isManagedNewApiLoggedIn]);
+
+    if (resetAssistant) {
+      resetHandledRef.current = true;
+      // Only reset when the current selection is a preset assistant.
+      // CLI agent selections (Claude Code, Gemini CLI, etc.) are preserved so
+      // New Chat keeps the last-used CLI agent.
+      const currentIsPreset = selectedAgentKey.startsWith('custom:');
+      if (currentIsPreset) {
+        const firstCliAgent = availableAgents.find((a) => !a.is_preset);
+        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+        _setSelectedAgentKey(fallbackKey);
+        configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+          console.error('Failed to save reset agent key:', error);
+        });
+      }
+    }
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 
   // Load last selected agent when no explicit reset was requested.
   useEffect(() => {
     if (!availableAgents || availableAgents.length === 0) return;
     if (resetAssistant) return;
+    // An explicit pre-selection from navigation state wins over the
+    // persisted last-selected key — skip the saved-restore path so
+    // useLayoutEffect's preselect remains the authoritative pick.
+    if (preselectAgentKey && availableAgents.some((a) => getAgentKey(a) === preselectAgentKey)) return;
 
     let cancelled = false;
     initialRestoreDoneRef.current = true;
@@ -363,35 +368,15 @@ export const useGuidAgentSelection = ({
           }
           // Plain row key — verify it still exists in detected engines
           if (availableAgents.some((agent) => getAgentKey(agent) === savedKey)) {
-            if (
-              isManagedNewApiLoggedIn &&
-              LEGACY_MANAGED_NEWAPI_AGENT_KEYS.has(savedKey) &&
-              availableAgents.some((agent) => getAgentKey(agent) === DEFAULT_MANAGED_NEWAPI_AGENT_KEY)
-            ) {
-              _setSelectedAgentKey(DEFAULT_MANAGED_NEWAPI_AGENT_KEY);
-              void configService.set('guid.lastSelectedAgent', DEFAULT_MANAGED_NEWAPI_AGENT_KEY).catch((error) => {
-                console.error('Failed to migrate selected agent:', error);
-              });
-              return;
-            }
             _setSelectedAgentKey(savedKey);
             return;
           }
         }
 
-        // No saved preference or stale key — default to managed aionrs if present,
-        // otherwise fall back to the first detected engine.
-        const preferredDefaultAgent = availableAgents.find(
-          (agent) => !agent.is_preset && getAgentKey(agent) === DEFAULT_MANAGED_NEWAPI_AGENT_KEY
-        );
-        const firstAgent =
-          preferredDefaultAgent || availableAgents.find((agent) => !agent.is_preset) || availableAgents[0];
+        // No saved preference or stale key — default to first detected engine
+        const firstAgent = availableAgents[0];
         if (firstAgent) {
-          const nextKey = getAgentKey(firstAgent);
-          _setSelectedAgentKey(nextKey);
-          void configService.set('guid.lastSelectedAgent', nextKey).catch((error) => {
-            console.error('Failed to save default selected agent:', error);
-          });
+          _setSelectedAgentKey(getAgentKey(firstAgent));
         }
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
@@ -403,7 +388,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant, locationKey, isManagedNewApiLoggedIn]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {
@@ -420,67 +405,21 @@ export const useGuidAgentSelection = ({
 
   // Reset selected ACP model when agent changes: prefer saved preference, fallback to handshake default
   useEffect(() => {
+    // For preset agents, resolve to the actual backend type for config lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
-    const cliTarget = resolveManagedRuntimeCliTarget(backend);
-    const backendManagedSelectableModels = getManagedCliSelectableModels(managedProvider, cliTarget);
-    const managedCliPrefs = configService.get('newApi.desktop.cliModelPrefs');
+
     const config = configService.get('acp.config');
-    const preferred = sanitizeManagedRuntimeModelValue(
-      (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined
-    );
-    const useManagedCliModels = Boolean(
-      cliTarget && isManagedNewApiLoggedIn && backendManagedSelectableModels.length > 0
-    );
-
-    if (useManagedCliModels) {
-      const managedPreferred = managedCliPrefs?.[cliTarget]?.trim();
-      if (managedPreferred && backendManagedSelectableModels.includes(managedPreferred)) {
-        _setSelectedAcpModel(managedPreferred);
-        return;
-      }
-
-      const normalizedPreferred = resolveManagedModelIdFromRuntime(cliTarget, preferred);
-      if (normalizedPreferred && backendManagedSelectableModels.includes(normalizedPreferred)) {
-        _setSelectedAcpModel(normalizedPreferred);
-        return;
-      }
-    }
-
+    const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
     if (preferred) {
-      if (useManagedCliModels) {
-        const normalizedPreferred = resolveManagedModelIdFromRuntime(cliTarget, preferred);
-        if (normalizedPreferred && backendManagedSelectableModels.includes(normalizedPreferred)) {
-          _setSelectedAcpModel(normalizedPreferred);
-          return;
-        }
-      } else {
-        _setSelectedAcpModel(preferred);
-        return;
-      }
+      _setSelectedAcpModel(preferred);
+      return;
     }
 
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    const fallbackModelId = handshakeModels?.current_model_id ?? null;
-
-    if (useManagedCliModels) {
-      _setSelectedAcpModel(
-        resolveManagedModelIdFromRuntime(cliTarget, fallbackModelId) || backendManagedSelectableModels[0] || null
-      );
-      return;
-    }
-
-    _setSelectedAcpModel(fallbackModelId);
-  }, [
-    selectedAgentKey,
-    availableAgentsData,
-    is_presetAgent,
-    currentEffectiveAgentInfo.agent_type,
-    isManagedNewApiLoggedIn,
-    managedSelectableModels,
-    selectedAgent,
-  ]);
+    _setSelectedAcpModel(handshakeModels?.current_model_id ?? null);
+  }, [selectedAgentKey, availableAgentsData, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
@@ -546,25 +485,13 @@ export const useGuidAgentSelection = ({
   }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
+    // For preset agents, resolve to the actual backend type for model list lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
-    const cliTarget = resolveManagedRuntimeCliTarget(backend);
-    const backendManagedSelectableModels = getManagedCliSelectableModels(managedProvider, cliTarget);
-    const useManagedCliModels = Boolean(
-      cliTarget && isManagedNewApiLoggedIn && backendManagedSelectableModels.length > 0
-    );
 
-    if (useManagedCliModels) {
-      const currentManagedModelId = selectedAcpModel || backendManagedSelectableModels[0] || null;
-      return {
-        current_model_id: currentManagedModelId,
-        current_model_label: currentManagedModelId,
-        available_models: backendManagedSelectableModels.map((modelId) => ({
-          id: modelId,
-          label: modelId,
-        })),
-      } satisfies AcpModelInfo;
-    }
-
+    // Source: `handshake.available_models` from `/api/agents`.
+    // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
+    // the agent_metadata row, so this is populated across restarts without
+    // requiring a fresh session.
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
@@ -576,6 +503,9 @@ export const useGuidAgentSelection = ({
       return handshakeModels;
     }
 
+    // Fallback: when the backend has not yet observed a session for codex
+    // (e.g., first launch before any warmup), use the hardcoded default list
+    // so the Guid page shows a model selector immediately.
     if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
       return {
         current_model_id: DEFAULT_CODEX_MODELS[0].id,
@@ -585,23 +515,12 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [
-    selectedAgentKey,
-    is_presetAgent,
-    currentEffectiveAgentInfo.agent_type,
-    availableAgentsData,
-    managedSelectableModels,
-    selectedAgent,
-    selectedAcpModel,
-  ]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
-    const preferredDefaultAgent = availableAgents?.find(
-      (a) => !a.is_preset && getAgentKey(a) === DEFAULT_MANAGED_NEWAPI_AGENT_KEY
-    );
-    const firstCliAgent = preferredDefaultAgent || availableAgents?.find((a) => !a.is_preset);
-    return firstCliAgent ? getAgentKey(firstCliAgent) : DEFAULT_MANAGED_NEWAPI_AGENT_KEY;
+    const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
+    return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
   }, [availableAgents]);
 
   return {

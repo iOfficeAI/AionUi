@@ -6,17 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
-import { uuid } from '@/common/utils';
+import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
-
-const ACP_INITIAL_MESSAGE_MAX_RETRIES = 3;
-const ACP_INITIAL_MESSAGE_RETRY_DELAYS_MS = [800, 1600];
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
+import { useTranslation } from 'react-i18next';
 
 type UseAcpInitialMessageParams = {
   conversation_id: string;
@@ -25,7 +19,6 @@ type UseAcpInitialMessageParams = {
   setAiProcessing: (value: boolean) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
-  fetchSlashCommands?: () => void;
 };
 
 /**
@@ -39,27 +32,17 @@ export const useAcpInitialMessage = ({
   setAiProcessing,
   checkAndUpdateTitle,
   addOrUpdateMessage,
-  fetchSlashCommands,
 }: UseAcpInitialMessageParams): void => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     const storageKey = `acp_initial_message_${conversation_id}`;
-    const completedKey = `acp_initial_message_completed_${conversation_id}`;
-    const processedKey = `acp_initial_message_processed_${conversation_id}`;
-    const inflightKey = `acp_initial_message_inflight_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
 
     if (!storedMessage) return;
-    if (sessionStorage.getItem(completedKey) === '1') return;
-    if (sessionStorage.getItem(processedKey) === '1') return;
 
-    const inflightSince = Number(sessionStorage.getItem(inflightKey) || '0');
-    if (Number.isFinite(inflightSince) && inflightSince > 0 && Date.now() - inflightSince < 15_000) {
-      return;
-    }
-
-    let cancelled = false;
-    sessionStorage.setItem(processedKey, '1');
-    sessionStorage.setItem(inflightKey, String(Date.now()));
+    // Clear immediately to prevent duplicate sends (e.g., if component remounts while sendMessage is pending)
+    sessionStorage.removeItem(storageKey);
 
     const sendInitialMessage = async () => {
       try {
@@ -70,35 +53,22 @@ export const useAcpInitialMessage = ({
 
         setAiProcessing(true);
 
-        let msg_id: string | null = null;
-        let lastError: unknown = null;
+        // POST first to obtain the server-assigned msg_id, then render the
+        // optimistic user bubble with that canonical id. Doing it in this
+        // order prevents `useMessageLstCache` from treating the optimistic
+        // row as a separate "streaming-only" entry when the DB load races
+        // with sendMessage — which previously produced two duplicated user
+        // bubbles on the first conversation render.
+        void checkAndUpdateTitle(conversation_id, input);
+        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+          input: displayMessage,
+          conversation_id: conversation_id,
+          files,
+        });
 
-        for (let attempt = 0; attempt < ACP_INITIAL_MESSAGE_MAX_RETRIES && !msg_id; attempt += 1) {
-          try {
-            await ipcBridge.conversation.warmup.invoke({ conversation_id });
-            fetchSlashCommands?.();
-            void checkAndUpdateTitle(conversation_id, input);
-            const result = await ipcBridge.acpConversation.sendMessage.invoke({
-              input: displayMessage,
-              conversation_id,
-              files,
-            });
-            msg_id = result.msg_id;
-          } catch (error) {
-            lastError = error;
-            if (attempt < ACP_INITIAL_MESSAGE_MAX_RETRIES - 1) {
-              await delay(ACP_INITIAL_MESSAGE_RETRY_DELAYS_MS[attempt] ?? 2000);
-              continue;
-            }
-          }
-        }
-
-        if (!msg_id) {
-          throw lastError instanceof Error ? lastError : new Error('Failed to send initial ACP message');
-        }
-
-        if (cancelled) return;
-
+        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
+        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
+        // already inserted the DB row for this same msg_id.
         addOrUpdateMessage({
           id: msg_id,
           msg_id,
@@ -109,53 +79,36 @@ export const useAcpInitialMessage = ({
           created_at: Date.now(),
         });
 
-        sessionStorage.removeItem(storageKey);
-        sessionStorage.setItem(completedKey, '1');
+        // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
+        const errorMessageText = parseError(error) ?? t('common.unknownError');
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
         console.error('[useAcpInitialMessage] Error details:', {
           name: (error as Error)?.name,
-          message: (error as Error)?.message,
+          message: errorMessageText,
           conversation_id,
-          backend,
         });
-        if (!cancelled) {
-          sessionStorage.removeItem(processedKey);
-          const errorMessage: TMessage = {
-            id: uuid(),
-            msg_id: uuid(),
-            conversation_id,
-            type: 'tips',
-            position: 'center',
-            content: {
-              content: 'Failed to send message. Please try again.',
-              type: 'error',
-            },
-            created_at: Date.now() + 2,
-          };
-          addOrUpdateMessage(errorMessage, true);
-          setAiProcessing(false);
-        }
-      } finally {
-        sessionStorage.removeItem(inflightKey);
+
+        const errorMessage: TMessage = {
+          id: uuid(),
+          msg_id: uuid(),
+          conversation_id: conversation_id,
+          type: 'tips',
+          position: 'center',
+          content: {
+            content: t('acp.send.failed', { error: errorMessageText }),
+            type: 'error',
+          },
+          created_at: Date.now() + 2,
+        };
+        addOrUpdateMessage(errorMessage, true);
+        setAiProcessing(false); // Stop loading state on error
       }
     };
 
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [
-    addOrUpdateMessage,
-    backend,
-    checkAndUpdateTitle,
-    conversation_id,
-    fetchSlashCommands,
-    setAiProcessing,
-    workspacePath,
-  ]);
+  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]);
 };

@@ -13,8 +13,8 @@
   "showPassword": "パスワードを表示",
   "hidePassword": "パスワードを隠す",
   "languageToggle": "言語を切り替える",
-  "footerPrimary": "POUNDING",
-  "footerSecondary": "エージェントがあなたを支援します",
+  "footerPrimary": "コマンドラインAIをモダンに変革",
+  "footerSecondary": "効率的でエレガント",
   "errors": {
     "empty": "ユーザー名とパスワードを入力してください",
     "invalidCredentials": "ユーザー名またはパスワードが正しくありません",

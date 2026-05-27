@@ -451,7 +451,7 @@ try {
     return;
   }
 
-  // 5. Prepare packaged backend binary (prefer upstream aioncore naming, keep legacy compatibility)
+  // 5. Prepare aioncore binary (for packaged runtime usage)
   const prepareAioncore = require('./prepareAioncore');
   prepareAioncore();
 

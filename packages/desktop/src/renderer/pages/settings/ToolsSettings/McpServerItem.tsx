@@ -11,6 +11,7 @@ interface McpServerItemProps {
   agentInstallStatus: Record<string, string[]>;
   isServerLoading: (server_name: string) => boolean;
   isTestingConnection: boolean;
+  isToggling?: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
   /** Extension-contributed servers are read-only (no edit/delete/toggle) */
@@ -29,6 +30,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
   agentInstallStatus,
   isServerLoading,
   isTestingConnection,
+  isToggling,
   oauthStatus,
   isLoggingIn,
   isReadOnly,
@@ -53,6 +55,7 @@ const McpServerItem: React.FC<McpServerItemProps> = ({
             agentInstallStatus={agentInstallStatus}
             isServerLoading={isServerLoading}
             isTestingConnection={isTestingConnection}
+            isToggling={isToggling}
             oauthStatus={oauthStatus}
             isLoggingIn={isLoggingIn}
             isReadOnly={isReadOnly}

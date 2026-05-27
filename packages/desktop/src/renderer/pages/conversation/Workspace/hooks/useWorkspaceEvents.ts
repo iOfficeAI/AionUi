@@ -130,7 +130,8 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
         const kind = acpData?.update?.kind;
         const status = acpData?.update?.status;
         const title = acpData?.update?.title;
-        if (kind === 'edit' || kind === 'execute' || (!kind && status === 'completed')) {
+        const shouldRefresh = kind === 'edit' || kind === 'execute' || (status === 'completed' && kind !== 'read');
+        if (shouldRefresh) {
           if (title && isNonFileSystemTool(title)) return;
           throttledRefresh();
         }

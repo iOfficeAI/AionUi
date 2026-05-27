@@ -23,7 +23,7 @@ const tarballPath = path.join(distDir, tarballName);
 
 console.log(`Packing web-cli for ${platform}-${arch}...`);
 
-// 1. Prepare bundled aioncore
+// 1. Prepare bundled-aioncore
 console.log('1. Preparing aioncore...');
 prepareAioncore({
   projectRoot,
@@ -77,14 +77,12 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled backend (aioncore only)
-const backendSrc = path.join(projectRoot, 'resources', 'bundled-aioncore', `${platform}-${arch}`);
-if (!fs.existsSync(backendSrc)) {
-  throw new Error(
-    `Backend bundle dir missing under resources/bundled-aioncore for ${platform}-${arch}. Ensure prepareAioncore succeeded.`
-  );
-}
+// 7. Copy bundled-aioncore
+const backendSrc = path.join(projectRoot, 'resources/bundled-aioncore', `${platform}-${arch}`);
 const backendDest = path.join(tarballContentDir, 'bundled-aioncore', `${platform}-${arch}`);
+if (!fs.existsSync(backendSrc)) {
+  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAioncore succeeded.`);
+}
 fs.mkdirSync(path.dirname(backendDest), { recursive: true });
 fs.cpSync(backendSrc, backendDest, { recursive: true });
 

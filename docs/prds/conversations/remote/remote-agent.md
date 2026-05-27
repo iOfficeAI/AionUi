@@ -315,15 +315,15 @@ Bridge 端逐字段映射到 DB 列名（仅更新 `updates` 中不为 `undefine
 
 **Connect 请求参数**：
 
-| 参数                          | 值                                                 |
-| ----------------------------- | -------------------------------------------------- |
-| `minProtocol` / `maxProtocol` | 3                                                  |
-| `client.id`                   | `'gateway-client'`                                 |
-| `client.displayName`          | `'AionUI'`                                         |
-| `client.mode`                 | `'backend'`                                        |
-| `caps`                        | `['tool-events']`（必须声明以接收 tool call 事件） |
-| `role`                        | `'operator'`                                       |
-| `scopes`                      | `['operator.admin']`                               |
+| 参数                          | 值                                                                       |
+| ----------------------------- | ------------------------------------------------------------------------ |
+| `minProtocol` / `maxProtocol` | `3` / `4`（同时兼容 v3 与 v4 Gateway，2026.5.12 起 Gateway 默认要求 v4） |
+| `client.id`                   | `'gateway-client'`                                                       |
+| `client.displayName`          | `'AionUI'`                                                               |
+| `client.mode`                 | `'backend'`                                                              |
+| `caps`                        | `['tool-events']`（必须声明以接收 tool call 事件）                       |
+| `role`                        | `'operator'`                                                             |
+| `scopes`                      | `['operator.admin']`                                                     |
 
 **技术说明**: password 认证路径在 Bridge 层（`remoteAgentBridge.ts:184`）和 Connection 层（`OpenClawGatewayConnection.ts:263`）已实现，但当前 UI 不暴露 password 选项。如果通过直接修改 DB 将 `auth_type` 改为 `'password'`，握手流程会正确使用 password 认证。
 

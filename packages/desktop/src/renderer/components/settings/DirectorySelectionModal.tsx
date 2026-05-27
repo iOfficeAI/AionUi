@@ -30,12 +30,6 @@ interface DirectorySelectionModalProps {
   onCancel: () => void;
 }
 
-export const normalizeDisplayedPath = (path: string): string => {
-  if (path === '.aionrs') return '.pounding';
-  if (path.endsWith('/.aionrs')) return `${path.slice(0, -'.aionrs'.length)}.pounding`;
-  return path;
-};
-
 const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   visible,
   isFileMode = false,
@@ -143,10 +137,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
         <div className='w-full flex justify-between items-center'>
           <div
             className='text-t-secondary text-14px overflow-hidden text-ellipsis whitespace-nowrap max-w-[70vw]'
-            title={normalizeDisplayedPath(selectedPath || currentPath)}
+            title={selectedPath || currentPath}
           >
-            {normalizeDisplayedPath(selectedPath) ||
-              normalizeDisplayedPath(currentPath) ||
+            {selectedPath ||
+              currentPath ||
               (isFileMode ? t('fileSelection.pleaseSelectFile') : t('fileSelection.pleaseSelectDirectory'))}
           </div>
           <div className='flex gap-10px'>

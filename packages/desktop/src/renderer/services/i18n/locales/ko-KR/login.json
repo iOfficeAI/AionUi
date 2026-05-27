@@ -13,8 +13,8 @@
   "showPassword": "비밀번호 표시",
   "hidePassword": "비밀번호 숨기기",
   "languageToggle": "언어 변경",
-  "footerPrimary": "POUNDING",
-  "footerSecondary": "에이전트가 당신을 돕습니다",
+  "footerPrimary": "명령줄 AI의 혁신",
+  "footerSecondary": "현대적이고 효율적인",
   "errors": {
     "empty": "사용자 이름과 비밀번호를 입력하세요",
     "invalidCredentials": "잘못된 사용자 이름 또는 비밀번호",

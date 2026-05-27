@@ -7,13 +7,10 @@
 import React from 'react';
 import { Alert, Result } from '@arco-design/web-react';
 import { Lock } from '@icon-park/react';
-import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { useTranslation } from 'react-i18next';
-import ManagedCliPrepProgress from './ManagedCliPrepProgress';
 
 const DesktopLoginGate: React.FC = () => {
   const { t } = useTranslation();
-  const { prepStatus, retryPrep } = useNewApiAccount();
 
   return (
     <div className='size-full flex items-center justify-center p-24px'>
@@ -25,9 +22,6 @@ const DesktopLoginGate: React.FC = () => {
           title={t('settings.newApiDesktopGateTitle')}
           subTitle={t('settings.newApiDesktopGateHint')}
         />
-        <div className='mt-16px'>
-          <ManagedCliPrepProgress prepStatus={prepStatus} onRetry={() => void retryPrep()} />
-        </div>
       </div>
     </div>
   );

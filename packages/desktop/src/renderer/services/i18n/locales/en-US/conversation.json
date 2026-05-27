@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Hi, what's your plan for today?",
     "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
-    "uploadFile": "Upload Files",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
     "selectModel": "Select Model",
@@ -13,10 +12,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can POUNDING do?",
-    "quickActionFeedback": "Got feedback or suggestions?",
+    "quickActionsTitle": "What can AionUi do?",
+    "quickActionFeedback": "Report Issue",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "POUNDING Skills Market",
+    "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
@@ -85,12 +84,6 @@
     "loadingMore": "Loading more...",
     "untitled": "Untitled conversation"
   },
-  "tabs": {
-    "closeAll": "Close All",
-    "closeLeft": "Close to the Left",
-    "closeRight": "Close to the Right",
-    "closeOthers": "Close Others"
-  },
   "dropdown": {
     "cliAgents": "CLI Agents",
     "presetAssistants": "Preset Assistants"
@@ -155,6 +148,7 @@
     "changes": {
       "tab": "Changes",
       "filesTab": "Files",
+      "currentBranchLabel": "Current branch",
       "summary": "{{count}} file(s) changed",
       "insertions": "+{{count}} insertions",
       "deletions": "-{{count}} deletions",
@@ -202,7 +196,6 @@
     "tryAnotherAgent": "Try another agent:",
     "switchedToAgent": "Switched to {{agent}}",
     "switchAgentFailed": "Failed to switch agent",
-    "notFound": "Conversation does not exist or has been deleted",
     "speech": {
       "recordTooltip": "Start voice input",
       "pickFileTooltip": "Select an audio file",
@@ -292,5 +285,6 @@
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
-  }
+  },
+  "notFound": "Conversation not found or has been deleted"
 }

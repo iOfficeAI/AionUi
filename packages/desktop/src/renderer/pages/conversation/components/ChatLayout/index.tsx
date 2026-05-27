@@ -1,14 +1,11 @@
-import AgentBadge from '@/renderer/components/agent/AgentBadge';
+import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import ConversationTabs from '@/renderer/pages/conversation/components/ConversationTabs';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
-import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
-import { useConversationTabs } from '@/renderer/pages/conversation/hooks/ConversationTabsContext';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
 import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/usePreviewAutoCollapse';
@@ -17,17 +14,19 @@ import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWor
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
-import { getAgentDisplayName } from '@/renderer/utils/model/agentLogo';
 import classNames from 'classnames';
 import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
-  MIN_WORKSPACE_RATIO,
+  DEFAULT_WORKSPACE_PANEL_PX,
+  MAX_WORKSPACE_PANEL_PX,
+  MIN_WORKSPACE_PANEL_PX,
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import './chat-layout.css';
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
@@ -42,7 +41,6 @@ const ChatLayout: React.FC<{
   /** Fallback agent name (used when no presetAssistant, e.g. from conversation.extra.agent_name) */
   agent_name?: string;
   headerExtra?: React.ReactNode;
-  headerLeft?: React.ReactNode;
   workspaceEnabled?: boolean;
   /** Conversation ID for mode switching */
   conversation_id?: string;
@@ -52,11 +50,19 @@ const ChatLayout: React.FC<{
   workspacePath?: string;
   /** Authoritative temp-workspace flag from `conversation.extra.is_temporary_workspace`. */
   isTemporaryWorkspace?: boolean;
+  /**
+   * Stable key for persisting the workspace collapse preference. Defaults to
+   * `conversation_id` for single chats; team mode passes `team_id` so the
+   * preference survives agent-tab switches.
+   */
+  workspacePreferenceKey?: string;
   /** Custom rename handler; when provided, replaces the default conversation.update rename flow */
   onRenameTitle?: (new_name: string) => Promise<boolean>;
+  /** Optional override for the leading icon shown before the title (e.g. team Peoples icon) */
+  headerLeading?: React.ReactNode;
 }> = (props) => {
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
-  const { backend, presetAssistant, agent_name, workspaceEnabled = true } = props;
+  const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -71,20 +77,18 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isMobile,
     conversation_id,
+    preferenceKey: workspacePreferenceKey ?? conversation_id,
+    isTemporaryWorkspace,
   });
 
   // --- Hook B: container width ---
   const { containerRef, containerWidth } = useContainerWidth();
 
   // --- Hook C: title rename ---
-  const { openTabs, updateTabName } = useConversationTabs();
-  const hasTabs = openTabs.length > 0;
-
   const { editingTitle, setEditingTitle, titleDraft, setTitleDraft, renameLoading, canRenameTitle, submitTitleRename } =
     useTitleRename({
       title: props.title,
       conversation_id,
-      updateTabName,
       onRename: props.onRenameTitle,
     });
 
@@ -92,33 +96,30 @@ const ChatLayout: React.FC<{
   // Custom ACP agents live in the same catalog with `agent_source === 'custom'`,
   // so we no longer need a separate `acp.customAgents` ConfigStorage fallback.
   const { cliAgents } = useConversationAgents();
-  const detectedAgent = backend ? cliAgents.find((a) => a.backend === backend || a.agent_type === backend) : undefined;
+  const backendAgentName = backend
+    ? cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name
+    : undefined;
   const capitalizedBackend = backend ? backend.charAt(0).toUpperCase() + backend.slice(1) : backend;
 
   // Compute display name with fallback chain
-  const display_name =
-    presetAssistant?.name ||
-    getAgentDisplayName({
-      name: agent_name || detectedAgent?.name || capitalizedBackend,
-      backend,
-      agent_type: backend,
-    });
+  const display_name = presetAssistant?.name || agent_name || backendAgentName || capitalizedBackend;
 
   const {
-    splitRatio: workspaceSplitRatio,
-    setSplitRatio: setWorkspaceSplitRatio,
+    splitRatio: workspaceWidthPxPref,
+    setSplitRatio: setWorkspaceWidthPxPref,
     createDragHandle: createWorkspaceDragHandle,
   } = useResizableSplit({
-    defaultWidth: 20,
-    minWidth: MIN_WORKSPACE_RATIO,
-    maxWidth: 40,
-    storageKey: 'chat-workspace-split-ratio',
+    unit: 'px',
+    defaultWidth: DEFAULT_WORKSPACE_PANEL_PX,
+    minWidth: MIN_WORKSPACE_PANEL_PX,
+    maxWidth: MAX_WORKSPACE_PANEL_PX,
+    storageKey: 'chat-workspace-width-px',
   });
 
   // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
   const { dynamicChatMinRatio, dynamicChatMaxRatio } = calcLayoutMetrics({
     containerWidth,
-    workspaceSplitRatio,
+    workspaceWidthPx: workspaceWidthPxPref,
     chatSplitRatio: 60, // placeholder; only dynamicChatMinRatio/dynamicChatMaxRatio are used here
     workspaceEnabled,
     isDesktop,
@@ -139,17 +140,16 @@ const ChatLayout: React.FC<{
   });
 
   // Full metrics with real chatSplitRatio
-  const { chatFlex, workspaceFlex, workspaceWidthPx, titleAreaMaxWidth, mobileWorkspaceHandleRight } =
-    calcLayoutMetrics({
-      containerWidth,
-      workspaceSplitRatio,
-      chatSplitRatio,
-      workspaceEnabled,
-      isDesktop,
-      isPreviewOpen,
-      rightSiderCollapsed,
-      isMobile,
-    });
+  const { chatFlex, workspaceWidthPx, titleAreaMaxWidth, mobileWorkspaceHandleRight } = calcLayoutMetrics({
+    containerWidth,
+    workspaceWidthPx: workspaceWidthPxPref,
+    chatSplitRatio,
+    workspaceEnabled,
+    isDesktop,
+    isPreviewOpen,
+    rightSiderCollapsed,
+    isMobile,
+  });
 
   // --- Hook D: preview auto-collapse ---
   usePreviewAutoCollapse({
@@ -170,64 +170,83 @@ const ChatLayout: React.FC<{
     isPreviewOpen,
     rightSiderCollapsed,
     setRightSiderCollapsed,
-    workspaceSplitRatio,
-    setWorkspaceSplitRatio,
+    workspaceWidthPx: workspaceWidthPxPref,
+    setWorkspaceWidthPx: setWorkspaceWidthPxPref,
     chatSplitRatio,
     setChatSplitRatio,
     dynamicChatMinRatio,
     dynamicChatMaxRatio,
   });
 
+  const [mobileActionsSlot, setMobileActionsSlot] = useState<HTMLElement | null>(null);
+  useEffect(() => {
+    if (!layout?.isMobile) {
+      setMobileActionsSlot(null);
+      return;
+    }
+    const findSlot = () => document.getElementById('app-titlebar-actions-slot');
+    setMobileActionsSlot(findSlot());
+    const observer = new MutationObserver(() => {
+      const next = findSlot();
+      setMobileActionsSlot((prev) => (prev === next ? prev : next));
+    });
+    observer.observe(document.body, { childList: true, subtree: true });
+    return () => observer.disconnect();
+  }, [layout?.isMobile]);
+
+  const desktopHeader = (
+    <ArcoLayout.Header
+      className={classNames(
+        'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
+      )}
+    >
+      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
+        <ChatTitleEditor
+          editingTitle={editingTitle}
+          titleDraft={titleDraft}
+          setTitleDraft={setTitleDraft}
+          setEditingTitle={setEditingTitle}
+          renameLoading={renameLoading}
+          canRenameTitle={canRenameTitle}
+          submitTitleRename={submitTitleRename}
+          titleAreaMaxWidth={titleAreaMaxWidth}
+          title={props.title}
+          conversation_id={conversation_id}
+          leading={
+            props.headerLeading ??
+            ((backend || presetAssistant) && (
+              <AgentLogoIcon
+                backend={backend}
+                agent_name={display_name}
+                agentLogo={presetAssistant?.logo}
+                agentLogoIsEmoji={presetAssistant?.isEmoji}
+              />
+            ))
+          }
+        />
+      </FlexFullContainer>
+      <div className='flex items-center gap-12px shrink-0'>
+        {props.headerExtra}
+        {isWindowsRuntime && workspaceEnabled && (
+          <button
+            type='button'
+            className='workspace-header__toggle'
+            aria-label='Toggle workspace'
+            onClick={() => dispatchWorkspaceToggleEvent()}
+          >
+            {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
+          </button>
+        )}
+      </div>
+    </ArcoLayout.Header>
+  );
+
   const headerBlock = (
     <>
-      <ArcoLayout.Header
-        className={classNames(
-          'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden',
-          layout?.isMobile && 'chat-layout-header--mobile-unified'
-        )}
-      >
-        <div className='shrink-0'>{props.headerLeft}</div>
-        <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-16px'>
-          {!layout?.isMobile && !hasTabs && (
-            <ChatTitleEditor
-              editingTitle={editingTitle}
-              titleDraft={titleDraft}
-              setTitleDraft={setTitleDraft}
-              setEditingTitle={setEditingTitle}
-              renameLoading={renameLoading}
-              canRenameTitle={canRenameTitle}
-              submitTitleRename={submitTitleRename}
-              titleAreaMaxWidth={titleAreaMaxWidth}
-              title={props.title}
-              conversation_id={conversation_id}
-            />
-          )}
-          {(hasTabs || layout?.isMobile) && <ConversationTitleMinimap conversation_id={conversation_id} hideTrigger />}
-        </FlexFullContainer>
-        <div className='flex items-center gap-12px shrink-0'>
-          {props.headerExtra}
-          {(backend || presetAssistant) && (
-            <AgentBadge
-              backend={backend}
-              agent_name={display_name}
-              agentLogo={presetAssistant?.logo}
-              agentLogoIsEmoji={presetAssistant?.isEmoji}
-              assistantId={presetAssistant?.id}
-            />
-          )}
-          {isWindowsRuntime && workspaceEnabled && (
-            <button
-              type='button'
-              className='workspace-header__toggle'
-              aria-label='Toggle workspace'
-              onClick={() => dispatchWorkspaceToggleEvent()}
-            >
-              {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
-            </button>
-          )}
-        </div>
-      </ArcoLayout.Header>
-      {props.tabsSlot !== undefined ? props.tabsSlot : <ConversationTabs />}
+      {layout?.isMobile
+        ? mobileActionsSlot && props.headerExtra && createPortal(props.headerExtra, mobileActionsSlot)
+        : desktopHeader}
+      {props.tabsSlot}
     </>
   );
 
@@ -239,16 +258,18 @@ const ChatLayout: React.FC<{
       }}
     >
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
+        {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle */}
         <div
           className='flex flex-col min-w-0'
           style={{
-            flexGrow: chatFlex,
-            flexShrink: 0,
+            flexGrow: 1,
+            flexShrink: 1,
             flexBasis: 0,
           }}
         >
           <div className='shrink-0 !bg-1'>{headerBlock}</div>
           <div className='flex flex-1 min-h-0 relative'>
+            {/* Chat area - always mounted, never unmounted on preview toggle */}
             <div
               className='flex flex-col relative'
               style={{
@@ -266,6 +287,7 @@ const ChatLayout: React.FC<{
                 {props.children}
               </ArcoLayout.Content>
             </div>
+            {/* Preview panel - conditionally rendered */}
             {isPreviewOpen && (
               <div
                 className={classNames(
@@ -302,11 +324,11 @@ const ChatLayout: React.FC<{
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
-              flexGrow: isPreviewOpen ? 0 : workspaceFlex,
+              flexGrow: 0,
               flexShrink: 0,
-              flexBasis: rightSiderCollapsed ? '0px' : isPreviewOpen ? `${Math.round(workspaceWidthPx)}px` : 0,
-              width: rightSiderCollapsed ? '0px' : isPreviewOpen ? `${Math.round(workspaceWidthPx)}px` : undefined,
-              minWidth: rightSiderCollapsed ? '0px' : '220px',
+              flexBasis: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              width: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              minWidth: rightSiderCollapsed ? '0px' : `${MIN_WORKSPACE_PANEL_PX}px`,
               overflow: 'hidden',
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
