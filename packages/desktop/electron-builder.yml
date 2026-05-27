@@ -6,7 +6,7 @@ copyright: Copyright © 2024 POUNDING
 protocols:
   - name: POUNDING Protocol
     schemes:
-      - aionui
+      - pounding
 
 asar:
   smartUnpack: true
@@ -180,9 +180,9 @@ linux:
     entry:
       Name: POUNDING
       Comment: ${description}
-      Icon: aionui
+      Icon: pounding
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/pounding;
 
 npmRebuild: false
 buildDependenciesFromSource: false

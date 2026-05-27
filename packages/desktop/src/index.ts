@@ -227,7 +227,7 @@ function registerCronResumeBridge(backendPort: number): void {
     void fetch(`http://127.0.0.1:${backendPort}/api/cron/internal/system-resume`, {
       method: 'POST',
       headers: {
-        'x-aionui-internal': '1',
+        'x-pounding-internal': '1',
       },
     }).catch((error) => {
       console.error('[POUNDING] Failed to notify backend about system resume:', error);

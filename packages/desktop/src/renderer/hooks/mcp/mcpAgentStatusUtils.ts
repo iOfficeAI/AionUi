@@ -1,4 +1,4 @@
-const INTERNAL_MCP_CONFIG_SOURCES = new Set(['aionui']);
+const INTERNAL_MCP_CONFIG_SOURCES = new Set(['pounding', 'aionui']);
 
 export function isDisplayableMcpAgentSource(source: string): boolean {
   return !INTERNAL_MCP_CONFIG_SOURCES.has(source.toLowerCase());
