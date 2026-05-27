@@ -27,6 +27,7 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
+import brandLogo from '@renderer/assets/logos/brand/app.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -473,30 +474,15 @@ const Layout: React.FC<{
                     })}
                     onClick={onClick}
                   >
-                    <svg
-                      className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                        'scale-140': !collapsed,
+                    <img
+                      src={brandLogo}
+                      alt='Chisel'
+                      className={classNames('w-full h-full absolute inset-0 object-contain', {
+                        'scale-110': !collapsed,
                       })}
-                      viewBox='0 0 80 80'
-                      fill='none'
-                    >
-                      <path
-                        key='logo-path-1'
-                        d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-                        fill='white'
-                      ></path>
-                      <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                      <path
-                        key='logo-path-2'
-                        d='M18 50 Q40 70 62 50'
-                        stroke='white'
-                        strokeWidth='3.5'
-                        fill='none'
-                        strokeLinecap='round'
-                      ></path>
-                    </svg>
+                    />
                   </div>
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>Chisel</div>
                   {isMobile && !collapsed && (
                     <button
                       type='button'

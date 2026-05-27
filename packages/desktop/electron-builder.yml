@@ -1,10 +1,10 @@
 appId: com.aionui.app
 productName: AionUi
 executableName: AionUi
-copyright: Copyright © 2024 AionUi
+copyright: Copyright © 2024 Chisel
 
 protocols:
-  - name: AionUi Protocol
+  - name: Chisel Protocol
     schemes:
       - aionui
 
@@ -179,13 +179,13 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
+  maintainer: chisel
   vendor: aionui
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: Chisel
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;

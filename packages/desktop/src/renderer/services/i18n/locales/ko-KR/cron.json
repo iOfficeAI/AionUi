@@ -53,10 +53,10 @@
   },
   "page": {
     "newTask": "새 작업",
-    "description": "작업을 일정에 따라 자동 실행할 수 있습니다. 어떤 대화에서든 AionUi에게 예약 작업 생성을 요청할 수도 있습니다.",
+    "description": "작업을 일정에 따라 자동 실행할 수 있습니다. 어떤 대화에서든 Chisel에게 예약 작업 생성을 요청할 수도 있습니다.",
     "awakeBanner": "예약 작업은 컴퓨터가 깨어 있는 동안에만 실행됩니다.",
     "keepAwake": "절전 방지",
-    "keepAwakeTooltip": "활성화하면 AionUi가 컴퓨터의 절전 모드를 방지합니다",
+    "keepAwakeTooltip": "활성화하면 Chisel가 컴퓨터의 절전 모드를 방지합니다",
     "createTask": "예약 작업 만들기",
     "editTask": "예약 작업 편집",
     "createSuccess": "작업이 성공적으로 생성되었습니다",

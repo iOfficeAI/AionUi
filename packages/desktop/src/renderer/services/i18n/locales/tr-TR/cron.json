@@ -65,10 +65,10 @@
   },
   "page": {
     "newTask": "Yeni görev",
-    "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada AionUi'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
+    "description": "Görevleri bir zamanlamayla çalıştırın. Ayrıca herhangi bir konuşmada Chisel'den sizin için bir görev oluşturmasını isteyebilirsiniz.",
     "awakeBanner": "Zamanlanmış görevler yalnızca bilgisayarınız açıkken çalışır.",
     "keepAwake": "Uyanık tut",
-    "keepAwakeTooltip": "Etkinleştirildiğinde AionUi bilgisayarınızın uyku moduna geçmesini engeller",
+    "keepAwakeTooltip": "Etkinleştirildiğinde Chisel bilgisayarınızın uyku moduna geçmesini engeller",
     "createTask": "Zamanlanmış Görev Oluştur",
     "editTask": "Zamanlanmış Görevi Düzenle",
     "createSuccess": "Görev başarıyla oluşturuldu",

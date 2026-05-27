@@ -16,11 +16,11 @@
   },
   "connect": {
     "scanTitle": "扫描二维码",
-    "scanHint": "打开 AionUi 桌面端 → 设置 → WebUI → 显示二维码",
+    "scanHint": "打开 Chisel 桌面端 → 设置 → WebUI → 显示二维码",
     "cameraPermissionTitle": "需要相机权限",
-    "cameraPermissionMessage": "AionUi 需要使用相机来扫描二维码，以快速登录服务器。",
+    "cameraPermissionMessage": "Chisel 需要使用相机来扫描二维码，以快速登录服务器。",
     "requestPermission": "允许使用相机",
-    "invalidQRCode": "无效的二维码，请扫描 AionUi 桌面端生成的二维码。",
+    "invalidQRCode": "无效的二维码，请扫描 Chisel 桌面端生成的二维码。",
     "verifying": "验证中...",
     "connectionFailed": "连接失败",
     "invalidToken": "Token 无效或已过期",
@@ -29,7 +29,7 @@
     "pasteLinkHint": "从桌面端复制二维码链接粘贴到此处",
     "urlPlaceholder": "粘贴二维码登录链接",
     "connect": "连接",
-    "invalidURL": "链接无效，请粘贴 AionUi 桌面端生成的二维码链接。"
+    "invalidURL": "链接无效，请粘贴 Chisel 桌面端生成的二维码链接。"
   },
   "tabs": {
     "chat": "聊天",

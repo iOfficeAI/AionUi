@@ -53,10 +53,10 @@
   },
   "page": {
     "newTask": "新建任务",
-    "description": "按计划自动运行任务。你也可以在任意对话中直接让 AionUi 帮你创建一个定时任务。",
+    "description": "按计划自动运行任务。你也可以在任意对话中直接让 Chisel 帮你创建一个定时任务。",
     "awakeBanner": "定时任务仅在电脑唤醒状态下运行。",
     "keepAwake": "保持唤醒",
-    "keepAwakeTooltip": "开启后，AionUi 将阻止电脑进入休眠状态",
+    "keepAwakeTooltip": "开启后，Chisel 将阻止电脑进入休眠状态",
     "createTask": "创建定时任务",
     "editTask": "编辑定时任务",
     "createSuccess": "任务创建成功",

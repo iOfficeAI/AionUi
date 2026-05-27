@@ -16,11 +16,11 @@
   },
   "connect": {
     "scanTitle": "Сканировать QR-код",
-    "scanHint": "Откройте AionUi на ПК → Настройки → WebUI → Показать QR-код",
+    "scanHint": "Откройте Chisel на ПК → Настройки → WebUI → Показать QR-код",
     "cameraPermissionTitle": "Нужен доступ к камере",
-    "cameraPermissionMessage": "AionUi требуется доступ к камере для сканирования QR-кодов быстрого входа на сервер.",
+    "cameraPermissionMessage": "Chisel требуется доступ к камере для сканирования QR-кодов быстрого входа на сервер.",
     "requestPermission": "Разрешить камеру",
-    "invalidQRCode": "Неверный QR-код. Отсканируйте QR-код из настольного AionUi.",
+    "invalidQRCode": "Неверный QR-код. Отсканируйте QR-код из настольного Chisel.",
     "verifying": "Проверка...",
     "connectionFailed": "Ошибка подключения",
     "invalidToken": "Неверный или просроченный токен",
@@ -29,7 +29,7 @@
     "pasteLinkHint": "Вставьте ссылку QR-кода с компьютера",
     "urlPlaceholder": "Вставьте сюда URL QR-входа",
     "connect": "Подключиться",
-    "invalidURL": "Неверный URL. Вставьте URL QR-входа из настольного AionUi."
+    "invalidURL": "Неверный URL. Вставьте URL QR-входа из настольного Chisel."
   },
   "tabs": {
     "chat": "Чат",

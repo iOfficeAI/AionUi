@@ -52,10 +52,10 @@
   },
   "page": {
     "newTask": "New task",
-    "description": "Run tasks on a schedule. You can also ask AionUi in any conversation to create one for you.",
+    "description": "Run tasks on a schedule. You can also ask Chisel in any conversation to create one for you.",
     "awakeBanner": "Scheduled tasks only run while your computer is awake.",
     "keepAwake": "Keep awake",
-    "keepAwakeTooltip": "When enabled, AionUi will prevent your computer from going to sleep",
+    "keepAwakeTooltip": "When enabled, Chisel will prevent your computer from going to sleep",
     "createTask": "Create Scheduled Task",
     "editTask": "Edit Scheduled Task",
     "createSuccess": "Task created successfully",

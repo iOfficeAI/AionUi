@@ -16,11 +16,11 @@
   },
   "connect": {
     "scanTitle": "Scan QR Code",
-    "scanHint": "Open AionUi desktop → Settings → WebUI → Show QR Code",
+    "scanHint": "Open Chisel desktop → Settings → WebUI → Show QR Code",
     "cameraPermissionTitle": "Camera Access Required",
-    "cameraPermissionMessage": "AionUi needs camera access to scan QR codes for quick server login.",
+    "cameraPermissionMessage": "Chisel needs camera access to scan QR codes for quick server login.",
     "requestPermission": "Allow Camera",
-    "invalidQRCode": "Invalid QR code. Please scan the QR code from AionUi desktop.",
+    "invalidQRCode": "Invalid QR code. Please scan the QR code from Chisel desktop.",
     "verifying": "Verifying...",
     "connectionFailed": "Connection failed",
     "invalidToken": "Invalid or expired token",
@@ -29,7 +29,7 @@
     "pasteLinkHint": "Paste the QR code link from desktop",
     "urlPlaceholder": "Paste QR login URL here",
     "connect": "Connect",
-    "invalidURL": "Invalid URL. Please paste the QR login link from AionUi desktop."
+    "invalidURL": "Invalid URL. Please paste the QR login link from Chisel desktop."
   },
   "tabs": {
     "chat": "Chat",

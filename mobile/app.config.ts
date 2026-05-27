@@ -5,7 +5,7 @@ import VERSION from './versions/version.json';
 export default ({ config }: ConfigContext): ExpoConfig => {
   return {
     ...config,
-    name: 'AionUi Mobile',
+    name: 'Chisel Mobile',
     slug: 'aionui-mobile',
     version: VERSION.version,
     orientation: 'portrait',
@@ -18,7 +18,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       buildNumber: String(VERSION.buildNumber),
       infoPlist: {
         ITSAppUsesNonExemptEncryption: false,
-        NSCameraUsageDescription: 'AionUi needs camera access to scan QR codes for server login.',
+        NSCameraUsageDescription: 'Chisel needs camera access to scan QR codes for server login.',
       },
     },
     android: {
