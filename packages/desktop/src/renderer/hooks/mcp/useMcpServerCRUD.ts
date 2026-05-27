@@ -1,5 +1,5 @@
 import type React from 'react';
-import { useCallback } from 'react';
+import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import { mcpService } from '@/common/adapter/ipcBridge';
@@ -17,6 +17,21 @@ export const useMcpServerCRUD = (
   setAgentInstallStatus: React.Dispatch<React.SetStateAction<Record<string, string[]>>>
 ) => {
   const { t } = useTranslation();
+  const togglingServerIdsRef = useRef<Set<string>>(new Set());
+  const [togglingServerIds, setTogglingServerIds] = useState<Set<string>>(() => new Set());
+
+  const setServerToggling = useCallback((serverId: string, isToggling: boolean) => {
+    const next = new Set(togglingServerIdsRef.current);
+
+    if (isToggling) {
+      next.add(serverId);
+    } else {
+      next.delete(serverId);
+    }
+
+    togglingServerIdsRef.current = next;
+    setTogglingServerIds(next);
+  }, []);
 
   // 添加MCP服务器
   const handleAddMcpServer = useCallback(
@@ -95,32 +110,43 @@ export const useMcpServerCRUD = (
   // 启用/禁用MCP服务器
   const handleToggleMcpServer = useCallback(
     async (serverId: string, enabled: boolean) => {
-      const updatedServer = await mcpService.toggleServer.invoke(serverId);
-      await reloadMcpServers();
+      if (togglingServerIdsRef.current.has(serverId)) return;
 
-      if (updatedServer.enabled !== enabled) {
-        Message.error(enabled ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
-        return;
-      }
+      setServerToggling(serverId, true);
 
-      if (enabled) {
-        setTimeout(() => void checkSingleServerInstallStatus(updatedServer.name), 100);
-        return;
-      }
+      try {
+        const updatedServer = await mcpService.toggleServer.invoke(serverId);
+        await reloadMcpServers();
 
-      setAgentInstallStatus((prev) => {
-        const updated = { ...prev };
-        delete updated[updatedServer.name];
-        void configService.set('mcp.agentInstallStatus', updated).catch(() => {
-          // Handle storage error silently
+        if (updatedServer.enabled !== enabled) {
+          Message.error(enabled ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
+          return;
+        }
+
+        if (enabled) {
+          setTimeout(() => void checkSingleServerInstallStatus(updatedServer.name), 100);
+          return;
+        }
+
+        setAgentInstallStatus((prev) => {
+          const updated = { ...prev };
+          delete updated[updatedServer.name];
+          void configService.set('mcp.agentInstallStatus', updated).catch(() => {
+            // Handle storage error silently
+          });
+          return updated;
         });
-        return updated;
-      });
+      } catch {
+        Message.error(enabled ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
+      } finally {
+        setServerToggling(serverId, false);
+      }
     },
-    [reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus, t]
+    [reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus, setServerToggling, t]
   );
 
   return {
+    togglingServerIds,
     handleAddMcpServer,
     handleBatchImportMcpServers,
     handleEditMcpServer,

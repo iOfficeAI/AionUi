@@ -67,6 +67,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     handleEditMcpServer,
     handleDeleteMcpServer,
     handleToggleMcpServer,
+    togglingServerIds,
   } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
 
   // OAuth 登录处理
@@ -103,11 +104,8 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
 
   // 包装编辑服务器，编辑后自动测试连接
   const wrappedHandleEditMcpServer = React.useCallback(
-    async (
-      editingMcpServer: IMcpServer | undefined,
-      serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>
-    ) => {
-      const updatedServer = await handleEditMcpServer(editingMcpServer, serverData);
+    async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
+      const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
       if (updatedServer) {
         // 直接使用返回的服务器对象进行测试
         void handleTestMcpConnection(updatedServer);
@@ -250,6 +248,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
                 agentInstallStatus={agentInstallStatus}
                 isServerLoading={isServerLoading}
                 isTestingConnection={testingServers[server.id] || false}
+                isToggling={togglingServerIds.has(server.id)}
                 oauthStatus={oauthStatus[server.id]}
                 isLoggingIn={loggingIn[server.id]}
                 onToggleCollapse={() => toggleServerCollapse(server.id)}

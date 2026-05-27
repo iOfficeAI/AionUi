@@ -23,6 +23,7 @@ interface McpServerHeaderProps {
   agentInstallStatus: Record<string, string[]>;
   isServerLoading: (server_name: string) => boolean;
   isTestingConnection: boolean;
+  isToggling?: boolean;
   oauthStatus?: McpOAuthStatus;
   isLoggingIn?: boolean;
   /** Extension-contributed servers are read-only */
@@ -54,7 +55,7 @@ const getStatusIcon = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStat
   return <CloseOne fill={iconColors.secondary} className='h-[24px]' />;
 };
 
-const getStatusText = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStatus, t?: any) => {
+const getStatusText = (status?: IMcpServer['status'], oauthStatus?: McpOAuthStatus, t?: (key: string) => string) => {
   // 优先级1: 测试中状态
   if (status === 'testing' || oauthStatus?.isChecking) {
     return t?.('settings.mcpTesting') || 'testing';
@@ -84,6 +85,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   agentInstallStatus,
   isServerLoading,
   isTestingConnection,
+  isToggling = false,
   oauthStatus,
   isLoggingIn,
   isReadOnly,
@@ -126,6 +128,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
             icon={<Login size={'14'} />}
             title={t('settings.mcpLogin') || 'Login'}
             loading={isLoggingIn}
+            disabled={isToggling}
             onClick={() => onOAuthLogin(server)}
           >
             {t('settings.mcpLogin') || 'Login'}
@@ -137,6 +140,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
             icon={<Refresh size={'14'} />}
             title={t('settings.mcpTestConnection')}
             loading={isTestingConnection}
+            disabled={isToggling}
             onClick={() => onTestConnection(server)}
           />
         )}
@@ -154,13 +158,13 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
                 trigger='hover'
                 droplist={
                   <Menu>
-                    <Menu.Item key='edit' onClick={() => onEditServer(server)}>
+                    <Menu.Item key='edit' disabled={isToggling} onClick={() => onEditServer(server)}>
                       <div className='flex items-center gap-2'>
                         <Write size={'14'} />
                         {t('settings.mcpEditServer')}
                       </div>
                     </Menu.Item>
-                    <Menu.Item key='delete' onClick={() => onDeleteServer(server.id)}>
+                    <Menu.Item key='delete' disabled={isToggling} onClick={() => onDeleteServer(server.id)}>
                       <div className='flex items-center gap-2 text-red-500'>
                         <DeleteFour size={'14'} />
                         {t('settings.mcpDeleteServer')}
@@ -169,7 +173,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
                   </Menu>
                 }
               >
-                <Button size='mini' icon={<SettingOne size={'14'} />} />
+                <Button size='mini' icon={<SettingOne size={'14'} />} disabled={isToggling} />
               </Dropdown>
             )}
           </div>
@@ -177,7 +181,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
             checked={server.enabled}
             onChange={(checked) => onToggleServer(server.id, checked)}
             size='small'
-            disabled={server.status === 'testing'}
+            disabled={server.status === 'testing' || isToggling}
           />
         </div>
       )}

@@ -262,6 +262,7 @@ const ModalMcpManagementSection: React.FC<{
     handleEditMcpServer,
     handleDeleteMcpServer,
     handleToggleMcpServer,
+    togglingServerIds,
   } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
 
   const handleOAuthLogin = useCallback(
@@ -432,6 +433,7 @@ const ModalMcpManagementSection: React.FC<{
                   agentInstallStatus={agentInstallStatus}
                   isServerLoading={isServerLoading}
                   isTestingConnection={testingServers[server.id] || false}
+                  isToggling={togglingServerIds.has(server.id)}
                   oauthStatus={oauthStatus[server.id]}
                   isLoggingIn={loggingIn[server.id]}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
