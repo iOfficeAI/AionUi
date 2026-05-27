@@ -5,7 +5,14 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { composeMessage, type IMessageAcpToolCall, type IMessageThinking, type TMessage } from '@/common/chat/chatLib';
+import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import {
+  composeMessage,
+  transformMessage,
+  type IMessageAcpToolCall,
+  type IMessageThinking,
+  type TMessage,
+} from '@/common/chat/chatLib';
 
 const CONVERSATION_ID = 'conversation-1';
 
@@ -89,5 +96,19 @@ describe('composeMessage', () => {
     expect(list.map((message) => message.type)).toEqual(['thinking', 'acp_tool_call']);
     expect((list[0] as IMessageThinking).content.status).toBe('done');
     expect((list[0] as IMessageThinking).content.duration).toBe(3200);
+  });
+});
+
+describe('transformMessage', () => {
+  it('returns undefined for hidden system stream messages', () => {
+    const message: IResponseMessage = {
+      type: 'system',
+      data: 'cron metadata',
+      msg_id: 'system-1',
+      conversation_id: CONVERSATION_ID,
+      hidden: true,
+    };
+
+    expect(transformMessage(message)).toBeUndefined();
   });
 });

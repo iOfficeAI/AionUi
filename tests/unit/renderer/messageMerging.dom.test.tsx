@@ -183,4 +183,17 @@ describe('message merging', () => {
     expect((result.current.messages[0] as IMessageThinking).content.status).toBe('done');
     expect((result.current.messages[0] as IMessageThinking).content.duration).toBe(4200);
   });
+
+  it('ignores non-renderable transformed stream messages', async () => {
+    const { result } = renderHook(() => useMessageHarness(), {
+      wrapper: TestWrapper,
+    });
+
+    act(() => {
+      result.current.addOrUpdateMessage(undefined);
+    });
+    await flushMessageQueue();
+
+    expect(result.current.messages).toEqual([]);
+  });
 });

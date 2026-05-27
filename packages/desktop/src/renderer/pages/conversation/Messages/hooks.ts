@@ -39,7 +39,8 @@ function getMessageIndexKey(message: TMessage): string | undefined {
 // Use WeakMap to cache index, auto-cleanup when list is GC'd
 const indexCache = new WeakMap<TMessage[], MessageIndex>();
 
-export function logDroppedToolCallWithoutCallId(message: TMessage): boolean {
+export function logDroppedToolCallWithoutCallId(message: TMessage | undefined): boolean {
+  if (!message) return false;
   if (message.type !== 'tool_call' || message.content?.call_id) return false;
 
   console.warn('[tool-call] dropped tool_call without call_id', {
@@ -88,7 +89,7 @@ function getOrBuildIndex(list: TMessage[]): MessageIndex {
 
 // 使用索引优化的消息合并函数
 // Index-optimized message compose function
-function composeMessageWithIndex(message: TMessage, list: TMessage[], index: MessageIndex): TMessage[] {
+function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[], index: MessageIndex): TMessage[] {
   if (!message) return list || [];
 
   if (logDroppedToolCallWithoutCallId(message)) {
@@ -309,6 +310,10 @@ export const useAddOrUpdateMessage = () => {
       let newList = list;
 
       for (const item of pending) {
+        if (!item.message) {
+          continue;
+        }
+
         if (logDroppedToolCallWithoutCallId(item.message)) {
           continue;
         }
@@ -352,7 +357,10 @@ export const useAddOrUpdateMessage = () => {
   }, []);
 
   return useCallback(
-    (message: TMessage, add = false) => {
+    (message: TMessage | undefined, add = false) => {
+      if (!message) {
+        return;
+      }
       pendingRef.current.push({ message, add });
       if (rafRef.current === null) {
         rafRef.current = setTimeout(flush);

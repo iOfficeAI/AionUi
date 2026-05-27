@@ -344,7 +344,7 @@ export interface IConfirmation<Option extends any = any> {
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
-export const transformMessage = (message: IResponseMessage): TMessage => {
+export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
     case 'error': {
@@ -512,7 +512,7 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     // Disabled: available_commands messages are too noisy and distracting in the chat UI
     case 'available_commands':
-      break;
+      return undefined;
     case 'start':
     case 'finish':
     case 'thought':
@@ -524,12 +524,12 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
-      break;
+      return undefined;
     default: {
       console.warn(
         `[transformMessage] Unsupported message type '${message.type}'. All non-standard message types should be pre-processed by respective AgentManagers.`
       );
-      break;
+      return undefined;
     }
   }
 };
