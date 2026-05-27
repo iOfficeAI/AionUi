@@ -3,6 +3,7 @@ import { configService } from '@/common/config/configService';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { IMcpServer } from '@/common/config/storage';
+import { isDisplayableMcpAgentSource, sanitizeMcpAgentInstallStatus } from './mcpAgentStatusUtils';
 
 /**
  * MCP Agent安装状态管理Hook
@@ -19,7 +20,13 @@ export const useMcpAgentStatus = () => {
   useEffect(() => {
     const status = configService.get('mcp.agentInstallStatus');
     if (status && typeof status === 'object') {
-      setAgentInstallStatus(status as Record<string, string[]>);
+      const sanitized = sanitizeMcpAgentInstallStatus(status as Record<string, string[]>);
+      setAgentInstallStatus(sanitized);
+      if (JSON.stringify(sanitized) !== JSON.stringify(status)) {
+        void configService.set('mcp.agentInstallStatus', sanitized).catch(() => {
+          // Handle storage error silently
+        });
+      }
     }
   }, []);
 
@@ -57,6 +64,8 @@ export const useMcpAgentStatus = () => {
 
       // 检查每个agent的MCP配置，只检查启用的服务器
       agentConfigs.forEach((agentConfig) => {
+        if (!isDisplayableMcpAgentSource(agentConfig.source)) return;
+
         agentConfig.servers.forEach((agentServer) => {
           // 使用Map查找，O(1)时间复杂度
           const localServer = serverMap.get(agentServer.name);
@@ -128,7 +137,7 @@ export const useMcpAgentStatus = () => {
 
         // 处理配置数据
         processAgentConfigs(servers, mcpConfigs, targetServerName);
-      } catch (error) {
+      } catch {
         // 出错时保持当前状态，避免闪烁
       } finally {
         // 清除加载状态
@@ -179,6 +188,8 @@ export const useMcpAgentStatus = () => {
       // 只检查指定服务器的安装状态
       const installedAgents: string[] = [];
       mcpConfigs.forEach((agentConfig) => {
+        if (!isDisplayableMcpAgentSource(agentConfig.source)) return;
+
         const hasServer = agentConfig.servers.some((server) => server.name === server_name);
         if (hasServer) {
           installedAgents.push(agentConfig.source);
@@ -201,7 +212,7 @@ export const useMcpAgentStatus = () => {
 
         return updated;
       });
-    } catch (error) {
+    } catch {
       // 检查失败时静默处理
     } finally {
       // 清除加载状态
