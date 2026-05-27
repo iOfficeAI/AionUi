@@ -4,13 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { migrateConfigStorage, migrateProviders } from '@/common/config/configMigration';
+import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } from '@/common/config/configMigration';
 import { httpRequest } from '@/common/adapter/httpBridge';
-import type { ProcessConfig as ProcessConfigType } from './initStorage';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import type { ConfigKeyMap } from '@/common/config/configKeys';
+import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer } from '@/common/config/storage';
+import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
 
 type ConfigFile = typeof ProcessConfigType;
 type MigrationStepResult = boolean;
+type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -32,10 +36,108 @@ const CLEANUP_STEPS: Array<{
   run: () => Promise<void>;
 }> = [{ name: 'cleanupLegacyClientPreferences', run: async () => cleanupLegacyClientPreferences() }];
 
+function buildImageGenerationEnv(config?: ConfigKeyMap['tools.imageGenerationModel']): Record<string, string> {
+  if (!config) return {};
+  const env: Record<string, string> = {};
+  if (config.platform) env.AIONUI_IMG_PLATFORM = config.platform;
+  if (config.base_url) env.AIONUI_IMG_BASE_URL = config.base_url;
+  if (config.api_key) env.AIONUI_IMG_API_KEY = config.api_key;
+  if (config.use_model) env.AIONUI_IMG_MODEL = config.use_model;
+  return env;
+}
+
+function buildBuiltinImageGenerationServer(config?: ConfigKeyMap['tools.imageGenerationModel']): McpImportServer {
+  const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
+  const env = buildImageGenerationEnv(config);
+  const serverConfig = {
+    command: 'node',
+    args: [scriptPath],
+    env,
+  };
+
+  return {
+    name: BUILTIN_IMAGE_GEN_NAME,
+    description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
+    enabled: config?.switch === true,
+    builtin: true,
+    transport: {
+      type: 'stdio',
+      command: 'node',
+      args: [scriptPath],
+      env,
+    },
+    original_json: JSON.stringify({ mcpServers: { [BUILTIN_IMAGE_GEN_NAME]: serverConfig } }, null, 2),
+  };
+}
+
+function buildDefaultMcpServers(): McpImportServer[] {
+  const chromeConfig = {
+    command: 'npx',
+    args: ['-y', 'chrome-devtools-mcp@latest'],
+  };
+
+  return [
+    {
+      name: 'chrome-devtools',
+      description: 'Default MCP server: chrome-devtools',
+      enabled: false,
+      transport: {
+        type: 'stdio',
+        command: chromeConfig.command,
+        args: chromeConfig.args,
+      },
+      original_json: JSON.stringify({ mcpServers: { 'chrome-devtools': chromeConfig } }, null, 2),
+    },
+  ];
+}
+
+async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
+  const imageConfig = await configFile.get('tools.imageGenerationModel').catch((): undefined => undefined);
+  const existing = await mcpService.listServers.invoke();
+  const existingByName = new Map((existing ?? []).map((server) => [server.name, server]));
+  const imageServer = buildBuiltinImageGenerationServer(imageConfig);
+  const defaultServers = buildDefaultMcpServers();
+  const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
+
+  if (missing.length > 0) {
+    await mcpService.batchImportServers.invoke({ servers: missing });
+  }
+
+  const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
+  if (existingImageServer && existingImageServer.transport.type === 'stdio' && imageServer.transport.type === 'stdio') {
+    await mcpService.updateServer.invoke({
+      id: existingImageServer.id,
+      data: {
+        transport: imageServer.transport,
+        original_json: imageServer.original_json,
+      },
+    });
+  }
+
+  if (imageConfig?.switch === true) {
+    const { switch: _switch, ...rest } = imageConfig;
+    await configFile.set('tools.imageGenerationModel', rest as ConfigKeyMap['tools.imageGenerationModel']);
+  }
+
+  console.info(
+    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s',
+    missing.length,
+    existingImageServer ? 'yes' : 'no'
+  );
+}
+
 const MIGRATION_STEPS: Array<{
   name: string;
   run: (configFile: ConfigFile) => Promise<MigrationStepResult>;
 }> = [
+  {
+    name: 'migrateLegacyMcpConfigToDb',
+    run: async (configFile) => (await migrateLegacyMcpConfigToDb(configFile), true),
+  },
+  {
+    name: 'ensureBootstrapMcpServersInDb',
+    run: async (configFile) => (await ensureBootstrapMcpServersInDb(configFile), true),
+  },
   { name: 'migrateConfigStorage', run: async (configFile) => (await migrateConfigStorage(configFile), true) },
   { name: 'migrateProviders', run: async (configFile) => (await migrateProviders(configFile), true) },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },

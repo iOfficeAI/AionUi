@@ -2,14 +2,13 @@ import { Button, Collapse, Modal, Dropdown, Menu } from '@arco-design/web-react'
 import { Plus, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
+import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
 import {
   useMcpServers,
   useMcpAgentStatus,
-  useMcpOperations,
   useMcpConnection,
   useMcpModal,
   useMcpServerCRUD,
@@ -20,13 +19,14 @@ interface McpManagementProps {
   message: ReturnType<typeof import('@arco-design/web-react').Message.useMessage>[0];
 }
 
-const isVisibleMcpServer = (server: IMcpServer) => !(server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID);
+const isVisibleMcpServer = (server: IMcpServer) =>
+  !(server.builtin === true && (server.id === BUILTIN_IMAGE_GEN_ID || server.name === BUILTIN_IMAGE_GEN_NAME));
 
 const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   const { t } = useTranslation();
 
   // 使用自定义hooks管理各种状态和操作
-  const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
+  const { mcpServers, extensionMcpServers, setMcpServers, reloadMcpServers } = useMcpServers();
   const visibleMcpServers = React.useMemo(() => mcpServers.filter(isVisibleMcpServer), [mcpServers]);
   const {
     agentInstallStatus,
@@ -35,7 +35,6 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     checkAgentInstallStatus,
     checkSingleServerInstallStatus,
   } = useMcpAgentStatus();
-  const { syncMcpToAgents, removeMcpFromAgents } = useMcpOperations(mcpServers, message);
 
   // OAuth hook
   const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
@@ -49,8 +48,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   );
 
   const { testingServers, handleTestMcpConnection } = useMcpConnection(
-    mcpServers,
-    saveMcpServers,
+    setMcpServers,
     message,
     handleAuthRequired
   );
@@ -75,9 +73,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     handleToggleMcpServer,
   } = useMcpServerCRUD(
     mcpServers,
-    saveMcpServers,
-    syncMcpToAgents,
-    removeMcpFromAgents,
+    reloadMcpServers,
     checkSingleServerInstallStatus,
     setAgentInstallStatus
   );
@@ -109,16 +105,9 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         if (addedServer.transport.type === 'http' || addedServer.transport.type === 'sse') {
           void checkOAuthStatus(addedServer);
         }
-        // 修复 #518: 使用实际服务器的 enabled 状态而不是输入数据的状态
-        // Fix #518: Use actual server enabled state instead of input data
-        // 因为服务器可能在添加过程中被修改，需要使用最终的实际状态
-        // The server may be modified during addition, need to use final actual state
-        if (addedServer.enabled) {
-          void syncMcpToAgents(addedServer, true);
-        }
       }
     },
-    [handleAddMcpServer, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleAddMcpServer, handleTestMcpConnection, checkOAuthStatus]
   );
 
   // 包装编辑服务器，编辑后自动测试连接
@@ -135,14 +124,9 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
         if (updatedServer.transport.type === 'http' || updatedServer.transport.type === 'sse') {
           void checkOAuthStatus(updatedServer);
         }
-        // 修复 #518: 使用实际服务器的 enabled 状态而不是输入数据的状态
-        // Fix #518: Use actual server enabled state instead of input data
-        if (updatedServer.enabled) {
-          void syncMcpToAgents(updatedServer, true);
-        }
       }
     },
-    [handleEditMcpServer, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleEditMcpServer, handleTestMcpConnection, checkOAuthStatus]
   );
 
   // 包装批量导入，导入后自动测试连接
@@ -156,13 +140,10 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
           if (server.transport.type === 'http' || server.transport.type === 'sse') {
             void checkOAuthStatus(server);
           }
-          if (server.enabled) {
-            void syncMcpToAgents(server, true);
-          }
         });
       }
     },
-    [handleBatchImportMcpServers, handleTestMcpConnection, checkOAuthStatus, syncMcpToAgents]
+    [handleBatchImportMcpServers, handleTestMcpConnection, checkOAuthStatus]
   );
 
   // 检测可用agents的状态

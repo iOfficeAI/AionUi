@@ -1,7 +1,6 @@
 import { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
-import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
@@ -73,12 +72,7 @@ export const useMcpOperations = (
         }
 
         // 然后更新UI状态
-        if (!skipRecheck) {
-          const latestServers = configService.get('mcp.config');
-          if (latestServers) {
-            // Can trigger status check here, but needs callback from the caller
-          }
-        }
+        void skipRecheck;
       } else {
         const failedKey = operation === 'sync' ? 'mcpSyncFailed' : 'mcpRemoveFailed';
         const errorMsg = truncateErrorMessage(t('settings.unknownError'));

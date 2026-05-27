@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
-import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { ipcBridge } from '@/common';
+import { mcpService } from '@/common/adapter/ipcBridge';
 
 /**
  * MCP服务器状态管理Hook
@@ -15,11 +15,13 @@ export const useMcpServers = () => {
 
   // 加载MCP服务器配置
   useEffect(() => {
-    // Load user-configured MCP servers
-    const data = configService.get('mcp.config');
-    if (data) {
-      setMcpServers(data);
-    }
+    void mcpService.listServers
+      .invoke()
+      .then((servers) => setMcpServers(servers ?? []))
+      .catch((error) => {
+        console.error('[useMcpServers] Failed to load MCP servers:', error);
+        setMcpServers([]);
+      });
 
     // Load extension-contributed MCP servers
     void ipcBridge.extensions.getMcpServers
@@ -47,27 +49,10 @@ export const useMcpServers = () => {
       });
   }, []);
 
-  // 保存MCP服务器配置（仅保存用户配置的，不保存扩展的）
-  const saveMcpServers = useCallback((serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => {
-    return new Promise<void>((resolve, reject) => {
-      setMcpServers((prev) => {
-        // 计算新值
-        const newServers = typeof serversOrUpdater === 'function' ? serversOrUpdater(prev) : serversOrUpdater;
-
-        // 异步保存到存储（在微任务中执行）
-        queueMicrotask(() => {
-          configService
-            .set('mcp.config', newServers)
-            .then(() => resolve())
-            .catch((error) => {
-              console.error('Failed to save MCP servers:', error);
-              reject(error);
-            });
-        });
-
-        return newServers;
-      });
-    });
+  const reloadMcpServers = useCallback(async () => {
+    const servers = await mcpService.listServers.invoke();
+    setMcpServers(servers ?? []);
+    return servers ?? [];
   }, []);
 
   // 合并后的完整列表（用户配置 + 扩展贡献）
@@ -78,6 +63,6 @@ export const useMcpServers = () => {
     allMcpServers,
     extensionMcpServers,
     setMcpServers,
-    saveMcpServers,
+    reloadMcpServers,
   };
 };

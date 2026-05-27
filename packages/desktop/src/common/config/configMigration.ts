@@ -3,11 +3,19 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
 import type { ConfigKey, ConfigKeyMap } from './configKeys';
-import type { IConfigStorageRefer } from './storage';
+import type { IConfigStorageRefer, IMcpServer } from './storage';
+import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './storage';
 
 export type ConfigFile = {
   get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>;
   set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown>;
+};
+
+const LEGACY_MCP_CONFIG_KEY = 'mcp.config' as const;
+
+type LegacyMcpConfigFile = ConfigFile & {
+  get(key: typeof LEGACY_MCP_CONFIG_KEY): Promise<unknown>;
+  set(key: typeof LEGACY_MCP_CONFIG_KEY, value: unknown): Promise<unknown>;
 };
 
 const ALL_LEGACY_KEYS: ConfigKey[] = [
@@ -18,7 +26,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'acp.cachedInitializeResult',
   'acp.cached_config_options',
   'acp.cachedModes',
-  'mcp.config',
   'mcp.agentInstallStatus',
   'language',
   'theme',
@@ -108,6 +115,66 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
       Object.keys(entries).length
     );
   }
+}
+
+export async function migrateLegacyMcpConfigToDb(configFile: ConfigFile): Promise<void> {
+  const legacyConfigFile = configFile as LegacyMcpConfigFile;
+  const backendPrefs = await fetchExistingClientKeys();
+  const backendLegacy = backendPrefs[LEGACY_MCP_CONFIG_KEY];
+  const fileLegacy = await legacyConfigFile.get(LEGACY_MCP_CONFIG_KEY).catch((): undefined => undefined);
+  const legacyServers = Array.isArray(backendLegacy)
+    ? backendLegacy
+    : Array.isArray(fileLegacy)
+      ? fileLegacy
+      : [];
+
+  if (legacyServers.length === 0) {
+    console.info('[Migration] legacy MCP migration skipped — no legacy servers found');
+    return;
+  }
+
+  const existing = await ipcBridge.mcpService.listServers.invoke();
+  const existingNames = new Set((existing ?? []).map((server) => server.name));
+  const importableServers = legacyServers.filter(isImportableMcpServer).map(normalizeLegacyMcpServer);
+  const missing = importableServers.filter((server) => !existingNames.has(server.name));
+
+  console.info(
+    '[Migration] legacy MCP migration found %d servers, importing %d missing, skipping %d existing',
+    legacyServers.length,
+    missing.length,
+    legacyServers.length - missing.length
+  );
+
+  if (missing.length > 0) {
+    await ipcBridge.mcpService.batchImportServers.invoke({ servers: missing });
+  }
+
+  await setBackendClientPreferences({ [LEGACY_MCP_CONFIG_KEY]: null });
+  await legacyConfigFile.set(LEGACY_MCP_CONFIG_KEY, []);
+}
+
+function isImportableMcpServer(server: unknown): server is Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'> {
+  if (!server || typeof server !== 'object') return false;
+  const candidate = server as Partial<IMcpServer>;
+  return typeof candidate.name === 'string' && candidate.name.length > 0 && Boolean(candidate.transport);
+}
+
+function normalizeLegacyMcpServer(
+  server: Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>
+): Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'> {
+  const isLegacyImageGen =
+    server.builtin === true &&
+    (server.id === BUILTIN_IMAGE_GEN_ID ||
+      server.name === BUILTIN_IMAGE_GEN_NAME ||
+      BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(server.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]));
+
+  if (!isLegacyImageGen) return server;
+
+  return {
+    ...server,
+    name: BUILTIN_IMAGE_GEN_NAME,
+    builtin: true,
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -290,7 +357,8 @@ async function markProvidersMigrationDone(configFile: ConfigFile): Promise<void>
   }
 }
 
-type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] }>;
+type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] | null }> &
+  Record<string, unknown>;
 
 async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
   try {

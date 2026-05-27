@@ -14,7 +14,6 @@ import type {
   IChatConversationRefer,
   IConfigStorageRefer,
   IEnvStorageRefer,
-  IMcpServer,
   TChatConversation,
   TProviderWithModel,
 } from '@/common/config/storage';
@@ -29,11 +28,7 @@ import {
   verifyDirectoryFiles,
 } from './utils';
 import { runLegacyDatabaseMigrations } from '@process/services/database/runLegacyDatabaseMigrations';
-import {
-  BUILTIN_IMAGE_GEN_ID,
-  BUILTIN_IMAGE_GEN_LEGACY_NAMES,
-  BUILTIN_IMAGE_GEN_NAME,
-} from '../resources/builtinMcp/constants';
+import { BUILTIN_IMAGE_GEN_ID } from '../resources/builtinMcp/constants';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -345,36 +340,6 @@ const ensureAssistantDirs = async (): Promise<void> => {
   if (!existsSync(assistantsDir)) mkdirSync(assistantsDir);
 };
 
-/**
- * 创建默认的 MCP 服务器配置
- */
-const getDefaultMcpServers = (): IMcpServer[] => {
-  const now = Date.now();
-  const defaultConfig = {
-    mcpServers: {
-      'chrome-devtools': {
-        command: 'npx',
-        args: ['-y', 'chrome-devtools-mcp@latest'],
-      },
-    },
-  };
-
-  return Object.entries(defaultConfig.mcpServers).map(([name, config], index) => ({
-    id: `mcp_default_${now}_${index}`,
-    name,
-    description: `Default MCP server: ${name}`,
-    enabled: false, // 默认不启用，让用户手动开启
-    transport: {
-      type: 'stdio' as const,
-      command: config.command,
-      args: config.args,
-    },
-    created_at: now,
-    updated_at: now,
-    original_json: JSON.stringify({ [name]: config }, null, 2),
-  }));
-};
-
 const getBuiltinMcpBaseDir = (): string => {
   const mainModuleDir =
     typeof require !== 'undefined' && require.main?.filename ? path.dirname(require.main.filename) : __dirname;
@@ -398,135 +363,6 @@ const getBuiltinMcpScriptPath = (scriptName: string): string => {
   return path.resolve(getBuiltinMcpBaseDir(), `${scriptName}.js`);
 };
 
-/**
- * Ensure built-in MCP servers exist in mcp.config.
- * - Creates missing entries with enabled: false
- * - Updates command path if app location changed
- * - Migrates old tools.imageGenerationModel.switch to MCP server enabled state
- */
-const ensureBuiltinMcpServers = async (): Promise<void> => {
-  try {
-    const mcpServers: IMcpServer[] = (await configFile.get('mcp.config').catch((): IMcpServer[] => [])) || [];
-    const now = Date.now();
-    let changed = false;
-
-    const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
-
-    // Check if built-in image gen server already exists
-    const existingIdx = mcpServers.findIndex((s) => s.builtin === true && s.id === BUILTIN_IMAGE_GEN_ID);
-
-    // Migrate old switch setting
-    let shouldEnable = false;
-    const oldConfig = await configFile.get('tools.imageGenerationModel').catch((): undefined => undefined);
-    if (oldConfig && oldConfig.switch === true) {
-      shouldEnable = true;
-    }
-
-    // Build env vars from existing image generation model config
-    const buildEnvFromConfig = (cfg: typeof oldConfig): Record<string, string> => {
-      if (!cfg) return {};
-      const env: Record<string, string> = {};
-      if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
-      if (cfg.base_url) env.AIONUI_IMG_BASE_URL = cfg.base_url;
-      if (cfg.api_key) env.AIONUI_IMG_API_KEY = cfg.api_key;
-      if (cfg.use_model) env.AIONUI_IMG_MODEL = cfg.use_model;
-      return env;
-    };
-
-    const buildOriginalJson = (scriptPathValue: string, env: Record<string, string>) =>
-      JSON.stringify(
-        {
-          [BUILTIN_IMAGE_GEN_NAME]: {
-            command: 'node',
-            args: [scriptPathValue],
-            env,
-          },
-        },
-        null,
-        2
-      );
-
-    if (existingIdx >= 0) {
-      // Update command path in case app location changed
-      const existing = mcpServers[existingIdx];
-      const needsNameMigration =
-        existing.name !== BUILTIN_IMAGE_GEN_NAME &&
-        BUILTIN_IMAGE_GEN_LEGACY_NAMES.includes(existing.name as (typeof BUILTIN_IMAGE_GEN_LEGACY_NAMES)[number]);
-
-      const needsPathUpdate =
-        existing.transport.type === 'stdio' &&
-        existing.transport.command === 'node' &&
-        ((existing.transport.args || [])[0] !== scriptPath || needsNameMigration);
-
-      const needsMigration = shouldEnable && !existing.enabled;
-
-      if (needsNameMigration || needsPathUpdate || needsMigration) {
-        let updatedTransport: IMcpServer['transport'] = existing.transport;
-
-        if (existing.transport.type === 'stdio') {
-          const mergedEnv = needsMigration
-            ? { ...existing.transport.env, ...buildEnvFromConfig(oldConfig) }
-            : existing.transport.env;
-          updatedTransport = {
-            ...existing.transport,
-            ...(needsPathUpdate && { args: [scriptPath] }),
-            ...(needsMigration && { env: mergedEnv }),
-          };
-        }
-
-        const newOriginalJson =
-          needsPathUpdate && updatedTransport.type === 'stdio'
-            ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
-            : existing.original_json;
-
-        mcpServers[existingIdx] = {
-          ...existing,
-          name: needsNameMigration ? BUILTIN_IMAGE_GEN_NAME : existing.name,
-          transport: updatedTransport,
-          original_json: newOriginalJson,
-          enabled: needsMigration ? true : existing.enabled,
-          updated_at: now,
-        };
-        changed = true;
-      }
-    } else {
-      // Create new built-in image gen server
-      const env = buildEnvFromConfig(oldConfig);
-      const newServer: IMcpServer = {
-        id: BUILTIN_IMAGE_GEN_ID,
-        name: BUILTIN_IMAGE_GEN_NAME,
-        description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
-        enabled: shouldEnable,
-        builtin: true,
-        transport: {
-          type: 'stdio',
-          command: 'node',
-          args: [scriptPath],
-          env,
-        },
-        created_at: now,
-        updated_at: now,
-        original_json: buildOriginalJson(scriptPath, env),
-      };
-      mcpServers.push(newServer);
-      changed = true;
-    }
-
-    if (changed) {
-      await configFile.set('mcp.config', mcpServers);
-      console.log('[AionUi] Built-in MCP servers ensured');
-    }
-
-    // Clear old switch flag after migration
-    if (shouldEnable && oldConfig) {
-      const { switch: _switch, ...rest } = oldConfig;
-      await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
-    }
-  } catch (error) {
-    console.error('[AionUi] Failed to ensure built-in MCP servers:', error);
-  }
-};
-
 const initStorage = async () => {
   const t0 = performance.now();
   const mark = (label: string) => console.log(`[AionUi:init] ${label} +${Math.round(performance.now() - t0)}ms`);
@@ -546,23 +382,7 @@ const initStorage = async () => {
   EnvStorage.interceptor(envFile);
   mark('3. storage interceptors');
 
-  // 4. 初始化 MCP 配置（为所有用户提供默认配置）
-  try {
-    const existingMcpConfig = await configFile.get('mcp.config').catch((): undefined => undefined);
-
-    // 仅当配置不存在或为空时，写入默认值（适用于新用户和老用户）
-    if (!existingMcpConfig || !Array.isArray(existingMcpConfig) || existingMcpConfig.length === 0) {
-      const defaultServers = getDefaultMcpServers();
-      await configFile.set('mcp.config', defaultServers);
-    }
-  } catch (error) {
-    console.error('[AionUi] Failed to initialize default MCP servers:', error);
-  }
-  mark('4.1 MCP defaults');
-
-  // 4.2 Ensure built-in MCP servers exist and are up-to-date
-  await ensureBuiltinMcpServers();
-  mark('4.2 builtinMcpServers');
+  mark('4. MCP config initialization skipped');
 
   // 5. Ensure assistant-related directories exist. Built-in assistant records
   //    now live in the backend SQLite catalog (see aionui-assistant crate) and

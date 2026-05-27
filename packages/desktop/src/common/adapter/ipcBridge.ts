@@ -761,6 +761,30 @@ export const acpConversation = {
 // ---------------------------------------------------------------------------
 
 export const mcpService = {
+  listServers: httpGet<IMcpServer[], void>('/api/mcp/servers'),
+  createServer: httpPost<
+    IMcpServer,
+    Omit<IMcpServer, 'id' | 'created_at' | 'updated_at' | 'status' | 'last_connected' | 'tools'>
+  >('/api/mcp/servers', (server) => ({
+    name: server.name,
+    description: server.description,
+    transport: server.transport,
+    original_json: server.original_json,
+    builtin: server.builtin,
+  })),
+  updateServer: httpPut<
+    IMcpServer,
+    { id: string; data: Partial<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json'>> }
+  >(
+    (p) => `/api/mcp/servers/${p.id}`,
+    (p) => p.data
+  ),
+  deleteServer: httpDelete<void, string>((id) => `/api/mcp/servers/${id}`),
+  toggleServer: httpPost<IMcpServer, string>((id) => `/api/mcp/servers/${id}/toggle`, () => undefined),
+  batchImportServers: httpPost<
+    IMcpServer[],
+    { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
+  >('/api/mcp/servers/import'),
   getAgentMcpConfigs: httpGet<
     Array<{ source: string; servers: IMcpServer[] }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
