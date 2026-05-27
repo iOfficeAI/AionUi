@@ -1,10 +1,10 @@
 appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+productName: POUNDING
+executableName: POUNDING
+copyright: Copyright © 2024 POUNDING
 
 protocols:
-  - name: AionUi Protocol
+  - name: POUNDING Protocol
     schemes:
       - aionui
 
@@ -109,7 +109,7 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
-  # aioncore binary (pre-compiled per platform/arch, ships its own bun runtime)
+  # aioncore binary (pre-compiled per platform/arch)
   - from: resources/bundled-aioncore
     to: bundled-aioncore
   - from: resources/hub
@@ -178,7 +178,7 @@ linux:
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: POUNDING
       Comment: ${description}
       Icon: aionui
       Categories: Office;Utility;
@@ -221,7 +221,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: iOfficeAI
+  owner: halojerry
   repo: AionUi
   publishAutoUpdate: true
   releaseType: release

@@ -1,0 +1,215 @@
+import type { IProvider } from '@/common/config/storage';
+import type { ManagedRuntimeCliTarget } from '@/common/types/newApiAccount';
+export type { ManagedRuntimeCliTarget } from '@/common/types/newApiAccount';
+import { hasSpecificModelCapability } from '@/common/utils/modelCapabilities';
+
+// Re-export capability matrix types so existing importers get them through
+// the same module path without changing their imports.
+export type {
+  ConfigSource,
+  SecretMode,
+  HotSwitchCapability,
+  ResumeCapability,
+  ManagedCliProtocol,
+  ManagedCliCapability,
+} from './managedCliCapabilities';
+export {
+  MANAGED_CLI_CAPABILITIES,
+  getManagedCliCapability,
+  isAcpTarget,
+  supportsHotSwitch,
+  requiresNewConversationForModelChange,
+  supportsResume,
+  configSourceIs,
+} from './managedCliCapabilities';
+
+export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'hermes', 'opencode', 'openclaw'] as const;
+export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
+export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
+export const MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME = 'POUNDING API';
+export const MANAGED_RUNTIME_PROVIDER_PREFIX = 'pounding-';
+export const MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES = ['aionui-'] as const;
+
+const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
+  claude: ['claude', 'anthropic'],
+  hermes: ['hermes'],
+  opencode: ['opencode'],
+  openclaw: ['openclaw', 'openclaw-gateway'],
+};
+
+function slugifyPart(value: string): string {
+  return value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    .slice(0, 32);
+}
+
+function buildManagedRuntimeProviderIdWithPrefix(prefix: string, providerName: string, providerId: string): string {
+  const namePart = slugifyPart(providerName || 'provider') || 'provider';
+  const idPart = slugifyPart(providerId || 'default') || 'default';
+  return `${prefix}${namePart}-${idPart}`.slice(0, 64);
+}
+
+export function getManagedRuntimeProviderId(
+  providerName = MANAGED_NEWAPI_PROVIDER_NAME,
+  providerId = MANAGED_NEWAPI_PROVIDER_ID
+): string {
+  return buildManagedRuntimeProviderIdWithPrefix(MANAGED_RUNTIME_PROVIDER_PREFIX, providerName, providerId);
+}
+
+export function getManagedRuntimeProviderIdAliases(
+  providerName = MANAGED_NEWAPI_PROVIDER_NAME,
+  providerId = MANAGED_NEWAPI_PROVIDER_ID
+): string[] {
+  const names = Array.from(new Set([providerName, MANAGED_NEWAPI_PROVIDER_NAME, MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME]));
+  const prefixes = [MANAGED_RUNTIME_PROVIDER_PREFIX, ...MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES];
+  return Array.from(
+    new Set(
+      prefixes.flatMap((prefix) =>
+        names.map((name) => buildManagedRuntimeProviderIdWithPrefix(prefix, name, providerId))
+      )
+    )
+  );
+}
+
+export function isManagedRuntimeProviderId(value: string | null | undefined): boolean {
+  const normalized = value?.trim();
+  if (!normalized) return false;
+  return [MANAGED_RUNTIME_PROVIDER_PREFIX, ...MANAGED_RUNTIME_PROVIDER_LEGACY_PREFIXES].some((prefix) =>
+    normalized.startsWith(prefix)
+  );
+}
+
+export function resolveManagedRuntimeCliTarget(value: string | null | undefined): ManagedRuntimeCliTarget | undefined {
+  const normalized = value?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  return (MANAGED_RUNTIME_CLI_TARGETS as readonly ManagedRuntimeCliTarget[]).find((target) =>
+    MANAGED_RUNTIME_CLI_BACKEND_ALIASES[target].includes(normalized)
+  );
+}
+
+export function getManagedRuntimeCliBackendAliases(target: ManagedRuntimeCliTarget): string[] {
+  return MANAGED_RUNTIME_CLI_BACKEND_ALIASES[target];
+}
+
+export function buildManagedRuntimeModelId(cliTarget: ManagedRuntimeCliTarget, managedModelId: string): string {
+  const normalizedModelId = managedModelId.trim();
+  switch (cliTarget) {
+    case 'hermes':
+      return `custom:${normalizedModelId}`;
+    case 'opencode':
+    case 'openclaw':
+      return `${getManagedRuntimeProviderId()}/${normalizedModelId}`;
+    case 'claude':
+    default:
+      return normalizedModelId;
+  }
+}
+
+export function normalizeClaudeManagedModelId(modelId: string | null | undefined): string | undefined {
+  const normalized = modelId?.trim().toLowerCase();
+  if (!normalized) return undefined;
+  // "opus" and "haiku" are Claude tier aliases that the ACP bridge
+  // resolves to actual model IDs. Everything else is a managed model
+  // name that must be passed through so the proxy can route correctly.
+  if (normalized === 'opus') return 'opus';
+  if (normalized === 'haiku') return 'haiku';
+  return modelId.trim();
+}
+
+export function resolveManagedRuntimeConversationModelId(
+  cliTarget: ManagedRuntimeCliTarget,
+  modelId: string | null | undefined
+): string | undefined {
+  const resolvedModelId = resolveManagedModelIdFromRuntime(cliTarget, modelId) || modelId?.trim() || undefined;
+  if (!resolvedModelId) return undefined;
+
+  switch (cliTarget) {
+    case 'claude':
+      return normalizeClaudeManagedModelId(resolvedModelId);
+    case 'hermes':
+    case 'opencode':
+    case 'openclaw':
+      // Managed CLI routing now comes from cc-switch/native config files.
+      // Frontend create-conversation calls should preserve the selected
+      // managed model ID instead of synthesizing backend-specific wrapper IDs.
+      return resolvedModelId;
+    default:
+      return resolvedModelId;
+  }
+}
+
+export function resolveManagedModelIdFromRuntime(
+  cliTarget: ManagedRuntimeCliTarget,
+  runtimeModelId: string | null | undefined
+): string | undefined {
+  const normalizedModelId = runtimeModelId?.trim();
+  if (!normalizedModelId) return undefined;
+
+  switch (cliTarget) {
+    case 'hermes':
+      return normalizedModelId.startsWith('custom:')
+        ? normalizedModelId.slice('custom:'.length) || undefined
+        : undefined;
+    case 'opencode':
+    case 'openclaw': {
+      const matchedPrefix = getManagedRuntimeProviderIdAliases()
+        .map((providerId) => `${providerId}/`)
+        .find((prefix) => normalizedModelId.startsWith(prefix));
+      return matchedPrefix ? normalizedModelId.slice(matchedPrefix.length) || undefined : normalizedModelId;
+    }
+    case 'claude':
+      if (['default', 'opus', 'sonnet', 'haiku'].includes(normalizedModelId)) return undefined;
+      return normalizedModelId;
+    default:
+      return normalizedModelId;
+  }
+}
+
+export function getManagedRuntimeModelDisplayLabel(modelId: string | null | undefined): string | undefined {
+  const normalized = modelId?.trim();
+  if (!normalized) return undefined;
+  if (normalized.startsWith('custom:')) {
+    return normalized.slice('custom:'.length) || undefined;
+  }
+  const slashIndex = normalized.lastIndexOf('/');
+  if (slashIndex >= 0) {
+    return normalized.slice(slashIndex + 1) || undefined;
+  }
+  return normalized;
+}
+
+export function normalizeManagedRuntimeModelLabel(
+  cliTarget: ManagedRuntimeCliTarget,
+  runtimeModelLabel: string | null | undefined
+): string | undefined {
+  const normalizedLabel = runtimeModelLabel?.trim();
+  if (!normalizedLabel) return undefined;
+
+  const managedPrefixPattern = /^(?:new api|pounding api)\s*\/\s*/i;
+  if (managedPrefixPattern.test(normalizedLabel)) {
+    return normalizedLabel.replace(managedPrefixPattern, '').trim() || undefined;
+  }
+
+  const resolvedModelId = resolveManagedModelIdFromRuntime(cliTarget, normalizedLabel);
+  if (resolvedModelId) return resolvedModelId;
+
+  return getManagedRuntimeModelDisplayLabel(normalizedLabel) || undefined;
+}
+
+export function getManagedCliSelectableModels(provider: IProvider | null | undefined): string[] {
+  if (!provider) return [];
+
+  const candidateModels = (provider.models || []).filter((modelId) => {
+    if (provider.model_enabled?.[modelId] === false) return false;
+    const excluded = hasSpecificModelCapability(provider, modelId, 'excludeFromPrimary');
+    if (excluded === true) return false;
+    const functionCalling = hasSpecificModelCapability(provider, modelId, 'function_calling');
+    return functionCalling !== false;
+  });
+
+  if (candidateModels.length > 0) return candidateModels;
+  return (provider.models || []).filter((modelId) => provider.model_enabled?.[modelId] !== false);
+}

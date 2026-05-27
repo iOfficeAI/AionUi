@@ -8,19 +8,48 @@ permissions:
 
 on:
   push:
-    branches: [dev]
+    branches:
+      - main
+      - 'feature/**'
+      - 'release/**'
     tags:
       - '*'
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Branch or tag to build manually (default: current ref)'
+        required: false
+        type: string
+      manual_tag_name:
+        description: 'Manual release tag name, e.g. v2.0.2 or v2.0.3-rc.1'
+        required: false
+        type: string
+      manual_prerelease:
+        description: 'Mark the manually created release as prerelease'
+        required: false
+        default: false
+        type: boolean
+      manual_dev_release:
+        description: 'Force draft prerelease flow for testing'
+        required: false
+        default: true
+        type: boolean
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   # 独立 code-quality job,供桌面构建和 web-cli 打包共用,避免重复跑
   code-quality:
     name: Code Quality
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+    if: |
+      github.event_name == 'workflow_dispatch' ||
+      github.ref == 'refs/heads/main' ||
+      startsWith(github.ref, 'refs/heads/feature/') ||
+      startsWith(github.ref, 'refs/heads/release/') ||
+      (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
     steps:
       - name: Checkout code
         uses: actions/checkout@v6
@@ -57,10 +86,19 @@ jobs:
     name: Build Pipeline
     uses: ./.github/workflows/_build-reusable.yml
     needs: code-quality
-    # dev 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
-    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # main/feature/release 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
+    if: |
+      needs.code-quality.result == 'success' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/heads/feature/') ||
+        startsWith(github.ref, 'refs/heads/release/') ||
+        (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+      )
     with:
       skip_code_quality: true
+      ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
       matrix: >-
         {"include":[
           {"platform":"macos-arm64","os":"macos-14","command":"node scripts/build-with-builder.js arm64 --mac --arm64","artifact-name":"macos-build-arm64","arch":"arm64"},
@@ -76,10 +114,18 @@ jobs:
     name: Pack Web CLI
     uses: ./.github/workflows/pack-web-cli.yml
     needs: code-quality
-    # 与桌面构建同频触发：dev 分支或正式 tag（排除 -dev- tag）
-    if: needs.code-quality.result == 'success' && (github.ref == 'refs/heads/dev' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # 与桌面构建同频触发：main/feature/release 分支或正式 tag（排除 -dev- tag）
+    if: |
+      needs.code-quality.result == 'success' &&
+      (
+        github.event_name == 'workflow_dispatch' ||
+        github.ref == 'refs/heads/main' ||
+        startsWith(github.ref, 'refs/heads/feature/') ||
+        startsWith(github.ref, 'refs/heads/release/') ||
+        (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-'))
+      )
     with:
-      ref: ''
+      ref: ${{ github.event_name == 'workflow_dispatch' && github.event.inputs.ref || '' }}
       append_commit_hash: false
       skip_code_quality: true
     secrets: inherit
@@ -140,12 +186,12 @@ jobs:
             exit 1
           fi
 
-  # 自动创建tag（仅 dev 分支推送时）
+  # 自动创建tag（仅 release 分支推送时；main/feature 只做验证）
   create-tag:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [build-pipeline]
-    if: success() && github.ref == 'refs/heads/dev'
+    if: success() && (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
@@ -154,11 +200,8 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
         with:
-          # GH_TOKEN is a PAT with `repo` + `workflow` scopes — required because
-          # tag pushes whose reachable history contains .github/workflows/
-          # changes are rejected for the built-in GITHUB_TOKEN (lacks the
-          # `workflow` scope, which GITHUB_TOKEN can never grant).
-          token: ${{ secrets.GH_TOKEN }}
+          # Prefer PAT when configured; fall back to GitHub-provided token so checkout itself never fails.
+          token: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || github.token }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -176,9 +219,27 @@ jobs:
           VERSION=$(node -p "require('./package.json').version")
           COMMIT_SHORT=$(git rev-parse --short HEAD)
           BRANCH_NAME=${GITHUB_REF#refs/heads/}
+          MANUAL_DEV_RELEASE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.manual_dev_release || 'false' }}"
+          MANUAL_TAG_NAME="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.manual_tag_name || '' }}"
+          MANUAL_PRERELEASE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.manual_prerelease || 'false' }}"
+
+          if [ -n "$MANUAL_TAG_NAME" ]; then
+            TAG_NAME="$MANUAL_TAG_NAME"
+            if [ "$MANUAL_PRERELEASE" = "true" ]; then
+              IS_DEV="true"
+              echo "🧪 Manual prerelease requested: $TAG_NAME"
+            else
+              IS_DEV="false"
+              echo "🚀 Manual stable release requested: $TAG_NAME"
+            fi
+
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
+            exit 0
+          fi
 
           # 根据分支确定 tag 格式
-          if [ "$BRANCH_NAME" = "dev" ]; then
+          if [ "$MANUAL_DEV_RELEASE" = "true" ]; then
             TAG_NAME="v${VERSION}-dev-${COMMIT_SHORT}"
             IS_DEV="true"
             echo "🔧 Development release: $TAG_NAME"
@@ -194,7 +255,7 @@ jobs:
           # 检查远程tag是否已存在
           if git ls-remote --tags origin | grep -q "refs/tags/$TAG_NAME$"; then
             if [ "$IS_DEV" = "false" ]; then
-              # Main 分支：需要递增版本并修改 package.json
+              # Release 分支：需要递增版本并修改 package.json
               echo "⚠️ Tag $TAG_NAME already exists, auto-incrementing version..."
 
               if [[ $VERSION =~ ^([0-9]+)\.([0-9]+)\.([0-9]+)$ ]]; then
@@ -217,7 +278,9 @@ jobs:
                 git add package.json bun.lock
                 git commit -m "chore: bump version to $NEW_VERSION"
                 git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-                git push origin $BRANCH_NAME
+                if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+                  git push origin $BRANCH_NAME
+                fi
 
                 # 获取新的 commit ID
                 COMMIT_SHORT=$(git rev-parse --short HEAD)
@@ -244,11 +307,15 @@ jobs:
           # 创建并推送tag
           echo "Creating tag: $TAG_NAME"
           git tag $TAG_NAME
-          git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
-          git push origin $TAG_NAME
-          echo "✅ Successfully created and pushed tag: $TAG_NAME"
+          if [ "${{ github.event_name }}" != "workflow_dispatch" ]; then
+            git remote set-url origin https://x-access-token:${{ secrets.GH_TOKEN }}@github.com/${{ github.repository }}.git
+            git push origin $TAG_NAME
+            echo "✅ Successfully created and pushed tag: $TAG_NAME"
+          else
+            echo "ℹ️ Manual workflow run: tag created locally in runner only, release will use workflow output tag name."
+          fi
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || github.token }}
 
   # 发布到 GitHub Releases
   release:
@@ -256,8 +323,8 @@ jobs:
     runs-on: ubuntu-latest
     needs: [build-pipeline, create-tag, pack-web-cli]
     # Tag 推送时 create-tag 会被跳过，所以需要检查两种情况（排除 -dev- tag 避免重复）
-    if: always() && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (needs.create-tag.result == 'success' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
-    # dev 分支使用 dev-release 环境，正式 tag 使用 release 环境
+    if: always() && needs.build-pipeline.result == 'success' && needs.pack-web-cli.result == 'success' && (needs.create-tag.result == 'success' || github.event_name == 'workflow_dispatch' || (startsWith(github.ref, 'refs/tags/') && !contains(github.ref, '-dev-')))
+    # main/feature 仅验证，release/tag 才进入正式发布环境
     environment: ${{ needs.create-tag.outputs.is_dev == 'true' && 'dev-release' || 'release' }}
 
     steps:
@@ -267,14 +334,30 @@ jobs:
       - name: Get version for release
         id: version
         run: |
-          # 判断触发来源：正式 tag 推送 or dev 分支
-          if [[ "$GITHUB_REF" == refs/tags/* ]]; then
+          MANUAL_TAG_NAME="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.manual_tag_name || '' }}"
+          MANUAL_PRERELEASE="${{ github.event_name == 'workflow_dispatch' && github.event.inputs.manual_prerelease || 'false' }}"
+
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" && -n "$MANUAL_TAG_NAME" ]]; then
+            TAG_NAME="$MANUAL_TAG_NAME"
+            if [[ "$MANUAL_PRERELEASE" == "true" ]]; then
+              IS_DEV="true"
+            else
+              IS_DEV="false"
+            fi
+            echo "🛠️ Manual release metadata: $TAG_NAME (prerelease=$IS_DEV)"
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # 判断触发来源：正式 tag 推送 or release 分支
+          if [[ "$GITHUB_REF" == refs/tags/* ]] && [[ "${{ github.event_name }}" != "workflow_dispatch" ]]; then
             # 正式 Tag 推送触发（-dev- tag 已被排除，不会到达这里）
             TAG_NAME="${GITHUB_REF#refs/tags/}"
             IS_DEV="false"
             echo "🚀 Creating stable release from tag: $TAG_NAME"
           else
-            # dev 分支触发，使用 create-tag job 的输出
+            # release 分支触发，使用 create-tag job 的输出
             TAG_NAME="${{ needs.create-tag.outputs.tag_name }}"
             IS_DEV="${{ needs.create-tag.outputs.is_dev }}"
             echo "🔧 Creating development release: $TAG_NAME"
@@ -308,7 +391,60 @@ jobs:
             release-assets/**/*.sha256
             release-assets/install-web.sh
           generate_release_notes: true
-          draft: true
+          draft: ${{ steps.version.outputs.is_dev == 'true' }}
           prerelease: ${{ steps.version.outputs.is_dev == 'true' || contains(steps.version.outputs.tag_name, 'beta') || contains(steps.version.outputs.tag_name, 'alpha') || contains(steps.version.outputs.tag_name, 'rc') }}
         env:
-          GH_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || github.token }}
+
+      - name: Mirror release assets to COS
+        env:
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET != '' && secrets.TENCENT_COS_BUCKET || vars.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION != '' && secrets.TENCENT_COS_REGION || vars.TENCENT_COS_REGION }}
+          COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+          PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE != '' && secrets.POUNDING_UPDATE_PUBLIC_BASE || vars.POUNDING_UPDATE_PUBLIC_BASE != '' && vars.POUNDING_UPDATE_PUBLIC_BASE || vars.AIONUI_UPDATE_BASE_URL }}
+          TAG_NAME: ${{ steps.version.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+
+          test -n "$COS_BUCKET" || { echo "::error::Missing COS bucket"; exit 1; }
+          test -n "$COS_REGION" || { echo "::error::Missing COS region"; exit 1; }
+          test -n "$COS_SECRET_ID" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_ID"; exit 1; }
+          test -n "$COS_SECRET_KEY" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_KEY"; exit 1; }
+
+          curl -L --fail --retry 3 --retry-delay 2 \
+            -o coscli \
+            https://cosbrowser.cloud.tencent.com/software/coscli/coscli-linux-amd64
+          echo '7165f2ae16c5f7ac495864c963ca574a76e04ec72680d7bc8a8eee3234d8cf91  coscli' | sha256sum -c -
+          chmod 755 coscli
+
+          coscli_cmd() {
+            ./coscli "$@" \
+              -e "cos.${COS_REGION}.myqcloud.com" \
+              -i "$COS_SECRET_ID" \
+              -k "$COS_SECRET_KEY" \
+              --init-skip=true \
+              --disable-log=true
+          }
+
+          VERSION="${TAG_NAME#v}"
+          VERSION_PATH="cos://${COS_BUCKET}/releases/download/${VERSION}/"
+          LATEST_PATH="cos://${COS_BUCKET}/releases/latest/"
+
+          coscli_cmd rm "$LATEST_PATH" -r -f || true
+          coscli_cmd cp release-assets/ "$VERSION_PATH" -r
+          coscli_cmd cp release-assets/ "$LATEST_PATH" -r
+
+          find release-assets -maxdepth 1 -type f \( -name '*.yml' -o -name '*.blockmap' \) | sort | while read -r file; do
+            name="$(basename "$file")"
+            coscli_cmd cp \
+              "$file" \
+              "${LATEST_PATH}${name}" \
+              --meta 'Cache-Control:no-cache, no-store, must-revalidate, max-age=0'
+          done
+
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
+          echo "Verifying ${BASE}/releases/latest/latest.yml"
+          curl -fI --retry 5 --retry-delay 2 --retry-connrefused "${BASE}/releases/latest/latest.yml"
+          echo "Verifying ${BASE}/releases/latest/latest-mac.yml"
+          curl -fI --retry 5 --retry-delay 2 --retry-connrefused "${BASE}/releases/latest/latest-mac.yml"
