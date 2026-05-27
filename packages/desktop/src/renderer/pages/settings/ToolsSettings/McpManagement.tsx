@@ -47,11 +47,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     [checkOAuthStatus]
   );
 
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(
-    setMcpServers,
-    message,
-    handleAuthRequired
-  );
+  const { testingServers, handleTestMcpConnection } = useMcpConnection(setMcpServers, message, handleAuthRequired);
   const {
     showMcpModal,
     editingMcpServer,
@@ -71,12 +67,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
     handleEditMcpServer,
     handleDeleteMcpServer,
     handleToggleMcpServer,
-  } = useMcpServerCRUD(
-    mcpServers,
-    reloadMcpServers,
-    checkSingleServerInstallStatus,
-    setAgentInstallStatus
-  );
+  } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
 
   // OAuth 登录处理
   const handleOAuthLogin = React.useCallback(

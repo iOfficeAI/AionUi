@@ -15,6 +15,7 @@ import { migrateAssistantsToBackend } from './migrateAssistants';
 type ConfigFile = typeof ProcessConfigType;
 type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
+type BackendClientPreferences = Record<string, unknown>;
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -35,6 +36,36 @@ const CLEANUP_STEPS: Array<{
   name: string;
   run: () => Promise<void>;
 }> = [{ name: 'cleanupLegacyClientPreferences', run: async () => cleanupLegacyClientPreferences() }];
+
+async function fetchBackendClientPreferences(): Promise<BackendClientPreferences> {
+  try {
+    return (await httpRequest<BackendClientPreferences>('GET', '/api/settings/client')) || {};
+  } catch {
+    return {};
+  }
+}
+
+export function resolveImageGenerationMigrationConfig(
+  backendPrefs: BackendClientPreferences,
+  fileConfig?: ConfigKeyMap['tools.imageGenerationModel']
+): ConfigKeyMap['tools.imageGenerationModel'] | undefined {
+  const backendConfig = backendPrefs['tools.imageGenerationModel'];
+  if (backendConfig && typeof backendConfig === 'object') {
+    return backendConfig as ConfigKeyMap['tools.imageGenerationModel'];
+  }
+  return fileConfig;
+}
+
+function resolveImageGenerationMigrationConfigSource(
+  backendPrefs: BackendClientPreferences,
+  fileConfig?: ConfigKeyMap['tools.imageGenerationModel']
+): 'backend' | 'file' | 'none' {
+  const backendConfig = backendPrefs['tools.imageGenerationModel'];
+  if (backendConfig && typeof backendConfig === 'object') {
+    return 'backend';
+  }
+  return fileConfig ? 'file' : 'none';
+}
 
 function buildImageGenerationEnv(config?: ConfigKeyMap['tools.imageGenerationModel']): Record<string, string> {
   if (!config) return {};
@@ -92,26 +123,40 @@ function buildDefaultMcpServers(): McpImportServer[] {
 }
 
 async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
-  const imageConfig = await configFile.get('tools.imageGenerationModel').catch((): undefined => undefined);
+  const [backendPrefs, fileImageConfig] = await Promise.all([
+    fetchBackendClientPreferences(),
+    configFile.get('tools.imageGenerationModel').catch((): undefined => undefined),
+  ]);
+  const imageConfig = resolveImageGenerationMigrationConfig(backendPrefs, fileImageConfig);
+  const imageConfigSource = resolveImageGenerationMigrationConfigSource(backendPrefs, fileImageConfig);
   const existing = await mcpService.listServers.invoke();
   const existingByName = new Map((existing ?? []).map((server) => [server.name, server]));
   const imageServer = buildBuiltinImageGenerationServer(imageConfig);
   const defaultServers = buildDefaultMcpServers();
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
+  let imageServerToSync: IMcpServer | undefined;
 
   if (missing.length > 0) {
-    await mcpService.batchImportServers.invoke({ servers: missing });
+    const imported = await mcpService.batchImportServers.invoke({ servers: missing });
+    imageServerToSync = imported.find((server) => server.name === BUILTIN_IMAGE_GEN_NAME && server.enabled);
   }
 
   const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
   if (existingImageServer && existingImageServer.transport.type === 'stdio' && imageServer.transport.type === 'stdio') {
-    await mcpService.updateServer.invoke({
+    const updatedImageServer = await mcpService.updateServer.invoke({
       id: existingImageServer.id,
       data: {
         transport: imageServer.transport,
         original_json: imageServer.original_json,
       },
     });
+    if (updatedImageServer.enabled) {
+      imageServerToSync = updatedImageServer;
+    }
+  }
+
+  if (imageServerToSync) {
+    await mcpService.syncMcpToAgents.invoke({ servers: [imageServerToSync.id] });
   }
 
   if (imageConfig?.switch === true) {
@@ -120,9 +165,12 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   }
 
   console.info(
-    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s',
+    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s, synced image server: %s',
     missing.length,
-    existingImageServer ? 'yes' : 'no'
+    existingImageServer ? 'yes' : 'no',
+    imageConfigSource,
+    imageConfig?.switch === true ? 'yes' : 'no',
+    imageServerToSync ? 'yes' : 'no'
   );
 }
 

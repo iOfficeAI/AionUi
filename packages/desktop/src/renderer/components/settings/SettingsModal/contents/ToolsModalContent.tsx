@@ -236,11 +236,7 @@ const ModalMcpManagementSection: React.FC<{
     [checkOAuthStatus]
   );
 
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(
-    setMcpServers,
-    message,
-    handleAuthRequired
-  );
+  const { testingServers, handleTestMcpConnection } = useMcpConnection(setMcpServers, message, handleAuthRequired);
   const {
     showMcpModal,
     editingMcpServer,
@@ -260,12 +256,7 @@ const ModalMcpManagementSection: React.FC<{
     handleEditMcpServer,
     handleDeleteMcpServer,
     handleToggleMcpServer,
-  } = useMcpServerCRUD(
-    mcpServers,
-    reloadMcpServers,
-    checkSingleServerInstallStatus,
-    setAgentInstallStatus
-  );
+  } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
 
   const handleOAuthLogin = useCallback(
     async (server: IMcpServer) => {

@@ -122,11 +122,7 @@ export async function migrateLegacyMcpConfigToDb(configFile: ConfigFile): Promis
   const backendPrefs = await fetchExistingClientKeys();
   const backendLegacy = backendPrefs[LEGACY_MCP_CONFIG_KEY];
   const fileLegacy = await legacyConfigFile.get(LEGACY_MCP_CONFIG_KEY).catch((): undefined => undefined);
-  const legacyServers = Array.isArray(backendLegacy)
-    ? backendLegacy
-    : Array.isArray(fileLegacy)
-      ? fileLegacy
-      : [];
+  const legacyServers = Array.isArray(backendLegacy) ? backendLegacy : Array.isArray(fileLegacy) ? fileLegacy : [];
 
   if (legacyServers.length === 0) {
     console.info('[Migration] legacy MCP migration skipped — no legacy servers found');
@@ -153,7 +149,9 @@ export async function migrateLegacyMcpConfigToDb(configFile: ConfigFile): Promis
   await legacyConfigFile.set(LEGACY_MCP_CONFIG_KEY, []);
 }
 
-function isImportableMcpServer(server: unknown): server is Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'> {
+function isImportableMcpServer(
+  server: unknown
+): server is Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'> {
   if (!server || typeof server !== 'object') return false;
   const candidate = server as Partial<IMcpServer>;
   return typeof candidate.name === 'string' && candidate.name.length > 0 && Boolean(candidate.transport);
@@ -357,8 +355,7 @@ async function markProvidersMigrationDone(configFile: ConfigFile): Promise<void>
   }
 }
 
-type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] | null }> &
-  Record<string, unknown>;
+type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] | null }> & Record<string, unknown>;
 
 async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
   try {

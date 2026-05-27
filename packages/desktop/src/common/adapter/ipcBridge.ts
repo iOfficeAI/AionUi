@@ -780,7 +780,10 @@ export const mcpService = {
     (p) => p.data
   ),
   deleteServer: httpDelete<void, string>((id) => `/api/mcp/servers/${id}`),
-  toggleServer: httpPost<IMcpServer, string>((id) => `/api/mcp/servers/${id}/toggle`, () => undefined),
+  toggleServer: httpPost<IMcpServer, string>(
+    (id) => `/api/mcp/servers/${id}/toggle`,
+    () => undefined
+  ),
   batchImportServers: httpPost<
     IMcpServer[],
     { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
