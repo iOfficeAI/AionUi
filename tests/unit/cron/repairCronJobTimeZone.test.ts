@@ -17,14 +17,22 @@ vi.mock('@/common', () => ({
 
 const loadModule = async () => import('@/renderer/pages/cron/repairCronJobTimeZone');
 const loadBridge = async () => import('@/common');
+const originalDateTimeFormat = Intl.DateTimeFormat;
 
 describe('repairCronJobTimeZone', () => {
   afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
     vi.resetModules();
     vi.clearAllMocks();
   });
 
   it('repairs all cron jobs with missing timezone during bootstrap', async () => {
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
     const { ipcBridge } = await loadBridge();
     vi.mocked(ipcBridge.cron.listJobs.invoke).mockResolvedValue([
       {
@@ -62,6 +70,12 @@ describe('repairCronJobTimeZone', () => {
   });
 
   it('deduplicates concurrent bootstrap repair requests', async () => {
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
     const { ipcBridge } = await loadBridge();
     let resolveListJobs: ((value: never[]) => void) | null = null;
     vi.mocked(ipcBridge.cron.listJobs.invoke).mockImplementation(

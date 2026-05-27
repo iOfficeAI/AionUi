@@ -17,6 +17,8 @@ import { emitter } from '@/renderer/utils/emitter';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 
+const originalDateTimeFormat = Intl.DateTimeFormat;
+
 vi.mock('@/common', () => ({
   ipcBridge: {
     cron: {
@@ -78,6 +80,16 @@ describe('useCronJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches jobs on mount with valid conversation_id', async () => {
@@ -338,6 +350,16 @@ describe('useCronJobs', () => {
 describe('useAllCronJobs', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches all jobs on mount', async () => {
@@ -453,6 +475,16 @@ describe('useCronJobsMap', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     localStorage.clear();
+    Intl.DateTimeFormat = vi.fn(
+      () =>
+        ({
+          resolvedOptions: () => ({ timeZone: 'Asia/Shanghai' }),
+        }) as Intl.DateTimeFormat
+    ) as unknown as typeof Intl.DateTimeFormat;
+  });
+
+  afterEach(() => {
+    Intl.DateTimeFormat = originalDateTimeFormat;
   });
 
   it('fetches and groups jobs by conversation', async () => {
