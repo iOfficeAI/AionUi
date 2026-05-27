@@ -53,6 +53,7 @@ export type BackendHandle = {
 export type BackendStartupErrorDetails = {
   stage: BackendStartupStage;
   appVersion: string;
+  isPackaged?: boolean;
   binaryPath?: string;
   port?: number;
   dataDir?: string;
@@ -63,6 +64,24 @@ export type BackendStartupErrorDetails = {
   causeMessage?: string;
   stdoutTail?: string;
   stderrTail?: string;
+  resourcesPath?: string;
+  runtimeKey?: string;
+  binaryName?: string;
+  checkedBundledPath?: string;
+  bundledDirExists?: boolean;
+  runtimeDirExists?: boolean;
+  resourcesDirEntries?: string[];
+  runtimeDirEntries?: string[];
+  pathLookupCommand?: string;
+  pathLookupResult?: string;
+  pathLookupError?: string;
+};
+
+export type BackendStartOptions = {
+  allowPendingOnHealthTimeout?: boolean;
+  onHealthTimeout?: (error: BackendStartupError) => Promise<void> | void;
+  onPendingExit?: (error: BackendStartupError) => Promise<void> | void;
+  onReady?: (port: number) => Promise<void> | void;
 };
 
 export class BackendStartupError extends Error {
@@ -136,6 +155,13 @@ function getErrorMessage(error: unknown): string | undefined {
   return undefined;
 }
 
+function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetails> | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const diagnostics = (error as { diagnostics?: unknown }).diagnostics;
+  if (!diagnostics || typeof diagnostics !== 'object') return undefined;
+  return diagnostics as Partial<BackendStartupErrorDetails>;
+}
+
 export class BackendLifecycleManager {
   private childProcess: ChildProcess | null = null;
   private _port = 0;
@@ -161,21 +187,29 @@ export class BackendLifecycleManager {
     return this._status;
   }
 
-  async start(dbPath: string, logDir?: string, dirs?: BackendDirConfig): Promise<number> {
+  async start(
+    dbPath: string,
+    logDir?: string,
+    dirs?: BackendDirConfig,
+    options?: BackendStartOptions
+  ): Promise<number> {
     const appVersion = this.appMeta.version;
     let binaryPath: string;
     try {
       binaryPath = this.resolveBackend();
     } catch (error) {
+      const diagnostics = getResolveDiagnostics(error);
       throw new BackendStartupError(
         'aioncore startup failed while resolving backend binary',
         {
           stage: 'resolve_binary',
           appVersion,
+          isPackaged: this.appMeta.isPackaged,
           dataDir: dbPath,
           logDir,
           workDir: dirs?.workDir,
           causeMessage: getErrorMessage(error),
+          ...diagnostics,
         },
         error
       );
@@ -188,6 +222,7 @@ export class BackendLifecycleManager {
         {
           stage: 'find_port',
           appVersion,
+          isPackaged: this.appMeta.isPackaged,
           binaryPath,
           dataDir: dbPath,
           logDir,
@@ -215,6 +250,7 @@ export class BackendLifecycleManager {
         {
           stage,
           appVersion,
+          isPackaged: this.appMeta.isPackaged,
           binaryPath,
           port: this._port,
           dataDir: dbPath,
@@ -282,6 +318,20 @@ export class BackendLifecycleManager {
           );
           return;
         }
+        if (this._status === 'starting') {
+          this._status = 'error';
+          void Promise.resolve(
+            options?.onPendingExit?.(
+              makeStartupError('early_exit', 'aioncore exited after startup health timeout', undefined, {
+                exitCode: code ?? undefined,
+                signal: signal ?? undefined,
+              })
+            )
+          ).catch((error) => {
+            console.error('[aioncore] pending exit handler failed:', error);
+          });
+          return;
+        }
         if (this._status === 'running') this.handleCrash(code);
       });
     });
@@ -302,11 +352,21 @@ export class BackendLifecycleManager {
 
     const ready = await Promise.race([this.waitForHealth(this._port), startupFailure]);
     if (!ready) {
+      const healthTimeoutError = makeStartupError('health_timeout', 'aioncore failed to start within timeout');
+      if (options?.allowPendingOnHealthTimeout && this.childProcess) {
+        startupSettled = true;
+        console.warn(`[aioncore] health check timed out; keeping process alive on port ${this._port}`);
+        void Promise.resolve(options.onHealthTimeout?.(healthTimeoutError)).catch((error) => {
+          console.error('[aioncore] health timeout handler failed:', error);
+        });
+        this.continueWaitingForHealth(this._port, this.childProcess, options.onReady);
+        return this._port;
+      }
       startupSettled = true;
       this.childProcess?.kill('SIGKILL');
       this.childProcess = null;
       this._status = 'error';
-      throw makeStartupError('health_timeout', 'aioncore failed to start within timeout');
+      throw healthTimeoutError;
     }
 
     startupSettled = true;
@@ -334,9 +394,13 @@ export class BackendLifecycleManager {
     this.childProcess = null;
   }
 
-  private async waitForHealth(port: number, timeoutMs = 30_000): Promise<boolean> {
+  private async waitForHealth(
+    port: number,
+    timeoutMs = 30_000,
+    shouldContinue: () => boolean = () => true
+  ): Promise<boolean> {
     const start = Date.now();
-    while (Date.now() - start < timeoutMs) {
+    while (Date.now() - start < timeoutMs && shouldContinue()) {
       try {
         const response = await fetch(`http://127.0.0.1:${port}/health`);
         if (response.ok) return true;
@@ -346,6 +410,27 @@ export class BackendLifecycleManager {
       await new Promise((r) => setTimeout(r, 200));
     }
     return false;
+  }
+
+  private continueWaitingForHealth(
+    port: number,
+    childProcess: ChildProcess,
+    onReady?: (port: number) => Promise<void> | void
+  ): void {
+    void (async () => {
+      const ready = await this.waitForHealth(
+        port,
+        Number.POSITIVE_INFINITY,
+        () => this.childProcess === childProcess && this._status === 'starting'
+      );
+      if (!ready || this.childProcess !== childProcess || this._status !== 'starting') return;
+      this._status = 'running';
+      this.restartCount = 0;
+      console.log(`[aioncore] listening on port ${port}, data-dir: ${this._lastDbPath}`);
+      await onReady?.(port);
+    })().catch((error) => {
+      console.error('[aioncore] background health wait failed:', error);
+    });
   }
 
   private handleCrash(_code: number | null): void {

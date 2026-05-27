@@ -201,6 +201,7 @@ let disposeCronResumeListener: (() => void) | null = null;
 let backendStartedOk = false;
 let backendStartupFailed = false;
 let backendMigrationsScheduled = false;
+let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
@@ -249,6 +250,40 @@ const scheduleBackendMigrations = (): void => {
     }
   })();
 };
+
+function exposeBackendPort(backendPort: number): void {
+  // Expose the backend port to main-process callers of httpBridge (e.g. the
+  // one-shot assistant migration hook below). Must land BEFORE any
+  // ipcBridge.* invoke from the main process — the renderer side reads
+  // window.__backendPort via preload, but main has no `window`.
+  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+}
+
+function ensureAdminUserOnce(backendPort: number): Promise<void> {
+  if (!ensureAdminUserPromise) {
+    ensureAdminUserPromise = (async () => {
+      try {
+        const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
+        await ensureAdminUser(backendPort);
+      } catch (err) {
+        console.error('[WebUI] ensureAdminUser failed:', err);
+      }
+    })();
+  }
+  return ensureAdminUserPromise;
+}
+
+function markBackendReady(backendPort: number, source: string): void {
+  if (backendStartedOk) return;
+  console.log(`[AionUi] ${source} ready (port=${backendPort})`);
+  exposeBackendPort(backendPort);
+  registerCronResumeBridge(backendPort);
+  backendStartedOk = true;
+  backendStartupFailed = false;
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
+  void ensureAdminUserOnce(backendPort);
+  scheduleBackendMigrations();
+}
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
@@ -496,21 +531,39 @@ const handleAppReady = async (): Promise<void> => {
       const { getDataPath } = await import('./process/utils/utils');
       const { getSystemDir } = await import('./process/utils/initStorage');
       const sysDir = getSystemDir();
-      return backendManager.start(getDataPath(), sysDir.logDir, {
-        cacheDir: sysDir.cacheDir,
-        workDir: sysDir.workDir,
-        logDir: sysDir.logDir,
-      });
+      return backendManager.start(
+        getDataPath(),
+        sysDir.logDir,
+        {
+          cacheDir: sysDir.cacheDir,
+          workDir: sysDir.workDir,
+          logDir: sysDir.logDir,
+        },
+        {
+          allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+          onHealthTimeout: async (error) => {
+            backendStartupFailed = true;
+            (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+            await captureBackendStartupFailure(error);
+          },
+          onPendingExit: async (error) => {
+            backendStartupFailed = true;
+            (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+            await captureBackendStartupFailure(error);
+          },
+          onReady: (backendPort) => {
+            markBackendReady(backendPort, 'backendManager.lateReady');
+          },
+        }
+      );
     },
     onStarted: (backendPort) => {
-      mark(`backendManager.start (port=${backendPort})`);
-      // Expose the backend port to main-process callers of httpBridge (e.g. the
-      // one-shot assistant migration hook below). Must land BEFORE any
-      // ipcBridge.* invoke from the main process — the renderer side reads
-      // window.__backendPort via preload, but main has no `window`.
-      (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
-      registerCronResumeBridge(backendPort);
-      backendStartedOk = true;
+      exposeBackendPort(backendPort);
+      if (backendManager.status === 'running') {
+        markBackendReady(backendPort, 'backendManager.start');
+        return;
+      }
+      mark(`backendManager.start pending health (port=${backendPort})`);
     },
     captureFailure: captureBackendStartupFailure,
     exitApp: (code) => app.exit(code),
@@ -529,13 +582,8 @@ const handleAppReady = async (): Promise<void> => {
   // up (__backendPort set) and before any mode branch below that might log the
   // user in. Swallows its own errors; the next boot retries.
   const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (bootBackendPort) {
-    try {
-      const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
-      await ensureAdminUser(bootBackendPort);
-    } catch (err) {
-      console.error('[WebUI] ensureAdminUser failed:', err);
-    }
+  if (backendStartedOk && bootBackendPort) {
+    await ensureAdminUserOnce(bootBackendPort);
   }
 
   // One-shot backend migrations are deferred until after the renderer finishes

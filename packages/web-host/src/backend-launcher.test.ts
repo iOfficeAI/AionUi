@@ -276,6 +276,50 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     fetchSpy.mockRestore();
   }, 15_000);
+
+  it('keeps child alive and reports ready later when pending timeout is allowed', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33335) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+    const onHealthTimeout = vi.fn();
+    const onReady = vi.fn();
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', undefined, {
+      allowPendingOnHealthTimeout: true,
+      onHealthTimeout,
+      onReady,
+    });
+
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expect(startPromise).resolves.toBe(33335);
+
+    expect(mgr.status).toBe('starting');
+    expect(child.kill).not.toHaveBeenCalled();
+    expect(onHealthTimeout).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'BackendStartupError',
+        details: expect.objectContaining({
+          stage: 'health_timeout',
+          port: 33335,
+        }),
+      })
+    );
+
+    fetchSpy.mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+    await vi.advanceTimersByTimeAsync(250);
+    await Promise.resolve();
+
+    expect(mgr.status).toBe('running');
+    expect(onReady).toHaveBeenCalledWith(33335);
+
+    fetchSpy.mockRestore();
+  }, 15_000);
 });
 
 describe('BackendLifecycleManager.stop', () => {
