@@ -57,9 +57,7 @@ export const ColorSchemeSwitcher: React.FC = () => {
             className='inline-flex items-center gap-6px h-26px px-10px rd-full text-13px font-500 transition-all'
             style={{
               backgroundColor: isActive ? 'var(--color-fill-2)' : 'transparent',
-              border: isActive
-                ? '1px solid var(--color-border-2)'
-                : '1px solid transparent',
+              border: isActive ? '1px solid var(--color-border-2)' : '1px solid transparent',
               color: isActive ? 'var(--color-text-1)' : 'var(--color-text-2)',
               cursor: isActive ? 'default' : 'pointer',
             }}

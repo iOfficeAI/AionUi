@@ -331,7 +331,9 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const firstCliAgent = availableAgents.find((a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli');
+      const firstCliAgent = availableAgents.find(
+        (a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli'
+      );
       const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : '';
       if (fallbackKey) {
         _setSelectedAgentKey(fallbackKey);
@@ -485,7 +487,13 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData, selectedAgentInfo?.protocol]);
+  }, [
+    selectedAgent,
+    is_presetAgent,
+    currentEffectiveAgentInfo.agent_type,
+    availableAgentsData,
+    selectedAgentInfo?.protocol,
+  ]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup
@@ -544,7 +552,9 @@ export const useGuidAgentSelection = ({
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
-    const firstCliAgent = availableAgents?.find((a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli');
+    const firstCliAgent = availableAgents?.find(
+      (a) => !a.is_preset && a.agent_type !== 'aionrs' && a.agent_type !== 'aion-cli'
+    );
     return firstCliAgent ? getAgentKey(firstCliAgent) : '';
   }, [availableAgents]);
 

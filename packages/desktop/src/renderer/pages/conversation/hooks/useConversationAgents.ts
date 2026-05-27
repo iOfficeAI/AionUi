@@ -40,7 +40,9 @@ export const useConversationAgents = (): UseConversationAgentsResult => {
   const { data: presetAssistants, isLoading: isLoadingPresets } = useSWR('assistants.presets', async () => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      return list.filter((a) => a.enabled !== false && a.preset_agent_type !== 'aionrs' && a.preset_agent_type !== 'aion-cli');
+      return list.filter(
+        (a) => a.enabled !== false && a.preset_agent_type !== 'aionrs' && a.preset_agent_type !== 'aion-cli'
+      );
     } catch (error) {
       console.error('Failed to load assistants for conversation selector:', error);
       return [] as Assistant[];

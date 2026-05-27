@@ -510,8 +510,7 @@ const Layout: React.FC<{
                 className={classNames('!bg-2 layout-sider', {
                   collapsed: collapsed,
                   'layout-sider--dragging': siderDragging,
-                  'layout-sider--icon-only':
-                    !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
+                  'layout-sider--icon-only': !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
                 })}
                 style={siderStyle}
               >
@@ -530,10 +529,7 @@ const Layout: React.FC<{
                       doesn't produce a banner-sized logo. Centered horizontally
                       so it doesn't appear stuck against the left edge when the
                       sider is much wider than the wordmark needs. */}
-                  <div
-                    className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center'
-                    onClick={onClick}
-                  >
+                  <div className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center' onClick={onClick}>
                     <img
                       src={brandWordmark}
                       alt='Chisel'
@@ -543,13 +539,11 @@ const Layout: React.FC<{
                   </div>
                   {/* Collapsed / icon-only sider: wordmark won't fit, fall back to
                       the hexagon so the brand still shows. */}
-                  <div className='collapsed-only shrink-0 size-18px relative items-center justify-center'
-                    onClick={onClick}>
-                    <img
-                      src={brandLogo}
-                      alt='Chisel'
-                      className='w-full h-full absolute inset-0 object-contain'
-                    />
+                  <div
+                    className='collapsed-only shrink-0 size-18px relative items-center justify-center'
+                    onClick={onClick}
+                  >
+                    <img src={brandLogo} alt='Chisel' className='w-full h-full absolute inset-0 object-contain' />
                   </div>
                   {isMobile && !collapsed && (
                     <button

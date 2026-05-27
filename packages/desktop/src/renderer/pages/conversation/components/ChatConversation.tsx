@@ -105,11 +105,17 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
                 id,
                 created_at: Date.now(),
                 modified_at: Date.now(),
-                // Clear ACP session fields to prevent new conversation from inheriting old session context
+                // Clear session-resume fields so the clone starts a fresh
+                // server-side session instead of inheriting old context.
+                // ACP: acp_session_id; Remote (OpenCode): sessionKey.
+                // (The backend `create` also strips sessionKey defensively for
+                // all agent types, including OpenClaw.)
                 extra:
                   source.type === 'acp'
                     ? { ...source.extra, acp_session_id: undefined, acp_session_updated_at: undefined }
-                    : source.extra,
+                    : source.type === 'remote'
+                      ? { ...source.extra, sessionKey: undefined }
+                      : source.extra,
               } as TChatConversation,
             });
             void navigate(`/conversation/${id}`);

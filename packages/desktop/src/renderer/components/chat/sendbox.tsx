@@ -215,8 +215,11 @@ const SendBox: React.FC<{
   const isInputActive = isInputFocused;
   // Focus-ring colors are still consumed for nested panels (e.g. quote/preview);
   // the outer sendbox now uses a flush top border, see panel className below.
-  const { activeBorderColor: _activeBorderColor, inactiveBorderColor: _inactiveBorderColor, activeShadow: _activeShadow } =
-    useInputFocusRing();
+  const {
+    activeBorderColor: _activeBorderColor,
+    inactiveBorderColor: _inactiveBorderColor,
+    activeShadow: _activeShadow,
+  } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
