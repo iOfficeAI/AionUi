@@ -80,12 +80,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           {icon[type] || icon.warning}
           <div className='flex-1 min-w-0'>
             <CollapsibleContent maxHeight={48} defaultCollapsed={true} useMask={true}>
-              <span
-                className='whitespace-break-spaces text-t-primary [word-break:break-word]'
-                dangerouslySetInnerHTML={{
-                  __html: displayContent,
-                }}
-              ></span>
+              <span className='whitespace-break-spaces text-t-primary [word-break:break-word]'>{displayContent}</span>
             </CollapsibleContent>
           </div>
         </div>

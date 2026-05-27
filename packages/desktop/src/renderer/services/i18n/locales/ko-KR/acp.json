@@ -4,6 +4,9 @@
     "console_error": "ACP 인증 오류 세부사항:",
     "failed_confirm": "ACP {{backend}} 인증 실패:\n\n{{error}}\n\n지금 설정 페이지로 이동하여 구성하시겠습니까?"
   },
+  "send": {
+    "failed": "메시지 전송에 실패했습니다: {{error}}"
+  },
   "sendbox": {
     "placeholder": "{{backend}}에게 메시지 보내기..."
   },

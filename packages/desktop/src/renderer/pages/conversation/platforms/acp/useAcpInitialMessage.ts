@@ -6,10 +6,11 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
-import { uuid } from '@/common/utils';
+import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 
 type UseAcpInitialMessageParams = {
   conversation_id: string;
@@ -32,6 +33,8 @@ export const useAcpInitialMessage = ({
   checkAndUpdateTitle,
   addOrUpdateMessage,
 }: UseAcpInitialMessageParams): void => {
+  const { t } = useTranslation();
+
   useEffect(() => {
     const storageKey = `acp_initial_message_${conversation_id}`;
     const storedMessage = sessionStorage.getItem(storageKey);
@@ -79,13 +82,14 @@ export const useAcpInitialMessage = ({
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
+        const errorMessageText = parseError(error) ?? t('common.unknownError');
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
         console.error('[useAcpInitialMessage] Error details:', {
           name: (error as Error)?.name,
-          message: (error as Error)?.message,
+          message: errorMessageText,
           conversation_id,
         });
-        // Create error message in UI
+
         const errorMessage: TMessage = {
           id: uuid(),
           msg_id: uuid(),
@@ -93,7 +97,7 @@ export const useAcpInitialMessage = ({
           type: 'tips',
           position: 'center',
           content: {
-            content: 'Failed to send message. Please try again.',
+            content: t('acp.send.failed', { error: errorMessageText }),
             type: 'error',
           },
           created_at: Date.now() + 2,
@@ -106,5 +110,5 @@ export const useAcpInitialMessage = ({
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, workspacePath]);
+  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]);
 };

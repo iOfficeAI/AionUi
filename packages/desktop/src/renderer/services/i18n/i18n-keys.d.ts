@@ -10,6 +10,7 @@ export type I18nKey =
   | 'acp.auth.failed_confirm'
   | 'acp.config.default'
   | 'acp.config.reasoning_effort'
+  | 'acp.send.failed'
   | 'acp.sendbox.placeholder'
   | 'acp.status.authenticated'
   | 'acp.status.connected'
