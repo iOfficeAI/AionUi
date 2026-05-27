@@ -2,6 +2,9 @@ import type { ConfigKey, ConfigKeyMap } from './configKeys';
 
 type Subscriber = (value: unknown) => void;
 
+const SAVE_UPLOAD_LEGACY_KEY = 'upload.saveToWorkspace';
+const SAVE_UPLOAD_SYSTEM_MIGRATION_KEY = 'migration.saveUploadToWorkspaceSystem_v1';
+
 declare global {
   interface Window {
     __backendPort?: number;
@@ -44,6 +47,25 @@ async function fetchJson<T>(method: string, path: string, body?: unknown): Promi
   return json as T;
 }
 
+async function migrateSaveUploadToWorkspacePreference(preferences: Record<string, unknown>): Promise<void> {
+  if (preferences[SAVE_UPLOAD_SYSTEM_MIGRATION_KEY] === true) {
+    return;
+  }
+
+  const legacyValue = preferences[SAVE_UPLOAD_LEGACY_KEY];
+  if (typeof legacyValue !== 'boolean') {
+    return;
+  }
+
+  try {
+    await fetchJson<void>('PATCH', '/api/settings', { save_upload_to_workspace: legacyValue });
+    await fetchJson<void>('PUT', '/api/settings/client', { [SAVE_UPLOAD_SYSTEM_MIGRATION_KEY]: true });
+    preferences[SAVE_UPLOAD_SYSTEM_MIGRATION_KEY] = true;
+  } catch (error) {
+    console.warn('[ConfigService] Failed to migrate upload.saveToWorkspace to system settings:', error);
+  }
+}
+
 class ConfigServiceImpl {
   private cache = new Map<string, unknown>();
   private subscribers = new Map<string, Set<Subscriber>>();
@@ -59,6 +81,7 @@ class ConfigServiceImpl {
       const data = await fetchJson<Record<string, unknown>>('GET', '/api/settings/client');
       this.cache.clear();
       if (data) {
+        await migrateSaveUploadToWorkspacePreference(data);
         for (const [key, value] of Object.entries(data)) {
           this.cache.set(key, value);
         }

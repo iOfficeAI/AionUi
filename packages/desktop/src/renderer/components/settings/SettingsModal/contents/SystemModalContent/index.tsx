@@ -81,8 +81,11 @@ const SystemModalContent: React.FC = () => {
     setCloseToTray(configService.get('system.closeToTray') ?? false);
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
-    setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
+    ipcBridge.systemSettings.getSaveUploadToWorkspace
+      .invoke()
+      .then((enabled) => setSaveUploadToWorkspace(enabled))
+      .catch(() => {});
     const pt = configService.get('acp.promptTimeout');
     if (pt && pt > 0) setPromptTimeout(pt);
     const ait = configService.get('acp.agentIdleTimeout');
@@ -199,9 +202,8 @@ const SystemModalContent: React.FC = () => {
 
   const handleSaveUploadToWorkspaceChange = useCallback((checked: boolean) => {
     setSaveUploadToWorkspace(checked);
-    configService.set('upload.saveToWorkspace', checked).catch(() => {
+    ipcBridge.systemSettings.setSaveUploadToWorkspace.invoke({ enabled: checked }).catch(() => {
       setSaveUploadToWorkspace(!checked);
-      configService.setLocal('upload.saveToWorkspace', !checked);
     });
   }, []);
 
