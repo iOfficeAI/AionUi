@@ -4,6 +4,9 @@
     "console_error": "ACP kimlik doğrulama hatası detayları:",
     "failed_confirm": "ACP {{backend}} kimlik doğrulaması başarısız:\n\n{{error}}\n\nŞimdi yapılandırmak için ayarlar sayfasına gitmek ister misiniz?"
   },
+  "send": {
+    "failed": "Mesaj gönderilemedi: {{error}}"
+  },
   "sendbox": {
     "placeholder": "{{backend}}'a mesaj gönder..."
   },

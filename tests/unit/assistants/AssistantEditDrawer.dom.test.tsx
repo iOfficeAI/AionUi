@@ -12,6 +12,7 @@ import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
 import { render, screen, cleanup } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
@@ -23,7 +24,12 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
 
 import AssistantEditDrawer from '@/renderer/pages/settings/AssistantSettings/AssistantEditDrawer';
 
-const renderWithProviders = (ui: React.ReactElement) => render(<ConfigProvider>{ui}</ConfigProvider>);
+const renderWithProviders = (ui: React.ReactElement) =>
+  render(
+    <MemoryRouter>
+      <ConfigProvider>{ui}</ConfigProvider>
+    </MemoryRouter>
+  );
 
 describe('AssistantEditDrawer', () => {
   const defaultProps = {
@@ -50,7 +56,6 @@ describe('AssistantEditDrawer', () => {
     customSkills: [],
     setDeletePendingSkillName: vi.fn(),
     setDeleteCustomSkillName: vi.fn(),
-    setSkillsModalVisible: vi.fn(),
     builtinAutoSkills: [],
     disabledBuiltinSkills: [],
     setDisabledBuiltinSkills: vi.fn(),
@@ -60,6 +65,7 @@ describe('AssistantEditDrawer', () => {
     availableBackends: [],
     handleSave: vi.fn(),
     handleDeleteClick: vi.fn(),
+    handleDuplicate: vi.fn(),
   };
 
   beforeEach(() => {

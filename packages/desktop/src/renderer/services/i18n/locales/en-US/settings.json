@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "Cannot delete builtin assistants",
   "duplicateAssistant": "Duplicate",
   "assistantMainAgent": "Main Agent",
+  "assistantBuiltinReadonlyTip": "This is a builtin assistant. Only Main Agent can be changed. To customize other fields, ",
+  "assistantBuiltinReadonlyDuplicateLink": "duplicate it",
+  "assistantBuiltinReadonlyTipSuffix": ".",
   "addSkills": "Add Skills",
-  "addSkillsTitle": "Add Skills",
   "customSkills": "Custom Skills",
   "builtinSkills": "Builtin Skills",
   "noCustomSkills": "No custom skills added",
@@ -246,7 +248,7 @@
   "capabilities": "Capabilities",
   "capabilitiesTab": {
     "skills": "Skills",
-    "tools": "MCP & Voice"
+    "tools": "Tools"
   },
   "webui": "Remote",
   "installed": "Installed",
@@ -437,6 +439,11 @@
   "speechToTextOptional": "Optional",
   "mcp": "MCP Integration",
   "imageGenerationModel": "Image Model",
+  "imageGenSupportedTooltipTitle": "Currently supported image models:",
+  "imageGenSupportedTooltipGemini": "Google Gemini / Vertex AI image models (e.g. gemini-2.5-flash-image)",
+  "imageGenSupportedTooltipOpenRouter": "OpenRouter chat-style image models (e.g. nano-banana, gemini-image)",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools (gemini-3-pro-image)",
+  "imageGenUnsupportedTooltip": "Models like gpt-image-* / dall-e-* / Imagen / FLUX use a different API and are not yet supported.",
   "imageGenerationGuide": "Image Model Setup Guide",
   "noAvailable": "No available image models, please configure first.",
   "mcpSettings": "MCP Tools Configuration",
@@ -666,9 +673,6 @@
   "multiKeyAllValid": "All {{total}} keys are valid",
   "multiKeyPartialValid": "{{valid}} valid, {{invalid}} invalid",
   "multiKeyAllInvalid": "All {{total}} keys are invalid",
-  "skillsAdded": "{{addedCount}} skills added and selected{{skippedCountText}}",
-  "skippedCount": "{{count}} skipped",
-  "allSkillsExist": "All found skills already exist",
   "noSkillsFound": "No valid skills found in the selected path(s)",
   "skillScanFailed": "Failed to scan skills",
   "quickScan": "Quick Scan Common Paths",
@@ -904,6 +908,5 @@
     "pendingTimeout": "Approval request expired (5 minutes). Please try again.",
     "pendingCancel": "Cancel",
     "pendingTimeRemaining": "Time remaining: {{time}}"
-  },
-  "noExternalSources": "No external skill sources discovered"
+  }
 }

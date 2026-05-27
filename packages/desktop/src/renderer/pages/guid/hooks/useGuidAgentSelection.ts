@@ -126,7 +126,13 @@ export const useGuidAgentSelection = ({
   preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(() => {
+    try {
+      return configService.get('guid.lastSelectedAgent') || 'aionrs';
+    } catch {
+      return 'aionrs';
+    }
+  });
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -322,12 +328,18 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-      _setSelectedAgentKey(fallbackKey);
-      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-        console.error('Failed to save reset agent key:', error);
-      });
+      // Only reset when the current selection is a preset assistant.
+      // CLI agent selections (Claude Code, Gemini CLI, etc.) are preserved so
+      // New Chat keeps the last-used CLI agent.
+      const currentIsPreset = selectedAgentKey.startsWith('custom:');
+      if (currentIsPreset) {
+        const firstCliAgent = availableAgents.find((a) => !a.is_preset);
+        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+        _setSelectedAgentKey(fallbackKey);
+        configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+          console.error('Failed to save reset agent key:', error);
+        });
+      }
     }
   }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
 

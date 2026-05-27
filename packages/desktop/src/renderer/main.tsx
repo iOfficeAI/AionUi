@@ -50,7 +50,7 @@ import { ThemeProvider } from './hooks/context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 
 // Arco Design
-import { ConfigProvider } from '@arco-design/web-react';
+import { ConfigProvider, Result, Typography } from '@arco-design/web-react';
 // Configure Arco Design to use React 18's createRoot, fixing Message component's CopyReactDOM.render error
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -89,6 +89,7 @@ import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
 import HOC from './utils/ui/HOC';
+import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {
@@ -182,7 +183,44 @@ const Main = () => {
 
 const App = HOC.Wrapper(Config)(Main);
 
+const BackendIncompatibleRuntimeScreen: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
+  const { t } = useTranslation();
+  const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
+
+  return (
+    <div className='min-h-screen flex items-center justify-center bg-bg-1 px-6 text-center text-t-1'>
+      <Result
+        status='warning'
+        title={t('common.backendStartup.incompatibleRuntime.title')}
+        subTitle={
+          <div className='mx-auto max-w-[560px] text-t-secondary'>
+            <Typography.Paragraph className='m-0'>
+              {t('common.backendStartup.incompatibleRuntime.description')}
+            </Typography.Paragraph>
+            {requiredVersions ? (
+              <Typography.Paragraph className='mt-3 mb-0 text-12px text-t-tertiary'>
+                {t('common.backendStartup.incompatibleRuntime.requiredVersions', { versions: requiredVersions })}
+              </Typography.Paragraph>
+            ) : null}
+          </div>
+        }
+      />
+    </div>
+  );
+};
+
 void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
-root.render(React.createElement(AppProviders, null, React.createElement(App)));
+const backendStartupFailure = window.__backendStartupFailure;
+root.render(
+  backendStartupFailure?.reason === 'backend_incompatible_runtime' ? (
+    <Config>
+      <BackendIncompatibleRuntimeScreen failure={backendStartupFailure} />
+    </Config>
+  ) : (
+    <AppProviders>
+      <App />
+    </AppProviders>
+  )
+);

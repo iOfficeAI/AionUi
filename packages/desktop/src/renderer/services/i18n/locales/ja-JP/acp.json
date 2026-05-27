@@ -4,6 +4,9 @@
     "console_error": "ACP認証エラー詳細:",
     "failed_confirm": "ACP {{backend}} 認証が失敗しました：\n\n{{error}}\n\n設定ページで設定しますか？"
   },
+  "send": {
+    "failed": "メッセージの送信に失敗しました：{{error}}"
+  },
   "sendbox": {
     "placeholder": "{{backend}}にメッセージを送信..."
   },

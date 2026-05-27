@@ -1,7 +1,7 @@
 import { ipcBridge } from '@/common';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
-import { uuid } from '@/common/utils';
+import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
@@ -255,7 +255,7 @@ const AcpSendBox: React.FC<{
         });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
-        const errorMsg = error instanceof Error ? error.message : String(error);
+        const errorMsg = parseError(error) ?? t('common.unknownError');
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
@@ -291,6 +291,22 @@ Please check your local CLI tool authentication status`,
           };
 
           ipcBridge.acpConversation.responseStream.emit(errorMessage);
+        } else {
+          addOrUpdateMessageRef.current(
+            {
+              id: uuid(),
+              msg_id: uuid(),
+              type: 'tips',
+              position: 'center',
+              conversation_id,
+              created_at: Date.now(),
+              content: {
+                content: t('acp.send.failed', { error: errorMsg }),
+                type: 'error',
+              },
+            },
+            true
+          );
         }
 
         setAiProcessing(false);

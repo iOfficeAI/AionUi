@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "Yerleşik asistanlar silinemez",
   "duplicateAssistant": "Duplicate",
   "assistantMainAgent": "Ana Ajan",
+  "assistantBuiltinReadonlyTip": "Bu yerleşik bir asistandır. Yalnızca «Ana Ajan» değiştirilebilir. Diğer alanları özelleştirmek için ",
+  "assistantBuiltinReadonlyDuplicateLink": "kopyalayın",
+  "assistantBuiltinReadonlyTipSuffix": ".",
   "addSkills": "Yetenek Ekle",
-  "addSkillsTitle": "Yetenek Ekle",
   "customSkills": "Özel Yetenekler",
   "builtinSkills": "Yerleşik Yetenekler",
   "noCustomSkills": "Eklenmiş özel yetenek yok",
@@ -246,7 +248,7 @@
   "capabilities": "Yetenekler",
   "capabilitiesTab": {
     "skills": "Beceriler",
-    "tools": "MCP ve Ses"
+    "tools": "Araçlar"
   },
   "webui": "Uzak Bağlantı",
   "installed": "Yüklü",
@@ -437,6 +439,11 @@
   "speechToTextOptional": "İsteğe bağlı",
   "mcp": "MCP Entegrasyonu",
   "imageGenerationModel": "Görüntü Modeli",
+  "imageGenSupportedTooltipTitle": "Şu anda desteklenen görüntü modelleri:",
+  "imageGenSupportedTooltipGemini": "Google Gemini / Vertex AI görüntü modelleri (ör. gemini-2.5-flash-image)",
+  "imageGenSupportedTooltipOpenRouter": "OpenRouter üzerinden chat tarzı görüntü modelleri (ör. nano-banana, gemini-image)",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools (gemini-3-pro-image)",
+  "imageGenUnsupportedTooltip": "gpt-image-* / dall-e-* / Imagen / FLUX gibi modeller farklı bir API kullanır ve henüz desteklenmemektedir.",
   "imageGenerationGuide": "Görüntü Modeli Kurulum Rehberi",
   "noAvailable": "Mevcut görüntü modeli yok, lütfen önce yapılandırın.",
   "mcpSettings": "MCP Araçları Yapılandırması",
@@ -666,9 +673,6 @@
   "multiKeyAllValid": "Tüm {{total}} anahtarlar geçerli",
   "multiKeyPartialValid": "{{valid}} geçerli, {{invalid}} geçersiz",
   "multiKeyAllInvalid": "Tüm {{total}} anahtarlar geçersiz",
-  "skillsAdded": "{{addedCount}} yetenek eklendi ve seçildi{{skippedCountText}}",
-  "skippedCount": "{{count}} atlandı",
-  "allSkillsExist": "Bulunan tüm yetenekler zaten mevcut",
   "noSkillsFound": "Seçilen yolda geçerli yetenek bulunamadı",
   "skillScanFailed": "Yetenekler taranamadı",
   "quickScan": "Ortak Yolları Hızlı Tara",
@@ -904,6 +908,5 @@
     "pendingTimeout": "Onay isteği süresi doldu (5 dakika). Lütfen tekrar deneyin.",
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
-  },
-  "noExternalSources": "Harici beceri kaynağı bulunamadı"
+  }
 }

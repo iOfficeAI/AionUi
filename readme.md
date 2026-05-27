@@ -56,14 +56,14 @@
 
 **AionUi is more than a chat client.** It's a Cowork platform where AI agents work alongside you on your computer — reading files, writing code, browsing the web, and automating tasks. You see everything the agent does, and you're always in control.
 
-|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                           |
-| :------------------------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------------- |
-| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                                |
-| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                       |
-| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat / WeCom**                                                                       |
-| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                                    |
-| Multiple AI Agents at once      | No                          | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent and 16+ more — auto-detected, unified interface** |
-| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                        |
+|                                 | Traditional AI Chat Clients | **AionUi (Cowork)**                                                                                                     |
+| :------------------------------ | :-------------------------- | :---------------------------------------------------------------------------------------------------------------------- |
+| AI can operate on your files    | Limited or No               | **Yes — built-in agent with full file access**                                                                          |
+| AI can execute multi-step tasks | Limited                     | **Yes — autonomous with your approval**                                                                                 |
+| Remote access from phone        | Rarely                      | **WebUI + Telegram / Lark / DingTalk / WeChat**                                                                         |
+| Scheduled automation            | No                          | **Cron — 24/7 unattended**                                                                                              |
+| Multiple AI Agents at once      | No                          | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent and 13+ more — auto-detected, unified interface** |
+| Price                           | Free / Paid                 | **Free & Open Source**                                                                                                  |
 
 <p align="center">
   <img src="./resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -78,7 +78,7 @@ AionUi ships with a complete AI agent engine. Unlike tools that require you to i
 - **No CLI tools to install** — the agent engine is built in
 - **No complex setup** — sign in with Google or paste any API key
 - **Full agent capabilities** — file read/write, web search, image generation, MCP (Model Context Protocol) tools
-- **Ready-to-use assistants** — 20 built-in professional assistants (Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator, and more) ready to use immediately
+- **Ready-to-use assistants** — 21 built-in professional assistants (Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator, and more) ready to use immediately
 
 <p align="center">
   <img src="./resources/homepage.png" alt="Built-in Agents" width="800">
@@ -143,7 +143,7 @@ The three assistant types map to file workflows, and the final outputs are direc
 
 If you already use Claude Code, Codex, Hermes Agent, or OpenClaw, AionUi auto-detects them and lets you Cowork with all of them — alongside the built-in agent.
 
-**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, the Rust-based backend service bundled with AionUi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent and more
+**Supported Agents:** Built-in Agent (zero setup) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, the Rust-based backend service shipped with AionUi) • Snow CLI • Hermes Agent • Cursor Agent and more
 
 <p align="center">
   <img src="./resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -195,14 +195,14 @@ Other AI apps give you a chatbox with your API key. **AionUi gives you a full Co
 | Ollama / LM Studio (local)              | Local model Cowork Agent                    |
 | NewAPI Gateway                          | Unified access to 20+ models                |
 
-Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **20+ AI platforms** including cloud services and local deployments.
+Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **30+ AI platforms** including cloud services and local deployments.
 
 <p align="center">
   <img src="./resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
-<summary><strong>🔍 View All 20+ Supported Platforms ▶️</strong></summary>
+<summary><strong>🔍 View All 30+ Supported Platforms ▶️</strong></summary>
 
 <br>
 
@@ -210,8 +210,8 @@ Same agent capabilities — file read/write, web search, image generation, tool 
 
 - **Official Platforms** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Cloud Providers** — AWS Bedrock, New API (unified AI model gateway)
-- **Chinese Platforms** — Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
-- **International Platforms** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Chinese Platforms** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
+- **International Platforms** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Local Models** — Ollama, LM Studio (via Custom platform with local API endpoint)
 
 AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway service — a unified AI model hub that aggregates and distributes various LLMs. Flexibly switch between different models in the same interface to meet various task requirements.
@@ -222,7 +222,7 @@ AionUi also supports [NewAPI](https://github.com/QuantumNous/new-api) gateway se
 
 ## Extensible Assistants & Skills
 
-_Extensible assistant system with 20 built-in professional assistants and a three-tier skill system. Create and manage your own assistants and skills._
+_Extensible assistant system with 21 built-in professional assistants and a three-tier skill system. Create and manage your own assistants and skills._
 
 - **Create Custom Assistants** — Define your own assistants with custom rules and capabilities
 - **Three-tier Skills** — Builtin skills (shipped with AionUi), custom skills (your own), and Extension skills (contributed by third-party extensions); enable/disable per conversation with the skill indicator
@@ -239,18 +239,18 @@ AionUi supports three skill layers: **built-in** skills (shipped with the app), 
 
 <br>
 
-AionUi includes **20 professional assistants** with predefined capabilities, extendable through custom skills:
+AionUi includes **21 professional assistants** with predefined capabilities, extendable through custom skills:
 
 - **🤝 Cowork** — Autonomous task execution (file operations, document processing, workflow planning)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Generate and animate PPTX presentations with Morph transitions
 - **📐 Pitch Deck Creator** — Investor-ready pitch deck generation
 - **📊 Dashboard Creator** — Data dashboard generation
 - **📝 Word Creator** — Production-ready Word (`.docx`) document generation
+- **📋 Word Form Creator** — Structured Word form / contract template generation
 - **📗 Excel Creator** — Spreadsheet generation with analysis, charts, and auto-formatting
 - **🎓 Academic Paper Writer** — Structured academic paper writing
 - **💰 Financial Model Creator** — Financial models and projections
 - **⭐ Star Office Helper** — Office productivity assistant
-- **📄 PDF to PPT** — Convert PDF to PPT
 - **🎮 3D Game** — Single-file 3D game generation
 - **🎨 UI/UX Pro Max** — Professional UI/UX design (57 styles, 95 color palettes)
 - **📋 Planning with Files** — File-based planning for complex tasks (Manus-style persistent markdown planning)
@@ -280,8 +280,7 @@ _Your 24/7 AI assistant — access AionUi from any device, anywhere._
   - **Lark (Feishu)** — Cowork through Feishu bots for enterprise collaboration
   - **DingTalk** — AI Card streaming with automatic fallback
   - **WeChat** — Personal WeChat account integration
-  - **WeCom (企业微信)** — Enterprise WeChat bot for team collaboration
-  - **Slack** and more platforms coming soon
+  - **WeCom (企业微信)**, **Slack**, **Discord** and more platforms coming soon
 
 > **Setup:** AionUi Settings → WebUI Settings → Channel, configure the Bot Token.
 
@@ -516,13 +515,13 @@ _Open multiple conversations, tasks don't get mixed up, independent memory, doub
 
 AionUi is a **free and open-source Multi-AI Agent Desktop**. Compared to Claude Cowork which only runs on macOS and is locked to Claude, AionUi is its full-model, cross-platform enhanced version.
 
-| Dimension     | Claude Cowork | AionUi                                                            |
-| :------------ | :------------ | :---------------------------------------------------------------- |
-| OS            | macOS Only    | macOS / Windows / Linux                                           |
-| Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...                     |
-| Interaction   | Desktop GUI   | Desktop GUI + WebUI + Telegram / Lark / DingTalk / WeChat / WeCom |
-| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended                            |
-| Cost          | $100/month    | Free & Open Source                                                |
+| Dimension     | Claude Cowork | AionUi                                                    |
+| :------------ | :------------ | :-------------------------------------------------------- |
+| OS            | macOS Only    | macOS / Windows / Linux                                   |
+| Model Support | Claude Only   | Gemini, Claude, DeepSeek, OpenAI, Ollama, ...             |
+| Interaction   | Desktop GUI   | Desktop GUI + WebUI + Telegram / Lark / DingTalk / WeChat |
+| Automation    | Manual only   | Cron scheduled tasks — 24/7 unattended                    |
+| Cost          | $100/month    | Free & Open Source                                        |
 
 Deep AI Office Scenario Support:
 

@@ -7,9 +7,10 @@ import type { AvailableBackend } from '@/renderer/hooks/assistant';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
 import { Avatar, Button, Checkbox, Collapse, Drawer, Input, Select, Tag, Typography } from '@arco-design/web-react';
-import { Close, Delete, Plus, Robot } from '@icon-park/react';
+import { Close, Delete, Info, Plus, Robot } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 
 type AssistantEditDrawerProps = {
   // Drawer visibility
@@ -42,7 +43,6 @@ type AssistantEditDrawerProps = {
   customSkills: string[];
   setDeletePendingSkillName: (v: string | null) => void;
   setDeleteCustomSkillName: (v: string | null) => void;
-  setSkillsModalVisible: (v: boolean) => void;
 
   // Builtin auto-injected skills
   builtinAutoSkills: BuiltinAutoSkill[];
@@ -60,6 +60,9 @@ type AssistantEditDrawerProps = {
   // Handlers
   handleSave: () => void;
   handleDeleteClick: () => void;
+  /** Duplicate the active assistant. Used by the builtin readonly banner so
+   *  users can create an editable copy from inside the editor. */
+  handleDuplicate: (assistant: AssistantListItem) => void;
 };
 
 const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
@@ -86,7 +89,6 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   customSkills: _customSkills,
   setDeletePendingSkillName,
   setDeleteCustomSkillName,
-  setSkillsModalVisible,
   builtinAutoSkills,
   disabledBuiltinSkills,
   setDisabledBuiltinSkills,
@@ -96,8 +98,10 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   availableBackends,
   handleSave,
   handleDeleteClick,
+  handleDuplicate,
 }) => {
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const textareaWrapperRef = useRef<HTMLDivElement>(null);
   const [drawerWidth, setDrawerWidth] = useState(500);
   const [rulesExpanded, setRulesExpanded] = useState(false);
@@ -243,6 +247,37 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     >
       <div className='flex flex-col h-full overflow-hidden' data-testid='assistant-edit-drawer'>
         <div className='flex flex-col flex-1 gap-16px bg-fill-2 rounded-16px p-20px overflow-y-auto'>
+          {/* Builtin readonly banner — only Main Agent is editable on builtin
+              assistants. The inline link drives the user to duplicate so they
+              can edit the copy. */}
+          {isBuiltin && activeAssistant && (
+            <div
+              className='flex items-start gap-8px p-12px rd-8px bg-[rgba(var(--primary-6),0.06)] border border-solid border-[rgba(var(--primary-6),0.18)]'
+              data-testid='assistant-builtin-readonly-banner'
+            >
+              <Info theme='outline' size={16} className='mt-2px text-primary-6 flex-shrink-0' />
+              <div className='text-13px leading-20px text-t-primary'>
+                <span>
+                  {t('settings.assistantBuiltinReadonlyTip', {
+                    defaultValue:
+                      'This is a builtin assistant. Only Main Agent can be changed. To customize other fields, ',
+                  })}
+                </span>
+                <a
+                  className='text-primary-6 hover:text-primary-7 underline-offset-2 hover:underline cursor-pointer'
+                  onClick={(e) => {
+                    e.preventDefault();
+                    handleDuplicate(activeAssistant);
+                  }}
+                  data-testid='link-duplicate-from-banner'
+                >
+                  {t('settings.assistantBuiltinReadonlyDuplicateLink', { defaultValue: 'duplicate it' })}
+                </a>
+                <span>{t('settings.assistantBuiltinReadonlyTipSuffix', { defaultValue: '.' })}</span>
+              </div>
+            </div>
+          )}
+
           {/* Name & Avatar */}
           <div className='flex-shrink-0'>
             <Typography.Text bold>
@@ -419,17 +454,21 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
             <div className='flex-shrink-0 mt-16px' data-testid='skills-section'>
               <div className='flex items-center justify-between mb-12px'>
                 <Typography.Text bold>{t('settings.assistantSkills', { defaultValue: 'Skills' })}</Typography.Text>
-                <Button
-                  size='small'
-                  type='outline'
-                  icon={<Plus size={14} />}
-                  onClick={() => setSkillsModalVisible(true)}
-                  disabled={!isSkillsEditable}
-                  className='rounded-[100px]'
-                  data-testid='btn-add-skills'
-                >
-                  {t('settings.addSkills', { defaultValue: 'Add Skills' })}
-                </Button>
+                {/* Builtin readonly assistants don't expose an Add Skills entry
+                    point — users must duplicate first. The skill checkbox list
+                    below renders disabled for the same reason. */}
+                {isSkillsEditable && (
+                  <Button
+                    size='small'
+                    type='outline'
+                    icon={<Plus size={14} />}
+                    onClick={() => navigate('/settings/capabilities?tab=skills')}
+                    className='rounded-[100px]'
+                    data-testid='btn-add-skills'
+                  >
+                    {t('settings.addSkills', { defaultValue: 'Add Skills' })}
+                  </Button>
+                )}
               </div>
 
               <Collapse defaultActiveKey={['custom-skills']} data-testid='skills-collapse'>

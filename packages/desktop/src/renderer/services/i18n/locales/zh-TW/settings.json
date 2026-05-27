@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "無法刪除內建助理",
   "duplicateAssistant": "複製新建",
   "assistantMainAgent": "主代理",
+  "assistantBuiltinReadonlyTip": "這是內建助理，除「主代理」外其他配置不可修改。如需自訂，請",
+  "assistantBuiltinReadonlyDuplicateLink": "複製新建",
+  "assistantBuiltinReadonlyTipSuffix": "。",
   "addSkills": "新增技能",
-  "addSkillsTitle": "新增技能",
   "customSkills": "自訂技能",
   "builtinSkills": "內建技能",
   "noCustomSkills": "尚無自訂技能",
@@ -246,7 +248,7 @@
   "capabilities": "能力擴展",
   "capabilitiesTab": {
     "skills": "技能",
-    "tools": "MCP 與語音"
+    "tools": "工具"
   },
   "webui": "遠端連線",
   "installed": "已安裝",
@@ -437,6 +439,11 @@
   "speechToTextOptional": "選填",
   "mcp": "MCP 集成",
   "imageGenerationModel": "圖像模型",
+  "imageGenSupportedTooltipTitle": "目前已支援的圖像模型：",
+  "imageGenSupportedTooltipGemini": "Google Gemini / Vertex AI 圖像模型（例如 gemini-2.5-flash-image）",
+  "imageGenSupportedTooltipOpenRouter": "OpenRouter 轉發的圖像 chat 模型（例如 nano-banana、gemini-image）",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools（gemini-3-pro-image）",
+  "imageGenUnsupportedTooltip": "gpt-image-* / dall-e-* / Imagen / FLUX 等模型使用不同 API，暫不支援。",
   "imageGenerationGuide": "圖像模型配置指南",
   "noAvailable": "暫無可用圖像模型，請先配置。",
   "mcpSettings": "MCP 工具配置",
@@ -666,9 +673,6 @@
   "multiKeyAllValid": "所有 {{total}} 個 Key 均有效",
   "multiKeyPartialValid": "{{valid}} 個有效，{{invalid}} 個無效",
   "multiKeyAllInvalid": "所有 {{total}} 個 Key 均無效",
-  "skillsAdded": "{{addedCount}} skills added and selected{{skippedCountText}}",
-  "skippedCount": "{{count}} skipped",
-  "allSkillsExist": "All found skills already exist",
   "noSkillsFound": "No valid skills found in the selected path(s)",
   "skillScanFailed": "Failed to scan skills",
   "quickScan": "Quick Scan Common Paths",
@@ -906,6 +910,5 @@
     "pendingTimeout": "審批請求已過期（5 分鐘）。請重試。",
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩餘時間：{{time}}"
-  },
-  "noExternalSources": "未發現外部技能來源"
+  }
 }

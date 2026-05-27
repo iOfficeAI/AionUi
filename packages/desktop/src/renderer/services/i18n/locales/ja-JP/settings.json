@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "ビルトインアシスタントは削除できません",
   "duplicateAssistant": "複製して作成",
   "assistantMainAgent": "メインエージェント",
+  "assistantBuiltinReadonlyTip": "これはビルトインアシスタントです。「メインエージェント」以外の設定は変更できません。カスタマイズするには、",
+  "assistantBuiltinReadonlyDuplicateLink": "複製して作成",
+  "assistantBuiltinReadonlyTipSuffix": "。",
   "addSkills": "スキルを追加",
-  "addSkillsTitle": "スキルを追加",
   "customSkills": "カスタムスキル",
   "builtinSkills": "ビルトインスキル",
   "noCustomSkills": "カスタムスキルはありません",
@@ -246,7 +248,7 @@
   "capabilities": "能力拡張",
   "capabilitiesTab": {
     "skills": "スキル",
-    "tools": "MCP と音声"
+    "tools": "ツール"
   },
   "webui": "リモート接続",
   "installed": "インストール済み",
@@ -437,6 +439,11 @@
   "speechToTextOptional": "任意",
   "mcp": "MCP統合",
   "imageGenerationModel": "画像モデル",
+  "imageGenSupportedTooltipTitle": "現在サポートされている画像モデル：",
+  "imageGenSupportedTooltipGemini": "Google Gemini / Vertex AI 画像モデル（例：gemini-2.5-flash-image）",
+  "imageGenSupportedTooltipOpenRouter": "OpenRouter 経由の chat 形式画像モデル（例：nano-banana、gemini-image）",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools（gemini-3-pro-image）",
+  "imageGenUnsupportedTooltip": "gpt-image-* / dall-e-* / Imagen / FLUX などのモデルは別の API を使用するため、現在はサポートされていません。",
   "imageGenerationGuide": "画像モデル設定ガイド",
   "noAvailable": "利用可能な画像モデルがありません。先に設定してください。",
   "mcpSettings": "MCPツール設定",
@@ -666,9 +673,6 @@
   "multiKeyAllValid": "すべての {{total}} 個のキーが有効です",
   "multiKeyPartialValid": "{{valid}} 個有効、{{invalid}} 個無効",
   "multiKeyAllInvalid": "すべての {{total}} 個のキーが無効です",
-  "skillsAdded": "{{addedCount}} skills added and selected{{skippedCountText}}",
-  "skippedCount": "{{count}} skipped",
-  "allSkillsExist": "All found skills already exist",
   "noSkillsFound": "No valid skills found in the selected path(s)",
   "skillScanFailed": "Failed to scan skills",
   "quickScan": "Quick Scan Common Paths",
@@ -906,6 +910,5 @@
     "pendingTimeout": "承認リクエストの期限が切れました（5分）。再試行してください。",
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
-  },
-  "noExternalSources": "外部スキルソースが見つかりません"
+  }
 }

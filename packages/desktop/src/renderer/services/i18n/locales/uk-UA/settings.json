@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "Неможливо видалити вбудованих асистентів",
   "duplicateAssistant": "Дублювати",
   "assistantMainAgent": "Головний Агент",
+  "assistantBuiltinReadonlyTip": "Це вбудований асистент. Можна змінити лише «Головний Агент». Щоб налаштувати інші поля, ",
+  "assistantBuiltinReadonlyDuplicateLink": "продублюйте його",
+  "assistantBuiltinReadonlyTipSuffix": ".",
   "addSkills": "Додати навички",
-  "addSkillsTitle": "Додати навички",
   "customSkills": "Власні навички",
   "builtinSkills": "Вбудовані навички",
   "noCustomSkills": "Власних навичок не додано",
@@ -244,7 +246,7 @@
   "capabilities": "Можливості",
   "capabilitiesTab": {
     "skills": "Навички",
-    "tools": "MCP та Голос"
+    "tools": "Інструменти"
   },
   "webui": "Віддалений доступ",
   "installed": "Встановлено",
@@ -433,6 +435,11 @@
   "speechToTextOptional": "Опціонально",
   "mcp": "Інтеграція MCP",
   "imageGenerationModel": "Модель для зображень",
+  "imageGenSupportedTooltipTitle": "Підтримувані моделі зображень:",
+  "imageGenSupportedTooltipGemini": "Моделі зображень Google Gemini / Vertex AI (наприклад, gemini-2.5-flash-image)",
+  "imageGenSupportedTooltipOpenRouter": "Чат-моделі зображень через OpenRouter (наприклад, nano-banana, gemini-image)",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools (gemini-3-pro-image)",
+  "imageGenUnsupportedTooltip": "Моделі gpt-image-* / dall-e-* / Imagen / FLUX використовують інший API і поки не підтримуються.",
   "imageGenerationGuide": "Посібник з налаштування моделі зображень",
   "noAvailable": "Немає доступних моделей зображень, спочатку налаштуйте їх.",
   "mcpSettings": "Налаштування інструментів MCP",
@@ -615,9 +622,6 @@
   "multiKeyAllValid": "Всі {{total}} ключів валідні",
   "multiKeyPartialValid": "{{valid}} валідних, {{invalid}} невалідних",
   "multiKeyAllInvalid": "Всі {{total}} ключів невалідні",
-  "skillsAdded": "Додано та вибрано навичок: {{addedCount}}{{skippedCountText}}",
-  "skippedCount": "пропущено: {{count}}",
-  "allSkillsExist": "Всі знайдені навички вже існують",
   "noSkillsFound": "У вибраних шляхах не знайдено валідних навичок",
   "skillScanFailed": "Помилка сканування навичок",
   "quickScan": "Швидке сканування типових шляхів",
@@ -823,7 +827,6 @@
     "pendingCancel": "Скасувати",
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
-  "noExternalSources": "Зовнішні джерела навичок не знайдені",
   "bugReport": "Повідомити про проблему",
   "bugReportTitle": "Повідомити про проблему"
 }

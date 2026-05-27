@@ -56,14 +56,14 @@
 
 **AionUi sadece bir sohbet istemcisi değil.** AI Agents'ın bilgisayarınızda sizinle çalıştığı bir Cowork platformudur — dosya okuma, kod yazma, web'de gezinme ve görevleri otomatikleştirme. Agent'ın yaptığı her şeyi görürsünüz ve her zaman kontrol sizdedir.
 
-|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                                   |
-| :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------------ |
-| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                       |
-| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                           |
-| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                                                                |
-| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                                                            |
-| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Kiro, Hermes Agent, Snow CLI, Cursor Agent ve 16+ daha fazla — otomatik algılanan, birleşik arayüz** |
-| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                           |
+|                                        | Geleneksel AI Sohbet İstemcileri | **AionUi (Cowork)**                                                                                                             |
+| :------------------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------------ |
+| AI dosyalarınızda işlem yapabilir      | Sınırlı veya Yok                 | **Evet — tam dosya erişimi ile yerleşik Agent**                                                                                 |
+| AI çok adımlı görevleri çalıştırabilir | Sınırlı                          | **Evet — onayınızla özerk**                                                                                                     |
+| Telefondan uzaktan erişim              | Nadiren                          | **WebUI + Telegram / Lark / DingTalk**                                                                                          |
+| Zamanlanmış otomasyon                  | Hayır                            | **Cron — 7/24 gözetimsiz**                                                                                                      |
+| Aynı anda birden fazla AI Agent        | Hayır                            | **Claude Code, Codex, Qwen Code, Hermes Agent, Snow CLI, Cursor Agent ve 13+ daha fazla — otomatik algılanan, birleşik arayüz** |
+| Fiyat                                  | Ücretsiz / Ücretli               | **Ücretsiz ve Açık Kaynak**                                                                                                     |
 
 <p align="center">
   <img src="../../resources/offica-ai BANNER-function.png" alt="AionUi Cowork Platform" width="800">
@@ -78,7 +78,7 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 - **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
 - **Karmaşık kurulum yok** — Google ile giriş yapın veya herhangi bir API anahtarı yapıştırın
 - **Tam Agent yetenekleri** — dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
-- **Kullanıma hazır asistanlar** — 20 yerleşik profesyonel asistan (Cowork, PPT Creator, Word Creator, Excel Creator, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
+- **Kullanıma hazır asistanlar** — 21 yerleşik profesyonel asistan (Cowork, PPT Creator, Morph PPT, Morph PPT 3D, Word Creator, Word Form Creator, Excel Creator, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
 
 <p align="center">
   <img src="../../resources/homepage.png" alt="Built-in Agents" width="800">
@@ -90,7 +90,7 @@ AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak 
 
 Zaten Claude Code, Codex, Hermes Agent veya OpenClaw kullanıyorsanız, AionUi bunları otomatik olarak algılar ve hepsiyle Cowork yapmanıza izin verir — yerleşik Agent ile birlikte.
 
-**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte gelen Rust tabanlı arka uç servisi) • Snow CLI • Kiro • Hermes Agent • Cursor Agent ve daha fazlası
+**Desteklenen Agents:** Yerleşik Agent (sıfır kurulum) • Claude Code • Codex • Qwen Code • Goose AI • OpenClaw • Augment Code • CodeBuddy • Kimi CLI • OpenCode • Factory Droid • GitHub Copilot • Qoder CLI • Mistral Vibe • Nanobot • Aion CLI (aionrs, AionUi ile birlikte dağıtılan Rust tabanlı arka uç servisi) • Snow CLI • Hermes Agent • Cursor Agent ve daha fazlası
 
 <p align="center">
   <img src="../../resources/multi-agent支持openclaw.gif" alt="Multi-Agent Cowork" width="800">
@@ -141,14 +141,14 @@ Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **Aion
 | Ollama / LM Studio (yerel)                          | Yerel model Cowork Agent     |
 | NewAPI Gateway                                      | 20+ modele birleşik erişim   |
 
-Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **20+ AI platformunu** destekler.
+Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
 
 <p align="center">
   <img src="../../resources/llm_newapi.png" alt="Multi-Model Support" width="800">
 </p>
 
 <details>
-<summary><strong>🔍 Desteklenen 20+ Platformun Tümünü Görüntüle ▶️</strong></summary>
+<summary><strong>🔍 Desteklenen 30+ Platformun Tümünü Görüntüle ▶️</strong></summary>
 
 <br>
 
@@ -156,8 +156,8 @@ Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma,
 
 - **Resmi Platformlar** — Gemini, Gemini (Vertex AI), Anthropic (Claude), OpenAI
 - **Bulut Sağlayıcıları** — AWS Bedrock, New API (birleşik AI model ağ geçidi)
-- **Çin Platformları** — Dashscope (Qwen), Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun
-- **Uluslararası Platformlar** — DeepSeek, MiniMax, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
+- **Çin Platformları** — Dashscope (Qwen), Dashscope Coding Plan, Zhipu, Moonshot (Kimi), Qianfan (Baidu), Hunyuan (Tencent), Lingyi, ModelScope, InfiniAI, Ctyun, StepFun, SiliconFlow-CN, PPIO
+- **Uluslararası Platformlar** — DeepSeek, MiniMax, Novita, OpenRouter, SiliconFlow, xAI, Ark (Volcengine), Poe
 - **Yerel Modeller** — Ollama, LM Studio (yerel API uç noktası ile özel platform aracılığıyla)
 
 AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizmetini destekler — çeşitli LLM'leri toplayan ve dağıtan birleşik bir AI model merkezi. Çeşitli görev gereksinimlerini karşılamak için aynı arayüzde farklı modeller arasında esnek bir şekilde geçiş yapın.
@@ -168,7 +168,7 @@ AionUi ayrıca [NewAPI](https://github.com/QuantumNous/new-api) ağ geçidi hizm
 
 ## Genişletilebilir Asistanlar ve Beceriler
 
-_20 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
+_21 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişletilebilir asistan sistemi. Kendi asistanlarınızı ve becerilerinizi oluşturun ve yönetin._
 
 - **Özel Asistanlar Oluştur** — Özel kurallar ve yeteneklerle kendi asistanlarınızı tanımlayın
 - **Üç katmanlı Beceriler** — Yerleşik beceriler (AionUi ile birlikte gelen), özel beceriler (kendinizinkiler) ve Extension becerileri (üçüncü taraf uzantılar tarafından katkıda bulunulan); beceri göstergesi ile konuşma başına etkinleştirin/devre dışı bırakın
@@ -183,18 +183,18 @@ _20 yerleşik profesyonel asistan ve üç katmanlı beceri sistemi ile genişlet
 
 <br>
 
-AionUi önceden tanımlanmış yeteneklere sahip **20 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
+AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içerir, özel beceriler aracılığıyla genişletilebilir:
 
 - **🤝 Cowork** — Özerk görev yürütme (dosya işlemleri, belge işleme, iş akışı planlama)
 - **📊 PPT Creator / Morph PPT / Morph PPT 3D** — Morph geçişleri ile PPTX sunumları oluşturur ve canlandırır
 - **📐 Pitch Deck Creator** — Yatırımcıya hazır sunum destesi oluşturma
 - **📊 Dashboard Creator** — Veri panosu oluşturma
 - **📝 Word Creator** — Üretime hazır Word (`.docx`) belge oluşturma
+- **📋 Word Form Creator** — Yapılandırılmış Word formu / sözleşme şablonu oluşturma
 - **📗 Excel Creator** — Analiz, grafikler ve otomatik biçimlendirme ile elektronik tablo oluşturma
 - **🎓 Academic Paper Writer** — Yapılandırılmış akademik makale yazımı
 - **💰 Financial Model Creator** — Finansal modeller ve projeksiyonlar
 - **⭐ Star Office Helper** — Ofis üretkenlik asistanı
-- **📄 PDF'den PPT'ye** — PDF'yi PPT'ye dönüştürür
 - **🎮 3D Oyun** — Tek dosya 3D oyun oluşturma
 - **🎨 UI/UX Pro Max** — Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
 - **📋 Dosyalarla Planlama** — Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)
@@ -224,8 +224,7 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
   - **Lark (Feishu)** — Kurumsal işbirliği için Feishu botları aracılığıyla Cowork
   - **DingTalk** — Otomatik geri dönüş ile AI Card akışı
   - **WeChat** — Kişisel WeChat hesabı entegrasyonu
-  - **WeCom (企业微信)** — Ekip işbirliği için kurumsal WeChat botu
-  - **Slack** ve yakında daha fazla platform
+  - **WeCom (企业微信), Slack, Discord** ve yakında daha fazla platform
 
 > **Kurulum:** AionUi Ayarları → WebUI Ayarları → Kanal, Bot Token'ı yapılandırın.
 

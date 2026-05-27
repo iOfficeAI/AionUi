@@ -18,6 +18,7 @@
   "readyToInstall": "설치 준비 완료",
   "readyToInstallDesc": "업데이트가 다운로드되었습니다. 아래 버튼을 클릭하여 재시작하고 업데이트를 설치하세요.",
   "installNow": "지금 설치 및 재시작",
+  "installWarning": "설치 중에는 앱을 수동으로 열지 마세요. 앱이 자동으로 재시작됩니다.",
   "autoUpdateMode": "자동 업데이트 모드",
   "showInFolder": "폴더에서 보기",
   "openFile": "파일 열기",

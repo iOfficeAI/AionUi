@@ -87,4 +87,11 @@ describe('MessageTips — FeedbackButton wiring', () => {
       autoScreenshot: true,
     });
   });
+
+  it('renders HTML-like error text as literal text', () => {
+    const { container } = render(<MessageTips message={buildTips('error', '<strong>boom</strong>')} />);
+
+    expect(container.querySelector('strong')).not.toBeInTheDocument();
+    expect(screen.getByText('<strong>boom</strong>')).toBeInTheDocument();
+  });
 });

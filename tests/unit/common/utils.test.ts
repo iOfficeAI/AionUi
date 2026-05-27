@@ -83,6 +83,13 @@ describe('utils', () => {
       expect(parseError(error)).toBe('msg value');
     });
 
+    it('prefers backendMessage over wrapped error message', () => {
+      const error = Object.assign(new Error('wrapped error'), {
+        backendMessage: 'raw backend error',
+      });
+      expect(parseError(error)).toBe('raw backend error');
+    });
+
     it('stringifies object without msg/message', () => {
       const error = { code: 500, status: 'fail' };
       expect(parseError(error)).toBe('{"code":500,"status":"fail"}');

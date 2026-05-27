@@ -90,8 +90,10 @@
   "cannotDeleteBuiltin": "无法删除内置助手",
   "duplicateAssistant": "复制新建",
   "assistantMainAgent": "主代理",
+  "assistantBuiltinReadonlyTip": "这是内置助手，除「主代理」外其他配置不可修改。如需自定义，请",
+  "assistantBuiltinReadonlyDuplicateLink": "复制新建",
+  "assistantBuiltinReadonlyTipSuffix": "。",
   "addSkills": "添加技能",
-  "addSkillsTitle": "添加技能",
   "customSkills": "自定义技能",
   "builtinSkills": "内置技能",
   "noCustomSkills": "暂无自定义技能",
@@ -246,7 +248,7 @@
   "capabilities": "能力扩展",
   "capabilitiesTab": {
     "skills": "技能",
-    "tools": "MCP 与语音"
+    "tools": "工具"
   },
   "webui": "远程连接",
   "installed": "已安装",
@@ -437,6 +439,11 @@
   "speechToTextOptional": "可选",
   "mcp": "MCP 集成",
   "imageGenerationModel": "图像模型",
+  "imageGenSupportedTooltipTitle": "当前已支持的图像模型：",
+  "imageGenSupportedTooltipGemini": "Google Gemini / Vertex AI 图像模型（如 gemini-2.5-flash-image）",
+  "imageGenSupportedTooltipOpenRouter": "OpenRouter 中转的图像 chat 模型（如 nano-banana、gemini-image）",
+  "imageGenSupportedTooltipAntigravity": "AntigravityTools（gemini-3-pro-image）",
+  "imageGenUnsupportedTooltip": "gpt-image-* / dall-e-* / Imagen / FLUX 等模型使用不同 API，暂不支持。",
   "imageGenerationGuide": "图像模型配置指南",
   "noAvailable": "暂无可用图像模型，请先配置。",
   "mcpSettings": "MCP 工具配置",
@@ -666,9 +673,6 @@
   "multiKeyAllValid": "所有 {{total}} 个 Key 均有效",
   "multiKeyPartialValid": "{{valid}} 个有效，{{invalid}} 个无效",
   "multiKeyAllInvalid": "所有 {{total}} 个 Key 均无效",
-  "skillsAdded": "已添加并勾选 {{addedCount}} 个技能{{skippedCountText}}",
-  "skippedCount": "{{count}} 个跳过",
-  "allSkillsExist": "所有找到的技能都已存在",
   "noSkillsFound": "在选择的路径中未找到有效的技能",
   "skillScanFailed": "扫描技能失败",
   "quickScan": "快速扫描常用路径",
@@ -905,6 +909,5 @@
     "pendingTimeout": "审批请求已过期（5 分钟）。请重试。",
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
-  },
-  "noExternalSources": "未发现外部技能源"
+  }
 }

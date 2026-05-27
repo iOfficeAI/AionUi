@@ -70,6 +70,13 @@
   "tray.checkUpdate": "檢查更新",
   "tray.recentChats": "最近對話",
   "tray.untitled": "未命名",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "目前系統不支援內建後端",
+      "description": "AionUi 已開啟，但本機 AionCore 後端無法在目前 Linux 版本上執行。請升級到受支援的 Linux 發行版後重新啟動 AionUi。",
+      "requiredVersions": "需要的執行階段符號：{{versions}}"
+    }
+  },
   "fileAttach.addFiles": "新增檔案",
   "fileAttach.myDevice": "我的裝置",
   "fileAttach.failed": "上傳失敗",
