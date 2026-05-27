@@ -7,6 +7,7 @@
 import { AuthType } from '@office-ai/aioncli-core';
 import type { TProviderWithModel } from '../config/storage';
 import { OpenAIRotatingClient, type OpenAIClientConfig } from './OpenAIRotatingClient';
+import { GeminiRotatingClient, type GeminiClientConfig } from './GeminiRotatingClient';
 import { AnthropicRotatingClient, type AnthropicClientConfig } from './AnthropicRotatingClient';
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { getProviderAuthType } from '../utils/platformAuthType';
@@ -15,11 +16,11 @@ import { isNewApiPlatform } from '../utils/platformConstants';
 export interface ClientOptions {
   timeout?: number;
   proxy?: string;
-  baseConfig?: OpenAIClientConfig | AnthropicClientConfig;
+  baseConfig?: OpenAIClientConfig | GeminiClientConfig | AnthropicClientConfig;
   rotatingOptions?: RotatingApiClientOptions;
 }
 
-export type RotatingClient = OpenAIRotatingClient | AnthropicRotatingClient;
+export type RotatingClient = OpenAIRotatingClient | GeminiRotatingClient | AnthropicRotatingClient;
 
 /**
  * 为 new-api 网关规范化 base URL
@@ -48,9 +49,9 @@ export function normalizeNewApiBaseUrl(base_url: string, authType: AuthType): st
     case AuthType.USE_OPENAI:
       // OpenAI SDK 需要带 /v1 的路径 / OpenAI SDK expects URL with /v1 path
       return `${rootUrl}/v1`;
+    case AuthType.USE_GEMINI:
     case AuthType.USE_ANTHROPIC:
-      // Anthropic SDK 需要根 URL（它会自动附加各自的路径）
-      // Anthropic SDK needs root URL (it appends its own paths)
+      // Gemini/Anthropic SDKs need root URL (they append their own paths)
       return rootUrl;
     default:
       return rootUrl;
@@ -88,6 +89,25 @@ export class ClientFactory {
         }
 
         return new OpenAIRotatingClient(provider.api_key, clientConfig, rotatingOptions);
+      }
+
+      case AuthType.USE_GEMINI: {
+        const clientConfig: GeminiClientConfig = {
+          model: provider.use_model,
+          baseURL: base_url,
+          ...(options.baseConfig as GeminiClientConfig),
+        };
+
+        return new GeminiRotatingClient(provider.api_key, clientConfig, rotatingOptions, authType);
+      }
+
+      case AuthType.USE_VERTEX_AI: {
+        const clientConfig: GeminiClientConfig = {
+          model: provider.use_model,
+          ...(options.baseConfig as GeminiClientConfig),
+        };
+
+        return new GeminiRotatingClient(provider.api_key, clientConfig, rotatingOptions, authType);
       }
 
       case AuthType.USE_ANTHROPIC: {

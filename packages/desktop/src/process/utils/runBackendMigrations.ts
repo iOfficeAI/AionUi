@@ -8,7 +8,12 @@ import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } fr
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
-import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer } from '@/common/config/storage';
+import {
+  removeImageGenerationEnvKeys,
+  resolveImageGenerationMcpEnv,
+  type ImageGenerationMcpEnvResolveResult,
+} from '@/common/config/imageGenerationMcpEnv';
+import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
 import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
 
@@ -45,6 +50,15 @@ async function fetchBackendClientPreferences(): Promise<BackendClientPreferences
   }
 }
 
+async function fetchProviders(): Promise<IProvider[]> {
+  try {
+    return (await httpRequest<IProvider[]>('GET', '/api/providers')) || [];
+  } catch (error) {
+    console.warn('[Migration] MCP bootstrap could not load providers for image generation env resolution', error);
+    return [];
+  }
+}
+
 export function resolveImageGenerationMigrationConfig(
   backendPrefs: BackendClientPreferences,
   fileConfig?: ConfigKeyMap['tools.imageGenerationModel']
@@ -67,19 +81,38 @@ function resolveImageGenerationMigrationConfigSource(
   return fileConfig ? 'file' : 'none';
 }
 
-function buildImageGenerationEnv(config?: ConfigKeyMap['tools.imageGenerationModel']): Record<string, string> {
-  if (!config) return {};
-  const env: Record<string, string> = {};
-  if (config.platform) env.AIONUI_IMG_PLATFORM = config.platform;
-  if (config.base_url) env.AIONUI_IMG_BASE_URL = config.base_url;
-  if (config.api_key) env.AIONUI_IMG_API_KEY = config.api_key;
-  if (config.use_model) env.AIONUI_IMG_MODEL = config.use_model;
-  return env;
+function logImageGenerationEnvResolution(
+  result: ImageGenerationMcpEnvResolveResult,
+  context: 'bootstrap' | 'update'
+): void {
+  if (result.ok === true) {
+    console.info(
+      '[Migration] image MCP env resolved via %s during %s, provider id: %s, platform: %s, model: %s, api key present: %s',
+      result.source,
+      context,
+      result.provider.id,
+      result.provider.platform,
+      result.model,
+      result.provider.api_key ? 'yes' : 'no'
+    );
+    return;
+  }
+
+  console.warn(
+    '[Migration] image MCP env resolution failed during %s, reason: %s, message: %s, candidates: %s',
+    context,
+    result.reason,
+    result.message,
+    result.candidates?.join(',') || 'none'
+  );
 }
 
-function buildBuiltinImageGenerationServer(config?: ConfigKeyMap['tools.imageGenerationModel']): McpImportServer {
+function buildBuiltinImageGenerationServer(
+  resolution: ImageGenerationMcpEnvResolveResult,
+  config?: ConfigKeyMap['tools.imageGenerationModel']
+): McpImportServer {
   const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
-  const env = buildImageGenerationEnv(config);
+  const env = resolution.ok ? resolution.env : {};
   const serverConfig = {
     command: 'node',
     args: [scriptPath],
@@ -89,7 +122,7 @@ function buildBuiltinImageGenerationServer(config?: ConfigKeyMap['tools.imageGen
   return {
     name: BUILTIN_IMAGE_GEN_NAME,
     description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
-    enabled: config?.switch === true,
+    enabled: config?.switch === true && resolution.ok,
     builtin: true,
     transport: {
       type: 'stdio',
@@ -123,15 +156,21 @@ function buildDefaultMcpServers(): McpImportServer[] {
 }
 
 async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
-  const [backendPrefs, fileImageConfig] = await Promise.all([
+  const [backendPrefs, fileImageConfig, providers] = await Promise.all([
     fetchBackendClientPreferences(),
     configFile.get('tools.imageGenerationModel').catch((): undefined => undefined),
+    fetchProviders(),
   ]);
   const imageConfig = resolveImageGenerationMigrationConfig(backendPrefs, fileImageConfig);
   const imageConfigSource = resolveImageGenerationMigrationConfigSource(backendPrefs, fileImageConfig);
   const existing = await mcpService.listServers.invoke();
   const existingByName = new Map((existing ?? []).map((server) => [server.name, server]));
-  const imageServer = buildBuiltinImageGenerationServer(imageConfig);
+  const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
+  const existingImageEnv =
+    existingImageServer?.transport.type === 'stdio' ? existingImageServer.transport.env : undefined;
+  const imageEnvResolution = resolveImageGenerationMcpEnv(imageConfig, providers, existingImageEnv);
+  logImageGenerationEnvResolution(imageEnvResolution, 'bootstrap');
+  const imageServer = buildBuiltinImageGenerationServer(imageEnvResolution, imageConfig);
   const defaultServers = buildDefaultMcpServers();
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
   let imageServerToSync: IMcpServer | undefined;
@@ -141,18 +180,49 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     imageServerToSync = imported.find((server) => server.name === BUILTIN_IMAGE_GEN_NAME && server.enabled);
   }
 
-  const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
-  if (existingImageServer && existingImageServer.transport.type === 'stdio' && imageServer.transport.type === 'stdio') {
+  if (
+    imageEnvResolution.ok === true &&
+    existingImageServer &&
+    existingImageServer.transport.type === 'stdio' &&
+    imageServer.transport.type === 'stdio'
+  ) {
+    const mergedEnv = {
+      ...removeImageGenerationEnvKeys(existingImageServer.transport.env || {}),
+      ...imageEnvResolution.env,
+    };
+    const updatedTransport = {
+      ...imageServer.transport,
+      env: mergedEnv,
+    };
+    const original_json = JSON.stringify(
+      {
+        mcpServers: {
+          [BUILTIN_IMAGE_GEN_NAME]: {
+            command: updatedTransport.command,
+            args: updatedTransport.args || [],
+            env: mergedEnv,
+          },
+        },
+      },
+      null,
+      2
+    );
     const updatedImageServer = await mcpService.updateServer.invoke({
       id: existingImageServer.id,
       data: {
-        transport: imageServer.transport,
-        original_json: imageServer.original_json,
+        transport: updatedTransport,
+        original_json,
       },
     });
     if (updatedImageServer.enabled) {
       imageServerToSync = updatedImageServer;
     }
+  } else if (existingImageServer && imageEnvResolution.ok === false) {
+    console.warn(
+      '[Migration] skipped image MCP env update because provider could not be resolved, server id: %s, reason: %s',
+      existingImageServer.id,
+      imageEnvResolution.reason
+    );
   }
 
   if (imageServerToSync) {
@@ -167,7 +237,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   console.info(
     '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s, synced image server: %s',
     missing.length,
-    existingImageServer ? 'yes' : 'no',
+    existingImageServer && imageEnvResolution.ok ? 'yes' : 'no',
     imageConfigSource,
     imageConfig?.switch === true ? 'yes' : 'no',
     imageServerToSync ? 'yes' : 'no'
@@ -182,12 +252,12 @@ const MIGRATION_STEPS: Array<{
     name: 'migrateLegacyMcpConfigToDb',
     run: async (configFile) => (await migrateLegacyMcpConfigToDb(configFile), true),
   },
+  { name: 'migrateConfigStorage', run: async (configFile) => (await migrateConfigStorage(configFile), true) },
+  { name: 'migrateProviders', run: async (configFile) => (await migrateProviders(configFile), true) },
   {
     name: 'ensureBootstrapMcpServersInDb',
     run: async (configFile) => (await ensureBootstrapMcpServersInDb(configFile), true),
   },
-  { name: 'migrateConfigStorage', run: async (configFile) => (await migrateConfigStorage(configFile), true) },
-  { name: 'migrateProviders', run: async (configFile) => (await migrateProviders(configFile), true) },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },
 ];
 

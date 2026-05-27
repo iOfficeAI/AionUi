@@ -6,6 +6,7 @@
 
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
+import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/common/config/imageGenerationMcpEnv';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
 import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/provider/speech';
@@ -36,6 +37,11 @@ type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 const isBuiltinImageGenServer = (server: IMcpServer) =>
   server.builtin === true && (server.id === BUILTIN_IMAGE_GEN_ID || server.name === BUILTIN_IMAGE_GEN_NAME);
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const areEnvRecordsEqual = (a: Record<string, string>, b: Record<string, string>) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+  return aKeys.length === bKeys.length && aKeys.every((key) => a[key] === b[key]);
+};
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
   provider: 'openai',
@@ -578,26 +584,39 @@ const ToolsModalContent: React.FC = () => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
-      const env: Record<string, string> = { ...builtinServer.transport.env };
-      if (model.platform) {
-        env.AIONUI_IMG_PLATFORM = model.platform;
+      const existingEnv = builtinServer.transport.env || {};
+      let env: Record<string, string>;
+
+      if (!model.id && !model.use_model) {
+        env = removeImageGenerationEnvKeys(existingEnv);
+        console.info('[ImageGen] Cleared built-in MCP image env because image generation model is unset');
       } else {
-        delete env.AIONUI_IMG_PLATFORM;
+        const resolution = resolveImageGenerationMcpEnv(model, data || [], existingEnv);
+        if (resolution.ok === false) {
+          console.error('[ImageGen] Failed to resolve image MCP provider', {
+            reason: resolution.reason,
+            message: resolution.message,
+            candidates: resolution.candidates,
+          });
+          throw new Error(resolution.message);
+        }
+
+        env = {
+          ...removeImageGenerationEnvKeys(existingEnv),
+          ...resolution.env,
+        };
+        console.info(
+          '[ImageGen] Syncing built-in MCP image env via %s, provider id: %s, platform: %s, model: %s, api key present: %s',
+          resolution.source,
+          resolution.provider.id,
+          resolution.provider.platform,
+          resolution.model,
+          resolution.provider.api_key ? 'yes' : 'no'
+        );
       }
-      if (model.base_url) {
-        env.AIONUI_IMG_BASE_URL = model.base_url;
-      } else {
-        delete env.AIONUI_IMG_BASE_URL;
-      }
-      if (model.api_key) {
-        env.AIONUI_IMG_API_KEY = model.api_key;
-      } else {
-        delete env.AIONUI_IMG_API_KEY;
-      }
-      if (model.use_model) {
-        env.AIONUI_IMG_MODEL = model.use_model;
-      } else {
-        delete env.AIONUI_IMG_MODEL;
+
+      if (areEnvRecordsEqual(existingEnv, env)) {
+        return;
       }
 
       const updatedTransport = { ...builtinServer.transport, env };
@@ -625,50 +644,76 @@ const ToolsModalContent: React.FC = () => {
       await reloadMcpServers();
       if (updatedServer.enabled) {
         await mcpService.syncMcpToAgents.invoke({ servers: [updatedServer.id] });
+        console.info(
+          '[ImageGen] Synced built-in image MCP server to installed agents, server id: %s',
+          updatedServer.id
+        );
       }
     },
-    [mcpServers, reloadMcpServers]
+    [data, mcpServers, reloadMcpServers]
   );
 
-  // Sync imageGenerationModel api_key when provider api_key changes
+  // Keep the saved image model as a provider/model reference. Secrets stay in providers.
   useEffect(() => {
     if (!imageGenerationModel || !data) return;
 
     const currentProvider = data.find((p) => p.id === imageGenerationModel.id);
 
-    if (currentProvider && currentProvider.api_key !== imageGenerationModel.api_key) {
-      const updatedModel = {
-        ...imageGenerationModel,
-        api_key: currentProvider.api_key,
-      };
-
-      setImageGenerationModel(updatedModel);
-      configService.set('tools.imageGenerationModel', updatedModel).catch((error) => {
-        console.error('Failed to save image generation model config:', error);
-      });
-      void syncMcpServerEnv(updatedModel);
-    } else if (!currentProvider) {
+    if (!currentProvider) {
       setImageGenerationModel(undefined);
       configService.remove('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
-      void syncMcpServerEnv({});
+      void syncMcpServerEnv({}).catch((error) => {
+        console.error('Failed to clear image generation MCP env after provider removal:', error);
+      });
+      return;
     }
-  }, [data, imageGenerationModel?.id, imageGenerationModel?.api_key, syncMcpServerEnv]);
+
+    const sanitizedModel = {
+      ...imageGenerationModel,
+      name: currentProvider.name,
+      platform: currentProvider.platform,
+      base_url: '',
+      api_key: '',
+    };
+
+    if (imageGenerationModel.api_key || imageGenerationModel.base_url) {
+      setImageGenerationModel(sanitizedModel);
+      configService.set('tools.imageGenerationModel', sanitizedModel).catch((error) => {
+        console.error('Failed to sanitize image generation model config:', error);
+      });
+    }
+
+    void syncMcpServerEnv(sanitizedModel).catch((error) => {
+      console.error('Failed to sync image generation MCP env after provider change:', error);
+    });
+  }, [data, imageGenerationModel, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
     (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
       setImageGenerationModel((prev) => {
-        const newImageGenerationModel = { ...prev, ...value };
+        const newImageGenerationModel = {
+          ...prev,
+          id: value.id,
+          name: value.name,
+          platform: value.platform,
+          base_url: '',
+          api_key: '',
+          use_model: value.use_model,
+        } as ConfigKeyMap['tools.imageGenerationModel'];
         configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
-        void syncMcpServerEnv(newImageGenerationModel);
+        void syncMcpServerEnv(newImageGenerationModel).catch((error) => {
+          console.error('Failed to sync image generation MCP env:', error);
+          mcpMessage.error(error instanceof Error ? error.message : t('settings.mcpSyncError'));
+        });
         return newImageGenerationModel;
       });
     },
-    [syncMcpServerEnv]
+    [mcpMessage, syncMcpServerEnv, t]
   );
 
   const handleImageGenerationToggle = useCallback(
@@ -678,6 +723,13 @@ const ToolsModalContent: React.FC = () => {
       setIsUpdatingImageGeneration(true);
       skipNextImageGenerationAutoCheckRef.current = checked;
       try {
+        if (checked) {
+          if (!imageGenerationModel?.id || !imageGenerationModel.use_model) {
+            mcpMessage.error(t('settings.mcpSyncError'));
+            return;
+          }
+          await syncMcpServerEnv(imageGenerationModel);
+        }
         const updatedServer = await mcpService.toggleServer.invoke(builtinImageGenServer.id);
         await reloadMcpServers();
 
@@ -715,8 +767,10 @@ const ToolsModalContent: React.FC = () => {
       builtinImageGenServer,
       checkSingleServerInstallStatus,
       clearImageGenerationAgentStatus,
+      imageGenerationModel,
       mcpMessage,
       reloadMcpServers,
+      syncMcpServerEnv,
       t,
     ]
   );
