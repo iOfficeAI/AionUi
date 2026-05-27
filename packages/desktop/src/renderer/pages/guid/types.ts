@@ -38,6 +38,13 @@ export type AvailableAgent = {
   presetAgentType?: string;
   isExtension?: boolean;
   extensionName?: string;
+  /**
+   * Wire protocol for `agent_type === 'remote'` rows (`'opencode'`,
+   * `'openclaw'`, `'zeroclaw'`, `'acp'`). Drives mode-picker visibility on
+   * the Guid page since `agent_type` collapses every remote agent to
+   * `'remote'` and only OpenCode exposes build/plan.
+   */
+  protocol?: string;
 };
 
 /**

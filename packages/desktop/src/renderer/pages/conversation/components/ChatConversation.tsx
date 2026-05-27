@@ -289,6 +289,7 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            session_mode={(conversation.extra as { session_mode?: string } | undefined)?.session_mode}
           />
         );
       default:

@@ -7,12 +7,15 @@
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
+import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
 import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
+import { iconColors } from '@/renderer/styles/colors';
+import { Shield } from '@icon-park/react';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -51,7 +54,10 @@ const useRemoteSendBoxDraft = getSendBoxDraftHook('remote', {
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
-const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
+const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }> = ({
+  conversation_id,
+  session_mode,
+}) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -61,6 +67,10 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   const { setSendBoxHandler } = usePreviewContext();
 
   const [agent_name, setAgentName] = useState('Remote Agent');
+  // Remote agents support multiple protocols (opencode, openclaw, ...). Only
+  // OpenCode exposes per-prompt mode switching (build/plan), so we gate the
+  // selector on the protocol resolved from the remote-agent row.
+  const [protocol, setProtocol] = useState<string | undefined>(undefined);
   const [aiProcessing, setAiProcessing] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
@@ -277,10 +287,15 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   useEffect(() => {
     void getConversationOrNull(conversation_id).then(async (res) => {
       if (res?.extra?.workspace) setWorkspacePath(res.extra.workspace);
-      const extra = res?.extra as { remoteAgentId?: string } | undefined;
-      if (extra?.remoteAgentId) {
-        const agent = await ipcBridge.remoteAgent.get.invoke({ id: extra.remoteAgentId });
+      // The Rust backend persists the FK as `remote_agent_id` (snake_case),
+      // while older paths used the camelCase variant. Read both so the
+      // lookup survives either spelling.
+      const extra = res?.extra as { remoteAgentId?: string; remote_agent_id?: string } | undefined;
+      const remoteAgentId = extra?.remoteAgentId || extra?.remote_agent_id;
+      if (remoteAgentId) {
+        const agent = await ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId });
         if (agent?.name) setAgentName(agent.name);
+        if (agent?.protocol) setProtocol(agent.protocol);
       }
     });
   }, [conversation_id]);
@@ -538,6 +553,20 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         defaultMultiLine={true}
         lockMultiLine={true}
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        rightTools={
+          protocol === 'opencode' ? (
+            <AgentModeSelector
+              backend='opencode'
+              conversation_id={conversation_id}
+              compact
+              initialMode={session_mode}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+            />
+          ) : undefined
+        }
         prefix={
           uploadFile.length > 0 ? (
             <HorizontalFileList>

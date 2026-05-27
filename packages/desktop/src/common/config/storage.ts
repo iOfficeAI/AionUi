@@ -388,6 +388,10 @@ export type TChatConversation =
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
+          /** Initial session mode forwarded from the Guid page; OpenCode uses
+           * `'build'` | `'plan'`. Lets the AgentModeSelector show the chosen
+           * mode immediately on conversation load. */
+          session_mode?: string;
         }
       >,
       'model'

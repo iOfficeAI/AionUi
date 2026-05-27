@@ -89,7 +89,12 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
 }) => {
   const { t } = useTranslation();
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
-  const modeBackend = effectiveModeAgent || selectedAgent;
+  const rawModeBackend = effectiveModeAgent || selectedAgent;
+  // Remote agents collapse to a single `'remote'` discriminant, but only
+  // OpenCode actually exposes a mode switch (build/plan). Substitute the
+  // wire protocol so the static AGENT_MODES lookup works.
+  const modeBackend =
+    rawModeBackend === 'remote' && selectedAgentInfo?.protocol === 'opencode' ? 'opencode' : rawModeBackend;
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 

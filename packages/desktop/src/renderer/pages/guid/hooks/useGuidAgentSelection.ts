@@ -292,6 +292,7 @@ export const useGuidAgentSelection = ({
       id: ra.id,
       custom_agent_id: ra.id,
       avatar: ra.avatar,
+      protocol: ra.protocol,
     }));
     setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
   }, [availableAgentsData, remoteAgentsData]);
@@ -421,8 +422,12 @@ export const useGuidAgentSelection = ({
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
-    // For preset agents, use the effective backend type for config lookup and mode saving
-    const configKey = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
+    // For preset agents, use the effective backend type for config lookup and mode saving.
+    // For remote agents, `agent_type === 'remote'` is too coarse — the static
+    // AGENT_MODES table is keyed by wire protocol (`opencode`), so swap it in.
+    const rawConfigKey = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
+    const configKey =
+      rawConfigKey === 'remote' && selectedAgentInfo?.protocol === 'opencode' ? 'opencode' : rawConfigKey;
     selectedAgentRef.current = configKey;
     // Reset to the backend's actual default (from handshake.available_modes),
     // not the literal 'default' — codex/opencode/cursor don't have that value.
@@ -480,7 +485,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData, selectedAgentInfo?.protocol]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup

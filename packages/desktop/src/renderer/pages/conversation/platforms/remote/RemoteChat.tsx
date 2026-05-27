@@ -20,7 +20,8 @@ const RemoteChat: React.FC<{
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
-}> = ({ conversation_id, workspace, cron_job_id, hideSendBox, emptySlot, loadedSkills }) => {
+  session_mode?: string;
+}> = ({ conversation_id, workspace, cron_job_id, hideSendBox, emptySlot, loadedSkills, session_mode }) => {
   useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
@@ -34,7 +35,7 @@ const RemoteChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot}></MessageList>
         </FlexFullContainer>
-        {!hideSendBox && <RemoteSendBox conversation_id={conversation_id} />}
+        {!hideSendBox && <RemoteSendBox conversation_id={conversation_id} session_mode={session_mode} />}
       </div>
     </ConversationProvider>
   );
