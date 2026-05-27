@@ -14,6 +14,7 @@ import {
   MessageListProvider,
   useMessageLstCache,
 } from '@renderer/pages/conversation/Messages/hooks';
+import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
@@ -40,6 +41,7 @@ const AionrsChat: React.FC<{
   agent_name,
 }) => {
   useMessageLstCache(conversation_id);
+  usePendingConfirmationsRecovery(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
   useEffect(() => {
     updateLocalImage({ root: workspace });

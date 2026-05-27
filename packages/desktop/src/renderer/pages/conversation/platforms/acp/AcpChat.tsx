@@ -14,6 +14,7 @@ import {
   MessageListProvider,
   useMessageLstCache,
 } from '@renderer/pages/conversation/Messages/hooks';
+import { usePendingConfirmationsRecovery } from '@renderer/pages/conversation/Messages/usePendingConfirmationsRecovery';
 import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
 import AcpE2EStreamInjector from './AcpE2EStreamInjector';
@@ -42,6 +43,7 @@ const AcpChat: React.FC<{
   loadedSkills,
 }) => {
   useMessageLstCache(conversation_id);
+  usePendingConfirmationsRecovery(conversation_id);
   const teamPermission = useTeamPermission();
   const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
 

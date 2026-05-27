@@ -28,6 +28,7 @@ interface MessageIndex {
   msgIdIndex: Map<string, number>; // msg_id -> index
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
+  permission_call_idIndex: Map<string, number>; // permission.content.call_id -> index
 }
 
 function getMessageIndexKey(message: TMessage): string | undefined {
@@ -58,6 +59,7 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
+  const permission_call_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
@@ -71,9 +73,12 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
       tool_call_idIndex.set(msg.content.update.tool_call_id, i);
     }
+    if (msg.type === 'permission' && msg.content?.call_id) {
+      permission_call_idIndex.set(msg.content.call_id, i);
+    }
   }
 
-  return { msgIdIndex, call_idIndex, tool_call_idIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -119,6 +124,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
     }
     return result;
   }
@@ -159,6 +165,24 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
     // 未找到，添加新消息并更新索引
     const newIdx = list.length;
     index.tool_call_idIndex.set(message.content.update.tool_call_id, newIdx);
+    const msgIndexKey = getMessageIndexKey(message);
+    if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
+    return list.concat(message);
+  }
+
+  // permission: use call_id for recovery/live stream dedupe.
+  if (message.type === 'permission' && message.content?.call_id) {
+    const existingIdx = index.permission_call_idIndex.get(message.content.call_id);
+    if (existingIdx !== undefined && existingIdx < list.length) {
+      const existingMsg = list[existingIdx];
+      if (existingMsg.type === 'permission') {
+        const newList = list.slice();
+        newList[existingIdx] = { ...existingMsg, ...message, content: message.content };
+        return newList;
+      }
+    }
+    const newIdx = list.length;
+    index.permission_call_idIndex.set(message.content.call_id, newIdx);
     const msgIndexKey = getMessageIndexKey(message);
     if (msgIndexKey) index.msgIdIndex.set(msgIndexKey, newIdx);
     return list.concat(message);
@@ -252,6 +276,7 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
       return newList;
     }
     const newIdx = list.length;
@@ -330,6 +355,9 @@ export const useAddOrUpdateMessage = () => {
           }
           if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
             index.tool_call_idIndex.set(msg.content.update.tool_call_id, newIdx);
+          }
+          if (msg.type === 'permission' && msg.content?.call_id) {
+            index.permission_call_idIndex.set(msg.content.call_id, newIdx);
           }
           newList = newList.concat(msg);
         } else {
