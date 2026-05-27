@@ -201,8 +201,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           setThought({ subject: '', description: '' });
           hasContentInTurnRef.current = false;
           break;
-        case 'content':
-        case 'acp_permission': {
+        case 'content': {
           hasContentInTurnRef.current = true;
           if (!aiProcessingRef.current) {
             setAiProcessing(true);
@@ -210,6 +209,19 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
+          }
+          break;
+        }
+        case 'acp_permission': {
+          hasContentInTurnRef.current = true;
+          if (!aiProcessingRef.current) {
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
+          setThought({ subject: '', description: '' });
+          const transformedMessage = transformMessage({ ...message, type: 'permission' });
           if (transformedMessage) {
             addOrUpdateMessage(transformedMessage);
           }
