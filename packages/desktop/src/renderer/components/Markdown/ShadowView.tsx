@@ -46,6 +46,10 @@ const createInitStyle = (
     line-height:${lineHeight};
     font-size:${fontSize};
     color: inherit;
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans', 'PingFang SC', sans-serif;
+  }
+  code, pre, kbd, samp {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
 
   .markdown-shadow-body {
@@ -78,14 +82,37 @@ const createInitStyle = (
     overflow-wrap: anywhere;
   }
   h1{
-    font-size: 17px;
-    line-height: 22px;
-    font-weight: bold;
+    font-size: calc(22px * var(--chat-font-scale, 1));
+    line-height: calc(28px * var(--chat-font-scale, 1));
+    font-weight: 700;
+    margin-top: 16px;
+    margin-bottom: 8px;
   }
-  h2,h3,h4,h5,h6{
-    font-size: 14px;
-    line-height: 20px;
-    font-weight: bold;
+  h2{
+    font-size: calc(17px * var(--chat-font-scale, 1));
+    line-height: calc(24px * var(--chat-font-scale, 1));
+    font-weight: 600;
+    margin-top: 14px;
+    margin-bottom: 6px;
+  }
+  h3{
+    font-size: calc(15px * var(--chat-font-scale, 1));
+    line-height: calc(22px * var(--chat-font-scale, 1));
+    font-weight: 600;
+    margin-top: 12px;
+    margin-bottom: 6px;
+  }
+  h4{
+    font-size: calc(14px * var(--chat-font-scale, 1));
+    line-height: calc(20px * var(--chat-font-scale, 1));
+    font-weight: 600;
+    margin-top: 10px;
+    margin-bottom: 6px;
+  }
+  h5,h6{
+    font-size: calc(13px * var(--chat-font-scale, 1));
+    line-height: calc(20px * var(--chat-font-scale, 1));
+    font-weight: 600;
     margin-top: 10px;
     margin-bottom: 6px;
   }
@@ -115,7 +142,7 @@ const createInitStyle = (
     padding: 2px 6px;
     border-radius: 4px;
     font-size: 0.92em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   blockquote {
     border-left: 2px solid var(--bg-3);

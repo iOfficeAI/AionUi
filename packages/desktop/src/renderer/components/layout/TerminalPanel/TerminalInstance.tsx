@@ -31,7 +31,7 @@ type Props = {
 };
 
 const BASE_FONT_SIZE = 13;
-const FONT_FAMILY = "Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace";
+const FONT_FAMILY = "'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
 
 const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontScale, disabled }) => {
   const hostRef = useRef<HTMLDivElement | null>(null);

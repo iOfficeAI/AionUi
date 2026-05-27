@@ -8,8 +8,8 @@ import { describe, it, expect, vi } from 'vitest';
 import { render } from '@testing-library/react';
 import React from 'react';
 
-vi.mock('@monaco-editor/react', () => ({
-  default: ({ value }: { value: string }) => <div data-testid='monaco-editor'>{value}</div>,
+vi.mock('@uiw/react-codemirror', () => ({
+  default: ({ value }: { value: string }) => <div data-testid='codemirror-editor'>{value}</div>,
 }));
 
 vi.mock('@arco-design/web-react', () => ({

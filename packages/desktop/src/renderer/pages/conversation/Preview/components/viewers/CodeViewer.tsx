@@ -13,7 +13,7 @@ import { Close } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { forgeDark, forgeLight } from '@/renderer/components/Markdown/codeThemes';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 
 interface CodePreviewProps {
@@ -203,7 +203,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({
         ) : (
           // 预览模式：语法高亮 / Preview mode: Syntax highlighting
           <SyntaxHighlighter
-            style={currentTheme === 'dark' ? vs2015 : vs}
+            style={currentTheme === 'dark' ? forgeDark : forgeLight}
             language={language}
             PreTag='div'
             wrapLongLines={language === 'text' || language === 'txt'}

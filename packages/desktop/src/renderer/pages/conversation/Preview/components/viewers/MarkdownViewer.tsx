@@ -16,7 +16,7 @@ import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { forgeDark, forgeLight } from '@/renderer/components/Markdown/codeThemes';
 import rehypeKatex from 'rehype-katex';
 import rehypeRaw from 'rehype-raw';
 import remarkBreaks from 'remark-breaks';
@@ -460,7 +460,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
                   const match = /language-(\w+)/.exec(className || '');
                   const codeContent = String(children).replace(/\n$/, '');
                   const language = match ? match[1] : '';
-                  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+                  const codeTheme = currentTheme === 'dark' ? forgeDark : forgeLight;
 
                   // Render latex/math code blocks as KaTeX display math
                   // Skip full LaTeX documents (with \documentclass, \begin{document}, etc.) — KaTeX only handles math

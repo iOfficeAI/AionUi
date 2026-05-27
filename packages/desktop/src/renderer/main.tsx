@@ -28,6 +28,7 @@ import { AuthProvider } from './hooks/context/AuthContext';
 import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
+import { EditorProvider } from './pages/conversation/Editor';
 
 // Arco Design
 import { ConfigProvider } from '@arco-design/web-react';
@@ -42,6 +43,7 @@ import koKR from '@arco-design/web-react/es/locale/ko-KR';
 import { useTranslation } from 'react-i18next';
 
 // Styles
+import './styles/fonts.css';
 import 'uno.css';
 import './styles/arco-override.css';
 import './styles/themes/index.css';
@@ -104,7 +106,11 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
     React.createElement(
       ThemeProvider,
       null,
-      React.createElement(PreviewProvider, null, React.createElement(FeedbackProvider, null, children))
+      React.createElement(
+        PreviewProvider,
+        null,
+        React.createElement(EditorProvider, null, React.createElement(FeedbackProvider, null, children))
+      )
     )
   );
 

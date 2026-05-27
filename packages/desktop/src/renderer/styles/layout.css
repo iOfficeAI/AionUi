@@ -36,9 +36,7 @@
   overflow-x: hidden;
   box-shadow: none !important;
   border-right: 1px solid var(--border-base);
-  /* Drag-resize: stop Arco's slide-animation while user is actively dragging
-     so the width tracks the cursor with no lag. */
-  transition: width 0.15s ease;
+  transition: width var(--duration-slow) var(--ease-out-expo);
 }
 .layout-sider--dragging,
 .layout-sider--dragging * {
@@ -89,8 +87,8 @@
 .chat-history__item-editor,
 .settings-sider__item-label {
   transition:
-    opacity 0.25s ease,
-    transform 0.25s ease;
+    opacity var(--duration-normal) var(--ease-in-out),
+    transform var(--duration-normal) var(--ease-out-expo);
   transform-origin: left center;
 }
 
@@ -99,6 +97,21 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   max-width: 100%;
+}
+
+.chat-history__item--active {
+  position: relative;
+}
+
+.chat-history__item--active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 4px;
+  bottom: 4px;
+  width: 3px;
+  border-radius: 0 2px 2px 0;
+  background: var(--brand);
 }
 
 .settings-sider__item-label {

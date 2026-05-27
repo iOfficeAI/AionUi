@@ -179,6 +179,9 @@ export default defineConfig({
   // 基础配置
   shortcuts: {
     'flex-center': 'flex items-center justify-center',
+    'shadow-sm': 'shadow-[var(--shadow-sm)]',
+    'shadow-md': 'shadow-[var(--shadow-md)]',
+    'shadow-lg': 'shadow-[var(--shadow-lg)]',
   },
   theme: {
     colors: {

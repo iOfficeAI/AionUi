@@ -50,7 +50,7 @@
 .workspace-open-dropdown {
   background-color: var(--color-bg-2);
   border-radius: 4px;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+  box-shadow: var(--shadow-md);
   color: var(--color-text-1);
 }
 

@@ -22,6 +22,14 @@
   background-color: var(--bg-active);
 }
 
+.workspace-tree .arco-tree-node-switcher-icon {
+  transition: transform var(--duration-fast) var(--ease-out-expo);
+}
+
+.workspace-tree .arco-tree-node-expanded .arco-tree-node-switcher-icon {
+  transform: rotate(90deg);
+}
+
 .workspace-toggle-floating {
   background-color: var(--bg-2);
   border: 1px solid var(--bg-3);

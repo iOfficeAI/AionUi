@@ -28,6 +28,7 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
+import ConversationEmptyState from '../Messages/ConversationEmptyState';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
@@ -183,6 +184,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
         agent_name={presetAssistantInfo?.name}
+        emptySlot={<ConversationEmptyState />}
       />
     </ChatLayout>
   );
@@ -222,6 +224,7 @@ const ChatConversation: React.FC<{
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            emptySlot={<ConversationEmptyState />}
           ></AcpChat>
         );
       case 'gemini':
@@ -241,6 +244,7 @@ const ChatConversation: React.FC<{
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            emptySlot={<ConversationEmptyState />}
           />
         );
       case 'codex': // Legacy: codex now uses ACP protocol
@@ -253,6 +257,7 @@ const ChatConversation: React.FC<{
             agent_name={assistantDisplayName}
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            emptySlot={<ConversationEmptyState />}
           />
         );
       case 'openclaw-gateway':
@@ -263,6 +268,7 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            emptySlot={<ConversationEmptyState />}
           />
         );
       case 'nanobot':
@@ -273,6 +279,7 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            emptySlot={<ConversationEmptyState />}
           />
         );
       case 'remote':
@@ -284,6 +291,7 @@ const ChatConversation: React.FC<{
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             session_mode={(conversation.extra as { session_mode?: string } | undefined)?.session_mode}
+            emptySlot={<ConversationEmptyState />}
           />
         );
       default:

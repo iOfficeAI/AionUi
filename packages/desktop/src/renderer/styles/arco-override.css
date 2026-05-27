@@ -5,9 +5,17 @@
 html,
 body {
   font-family:
-    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC',
-    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+    'Outfit',
+    -apple-system,
+    BlinkMacSystemFont,
+    'Segoe UI',
+    'Noto Sans',
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei',
+    sans-serif;
   font-size: 13px;
+  font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
 }
 
 /* ==========================================================================
@@ -299,6 +307,7 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
   background: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
   border-radius: 16px !important;
+  box-shadow: var(--shadow-lg);
 }
 
 body[arco-theme='dark'] .arco-modal-content {

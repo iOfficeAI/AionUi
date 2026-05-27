@@ -41,13 +41,22 @@ export const logicRender = <T, F>(condition: boolean, trueComponent: T, falseCom
  */
 export const getDiffLineStyle = (line: string, isDark: boolean): React.CSSProperties => {
   if (line.startsWith('+') && !line.startsWith('+++')) {
-    return { backgroundColor: isDark ? diffColors.additionBgDark : diffColors.additionBgLight };
+    return {
+      backgroundColor: isDark ? diffColors.additionBgDark : diffColors.additionBgLight,
+      borderLeft: '3px solid #b8bb26',
+    };
   }
   if (line.startsWith('-') && !line.startsWith('---')) {
-    return { backgroundColor: isDark ? diffColors.deletionBgDark : diffColors.deletionBgLight };
+    return {
+      backgroundColor: isDark ? diffColors.deletionBgDark : diffColors.deletionBgLight,
+      borderLeft: '3px solid #fb4934',
+    };
   }
   if (line.startsWith('@@')) {
-    return { backgroundColor: isDark ? diffColors.hunkBgDark : diffColors.hunkBgLight };
+    return {
+      backgroundColor: isDark ? diffColors.hunkBgDark : diffColors.hunkBgLight,
+      borderLeft: '3px solid #83a598',
+    };
   }
   return {};
 };

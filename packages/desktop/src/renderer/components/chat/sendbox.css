@@ -93,7 +93,54 @@
 
 /* Input placeholder color */
 ::placeholder {
-  color: #a1a2aa !important;
+  color: var(--text-disabled) !important;
+}
+
+/* Sendbox focus glow */
+.sendbox-panel--focused {
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--brand) 40%, transparent),
+    0 0 16px color-mix(in srgb, var(--brand) 10%, transparent);
+}
+
+/* Sendbox glass effect */
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .sendbox-panel {
+    -webkit-backdrop-filter: saturate(120%) blur(8px);
+    backdrop-filter: saturate(120%) blur(8px);
+    background-color: color-mix(in srgb, var(--bg-1) 88%, transparent) !important;
+  }
+}
+
+/* Send/stop button cross-fade container */
+.sendbox-action-btn-wrap {
+  position: relative;
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+}
+
+.sendbox-action-btn-layer {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition:
+    opacity var(--duration-fast) ease,
+    transform var(--duration-fast) var(--ease-spring);
+}
+
+.sendbox-action-btn-layer--hidden {
+  opacity: 0;
+  transform: scale(0.8);
+  pointer-events: none;
+}
+
+.sendbox-action-btn-layer--visible {
+  opacity: 1;
+  transform: scale(1);
+  pointer-events: auto;
 }
 
 /* Sendbox tools buttons - prevent layout jitter from theme hover transforms (#1075) */
@@ -399,8 +446,8 @@
 }
 
 .sendbox-highlight-textarea::placeholder {
-  color: #a1a2aa !important;
-  -webkit-text-fill-color: #a1a2aa !important;
+  color: var(--text-disabled) !important;
+  -webkit-text-fill-color: var(--text-disabled) !important;
 }
 
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */

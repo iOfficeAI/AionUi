@@ -18,6 +18,8 @@ type WorkspaceContextMenuProps = {
   handleAddToChat: (node: IDirOrFile) => void;
   handleOpenNode: (node: IDirOrFile) => Promise<void>;
   handleRevealNode: (node: IDirOrFile) => Promise<void>;
+  // "Preview" entry — opens the file in the native editor for editable text,
+  // or in the preview pane for binary/visual formats (image, pdf, office).
   handlePreviewFile: (node: IDirOrFile) => Promise<void>;
   handleDownloadFile: (node: IDirOrFile) => Promise<void>;
   handleDeleteNode: (node: IDirOrFile) => void;

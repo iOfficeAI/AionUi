@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import { joinPath } from '@/common/chat/chatLib';
 import type { PreviewContentType } from '@/common/types/office/preview';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { isLikelyEditableTextFile, useEditorContextSafe } from '@/renderer/pages/conversation/Editor';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import {
   LARGE_TEXT_PREVIEW_MAX_LENGTH,
@@ -17,6 +18,12 @@ import { classifyPreviewError, type PreviewErrorKind } from '@/renderer/utils/pr
 import { useCallback, useState } from 'react';
 
 const LARGE_TEXT_PREVIEW_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html', 'diff']);
+
+// Content types that should open in the native CodeMirror editor when a real
+// file path is available. Diffs are excluded because they are synthetic
+// comparisons rather than files on disk and need the preview pane's diff
+// visualization. Images and Office formats need their dedicated viewers.
+const EDITOR_PREFERRED_TYPES = new Set<PreviewContentType>(['code', 'markdown', 'html']);
 
 const normalizeLargeTextPreview = (
   content: string,
@@ -71,6 +78,8 @@ export const usePreviewLauncher = () => {
   const conversationContext = useConversationContextSafe();
   const workspace = conversationContext?.workspace;
   const { openPreview } = usePreviewContext();
+  const editorContext = useEditorContextSafe();
+  const openEditorFile = editorContext?.openEditorFile;
   const [loading, setLoading] = useState(false);
   const [errorKind, setErrorKind] = useState<PreviewErrorKind | null>(null);
 
@@ -101,6 +110,28 @@ export const usePreviewLauncher = () => {
       const computedFileName =
         file_name || (relativePath ? relativePath.split(/[\\/]/).pop() || relativePath : undefined);
       const previewTitle = title || computedFileName || relativePath || contentType.toUpperCase();
+
+      // Route editable text files to the native CodeMirror editor — the
+      // defacto text preview/editor. Diffs, images, PDFs, and Office files
+      // continue to use the preview pane because they need dedicated
+      // visualizations the editor can't provide.
+      const targetPath = absolutePath || originalPath;
+      const shouldRouteToEditor =
+        openEditorFile &&
+        targetPath &&
+        EDITOR_PREFERRED_TYPES.has(contentType) &&
+        (computedFileName ? isLikelyEditableTextFile(computedFileName) : true);
+
+      if (shouldRouteToEditor) {
+        try {
+          await openEditorFile({ path: targetPath, workspace });
+        } catch (error) {
+          setErrorKind(classifyPreviewError(error));
+        } finally {
+          setLoading(false);
+        }
+        return;
+      }
 
       // 预览元数据 / Preview metadata
       const metadata = {

@@ -522,9 +522,7 @@
   border: 1px solid var(--color-border-2);
   border-radius: 12px;
   padding: 6px;
-  box-shadow:
-    0 10px 32px rgba(0, 0, 0, 0.1),
-    0 2px 6px rgba(0, 0, 0, 0.06);
+  box-shadow: var(--shadow-md);
   min-width: 230px;
   max-height: 360px;
   overflow-y: auto;
@@ -568,6 +566,10 @@
 
 .wsDropdownItem:hover {
   background: var(--color-fill-2);
+  transform: translateX(2px);
+  transition:
+    background var(--duration-instant),
+    transform var(--duration-fast) var(--ease-out-expo);
 }
 
 .wsDropdownItemActive {
@@ -716,6 +718,20 @@
   position: relative;
 }
 
+.guidContainer::before {
+  content: '';
+  position: absolute;
+  top: 30%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 600px;
+  height: 600px;
+  border-radius: 50%;
+  background: radial-gradient(circle, color-mix(in srgb, var(--brand) 6%, transparent) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
 /* 整体内容块略往上移，减轻「重心偏下」的感觉 */
 .guidContainer .guidLayout {
   margin-top: -5vh;
@@ -810,14 +826,17 @@
   border: 1px solid color-mix(in srgb, var(--color-border-2) 70%, transparent);
   border-radius: 14px;
   cursor: pointer;
+  box-shadow: var(--shadow-sm);
   transition:
-    border-color 0.15s,
-    box-shadow 0.15s;
+    border-color var(--duration-fast),
+    box-shadow var(--duration-normal) var(--ease-out-expo),
+    transform var(--duration-normal) var(--ease-out-expo);
 }
 
 .assistantCard:hover {
   border-color: var(--color-border-3);
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
 }
 
 :global([data-theme='dark']) .assistantCard {
@@ -825,7 +844,7 @@
 }
 
 :global([data-theme='dark']) .assistantCard:hover {
-  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+  box-shadow: var(--shadow-md);
 }
 
 .assistantCardAvatar {
@@ -893,6 +912,16 @@
 .assistantCardAdd:hover {
   background: var(--color-fill-2);
   color: var(--color-text-2);
+}
+
+.assistantCard--primary {
+  border-color: color-mix(in srgb, var(--brand) 30%, var(--color-border-2));
+  box-shadow: var(--shadow-sm);
+}
+
+.assistantCard--primary:hover {
+  border-color: color-mix(in srgb, var(--brand) 50%, var(--color-border-3));
+  box-shadow: var(--shadow-md);
 }
 
 @media (max-width: 640px) {

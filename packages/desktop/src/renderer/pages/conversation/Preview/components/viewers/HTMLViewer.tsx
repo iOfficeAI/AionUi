@@ -5,9 +5,9 @@
  */
 
 import { Message } from '@arco-design/web-react';
-import MonacoEditor from '@monaco-editor/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import HTMLEditor from '../editors/HTMLEditor';
 
 interface HTMLPreviewProps {
   content: string;
@@ -37,25 +37,6 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolb
   const [selectedElement, setSelectedElement] = useState<SelectedElement | null>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number; y: number; element: SelectedElement } | null>(null);
   const [messageApi, messageContextHolder] = Message.useMessage();
-  const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
-    return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
-  });
-
-  // 监听主题变化
-  useEffect(() => {
-    const updateTheme = () => {
-      const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
-      setCurrentTheme(theme);
-    };
-
-    const observer = new MutationObserver(updateTheme);
-    observer.observe(document.documentElement, {
-      attributes: true,
-      attributeFilter: ['data-theme'],
-    });
-
-    return () => observer.disconnect();
-  }, []);
 
   // 初始化 iframe 内容
   useEffect(() => {
@@ -378,23 +359,7 @@ const HTMLPreview: React.FC<HTMLPreviewProps> = ({ content, file_path, hideToolb
         {/* 左侧：代码编辑器（编辑模式时显示） */}
         {editMode && (
           <div className='flex-1 overflow-hidden border-r border-border-base'>
-            <MonacoEditor
-              height='100%'
-              language='html'
-              theme={currentTheme === 'dark' ? 'vs-dark' : 'vs'}
-              value={htmlCode}
-              onChange={(value) => setHtmlCode(value || '')}
-              options={{
-                minimap: { enabled: false },
-                fontSize: 13,
-                lineNumbers: 'on',
-                wordWrap: 'on',
-                automaticLayout: true,
-                scrollBeyondLastLine: false,
-                formatOnPaste: true,
-                formatOnType: true,
-              }}
-            />
+            <HTMLEditor value={htmlCode} onChange={(value) => setHtmlCode(value || '')} file_path={file_path} />
           </div>
         )}
 

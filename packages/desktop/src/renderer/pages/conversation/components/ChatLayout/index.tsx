@@ -12,6 +12,7 @@ import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/useP
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -71,6 +72,9 @@ const ChatLayout: React.FC<{
 
   // Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
+  // Editor pane state (peer pane between chat-group and workspace)
+  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed } = useEditorContext();
+  const isEditorExpanded = isEditorOpen && !isEditorCollapsed;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -137,6 +141,17 @@ const ChatLayout: React.FC<{
     minWidth: dynamicChatMinRatio,
     maxWidth: dynamicChatMaxRatio,
     storageKey: 'chat-preview-split-ratio',
+  });
+
+  // Editor pane width (only used when the editor is expanded; rail mode uses
+  // a fixed width). Capped against the container so chat keeps a sane minimum.
+  const editorMaxWidth = Math.max(360, Math.min(960, Math.floor(containerWidth * 0.6) || 960));
+  const { splitRatio: editorWidthPx, createDragHandle: createEditorDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: 520,
+    minWidth: 360,
+    maxWidth: editorMaxWidth,
+    storageKey: 'chat-editor-width-px',
   });
 
   // Full metrics with real chatSplitRatio
@@ -320,6 +335,37 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
+        {/* Editor pane — standalone peer pane, toggled from the Titlebar */}
+        {!layout?.isMobile && (
+          <div
+            className={classNames(
+              'editor-pane relative layout-sider flex flex-col overflow-visible rounded-[15px]',
+              isEditorExpanded && 'editor-pane--expanded editor-pane-enter',
+              isDesktop && isEditorExpanded && 'mb-[6px] mr-[6px] ml-[4px]'
+            )}
+            style={{
+              flexGrow: 0,
+              flexShrink: 0,
+              flexBasis: isEditorExpanded ? `${Math.round(editorWidthPx)}px` : '0px',
+              width: isEditorExpanded ? `${Math.round(editorWidthPx)}px` : '0px',
+              minWidth: isEditorExpanded ? '360px' : '0px',
+              overflow: isEditorExpanded ? 'visible' : 'hidden',
+              border: isEditorExpanded ? '1px solid var(--bg-3)' : 'none',
+              boxSizing: 'border-box',
+            }}
+          >
+            {isDesktop &&
+              isEditorExpanded &&
+              createEditorDragHandle({
+                className: 'absolute left-0 top-0 bottom-0 z-30',
+                style: {},
+                reverse: true,
+              })}
+            <div className='h-full w-full overflow-hidden rounded-[15px]'>
+              <EditorPanel />
+            </div>
+          </div>
+        )}
         {workspaceEnabled && !layout?.isMobile && (
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}

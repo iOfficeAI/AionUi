@@ -10,7 +10,7 @@ import katex from 'katex';
 import React, { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { forgeDark, forgeLight } from './codeThemes';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import MermaidBlock from './MermaidBlock';
 import { formatCode, getDiffLineStyle } from './markdownUtils';
@@ -93,7 +93,7 @@ function CodeBlock(props: CodeBlockProps) {
   const formattedContent = formatCode(children);
   const totalLines = formattedContent.split('\n').length;
   const canCollapse = totalLines > PREVIEW_LINES;
-  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+  const codeTheme = currentTheme === 'dark' ? forgeDark : forgeLight;
   const diffLines = isDiff ? formattedContent.split('\n') : [];
   const isDark = currentTheme === 'dark';
 
@@ -126,7 +126,14 @@ function CodeBlock(props: CodeBlockProps) {
       style={{ width: '100%', minWidth: 0, maxWidth: '100%', ...props.codeStyle }}
       className='group'
     >
-      <div style={{ backgroundColor: bgColor, borderRadius: '8px', overflow: 'hidden' }}>
+      <div
+        style={{
+          backgroundColor: bgColor,
+          borderRadius: '8px',
+          overflow: 'hidden',
+          borderLeft: '3px solid var(--brand)',
+        }}
+      >
         {/* Header */}
         <div
           style={{
@@ -136,7 +143,19 @@ function CodeBlock(props: CodeBlockProps) {
             padding: '8px 12px',
           }}
         >
-          <span style={{ color: footerTextColor, fontSize: '12px', lineHeight: '16px' }}>
+          <span
+            style={{
+              color: footerTextColor,
+              fontSize: '10px',
+              lineHeight: '14px',
+              fontWeight: 600,
+              letterSpacing: '0.08em',
+              textTransform: 'uppercase',
+              padding: '2px 6px',
+              borderRadius: '4px',
+              background: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+            }}
+          >
             {language.toLocaleLowerCase()}
           </span>
           {/* Buttons: always visible on touch devices, hover-only on pointer devices */}
@@ -180,6 +199,7 @@ function CodeBlock(props: CodeBlockProps) {
         {/* Code content — always full content, clipped by maxHeight when collapsed */}
         <div
           style={{
+            position: 'relative',
             maxHeight: canCollapse && !expanded ? `${COLLAPSED_HEIGHT}px` : 'none',
             overflowY: 'hidden',
             overflowX: 'visible',
@@ -218,6 +238,19 @@ function CodeBlock(props: CodeBlockProps) {
               },
             }}
           />
+          {canCollapse && !expanded && (
+            <div
+              style={{
+                position: 'absolute',
+                bottom: 0,
+                left: 0,
+                right: 0,
+                height: '40px',
+                background: `linear-gradient(transparent, ${bgColor})`,
+                pointerEvents: 'none',
+              }}
+            />
+          )}
         </div>
 
         {/* Footer */}

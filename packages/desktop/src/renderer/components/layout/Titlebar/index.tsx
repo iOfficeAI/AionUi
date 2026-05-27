@@ -1,6 +1,15 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
-import { ArrowCircleLeft, ArrowLeft, ArrowRight, ExpandLeft, ExpandRight, Peoples, Terminal } from '@icon-park/react';
+import {
+  ArrowCircleLeft,
+  ArrowLeft,
+  ArrowRight,
+  EditOne,
+  ExpandLeft,
+  ExpandRight,
+  Peoples,
+  Terminal,
+} from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 
@@ -13,6 +22,7 @@ import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEv
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { useTerminalPanelSafe } from '@/renderer/hooks/context/TerminalPanelContext';
+import { useEditorContextSafe } from '@/renderer/pages/conversation/Editor';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
@@ -58,6 +68,8 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const layout = useLayoutContext();
   const navigationHistory = useNavigationHistory();
   const terminalPanel = useTerminalPanelSafe();
+  const editorPanel = useEditorContextSafe();
+  const isEditorVisible = Boolean(editorPanel?.isOpen && !editorPanel.isCollapsed);
   const location = useLocation();
   const navigate = useNavigate();
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -112,6 +124,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const terminalTooltip = terminalPanel?.open
     ? t('terminal.collapse', { defaultValue: 'Hide terminal' })
     : t('terminal.panelLabel', { defaultValue: 'Integrated terminal' });
+  const editorTooltip = isEditorVisible
+    ? t('conversation.editor.collapseEditor', { defaultValue: 'Hide editor' })
+    : t('conversation.editor.title', { defaultValue: 'Editor' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
@@ -346,6 +361,17 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             title={terminalTooltip}
           >
             <Terminal theme='outline' size={iconSize} fill='currentColor' />
+          </button>
+        )}
+        {editorPanel && !layout?.isMobile && (
+          <button
+            type='button'
+            className={classNames('app-titlebar__button', isEditorVisible && 'text-primary')}
+            onClick={() => editorPanel.toggleEditor()}
+            aria-label={editorTooltip}
+            title={editorTooltip}
+          >
+            <EditOne theme='outline' size={iconSize} fill='currentColor' />
           </button>
         )}
         {showWorkspaceButton && (

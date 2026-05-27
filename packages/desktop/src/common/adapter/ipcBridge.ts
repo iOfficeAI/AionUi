@@ -14,7 +14,7 @@
 
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
-import type { OpenDialogOptions } from 'electron';
+import type { OpenDialogOptions, SaveDialogOptions } from 'electron';
 import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
 import type {
   Assistant,
@@ -447,6 +447,10 @@ export const dialog = {
     | { defaultPath?: string; properties?: OpenDialogOptions['properties']; filters?: OpenDialogOptions['filters'] }
     | undefined
   >('show-open'),
+  showSave: bridge.buildProvider<
+    string | undefined,
+    { defaultPath?: string; filters?: SaveDialogOptions['filters'] } | undefined
+  >('show-save'),
 };
 
 // ---------------------------------------------------------------------------

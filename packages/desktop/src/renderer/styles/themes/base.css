@@ -7,6 +7,28 @@
   /* Independent of UI scale: multiplies font-size in chat/markdown/sendbox.
      Wired by useChatFontScale hook. */
   --chat-font-scale: 1;
+
+  /* Motion tokens */
+  --ease-out-expo: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.4, 0, 0.2, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --duration-instant: 100ms;
+  --duration-fast: 150ms;
+  --duration-normal: 200ms;
+  --duration-slow: 300ms;
+  --duration-cinematic: 500ms;
+
+  /* Shadow tokens */
+  --shadow-sm: 0 1px 2px rgba(60, 56, 54, 0.06), 0 1px 3px rgba(60, 56, 54, 0.04);
+  --shadow-md: 0 4px 6px rgba(60, 56, 54, 0.05), 0 10px 20px rgba(60, 56, 54, 0.08);
+  --shadow-lg: 0 12px 28px rgba(60, 56, 54, 0.1), 0 20px 48px rgba(60, 56, 54, 0.06);
+}
+
+[data-theme='dark'] {
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.2), 0 1px 3px rgba(0, 0, 0, 0.14);
+  --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.16), 0 10px 20px rgba(0, 0, 0, 0.22);
+  --shadow-lg: 0 12px 28px rgba(0, 0, 0, 0.28), 0 20px 48px rgba(0, 0, 0, 0.18);
 }
 
 /* Chat surfaces — message text, markdown body, sendbox input — scale their
@@ -168,4 +190,40 @@ body,
 
 [data-theme='dark'] *:hover::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.1);
+}
+
+.arco-btn:active:not(:disabled) {
+  transform: scale(0.97);
+  transition: transform var(--duration-instant) var(--ease-spring);
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.layout-content {
+  position: relative;
+}
+
+.layout-content::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+  background-repeat: repeat;
+  mix-blend-mode: overlay;
+}
+
+[data-theme='dark'] .layout-content::before {
+  opacity: 0.02;
+  mix-blend-mode: soft-light;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .layout-content::before {
+    display: none;
+  }
 }

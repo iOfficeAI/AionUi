@@ -1298,20 +1298,29 @@ const SendBox: React.FC<{
   );
 
   const renderActionButtons = () => {
-    if (allowSendWhileLoading && (isLoading || loading)) {
-      // Keep a single action slot while processing: show stop when the draft is empty,
-      // and only switch back to send once the user has prepared a queued message.
-      if (compactActions || !hasDraftToSend || disabled || isUploading) {
-        return stopButton;
+    const showStop = (() => {
+      if (allowSendWhileLoading && (isLoading || loading)) {
+        if (compactActions || !hasDraftToSend || disabled || isUploading) return true;
+        return false;
       }
-      return sendButton;
-    }
+      if (isLoading || loading) return true;
+      return false;
+    })();
 
-    if (isLoading || loading) {
-      return stopButton;
-    }
-
-    return sendButton;
+    return (
+      <div className='sendbox-action-btn-wrap'>
+        <div
+          className={`sendbox-action-btn-layer ${showStop ? 'sendbox-action-btn-layer--hidden' : 'sendbox-action-btn-layer--visible'}`}
+        >
+          {sendButton}
+        </div>
+        <div
+          className={`sendbox-action-btn-layer ${showStop ? 'sendbox-action-btn-layer--visible' : 'sendbox-action-btn-layer--hidden'}`}
+        >
+          {stopButton}
+        </div>
+      </div>
+    );
   };
 
   const shouldUseHighlightOverlay = !isComposingState && allAtFileQueries.length > 0;
@@ -1360,7 +1369,7 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`sendbox-panel relative px-8px pt-6px pb-8px bg-1 flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'sendbox-panel--dragging' : ''}`}
+        className={`sendbox-panel relative px-8px pt-6px pb-8px bg-1 flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'sendbox-panel--dragging' : ''} ${isInputFocused ? 'sendbox-panel--focused' : ''}`}
         style={{
           transition: 'background-color 0.2s ease, border-color 0.2s ease',
           borderTop: '1px solid',

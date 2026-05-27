@@ -25,4 +25,20 @@ export function initDialogBridge(): void {
       return res.filePaths;
     });
   });
+
+  ipcBridge.dialog.showSave.provider((options) => {
+    const parentWindow = BrowserWindow.getFocusedWindow() || BrowserWindow.getAllWindows()[0];
+    const dialogOptions = {
+      defaultPath: options?.defaultPath,
+      filters: options?.filters,
+    };
+
+    const showDialogPromise = parentWindow
+      ? dialog.showSaveDialog(parentWindow, dialogOptions)
+      : dialog.showSaveDialog(dialogOptions);
+
+    return showDialogPromise.then((res) => {
+      return res.canceled ? undefined : res.filePath;
+    });
+  });
 }

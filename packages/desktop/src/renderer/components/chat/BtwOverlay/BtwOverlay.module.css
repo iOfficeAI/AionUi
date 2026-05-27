@@ -21,7 +21,7 @@
   backdrop-filter: blur(18px);
   background: var(--color-bg-2);
   border: 1px solid var(--color-border-2);
-  box-shadow: var(--shadow3-center);
+  box-shadow: var(--shadow-lg);
   display: flex;
   flex-direction: column;
   overflow: hidden;

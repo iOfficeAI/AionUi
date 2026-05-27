@@ -13,7 +13,7 @@ import 'diff2html/bundles/css/diff2html.min.css';
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import ReactDOM from 'react-dom';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { forgeDark, forgeLight } from '@/renderer/components/Markdown/codeThemes';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useTranslation } from 'react-i18next';
 
@@ -174,7 +174,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
       <div ref={containerRef} className='flex-1 overflow-auto p-16px'>
         {viewMode === 'source' ? (
           <SyntaxHighlighter
-            style={currentTheme === 'dark' ? vs2015 : vs}
+            style={currentTheme === 'dark' ? forgeDark : forgeLight}
             language='diff'
             PreTag='div'
             showLineNumbers

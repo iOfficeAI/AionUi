@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useEditorContext } from '@/renderer/pages/conversation/Editor';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
@@ -50,6 +51,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const { openPreview } = usePreviewContext();
+  const { openEditorFile } = useEditorContext();
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -113,6 +115,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     setRenameModal: modalsHook.setRenameModal,
     setDeleteModal: modalsHook.setDeleteModal,
     openPreview,
+    openEditorFile,
   });
 
   // Setup events
@@ -173,15 +176,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [treeHook.ensureNodeSelected, modalsHook.setContextMenu]
   );
 
+  // Changes-tab "Preview" button → open the changed file in the native editor.
+  // The Changes panel already shows the inline diff expand for seeing what
+  // changed; the Preview button is now an "open this file" shortcut.
   const handleOpenChangeDiff = useCallback(
-    (diffContent: string, file_name: string, file_path: string) => {
-      openPreview(diffContent, 'diff', {
-        file_name,
-        file_path,
-        workspace,
-      });
+    (_diffContent: string, _file_name: string, file_path: string) => {
+      void openEditorFile({ path: file_path, workspace });
     },
-    [openPreview, workspace]
+    [openEditorFile, workspace]
   );
 
   // Auto-refresh changes when switching to changes tab

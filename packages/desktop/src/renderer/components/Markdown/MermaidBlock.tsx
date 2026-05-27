@@ -6,7 +6,7 @@
 
 import mermaid from 'mermaid';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import { vs, vs2015 } from 'react-syntax-highlighter/dist/esm/styles/hljs';
+import { forgeDark, forgeLight } from './codeThemes';
 
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { Message } from '@arco-design/web-react';
@@ -123,7 +123,7 @@ function MermaidBlock({ code, style, showOpenInPanelButton = true }: MermaidBloc
     };
   }, [debouncedCode, currentTheme]);
 
-  const codeTheme = currentTheme === 'dark' ? vs2015 : vs;
+  const codeTheme = currentTheme === 'dark' ? forgeDark : forgeLight;
   const shouldShowLoading = isRendering && preferredViewModeRef.current !== 'source';
   const summary = code
     .split(/\r?\n/)

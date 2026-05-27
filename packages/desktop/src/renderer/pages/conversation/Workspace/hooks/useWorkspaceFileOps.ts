@@ -8,6 +8,8 @@ import { ipcBridge } from '@/common';
 import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { PreviewContentType } from '@/common/types/office/preview';
+import { isLikelyEditableTextFile } from '@/renderer/pages/conversation/Editor';
+import type { EditorOpenRequest } from '@/renderer/pages/conversation/Editor';
 import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { emitter } from '@/renderer/utils/emitter';
 import {
@@ -49,6 +51,11 @@ interface UseWorkspaceFileOpsOptions {
 
   // Dependencies from preview context
   openPreview: (content: string, type: PreviewContentType, metadata?: any) => void;
+
+  // Dependencies from editor context — the native CodeMirror editor is the
+  // defacto preview for editable text files. When omitted, falls back to the
+  // preview pane (used by tests and any caller without an editor provider).
+  openEditorFile?: (request: EditorOpenRequest) => Promise<boolean>;
 }
 
 /**
@@ -78,6 +85,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     setRenameModal,
     setDeleteModal,
     openPreview,
+    openEditorFile,
   } = options;
 
   /**
@@ -289,16 +297,27 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
   );
 
   /**
-   * 预览文件
-   * Preview file
+   * Open a file for viewing/editing.
+   *
+   * Routing policy:
+   * - Editable text files (code, markdown, html, diff, plaintext, etc.) open
+   *   in the native CodeMirror editor — the defacto text preview/editor.
+   * - Binary/visual files (images, PDF, Word, Excel, PPT) open in the preview
+   *   pane, which has dedicated renderers for those formats.
    */
   const handlePreviewFile = useCallback(
     async (nodeData: IDirOrFile | null) => {
       if (!nodeData || !nodeData.fullPath || !nodeData.isFile) return;
 
-      try {
-        closeContextMenu();
+      closeContextMenu();
 
+      // Text files route to the editor whenever an editor context is wired.
+      if (openEditorFile && isLikelyEditableTextFile(nodeData.name)) {
+        await openEditorFile({ path: nodeData.fullPath, workspace });
+        return;
+      }
+
+      try {
         const ext = nodeData.name.toLowerCase().split('.').pop() || '';
         let contentType: PreviewContentType = getContentTypeByExtension(nodeData.name);
         let content = '';
@@ -345,7 +364,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
         messageApi.error(t(previewErrorToI18nKey(kind)));
       }
     },
-    [closeContextMenu, openPreview, workspace, messageApi, t]
+    [closeContextMenu, openEditorFile, openPreview, workspace, messageApi, t]
   );
 
   /**
