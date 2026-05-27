@@ -173,7 +173,7 @@ Fails → Stop: "Tests failed. Please fix before bumping."
 git checkout -b chore/bump-version-{target}
 git add package.json CHANGELOG.md
 git commit -m "chore: bump version to {target} and aioncore to {core tag}"
-git push -u origin chore/bump-version-{target}
+just push -u origin chore/bump-version-{target}
 ```
 
 If `--skip-core`:
