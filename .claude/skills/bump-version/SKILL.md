@@ -220,7 +220,13 @@ git tag v{target}
 git push origin v{target}
 ```
 
-Display: "Tag v{target} created and pushed. Release build triggered!"
+Wait a few seconds for GitHub to pick up the tag push, then fetch the triggered workflow run:
+
+```bash
+gh run list --workflow=release.yml --branch v{target} --limit 1 --json databaseId,url
+```
+
+Display: "Tag v{target} created and pushed. Release build triggered! Action: {run URL}"
 
 ## Quick Reference
 
