@@ -93,18 +93,23 @@ bun run i18n:types
 node scripts/check-i18n.js
 ```
 
-### Before Pushing
+### Pushing
 
-Always use `just push` instead of `git push`:
+Use plain `git` commands:
 
 ```bash
-just push                          # lint → format-check → typecheck → test → git push
-just push -u origin feat/branch    # same checks, with extra git push args
+git add <files>
+git commit -m "<type>(<scope>): <subject>"
+git push
 ```
 
-Any step that fails aborts the push. Fix the issue, commit, then retry.
+`just push` (which chains lint → format-check → typecheck → test → git push) is
+available but **not required**. Run the individual checks above during
+development as needed; the user prefers the plain git workflow.
 
-> **Note for AI agents**: `just push` uses `--quiet` for lint — only errors cause failure. The project has many pre-existing lint _warnings_ which do NOT indicate failure. Judge success by exit code, not by output volume.
+> **Note for AI agents**: project lint output contains many pre-existing
+> _warnings_ which do NOT indicate failure. Judge success by exit code, not by
+> output volume.
 
 ### Before PR (optional stricter check)
 
