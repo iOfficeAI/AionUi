@@ -117,22 +117,22 @@ export const iconColors = {
  * Used in FileChangesPanel, Markdown diff highlighting, etc.
  */
 export const diffColors = {
-  /** Green for additions / insertions */
-  addition: '#52c41a',
-  /** Red for deletions / removals */
-  deletion: '#ff4d4f',
+  /** Green for additions / insertions (gruvbox green) */
+  addition: '#b8bb26',
+  /** Red for deletions / removals (gruvbox red) */
+  deletion: '#fb4934',
   /** Addition background (dark mode) */
-  additionBgDark: 'rgba(46,160,67,0.15)',
+  additionBgDark: 'rgba(184,187,38,0.15)',
   /** Addition background (light mode) */
-  additionBgLight: '#e6ffec',
+  additionBgLight: '#f2e5bc',
   /** Deletion background (dark mode) */
-  deletionBgDark: 'rgba(248,81,73,0.15)',
+  deletionBgDark: 'rgba(251,73,52,0.15)',
   /** Deletion background (light mode) */
-  deletionBgLight: '#ffebe9',
+  deletionBgLight: '#f2e5bc',
   /** Hunk header background (dark mode) */
-  hunkBgDark: 'rgba(56,139,253,0.15)',
+  hunkBgDark: 'rgba(131,165,152,0.15)',
   /** Hunk header background (light mode) */
-  hunkBgLight: '#ddf4ff',
+  hunkBgLight: '#ebdbb2',
 } as const;
 
 /**

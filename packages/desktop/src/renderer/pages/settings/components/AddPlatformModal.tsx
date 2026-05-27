@@ -31,7 +31,7 @@ const PROTOCOL_ICONS: Record<ProtocolType, { color: string; bgColor: string }> =
   openai: { color: '#10A37F', bgColor: 'rgba(16, 163, 127, 0.1)' },
   gemini: { color: '#4285F4', bgColor: 'rgba(66, 133, 244, 0.1)' },
   anthropic: { color: '#D97757', bgColor: 'rgba(217, 119, 87, 0.1)' },
-  unknown: { color: '#9CA3AF', bgColor: 'rgba(156, 163, 175, 0.1)' },
+  unknown: { color: 'var(--bg-5)', bgColor: 'var(--aou-1)' },
 };
 
 /**

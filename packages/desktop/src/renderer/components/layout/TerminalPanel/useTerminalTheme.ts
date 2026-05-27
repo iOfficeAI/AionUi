@@ -18,49 +18,48 @@ import type { ITheme } from '@xterm/xterm';
 
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 
-/** Reasonable ANSI palette aligned with Arco-style brand hues. */
 const ANSI_PALETTE_DARK = {
-  black: '#1f2329',
-  red: '#f76560',
-  green: '#5fb878',
-  yellow: '#f7ba1e',
-  blue: '#3491fa',
-  magenta: '#a871df',
-  cyan: '#86e8ff',
-  white: '#c2c7d0',
-  brightBlack: '#4e5969',
-  brightRed: '#f76965',
-  brightGreen: '#7be188',
-  brightYellow: '#fadc6b',
-  brightBlue: '#5aa6ff',
-  brightMagenta: '#c990ff',
-  brightCyan: '#a3eeff',
-  brightWhite: '#f2f3f5',
+  black: '#282828',
+  red: '#cc241d',
+  green: '#98971a',
+  yellow: '#d79921',
+  blue: '#458588',
+  magenta: '#b16286',
+  cyan: '#689d6a',
+  white: '#a89984',
+  brightBlack: '#928374',
+  brightRed: '#fb4934',
+  brightGreen: '#b8bb26',
+  brightYellow: '#fabd2f',
+  brightBlue: '#83a598',
+  brightMagenta: '#d3869b',
+  brightCyan: '#8ec07c',
+  brightWhite: '#ebdbb2',
 } as const;
 
 const ANSI_PALETTE_LIGHT = {
-  black: '#1f2329',
-  red: '#cb272d',
-  green: '#187a3a',
-  yellow: '#a06000',
-  blue: '#1d4ed8',
-  magenta: '#7c3aed',
-  cyan: '#0891b2',
-  white: '#4e5969',
-  brightBlack: '#86909c',
-  brightRed: '#e02c2c',
-  brightGreen: '#1e8a3c',
-  brightYellow: '#b97000',
-  brightBlue: '#2563eb',
-  brightMagenta: '#9333ea',
-  brightCyan: '#0e7490',
-  brightWhite: '#1f2329',
+  black: '#fbf1c7',
+  red: '#9d0006',
+  green: '#79740e',
+  yellow: '#b57614',
+  blue: '#076678',
+  magenta: '#8f3f71',
+  cyan: '#427b58',
+  white: '#3c3836',
+  brightBlack: '#928374',
+  brightRed: '#9d0006',
+  brightGreen: '#79740e',
+  brightYellow: '#b57614',
+  brightBlue: '#076678',
+  brightMagenta: '#8f3f71',
+  brightCyan: '#427b58',
+  brightWhite: '#282828',
 } as const;
 
-const FALLBACK_BG_DARK = '#17171a';
-const FALLBACK_BG_LIGHT = '#ffffff';
-const FALLBACK_FG_DARK = '#e5e6eb';
-const FALLBACK_FG_LIGHT = '#1d2129';
+const FALLBACK_BG_DARK = '#282828';
+const FALLBACK_BG_LIGHT = '#fbf1c7';
+const FALLBACK_FG_DARK = '#ebdbb2';
+const FALLBACK_FG_LIGHT = '#3c3836';
 
 function resolveVar(name: string, fallback: string): string {
   if (typeof window === 'undefined' || typeof document === 'undefined') return fallback;
@@ -88,14 +87,14 @@ export function useTerminalTheme(): ITheme {
 
     const background = resolveVar('--bg-1', fallbackBg);
     const foreground = resolveVar('--text-primary', fallbackFg);
-    const cursor = resolveVar('--brand', isDark ? '#5aa6ff' : '#3491fa');
+    const cursor = resolveVar('--brand', isDark ? '#d3869b' : '#8f3f71');
 
     return {
       background,
       foreground,
       cursor,
       cursorAccent: background,
-      selectionBackground: isDark ? 'rgba(90, 166, 255, 0.35)' : 'rgba(52, 145, 250, 0.25)',
+      selectionBackground: isDark ? 'rgba(211, 134, 155, 0.35)' : 'rgba(143, 63, 113, 0.25)',
       ...palette,
     };
     // `tick` participates so the memo re-runs on CSS variable updates.

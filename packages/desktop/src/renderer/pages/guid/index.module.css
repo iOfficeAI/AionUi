@@ -346,8 +346,8 @@
 }
 
 :global([data-theme='dark']) .guidInputInner {
-  background: #262626;
-  border-color: #3a3a3a;
+  background: var(--bg-1);
+  border-color: var(--border-base);
 }
 
 .actionRow {
@@ -600,7 +600,7 @@
 }
 
 .lightPlaceholder::placeholder {
-  color: #b4b5bc;
+  color: var(--text-disabled);
   opacity: 1;
 }
 
@@ -763,7 +763,7 @@
 
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: #b4b5bc !important;
+  color: var(--text-disabled) !important;
   opacity: 1 !important;
 }
 
@@ -821,7 +821,7 @@
 }
 
 :global([data-theme='dark']) .assistantCard {
-  background: #262626;
+  background: var(--bg-1);
 }
 
 :global([data-theme='dark']) .assistantCard:hover {

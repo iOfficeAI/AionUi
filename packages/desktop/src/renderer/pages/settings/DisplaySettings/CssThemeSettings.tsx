@@ -507,7 +507,7 @@ const CssThemeSettings: React.FC = () => {
       <div
         className='grid w-full gap-12px'
         style={{
-          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
+          gridTemplateColumns: 'repeat(auto-fit, minmax(180px, max(180px, 240px)))',
         }}
       >
         {themes.map((theme) => {

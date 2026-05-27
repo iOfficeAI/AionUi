@@ -45,13 +45,13 @@
 }
 
 .body {
-  color: #86909c;
+  color: var(--text-secondary);
   font-size: 13px;
   line-height: 1.7;
   padding: 10px 14px;
   margin-top: 6px;
   margin-left: 20px;
-  background: color-mix(in srgb, var(--aou-1) 50%, #fff);
+  background: color-mix(in srgb, var(--aou-1) 50%, var(--bg-base));
   border-radius: 8px;
   white-space: pre-wrap;
   word-break: break-word;

@@ -138,7 +138,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
                 <MenuItem
                   icon={<Lightning theme='outline' size={15} strokeWidth={2.5} />}
                   label={`${t('conversation.skills.loaded', { defaultValue: 'Loaded Skills' })} · ${skillNames.length}`}
-                  suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: '#c9cdd4' }} />}
+                  suffix={<Right theme='outline' size={12} strokeWidth={3} style={{ color: 'var(--text-disabled)' }} />}
                 />
               </div>
             </Trigger>

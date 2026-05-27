@@ -1,178 +1,178 @@
-/* Default Theme - AOU Purple Theme / 默认主题 */
+/* Default Theme - Gruvbox Theme / 默认主题 */
 /* 此主题展示了系统默认的颜色变量，您可以基于此进行自定义 */
 /* This theme shows the system default color variables, you can customize based on this */
 
 :root {
-  /* Primary Colors - 主色调 */
-  --color-primary: #165dff;
-  --primary: #165dff;
-  --color-primary-light-1: #4080ff;
-  --color-primary-light-2: #6aa1ff;
-  --color-primary-light-3: #94bfff;
-  --color-primary-dark-1: #0e42d2;
-  --primary-rgb: 22, 93, 255;
+  /* Primary Colors - 主色调 (gruvbox faded_blue) */
+  --color-primary: #076678;
+  --primary: #076678;
+  --color-primary-light-1: #458588;
+  --color-primary-light-2: #83a598;
+  --color-primary-light-3: #bdae93;
+  --color-primary-dark-1: #076678;
+  --primary-rgb: 7, 102, 120;
 
-  /* Brand Colors - 品牌色 */
-  --brand: #7583b2;
-  --brand-light: #eff0f6;
-  --brand-hover: #b5bcd6;
-  --color-brand-fill: #7583b2;
-  --color-brand-bg: #eff0f6;
+  /* Brand Colors - 品牌色 (gruvbox faded_purple) */
+  --brand: #8f3f71;
+  --brand-light: #f2e5bc;
+  --brand-hover: #bdae93;
+  --color-brand-fill: #8f3f71;
+  --color-brand-bg: #f2e5bc;
 
-  /* AOU Brand Colors - AOU 品牌色板 */
-  --aou-1: #eff0f6;
-  --aou-2: #e5e7f0;
-  --aou-3: #d1d5e5;
-  --aou-4: #b5bcd6;
-  --aou-5: #97a0c5;
-  --aou-6: #7583b2;
-  --aou-7: #596590;
-  --aou-8: #3f4868;
-  --aou-9: #262c41;
-  --aou-10: #0d101c;
+  /* AOU Brand Colors - AOU 品牌色板 (gruvbox light scale) */
+  --aou-1: #f2e5bc;
+  --aou-2: #ebdbb2;
+  --aou-3: #d5c4a1;
+  --aou-4: #bdae93;
+  --aou-5: #a89984;
+  --aou-6: #8f3f71;
+  --aou-7: #7c6f64;
+  --aou-8: #665c54;
+  --aou-9: #504945;
+  --aou-10: #3c3836;
 
-  /* Background Colors - 背景色 */
-  --color-bg-1: #f9fafb;
-  --bg-1: #f9fafb;
-  --color-bg-2: #f2f3f5;
-  --bg-2: #f2f3f5;
-  --color-bg-3: #e5e6eb;
-  --bg-3: #e5e6eb;
-  --color-bg-4: #c9cdd4;
-  --bg-4: #c9cdd4;
-  --bg-base: #ffffff;
-  --bg-5: #adb4c1;
-  --bg-6: #86909c;
-  --bg-8: #4e5969;
-  --bg-9: #1d2129;
-  --bg-10: #0c0e12;
+  /* Background Colors - 背景色 (gruvbox light0 -> dark0) */
+  --color-bg-1: #f2e5bc;
+  --bg-1: #f2e5bc;
+  --color-bg-2: #ebdbb2;
+  --bg-2: #ebdbb2;
+  --color-bg-3: #d5c4a1;
+  --bg-3: #d5c4a1;
+  --color-bg-4: #bdae93;
+  --bg-4: #bdae93;
+  --bg-base: #fbf1c7;
+  --bg-5: #a89984;
+  --bg-6: #928374;
+  --bg-8: #665c54;
+  --bg-9: #3c3836;
+  --bg-10: #282828;
 
   /* Interactive State Colors - 交互状态色 */
-  --bg-hover: #f3f4f6;
-  --bg-active: #e5e6eb;
+  --bg-hover: #ebdbb2;
+  --bg-active: #d5c4a1;
 
   /* Fill Colors - 填充色 */
-  --fill: #f7f8fa;
-  --color-fill: #f7f8fa;
-  --fill-0: #ffffff;
-  --fill-white-to-black: #ffffff;
-  --dialog-fill-0: #ffffff;
-  --inverse: #ffffff;
+  --fill: #f2e5bc;
+  --color-fill: #f2e5bc;
+  --fill-0: #fbf1c7;
+  --fill-white-to-black: #fbf1c7;
+  --dialog-fill-0: #fbf1c7;
+  --inverse: #fbf1c7;
 
-  /* Text Colors - 文字色 */
-  --color-text-1: #000000;
-  --text-primary: #000000;
-  --color-text-2: #4e5969;
-  --text-secondary: #454d5f;
-  --color-text-3: #86909c;
-  --text-disabled: #c9cdd4;
-  --text-0: #000000;
-  --text-white: #ffffff;
+  /* Text Colors - 文字色 (gruvbox dark1 -> light4) */
+  --color-text-1: #3c3836;
+  --text-primary: #3c3836;
+  --color-text-2: #3c3836;
+  --text-secondary: #3c3836;
+  --color-text-3: #7c6f64;
+  --text-disabled: #7c6f64;
+  --text-0: #3c3836;
+  --text-white: #fbf1c7;
 
   /* Border Colors - 边框色 */
-  --color-border: #e5e6eb;
-  --color-border-1: #e5e6eb;
-  --color-border-2: #f2f3f5;
-  --border-base: #e5e6eb;
-  --border-light: #f2f3f5;
+  --color-border: #d5c4a1;
+  --color-border-1: #d5c4a1;
+  --color-border-2: #ebdbb2;
+  --border-base: #d5c4a1;
+  --border-light: #ebdbb2;
   --border-special: var(--bg-3);
 
-  /* Semantic Colors - 语义色 */
-  --success: #00b42a;
-  --warning: #ff7d00;
-  --danger: #f53f3f;
-  --info: #165dff;
+  /* Semantic Colors - 语义色 (gruvbox faded) */
+  --success: #79740e;
+  --warning: #b57614;
+  --danger: #9d0006;
+  --info: #076678;
 
   /* Message & UI Component Colors - 消息和组件色 */
-  --message-user-bg: #e9efff;
-  --message-tips-bg: #f0f4ff;
-  --workspace-btn-bg: #eff0f1;
+  --message-user-bg: #ebdbb2;
+  --message-tips-bg: #f2e5bc;
+  --workspace-btn-bg: #ebdbb2;
 }
 
 /* Dark Mode Overrides - 深色模式覆盖 */
 [data-theme='dark'] {
-  /* Primary Colors - Dark Mode */
-  --color-primary: #4d9fff;
-  --primary: #4d9fff;
-  --color-primary-light-1: #6aa8ff;
-  --color-primary-light-2: #87b7ff;
-  --color-primary-light-3: #a4c6ff;
-  --color-primary-dark-1: #306acc;
-  --primary-rgb: 77, 159, 255;
+  /* Primary Colors - Dark Mode (gruvbox bright_blue) */
+  --color-primary: #83a598;
+  --primary: #83a598;
+  --color-primary-light-1: #8ec07c;
+  --color-primary-light-2: #b8bb26;
+  --color-primary-light-3: #d5c4a1;
+  --color-primary-dark-1: #458588;
+  --primary-rgb: 131, 165, 152;
 
-  /* Brand Colors - Dark Mode */
-  --brand: #a1aacb;
-  --brand-light: #3d4150;
-  --brand-hover: #6a749b;
-  --color-brand-fill: #a1aacb;
-  --color-brand-bg: #3d4150;
+  /* Brand Colors - Dark Mode (gruvbox bright_purple) */
+  --brand: #d3869b;
+  --brand-light: #504945;
+  --brand-hover: #7c6f64;
+  --color-brand-fill: #d3869b;
+  --color-brand-bg: #504945;
 
-  /* AOU Brand Colors - Dark Mode */
-  --aou-1: #2a2a2a;
-  --aou-2: #3d4150;
-  --aou-3: #525a77;
-  --aou-4: #6a749b;
-  --aou-5: #838fba;
-  --aou-6: #a1aacb;
-  --aou-7: #b5bcd6;
-  --aou-8: #d1d5e5;
-  --aou-9: #e5e7f0;
-  --aou-10: #eff0f6;
+  /* AOU Brand Colors - Dark Mode (gruvbox dark -> light scale) */
+  --aou-1: #3c3836;
+  --aou-2: #504945;
+  --aou-3: #665c54;
+  --aou-4: #7c6f64;
+  --aou-5: #928374;
+  --aou-6: #d3869b;
+  --aou-7: #bdae93;
+  --aou-8: #d5c4a1;
+  --aou-9: #ebdbb2;
+  --aou-10: #fbf1c7;
 
-  /* Background Colors - Dark Mode */
-  --color-bg-1: #1a1a1a;
-  --bg-1: #1a1a1a;
-  --color-bg-2: #262626;
-  --bg-2: #262626;
-  --color-bg-3: #333333;
-  --bg-3: #333333;
-  --color-bg-4: #404040;
-  --bg-4: #404040;
-  --bg-base: #0e0e0e;
-  --bg-5: #4d4d4d;
-  --bg-6: #5a5a5a;
-  --bg-8: #737373;
-  --bg-9: #a6a6a6;
-  --bg-10: #d9d9d9;
+  /* Background Colors - Dark Mode (gruvbox dark0 -> light1) */
+  --color-bg-1: #3c3836;
+  --bg-1: #3c3836;
+  --color-bg-2: #504945;
+  --bg-2: #504945;
+  --color-bg-3: #665c54;
+  --bg-3: #665c54;
+  --color-bg-4: #7c6f64;
+  --bg-4: #7c6f64;
+  --bg-base: #282828;
+  --bg-5: #928374;
+  --bg-6: #a89984;
+  --bg-8: #bdae93;
+  --bg-9: #d5c4a1;
+  --bg-10: #ebdbb2;
 
   /* Interactive State Colors - Dark Mode */
-  --bg-hover: #1f1f1f;
-  --bg-active: #2d2d2d;
+  --bg-hover: #3c3836;
+  --bg-active: #504945;
 
   /* Fill Colors - Dark Mode */
-  --fill: #1a1a1a;
-  --color-fill: #1a1a1a;
-  --fill-0: rgba(255, 255, 255, 0.08);
-  --fill-white-to-black: #000000;
-  --dialog-fill-0: #333333;
-  --inverse: #ffffff;
+  --fill: #3c3836;
+  --color-fill: #3c3836;
+  --fill-0: rgba(235, 219, 178, 0.08);
+  --fill-white-to-black: #282828;
+  --dialog-fill-0: #504945;
+  --inverse: #ebdbb2;
 
-  /* Text Colors - Dark Mode */
-  --color-text-1: #ffffff;
-  --text-primary: #ffffff;
-  --color-text-2: #a6a6a6;
-  --text-secondary: #ced3da;
-  --color-text-3: #737373;
-  --text-disabled: #737373;
-  --text-0: #ffffff;
-  --text-white: #ffffff;
+  /* Text Colors - Dark Mode (gruvbox light1 -> dark4) */
+  --color-text-1: #ebdbb2;
+  --text-primary: #ebdbb2;
+  --color-text-2: #ebdbb2;
+  --text-secondary: #ebdbb2;
+  --color-text-3: #928374;
+  --text-disabled: #928374;
+  --text-0: #ebdbb2;
+  --text-white: #ebdbb2;
 
   /* Border Colors - Dark Mode */
-  --color-border: #333333;
-  --color-border-1: #333333;
-  --color-border-2: #262626;
-  --border-base: #333333;
-  --border-light: #262626;
-  --border-special: #60677e;
+  --color-border: #665c54;
+  --color-border-1: #665c54;
+  --color-border-2: #504945;
+  --border-base: #665c54;
+  --border-light: #504945;
+  --border-special: #7c6f64;
 
-  /* Semantic Colors - Dark Mode */
-  --success: #23c343;
-  --warning: #ff9a2e;
-  --danger: #f76560;
-  --info: #4d9fff;
+  /* Semantic Colors - Dark Mode (gruvbox bright) */
+  --success: #b8bb26;
+  --warning: #fabd2f;
+  --danger: #fb4934;
+  --info: #83a598;
 
   /* Message & UI Component Colors - Dark Mode */
-  --message-user-bg: #1e2a3a;
-  --message-tips-bg: #1a2333;
-  --workspace-btn-bg: #1f1f1f;
+  --message-user-bg: #3c3836;
+  --message-tips-bg: #32302f;
+  --workspace-btn-bg: #3c3836;
 }
