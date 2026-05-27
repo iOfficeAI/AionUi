@@ -172,8 +172,8 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: pounding
+  vendor: pounding
   synopsis: ${description}
   description: ${description}
   desktop:
