@@ -70,6 +70,13 @@
   "tray.checkUpdate": "更新を確認",
   "tray.recentChats": "最近のチャット",
   "tray.untitled": "無題",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "このシステムは同梱バックエンドに対応していません",
+      "description": "AionUi は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AionUi を再起動してください。",
+      "requiredVersions": "必要なランタイムシンボル: {{versions}}"
+    }
+  },
   "fileAttach.addFiles": "ファイルを追加",
   "fileAttach.myDevice": "マイデバイス",
   "fileAttach.failed": "アップロードに失敗しました",

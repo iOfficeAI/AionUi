@@ -70,6 +70,13 @@
   "tray.checkUpdate": "检查更新",
   "tray.recentChats": "最近对话",
   "tray.untitled": "未命名",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "当前系统不支持内置后端",
+      "description": "AionUi 已打开，但本地 AionCore 后端无法在当前 Linux 版本上运行。请升级到受支持的 Linux 发行版后重启 AionUi。",
+      "requiredVersions": "需要的运行时符号：{{versions}}"
+    }
+  },
   "fileAttach.addFiles": "添加文件",
   "fileAttach.myDevice": "从设备上传",
   "fileAttach.failed": "上传失败",

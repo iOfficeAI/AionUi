@@ -51,8 +51,10 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
+const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
+contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events

@@ -21,8 +21,10 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
+import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
+import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
@@ -200,6 +202,7 @@ let disposeCronResumeListener: (() => void) | null = null;
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
 let backendStartupFailed = false;
+let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
 let backendMigrationsScheduled = false;
 let ensureAdminUserPromise: Promise<void> | null = null;
 
@@ -210,6 +213,16 @@ ipcMain.on('get-backend-port', (event) => {
 ipcMain.on('get-backend-startup-failed', (event) => {
   event.returnValue = backendStartupFailed;
 });
+
+ipcMain.on('get-backend-startup-failure', (event) => {
+  event.returnValue = backendStartupFailureInfo;
+});
+
+function markBackendStartupFailed(error: unknown): void {
+  backendStartupFailed = true;
+  backendStartupFailureInfo = classifyBackendStartupFailure(error);
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+}
 
 function registerCronResumeBridge(backendPort: number): void {
   disposeCronResumeListener?.();
@@ -280,6 +293,7 @@ function markBackendReady(backendPort: number, source: string): void {
   registerCronResumeBridge(backendPort);
   backendStartedOk = true;
   backendStartupFailed = false;
+  backendStartupFailureInfo = null;
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
   void ensureAdminUserOnce(backendPort);
   scheduleBackendMigrations();
@@ -542,13 +556,11 @@ const handleAppReady = async (): Promise<void> => {
         {
           allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
           onHealthTimeout: async (error) => {
-            backendStartupFailed = true;
-            (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+            markBackendStartupFailed(error);
             await captureBackendStartupFailure(error);
           },
           onPendingExit: async (error) => {
-            backendStartupFailed = true;
-            (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+            markBackendStartupFailed(error);
             await captureBackendStartupFailure(error);
           },
           onReady: (backendPort) => {
@@ -565,14 +577,15 @@ const handleAppReady = async (): Promise<void> => {
       }
       mark(`backendManager.start pending health (port=${backendPort})`);
     },
-    captureFailure: captureBackendStartupFailure,
+    captureFailure: async (error) => {
+      markBackendStartupFailed(error);
+      await captureBackendStartupFailure(error);
+    },
     exitApp: (code) => app.exit(code),
     exitOnFailure: isWebUIMode || isResetPasswordMode,
     logError: console.error,
   });
   if (!backendStartup.ok) {
-    backendStartupFailed = true;
-    (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
     if (isWebUIMode || isResetPasswordMode) {
       return;
     }

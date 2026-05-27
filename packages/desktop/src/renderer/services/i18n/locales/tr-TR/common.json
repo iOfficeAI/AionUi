@@ -70,6 +70,13 @@
   "tray.checkUpdate": "Güncelleştirme Kontrolü",
   "tray.recentChats": "Son Sohbetler",
   "tray.untitled": "Adsız",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "Bu sistem paketlenmiş backend tarafından desteklenmiyor",
+      "description": "AionUi açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip AionUi'yi yeniden başlatın.",
+      "requiredVersions": "Gerekli çalışma zamanı sembolleri: {{versions}}"
+    }
+  },
   "fileAttach.addFiles": "Dosya ekle",
   "fileAttach.myDevice": "Cihazım",
   "fileAttach.failed": "Yükleme başarısız",

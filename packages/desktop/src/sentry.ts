@@ -10,6 +10,7 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
+import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
 // 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
@@ -137,8 +138,13 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
   const capturedError = error instanceof Error ? error : new Error(String(error));
   const details = getBackendStartupDetails(error);
+  const failureInfo = classifyBackendStartupFailure(error);
   Sentry.withScope((scope) => {
     scope.setTag('aionui.failure', 'backend_startup');
+    scope.setTag('aionui.backend_startup.reason', failureInfo.reason);
+    if (failureInfo.runtime) {
+      scope.setTag('aionui.backend_startup.runtime', failureInfo.runtime);
+    }
     if (typeof details?.stage === 'string') {
       scope.setTag('aionui.backend_startup.stage', details.stage);
     }
@@ -146,6 +152,8 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setContext('aioncore_startup', details);
       scope.setExtra('aioncore_startup', details);
     }
+    scope.setContext('aioncore_startup_classification', { ...failureInfo });
+    scope.setExtra('aioncore_startup_classification', failureInfo);
     Sentry.captureException(capturedError);
   });
   try {

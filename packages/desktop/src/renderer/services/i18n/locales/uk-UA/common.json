@@ -70,6 +70,13 @@
   "tray.checkUpdate": "Перевірити оновлення",
   "tray.recentChats": "Недавні чати",
   "tray.untitled": "Без назви",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "Ця система не підтримується вбудованим backend",
+      "description": "AionUi відкрився, але локальний backend AionCore не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть AionUi.",
+      "requiredVersions": "Потрібні символи середовища виконання: {{versions}}"
+    }
+  },
   "fileAttach.addFiles": "Додати файли",
   "fileAttach.myDevice": "Мій пристрій",
   "fileAttach.tooLarge": "Файл перевищує ліміт {{max}} МБ",
