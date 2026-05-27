@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Mascota de Escritorio",
+  "enable": "Habilitar Mascota de Escritorio",
+  "size": "Tamaño de la Mascota",
+  "sizeSmall": "Pequeño ({{px}}px)",
+  "sizeMedium": "Mediano ({{px}}px)",
+  "sizeLarge": "Grande ({{px}}px)",
+  "dnd": "No Molestar",
+  "dndDescription": "La mascota permanece inactiva, ignora eventos de IA",
+  "confirmBubble": "Mostrar autorizaciones en la mascota",
+  "confirmBubbleDescription": "Cuando está desactivado, las autorizaciones de herramientas de IA permanecen en la ventana principal del chat",
+  "pat": "Acariciar",
+  "resetPosition": "Restablecer Posición",
+  "hide": "Ocultar",
+  "showHide": "Mostrar/Ocultar",
+  "desktopOnly": "La Mascota de Escritorio solo está disponible en la aplicación de escritorio. No se puede usar en el modo navegador WebUI."
+}

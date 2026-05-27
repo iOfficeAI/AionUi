@@ -1,0 +1,19 @@
+{
+  "plan": "Modo Plan",
+  "default": "Predeterminado",
+  "acceptEdits": "Aceptar Ediciones",
+  "autoEdit": "Edición Automática",
+  "auto_edit": "Edición Automática",
+  "yolo": "YOLO",
+  "yoloNoSandbox": "Automático Total (Sin Sandbox)",
+  "auto": "Automático",
+  "dontAsk": "No Preguntar",
+  "bypass": "Omitir (YOLO)",
+  "bypassPermissions": "YOLO",
+  "smart": "Inteligente",
+  "build": "Modo Construcción",
+  "permission": "Permiso",
+  "switchMode": "Cambiar Modo",
+  "switchSuccess": "Modo cambiado exitosamente",
+  "switchFailed": "Error al cambiar modo"
+}
