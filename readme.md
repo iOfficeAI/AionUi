@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="packages/desktop/src/renderer/assets/logos/brand/wordmark.png" alt="Chisel" width="360" />
+  <img src="packages/desktop/src/renderer/assets/logos/brand/wordmark.png" alt="Chisl" width="360" />
 </p>
 
 <p align="center">
@@ -7,7 +7,7 @@
 </p>
 
 <p align="center">
-  <img src="packages/desktop/src/renderer/assets/logos/brand/app.png" alt="Chisel app icon" width="72" />
+  <img src="packages/desktop/src/renderer/assets/logos/brand/app.png" alt="Chisl app icon" width="72" />
 </p>
 
 <p align="center">
@@ -29,18 +29,18 @@
 
 ---
 
-## What Chisel Does
+## What Chisl Does
 
-Chisel gives coding agents a durable, remote-friendly interface. Run the agent environment on the machine that has your repositories, terminals, credentials, and tools; then drive it from the desktop app, a browser, or the mobile companion.
+Chisl gives coding agents a durable, remote-friendly interface. Run the agent environment on the machine that has your repositories, terminals, credentials, and tools; then drive it from the desktop app or a browser.
 
-The main target is **OpenCode remote server** usage: Chisel turns a remote OpenCode session into a richer command center with chat, workspace files, permission handling, mode switching, model visibility, and mobile/browser access.
+The main target is **OpenCode remote server** usage: Chisl turns a remote OpenCode session into a richer command center with chat, workspace files, permission handling, mode switching, model visibility, and browser access.
 
 It also supports local agent workflows for:
 
 | Agent          | Typical use                                                      |
 | -------------- | ---------------------------------------------------------------- |
 | OpenCode local | Run OpenCode directly on the current machine.                    |
-| Claude Code    | Work with Claude Code sessions from the same Chisel interface.   |
+| Claude Code    | Work with Claude Code sessions from the same Chisl interface.    |
 | Gemini CLI     | Start and continue Gemini CLI-backed coding sessions.            |
 | Codex          | Use Codex sessions with workspace, tool-call, and permission UI. |
 
@@ -48,11 +48,11 @@ It also supports local agent workflows for:
 
 Terminal-first coding agents are powerful, but raw terminals are not enough once you want to run them all day, from multiple devices, across multiple repositories.
 
-Chisel adds the missing interface layer:
+Chisl adds the missing interface layer:
 
-| Problem                                                         | Chisel answer                                                                           |
+| Problem                                                         | Chisl answer                                                                            |
 | --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Agents run on a remote box, but you are not always on that box. | Browser WebUI and mobile access over the Chisel server.                                 |
+| Agents run on a remote box, but you are not always on that box. | Browser WebUI access over the Chisl server.                                             |
 | Terminal output is hard to inspect later.                       | Persistent conversations, grouped history, streaming messages, and searchable sessions. |
 | Tool calls and permission prompts need supervision.             | Dedicated permission, tool-call, and confirmation UI.                                   |
 | Agents edit files, but you need context.                        | Workspace browser, file picker, code/markdown/diff/image previews, and file mentions.   |
@@ -63,15 +63,14 @@ Chisel adds the missing interface layer:
 
 ### Remote Server
 
-Chisel can run as a server-backed WebUI for a workstation, homelab, cloud VM, or development box. This is the preferred shape for remote OpenCode usage.
+Chisl can run as a server-backed WebUI for a workstation, homelab, cloud VM, or development box. This is the preferred shape for remote OpenCode usage.
 
 Use it when you want to:
 
 | Goal                                | Result                                                              |
 | ----------------------------------- | ------------------------------------------------------------------- |
 | Keep agents running near your code. | The server process has access to the workspace and local CLI tools. |
-| Use Chisel from another machine.    | Open the WebUI in a browser.                                        |
-| Check progress from a phone.        | Connect the mobile app with a QR login link.                        |
+| Use Chisl from another machine.     | Open the WebUI in a browser.                                        |
 | Avoid exposing raw terminals.       | Interact through chat, file, preview, and confirmation screens.     |
 
 ### Desktop App
@@ -86,64 +85,49 @@ It provides:
 | Conversation workspace     | Chat, stream responses, inspect tool calls, stop runs, and continue history.             |
 | File context               | Attach files, mention files, browse workspaces, and preview generated or edited files.   |
 | Terminal-adjacent workflow | Keep the agent workflow close to the codebase without living entirely inside a terminal. |
-| WebUI control              | Enable browser/mobile access, remote binding, passwords, and QR login.                   |
+| WebUI control              | Enable browser access, remote binding, and passwords.                                    |
 | Display control            | Switch between Gruvbox and Chisl color schemes, light/dark mode, and custom CSS themes.  |
 
 ### Browser WebUI
 
-The WebUI serves Chisel in a browser and is designed for remote access. It supports password authentication and QR login for mobile pairing.
+The WebUI serves Chisl in a browser and is designed for remote access. It supports password authentication for desktop and browser workflows.
 
 Common uses:
 
-| Use               | Example                                                                    |
-| ----------------- | -------------------------------------------------------------------------- |
-| LAN access        | Run Chisel on a dev box and use it from a laptop or tablet.                |
-| Server access     | Keep Chisel running on a remote machine with your agent tooling installed. |
-| Mobile handoff    | Generate a QR login link and connect the mobile app.                       |
-| Headless workflow | Use Chisel without launching the Electron desktop shell.                   |
-
-### Mobile Companion
-
-The mobile app is for monitoring and lightweight control, not replacing a full desktop IDE.
-
-It can:
-
-| Capability            | Notes                                                            |
-| --------------------- | ---------------------------------------------------------------- |
-| Connect by QR code    | Pair with a Chisel WebUI/server session.                         |
-| Browse conversations  | Review history and current agent activity.                       |
-| Send messages         | Continue a session from your phone.                              |
-| Approve confirmations | Respond to permission and tool prompts while away from the desk. |
-| Inspect files         | View workspace files, markdown, code, diffs, HTML, and images.   |
+| Use               | Example                                                                   |
+| ----------------- | ------------------------------------------------------------------------- |
+| LAN access        | Run Chisl on a dev box and use it from a laptop or tablet.                |
+| Server access     | Keep Chisl running on a remote machine with your agent tooling installed. |
+| Headless workflow | Use Chisl without launching the Electron desktop shell.                   |
 
 ## Agent Workflows
 
 ### OpenCode Remote First
 
-Chisel is optimized around OpenCode running remotely. The server stays close to the repository and OpenCode runtime; the UI can be somewhere else.
+Chisl is optimized around OpenCode running remotely. The server stays close to the repository and OpenCode runtime; the UI can be somewhere else.
 
 Remote OpenCode sessions get the richer parts of the interface:
 
-| Feature                   | What it means                                                           |
-| ------------------------- | ----------------------------------------------------------------------- |
-| Remote session continuity | Continue work without tying the UI to one terminal window.              |
-| Build/plan mode control   | Switch OpenCode modes from the UI where supported.                      |
-| Model metadata            | Show the model/provider reported by the remote session when available.  |
-| Slash-command support     | Surface OpenCode command affordances where the session supports them.   |
-| Workspace file context    | Add files and browse the remote workspace through the Chisel interface. |
+| Feature                   | What it means                                                          |
+| ------------------------- | ---------------------------------------------------------------------- |
+| Remote session continuity | Continue work without tying the UI to one terminal window.             |
+| Build/plan mode control   | Switch OpenCode modes from the UI where supported.                     |
+| Model metadata            | Show the model/provider reported by the remote session when available. |
+| Slash-command support     | Surface OpenCode command affordances where the session supports them.  |
+| Workspace file context    | Add files and browse the remote workspace through the Chisl interface. |
 
 ### Local CLI Agents
 
-Chisel also works as a local front-end for supported CLI agents. Install and authenticate the CLI you want to use, then select it in Chisel when starting a session.
+Chisl also works as a local front-end for supported CLI agents. Install and authenticate the CLI you want to use, then select it in Chisl when starting a session.
 
 Supported local workflows currently include:
 
-| Workflow       | Notes                                                                    |
-| -------------- | ------------------------------------------------------------------------ |
-| Claude Code    | Uses your local Claude Code setup and permissions.                       |
-| OpenCode local | Runs OpenCode on the same machine as Chisel.                             |
-| Gemini CLI     | Uses Gemini CLI-backed sessions and Gemini-oriented modes.               |
-| Codex          | Uses Codex sessions with Chisel's conversation and permission interface. |
+| Workflow       | Notes                                                                   |
+| -------------- | ----------------------------------------------------------------------- |
+| Claude Code    | Uses your local Claude Code setup and permissions.                      |
+| OpenCode local | Runs OpenCode on the same machine as Chisl.                             |
+| Gemini CLI     | Uses Gemini CLI-backed sessions and Gemini-oriented modes.              |
+| Codex          | Uses Codex sessions with Chisl's conversation and permission interface. |
 
 ## Core Features
 
@@ -194,7 +178,7 @@ The Chisl color scheme is a muted retro palette sampled from the logo and wordma
 | Node.js             | `>=22 <25`                                                                                               |
 | Bun                 | Used for install and project scripts.                                                                    |
 | Supported agent CLI | Install and authenticate OpenCode, Claude Code, Gemini CLI, or Codex depending on the workflow you want. |
-| Remote access       | For remote use, run Chisel where the repositories and agent CLI credentials live.                        |
+| Remote access       | For remote use, run Chisl where the repositories and agent CLI credentials live.                         |
 
 Install dependencies:
 
@@ -232,16 +216,6 @@ Build the app:
 bun run package
 ```
 
-## Mobile Quick Start
-
-```bash
-cd mobile
-bun install
-bun run start
-```
-
-Then open Chisel desktop or WebUI settings, generate a QR login link, and scan it from the mobile app.
-
 ## Useful Commands
 
 | Command                | Purpose                                    |
@@ -259,13 +233,13 @@ Then open Chisel desktop or WebUI settings, generate a QR login link, and scan i
 
 ## Configuration Notes
 
-| Topic               | Notes                                                                                |
-| ------------------- | ------------------------------------------------------------------------------------ |
-| WebUI port          | Use `AIONUI_PORT` to override the default port.                                      |
-| Remote binding      | Use `bun run webui:remote` or configure remote access from desktop settings.         |
-| Static WebUI assets | Use `AIONUI_STATIC_DIR` when serving a prebuilt renderer bundle.                     |
-| Backend binary      | Use `AIONUI_BACKEND_BIN` when you need to point Chisel at a specific backend binary. |
-| Data directory      | Use `AIONUI_DATA_DIR` for an isolated server data directory.                         |
+| Topic               | Notes                                                                               |
+| ------------------- | ----------------------------------------------------------------------------------- |
+| WebUI port          | Use `AIONUI_PORT` to override the default port.                                     |
+| Remote binding      | Use `bun run webui:remote` or configure remote access from desktop settings.        |
+| Static WebUI assets | Use `AIONUI_STATIC_DIR` when serving a prebuilt renderer bundle.                    |
+| Backend binary      | Use `AIONUI_BACKEND_BIN` when you need to point Chisl at a specific backend binary. |
+| Data directory      | Use `AIONUI_DATA_DIR` for an isolated server data directory.                        |
 
 Some environment variable and script names still contain `AIONUI` for compatibility with the existing app/runtime packaging.
 
@@ -300,9 +274,9 @@ node scripts/check-i18n.js
 
 ## Status
 
-Chisel is moving quickly. The current center of gravity is remote OpenCode operation with a desktop/browser/mobile interface on top, while local Claude Code, OpenCode, Gemini CLI, and Codex workflows remain supported.
+Chisl is moving quickly. The current center of gravity is remote OpenCode operation with a desktop/browser interface on top, while local Claude Code, OpenCode, Gemini CLI, and Codex workflows remain supported.
 
-Expect some internal names, package metadata, and environment variables to lag behind the Chisel branding while the product surface stabilizes.
+Expect some internal names, package metadata, and environment variables to lag behind the Chisl branding while the product surface stabilizes.
 
 ## License
 
