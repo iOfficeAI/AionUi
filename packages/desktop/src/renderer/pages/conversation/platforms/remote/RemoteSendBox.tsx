@@ -214,6 +214,35 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           }
           break;
         }
+        case 'assistant_model_info': {
+          // OpenCode-only: stamp the producing model onto the in-flight
+          // assistant text bubble. Arrives once per assistant message at
+          // creation (before the first text delta) with the same msg_id
+          // that the first text segment will use, so composeMessage merges
+          // the `model` field onto the same bubble.
+          const modelData = message.data as
+            | { message_id?: string; provider_id?: string; model_id?: string }
+            | undefined;
+          if (modelData?.provider_id && modelData?.model_id) {
+            const placeholder: TMessage = {
+              id: message.msg_id,
+              msg_id: message.msg_id,
+              conversation_id: message.conversation_id,
+              type: 'text',
+              position: 'left',
+              content: {
+                content: '',
+                model: {
+                  providerId: modelData.provider_id,
+                  modelId: modelData.model_id,
+                },
+              },
+              created_at: message.created_at ?? Date.now(),
+            };
+            addOrUpdateMessage(placeholder);
+          }
+          break;
+        }
         case 'acp_permission': {
           hasContentInTurnRef.current = true;
           if (!aiProcessingRef.current) {

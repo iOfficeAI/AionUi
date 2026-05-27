@@ -1,0 +1,157 @@
+/* Solarized Dark Theme */
+/* https://ethanschoonover.com/solarized/ */
+
+:root,
+[data-color-scheme='default'] {
+  --color-primary: #268bd2;
+  --primary: #268bd2;
+  --color-primary-light-1: #2aa198;
+  --color-primary-light-2: #6c71c4;
+  --color-primary-light-3: #859900;
+  --color-primary-dark-1: #b58900;
+  --primary-rgb: 38, 139, 210;
+
+  --brand: #2aa198;
+  --brand-light: #002b36;
+  --brand-hover: #268bd2;
+  --color-brand-fill: #2aa198;
+  --color-brand-bg: #002b36;
+
+  --aou-1: #002b36;
+  --aou-2: #073642;
+  --aou-3: #073642;
+  --aou-4: #586e75;
+  --aou-5: #657b83;
+  --aou-6: #2aa198;
+  --aou-7: #268bd2;
+  --aou-8: #6c71c4;
+  --aou-9: #859900;
+  --aou-10: #b58900;
+
+  --color-bg-1: #073642;
+  --bg-1: #073642;
+  --color-bg-2: #073642;
+  --bg-2: #073642;
+  --color-bg-3: #586e75;
+  --bg-3: #586e75;
+  --color-bg-4: #657b83;
+  --bg-4: #657b83;
+  --bg-base: #002b36;
+  --bg-5: #839496;
+  --bg-6: #93a1a1;
+  --bg-8: #eee8d5;
+  --bg-9: #fdf6e3;
+  --bg-10: #fdf6e3;
+
+  --bg-hover: #073642;
+  --bg-active: #586e75;
+
+  --fill: #073642;
+  --color-fill: #073642;
+  --fill-0: #002b36;
+  --fill-white-to-black: #002b36;
+  --dialog-fill-0: #002b36;
+  --inverse: #fdf6e3;
+
+  --color-text-1: #fdf6e3;
+  --text-primary: #fdf6e3;
+  --color-text-2: #eee8d5;
+  --text-secondary: #eee8d5;
+  --color-text-3: #93a1a1;
+  --text-disabled: #586e75;
+  --text-0: #fdf6e3;
+  --text-white: #fdf6e3;
+
+  --color-border: #586e75;
+  --color-border-1: #586e75;
+  --color-border-2: #657b83;
+  --border-base: #586e75;
+  --border-light: #657b83;
+  --border-special: var(--bg-3);
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+
+  --message-user-bg: #073642;
+  --message-tips-bg: #073642;
+  --workspace-btn-bg: #073642;
+}
+
+[data-color-scheme='default'][data-theme='dark'] {
+  --color-primary: #268bd2;
+  --primary: #268bd2;
+  --color-primary-light-1: #2aa198;
+  --color-primary-light-2: #6c71c4;
+  --color-primary-light-3: #859900;
+  --color-primary-dark-1: #b58900;
+  --primary-rgb: 38, 139, 210;
+
+  --brand: #2aa198;
+  --brand-light: #002b36;
+  --brand-hover: #268bd2;
+  --color-brand-fill: #2aa198;
+  --color-brand-bg: #002b36;
+
+  --aou-1: #002b36;
+  --aou-2: #073642;
+  --aou-3: #073642;
+  --aou-4: #586e75;
+  --aou-5: #657b83;
+  --aou-6: #2aa198;
+  --aou-7: #268bd2;
+  --aou-8: #6c71c4;
+  --aou-9: #859900;
+  --aou-10: #b58900;
+
+  --color-bg-1: #073642;
+  --bg-1: #073642;
+  --color-bg-2: #073642;
+  --bg-2: #073642;
+  --color-bg-3: #586e75;
+  --bg-3: #586e75;
+  --color-bg-4: #657b83;
+  --bg-4: #657b83;
+  --bg-base: #002b36;
+  --bg-5: #839496;
+  --bg-6: #93a1a1;
+  --bg-8: #eee8d5;
+  --bg-9: #fdf6e3;
+  --bg-10: #fdf6e3;
+
+  --bg-hover: #073642;
+  --bg-active: #586e75;
+
+  --fill: #073642;
+  --color-fill: #073642;
+  --fill-0: rgba(253, 246, 227, 0.08);
+  --fill-white-to-black: #002b36;
+  --dialog-fill-0: #073642;
+  --inverse: #fdf6e3;
+
+  --color-text-1: #fdf6e3;
+  --text-primary: #fdf6e3;
+  --color-text-2: #eee8d5;
+  --text-secondary: #eee8d5;
+  --color-text-3: #93a1a1;
+  --text-disabled: #586e75;
+  --text-0: #fdf6e3;
+  --text-white: #fdf6e3;
+
+  --color-border: #586e75;
+  --color-border-1: #586e75;
+  --color-border-2: #657b83;
+  --border-base: #586e75;
+  --border-light: #657b83;
+  --border-special: #657b83;
+
+  --success: #859900;
+  --warning: #b58900;
+  --danger: #dc322f;
+  --info: #268bd2;
+
+  --message-user-bg: #073642;
+  --message-tips-bg: #073642;
+  --workspace-btn-bg: #073642;
+}

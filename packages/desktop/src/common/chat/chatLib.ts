@@ -122,6 +122,8 @@ export type IMessageText = IMessage<
     senderAgentType?: string;
     /** Sender teammate's conversation id — lets the renderer resolve preset avatars via their conversation extras. */
     senderConversationId?: string;
+    /** Provider+model id that produced this assistant message (OpenCode: from `info.modelID`/`info.providerID`). Optional for backwards compatibility. */
+    model?: { providerId: string; modelId: string };
   }
 >;
 

@@ -1,0 +1,157 @@
+/* Catppuccin Mocha Theme */
+/* https://github.com/catppuccin/catppuccin */
+
+:root,
+[data-color-scheme='default'] {
+  --color-primary: #cba6f7;
+  --primary: #cba6f7;
+  --color-primary-light-1: #b4befe;
+  --color-primary-light-2: #89b4fa;
+  --color-primary-light-3: #74c7ec;
+  --color-primary-dark-1: #f5c2e7;
+  --primary-rgb: 203, 166, 247;
+
+  --brand: #f5c2e7;
+  --brand-light: #1e1e2e;
+  --brand-hover: #cba6f7;
+  --color-brand-fill: #f5c2e7;
+  --color-brand-bg: #1e1e2e;
+
+  --aou-1: #1e1e2e;
+  --aou-2: #181825;
+  --aou-3: #11111b;
+  --aou-4: #313244;
+  --aou-5: #45475a;
+  --aou-6: #f5c2e7;
+  --aou-7: #cba6f7;
+  --aou-8: #b4befe;
+  --aou-9: #89b4fa;
+  --aou-10: #74c7ec;
+
+  --color-bg-1: #181825;
+  --bg-1: #181825;
+  --color-bg-2: #11111b;
+  --bg-2: #11111b;
+  --color-bg-3: #313244;
+  --bg-3: #313244;
+  --color-bg-4: #45475a;
+  --bg-4: #45475a;
+  --bg-base: #1e1e2e;
+  --bg-5: #585b70;
+  --bg-6: #6c7086;
+  --bg-8: #9399b2;
+  --bg-9: #bac2de;
+  --bg-10: #cdd6f4;
+
+  --bg-hover: #313244;
+  --bg-active: #45475a;
+
+  --fill: #181825;
+  --color-fill: #181825;
+  --fill-0: #1e1e2e;
+  --fill-white-to-black: #1e1e2e;
+  --dialog-fill-0: #1e1e2e;
+  --inverse: #cdd6f4;
+
+  --color-text-1: #cdd6f4;
+  --text-primary: #cdd6f4;
+  --color-text-2: #bac2de;
+  --text-secondary: #bac2de;
+  --color-text-3: #a6adc8;
+  --text-disabled: #585b70;
+  --text-0: #cdd6f4;
+  --text-white: #cdd6f4;
+
+  --color-border: #313244;
+  --color-border-1: #313244;
+  --color-border-2: #45475a;
+  --border-base: #313244;
+  --border-light: #45475a;
+  --border-special: var(--bg-3);
+
+  --success: #a6e3a1;
+  --warning: #f9e2af;
+  --danger: #f38ba8;
+  --info: #89b4fa;
+
+  --message-user-bg: #313244;
+  --message-tips-bg: #181825;
+  --workspace-btn-bg: #181825;
+}
+
+[data-color-scheme='default'][data-theme='dark'] {
+  --color-primary: #cba6f7;
+  --primary: #cba6f7;
+  --color-primary-light-1: #b4befe;
+  --color-primary-light-2: #89b4fa;
+  --color-primary-light-3: #74c7ec;
+  --color-primary-dark-1: #f5c2e7;
+  --primary-rgb: 203, 166, 247;
+
+  --brand: #f5c2e7;
+  --brand-light: #1e1e2e;
+  --brand-hover: #cba6f7;
+  --color-brand-fill: #f5c2e7;
+  --color-brand-bg: #1e1e2e;
+
+  --aou-1: #1e1e2e;
+  --aou-2: #181825;
+  --aou-3: #11111b;
+  --aou-4: #313244;
+  --aou-5: #45475a;
+  --aou-6: #f5c2e7;
+  --aou-7: #cba6f7;
+  --aou-8: #b4befe;
+  --aou-9: #89b4fa;
+  --aou-10: #74c7ec;
+
+  --color-bg-1: #181825;
+  --bg-1: #181825;
+  --color-bg-2: #11111b;
+  --bg-2: #11111b;
+  --color-bg-3: #313244;
+  --bg-3: #313244;
+  --color-bg-4: #45475a;
+  --bg-4: #45475a;
+  --bg-base: #1e1e2e;
+  --bg-5: #585b70;
+  --bg-6: #6c7086;
+  --bg-8: #9399b2;
+  --bg-9: #bac2de;
+  --bg-10: #cdd6f4;
+
+  --bg-hover: #313244;
+  --bg-active: #45475a;
+
+  --fill: #181825;
+  --color-fill: #181825;
+  --fill-0: rgba(205, 214, 244, 0.08);
+  --fill-white-to-black: #1e1e2e;
+  --dialog-fill-0: #313244;
+  --inverse: #cdd6f4;
+
+  --color-text-1: #cdd6f4;
+  --text-primary: #cdd6f4;
+  --color-text-2: #bac2de;
+  --text-secondary: #bac2de;
+  --color-text-3: #a6adc8;
+  --text-disabled: #585b70;
+  --text-0: #cdd6f4;
+  --text-white: #cdd6f4;
+
+  --color-border: #313244;
+  --color-border-1: #313244;
+  --color-border-2: #45475a;
+  --border-base: #313244;
+  --border-light: #45475a;
+  --border-special: #45475a;
+
+  --success: #a6e3a1;
+  --warning: #f9e2af;
+  --danger: #f38ba8;
+  --info: #89b4fa;
+
+  --message-user-bg: #313244;
+  --message-tips-bg: #181825;
+  --workspace-btn-bg: #181825;
+}

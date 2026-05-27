@@ -211,13 +211,16 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
   );
 };
 
-const ensureBackgroundCss = <T extends { id?: string; cover?: string; css: string }>(theme: T): T => {
-  // 跳过 Default 主题，不注入背景图 CSS / Skip Default theme, do not inject background CSS
-  if (theme.id === DEFAULT_THEME_ID) {
+const ensureBackgroundCss = <T extends { id?: string; cover?: string; css: string; is_preset?: boolean }>(theme: T): T => {
+  // 跳过预设主题，不注入背景图 CSS / Skip preset themes, do not inject background CSS
+  if (theme.is_preset) {
     return theme;
   }
   if (theme.cover && theme.css && !theme.css.includes(BACKGROUND_BLOCK_START)) {
-    return { ...theme, css: injectBackgroundCssBlock(theme.css, theme.cover) };
+    return {
+      ...theme,
+      css: injectBackgroundCssBlock(theme.css, theme.cover),
+    };
   }
   return theme;
 };

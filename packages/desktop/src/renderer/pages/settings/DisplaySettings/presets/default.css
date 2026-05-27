@@ -90,7 +90,7 @@
 }
 
 /* Dark Mode Overrides - 深色模式覆盖 */
-[data-theme='dark'] {
+[data-color-scheme='default'][data-theme='dark'] {
   /* Primary Colors - Dark Mode (gruvbox bright_blue) */
   --color-primary: #83a598;
   --primary: #83a598;

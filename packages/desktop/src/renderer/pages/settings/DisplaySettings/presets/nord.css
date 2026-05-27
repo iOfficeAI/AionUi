@@ -1,0 +1,157 @@
+/* Nord Theme */
+/* https://www.nordtheme.com/ */
+
+:root,
+[data-color-scheme='default'] {
+  --color-primary: #88c0d0;
+  --primary: #88c0d0;
+  --color-primary-light-1: #8fbcbb;
+  --color-primary-light-2: #81a1c1;
+  --color-primary-light-3: #5e81ac;
+  --color-primary-dark-1: #b48ead;
+  --primary-rgb: 136, 192, 208;
+
+  --brand: #8fbcbb;
+  --brand-light: #2e3440;
+  --brand-hover: #88c0d0;
+  --color-brand-fill: #8fbcbb;
+  --color-brand-bg: #2e3440;
+
+  --aou-1: #2e3440;
+  --aou-2: #3b4252;
+  --aou-3: #434c5e;
+  --aou-4: #4c566a;
+  --aou-5: #d8dee9;
+  --aou-6: #8fbcbb;
+  --aou-7: #88c0d0;
+  --aou-8: #81a1c1;
+  --aou-9: #5e81ac;
+  --aou-10: #b48ead;
+
+  --color-bg-1: #3b4252;
+  --bg-1: #3b4252;
+  --color-bg-2: #434c5e;
+  --bg-2: #434c5e;
+  --color-bg-3: #4c566a;
+  --bg-3: #4c566a;
+  --color-bg-4: #d8dee9;
+  --bg-4: #d8dee9;
+  --bg-base: #2e3440;
+  --bg-5: #e5e9f0;
+  --bg-6: #eceff4;
+  --bg-8: #eceff4;
+  --bg-9: #eceff4;
+  --bg-10: #eceff4;
+
+  --bg-hover: #434c5e;
+  --bg-active: #4c566a;
+
+  --fill: #3b4252;
+  --color-fill: #3b4252;
+  --fill-0: #2e3440;
+  --fill-white-to-black: #2e3440;
+  --dialog-fill-0: #2e3440;
+  --inverse: #eceff4;
+
+  --color-text-1: #eceff4;
+  --text-primary: #eceff4;
+  --color-text-2: #e5e9f0;
+  --text-secondary: #e5e9f0;
+  --color-text-3: #d8dee9;
+  --text-disabled: #4c566a;
+  --text-0: #eceff4;
+  --text-white: #eceff4;
+
+  --color-border: #4c566a;
+  --color-border-1: #4c566a;
+  --color-border-2: #d8dee9;
+  --border-base: #4c566a;
+  --border-light: #d8dee9;
+  --border-special: var(--bg-3);
+
+  --success: #a3be8c;
+  --warning: #ebcb8b;
+  --danger: #bf616a;
+  --info: #88c0d0;
+
+  --message-user-bg: #434c5e;
+  --message-tips-bg: #3b4252;
+  --workspace-btn-bg: #3b4252;
+}
+
+[data-color-scheme='default'][data-theme='dark'] {
+  --color-primary: #88c0d0;
+  --primary: #88c0d0;
+  --color-primary-light-1: #8fbcbb;
+  --color-primary-light-2: #81a1c1;
+  --color-primary-light-3: #5e81ac;
+  --color-primary-dark-1: #b48ead;
+  --primary-rgb: 136, 192, 208;
+
+  --brand: #8fbcbb;
+  --brand-light: #2e3440;
+  --brand-hover: #88c0d0;
+  --color-brand-fill: #8fbcbb;
+  --color-brand-bg: #2e3440;
+
+  --aou-1: #2e3440;
+  --aou-2: #3b4252;
+  --aou-3: #434c5e;
+  --aou-4: #4c566a;
+  --aou-5: #d8dee9;
+  --aou-6: #8fbcbb;
+  --aou-7: #88c0d0;
+  --aou-8: #81a1c1;
+  --aou-9: #5e81ac;
+  --aou-10: #b48ead;
+
+  --color-bg-1: #3b4252;
+  --bg-1: #3b4252;
+  --color-bg-2: #434c5e;
+  --bg-2: #434c5e;
+  --color-bg-3: #4c566a;
+  --bg-3: #4c566a;
+  --color-bg-4: #d8dee9;
+  --bg-4: #d8dee9;
+  --bg-base: #2e3440;
+  --bg-5: #e5e9f0;
+  --bg-6: #eceff4;
+  --bg-8: #eceff4;
+  --bg-9: #eceff4;
+  --bg-10: #eceff4;
+
+  --bg-hover: #434c5e;
+  --bg-active: #4c566a;
+
+  --fill: #3b4252;
+  --color-fill: #3b4252;
+  --fill-0: rgba(236, 239, 244, 0.08);
+  --fill-white-to-black: #2e3440;
+  --dialog-fill-0: #4c566a;
+  --inverse: #eceff4;
+
+  --color-text-1: #eceff4;
+  --text-primary: #eceff4;
+  --color-text-2: #e5e9f0;
+  --text-secondary: #e5e9f0;
+  --color-text-3: #d8dee9;
+  --text-disabled: #4c566a;
+  --text-0: #eceff4;
+  --text-white: #eceff4;
+
+  --color-border: #4c566a;
+  --color-border-1: #4c566a;
+  --color-border-2: #d8dee9;
+  --border-base: #4c566a;
+  --border-light: #d8dee9;
+  --border-special: #d8dee9;
+
+  --success: #a3be8c;
+  --warning: #ebcb8b;
+  --danger: #bf616a;
+  --info: #88c0d0;
+
+  --message-user-bg: #434c5e;
+  --message-tips-bg: #3b4252;
+  --workspace-btn-bg: #3b4252;
+}

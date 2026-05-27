@@ -1,0 +1,157 @@
+/* Tokyo Night Theme */
+/* https://github.com/enkia/tokyo-night-vscode-theme */
+
+:root,
+[data-color-scheme='default'] {
+  --color-primary: #7aa2f7;
+  --primary: #7aa2f7;
+  --color-primary-light-1: #bb9af7;
+  --color-primary-light-2: #2ac3de;
+  --color-primary-light-3: #9ece6a;
+  --color-primary-dark-1: #ff9e64;
+  --primary-rgb: 122, 162, 247;
+
+  --brand: #bb9af7;
+  --brand-light: #1a1b26;
+  --brand-hover: #7aa2f7;
+  --color-brand-fill: #bb9af7;
+  --color-brand-bg: #1a1b26;
+
+  --aou-1: #1a1b26;
+  --aou-2: #16161e;
+  --aou-3: #13131a;
+  --aou-4: #24283b;
+  --aou-5: #414868;
+  --aou-6: #bb9af7;
+  --aou-7: #7aa2f7;
+  --aou-8: #2ac3de;
+  --aou-9: #9ece6a;
+  --aou-10: #e0af68;
+
+  --color-bg-1: #16161e;
+  --bg-1: #16161e;
+  --color-bg-2: #13131a;
+  --bg-2: #13131a;
+  --color-bg-3: #24283b;
+  --bg-3: #24283b;
+  --color-bg-4: #414868;
+  --bg-4: #414868;
+  --bg-base: #1a1b26;
+  --bg-5: #545c7e;
+  --bg-6: #737aa2;
+  --bg-8: #a9b1d6;
+  --bg-9: #c0caf5;
+  --bg-10: #c0caf5;
+
+  --bg-hover: #24283b;
+  --bg-active: #414868;
+
+  --fill: #16161e;
+  --color-fill: #16161e;
+  --fill-0: #1a1b26;
+  --fill-white-to-black: #1a1b26;
+  --dialog-fill-0: #1a1b26;
+  --inverse: #c0caf5;
+
+  --color-text-1: #c0caf5;
+  --text-primary: #c0caf5;
+  --color-text-2: #a9b1d6;
+  --text-secondary: #a9b1d6;
+  --color-text-3: #737aa2;
+  --text-disabled: #414868;
+  --text-0: #c0caf5;
+  --text-white: #c0caf5;
+
+  --color-border: #24283b;
+  --color-border-1: #24283b;
+  --color-border-2: #414868;
+  --border-base: #24283b;
+  --border-light: #414868;
+  --border-special: var(--bg-3);
+
+  --success: #9ece6a;
+  --warning: #e0af68;
+  --danger: #f7768e;
+  --info: #2ac3de;
+
+  --message-user-bg: #24283b;
+  --message-tips-bg: #16161e;
+  --workspace-btn-bg: #16161e;
+}
+
+[data-color-scheme='default'][data-theme='dark'] {
+  --color-primary: #7aa2f7;
+  --primary: #7aa2f7;
+  --color-primary-light-1: #bb9af7;
+  --color-primary-light-2: #2ac3de;
+  --color-primary-light-3: #9ece6a;
+  --color-primary-dark-1: #ff9e64;
+  --primary-rgb: 122, 162, 247;
+
+  --brand: #bb9af7;
+  --brand-light: #1a1b26;
+  --brand-hover: #7aa2f7;
+  --color-brand-fill: #bb9af7;
+  --color-brand-bg: #1a1b26;
+
+  --aou-1: #1a1b26;
+  --aou-2: #16161e;
+  --aou-3: #13131a;
+  --aou-4: #24283b;
+  --aou-5: #414868;
+  --aou-6: #bb9af7;
+  --aou-7: #7aa2f7;
+  --aou-8: #2ac3de;
+  --aou-9: #9ece6a;
+  --aou-10: #e0af68;
+
+  --color-bg-1: #16161e;
+  --bg-1: #16161e;
+  --color-bg-2: #13131a;
+  --bg-2: #13131a;
+  --color-bg-3: #24283b;
+  --bg-3: #24283b;
+  --color-bg-4: #414868;
+  --bg-4: #414868;
+  --bg-base: #1a1b26;
+  --bg-5: #545c7e;
+  --bg-6: #737aa2;
+  --bg-8: #a9b1d6;
+  --bg-9: #c0caf5;
+  --bg-10: #c0caf5;
+
+  --bg-hover: #24283b;
+  --bg-active: #414868;
+
+  --fill: #16161e;
+  --color-fill: #16161e;
+  --fill-0: rgba(192, 202, 245, 0.08);
+  --fill-white-to-black: #1a1b26;
+  --dialog-fill-0: #24283b;
+  --inverse: #c0caf5;
+
+  --color-text-1: #c0caf5;
+  --text-primary: #c0caf5;
+  --color-text-2: #a9b1d6;
+  --text-secondary: #a9b1d6;
+  --color-text-3: #737aa2;
+  --text-disabled: #414868;
+  --text-0: #c0caf5;
+  --text-white: #c0caf5;
+
+  --color-border: #24283b;
+  --color-border-1: #24283b;
+  --color-border-2: #414868;
+  --border-base: #24283b;
+  --border-light: #414868;
+  --border-special: #414868;
+
+  --success: #9ece6a;
+  --warning: #e0af68;
+  --danger: #f7768e;
+  --info: #2ac3de;
+
+  --message-user-bg: #24283b;
+  --message-tips-bg: #16161e;
+  --workspace-btn-bg: #16161e;
+}

@@ -1,0 +1,157 @@
+/* Dracula Theme */
+/* https://draculatheme.com/ */
+
+:root,
+[data-color-scheme='default'] {
+  --color-primary: #bd93f9;
+  --primary: #bd93f9;
+  --color-primary-light-1: #ff79c6;
+  --color-primary-light-2: #8be9fd;
+  --color-primary-light-3: #50fa7b;
+  --color-primary-dark-1: #ffb86c;
+  --primary-rgb: 189, 147, 249;
+
+  --brand: #ff79c6;
+  --brand-light: #282a36;
+  --brand-hover: #bd93f9;
+  --color-brand-fill: #ff79c6;
+  --color-brand-bg: #282a36;
+
+  --aou-1: #282a36;
+  --aou-2: #21222c;
+  --aou-3: #191a21;
+  --aou-4: #44475a;
+  --aou-5: #6272a4;
+  --aou-6: #ff79c6;
+  --aou-7: #bd93f9;
+  --aou-8: #8be9fd;
+  --aou-9: #50fa7b;
+  --aou-10: #f1fa8c;
+
+  --color-bg-1: #21222c;
+  --bg-1: #21222c;
+  --color-bg-2: #191a21;
+  --bg-2: #191a21;
+  --color-bg-3: #44475a;
+  --bg-3: #44475a;
+  --color-bg-4: #6272a4;
+  --bg-4: #6272a4;
+  --bg-base: #282a36;
+  --bg-5: #6272a4;
+  --bg-6: #6272a4;
+  --bg-8: #f8f8f2;
+  --bg-9: #f8f8f2;
+  --bg-10: #f8f8f2;
+
+  --bg-hover: #44475a;
+  --bg-active: #6272a4;
+
+  --fill: #21222c;
+  --color-fill: #21222c;
+  --fill-0: #282a36;
+  --fill-white-to-black: #282a36;
+  --dialog-fill-0: #282a36;
+  --inverse: #f8f8f2;
+
+  --color-text-1: #f8f8f2;
+  --text-primary: #f8f8f2;
+  --color-text-2: #f8f8f2;
+  --text-secondary: #f8f8f2;
+  --color-text-3: #6272a4;
+  --text-disabled: #6272a4;
+  --text-0: #f8f8f2;
+  --text-white: #f8f8f2;
+
+  --color-border: #44475a;
+  --color-border-1: #44475a;
+  --color-border-2: #6272a4;
+  --border-base: #44475a;
+  --border-light: #6272a4;
+  --border-special: var(--bg-3);
+
+  --success: #50fa7b;
+  --warning: #f1fa8c;
+  --danger: #ff5555;
+  --info: #8be9fd;
+
+  --message-user-bg: #44475a;
+  --message-tips-bg: #21222c;
+  --workspace-btn-bg: #21222c;
+}
+
+[data-color-scheme='default'][data-theme='dark'] {
+  --color-primary: #bd93f9;
+  --primary: #bd93f9;
+  --color-primary-light-1: #ff79c6;
+  --color-primary-light-2: #8be9fd;
+  --color-primary-light-3: #50fa7b;
+  --color-primary-dark-1: #ffb86c;
+  --primary-rgb: 189, 147, 249;
+
+  --brand: #ff79c6;
+  --brand-light: #282a36;
+  --brand-hover: #bd93f9;
+  --color-brand-fill: #ff79c6;
+  --color-brand-bg: #282a36;
+
+  --aou-1: #282a36;
+  --aou-2: #21222c;
+  --aou-3: #191a21;
+  --aou-4: #44475a;
+  --aou-5: #6272a4;
+  --aou-6: #ff79c6;
+  --aou-7: #bd93f9;
+  --aou-8: #8be9fd;
+  --aou-9: #50fa7b;
+  --aou-10: #f1fa8c;
+
+  --color-bg-1: #21222c;
+  --bg-1: #21222c;
+  --color-bg-2: #191a21;
+  --bg-2: #191a21;
+  --color-bg-3: #44475a;
+  --bg-3: #44475a;
+  --color-bg-4: #6272a4;
+  --bg-4: #6272a4;
+  --bg-base: #282a36;
+  --bg-5: #6272a4;
+  --bg-6: #6272a4;
+  --bg-8: #f8f8f2;
+  --bg-9: #f8f8f2;
+  --bg-10: #f8f8f2;
+
+  --bg-hover: #44475a;
+  --bg-active: #6272a4;
+
+  --fill: #21222c;
+  --color-fill: #21222c;
+  --fill-0: rgba(248, 248, 242, 0.08);
+  --fill-white-to-black: #282a36;
+  --dialog-fill-0: #44475a;
+  --inverse: #f8f8f2;
+
+  --color-text-1: #f8f8f2;
+  --text-primary: #f8f8f2;
+  --color-text-2: #f8f8f2;
+  --text-secondary: #f8f8f2;
+  --color-text-3: #6272a4;
+  --text-disabled: #6272a4;
+  --text-0: #f8f8f2;
+  --text-white: #f8f8f2;
+
+  --color-border: #44475a;
+  --color-border-1: #44475a;
+  --color-border-2: #6272a4;
+  --border-base: #44475a;
+  --border-light: #6272a4;
+  --border-special: #6272a4;
+
+  --success: #50fa7b;
+  --warning: #f1fa8c;
+  --danger: #ff5555;
+  --info: #8be9fd;
+
+  --message-user-bg: #44475a;
+  --message-tips-bg: #21222c;
+  --workspace-btn-bg: #21222c;
+}

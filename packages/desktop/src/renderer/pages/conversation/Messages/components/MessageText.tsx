@@ -226,6 +226,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
+        {!isUserMessage && message.content.model?.providerId && message.content.model?.modelId && (
+          <div className='text-12px op-50 mt-2px font-mono select-text leading-none'>
+            {message.content.model.providerId}/{message.content.model.modelId}
+          </div>
+        )}
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies. */}
         {!isMobile && (

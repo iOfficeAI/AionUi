@@ -39,7 +39,7 @@ type ComputeCssSyncDecisionResult = {
 
 export const resolveCssByActiveTheme = (activeThemeId: string, userThemes: ICssTheme[]): string => {
   const ensureBackgroundCss = (theme: ICssTheme): ICssTheme => {
-    if (theme.id === DEFAULT_THEME_ID) return theme;
+    if (theme.is_preset) return theme;
     if (theme.cover && theme.css && !theme.css.includes(BACKGROUND_BLOCK_START)) {
       return {
         ...theme,

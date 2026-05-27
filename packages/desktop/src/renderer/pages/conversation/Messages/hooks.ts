@@ -338,28 +338,68 @@ export const useRemoveMessageByMsgId = () => {
 
 /**
  * Normalize a message loaded from backend DB: if `content` is a JSON string,
- * parse it and map snake_case fields to camelCase for the renderer.
+ * parse it and map snake_case fields to camelCase for the renderer. If
+ * `content` arrives as an already-parsed object (the backend's list endpoint
+ * does this — see `crates/aionui-conversation/src/convert.rs`
+ * `row_to_message_response`), still remap the few snake_case keys we care
+ * about so the renderer reads the same shape regardless of route.
  */
 function normalizeDbMessage(msg: TMessage): TMessage {
   if (msg.type !== 'text') return msg;
   const raw = msg.content as unknown;
-  if (typeof raw !== 'string') return msg;
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (typeof parsed.content !== 'string') return msg;
-    return {
-      ...msg,
-      content: {
-        content: parsed.content as string,
-        ...(parsed.teammate_message ? { teammateMessage: true } : {}),
-        ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
-        ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
-        ...(parsed.sender_conversation_id ? { senderConversationId: parsed.sender_conversation_id as string } : {}),
-      },
-    };
-  } catch {
-    return msg;
+
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as Record<string, unknown>;
+      if (typeof parsed.content !== 'string') return msg;
+      const model = parsed.model as { provider_id?: string; model_id?: string } | undefined;
+      return {
+        ...msg,
+        content: {
+          content: parsed.content as string,
+          ...(parsed.teammate_message ? { teammateMessage: true } : {}),
+          ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
+          ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
+          ...(parsed.sender_conversation_id ? { senderConversationId: parsed.sender_conversation_id as string } : {}),
+          ...(model?.provider_id && model?.model_id
+            ? { model: { providerId: model.provider_id, modelId: model.model_id } }
+            : {}),
+        },
+      };
+    } catch {
+      return msg;
+    }
   }
+
+  // Content already arrived as a parsed object (most common path from the
+  // list endpoint). Only the model field needs snake→camel today; if a
+  // payload also has snake_case `teammate_message` / `sender_*` keys those
+  // would need similar remapping, but historically those have arrived
+  // already-camelCased on this path.
+  if (raw && typeof raw === 'object') {
+    const obj = raw as Record<string, unknown>;
+    const model = obj.model as
+      | { provider_id?: string; model_id?: string; providerId?: string; modelId?: string }
+      | undefined;
+    if (model) {
+      const providerId = model.providerId ?? model.provider_id;
+      const modelId = model.modelId ?? model.model_id;
+      if (providerId && modelId) {
+        if (model.providerId && model.modelId && !model.provider_id && !model.model_id) {
+          return msg;
+        }
+        return {
+          ...msg,
+          content: {
+            ...obj,
+            model: { providerId, modelId },
+          },
+        } as TMessage;
+      }
+    }
+  }
+
+  return msg;
 }
 
 export const useMessageLstCache = (key: string) => {
