@@ -76,7 +76,12 @@ import {
   toBackendAgent,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
-import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
+import {
+  absoluteToRelativePath,
+  fromBackendWorkspaceFlatFiles,
+  fromBackendWorkspaceList,
+  type RawWorkspaceFlatFile,
+} from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
 // Shell — routed to POST /api/shell/*
@@ -433,7 +438,10 @@ export const dialog = {
 
 export const fs = {
   getFilesByDir: httpPost<Array<IDirOrFile>, { dir: string; root: string }>('/api/fs/dir'),
-  listWorkspaceFiles: httpPost<Array<IWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+  listWorkspaceFiles: withResponseMap(
+    httpPost<Array<RawWorkspaceFlatFile>, { root: string }>('/api/fs/list'),
+    fromBackendWorkspaceFlatFiles
+  ),
   getImageBase64: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/image-base64'),
   fetchRemoteImage: httpPost<string, { url: string }>('/api/fs/fetch-remote-image'),
   readFile: httpPost<string | null, { path: string; workspace?: string }>('/api/fs/read'),

@@ -904,6 +904,9 @@ const SendBox: React.FC<{
       }
 
       const nextInsertion = buildAtFileInsertion(item);
+      if (!nextInsertion) {
+        return;
+      }
       const nextValue = input.slice(0, activeAtFileQuery.start) + nextInsertion + input.slice(activeAtFileQuery.end);
       const nextCaret = activeAtFileQuery.start + nextInsertion.length;
       const insertedTokenKey = `${activeAtFileQuery.start}:${nextInsertion.slice(1)}`;
