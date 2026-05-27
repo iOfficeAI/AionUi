@@ -208,8 +208,13 @@ const ModelModalContent: React.FC = () => {
       const responseStream = ipcBridge.conversation.responseStream;
 
       // 1. 创建临时对话
+      // 健康检测一律走 aionrs：它是唯一不依赖第三方 CLI 的后端，
+      // 直接用用户配置的 provider HTTP API 探活。历史上这里曾硬编码
+      // type:'acp' + extra.backend:'gemini'，在没装 Gemini CLI 的机器上
+      // 100% 命中 acp.rs 的 "Agent 'Gemini CLI' CLI not found in PATH"
+      // 报错（ELECTRON-1R2）。
       const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'acp',
+        type: 'aionrs',
         name: `[Health Check] ${platform.name} - ${modelName}`,
         model: {
           ...platform,
@@ -218,7 +223,6 @@ const ModelModalContent: React.FC = () => {
         extra: {
           workspace: '',
           is_health_check: true,
-          backend: 'gemini',
         },
       });
 
