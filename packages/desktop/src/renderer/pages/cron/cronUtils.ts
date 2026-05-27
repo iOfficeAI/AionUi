@@ -70,6 +70,31 @@ export function formatSchedule(job: ICronJob, t: TFunction): string {
 }
 
 /**
+ * Resolve the current IANA time zone for cron scheduling.
+ * Falls back to UTC when the environment cannot provide a valid identifier.
+ */
+export function getCurrentCronTimeZone(): string {
+  try {
+    const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    return timeZone && timeZone.trim() ? timeZone : 'UTC';
+  } catch {
+    return 'UTC';
+  }
+}
+
+/**
+ * Build a cron schedule payload anchored to the current local time zone.
+ */
+export function createCronSchedule(expr: string, description: string): Extract<ICronJob['schedule'], { kind: 'cron' }> {
+  return {
+    kind: 'cron',
+    expr,
+    tz: getCurrentCronTimeZone(),
+    description,
+  };
+}
+
+/**
  * Format next run time for display
  */
 export function formatNextRun(next_run_at_ms?: number): string {

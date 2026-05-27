@@ -80,6 +80,7 @@ import { registerPwa } from './services/registerPwa';
 
 import { mutate as swrMutate } from 'swr';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from './utils/model/agentTypes';
+import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJobTimeZone';
 
 // Components and utilities
 import Layout from './components/layout/Layout';
@@ -157,6 +158,11 @@ const Main = () => {
           console.error('Failed to prefetch agents:', err);
         }),
     ]).finally(() => setConfigReady(true));
+  }, [ready]);
+
+  useEffect(() => {
+    if (!ready) return;
+    void repairAllCronJobTimeZonesOnce();
   }, [ready]);
 
   if (!ready || !configReady) {

@@ -9,6 +9,7 @@ import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { emitter } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { repairCronJobTimeZones } from '@renderer/pages/cron/repairCronJobTimeZone';
 
 const isJobErrorLike = (job: ICronJob): boolean => {
   return job.state.last_status === 'error' || job.state.last_status === 'missed';
@@ -114,7 +115,7 @@ export function useCronJobs(conversation_id?: string) {
 
     try {
       const result = await ipcBridge.cron.listJobsByConversation.invoke({ conversation_id });
-      setJobs(result || []);
+      setJobs(await repairCronJobTimeZones(result || []));
     } catch (err) {
       setError(err instanceof Error ? err : new Error('Failed to fetch cron jobs'));
       setJobs([]);
@@ -182,7 +183,7 @@ export function useAllCronJobs() {
     setLoading(true);
     try {
       const allJobs = await ipcBridge.cron.listJobs.invoke();
-      setJobs(allJobs || []);
+      setJobs(await repairCronJobTimeZones(allJobs || []));
     } catch (err) {
       console.error('[useAllCronJobs] Failed to fetch jobs:', err);
     } finally {
@@ -276,7 +277,7 @@ export function useCronJobsMap() {
   const fetchAllJobs = useCallback(async () => {
     setLoading(true);
     try {
-      const allJobs = await ipcBridge.cron.listJobs.invoke();
+      const allJobs = await repairCronJobTimeZones(await ipcBridge.cron.listJobs.invoke());
       const map = new Map<string, ICronJob[]>();
 
       for (const job of allJobs || []) {

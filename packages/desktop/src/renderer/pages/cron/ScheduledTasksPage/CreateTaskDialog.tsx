@@ -23,6 +23,7 @@ import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
+import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -438,6 +439,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       const scheduleExpr = scheduleInfo.expr;
       const scheduleDesc = scheduleInfo.description;
+      const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
 
       const { agent_config, resolvedAgentType } = resolveAgentConfig(values.agent);
 
@@ -448,7 +450,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           updates: {
             name: values.name,
             description: values.description,
-            schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+            schedule,
             target: {
               ...editJob!.target,
               payload: { kind: 'message', text: values.prompt },
@@ -468,7 +470,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         const params: ICreateCronJobParams = {
           name: values.name,
           description: values.description,
-          schedule: { kind: 'cron', expr: scheduleExpr, description: scheduleDesc },
+          schedule,
           prompt: values.prompt,
           conversation_id: _conversation_id ?? '',
           conversation_title,
