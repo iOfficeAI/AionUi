@@ -23,7 +23,7 @@ import { getPathSeparator, replacePathInList, updateTreeForRename } from '../uti
 
 interface UseWorkspaceFileOpsOptions {
   workspace: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs';
+  eventPrefix: 'acp' | 'codex' | 'aionrs' | 'remote';
   messageApi: MessageApi;
   t: (key: string) => string;
 

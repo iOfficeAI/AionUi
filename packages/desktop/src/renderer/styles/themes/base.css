@@ -2,7 +2,23 @@
 
 :root {
   --app-min-width: 360px;
-  --titlebar-height: 36px;
+  --titlebar-height: 32px;
+  --titlebar-btn-size: 28px;
+  /* Independent of UI scale: multiplies font-size in chat/markdown/sendbox.
+     Wired by useChatFontScale hook. */
+  --chat-font-scale: 1;
+}
+
+/* Chat surfaces — message text, markdown body, sendbox input — scale their
+   font-size by `--chat-font-scale` independently from the UI scale. */
+.markdown-shadow,
+.sendbox-panel .arco-input,
+.sendbox-panel .arco-textarea,
+.sendbox-panel textarea,
+.sendbox-highlight-layer,
+.message-item .whitespace-pre-wrap {
+  font-size: calc(13px * var(--chat-font-scale, 1)) !important;
+  line-height: calc(20px * var(--chat-font-scale, 1)) !important;
 }
 
 .app-shell {
@@ -66,13 +82,38 @@ body,
   }
 }
 
-.collapsed {
+.collapsed,
+.layout-sider--icon-only {
   .collapsed-hidden {
     display: none;
   }
   .\!collapsed-hidden {
     display: none !important;
   }
+}
+
+/* Inverse of `collapsed-hidden`: shown ONLY when the sider is collapsed or in
+   icon-only mode. Hidden by default in the expanded sider. */
+.collapsed-only {
+  display: none;
+}
+.collapsed .collapsed-only,
+.layout-sider--icon-only .collapsed-only {
+  display: flex;
+}
+
+/* In icon-only mode, center every direct child item of the sider content
+   so labels disappearing don't leave the icon hanging on the left edge. */
+.layout-sider--icon-only .layout-sider-content {
+  padding-left: 2px;
+  padding-right: 2px;
+}
+.layout-sider--icon-only .chat-history__item,
+.layout-sider--icon-only .settings-sider__item,
+.layout-sider--icon-only .sider-section-label {
+  justify-content: center !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
 }
 
 /* Safe area utilities for mobile devices */

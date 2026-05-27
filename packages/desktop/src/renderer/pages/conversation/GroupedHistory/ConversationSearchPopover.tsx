@@ -7,17 +7,15 @@
 import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
-import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
-import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
+import { Close, CloseSmall, FolderClose, MessageOne, Search } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
+import { isProjectConversation } from './utils/groupingHelpers';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
@@ -99,41 +97,8 @@ interface ConversationSearchPopoverProps {
 }
 
 const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
-  const { info: assistantInfo } = usePresetAssistantInfo(conversation);
-
-  if (assistantInfo) {
-    if (assistantInfo.isEmoji) {
-      return (
-        <span className='text-18px leading-none flex-shrink-0' title={assistantInfo.name}>
-          {assistantInfo.logo}
-        </span>
-      );
-    }
-
-    return (
-      <img
-        src={assistantInfo.logo}
-        alt={assistantInfo.name}
-        title={assistantInfo.name}
-        className='w-18px h-18px rounded-50% flex-shrink-0'
-      />
-    );
-  }
-
-  const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = getAgentLogo(backendKey);
-  if (logo) {
-    return (
-      <img
-        src={logo}
-        alt={`${backendKey || 'agent'} logo`}
-        title={backendKey || 'agent'}
-        className='w-18px h-18px rounded-50% flex-shrink-0'
-      />
-    );
-  }
-
-  return <MessageOne theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
+  const Icon = isProjectConversation(conversation) ? FolderClose : MessageOne;
+  return <Icon theme='outline' size='18' className='line-height-0 flex-shrink-0 text-t-secondary' />;
 };
 
 const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({

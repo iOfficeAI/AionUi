@@ -51,6 +51,18 @@ const ChatSlider: React.FC<{
         messageApi={messageApi}
       ></ChatWorkspace>
     );
+  } else if (conversation?.type === 'remote' && conversation.extra?.workspace) {
+    workspaceNode = (
+      <ChatWorkspace
+        conversation_id={conversation.id}
+        workspace={conversation.extra.workspace}
+        isTemporaryWorkspace={
+          (conversation.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        eventPrefix='remote'
+        messageApi={messageApi}
+      ></ChatWorkspace>
+    );
   }
 
   if (!workspaceNode) {

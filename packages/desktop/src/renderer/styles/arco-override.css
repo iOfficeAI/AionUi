@@ -7,6 +7,204 @@ body {
   font-family:
     -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', 'PingFang SC',
     'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 13px;
+}
+
+/* ==========================================================================
+   Compact / developer-density overrides for Arco defaults.
+   Arco ships at "consumer app" sizing; this app is for software engineers,
+   so we tighten heights, paddings, and font sizes on common form controls.
+   ========================================================================== */
+
+/* Buttons */
+.arco-btn-size-default {
+  height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.arco-btn-size-small {
+  height: 22px;
+  padding: 0 8px;
+  font-size: 12px;
+  border-radius: 4px;
+}
+.arco-btn-size-mini {
+  height: 18px;
+  padding: 0 6px;
+  font-size: 12px;
+  border-radius: 3px;
+}
+.arco-btn-size-large {
+  height: 30px;
+  padding: 0 14px;
+  font-size: 13px;
+  border-radius: 4px;
+}
+.arco-btn-only-icon.arco-btn-size-default {
+  width: 26px;
+  padding: 0;
+}
+.arco-btn-only-icon.arco-btn-size-small {
+  width: 22px;
+  padding: 0;
+}
+.arco-btn-only-icon.arco-btn-size-mini {
+  width: 18px;
+  padding: 0;
+}
+
+/* Inputs / textareas */
+.arco-input-size-default,
+.arco-input-inner-wrapper-default {
+  font-size: 13px;
+}
+.arco-input-inner-wrapper-default {
+  padding: 0 8px;
+}
+.arco-input-inner-wrapper-default .arco-input {
+  height: 24px;
+}
+.arco-input-size-small,
+.arco-input-inner-wrapper-small {
+  font-size: 12px;
+}
+.arco-input-inner-wrapper-small .arco-input {
+  height: 20px;
+}
+.arco-input-size-mini,
+.arco-input-inner-wrapper-mini {
+  font-size: 12px;
+}
+.arco-input-inner-wrapper-mini .arco-input {
+  height: 18px;
+}
+.arco-textarea {
+  font-size: 13px;
+  padding: 4px 8px;
+}
+
+/* Selects */
+.arco-select-size-default .arco-select-view,
+.arco-select-view-size-default {
+  min-height: 24px;
+  height: 24px;
+  font-size: 13px;
+  padding: 0 8px;
+}
+.arco-select-size-small .arco-select-view,
+.arco-select-view-size-small {
+  min-height: 20px;
+  height: 20px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+.arco-select-size-mini .arco-select-view,
+.arco-select-view-size-mini {
+  min-height: 18px;
+  height: 18px;
+  font-size: 12px;
+  padding: 0 6px;
+}
+.arco-select-option {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 26px;
+}
+
+/* Menus / dropdowns */
+.arco-dropdown-option {
+  min-height: 26px;
+  padding: 0 10px;
+  font-size: 13px;
+  line-height: 26px;
+}
+.arco-menu .arco-menu-item {
+  height: 28px;
+  line-height: 28px;
+  font-size: 13px;
+  padding: 0 10px;
+}
+
+/* Tags */
+.arco-tag {
+  font-size: 11px;
+  height: 18px;
+  line-height: 18px;
+  padding: 0 6px;
+  border-radius: 3px;
+}
+
+/* Tabs */
+.arco-tabs-header-title {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+
+/* Switch — keep functional, slightly smaller default */
+.arco-switch-type-circle {
+  min-width: 28px;
+  height: 16px;
+  line-height: 16px;
+}
+.arco-switch-type-circle .arco-switch-dot {
+  width: 12px;
+  height: 12px;
+}
+
+/* Checkbox / radio labels */
+.arco-checkbox,
+.arco-radio {
+  font-size: 13px;
+}
+
+/* Modal — tighter header / body / footer */
+.arco-modal-header {
+  padding: 10px 14px;
+  min-height: 40px;
+}
+.arco-modal-title {
+  font-size: 14px;
+  font-weight: 600;
+}
+.arco-modal-body {
+  padding: 12px 14px;
+}
+.arco-modal-footer {
+  padding: 8px 14px;
+}
+
+/* Tooltips / popovers */
+.arco-tooltip-content {
+  font-size: 12px;
+  padding: 4px 8px;
+}
+.arco-popover-inner-content {
+  font-size: 13px;
+  padding: 8px 10px;
+}
+
+/* Form items */
+.arco-form-item {
+  margin-bottom: 10px;
+}
+.arco-form-label-item > label {
+  font-size: 13px;
+}
+
+/* Collapse */
+.arco-collapse-item-header {
+  padding: 6px 10px;
+  font-size: 13px;
+}
+.arco-collapse-item-content-box {
+  padding: 8px 10px;
+}
+
+/* Divider — tighten margins */
+.arco-divider-horizontal {
+  margin: 10px 0;
 }
 
 /* Override Arco Design component backgrounds to white in light mode */

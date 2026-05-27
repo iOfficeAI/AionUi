@@ -9,10 +9,14 @@ import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
 
 // Supported color schemes 支持的配色方案类型
-export type ColorScheme = 'default';
+export type ColorScheme = 'default' | 'chisl';
 
 const DEFAULT_COLOR_SCHEME: ColorScheme = 'default';
 const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
+
+const VALID_COLOR_SCHEMES: readonly ColorScheme[] = ['default', 'chisl'];
+const isValidColorScheme = (value: string | null | undefined): value is ColorScheme =>
+  value != null && (VALID_COLOR_SCHEMES as readonly string[]).includes(value);
 
 const applyColorSchemeToDom = (value: ColorScheme) => {
   document.documentElement.setAttribute('data-color-scheme', value);
@@ -21,7 +25,7 @@ const applyColorSchemeToDom = (value: ColorScheme) => {
 const readCachedColorScheme = (): ColorScheme => {
   try {
     const cached = localStorage.getItem(COLOR_SCHEME_CACHE_KEY);
-    if (cached === 'default') return cached;
+    if (isValidColorScheme(cached)) return cached;
   } catch (_e) {
     /* noop */
   }
@@ -37,7 +41,8 @@ const initColorScheme = async (): Promise<ColorScheme> => {
   applyColorSchemeToDom(hint);
   try {
     await configService.whenReady();
-    const scheme = (configService.get('colorScheme') as ColorScheme) || hint;
+    const stored = configService.get('colorScheme') as string | undefined;
+    const scheme: ColorScheme = isValidColorScheme(stored) ? stored : hint;
     applyColorSchemeToDom(scheme);
     try {
       localStorage.setItem(COLOR_SCHEME_CACHE_KEY, scheme);

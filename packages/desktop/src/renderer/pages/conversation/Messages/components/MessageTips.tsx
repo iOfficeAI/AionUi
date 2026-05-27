@@ -58,7 +58,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   if (json)
     return (
       <div className='w-full'>
-        <div className={classNames('bg-message-tips rd-8px p-x-12px p-y-8px flex flex-col gap-4px')}>
+        <div className={classNames('bg-message-tips rd-8px p-x-8px p-y-4px flex flex-col gap-4px')}>
           <div className='flex items-start gap-4px'>
             {icon[type] || icon.warning}
             <div className='flex-1 min-w-0'>
@@ -75,7 +75,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     );
   return (
     <div className='w-full'>
-      <div className={classNames('bg-message-tips rd-8px  p-x-12px p-y-8px flex flex-col gap-4px')}>
+      <div className={classNames('bg-message-tips rd-8px  p-x-8px p-y-4px flex flex-col gap-4px')}>
         <div className='flex items-start gap-4px'>
           {icon[type] || icon.warning}
           <div className='flex-1 min-w-0'>

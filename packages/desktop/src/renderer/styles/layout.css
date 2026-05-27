@@ -36,6 +36,13 @@
   overflow-x: hidden;
   box-shadow: none !important;
   border-right: 1px solid var(--border-base);
+  /* Drag-resize: stop Arco's slide-animation while user is actively dragging
+     so the width tracks the cursor with no lag. */
+  transition: width 0.15s ease;
+}
+.layout-sider--dragging,
+.layout-sider--dragging * {
+  transition: none !important;
 }
 
 /* Arco Layout inner container needs flex layout so Header + Content + Footer

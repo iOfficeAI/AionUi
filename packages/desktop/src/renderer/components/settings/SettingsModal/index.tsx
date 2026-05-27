@@ -32,7 +32,7 @@ import { LEGACY_ANCHOR_REMAP } from '@/renderer/pages/settings/components/Settin
 const MOBILE_BREAKPOINT = 768;
 
 /** 侧边栏宽度（px）/ Sidebar width (px) */
-const SIDEBAR_WIDTH = 200;
+const SIDEBAR_WIDTH = 160;
 
 /** Modal 宽度配置 / Modal width configuration */
 const MODAL_WIDTH = {
@@ -109,7 +109,7 @@ export const SubModal: React.FC<SubModalProps> = ({ visible, onCancel, title, ch
       size='medium'
       title={title}
     >
-      <AionScrollArea className='h-full px-20px pb-16px text-14px text-t-primary'>{children}</AionScrollArea>
+      <AionScrollArea className='h-full px-12px pb-8px text-14px text-t-primary'>{children}</AionScrollArea>
     </AionModal>
   );
 };
@@ -366,7 +366,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
           <div
             key={item.key}
             className={classNames(
-              'flex items-center px-14px py-10px rd-8px cursor-pointer transition-all duration-150 select-none',
+              'flex items-center px-10px py-6px rd-6px cursor-pointer transition-all duration-150 select-none',
               {
                 'bg-aou-2 text-t-primary': activeTab === item.key,
                 'text-t-secondary hover:bg-fill-1': activeTab !== item.key,
@@ -374,7 +374,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
             )}
             onClick={() => setActiveTab(item.key)}
           >
-            <span className='mr-12px text-16px line-height-[10px]'>{item.icon}</span>
+            <span className='mr-8px text-16px line-height-[10px]'>{item.icon}</span>
             <span className='text-14px font-500 flex-1 lh-22px'>{item.label}</span>
           </div>
         ))}
@@ -396,11 +396,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
           maxHeight: isMobile ? MODAL_HEIGHT.mobile : undefined,
           borderRadius: '16px',
         }}
-        contentStyle={{ padding: isMobile ? '16px' : '24px 24px 32px' }}
+        contentStyle={{ padding: isMobile ? '10px' : '14px 14px 18px' }}
         title={t('settings.title')}
       >
         <div
-          className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-20px')}
+          className={classNames('overflow-hidden gap-0', isMobile ? 'flex flex-col min-h-0' : 'flex mt-10px')}
           style={{
             height: isMobile ? MODAL_HEIGHT.mobileContent : `${MODAL_HEIGHT.desktop}px`,
           }}
@@ -408,7 +408,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ visible, onCancel, defaul
           {isMobile ? mobileMenu : desktopMenu}
 
           <AionScrollArea
-            className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-24px gap-16px')}
+            className={classNames('flex-1 min-h-0', isMobile ? 'overflow-y-auto' : 'flex flex-col pl-12px gap-8px')}
           >
             {renderBuiltinContent()}
             {renderExtensionTabs()}

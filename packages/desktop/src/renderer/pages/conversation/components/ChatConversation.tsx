@@ -8,7 +8,6 @@ import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
-import { CronJobManager } from '@/renderer/pages/cron';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
@@ -33,12 +32,6 @@ import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelec
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
-
-/** Check whether a specific skill is mounted on the conversation. */
-const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
-  const skills = (conversation?.extra as { skills?: string[] } | undefined)?.skills;
-  return skills?.includes(skillName) ?? false;
-};
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
@@ -163,11 +156,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     sider: <ChatSlider conversation={conversation} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
-        <CronJobManager
-          conversation_id={conversation.id}
-          cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-          hasCronSkill={hasLoadedSkill(conversation, 'cron')}
-        />
         <AionrsModelSelector selection={modelSelection} />
       </div>
     ),
@@ -300,7 +288,7 @@ const ChatConversation: React.FC<{
   const sliderTitle = useMemo(() => {
     return (
       <div className='flex items-center justify-between'>
-        <span className='text-16px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
+        <span className='text-13px font-bold text-t-primary'>{t('conversation.workspace.title')}</span>
       </div>
     );
   }, [t]);
@@ -361,15 +349,6 @@ const ChatConversation: React.FC<{
             onOpenUrl={(url, metadata) => {
               openPreview(url, 'url', metadata);
             }}
-          />
-        </div>
-      )}
-      {conversation && (
-        <div className='shrink-0'>
-          <CronJobManager
-            conversation_id={conversation.id}
-            cron_job_id={conversation.extra?.cron_job_id as string | undefined}
-            hasCronSkill={hasLoadedSkill(conversation, 'cron')}
           />
         </div>
       )}

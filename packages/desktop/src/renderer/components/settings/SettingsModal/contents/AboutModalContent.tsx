@@ -125,7 +125,7 @@ const AboutModalContent: React.FC = () => {
 
             {/* Check Update Section */}
             {isElectron && (
-              <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
+              <div className='flex flex-col items-center gap-8px w-full max-w-300px bg-fill-2 p-10px rounded-lg'>
                 <Button type='primary' long onClick={checkUpdate}>
                   {t('settings.checkForUpdates')}
                 </Button>
@@ -140,14 +140,14 @@ const AboutModalContent: React.FC = () => {
           </div>
 
           {/* Divider */}
-          <Divider className='my-16px' />
+          <Divider className='my-8px' />
 
           {/* Links Section */}
           <div className='flex flex-col gap-4px pt-8px'>
             {linkItems.map((item, index) => (
               <div
                 key={index}
-                className='flex items-center justify-between px-16px py-12px rd-8px hover:bg-fill-2 transition-all cursor-pointer group'
+                className='flex items-center justify-between px-10px py-6px rd-6px hover:bg-fill-2 transition-all cursor-pointer group'
                 onClick={(e) => {
                   e.preventDefault();
                   e.stopPropagation();

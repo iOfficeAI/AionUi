@@ -32,7 +32,6 @@ import MessageTips from './components/MessageTips';
 import MessageToolCall from './components/MessageToolCall';
 import MessageToolGroup from './components/MessageToolGroup';
 import MessageToolGroupSummary from './components/MessageToolGroupSummary';
-import MessageCronTrigger from './components/MessageCronTrigger';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
 import MessageThinking from './components/MessageThinking';
@@ -112,7 +111,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         data-message-type={message.type}
         data-message-position={message.position}
         className={classNames(
-          'min-w-0 flex items-start message-item [&>div]:max-w-full px-8px m-t-10px max-w-full md:max-w-780px mx-auto',
+          'min-w-0 flex items-start message-item [&>div]:max-w-full px-6px m-t-4px max-w-full md:max-w-1100px mx-auto',
           message.type,
           {
             'justify-center': message.position === 'center',
@@ -371,20 +370,19 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const renderItem = (_index: number, item: (typeof processedList)[0]) => {
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
     if ('type' in item && item.type === 'artifact') {
+      if (item.artifact.kind === 'cron_trigger') {
+        return null;
+      }
       return (
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
           data-conversation-artifact-kind={item.artifact.kind}
           data-testid={`conversation-artifact-${item.artifact.kind}`}
-          className='min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto'
+          className='min-w-0 message-item px-6px m-t-4px max-w-full md:max-w-1100px mx-auto'
           style={highlighted ? highlightStyle : undefined}
         >
-          {item.artifact.kind === 'cron_trigger' ? (
-            <MessageCronTrigger artifact={item.artifact} />
-          ) : (
-            <MessageSkillSuggest artifact={item.artifact} />
-          )}
+          <MessageSkillSuggest artifact={item.artifact} />
         </div>
       );
     }
@@ -393,7 +391,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
-          className={'min-w-0 message-item px-8px m-t-10px max-w-full md:max-w-780px mx-auto ' + item.type}
+          className={'min-w-0 message-item px-6px m-t-4px max-w-full md:max-w-1100px mx-auto ' + item.type}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
@@ -427,8 +425,8 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
             onScroll={handleScroll}
             atBottomStateChange={handleAtBottomStateChange}
             components={{
-              Header: () => <div className='h-10px' />,
-              Footer: () => <div className='h-20px' />,
+              Header: () => <div className='h-4px' />,
+              Footer: () => <div className='h-8px' />,
             }}
           />
         </ImagePreviewContext.Provider>

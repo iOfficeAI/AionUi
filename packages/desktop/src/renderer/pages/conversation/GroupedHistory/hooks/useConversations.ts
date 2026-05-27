@@ -30,8 +30,8 @@ export const useConversations = () => {
   const hasAutoExpandedRef = useRef(false);
 
   // Scroll active conversation into view.
-  // Use double-RAF to wait for async sibling content (e.g. CronJobSiderSection)
-  // to finish rendering before calculating scroll position.
+  // Use double-RAF to wait for async sibling content to finish rendering
+  // before calculating scroll position.
   useEffect(() => {
     if (!id) {
       setActiveConversation(null);

@@ -12,6 +12,7 @@ import useTheme from '@renderer/hooks/system/useTheme';
 import type { ColorScheme } from '@renderer/hooks/ui/useColorScheme';
 import useColorScheme from '@renderer/hooks/ui/useColorScheme';
 import useFontScale from '@renderer/hooks/ui/useFontScale';
+import useChatFontScale from '@renderer/hooks/ui/useChatFontScale';
 
 /**
  * Theme context value interface 主题上下文值接口
@@ -26,9 +27,19 @@ interface ThemeContextValue {
   colorScheme: ColorScheme;
   setColorScheme: (scheme: ColorScheme) => Promise<void>;
 
-  // Font scaling 字体缩放
+  /**
+   * Electron-level zoom (a.k.a. UI scale). Scales every pixel in the renderer
+   * uniformly. Historical name `fontScale` is kept for API stability.
+   */
   fontScale: number;
   setFontScale: (scale: number) => Promise<void>;
+
+  /**
+   * Chat content font scale. Multiplies font-size of message text, markdown,
+   * and the sendbox input only — does not change UI chrome dimensions.
+   */
+  chatFontScale: number;
+  setChatFontScale: (scale: number) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -41,9 +52,21 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [theme, setTheme] = useTheme();
   const [colorScheme, setColorScheme] = useColorScheme();
   const [fontScale, setFontScale] = useFontScale();
+  const [chatFontScale, setChatFontScale] = useChatFontScale();
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme, fontScale, setFontScale }}>
+    <ThemeContext.Provider
+      value={{
+        theme,
+        setTheme,
+        colorScheme,
+        setColorScheme,
+        fontScale,
+        setFontScale,
+        chatFontScale,
+        setChatFontScale,
+      }}
+    >
       {children}
     </ThemeContext.Provider>
   );

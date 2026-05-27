@@ -1,0 +1,168 @@
+/* Chisl Color Scheme
+ *
+ * Muted, retro palette derived directly from the Chisel wordmark and logo.
+ * Aesthetically related to Gruvbox: warm dark grounds, parchment lights, low
+ * saturation, strong but never neon accents.
+ *
+ * Source palette (sampled from logo PNGs):
+ *   Ink (outlines):   #242424  #302424  #303024  #303030
+ *   Rust (orange):    #B4480C  #C0480C  #C0540C  #CC6018  #B45418  #E48424
+ *   Gold (yellows):   #A88418  #C08418  #CC9024  #D8A824  #E4A824  #E4B430
+ *   Cream (highlts):  #D8A86C  #E4C06C  #E4C078  #E4C084  #E4CC84  #F0CC90
+ *                     #F0E4A8  #F0E4B4
+ *   Olive (greens):   #60783C  #607848  #608448  #60843C  #6C8448
+ *   Slate (teals):    #305460  #3C5460  #3C606C  #3C6060  #48606C
+ *                     #3C786C  #488478
+ *
+ * Light mode picks parchment cream as base (matches the wordmark's lightest
+ * tone) with rust orange as the primary brand color and dark olive ink as
+ * primary text. Dark mode inverts: dark warm ink as base, cream as text,
+ * with the rust accent shifted slightly lighter so it still pops.
+ */
+
+/* ──────────────────────── Light Mode ──────────────────────── */
+[data-color-scheme='chisl'] {
+  /* AOU Brand Colors — Light Mode (cream → ink ladder) */
+  --aou-1: #f4ead0;
+  --aou-2: #ecdfb6;
+  --aou-3: #d8c088;
+  --aou-4: #c4a978;
+  --aou-5: #ad9460;
+  --aou-6: #b4480c; /* signature rust */
+  --aou-7: #80694a;
+  --aou-8: #5b4d36;
+  --aou-9: #3d3528;
+  --aou-10: #2a2620;
+
+  /* Background Colors — Light Mode (parchment ladder) */
+  --bg-base: #f6ecc8;
+  --bg-1: #f0e4b4;
+  --bg-2: #e8d8a8;
+  --bg-3: #d8c088;
+  --bg-4: #c4a978;
+  --bg-5: #ad9460;
+  --bg-6: #806844;
+  --bg-8: #5b4d36;
+  --bg-9: #3d3528;
+  --bg-10: #242018;
+
+  /* Interactive State Colors — Light Mode */
+  --bg-hover: #ecdfb6;
+  --bg-active: #d8c088;
+
+  /* Text Colors — Light Mode (dark olive ink on cream) */
+  --text-primary: #303024;
+  --color-text-1: #303024;
+  --text-secondary: #4a4434;
+  --text-disabled: #80694a;
+
+  /* Semantic Colors — Light Mode
+     Saturation kept down so accents read as printed-ink, not RGB neon. */
+  --primary: #b4480c; /* rust orange */
+  --success: #607848; /* olive */
+  --warning: #c08418; /* mustard */
+  --danger: #9b3514; /* deeper rust for "stop" */
+  --info: #3c786c; /* slate teal */
+
+  /* Border Colors — Light Mode */
+  --border-base: #d0b878;
+  --border-light: #e0cc94;
+
+  /* Brand Colors — Light Mode */
+  --brand: #b4480c;
+  --brand-light: #f4ead0;
+  --brand-hover: #cc6018;
+
+  /* Message & UI Component Colors — Light Mode */
+  --message-user-bg: #ecdfb6;
+  --message-tips-bg: #f4ead0;
+  --workspace-btn-bg: #ecdfb6;
+
+  /* Special Colors — Light Mode */
+  --fill: #f0e4b4;
+  --inverse: #f6ecc8;
+
+  /* Custom Colors — Light Mode */
+  --dialog-fill-0: #f6ecc8;
+  --text-0: #303024;
+  --text-white: #f6ecc8;
+  --fill-0: #f6ecc8;
+  --fill-white-to-black: #f6ecc8;
+  --border-special: var(--bg-3);
+  --color-guid-agent-bar: #ecdfb6;
+}
+
+/* ──────────────────────── Dark Mode ────────────────────────
+ * Dark mode uses the logo's dark "ink" tones for grounds and the cream
+ * highlights for text. Accents are shifted slightly lighter than light-mode
+ * so they remain legible on the warm dark background.
+ */
+[data-color-scheme='chisl'][data-theme='dark'] {
+  /* AOU Brand Colors — Dark Mode (ink → cream ladder, inverted) */
+  --aou-1: #2a2620;
+  --aou-2: #353028;
+  --color-guid-agent-bar: var(--aou-2);
+  --aou-3: #423a2e;
+  --aou-4: #554a3a;
+  --aou-5: #6e604a;
+  --aou-6: #e07820; /* rust, lifted for dark contrast */
+  --aou-7: #b8a378;
+  --aou-8: #d6c08c;
+  --aou-9: #ecdfb6;
+  --aou-10: #f4ead0;
+
+  /* Background Colors — Dark Mode (warm ink ladder) */
+  --bg-base: #1f1c17;
+  --bg-1: #28241d;
+  --bg-2: #322c22;
+  --bg-3: #3d3528;
+  --bg-4: #4a4030;
+  --bg-5: #5b4d36;
+  --bg-6: #6e604a;
+  --bg-8: #b8a378;
+  --bg-9: #d6c08c;
+  --bg-10: #ecdfb6;
+
+  /* Interactive State Colors — Dark Mode */
+  --bg-hover: #322c22;
+  --bg-active: #3d3528;
+
+  /* Text Colors — Dark Mode (cream on ink) */
+  --text-primary: #ecdfb6;
+  --color-text-1: #ecdfb6;
+  --text-secondary: #d6c08c;
+  --text-disabled: #80694a;
+
+  /* Semantic Colors — Dark Mode */
+  --primary: #e07820; /* rust, lifted */
+  --success: #8aa860; /* olive, lifted */
+  --warning: #e4b430; /* gold, lifted */
+  --danger: #d6582c; /* rust-red */
+  --info: #6caa9c; /* teal, lifted */
+
+  /* Border Colors — Dark Mode */
+  --border-base: #4a4030;
+  --border-light: #322c22;
+
+  /* Brand Colors — Dark Mode */
+  --brand: #e07820;
+  --brand-light: #322c22;
+  --brand-hover: #cc6018;
+
+  /* Message & UI Component Colors — Dark Mode */
+  --message-user-bg: #322c22;
+  --message-tips-bg: #28241d;
+  --workspace-btn-bg: #322c22;
+
+  /* Special Colors — Dark Mode */
+  --fill: #322c22;
+  --inverse: #ecdfb6;
+
+  /* Custom Colors — Dark Mode */
+  --dialog-fill-0: #322c22;
+  --text-0: #ecdfb6;
+  --text-white: #ecdfb6;
+  --fill-0: rgba(236, 223, 182, 0.08);
+  --fill-white-to-black: #1f1c17;
+  --border-special: #5b4d36;
+}

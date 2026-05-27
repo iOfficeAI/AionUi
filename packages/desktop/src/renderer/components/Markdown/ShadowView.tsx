@@ -28,8 +28,13 @@ const createInitStyle = (
         .join('\n    ')
     : '';
 
-  const lineHeight = isMobile ? '19.6px' : '28px';
-  const fontSize = isMobile ? '14px' : '16px';
+  // Chat font scale is wired via the global `--chat-font-scale` CSS variable
+  // on the host element (declared in base.css). Multiply our base sizes by it
+  // so users can scale chat text independently of UI scale.
+  const baseLineHeight = isMobile ? 18 : 20;
+  const baseFontSize = 13;
+  const lineHeight = `calc(${baseLineHeight}px * var(--chat-font-scale, 1))`;
+  const fontSize = `calc(${baseFontSize}px * var(--chat-font-scale, 1))`;
 
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
@@ -58,12 +63,12 @@ const createInitStyle = (
     margin-block-end:0px;
   }
   .markdown-shadow-body p {
-    margin-block-start: 16px;
-    margin-block-end: 16px;
-  }
-  .markdown-shadow-body li {
     margin-block-start: 6px;
     margin-block-end: 6px;
+  }
+  .markdown-shadow-body li {
+    margin-block-start: 2px;
+    margin-block-end: 2px;
   }
   a{
     color:${theme.Color.PrimaryColor};
@@ -73,32 +78,32 @@ const createInitStyle = (
     overflow-wrap: anywhere;
   }
   h1{
-    font-size: 24px;
-    line-height: 32px;
+    font-size: 17px;
+    line-height: 22px;
     font-weight: bold;
   }
   h2,h3,h4,h5,h6{
-    font-size: 16px;
-    line-height: 24px;
+    font-size: 14px;
+    line-height: 20px;
     font-weight: bold;
-    margin-top: 20px;
-    margin-bottom: 12px;
+    margin-top: 10px;
+    margin-bottom: 6px;
   }
   code span{
-    font-size:13px;
-    line-height:20px;
+    font-size:12px;
+    line-height:18px;
   }
 
   .markdown-shadow-body>p:last-child{
     margin-bottom:0px;
   }
   ol, ul {
-    padding-inline-start:24px;
+    padding-inline-start:18px;
   }
   hr {
     border: none;
     border-top: 1px solid var(--bg-3);
-    margin: 28px 0;
+    margin: 12px 0;
   }
   strong {
     font-weight: 600;
@@ -113,10 +118,10 @@ const createInitStyle = (
     font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
   blockquote {
-    border-left: 3px solid var(--bg-3);
-    padding-left: 12px;
+    border-left: 2px solid var(--bg-3);
+    padding-left: 8px;
     color: var(--text-primary);
-    margin: 16px 0;
+    margin: 8px 0;
   }
   pre {
     max-width: 100%;

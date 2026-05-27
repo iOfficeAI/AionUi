@@ -7,7 +7,9 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
+import ChatFontSizeControl from '@/renderer/components/settings/ChatFontSizeControl';
 import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
+import ColorSchemeSwitcher from '@/renderer/components/settings/ColorSchemeSwitcher';
 import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
@@ -24,7 +26,7 @@ const PreferenceRow: React.FC<{
   /** 控件元素 / Control element */
   children: React.ReactNode;
 }> = ({ label, children }) => (
-  <div className='flex flex-col items-stretch gap-10px py-12px md:flex-row md:items-center md:justify-between md:gap-24px'>
+  <div className='flex flex-col items-stretch gap-6px py-6px md:flex-row md:items-center md:justify-between md:gap-12px'>
     <div className='text-14px text-t-primary leading-22px'>{label}</div>
     <div className='w-full flex md:flex-1 md:justify-end'>{children}</div>
   </div>
@@ -57,16 +59,30 @@ const DisplayModalContent: React.FC = () => {
   // 显示设置项配置 / Display items configuration
   const displayItems = [
     { key: 'theme', label: t('settings.theme'), component: <ThemeSwitcher /> },
-    { key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> },
+    {
+      key: 'colorScheme',
+      label: t('settings.colorScheme.label', { defaultValue: 'Color scheme' }),
+      component: <ColorSchemeSwitcher />,
+    },
+    {
+      key: 'uiScale',
+      label: t('settings.uiScale', { defaultValue: 'UI Scale' }),
+      component: <FontSizeControl />,
+    },
+    {
+      key: 'chatFontSize',
+      label: t('settings.chatFontSize', { defaultValue: 'Font Size' }),
+      component: <ChatFontSizeControl />,
+    },
   ];
 
   return (
     <div className='flex flex-col h-full w-full'>
       {/* 内容区域 / Content Area */}
-      <AionScrollArea className='flex-1 min-h-0 pb-16px' disableOverflow={isPageMode}>
-        <div className='space-y-16px'>
+      <AionScrollArea className='flex-1 min-h-0 pb-8px' disableOverflow={isPageMode}>
+        <div className='space-y-8px'>
           {/* 显示设置 / Display Settings */}
-          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px space-y-10px md:space-y-12px'>
+          <div className='px-10px md:px-12px lg:px-14px py-8px md:py-10px bg-2 rd-8px space-y-6px md:space-y-8px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
               {displayItems.map((item) => (
                 <PreferenceRow key={item.key} label={item.label}>
@@ -87,9 +103,9 @@ const DisplayModalContent: React.FC = () => {
             <AionCollapse.Item
               name='css'
               header={<span className='text-14px text-t-primary leading-22px'>{t('settings.cssSettings')}</span>}
-              className='bg-2 rd-16px px-16px md:px-24px lg:px-28px py-12px md:py-14px'
-              headerClassName='py-4px'
-              contentStyle={{ padding: '10px 0 0' }}
+              className='bg-2 rd-8px px-10px md:px-12px lg:px-14px py-6px md:py-8px'
+              headerClassName='py-2px'
+              contentStyle={{ padding: '6px 0 0' }}
             >
               <CssThemeSettings />
             </AionCollapse.Item>

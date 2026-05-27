@@ -5,11 +5,10 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
-import { MessageOne } from '@icon-park/react';
+import { FolderClose, MessageOne } from '@icon-park/react';
 import React from 'react';
 
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
+import { isProjectConversation } from './utils/groupingHelpers';
 
 type DragOverlayContentProps = {
   conversation?: TChatConversation;
@@ -17,9 +16,7 @@ type DragOverlayContentProps = {
 
 const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation }) => {
   if (!conversation) return null;
-
-  const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = getAgentLogo(backendKey);
+  const Icon = isProjectConversation(conversation) ? FolderClose : MessageOne;
 
   return (
     <div
@@ -31,11 +28,7 @@ const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation })
         transform: 'scale(1.02)',
       }}
     >
-      {logo ? (
-        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-18px h-18px rounded-50% flex-shrink-0' />
-      ) : (
-        <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
-      )}
+      <Icon theme='outline' size='20' className='line-height-0 flex-shrink-0 text-t-secondary' />
       <div className='text-14px lh-24px text-t-primary truncate flex-1'>{conversation.name}</div>
     </div>
   );

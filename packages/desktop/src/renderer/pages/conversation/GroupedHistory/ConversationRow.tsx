@@ -4,21 +4,17 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { CronJobIndicator } from '@/renderer/pages/cron';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
+import { DeleteOne, EditOne, Export, FolderClose, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
-import { isConversationPinned } from './utils/groupingHelpers';
+import { isConversationPinned, isProjectConversation } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -44,61 +40,19 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onDelete,
     onExport,
     onTogglePin,
-    getJobStatus,
   } = props;
   const { t } = useTranslation();
-  const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   const isPinned = isConversationPinned(conversation);
-  const cronStatus = getJobStatus(conversation.id);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
 
   const renderLeadingIcon = () => {
-    if (cronStatus !== 'none') {
-      return <CronJobIndicator status={cronStatus} size={16} className='flex-shrink-0' />;
-    }
-
-    // When the row is pinned, hovering reveals a pushpin marker that overlays
-    // the leading icon. We dim the resting icon on hover so the pin reads cleanly.
+    // Pinned rows show a pushpin overlay on hover; dim the resting icon so
+    // the pin reads cleanly.
     const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
-    const composedClass = classNames(pinnedHoverFade);
-
-    if (assistantInfo) {
-      if (assistantInfo.isEmoji) {
-        return (
-          <span className={classNames('text-16px leading-none flex-shrink-0', composedClass)}>
-            {assistantInfo.logo}
-          </span>
-        );
-      }
-      return (
-        <img
-          src={assistantInfo.logo}
-          alt={assistantInfo.name}
-          className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
-        />
-      );
-    }
-
-    const backendKey = getBackendKeyFromConversation(conversation);
-    const logo = getAgentLogo(backendKey);
-    if (logo) {
-      return (
-        <img
-          src={logo}
-          alt={`${backendKey || 'agent'} logo`}
-          className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
-        />
-      );
-    }
-
-    return (
-      <MessageOne
-        theme='outline'
-        size='16'
-        className={classNames('line-height-0 flex-shrink-0 text-t-secondary', composedClass)}
-      />
-    );
+    const composedClass = classNames('line-height-0 flex-shrink-0 text-t-secondary', pinnedHoverFade);
+    const Icon = isProjectConversation(conversation) ? FolderClose : MessageOne;
+    return <Icon theme='outline' size='16' className={composedClass} />;
   };
 
   const handleRowClick = () => {

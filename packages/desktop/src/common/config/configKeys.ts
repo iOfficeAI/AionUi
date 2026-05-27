@@ -32,6 +32,7 @@ export type ConfigKeyMap = {
   theme: string;
   colorScheme: string;
   'ui.zoomFactor': number | undefined;
+  'ui.chatFontScale': number | undefined;
   'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;

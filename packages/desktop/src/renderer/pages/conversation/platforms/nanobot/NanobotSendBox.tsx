@@ -419,7 +419,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   };
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+    <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
       <CommandQueuePanel
         items={items}
         paused={isQueuePaused}

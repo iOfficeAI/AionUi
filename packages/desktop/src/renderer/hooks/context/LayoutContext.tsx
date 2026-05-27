@@ -9,6 +9,10 @@ export interface LayoutContextValue {
   isMobile: boolean;
   siderCollapsed: boolean;
   setSiderCollapsed: (value: boolean) => void;
+  /** Live desktop sider width in px (excluding collapsed state). 0 when mobile. */
+  siderWidth: number;
+  /** True when sider is in icon-only mode due to narrow drag-resized width. */
+  siderIconOnly: boolean;
 }
 
 export const LayoutContext = React.createContext<LayoutContextValue | null>(null);

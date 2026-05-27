@@ -194,9 +194,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           </div>
         )}
         <div
-          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-780px', {
-            'bg-aou-2 p-6px md:p-8px': isUserMessage || cronMeta,
-            'bg-3 p-6px md:p-8px': isTeammateMessage,
+          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-1100px', {
+            'bg-aou-2 p-4px md:p-6px': isUserMessage || cronMeta,
+            'bg-3 p-4px md:p-6px': isTeammateMessage,
             'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
           })}
           style={{
@@ -235,7 +235,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             so we drop the row entirely — system-level long-press still copies. */}
         {!isMobile && (
           <div
-            className={classNames('h-32px flex items-center mt-4px gap-8px', {
+            className={classNames('h-20px flex items-center mt-2px gap-8px', {
               'flex-row-reverse': isUserMessage,
             })}
           >

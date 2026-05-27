@@ -17,6 +17,17 @@ export const isConversationPinned = (conversation: TChatConversation): boolean =
   return Boolean(extra?.pinned);
 };
 
+/**
+ * A conversation belongs to a "project" (custom workspace group in the sidebar)
+ * only when BOTH `extra.workspace` and `extra.custom_workspace` are set. Plain
+ * conversations attached to a temporary/auto workspace stay in the flat list
+ * — they should render with a chat icon, not a folder.
+ */
+export const isProjectConversation = (conversation: TChatConversation): boolean => {
+  const extra = conversation.extra as { workspace?: string; custom_workspace?: boolean } | undefined;
+  return Boolean(extra?.workspace && extra?.custom_workspace);
+};
+
 export const isCronJobConversation = (conversation: TChatConversation): boolean => {
   const extra = conversation.extra as { cron_job_id?: string } | undefined;
   return Boolean(extra?.cron_job_id);

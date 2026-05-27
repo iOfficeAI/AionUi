@@ -197,7 +197,7 @@ const ChatLayout: React.FC<{
   const desktopHeader = (
     <ArcoLayout.Header
       className={classNames(
-        'min-h-44px flex items-center justify-between px-16px pt-8px pb-10px gap-16px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
+        'min-h-36px flex items-center justify-between px-10px pt-4px pb-4px gap-10px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
       )}
     >
       <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
@@ -225,7 +225,7 @@ const ChatLayout: React.FC<{
           }
         />
       </FlexFullContainer>
-      <div className='flex items-center gap-12px shrink-0'>
+      <div className='flex items-center gap-8px shrink-0'>
         {props.headerExtra}
         {isWindowsRuntime && workspaceEnabled && (
           <button
@@ -292,7 +292,7 @@ const ChatLayout: React.FC<{
               <div
                 className={classNames(
                   'preview-panel flex flex-col relative overflow-visible rounded-[15px]',
-                  isDesktop ? 'mb-[12px] mr-[12px] ml-[8px]' : 'm-[8px]'
+                  isDesktop ? 'mb-[6px] mr-[6px] ml-[4px]' : 'm-[4px]'
                 )}
                 style={{
                   flexGrow: 1,

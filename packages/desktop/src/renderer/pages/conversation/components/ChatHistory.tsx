@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { useCronJobsMap } from '@/renderer/pages/cron';
 import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { addEventListener, emitter } from '@/renderer/utils/emitter';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
@@ -73,7 +73,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const { getJobStatus, markAsRead } = useCronJobsMap();
+  const { markAsRead } = useCronJobsMap();
   const siderTooltipProps = getSiderTooltipProps(collapsed && !isMobile);
 
   useScrollIntoView(id);
@@ -187,7 +187,6 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
   const renderConversation = (conversation: TChatConversation) => {
     const isSelected = id === conversation.id;
     const isEditing = editingId === conversation.id;
-    const cronStatus = getJobStatus(conversation.id);
 
     return (
       <Tooltip
@@ -199,18 +198,18 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         <div
           id={'c-' + conversation.id}
           className={classNames(
-            'chat-history__item hover:bg-hover px-12px py-8px rd-8px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-2px',
+            'chat-history__item hover:bg-hover px-8px py-4px rd-6px flex justify-start items-center group cursor-pointer relative overflow-hidden group shrink-0 conversation-item [&.conversation-item+&.conversation-item]:mt-1px',
             {
               '!bg-active ': isSelected,
             }
           )}
           onClick={handleSelect.bind(null, conversation)}
         >
-          <MessageOne theme='outline' size='20' className='mt-2px flex' />
-          <FlexFullContainer className='h-24px collapsed-hidden ml-10px min-w-0'>
+          <MessageOne theme='outline' size='14' className='mt-1px flex' />
+          <FlexFullContainer className='h-18px collapsed-hidden ml-6px min-w-0'>
             {isEditing ? (
               <Input
-                className='chat-history__item-editor text-14px lh-24px h-24px w-full'
+                className='chat-history__item-editor text-12px lh-18px h-18px w-full'
                 value={editingName}
                 onChange={setEditingName}
                 onKeyDown={handleEditKeyDown}
@@ -220,17 +219,16 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
               />
             ) : (
               <div className='flex items-center gap-4px w-full'>
-                <div className='chat-history__item-name text-nowrap overflow-hidden text-ellipsis inline-block flex-1 text-14px lh-24px whitespace-nowrap min-w-0'>
+                <div className='chat-history__item-name text-nowrap overflow-hidden text-ellipsis inline-block flex-1 text-12px lh-18px whitespace-nowrap min-w-0'>
                   {conversation.name}
                 </div>
-                <CronJobIndicator status={cronStatus} size={14} />
               </div>
             )}
           </FlexFullContainer>
           {!isEditing && (
             <div
               className={classNames(
-                'absolute right-0px top-0px h-full w-70px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-12px'
+                'absolute right-0px top-0px h-full w-50px items-center justify-end hidden group-hover:flex !collapsed-hidden pr-6px'
               )}
               style={{
                 backgroundImage: isSelected
@@ -301,7 +299,7 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
             return (
               <React.Fragment key={item.id}>
                 {timeline && (
-                  <div className='chat-history__section px-12px py-8px text-13px text-t-secondary font-bold'>
+                  <div className='chat-history__section px-8px py-2px text-11px text-t-secondary font-bold uppercase tracking-wider'>
                     {timeline}
                   </div>
                 )}

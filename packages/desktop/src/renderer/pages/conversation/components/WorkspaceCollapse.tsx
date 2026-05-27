@@ -45,14 +45,14 @@ const WorkspaceCollapse: React.FC<WorkspaceCollapseProps> = ({
       {/* 折叠头部 - 侧栏折叠时隐藏 */}
       {!siderCollapsed && (
         <div
-          className='flex items-center gap-8px h-34px pl-10px pr-8px cursor-pointer hover:bg-fill-3 rd-8px transition-colors min-w-0 group'
+          className='flex items-center gap-6px h-22px pl-6px pr-4px cursor-pointer hover:bg-fill-3 rd-6px transition-colors min-w-0 group'
           onClick={onToggle}
         >
-          <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
+          <span className='size-14px flex items-center justify-center shrink-0 text-t-primary'>
             {expanded ? (
-              <FolderOpen theme='outline' size={16} fill='currentColor' className='line-height-0' />
+              <FolderOpen theme='outline' size={12} fill='currentColor' className='line-height-0' />
             ) : (
-              <FolderClose theme='outline' size={16} fill='currentColor' className='line-height-0' />
+              <FolderClose theme='outline' size={12} fill='currentColor' className='line-height-0' />
             )}
           </span>
 

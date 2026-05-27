@@ -18,7 +18,7 @@
      bubble; that row is hidden on mobile, so add the spacing back here so
      bubbles don't visually merge. */
   .message-item {
-    margin-top: 16px !important;
+    margin-top: 8px !important;
   }
 
   /* Apply consistent line-height to user message text */

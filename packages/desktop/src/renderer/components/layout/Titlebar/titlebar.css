@@ -18,9 +18,9 @@
 }
 
 .app-titlebar--mobile {
-  height: 48px;
-  min-height: 48px;
-  padding: 0 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 0 6px;
 }
 
 .app-titlebar--mobile-conversation {
@@ -29,18 +29,19 @@
 }
 
 .app-titlebar--mac {
-  height: 45px;
-  min-height: 36px;
+  height: 32px;
+  min-height: 32px;
   /* Reserve space for macOS traffic light buttons (left side) */
-  padding-right: 12px;
+  padding-right: 8px;
 }
 
-/* Windows/Linux desktop: taller titlebar so 36px buttons have breathing room,
-   and a bit of left padding so the first button isn't glued to the window edge. */
+/* Windows/Linux desktop: titlebar matches title height so buttons fit
+   without smooshing, with left padding so the first button isn't glued to
+   the window edge. */
 .app-titlebar--desktop:not(.app-titlebar--mac) {
-  height: 42px;
-  min-height: 42px;
-  padding-left: 16px;
+  height: 32px;
+  min-height: 32px;
+  padding-left: 8px;
   /* Let the right-side toolbar stretch edge-to-edge so system window controls
      (minimize/maximize/close) go full height like native Windows chrome. */
   align-items: stretch;
@@ -54,7 +55,7 @@
 
 .app-titlebar__brand {
   font-weight: 600;
-  font-size: 13px;
+  font-size: 12px;
   letter-spacing: 0.2px;
   color: var(--text-primary);
   flex: 1;
@@ -96,7 +97,7 @@
 
 .app-titlebar__brand-text {
   display: block;
-  font-size: 16px;
+  font-size: 13px;
   font-weight: 700;
   line-height: 1;
   color: inherit;
@@ -127,10 +128,11 @@
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 2px;
   -webkit-app-region: no-drag;
   margin-left: auto;
   min-height: var(--titlebar-height);
+  padding-right: 4px;
 }
 
 /* Mobile slot for chat-header actions (model picker, cron, etc.). */
@@ -146,10 +148,10 @@
 
 .app-titlebar__button {
   -webkit-app-region: no-drag;
-  width: var(--titlebar-height);
-  height: var(--titlebar-height);
+  width: var(--titlebar-btn-size);
+  height: var(--titlebar-btn-size);
   border: none;
-  border-radius: 6px;
+  border-radius: 5px;
   background-color: transparent;
   color: var(--text-primary);
   display: inline-flex;

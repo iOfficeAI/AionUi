@@ -12,7 +12,7 @@ import type { ContextMenuState } from '../types';
 
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs';
+  eventPrefix: 'acp' | 'codex' | 'aionrs' | 'remote';
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;

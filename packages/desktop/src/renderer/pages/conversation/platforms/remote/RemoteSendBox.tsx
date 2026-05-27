@@ -19,6 +19,7 @@ import { Shield } from '@icon-park/react';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
+import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
@@ -68,9 +69,21 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
 
   const [agent_name, setAgentName] = useState('Remote Agent');
   // Remote agents support multiple protocols (opencode, openclaw, ...). Only
-  // OpenCode exposes per-prompt mode switching (build/plan), so we gate the
-  // selector on the protocol resolved from the remote-agent row.
+  // OpenCode exposes per-prompt mode switching (build/plan) and a slash-
+  // command catalog (GET /command), so we gate both on the protocol
+  // resolved from the remote-agent row.
   const [protocol, setProtocol] = useState<string | undefined>(undefined);
+
+  // Slash commands. Pass the synthetic `conversation_type: 'opencode'` only
+  // when the remote agent's protocol is OpenCode — that's what the
+  // `availability.ts` whitelist matches. `agentStatus` is gated on the
+  // protocol load itself: until we know we're on opencode the hook stays
+  // dormant, then flips to `'active'` to trigger the catalog fetch.
+  const slashConversationType = protocol === 'opencode' ? 'opencode' : undefined;
+  const slash_commands = useSlashCommands(conversation_id, {
+    conversation_type: slashConversationType,
+    agentStatus: protocol === 'opencode' ? 'active' : null,
+  });
   const [aiProcessing, setAiProcessing] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
   const [thought, setThought] = useState<ThoughtData>({ description: '', subject: '' });
@@ -515,7 +528,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
   };
 
   return (
-    <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
+    <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}
@@ -536,6 +549,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
         onChange={handleContentChange}
         selectedWorkspaceItems={atPath}
         onSelectedWorkspaceItemsChange={setAtPath}
+        slash_commands={slash_commands}
         loading={aiProcessing}
         disabled={false}
         className='z-10'

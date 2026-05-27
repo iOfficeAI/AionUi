@@ -36,7 +36,7 @@ const MessageSkillSuggest: React.FC<{ artifact: ISkillSuggestArtifact }> = ({ ar
         : '';
 
   return (
-    <div data-testid='message-skill-suggest' className='max-w-780px w-full mx-auto'>
+    <div data-testid='message-skill-suggest' className='max-w-1100px w-full mx-auto'>
       <SkillSuggestCard
         artifact_id={artifact.id}
         conversation_id={artifact.conversation_id}

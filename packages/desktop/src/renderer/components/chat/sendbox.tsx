@@ -213,7 +213,10 @@ const SendBox: React.FC<{
   const [isSingleLine, setIsSingleLine] = useState(!defaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
   const isInputActive = isInputFocused;
-  const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
+  // Focus-ring colors are still consumed for nested panels (e.g. quote/preview);
+  // the outer sendbox now uses a flush top border, see panel className below.
+  const { activeBorderColor: _activeBorderColor, inactiveBorderColor: _inactiveBorderColor, activeShadow: _activeShadow } =
+    useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
   const singleLineWidthRef = useRef<number>(0);
   const measurementCanvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -597,7 +600,7 @@ const SendBox: React.FC<{
   const renderExportFileNamePanel = () => {
     return (
       <div
-        className='rounded-14px border border-solid overflow-hidden p-12px flex flex-col gap-10px'
+        className='rounded-10px border border-solid overflow-hidden p-6px flex flex-col gap-6px'
         style={{
           borderColor: 'var(--color-border-2)',
           background: 'color-mix(in srgb, var(--color-bg-1) 88%, transparent)',
@@ -1354,20 +1357,16 @@ const SendBox: React.FC<{
     <div className={className}>
       <div
         ref={containerRef}
-        className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
+        className={`sendbox-panel relative px-8px pt-6px pb-8px bg-1 flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'sendbox-panel--dragging' : ''}`}
         style={{
-          transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
-          ...(isFileDragging
-            ? {
-                backgroundColor: 'var(--color-primary-light-1)',
-                borderColor: 'rgb(var(--primary-3))',
-                borderWidth: '1px',
-              }
-            : {
-                borderWidth: '1px',
-                borderColor: isInputActive ? activeBorderColor : inactiveBorderColor,
-                boxShadow: isInputActive ? activeShadow : 'none',
-              }),
+          transition: 'background-color 0.2s ease, border-color 0.2s ease',
+          borderTop: '1px solid',
+          borderTopColor: isFileDragging
+            ? 'rgb(var(--primary-3))'
+            : isInputActive
+              ? 'rgb(var(--primary-6))'
+              : 'var(--border-base)',
+          ...(isFileDragging ? { backgroundColor: 'var(--color-primary-light-1)' } : null),
         }}
         {...dragHandlers}
       >
@@ -1441,7 +1440,7 @@ const SendBox: React.FC<{
           {context}
           {/* Reply quote preview */}
           {replyQuote && (
-            <div className='flex items-start gap-10px mb-8px px-12px py-10px rd-10px bg-fill-1 b-1 b-solid b-border-2'>
+            <div className='flex items-start gap-8px mb-4px px-8px py-6px rd-6px bg-fill-1 b-1 b-solid b-border-2'>
               <div className='flex-shrink-0 mt-2px' style={{ lineHeight: 0 }}>
                 <Quote theme='filled' size='16' fill='rgb(var(--primary-6))' />
               </div>
@@ -1525,7 +1524,7 @@ const SendBox: React.FC<{
             <div
               ref={highlightScrollRef}
               aria-hidden='true'
-              className={`sendbox-highlight-layer text-14px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
+              className={`sendbox-highlight-layer text-13px ${isMobile ? 'sendbox-input--mobile' : ''} ${isSingleLine ? 'sendbox-highlight-layer--single' : ''}`}
               data-testid='sendbox-highlight-layer'
               style={!shouldUseHighlightOverlay ? { visibility: 'hidden' } : undefined}
             >
@@ -1542,7 +1541,7 @@ const SendBox: React.FC<{
                   : ((bottomHint as string | undefined) ??
                     t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
               }
-              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[20px] !resize-none text-14px ${isMobile ? 'sendbox-input--mobile' : ''}`}
+              className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[18px] !resize-none text-13px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
                 width: isSingleLine ? 'auto' : '100%',

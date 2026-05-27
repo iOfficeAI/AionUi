@@ -28,6 +28,7 @@ import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
 import brandLogo from '@renderer/assets/logos/brand/app.png';
+import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -81,12 +82,37 @@ const useDebug = () => {
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
 const DEFAULT_SIDER_WIDTH = 200;
-const DESKTOP_COLLAPSED_WIDTH = 0;
-const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
-const SIDER_DRAG_HYSTERESIS = 6;
+const SIDER_MIN_WIDTH = 56;
+const SIDER_MAX_WIDTH = 380;
+const SIDER_ICON_ONLY_THRESHOLD = 90;
+const SIDER_COLLAPSE_THRESHOLD = 36;
+const SIDER_WIDTH_STORAGE_KEY = 'aionui.siderWidth';
 const MOBILE_SIDER_WIDTH_RATIO = 0.7;
 const MOBILE_SIDER_MIN_WIDTH = 240;
 const MOBILE_SIDER_MAX_WIDTH = 320;
+
+const readStoredSiderWidth = (): number => {
+  if (typeof window === 'undefined') return DEFAULT_SIDER_WIDTH;
+  try {
+    const raw = window.localStorage.getItem(SIDER_WIDTH_STORAGE_KEY);
+    const parsed = raw ? Number.parseInt(raw, 10) : NaN;
+    if (Number.isFinite(parsed)) {
+      return Math.min(SIDER_MAX_WIDTH, Math.max(SIDER_MIN_WIDTH, parsed));
+    }
+  } catch {
+    /* localStorage unavailable */
+  }
+  return DEFAULT_SIDER_WIDTH;
+};
+
+const persistSiderWidth = (value: number): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(SIDER_WIDTH_STORAGE_KEY, String(Math.round(value)));
+  } catch {
+    /* localStorage unavailable */
+  }
+};
 
 const detectMobileViewportOrTouch = (): boolean => {
   if (typeof window === 'undefined') return false;
@@ -112,6 +138,8 @@ const Layout: React.FC<{
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
+  const [desktopSiderWidth, setDesktopSiderWidth] = useState<number>(readStoredSiderWidth);
+  const [siderDragging, setSiderDragging] = useState(false);
   const [customCss, setCustomCss] = useState<string>('');
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
@@ -124,6 +152,7 @@ const Layout: React.FC<{
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const collapsedRef = useRef(collapsed);
+  const desktopSiderWidthRef = useRef(desktopSiderWidth);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);
   const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
@@ -370,10 +399,13 @@ const Layout: React.FC<{
         MOBILE_SIDER_MIN_WIDTH,
         Math.min(MOBILE_SIDER_MAX_WIDTH, Math.round(viewportWidth * MOBILE_SIDER_WIDTH_RATIO))
       )
-    : DEFAULT_SIDER_WIDTH;
+    : desktopSiderWidth;
   useEffect(() => {
     collapsedRef.current = collapsed;
   }, [collapsed]);
+  useEffect(() => {
+    desktopSiderWidthRef.current = desktopSiderWidth;
+  }, [desktopSiderWidth]);
 
   const beginSiderResizeDrag = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
@@ -382,8 +414,9 @@ const Layout: React.FC<{
       dragStateRef.current = {
         active: true,
         startX: event.clientX,
-        startWidth: collapsedRef.current ? DESKTOP_COLLAPSED_WIDTH : DEFAULT_SIDER_WIDTH,
+        startWidth: collapsedRef.current ? 0 : desktopSiderWidthRef.current,
       };
+      setSiderDragging(true);
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
     },
@@ -395,21 +428,33 @@ const Layout: React.FC<{
       const dragState = dragStateRef.current;
       if (!dragState.active) return;
 
-      const draggedWidth = dragState.startWidth + (event.clientX - dragState.startX);
-      // Add a small hysteresis zone to avoid rapid toggling near the snap threshold.
-      const shouldCollapse = collapsedRef.current
-        ? draggedWidth < SIDER_DRAG_SNAP_THRESHOLD + SIDER_DRAG_HYSTERESIS
-        : draggedWidth <= SIDER_DRAG_SNAP_THRESHOLD - SIDER_DRAG_HYSTERESIS;
-      if (shouldCollapse !== collapsedRef.current) {
-        setCollapsed(shouldCollapse);
+      const rawWidth = dragState.startWidth + (event.clientX - dragState.startX);
+
+      if (rawWidth < SIDER_COLLAPSE_THRESHOLD) {
+        if (!collapsedRef.current) {
+          setCollapsed(true);
+        }
+        return;
+      }
+
+      const clamped = Math.min(SIDER_MAX_WIDTH, Math.max(SIDER_MIN_WIDTH, rawWidth));
+      if (collapsedRef.current) {
+        setCollapsed(false);
+      }
+      if (clamped !== desktopSiderWidthRef.current) {
+        setDesktopSiderWidth(clamped);
       }
     };
 
     const endDrag = () => {
       if (!dragStateRef.current.active) return;
       dragStateRef.current.active = false;
+      setSiderDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
+      if (!collapsedRef.current) {
+        persistSiderWidth(desktopSiderWidthRef.current);
+      }
     };
 
     const handleBlur = () => endDrag();
@@ -439,7 +484,15 @@ const Layout: React.FC<{
       };
 
   return (
-    <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
+    <LayoutContext.Provider
+      value={{
+        isMobile,
+        siderCollapsed: collapsed,
+        setSiderCollapsed: setCollapsed,
+        siderWidth: isMobile ? 0 : desktopSiderWidth,
+        siderIconOnly: !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
+      }}
+    >
       <NavigationHistoryProvider>
         <TerminalPanelProvider>
           <div className='app-shell flex flex-col size-full min-h-0'>
@@ -456,33 +509,48 @@ const Layout: React.FC<{
                 width={siderWidth}
                 className={classNames('!bg-2 layout-sider', {
                   collapsed: collapsed,
+                  'layout-sider--dragging': siderDragging,
+                  'layout-sider--icon-only':
+                    !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
                 })}
                 style={siderStyle}
               >
                 <ArcoLayout.Header
                   className={classNames(
-                    'flex items-center justify-start pt-8px pb-8px pl-18px pr-16px gap-12px layout-sider-header',
+                    'flex items-center justify-start pt-6px pb-6px pl-10px pr-8px gap-8px layout-sider-header',
                     isMobile && 'layout-sider-header--mobile',
                     {
                       'cursor-pointer group ': collapsed,
                     }
                   )}
                 >
+                  {/* Expanded sider: wordmark covers both brand mark and name.
+                      Width fills the header so the wordmark grows with the
+                      user-sized sider; max-height caps it so a wide sider
+                      doesn't produce a banner-sized logo. Centered horizontally
+                      so it doesn't appear stuck against the left edge when the
+                      sider is much wider than the wordmark needs. */}
                   <div
-                    className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
-                      '!size-24px': collapsed,
-                    })}
+                    className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center'
                     onClick={onClick}
                   >
                     <img
-                      src={brandLogo}
+                      src={brandWordmark}
                       alt='Chisel'
-                      className={classNames('w-full h-full absolute inset-0 object-contain', {
-                        'scale-110': !collapsed,
-                      })}
+                      className='block w-full h-auto max-h-60px object-contain select-none'
+                      draggable={false}
                     />
                   </div>
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>Chisel</div>
+                  {/* Collapsed / icon-only sider: wordmark won't fit, fall back to
+                      the hexagon so the brand still shows. */}
+                  <div className='collapsed-only shrink-0 size-18px relative items-center justify-center'
+                    onClick={onClick}>
+                    <img
+                      src={brandLogo}
+                      alt='Chisel'
+                      className='w-full h-full absolute inset-0 object-contain'
+                    />
+                  </div>
                   {isMobile && !collapsed && (
                     <button
                       type='button'
@@ -496,7 +564,7 @@ const Layout: React.FC<{
                   )}
                   {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
                 </ArcoLayout.Header>
-                <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
+                <ArcoLayout.Content className='pt-0 px-4px pb-0 layout-sider-content'>
                   {React.isValidElement(sider)
                     ? React.cloneElement(sider, {
                         onSessionClick: () => {
@@ -509,12 +577,13 @@ const Layout: React.FC<{
                 </ArcoLayout.Content>
                 {!isMobile && (
                   <div
-                    className='absolute top-0 h-full w-8px z-20 cursor-col-resize group'
-                    style={{ right: '-4px' }}
+                    className='absolute top-0 h-full w-10px z-20 cursor-col-resize group'
+                    style={{ right: '-5px' }}
                     onMouseDown={beginSiderResizeDrag}
                     aria-hidden='true'
+                    title='Drag to resize sidebar'
                   >
-                    <div className='absolute top-0 left-1/2 h-full w-1px -translate-x-1/2 bg-transparent group-hover:bg-[var(--color-border-2)] transition-colors duration-150' />
+                    <div className='absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-[rgb(var(--primary-6))] group-active:bg-[rgb(var(--primary-6))] transition-colors duration-150' />
                   </div>
                 )}
               </ArcoLayout.Sider>

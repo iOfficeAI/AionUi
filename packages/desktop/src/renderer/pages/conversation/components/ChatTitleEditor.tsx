@@ -52,7 +52,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
             autoFocus
             value={titleDraft}
             disabled={renameLoading}
-            className='w-full min-w-0 max-w-full border-none bg-transparent shadow-none [&_.arco-input-inner-wrapper]:border-none [&_.arco-input-inner-wrapper]:bg-transparent [&_.arco-input-inner-wrapper]:shadow-none [&_.arco-input]:bg-transparent [&_.arco-input]:px-0 [&_.arco-input]:text-16px [&_.arco-input]:font-700 [&_.arco-input]:leading-24px [&_.arco-input]:text-[var(--color-text-1)]'
+            className='w-full min-w-0 max-w-full border-none bg-transparent shadow-none [&_.arco-input-inner-wrapper]:border-none [&_.arco-input-inner-wrapper]:bg-transparent [&_.arco-input-inner-wrapper]:shadow-none [&_.arco-input]:bg-transparent [&_.arco-input]:px-0 [&_.arco-input]:text-13px [&_.arco-input]:font-700 [&_.arco-input]:leading-18px [&_.arco-input]:text-[var(--color-text-1)]'
             style={{
               width: '100%',
               maxWidth: '100%',
@@ -82,7 +82,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
             role={canRenameTitle ? 'button' : undefined}
             tabIndex={canRenameTitle ? 0 : undefined}
             className={classNames(
-              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-16px font-bold text-t-primary transition-colors duration-150',
+              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-13px font-bold text-t-primary transition-colors duration-150',
               canRenameTitle &&
                 'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
             )}
