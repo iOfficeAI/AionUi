@@ -364,14 +364,18 @@ if (archArgs.length > 1) {
   targetArch = archArgs[0]; // Use first arch for webpack build
   console.log(`🔨 Multi-architecture build detected: ${archArgs.join(', ')}`);
 } else if (args[0] === 'auto') {
-  // Auto mode: detect from electron-builder.yml
-  let detectedPlatform = null;
-  if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
-  else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
-  else if (builderArgs.includes('--win')) detectedPlatform = 'win';
+  if (archArgs.length === 1) {
+    targetArch = archArgs[0];
+  } else {
+    // Auto mode: detect from electron-builder.yml
+    let detectedPlatform = null;
+    if (builderArgs.includes('--linux')) detectedPlatform = 'linux';
+    else if (builderArgs.includes('--mac')) detectedPlatform = 'mac';
+    else if (builderArgs.includes('--win')) detectedPlatform = 'win';
 
-  const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
-  targetArch = configArch || buildMachineArch;
+    const configArch = detectedPlatform ? getTargetArchFromConfig(detectedPlatform) : null;
+    targetArch = configArch || buildMachineArch;
+  }
 } else {
   // Explicit architecture or default to build machine
   targetArch = archArgs[0] || buildMachineArch;
@@ -452,8 +456,15 @@ try {
   }
 
   // 5. Prepare aioncore binary (for packaged runtime usage)
-  const prepareAioncore = require('./prepareAioncore');
-  prepareAioncore();
+  const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+  const projectRoot = path.resolve(__dirname, '..');
+  prepareAioncore({
+    projectRoot,
+    platform: process.platform,
+    arch: targetArch,
+    version: resolveAioncoreVersion(projectRoot),
+  });
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
