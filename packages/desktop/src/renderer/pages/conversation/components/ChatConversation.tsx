@@ -27,7 +27,6 @@ import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
-import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import ConversationEmptyState from '../Messages/ConversationEmptyState';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
@@ -161,11 +160,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     title: conversation.name,
     siderTitle: sliderTitle,
     sider: <ChatSlider conversation={conversation} />,
-    headerExtra: (
-      <div className='flex items-center gap-8px'>
-        <AionrsModelSelector selection={modelSelection} />
-      </div>
-    ),
     workspaceEnabled,
     workspacePath: conversation.extra?.workspace,
     isTemporaryWorkspace: (conversation.extra as { is_temporary_workspace?: boolean } | undefined)
@@ -209,6 +203,23 @@ const ChatConversation: React.FC<{
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
 
+  // For ACP/Codex/Remote conversations, use AcpModelSelector that can show/switch models.
+  // For other conversations, show disabled model selector.
+  const modelSelector = useMemo(() => {
+    if (!conversation || isAionrsConversation) return undefined;
+    if (conversation.type === 'acp' || conversation.type === 'remote') {
+      const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      return (
+        <AcpModelSelector
+          conversation_id={conversation.id}
+          backend={extra.backend || 'opencode'}
+          initialModelId={extra.current_model_id}
+        />
+      );
+    }
+    return <GoogleModelSelector disabled={true} />;
+  }, [conversation, isAionrsConversation]);
+
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
     switch (conversation.type) {
@@ -225,6 +236,7 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             emptySlot={<ConversationEmptyState />}
+            modelSelector={modelSelector}
           ></AcpChat>
         );
       case 'gemini':
@@ -245,6 +257,7 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             emptySlot={<ConversationEmptyState />}
+            modelSelector={modelSelector}
           />
         );
       case 'codex': // Legacy: codex now uses ACP protocol
@@ -258,6 +271,7 @@ const ChatConversation: React.FC<{
             hideSendBox={hideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             emptySlot={<ConversationEmptyState />}
+            modelSelector={modelSelector}
           />
         );
       case 'openclaw-gateway':
@@ -293,12 +307,13 @@ const ChatConversation: React.FC<{
             session_mode={(conversation.extra as { session_mode?: string } | undefined)?.session_mode}
             history_loaded={(conversation.extra as { history_loaded?: boolean } | undefined)?.history_loaded}
             emptySlot={<ConversationEmptyState />}
+            modelSelector={modelSelector}
           />
         );
       default:
         return null;
     }
-  }, [conversation, isAionrsConversation, assistantDisplayName, hideSendBox]);
+  }, [conversation, isAionrsConversation, assistantDisplayName, hideSendBox, modelSelector]);
 
   const sliderTitle = useMemo(() => {
     return (
@@ -307,23 +322,6 @@ const ChatConversation: React.FC<{
       </div>
     );
   }, [t]);
-
-  // For ACP/Codex/Remote conversations, use AcpModelSelector that can show/switch models.
-  // For other conversations, show disabled model selector.
-  const modelSelector = useMemo(() => {
-    if (!conversation || isAionrsConversation) return undefined;
-    if (conversation.type === 'acp' || conversation.type === 'remote') {
-      const extra = conversation.extra as { backend?: string; current_model_id?: string };
-      return (
-        <AcpModelSelector
-          conversation_id={conversation.id}
-          backend={extra.backend || 'opencode'}
-          initialModelId={extra.current_model_id}
-        />
-      );
-    }
-    return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
@@ -367,7 +365,11 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
-      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {modelSelector &&
+        conversation?.type !== 'acp' &&
+        conversation?.type !== 'remote' &&
+        conversation?.type !== 'gemini' &&
+        conversation?.type !== 'codex' && <div className='shrink-0'>{modelSelector}</div>}
     </div>
   );
 

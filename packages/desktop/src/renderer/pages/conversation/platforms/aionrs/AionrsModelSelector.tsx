@@ -9,7 +9,11 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import ModelSelectorDropdownMenu, {
+  type GroupedModelDropdownOption,
+} from '@/renderer/components/agent/ModelSelectorDropdownMenu';
+import { cleanModelLabel } from '@/renderer/components/agent/modelSelectorUtils';
+import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -60,6 +64,18 @@ const AionrsModelSelector: React.FC<{
     defaultModelLabel,
     fallbackLabel: t('conversation.welcome.selectModel'),
   });
+  const options: GroupedModelDropdownOption[] = providers.flatMap((provider) =>
+    getAvailableModels(provider).map((modelName) => ({
+      key: `${provider.id}:${modelName}`,
+      id: modelName,
+      label: cleanModelLabel(modelName),
+      providerId: provider.id,
+      providerName: provider.name,
+      testId: `aionrs-model-option-${modelName}`,
+    }))
+  );
+  const selectedOptionKey =
+    current_model?.id && current_model?.use_model ? `${current_model.id}:${current_model.use_model}` : undefined;
 
   return (
     <Dropdown
@@ -68,29 +84,20 @@ const AionrsModelSelector: React.FC<{
       // Desktop: leave default container so click events reach Menu.Item normally.
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
-        <Menu>
-          {providers.map((provider) => {
-            const models = getAvailableModels(provider);
-            if (!models.length) return null;
-
-            return (
-              <Menu.ItemGroup title={provider.name} key={provider.id}>
-                {models.map((modelName) => (
-                  <Menu.Item
-                    key={`${provider.id}-${modelName}`}
-                    data-testid={`aionrs-model-option-${modelName}`}
-                    className={current_model?.id + current_model?.use_model === provider.id + modelName ? '!bg-2' : ''}
-                    onClick={() => void handleSelectModel(provider, modelName)}
-                  >
-                    <div className='flex items-center gap-8px w-full'>
-                      <span>{modelName}</span>
-                    </div>
-                  </Menu.Item>
-                ))}
-              </Menu.ItemGroup>
-            );
-          })}
-        </Menu>
+        <ModelSelectorDropdownMenu
+          options={options}
+          selectedOptionKey={selectedOptionKey}
+          onSelect={(option) => {
+            const provider = providers.find((item) => item.id === option.providerId);
+            if (provider) void handleSelectModel(provider, option.id);
+          }}
+          searchPlaceholder={t('common.modelSelector.searchPlaceholder')}
+          favoritesLabel={t('common.modelSelector.favorites')}
+          providerFallbackLabel={t('common.modelSelector.models')}
+          noMatchesLabel={t('common.modelSelector.noMatches')}
+          addFavoriteLabel={t('common.modelSelector.addFavorite')}
+          removeFavoriteLabel={t('common.modelSelector.removeFavorite')}
+        />
       }
     >
       <Button

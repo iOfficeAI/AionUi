@@ -85,6 +85,14 @@
   "processing": "Processing...",
   "optional": "(optional)",
   "clear": "Clear",
+  "modelSelector": {
+    "models": "Models",
+    "favorites": "Favorites",
+    "searchPlaceholder": "Search models (* and ? supported)",
+    "noMatches": "No matching models",
+    "addFavorite": "Add to favorites",
+    "removeFavorite": "Remove from favorites"
+  },
   "unit": {
     "minute_short": "m",
     "second_short": "s"

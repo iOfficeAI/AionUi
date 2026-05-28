@@ -243,7 +243,7 @@
   "darkMode": "다크",
   "agent": "에이전트",
   "tools": "도구",
-  "capabilities": "기능 확장",
+  "capabilities": "스킬",
   "capabilitiesTab": {
     "skills": "스킬",
     "tools": "MCP 및 음성"

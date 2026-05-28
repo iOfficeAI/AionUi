@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
-import { useMessageList } from '@/renderer/pages/conversation/Messages/hooks';
+import { useMessageList, useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Tag } from '@arco-design/web-react';
 import { CheckOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
@@ -45,11 +45,7 @@ function callIdOf(content: PermissionContent | undefined): string | undefined {
 // a bare call_id.
 function previewOf(content: PermissionContent | undefined): string {
   const raw =
-    content?.command_type ||
-    content?.tool_call?.rawInput?.command ||
-    content?.description ||
-    content?.title ||
-    '';
+    content?.command_type || content?.tool_call?.rawInput?.command || content?.description || content?.title || '';
   const flat = raw.split('\n')[0].trim();
   return flat.length > MAX_PREVIEW_CHARS ? `${flat.slice(0, MAX_PREVIEW_CHARS - 1)}…` : flat;
 }
@@ -74,6 +70,7 @@ function previewOf(content: PermissionContent | undefined): string {
 const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
   const list = useMessageList();
+  const updateMessageList = useUpdateMessageList();
   const [approved, setApproved] = useState<Set<string>>(() => new Set());
   const [busy, setBusy] = useState(false);
 
@@ -103,6 +100,8 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
       for (const item of batch) next.add(item.call_id);
       return next;
     });
+    const successful = new Set<string>();
+    const failed = new Set<string>();
     try {
       // Sequential — confirming in parallel is a noisier ask of the
       // OpenCode server (one POST /permission/.../reply each) and the
@@ -118,14 +117,36 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
             data: { value: 'once' },
             always_allow: false,
           });
+          successful.add(item.call_id);
         } catch (error) {
+          failed.add(item.call_id);
           console.warn('[PendingApprovalsBanner] approve failed', item.call_id, error);
         }
+      }
+      if (successful.size > 0) {
+        updateMessageList((messages) =>
+          messages.map((message) => {
+            const content = readPermissionContent(message);
+            const call_id = callIdOf(content);
+            if (!call_id || !successful.has(call_id)) return message;
+            return {
+              ...message,
+              content: { ...(message.content as object), responded: true, response: 'once' },
+            } as unknown as TMessage;
+          })
+        );
+      }
+      if (failed.size > 0) {
+        setApproved((prev) => {
+          const next = new Set(prev);
+          for (const call_id of failed) next.delete(call_id);
+          return next;
+        });
       }
     } finally {
       setBusy(false);
     }
-  }, [busy, pending, conversation_id]);
+  }, [busy, pending, conversation_id, updateMessageList]);
 
   if (pending.length < 2) return null;
 

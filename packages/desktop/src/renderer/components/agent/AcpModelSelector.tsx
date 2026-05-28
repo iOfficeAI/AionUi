@@ -11,7 +11,9 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import ModelSelectorDropdownMenu, { type GroupedModelDropdownOption } from './ModelSelectorDropdownMenu';
+import { cleanModelLabel, extractProviderFromLabel } from './modelSelectorUtils';
+import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -31,7 +33,15 @@ function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | n
 
   return a.available_models.every((model, index) => {
     const other = b.available_models[index];
-    return other && other.id === model.id && other.label === model.label;
+    return (
+      other &&
+      other.id === model.id &&
+      other.label === model.label &&
+      other.provider_id === model.provider_id &&
+      other.provider_name === model.provider_name &&
+      other.providerId === model.providerId &&
+      other.providerName === model.providerName
+    );
   });
 }
 
@@ -111,9 +121,11 @@ const AcpModelSelector: React.FC<{
       updateModelInfo({
         ...source,
         current_model_id: effectiveModelId,
-        current_model_label:
+        current_model_label: cleanModelLabel(
           (effectiveModelId && source.available_models.find((m) => m.id === effectiveModelId)?.label) ||
-          effectiveModelId,
+            effectiveModelId ||
+            ''
+        ),
       });
       return true;
     },
@@ -146,7 +158,7 @@ const AcpModelSelector: React.FC<{
               updateModelInfo({
                 ...info,
                 current_model_id: initialModelId,
-                current_model_label: match.label || initialModelId,
+                current_model_label: cleanModelLabel(match.label || initialModelId),
               });
               return;
             }
@@ -240,7 +252,7 @@ const AcpModelSelector: React.FC<{
             updateModelInfo({
               ...incoming,
               current_model_id: initialModelId,
-              current_model_label: match.label || initialModelId,
+              current_model_label: cleanModelLabel(match.label || initialModelId),
             });
             return;
           }
@@ -251,7 +263,7 @@ const AcpModelSelector: React.FC<{
         if (data.model) {
           updateModelInfo({
             current_model_id: data.model,
-            current_model_label: data.model,
+            current_model_label: cleanModelLabel(data.model),
             available_models: [],
           });
         }
@@ -269,7 +281,7 @@ const AcpModelSelector: React.FC<{
         return {
           ...prev,
           current_model_id: model_id,
-          current_model_label: selectedModel?.label || model_id,
+          current_model_label: cleanModelLabel(selectedModel?.label || model_id),
         };
       });
       ipcBridge.acpConversation.setModel
@@ -293,12 +305,13 @@ const AcpModelSelector: React.FC<{
   );
 
   const defaultModelLabel = t('common.defaultModel');
-  const rawDisplayLabel =
+  const rawDisplayLabel = cleanModelLabel(
     (model_info?.current_model_id &&
       model_info.available_models.find((m) => m.id === model_info.current_model_id)?.label) ||
-    model_info?.current_model_label ||
-    model_info?.current_model_id ||
-    '';
+      model_info?.current_model_label ||
+      model_info?.current_model_id ||
+      ''
+  );
   const display_label = getModelDisplayLabel({
     selected_value: model_info?.current_model_id,
     selectedLabel: rawDisplayLabel,
@@ -348,6 +361,26 @@ const AcpModelSelector: React.FC<{
     );
   }
 
+  const options: GroupedModelDropdownOption[] = model_info.available_models.map((model) => {
+    const rawLabel = model.label || model.id;
+    const extracted = extractProviderFromLabel(rawLabel);
+    const providerId = model.provider_id ?? model.providerId ?? extracted.providerId;
+    const providerName = model.provider_name ?? model.providerName ?? extracted.providerId;
+    return {
+      key: providerId ? `${providerId}:${model.id}` : `${backend || 'acp'}:${model.id}`,
+      id: model.id,
+      label: extracted.cleanLabel || model.id,
+      providerId,
+      providerName,
+      searchText: providerId && providerName ? `${providerId} ${providerName}` : providerId || providerName,
+    };
+  });
+  const selectedModel = model_info.available_models.find((model) => model.id === model_info.current_model_id);
+  const selectedProviderId = selectedModel?.provider_id ?? selectedModel?.providerId;
+  const selectedOptionKey = model_info.current_model_id
+    ? `${selectedProviderId ?? backend ?? 'acp'}:${model_info.current_model_id}`
+    : undefined;
+
   // State 3: Can switch — dropdown selector
   return (
     <Dropdown
@@ -356,19 +389,17 @@ const AcpModelSelector: React.FC<{
       // Desktop: leave default container so click events reach Menu.Item normally.
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
-        <Menu>
-          {model_info.available_models.map((model) => (
-            <Menu.Item
-              key={model.id}
-              className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-              onClick={() => handleSelectModel(model.id)}
-            >
-              <div className='flex items-center gap-8px w-full'>
-                <span>{model.label || model.id}</span>
-              </div>
-            </Menu.Item>
-          ))}
-        </Menu>
+        <ModelSelectorDropdownMenu
+          options={options}
+          selectedOptionKey={selectedOptionKey}
+          onSelect={(option) => handleSelectModel(option.id)}
+          searchPlaceholder={t('common.modelSelector.searchPlaceholder')}
+          favoritesLabel={t('common.modelSelector.favorites')}
+          providerFallbackLabel={t('common.modelSelector.models')}
+          noMatchesLabel={t('common.modelSelector.noMatches')}
+          addFavoriteLabel={t('common.modelSelector.addFavorite')}
+          removeFavoriteLabel={t('common.modelSelector.removeFavorite')}
+        />
       }
     >
       <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>

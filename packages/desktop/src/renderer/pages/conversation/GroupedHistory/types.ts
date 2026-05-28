@@ -28,6 +28,7 @@ export type TimelineSection = {
 export type GroupedHistoryResult = {
   pinnedConversations: TChatConversation[];
   timelineSections: TimelineSection[];
+  archivedConversations: TChatConversation[];
 };
 
 export type ExportZipFile = {
@@ -59,6 +60,10 @@ export type ConversationRowProps = {
   onDelete: (conversation_id: string) => void;
   onExport?: (conversation: TChatConversation) => void;
   onTogglePin: (conversation: TChatConversation) => void;
+  /** Toggle archive state. Only invoked for `type === 'remote'` rows where the
+   * menu shows Archive/Unarchive instead of Delete (remote sessions resurrect
+   * if hard-deleted because OpenCode is the source of truth). */
+  onToggleArchive: (conversation: TChatConversation) => void;
   /** When true, the agent icon is dimmed by default and only shows full color on hover. Used inside project folders to reduce visual weight. */
   dimIcon?: boolean;
 };

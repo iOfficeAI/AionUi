@@ -3,19 +3,7 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import {
-  Cat,
-  Communication,
-  Computer,
-  Earth,
-  Info,
-  Lightning,
-  LinkCloud,
-  Puzzle,
-  Robot,
-  Speed,
-  System,
-} from '@icon-park/react';
+import { Cat, Communication, Computer, Earth, Info, Lightning, Puzzle, Speed, System } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -24,17 +12,7 @@ import { Tooltip } from '@arco-design/web-react';
 import { getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 
 /** Builtin settings tab IDs in display order (must match router paths). */
-export const BUILTIN_TAB_IDS = [
-  'agent',
-  'model',
-  'assistants',
-  'capabilities',
-  'display',
-  'webui',
-  'pet',
-  'system',
-  'about',
-] as const;
+export const BUILTIN_TAB_IDS = ['agent', 'capabilities', 'display', 'webui', 'pet', 'system', 'about'] as const;
 
 /**
  * Legacy anchor IDs that have been merged into other tabs.
@@ -81,13 +59,6 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
   const { menus, groupHeaderAt } = useMemo(() => {
     // Build builtin items
     const builtinMap: Record<string, SiderItem> = {
-      model: { id: 'model', label: t('settings.model'), icon: <LinkCloud />, path: 'model' },
-      assistants: {
-        id: 'assistants',
-        label: t('settings.assistants', { defaultValue: 'Assistants' }),
-        icon: <Robot />,
-        path: 'assistants',
-      },
       agent: {
         id: 'agent',
         label: t('settings.agents', { defaultValue: 'Agents' }),

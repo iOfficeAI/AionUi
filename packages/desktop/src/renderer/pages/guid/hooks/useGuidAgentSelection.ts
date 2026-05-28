@@ -23,6 +23,7 @@ import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
 import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil } from './agentSelectionUtils';
+import { applySavedAgentOrder } from './agentOrderUtils';
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
@@ -74,6 +75,12 @@ export type GuidAgentSelectionResult = {
   ) => EffectiveAgentInfo;
   refreshCustomAgents: () => Promise<void>;
   customAgentAvatarMap: Map<string, string | undefined>;
+  /**
+   * Persist a user-chosen ordering of agent pills.
+   * `orderedKeys` is the list of canonical agent keys in display order.
+   * Reorder MUST NOT clobber the currently-selected agent.
+   */
+  reorderAgents: (orderedKeys: string[]) => void;
 };
 
 /**
@@ -294,8 +301,22 @@ export const useGuidAgentSelection = ({
       avatar: ra.avatar,
       protocol: ra.protocol,
     }));
-    setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
+    const merged = [...normalisedDetected, ...remoteAsAvailable];
+    const savedOrder = configService.get('guid.agentOrder');
+    setAvailableAgents(applySavedAgentOrder(merged, savedOrder));
   }, [availableAgentsData, remoteAgentsData]);
+
+  // Persist a user-chosen pill ordering and re-sort the in-memory list
+  // immediately so the pill bar reflects the drop without waiting for a
+  // re-fetch. Defensively flip `initialRestoreDoneRef` so the restore effect
+  // never races a fast drag against the saved-selection load.
+  const reorderAgents = useCallback((orderedKeys: string[]) => {
+    initialRestoreDoneRef.current = true;
+    configService.set('guid.agentOrder', orderedKeys).catch((error) => {
+      console.error('Failed to save agent order:', error);
+    });
+    setAvailableAgents((prev) => (prev ? applySavedAgentOrder(prev, orderedKeys) : prev));
+  }, []);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
   // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
@@ -585,5 +606,6 @@ export const useGuidAgentSelection = ({
     getEffectiveAgentType,
     refreshCustomAgents,
     customAgentAvatarMap,
+    reorderAgents,
   };
 };

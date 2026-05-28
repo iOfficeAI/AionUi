@@ -84,7 +84,8 @@ const AcpSendBox: React.FC<{
   agent_name?: string;
   workspacePath?: string;
   messageState: UseAcpMessageReturn;
-}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState }) => {
+  modelSelector?: React.ReactNode;
+}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState, modelSelector }) => {
   const {
     running,
     hasHydratedRunningState,
@@ -381,19 +382,22 @@ Please check your local CLI tool authentication status`,
         lockMultiLine={true}
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         rightTools={
-          showModeSelector ? (
-            <AgentModeSelector
-              backend={backend}
-              conversation_id={conversation_id}
-              compact
-              initialMode={session_mode}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-              onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-            />
-          ) : undefined
+          <div className='flex items-center gap-8px'>
+            {showModeSelector ? (
+              <AgentModeSelector
+                backend={backend}
+                conversation_id={conversation_id}
+                compact
+                initialMode={session_mode}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+              />
+            ) : undefined}
+            {modelSelector}
+          </div>
         }
         prefix={
           <>

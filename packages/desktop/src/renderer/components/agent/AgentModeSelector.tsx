@@ -15,6 +15,7 @@ import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
+import styles from './AgentModeSelector.module.css';
 
 /**
  * Extract mode options from cached ACP config_options.
@@ -238,22 +239,27 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
   // Dropdown menu (shared between compact and full mode)
   const dropdownMenu = (
-    <Menu onClickMenuItem={(key) => void handleModeChange(key)}>
-      <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
-        {modes.map((mode: AgentModeOption) => (
-          <Menu.Item key={mode.value} className={current_mode === mode.value ? '!bg-2' : ''}>
-            <div
-              className='flex items-center gap-8px'
-              data-mode-value={mode.value}
-              data-testid={`aionrs-mode-option-${mode.value}`}
+    <div className={styles.panel}>
+      <Menu className={styles.menu} onClickMenuItem={(key) => void handleModeChange(key)}>
+        <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
+          {modes.map((mode: AgentModeOption) => (
+            <Menu.Item
+              key={mode.value}
+              className={`${styles.option} ${current_mode === mode.value ? styles.selected : ''}`}
             >
-              {current_mode === mode.value && <span className='text-primary'>✓</span>}
-              <span className={current_mode !== mode.value ? 'ml-16px' : ''}>{getDisplayModeLabel(mode)}</span>
-            </div>
-          </Menu.Item>
-        ))}
-      </Menu.ItemGroup>
-    </Menu>
+              <div
+                className='flex items-center gap-8px min-w-0'
+                data-mode-value={mode.value}
+                data-testid={`aionrs-mode-option-${mode.value}`}
+              >
+                <span className={`w-12px shrink-0 ${styles.checkmark}`}>{current_mode === mode.value ? '✓' : ''}</span>
+                <span className={styles.optionLabel}>{getDisplayModeLabel(mode)}</span>
+              </div>
+            </Menu.Item>
+          ))}
+        </Menu.ItemGroup>
+      </Menu>
+    </div>
   );
 
   // Compact mode: render only mode label chip in sendbox area
@@ -280,7 +286,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
         <Button
           data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
-          className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
+          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
           shape='round'
           size='small'
           onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}

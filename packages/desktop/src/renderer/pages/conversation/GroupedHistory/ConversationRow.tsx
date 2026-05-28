@@ -8,13 +8,23 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
-import { DeleteOne, EditOne, Export, FolderClose, MessageOne, MoreOne, Pushpin } from '@icon-park/react';
+import {
+  DeleteOne,
+  EditOne,
+  Export,
+  FolderClose,
+  InboxIn,
+  InboxOut,
+  MessageOne,
+  MoreOne,
+  Pushpin,
+} from '@icon-park/react';
 import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
-import { isConversationPinned, isProjectConversation } from './utils/groupingHelpers';
+import { isConversationArchived, isConversationPinned, isProjectConversation } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
   const {
@@ -40,9 +50,12 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     onDelete,
     onExport,
     onTogglePin,
+    onToggleArchive,
   } = props;
   const { t } = useTranslation();
   const isPinned = isConversationPinned(conversation);
+  const isRemote = conversation.type === 'remote';
+  const isArchived = isConversationArchived(conversation);
   const siderTooltipProps = getSiderTooltipProps(tooltipEnabled);
   const inlineNameTooltipEnabled = !collapsed && !isMobile && !!conversation.name;
 
@@ -178,6 +191,10 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       onExport?.(conversation);
                       return;
                     }
+                    if (key === 'archive') {
+                      onToggleArchive(conversation);
+                      return;
+                    }
                     if (key === 'delete') {
                       onDelete(conversation.id);
                     }
@@ -203,12 +220,23 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
                       </div>
                     </Menu.Item>
                   )}
-                  <Menu.Item key='delete'>
-                    <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
-                      <DeleteOne theme='outline' size='14' />
-                      <span>{t('conversation.history.deleteTitle')}</span>
-                    </div>
-                  </Menu.Item>
+                  {isRemote ? (
+                    <Menu.Item key='archive'>
+                      <div className='flex items-center gap-8px'>
+                        {isArchived ? <InboxOut theme='outline' size='14' /> : <InboxIn theme='outline' size='14' />}
+                        <span>
+                          {isArchived ? t('conversation.history.unarchive') : t('conversation.history.archive')}
+                        </span>
+                      </div>
+                    </Menu.Item>
+                  ) : (
+                    <Menu.Item key='delete'>
+                      <div className='flex items-center gap-8px text-[rgb(var(--warning-6))]'>
+                        <DeleteOne theme='outline' size='14' />
+                        <span>{t('conversation.history.deleteTitle')}</span>
+                      </div>
+                    </Menu.Item>
+                  )}
                 </Menu>
               }
               trigger='click'

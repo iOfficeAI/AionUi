@@ -5,18 +5,7 @@ import { SettingsViewModeProvider } from '@/renderer/components/settings/Setting
 import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import {
-  Cat,
-  Communication,
-  Computer,
-  Earth,
-  Info,
-  Lightning,
-  LinkCloud,
-  Puzzle,
-  Robot,
-  System,
-} from '@icon-park/react';
+import { Cat, Communication, Computer, Earth, Info, Lightning, Puzzle, Robot, System } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -35,13 +24,6 @@ type TranslateFn = (key: string, options?: { defaultValue?: string }) => string;
 
 export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): NavItem[] {
   const builtinMap: Record<string, NavItem> = {
-    model: { id: 'model', label: t('settings.model'), icon: <LinkCloud theme='outline' size='16' />, path: 'model' },
-    assistants: {
-      id: 'assistants',
-      label: t('settings.assistants', { defaultValue: 'Assistants' }),
-      icon: <Robot theme='outline' size='16' />,
-      path: 'assistants',
-    },
     agent: {
       id: 'agent',
       label: t('settings.agents', { defaultValue: 'Agents' }),

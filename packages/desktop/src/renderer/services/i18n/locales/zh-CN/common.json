@@ -84,5 +84,13 @@
   "import": "导入",
   "processing": "处理中...",
   "optional": "（可选）",
-  "clear": "清除"
+  "clear": "清除",
+  "modelSelector": {
+    "models": "模型",
+    "favorites": "收藏夹",
+    "searchPlaceholder": "搜索模型（支持 * 和 ?）",
+    "noMatches": "没有匹配的模型",
+    "addFavorite": "添加到收藏",
+    "removeFavorite": "从收藏中移除"
+  }
 }

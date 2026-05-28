@@ -715,6 +715,7 @@ const GuidPage: React.FC = () => {
               selectedAgentKey={agentSelection.selectedAgentKey}
               getAgentKey={agentSelection.getAgentKey}
               onSelectAgent={handleSelectAgentFromPillBar}
+              onReorder={agentSelection.reorderAgents}
               suppressSelectionAnimation={resetAssistantRequested}
             />
           ) : null}

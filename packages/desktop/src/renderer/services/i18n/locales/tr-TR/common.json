@@ -84,5 +84,13 @@
   "import": "İçe Aktar",
   "processing": "İşleniyor...",
   "optional": "(isteğe bağlı)",
-  "clear": "Temizle"
+  "clear": "Temizle",
+  "modelSelector": {
+    "models": "Modeller",
+    "favorites": "Favoriler",
+    "searchPlaceholder": "Model ara (* ve ? desteklenir)",
+    "noMatches": "Eşleşen model yok",
+    "addFavorite": "Favorilere ekle",
+    "removeFavorite": "Favorilerden kaldır"
+  }
 }

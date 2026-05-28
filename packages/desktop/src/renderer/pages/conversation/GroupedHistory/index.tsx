@@ -45,15 +45,18 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { markAsRead, setActiveConversation } = useCronJobsMap();
 
   // Persist section collapsed state across reloads.
+  // Seed `'archived'` only when the user has never written the key — that way
+  // the section starts collapsed on first encounter but a user toggle later
+  // takes precedence forever.
   const COLLAPSED_SECTIONS_KEY = 'grouped-history-collapsed-sections';
   const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
     try {
       const raw = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
-      if (!raw) return new Set();
+      if (!raw) return new Set(['archived']);
       const arr = JSON.parse(raw) as string[];
       return new Set(Array.isArray(arr) ? arr : []);
     } catch {
-      return new Set();
+      return new Set(['archived']);
     }
   });
   const toggleSection = useCallback((key: string) => {
@@ -114,6 +117,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     expandedWorkspaces,
     pinnedConversations,
     timelineSections,
+    archivedConversations,
     handleToggleWorkspace,
   } = useConversations();
 
@@ -134,11 +138,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     dropdownVisibleId,
     handleConversationClick,
     handleDeleteClick,
-    handleBatchDelete,
+    handleBatchArchive,
     handleEditStart,
     handleRenameConfirm,
     handleRenameCancel,
     handleTogglePin,
+    handleToggleArchive,
     handleMenuVisibleChange,
     handleOpenMenu,
     handleRemoveProject,
@@ -148,6 +153,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     handleRemoveProjectConfirm,
   } = useConversationActions({
     batchMode,
+    conversations,
     onSessionClick,
     onBatchModeChange,
     selectedConversationIds,
@@ -202,6 +208,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onDelete: handleDeleteClick,
       onExport: handleExportConversation,
       onTogglePin: handleTogglePin,
+      onToggleArchive: handleToggleArchive,
     }),
     [
       collapsed,
@@ -220,6 +227,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleDeleteClick,
       handleExportConversation,
       handleTogglePin,
+      handleToggleArchive,
     ]
   );
 
@@ -263,7 +271,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [timelineSections]
   );
 
-  if (timelineSections.length === 0 && pinnedConversations.length === 0) {
+  if (timelineSections.length === 0 && pinnedConversations.length === 0 && archivedConversations.length === 0) {
     return (
       <>
         {afterPinnedContent}
@@ -425,9 +433,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                 className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
                 size='mini'
                 status='warning'
-                onClick={handleBatchDelete}
+                onClick={handleBatchArchive}
               >
-                {t('conversation.history.batchDelete')}
+                {t('conversation.history.batchArchive')}
               </Button>
             </div>
           </div>
@@ -647,6 +655,16 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                   )}
                 </div>
               ))}
+          </div>
+        )}
+
+        {/* L1: Archived section — collapsed-by-default soft-delete for remote
+            (OpenCode) chats that would otherwise resurrect on the next sync tick. */}
+        {archivedConversations.length > 0 && (
+          <div className='min-w-0'>
+            {!collapsed && <SectionLabel sectionKey='archived' label={t('conversation.history.archivedSection')} />}
+            {!collapsedSections.has('archived') &&
+              archivedConversations.map((conversation) => renderConversation(conversation))}
           </div>
         )}
       </div>

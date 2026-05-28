@@ -25,6 +25,7 @@ const AcpChat: React.FC<{
   hideSendBox?: boolean;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
+  modelSelector?: React.ReactNode;
 }> = ({
   conversation_id,
   workspace,
@@ -35,6 +36,7 @@ const AcpChat: React.FC<{
   hideSendBox,
   emptySlot,
   loadedSkills,
+  modelSelector,
 }) => {
   useMessageLstCache(conversation_id);
   const teamPermission = useTeamPermission();
@@ -57,6 +59,7 @@ const AcpChat: React.FC<{
               agent_name={agent_name}
               workspacePath={workspace}
               messageState={messageState}
+              modelSelector={modelSelector}
             ></AcpSendBox>
           )}
         </div>

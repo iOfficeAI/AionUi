@@ -84,5 +84,13 @@
   "optional": "(необязательно)",
   "clear": "Очистить",
   "historyBack": "Назад",
-  "agentMode": "Режим агента"
+  "agentMode": "Режим агента",
+  "modelSelector": {
+    "models": "Модели",
+    "favorites": "Избранное",
+    "searchPlaceholder": "Поиск моделей (поддерживаются * и ?)",
+    "noMatches": "Совпадающих моделей нет",
+    "addFavorite": "Добавить в избранное",
+    "removeFavorite": "Убрать из избранного"
+  }
 }

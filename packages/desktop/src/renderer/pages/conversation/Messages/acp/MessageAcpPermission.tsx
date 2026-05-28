@@ -4,8 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessageAcpPermission } from '@/common/chat/chatLib';
+import type { IMessageAcpPermission, TMessage } from '@/common/chat/chatLib';
 import { conversation } from '@/common/adapter/ipcBridge';
+import { useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -19,6 +20,7 @@ interface MessageAcpPermissionProps {
 const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ message }) => {
   const { options = [], tool_call } = message.content || {};
   const { t } = useTranslation();
+  const updateMessageList = useUpdateMessageList();
 
   // 基于实际数据生成显示信息
   const getToolInfo = () => {
@@ -64,6 +66,15 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
 
       await conversation.confirmMessage.invoke(invokeData);
       setHasResponded(true);
+      updateMessageList((list) =>
+        list.map((m) => {
+          if (m.id !== message.id) return m;
+          return {
+            ...m,
+            content: { ...(m.content as object), responded: true, response: selected },
+          } as unknown as TMessage;
+        })
+      );
     } catch (error) {
       // Handle error case - could add error logging here
       console.error('Error confirming permission:', error);

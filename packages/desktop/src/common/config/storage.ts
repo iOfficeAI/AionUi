@@ -384,6 +384,13 @@ export type TChatConversation =
           pinned?: boolean;
           /** Pin timestamp in milliseconds */
           pinned_at?: number;
+          /** Locally archived. Remote sessions pulled from OpenCode cannot be
+           * hard-deleted (the sync loop would resurrect them), so the user
+           * archives them instead — the row stays in `conversations.extra` and
+           * the sidebar renders it in a collapsed Archived section. */
+          archived?: boolean;
+          /** Archive timestamp in milliseconds */
+          archived_at?: number;
           /** Explicit marker for temporary health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */

@@ -187,3 +187,9 @@ Chisl is moving quickly. The README intentionally documents only features verifi
 ## License
 
 Licensed under [Apache-2.0](LICENSE).
+
+## Attribution
+
+Chisl is derived from an Apache-2.0 licensed project. Substantial modifications have been made, including changes to branding, UI, workflows, agent integrations, and application behavior.
+
+Original copyright and license notices are preserved in accordance with the Apache License 2.0.

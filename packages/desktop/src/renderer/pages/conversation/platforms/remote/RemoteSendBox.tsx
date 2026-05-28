@@ -57,9 +57,10 @@ const useRemoteSendBoxDraft = getSendBoxDraftHook('remote', {
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
 
-const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }> = ({
+const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; modelSelector?: React.ReactNode }> = ({
   conversation_id,
   session_mode,
+  modelSelector,
 }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const { t } = useTranslation();
@@ -433,6 +434,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string }
                 hideCompactLabelPrefixOnMobile
               />
             ) : null}
+            {modelSelector}
           </div>
         }
         prefix={

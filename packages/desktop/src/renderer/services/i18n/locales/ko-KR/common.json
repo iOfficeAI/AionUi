@@ -84,5 +84,13 @@
   "import": "가져오기",
   "processing": "처리 중...",
   "optional": "(선택 사항)",
-  "clear": "지우기"
+  "clear": "지우기",
+  "modelSelector": {
+    "models": "모델",
+    "favorites": "즐겨찾기",
+    "searchPlaceholder": "모델 검색(* 및 ? 지원)",
+    "noMatches": "일치하는 모델이 없습니다",
+    "addFavorite": "즐겨찾기에 추가",
+    "removeFavorite": "즐겨찾기에서 제거"
+  }
 }

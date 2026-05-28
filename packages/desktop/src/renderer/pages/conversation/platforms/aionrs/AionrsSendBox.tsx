@@ -39,6 +39,7 @@ import { Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsMessage } from './useAionrsMessage';
+import AionrsModelSelector from './AionrsModelSelector';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
 const useAionrsSendBoxDraft = getSendBoxDraftHook('aionrs', {
@@ -411,18 +412,21 @@ const AionrsSendBox: React.FC<{
         lockMultiLine={true}
         tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
         rightTools={
-          <AgentModeSelector
-            backend='aionrs'
-            conversation_id={conversation_id}
-            compact
-            initialMode={session_mode}
-            dynamicModes={dynamicModes}
-            compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-            modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-            compactLabelPrefix={t('agentMode.permission')}
-            hideCompactLabelPrefixOnMobile
-            onModeChanged={propagateMode}
-          />
+          <div className='flex items-center gap-8px'>
+            <AgentModeSelector
+              backend='aionrs'
+              conversation_id={conversation_id}
+              compact
+              initialMode={session_mode}
+              dynamicModes={dynamicModes}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+              onModeChanged={propagateMode}
+            />
+            <AionrsModelSelector selection={modelSelection} />
+          </div>
         }
         prefix={
           <>

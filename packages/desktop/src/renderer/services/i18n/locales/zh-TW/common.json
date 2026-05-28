@@ -84,5 +84,13 @@
   "import": "匯入",
   "processing": "處理中...",
   "optional": "（選填）",
-  "clear": "清除"
+  "clear": "清除",
+  "modelSelector": {
+    "models": "模型",
+    "favorites": "我的最愛",
+    "searchPlaceholder": "搜尋模型（支援 * 和 ?）",
+    "noMatches": "沒有符合的模型",
+    "addFavorite": "加入我的最愛",
+    "removeFavorite": "從我的最愛移除"
+  }
 }

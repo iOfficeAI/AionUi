@@ -73,9 +73,7 @@ describe('composeMessageWithIndex — permission keying', () => {
     let list: TMessage[] = [];
     let index = buildMessageIndex(list);
 
-    const four = ['shell-A', 'shell-B', 'shell-C', 'shell-D'].map((id, i) =>
-      permission(id, turnMsgId, `command-${i}`)
-    );
+    const four = ['shell-A', 'shell-B', 'shell-C', 'shell-D'].map((id, i) => permission(id, turnMsgId, `command-${i}`));
 
     for (const msg of four) {
       list = composeMessageWithIndex(msg, list, index);

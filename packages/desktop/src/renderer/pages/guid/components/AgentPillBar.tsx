@@ -11,9 +11,12 @@ import type { AgentSource } from '@/renderer/utils/model/agentTypes';
 import type { AvailableAgent } from '../types';
 import { Plus, Robot } from '@icon-park/react';
 import { Tooltip } from '@arco-design/web-react';
-import React from 'react';
+import { closestCenter, DndContext, PointerSensor, useSensor, useSensors, type DragEndEvent } from '@dnd-kit/core';
+import { arrayMove, horizontalListSortingStrategy, SortableContext } from '@dnd-kit/sortable';
+import React, { useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from 'react-i18next';
+import SortableAgentPill from './SortableAgentPill';
 import styles from '../index.module.css';
 
 type AgentPillBarProps = {
@@ -27,6 +30,7 @@ type AgentPillBarProps = {
     custom_agent_id?: string;
   }) => string;
   onSelectAgent: (key: string) => void;
+  onReorder: (orderedKeys: string[]) => void;
   suppressSelectionAnimation?: boolean;
 };
 
@@ -35,12 +39,31 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
   selectedAgentKey,
   getAgentKey,
   onSelectAgent,
+  onReorder,
   suppressSelectionAnimation = false,
 }) => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const navigate = useNavigate();
   const { t } = useTranslation();
+
+  const displayedAgents = useMemo(() => availableAgents.filter((agent) => !agent.is_preset), [availableAgents]);
+  const sortableIds = useMemo(() => displayedAgents.map((agent) => getAgentKey(agent)), [displayedAgents, getAgentKey]);
+  const dragDisabled = displayedAgents.length < 2;
+
+  // 6px activation distance so a quick tap fires onClick instead of starting a
+  // drag — matches the threshold used in CommandQueuePanel.
+  const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (!over || active.id === over.id) return;
+    const oldIndex = sortableIds.indexOf(String(active.id));
+    const newIndex = sortableIds.indexOf(String(over.id));
+    if (oldIndex < 0 || newIndex < 0) return;
+    const next = arrayMove(sortableIds, oldIndex, newIndex);
+    onReorder(next);
+  };
 
   return (
     <div className='w-full flex justify-center'>
@@ -62,79 +85,86 @@ const AgentPillBar: React.FC<AgentPillBarProps> = ({
           color: 'var(--text-primary)',
         }}
       >
-        {availableAgents
-          .filter((agent) => !agent.is_preset)
-          .map((agent, index) => {
-            const isSelected = selectedAgentKey === getAgentKey(agent);
-            const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
-            // Remote and user-defined custom agents store emoji strings in
-            // `avatar` — treat those as glyphs, not URLs. Builtin rows
-            // store a logo URL in `icon` and fall through to
-            // `resolveAgentLogo` below.
-            const usesEmojiAvatar =
-              (agent.agent_type === 'remote' || agent.agent_source === 'custom') && Boolean(agent.avatar);
-            const emojiAvatar = usesEmojiAvatar ? agent.avatar : undefined;
-            const logoSrc =
-              extensionAvatar ||
-              (!emojiAvatar
-                ? resolveAgentLogo({
-                    icon: agent.icon,
-                    backend: agent.backend || agent.agent_type,
-                    custom_agent_id: agent.custom_agent_id,
-                    isExtension: agent.isExtension,
-                  })
-                : undefined);
+        <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+          <SortableContext items={sortableIds} strategy={horizontalListSortingStrategy}>
+            {displayedAgents.map((agent, index) => {
+              const agentKey = getAgentKey(agent);
+              const isSelected = selectedAgentKey === agentKey;
+              const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
+              // Remote and user-defined custom agents store emoji strings in
+              // `avatar` — treat those as glyphs, not URLs. Builtin rows
+              // store a logo URL in `icon` and fall through to
+              // `resolveAgentLogo` below.
+              const usesEmojiAvatar =
+                (agent.agent_type === 'remote' || agent.agent_source === 'custom') && Boolean(agent.avatar);
+              const emojiAvatar = usesEmojiAvatar ? agent.avatar : undefined;
+              const logoSrc =
+                extensionAvatar ||
+                (!emojiAvatar
+                  ? resolveAgentLogo({
+                      icon: agent.icon,
+                      backend: agent.backend || agent.agent_type,
+                      custom_agent_id: agent.custom_agent_id,
+                      isExtension: agent.isExtension,
+                    })
+                  : undefined);
 
-            return (
-              <React.Fragment key={getAgentKey(agent)}>
-                {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
-                <div
-                  data-testid={`agent-pill-${agent.backend}`}
-                  data-agent-pill='true'
-                  data-agent-key={getAgentKey(agent)}
-                  data-agent-type={agent.agent_type}
-                  data-agent-selected={isSelected ? 'true' : 'false'}
-                  className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
-                  style={
-                    isSelected
-                      ? {
-                          ...(isMobile ? { transition: 'opacity 0.2s ease, background-color 0.2s ease' } : undefined),
-                          ...(isMobile || suppressSelectionAnimation ? { animation: 'none' } : undefined),
-                        }
-                      : { transition: 'opacity 0.2s ease' }
-                  }
-                  onClick={() => onSelectAgent(getAgentKey(agent))}
-                >
-                  {emojiAvatar ? (
-                    <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{emojiAvatar}</span>
-                  ) : logoSrc ? (
-                    <img
-                      src={logoSrc}
-                      alt={`${agent.backend || agent.agent_type} logo`}
-                      width={20}
-                      height={20}
-                      style={{ objectFit: 'contain', flexShrink: 0 }}
-                    />
-                  ) : (
-                    <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
-                  )}
-                  <span
-                    className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : isMobile ? 'max-w-0 opacity-0 overflow-hidden' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
-                    style={{
-                      color: 'var(--text-primary)',
-                      transition: isSelected
-                        ? 'color 0.2s ease, font-weight 0.2s ease'
-                        : isMobile
-                          ? 'none'
-                          : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
-                    }}
-                  >
-                    {agent.name}
-                  </span>
-                </div>
-              </React.Fragment>
-            );
-          })}
+              return (
+                <React.Fragment key={agentKey}>
+                  {!isMobile && index > 0 && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
+                  <SortableAgentPill id={agentKey} disabled={dragDisabled}>
+                    <div
+                      data-testid={`agent-pill-${agent.backend}`}
+                      data-agent-pill='true'
+                      data-agent-key={agentKey}
+                      data-agent-type={agent.agent_type}
+                      data-agent-selected={isSelected ? 'true' : 'false'}
+                      className={`group relative flex items-center cursor-pointer whitespace-nowrap overflow-hidden ${isSelected ? `opacity-100 px-12px py-8px rd-20px mx-2px ${styles.agentItemSelected}` : isMobile ? 'opacity-70 p-4px' : 'opacity-60 p-4px hover:opacity-100'}`}
+                      style={
+                        isSelected
+                          ? {
+                              ...(isMobile
+                                ? { transition: 'opacity 0.2s ease, background-color 0.2s ease' }
+                                : undefined),
+                              ...(isMobile || suppressSelectionAnimation ? { animation: 'none' } : undefined),
+                            }
+                          : { transition: 'opacity 0.2s ease' }
+                      }
+                      onClick={() => onSelectAgent(agentKey)}
+                    >
+                      {emojiAvatar ? (
+                        <span style={{ fontSize: 20, lineHeight: 1, flexShrink: 0 }}>{emojiAvatar}</span>
+                      ) : logoSrc ? (
+                        <img
+                          src={logoSrc}
+                          alt={`${agent.backend || agent.agent_type} logo`}
+                          width={20}
+                          height={20}
+                          style={{ objectFit: 'contain', flexShrink: 0 }}
+                        />
+                      ) : (
+                        <Robot theme='outline' size={20} fill='currentColor' style={{ flexShrink: 0 }} />
+                      )}
+                      <span
+                        className={`font-medium text-14px ${isSelected ? 'font-semibold ml-4px' : isMobile ? 'max-w-0 opacity-0 overflow-hidden' : 'max-w-0 opacity-0 overflow-hidden group-hover:max-w-100px group-hover:opacity-100 group-hover:ml-8px'}`}
+                        style={{
+                          color: 'var(--text-primary)',
+                          transition: isSelected
+                            ? 'color 0.2s ease, font-weight 0.2s ease'
+                            : isMobile
+                              ? 'none'
+                              : 'max-width 0.6s cubic-bezier(0.2, 0.8, 0.3, 1), opacity 0.5s cubic-bezier(0.2, 0.8, 0.3, 1) 0.05s, margin 0.6s cubic-bezier(0.2, 0.8, 0.3, 1)',
+                        }}
+                      >
+                        {agent.name}
+                      </span>
+                    </div>
+                  </SortableAgentPill>
+                </React.Fragment>
+              );
+            })}
+          </SortableContext>
+        </DndContext>
         {!isMobile && <div className='text-16px lh-1 p-2px select-none opacity-30'>|</div>}
         <Tooltip content={t('settings.agentManagement.discoverMoreAgents', { defaultValue: '发现更多 Agent' })}>
           <div

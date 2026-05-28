@@ -86,6 +86,14 @@
   "processing": "Обробка...",
   "optional": "(необов'язково)",
   "clear": "Очистити",
+  "modelSelector": {
+    "models": "Моделі",
+    "favorites": "Обране",
+    "searchPlaceholder": "Пошук моделей (підтримуються * і ?)",
+    "noMatches": "Немає відповідних моделей",
+    "addFavorite": "Додати в обране",
+    "removeFavorite": "Видалити з обраного"
+  },
   "unit": {
     "minute_short": "хв",
     "second_short": "с"

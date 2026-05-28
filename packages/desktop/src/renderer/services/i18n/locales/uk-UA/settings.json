@@ -241,7 +241,7 @@
   "darkMode": "Темна",
   "agent": "Агент",
   "tools": "Інструменти",
-  "capabilities": "Можливості",
+  "capabilities": "Навички",
   "capabilitiesTab": {
     "skills": "Навички",
     "tools": "MCP та Голос"

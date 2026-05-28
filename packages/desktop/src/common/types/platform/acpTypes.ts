@@ -186,13 +186,24 @@ export interface AcpSessionModes {
 
 // ===== Unified model info for UI =====
 
+export type AcpAvailableModel = {
+  id: string;
+  label: string;
+  /** Provider id reported by OpenCode-compatible backends, when available. */
+  provider_id?: string;
+  /** Provider display name reported by OpenCode-compatible backends, when available. */
+  provider_name?: string;
+  providerId?: string;
+  providerName?: string;
+};
+
 export interface AcpModelInfo {
   /** Currently active model ID */
   current_model_id: string | null;
   /** Display label for the current model */
   current_model_label: string | null;
   /** Available models for switching */
-  available_models: Array<{ id: string; label: string }>;
+  available_models: AcpAvailableModel[];
 }
 
 // ===== Permission request (session/request_permission) =====
