@@ -66,5 +66,11 @@
     "yesAlwaysAllowTool": "はい、サーバー \"{{serverName}}\" のツール \"{{toolName}}\" を常に許可",
     "yesAlwaysAllowServer": "はい、サーバー \"{{serverName}}\" のすべてのツールを常に許可",
     "no": "いいえ (esc)"
-  }
+  },
+  "approveAllPending": "保留中の{{count}}件をすべて承認",
+  "approveAllPendingDescription": "このターンで待機中のすべての権限リクエストを許可",
+  "approveAllInProgress": "承認中…",
+  "pendingApprovalsHeader": "{{count}}件のコマンドが承認待ち",
+  "pendingApprovalsHint": "個別に確認するか、まとめて承認してください",
+  "pendingApprovalsMoreShort": "さらに{{count}}件"
 }

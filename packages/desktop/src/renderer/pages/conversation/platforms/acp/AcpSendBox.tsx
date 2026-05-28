@@ -4,6 +4,7 @@ import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import PendingApprovalsBanner from '@/renderer/pages/conversation/components/PendingApprovalsBanner';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
@@ -340,6 +341,7 @@ Please check your local CLI tool authentication status`,
 
   return (
     <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
+      <PendingApprovalsBanner conversation_id={conversation_id} />
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}

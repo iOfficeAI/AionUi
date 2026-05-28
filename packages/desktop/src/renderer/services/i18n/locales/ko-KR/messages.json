@@ -66,5 +66,11 @@
     "yesAlwaysAllowTool": "예, 서버 \"{{serverName}}\"의 도구 \"{{toolName}}\" 항상 허용",
     "yesAlwaysAllowServer": "예, 서버 \"{{serverName}}\"의 모든 도구 항상 허용",
     "no": "아니요 (esc)"
-  }
+  },
+  "approveAllPending": "대기 중인 {{count}}개 모두 승인",
+  "approveAllPendingDescription": "이번 턴의 대기 중인 모든 권한 요청 허용",
+  "approveAllInProgress": "승인 중…",
+  "pendingApprovalsHeader": "{{count}}개의 명령이 승인 대기 중",
+  "pendingApprovalsHint": "아래에서 각각 확인하거나 한 번에 모두 승인",
+  "pendingApprovalsMoreShort": "추가 {{count}}개"
 }

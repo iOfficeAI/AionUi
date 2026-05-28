@@ -66,5 +66,11 @@
     "yesAlwaysAllowTool": "Evet, \"{{serverName}}\" sunucusundan \"{{toolName}}\" aracına her zaman izin ver",
     "yesAlwaysAllowServer": "Evet, \"{{serverName}}\" sunucusundaki tüm araçlara her zaman izin ver",
     "no": "Hayır (esc)"
-  }
+  },
+  "approveAllPending": "Bekleyen {{count}} talebin tümünü onayla",
+  "approveAllPendingDescription": "Bu turdaki tüm bekleyen izin taleplerine izin ver",
+  "approveAllInProgress": "Onaylanıyor…",
+  "pendingApprovalsHeader": "Onayınızı bekleyen {{count}} komut",
+  "pendingApprovalsHint": "Aşağıda her birini gözden geçirin veya hepsini birden onaylayın",
+  "pendingApprovalsMoreShort": "+ {{count}} daha"
 }

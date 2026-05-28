@@ -66,5 +66,11 @@
     "yesAlwaysAllowTool": "是，始终允许来自服务器 \"{{serverName}}\" 的工具 \"{{toolName}}\"",
     "yesAlwaysAllowServer": "是，始终允许来自服务器 \"{{serverName}}\" 的所有工具",
     "no": "否 (esc)"
-  }
+  },
+  "approveAllPending": "批准全部 {{count}} 项待处理",
+  "approveAllPendingDescription": "允许本轮中所有待处理的权限请求",
+  "approveAllInProgress": "批准中…",
+  "pendingApprovalsHeader": "{{count}} 个命令等待您的批准",
+  "pendingApprovalsHint": "可逐一查看下方卡片，或一次性全部批准",
+  "pendingApprovalsMoreShort": "还有 {{count}} 个"
 }

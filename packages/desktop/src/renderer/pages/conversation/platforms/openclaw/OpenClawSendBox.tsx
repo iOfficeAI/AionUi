@@ -9,6 +9,7 @@ import type { TMessage } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
+import PendingApprovalsBanner from '@/renderer/pages/conversation/components/PendingApprovalsBanner';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import FileAttachButton from '@/renderer/components/media/FileAttachButton';
@@ -543,6 +544,7 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   return (
     <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
+      <PendingApprovalsBanner conversation_id={conversation_id} />
       <CommandQueuePanel
         items={items}
         paused={isQueuePaused}

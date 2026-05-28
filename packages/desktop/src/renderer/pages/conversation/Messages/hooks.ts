@@ -23,10 +23,27 @@ const beforeUpdateMessageListStack: Array<(list: TMessage[]) => TMessage[]> = []
 
 // 消息索引缓存类型定义
 // Message index cache type definitions
-interface MessageIndex {
+type MessageIndex = {
   msgIdIndex: Map<string, number>; // msg_id -> index
   call_idIndex: Map<string, number>; // tool_call.call_id -> index
   tool_call_idIndex: Map<string, number>; // acp_tool_call.update.tool_call_id -> index
+  permission_call_idIndex: Map<string, number>; // permission/acp_permission content.call_id -> index
+};
+
+// Extract the unique call_id from a permission/acp_permission message.
+// OpenCode and ACP backends emit permission events that share the same
+// per-turn msg_id but each have a unique `call_id` in their content. Keying
+// permission cards by `call_id` instead of `msg_id` is what stops parallel
+// permission requests from clobbering each other in the message list.
+function permissionCallId(msg: TMessage): string | undefined {
+  if (msg.type === 'permission') {
+    return (msg.content as { call_id?: string } | undefined)?.call_id;
+  }
+  if (msg.type === 'acp_permission') {
+    const content = msg.content as { tool_call?: { tool_call_id?: string }; call_id?: string } | undefined;
+    return content?.tool_call?.tool_call_id || content?.call_id;
+  }
+  return undefined;
 }
 
 // 使用 WeakMap 缓存索引，当列表被 GC 时自动清理
@@ -39,6 +56,7 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
   const msgIdIndex = new Map<string, number>();
   const call_idIndex = new Map<string, number>();
   const tool_call_idIndex = new Map<string, number>();
+  const permission_call_idIndex = new Map<string, number>();
 
   for (let i = 0; i < list.length; i++) {
     const msg = list[i];
@@ -55,9 +73,13 @@ function buildMessageIndex(list: TMessage[]): MessageIndex {
     if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
       tool_call_idIndex.set(msg.content.update.tool_call_id, i);
     }
+    const permCallId = permissionCallId(msg);
+    if (permCallId) {
+      permission_call_idIndex.set(permCallId, i);
+    }
   }
 
-  return { msgIdIndex, call_idIndex, tool_call_idIndex };
+  return { msgIdIndex, call_idIndex, tool_call_idIndex, permission_call_idIndex };
 }
 
 // 获取或构建索引（带缓存）
@@ -95,6 +117,7 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
     }
     return result;
   }
@@ -219,11 +242,47 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       index.msgIdIndex = rebuilt.msgIdIndex;
       index.call_idIndex = rebuilt.call_idIndex;
       index.tool_call_idIndex = rebuilt.tool_call_idIndex;
+      index.permission_call_idIndex = rebuilt.permission_call_idIndex;
       return newList;
     }
     const newIdx = list.length;
     index.msgIdIndex.set(message.msg_id, newIdx);
     return list.concat(message);
+  }
+
+  // permission / acp_permission: key by call_id, not msg_id.
+  // OpenCode and ACP backends emit *all* parallel permission requests inside
+  // one assistant turn, so every event arrives carrying the same per-turn
+  // msg_id but with a distinct call_id in its content. If we keyed on msg_id
+  // (the fallback below), four parallel "Run a command on your machine?" cards
+  // would collapse into a single slot, with only the latest request rendering.
+  // See agent.rs's permission.asked / RemoteShellApprover paths for how the
+  // backend mints call_ids: each is a fresh `shell-{uuid}` or opencode
+  // request id, so a call_id-keyed index gives every card its own slot.
+  if (message.type === 'permission' || message.type === 'acp_permission') {
+    const callId = permissionCallId(message);
+    if (callId) {
+      const existingIdx = index.permission_call_idIndex.get(callId);
+      if (existingIdx !== undefined && existingIdx < list.length) {
+        const existingMsg = list[existingIdx];
+        if (existingMsg.type === message.type) {
+          const newList = list.slice();
+          newList[existingIdx] = {
+            ...existingMsg,
+            ...message,
+            content: message.content,
+          } as TMessage;
+          return newList;
+        }
+      }
+      // Not yet in list — append as a brand-new card and remember its index
+      // so a future update for the same call_id (e.g. status change) replaces
+      // this slot instead of growing the list.
+      const newIdx = list.length;
+      index.permission_call_idIndex.set(callId, newIdx);
+      if (message.msg_id) index.msgIdIndex.set(message.msg_id, newIdx);
+      return list.concat(message);
+    }
   }
 
   // agent_status / tips and other msg_id-based messages:
@@ -288,6 +347,10 @@ export const useAddOrUpdateMessage = () => {
           }
           if (msg.type === 'acp_tool_call' && msg.content?.update?.tool_call_id) {
             index.tool_call_idIndex.set(msg.content.update.tool_call_id, newIdx);
+          }
+          const permCallId = permissionCallId(msg);
+          if (permCallId) {
+            index.permission_call_idIndex.set(permCallId, newIdx);
           }
           newList = newList.concat(msg);
         } else {
@@ -465,3 +528,14 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
   };
 };
 export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList, useUpdateMessageList };
+
+// Test-only exports. These let unit tests exercise the message-merging logic
+// without spinning up React + the provider context; the logic itself is the
+// single source of truth for how parallel events collapse into the chat list
+// (especially permission-by-call_id), so testing it directly is the highest
+// signal-to-noise way to lock its behaviour.
+export const __test__ = {
+  buildMessageIndex,
+  composeMessageWithIndex,
+  permissionCallId,
+};

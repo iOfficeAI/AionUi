@@ -56,6 +56,12 @@
   "noOptionsAvailable": "No options available",
   "processing": "Processing...",
   "responseSentSuccessfully": "Response sent successfully",
+  "approveAllPending": "Approve all {{count}} pending",
+  "approveAllPendingDescription": "Allow every queued permission request from this turn",
+  "approveAllInProgress": "Approving…",
+  "pendingApprovalsHeader": "{{count}} commands awaiting your approval",
+  "pendingApprovalsHint": "Review each below or approve all at once",
+  "pendingApprovalsMoreShort": "+ {{count}} more",
   "confirmation": {
     "applyChange": "Apply this change?",
     "allowExecution": "Allow execution?",

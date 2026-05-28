@@ -66,5 +66,11 @@
   },
   "atFile.hint": "Введите текст для поиска файлов",
   "atFile.menuLabel": "Упоминания файлов",
-  "atFile.loading": "Загрузка..."
+  "atFile.loading": "Загрузка...",
+  "approveAllPending": "Одобрить все ({{count}}) ожидающие",
+  "approveAllPendingDescription": "Разрешить все ожидающие запросы разрешений за этот ход",
+  "approveAllInProgress": "Одобрение…",
+  "pendingApprovalsHeader": "{{count}} команд ожидают вашего одобрения",
+  "pendingApprovalsHint": "Проверьте каждую ниже или одобрите все сразу",
+  "pendingApprovalsMoreShort": "+ ещё {{count}}"
 }

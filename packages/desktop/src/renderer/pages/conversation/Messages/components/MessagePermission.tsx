@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IMessagePermission } from '@/common/chat/chatLib';
+import type { IMessagePermission, TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
+import { useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Card, Radio, Typography } from '@arco-design/web-react';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 const { Text } = Typography;
@@ -25,11 +26,30 @@ const actionIcons: Record<string, string> = {
 
 const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ message }) => {
   const { t } = useTranslation();
+  const updateMessageList = useUpdateMessageList();
   const { options = [], description, title, action, call_id, command_type } = message.content || {};
 
-  const [selected, setSelected] = useState<string | null>(null);
+  // Pre-select the safest option (whichever value contains "once") so a fast
+  // double-click doesn't accidentally land on "always", which would silence
+  // every subsequent shell prompt in the session via the backend's
+  // `approval_memory`. The user can still flip to "always"/"reject"
+  // deliberately, but they have to actually pick it.
+  const defaultSelected = useMemo(() => {
+    const onceOption = options.find((opt) => String(opt.value).toLowerCase().includes('once'));
+    return onceOption ? String(onceOption.value) : null;
+  }, [options]);
+
+  // `hasResponded` is mirrored onto the persisted message via
+  // `updateMessageList` below so cross-cutting consumers (e.g. the
+  // PendingApprovalsBanner) can distinguish truly-pending cards from
+  // already-answered ones. Reading the prior value off the message lets
+  // hydration / chat history keep the resolved state instead of flashing
+  // back to a clickable prompt on reload.
+  const initialResponded = Boolean((message.content as { responded?: boolean } | undefined)?.responded);
+
+  const [selected, setSelected] = useState<string | null>(defaultSelected);
   const [isResponding, setIsResponding] = useState(false);
-  const [hasResponded, setHasResponded] = useState(false);
+  const [hasResponded, setHasResponded] = useState(initialResponded);
 
   const icon = actionIcons[action || ''] || '🔐';
   const displayTitle = title || description || t('messages.permissionRequest');
@@ -48,6 +68,22 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
         always_allow,
       });
       setHasResponded(true);
+      // Persist the responded state onto the message so siblings (banner)
+      // can filter this card out of the "pending" count. Mutating
+      // `content.responded` is intentional: the renderer's compose merge
+      // for permission messages is keyed by call_id and does a shallow
+      // merge of new content, so this update lands without disturbing the
+      // rest of the list.
+      updateMessageList((list) =>
+        list.map((m) => {
+          if (m.id !== message.id) return m;
+          const next = {
+            ...m,
+            content: { ...(m.content as object), responded: true, response: selected },
+          } as unknown as TMessage;
+          return next;
+        })
+      );
     } catch (error) {
       console.error('Error confirming permission:', error);
     } finally {
