@@ -64,7 +64,7 @@ export const useMcpServerCRUD = (
       }
 
       await saveMcpServers((prevServers) => {
-        let nextServers = [...prevServers.filter((server) => server.builtin === true)];
+        let nextServers = prevServers.filter((server) => server.builtin === true);
         const existingUserServers = prevServers.filter((server) => server.builtin !== true);
 
         for (const server of existingUserServers) {

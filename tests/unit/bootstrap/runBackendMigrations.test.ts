@@ -10,7 +10,7 @@ const {
   configFileSetMock,
   httpRequestMock,
   listServersMock,
-  syncMcpToAgentsMock,
+  testMcpConnectionMock,
   updateServerMock,
 } = vi.hoisted(() => ({
   batchImportServersMock: vi.fn(),
@@ -18,7 +18,7 @@ const {
   configFileSetMock: vi.fn(),
   httpRequestMock: vi.fn(),
   listServersMock: vi.fn(),
-  syncMcpToAgentsMock: vi.fn(),
+  testMcpConnectionMock: vi.fn(),
   updateServerMock: vi.fn(),
 }));
 
@@ -31,7 +31,7 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
     listServers: { invoke: listServersMock },
     batchImportServers: { invoke: batchImportServersMock },
     updateServer: { invoke: updateServerMock },
-    syncMcpToAgents: { invoke: syncMcpToAgentsMock },
+    testMcpConnection: { invoke: testMcpConnectionMock },
   },
 }));
 
@@ -111,7 +111,7 @@ beforeEach(() => {
     id,
     ...data,
   }));
-  syncMcpToAgentsMock.mockResolvedValue({ success: true, results: [] });
+  testMcpConnectionMock.mockResolvedValue({ success: false, error: 'Command not found: npx' });
   httpRequestMock.mockImplementation(async (method: string, path: string) => {
     if (method === 'GET' && path === '/api/settings/client') {
       return {
@@ -155,11 +155,10 @@ describe('runBackendMigrations', () => {
     await runBackendMigrations(configFile as never);
 
     expect(updateServerMock).not.toHaveBeenCalled();
-    expect(syncMcpToAgentsMock).not.toHaveBeenCalled();
+    expect(testMcpConnectionMock).not.toHaveBeenCalled();
     expect(infoSpy).toHaveBeenCalledWith(
-      '[Migration] image MCP bootstrap decision, server id: %s, transport changed: %s, json changed: %s, will update: %s, will sync: %s',
+      '[Migration] image MCP bootstrap decision, server id: %s, transport changed: %s, json changed: %s, will update: %s',
       'image-server-id',
-      'no',
       'no',
       'no',
       'no'
@@ -178,14 +177,13 @@ describe('runBackendMigrations', () => {
     await runBackendMigrations(configFile as never);
 
     expect(updateServerMock).toHaveBeenCalledOnce();
-    expect(syncMcpToAgentsMock).not.toHaveBeenCalled();
+    expect(testMcpConnectionMock).not.toHaveBeenCalled();
     expect(infoSpy).toHaveBeenCalledWith(
-      '[Migration] image MCP bootstrap decision, server id: %s, transport changed: %s, json changed: %s, will update: %s, will sync: %s',
+      '[Migration] image MCP bootstrap decision, server id: %s, transport changed: %s, json changed: %s, will update: %s',
       'image-server-id',
       'no',
       'yes',
-      'yes',
-      'no'
+      'yes'
     );
   });
 });

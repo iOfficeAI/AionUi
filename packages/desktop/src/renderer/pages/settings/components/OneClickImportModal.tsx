@@ -22,7 +22,7 @@ const IMPORTABLE_AGENTS = [
 const normalizeImportSkipReason = (reason: string | undefined) =>
   reason
     ?.trim()
-    .replace(/^[✓✗!•\-*✔✘:\[\]\s]+/, '')
+    .replace(/^[✓✗!•\-*✔✘:[\]\s]+/, '')
     .trim();
 
 const getUnsupportedReasonDetail = (reason: string | undefined, t: ReturnType<typeof useTranslation>['t']) => {
