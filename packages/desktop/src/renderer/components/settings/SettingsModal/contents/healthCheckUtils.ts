@@ -13,6 +13,19 @@
  */
 export type HealthCheckAction = 'skip' | 'error' | 'success';
 
+export function getHealthCheckErrorMessage(data: unknown): string {
+  if (!data || typeof data !== 'object') {
+    return 'Unknown error';
+  }
+
+  const message = (data as { message?: unknown }).message;
+  if (typeof message !== 'string' || message.trim() === '') {
+    return 'Unknown error';
+  }
+
+  return message;
+}
+
 /**
  * Classify a response message type for health check determination.
  *

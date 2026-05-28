@@ -33,4 +33,31 @@ describe('classifyBackendStartupFailure', () => {
       reason: 'backend_startup_failed',
     });
   });
+
+  it('classifies packaged app resources missing from installation as incomplete installation', () => {
+    const error = new Error('aioncore startup failed while resolving backend binary') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'resolve_binary',
+      isPackaged: true,
+      runtimeKey: 'win32-x64',
+      bundledDirExists: false,
+      runtimeDirExists: false,
+      resourcesDirEntries: [
+        'app-update.yml',
+        'app.asar',
+        'app.asar.unpacked/',
+        'app.png',
+        'elevate.exe',
+        'manifest.webmanifest',
+        'sw.js',
+      ],
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_incomplete_installation',
+      missingResources: ['bundled-aioncore/', 'bundled-aioncore/win32-x64/'],
+    });
+  });
 });

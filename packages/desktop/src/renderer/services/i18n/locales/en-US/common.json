@@ -75,6 +75,12 @@
       "title": "This system is not supported by the bundled backend",
       "description": "AionUi opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart AionUi.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi installation is incomplete",
+      "description": "This installation is missing required local resources, so AionCore cannot start. Please download and reinstall the latest AionUi.",
+      "downloadLatest": "Download latest",
+      "sendDiagnostics": "Send diagnostics"
     }
   },
   "fileAttach.addFiles": "Add files",

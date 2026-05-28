@@ -75,6 +75,12 @@
       "title": "目前系統不支援內建後端",
       "description": "AionUi 已開啟，但本機 AionCore 後端無法在目前 Linux 版本上執行。請升級到受支援的 Linux 發行版後重新啟動 AionUi。",
       "requiredVersions": "需要的執行階段符號：{{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi 安裝不完整",
+      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi。",
+      "downloadLatest": "下載最新版",
+      "sendDiagnostics": "傳送診斷報告"
     }
   },
   "fileAttach.addFiles": "新增檔案",
