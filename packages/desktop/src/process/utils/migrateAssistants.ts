@@ -345,7 +345,9 @@ async function applyBuiltinPresetAgentTypeOverrides(overrides: BuiltinAgentTypeO
   });
   const applied = overrides.length - failed - skipped;
   if (failed === 0) {
-    console.log(`[POUNDING] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`);
+    console.log(
+      `[POUNDING] Applied ${applied} builtin preset_agent_type override(s) (skipped ${skipped} retired id(s))`
+    );
   } else {
     console.error(
       `[POUNDING] Builtin preset_agent_type override partial: ${failed}/${overrides.length} failed, ${skipped} skipped, ${applied} applied`

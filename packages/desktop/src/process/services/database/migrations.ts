@@ -1233,9 +1233,12 @@ const migration_v27: IMigration = {
 
     // 2. Check if conversations table still has a CHECK constraint on source
     //    (pre-v15 databases). If so, rebuild the table to remove it.
-    const createSql = (db.prepare(
-      `SELECT sql FROM sqlite_master WHERE type='table' AND name='conversations'`
-    ).get() as { sql: string } | undefined)?.sql || '';
+    const createSql =
+      (
+        db.prepare(`SELECT sql FROM sqlite_master WHERE type='table' AND name='conversations'`).get() as
+          | { sql: string }
+          | undefined
+      )?.sql || '';
 
     if (createSql.includes('CHECK') && createSql.includes('source')) {
       // Rebuild table without CHECK constraint on source column
