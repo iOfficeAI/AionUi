@@ -1,6 +1,6 @@
 # ext-wecom-bot
 
-Enterprise WeCom AI Bot channel extension example for AionUI.
+Enterprise WeCom AI Bot channel extension example for Chisl.
 
 ## What this example covers
 
@@ -8,7 +8,7 @@ Enterprise WeCom AI Bot channel extension example for AionUI.
 - Encrypted webhook payload handling (`POST`)
 - Stream-style polling response (`msgtype=stream`)
 - `response_url` single-use fallback when stream context is unavailable
-- Bridging inbound message to AionUI unified channel pipeline
+- Bridging inbound message to Chisl unified channel pipeline
 - Dist-first extension entrypoints (`dist/*`) with source wrappers for development
 
 ## How to run

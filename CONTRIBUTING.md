@@ -1,7 +1,5 @@
 # Contributing Guide
 
-> **Chinese version**: [CONTRIBUTING.zh.md](CONTRIBUTING.zh.md)
-
 ## Prerequisites
 
 See [docs/contributing/development.md](docs/contributing/development.md) for environment setup. You will need:
@@ -90,7 +88,7 @@ This repository runs a PR automation bot that reviews, fixes minor issues, and p
 | `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
 | `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
 
-See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow.
+
 
 ## Enforcement
 

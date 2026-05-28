@@ -14,7 +14,7 @@
 **正常流程**（用户视角）：
 
 1. 用户进入「设置 → 远程连接」页面，切换到 "Channels" Tab（桌面端）；或直接看到 Channels 内容（非桌面端/WebUI 浏览器访问）
-2. 页面顶部显示标题"Channels"、功能描述文本（"Connect Telegram, Lark, and DingTalk to interact with AionUi from IM apps."），以及 2 步引导提示
+2. 页面顶部显示标题"Channels"、功能描述文本（"Connect Telegram, Lark, and DingTalk to interact with Chisl from IM apps."），以及 2 步引导提示
 3. 下方为渠道卡片列表（Arco Design Collapse），每个渠道一张可折叠卡片
 4. 卡片 header 包含：渠道图标/logo、渠道名、描述、连接状态徽标（Connected/未连接）、Switch 启用开关
 5. 默认所有卡片折叠（`collapseKeys` 默认 `true`）；点击卡片 header 展开详细配置面板
@@ -55,7 +55,7 @@
 
 ## (F-WEBUI-13) Telegram 渠道配置 [已实现]
 
-**用户故事**：作为用户，我希望通过输入 Telegram Bot Token 连接 Telegram，并管理通过 Telegram 与 AionUi 交互的授权用户。
+**用户故事**：作为用户，我希望通过输入 Telegram Bot Token 连接 Telegram，并管理通过 Telegram 与 Chisl 交互的授权用户。
 
 **前置条件**：用户已在 Telegram @BotFather 创建 Bot 并获取 Token
 
@@ -96,7 +96,7 @@
 
 ## (F-WEBUI-14) Lark / 飞书渠道配置 [已实现]
 
-**用户故事**：作为用户，我希望通过配置飞书应用凭据连接 Lark/飞书，与 AionUi 进行 IM 对话。
+**用户故事**：作为用户，我希望通过配置飞书应用凭据连接 Lark/飞书，与 Chisl 进行 IM 对话。
 
 **前置条件**：用户已在飞书开放平台创建应用并获取 App ID 和 App Secret
 
@@ -135,7 +135,7 @@
 
 ## (F-WEBUI-15) DingTalk 渠道配置 [已实现]
 
-**用户故事**：作为用户，我希望通过配置钉钉应用凭据连接 DingTalk，与 AionUi 进行 IM 对话。
+**用户故事**：作为用户，我希望通过配置钉钉应用凭据连接 DingTalk，与 Chisl 进行 IM 对话。
 
 **前置条件**：用户已在钉钉开放平台创建应用并获取 Client ID 和 Client Secret
 
@@ -321,14 +321,14 @@ idle → loading_qr → showing_qr → scanned → connected
 
 ## (F-WEBUI-20) 渠道配对与用户授权（通用流程） [已实现]
 
-**用户故事**：作为用户，我希望通过配对码机制控制哪些 IM 用户可以与我的 AionUi 交互，保证安全性。
+**用户故事**：作为用户，我希望通过配对码机制控制哪些 IM 用户可以与我的 Chisl 交互，保证安全性。
 
 **适用渠道**：Telegram、Lark、DingTalk、WeChat、WeCom（全部 5 个已实现渠道共享此流程）
 
 **正常流程**（用户视角）：
 
 1. 渠道启用且已连接后，IM 用户向 Bot 发送消息
-2. 首次消息触发配对请求，AionUi 通过 `channel.pairingRequested.on()` 实时推送到设置页面
+2. 首次消息触发配对请求，Chisl 通过 `channel.pairingRequested.on()` 实时推送到设置页面
 3. "Pending Pairing Requests"区域显示配对卡片：
    - 用户显示名（`displayName`，未知则显示"Unknown User"）
    - 配对码（`code`）+ 复制按钮

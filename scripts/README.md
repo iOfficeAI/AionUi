@@ -1,6 +1,6 @@
 # Build Scripts Documentation
 
-This directory contains scripts for building and packaging AionUi across different platforms and architectures.
+This directory contains scripts for building and packaging Chisl across different platforms and architectures.
 
 ## Scripts Overview
 

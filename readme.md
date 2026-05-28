@@ -270,7 +270,6 @@ node scripts/check-i18n.js
 | File structure rules | `docs/contributing/file-structure.md` |
 | WebUI guide          | `docs/guides/webui.md`                |
 | Server deployment    | `docs/guides/deploy-server.md`        |
-| Hub testing          | `docs/guides/hub-testing.md`          |
 
 ## Status
 

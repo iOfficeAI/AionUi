@@ -1,6 +1,6 @@
-# AionUi Headless Server Deployment Guide
+# Chisl Headless Server Deployment Guide
 
-Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, and containers — with proxy auto-fallback support.
+Deploy Chisl WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, and containers — with proxy auto-fallback support.
 
 **Translations**: [中文版](#中文版--chinese-version) below.
 
@@ -21,7 +21,7 @@ Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, an
 
 - Linux x86_64 (Ubuntu 20.04+ / Debian 11+ recommended)
 - At least 2GB RAM
-- AionUi `.deb` package from [Releases](https://github.com/iOfficeAI/AionUi/releases)
+- Chisl `.deb` package from [Releases](https://github.com/schlambos/chisel-ui/releases)
 
 ---
 
@@ -29,7 +29,7 @@ Deploy AionUi WebUI on headless Linux servers — cloud VMs, Kubernetes Pods, an
 
 ```bash
 # Download the latest .deb package
-wget https://github.com/iOfficeAI/AionUi/releases/latest/download/AionUi-linux-amd64.deb
+wget https://github.com/schlambos/chisel-ui/releases/latest/download/AionUi-linux-amd64.deb
 
 # Install
 sudo dpkg -i AionUi-linux-amd64.deb
@@ -42,7 +42,7 @@ sudo apt-get install -f  # Fix missing dependencies
 
 ## Virtual Display (Xvfb)
 
-AionUi is an Electron app and requires a display server. On headless servers (no monitor), use Xvfb to create a virtual display:
+Chisl is an Electron app and requires a display server. On headless servers (no monitor), use Xvfb to create a virtual display:
 
 ```bash
 sudo apt-get install -y xvfb
@@ -60,7 +60,7 @@ Create `/opt/AionUi/start-aionui.sh`:
 
 ```bash
 #!/bin/bash
-# AionUi WebUI headless startup script
+# Chisl WebUI headless startup script
 # Usage: ./start-aionui.sh [start|stop|restart|status]
 
 PIDFILE="/var/run/aionui.pid"
@@ -69,10 +69,10 @@ WORKDIR="$HOME"  # Change to your workspace directory
 
 start() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi is already running (PID: $(cat $PIDFILE))"
+        echo "Chisl is already running (PID: $(cat $PIDFILE))"
         return 1
     fi
-    echo "Starting AionUi WebUI..."
+    echo "Starting Chisl WebUI..."
     cd "$WORKDIR"
 
     nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
@@ -81,10 +81,10 @@ start() {
     echo $! > "$PIDFILE"
     sleep 3
     if kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi started successfully (PID: $(cat $PIDFILE))"
+        echo "Chisl started successfully (PID: $(cat $PIDFILE))"
         echo "WebUI: http://$(hostname -I | awk '{print $1}'):25808"
     else
-        echo "AionUi failed to start. Check log: $LOGFILE"
+        echo "Chisl failed to start. Check log: $LOGFILE"
         rm -f "$PIDFILE"
         return 1
     fi
@@ -92,17 +92,17 @@ start() {
 
 stop() {
     if [ ! -f "$PIDFILE" ]; then
-        echo "AionUi is not running (no PID file)"
+        echo "Chisl is not running (no PID file)"
         return 1
     fi
     PID=$(cat "$PIDFILE")
-    echo "Stopping AionUi (PID: $PID)..."
+    echo "Stopping Chisl (PID: $PID)..."
     kill "$PID" 2>/dev/null
     sleep 2
     kill -9 "$PID" 2>/dev/null
     pkill -f "AionUi --webui" 2>/dev/null
     rm -f "$PIDFILE"
-    echo "AionUi stopped."
+    echo "Chisl stopped."
 }
 
 restart() {
@@ -113,10 +113,10 @@ restart() {
 
 status() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi is running (PID: $(cat $PIDFILE))"
+        echo "Chisl is running (PID: $(cat $PIDFILE))"
         ss -tlnp | grep 25808
     else
-        echo "AionUi is not running."
+        echo "Chisl is not running."
         rm -f "$PIDFILE" 2>/dev/null
     fi
 }
@@ -134,13 +134,13 @@ esac
 chmod +x /opt/AionUi/start-aionui.sh
 ```
 
-> **Tip**: `WORKDIR` determines the directory AionUi can access for file operations. Set it to your project workspace.
+> **Tip**: `WORKDIR` determines the directory Chisl can access for file operations. Set it to your project workspace.
 
 ---
 
 ## Remote Access
 
-AionUi WebUI listens on port **25808**. Choose a method based on your network setup:
+Chisl WebUI listens on port **25808**. Choose a method based on your network setup:
 
 ### Option A: Direct Access (Public IP)
 
@@ -187,7 +187,7 @@ ssh -R 7897:127.0.0.1:7897 user@YOUR_SERVER_IP
 
 > Replace `7897` with your actual proxy port. The tunnel is active as long as the SSH session is open.
 
-### Step 2: PAC File for AionUi (Electron / Chromium Layer)
+### Step 2: PAC File for Chisl (Electron / Chromium Layer)
 
 Using `--proxy-server` is fragile — when the proxy goes down, **all** requests fail including the WebUI itself. Instead, use a **PAC (Proxy Auto-Configuration) file** that provides automatic fallback.
 
@@ -253,13 +253,13 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 - SSH tunnel disconnected → proxy env vars cleared, commands use direct connection
 - No manual intervention or terminal restart needed
 
-### Step 4: AionUi Internal Proxy (Gemini API)
+### Step 4: Chisl Internal Proxy (Gemini API)
 
-For Gemini API calls, configure the proxy inside AionUi WebUI:
+For Gemini API calls, configure the proxy inside Chisl WebUI:
 
 **Settings → Gemini Settings → Proxy** → `http://127.0.0.1:7897`
 
-> This proxy is handled by AionUi's Node.js layer (separate from the Chromium layer). When the SSH tunnel is down, Gemini API calls will fail, but the WebUI and other APIs remain functional.
+> This proxy is handled by Chisl's Node.js layer (separate from the Chromium layer). When the SSH tunnel is down, Gemini API calls will fail, but the WebUI and other APIs remain functional.
 
 ---
 
@@ -268,7 +268,7 @@ For Gemini API calls, configure the proxy inside AionUi WebUI:
 | Issue                                     | Solution                                                     |
 | ----------------------------------------- | ------------------------------------------------------------ |
 | `dpkg` dependency errors in containers    | `dpkg --force-all -i AionUi-linux-amd64.deb`                 |
-| AionUi can only access `/tmp`             | Set `WORKDIR` in the startup script to your workspace path   |
+| Chisl can only access `/tmp`             | Set `WORKDIR` in the startup script to your workspace path   |
 | WebUI not accessible remotely             | Check firewall rules, or use ngrok / SSH tunnel              |
 | All requests fail when proxy is down      | Use PAC file (`--proxy-pac-url`) instead of `--proxy-server` |
 | `curl` fails after SSH tunnel disconnects | Add `PROMPT_COMMAND` auto-detect to `~/.bashrc` (see Step 3) |
@@ -316,21 +316,21 @@ For Gemini API calls, configure the proxy inside AionUi WebUI:
 
 # 中文版 / Chinese Version
 
-# AionUi 无头服务器部署指南
+# Chisl 无头服务器部署指南
 
-在无图形界面的 Linux 服务器（云主机、K8s Pod、容器）上部署 AionUi WebUI，支持代理自动回退。
+在无图形界面的 Linux 服务器（云主机、K8s Pod、容器）上部署 Chisl WebUI，支持代理自动回退。
 
 ## 前置条件
 
 - Linux x86_64（推荐 Ubuntu 20.04+ / Debian 11+）
 - 至少 2GB 内存
-- AionUi `.deb` 安装包（[下载地址](https://github.com/iOfficeAI/AionUi/releases)）
+- Chisl `.deb` 安装包（[下载地址](https://github.com/schlambos/chisel-ui/releases)）
 
 ## 安装
 
 ```bash
 # 下载最新 .deb 包
-wget https://github.com/iOfficeAI/AionUi/releases/latest/download/AionUi-linux-amd64.deb
+wget https://github.com/schlambos/chisel-ui/releases/latest/download/AionUi-linux-amd64.deb
 
 # 安装
 sudo dpkg -i AionUi-linux-amd64.deb
@@ -341,7 +341,7 @@ sudo apt-get install -f  # 修复依赖
 
 ## 虚拟显示 (Xvfb)
 
-AionUi 是 Electron 应用，需要显示服务。无头服务器需安装 Xvfb：
+Chisl 是 Electron 应用，需要显示服务。无头服务器需安装 Xvfb：
 
 ```bash
 sudo apt-get install -y xvfb
@@ -355,7 +355,7 @@ sudo apt-get install -y xvfb
 
 ```bash
 #!/bin/bash
-# AionUi WebUI 无头启动脚本
+# Chisl WebUI 无头启动脚本
 # 用法: ./start-aionui.sh [start|stop|restart|status]
 
 PIDFILE="/var/run/aionui.pid"
@@ -364,10 +364,10 @@ WORKDIR="$HOME"  # 改为你的工作目录
 
 start() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi 已在运行 (PID: $(cat $PIDFILE))"
+        echo "Chisl 已在运行 (PID: $(cat $PIDFILE))"
         return 1
     fi
-    echo "正在启动 AionUi WebUI..."
+    echo "正在启动 Chisl WebUI..."
     cd "$WORKDIR"
 
     nohup xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
@@ -376,10 +376,10 @@ start() {
     echo $! > "$PIDFILE"
     sleep 3
     if kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi 启动成功 (PID: $(cat $PIDFILE))"
+        echo "Chisl 启动成功 (PID: $(cat $PIDFILE))"
         echo "WebUI: http://$(hostname -I | awk '{print $1}'):25808"
     else
-        echo "AionUi 启动失败，请查看日志: $LOGFILE"
+        echo "Chisl 启动失败，请查看日志: $LOGFILE"
         rm -f "$PIDFILE"
         return 1
     fi
@@ -387,27 +387,27 @@ start() {
 
 stop() {
     if [ ! -f "$PIDFILE" ]; then
-        echo "AionUi 未在运行"
+        echo "Chisl 未在运行"
         return 1
     fi
     PID=$(cat "$PIDFILE")
-    echo "正在停止 AionUi (PID: $PID)..."
+    echo "正在停止 Chisl (PID: $PID)..."
     kill "$PID" 2>/dev/null
     sleep 2
     kill -9 "$PID" 2>/dev/null
     pkill -f "AionUi --webui" 2>/dev/null
     rm -f "$PIDFILE"
-    echo "AionUi 已停止。"
+    echo "Chisl 已停止。"
 }
 
 restart() { stop; sleep 1; start; }
 
 status() {
     if [ -f "$PIDFILE" ] && kill -0 "$(cat $PIDFILE)" 2>/dev/null; then
-        echo "AionUi 运行中 (PID: $(cat $PIDFILE))"
+        echo "Chisl 运行中 (PID: $(cat $PIDFILE))"
         ss -tlnp | grep 25808
     else
-        echo "AionUi 未在运行。"
+        echo "Chisl 未在运行。"
         rm -f "$PIDFILE" 2>/dev/null
     fi
 }
@@ -420,7 +420,7 @@ esac
 
 ## 远程访问
 
-AionUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
+Chisl WebUI 监听端口 **25808**，根据网络环境选择访问方式：
 
 | 方式       | 适用场景              | 命令                                       |
 | ---------- | --------------------- | ------------------------------------------ |
@@ -438,7 +438,7 @@ AionUi WebUI 监听端口 **25808**，根据网络环境选择访问方式：
 ssh -R 7897:127.0.0.1:7897 user@YOUR_SERVER
 ```
 
-### 第二步：PAC 代理文件（AionUi Electron 层）
+### 第二步：PAC 代理文件（Chisl Electron 层）
 
 `--proxy-server` 的问题：代理一断，**所有请求**全挂。改用 PAC 文件实现自动回退。
 
@@ -486,7 +486,7 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 
 **原理**：`PROMPT_COMMAND` 在每次命令提示符前执行，自动检测代理端口是否可达，实时切换。
 
-### 第四步：AionUi 内置代理（Gemini API）
+### 第四步：Chisl 内置代理（Gemini API）
 
 在 WebUI 中设置：**Settings → Gemini Settings → Proxy** → `http://127.0.0.1:7897`
 
@@ -497,7 +497,7 @@ PROMPT_COMMAND="_auto_proxy;${PROMPT_COMMAND}"
 | 问题                   | 解决方案                              |
 | ---------------------- | ------------------------------------- |
 | 容器内 dpkg 依赖报错   | `dpkg --force-all -i` 强制安装        |
-| AionUi 只能访问 /tmp   | 修改启动脚本中的 `WORKDIR`            |
+| Chisl 只能访问 /tmp   | 修改启动脚本中的 `WORKDIR`            |
 | 远程无法访问 WebUI     | 检查防火墙/安全组，或使用 ngrok       |
 | 代理断开后所有请求失败 | 用 PAC 文件替代 `--proxy-server`      |
 | SSH 断开后 curl 失败   | bashrc 添加 `PROMPT_COMMAND` 自动检测 |

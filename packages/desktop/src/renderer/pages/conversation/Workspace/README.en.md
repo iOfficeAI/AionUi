@@ -2,7 +2,7 @@
 
 ## Overview
 
-The Workspace module is a core component in AionUi for managing conversation workspace files and folders. It provides complete file tree display, file operations (open, delete, rename, preview), file addition, and paste functionality. The module follows a React Hooks architecture, splitting business logic into multiple independent hooks, achieving high modularity and maintainability.
+The Workspace module is a core component in Chisl for managing conversation workspace files and folders. It provides complete file tree display, file operations (open, delete, rename, preview), file addition, and paste functionality. The module follows a React Hooks architecture, splitting business logic into multiple independent hooks, achieving high modularity and maintainability.
 
 ## Architecture Design
 

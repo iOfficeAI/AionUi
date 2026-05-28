@@ -1,6 +1,6 @@
-# AionUi WebUI Mode - Startup Guide
+# Chisl WebUI Mode - Startup Guide
 
-AionUi supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
+Chisl supports WebUI mode, allowing you to access the application through a web browser. This guide covers how to start WebUI mode on all supported platforms.
 
 ## Table of Contents
 
@@ -16,10 +16,10 @@ AionUi supports WebUI mode, allowing you to access the application through a web
 
 ## What is WebUI Mode?
 
-WebUI mode starts AionUi with an embedded web server, allowing you to:
+WebUI mode starts Chisl with an embedded web server, allowing you to:
 
 - Access the application through any modern web browser
-- Use AionUi from remote devices on the same network (with `--remote` flag)
+- Use Chisl from remote devices on the same network (with `--remote` flag)
 - Run the application headless on servers
 
 Default access URL: `http://localhost:3000` (port may vary, check the application output)
@@ -36,7 +36,7 @@ Open **Command Prompt** or **PowerShell** and run:
 # Using full path
 "C:\Program Files\AionUi\AionUi.exe" --webui
 
-# Or if AionUi is in your PATH
+# Or if AionUi.exe is in your PATH
 AionUi.exe --webui
 ```
 
@@ -47,7 +47,7 @@ AionUi.exe --webui
    ```
    "C:\Program Files\AionUi\AionUi.exe" --webui
    ```
-3. Name it **AionUi WebUI**
+3. Name it **Chisl WebUI**
 4. Click **Finish**
 5. Double-click the shortcut to launch
 
@@ -104,13 +104,13 @@ chmod +x start-aionui-webui.sh
    ```bash
    /Applications/AionUi.app/Contents/MacOS/AionUi --webui
    ```
-5. Save as **AionUi WebUI.app**
+5. Save as **Chisl WebUI.app**
 6. Double-click to launch
 
 ### Method 4: Add to Dock
 
 1. Create an Automator app (Method 3)
-2. Drag **AionUi WebUI.app** to your Dock
+2. Drag **Chisl WebUI.app** to your Dock
 3. Click the Dock icon to start WebUI mode anytime
 
 ---
@@ -145,8 +145,8 @@ Create `~/.local/share/applications/aionui-webui.desktop`:
 
 ```ini
 [Desktop Entry]
-Name=AionUi WebUI
-Comment=Start AionUi in WebUI mode
+Name=Chisl WebUI
+Comment=Start Chisl in WebUI mode
 Exec=/opt/AionUi/aionui --webui
 Icon=aionui
 Terminal=false
@@ -189,7 +189,7 @@ Create `/etc/systemd/system/aionui-webui.service`:
 
 ```ini
 [Unit]
-Description=AionUi WebUI Service
+Description=Chisl WebUI Service
 After=network.target
 
 [Service]
@@ -218,13 +218,13 @@ sudo systemctl status aionui-webui.service
 
 ## Android (Termux)
 
-**Important Note**: Electron desktop mode is **not supported** on Android. However, you can run AionUi in WebUI mode using Termux with a prooted Linux environment.
+**Important Note**: Electron desktop mode is **not supported** on Android. However, you can run Chisl in WebUI mode using Termux with a prooted Linux environment.
 
-> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making AionUi accessible on Android devices! 🙏
+> **Community Contribution**: This guide is contributed by [@Manamama](https://github.com/Manamama). Special thanks for making Chisl accessible on Android devices! 🙏
 >
-> **Original Tutorial**: [Running AionUi WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
+> **Original Tutorial**: [Running Chisl WebUI on Android via Termux + Proot Ubuntu](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
 >
-> **Related Issues**: [#217 - Android Support Discussion](https://github.com/iOfficeAI/AionUi/issues/217)
+> **Related Issues**: [#217 - Android Support Discussion](https://github.com/schlambos/chisel-ui/issues/217)
 
 ### Prerequisites
 
@@ -281,15 +281,15 @@ apt install -y \
     libcups2
 ```
 
-#### 4. Download and Install AionUi
+#### 4. Download and Install Chisl
 
 ```bash
 # Download the ARM64 .deb package (replace VERSION with the actual version)
-# Check latest version at: https://github.com/iOfficeAI/AionUi/releases
-wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
+# Check latest version at: https://github.com/schlambos/chisel-ui/releases
+wget https://github.com/schlambos/chisel-ui/releases/download/vVERSION/AionUi_VERSION_arm64.deb
 
 # Example (replace VERSION with the release tag, e.g. v1.5.2):
-wget https://github.com/iOfficeAI/AionUi/releases/download/vVERSION/AionUi_VERSION_arm64.deb
+wget https://github.com/schlambos/chisel-ui/releases/download/vVERSION/AionUi_VERSION_arm64.deb
 
 # Install the package
 apt install -y ./AionUi_*.deb
@@ -298,10 +298,10 @@ apt install -y ./AionUi_*.deb
 which AionUi
 ```
 
-#### 5. Launch AionUi WebUI
+#### 5. Launch Chisl WebUI
 
 ```bash
-# Start AionUi in WebUI mode with no-sandbox flag
+# Start Chisl in WebUI mode with no-sandbox flag (binary is named `AionUi`)
 AionUi --no-sandbox --webui
 ```
 
@@ -331,10 +331,10 @@ These errors are related to D-Bus and X server, which are not needed for WebUI m
 
 ### Remote Access on LAN
 
-To access AionUi from other devices on your local network:
+To access Chisl from other devices on your local network:
 
 ```bash
-# Start with --remote flag
+# Start with --remote flag (binary is named `AionUi`)
 AionUi --no-sandbox --webui --remote
 
 # Find your Android device's IP address
@@ -364,11 +364,11 @@ chmod +x /opt/AionUi/aionui
 
 #### Out of Memory
 
-AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
+Chisl requires sufficient RAM. Close other apps if you encounter memory issues.
 
 #### Cannot Access from Browser
 
-1. Check if AionUi is running: look for "Server started" message
+1. Check if Chisl is running: look for "Server started" message
 2. Try using Termux's built-in browser or Chrome
 3. Clear browser cache
 
@@ -377,24 +377,24 @@ AionUi requires sufficient RAM. Close other apps if you encounter memory issues.
 1. **Use a lightweight browser** - Chrome or Firefox Focus recommended
 2. **Close background apps** - Free up RAM for better performance
 3. **Use WiFi** - More stable than mobile data for remote access
-4. **Keep device charged** - Running AionUi consumes battery
+4. **Keep device charged** - Running Chisl consumes battery
 
 ### Tested Environment
 
 - **Device**: Android 14
 - **Termux Version**: 0.118.0
-- **AionUi Version**: Latest release (e.g. 1.5.2)
+- **Chisl Version**: Latest release (e.g. 1.5.2)
 - **Proot-distro**: Ubuntu (latest)
 
 ### Creating a Startup Script
 
-For convenience, create a script to launch AionUi quickly:
+For convenience, create a script to launch Chisl quickly:
 
 ```bash
 # Create script in Ubuntu (proot)
 cat > ~/start-aionui.sh << 'EOF'
 #!/bin/bash
-echo "Starting AionUi WebUI..."
+echo "Starting Chisl WebUI..."
 AionUi --no-sandbox --webui --remote
 EOF
 
@@ -418,7 +418,7 @@ proot-distro login ubuntu -- bash -c "AionUi --no-sandbox --webui --remote"
 If you encounter issues or have suggestions for improving Android support:
 
 1. Check the [original community guide](https://gist.github.com/Manamama/b4f903c279b5e73bdad4c2c0a58d5ddd)
-2. Report issues at [GitHub Issues #217](https://github.com/iOfficeAI/AionUi/issues/217)
+2. Report issues at [GitHub Issues #217](https://github.com/schlambos/chisel-ui/issues/217)
 3. Share your experience to help other Android users!
 
 ---
@@ -494,7 +494,7 @@ If port 3000 is already in use, the application will automatically try the next 
 
 ```cmd
 # Allow through Windows Firewall
-netsh advfirewall firewall add rule name="AionUi WebUI" dir=in action=allow protocol=TCP localport=3000
+netsh advfirewall firewall add rule name="Chisl WebUI" dir=in action=allow protocol=TCP localport=3000
 ```
 
 **Linux (UFW):**
@@ -504,7 +504,7 @@ sudo ufw allow 3000/tcp
 ```
 
 **macOS:**
-Go to **System Preferences** → **Security & Privacy** → **Firewall** → **Firewall Options** → Add AionUi
+Go to **System Preferences** → **Security & Privacy** → **Firewall** → **Firewall Options** → Add `AionUi.app`
 
 ### Application Not Found
 
@@ -676,9 +676,7 @@ npm run resetpass -- username
 ## Additional Resources
 
 - [Main README](../readme.md)
-- [中文说明](./readme/readme_ch.md)
-- [日本語ドキュメント](./readme/readme_jp.md)
-- [GitHub Issues](https://github.com/iOfficeAI/AionUi/issues)
+- [GitHub Issues](https://github.com/schlambos/chisel-ui/issues)
 
 ---
 
@@ -687,13 +685,13 @@ npm run resetpass -- username
 If you encounter any issues:
 
 1. Check the [Troubleshooting](#troubleshooting) section
-2. Search [existing issues](https://github.com/iOfficeAI/AionUi/issues)
-3. Create a [new issue](https://github.com/iOfficeAI/AionUi/issues/new) with:
+2. Search [existing issues](https://github.com/schlambos/chisel-ui/issues)
+3. Create a [new issue](https://github.com/schlambos/chisel-ui/issues/new) with:
    - Your OS and version
-   - AionUi version
+   - Chisl version
    - Steps to reproduce
    - Error messages or logs
 
 ---
 
-**Happy using AionUi in WebUI mode!** 🚀
+**Happy using Chisl in WebUI mode!** 🚀

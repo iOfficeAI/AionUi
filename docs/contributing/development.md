@@ -11,8 +11,8 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/iOfficeAI/AionUi.git
-cd AionUi
+git clone https://github.com/schlambos/chisel-ui.git
+cd chisel-ui
 
 # Install dependencies
 bun install
@@ -105,7 +105,7 @@ bun start
 
 ## Multi-Instance Development
 
-When you have two clones of the repository (e.g. `AionUi` and `AionUi-refactor`) and need to run both simultaneously, the second instance can be started with:
+When you have two clones of the repository (e.g. `chisel-ui` and `chisel-ui-refactor`) and need to run both simultaneously, the second instance can be started with:
 
 ```bash
 bun run start:multi
@@ -140,7 +140,7 @@ prek run --from-ref origin/main --to-ref HEAD
 
 ## Build System
 
-AionUi uses **electron-vite** for fast bundling:
+Chisl uses **electron-vite** for fast bundling:
 
 - **Main process**: bundled with Vite (ESM)
 - **Renderer process**: bundled with Vite (React + TypeScript)

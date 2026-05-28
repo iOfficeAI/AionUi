@@ -1,8 +1,8 @@
-# AionUI Code Review Style Guide
+# Chisl Code Review Style Guide
 
 ## Overview
 
-This document defines the coding standards and best practices for the AionUI project. The AI code reviewer should use these guidelines when reviewing pull requests.
+This document defines the coding standards and best practices for the Chisl project. The AI code reviewer should use these guidelines when reviewing pull requests.
 
 ## Technology Stack
 
