@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>A desktop interface forge for remote headless OpenCode servers and local coding agents.</strong>
+  <strong>A desktop interface forge for OpenCode remote agents and local coding-agent CLIs.</strong>
 </p>
 
 <p align="center">
@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-Apache--2.0-b4480c?style=flat-square" /></a>
-  <img alt="OpenCode Remote" src="https://img.shields.io/badge/OpenCode-remote%20server-b4480c?style=flat-square" />
+  <img alt="OpenCode Remote" src="https://img.shields.io/badge/OpenCode-remote%20agent-b4480c?style=flat-square" />
   <img alt="Claude Code" src="https://img.shields.io/badge/Claude%20Code-supported-607848?style=flat-square" />
   <img alt="Gemini CLI" src="https://img.shields.io/badge/Gemini%20CLI-supported-305460?style=flat-square" />
   <img alt="Codex" src="https://img.shields.io/badge/Codex-supported-c08418?style=flat-square" />
@@ -31,112 +31,80 @@
 
 ## What Chisl Does
 
-Chisl gives coding agents a durable desktop interface. Run the agent environment on the machine that has your repositories, terminals, credentials, and tools; then drive it from the Chisl desktop client.
+Chisl is a desktop client for driving coding agents through a durable UI instead of a raw terminal. Its primary path is connecting the desktop app to a registered **OpenCode remote agent**. It also supports local CLI-backed agent sessions.
 
-The primary target is **desktop client to remote headless OpenCode server** usage. Chisl turns a remote OpenCode server into a richer command center with chat, workspace files, permission handling, mode switching, model visibility, and persistent session context.
+Chisl does not prescribe where project files, secrets, or execution context live. Context and tools can be supplied through the configured agent runtime and MCP/tooling connectors.
 
-It also supports local agent workflows for:
+Supported workflows visible in the codebase:
 
-| Agent          | Typical use                                                      |
-| -------------- | ---------------------------------------------------------------- |
-| OpenCode local | Run OpenCode directly on the current machine.                    |
-| Claude Code    | Work with Claude Code sessions from the same Chisl interface.    |
-| Gemini CLI     | Start and continue Gemini CLI-backed coding sessions.            |
-| Codex          | Use Codex sessions with workspace, tool-call, and permission UI. |
+| Workflow              | What Chisl exposes                                                                                                                                                                               |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| OpenCode remote agent | Register a remote endpoint, test/handshake it, fetch model metadata, send messages, attach files, use OpenCode modes, slash commands, stop active runs, and inspect context usage when reported. |
+| OpenCode local        | Use a detected local OpenCode-style agent from the same chat interface.                                                                                                                          |
+| Claude Code           | Use detected Claude Code sessions through the local-agent flow.                                                                                                                                  |
+| Gemini CLI            | Use Gemini CLI-backed sessions and Gemini modes.                                                                                                                                                 |
+| Codex                 | Use Codex sessions with Chisl conversation, tool-call, and permission UI.                                                                                                                        |
+| Custom local agent    | Define an ACP-style command, args, env, icon, and advanced settings from the Agent settings page.                                                                                                |
 
-## Why It Exists
+## Feature Map
 
-Terminal-first coding agents are powerful, but raw terminals are not enough once you want to run them all day, from multiple devices, across multiple repositories.
+This section documents features from the implementation rather than product guesses.
 
-Chisl adds the missing interface layer:
+| Feature set                     | What exists                                                                                                                                                                                                                          | Source anchors                                                                                                                                                                     |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remote agent registry           | Add, edit, delete, list, test connection, and handshake remote agents. Config includes name, protocol, URL, auth type, auth token/password, avatar, description, and insecure TLS toggle.                                            | `packages/desktop/src/renderer/pages/settings/AgentSettings/RemoteAgentManagement.tsx`, `packages/desktop/src/common/types/agent/remoteAgentTypes.ts`                              |
+| OpenCode remote model discovery | Registered OpenCode remote agents can have model metadata refreshed from the backend route that calls the OpenCode daemon provider endpoint.                                                                                         | `packages/desktop/src/renderer/utils/model/remoteAgentModels.ts`, `packages/desktop/src/common/adapter/ipcBridge.ts`                                                               |
+| Agent picker integration        | Remote-agent rows are merged into the same start-page agent list as detected local agents.                                                                                                                                           | `packages/desktop/src/renderer/pages/guid/hooks/useGuidAgentSelection.ts`                                                                                                          |
+| OpenCode-specific controls      | OpenCode remote sessions enable mode switching and slash-command discovery; those controls are gated on `protocol === 'opencode'`.                                                                                                   | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                                              |
+| Conversation sending            | Messages are sent through the shared conversation bridge. Selected local files and workspace items are serialized as file paths alongside the prompt.                                                                                | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                                              |
+| Command queue                   | When a conversation is busy, new prompts can be queued, reordered, paused, resumed, edited, removed, or cleared.                                                                                                                     | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/useConversationCommandQueue.ts` |
+| Stop and running state          | Active remote runs can be stopped from the send box; stream/thought/running state is handled by the remote-message hook.                                                                                                             | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/useRemoteMessage.ts`     |
+| Context usage display           | The remote send box shows token/context usage when the backend reports it.                                                                                                                                                           | `packages/desktop/src/renderer/components/agent/ContextUsageIndicator.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                  |
+| Local detected agents           | Detected local agents are displayed in Agent settings and can be opened directly in chat.                                                                                                                                            | `packages/desktop/src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`                                                                                                       |
+| Custom local agents             | Users can create, edit, enable/disable, and delete custom command-based agents.                                                                                                                                                      | `packages/desktop/src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`, `packages/desktop/src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx`                   |
+| MCP and tools                   | Capabilities settings include MCP server management and speech-to-text settings. MCP server operations include add, batch import, edit, delete, enable/disable, connection testing, OAuth status/login, and sync/remove with agents. | `packages/desktop/src/renderer/pages/settings/CapabilitiesSettings.tsx`, `packages/desktop/src/renderer/components/settings/SettingsModal/contents/ToolsModalContent.tsx`          |
+| Skills                          | Skills settings list available built-in, custom, and extension skills; support search, refresh, folder import, symlink import, and delete.                                                                                           | `packages/desktop/src/renderer/pages/settings/SkillsHubSettings.tsx`                                                                                                               |
+| Display and branding            | The app includes a Chisl color scheme and a scheme switcher alongside the default Gruvbox option.                                                                                                                                    | `packages/desktop/src/renderer/styles/themes/chisl-color-scheme.css`, `packages/desktop/src/renderer/components/settings/ColorSchemeSwitcher.tsx`                                  |
 
-| Problem                                                         | Chisl answer                                                                            |
-| --------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
-| Agents run on a remote box, but terminals are a thin interface. | A desktop client connected to the remote headless OpenCode server.                      |
-| Terminal output is hard to inspect later.                       | Persistent conversations, grouped history, streaming messages, and searchable sessions. |
-| Tool calls and permission prompts need supervision.             | Dedicated permission, tool-call, and confirmation UI.                                   |
-| Agents edit files, but you need context.                        | Workspace browser, file picker, code/markdown/diff/image previews, and file mentions.   |
-| Different CLIs have different modes and model surfaces.         | One control plane for modes, models, messages, and session metadata.                    |
-| You want to extend the interface.                               | Extension hooks for agents, tools, skills, themes, and settings.                        |
+## Remote OpenCode Flow
 
-## Product Model
+The remote OpenCode path is configured as a remote-agent entry in Agent settings.
 
-### Desktop Client First
+Code-backed behavior:
 
-Chisl is a desktop product first. The intended primary setup is a Chisl desktop client connected to a remote, headless OpenCode server running near your code.
+| Step               | Behavior                                                                                                                                                                            |
+| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Register endpoint  | Add a remote agent with protocol `opencode`, URL, auth type, and optional token/password.                                                                                           |
+| Test connection    | The settings modal calls the remote-agent test route before saving if requested.                                                                                                    |
+| Save and handshake | Saving an OpenCode remote agent triggers a handshake.                                                                                                                               |
+| Select in chat     | Registered remote agents are merged into the start-page agent picker.                                                                                                               |
+| Fetch models       | OpenCode remote agents can refresh available models from the remote provider endpoint through the backend.                                                                          |
+| Chat               | Messages go through the shared conversation send bridge.                                                                                                                            |
+| Add context        | File attachments and selected workspace items are sent with the message as file paths. MCP/tool connectors can provide additional runtime context outside the README's assumptions. |
+| Control the run    | The UI can stop a run, queue additional prompts, and show mode/context controls when available.                                                                                     |
 
-Use it when you want:
+## Local Agent Flow
 
-| Goal                                       | Result                                                                  |
-| ------------------------------------------ | ----------------------------------------------------------------------- |
-| Keep OpenCode running near your code.      | The remote server has access to the workspace, credentials, and tools.  |
-| Use a real interface instead of a raw TTY. | The desktop client provides chat, files, previews, modes, and prompts.  |
-| Work across multiple repositories.         | Chisl keeps sessions organized by workspace and agent.                  |
-| Supervise agent actions clearly.           | Permission prompts and tool calls get dedicated UI instead of log spam. |
+Local agents are secondary but supported.
 
-### Remote Headless OpenCode Server
+Code-backed behavior:
 
-The remote OpenCode server is where agent execution happens. It should live on the workstation, VM, or development box that can see the repositories and run the CLI tooling.
+| Feature          | Behavior                                                                                                              |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Detected agents  | The Agent settings page reads detected local agents and shows them as chat targets.                                   |
+| Custom agents    | Users can define a command, args, env, icon, and advanced options for a custom agent.                                 |
+| Agent launch     | The start page restores or preselects available agents and routes to conversation creation.                           |
+| Modes and models | The start page resolves mode/model metadata from agent config, handshake data, or remote model cache where available. |
 
-Chisl is the control surface for that server:
+## MCP, Skills, And Context
 
-| Capability             | Notes                                                                                  |
-| ---------------------- | -------------------------------------------------------------------------------------- |
-| Remote session control | Start, continue, stop, and inspect remote OpenCode sessions.                           |
-| Conversation workspace | Chat, stream responses, inspect tool calls, stop runs, and continue history.           |
-| File context           | Attach files, mention files, browse workspaces, and preview generated or edited files. |
-| Mode control           | Switch supported OpenCode modes from the desktop UI.                                   |
-| Display control        | Switch between Gruvbox and Chisl color schemes, light/dark mode, and custom CSS.       |
+Chisl includes UI for managing MCP servers and skills. These are the appropriate places to document tool/context integration; the README should not prescribe endpoint filesystem or secret layout.
 
-### Local Agent Support
-
-Local agents are supported, but they are not the main product shape. Use local Claude Code, OpenCode, Gemini CLI, or Codex when you want Chisl to front a CLI on the same machine as the desktop app.
-
-## Agent Workflows
-
-### OpenCode Remote First
-
-Chisl is optimized around OpenCode running remotely. The headless server stays close to the repository and OpenCode runtime; the desktop UI can be somewhere else.
-
-Remote OpenCode sessions get the richer parts of the interface:
-
-| Feature                   | What it means                                                          |
-| ------------------------- | ---------------------------------------------------------------------- |
-| Remote session continuity | Continue work without tying the UI to one terminal window.             |
-| Build/plan mode control   | Switch OpenCode modes from the UI where supported.                     |
-| Model metadata            | Show the model/provider reported by the remote session when available. |
-| Slash-command support     | Surface OpenCode command affordances where the session supports them.  |
-| Workspace file context    | Add files and browse the remote workspace through the Chisl interface. |
-
-### Local CLI Agents
-
-Chisl also works as a local front-end for supported CLI agents. Install and authenticate the CLI you want to use, then select it in Chisl when starting a session.
-
-Supported local workflows currently include:
-
-| Workflow       | Notes                                                                   |
-| -------------- | ----------------------------------------------------------------------- |
-| Claude Code    | Uses your local Claude Code setup and permissions.                      |
-| OpenCode local | Runs OpenCode on the same machine as Chisl.                             |
-| Gemini CLI     | Uses Gemini CLI-backed sessions and Gemini-oriented modes.              |
-| Codex          | Uses Codex sessions with Chisl's conversation and permission interface. |
-
-## Core Features
-
-| Feature                  | Description                                                              |
-| ------------------------ | ------------------------------------------------------------------------ |
-| Multi-agent entry point  | Choose from remote OpenCode and supported local CLIs from one interface. |
-| Persistent conversations | Keep session history organized by workspace and agent.                   |
-| Streaming chat           | Watch agent output as it happens and stop active runs when needed.       |
-| Permission handling      | Review and answer confirmations without digging through terminal output. |
-| Tool-call summaries      | Inspect what the agent is doing at a higher level.                       |
-| Workspace browser        | Browse directories, read files, preview images, and inspect diffs.       |
-| File mentions            | Add precise file context to prompts from the workspace.                  |
-| Model and mode controls  | Adjust supported agent modes and view model/provider information.        |
-| MCP tools and skills     | Add tool servers and reusable skills for agent workflows.                |
-| Extensions               | Contribute agents, adapters, tools, themes, and settings tabs.           |
-| Channels                 | Connect supported messaging channels for assistant interactions.         |
-| Themes                   | Use the warm Chisl palette, Gruvbox, dark/light mode, or custom CSS.     |
+| Area        | Behavior                                                                                                |
+| ----------- | ------------------------------------------------------------------------------------------------------- |
+| MCP servers | Add, import, edit, delete, enable/disable, test, authenticate, and sync MCP servers to agents.          |
+| Skills      | Browse built-in/custom/extension skills, import skill folders, search, refresh, and delete user skills. |
+| Voice       | Configure speech-to-text providers for voice input.                                                     |
 
 ## Branding
 
@@ -148,7 +116,6 @@ The README uses the same in-repo brand assets as the application.
 | App mark      | `packages/desktop/src/renderer/assets/logos/brand/app.png`           |
 | Gray wordmark | `packages/desktop/src/renderer/assets/logos/brand/wordmark-gray.png` |
 | Packaged icon | `resources/app.png`                                                  |
-| PWA icons     | `public/pwa/icon-192.png`, `public/pwa/icon-512.png`                 |
 
 The Chisl color scheme is a muted retro palette sampled from the logo and wordmark.
 
@@ -163,15 +130,6 @@ The Chisl color scheme is a muted retro palette sampled from the logo and wordma
 
 ## Quick Start
 
-### Requirements
-
-| Requirement         | Notes                                                                                                    |
-| ------------------- | -------------------------------------------------------------------------------------------------------- |
-| Node.js             | `>=22 <25`                                                                                               |
-| Bun                 | Used for install and project scripts.                                                                    |
-| Supported agent CLI | Install and authenticate OpenCode, Claude Code, Gemini CLI, or Codex depending on the workflow you want. |
-| Remote access       | For remote use, run Chisl where the repositories and agent CLI credentials live.                         |
-
 Install dependencies:
 
 ```bash
@@ -184,27 +142,21 @@ Run the desktop app:
 bun run dev
 ```
 
-Build the app:
+Build the app output:
 
 ```bash
 bun run package
 ```
 
-## Useful Commands
+Create packaged desktop artifacts:
 
-| Command                | Purpose                                    |
-| ---------------------- | ------------------------------------------ |
-| `bun run dev`          | Start the desktop app in development mode. |
-| `bun run package`      | Build app output.                          |
-| `bun run dist`         | Create packaged desktop artifacts.         |
-| `bun run lint`         | Run lint checks.                           |
-| `bun run format:check` | Check formatting.                          |
-| `bunx tsc --noEmit`    | Type-check.                                |
-| `bun run test`         | Run tests.                                 |
+```bash
+bun run dist
+```
 
 ## Development Checks
 
-Before opening or pushing changes, the most useful local checks are:
+Useful local checks:
 
 ```bash
 bun run lint
@@ -227,13 +179,10 @@ node scripts/check-i18n.js
 | Contributor guide    | `CONTRIBUTING.md`                     |
 | Development setup    | `docs/contributing/development.md`    |
 | File structure rules | `docs/contributing/file-structure.md` |
-| Server deployment    | `docs/guides/deploy-server.md`        |
 
 ## Status
 
-Chisl is moving quickly. The current center of gravity is remote OpenCode operation with a desktop client on top, while local Claude Code, OpenCode, Gemini CLI, and Codex workflows remain supported.
-
-Expect some internal names, package metadata, and environment variables to lag behind the Chisl branding while the product surface stabilizes.
+Chisl is moving quickly. The README intentionally documents only features verified from the current codebase.
 
 ## License
 
