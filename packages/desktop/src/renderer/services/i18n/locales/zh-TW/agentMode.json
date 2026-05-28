@@ -9,6 +9,8 @@
   "yolo": "全自動",
   "yoloNoSandbox": "全自動（無沙盒）",
   "auto": "自動",
+  "readOnly": "唯讀",
+  "fullAccess": "完全存取",
   "dontAsk": "僅預批准",
   "bypass": "繞過檢查",
   "bypassPermissions": "全自動",

@@ -9,6 +9,8 @@
   "yolo": "YOLO",
   "yoloNoSandbox": "Tam Otomatik (Sandbox Yok)",
   "auto": "Otomatik",
+  "readOnly": "Salt Okunur",
+  "fullAccess": "Tam Erişim",
   "dontAsk": "Yalnızca Ön Onaylı",
   "bypass": "Bypass (YOLO)",
   "bypassPermissions": "YOLO",

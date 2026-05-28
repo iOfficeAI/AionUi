@@ -19,6 +19,13 @@ export interface AgentModeOption {
   value: string;
   /** Display label matching CLI display / 与 CLI 显示一致的标签 */
   label: string;
+  /**
+   * Override key used to resolve the i18n translation under `agentMode.*`.
+   * Falls back to `value` when omitted. Use this when the mode value collides
+   * with another semantic (e.g. codex `auto` is shown as "Default") or is not
+   * a valid camelCase key (e.g. codex `read-only` / `full-access`).
+   */
+  labelKey?: string;
   /** Optional description / 可选描述 */
   description?: string;
 }
@@ -68,9 +75,9 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
     { value: 'yolo', label: 'YOLO' },
   ],
   codex: [
-    { value: CODEX_MODE_READ_ONLY, label: 'Read Only' },
-    { value: CODEX_MODE_NATIVE_DEFAULT, label: 'Default' },
-    { value: CODEX_MODE_NATIVE_FULL_ACCESS, label: 'Full Access' },
+    { value: CODEX_MODE_READ_ONLY, label: 'Read Only', labelKey: 'readOnly' },
+    { value: CODEX_MODE_NATIVE_DEFAULT, label: 'Default', labelKey: 'default' },
+    { value: CODEX_MODE_NATIVE_FULL_ACCESS, label: 'Full Access', labelKey: 'fullAccess' },
   ],
   cursor: [
     { value: 'agent', label: 'Agent', description: 'Full agent capabilities with tool access' },

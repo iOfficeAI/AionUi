@@ -667,7 +667,7 @@ Please check your local CLI tool authentication status`,
               compact
               initialMode={session_mode}
               compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label })}
               compactLabelPrefix={t('agentMode.permission')}
               hideCompactLabelPrefixOnMobile
               onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
