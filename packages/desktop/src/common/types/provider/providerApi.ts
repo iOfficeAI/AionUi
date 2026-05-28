@@ -86,6 +86,7 @@ export type ProviderHealthCheckErrorKind =
   | 'forbidden'
   | 'not_found'
   | 'insufficient_quota'
+  | 'aws_credentials'
   | 'invalid_request'
   | 'rate_limited'
   | 'connection_error'
