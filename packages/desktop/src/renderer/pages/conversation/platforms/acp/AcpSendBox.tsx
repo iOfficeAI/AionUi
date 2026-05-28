@@ -30,6 +30,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -160,7 +161,7 @@ const AcpSendBox: React.FC<{
     if (!teamPermission) return;
     void teamPermission
       .warmupSession()
-      .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+      .then(() => warmupConversation(conversation_id))
       .then(() => {
         fetchSlashCommands();
       })

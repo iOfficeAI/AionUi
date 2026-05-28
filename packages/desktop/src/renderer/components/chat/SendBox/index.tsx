@@ -15,6 +15,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { buildAtFileInsertion, getActiveAtFileQuery, getAllAtFileQueries } from '@/renderer/utils/chat/atFileQuery';
 import { getLastAssistantText } from '@/renderer/utils/chat/getLastAssistantText';
 import { emitter, type ReplyQuote, useAddEventListener } from '@/renderer/utils/emitter';
@@ -1007,7 +1008,7 @@ const SendBox: React.FC<{
       if (warmupTimerRef.current) clearTimeout(warmupTimerRef.current);
       warmupTimerRef.current = setTimeout(() => {
         warmedConversationRef.current = cid;
-        ipcBridge.conversation.warmup.invoke({ conversation_id: cid }).catch(() => {});
+        warmupConversation(cid).catch(() => {});
       }, 1000);
     }
   }, [handlePasteFocus, isMobile, conversationContext?.conversation_id]);

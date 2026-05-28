@@ -20,7 +20,7 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
-import { classifyHealthCheckMessage } from './healthCheckUtils';
+import { classifyHealthCheckMessage, getHealthCheckErrorMessage } from './healthCheckUtils';
 import '../model-provider.css';
 
 /**
@@ -279,7 +279,7 @@ const ModelModalContent: React.FC = () => {
             }
             resolveOnce({
               success: false,
-              error: (msg.data as { error?: string } | undefined)?.error || 'Unknown error',
+              error: getHealthCheckErrorMessage(msg.data),
               latency: duration,
             });
             return;

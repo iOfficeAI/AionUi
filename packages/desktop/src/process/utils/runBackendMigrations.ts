@@ -134,6 +134,30 @@ function buildBuiltinImageGenerationServer(
   };
 }
 
+function areStringArraysEqual(left?: string[], right?: string[]): boolean {
+  const leftValue = left || [];
+  const rightValue = right || [];
+  return leftValue.length === rightValue.length && leftValue.every((item, index) => item === rightValue[index]);
+}
+
+function areStringRecordsEqual(left?: Record<string, string>, right?: Record<string, string>): boolean {
+  const leftValue = left || {};
+  const rightValue = right || {};
+  const leftKeys = Object.keys(leftValue).sort();
+  const rightKeys = Object.keys(rightValue).sort();
+  return areStringArraysEqual(leftKeys, rightKeys) && leftKeys.every((key) => leftValue[key] === rightValue[key]);
+}
+
+function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['transport']): boolean {
+  return (
+    left.type === 'stdio' &&
+    right.type === 'stdio' &&
+    left.command === right.command &&
+    areStringArraysEqual(left.args, right.args) &&
+    areStringRecordsEqual(left.env, right.env)
+  );
+}
+
 function buildDefaultMcpServers(): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
@@ -174,6 +198,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   const defaultServers = buildDefaultMcpServers();
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
   let imageServerToSync: IMcpServer | undefined;
+  let imageServerUpdated = false;
 
   if (missing.length > 0) {
     const imported = await mcpService.batchImportServers.invoke({ servers: missing });
@@ -207,15 +232,30 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
       null,
       2
     );
-    const updatedImageServer = await mcpService.updateServer.invoke({
-      id: existingImageServer.id,
-      data: {
-        transport: updatedTransport,
-        original_json,
-      },
-    });
-    if (updatedImageServer.enabled) {
-      imageServerToSync = updatedImageServer;
+    const imageTransportChanged = !isSameStdioTransport(existingImageServer.transport, updatedTransport);
+    const imageOriginalJsonChanged = existingImageServer.original_json !== original_json;
+    const imageServerChanged = imageTransportChanged || imageOriginalJsonChanged;
+    const willSyncImageServer = imageTransportChanged && existingImageServer.enabled;
+    console.info(
+      '[Migration] image MCP bootstrap decision, server id: %s, transport changed: %s, json changed: %s, will update: %s, will sync: %s',
+      existingImageServer.id,
+      imageTransportChanged ? 'yes' : 'no',
+      imageOriginalJsonChanged ? 'yes' : 'no',
+      imageServerChanged ? 'yes' : 'no',
+      willSyncImageServer ? 'yes' : 'no'
+    );
+    if (imageServerChanged) {
+      const updatedImageServer = await mcpService.updateServer.invoke({
+        id: existingImageServer.id,
+        data: {
+          transport: updatedTransport,
+          original_json,
+        },
+      });
+      imageServerUpdated = true;
+      if (imageTransportChanged && updatedImageServer.enabled) {
+        imageServerToSync = updatedImageServer;
+      }
     }
   } else if (existingImageServer && imageEnvResolution.ok === false) {
     console.warn(
@@ -237,7 +277,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   console.info(
     '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s, synced image server: %s',
     missing.length,
-    existingImageServer && imageEnvResolution.ok ? 'yes' : 'no',
+    imageServerUpdated ? 'yes' : 'no',
     imageConfigSource,
     imageConfig?.switch === true ? 'yes' : 'no',
     imageServerToSync ? 'yes' : 'no'
