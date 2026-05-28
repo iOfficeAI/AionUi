@@ -7,6 +7,8 @@
   "yolo": "全自動",
   "yoloNoSandbox": "全自動（サンドボックスなし）",
   "auto": "自動",
+  "readOnly": "読み取り専用",
+  "fullAccess": "フルアクセス",
   "dontAsk": "事前承認のみ",
   "bypass": "チェックをバイパス",
   "bypassPermissions": "全自動",

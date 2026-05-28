@@ -7,6 +7,8 @@
   "yolo": "YOLO",
   "yoloNoSandbox": "Full Auto (No Sandbox)",
   "auto": "Auto",
+  "readOnly": "Read Only",
+  "fullAccess": "Full Access",
   "dontAsk": "Don't Ask",
   "bypass": "Bypass (YOLO)",
   "bypassPermissions": "YOLO",
