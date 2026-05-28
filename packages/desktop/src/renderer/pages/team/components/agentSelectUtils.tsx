@@ -61,6 +61,22 @@ export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentO
   return agents.filter((a) => a.team_capable);
 }
 
+/**
+ * Get display label for a team agent option.
+ * Preset assistants keep their original name; CLI agents are branded.
+ */
+export function getTeamAgentOptionLabel(option: {
+  id: string;
+  name: string;
+  kind?: string;
+  backend?: string;
+}): string {
+  if (option.kind === 'cli') {
+    return 'POUNDING CLI';
+  }
+  return option.name;
+}
+
 export function resolveConversationType(
   backend: string
 ): 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
