@@ -210,3 +210,10 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
 };
 
 export default DirectorySelectionModal;
+
+/**
+ * Normalize displayed paths for branding: replace ".aionrs" with ".pounding"
+ */
+export function normalizeDisplayedPath(path: string): string {
+  return path.replace(/\.aionrs/g, '.pounding');
+}

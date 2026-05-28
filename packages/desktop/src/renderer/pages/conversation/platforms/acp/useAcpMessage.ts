@@ -615,3 +615,54 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     fetchSlashCommands,
   };
 };
+
+/**
+ * Extract fallback display text from a completed ACP tool call message.
+ * Handles Hermes terminal output format and OpenCode raw_output format.
+ */
+export function extractCompletedToolFallbackText(
+  message: any,
+): string | undefined {
+  const update = message?.content?.update;
+  if (!update) return undefined;
+
+  // Hermes format: content array with text containing "output:" marker
+  const contentEntry = update.content?.find(
+    (c: any) => c?.type === 'content' && c?.content?.type === 'text',
+  );
+  if (contentEntry) {
+    const text: string = contentEntry.content.text;
+    const match = text.match(/\*\*output:\*\*\s*(.+)/);
+    if (match) return match[1].trim();
+  }
+
+  // OpenCode format: raw_output with output string
+  if (update.raw_output?.output) {
+    return update.raw_output.output.trim();
+  }
+
+  return undefined;
+}
+
+/**
+ * Build a fallback assistant text message for rendering when
+ * the original ACP tool call content cannot be displayed.
+ */
+export function buildAcpFallbackAssistantText(opts: {
+  conversationId: string;
+  msgId: string;
+  content: string;
+  createdAt: number;
+}): any {
+  return {
+    conversation_id: opts.conversationId,
+    msg_id: opts.msgId,
+    type: 'text',
+    position: 'left',
+    created_at: opts.createdAt,
+    content: {
+      content: opts.content,
+      replace: true,
+    },
+  };
+}

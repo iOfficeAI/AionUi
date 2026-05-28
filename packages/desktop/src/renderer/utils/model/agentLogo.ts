@@ -125,6 +125,15 @@ export function hasAgentLogo(agent: string | undefined | null): boolean {
 }
 
 /**
+ * Get display name for an agent with fallback chain: name → backend → agent_type
+ * 获取代理的显示名称，按 name → backend → agent_type 回退
+ */
+export function getAgentDisplayName(agent: { name?: string | null; backend?: string | null; agent_type?: string | null } | undefined | null): string {
+  if (!agent) return '';
+  return agent.name || agent.backend || agent.agent_type || '';
+}
+
+/**
  * Check if a model value/label indicates it's a default/recommended model
  * 检查模型值/标签是否表示默认/推荐模型
  *
