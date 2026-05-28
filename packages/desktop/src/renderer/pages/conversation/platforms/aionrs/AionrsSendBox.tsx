@@ -32,6 +32,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -144,7 +145,7 @@ const AionrsSendBox: React.FC<{
     if (teamPermission) {
       void teamPermission
         .warmupSession()
-        .then(() => ipcBridge.conversation.warmup.invoke({ conversation_id }))
+        .then(() => warmupConversation(conversation_id))
         .then(() => {
           setAgentWarmed(true);
         })
@@ -152,8 +153,7 @@ const AionrsSendBox: React.FC<{
       return;
     }
     setAgentWarmed(false);
-    void ipcBridge.conversation.warmup
-      .invoke({ conversation_id })
+    void warmupConversation(conversation_id)
       .then(() => {
         setAgentWarmed(true);
       })

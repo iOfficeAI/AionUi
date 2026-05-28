@@ -12,6 +12,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -543,8 +544,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   useEffect(() => {
     if (options?.skipWarmup) return;
     let cancelled = false;
-    void ipcBridge.conversation.warmup
-      .invoke({ conversation_id })
+    void warmupConversation(conversation_id)
       .then(() => {
         if (cancelled) return;
         return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
