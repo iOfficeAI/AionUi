@@ -14,7 +14,7 @@ const fs = require('fs');
 const os = require('os');
 const path = require('path');
 
-const GITHUB_OWNER = 'iOfficeAI';
+const GITHUB_OWNER = 'halojerry';
 const GITHUB_REPO = 'AionCore';
 
 // ---------------------------------------------------------------------------
