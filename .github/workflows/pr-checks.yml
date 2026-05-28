@@ -562,6 +562,8 @@ jobs:
 
       - name: Create mock build artifacts
         shell: bash
+        env:
+          MOCK_VERSION: '1.0.0'
         run: bash scripts/create-mock-release-artifacts.sh build-artifacts
 
       - name: Run prepare-release-assets script
