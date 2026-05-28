@@ -521,6 +521,10 @@ const ToolsModalContent: React.FC = () => {
   const imageGenerationInstalledAgents = builtinImageGenServer?.name
     ? (agentInstallStatus[builtinImageGenServer.name] ?? [])
     : [];
+  const isImageGenerationStatusLoading =
+    Boolean(builtinImageGenServer?.name) &&
+    isServerLoading(builtinImageGenServer.name) &&
+    imageGenerationInstalledAgents.length === 0;
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
@@ -817,20 +821,20 @@ const ToolsModalContent: React.FC = () => {
                   <McpAgentStatusDisplay
                     server_name={builtinImageGenServer.name}
                     agentInstallStatus={agentInstallStatus}
-                    isLoadingAgentStatus={
-                      isServerLoading(builtinImageGenServer.name) && imageGenerationInstalledAgents.length === 0
-                    }
+                    isLoadingAgentStatus={isImageGenerationStatusLoading}
                     alwaysVisible
                   />
                 )}
                 <Switch
                   disabled={
                     isUpdatingImageGeneration ||
+                    isImageGenerationStatusLoading ||
                     !builtinImageGenServer ||
-                    !imageGenerationModelList.length ||
-                    !imageGenerationModel?.use_model
+                    (!builtinImageGenServer?.enabled &&
+                      (!imageGenerationModelList.length || !imageGenerationModel?.use_model))
                   }
-                  checked={Boolean(builtinImageGenServer?.enabled)}
+                  checked={Boolean(builtinImageGenServer?.enabled) && !isImageGenerationStatusLoading}
+                  loading={isImageGenerationStatusLoading}
                   onChange={handleImageGenerationToggle}
                 />
               </div>
