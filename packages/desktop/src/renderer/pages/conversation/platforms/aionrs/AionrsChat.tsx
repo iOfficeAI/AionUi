@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IConversationMcpStatus } from '@/common/config/storage';
 import type { ConversationContextValue } from '@/renderer/hooks/context/ConversationContext';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
@@ -29,6 +30,8 @@ const AionrsChat: React.FC<{
   cron_job_id?: string;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
+  loadedMcpServers?: string[];
+  loadedMcpStatuses?: IConversationMcpStatus[];
   agent_name?: string;
 }> = ({
   conversation_id,
@@ -38,6 +41,8 @@ const AionrsChat: React.FC<{
   cron_job_id,
   emptySlot,
   loadedSkills,
+  loadedMcpServers,
+  loadedMcpStatuses,
   agent_name,
 }) => {
   useMessageLstCache(conversation_id);
@@ -47,8 +52,16 @@ const AionrsChat: React.FC<{
     updateLocalImage({ root: workspace });
   }, [workspace]);
   const conversationValue = useMemo<ConversationContextValue>(() => {
-    return { conversation_id: conversation_id, workspace, type: 'aionrs', cron_job_id, loadedSkills };
-  }, [conversation_id, workspace, cron_job_id, loadedSkills]);
+    return {
+      conversation_id: conversation_id,
+      workspace,
+      type: 'aionrs',
+      cron_job_id,
+      loadedSkills,
+      loadedMcpServers,
+      loadedMcpStatuses,
+    };
+  }, [conversation_id, workspace, cron_job_id, loadedSkills, loadedMcpServers, loadedMcpStatuses]);
 
   return (
     <ConversationProvider value={conversationValue}>

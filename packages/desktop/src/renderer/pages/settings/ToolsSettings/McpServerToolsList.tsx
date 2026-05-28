@@ -19,14 +19,14 @@ const McpServerToolsList: React.FC<McpServerToolsListProps> = ({ server }) => {
       <div>
         <div className='space-y-2'>
           {server.tools.map((tool, index) => (
-            <div key={index} className='border border-3 rounded p-3'>
+            <div key={index} className='rounded-lg border border-2 bg-bg-2 px-4 py-3'>
               <div className='flex gap-4'>
                 <div className='flex-shrink-0 min-w-0 w-1/3'>
-                  <div className='font-medium text-sm text-blue-600 break-words'>{tool.name}</div>
+                  <div className='break-words text-sm font-semibold text-t-primary'>{tool.name}</div>
                 </div>
                 <div className='flex-1 min-w-0'>
                   <Tooltip content={tool.description || t('settings.mcpNoDescription')}>
-                    <div className='text-xs text-t-secondary line-clamp-1 cursor-pointer'>
+                    <div className='line-clamp-1 cursor-pointer text-xs leading-5 text-t-secondary'>
                       {tool.description || t('settings.mcpNoDescription')}
                     </div>
                   </Tooltip>

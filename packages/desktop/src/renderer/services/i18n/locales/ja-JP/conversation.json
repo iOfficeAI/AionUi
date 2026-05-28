@@ -283,6 +283,14 @@
   "skills": {
     "loaded": "ロード済みスキル"
   },
+  "mcp": {
+    "loaded": "ロード済み MCP",
+    "status": {
+      "loaded": "読み込み済み",
+      "failed": "失敗",
+      "unsupported": "非対応"
+    }
+  },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照"
   },

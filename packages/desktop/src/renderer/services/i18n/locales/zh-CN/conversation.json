@@ -283,6 +283,14 @@
   "skills": {
     "loaded": "已加载技能"
   },
+  "mcp": {
+    "loaded": "已加载 MCP",
+    "status": {
+      "loaded": "已加载",
+      "failed": "失败",
+      "unsupported": "不支持"
+    }
+  },
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件"
   },

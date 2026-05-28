@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { execFile } from 'node:child_process';
 import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } from '@/common/config/configMigration';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
@@ -21,6 +22,7 @@ type ConfigFile = typeof ProcessConfigType;
 type MigrationStepResult = boolean;
 type McpImportServer = Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>;
 type BackendClientPreferences = Record<string, unknown>;
+const BUILTIN_CHROME_DEVTOOLS_NAME = 'chrome-devtools';
 
 const LEGACY_BACKEND_CLIENT_PREFERENCE_KEYS = [
   'assistants',
@@ -142,17 +144,87 @@ function buildDefaultMcpServers(): McpImportServer[] {
 
   return [
     {
-      name: 'chrome-devtools',
+      name: BUILTIN_CHROME_DEVTOOLS_NAME,
       description: 'Default MCP server: chrome-devtools',
       enabled: false,
+      builtin: true,
       transport: {
         type: 'stdio',
         command: chromeConfig.command,
         args: chromeConfig.args,
       },
-      original_json: JSON.stringify({ mcpServers: { 'chrome-devtools': chromeConfig } }, null, 2),
+      original_json: JSON.stringify({ mcpServers: { [BUILTIN_CHROME_DEVTOOLS_NAME]: chromeConfig } }, null, 2),
     },
   ];
+}
+
+async function isCommandAvailable(command: string): Promise<boolean> {
+  return await new Promise((resolve) => {
+    execFile(command, ['--version'], { timeout: 3000 }, (error) => {
+      if (!error) {
+        resolve(true);
+        return;
+      }
+
+      const err = error as NodeJS.ErrnoException;
+      if (err.code === 'ENOENT') {
+        resolve(false);
+        return;
+      }
+
+      resolve(true);
+    });
+  });
+}
+
+async function ensureBuiltinChromeDevtoolsAvailability(server?: IMcpServer): Promise<void> {
+  if (
+    !server ||
+    server.name !== BUILTIN_CHROME_DEVTOOLS_NAME ||
+    server.transport.type !== 'stdio' ||
+    server.transport.command !== 'npx'
+  ) {
+    return;
+  }
+
+  const hasNpx = await isCommandAvailable(server.transport.command);
+  if (hasNpx) {
+    return;
+  }
+
+  try {
+    await mcpService.testMcpConnection.invoke(server);
+  } catch (error) {
+    console.warn('[Migration] chrome-devtools MCP preflight failed', error);
+  }
+}
+
+function buildOriginalJsonFromTransport(server: Pick<IMcpServer, 'name' | 'description' | 'transport'>): string {
+  const transport_config =
+    server.transport.type === 'stdio'
+      ? {
+          command: server.transport.command,
+          args: server.transport.args || [],
+          env: server.transport.env || {},
+        }
+      : {
+          type: server.transport.type,
+          url: server.transport.url,
+          ...(server.transport.headers ? { headers: server.transport.headers } : {}),
+        };
+
+  return JSON.stringify(
+    {
+      mcpServers: {
+        [server.name]: {
+          ...(server.description ? { description: server.description } : {}),
+          ...transport_config,
+        },
+      },
+    },
+    null,
+    2
+  );
 }
 
 async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<void> {
@@ -173,12 +245,31 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   const imageServer = buildBuiltinImageGenerationServer(imageEnvResolution, imageConfig);
   const defaultServers = buildDefaultMcpServers();
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
-  let imageServerToSync: IMcpServer | undefined;
 
   if (missing.length > 0) {
-    const imported = await mcpService.batchImportServers.invoke({ servers: missing });
-    imageServerToSync = imported.find((server) => server.name === BUILTIN_IMAGE_GEN_NAME && server.enabled);
+    await mcpService.batchImportServers.invoke({ servers: missing });
   }
+
+  const existingChromeDevtools = existingByName.get(BUILTIN_CHROME_DEVTOOLS_NAME);
+  if (
+    existingChromeDevtools &&
+    (existingChromeDevtools.builtin !== true ||
+      !existingChromeDevtools.original_json ||
+      existingChromeDevtools.original_json.trim() === '' ||
+      existingChromeDevtools.original_json.trim() === '{}')
+  ) {
+    await mcpService.updateServer.invoke({
+      id: existingChromeDevtools.id,
+      data: {
+        builtin: true,
+        original_json: buildOriginalJsonFromTransport(existingChromeDevtools),
+      },
+    });
+  }
+
+  const refreshedServers = await mcpService.listServers.invoke();
+  const chromeDevtoolsServer = refreshedServers.find((server) => server.name === BUILTIN_CHROME_DEVTOOLS_NAME);
+  await ensureBuiltinChromeDevtoolsAvailability(chromeDevtoolsServer);
 
   if (
     imageEnvResolution.ok === true &&
@@ -207,16 +298,13 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
       null,
       2
     );
-    const updatedImageServer = await mcpService.updateServer.invoke({
+    await mcpService.updateServer.invoke({
       id: existingImageServer.id,
       data: {
         transport: updatedTransport,
         original_json,
       },
     });
-    if (updatedImageServer.enabled) {
-      imageServerToSync = updatedImageServer;
-    }
   } else if (existingImageServer && imageEnvResolution.ok === false) {
     console.warn(
       '[Migration] skipped image MCP env update because provider could not be resolved, server id: %s, reason: %s',
@@ -225,22 +313,17 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     );
   }
 
-  if (imageServerToSync) {
-    await mcpService.syncMcpToAgents.invoke({ servers: [imageServerToSync.id] });
-  }
-
   if (imageConfig?.switch === true) {
     const { switch: _switch, ...rest } = imageConfig;
     await configFile.set('tools.imageGenerationModel', rest as ConfigKeyMap['tools.imageGenerationModel']);
   }
 
   console.info(
-    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s, synced image server: %s',
+    '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s',
     missing.length,
     existingImageServer && imageEnvResolution.ok ? 'yes' : 'no',
     imageConfigSource,
-    imageConfig?.switch === true ? 'yes' : 'no',
-    imageServerToSync ? 'yes' : 'no'
+    imageConfig?.switch === true ? 'yes' : 'no'
   );
 }
 
@@ -260,6 +343,32 @@ const MIGRATION_STEPS: Array<{
   },
   { name: 'migrateAssistantsToBackend', run: async (configFile) => migrateAssistantsToBackend(configFile) },
 ];
+
+async function syncBuiltinMcpConfig(configFile: ConfigFile): Promise<void> {
+  const localMcpConfig = ((await configFile.get('mcp.config').catch((): IMcpServer[] => [])) || []) as IMcpServer[];
+  const localBuiltinServers = localMcpConfig.filter((server) => server?.builtin === true);
+
+  if (localBuiltinServers.length === 0) {
+    return;
+  }
+
+  const backendSettings = (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client')) || {};
+  const backendMcpConfig = Array.isArray(backendSettings['mcp.config'])
+    ? (backendSettings['mcp.config'] as IMcpServer[])
+    : [];
+
+  const mergedMcpConfig = [...backendMcpConfig.filter((server) => server?.builtin !== true), ...localBuiltinServers];
+
+  if (JSON.stringify(backendMcpConfig) === JSON.stringify(mergedMcpConfig)) {
+    return;
+  }
+
+  await httpRequest<void>('PUT', '/api/settings/client', { 'mcp.config': mergedMcpConfig });
+  console.info(
+    '[AionUi] Synced builtin MCP config to backend settings (%d builtin servers)',
+    localBuiltinServers.length
+  );
+}
 
 export async function runBackendMigrations(configFile: ConfigFile): Promise<void> {
   await CLEANUP_STEPS.reduce<Promise<void>>(async (previous, step) => {
@@ -289,4 +398,12 @@ export async function runBackendMigrations(configFile: ConfigFile): Promise<void
       console.error(`[AionUi] Backend migration step failed: ${step.name} (${elapsed}ms)`, error);
     }
   }, Promise.resolve());
+
+  const syncStart = Date.now();
+  try {
+    await syncBuiltinMcpConfig(configFile);
+    console.info(`[AionUi] Backend migration step completed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`);
+  } catch (error) {
+    console.error(`[AionUi] Backend migration step failed: syncBuiltinMcpConfig (${Date.now() - syncStart}ms)`, error);
+  }
 }

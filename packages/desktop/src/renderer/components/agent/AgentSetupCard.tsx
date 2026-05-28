@@ -99,6 +99,15 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
             // Source conversation's skill list is intentionally not carried over —
             // switch-agent is semantically a new conversation.
             preset_assistant_id: conversation.extra?.preset_assistant_id,
+            selected_mcp_server_ids: Array.isArray((conversation.extra as Record<string, unknown>)?.mcp_server_ids)
+              ? ((conversation.extra as Record<string, unknown>).mcp_server_ids as string[])
+              : undefined,
+            selected_session_mcp_servers: Array.isArray(
+              (conversation.extra as Record<string, unknown>)?.session_mcp_servers
+            )
+              ? ((conversation.extra as Record<string, unknown>)
+                  .session_mcp_servers as ICreateConversationParams['extra']['selected_session_mcp_servers'])
+              : undefined,
           },
         };
 

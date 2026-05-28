@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IConversationMcpStatus } from '@/common/config/storage';
 import React, { createContext, useContext } from 'react';
 
 /**
@@ -44,6 +45,18 @@ export interface ConversationContextValue {
    * Surfaced inside the SendBox `+` menu so users can review/jump to active skills.
    */
   loadedSkills?: string[];
+
+  /**
+   * Loaded MCP server names for this conversation (snapshot from
+   * conversation.extra.mcp_servers).
+   */
+  loadedMcpServers?: string[];
+
+  /**
+   * Structured MCP status snapshot for this conversation (from
+   * conversation.extra.mcp_statuses).
+   */
+  loadedMcpStatuses?: IConversationMcpStatus[];
 }
 
 /**

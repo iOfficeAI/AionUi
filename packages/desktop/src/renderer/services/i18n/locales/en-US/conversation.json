@@ -283,6 +283,14 @@
   "skills": {
     "loaded": "Loaded Skills"
   },
+  "mcp": {
+    "loaded": "Loaded MCP",
+    "status": {
+      "loaded": "Loaded",
+      "failed": "Failed",
+      "unsupported": "Unsupported"
+    }
+  },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },

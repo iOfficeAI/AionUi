@@ -3,6 +3,7 @@
     "title": "MCP 集成",
     "description": "管理模型上下文协议服务器和工具"
   },
+  "label": "MCP",
   "servers": "服务器",
   "tools": "工具",
   "executionHistory": "执行历史",

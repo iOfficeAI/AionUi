@@ -48,7 +48,7 @@ export interface IConfigStorageRefer {
   'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
   'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
-  'mcp.agentInstallStatus': Record<string, string[]>;
+  'mcp.config'?: IMcpServer[];
   language: string;
   theme: string;
   colorScheme: string;
@@ -225,6 +225,14 @@ export type TChatConversation =
           /** Skills snapshot for this conversation — authoritative list, written
            * once at creation. Join with `GET /api/skills` for descriptions. */
           skills?: string[];
+          /** MCP server id snapshot chosen when the conversation was created. */
+          mcp_server_ids?: string[];
+          /** MCP server name snapshot chosen when the conversation was created. */
+          mcp_servers?: string[];
+          /** Conversation-scoped MCP status snapshot shown in the sendbox menu. */
+          mcp_statuses?: IConversationMcpStatus[];
+          /** Session-only MCP server snapshot persisted at creation time. */
+          session_mcp_servers?: ISessionMcpServer[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -419,6 +427,14 @@ export type TChatConversation =
         /** Skills snapshot for this conversation — authoritative list, written
          * once at creation. Join with `GET /api/skills` for descriptions. */
         skills?: string[];
+        /** MCP server id snapshot chosen when the conversation was created. */
+        mcp_server_ids?: string[];
+        /** MCP server name snapshot chosen when the conversation was created. */
+        mcp_servers?: string[];
+        /** Conversation-scoped MCP status snapshot shown in the sendbox menu. */
+        mcp_statuses?: IConversationMcpStatus[];
+        /** Session-only MCP server snapshot persisted at creation time. */
+        session_mcp_servers?: ISessionMcpServer[];
         /** Preset assistant ID */
         preset_assistant_id?: string;
         /** Whether this conversation is pinned */
@@ -567,16 +583,27 @@ export interface IMcpServer {
   id: string;
   name: string;
   description?: string;
-  enabled: boolean; // 是否已安装到 CLI agents（控制 Switch 状态）
+  enabled: boolean; // 是否默认启用（新会话默认勾选）
   transport: IMcpServerTransport;
   tools?: IMcpTool[];
-  status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
+  last_test_status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 最近一次检测结果
   last_connected?: number;
   created_at: number;
   updated_at: number;
   original_json: string; // 存储原始JSON配置，用于编辑时的准确显示
   /** Built-in MCP server managed by AionUi (hide edit/delete in UI) */
   builtin?: boolean;
+}
+
+export type ISessionMcpServer = Pick<IMcpServer, 'id' | 'name' | 'transport'>;
+
+export type IConversationMcpStatusKind = 'loaded' | 'failed' | 'unsupported';
+
+export interface IConversationMcpStatus {
+  id: string;
+  name: string;
+  status: IConversationMcpStatusKind;
+  reason?: string;
 }
 
 /** Stable ID for the built-in image generation MCP server */

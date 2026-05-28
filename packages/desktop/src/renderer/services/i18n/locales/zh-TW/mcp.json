@@ -3,6 +3,7 @@
     "title": "MCP 整合",
     "description": "管理模型上下文協議伺服器和工具"
   },
+  "label": "MCP",
   "servers": "伺服器",
   "tools": "工具",
   "executionHistory": "執行歷程",

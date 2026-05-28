@@ -1,68 +1,79 @@
-import { useState, useEffect, useCallback } from 'react';
-import type { IMcpServer } from '@/common/config/storage';
+import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import { mcpService } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
+import type { IMcpServer } from '@/common/config/storage';
+import { ensureBackendMcpCatalog } from './catalog';
 
 /**
- * MCP服务器状态管理Hook
- * 管理MCP服务器列表的加载、保存和状态更新
- * 包含用户配置的 MCP servers 和扩展贡献的 MCP servers
+ * MCP server state hook.
+ * Combines backend-managed user servers with extension-contributed servers.
  */
 export const useMcpServers = () => {
   const [mcpServers, setMcpServers] = useState<IMcpServer[]>([]);
-  /** Extension-contributed MCP servers (read-only, from extensions) */
   const [extensionMcpServers, setExtensionMcpServers] = useState<IMcpServer[]>([]);
 
-  // 加载MCP服务器配置
   useEffect(() => {
-    void mcpService.listServers
-      .invoke()
-      .then((servers) => setMcpServers(servers ?? []))
+    void ensureBackendMcpCatalog()
+      .then(({ allServers }) => {
+        setMcpServers(allServers);
+      })
       .catch((error) => {
-        console.error('[useMcpServers] Failed to load MCP servers:', error);
-        setMcpServers([]);
+        console.error('[useMcpServers] Failed to load MCP catalog:', error);
+        setMcpServers(configService.get('mcp.config') ?? []);
       });
 
-    // Load extension-contributed MCP servers
     void ipcBridge.extensions.getMcpServers
       .invoke()
       .then((extServers) => {
-        if (extServers && extServers.length > 0) {
-          const converted: IMcpServer[] = extServers.map((s) => ({
-            id: String(s.id || ''),
-            name: String(s.name || ''),
-            description: s.description as string | undefined,
-            enabled: s.enabled !== false,
-            transport: s.transport as IMcpServer['transport'],
-            status: 'connected' as const,
-            created_at: (s.created_at as number) || Date.now(),
-            updated_at: (s.updated_at as number) || Date.now(),
-            original_json: String(s.original_json || '{}'),
-            _source: 'extension' as const,
-            _extensionName: s._extensionName as string | undefined,
-          })) as IMcpServer[];
-          setExtensionMcpServers(converted);
+        if (!extServers || extServers.length === 0) {
+          setExtensionMcpServers([]);
+          return;
         }
+
+        const converted: IMcpServer[] = extServers.map((server) => ({
+          id: String(server.id || ''),
+          name: String(server.name || ''),
+          description: server.description as string | undefined,
+          enabled: server.enabled !== false,
+          transport: server.transport as IMcpServer['transport'],
+          created_at: (server.created_at as number) || Date.now(),
+          updated_at: (server.updated_at as number) || Date.now(),
+          original_json: String(server.original_json || '{}'),
+          builtin: false,
+        }));
+        setExtensionMcpServers(converted);
       })
       .catch((error) => {
         console.error('[useMcpServers] Failed to load extension MCP servers:', error);
+        setExtensionMcpServers([]);
       });
   }, []);
 
-  const reloadMcpServers = useCallback(async () => {
-    const servers = await mcpService.listServers.invoke();
-    setMcpServers(servers ?? []);
-    return servers ?? [];
-  }, []);
+  const saveMcpServers = useCallback((serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => {
+    return new Promise<void>((resolve, reject) => {
+      setMcpServers((prevServers) => {
+        const nextServers = typeof serversOrUpdater === 'function' ? serversOrUpdater(prevServers) : serversOrUpdater;
 
-  // 合并后的完整列表（用户配置 + 扩展贡献）
-  const allMcpServers = [...mcpServers, ...extensionMcpServers];
+        queueMicrotask(() => {
+          configService
+            .set('mcp.config', nextServers)
+            .then(() => resolve())
+            .catch((error) => {
+              console.error('[useMcpServers] Failed to persist MCP servers:', error);
+              reject(error);
+            });
+        });
+
+        return nextServers;
+      });
+    });
+  }, []);
 
   return {
     mcpServers,
-    allMcpServers,
+    allMcpServers: [...mcpServers, ...extensionMcpServers],
     extensionMcpServers,
     setMcpServers,
-    reloadMcpServers,
+    saveMcpServers,
   };
 };

@@ -285,6 +285,14 @@
   "skills": {
     "loaded": "Yüklenen Beceriler"
   },
+  "mcp": {
+    "loaded": "Yüklü MCP",
+    "status": {
+      "loaded": "Yüklendi",
+      "failed": "Başarısız",
+      "unsupported": "Desteklenmiyor"
+    }
+  },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
   },

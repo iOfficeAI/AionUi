@@ -14,22 +14,14 @@ import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/pr
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
-import McpAgentStatusDisplay from '@/renderer/pages/settings/ToolsSettings/McpAgentStatusDisplay';
 import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
-import {
-  useMcpServers,
-  useMcpAgentStatus,
-  useMcpConnection,
-  useMcpModal,
-  useMcpServerCRUD,
-  useMcpOAuth,
-} from '@/renderer/hooks/mcp';
+import { useMcpServers, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -234,13 +226,11 @@ const ModalMcpManagementSection: React.FC<{
   mcpServers: IMcpServer[];
   extensionMcpServers: IMcpServer[];
   setMcpServers: React.Dispatch<React.SetStateAction<IMcpServer[]>>;
-  reloadMcpServers: () => Promise<IMcpServer[]>;
+  saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>;
   isPageMode?: boolean;
-}> = ({ message, mcpServers, extensionMcpServers, setMcpServers, reloadMcpServers, isPageMode }) => {
+}> = ({ message, mcpServers, extensionMcpServers, setMcpServers, saveMcpServers, isPageMode }) => {
   const { t } = useTranslation();
-  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
-    useMcpAgentStatus();
-  const { oauthStatus, loggingIn, checkOAuthStatus, login } = useMcpOAuth();
+  const { oauthStatus, loggingIn, checkOAuthStatus, markLoginRequired, clearLoginRequired, login } = useMcpOAuth();
   const visibleMcpServers = useMemo(
     () => mcpServers.filter((server) => !isBuiltinImageGenServer(server)),
     [mcpServers]
@@ -248,12 +238,23 @@ const ModalMcpManagementSection: React.FC<{
 
   const handleAuthRequired = useCallback(
     (server: IMcpServer) => {
-      void checkOAuthStatus(server);
+      markLoginRequired(server.id);
     },
-    [checkOAuthStatus]
+    [markLoginRequired]
+  );
+  const handleAuthResolved = useCallback(
+    (server: IMcpServer) => {
+      clearLoginRequired(server.id);
+    },
+    [clearLoginRequired]
   );
 
-  const { testingServers, handleTestMcpConnection } = useMcpConnection(setMcpServers, message, handleAuthRequired);
+  const { testingServers, handleTestMcpConnection, handleTestMcpConnections } = useMcpConnection(
+    setMcpServers,
+    message,
+    handleAuthRequired,
+    handleAuthResolved
+  );
   const {
     showMcpModal,
     editingMcpServer,
@@ -267,14 +268,8 @@ const ModalMcpManagementSection: React.FC<{
     hideDeleteConfirm,
     toggleServerCollapse,
   } = useMcpModal();
-  const {
-    handleAddMcpServer,
-    handleBatchImportMcpServers,
-    handleEditMcpServer,
-    handleDeleteMcpServer,
-    handleToggleMcpServer,
-    togglingServerIds,
-  } = useMcpServerCRUD(mcpServers, reloadMcpServers, checkSingleServerInstallStatus, setAgentInstallStatus);
+  const { handleAddMcpServer, handleBatchImportMcpServers, handleEditMcpServer, handleDeleteMcpServer } =
+    useMcpServerCRUD(saveMcpServers);
 
   const handleOAuthLogin = useCallback(
     async (server: IMcpServer) => {
@@ -294,41 +289,31 @@ const ModalMcpManagementSection: React.FC<{
     async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const addedServer = await handleAddMcpServer(serverData);
       if (addedServer) {
-        void handleTestMcpConnection(addedServer);
-        if (addedServer.transport.type === 'http' || addedServer.transport.type === 'sse') {
-          void checkOAuthStatus(addedServer);
-        }
+        void handleTestMcpConnection(addedServer, { notify: false });
       }
     },
-    [handleAddMcpServer, handleTestMcpConnection, checkOAuthStatus]
+    [handleAddMcpServer, handleTestMcpConnection]
   );
 
   const wrappedHandleEditMcpServer = useCallback(
     async (serverToEdit: IMcpServer | undefined, serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
       const updatedServer = await handleEditMcpServer(serverToEdit, serverData);
       if (updatedServer) {
-        void handleTestMcpConnection(updatedServer);
-        if (updatedServer.transport.type === 'http' || updatedServer.transport.type === 'sse') {
-          void checkOAuthStatus(updatedServer);
-        }
+        void handleTestMcpConnection(updatedServer, { notify: false });
       }
     },
-    [handleEditMcpServer, handleTestMcpConnection, checkOAuthStatus]
+    [handleEditMcpServer, handleTestMcpConnection]
   );
 
   const wrappedHandleBatchImportMcpServers = useCallback(
     async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
       const addedServers = await handleBatchImportMcpServers(serversData);
       if (addedServers && addedServers.length > 0) {
-        addedServers.forEach((server) => {
-          void handleTestMcpConnection(server);
-          if (server.transport.type === 'http' || server.transport.type === 'sse') {
-            void checkOAuthStatus(server);
-          }
-        });
+        await handleTestMcpConnections(addedServers, { concurrency: 4, notify: false });
       }
+      return addedServers;
     },
-    [handleBatchImportMcpServers, handleTestMcpConnection, checkOAuthStatus]
+    [handleBatchImportMcpServers, handleTestMcpConnections]
   );
 
   const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
@@ -352,7 +337,9 @@ const ModalMcpManagementSection: React.FC<{
   }, []);
 
   useEffect(() => {
-    const httpServers = mcpServers.filter((s) => s.transport.type === 'http' || s.transport.type === 'sse');
+    const httpServers = mcpServers.filter(
+      (s) => s.transport.type === 'http' || s.transport.type === 'sse' || s.transport.type === 'streamable_http'
+    );
     if (httpServers.length > 0) {
       httpServers.forEach((server) => {
         void checkOAuthStatus(server);
@@ -441,17 +428,13 @@ const ModalMcpManagementSection: React.FC<{
                   key={server.id}
                   server={server}
                   isCollapsed={mcpCollapseKey[server.id] || false}
-                  agentInstallStatus={agentInstallStatus}
-                  isServerLoading={isServerLoading}
                   isTestingConnection={testingServers[server.id] || false}
-                  isToggling={togglingServerIds.has(server.id)}
                   oauthStatus={oauthStatus[server.id]}
                   isLoggingIn={loggingIn[server.id]}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
                   onTestConnection={handleTestMcpConnection}
                   onEditServer={showEditMcpModal}
                   onDeleteServer={showDeleteConfirm}
-                  onToggleServer={handleToggleMcpServer}
                   onOAuthLogin={handleOAuthLogin}
                 />
               ))}
@@ -460,14 +443,11 @@ const ModalMcpManagementSection: React.FC<{
                   key={server.id}
                   server={server}
                   isCollapsed={mcpCollapseKey[server.id] || false}
-                  agentInstallStatus={agentInstallStatus}
-                  isServerLoading={isServerLoading}
                   isTestingConnection={false}
                   onToggleCollapse={() => toggleServerCollapse(server.id)}
                   onTestConnection={handleTestMcpConnection}
                   onEditServer={() => {}}
                   onDeleteServer={() => {}}
-                  onToggleServer={() => Promise.resolve()}
                   isReadOnly
                 />
               ))}
@@ -479,6 +459,7 @@ const ModalMcpManagementSection: React.FC<{
       <AddMcpServerModal
         visible={showMcpModal}
         server={editingMcpServer}
+        existingServerNames={mcpServers.map((server) => server.name)}
         onCancel={hideMcpModal}
         onSubmit={
           editingMcpServer
@@ -513,14 +494,8 @@ const ToolsModalContent: React.FC = () => {
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
-  const { mcpServers, extensionMcpServers, setMcpServers, reloadMcpServers } = useMcpServers();
-  const { agentInstallStatus, setAgentInstallStatus, isServerLoading, checkSingleServerInstallStatus } =
-    useMcpAgentStatus();
+  const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers } = useMcpServers();
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
-  const skipNextImageGenerationAutoCheckRef = useRef(false);
-  const imageGenerationInstalledAgents = builtinImageGenServer?.name
-    ? (agentInstallStatus[builtinImageGenServer.name] ?? [])
-    : [];
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
@@ -561,27 +536,6 @@ const ToolsModalContent: React.FC = () => {
       return next;
     });
   }, []);
-
-  useEffect(() => {
-    if (!builtinImageGenServer?.name || !builtinImageGenServer.enabled) return;
-    if (skipNextImageGenerationAutoCheckRef.current) {
-      skipNextImageGenerationAutoCheckRef.current = false;
-      return;
-    }
-    void checkSingleServerInstallStatus(builtinImageGenServer.name);
-  }, [builtinImageGenServer?.enabled, builtinImageGenServer?.name, checkSingleServerInstallStatus]);
-
-  const clearImageGenerationAgentStatus = useCallback(
-    (server_name: string) => {
-      const updated = { ...agentInstallStatus };
-      delete updated[server_name];
-      setAgentInstallStatus(updated);
-      void configService.set('mcp.agentInstallStatus', updated).catch((error) => {
-        console.error('Failed to clear image generation agent install status:', error);
-      });
-    },
-    [setAgentInstallStatus, agentInstallStatus]
-  );
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
@@ -646,16 +600,11 @@ const ToolsModalContent: React.FC = () => {
           original_json,
         },
       });
-      await reloadMcpServers();
-      if (updatedServer.enabled) {
-        await mcpService.syncMcpToAgents.invoke({ servers: [updatedServer.id] });
-        console.info(
-          '[ImageGen] Synced built-in image MCP server to installed agents, server id: %s',
-          updatedServer.id
-        );
-      }
+      await saveMcpServers((prevServers) =>
+        prevServers.map((server) => (server.id === updatedServer.id ? { ...server, ...updatedServer } : server))
+      );
     },
-    [data, mcpServers, reloadMcpServers]
+    [data, mcpServers, saveMcpServers]
   );
 
   // Keep the saved image model as a provider/model reference. Secrets stay in providers.
@@ -726,7 +675,6 @@ const ToolsModalContent: React.FC = () => {
       if (!builtinImageGenServer) return;
 
       setIsUpdatingImageGeneration(true);
-      skipNextImageGenerationAutoCheckRef.current = checked;
       try {
         if (checked) {
           if (!imageGenerationModel?.id || !imageGenerationModel.use_model) {
@@ -735,8 +683,10 @@ const ToolsModalContent: React.FC = () => {
           }
           await syncMcpServerEnv(imageGenerationModel);
         }
-        const updatedServer = await mcpService.toggleServer.invoke(builtinImageGenServer.id);
-        await reloadMcpServers();
+        const updatedServer = await mcpService.toggleServer.invoke({ id: builtinImageGenServer.id });
+        await saveMcpServers((prevServers) =>
+          prevServers.map((server) => (server.id === updatedServer.id ? { ...server, ...updatedServer } : server))
+        );
 
         if (updatedServer.enabled !== checked) {
           mcpMessage.error(checked ? t('settings.mcpSyncError') : t('settings.mcpRemoveError'));
@@ -751,33 +701,14 @@ const ToolsModalContent: React.FC = () => {
           });
           return next;
         });
-
-        if (checked) {
-          clearImageGenerationAgentStatus(updatedServer.name);
-          await checkSingleServerInstallStatus(updatedServer.name);
-        } else {
-          clearImageGenerationAgentStatus(updatedServer.name);
-        }
       } catch (error) {
-        skipNextImageGenerationAutoCheckRef.current = false;
         console.error('Failed to toggle image generation MCP server:', error);
+        mcpMessage.error(error instanceof Error ? error.message : t('settings.mcpSyncError'));
       } finally {
-        if (!checked) {
-          skipNextImageGenerationAutoCheckRef.current = false;
-        }
         setIsUpdatingImageGeneration(false);
       }
     },
-    [
-      builtinImageGenServer,
-      checkSingleServerInstallStatus,
-      clearImageGenerationAgentStatus,
-      imageGenerationModel,
-      mcpMessage,
-      reloadMcpServers,
-      syncMcpServerEnv,
-      t,
-    ]
+    [builtinImageGenServer, imageGenerationModel, mcpMessage, saveMcpServers, syncMcpServerEnv, t]
   );
 
   const viewMode = useSettingsViewMode();
@@ -802,7 +733,7 @@ const ToolsModalContent: React.FC = () => {
                   mcpServers={mcpServers}
                   extensionMcpServers={extensionMcpServers}
                   setMcpServers={setMcpServers}
-                  reloadMcpServers={reloadMcpServers}
+                  saveMcpServers={saveMcpServers}
                   isPageMode={isPageMode}
                 />
               </AionScrollArea>
@@ -812,28 +743,16 @@ const ToolsModalContent: React.FC = () => {
           <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
             <div className='flex items-center justify-between mb-16px'>
               <span className='text-14px text-t-primary'>{t('settings.imageGeneration')}</span>
-              <div className='flex items-center gap-8px'>
-                {builtinImageGenServer?.enabled && builtinImageGenServer.name && (
-                  <McpAgentStatusDisplay
-                    server_name={builtinImageGenServer.name}
-                    agentInstallStatus={agentInstallStatus}
-                    isLoadingAgentStatus={
-                      isServerLoading(builtinImageGenServer.name) && imageGenerationInstalledAgents.length === 0
-                    }
-                    alwaysVisible
-                  />
-                )}
-                <Switch
-                  disabled={
-                    isUpdatingImageGeneration ||
-                    !builtinImageGenServer ||
-                    !imageGenerationModelList.length ||
-                    !imageGenerationModel?.use_model
-                  }
-                  checked={Boolean(builtinImageGenServer?.enabled)}
-                  onChange={handleImageGenerationToggle}
-                />
-              </div>
+              <Switch
+                disabled={
+                  isUpdatingImageGeneration ||
+                  !builtinImageGenServer ||
+                  !imageGenerationModelList.length ||
+                  !imageGenerationModel?.use_model
+                }
+                checked={Boolean(builtinImageGenServer?.enabled)}
+                onChange={handleImageGenerationToggle}
+              />
             </div>
 
             <Divider className='mt-0px mb-20px' />

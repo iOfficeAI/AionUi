@@ -15,7 +15,14 @@
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { bridge } from '@office-ai/platform';
 import type { OpenDialogOptions } from 'electron';
-import type { ICssTheme, IMcpServer, IProvider, TChatConversation, TProviderWithModel } from '../config/storage';
+import type {
+  ICssTheme,
+  IMcpServer,
+  IProvider,
+  ISessionMcpServer,
+  TChatConversation,
+  TProviderWithModel,
+} from '../config/storage';
 import type {
   Assistant,
   CreateAssistantRequest,
@@ -764,24 +771,25 @@ export const mcpService = {
   listServers: httpGet<IMcpServer[], void>('/api/mcp/servers'),
   createServer: httpPost<
     IMcpServer,
-    Omit<IMcpServer, 'id' | 'created_at' | 'updated_at' | 'status' | 'last_connected' | 'tools'>
-  >('/api/mcp/servers', (server) => ({
-    name: server.name,
-    description: server.description,
-    transport: server.transport,
-    original_json: server.original_json,
-    builtin: server.builtin,
-  })),
+    Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>
+  >('/api/mcp/servers'),
+  importServers: httpPost<
+    IMcpServer[],
+    { servers: Array<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>> }
+  >('/api/mcp/servers/import'),
   updateServer: httpPut<
     IMcpServer,
-    { id: string; data: Partial<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json'>> }
+    {
+      id: string;
+      data: Partial<Pick<IMcpServer, 'name' | 'description' | 'transport' | 'original_json' | 'builtin'>>;
+    }
   >(
     (p) => `/api/mcp/servers/${p.id}`,
     (p) => p.data
   ),
-  deleteServer: httpDelete<void, string>((id) => `/api/mcp/servers/${id}`),
-  toggleServer: httpPost<IMcpServer, string>(
-    (id) => `/api/mcp/servers/${id}/toggle`,
+  deleteServer: httpDelete<void, { id: string }>((p) => `/api/mcp/servers/${p.id}`),
+  toggleServer: httpPost<IMcpServer, { id: string }>(
+    (p) => `/api/mcp/servers/${p.id}/toggle`,
     () => undefined
   ),
   batchImportServers: httpPost<
@@ -789,13 +797,26 @@ export const mcpService = {
     { servers: Array<Partial<IMcpServer> & Pick<IMcpServer, 'name' | 'transport'>> }
   >('/api/mcp/servers/import'),
   getAgentMcpConfigs: httpGet<
-    Array<{ source: string; servers: IMcpServer[] }>,
+    Array<{
+      source: string;
+      servers: Array<
+        IMcpServer & {
+          importable: boolean;
+          import_skip_reason?: string;
+        }
+      >;
+    }>,
     Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
     {
       success: boolean;
-      tools?: Array<{ name: string; description?: string; _meta?: Record<string, unknown> }>;
+      tools?: Array<{
+        name: string;
+        description?: string;
+        input_schema?: unknown;
+        _meta?: Record<string, unknown>;
+      }>;
       error?: string;
       needsAuth?: boolean;
       authMethod?: 'oauth' | 'basic';
@@ -803,21 +824,9 @@ export const mcpService = {
     },
     IMcpServer
   >('/api/mcp/test-connection'),
-  syncMcpToAgents: httpPost<
-    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { servers: string[] }
-  >('/api/mcp/sync-to-agents'),
-  removeMcpFromAgents: httpPost<
-    { success: boolean; results: Array<{ agent: string; success: boolean; error?: string }> },
-    { server_names: string[] }
-  >('/api/mcp/remove-from-agents'),
-  checkOAuthStatus: httpPost<{ isAuthenticated: boolean; needsLogin: boolean; error?: string }, IMcpServer>(
-    '/api/mcp/oauth/check-status'
-  ),
-  loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server: IMcpServer; config?: unknown }>(
-    '/api/mcp/oauth/login'
-  ),
-  logoutMcpOAuth: httpPost<void, string>('/api/mcp/oauth/logout', (serverName) => ({ serverName })),
+  checkOAuthStatus: httpPost<{ authenticated: boolean }, { server_url: string }>('/api/mcp/oauth/check-status'),
+  loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server_url: string }>('/api/mcp/oauth/login'),
+  logoutMcpOAuth: httpPost<void, { server_url: string }>('/api/mcp/oauth/logout'),
   getAuthenticatedServers: httpGet<string[], void>('/api/mcp/oauth/authenticated'),
 };
 
@@ -1297,6 +1306,12 @@ export interface ICreateConversationParams {
     /** Transient: auto-inject skills the user opted out of on the Guid page.
      *  Consumed by backend create handler and stripped before persistence. */
     exclude_auto_inject_skills?: string[];
+    /** Transient: MCP server ids selected on the Guid page. Consumed by the
+     *  backend create handler and snapshotted into conversation.extra. */
+    selected_mcp_server_ids?: string[];
+    /** Transient: session-scoped MCP server configs that are not stored in the
+     *  backend catalog (currently built-in MCP servers). */
+    selected_session_mcp_servers?: ISessionMcpServer[];
     preset_context?: string;
     preset_assistant_id?: string;
     session_mode?: string;

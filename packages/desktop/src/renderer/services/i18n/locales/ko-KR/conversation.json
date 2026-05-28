@@ -283,6 +283,14 @@
   "skills": {
     "loaded": "로드된 스킬"
   },
+  "mcp": {
+    "loaded": "로드된 MCP",
+    "status": {
+      "loaded": "로드됨",
+      "failed": "실패",
+      "unsupported": "지원되지 않음"
+    }
+  },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"
   },

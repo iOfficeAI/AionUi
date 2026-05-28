@@ -1,6 +1,6 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-import type { ICssTheme, TProviderWithModel } from '@/common/config/storage';
+import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
 export type ConfigKeyMap = {
   'google.config': {
@@ -26,7 +26,7 @@ export type ConfigKeyMap = {
   'acp.cachedInitializeResult': Record<string, AcpInitializeResult> | undefined;
   'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
   'acp.cachedModes': Record<string, AcpSessionModes> | undefined;
-  'mcp.agentInstallStatus': Record<string, string[]>;
+  'mcp.config': IMcpServer[];
   language: string;
   theme: string;
   colorScheme: string;

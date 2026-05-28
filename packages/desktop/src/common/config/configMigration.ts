@@ -26,7 +26,6 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'acp.cachedInitializeResult',
   'acp.cached_config_options',
   'acp.cachedModes',
-  'mcp.agentInstallStatus',
   'language',
   'theme',
   'colorScheme',

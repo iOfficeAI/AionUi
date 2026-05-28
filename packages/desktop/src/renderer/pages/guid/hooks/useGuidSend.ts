@@ -5,8 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
+import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -53,6 +54,8 @@ export type GuidSendDeps = {
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
   guidEnabledSkills: string[] | undefined;
+  availableMcpServers: IMcpServer[];
+  selectedMcpServerIds: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
 
@@ -101,6 +104,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
+    availableMcpServers,
+    selectedMcpServerIds,
     currentEffectiveAgentInfo,
     isGoogleAuth,
     setMentionOpen,
@@ -136,6 +141,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         ? guidEnabledSkills
         : undefined;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
+    const selectedMcpServerIdSet = new Set(selectedMcpServerIds ?? []);
+    const selectedUserMcpServerIds = availableMcpServers
+      .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin !== true)
+      .map((server) => server.id);
+    const selectedAllSessionMcpServers = availableMcpServers
+      .filter((server) => selectedMcpServerIdSet.has(server.id))
+      .map((server) => toSessionMcpServer(server));
+    const selectedSessionMcpServers = availableMcpServers
+      .filter((server) => selectedMcpServerIdSet.has(server.id) && server.builtin === true)
+      .map((server) => toSessionMcpServer(server));
 
     const finalEffectiveAgentType = effectiveAgentType;
 
@@ -262,6 +277,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             preset_rules: is_preset ? preset_rules : undefined,
             preset_enabled_skills: enabled_skills_to_send,
             exclude_auto_inject_skills: excludeBuiltinSkills,
+            selected_mcp_server_ids: selectedUserMcpServerIds,
+            // aionrs should consume the authoritative session snapshot, just
+            // like team MCP does, instead of reloading only user servers from
+            // the global MCP repository at runtime.
+            selected_session_mcp_servers: selectedAllSessionMcpServers,
             preset_assistant_id,
             session_mode: selectedMode,
           },
@@ -342,6 +362,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,
+          selected_mcp_server_ids: selectedUserMcpServerIds,
+          selected_session_mcp_servers: selectedSessionMcpServers,
           // Non-preset agents still forward user-selected custom skills via the
           // shared backend slot. For preset assistants this is already wired
           // through `preset_resources.enabled_skills` above.
@@ -392,6 +414,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
+    availableMcpServers,
+    selectedMcpServerIds,
     navigate,
     t,
   ]);
