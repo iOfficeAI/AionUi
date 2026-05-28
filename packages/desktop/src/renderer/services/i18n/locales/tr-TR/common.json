@@ -75,6 +75,12 @@
       "title": "Bu sistem paketlenmiş backend tarafından desteklenmiyor",
       "description": "AionUi açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip AionUi'yi yeniden başlatın.",
       "requiredVersions": "Gerekli çalışma zamanı sembolleri: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi kurulumu eksik",
+      "description": "Bu kurulumda gerekli yerel kaynaklar eksik, bu yüzden AionCore başlatılamıyor. Lütfen en son AionUi sürümünü indirip yeniden kurun.",
+      "downloadLatest": "Son sürümü indir",
+      "sendDiagnostics": "Tanı raporu gönder"
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

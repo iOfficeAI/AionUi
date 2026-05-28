@@ -75,6 +75,12 @@
       "title": "이 시스템은 번들 백엔드를 지원하지 않습니다",
       "description": "AionUi는 열렸지만 로컬 AionCore 백엔드를 이 Linux 버전에서 실행할 수 없습니다. 지원되는 Linux 배포판으로 업그레이드한 뒤 AionUi를 다시 시작하세요.",
       "requiredVersions": "필요한 런타임 심볼: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi 설치가 불완전합니다",
+      "description": "현재 설치에 필요한 로컬 리소스가 없어 AionCore를 시작할 수 없습니다. 최신 AionUi를 다운로드하여 다시 설치하세요.",
+      "downloadLatest": "최신 버전 다운로드",
+      "sendDiagnostics": "진단 보고서 보내기"
     }
   },
   "fileAttach.addFiles": "파일 추가",

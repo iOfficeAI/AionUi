@@ -75,6 +75,12 @@
       "title": "このシステムは同梱バックエンドに対応していません",
       "description": "AionUi は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AionUi を再起動してください。",
       "requiredVersions": "必要なランタイムシンボル: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi のインストールが不完全です",
+      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AionUi をダウンロードして再インストールしてください。",
+      "downloadLatest": "最新版をダウンロード",
+      "sendDiagnostics": "診断レポートを送信"
     }
   },
   "fileAttach.addFiles": "ファイルを追加",

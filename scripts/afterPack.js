@@ -14,6 +14,42 @@ const {
  * Rebuilds native modules for cross-architecture builds
  */
 
+function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
+  if (electronPlatformName !== 'darwin') return path.join(appOutDir, 'resources');
+
+  const appName = packager?.appInfo?.productFilename || 'AionUi';
+  return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
+}
+
+function getBackendBinaryName(electronPlatformName) {
+  return electronPlatformName === 'win32' ? 'aioncore.exe' : 'aioncore';
+}
+
+function requirePackagedResource(resourcesDir, relativePath, missing) {
+  const absolutePath = path.join(resourcesDir, relativePath);
+  if (!fs.existsSync(absolutePath)) {
+    missing.push(relativePath);
+  }
+}
+
+function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) {
+  const runtimeKey = `${electronPlatformName}-${targetArch}`;
+  const missing = [];
+
+  requirePackagedResource(
+    resourcesDir,
+    path.join('bundled-aioncore', runtimeKey, getBackendBinaryName(electronPlatformName)),
+    missing
+  );
+  requirePackagedResource(resourcesDir, path.join('bundled-aioncore', runtimeKey, 'manifest.json'), missing);
+
+  if (missing.length > 0) {
+    throw new Error(`Packaged app is missing required resource(s): ${missing.join(', ')}`);
+  }
+
+  console.log(`   ✓ Bundled resources verified for ${runtimeKey}`);
+}
+
 module.exports = async function afterPack(context) {
   const { arch, electronPlatformName, appOutDir, packager } = context;
   const targetArch = normalizeArch(typeof arch === 'string' ? arch : Arch[arch] || process.arch);
@@ -26,6 +62,33 @@ module.exports = async function afterPack(context) {
   const forceRebuild = process.env.FORCE_NATIVE_REBUILD === 'true';
   const needsSameArchRebuild = electronPlatformName === 'win32'; // 只有 Windows 需要同架构重建以匹配 Electron ABI | Only Windows needs same-arch rebuild to match Electron ABI
   // Linux 使用预编译二进制，避免 GLIBC 版本依赖 | Linux uses prebuilt binaries which are GLIBC-independent
+
+  const resourcesDir = resolveResourcesDir(electronPlatformName, appOutDir, packager);
+  console.log(`   Checking resources directory: ${resourcesDir}`);
+  if (fs.existsSync(resourcesDir)) {
+    const resourcesContents = fs.readdirSync(resourcesDir);
+    console.log(`   Contents: ${resourcesContents.join(', ')}`);
+
+    const unpackedDir = path.join(resourcesDir, 'app.asar.unpacked');
+    if (fs.existsSync(unpackedDir)) {
+      const unpackedContents = fs.readdirSync(unpackedDir);
+      console.log(`   app.asar.unpacked contents: ${unpackedContents.join(', ')}`);
+
+      const nodeModulesDir = path.join(unpackedDir, 'node_modules');
+      if (fs.existsSync(nodeModulesDir)) {
+        const modulesContents = fs.readdirSync(nodeModulesDir);
+        console.log(`   node_modules contents: ${modulesContents.slice(0, 10).join(', ')}...`);
+      } else {
+        console.warn(`   ⚠️  node_modules not found in app.asar.unpacked`);
+      }
+    } else {
+      console.warn(`   ⚠️  app.asar.unpacked not found`);
+    }
+
+    verifyBundledResources(resourcesDir, electronPlatformName, targetArch);
+  } else {
+    throw new Error(`resources directory not found: ${resourcesDir}`);
+  }
 
   if (!isCrossCompile && !needsSameArchRebuild && !forceRebuild) {
     console.log(`   ✓ Same architecture, rebuild skipped (set FORCE_NATIVE_REBUILD=true to override)\n`);
@@ -53,45 +116,6 @@ module.exports = async function afterPack(context) {
     packager?.info?.electronVersion ??
     packager?.config?.electronVersion ??
     require('../package.json').devDependencies?.electron?.replace(/^\D*/, '');
-
-  // Determine resources directory based on platform
-  // macOS: appOutDir/AionUi.app/Contents/Resources
-  // Windows/Linux: appOutDir/resources
-  let resourcesDir;
-  if (electronPlatformName === 'darwin') {
-    const appName = packager?.appInfo?.productFilename || 'AionUi';
-    resourcesDir = path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
-  } else {
-    resourcesDir = path.join(appOutDir, 'resources');
-  }
-
-  // Debug: check what's in resources directory
-  console.log(`   Checking resources directory: ${resourcesDir}`);
-  if (fs.existsSync(resourcesDir)) {
-    const resourcesContents = fs.readdirSync(resourcesDir);
-    console.log(`   Contents: ${resourcesContents.join(', ')}`);
-
-    // Check if app.asar.unpacked exists
-    const unpackedDir = path.join(resourcesDir, 'app.asar.unpacked');
-    if (fs.existsSync(unpackedDir)) {
-      const unpackedContents = fs.readdirSync(unpackedDir);
-      console.log(`   app.asar.unpacked contents: ${unpackedContents.join(', ')}`);
-
-      // Check node_modules
-      const nodeModulesDir = path.join(unpackedDir, 'node_modules');
-      if (fs.existsSync(nodeModulesDir)) {
-        const modulesContents = fs.readdirSync(nodeModulesDir);
-        console.log(`   node_modules contents: ${modulesContents.slice(0, 10).join(', ')}...`);
-      } else {
-        console.warn(`   ⚠️  node_modules not found in app.asar.unpacked`);
-      }
-    } else {
-      console.warn(`   ⚠️  app.asar.unpacked not found`);
-    }
-  } else {
-    console.warn(`⚠️  resources directory not found: ${resourcesDir}`);
-    return;
-  }
 
   const nodeModulesDir = path.join(resourcesDir, 'app.asar.unpacked', 'node_modules');
 
