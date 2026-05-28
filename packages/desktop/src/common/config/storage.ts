@@ -177,7 +177,7 @@ export interface IConfigStorageRefer {
 }
 
 export interface IEnvStorageRefer {
-  'aionui.dir': {
+  'pounding.dir': {
     workDir: string;
     cacheDir: string;
   };
@@ -187,7 +187,15 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
+export type ConversationSource =
+  | 'pounding'
+  | 'aionui'
+  | 'telegram'
+  | 'lark'
+  | 'dingtalk'
+  | 'weixin'
+  | 'wecom'
+  | (string & {});
 
 interface IChatConversation<T, Extra> {
   created_at: number;
@@ -199,7 +207,6 @@ interface IChatConversation<T, Extra> {
   extra: Extra;
   model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
-  /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channel_chat_id?: string;
@@ -581,8 +588,8 @@ export interface IMcpServer {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
-export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
-export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
+export const BUILTIN_IMAGE_GEN_NAME = 'pounding-image-generation';
+export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['POUNDING Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {
   name: string;

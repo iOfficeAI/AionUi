@@ -1,4 +1,4 @@
-appId: com.aionui.app
+appId: com.pounding.app
 productName: POUNDING
 executableName: POUNDING
 copyright: Copyright © 2024 POUNDING
@@ -6,7 +6,7 @@ copyright: Copyright © 2024 POUNDING
 protocols:
   - name: POUNDING Protocol
     schemes:
-      - aionui
+      - pounding
 
 asar:
   smartUnpack: true
@@ -180,9 +180,9 @@ linux:
     entry:
       Name: POUNDING
       Comment: ${description}
-      Icon: aionui
+      Icon: pounding
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/pounding;
 
 npmRebuild: false
 buildDependenciesFromSource: false
@@ -220,8 +220,11 @@ electronDownload:
   cache: ${env.ELECTRON_CACHE}
 
 publish:
-  provider: github
-  owner: halojerry
-  repo: AionUi
-  publishAutoUpdate: true
-  releaseType: release
+  - provider: generic
+    url: https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/pounding/releases/latest
+    useMultipleRangeRequest: false
+  - provider: github
+    owner: halojerry
+    repo: AionUi
+    publishAutoUpdate: true
+    releaseType: release

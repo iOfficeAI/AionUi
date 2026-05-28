@@ -29,20 +29,20 @@ const _pkg = (() => {
       version?: string;
     };
   } catch {
-    return { name: 'aionui', version: '0.0.0' };
+    return { name: 'pounding', version: '0.0.0' };
   }
 })();
 
 export class NodePlatformServices implements IPlatformServices {
   paths = {
-    getDataDir: () => process.env.DATA_DIR ?? path.join(os.homedir(), '.aionui-server'),
+    getDataDir: () => process.env.DATA_DIR ?? path.join(os.homedir(), '.pounding-server'),
     getTempDir: () => os.tmpdir(),
     getHomeDir: () => os.homedir(),
-    getLogsDir: () => process.env.LOGS_DIR ?? path.join(os.homedir(), '.aionui-server', 'logs'),
+    getLogsDir: () => process.env.LOGS_DIR ?? path.join(os.homedir(), '.pounding-server', 'logs'),
     getAppPath: (): string | null => process.cwd(),
     isPackaged: () => process.env.IS_PACKAGED === 'true',
     getSystemPath: (_name: 'desktop' | 'home' | 'downloads'): string | null => null,
-    getName: () => _pkg.name ?? 'aionui',
+    getName: () => _pkg.name ?? 'pounding',
     getVersion: () => _pkg.version ?? '0.0.0',
     needsCliSafeSymlinks: () => false,
   };

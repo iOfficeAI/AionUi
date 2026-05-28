@@ -428,8 +428,8 @@ jobs:
           }
 
           VERSION="${TAG_NAME#v}"
-          VERSION_PATH="cos://${COS_BUCKET}/releases/download/${VERSION}/"
-          LATEST_PATH="cos://${COS_BUCKET}/releases/latest/"
+          VERSION_PATH="cos://${COS_BUCKET}/pounding/releases/download/${VERSION}/"
+          LATEST_PATH="cos://${COS_BUCKET}/pounding/releases/latest/"
 
           coscli_cmd rm "$LATEST_PATH" -r -f || true
           coscli_cmd cp release-assets/ "$VERSION_PATH" -r
@@ -443,7 +443,7 @@ jobs:
               --meta 'Cache-Control:no-cache, no-store, must-revalidate, max-age=0'
           done
 
-          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/pounding}"
           echo "Verifying ${BASE}/releases/latest/latest.yml"
           curl -fI --retry 5 --retry-delay 2 --retry-connrefused "${BASE}/releases/latest/latest.yml"
           echo "Verifying ${BASE}/releases/latest/latest-mac.yml"
