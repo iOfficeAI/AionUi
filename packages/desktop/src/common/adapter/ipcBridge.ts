@@ -30,6 +30,8 @@ import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
   FetchModelsResponse,
+  ProviderHealthCheckRequest,
+  ProviderHealthCheckResponse,
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
 import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
@@ -733,6 +735,9 @@ export const acpConversation = {
   checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
     '/api/agents/health-check'
   ),
+  checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
+    '/api/agents/provider-health-check'
+  ),
   setMode: httpPut<void, { conversation_id: string; mode: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
@@ -1313,6 +1318,7 @@ export interface ICreateConversationParams {
       expected_identity_hash?: string | null;
       switched_at?: number;
     };
+    /** Legacy marker for pre-provider-probe health-check conversations. */
     is_health_check?: boolean;
     remote_agent_id?: string;
     extra_skill_paths?: string[];

@@ -96,11 +96,13 @@ const refreshConversations = () => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
+          // Legacy rows from the pre-provider-probe health check flow are hidden
+          // from normal history. New health checks must not create conversations.
           const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;
           return extra?.is_health_check !== true && !extra?.team_id && !extra?.teamId;
         });
         conversationsState = filteredData;
-        // Use ALL conversation IDs (including team/healthCheck) so the
+        // Use ALL conversation IDs (including team/legacy health-check rows) so the
         // responseStream listener recognises them as known and doesn't
         // trigger an infinite refreshConversations loop.
         conversation_idsState = new Set(items.map((conversation) => conversation.id));
