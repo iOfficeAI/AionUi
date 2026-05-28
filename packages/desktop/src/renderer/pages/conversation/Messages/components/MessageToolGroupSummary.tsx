@@ -3,6 +3,7 @@ import { Badge, Spin } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { Checklist, Right } from '@icon-park/react';
 import React, { useEffect, useMemo, useState } from 'react';
+import { ipcBridge } from '@/common';
 import type { NormalizedToolCall, NormalizedToolStatus, ToolMessage } from '@/common/chat/normalizeToolCall';
 import { normalizeToolMessages, hasRunningToolMessages } from '@/common/chat/normalizeToolCall';
 import './MessageToolGroupSummary.css';
@@ -25,7 +26,35 @@ const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
 
 const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   const [expanded, setExpanded] = useState(false);
-  const hasDetail = item.input || item.output;
+  const [fullItem, setFullItem] = useState<NormalizedToolCall | null>(null);
+  const [loadingFull, setLoadingFull] = useState(false);
+  const [loadError, setLoadError] = useState(false);
+  const displayItem = fullItem ?? item;
+  const hasDetail = displayItem.input || displayItem.output || item.truncated;
+
+  const loadFullItem = async () => {
+    if (!item.truncated || fullItem || loadingFull || !item.conversationId || !item.messageId) return;
+    setLoadingFull(true);
+    setLoadError(false);
+    try {
+      const message = await ipcBridge.database.getConversationMessage.invoke({
+        conversation_id: item.conversationId,
+        message_id: item.messageId,
+      });
+      const next = normalizeToolMessages([message as ToolMessage]).find((candidate) => candidate.key === item.key);
+      if (next) setFullItem(next);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoadingFull(false);
+    }
+  };
+
+  const toggleExpanded = () => {
+    const nextExpanded = !expanded;
+    setExpanded(nextExpanded);
+    if (nextExpanded) void loadFullItem();
+  };
 
   return (
     <div className='flex flex-col'>
@@ -37,34 +66,33 @@ const ToolItemDetail: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
             (expanded ? ' break-all' : ' truncate') +
             (hasDetail ? ' cursor-pointer hover:color-#4E5969' : '')
           }
-          onClick={hasDetail ? () => setExpanded(!expanded) : undefined}
+          onClick={hasDetail ? toggleExpanded : undefined}
         >
-          <span className='font-medium text-13px'>{item.name}</span>
-          {item.description && item.description !== item.name && (
-            <span className='m-l-4px opacity-80 text-13px'>{item.description}</span>
+          <span className='font-medium text-13px'>{displayItem.name}</span>
+          {displayItem.description && displayItem.description !== displayItem.name && (
+            <span className='m-l-4px opacity-80 text-13px'>{displayItem.description}</span>
           )}
         </span>
         {hasDetail && (
-          <span
-            className='flex-shrink-0 cursor-pointer hover:color-#4E5969 transition-colors'
-            onClick={() => setExpanded(!expanded)}
-          >
+          <span className='flex-shrink-0 cursor-pointer hover:color-#4E5969 transition-colors' onClick={toggleExpanded}>
             {expanded ? <IconDown style={{ fontSize: 12 }} /> : <IconRight style={{ fontSize: 12 }} />}
           </span>
         )}
       </div>
       {expanded && hasDetail && (
         <div className='tool-detail-panel m-l-20px m-t-4px'>
-          {item.input && (
+          {loadingFull && <div className='tool-detail-label'>Loading...</div>}
+          {loadError && <div className='tool-detail-label'>Failed to load full output</div>}
+          {displayItem.input && (
             <div className='tool-detail-section'>
               <div className='tool-detail-label'>Input</div>
-              <pre className='tool-detail-content'>{item.input}</pre>
+              <pre className='tool-detail-content'>{displayItem.input}</pre>
             </div>
           )}
-          {item.output && (
+          {displayItem.output && (
             <div className='tool-detail-section'>
               <div className='tool-detail-label'>Output</div>
-              <pre className='tool-detail-content'>{item.output}</pre>
+              <pre className='tool-detail-content'>{displayItem.output}</pre>
             </div>
           )}
         </div>

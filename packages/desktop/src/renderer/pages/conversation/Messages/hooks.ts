@@ -443,6 +443,7 @@ export const useMessageLstCache = (key: string) => {
       conversation_id: key,
       page: 0,
       page_size: 10000,
+      content_mode: 'compact',
     });
     const messages = result?.items?.map(normalizeDbMessage);
     if (messages && Array.isArray(messages)) {
