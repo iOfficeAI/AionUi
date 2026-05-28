@@ -6,7 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import type { TChatConversation } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR from 'swr';
@@ -100,11 +102,17 @@ export const useAcpModelInfo = ({
       if (result?.model_info) {
         const info = result.model_info;
         if (info.available_models?.length > 0) {
+          // Backend's `current_model_id` is the source of truth for an active
+          // session. Only fall back to `initialModelId` when the backend has
+          // no current model yet (genuine pre-handshake case) — never
+          // override a known backend value, otherwise re-entering an old
+          // conversation would clobber a switch the user already made
+          // (ELECTRON-1RV).
           if (
             options?.preserveInitialModel &&
             initialModelId &&
-            !hasUserChangedModel.current &&
-            info.current_model_id !== initialModelId
+            !info.current_model_id &&
+            info.available_models.some((m) => m.id === initialModelId)
           ) {
             const match = info.available_models.find((m) => m.id === initialModelId);
             if (match) {
@@ -129,8 +137,9 @@ export const useAcpModelInfo = ({
   );
 
   useEffect(() => {
-    if (hasUserChangedModel.current && prevConversationIdRef.current === conversation_id) return;
     if (prevConversationIdRef.current !== conversation_id) {
+      // Resetting on conversation change is intentional — the in-flight
+      // model selection belongs to the previous conversation, not this one.
       hasUserChangedModel.current = false;
       prevConversationIdRef.current = conversation_id;
     }
@@ -169,9 +178,16 @@ export const useAcpModelInfo = ({
       if (message.conversation_id !== conversation_id) return;
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
-        if (initialModelId && !hasUserChangedModel.current && incoming.available_models?.length > 0) {
+        // Same rule as reloadModelInfo: backend's current_model_id wins.
+        // Only honor initialModelId when the stream payload has none.
+        if (
+          initialModelId &&
+          !incoming.current_model_id &&
+          incoming.available_models?.length > 0 &&
+          incoming.available_models.some((m) => m.id === initialModelId)
+        ) {
           const match = incoming.available_models.find((m) => m.id === initialModelId);
-          if (match && incoming.current_model_id !== initialModelId) {
+          if (match) {
             updateModelInfo({
               ...incoming,
               current_model_id: initialModelId,
@@ -220,8 +236,23 @@ export const useAcpModelInfo = ({
         .catch((error) => {
           console.error('[useAcpModelInfo] Failed to set model:', error);
         });
+      // Persist for the Guid page (next session default) and for this same
+      // conversation's `extra.current_model_id` so it stops shadowing the
+      // backend's authoritative value.
+      if (backend) {
+        void savePreferredModelId(backend, model_id);
+      }
+      void ipcBridge.conversation.update
+        .invoke({
+          id: conversation_id,
+          updates: { extra: { current_model_id: model_id } as TChatConversation['extra'] },
+          merge_extra: true,
+        })
+        .catch((error) => {
+          console.error('[useAcpModelInfo] Failed to persist current_model_id:', error);
+        });
     },
-    [conversation_id, updateModelInfo]
+    [backend, conversation_id, updateModelInfo]
   );
 
   const canSwitch = Boolean(model_info && model_info.available_models.length > 0);

@@ -16,6 +16,7 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
+import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -146,6 +147,7 @@ const AcpSendBox: React.FC<{
       try {
         await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
         setCurrentMode(mode);
+        if (backend) void savePreferredMode(backend, mode);
         if (isLeaderInTeam) teamPermission?.propagateMode?.(mode);
         Message.success('Mode switched');
       } catch (error) {
@@ -153,7 +155,7 @@ const AcpSendBox: React.FC<{
         Message.error('Switch failed');
       }
     },
-    [conversation_id, currentMode, isLeaderInTeam, teamPermission]
+    [backend, conversation_id, currentMode, isLeaderInTeam, teamPermission]
   );
 
   // In team mode, warmup the agent then fetch slash commands

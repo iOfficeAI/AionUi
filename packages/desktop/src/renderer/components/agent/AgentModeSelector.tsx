@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
+import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
@@ -210,6 +211,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
         setCurrentMode(mode);
         onModeChanged?.(mode);
+        if (backend) {
+          // Mirror Guid page behaviour so a switch made inside the
+          // conversation also becomes the next-session default.
+          void savePreferredMode(backend, mode);
+        }
         Message.success('Mode switched');
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
@@ -218,7 +224,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         setIsLoading(false);
       }
     },
-    [conversation_id, current_mode, onModeSelect]
+    [backend, conversation_id, current_mode, onModeChanged, onModeSelect]
   );
 
   const renderLogo = () => (
