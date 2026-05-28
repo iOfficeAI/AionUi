@@ -574,4 +574,6 @@ jobs:
 
       - name: Validate script output
         shell: bash
+        env:
+          VERIFY_VERSION: '1.0.0'
         run: bash scripts/verify-release-assets.sh release-assets
