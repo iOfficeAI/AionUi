@@ -7,10 +7,13 @@
 import React, { type PropsWithChildren } from 'react';
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { ipcBridge } from '@/common';
 import type { IMessageAcpToolCall, IMessageText, IMessageThinking } from '@/common/chat/chatLib';
 import {
+  MessageListLoadingProvider,
   MessageListProvider,
   useAddOrUpdateMessage,
+  useMessageLstCache,
   useMessageList,
 } from '@/renderer/pages/conversation/Messages/hooks';
 
@@ -90,6 +93,14 @@ function createToolCallMessage(toolCallId: string): IMessageAcpToolCall {
 
 function TestWrapper({ children }: PropsWithChildren): JSX.Element {
   return <MessageListProvider value={[]}>{children}</MessageListProvider>;
+}
+
+function CacheWrapper({ children }: PropsWithChildren): JSX.Element {
+  return (
+    <MessageListLoadingProvider value={false}>
+      <MessageListProvider value={[]}>{children}</MessageListProvider>
+    </MessageListLoadingProvider>
+  );
 }
 
 function useMessageHarness() {
@@ -195,5 +206,26 @@ describe('message merging', () => {
     await flushMessageQueue();
 
     expect(result.current.messages).toEqual([]);
+  });
+
+  it('requests compact tool content when hydrating historical messages', async () => {
+    const invoke = vi.mocked(ipcBridge.database.getConversationMessages.invoke);
+    invoke.mockClear();
+    invoke.mockResolvedValue({ items: [], total: 0, has_more: false });
+
+    renderHook(() => useMessageLstCache(CONVERSATION_ID), {
+      wrapper: CacheWrapper,
+    });
+
+    await act(async () => {
+      await Promise.resolve();
+    });
+
+    expect(invoke).toHaveBeenCalledWith({
+      conversation_id: CONVERSATION_ID,
+      page: 0,
+      page_size: 10000,
+      content_mode: 'compact',
+    });
   });
 });

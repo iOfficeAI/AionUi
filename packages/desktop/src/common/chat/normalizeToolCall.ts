@@ -9,6 +9,9 @@ export interface NormalizedToolCall {
   description?: string;
   input?: string;
   output?: string;
+  truncated?: boolean;
+  messageId?: string;
+  conversationId?: string;
 }
 
 const formatValue = (value: unknown): string => {
@@ -126,11 +129,27 @@ const buildParamSummary = (kind: string, rawInput?: Record<string, unknown>): st
   return undefined;
 };
 
+type AcpToolCallUpdateCompat = IMessageAcpToolCall['content']['update'] & {
+  session_update?: string;
+  raw_input?: Record<string, unknown>;
+};
+
+type AcpToolCallContentCompat = IMessageAcpToolCall['content'] & {
+  _compact?: {
+    truncated?: boolean;
+    original_size?: number;
+    preview_chars?: number;
+  };
+  update?: AcpToolCallUpdateCompat;
+};
+
 export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedToolCall | undefined {
-  const update = message.content?.update;
+  const content = message.content as AcpToolCallContentCompat | undefined;
+  const update = content?.update;
   if (!update) return undefined;
 
-  const input = update.rawInput ? formatValue(update.rawInput) : undefined;
+  const rawInput = update.rawInput ?? update.raw_input;
+  const input = rawInput ? formatValue(rawInput) : undefined;
 
   let output: string | undefined;
   if (Array.isArray(update.content) && update.content.length) {
@@ -144,15 +163,18 @@ export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedTo
       .join('\n');
   }
 
-  const keyParam = buildParamSummary(update.kind, update.rawInput);
+  const keyParam = buildParamSummary(update.kind, rawInput);
 
   return {
     key: update.tool_call_id,
     name: update.title,
     status: normalizeAcpStatus(update.status),
-    description: keyParam || (update.rawInput?.command as string) || update.kind,
+    description: keyParam || (rawInput?.command as string) || update.kind,
     input,
     output,
+    truncated: content?._compact?.truncated === true,
+    messageId: message.id,
+    conversationId: message.conversation_id,
   };
 }
 
