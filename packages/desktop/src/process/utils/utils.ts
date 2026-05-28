@@ -97,7 +97,7 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
  */
 export const getDataPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
-  const dataPath = path.join(rootPath, 'aionui');
+  const dataPath = path.join(rootPath, 'pounding');
   return ensureCliSafeSymlink(dataPath, getEnvAwareName('.pounding'));
 };
 

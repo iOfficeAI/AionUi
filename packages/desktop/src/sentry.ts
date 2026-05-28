@@ -81,7 +81,7 @@ function hasBackendStartupFailed(): boolean {
 }
 
 function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> }): boolean {
-  return event.tags?.['aionui.failure'] === 'backend_startup';
+  return event.tags?.['pounding.failure'] === 'backend_startup';
 }
 
 function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
@@ -140,20 +140,20 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
   const details = getBackendStartupDetails(error);
   const failureInfo = classifyBackendStartupFailure(error);
   Sentry.withScope((scope) => {
-    scope.setTag('aionui.failure', 'backend_startup');
-    scope.setTag('aionui.backend_startup.reason', failureInfo.reason);
+    scope.setTag('pounding.failure', 'backend_startup');
+    scope.setTag('pounding.backend_startup.reason', failureInfo.reason);
     if (failureInfo.runtime) {
-      scope.setTag('aionui.backend_startup.runtime', failureInfo.runtime);
+      scope.setTag('pounding.backend_startup.runtime', failureInfo.runtime);
     }
     if (typeof details?.stage === 'string') {
-      scope.setTag('aionui.backend_startup.stage', details.stage);
+      scope.setTag('pounding.backend_startup.stage', details.stage);
     }
     if (details) {
-      scope.setContext('aioncore_startup', details);
-      scope.setExtra('aioncore_startup', details);
+      scope.setContext('pounding_startup', details);
+      scope.setExtra('pounding_startup', details);
     }
-    scope.setContext('aioncore_startup_classification', { ...failureInfo });
-    scope.setExtra('aioncore_startup_classification', failureInfo);
+    scope.setContext('pounding_startup_classification', { ...failureInfo });
+    scope.setExtra('pounding_startup_classification', failureInfo);
     Sentry.captureException(capturedError);
   });
   try {
@@ -337,7 +337,7 @@ async function runStartupLogReport(): Promise<void> {
 
   Sentry.withScope((scope) => {
     scope.addAttachment({
-      filename: 'aionui-logs.log.gz',
+      filename: 'pounding-logs.log.gz',
       data: pack.gzipped,
       contentType: 'application/gzip',
     });

@@ -253,7 +253,7 @@ const buildMessageListStorage = (conversation_id: string, dir: string) => {
   if (!existsSync(fullName)) {
     mkdirSync(path.join(dir, 'pounding-chat-history'));
   }
-  return JsonFileBuilder<TMessage[]>(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
+  return JsonFileBuilder<TMessage[]>(path.join(dir, 'pounding-chat-history', conversation_id + '.txt'));
 };
 
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
@@ -274,7 +274,7 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     backup(conversation_id: string) {
       const storage = buildMessageListStorage(conversation_id, dir);
       return storage.backup(
-        path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
+        path.join(dir, 'pounding-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
       );
     },
   };

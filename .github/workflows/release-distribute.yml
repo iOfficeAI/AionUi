@@ -111,7 +111,7 @@ jobs:
               --disable-log=true
           }
 
-          VERSION_PATH="cos://${COS_BUCKET}/releases/download/${VERSION}/"
+          VERSION_PATH="cos://${COS_BUCKET}/pounding/releases/download/${VERSION}/"
           EXISTING_COUNT=$(coscli_cmd ls "$VERSION_PATH" -r --limit -1 2>/dev/null | grep -c . || true)
 
           if [ "$EXISTING_COUNT" -gt 0 ]; then
@@ -173,8 +173,8 @@ jobs:
               --disable-log=true
           }
 
-          VERSION_PATH="cos://${COS_BUCKET}/releases/download/${VERSION}/"
-          LATEST_PATH="cos://${COS_BUCKET}/releases/latest/"
+          VERSION_PATH="cos://${COS_BUCKET}/pounding/releases/download/${VERSION}/"
+          LATEST_PATH="cos://${COS_BUCKET}/pounding/releases/latest/"
 
           if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && [ "$CLEANUP_EXISTING" = 'true' ]; then
             coscli_cmd rm "$LATEST_PATH" -r -f || true
@@ -202,7 +202,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/pounding}"
           URLS=(
             "${BASE}/releases/latest/latest.yml"
             "${BASE}/releases/latest/latest-mac.yml"
@@ -222,7 +222,7 @@ jobs:
           COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
           PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE }}
         run: |
-          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com}"
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/pounding}"
           {
             echo "### Release assets distributed"
             echo ""
