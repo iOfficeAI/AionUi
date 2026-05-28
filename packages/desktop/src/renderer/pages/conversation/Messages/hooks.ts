@@ -452,6 +452,10 @@ export const useMessageLstCache = (key: string) => {
       console.error('[useMessageLstCache] Failed to load messages from database:', error);
     });
   }, [key, loadMessages]);
+
+  // Exposed so callers (e.g. Phase 4b backfill in RemoteChat) can force
+  // a re-read once new rows have been written to the DB out-of-band.
+  return loadMessages;
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

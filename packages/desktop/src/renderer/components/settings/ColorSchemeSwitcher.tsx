@@ -29,14 +29,15 @@ export const ColorSchemeSwitcher: React.FC = () => {
 
   const options: SchemeOption[] = [
     {
-      value: 'default',
-      label: t('settings.colorScheme.default', { defaultValue: 'Gruvbox' }),
-      swatch: ['#fbf1c7', '#8f3f71'],
-    },
-    {
       value: 'chisl',
       label: t('settings.colorScheme.chisl', { defaultValue: 'Chisl' }),
       swatch: ['#f0e4b4', '#b4480c'],
+    },
+    {
+      value: 'theme',
+      // 'Theme' disables the Chisl override and lets the active CSS theme preset (e.g. Catppuccin) drive variables.
+      label: t('settings.colorScheme.theme', { defaultValue: 'Theme' }),
+      swatch: ['#1e1e2e', '#cba6f7'],
     },
   ];
 

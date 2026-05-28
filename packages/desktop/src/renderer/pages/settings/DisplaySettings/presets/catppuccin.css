@@ -1,8 +1,7 @@
 /* Catppuccin Mocha Theme */
 /* https://github.com/catppuccin/catppuccin */
 
-:root,
-[data-color-scheme='default'] {
+[data-color-scheme='theme'] {
   --color-primary: #cba6f7;
   --primary: #cba6f7;
   --color-primary-light-1: #b4befe;
@@ -79,7 +78,7 @@
   --workspace-btn-bg: #181825;
 }
 
-[data-color-scheme='default'][data-theme='dark'] {
+[data-color-scheme='theme'][data-theme='dark'] {
   --color-primary: #cba6f7;
   --primary: #cba6f7;
   --color-primary-light-1: #b4befe;

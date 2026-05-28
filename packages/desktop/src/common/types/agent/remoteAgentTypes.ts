@@ -49,3 +49,21 @@ export type RemoteAgentInput = {
   avatar?: string;
   description?: string;
 };
+
+/**
+ * One active server-side session on a remote OpenCode agent. Returned by
+ * `ipcBridge.remoteAgent.listSessions` (which proxies the upstream
+ * `GET /session`). Powers the "View Active Sessions" picker that lets the
+ * user attach a new Chisl conversation to an existing session for
+ * cross-device handoff.
+ */
+export type RemoteSession = {
+  /** OpenCode session id (`ses_...`). Used as `extra.sessionKey` on attach. */
+  id: string;
+  /** Server-side session title (often the first user prompt). May be empty
+   *  on freshly created sessions. */
+  title?: string;
+  /** Last-activity timestamp in milliseconds. Absent on older OpenCode
+   *  builds that don't emit `time.updated`. */
+  updated_at?: number;
+};

@@ -887,6 +887,25 @@ export const remoteAgent = {
   refreshModels: httpGet<import('@/common/types/platform/acpTypes').AcpModelInfo, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/models`
   ),
+  /**
+   * List active sessions on a remote OpenCode agent. Used internally by
+   * the Phase 4a background sync to mirror server-side sessions into
+   * Chisl conversation rows. aioncore proxies the upstream
+   * `GET /session` call so the renderer never sees the auth_token.
+   */
+  listSessions: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteSession[], { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/sessions`
+  ),
+  /**
+   * Phase 4b: lazy-load the OpenCode message transcript into the
+   * local conversation the first time the user opens it. Idempotent —
+   * once `extra.history_loaded` flips true the call short-circuits
+   * server-side. Returns the number of newly inserted message rows.
+   */
+  backfillHistory: httpPost<{ inserted: number; already_loaded: boolean }, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/backfill-remote-history`,
+    () => ({})
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1322,6 +1341,15 @@ export interface ICreateConversationParams {
     };
     is_health_check?: boolean;
     remote_agent_id?: string;
+    /**
+     * Pre-existing remote session id to attach to (OpenCode `ses_...`).
+     * When set on create, `factory/remote.rs` skips POST /session and
+     * resumes the named session instead — the existing GET /session/{id}
+     * probe in `RemoteAgentManager::connect` validates it. Stored in
+     * camelCase to match the wire format that `RemoteBuildExtra`
+     * deserializes (`#[serde(rename = "sessionKey")]`).
+     */
+    sessionKey?: string;
     extra_skill_paths?: string[];
     team_id?: string;
   };

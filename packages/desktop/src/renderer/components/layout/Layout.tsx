@@ -26,6 +26,7 @@ import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
+import { DEFAULT_THEME_ID } from '@renderer/pages/settings/DisplaySettings/presets';
 import '@renderer/styles/layout.css';
 import brandLogo from '@renderer/assets/logos/brand/app.png';
 import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
@@ -184,13 +185,13 @@ const Layout: React.FC<{
       let effectiveCss = decision.effectiveCss;
 
       // If the active theme resolved to empty CSS and there IS a saved activeThemeId
-      // (but it no longer matches any known theme), fall back to default and persist.
-      if (!effectiveCss && activeThemeId && activeThemeId !== 'default-theme') {
-        const defaultCss = resolveCssByActiveTheme('default-theme', (savedThemes || []) as ICssTheme[]);
+      // (but it no longer matches any known theme), fall back to the built-in default and persist.
+      if (!effectiveCss && activeThemeId && activeThemeId !== DEFAULT_THEME_ID) {
+        const defaultCss = resolveCssByActiveTheme(DEFAULT_THEME_ID, (savedThemes || []) as ICssTheme[]);
         effectiveCss = defaultCss;
         // Persist the fallback so Layout doesn't keep retrying
         await Promise.all([
-          configService.set('css.activeThemeId', 'default-theme'),
+          configService.set('css.activeThemeId', DEFAULT_THEME_ID),
           configService.set('customCss', effectiveCss),
         ]).catch((error) => {
           console.warn('Failed to persist theme fallback:', error);

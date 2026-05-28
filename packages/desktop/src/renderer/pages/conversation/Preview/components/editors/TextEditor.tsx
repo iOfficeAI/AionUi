@@ -6,6 +6,7 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { EditorView } from '@codemirror/view';
+import { loadLanguage, type LanguageName } from '@uiw/codemirror-extensions-langs';
 import CodeMirror from '@uiw/react-codemirror';
 import React, { useCallback, useMemo } from 'react';
 
@@ -13,8 +14,60 @@ interface TextEditorProps {
   value: string; // 编辑器内容 / Editor content
   onChange: (value: string) => void; // 内容变化回调 / Content change callback
   readOnly?: boolean; // 是否只读 / Whether read-only
+  language?: string | null; // 语言标识，用于语法高亮 / Language id used for syntax highlighting
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
+}
+
+// 语言标识符映射：将上游传入的人类可读名称规范化为
+// @uiw/codemirror-extensions-langs 实际支持的键（多为扩展名形式）。
+// Language id map: normalize human-readable names to the short identifiers
+// actually supported by @uiw/codemirror-extensions-langs (mostly extension-style).
+const LANGUAGE_ID_MAP: Record<string, LanguageName> = {
+  javascript: 'js',
+  js: 'js',
+  jsx: 'jsx',
+  typescript: 'ts',
+  ts: 'ts',
+  tsx: 'tsx',
+  python: 'py',
+  py: 'py',
+  ruby: 'rb',
+  rb: 'rb',
+  rust: 'rs',
+  rs: 'rs',
+  shell: 'bash',
+  bash: 'bash',
+  sh: 'bash',
+  zsh: 'bash',
+  yaml: 'yaml',
+  yml: 'yaml',
+  markdown: 'markdown',
+  md: 'markdown',
+  html: 'html',
+  htm: 'html',
+  json: 'json',
+  css: 'css',
+  scss: 'scss',
+  less: 'less',
+  c: 'c',
+  cpp: 'cpp',
+  java: 'java',
+  go: 'go',
+  php: 'php',
+  sql: 'sql',
+  xml: 'xml',
+  lua: 'lua',
+};
+
+function resolveLanguageExtension(language: string | null | undefined) {
+  if (!language) return [];
+  const normalized = language.toLowerCase();
+  if (normalized === 'plaintext' || normalized === 'text' || normalized === 'diff') return [];
+  const name = LANGUAGE_ID_MAP[normalized];
+  if (!name) return [];
+  const ext = loadLanguage(name);
+  return ext ? [ext] : [];
 }
 
 /**
@@ -24,8 +77,19 @@ interface TextEditorProps {
  * 基于 CodeMirror 实现，支持语法高亮和实时编辑
  * Based on CodeMirror, supports syntax highlighting and live editing
  */
-const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = false, containerRef, onScroll }) => {
+const TextEditor: React.FC<TextEditorProps> = ({
+  value,
+  onChange,
+  readOnly = false,
+  language,
+  containerRef,
+  onScroll,
+}) => {
   const { theme } = useThemeContext();
+
+  // 根据传入的语言加载对应的 CodeMirror 扩展（含换行）
+  // Load matching CodeMirror language extension for the provided language (plus line wrapping)
+  const extensions = useMemo(() => [...resolveLanguageExtension(language), EditorView.lineWrapping], [language]);
 
   // 监听容器滚动事件 / Listen to container scroll events
   React.useEffect(() => {
@@ -75,7 +139,7 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
         value={value}
         height='100%'
         theme={theme === 'dark' ? 'dark' : 'light'}
-        extensions={[EditorView.lineWrapping]}
+        extensions={extensions}
         onChange={handleChange}
         readOnly={readOnly}
         basicSetup={basicSetupConfig}

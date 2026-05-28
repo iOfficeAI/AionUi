@@ -1,13 +1,22 @@
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
+import { indentWithTab, toggleComment } from '@codemirror/commands';
+import { openSearchPanel, search, searchKeymap } from '@codemirror/search';
 import { EditorView, keymap } from '@codemirror/view';
 import { loadLanguage, type LanguageName } from '@uiw/codemirror-extensions-langs';
-import CodeMirror from '@uiw/react-codemirror';
+import CodeMirror, { type ReactCodeMirrorRef } from '@uiw/react-codemirror';
 import { Alert, Button, Modal, Message, Spin } from '@arco-design/web-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import EditorToolbar from './EditorToolbar';
 import { useEditorContext } from './EditorContext';
 import './editor.css';
+
+type CursorPosition = {
+  line: number;
+  col: number;
+};
+
+const INITIAL_CURSOR: CursorPosition = { line: 1, col: 1 };
 
 const LANGUAGE_MAP: Record<string, string> = {
   c: 'c',
@@ -48,7 +57,9 @@ const EditorPanel: React.FC = () => {
   const { theme } = useThemeContext();
   const [messageApi, messageContextHolder] = Message.useMessage();
   const [wordWrap, setWordWrap] = useState(true);
+  const [cursor, setCursor] = useState<CursorPosition>(INITIAL_CURSOR);
   const editor = useEditorContext();
+  const codeMirrorRef = useRef<ReactCodeMirrorRef | null>(null);
 
   useEffect(() => {
     if (!editor.notice) return;
@@ -56,9 +67,29 @@ const EditorPanel: React.FC = () => {
     editor.clearNotice(editor.notice.id);
   }, [editor, messageApi, t]);
 
+  // Reset displayed cursor when switching files so stale values don't linger.
+  useEffect(() => {
+    setCursor(INITIAL_CURSOR);
+  }, [editor.filePath, editor.fileName]);
+
+  const cursorListener = useMemo(
+    () =>
+      EditorView.updateListener.of((update) => {
+        if (!update.selectionSet && !update.docChanged) return;
+        const head = update.state.selection.main.head;
+        const lineInfo = update.state.doc.lineAt(head);
+        const nextCol = head - lineInfo.from + 1;
+        setCursor((prev) =>
+          prev.line === lineInfo.number && prev.col === nextCol ? prev : { line: lineInfo.number, col: nextCol }
+        );
+      }),
+    []
+  );
+
   const extensions = useMemo(() => {
     const exts = [
       ...getLanguageExtension(editor.language),
+      search({ top: true }),
       keymap.of([
         {
           key: 'Mod-s',
@@ -67,11 +98,22 @@ const EditorPanel: React.FC = () => {
             return true;
           },
         },
+        { key: 'Mod-/', run: toggleComment },
+        indentWithTab,
+        ...searchKeymap,
       ]),
+      cursorListener,
     ];
     if (wordWrap) exts.push(EditorView.lineWrapping);
     return exts;
-  }, [editor.language, wordWrap, editor]);
+  }, [editor.language, wordWrap, editor, cursorListener]);
+
+  const handleOpenFind = useCallback(() => {
+    const view = codeMirrorRef.current?.view;
+    if (!view) return;
+    openSearchPanel(view);
+    view.focus();
+  }, []);
 
   if (!editor.isOpen || editor.isCollapsed) {
     return null;
@@ -86,6 +128,9 @@ const EditorPanel: React.FC = () => {
         isDirty={editor.isDirty}
         saving={editor.saving}
         wordWrap={wordWrap}
+        language={editor.language}
+        cursorLine={cursor.line}
+        cursorColumn={cursor.col}
         onNew={editor.openUntitledEditor}
         onOpen={() => void editor.chooseAndOpenFile()}
         onSave={() => void editor.saveEditorFile()}
@@ -93,6 +138,7 @@ const EditorPanel: React.FC = () => {
         onClose={editor.requestCloseEditor}
         onCollapse={editor.collapseEditor}
         onToggleWordWrap={() => setWordWrap((prev) => !prev)}
+        onFind={handleOpenFind}
       />
       {editor.diskChanged && (
         <Alert className='editor-panel__alert' type='warning' content={t('conversation.editor.fileChangedOnDisk')} />
@@ -105,6 +151,7 @@ const EditorPanel: React.FC = () => {
           </div>
         ) : (
           <CodeMirror
+            ref={codeMirrorRef}
             value={editor.content}
             height='100%'
             theme={theme === 'dark' ? 'dark' : 'light'}

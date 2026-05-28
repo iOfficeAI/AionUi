@@ -9,12 +9,20 @@ import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useState } from 'react';
 
 // Supported color schemes 支持的配色方案类型
-export type ColorScheme = 'default' | 'chisl';
+// 'chisl' — Chisl brand palette overrides the active CSS theme preset.
+// 'theme' — No override: the active CSS theme preset (e.g. Catppuccin) drives variables.
+export type ColorScheme = 'chisl' | 'theme';
 
-const DEFAULT_COLOR_SCHEME: ColorScheme = 'default';
+const DEFAULT_COLOR_SCHEME: ColorScheme = 'chisl';
 const COLOR_SCHEME_CACHE_KEY = '__aionui_colorScheme';
 
-const VALID_COLOR_SCHEMES: readonly ColorScheme[] = ['default', 'chisl'];
+const VALID_COLOR_SCHEMES: readonly ColorScheme[] = ['chisl', 'theme'];
+
+// Pre-rename legacy value carried over from older installs.
+// Old 'default' meant "use the active CSS theme preset" — that role is now 'theme'.
+const migrateLegacyScheme = (value: string | null | undefined): string | null | undefined =>
+  value === 'default' ? 'theme' : value;
+
 const isValidColorScheme = (value: string | null | undefined): value is ColorScheme =>
   value != null && (VALID_COLOR_SCHEMES as readonly string[]).includes(value);
 
@@ -24,7 +32,7 @@ const applyColorSchemeToDom = (value: ColorScheme) => {
 
 const readCachedColorScheme = (): ColorScheme => {
   try {
-    const cached = localStorage.getItem(COLOR_SCHEME_CACHE_KEY);
+    const cached = migrateLegacyScheme(localStorage.getItem(COLOR_SCHEME_CACHE_KEY));
     if (isValidColorScheme(cached)) return cached;
   } catch (_e) {
     /* noop */
@@ -41,13 +49,21 @@ const initColorScheme = async (): Promise<ColorScheme> => {
   applyColorSchemeToDom(hint);
   try {
     await configService.whenReady();
-    const stored = configService.get('colorScheme') as string | undefined;
+    const stored = migrateLegacyScheme(configService.get('colorScheme') as string | undefined);
     const scheme: ColorScheme = isValidColorScheme(stored) ? stored : hint;
     applyColorSchemeToDom(scheme);
     try {
       localStorage.setItem(COLOR_SCHEME_CACHE_KEY, scheme);
     } catch (_e) {
       /* noop */
+    }
+    // Persist the migrated value so the backend no longer carries the legacy 'default'.
+    if (stored !== (configService.get('colorScheme') as string | undefined)) {
+      try {
+        await configService.set('colorScheme', scheme);
+      } catch (_e) {
+        /* noop */
+      }
     }
     return scheme;
   } catch (error) {

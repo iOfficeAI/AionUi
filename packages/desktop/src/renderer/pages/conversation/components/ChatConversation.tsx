@@ -291,6 +291,7 @@ const ChatConversation: React.FC<{
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             session_mode={(conversation.extra as { session_mode?: string } | undefined)?.session_mode}
+            history_loaded={(conversation.extra as { history_loaded?: boolean } | undefined)?.history_loaded}
             emptySlot={<ConversationEmptyState />}
           />
         );

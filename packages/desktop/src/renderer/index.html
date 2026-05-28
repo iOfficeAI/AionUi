@@ -1,5 +1,5 @@
 <!doctype html>
-<html data-theme="light" data-color-scheme="default">
+<html data-theme="light" data-color-scheme="chisl">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
@@ -22,7 +22,14 @@
           if (theme) {
             document.documentElement.setAttribute('data-theme', theme);
           }
-          if (colorScheme) {
+          // Migrate legacy 'default' (Gruvbox baseline removed) to 'theme'.
+          if (colorScheme === 'default') {
+            colorScheme = 'theme';
+            try {
+              localStorage.setItem('__aionui_colorScheme', colorScheme);
+            } catch (e) {}
+          }
+          if (colorScheme === 'chisl' || colorScheme === 'theme') {
             document.documentElement.setAttribute('data-color-scheme', colorScheme);
           }
         } catch (e) {}

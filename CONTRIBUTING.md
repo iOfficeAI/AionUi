@@ -88,8 +88,6 @@ This repository runs a PR automation bot that reviews, fixes minor issues, and p
 | `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
 | `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
 
-
-
 ## Enforcement
 
 When these rules are not followed, maintainers may:

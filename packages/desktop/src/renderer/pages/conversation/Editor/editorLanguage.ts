@@ -73,3 +73,41 @@ export function isLikelyEditableTextFile(filePath: string | null | undefined): b
   const extension = getEditorExtension(filePath);
   return EDITOR_TEXT_EXTENSIONS.has(extension);
 }
+
+const LANGUAGE_DISPLAY_NAMES: Record<string, string> = {
+  c: 'C',
+  cpp: 'C++',
+  csharp: 'C#',
+  css: 'CSS',
+  diff: 'Diff',
+  go: 'Go',
+  html: 'HTML',
+  java: 'Java',
+  javascript: 'JavaScript',
+  json: 'JSON',
+  jsx: 'JSX',
+  less: 'Less',
+  lua: 'Lua',
+  markdown: 'Markdown',
+  php: 'PHP',
+  plaintext: 'Plain Text',
+  python: 'Python',
+  ruby: 'Ruby',
+  rust: 'Rust',
+  scss: 'SCSS',
+  shell: 'Shell',
+  sql: 'SQL',
+  typescript: 'TypeScript',
+  tsx: 'TSX',
+  xml: 'XML',
+  yaml: 'YAML',
+};
+
+/**
+ * Returns a human-readable display name for an editor language id.
+ * Falls back to the raw id when no mapping is defined.
+ */
+export function getLanguageDisplayName(language: string | null | undefined): string {
+  if (!language) return LANGUAGE_DISPLAY_NAMES.plaintext;
+  return LANGUAGE_DISPLAY_NAMES[language] ?? language;
+}

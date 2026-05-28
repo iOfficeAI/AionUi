@@ -212,7 +212,10 @@
     "paste": "Paste",
     "selectAll": "Select all",
     "enableWordWrap": "Enable word wrap",
-    "disableWordWrap": "Disable word wrap"
+    "disableWordWrap": "Disable word wrap",
+    "findInFile": "Find",
+    "cursorPosition": "Ln {{line}}, Col {{col}}",
+    "languageLabel": "Language: {{language}}"
   },
   "minimap": {
     "searchAria": "会話を検索",
