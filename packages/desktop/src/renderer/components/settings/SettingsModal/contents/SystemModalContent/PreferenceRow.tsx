@@ -13,7 +13,7 @@ import React from 'react';
 const PreferenceRow: React.FC<{
   label: string;
   children: React.ReactNode;
-  description?: string;
+  description?: React.ReactNode;
 }> = ({ label, children, description }) => (
   <div className='flex items-center justify-between gap-24px py-12px'>
     <div className='flex-1'>

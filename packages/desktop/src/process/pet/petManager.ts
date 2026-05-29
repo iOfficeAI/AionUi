@@ -6,7 +6,9 @@
 
 import path from 'node:path';
 import { app, BrowserWindow, ipcMain, Menu, screen } from 'electron';
-import i18n from '@process/services/i18n';
+import i18n, { changeLanguage, i18nReady, normalizeLanguageCode } from '@process/services/i18n';
+import { ProcessConfig } from '@process/utils/initStorage';
+import { getApplicationMainWindow } from '@process/bridge/applicationBridge';
 import { PetStateMachine } from './petStateMachine';
 import { PetIdleTicker } from './petIdleTicker';
 import { PetEventBridge } from './petEventBridge';
@@ -16,8 +18,11 @@ import {
   updateAnchorBounds,
   destroyPetConfirmManager,
   unhookPetConfirm,
+  showPetConfirmWindow,
 } from './petConfirmManager';
-import type { PetSize, PetState } from './petTypes';
+import { resolvePetAsset } from './petAssets';
+import type { PetAssetPackage } from './petAssets';
+import type { PetNotificationSummary, PetSize, PetState } from './petTypes';
 
 /**
  * Check whether the current environment can support desktop pet windows.
@@ -50,6 +55,7 @@ let dragWatchdog: ReturnType<typeof setTimeout> | null = null;
 let dragOffsetX = 0;
 let dragOffsetY = 0;
 let preDragState: PetState | null = null;
+let currentAsset: PetAssetPackage | null = null;
 
 // Tick interval for the drag-follow timer (~60 FPS).
 const DRAG_TICK_MS = 16;
@@ -169,6 +175,7 @@ export function createPetWindow(): void {
   stateMachine = new PetStateMachine();
   idleTicker = new PetIdleTicker(stateMachine);
   eventBridge = new PetEventBridge(stateMachine, idleTicker);
+  eventBridge.onNotificationChange(sendNotificationSummary);
 
   stateMachine.onStateChange((state: PetState) => {
     if (petWindow && !petWindow.isDestroyed()) {
@@ -193,6 +200,12 @@ export function createPetWindow(): void {
   idleTicker.start();
   registerIpcHandlers();
   startHitIgnoreWatchdog();
+
+  petWindow.webContents.on('did-finish-load', () => {
+    sendCurrentAsset();
+    if (eventBridge) sendNotificationSummary(eventBridge.getNotificationSummary());
+  });
+
   loadContent();
 
   // Initialize confirm manager only if the user opted in.
@@ -423,6 +436,11 @@ function registerIpcHandlers(): void {
 
     idleTicker.resetIdle();
 
+    if (stateMachine.getCurrentState() === 'notification') {
+      showPendingNotifications();
+      return;
+    }
+
     // Click reactions — keep `error` reserved for genuine AI errors so the user
     // can distinguish "I poked the pet a lot" from "the agent just failed".
     // 1 click  → attention (small surprise)
@@ -439,9 +457,11 @@ function registerIpcHandlers(): void {
     }
   });
 
-  ipcMain.on('pet:context-menu', () => {
+  ipcMain.on('pet:context-menu', async () => {
     if (!petHitWindow || petHitWindow.isDestroyed()) return;
 
+    await syncContextMenuLanguage();
+    const pendingConfirmations = eventBridge?.getNotificationSummary().pendingConfirmations ?? 0;
     const sizeKeys = { 200: 'pet.sizeSmall', 280: 'pet.sizeMedium', 360: 'pet.sizeLarge' } as const;
     const menu = Menu.buildFromTemplate([
       {
@@ -453,6 +473,14 @@ function registerIpcHandlers(): void {
           }
         },
       },
+      ...(pendingConfirmations > 0
+        ? [
+            {
+              label: i18n.t('pet.pendingAuthorizations', { count: pendingConfirmations }),
+              click: () => showPendingNotifications(),
+            },
+          ]
+        : []),
       { type: 'separator' },
       {
         label: i18n.t('pet.size'),
@@ -491,6 +519,18 @@ function registerIpcHandlers(): void {
     petHitWindow.setIgnoreMouseEvents(ignore, options);
     lastHitIgnoreState = ignore;
   });
+}
+
+async function syncContextMenuLanguage(): Promise<void> {
+  await i18nReady;
+  const configuredLanguage = await ProcessConfig.get('language');
+  const language = normalizeLanguageCode(configuredLanguage || app.getLocale());
+  if (!configuredLanguage) {
+    await ProcessConfig.set('language', language);
+  }
+  if (i18n.language !== language) {
+    await changeLanguage(language);
+  }
 }
 
 function unregisterIpcHandlers(): void {
@@ -688,4 +728,36 @@ function resetPosition(): void {
 
   // Update confirm window anchor
   updateAnchorBounds({ x, y, width: currentSize, height: currentSize });
+}
+
+function sendNotificationSummary(summary: PetNotificationSummary): void {
+  if (!petWindow || petWindow.isDestroyed()) return;
+  petWindow.webContents.send('pet:notification-summary', summary);
+}
+
+export async function reloadPetAsset(): Promise<void> {
+  currentAsset = await resolvePetAsset(await ProcessConfig.get('pet.assetId'));
+  sendCurrentAsset();
+}
+
+function sendCurrentAsset(): void {
+  if (!petWindow || petWindow.isDestroyed()) return;
+
+  void (async () => {
+    currentAsset ??= await resolvePetAsset(await ProcessConfig.get('pet.assetId'));
+    if (!petWindow || petWindow.isDestroyed()) return;
+    petWindow.webContents.send('pet:asset-changed', currentAsset);
+  })().catch((error) => {
+    console.error('[Pet] Failed to send pet asset:', error);
+  });
+}
+
+function showPendingNotifications(): void {
+  if (showPetConfirmWindow()) return;
+
+  const mainWindow = getApplicationMainWindow();
+  if (!mainWindow) return;
+  if (mainWindow.isMinimized()) mainWindow.restore();
+  mainWindow.show();
+  mainWindow.focus();
 }

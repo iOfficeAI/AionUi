@@ -49,6 +49,7 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'pet.size',
   'pet.dnd',
   'pet.confirmEnabled',
+  'pet.assetId',
   'system.closeToTray',
   'system.notificationEnabled',
   'system.cronNotificationEnabled',

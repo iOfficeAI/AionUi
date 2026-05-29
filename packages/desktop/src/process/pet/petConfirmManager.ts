@@ -68,6 +68,15 @@ export function unhookPetConfirm(): void {
    * no-op so callers (petManager confirmBubbleEnabled toggle) stay compile-safe. */
 }
 
+export function showPetConfirmWindow(): boolean {
+  if (confirmWindow && !confirmWindow.isDestroyed()) {
+    confirmWindow.show();
+    confirmWindow.focus();
+    return true;
+  }
+  return false;
+}
+
 /**
  * Translate confirmation option labels using main-process i18n.
  */
