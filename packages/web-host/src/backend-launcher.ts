@@ -15,6 +15,18 @@ import type { AppMetadata, BackendBinaryResolver } from './types.js';
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
 type BackendStartupStage = 'resolve_binary' | 'find_port' | 'spawn' | 'spawn_error' | 'early_exit' | 'health_timeout';
 
+type HealthCheckDiagnostics = {
+  healthCheckAttempts: number;
+  healthCheckLastError?: string;
+  healthCheckLastStatus?: number;
+  healthCheckLastBody?: string;
+};
+
+type HealthCheckResult = {
+  ok: boolean;
+  diagnostics: HealthCheckDiagnostics;
+};
+
 type SpawnConfig = {
   port: number;
   dbPath: string;
@@ -75,6 +87,10 @@ export type BackendStartupErrorDetails = {
   pathLookupCommand?: string;
   pathLookupResult?: string;
   pathLookupError?: string;
+  healthCheckAttempts?: number;
+  healthCheckLastError?: string;
+  healthCheckLastStatus?: number;
+  healthCheckLastBody?: string;
 };
 
 export type BackendStartOptions = {
@@ -350,9 +366,16 @@ export class BackendLifecycleManager {
       }
     });
 
-    const ready = await Promise.race([this.waitForHealth(this._port), startupFailure]);
-    if (!ready) {
-      const healthTimeoutError = makeStartupError('health_timeout', 'aioncore failed to start within timeout');
+    const health = await Promise.race([this.waitForHealth(this._port), startupFailure]);
+    if (!health.ok) {
+      const healthTimeoutError = makeStartupError(
+        'health_timeout',
+        'aioncore failed to start within timeout',
+        undefined,
+        {
+          ...health.diagnostics,
+        }
+      );
       if (options?.allowPendingOnHealthTimeout && this.childProcess) {
         startupSettled = true;
         console.warn(`[aioncore] health check timed out; keeping process alive on port ${this._port}`);
@@ -398,18 +421,30 @@ export class BackendLifecycleManager {
     port: number,
     timeoutMs = 30_000,
     shouldContinue: () => boolean = () => true
-  ): Promise<boolean> {
+  ): Promise<HealthCheckResult> {
     const start = Date.now();
+    const diagnostics: HealthCheckDiagnostics = { healthCheckAttempts: 0 };
     while (Date.now() - start < timeoutMs && shouldContinue()) {
+      diagnostics.healthCheckAttempts += 1;
       try {
         const response = await fetch(`http://127.0.0.1:${port}/health`);
-        if (response.ok) return true;
-      } catch {
-        // not ready yet
+        if (response.ok) return { ok: true, diagnostics };
+        diagnostics.healthCheckLastStatus = response.status;
+        delete diagnostics.healthCheckLastError;
+        try {
+          diagnostics.healthCheckLastBody = (await response.text()).slice(0, 500);
+        } catch (error) {
+          delete diagnostics.healthCheckLastBody;
+          diagnostics.healthCheckLastError = getErrorMessage(error);
+        }
+      } catch (error) {
+        diagnostics.healthCheckLastError = getErrorMessage(error);
+        delete diagnostics.healthCheckLastStatus;
+        delete diagnostics.healthCheckLastBody;
       }
       await new Promise((r) => setTimeout(r, 200));
     }
-    return false;
+    return { ok: false, diagnostics };
   }
 
   private continueWaitingForHealth(
@@ -418,12 +453,12 @@ export class BackendLifecycleManager {
     onReady?: (port: number) => Promise<void> | void
   ): void {
     void (async () => {
-      const ready = await this.waitForHealth(
+      const health = await this.waitForHealth(
         port,
         Number.POSITIVE_INFINITY,
         () => this.childProcess === childProcess && this._status === 'starting'
       );
-      if (!ready || this.childProcess !== childProcess || this._status !== 'starting') return;
+      if (!health.ok || this.childProcess !== childProcess || this._status !== 'starting') return;
       this._status = 'running';
       this.restartCount = 0;
       console.log(`[aioncore] listening on port ${port}, data-dir: ${this._lastDbPath}`);
