@@ -270,6 +270,8 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
         stage: 'health_timeout',
         binaryPath: '/abs/path/aioncore',
         port: 33334,
+        healthCheckAttempts: expect.any(Number),
+        healthCheckLastError: 'ECONNREFUSED',
         dataDir: '/db/path',
         stderrTail: expect.stringContaining('database is locked'),
       }),
@@ -280,6 +282,37 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     child.stderr?.emit('data', Buffer.from('database is locked\n'));
     await vi.advanceTimersByTimeAsync(31_000);
 
+    await expectedRejection;
+
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records the last non-OK health response when health check times out', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33336) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockImplementation(() => Promise.resolve(new Response('starting', { status: 503 })));
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        stage: 'health_timeout',
+        port: 33336,
+        healthCheckAttempts: expect.any(Number),
+        healthCheckLastStatus: 503,
+        healthCheckLastBody: 'starting',
+      }),
+    });
+
+    await vi.advanceTimersByTimeAsync(31_000);
     await expectedRejection;
 
     fetchSpy.mockRestore();
@@ -331,6 +364,31 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 });
 
 describe('BackendLifecycleManager.stop', () => {
+  it('rejects startup as cancelled when stopped before health check passes', async () => {
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(22221) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('ECONNREFUSED'));
+
+    const mgr = new BackendLifecycleManager(APP_META, () => '/x');
+    const startPromise = mgr.start('/db');
+
+    await Promise.resolve();
+    const stopPromise = mgr.stop();
+    (child as unknown as EventEmitter).emit('exit', null, 'SIGTERM');
+    await stopPromise;
+
+    await expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupCancelledError',
+    });
+    expect(mgr.status).toBe('stopped');
+
+    fetchSpy.mockRestore();
+  });
+
   it('sends SIGTERM then resolves when child emits exit', async () => {
     vi.mocked(createServer).mockImplementation(
       () => makeFakeServer(22222) as unknown as ReturnType<typeof createServer>

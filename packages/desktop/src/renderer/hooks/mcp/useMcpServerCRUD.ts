@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { Message } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { IMcpServer } from '@/common/config/storage';
 import { toBackendMcpPayload } from './catalog';
 
@@ -25,6 +26,12 @@ const replaceUserServer = (servers: IMcpServer[], nextServer: IMcpServer) => {
   return remainingServers;
 };
 
+const getMcpRequestErrorMessage = (error: unknown, fallback: string): string => {
+  if (isBackendHttpError(error) && error.backendMessage.trim()) return error.backendMessage;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+  return fallback;
+};
 export const useMcpServerCRUD = (
   saveMcpServers: (serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => Promise<void>
 ) => {
@@ -40,49 +47,59 @@ export const useMcpServerCRUD = (
 
   const handleAddMcpServer = useCallback(
     async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
-      let persisted = await mcpService.createServer.invoke(toBackendMcpPayload(serverData));
-      persisted = await persistEnabledState(persisted, serverData.enabled);
+      try {
+        let persisted = await mcpService.createServer.invoke(toBackendMcpPayload(serverData));
+        persisted = await persistEnabledState(persisted, serverData.enabled);
 
-      const nextServer = mergeServerState(persisted, serverData);
-      await saveMcpServers((prevServers) => replaceUserServer(prevServers, nextServer));
-      return nextServer;
+        const nextServer = mergeServerState(persisted, serverData);
+        await saveMcpServers((prevServers) => replaceUserServer(prevServers, nextServer));
+        return nextServer;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return undefined;
+      }
     },
-    [persistEnabledState, saveMcpServers]
+    [persistEnabledState, saveMcpServers, t]
   );
 
   const handleBatchImportMcpServers = useCallback(
     async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
-      const imported = await mcpService.importServers.invoke({
-        servers: serversData.map((server) => toBackendMcpPayload(server)),
-      });
+      try {
+        const imported = await mcpService.importServers.invoke({
+          servers: serversData.map((server) => toBackendMcpPayload(server)),
+        });
 
-      const finalServers: IMcpServer[] = [];
-      for (const importedServer of imported) {
-        const original = serversData.find((server) => server.name === importedServer.name);
-        const persisted = await persistEnabledState(importedServer, original?.enabled ?? false);
-        finalServers.push(mergeServerState(persisted, original));
-      }
+        const finalServers: IMcpServer[] = [];
+        for (const importedServer of imported) {
+          const original = serversData.find((server) => server.name === importedServer.name);
+          const persisted = await persistEnabledState(importedServer, original?.enabled ?? false);
+          finalServers.push(mergeServerState(persisted, original));
+        }
 
-      await saveMcpServers((prevServers) => {
-        let nextServers = prevServers.filter((server) => server.builtin === true);
-        const existingUserServers = prevServers.filter((server) => server.builtin !== true);
+        await saveMcpServers((prevServers) => {
+          let nextServers = prevServers.filter((server) => server.builtin === true);
+          const existingUserServers = prevServers.filter((server) => server.builtin !== true);
 
-        for (const server of existingUserServers) {
-          if (!finalServers.some((next) => next.id === server.id || next.name === server.name)) {
-            nextServers = [...nextServers, server];
+          for (const server of existingUserServers) {
+            if (!finalServers.some((next) => next.id === server.id || next.name === server.name)) {
+              nextServers = [...nextServers, server];
+            }
           }
-        }
 
-        for (const server of finalServers) {
-          nextServers = replaceUserServer(nextServers, server);
-        }
+          for (const server of finalServers) {
+            nextServers = replaceUserServer(nextServers, server);
+          }
 
-        return nextServers;
-      });
+          return nextServers;
+        });
 
-      return finalServers;
+        return finalServers;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return [];
+      }
     },
-    [persistEnabledState, saveMcpServers]
+    [persistEnabledState, saveMcpServers, t]
   );
 
   const handleEditMcpServer = useCallback(
@@ -94,22 +111,27 @@ export const useMcpServerCRUD = (
         return undefined;
       }
 
-      let persisted = await mcpService.updateServer.invoke({
-        id: editingMcpServer.id,
-        data: toBackendMcpPayload(serverData),
-      });
-      persisted = await persistEnabledState(persisted, serverData.enabled);
+      try {
+        let persisted = await mcpService.updateServer.invoke({
+          id: editingMcpServer.id,
+          data: toBackendMcpPayload(serverData),
+        });
+        persisted = await persistEnabledState(persisted, serverData.enabled);
 
-      const nextServer = mergeServerState(persisted, {
-        ...editingMcpServer,
-        ...serverData,
-      });
-      await saveMcpServers((prevServers) =>
-        prevServers.map((server) => (server.id === editingMcpServer.id ? nextServer : server))
-      );
+        const nextServer = mergeServerState(persisted, {
+          ...editingMcpServer,
+          ...serverData,
+        });
+        await saveMcpServers((prevServers) =>
+          prevServers.map((server) => (server.id === editingMcpServer.id ? nextServer : server))
+        );
 
-      Message.success(t('settings.mcpImportSuccess'));
-      return nextServer;
+        Message.success(t('settings.mcpImportSuccess'));
+        return nextServer;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return undefined;
+      }
     },
     [persistEnabledState, saveMcpServers, t]
   );

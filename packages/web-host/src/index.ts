@@ -6,6 +6,7 @@ export type { StaticServerOptions, StaticServerHandle } from './static-server.js
 
 // Backend launcher exports (M4)
 export {
+  BackendStartupCancelledError,
   BackendLifecycleManager,
   buildSpawnArgs,
   buildSpawnEnv,

@@ -15,12 +15,19 @@ type StartBackendOrExitOptions = {
   logError?: (message: string, error: unknown) => void;
 };
 
+function isBackendStartupCancelledError(error: unknown): boolean {
+  return error instanceof Error && error.name === 'BackendStartupCancelledError';
+}
+
 export async function startBackendOrExit(options: StartBackendOrExitOptions): Promise<BackendStartupResult> {
   try {
     const port = await options.startBackend();
     options.onStarted(port);
     return { ok: true, port };
   } catch (error) {
+    if (isBackendStartupCancelledError(error)) {
+      return { ok: false };
+    }
     options.logError?.('[AionUi] Failed to start aioncore:', error);
     await options.captureFailure(error);
     if (options.exitOnFailure ?? true) {

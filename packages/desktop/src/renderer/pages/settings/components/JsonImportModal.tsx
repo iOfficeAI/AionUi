@@ -1,4 +1,4 @@
-import type { IMcpServer, IMcpServerTransport, IMcpTool } from '@/common/config/storage';
+import type { IMcpServer, IMcpServerTransport } from '@/common/config/storage';
 import { Alert, Button } from '@arco-design/web-react';
 import React, { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -6,6 +6,7 @@ import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import AionModal from '@/renderer/components/base/AionModal';
+import { parseMcpJsonImport, type ParsedMcpJsonServer } from '../ToolsSettings/mcpJsonImport';
 
 interface JsonImportModalProps {
   visible: boolean;
@@ -22,7 +23,7 @@ interface ValidationResult {
   errorMessage?: string;
 }
 
-type JsonServerConfig = Record<string, any>;
+type ImportableMcpServer = Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>;
 
 const SPLITTABLE_STDIO_LAUNCHERS = ['npx', 'pnpx', 'bunx', 'uvx', 'uv', 'node', 'python', 'python3', 'deno'];
 
@@ -168,21 +169,24 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
   /**
    * JSON语法校验
    */
-  const validateJsonSyntax = useCallback((input: string): ValidationResult => {
-    if (!input.trim()) {
-      return { isValid: true }; // 空值视为有效
-    }
+  const validateJsonSyntax = useCallback(
+    (input: string): ValidationResult => {
+      if (!input.trim()) {
+        return { isValid: true }; // 空值视为有效
+      }
 
-    try {
-      JSON.parse(input);
-      return { isValid: true };
-    } catch (error) {
-      return {
-        isValid: false,
-        errorMessage: error instanceof SyntaxError ? error.message : 'Invalid JSON format',
-      };
-    }
-  }, []);
+      try {
+        JSON.parse(input);
+        return { isValid: true };
+      } catch (error) {
+        return {
+          isValid: false,
+          errorMessage: error instanceof SyntaxError ? error.message : t('settings.mcpJsonFormatError'),
+        };
+      }
+    },
+    [t]
+  );
 
   // 监听 jsonInput 变化，实时更新校验结果
   React.useEffect(() => {
@@ -223,92 +227,34 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
   }, [visible, server]);
 
-  /**
-   * Parse transport config from JSON server config.
-   * Supports both "type" field (standard) and "transport" field (Gemini CLI format).
-   */
-  const parseTransport = (serverConfig: JsonServerConfig): IMcpServerTransport => {
-    if (serverConfig.command) {
-      const normalized = normalizeStdioCommand(serverConfig.command, serverConfig.args);
-      return {
-        type: 'stdio',
-        command: normalized.command,
-        args: normalized.args,
-        env: serverConfig.env || {},
-      };
+  const normalizeParsedTransport = (transport: IMcpServerTransport): IMcpServerTransport => {
+    if (transport.type !== 'stdio') {
+      return transport;
     }
 
-    // Check both "type" and "transport" fields for transport type detection
-    // Gemini CLI uses "transport" field, standard format uses "type" field
-    const transport_type = serverConfig.type || serverConfig.transport;
-
-    if (transport_type === 'sse' || serverConfig.url?.includes('/sse')) {
-      return { type: 'sse', url: serverConfig.url, headers: serverConfig.headers };
-    }
-    if (transport_type === 'streamable_http') {
-      return { type: 'streamable_http', url: serverConfig.url, headers: serverConfig.headers };
-    }
-    return { type: 'http', url: serverConfig.url, headers: serverConfig.headers };
+    const normalized = normalizeStdioCommand(transport.command, transport.args);
+    return {
+      ...transport,
+      command: normalized.command,
+      args: normalized.args,
+    };
   };
 
-  const normalizeArrayServer = (serverItem: unknown): { name: string; config: JsonServerConfig } => {
-    if (!serverItem || typeof serverItem !== 'object' || Array.isArray(serverItem)) {
-      throw new Error(t('settings.mcpJsonFormatError'));
-    }
-
-    const rawServer = serverItem as JsonServerConfig;
-    if (typeof rawServer.name !== 'string' || !rawServer.name.trim()) {
-      throw new Error(t('settings.mcpJsonFormatError'));
-    }
-
-    const { name, ...restConfig } = rawServer;
-    const transport_config = restConfig.transport;
-    if (transport_config && typeof transport_config === 'object' && !Array.isArray(transport_config)) {
-      const typedTransport = transport_config as JsonServerConfig;
-      if (typedTransport.type === 'stdio') {
-        return {
-          name,
-          config: {
-            ...restConfig,
-            command: typedTransport.command,
-            args: typedTransport.args,
-            env: typedTransport.env,
-            transport: undefined,
-          },
-        };
-      }
-
-      return {
-        name,
-        config: {
-          ...restConfig,
-          type: typedTransport.type,
-          url: typedTransport.url,
-          headers: typedTransport.headers,
-          transport: undefined,
-        },
-      };
-    }
-
-    return { name, config: restConfig };
-  };
-
-  const normalizeMcpServers = (config: JsonServerConfig): Record<string, JsonServerConfig> => {
-    const rawServers = config.mcpServers ?? config;
-
-    if (Array.isArray(rawServers)) {
-      return rawServers.reduce<Record<string, JsonServerConfig>>((accumulator, serverItem) => {
-        const { name, config: normalizedConfig } = normalizeArrayServer(serverItem);
-        accumulator[name] = normalizedConfig;
-        return accumulator;
-      }, {});
-    }
-
-    if (!rawServers || typeof rawServers !== 'object') {
-      throw new Error(t('settings.mcpJsonFormatError'));
-    }
-
-    return rawServers as Record<string, JsonServerConfig>;
+  const toImportableServer = (
+    parsedServer: ParsedMcpJsonServer,
+    originalJson: string,
+    enabled: boolean
+  ): ImportableMcpServer => {
+    const transport = normalizeParsedTransport(parsedServer.transport);
+    return {
+      name: parsedServer.name,
+      description: parsedServer.description,
+      enabled,
+      transport,
+      last_test_status: 'disconnected',
+      tools: [],
+      original_json: originalJson || buildOriginalJson(parsedServer.name, parsedServer.description, transport),
+    };
   };
 
   const handleSubmit = async () => {
@@ -317,32 +263,27 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
 
     // Re-validate at submit time to guard against race between useEffect validation and click
-    let config: Record<string, any>;
+    let config: unknown;
     try {
       config = JSON.parse(jsonInput);
     } catch {
-      setValidation({ isValid: false, errorMessage: 'Invalid JSON format' });
-      return;
-    }
-    let mcpServers: Record<string, JsonServerConfig>;
-    try {
-      mcpServers = normalizeMcpServers(config);
-    } catch (error) {
-      setValidation({
-        isValid: false,
-        errorMessage: error instanceof Error ? error.message : t('settings.mcpJsonFormatError'),
-      });
+      setValidation({ isValid: false, errorMessage: t('settings.mcpJsonFormatError') });
       return;
     }
 
-    const serverKeys = Object.keys(mcpServers);
-    if (serverKeys.length === 0) {
-      console.warn('No MCP server found in configuration');
+    const parseResult = parseMcpJsonImport(config);
+    if (parseResult.isValid === false) {
+      setValidation({ isValid: false, errorMessage: t(parseResult.errorKey) });
       return;
     }
 
+    const parsedServers = parseResult.servers;
     if (server) {
-      const editNameValidation = validateEditServerNames(server.name, serverKeys, t);
+      const editNameValidation = validateEditServerNames(
+        server.name,
+        parsedServers.map((parsedServer) => parsedServer.name),
+        t
+      );
       if (!editNameValidation.isValid) {
         setValidation(editNameValidation);
         return;
@@ -352,21 +293,14 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     setSubmitting(true);
 
     // 如果有多个服务器，使用批量导入
-    if (serverKeys.length > 1 && onBatchImport) {
-      const serversToImport = serverKeys.map((serverKey) => {
-        const serverConfig = mcpServers[serverKey];
-        const description = serverConfig.description || `Imported from JSON`;
-        const transport = parseTransport(serverConfig);
-        return {
-          name: serverKey,
-          description,
-          enabled: true,
-          transport,
-          last_test_status: 'disconnected' as const,
-          tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-          original_json: buildOriginalJson(serverKey, description, transport),
-        };
-      });
+    if (parsedServers.length > 1 && onBatchImport) {
+      const serversToImport = parsedServers.map((parsedServer) =>
+        toImportableServer(
+          parsedServer,
+          JSON.stringify({ mcpServers: { [parsedServer.name]: parsedServer.originalConfig } }, null, 2),
+          true
+        )
+      );
 
       try {
         await onBatchImport(serversToImport);
@@ -378,21 +312,8 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
     }
 
     // 单个服务器导入
-    const firstServerKey = serverKeys[0];
-    const serverConfig = mcpServers[firstServerKey];
-    const description = serverConfig.description || 'Imported from JSON';
-    const transport = parseTransport(serverConfig);
-
     try {
-      await onSubmit({
-        name: firstServerKey,
-        description,
-        enabled: true,
-        transport,
-        last_test_status: 'disconnected',
-        tools: [] as IMcpTool[], // JSON导入时初始化为空数组，后续可通过连接测试获取
-        original_json: buildOriginalJson(firstServerKey, description, transport),
-      });
+      await onSubmit(toImportableServer(parsedServers[0], jsonInput, server?.enabled ?? true));
       onCancel();
     } finally {
       setSubmitting(false);
