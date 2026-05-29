@@ -152,19 +152,34 @@ export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
   };
 }
 
-export function findAvailablePort(): Promise<number> {
+export function findAvailablePort(preferredPort?: number): Promise<number> {
   return new Promise((resolve, reject) => {
     const server = createServer();
-    server.listen(0, '127.0.0.1', () => {
-      const addr = server.address();
-      if (addr && typeof addr !== 'string') {
-        const port = addr.port;
-        server.close(() => resolve(port));
-      } else {
-        server.close(() => reject(new Error('Failed to get port')));
-      }
+    const requestedPort = preferredPort ?? 0;
+
+    const cleanup = () => {
+      server.removeAllListeners();
+    };
+
+    server.once('error', (error) => {
+      cleanup();
+      reject(error);
     });
-    server.on('error', reject);
+    server.listen(requestedPort, '127.0.0.1', () => {
+      const addr = server.address();
+      const resolvedPort =
+        preferredPort ??
+        (addr && typeof addr !== 'string' && typeof addr.port === 'number' ? addr.port : 0);
+
+      server.close(() => {
+        cleanup();
+        if (resolvedPort > 0) {
+          resolve(resolvedPort);
+          return;
+        }
+        reject(new Error('Failed to get port'));
+      });
+    });
   });
 }
 
@@ -214,7 +229,8 @@ export class BackendLifecycleManager {
     dbPath: string,
     logDir?: string,
     dirs?: BackendDirConfig,
-    options?: BackendStartOptions
+    options?: BackendStartOptions,
+    preferredPort?: number
   ): Promise<number> {
     const appVersion = this.appMeta.version;
     let binaryPath: string;
@@ -238,7 +254,7 @@ export class BackendLifecycleManager {
       );
     }
     try {
-      this._port = await findAvailablePort();
+      this._port = await findAvailablePort(preferredPort);
     } catch (error) {
       throw new BackendStartupError(
         'aioncore startup failed while finding an available port',
@@ -247,6 +263,7 @@ export class BackendLifecycleManager {
           appVersion,
           isPackaged: this.appMeta.isPackaged,
           binaryPath,
+          port: preferredPort,
           dataDir: dbPath,
           logDir,
           workDir: dirs?.workDir,
@@ -359,7 +376,7 @@ export class BackendLifecycleManager {
           });
           return;
         }
-        if (this._status === 'running') this.handleCrash(code);
+        if (this._status === 'running') this.handleCrash(code, signal);
       });
     });
 
@@ -479,7 +496,7 @@ export class BackendLifecycleManager {
     });
   }
 
-  private handleCrash(_code: number | null): void {
+  private handleCrash(code: number | null, signal?: NodeJS.Signals | string | null): void {
     const now = Date.now();
     if (now - this.restartWindowStart > this.restartWindowMs) {
       this.restartCount = 0;
@@ -487,17 +504,39 @@ export class BackendLifecycleManager {
     }
     this.restartCount++;
 
+    const restartPort = this._port;
+    const crashContext = {
+      exitCode: code ?? undefined,
+      signal: signal ?? undefined,
+      port: restartPort,
+      restartCount: this.restartCount,
+      maxRestarts: this.maxRestarts,
+    };
+
     if (this.restartCount > this.maxRestarts) {
       this._status = 'error';
+      console.error('[aioncore] child exited unexpectedly; restart limit exceeded', crashContext);
       return;
     }
 
     const delay = Math.pow(2, this.restartCount - 1) * 1000;
+    console.warn('[aioncore] child exited unexpectedly; scheduling restart', {
+      ...crashContext,
+      delayMs: delay,
+    });
+
     setTimeout(() => {
       if (this._status === 'stopped') return;
       this._status = 'starting';
-      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs).catch(() => {
+      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, undefined, restartPort).catch((error) => {
         this._status = 'error';
+        console.error('[aioncore] restart after crash failed', {
+          port: restartPort,
+          restartCount: this.restartCount,
+          maxRestarts: this.maxRestarts,
+          delayMs: delay,
+          error: getErrorMessage(error),
+        });
       });
     }, delay);
   }
