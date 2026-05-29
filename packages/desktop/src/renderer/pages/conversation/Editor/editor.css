@@ -45,6 +45,19 @@
   gap: 8px;
 }
 
+.editor-tabs::-webkit-scrollbar {
+  height: 4px;
+}
+
+.editor-tabs::-webkit-scrollbar-thumb {
+  background: var(--bg-3);
+  border-radius: 2px;
+}
+
+.editor-tabs::-webkit-scrollbar-track {
+  background: transparent;
+}
+
 .editor-pane-enter {
   animation: editor-pane-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
   will-change: opacity, transform;

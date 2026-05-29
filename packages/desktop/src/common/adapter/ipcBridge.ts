@@ -548,6 +548,33 @@ export const fs = {
 };
 
 // ---------------------------------------------------------------------------
+// LSP — routed to /api/lsp/*  (transport WebSocket lives at /api/lsp/ws/:id)
+// ---------------------------------------------------------------------------
+
+export type LspServerInfo = {
+  language: string;
+  installed: boolean;
+  command: string;
+  install_hint?: string;
+};
+
+export type LspStartSessionRequest = {
+  language: string;
+  workspace?: string;
+};
+
+export type LspStartSessionResponse = {
+  session_id: string;
+  language: string;
+};
+
+export const lsp = {
+  listServers: httpGet<LspServerInfo[], void>('/api/lsp/servers'),
+  startSession: httpPost<LspStartSessionResponse, LspStartSessionRequest>('/api/lsp/sessions'),
+  stopSession: httpPost<void, { session_id: string }>('/api/lsp/sessions/stop'),
+};
+
+// ---------------------------------------------------------------------------
 // Speech to Text — routed to backend
 // ---------------------------------------------------------------------------
 
@@ -760,7 +787,14 @@ export const acpConversation = {
   // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
   // to handshake metadata in that case. Silence the bridge log so this
   // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
+  getMode: httpGet<
+    {
+      mode: string;
+      initialized: boolean;
+      available_modes?: Array<{ id: string; name?: string; description?: string }>;
+    },
+    { conversation_id: string }
+  >(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     { silentStatuses: [404] }
   ),
@@ -886,6 +920,16 @@ export const remoteAgent = {
    */
   refreshModels: httpGet<import('@/common/types/platform/acpTypes').AcpModelInfo, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/models`
+  ),
+  /**
+   * Fetch the selectable agent catalog (`GET /agent`) from a remote OpenCode
+   * agent. Used by the Guid (New Chat) page to populate the mode selector with
+   * server-discovered agents (build/plan plus custom agents) before any
+   * conversation/session exists. aioncore performs the upstream call so it can
+   * decrypt the stored `auth_token`.
+   */
+  listAgents: httpGet<Array<{ id: string; name?: string; description?: string }>, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/agents`
   ),
   /**
    * List active sessions on a remote OpenCode agent. Used internally by

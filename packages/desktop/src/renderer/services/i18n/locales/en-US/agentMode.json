@@ -13,6 +13,7 @@
   "smart": "Smart",
   "build": "Build Mode",
   "permission": "Permission",
+  "agent": "Agent",
   "switchMode": "Permission Mode",
   "switchSuccess": "Mode switched successfully",
   "switchFailed": "Failed to switch mode"

@@ -236,7 +236,10 @@
     "disableWordWrap": "Disable word wrap",
     "findInFile": "Find",
     "cursorPosition": "Ln {{line}}, Col {{col}}",
-    "languageLabel": "Language: {{language}}"
+    "languageLabel": "Language: {{language}}",
+    "tabsList": "열린 파일",
+    "unsavedDot": "저장되지 않은 변경",
+    "lspNotInstalled": "IntelliSense를 위해 {{command}} 설치"
   },
   "minimap": {
     "searchAria": "대화 검색",

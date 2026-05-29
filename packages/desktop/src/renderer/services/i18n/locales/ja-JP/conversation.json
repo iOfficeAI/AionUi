@@ -236,7 +236,10 @@
     "disableWordWrap": "Disable word wrap",
     "findInFile": "Find",
     "cursorPosition": "Ln {{line}}, Col {{col}}",
-    "languageLabel": "Language: {{language}}"
+    "languageLabel": "Language: {{language}}",
+    "tabsList": "開いているファイル",
+    "unsavedDot": "未保存の変更",
+    "lspNotInstalled": "{{command}} をインストールして IntelliSense を有効にする"
   },
   "minimap": {
     "searchAria": "会話を検索",

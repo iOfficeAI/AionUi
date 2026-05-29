@@ -231,7 +231,10 @@
     "disableWordWrap": "Disable word wrap",
     "findInFile": "Find",
     "cursorPosition": "Ln {{line}}, Col {{col}}",
-    "languageLabel": "Language: {{language}}"
+    "languageLabel": "Language: {{language}}",
+    "tabsList": "Open files",
+    "unsavedDot": "Unsaved changes",
+    "lspNotInstalled": "Install {{command}} for IntelliSense"
   },
   "minimap": {
     "searchAria": "Sohbeti ara",

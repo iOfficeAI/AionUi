@@ -66,6 +66,12 @@ export interface AgentModeSelectorProps {
   onModeChanged?: (mode: string) => void;
   /** Dynamic modes from capabilities (overrides static list when non-empty) */
   dynamicModes?: AgentModeOption[];
+  /**
+   * Overrides the dropdown group header (default: `agentMode.switchMode` —
+   * "Permission Mode"). OpenCode passes "Agent" because its selectable values
+   * are server agents, not permission modes.
+   */
+  groupTitleOverride?: string;
 }
 
 /**
@@ -93,11 +99,13 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   hideCompactLabelPrefixOnMobile = false,
   onModeChanged,
   dynamicModes,
+  groupTitleOverride,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
   const [cachedModes, setCachedModes] = useState<AgentModeOption[]>([]);
+  const [runtimeModes, setRuntimeModes] = useState<AgentModeOption[]>([]);
 
   // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
   // then fall back to `acp.cached_config_options` category=mode (codex)
@@ -126,12 +134,13 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     }
   }, [backend]);
 
-  // Priority: dynamicModes (runtime) > cachedModes (from cache) > getAgentModes (static fallback)
+  // Priority: dynamicModes (props) > runtimeModes (session API) > cachedModes > static fallback
   const modes = useMemo(() => {
     if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
+    if (runtimeModes.length > 0) return runtimeModes;
     if (cachedModes.length > 0) return cachedModes;
     return getAgentModes(backend);
-  }, [dynamicModes, cachedModes, backend]);
+  }, [dynamicModes, runtimeModes, cachedModes, backend]);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')
@@ -167,6 +176,15 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       .invoke({ conversation_id })
       .then((result) => {
         if (!cancelled && result) {
+          if (result.available_modes && result.available_modes.length > 0) {
+            setRuntimeModes(
+              result.available_modes.map((mode) => ({
+                value: mode.id,
+                label: mode.name ?? mode.id,
+                description: mode.description,
+              }))
+            );
+          }
           // Only sync from backend when manager is initialized;
           // before first message, getMode returns { mode: 'default', initialized: false }
           // which would overwrite the correct initialMode (e.g. opencode has no 'default').
@@ -241,7 +259,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const dropdownMenu = (
     <div className={styles.panel}>
       <Menu className={styles.menu} onClickMenuItem={(key) => void handleModeChange(key)}>
-        <Menu.ItemGroup title={t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
+        <Menu.ItemGroup title={groupTitleOverride ?? t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
           {modes.map((mode: AgentModeOption) => (
             <Menu.Item
               key={mode.value}

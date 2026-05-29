@@ -17,6 +17,7 @@ import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design
 import { ArrowUp, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import useSWR from 'swr';
 import styles from '../index.module.css';
 
 type GuidActionRowProps = {
@@ -97,6 +98,20 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     rawModeBackend === 'remote' && selectedAgentInfo?.protocol === 'opencode' ? 'opencode' : rawModeBackend;
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
+
+  // For an OpenCode remote agent, the New Chat page has no conversation/session
+  // yet, so the per-conversation `/mode` endpoint can't be used. Fetch the
+  // server's agent catalog (build/plan + custom agents like `ui-expert`)
+  // directly from the remote-agent endpoint and feed it to the selector as
+  // `dynamicModes`. Non-opencode agents skip this and use the static list.
+  const remoteAgentId = modeBackend === 'opencode' && selectedAgentInfo?.protocol === 'opencode' ? selectedAgentInfo?.id : undefined;
+  const { data: remoteAgentModes } = useSWR(
+    remoteAgentId ? ['remote-agent-agents', remoteAgentId] : null,
+    async (): Promise<AgentModeOption[]> => {
+      const list = await ipcBridge.remoteAgent.listAgents.invoke({ id: remoteAgentId! });
+      return (list || []).map((a) => ({ value: a.id, label: a.name ?? a.id, description: a.description }));
+    }
+  );
 
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -265,6 +280,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 compact
                 initialMode={selectedMode}
                 onModeSelect={onModeSelect}
+                dynamicModes={remoteAgentModes}
+                groupTitleOverride={modeBackend === 'opencode' ? t('agentMode.agent') : undefined}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={getModeDisplayLabel}
               />

@@ -13,6 +13,7 @@
   "smart": "Akıllı",
   "build": "Build Mode",
   "permission": "İzin",
+  "agent": "Ajan",
   "switchMode": "İzin Modu",
   "switchSuccess": "Mode switched successfully",
   "switchFailed": "Failed to switch mode"

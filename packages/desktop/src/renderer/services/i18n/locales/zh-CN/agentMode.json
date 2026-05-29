@@ -13,6 +13,7 @@
   "smart": "智能",
   "build": "构建模式",
   "permission": "权限",
+  "agent": "智能体",
   "switchMode": "授权模式",
   "switchSuccess": "模式切换成功",
   "switchFailed": "模式切换失败"

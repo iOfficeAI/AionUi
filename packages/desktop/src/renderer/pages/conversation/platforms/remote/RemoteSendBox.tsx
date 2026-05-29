@@ -429,7 +429,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
                 initialMode={session_mode}
                 compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-                compactLabelPrefix={t('agentMode.permission')}
+                compactLabelPrefix={t('agentMode.agent')}
+                groupTitleOverride={t('agentMode.agent')}
                 hideCompactLabelPrefixOnMobile
               />
             ) : null}

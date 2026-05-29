@@ -13,6 +13,7 @@
   "smart": "スマート",
   "build": "ビルドモード",
   "permission": "権限",
+  "agent": "エージェント",
   "switchMode": "権限モード",
   "switchSuccess": "モードを切り替えました",
   "switchFailed": "モードの切り替えに失敗しました"

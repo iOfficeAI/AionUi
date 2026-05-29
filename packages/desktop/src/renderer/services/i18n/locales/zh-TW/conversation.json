@@ -236,7 +236,10 @@
     "disableWordWrap": "Disable word wrap",
     "findInFile": "Find",
     "cursorPosition": "Ln {{line}}, Col {{col}}",
-    "languageLabel": "Language: {{language}}"
+    "languageLabel": "Language: {{language}}",
+    "tabsList": "已開啟的檔案",
+    "unsavedDot": "未儲存的變更",
+    "lspNotInstalled": "安裝 {{command}} 以獲得智能提示"
   },
   "minimap": {
     "searchAria": "搜尋對話",

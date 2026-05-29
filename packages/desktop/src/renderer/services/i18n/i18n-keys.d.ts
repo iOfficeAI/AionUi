@@ -42,6 +42,7 @@ export type I18nKey =
   | 'agent.setup.notConfigured'
   | 'agent.setup.switching'
   | 'agentMode.acceptEdits'
+  | 'agentMode.agent'
   | 'agentMode.auto'
   | 'agentMode.autoEdit'
   | 'agentMode.auto_edit'

@@ -1,126 +1,192 @@
-import { Button, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, FolderOpen, Plus, Save, Search, TextWrapOverflow, UploadLogs } from '@icon-park/react';
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ *
+ * Editor toolbar. Hosts grouped actions for File, Edit, Find, Format, View,
+ * and Pane operations. Each functional group is separated by a 1px vertical
+ * rule so the toolbar reads as a real action surface instead of an
+ * undifferentiated row of icons.
+ */
+
+import { Tooltip } from '@arco-design/web-react';
+import {
+  CloseSmall,
+  Code,
+  Comment,
+  Exchange,
+  FolderOpen,
+  MapTwo,
+  Navigation,
+  Notes,
+  Plus,
+  Redo,
+  Save,
+  Search,
+  TextWrapOverflow,
+  Undo,
+  UploadLogs,
+} from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import { getLanguageDisplayName } from './editorLanguage';
 
-type EditorToolbarProps = {
-  fileName: string;
-  filePath: string | null;
-  isDirty: boolean;
+type Props = {
   saving: boolean;
   wordWrap: boolean;
-  language: string;
-  cursorLine: number;
-  cursorColumn: number;
+  showMinimap: boolean;
+  renderWhitespace: boolean;
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
   onSaveAs: () => void;
-  onClose: () => void;
-  onCollapse: () => void;
-  onToggleWordWrap: () => void;
+  onUndo: () => void;
+  onRedo: () => void;
   onFind: () => void;
+  onReplace: () => void;
+  onGoToLine: () => void;
+  onToggleComment: () => void;
+  onFormatDocument: () => void;
+  onToggleWordWrap: () => void;
+  onToggleMinimap: () => void;
+  onToggleWhitespace: () => void;
+  onCollapse: () => void;
+  onClose: () => void;
 };
 
-const toolbarBtn =
-  'flex items-center gap-2px px-6px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
+const BTN =
+  'inline-flex items-center justify-center w-30px h-30px rd-4px text-t-secondary hover:text-t-primary hover:bg-bg-3 transition-colors duration-100 cursor-pointer select-none disabled:opacity-40 disabled:cursor-not-allowed';
 
-const statusItem = 'text-11px text-t-secondary tabular-nums leading-none px-4px';
+const BTN_ACTIVE =
+  'inline-flex items-center justify-center w-30px h-30px rd-4px text-white bg-brand hover:bg-brand-hover transition-colors duration-100 cursor-pointer select-none';
 
-const EditorToolbar: React.FC<EditorToolbarProps> = ({
-  fileName,
-  filePath,
-  isDirty,
+const SEPARATOR = 'w-1px h-20px bg-bg-3 mx-4px flex-shrink-0';
+
+type ToolButtonProps = {
+  label: string;
+  icon: React.ReactNode;
+  active?: boolean;
+  loading?: boolean;
+  onClick: () => void;
+};
+
+const ToolButton: React.FC<ToolButtonProps> = ({ label, icon, active, loading, onClick }) => (
+  <Tooltip content={label} position='bottom' mini>
+    <button
+      type='button'
+      aria-label={label}
+      aria-pressed={active}
+      disabled={loading}
+      className={active ? BTN_ACTIVE : BTN}
+      onClick={onClick}
+    >
+      {icon}
+    </button>
+  </Tooltip>
+);
+
+const EditorToolbar: React.FC<Props> = ({
   saving,
   wordWrap,
-  language,
-  cursorLine,
-  cursorColumn,
+  showMinimap,
+  renderWhitespace,
   onNew,
   onOpen,
   onSave,
   onSaveAs,
-  onClose,
-  onCollapse,
-  onToggleWordWrap,
+  onUndo,
+  onRedo,
   onFind,
+  onReplace,
+  onGoToLine,
+  onToggleComment,
+  onFormatDocument,
+  onToggleWordWrap,
+  onToggleMinimap,
+  onToggleWhitespace,
+  onCollapse,
+  onClose,
 }) => {
   const { t } = useTranslation();
-  const languageLabel = getLanguageDisplayName(language);
 
   return (
-    <div className='flex items-center justify-between h-32px px-10px bg-bg-2 flex-shrink-0 border-b border-b-1 overflow-hidden'>
-      <div className='flex items-center gap-2px'>
-        <Tooltip content={t('conversation.editor.newFile')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onNew}>
-            <Plus size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('conversation.editor.openFile')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onOpen}>
-            <FolderOpen size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('common.save')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} loading={saving} onClick={onSave}>
-            <Save size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('conversation.editor.saveAs')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onSaveAs}>
-            <Save size={14} style={{ opacity: 0.6 }} />
-          </Button>
-        </Tooltip>
-      </div>
-      <Tooltip content={filePath || fileName} position='bottom' mini>
-        <div className='flex items-center gap-4px min-w-0 mx-8px'>
-          {isDirty && <span className='w-6px h-6px rd-full bg-brand flex-shrink-0' />}
-          <span className='text-12px text-t-primary truncate max-w-200px'>{fileName}</span>
-        </div>
-      </Tooltip>
-      <div className='flex items-center gap-2px'>
-        <span className={statusItem} aria-label={t('conversation.editor.languageLabel', { language: languageLabel })}>
-          {languageLabel}
-        </span>
-        <span className='w-1px h-12px bg-bg-3 mx-2px' aria-hidden />
-        <span
-          className={statusItem}
-          aria-label={t('conversation.editor.cursorPosition', { line: cursorLine, col: cursorColumn })}
-        >
-          {t('conversation.editor.cursorPosition', { line: cursorLine, col: cursorColumn })}
-        </span>
-        <span className='w-1px h-12px bg-bg-3 mx-4px' aria-hidden />
-        <Tooltip content={t('conversation.editor.findInFile')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onFind}>
-            <Search size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip
-          content={wordWrap ? t('conversation.editor.disableWordWrap') : t('conversation.editor.enableWordWrap')}
-          position='bottom'
-          mini
-        >
-          <Button
-            size='mini'
-            type='text'
-            className={`${toolbarBtn} ${wordWrap ? '!text-white bg-brand hover:!text-white hover:bg-brand-hover' : ''}`}
-            onClick={onToggleWordWrap}
-          >
-            <TextWrapOverflow size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('conversation.editor.collapseEditor')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onCollapse}>
-            <UploadLogs size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('common.close')} position='bottom' mini>
-          <Button size='mini' type='text' className={toolbarBtn} onClick={onClose}>
-            <CloseSmall size={14} />
-          </Button>
-        </Tooltip>
-      </div>
+    <div
+      role='toolbar'
+      aria-label={t('conversation.editor.toolbarLabel')}
+      className='flex items-center h-40px bg-bg-2 border-b border-b-1 px-8px gap-2px flex-shrink-0 overflow-x-auto overflow-y-hidden'
+    >
+      {/* File group */}
+      <ToolButton label={t('conversation.editor.newFile')} icon={<Plus size={16} />} onClick={onNew} />
+      <ToolButton label={t('conversation.editor.openFile')} icon={<FolderOpen size={16} />} onClick={onOpen} />
+      <ToolButton label={t('common.save')} icon={<Save size={16} />} loading={saving} onClick={onSave} />
+      <ToolButton
+        label={t('conversation.editor.saveAs')}
+        icon={<Save size={16} style={{ opacity: 0.6 }} />}
+        onClick={onSaveAs}
+      />
+
+      <span className={SEPARATOR} aria-hidden />
+
+      {/* Edit group */}
+      <ToolButton label={t('conversation.editor.undo')} icon={<Undo size={16} />} onClick={onUndo} />
+      <ToolButton label={t('conversation.editor.redo')} icon={<Redo size={16} />} onClick={onRedo} />
+
+      <span className={SEPARATOR} aria-hidden />
+
+      {/* Find / navigate group */}
+      <ToolButton label={t('conversation.editor.findInFile')} icon={<Search size={16} />} onClick={onFind} />
+      <ToolButton label={t('conversation.editor.replace')} icon={<Exchange size={16} />} onClick={onReplace} />
+      <ToolButton
+        label={t('conversation.editor.goToLine')}
+        icon={<Navigation size={16} />}
+        onClick={onGoToLine}
+      />
+
+      <span className={SEPARATOR} aria-hidden />
+
+      {/* Code group */}
+      <ToolButton
+        label={t('conversation.editor.toggleComment')}
+        icon={<Comment size={16} />}
+        onClick={onToggleComment}
+      />
+      <ToolButton
+        label={t('conversation.editor.formatDocument')}
+        icon={<Code size={16} />}
+        onClick={onFormatDocument}
+      />
+
+      {/* Spacer */}
+      <div className='flex-1 min-w-8px' />
+
+      {/* View group */}
+      <ToolButton
+        label={wordWrap ? t('conversation.editor.disableWordWrap') : t('conversation.editor.enableWordWrap')}
+        icon={<TextWrapOverflow size={16} />}
+        active={wordWrap}
+        onClick={onToggleWordWrap}
+      />
+      <ToolButton
+        label={t('conversation.editor.toggleMinimap')}
+        icon={<MapTwo size={16} />}
+        active={showMinimap}
+        onClick={onToggleMinimap}
+      />
+      <ToolButton
+        label={t('conversation.editor.toggleWhitespace')}
+        icon={<Notes size={16} />}
+        active={renderWhitespace}
+        onClick={onToggleWhitespace}
+      />
+
+      <span className={SEPARATOR} aria-hidden />
+
+      {/* Pane group */}
+      <ToolButton
+        label={t('conversation.editor.collapseEditor')}
+        icon={<UploadLogs size={16} />}
+        onClick={onCollapse}
+      />
+      <ToolButton label={t('common.close')} icon={<CloseSmall size={16} />} onClick={onClose} />
     </div>
   );
 };

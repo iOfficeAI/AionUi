@@ -18,4 +18,12 @@ declare module '*?raw' {
   export default content;
 }
 
+// Vite ?worker imports — each match resolves to a constructor that creates a
+// Worker for the chunked source. Used by Monaco's language workers; see
+// `pages/conversation/Editor/monacoEnvironment.ts`.
+declare module '*?worker' {
+  const WorkerCtor: new () => Worker;
+  export default WorkerCtor;
+}
+
 declare module 'unocss';
