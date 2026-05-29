@@ -77,13 +77,15 @@ const getStatusText = (
               command: server.transport.command,
             }) || `Requires ${server.transport.command} on this machine`}
           </div>
+          <div>{t?.('settings.mcpCheckJsonHint') || 'Please review the MCP JSON configuration and test again.'}</div>
           {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
         </div>
       );
     }
     return (
       <div className='space-y-1'>
-        <div>{t?.('settings.mcpLastCheckedFailed') || 'Last check: Failed'}</div>
+        <div>{t?.('settings.mcpLastCheckedFailed') || 'Latest check in Tools settings: Failed'}</div>
+        <div>{t?.('settings.mcpCheckJsonHint') || 'Please review the MCP JSON configuration and test again.'}</div>
         {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
       </div>
     );
@@ -97,7 +99,7 @@ const getStatusText = (
     const checkedAt = formatStatusTimestamp(server.last_connected || server.updated_at);
     return (
       <div className='space-y-1'>
-        <div>{t?.('settings.mcpLastCheckedAvailable') || 'Last check: Available'}</div>
+        <div>{t?.('settings.mcpLastCheckedAvailable') || 'Latest check in Tools settings: Available'}</div>
         {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
       </div>
     );
@@ -107,7 +109,7 @@ const getStatusText = (
     return t?.('settings.mcpAuthenticated') || 'Authenticated';
   }
 
-  return t?.('settings.mcpNeverTested') || 'Not tested yet';
+  return t?.('settings.mcpNeverTested') || 'Not tested in Tools settings yet';
 };
 
 const supportsOAuth = (server: IMcpServer) =>

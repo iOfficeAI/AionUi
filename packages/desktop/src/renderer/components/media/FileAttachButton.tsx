@@ -16,6 +16,7 @@ import type { FileMetadata } from '@/renderer/services/FileService';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 
 interface FileAttachButtonProps {
@@ -79,6 +80,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
 }) => {
   const conversationContext = useConversationContextSafe();
   const { t } = useTranslation();
+  const navigate = useNavigate();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const [open, setOpen] = useState(false);
@@ -99,6 +101,13 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     setOpen(false);
     emitter.emit('sendbox.fill', `/${name} `);
   }, []);
+
+  const handleOpenMcpSettings = useCallback(() => {
+    setOpen(false);
+    setSkillsOpen(false);
+    setMcpOpen(false);
+    void navigate('/settings/capabilities?tab=tools');
+  }, [navigate]);
 
   const handleLocalFileChange = useCallback(
     async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -177,6 +186,23 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
           title={item.reason}
         />
       ))}
+      <div style={{ margin: '4px 12px', height: 1, backgroundColor: 'var(--color-border-1, #e5e6eb)' }} />
+      <div className='px-12px py-8px text-12px leading-16px text-t-secondary'>
+        <span>
+          {t('conversation.mcp.managementHint', {
+            defaultValue:
+              'If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.',
+          })}
+        </span>
+        <Button type='text' size='mini' className='ml-4px h-auto! px-0! align-baseline' onClick={handleOpenMcpSettings}>
+          <span className='inline-flex items-center gap-2px'>
+            {t('conversation.mcp.openSettings', {
+              defaultValue: 'Open Tools settings',
+            })}
+            <Right theme='outline' size={10} strokeWidth={3} />
+          </span>
+        </Button>
+      </div>
     </div>
   );
 

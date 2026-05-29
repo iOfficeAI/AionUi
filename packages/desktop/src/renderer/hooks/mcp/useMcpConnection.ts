@@ -100,7 +100,14 @@ export const useMcpConnection = (
           const errorMsg = truncateErrorMessage(result.error || t('settings.mcpError'));
           if (notify) {
             await globalMessageQueue.add(() => {
-              message.error({ content: `${server.name}: ${errorMsg}`, duration: 5000 });
+              message.error({
+                content: t('settings.mcpTestConnectionFailedWithHint', {
+                  name: server.name,
+                  error: errorMsg,
+                  defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
+                }),
+                duration: 5000,
+              });
             });
           }
         }
@@ -110,7 +117,14 @@ export const useMcpConnection = (
         const errorMsg = truncateErrorMessage(error instanceof Error ? error.message : t('settings.mcpError'));
         if (notify) {
           await globalMessageQueue.add(() => {
-            message.error({ content: `${server.name}: ${errorMsg}`, duration: 5000 });
+            message.error({
+              content: t('settings.mcpTestConnectionFailedWithHint', {
+                name: server.name,
+                error: errorMsg,
+                defaultValue: `${server.name}: ${errorMsg}. Please review the MCP JSON configuration and test again.`,
+              }),
+              duration: 5000,
+            });
           });
         }
       } finally {

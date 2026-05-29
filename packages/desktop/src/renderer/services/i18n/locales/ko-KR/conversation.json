@@ -285,6 +285,8 @@
   },
   "mcp": {
     "loaded": "로드된 MCP",
+    "managementHint": "MCP가 비정상적으로 보인다면 보통 MCP JSON 설정 문제입니다. 도구 설정으로 이동해 직접 테스트하세요.",
+    "openSettings": "도구 설정 열기",
     "status": {
       "loaded": "로드됨",
       "failed": "실패",

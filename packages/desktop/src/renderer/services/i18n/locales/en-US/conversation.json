@@ -285,6 +285,8 @@
   },
   "mcp": {
     "loaded": "Loaded MCP",
+    "managementHint": "If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.",
+    "openSettings": "Open Tools settings",
     "status": {
       "loaded": "Loaded",
       "failed": "Failed",

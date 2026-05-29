@@ -285,6 +285,8 @@
   },
   "mcp": {
     "loaded": "ロード済み MCP",
+    "managementHint": "MCP が異常に見える場合、通常は MCP JSON 設定が原因です。ツール設定で確認し、手動で検査してください。",
+    "openSettings": "ツール設定を開く",
     "status": {
       "loaded": "読み込み済み",
       "failed": "失敗",

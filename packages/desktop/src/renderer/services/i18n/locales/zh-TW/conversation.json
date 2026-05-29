@@ -285,6 +285,8 @@
   },
   "mcp": {
     "loaded": "已載入 MCP",
+    "managementHint": "如果某個 MCP 載入異常，通常是 MCP JSON 設定有問題。請到工具設定頁檢查並手動檢測。",
+    "openSettings": "前往工具設定",
     "status": {
       "loaded": "已載入",
       "failed": "失敗",

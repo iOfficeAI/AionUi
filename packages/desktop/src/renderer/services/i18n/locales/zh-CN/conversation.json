@@ -285,6 +285,8 @@
   },
   "mcp": {
     "loaded": "已加载 MCP",
+    "managementHint": "如果某个 MCP 加载异常，通常是 MCP JSON 配置有问题。请到工具设置页检查并手动检测。",
+    "openSettings": "前往工具设置",
     "status": {
       "loaded": "已加载",
       "failed": "失败",
