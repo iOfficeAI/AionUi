@@ -5,7 +5,6 @@
  */
 
 import React from 'react';
-import { CheckCircle, Clock, MinusCircle } from '@icon-park/react';
 
 type AgentStatus = 'online' | 'offline' | 'busy';
 
@@ -16,9 +15,9 @@ type AgentStatusBadgeProps = {
 };
 
 const statusConfig = {
-  online: { color: '#52c41a', icon: CheckCircle, label: 'Online' },
-  offline: { color: '#d9d9d9', icon: MinusCircle, label: 'Offline' },
-  busy: { color: '#faad14', icon: Clock, label: 'Busy' },
+  online: { color: '#52c41a', label: 'Online' },
+  offline: { color: '#d9d9d9', label: 'Offline' },
+  busy: { color: '#faad14', label: 'Busy' },
 };
 
 const AgentStatusBadge: React.FC<AgentStatusBadgeProps> = ({
@@ -27,7 +26,6 @@ const AgentStatusBadge: React.FC<AgentStatusBadgeProps> = ({
   showLabel = true,
 }) => {
   const config = statusConfig[status];
-  const Icon = config.icon;
 
   return (
     <div className="flex items-center gap-2">
@@ -44,7 +42,6 @@ const AgentStatusBadge: React.FC<AgentStatusBadgeProps> = ({
           {agentName ? `${agentName}: ${config.label}` : config.label}
         </span>
       )}
-      <Icon style={{ width: 16, height: 16 }} />
     </div>
   );
 };
