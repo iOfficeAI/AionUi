@@ -3,8 +3,16 @@ import { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Message } from '@arco-design/web-react';
 import { mcpService } from '@/common/adapter/ipcBridge';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
+
+const getMcpRequestErrorMessage = (error: unknown, fallback: string): string => {
+  if (isBackendHttpError(error) && error.backendMessage.trim()) return error.backendMessage;
+  if (error instanceof Error && error.message.trim()) return error.message;
+  if (typeof error === 'string' && error.trim()) return error;
+  return fallback;
+};
 
 /**
  * MCP服务器CRUD操作Hook
@@ -36,25 +44,35 @@ export const useMcpServerCRUD = (
   // 添加MCP服务器
   const handleAddMcpServer = useCallback(
     async (serverData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => {
-      const server = await mcpService.createServer.invoke(serverData);
-      await reloadMcpServers();
-      setTimeout(() => void checkSingleServerInstallStatus(server.name), 100);
-      return server;
+      try {
+        const server = await mcpService.createServer.invoke(serverData);
+        await reloadMcpServers();
+        setTimeout(() => void checkSingleServerInstallStatus(server.name), 100);
+        return server;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return undefined;
+      }
     },
-    [reloadMcpServers, checkSingleServerInstallStatus]
+    [reloadMcpServers, checkSingleServerInstallStatus, t]
   );
 
   // 批量导入MCP服务器
   const handleBatchImportMcpServers = useCallback(
     async (serversData: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => {
-      const servers = await mcpService.batchImportServers.invoke({ servers: serversData });
-      await reloadMcpServers();
-      setTimeout(() => {
-        servers.forEach((server) => void checkSingleServerInstallStatus(server.name));
-      }, 100);
-      return servers;
+      try {
+        const servers = await mcpService.batchImportServers.invoke({ servers: serversData });
+        await reloadMcpServers();
+        setTimeout(() => {
+          servers.forEach((server) => void checkSingleServerInstallStatus(server.name));
+        }, 100);
+        return servers;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return [];
+      }
     },
-    [reloadMcpServers, checkSingleServerInstallStatus]
+    [reloadMcpServers, checkSingleServerInstallStatus, t]
   );
 
   // 编辑MCP服务器
@@ -65,20 +83,25 @@ export const useMcpServerCRUD = (
     ): Promise<IMcpServer | undefined> => {
       if (!editingMcpServer) return undefined;
 
-      const updated = await mcpService.updateServer.invoke({
-        id: editingMcpServer.id,
-        data: {
-          name: serverData.name,
-          description: serverData.description,
-          transport: serverData.transport,
-          original_json: serverData.original_json,
-        },
-      });
-      await reloadMcpServers();
+      try {
+        const updated = await mcpService.updateServer.invoke({
+          id: editingMcpServer.id,
+          data: {
+            name: serverData.name,
+            description: serverData.description,
+            transport: serverData.transport,
+            original_json: serverData.original_json,
+          },
+        });
+        await reloadMcpServers();
 
-      Message.success(t('settings.mcpImportSuccess'));
-      setTimeout(() => void checkSingleServerInstallStatus(updated.name), 100);
-      return updated;
+        Message.success(t('settings.mcpImportSuccess'));
+        setTimeout(() => void checkSingleServerInstallStatus(updated.name), 100);
+        return updated;
+      } catch (error) {
+        Message.error(getMcpRequestErrorMessage(error, t('settings.mcpImportFailed')));
+        return undefined;
+      }
     },
     [reloadMcpServers, t, checkSingleServerInstallStatus]
   );
