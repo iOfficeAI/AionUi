@@ -50,6 +50,8 @@ const statusColor = (status?: string): string => {
       return 'green';
     case 'pending':
       return 'orange';
+    case 'reconnecting':
+      return 'orange';
     case 'error':
       return 'red';
     default:

@@ -9,7 +9,7 @@ import type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/ag
 export type { RemoteAgentProtocol, RemoteAgentAuthType } from '@/common/types/agent/detectedAgent';
 
 /** Last known connection status (cached for UI display) */
-export type RemoteAgentStatus = 'unknown' | 'connected' | 'pending' | 'error';
+export type RemoteAgentStatus = 'unknown' | 'connected' | 'pending' | 'reconnecting' | 'error';
 
 /** Remote Agent instance configuration (corresponds to remote_agents DB table) */
 export type RemoteAgentConfig = {
