@@ -164,9 +164,7 @@ describe('findAvailablePort', () => {
       expect(host).toBe('127.0.0.1');
       setImmediate(cb);
     };
-    vi.mocked(createServer).mockImplementationOnce(
-      () => server as unknown as ReturnType<typeof createServer>
-    );
+    vi.mocked(createServer).mockImplementationOnce(() => server as unknown as ReturnType<typeof createServer>);
 
     const port = await findAvailablePort(65303);
 
@@ -506,17 +504,14 @@ describe('BackendLifecycleManager crash restart', () => {
     (child1 as unknown as EventEmitter).emit('exit', 1, 'SIGABRT');
     await new Promise((r) => setTimeout(r, 1_200));
 
-    expect(warnSpy).toHaveBeenCalledWith(
-      '[aioncore] child exited unexpectedly; scheduling restart',
-      {
-        exitCode: 1,
-        signal: 'SIGABRT',
-        port: 65303,
-        restartCount: 1,
-        maxRestarts: 3,
-        delayMs: 1000,
-      }
-    );
+    expect(warnSpy).toHaveBeenCalledWith('[aioncore] child exited unexpectedly; scheduling restart', {
+      exitCode: 1,
+      signal: 'SIGABRT',
+      port: 65303,
+      restartCount: 1,
+      maxRestarts: 3,
+      delayMs: 1000,
+    });
 
     warnSpy.mockRestore();
     fetchSpy.mockRestore();
@@ -536,16 +531,13 @@ describe('BackendLifecycleManager crash restart', () => {
     mgr.handleCrash(1, 'SIGABRT');
 
     expect(mgr.status).toBe('error');
-    expect(errorSpy).toHaveBeenCalledWith(
-      '[aioncore] child exited unexpectedly; restart limit exceeded',
-      {
-        exitCode: 1,
-        signal: 'SIGABRT',
-        port: 0,
-        restartCount: 4,
-        maxRestarts: 3,
-      }
-    );
+    expect(errorSpy).toHaveBeenCalledWith('[aioncore] child exited unexpectedly; restart limit exceeded', {
+      exitCode: 1,
+      signal: 'SIGABRT',
+      port: 0,
+      restartCount: 4,
+      maxRestarts: 3,
+    });
 
     errorSpy.mockRestore();
   });

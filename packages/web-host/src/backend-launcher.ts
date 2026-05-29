@@ -168,8 +168,7 @@ export function findAvailablePort(preferredPort?: number): Promise<number> {
     server.listen(requestedPort, '127.0.0.1', () => {
       const addr = server.address();
       const resolvedPort =
-        preferredPort ??
-        (addr && typeof addr !== 'string' && typeof addr.port === 'number' ? addr.port : 0);
+        preferredPort ?? (addr && typeof addr !== 'string' && typeof addr.port === 'number' ? addr.port : 0);
 
       server.close(() => {
         cleanup();
