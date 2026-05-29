@@ -11,6 +11,7 @@ import { ensureBackendMcpCatalog } from './catalog';
 export const useMcpServers = () => {
   const [mcpServers, setMcpServers] = useState<IMcpServer[]>([]);
   const [extensionMcpServers, setExtensionMcpServers] = useState<IMcpServer[]>([]);
+  const [isMcpServersLoading, setIsMcpServersLoading] = useState(true);
 
   useEffect(() => {
     void ensureBackendMcpCatalog()
@@ -20,6 +21,9 @@ export const useMcpServers = () => {
       .catch((error) => {
         console.error('[useMcpServers] Failed to load MCP catalog:', error);
         setMcpServers(configService.get('mcp.config') ?? []);
+      })
+      .finally(() => {
+        setIsMcpServersLoading(false);
       });
 
     void ipcBridge.extensions.getMcpServers
@@ -71,6 +75,7 @@ export const useMcpServers = () => {
 
   return {
     mcpServers,
+    isMcpServersLoading,
     allMcpServers: [...mcpServers, ...extensionMcpServers],
     extensionMcpServers,
     setMcpServers,

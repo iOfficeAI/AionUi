@@ -10,6 +10,7 @@
 
 import { type ChildProcess, spawn } from 'node:child_process';
 import { createServer } from 'node:net';
+import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
@@ -162,6 +163,36 @@ function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetai
   return diagnostics as Partial<BackendStartupErrorDetails>;
 }
 
+function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGTERM' | 'SIGKILL'): void {
+  if (!childProcess?.pid) return;
+
+  if (process.platform === 'win32') {
+    const args = ['/PID', String(childProcess.pid), '/T'];
+    if (signal === 'SIGKILL') {
+      args.unshift('/F');
+    }
+    try {
+      spawn('taskkill', args, {
+        stdio: 'ignore',
+        windowsHide: true,
+      }).unref();
+    } catch {
+      /* best-effort tree kill */
+    }
+    return;
+  }
+
+  try {
+    process.kill(-childProcess.pid, signal);
+  } catch {
+    try {
+      process.kill(childProcess.pid, signal);
+    } catch {
+      /* already exited */
+    }
+  }
+}
+
 export class BackendLifecycleManager {
   private childProcess: ChildProcess | null = null;
   private _port = 0;
@@ -279,6 +310,7 @@ export class BackendLifecycleManager {
       this.childProcess = spawn(binaryPath, args, {
         stdio: ['pipe', 'pipe', 'pipe'],
         env: dirs ? buildSpawnEnv(dirs) : process.env,
+        detached: process.platform !== 'win32',
       });
     } catch (error) {
       this._status = 'error';
@@ -289,13 +321,7 @@ export class BackendLifecycleManager {
 
     const pid = this.childProcess.pid;
     const killOnExit = () => {
-      if (pid) {
-        try {
-          process.kill(pid, 'SIGKILL');
-        } catch {
-          /* already gone */
-        }
-      }
+      if (pid) killBackendProcessTree(this.childProcess, 'SIGKILL');
     };
     process.on('exit', killOnExit);
 
@@ -363,7 +389,7 @@ export class BackendLifecycleManager {
         return this._port;
       }
       startupSettled = true;
-      this.childProcess?.kill('SIGKILL');
+      killBackendProcessTree(this.childProcess, 'SIGKILL');
       this.childProcess = null;
       this._status = 'error';
       throw healthTimeoutError;
@@ -378,19 +404,22 @@ export class BackendLifecycleManager {
 
   async stop(): Promise<void> {
     if (!this.childProcess) return;
+    const childProcess = this.childProcess;
     this._status = 'stopped';
+    const dataDir = this._lastDbPath;
 
-    this.childProcess.kill('SIGTERM');
+    killBackendProcessTree(childProcess, 'SIGTERM');
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        this.childProcess?.kill('SIGKILL');
+        killBackendProcessTree(childProcess, 'SIGKILL');
         resolve();
       }, 5000);
-      this.childProcess?.on('exit', () => {
+      childProcess.on('exit', () => {
         clearTimeout(timeout);
         resolve();
       });
     });
+    await cleanupRegisteredAgentProcesses(dataDir);
     this.childProcess = null;
   }
 

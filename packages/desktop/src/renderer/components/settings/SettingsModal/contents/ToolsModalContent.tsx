@@ -494,8 +494,9 @@ const ToolsModalContent: React.FC = () => {
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
-  const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers } = useMcpServers();
+  const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers, isMcpServersLoading } = useMcpServers();
   const builtinImageGenServer = useMemo(() => mcpServers.find(isBuiltinImageGenServer), [mcpServers]);
+  const isImageGenerationServerLoading = isMcpServersLoading && !builtinImageGenServer;
 
   const imageGenerationModelList = useMemo(() => {
     if (!data) return [];
@@ -713,6 +714,7 @@ const ToolsModalContent: React.FC = () => {
 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
+  const isImageGenerationModelUnavailable = !imageGenerationModelList.length || !imageGenerationModel?.use_model;
 
   return (
     <div className='flex flex-col h-full w-full'>
@@ -746,11 +748,12 @@ const ToolsModalContent: React.FC = () => {
               <Switch
                 disabled={
                   isUpdatingImageGeneration ||
+                  isImageGenerationServerLoading ||
                   !builtinImageGenServer ||
-                  !imageGenerationModelList.length ||
-                  !imageGenerationModel?.use_model
+                  (!builtinImageGenServer.enabled && isImageGenerationModelUnavailable)
                 }
-                checked={Boolean(builtinImageGenServer?.enabled)}
+                checked={Boolean(builtinImageGenServer?.enabled) && !isImageGenerationServerLoading}
+                loading={isImageGenerationServerLoading}
                 onChange={handleImageGenerationToggle}
               />
             </div>
