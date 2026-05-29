@@ -26,6 +26,8 @@ import type {
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus, NewApiLoginParams, NewApiLoginResponse } from '../types/newApiAccount';
+import type { ManagedCliInstallOptions, ManagedCliInstallResult, ManagedCliInstallTarget } from '../types/agent/managedCliInstaller';
 import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
@@ -1131,6 +1133,28 @@ export const webui = {
   })),
   resetPassword: httpPost<{ new_password: string }, void>('/api/webui/reset-password'),
   generateQRToken: httpPost<{ token: string; expires_at_ms: number }, void>('/api/webui/generate-qr-token'),
+};
+
+// ---------------------------------------------------------------------------
+// New API Account — stays IPC (Electron-native desktop account management)
+// ---------------------------------------------------------------------------
+
+export const newApiAccount = {
+  getStatus: bridge.buildProvider<IBridgeResponse<NewApiAccountStatus>, void>('new-api-account.get-status'),
+  login: bridge.buildProvider<IBridgeResponse<NewApiLoginResponse>, NewApiLoginParams>('new-api-account.login'),
+  logout: bridge.buildProvider<IBridgeResponse, void>('new-api-account.logout'),
+  reconcileModel: bridge.buildProvider<IBridgeResponse, { cliTarget: ManagedRuntimeCliTarget; modelId?: string }>(
+    'new-api-account.reconcile-model'
+  ),
+};
+
+// ---------------------------------------------------------------------------
+// Managed CLI Installer — stays IPC (Electron-native CLI lifecycle)
+// ---------------------------------------------------------------------------
+
+export const managedCliInstaller = {
+  install: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallOptions>('managed-cli-installer.install'),
+  uninstall: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallTarget>('managed-cli-installer.uninstall'),
 };
 
 // ---------------------------------------------------------------------------

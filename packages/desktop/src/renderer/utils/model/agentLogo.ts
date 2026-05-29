@@ -97,6 +97,7 @@ export function getAgentLogo(agent: string | undefined | null): string | null {
  */
 export function resolveAgentLogo(opts: {
   icon?: string | null;
+  name?: string | null;
   backend?: string | null;
   custom_agent_id?: string | null;
   isExtension?: boolean;

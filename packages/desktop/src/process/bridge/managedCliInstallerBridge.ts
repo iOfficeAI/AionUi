@@ -623,5 +623,5 @@ export async function uninstallManagedCliBatch(targets: ManagedCliInstallTarget[
 export function initManagedCliInstallerBridge(): void {
   ensureManagedOpencodeShim();
   ipcBridge.managedCliInstaller.install.provider(async (input) => installManagedCli(input));
-  ipcBridge.managedCliInstaller.uninstall.provider(async ({ target }) => uninstallManagedCli(target));
+  ipcBridge.managedCliInstaller.uninstall.provider(async (target: ManagedCliInstallTarget) => uninstallManagedCli(target));
 }

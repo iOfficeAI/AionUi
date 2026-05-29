@@ -5,6 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -174,6 +175,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Managed New API desktop account status
+  'newApi.desktop.account'?: NewApiAccountStatus;
+  // Managed CLI model preferences per runtime target
+  'newApi.desktop.cliModelPrefs'?: Partial<Record<ManagedRuntimeCliTarget, string>>;
 }
 
 export interface IEnvStorageRefer {
