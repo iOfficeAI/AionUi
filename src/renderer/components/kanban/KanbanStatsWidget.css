@@ -1,0 +1,517 @@
+/* ─────────────────────────────────────────────────────────────
+   Nova Kanban Stats Widget — Aion UI Dark Cockpit Theme
+   Self-contained: drop into any React project.
+   ───────────────────────────────────────────────────────────── */
+
+.nova-kanban-widget {
+  --nk-bg: #0b0f19;
+  --nk-card: #111827;
+  --nk-border: #1f2937;
+  --nk-text: #e2e8f0;
+  --nk-muted: #94a3b8;
+  --nk-accent: #38bdf8;
+  --nk-green: #4ade80;
+  --nk-amber: #fbbf24;
+  --nk-rose: #fb7185;
+  --nk-slate: #64748b;
+  --nk-font: "JetBrains Mono", "Fira Code", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  --nk-radius: 12px;
+
+  font-family: var(--nk-font);
+  color: var(--nk-text);
+  background: var(--nk-bg);
+  border: 1px solid var(--nk-border);
+  border-radius: var(--nk-radius);
+  padding: 16px;
+  width: 100%;
+  max-width: 480px;
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Header */
+.nova-kanban-widget__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+
+.nova-kanban-widget__title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--nk-accent);
+  margin: 0;
+}
+
+.nova-kanban-widget__meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.nova-kanban-widget__pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--nk-green);
+  animation: nk-pulse 2s infinite;
+}
+
+.nova-kanban-widget__pulse--error {
+  background: var(--nk-rose);
+  animation: none;
+}
+
+.nova-kanban-widget__time {
+  font-size: 10px;
+  color: var(--nk-muted);
+}
+
+/* Grid of status cards */
+.nova-kanban-widget__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.nova-kanban-widget__cell {
+  background: var(--nk-card);
+  border: 1px solid var(--nk-border);
+  border-radius: 10px;
+  padding: 12px 8px;
+  text-align: center;
+  transition: transform 0.2s ease, border-color 0.2s ease;
+  cursor: default;
+}
+
+.nova-kanban-widget__cell:hover {
+  transform: translateY(-2px);
+  border-color: var(--nk-accent);
+}
+
+.nova-kanban-widget__cell-value {
+  font-size: 26px;
+  font-weight: 800;
+  line-height: 1;
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+
+.nova-kanban-widget__cell-label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nk-muted);
+}
+
+/* Color assignments */
+.nova-kanban-widget__cell--running .nova-kanban-widget__cell-value { color: var(--nk-accent); }
+.nova-kanban-widget__cell--ready .nova-kanban-widget__cell-value { color: var(--nk-amber); }
+.nova-kanban-widget__cell--done .nova-kanban-widget__cell-value { color: var(--nk-green); }
+.nova-kanban-widget__cell--todo .nova-kanban-widget__cell-value { color: var(--nk-slate); }
+.nova-kanban-widget__cell--blocked .nova-kanban-widget__cell-value { color: var(--nk-rose); }
+
+/* Total row */
+.nova-kanban-widget__total {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--nk-card);
+  border: 1px solid var(--nk-border);
+  border-radius: 10px;
+  padding: 10px 14px;
+  margin-bottom: 14px;
+}
+
+.nova-kanban-widget__total-label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nk-muted);
+}
+
+.nova-kanban-widget__total-value {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--nk-text);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Stale alert */
+.nova-kanban-widget__alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(251, 113, 133, 0.08);
+  border: 1px solid rgba(251, 113, 133, 0.25);
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 14px;
+  font-size: 11px;
+  color: var(--nk-rose);
+}
+
+.nova-kanban-widget__alert-icon {
+  flex-shrink: 0;
+}
+
+/* Footer */
+.nova-kanban-widget__footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nova-kanban-widget__refresh {
+  background: transparent;
+  border: 1px solid var(--nk-border);
+  border-radius: 6px;
+  color: var(--nk-muted);
+  font-family: inherit;
+  font-size: 11px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.nova-kanban-widget__refresh:hover {
+  border-color: var(--nk-accent);
+  color: var(--nk-accent);
+}
+
+.nova-kanban-widget__refresh:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.nova-kanban-widget__error {
+  font-size: 11px;
+  color: var(--nk-rose);
+}
+
+/* Loading shimmer */
+.nova-kanban-widget__shimmer {
+  background: linear-gradient(
+    90deg,
+    var(--nk-card) 25%,
+    #1a2236 50%,
+    var(--nk-card) 75%
+  );
+  background-size: 200% 100%;
+  animation: nk-shimmer 1.4s infinite linear;
+  border-radius: 6px;
+  height: 18px;
+  width: 40px;
+  display: inline-block;
+}
+
+/* Animations */
+@keyframes nk-pulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+@keyframes nk-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+@keyframes nk-fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+.nova-kanban-widget__cell {
+  animation: nk-fadeIn 0.35s ease both;
+}
+
+.nova-kanban-widget__cell:nth-child(1) { animation-delay: 0ms; }
+.nova-kanban-widget__cell:nth-child(2) { animation-delay: 40ms; }
+.nova-kanban-widget__cell:nth-child(3) { animation-delay: 80ms; }
+.nova-kanban-widget__cell:nth-child(4) { animation-delay: 120ms; }
+.nova-kanban-widget__cell:nth-child(5) { animation-delay: 160ms; }
+
+/* Detail panel overlay */
+.nova-kanban-detail__overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  background: rgba(2, 6, 23, 0.65);
+  backdrop-filter: blur(4px);
+  display: flex;
+  justify-content: flex-end;
+  animation: nk-overlayIn 0.2s ease;
+}
+
+@keyframes nk-overlayIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Detail panel */
+.nova-kanban-detail {
+  width: 420px;
+  max-width: 90vw;
+  height: 100%;
+  background: var(--nk-bg);
+  border-left: 1px solid var(--nk-border);
+  display: flex;
+  flex-direction: column;
+  animation: nk-slideIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: hidden;
+}
+
+@keyframes nk-slideIn {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+
+/* Header */
+.nova-kanban-detail__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  border-bottom: 1px solid var(--nk-border);
+  flex-shrink: 0;
+}
+
+.nova-kanban-detail__title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.nova-kanban-detail__dot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+
+.nova-kanban-detail__title {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--nk-text);
+  margin: 0;
+}
+
+.nova-kanban-detail__count {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--nk-muted);
+  background: var(--nk-card);
+  border: 1px solid var(--nk-border);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.nova-kanban-detail__close {
+  background: transparent;
+  border: 1px solid var(--nk-border);
+  border-radius: 6px;
+  color: var(--nk-muted);
+  font-size: 14px;
+  width: 32px;
+  height: 32px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.nova-kanban-detail__close:hover {
+  border-color: var(--nk-rose);
+  color: var(--nk-rose);
+}
+
+/* Body / list */
+.nova-kanban-detail__body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 16px;
+}
+
+.nova-kanban-detail__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.nova-kanban-detail__item {
+  background: var(--nk-card);
+  border: 1px solid var(--nk-border);
+  border-radius: 10px;
+  padding: 12px 14px;
+  transition: border-color 0.2s ease, transform 0.2s ease;
+}
+
+.nova-kanban-detail__item:hover {
+  border-color: var(--nk-accent);
+  transform: translateX(2px);
+}
+
+.nova-kanban-detail__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.nova-kanban-detail__id {
+  font-size: 10px;
+  color: var(--nk-muted);
+  font-family: var(--nk-font);
+}
+
+.nova-kanban-detail__priority {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.nk-priority--critical {
+  background: rgba(251, 113, 133, 0.12);
+  color: var(--nk-rose);
+  border: 1px solid rgba(251, 113, 133, 0.2);
+}
+.nk-priority--high {
+  background: rgba(251, 191, 36, 0.12);
+  color: var(--nk-amber);
+  border: 1px solid rgba(251, 191, 36, 0.2);
+}
+.nk-priority--medium {
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--nk-accent);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+}
+.nk-priority--low {
+  background: rgba(100, 116, 139, 0.12);
+  color: var(--nk-slate);
+  border: 1px solid rgba(100, 116, 139, 0.2);
+}
+.nk-priority--none {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--nk-muted);
+}
+
+.nova-kanban-detail__title-text {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--nk-text);
+  line-height: 1.4;
+  margin-bottom: 4px;
+}
+
+.nova-kanban-detail__body-text {
+  font-size: 11px;
+  color: var(--nk-muted);
+  line-height: 1.4;
+  margin-bottom: 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.nova-kanban-detail__meta {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.nova-kanban-detail__assignee {
+  font-size: 11px;
+  color: var(--nk-accent);
+  background: rgba(56, 189, 248, 0.08);
+  border: 1px solid rgba(56, 189, 248, 0.15);
+  border-radius: 6px;
+  padding: 2px 8px;
+}
+
+.nova-kanban-detail__assignee--unassigned {
+  color: var(--nk-muted);
+  background: rgba(148, 163, 184, 0.06);
+  border-color: rgba(148, 163, 184, 0.12);
+}
+
+.nova-kanban-detail__age {
+  font-size: 11px;
+  color: var(--nk-muted);
+  font-family: var(--nk-font);
+}
+
+/* Empty state */
+.nova-kanban-detail__empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 40px 20px;
+  color: var(--nk-muted);
+  font-size: 12px;
+  text-align: center;
+}
+
+.nova-kanban-detail__empty-icon {
+  font-size: 28px;
+  opacity: 0.5;
+}
+
+/* Scrollbar */
+.nova-kanban-detail__body::-webkit-scrollbar {
+  width: 6px;
+}
+.nova-kanban-detail__body::-webkit-scrollbar-track {
+  background: transparent;
+}
+.nova-kanban-detail__body::-webkit-scrollbar-thumb {
+  background: var(--nk-border);
+  border-radius: 3px;
+}
+
+/* Responsive */
+@media (max-width: 360px) {
+  .nova-kanban-widget__grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .nova-kanban-detail {
+    width: 100%;
+    max-width: 100%;
+  }
+}
+
+/* Narrow sidebar container (Aion UI Sider ~260px) */
+@media (max-width: 300px) {
+  .nova-kanban-widget {
+    padding: 10px;
+  }
+  .nova-kanban-widget__cell {
+    padding: 8px 4px;
+  }
+  .nova-kanban-widget__cell-value {
+    font-size: 20px;
+  }
+  .nova-kanban-widget__cell-label {
+    font-size: 9px;
+  }
+  .nova-kanban-widget__grid {
+    gap: 6px;
+  }
+}

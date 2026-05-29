@@ -44,6 +44,7 @@ import { useTranslation } from 'react-i18next';
 import 'uno.css';
 import './styles/arco-override.css';
 import './styles/themes/index.css';
+import './components/kanban/KanbanStatsWidget.css';
 
 // i18n
 import './services/i18n';

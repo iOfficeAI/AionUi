@@ -13,6 +13,8 @@ import SiderFooter from './SiderFooter';
 import CronJobSiderSection from './CronJobSiderSection';
 import TeamSiderSection from './TeamSiderSection';
 import siderStyles from './Sider.module.css';
+import KanbanStatsWidget from '@renderer/components/kanban/KanbanStatsWidget';
+import KanbanWidgetErrorBoundary from '@renderer/components/kanban/KanbanWidgetErrorBoundary';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
@@ -200,6 +202,17 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
                 siderTooltipProps={siderTooltipProps}
                 onSessionClick={onSessionClick}
               />
+              {/* Nova Kanban Stats Widget */}
+              {!collapsed && (
+                <div className="px-10px pt-8px pb-4px">
+                  <KanbanWidgetErrorBoundary>
+                    <KanbanStatsWidget
+                      apiUrl={import.meta.env?.VITE_KANBAN_API_URL || "http://127.0.0.1:9122/api/kanban"}
+                      pollIntervalMs={30000}
+                    />
+                  </KanbanWidgetErrorBoundary>
+                </div>
+              )}
               {/* Scheduled section */}
               {!collapsed && (
                 <CronJobSiderSection jobs={cronJobs} pathname={pathname} onNavigate={handleCronNavigate} />
