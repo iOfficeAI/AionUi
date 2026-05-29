@@ -88,7 +88,8 @@
     "removeProjectTitle": "Удалить проект",
     "removeProject": "Удалить проект",
     "removeProjectConfirm": "Удалить проект «{{name}}»? Будет также удалено {{count}} бесед(ы) в нём.",
-    "newConversationInProject": "Новая беседа в этом проекте"
+    "newConversationInProject": "Новая беседа в этом проекте",
+    "newProject": "Новый проект"
   },
   "historySearch": {
     "tooltip": "Поиск сообщений",
@@ -341,6 +342,12 @@
   },
   "skills": {
     "loaded": "Загруженные навыки"
+  },
+  "remoteToolHost": {
+    "local": "Локальные файлы",
+    "server": "Файлы сервера",
+    "localHint": "Этот разговор использует файлы вашего компьютера через локальные файловые инструменты Chisl.",
+    "serverHint": "Этот разговор использует файлы и инструменты самого сервера OpenCode."
   },
   "sendbox": {
     "hint": "Введите / для команд, @ для ссылок на файлы"

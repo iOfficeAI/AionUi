@@ -88,7 +88,8 @@
     "removeProjectTitle": "Projeyi kaldır",
     "removeProject": "Projeyi kaldır",
     "removeProjectConfirm": "\"{{name}}\" projesi kaldırılsın mı? Projedeki {{count}} konuşma da kaldırılacak.",
-    "newConversationInProject": "Bu projede yeni konuşma"
+    "newConversationInProject": "Bu projede yeni konuşma",
+    "newProject": "Yeni proje"
   },
   "historySearch": {
     "tooltip": "Mesajları ara",
@@ -343,6 +344,12 @@
   },
   "skills": {
     "loaded": "Yüklenen Beceriler"
+  },
+  "remoteToolHost": {
+    "local": "Yerel dosyalar",
+    "server": "Sunucu dosyaları",
+    "localHint": "Bu konuşma, Chisl'in yerel dosya araçları aracılığıyla bilgisayarınızın dosyalarını kullanır.",
+    "serverHint": "Bu konuşma, OpenCode sunucusunun kendi dosyalarını ve araçlarını kullanır."
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"

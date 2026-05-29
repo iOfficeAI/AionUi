@@ -88,7 +88,8 @@
     "removeProjectTitle": "Remove project",
     "removeProject": "Remove project",
     "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
-    "newConversationInProject": "New chat in this project"
+    "newConversationInProject": "New chat in this project",
+    "newProject": "New project"
   },
   "historySearch": {
     "tooltip": "Search messages",
@@ -341,6 +342,12 @@
   },
   "skills": {
     "loaded": "Loaded Skills"
+  },
+  "remoteToolHost": {
+    "local": "Local files",
+    "server": "Server files",
+    "localHint": "This conversation uses your computer's files via Chisl's local file tools.",
+    "serverHint": "This conversation uses the OpenCode server's own files and tools."
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"

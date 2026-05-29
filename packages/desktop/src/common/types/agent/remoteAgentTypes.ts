@@ -21,6 +21,13 @@ export type RemoteAgentConfig = {
   auth_token?: string;
   /** Skip TLS certificate verification (for self-signed certificates) */
   allow_insecure?: boolean;
+  /**
+   * Tool-host mode for OpenCode agents (C04): 'local' (default) injects a
+   * client-side fs MCP and denies the server's built-in tools; 'server' uses
+   * the OpenCode server's own tools against its working tree. Ignored by
+   * non-opencode protocols.
+   */
+  tool_host?: 'local' | 'server';
   avatar?: string;
   description?: string;
   /** Ed25519 public key SHA256 fingerprint (OpenClaw protocol only, per-agent) */
@@ -46,6 +53,8 @@ export type RemoteAgentInput = {
   auth_token?: string;
   /** Skip TLS certificate verification (for self-signed certificates) */
   allow_insecure?: boolean;
+  /** Tool-host mode for OpenCode agents: 'local' (default) or 'server'. */
+  tool_host?: 'local' | 'server';
   avatar?: string;
   description?: string;
 };

@@ -88,7 +88,8 @@
     "removeProjectTitle": "プロジェクトを削除",
     "removeProject": "プロジェクトを削除",
     "removeProjectConfirm": "プロジェクト「{{name}}」を削除しますか？プロジェクト内の {{count}} 件の会話も削除されます。",
-    "newConversationInProject": "このプロジェクト内で新しい会話"
+    "newConversationInProject": "このプロジェクト内で新しい会話",
+    "newProject": "新規プロジェクト"
   },
   "historySearch": {
     "tooltip": "メッセージを検索",
@@ -341,6 +342,12 @@
   },
   "skills": {
     "loaded": "ロード済みスキル"
+  },
+  "remoteToolHost": {
+    "local": "ローカルファイル",
+    "server": "サーバーファイル",
+    "localHint": "この会話は Chisl のローカルファイルツールを通じてあなたのPCのファイルを使用します。",
+    "serverHint": "この会話は OpenCode サーバー自身のファイルとツールを使用します。"
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照"

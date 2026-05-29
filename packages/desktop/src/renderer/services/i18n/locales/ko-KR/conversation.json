@@ -88,7 +88,8 @@
     "removeProjectTitle": "프로젝트 제거",
     "removeProject": "프로젝트 제거",
     "removeProjectConfirm": "\"{{name}}\" 프로젝트를 제거하시겠습니까? 프로젝트의 {{count}}개 대화도 함께 제거됩니다.",
-    "newConversationInProject": "이 프로젝트에서 새 대화"
+    "newConversationInProject": "이 프로젝트에서 새 대화",
+    "newProject": "새 프로젝트"
   },
   "historySearch": {
     "tooltip": "메시지 검색",
@@ -341,6 +342,12 @@
   },
   "skills": {
     "loaded": "로드된 스킬"
+  },
+  "remoteToolHost": {
+    "local": "로컬 파일",
+    "server": "서버 파일",
+    "localHint": "이 대화는 Chisl의 로컬 파일 도구를 통해 내 컴퓨터의 파일을 사용합니다.",
+    "serverHint": "이 대화는 OpenCode 서버 자체의 파일과 도구를 사용합니다."
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"

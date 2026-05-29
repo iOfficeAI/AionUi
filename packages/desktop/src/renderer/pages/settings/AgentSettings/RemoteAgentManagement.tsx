@@ -167,7 +167,11 @@ const RemoteAgentFormModal: React.FC<{
     try {
       const values = await form.validate();
       setSaving(true);
-      const payload: RemoteAgentInput = { ...values, protocol: activeProtocol, avatar };
+      // tool_host only applies to opencode; default to 'local'. For other
+      // protocols send 'local' so the backend column has a stable value.
+      const toolHost: 'local' | 'server' =
+        activeProtocol === 'opencode' ? ((values as { tool_host?: 'local' | 'server' }).tool_host ?? 'local') : 'local';
+      const payload: RemoteAgentInput = { ...values, protocol: activeProtocol, avatar, tool_host: toolHost };
 
       let agentId: string;
       if (editAgent) {
@@ -298,6 +302,7 @@ const RemoteAgentFormModal: React.FC<{
             auth_type: editAgent.auth_type,
             auth_token: editAgent.auth_token,
             allow_insecure: editAgent.allow_insecure,
+            tool_host: editAgent.tool_host ?? 'local',
           });
         } else {
           setActiveProtocol('openclaw');
@@ -431,6 +436,24 @@ const RemoteAgentFormModal: React.FC<{
               ) : null
             }
           </Form.Item>
+
+          {activeProtocol === 'opencode' ? (
+            <FormItem
+              label={t('settings.remoteAgent.toolHost')}
+              field='tool_host'
+              initialValue='local'
+              extra={
+                <Typography.Text type='secondary' className='text-12px'>
+                  {t('settings.remoteAgent.toolHostHint')}
+                </Typography.Text>
+              }
+            >
+              <Select>
+                <Select.Option value='local'>{t('settings.remoteAgent.toolHostLocal')}</Select.Option>
+                <Select.Option value='server'>{t('settings.remoteAgent.toolHostServer')}</Select.Option>
+              </Select>
+            </FormItem>
+          ) : null}
 
           <Button
             long
