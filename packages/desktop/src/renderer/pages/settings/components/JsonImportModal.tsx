@@ -135,6 +135,28 @@ const buildOriginalJson = (name: string, description: string | undefined, transp
   );
 };
 
+const validateEditServerNames = (
+  currentName: string,
+  serverKeys: string[],
+  t: (key: string, options?: Record<string, string>) => string
+): ValidationResult => {
+  if (serverKeys.length !== 1) {
+    return {
+      isValid: false,
+      errorMessage: t('settings.mcpEditNameLocked', { name: currentName }),
+    };
+  }
+
+  if (serverKeys[0] !== currentName) {
+    return {
+      isValid: false,
+      errorMessage: t('settings.mcpEditNameLocked', { name: currentName }),
+    };
+  }
+
+  return { isValid: true };
+};
+
 const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCancel, onSubmit, onBatchImport }) => {
   const { t } = useTranslation();
   const { theme } = useThemeContext();
@@ -319,6 +341,14 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       return;
     }
 
+    if (server) {
+      const editNameValidation = validateEditServerNames(server.name, serverKeys, t);
+      if (!editNameValidation.isValid) {
+        setValidation(editNameValidation);
+        return;
+      }
+    }
+
     setSubmitting(true);
 
     // 如果有多个服务器，使用批量导入
@@ -390,6 +420,14 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       <div className='space-y-12px'>
         <div>
           <div className='mb-2 text-sm text-t-secondary'>{t('settings.mcpImportPlaceholder')}</div>
+          {!validation.isValid && jsonInput.trim() && (
+            <Alert
+              className='mb-3'
+              type='error'
+              showIcon
+              content={validation.errorMessage || t('settings.mcpJsonFormatError') || 'JSON format error'}
+            />
+          )}
           <div className='relative'>
             <CodeMirror
               value={jsonInput}
@@ -467,13 +505,6 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
               </Button>
             )}
           </div>
-
-          {/* JSON 格式错误提示 */}
-          {!validation.isValid && jsonInput.trim() && (
-            <div className='mt-2 text-sm text-red-600'>
-              {validation.errorMessage || t('settings.mcpJsonFormatError') || 'JSON format error'}
-            </div>
-          )}
         </div>
 
         <Alert

@@ -1,5 +1,5 @@
 import type { IMcpServer } from '@/common/config/storage';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Popover, Tooltip } from '@arco-design/web-react';
 import { Check, CloseSmall, Info, LoadingOne, Refresh, Write, DeleteFour, SettingOne, Login } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -56,6 +56,52 @@ const formatStatusTimestamp = (timestamp?: number): string | null => {
   return new Date(timestamp).toLocaleString();
 };
 
+const getStatusPopoverContent = (
+  server: IMcpServer,
+  t?: (key: string, options?: Record<string, unknown>) => string
+) => {
+  if (server.last_test_status !== 'error' && server.last_test_status !== 'connected') {
+    return null;
+  }
+
+  if (server.last_test_status === 'connected') {
+    const checkedAt = formatStatusTimestamp(server.last_connected || server.updated_at);
+    return (
+      <div className='max-w-300px space-y-2 text-13px leading-20px'>
+        <div className='font-medium text-t-primary'>
+          {t?.('settings.mcpCheckPassedSummary') || 'Manual check passed'}
+        </div>
+        {checkedAt ? (
+          <div className='text-12px leading-18px text-t-secondary'>{`${t?.('settings.mcpCheckedAtLabel') || 'Checked at:'} ${checkedAt}`}</div>
+        ) : null}
+        <div className='text-12px leading-18px text-t-secondary opacity-80'>
+          {t?.('settings.mcpCheckPurposeHint') ||
+            'Used to verify whether the MCP configuration is available. It does not represent the real-time status in the current conversation.'}
+        </div>
+      </div>
+    );
+  }
+
+  const checkedAt = formatStatusTimestamp(server.updated_at);
+
+  const reasonText =
+    server.builtin && server.name === 'chrome-devtools' && server.transport.type === 'stdio'
+      ? t?.('settings.mcpInlineCommandHint', {
+          command: server.transport.command,
+        }) || `Missing ${server.transport.command}. Install it and test again.`
+      : t?.('settings.mcpInlineConfigHint') || 'Configuration may be incorrect. Review the MCP JSON and test again.';
+
+  return (
+    <div className='max-w-300px space-y-2 text-13px leading-20px'>
+      <div className='font-medium text-t-primary'>{t?.('settings.mcpCheckFailedSummary') || 'Manual check failed'}</div>
+      <div className='text-t-primary'>{reasonText}</div>
+      {checkedAt ? (
+        <div className='text-12px leading-18px text-t-secondary'>{`${t?.('settings.mcpCheckedAtLabel') || 'Checked at:'} ${checkedAt}`}</div>
+      ) : null}
+    </div>
+  );
+};
+
 const getStatusText = (
   server: IMcpServer,
   last_test_status?: IMcpServer['last_test_status'],
@@ -68,27 +114,14 @@ const getStatusText = (
   }
 
   if (last_test_status === 'error') {
-    const checkedAt = formatStatusTimestamp(server.updated_at);
     if (server.builtin && server.name === 'chrome-devtools' && server.transport.type === 'stdio') {
       return (
-        <div className='space-y-1'>
-          <div>
-            {t?.('settings.mcpLocalCommandUnavailable', {
-              command: server.transport.command,
-            }) || `Requires ${server.transport.command} on this machine`}
-          </div>
-          <div>{t?.('settings.mcpCheckJsonHint') || 'Please review the MCP JSON configuration and test again.'}</div>
-          {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
-        </div>
+        t?.('settings.mcpLocalCommandUnavailable', {
+          command: server.transport.command,
+        }) || `Requires ${server.transport.command} on this machine`
       );
     }
-    return (
-      <div className='space-y-1'>
-        <div>{t?.('settings.mcpLastCheckedFailed') || 'Latest check in Tools settings: Failed'}</div>
-        <div>{t?.('settings.mcpCheckJsonHint') || 'Please review the MCP JSON configuration and test again.'}</div>
-        {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
-      </div>
-    );
+    return t?.('settings.mcpCheckFailedSimple') || 'Failed';
   }
 
   if (oauthStatus?.needsLogin) {
@@ -96,20 +129,14 @@ const getStatusText = (
   }
 
   if (last_test_status === 'connected') {
-    const checkedAt = formatStatusTimestamp(server.last_connected || server.updated_at);
-    return (
-      <div className='space-y-1'>
-        <div>{t?.('settings.mcpLastCheckedAvailable') || 'Latest check in Tools settings: Available'}</div>
-        {checkedAt && <div className='text-xs opacity-80'>{t?.('settings.mcpCheckedAt', { time: checkedAt })}</div>}
-      </div>
-    );
+    return t?.('settings.mcpCheckPassedSimple') || 'Manual check passed';
   }
 
   if (oauthStatus?.isAuthenticated) {
     return t?.('settings.mcpAuthenticated') || 'Authenticated';
   }
 
-  return t?.('settings.mcpNeverTested') || 'Not tested in Tools settings yet';
+  return t?.('settings.mcpDisconnected') || 'Not tested';
 };
 
 const supportsOAuth = (server: IMcpServer) =>
@@ -132,6 +159,7 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
   const needsLogin = oauthCapable && oauthStatus?.needsLogin;
   const statusText = getStatusText(server, server.last_test_status, oauthStatus, isTestingConnection, t);
   const statusIcon = getStatusIcon(server.last_test_status, oauthStatus, isTestingConnection);
+  const statusPopoverContent = getStatusPopoverContent(server, t);
 
   const isError = server.last_test_status === 'error';
 
@@ -139,9 +167,15 @@ const McpServerHeader: React.FC<McpServerHeaderProps> = ({
     <div className='flex items-center justify-between group'>
       <div className='flex items-center gap-2'>
         <span>{server.name}</span>
-        <Tooltip content={statusText} position='top'>
-          <span className='flex items-center cursor-default'>{statusIcon}</span>
-        </Tooltip>
+        {statusPopoverContent ? (
+          <Popover content={statusPopoverContent} trigger='hover' position='top'>
+            <span className='flex items-center cursor-default'>{statusIcon}</span>
+          </Popover>
+        ) : (
+          <Tooltip content={statusText} position='top'>
+            <span className='flex items-center cursor-default'>{statusIcon}</span>
+          </Tooltip>
+        )}
         {isError && <FeedbackButton module='mcp-tools' />}
         {!isReadOnly && needsLogin && onOAuthLogin && (
           <Button
