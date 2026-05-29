@@ -1,5 +1,39 @@
 # Changelog
 
+## [2.1.7](https://github.com/iOfficeAI/AionUi/compare/v2.1.6...v2.1.7) (2026-05-29)
+
+### Desktop
+
+#### Features
+
+- **mcp:** move MCP management to conversation scope (#3109)
+
+#### Bug Fixes
+
+- **feedback:** tag agent error reports (#3113)
+- **conversation:** render structured agent errors (#3093)
+- **web-host:** reuse backend port after crash restart (#3111)
+- **webui:** auto-open local url on startup (#3110)
+- **startup:** ignore cancelled backend startup (#3108)
+- **mcp:** validate json imports (#3106)
+- **team:** avoid sidebar confirmation fan-out (#3105)
+- **web-host:** add health timeout diagnostics (#3102)
+- **settings:** avoid blue switch during image generation loading (#3091)
+
+### Core ([v0.1.16](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.16))
+
+#### Features
+
+- **agent:** classify structured agent send errors ([#356](https://github.com/iOfficeAI/AionCore/issues/356))
+- **mcp:** support session scoped MCP injection ([#363](https://github.com/iOfficeAI/AionCore/issues/363))
+
+#### Bug Fixes
+
+- channel reply stream cold start ([#366](https://github.com/iOfficeAI/AionCore/issues/366))
+- **mcp:** clean up stdio test process trees ([#368](https://github.com/iOfficeAI/AionCore/issues/368))
+
+---
+
 ## [2.1.6](https://github.com/iOfficeAI/AionUi/compare/v2.1.5...v2.1.6) (2026-05-28)
 
 ### Desktop
