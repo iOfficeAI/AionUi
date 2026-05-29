@@ -83,4 +83,29 @@ describe('startBackendOrExit', () => {
     expect(exitApp).not.toHaveBeenCalled();
     expect(onStarted).not.toHaveBeenCalled();
   });
+
+  it('does not capture or exit when backend startup is cancelled by shutdown', async () => {
+    const error = new Error('aioncore startup cancelled');
+    error.name = 'BackendStartupCancelledError';
+    const onStarted = vi.fn();
+    const captureFailure = vi.fn();
+    const exitApp = vi.fn();
+    const logError = vi.fn();
+
+    const result = await startBackendOrExit({
+      startBackend: async () => {
+        throw error;
+      },
+      onStarted,
+      captureFailure,
+      exitApp,
+      logError,
+    });
+
+    expect(result).toEqual({ ok: false });
+    expect(logError).not.toHaveBeenCalled();
+    expect(captureFailure).not.toHaveBeenCalled();
+    expect(exitApp).not.toHaveBeenCalled();
+    expect(onStarted).not.toHaveBeenCalled();
+  });
 });

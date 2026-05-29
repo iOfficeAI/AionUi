@@ -112,6 +112,13 @@ export class BackendStartupError extends Error {
   }
 }
 
+export class BackendStartupCancelledError extends Error {
+  constructor(message = 'aioncore startup cancelled') {
+    super(message);
+    this.name = 'BackendStartupCancelledError';
+  }
+}
+
 export function buildSpawnArgs(config: SpawnConfig): string[] {
   const logLevel = process.env.AIONUI_LOG_LEVEL || (config.isPackaged ? 'info' : 'debug');
   const args = [
@@ -325,6 +332,10 @@ export class BackendLifecycleManager {
       this.childProcess?.once('exit', (code, signal) => {
         process.removeListener('exit', killOnExit);
         if (!startupSettled) {
+          if (this._status === 'stopped') {
+            reject(new BackendStartupCancelledError('aioncore startup cancelled before health check passed'));
+            return;
+          }
           this._status = 'error';
           reject(
             makeStartupError('early_exit', 'aioncore exited before health check passed', undefined, {
