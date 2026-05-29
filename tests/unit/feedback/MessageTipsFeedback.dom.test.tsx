@@ -138,6 +138,51 @@ describe('MessageTips — FeedbackButton wiring', () => {
     });
   });
 
+  it('click opens feedback with structured agent error metadata', async () => {
+    const user = userEvent.setup();
+    render(
+      <MessageTips
+        message={buildTips('error', 'raw provider 401', {
+          message: 'raw provider 401',
+          code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+          ownership: 'user_llm_provider',
+          detail: 'Provider returned 401.',
+          retryable: false,
+          feedback_recommended: false,
+          resolution: {
+            kind: 'check_provider_credentials',
+            target: 'provider_settings',
+          },
+        })}
+      />
+    );
+
+    await user.click(screen.getByText('settings.oneClickFeedback'));
+
+    expect(openFeedbackMock).toHaveBeenCalledWith({
+      module: 'conversation-session',
+      autoScreenshot: true,
+      tags: {
+        agent_error_code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+        agent_error_ownership: 'user_llm_provider',
+        agent_error_retryable: 'false',
+        agent_error_resolution: 'check_provider_credentials',
+      },
+      extra: {
+        agent_error: {
+          code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+          ownership: 'user_llm_provider',
+          retryable: false,
+          feedback_recommended: false,
+          resolution: {
+            kind: 'check_provider_credentials',
+            target: 'provider_settings',
+          },
+        },
+      },
+    });
+  });
+
   it('renders HTML-like error text as literal text', () => {
     const { container } = render(<MessageTips message={buildTips('error', '<strong>boom</strong>')} />);
 

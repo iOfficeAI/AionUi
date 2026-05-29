@@ -100,6 +100,30 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       code ? `${t('conversation.agentError.errorCode')}: ${code}` : '',
       structuredError.detail || structuredError.message,
     ].filter(Boolean);
+    const feedbackTags: Record<string, string> = {};
+    if (code) {
+      feedbackTags.agent_error_code = code;
+    }
+    if (ownership) {
+      feedbackTags.agent_error_ownership = ownership;
+    }
+    if (structuredError.retryable !== undefined) {
+      feedbackTags.agent_error_retryable = String(structuredError.retryable);
+    }
+    if (structuredError.resolution?.kind) {
+      feedbackTags.agent_error_resolution = structuredError.resolution.kind;
+    }
+    const feedbackExtra = {
+      agent_error: {
+        ...(code ? { code } : {}),
+        ...(ownership ? { ownership } : {}),
+        ...(structuredError.retryable !== undefined ? { retryable: structuredError.retryable } : {}),
+        ...(structuredError.feedback_recommended !== undefined
+          ? { feedback_recommended: structuredError.feedback_recommended }
+          : {}),
+        ...(structuredError.resolution ? { resolution: structuredError.resolution } : {}),
+      },
+    };
 
     return (
       <div className='w-full'>
@@ -140,7 +164,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
           </div>
           {shouldShowFeedback && (
             <div className='flex justify-end'>
-              <FeedbackButton module='conversation-session' />
+              <FeedbackButton module='conversation-session' feedbackTags={feedbackTags} feedbackExtra={feedbackExtra} />
             </div>
           )}
         </div>
