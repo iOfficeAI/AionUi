@@ -25,6 +25,7 @@ export type TeamAgent = {
   cli_path?: string;
   custom_agent_id?: string;
   model?: string;
+  pending_confirmations?: number;
 };
 
 /** Persisted team record (stored in SQLite `teams` table) */
