@@ -13,10 +13,13 @@ import useProtocolDetection from '@renderer/hooks/system/useProtocolDetection';
 import AionModal from '@/renderer/components/base/AionModal';
 import ApiKeyEditorModal from './ApiKeyEditorModal';
 import {
+  DEFAULT_MODEL_PLATFORM_VALUE,
   MODEL_PLATFORMS,
   NEW_API_PROTOCOL_OPTIONS,
   detectNewApiProtocol,
   getPlatformByValue,
+  getPlatformDefaultApiKey,
+  getPlatformDefaultModel,
   isCustomOption,
   isGeminiPlatform,
   isNewApiPlatform,
@@ -316,7 +319,11 @@ const AddPlatformModal = ModalHOC<{
         if (deepLinkData.base_url) form.setFieldValue('base_url', deepLinkData.base_url);
         if (deepLinkData.api_key) form.setFieldValue('api_key', deepLinkData.api_key);
       } else {
-        form.setFieldValue('platform', 'gemini');
+        form.setFieldValue('platform', DEFAULT_MODEL_PLATFORM_VALUE);
+        const defaultApiKey = getPlatformDefaultApiKey(DEFAULT_MODEL_PLATFORM_VALUE);
+        const defaultModel = getPlatformDefaultModel(DEFAULT_MODEL_PLATFORM_VALUE);
+        if (defaultApiKey) form.setFieldValue('api_key', defaultApiKey);
+        if (defaultModel) form.setFieldValue('model', defaultModel);
       }
     }
   }, [modalProps.visible, deepLinkData]);
@@ -407,7 +414,7 @@ const AddPlatformModal = ModalHOC<{
         <Form form={form} layout='vertical' className='[&_.arco-form-item]:mb-12px [&_.arco-form-item:last-child]:mb-0'>
           {/* 模型平台选择（第一层）/ Model Platform Selection (first level) */}
           <Form.Item
-            initialValue='gemini'
+            initialValue={DEFAULT_MODEL_PLATFORM_VALUE}
             label={t('settings.modelPlatform')}
             field={'platform'}
             required
@@ -423,7 +430,10 @@ const AddPlatformModal = ModalHOC<{
               onChange={(value) => {
                 const plat = MODEL_PLATFORMS.find((p) => p.value === value);
                 if (plat) {
-                  form.setFieldValue('model', '');
+                  const defaultModel = getPlatformDefaultModel(value);
+                  form.setFieldValue('model', defaultModel);
+                  const defaultApiKey = getPlatformDefaultApiKey(value);
+                  if (defaultApiKey && !api_key) form.setFieldValue('api_key', defaultApiKey);
                 }
               }}
               renderFormat={(option) => {

@@ -39,23 +39,39 @@ export interface PlatformConfig {
   platform: PlatformType;
   /** Base URL（预设供应商使用） / Base URL (for preset providers) */
   base_url?: string;
+  /** Default API key for providers that accept a placeholder key. */
+  default_api_key?: string;
+  /** Default model id for productized local providers. */
+  default_model?: string;
   /** 国际化 key（可选，用于需要翻译的平台名称） / i18n key (optional, for platform names that need translation) */
   i18nKey?: string;
 }
+
+export const DEFAULT_MODEL_PLATFORM_VALUE = 'SGLang';
 
 /**
  * 模型平台选项列表
  * Model Platform options list
  *
  * 顺序：
- * 1. Gemini (官方)
- * 2. Gemini Vertex AI
- * 3. 自定义（需要用户输入 base url）
+ * 1. 自定义（需要用户输入 base url）
+ * 2. SGLang (本地 OpenAI-compatible 默认供应商)
+ * 3. New API 多模型网关
  * 4+ 预设供应商
  */
 export const MODEL_PLATFORMS: PlatformConfig[] = [
   // 自定义选项（需要用户输入 base url）/ Custom option (requires user to input base url)
   { name: 'Custom', value: 'custom', logo: null, platform: 'custom', i18nKey: 'settings.platformCustom' },
+
+  {
+    name: 'SGLang',
+    value: DEFAULT_MODEL_PLATFORM_VALUE,
+    logo: null,
+    platform: 'custom',
+    base_url: 'http://10.2.9.105:30000/v1',
+    default_api_key: 'local-sglang',
+    default_model: '/models/google/gemma-4-31B-it-FP8-block',
+  },
 
   // New API 多模型网关 / New API multi-model gateway
   {
@@ -297,6 +313,14 @@ export const getPlatformByValue = (value: string): PlatformConfig | undefined =>
  */
 export const getPresetProviders = (): PlatformConfig[] => {
   return MODEL_PLATFORMS.filter((p) => p.base_url);
+};
+
+export const getPlatformDefaultApiKey = (value: string): string => {
+  return getPlatformByValue(value)?.default_api_key ?? '';
+};
+
+export const getPlatformDefaultModel = (value: string): string => {
+  return getPlatformByValue(value)?.default_model ?? '';
 };
 
 export const getProviderLogo = ({
