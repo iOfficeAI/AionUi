@@ -620,16 +620,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
  * Extract fallback display text from a completed ACP tool call message.
  * Handles Hermes terminal output format and OpenCode raw_output format.
  */
-export function extractCompletedToolFallbackText(
-  message: any,
-): string | undefined {
+export function extractCompletedToolFallbackText(message: any): string | undefined {
   const update = message?.content?.update;
   if (!update) return undefined;
 
   // Hermes format: content array with text containing "output:" marker
-  const contentEntry = update.content?.find(
-    (c: any) => c?.type === 'content' && c?.content?.type === 'text',
-  );
+  const contentEntry = update.content?.find((c: any) => c?.type === 'content' && c?.content?.type === 'text');
   if (contentEntry) {
     const text: string = contentEntry.content.text;
     const match = text.match(/\*\*output:\*\*\s*(.+)/);

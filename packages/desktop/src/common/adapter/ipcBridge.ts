@@ -26,8 +26,17 @@ import type {
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
-import type { ManagedRuntimeCliTarget, NewApiAccountStatus, NewApiLoginParams, NewApiLoginResponse } from '../types/newApiAccount';
-import type { ManagedCliInstallOptions, ManagedCliInstallResult, ManagedCliInstallTarget } from '../types/agent/managedCliInstaller';
+import type {
+  ManagedRuntimeCliTarget,
+  NewApiAccountStatus,
+  NewApiLoginParams,
+  NewApiLoginResponse,
+} from '../types/newApiAccount';
+import type {
+  ManagedCliInstallOptions,
+  ManagedCliInstallResult,
+  ManagedCliInstallTarget,
+} from '../types/agent/managedCliInstaller';
 import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
