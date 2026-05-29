@@ -1609,6 +1609,7 @@ export type I18nKey =
   | 'settings.remoteAgent.addTitle'
   | 'settings.remoteAgent.allowInsecure'
   | 'settings.remoteAgent.allowInsecureHint'
+  | 'settings.remoteAgent.authBasic'
   | 'settings.remoteAgent.authBearer'
   | 'settings.remoteAgent.authNone'
   | 'settings.remoteAgent.authPassword'

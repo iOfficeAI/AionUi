@@ -389,13 +389,14 @@ const RemoteAgentFormModal: React.FC<{
             <Select>
               <Select.Option value='none'>{t('settings.remoteAgent.authNone')}</Select.Option>
               <Select.Option value='bearer'>{t('settings.remoteAgent.authBearer')}</Select.Option>
+              <Select.Option value='basic'>{t('settings.remoteAgent.authBasic')}</Select.Option>
               <Select.Option value='password'>{t('settings.remoteAgent.authPassword')}</Select.Option>
             </Select>
           </FormItem>
 
           <Form.Item shouldUpdate noStyle>
             {(values: Record<string, unknown>) =>
-              values.auth_type === 'bearer' || values.auth_type === 'password' ? (
+              values.auth_type === 'bearer' || values.auth_type === 'basic' || values.auth_type === 'password' ? (
                 <FormItem
                   label={
                     values.auth_type === 'password'

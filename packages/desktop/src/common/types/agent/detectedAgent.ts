@@ -21,7 +21,7 @@
 export type RemoteAgentProtocol = 'openclaw' | 'opencode' | 'zeroclaw' | 'acp';
 
 /** Remote agent authentication method */
-export type RemoteAgentAuthType = 'bearer' | 'password' | 'none';
+export type RemoteAgentAuthType = 'bearer' | 'basic' | 'password' | 'none';
 
 /** Execution engine kinds — each uses a different protocol or runtime */
 export type DetectedAgentKind = 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nanobot';

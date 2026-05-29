@@ -903,6 +903,7 @@
     "authType": "인증",
     "authNone": "없음",
     "authBearer": "Bearer 토큰",
+    "authBasic": "Basic Auth",
     "authPassword": "비밀번호",
     "authToken": "토큰",
     "tokenRequired": "토큰을 입력해주세요",

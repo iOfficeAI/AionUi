@@ -903,6 +903,7 @@
     "authType": "認證方式",
     "authNone": "無",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "密碼",
     "authToken": "Token",
     "tokenRequired": "請輸入 Token",

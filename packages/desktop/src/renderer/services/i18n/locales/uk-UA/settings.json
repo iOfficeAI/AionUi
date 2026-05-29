@@ -819,6 +819,7 @@
     "authType": "Автентифікація",
     "authNone": "Немає",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "Пароль",
     "authToken": "Токен",
     "tokenRequired": "Токен обов'язковий",

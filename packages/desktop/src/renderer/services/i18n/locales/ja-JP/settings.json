@@ -903,6 +903,7 @@
     "authType": "認証",
     "authNone": "なし",
     "authBearer": "Bearerトークン",
+    "authBasic": "Basic Auth",
     "authPassword": "パスワード",
     "authToken": "トークン",
     "tokenRequired": "トークンを入力してください",

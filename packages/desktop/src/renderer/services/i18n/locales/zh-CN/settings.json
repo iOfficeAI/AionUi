@@ -902,6 +902,7 @@
     "authType": "认证方式",
     "authNone": "无",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "密码",
     "authToken": "Token",
     "tokenRequired": "请输入 Token",

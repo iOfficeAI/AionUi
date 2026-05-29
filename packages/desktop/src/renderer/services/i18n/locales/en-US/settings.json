@@ -901,6 +901,7 @@
     "authType": "Authentication",
     "authNone": "None",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "Password",
     "authToken": "Token",
     "tokenRequired": "Token is required",

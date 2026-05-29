@@ -901,6 +901,7 @@
     "authType": "Kimlik Doğrulama",
     "authNone": "Yok",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "Parola",
     "authToken": "Token",
     "tokenRequired": "Token gereklidir",

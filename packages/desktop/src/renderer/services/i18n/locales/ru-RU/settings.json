@@ -894,6 +894,7 @@
     "authType": "Аутентификация",
     "authNone": "Нет",
     "authBearer": "Bearer Token",
+    "authBasic": "Basic Auth",
     "authPassword": "Пароль",
     "authToken": "Токен",
     "tokenRequired": "Токен обязателен",
