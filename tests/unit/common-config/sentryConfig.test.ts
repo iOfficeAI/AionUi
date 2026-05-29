@@ -23,13 +23,11 @@ describe('resolveDesktopSentryConfig', () => {
     expect(config.dsn).toBe('https://fallback.example/2');
   });
 
-  it('falls back to the bundled POUNDING DSN when no env override exists', () => {
+  it('returns disabled config when no DSN env override exists', () => {
     const config = resolveDesktopSentryConfig({});
 
-    expect(config.enabled).toBe(true);
-    expect(config.dsn).toBe(
-      'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368'
-    );
+    expect(config.enabled).toBe(false);
+    expect(config.dsn).toBeUndefined();
     expect(config.brand).toBe('POUNDING');
   });
 

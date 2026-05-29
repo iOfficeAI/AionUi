@@ -300,7 +300,7 @@ describe('managedCliInstallerBridge', () => {
 
     const { uninstallHandler } = await loadHandlers();
 
-    const result = await uninstallHandler({ target: 'hermes' });
+    const result = await uninstallHandler('hermes');
 
     expect(result).toEqual({ success: true, status: 'not_installed', message: undefined });
   });
@@ -311,7 +311,7 @@ describe('managedCliInstallerBridge', () => {
 
     const { uninstallHandler } = await loadHandlers();
 
-    const result = await uninstallHandler({ target: 'openclaw' });
+    const result = await uninstallHandler('openclaw');
 
     expect(result).toEqual({ success: true, status: 'not_installed', message: undefined });
     expect(clearManagedRuntimeForCliTargetMock).toHaveBeenCalledWith('openclaw');

@@ -11,7 +11,6 @@ const {
   checkAndUpdateTitle,
   setAiProcessing,
   addOrUpdateMessage,
-  fetchSlashCommands,
 } = vi.hoisted(() => ({
   warmupInvoke: vi.fn(),
   sendMessageInvoke: vi.fn(),
@@ -19,7 +18,6 @@ const {
   checkAndUpdateTitle: vi.fn(),
   setAiProcessing: vi.fn(),
   addOrUpdateMessage: vi.fn(),
-  fetchSlashCommands: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -47,7 +45,6 @@ const Harness = ({ conversationId }: { conversationId: string }) => {
     setAiProcessing,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessage as (message: TMessage, prepend?: boolean) => void,
-    fetchSlashCommands,
   });
   return null;
 };
@@ -60,31 +57,27 @@ describe('useAcpInitialMessage', () => {
     sendMessageInvoke.mockResolvedValue({ msg_id: 'msg-1' });
   });
 
-  it('does not resend when completion marker already exists', async () => {
+  it('sends initial message when data exists in storage', async () => {
     sessionStorage.setItem('acp_initial_message_conv-1', JSON.stringify({ input: 'hello', files: [] }));
-    sessionStorage.setItem('acp_initial_message_completed_conv-1', '1');
 
     render(<Harness conversationId='conv-1' />);
 
-    await new Promise((resolve) => setTimeout(resolve, 50));
+    await waitFor(() => expect(sendMessageInvoke).toHaveBeenCalledTimes(1));
 
-    expect(warmupInvoke).not.toHaveBeenCalled();
-    expect(sendMessageInvoke).not.toHaveBeenCalled();
-    expect(addOrUpdateMessage).not.toHaveBeenCalled();
+    expect(checkAndUpdateTitle).toHaveBeenCalledWith('conv-1', 'hello');
+    expect(sessionStorage.getItem('acp_initial_message_conv-1')).toBeNull();
+    expect(emitterEmit).toHaveBeenCalledWith('chat.history.refresh');
   });
 
-  it('sends once and marks completion when initial message is pending', async () => {
+  it('clears storage on read and sends message exactly once', async () => {
     sessionStorage.setItem('acp_initial_message_conv-2', JSON.stringify({ input: 'hello', files: ['/tmp/a.txt'] }));
 
     render(<Harness conversationId='conv-2' />);
 
     await waitFor(() => expect(sendMessageInvoke).toHaveBeenCalledTimes(1));
 
-    expect(warmupInvoke).toHaveBeenCalledWith({ conversation_id: 'conv-2' });
-    expect(fetchSlashCommands).toHaveBeenCalled();
     expect(checkAndUpdateTitle).toHaveBeenCalledWith('conv-2', 'hello');
     expect(sessionStorage.getItem('acp_initial_message_conv-2')).toBeNull();
-    expect(sessionStorage.getItem('acp_initial_message_completed_conv-2')).toBe('1');
     expect(emitterEmit).toHaveBeenCalledWith('chat.history.refresh');
   });
 });

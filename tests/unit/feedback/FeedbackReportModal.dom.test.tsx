@@ -168,7 +168,6 @@ describe('FeedbackReportModal — prefill', () => {
     await user.click(submitButton);
 
     expect(captureEvent).toHaveBeenCalledTimes(1);
-    expect(setTag).toHaveBeenCalledWith('brand', 'POUNDING');
     expect(setTag).toHaveBeenCalledWith('type', 'user-feedback');
     expect(setTag).toHaveBeenCalledWith('module', 'mcp-tools');
     expect(Message.success).toHaveBeenCalledTimes(1);

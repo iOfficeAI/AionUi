@@ -29,6 +29,10 @@ const managedProvider: IProvider = {
 
 let dropdownOpen = false;
 
+vi.mock('react-router-dom', () => ({
+  useNavigate: () => vi.fn(),
+}));
+
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
     t: (key: string, options?: { defaultValue?: string }) => options?.defaultValue ?? key,
@@ -160,7 +164,11 @@ describe('GuidModelSelector managed CLI mapping', () => {
           currentAcpCachedModelInfo={{
             current_model_id: 'aionui-new-api-desktop-newapi-managed-provider/mimo-v2.5',
             current_model_label: 'POUNDING API/mimo-v2.5',
-            available_models: [{ id: 'claude/claude-sonnet-4-20250514', label: 'Claude/claude-sonnet-4-20250514' }],
+            available_models: [
+              { id: 'claude-sonnet-4-20250514', label: 'claude-sonnet-4-20250514' },
+              { id: 'mimo-v2.5', label: 'mimo-v2.5' },
+              { id: 'deepseek-v4-pro', label: 'deepseek-v4-pro' },
+            ],
           }}
           selectedAcpModel='mimo-v2.5'
           setSelectedAcpModel={setSelectedAcpModel}

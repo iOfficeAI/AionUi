@@ -171,7 +171,7 @@ describe('initSentry beforeSend', () => {
 
     const event = {
       tags: {
-        'aionui.failure': 'backend_startup',
+        'pounding.failure': 'backend_startup',
       },
       exception: {
         values: [

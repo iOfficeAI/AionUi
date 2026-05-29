@@ -98,5 +98,9 @@
   "import": "导入",
   "processing": "处理中...",
   "optional": "（可选）",
-  "clear": "清除"
+  "clear": "清除",
+  "unit": {
+    "minute_short": "分",
+    "second_short": "秒"
+  }
 }

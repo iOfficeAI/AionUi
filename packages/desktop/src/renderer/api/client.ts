@@ -41,9 +41,14 @@ async function request<T>(
 
   if (!response.ok) {
     let errorBody: unknown;
-    try {
-      errorBody = await response.json();
-    } catch {
+    const contentType = response.headers.get('Content-Type');
+    if (contentType?.includes('application/json')) {
+      try {
+        errorBody = await response.json();
+      } catch {
+        errorBody = await response.clone().text();
+      }
+    } else {
       errorBody = await response.text();
     }
     throw new ApiError(response.status, response.statusText, errorBody);

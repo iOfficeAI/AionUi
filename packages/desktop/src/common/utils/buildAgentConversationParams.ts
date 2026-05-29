@@ -88,7 +88,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     }
     extra.preset_assistant_id = effectivePresetAssistantId;
     extra.preset_context = preset_resources?.rules;
-    if (type === 'acp') {
+    if (type === 'acp' || type === 'aionrs') {
       extra.backend = effectivePresetType as string;
     }
   } else if (type === 'remote') {

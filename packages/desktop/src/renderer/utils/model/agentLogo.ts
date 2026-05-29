@@ -47,6 +47,21 @@ const AGENT_LOGO_PATH_MAP = {
 const OPEN_CODE_LIGHT_FILE_NAME = 'opencode-light.svg';
 const OPEN_CODE_DARK_FILE_NAME = 'opencode-dark.svg';
 
+/**
+ * POUNDING branding: legacy name → display name mapping
+ */
+const POUNDING_DISPLAY_NAME_OVERRIDES: Record<string, string> = {
+  'aion cli': 'POUNDING CLI',
+  'aionui': 'POUNDING CLI',
+  'aion-ui': 'POUNDING CLI',
+  'aion ui': 'POUNDING CLI',
+};
+
+/**
+ * POUNDING branding: legacy names that should resolve to the POUNDING heart logo
+ */
+const POUNDING_LOGO_NAMES = ['aion cli', 'aionui', 'aion-ui', 'aion ui'];
+
 function buildAssetUrl(path: string): string {
   return resolveBackendAssetUrl(`/api/assets/logos/${path}`) ?? `/api/assets/logos/${path}`;
 }
@@ -104,6 +119,11 @@ export function resolveAgentLogo(opts: {
 }): string | null {
   if (opts.icon) return normalizeLogoUrl(opts.icon);
 
+  // POUNDING branding: map legacy names to POUNDING heart logo
+  if (opts.name && POUNDING_LOGO_NAMES.includes(opts.name.toLowerCase())) {
+    return normalizeLogoUrl(buildAssetUrl(AGENT_LOGO_PATH_MAP.aionrs));
+  }
+
   // For extension agents, extract adapter ID from custom_agent_id
   if (opts.isExtension && opts.custom_agent_id) {
     const adapterId = opts.custom_agent_id.split(':').pop();
@@ -133,7 +153,8 @@ export function getAgentDisplayName(
   agent: { name?: string | null; backend?: string | null; agent_type?: string | null } | undefined | null
 ): string {
   if (!agent) return '';
-  return agent.name || agent.backend || agent.agent_type || '';
+  const name = agent.name || agent.backend || agent.agent_type || '';
+  return POUNDING_DISPLAY_NAME_OVERRIDES[name.toLowerCase()] || name;
 }
 
 /**

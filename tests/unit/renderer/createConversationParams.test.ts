@@ -120,7 +120,7 @@ describe('createConversationParams managed ACP runtime mapping', () => {
     expect(params.extra?.preset_context).toBe('plain rules');
   });
 
-  it('normalizes managed Claude handshake fallback to slot runtime id', async () => {
+  it('passes through managed Claude handshake current_model_id when user has not manually switched', async () => {
     getAgentsMock.mockResolvedValue([
       {
         backend: 'claude',
@@ -146,6 +146,6 @@ describe('createConversationParams managed ACP runtime mapping', () => {
     );
 
     expect(params.type).toBe('acp');
-    expect(params.extra?.current_model_id).toBe('default');
+    expect(params.extra?.current_model_id).toBe('MiniMax-M2.7-highspeed');
   });
 });

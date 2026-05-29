@@ -98,7 +98,7 @@ describe('ChatConversationIndex', () => {
     );
 
     await waitFor(() => {
-      expect(messageWarning).toHaveBeenCalledWith('conversation.chat.notFound');
+      expect(messageWarning).toHaveBeenCalledWith('conversation.notFound');
       expect(navigateMock).toHaveBeenCalledWith('/', { replace: true });
     });
 

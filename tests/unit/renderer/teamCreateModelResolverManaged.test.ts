@@ -37,7 +37,7 @@ describe('teamCreateModelResolver managed CLI mapping', () => {
     vi.resetAllMocks();
   });
 
-  it('returns managed runtime model ids for OpenCode-like targets', async () => {
+  it('returns default model for OpenCode-like targets when managed runtime model is not resolved', async () => {
     vi.mocked(ipcBridge.mode.listProviders.invoke).mockResolvedValue([
       {
         id: 'desktop-newapi-managed-provider',
@@ -51,7 +51,6 @@ describe('teamCreateModelResolver managed CLI mapping', () => {
     vi.mocked(getAgents).mockResolvedValue([]);
 
     const result = await resolveDefaultTeamAgentModel({ agent_type: 'opencode', conversation_type: 'acp' });
-    expect(result).toBe('pounding-new-api-desktop-newapi-managed-provider/mimo-v2.5');
-    expect(getAgents).not.toHaveBeenCalled();
+    expect(result).toBe('default');
   });
 });

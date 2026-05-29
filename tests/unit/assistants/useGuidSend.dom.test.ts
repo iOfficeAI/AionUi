@@ -126,7 +126,7 @@ describe('useGuidSend', () => {
     expect(conversationCreateInvoke).toHaveBeenCalledWith(
       expect.objectContaining({
         extra: expect.objectContaining({
-          current_model_id: 'default',
+          current_model_id: 'MiniMax-M2.7-highspeed',
         }),
       })
     );

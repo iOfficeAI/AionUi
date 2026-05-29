@@ -7,11 +7,11 @@ const { resolveAioncoreVersion } = require('../../scripts/resolveAioncoreVersion
 
 describe('resolveAioncoreVersion', () => {
   afterEach(() => {
-    delete process.env.AIONCORE_VERSION;
+    delete process.env.AIONUI_BACKEND_VERSION;
   });
 
   it('prefers env override', () => {
-    process.env.AIONCORE_VERSION = 'v9.9.9';
+    process.env.AIONUI_BACKEND_VERSION = 'v9.9.9';
     expect(resolveAioncoreVersion('/does/not/matter')).toBe('v9.9.9');
   });
 
