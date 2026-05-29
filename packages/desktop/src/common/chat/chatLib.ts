@@ -495,7 +495,16 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
       };
     }
     case 'tips': {
-      const data = message.data as { content: string; type?: 'error' | 'success' | 'warning' };
+      const data = message.data as {
+        content: string;
+        type?: 'error' | 'success' | 'warning';
+        error?: unknown;
+      };
+      const tipType = data.type ?? 'warning';
+      const structuredError =
+        tipType === 'error'
+          ? (normalizeAgentStreamError(data.error) ?? normalizeAgentStreamError({ ...data, message: data.content }))
+          : undefined;
       return {
         id: uuid(),
         type: 'tips',
@@ -505,7 +514,8 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         created_at,
         content: {
           content: data.content,
-          type: data.type ?? 'warning',
+          type: tipType,
+          ...(structuredError ? { error: structuredError } : {}),
         },
       };
     }

@@ -195,4 +195,46 @@ describe('transformMessage', () => {
       },
     });
   });
+
+  it('preserves structured metadata on live tips error messages', () => {
+    const message: IResponseMessage = {
+      type: 'tips',
+      data: {
+        content: 'AionUI failed while sending the message',
+        type: 'error',
+        source: 'send_failed',
+        code: 'INTERNAL_ERROR',
+        error: {
+          message: 'AionUI failed while sending the message',
+          code: 'AIONUI_INTERNAL_ERROR',
+          ownership: 'aionui',
+          detail: 'Failed to write Codex sandbox config',
+          retryable: true,
+          feedback_recommended: true,
+          resolution: {
+            kind: 'send_feedback',
+            target: 'feedback',
+          },
+        },
+      },
+      msg_id: 'tips-error-1',
+      conversation_id: CONVERSATION_ID,
+    };
+
+    const transformed = transformMessage(message) as IMessageTips;
+
+    expect(transformed.type).toBe('tips');
+    expect(transformed.content.error).toEqual({
+      message: 'AionUI failed while sending the message',
+      code: 'AIONUI_INTERNAL_ERROR',
+      ownership: 'aionui',
+      detail: 'Failed to write Codex sandbox config',
+      retryable: true,
+      feedback_recommended: true,
+      resolution: {
+        kind: 'send_feedback',
+        target: 'feedback',
+      },
+    });
+  });
 });
