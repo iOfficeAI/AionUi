@@ -16,6 +16,7 @@
  *   AIONUI_STATIC_DIR     : override static dir (default out/renderer)
  *   AIONUI_BACKEND_BIN    : absolute path to aioncore binary (else PATH lookup)
  *   AIONUI_BACKEND_BUNDLED_DIR : dir containing bundled-aioncore/<plat-arch>/binary
+ *   AIONUI_OPEN_BROWSER   : "1"/"true" to force open, "0"/"false" to disable
  */
 
 import { execSync } from 'child_process';
@@ -24,6 +25,7 @@ import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { startWebHost } from '@aionui/web-host';
+import { openBrowserUrl, shouldAutoOpenBrowser } from '../packages/web-cli/src/browser.js';
 
 // Aligned with packages/desktop/src/common/config/constants.ts WEBUI_DEFAULT_PORT.
 const DEFAULT_PORT = (() => {
@@ -202,6 +204,12 @@ async function main(): Promise<void> {
   runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();
+  const autoOpenBrowser = shouldAutoOpenBrowser({
+    allowRemote,
+    env: process.env,
+    openFlag: has('--open'),
+    noOpenFlag: has('--no-open'),
+  });
   // One working dir for the whole standalone webui: backend SQLite and chat
   // history live here. Admin credentials live in the backend's users table.
   // This keeps `bun run webui` fully self-contained on hosts without AionUi.app.
@@ -282,6 +290,15 @@ async function main(): Promise<void> {
     }
   } catch (err) {
     console.warn('[webui] could not query admin credentials:', err);
+  }
+
+  if (autoOpenBrowser) {
+    const openResult = openBrowserUrl(handle.localUrl);
+    if (openResult.ok) {
+      console.log(`[webui] opened ${handle.localUrl} in your browser.`);
+    } else {
+      console.warn(`[webui] could not open the browser automatically: ${openResult.reason}`);
+    }
   }
 
   console.log('');

@@ -5,6 +5,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { openBrowserUrl, shouldAutoOpenBrowser } from './browser.js';
 import { ensureAdminPassword } from './ensureAdminPassword.js';
 
 // tarball layout:
@@ -139,6 +140,12 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
   const port = resolvePort(flags);
   const allowRemote = resolveAllowRemote(flags);
   const version = readPackageVersion();
+  const autoOpenBrowser = shouldAutoOpenBrowser({
+    allowRemote,
+    env: process.env,
+    openFlag: flags.has('open'),
+    noOpenFlag: flags.has('no-open'),
+  });
 
   if (!fs.existsSync(staticDir)) {
     console.error(`[aionui-web] static dir not found: ${staticDir}`);
@@ -178,6 +185,14 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
     console.log('AionUi WebUI (frontend only) is ready');
     console.log(`  Local  : ${handle.localUrl}`);
     if (handle.networkUrl) console.log(`  Network: ${handle.networkUrl}`);
+    if (autoOpenBrowser) {
+      const openResult = openBrowserUrl(handle.localUrl);
+      if (openResult.ok) {
+        console.log(`[aionui-web] opened ${handle.localUrl} in your browser.`);
+      } else {
+        console.warn(`[aionui-web] could not open the browser automatically: ${openResult.reason}`);
+      }
+    }
     console.log('');
     console.log('Press Ctrl+C to stop.');
   } else {
@@ -224,6 +239,15 @@ async function runStart(flags: Map<string, string | true>): Promise<void> {
         now: () => Date.now(),
       }
     );
+
+    if (autoOpenBrowser) {
+      const openResult = openBrowserUrl(handle.localUrl);
+      if (openResult.ok) {
+        console.log(`[aionui-web] opened ${handle.localUrl} in your browser.`);
+      } else {
+        console.warn(`[aionui-web] could not open the browser automatically: ${openResult.reason}`);
+      }
+    }
 
     console.log('');
     console.log('Press Ctrl+C to stop.');
@@ -359,6 +383,8 @@ Commands:
 Options for start:
   --port <n>              Listen port (default: ${DEFAULT_PORT})
   --remote                Bind 0.0.0.0 instead of 127.0.0.1
+  --open                  Force opening the local URL in a browser
+  --no-open               Disable automatic browser opening
   --data-dir <path>       Override data dir (default: ~/.aionui-web)
   --log-dir <path>        Override log dir (default: <data-dir>/logs)
   --static-dir <path>     Override static assets dir
@@ -370,7 +396,7 @@ Options for resetpass:
 
 Environment variables:
   AIONUI_PORT, AIONUI_ALLOW_REMOTE, AIONUI_DATA_DIR, AIONUI_LOG_DIR,
-  AIONUI_BACKEND_BIN
+  AIONUI_BACKEND_BIN, AIONUI_OPEN_BROWSER
 `);
     return;
   }
