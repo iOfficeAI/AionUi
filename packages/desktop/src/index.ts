@@ -725,10 +725,18 @@ const handleAppReady = async (): Promise<void> => {
     appReadyDone = true;
     mark('createWindow');
 
-    // Initialize desktop pet (delayed to not block main window)
+    // Initialize desktop notch taskbox / pet (delayed to not block main window).
+    // These desktop companions are mutually exclusive.
     setTimeout(() => {
       void (async () => {
         try {
+          const notchTaskboxEnabled = await ProcessConfig.get('notchTaskbox.enabled');
+          if (notchTaskboxEnabled === true) {
+            const { createNotchTaskboxWindow } = await import('./process/notchTaskbox/notchTaskboxWindowManager');
+            await createNotchTaskboxWindow();
+            return;
+          }
+
           const petEnabled = await ProcessConfig.get('pet.enabled');
           if (petEnabled === true) {
             // Read pet sub-settings before creating the pet so flags are honored

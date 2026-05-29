@@ -25,9 +25,14 @@ const adapterWindowList: Array<BrowserWindow> = [];
 export { registerWebSocketBroadcaster, getBridgeEmitter };
 
 let petNotifyHook: ((name: string, data: unknown) => void) | null = null;
+let notchTaskboxNotifyHook: ((name: string, data: unknown) => void) | null = null;
 
 export const setPetNotifyHook = (hook: ((name: string, data: unknown) => void) | null): void => {
   petNotifyHook = hook;
+};
+
+export const setNotchTaskboxNotifyHook = (hook: ((name: string, data: unknown) => void) | null): void => {
+  notchTaskboxNotifyHook = hook;
 };
 
 /**
@@ -42,6 +47,13 @@ bridge.adapter({
     if (petNotifyHook) {
       try {
         petNotifyHook(name, data);
+      } catch {
+        /* never crash */
+      }
+    }
+    if (notchTaskboxNotifyHook) {
+      try {
+        notchTaskboxNotifyHook(name, data);
       } catch {
         /* never crash */
       }

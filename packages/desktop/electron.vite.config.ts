@@ -169,6 +169,7 @@ export default defineConfig(({ mode }) => {
             petPreload: resolve('packages/desktop/src/preload/petPreload.ts'),
             petHitPreload: resolve('packages/desktop/src/preload/petHitPreload.ts'),
             petConfirmPreload: resolve('packages/desktop/src/preload/petConfirmPreload.ts'),
+            notchTaskboxPreload: resolve('packages/desktop/src/preload/notchTaskboxPreload.ts'),
           },
         },
       },
@@ -225,6 +226,7 @@ export default defineConfig(({ mode }) => {
             pet: resolve(rendererRoot, 'pet/pet.html'),
             'pet-hit': resolve(rendererRoot, 'pet/pet-hit.html'),
             'pet-confirm': resolve(rendererRoot, 'pet/pet-confirm.html'),
+            'notch-taskbox': resolve(rendererRoot, 'notch-taskbox/notch-taskbox.html'),
           },
           external: ['node:crypto', 'crypto'],
           onwarn(warning, warn) {

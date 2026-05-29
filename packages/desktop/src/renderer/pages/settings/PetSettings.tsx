@@ -5,11 +5,11 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch } from '@arco-design/web-react';
+import { Message, Radio, Switch } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
-import { systemSettings } from '@/common/adapter/ipcBridge';
+import { systemSettings, type INotchTaskboxStatus } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
-import { isElectronDesktop } from '@/renderer/utils/platform';
+import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import PreferenceRow from '@/renderer/components/settings/SettingsModal/contents/SystemModalContent/PreferenceRow';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -20,26 +20,107 @@ const PetSettings: React.FC = () => {
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [taskboxStatus, setTaskboxStatus] = useState<INotchTaskboxStatus | null>(null);
+  const [taskboxLoading, setTaskboxLoading] = useState(false);
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const isDesktop = isElectronDesktop();
+  const showHardwareNotch = isMacOS();
 
   useEffect(() => {
+    if (!isDesktop) return;
     setEnabled(configService.get('pet.enabled') ?? true);
     setSize(configService.get('pet.size') ?? 280);
     setDnd(configService.get('pet.dnd') ?? false);
     setConfirmEnabled(configService.get('pet.confirmEnabled') ?? true);
-  }, []);
+    systemSettings.getNotchTaskboxStatus
+      .invoke()
+      .then((status) => {
+        setTaskboxStatus(status);
+        if (status.enabled) {
+          setEnabled(false);
+          configService.setLocal('pet.enabled', false);
+        }
+      })
+      .catch(() => {});
+  }, [isDesktop]);
 
-  const handleEnabledChange = useCallback((checked: boolean) => {
-    setEnabled(checked);
-    configService.setLocal('pet.enabled', checked);
-    systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
-      setEnabled(!checked);
-      configService.setLocal('pet.enabled', !checked);
-    });
-  }, []);
+  const handleEnabledChange = useCallback(
+    (checked: boolean) => {
+      const previousEnabled = enabled;
+      const previousTaskboxStatus = taskboxStatus;
+      setEnabled(checked);
+      configService.setLocal('pet.enabled', checked);
+      if (checked && taskboxStatus) {
+        setTaskboxStatus({ ...taskboxStatus, enabled: false });
+      }
+      systemSettings.setPetEnabled.invoke({ enabled: checked }).catch(() => {
+        setEnabled(previousEnabled);
+        configService.setLocal('pet.enabled', previousEnabled);
+        setTaskboxStatus(previousTaskboxStatus);
+        Message.error(t('pet.desktopPetUpdateFailed'));
+      });
+    },
+    [enabled, taskboxStatus, t]
+  );
+
+  const handleTaskboxEnabledChange = useCallback(
+    (checked: boolean) => {
+      const previousEnabled = enabled;
+      const previousTaskboxStatus = taskboxStatus;
+      if (taskboxStatus) setTaskboxStatus({ ...taskboxStatus, enabled: checked });
+      if (checked) {
+        setEnabled(false);
+        configService.setLocal('pet.enabled', false);
+      }
+      setTaskboxLoading(true);
+      systemSettings.setNotchTaskboxEnabled
+        .invoke({ enabled: checked })
+        .then((status) => {
+          setTaskboxStatus(status);
+          if (status.enabled) {
+            setEnabled(false);
+            configService.setLocal('pet.enabled', false);
+          } else if (checked) {
+            setEnabled(previousEnabled);
+            configService.setLocal('pet.enabled', previousEnabled);
+          }
+          Message.success(status.enabled ? t('pet.notchTaskboxEnabled') : t('pet.notchTaskboxDisabled'));
+        })
+        .catch(() => {
+          setEnabled(previousEnabled);
+          configService.setLocal('pet.enabled', previousEnabled);
+          setTaskboxStatus(previousTaskboxStatus);
+          Message.error(t('pet.notchTaskboxUpdateFailed'));
+        })
+        .finally(() => {
+          setTaskboxLoading(false);
+        });
+    },
+    [enabled, taskboxStatus, t]
+  );
+
+  const handleHardwareNotchChange = useCallback(
+    (checked: boolean) => {
+      const previousTaskboxStatus = taskboxStatus;
+      if (taskboxStatus) setTaskboxStatus({ ...taskboxStatus, hardwareNotch: checked });
+      setTaskboxLoading(true);
+      systemSettings.setNotchTaskboxHardwareNotch
+        .invoke({ hardwareNotch: checked })
+        .then((status) => {
+          setTaskboxStatus(status);
+        })
+        .catch(() => {
+          setTaskboxStatus(previousTaskboxStatus);
+          Message.error(t('pet.notchTaskboxHardwareNotchUpdateFailed'));
+        })
+        .finally(() => {
+          setTaskboxLoading(false);
+        });
+    },
+    [taskboxStatus, t]
+  );
 
   const handleSizeChange = useCallback(
     (val: number) => {
@@ -86,17 +167,37 @@ const PetSettings: React.FC = () => {
     );
   }
 
+  const taskboxEnabled = taskboxStatus?.enabled ?? false;
+  const hardwareNotch = taskboxStatus?.hardwareNotch ?? false;
+
   const preferenceItems = [
+    {
+      key: 'notchTaskbox',
+      label: t('pet.notchTaskbox'),
+      description: t('pet.notchTaskboxDescription'),
+      component: <Switch checked={taskboxEnabled} loading={taskboxLoading} onChange={handleTaskboxEnabledChange} />,
+    },
+    ...(showHardwareNotch
+      ? [
+          {
+            key: 'notchTaskboxHardwareNotch',
+            label: t('pet.notchTaskboxHardwareNotch'),
+            description: t('pet.notchTaskboxHardwareNotchDescription'),
+            component: <Switch checked={hardwareNotch} loading={taskboxLoading} onChange={handleHardwareNotchChange} />,
+          },
+        ]
+      : []),
     {
       key: 'enabled',
       label: t('pet.enable'),
-      component: <Switch checked={enabled} onChange={handleEnabledChange} />,
+      description: taskboxEnabled ? t('pet.desktopPetDisabledByNotchTaskbox') : undefined,
+      component: <Switch checked={enabled} onChange={handleEnabledChange} disabled={taskboxEnabled} />,
     },
     {
       key: 'size',
       label: t('pet.size'),
       component: (
-        <Radio.Group value={size} onChange={handleSizeChange} disabled={!enabled}>
+        <Radio.Group value={size} onChange={handleSizeChange} disabled={!enabled || taskboxEnabled}>
           <Radio value={200}>{t('pet.sizeSmall', { px: 200 })}</Radio>
           <Radio value={280}>{t('pet.sizeMedium', { px: 280 })}</Radio>
           <Radio value={360}>{t('pet.sizeLarge', { px: 360 })}</Radio>
@@ -107,13 +208,15 @@ const PetSettings: React.FC = () => {
       key: 'dnd',
       label: t('pet.dnd'),
       description: t('pet.dndDescription'),
-      component: <Switch checked={dnd} onChange={handleDndChange} disabled={!enabled} />,
+      component: <Switch checked={dnd} onChange={handleDndChange} disabled={!enabled || taskboxEnabled} />,
     },
     {
       key: 'confirmBubble',
       label: t('pet.confirmBubble'),
       description: t('pet.confirmBubbleDescription'),
-      component: <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled} />,
+      component: (
+        <Switch checked={confirmEnabled} onChange={handleConfirmEnabledChange} disabled={!enabled || taskboxEnabled} />
+      ),
     },
   ];
 

@@ -94,6 +94,13 @@ export function setApplicationMainWindow(win: BrowserWindow): void {
   mainWindowRef = win;
 }
 
+export function getApplicationMainWindow(): BrowserWindow | null {
+  if (!mainWindowRef || mainWindowRef.isDestroyed()) {
+    return null;
+  }
+  return mainWindowRef;
+}
+
 export function initApplicationBridge(): void {
   // Platform-agnostic handlers: systemInfo, updateSystemInfo, getPath
   initApplicationBridgeCore();
