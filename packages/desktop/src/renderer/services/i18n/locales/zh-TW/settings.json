@@ -479,7 +479,7 @@
   "mcpCheckJsonHint": "請檢查 MCP JSON 設定後再重新檢測。",
   "mcpCheckResultLabel": "手動檢測結果：",
   "mcpCheckReasonLabel": "可能原因：",
-  "mcpCheckPurposeHint": "用於檢查 MCP 設定是否可用，不代表目前會話中的即時狀態。",
+  "mcpCheckPurposeHint": "用於檢查 MCP 設定是否可用，不代表實際運行時狀態。",
   "mcpCheckAvailableSimple": "可用",
   "mcpCheckPassedSimple": "手動檢測該 MCP 可用",
   "mcpCheckFailedSimple": "失敗",

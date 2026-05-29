@@ -479,7 +479,7 @@
   "mcpCheckJsonHint": "Please review the MCP JSON configuration and test again.",
   "mcpCheckResultLabel": "Manual check:",
   "mcpCheckReasonLabel": "Possible cause:",
-  "mcpCheckPurposeHint": "Used to verify whether the MCP configuration is available. It does not represent the real-time status in the current conversation.",
+  "mcpCheckPurposeHint": "Used to verify whether the MCP configuration is available. It does not represent the real runtime status.",
   "mcpCheckAvailableSimple": "Available",
   "mcpCheckPassedSimple": "Manual check passed",
   "mcpCheckFailedSimple": "Failed",
