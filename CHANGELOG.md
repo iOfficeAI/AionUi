@@ -1,5 +1,30 @@
 # Changelog
 
+## [2.1.6](https://github.com/iOfficeAI/AionUi/compare/v2.1.5...v2.1.6) (2026-05-28)
+
+### Desktop
+
+#### Bug Fixes
+
+- **model-selector:** trust backend current model and persist preferences (#3084)
+- **build:** align bundled aioncore target arch (#3092)
+- **settings:** use provider health check probe (#3090)
+- **settings:** use health check error message (#3080)
+- **backend:** handle incomplete bundled aioncore installs (#3078)
+
+#### Performance
+
+- lazy-load full tool message content (#3086)
+- improve message startup latency (#3082)
+
+### Core ([v0.1.15](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.15))
+
+#### Bug Fixes
+
+- **agent:** add provider health check probe ([#358](https://github.com/iOfficeAI/AionCore/issues/358))
+
+---
+
 ## [2.1.5](https://github.com/iOfficeAI/AionUi/compare/v2.1.4...v2.1.5) (2026-05-27)
 
 ### Desktop

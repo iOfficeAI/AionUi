@@ -257,7 +257,7 @@ export type TChatConversation =
           cached_config_options?: import('@/common/types/platform/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
           pending_config_options?: Record<string, string>;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -287,7 +287,7 @@ export type TChatConversation =
           session_mode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -333,7 +333,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -358,6 +358,7 @@ export type TChatConversation =
           preset_assistant_id?: string;
           pinned?: boolean;
           pinned_at?: number;
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           cron_job_id?: string;
           // Other legacy-only keys (session_mode, preset_rules, etc.)
@@ -381,7 +382,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -408,7 +409,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -447,7 +448,7 @@ export type TChatConversation =
         maxTurns?: number;
         /** Persisted session mode for resume support */
         session_mode?: string;
-        /** Explicit marker for temporary health-check conversations */
+        /** Legacy marker for pre-provider-probe health-check conversations */
         is_health_check?: boolean;
         /** Last token usage stats */
         last_token_usage?: TokenUsageData;

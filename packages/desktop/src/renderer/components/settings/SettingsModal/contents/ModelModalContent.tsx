@@ -5,9 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
-import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
@@ -20,7 +18,6 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
-import { classifyHealthCheckMessage, getHealthCheckErrorMessage } from './healthCheckUtils';
 import '../model-provider.css';
 
 /**
@@ -94,8 +91,6 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
   if (!platform.model_enabled) return true; // 默认启用
   return platform.model_enabled[model] !== false;
 };
-
-const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
 
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
@@ -193,148 +188,21 @@ const ModelModalContent: React.FC = () => {
     updatePlatform(updated, () => {});
   };
 
-  // 执行健康检测（复用现有对话请求逻辑）
+  // Execute provider/model health check without creating a conversation.
   const performHealthCheck = async (platform: IProvider, modelName: string) => {
     const loadingKey = `${platform.id}-${modelName}`;
     setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
     const startTime = Date.now();
-    let tempConversationId: string | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
-    let unsubscribe: (() => void) | null = null;
 
     try {
-      // 测活走统一对话链路，与常规请求路径保持一致
-      const responseStream = ipcBridge.conversation.responseStream;
-
-      // 1. 创建临时对话
-      // 健康检测一律走 aionrs：它是唯一不依赖第三方 CLI 的后端，
-      // 直接用用户配置的 provider HTTP API 探活。历史上这里曾硬编码
-      // type:'acp' + extra.backend:'gemini'，在没装 Gemini CLI 的机器上
-      // 100% 命中 acp.rs 的 "Agent 'Gemini CLI' CLI not found in PATH"
-      // 报错（ELECTRON-1R2）。
-      const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'aionrs',
-        name: `[Health Check] ${platform.name} - ${modelName}`,
-        model: {
-          ...platform,
-          use_model: modelName,
-        },
-        extra: {
-          workspace: '',
-          is_health_check: true,
-        },
+      const result = await ipcBridge.acpConversation.checkProviderHealth.invoke({
+        provider_id: platform.id,
+        model: modelName,
       });
-
-      tempConversationId = conversation.id;
-
-      // 2. 设置响应监听器
-      const responsePromise = new Promise<{ success: boolean; error?: string; latency: number }>((resolve, reject) => {
-        let hasResolved = false;
-        let requestTraceData: { backend?: string; model_id?: string; provider?: string } | null = null;
-
-        const resolveOnce = (result: { success: boolean; error?: string; latency: number }) => {
-          if (hasResolved) return;
-          hasResolved = true;
-          resolve(result);
-        };
-
-        const responseListener = (msg: IResponseMessage) => {
-          if (msg.conversation_id !== tempConversationId) return;
-
-          // 输出 request_trace 到 console（使用与对话相同的格式）
-          if (msg.type === 'request_trace') {
-            const trace = msg.data as Record<string, unknown>;
-            requestTraceData = {
-              backend: String(trace.backend || ''),
-              model_id: String(trace.model_id || ''),
-              provider: String(trace.platform || trace.provider || ''),
-            };
-            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-            console.log(
-              `%c[Health Check]%c ➡️ START | ${display_name} → ${trace.model_id} | ${new Date().toISOString()}`,
-              'color: #1890ff; font-weight: bold',
-              'color: inherit',
-              trace
-            );
-          }
-
-          const action = classifyHealthCheckMessage(msg.type);
-
-          if (action === 'skip') {
-            return;
-          }
-
-          if (action === 'error') {
-            const duration = Date.now() - startTime;
-            // 输出错误链路到 console
-            if (requestTraceData) {
-              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-              console.log(
-                `%c[Health Check]%c ❌ ERROR | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #ff4d4f; font-weight: bold',
-                'color: inherit',
-                msg.data
-              );
-            }
-            resolveOnce({
-              success: false,
-              error: getHealthCheckErrorMessage(msg.data),
-              latency: duration,
-            });
-            return;
-          }
-
-          // 以”首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
-          const duration = Date.now() - startTime;
-          if (requestTraceData) {
-            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-            console.log(
-              `%c[Health Check]%c ✅ FIRST_RESPONSE | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-              'color: #52c41a; font-weight: bold',
-              'color: inherit'
-            );
-          }
-          resolveOnce({ success: true, latency: duration });
-        };
-
-        unsubscribe = responseStream.on(responseListener);
-
-        // 首个响应超时（默认 30s）
-        timeoutId = setTimeout(() => {
-          if (!hasResolved) {
-            hasResolved = true;
-            if (requestTraceData) {
-              const duration = Date.now() - startTime;
-              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-              console.log(
-                `%c[Health Check]%c ⏱️ FIRST_RESPONSE_TIMEOUT | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #faad14; font-weight: bold',
-                'color: inherit'
-              );
-            }
-            reject(
-              new Error(`Health check timeout (${HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS / 1000}s to first response)`)
-            );
-          }
-        }, HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS);
-      });
-
-      // Prevent unhandled rejection if timeout fires while sendMessage is still pending.
-      // The actual error is still caught by `await responsePromise` below.
-      responsePromise.catch(() => {});
-
-      // 3. 发送测试消息
-      await ipcBridge.conversation.sendMessage.invoke({
-        conversation_id: tempConversationId,
-        input: 'ping',
-      });
-
-      // 4. 等待响应
-      const result = await responsePromise;
-
-      // 5. 更新健康状态 — 只 PATCH model_health，不要重发整个 provider
-      const latency = result.latency;
+      const latency = result.elapsed_ms || Date.now() - startTime;
+      const success = result.status === 'healthy';
+      const errorMessage = result.message || t('common.unknownError');
 
       try {
         // 先获取最新的数据，确保不会覆盖其他并发的更新
@@ -342,22 +210,22 @@ const ModelModalContent: React.FC = () => {
         const latestPlatform = (latestData || []).find((item) => item.id === platform.id);
         const model_health = { ...latestPlatform?.model_health };
         model_health[modelName] = {
-          status: result.success ? 'healthy' : 'unhealthy',
+          status: success ? 'healthy' : 'unhealthy',
           last_check: Date.now(),
           latency,
-          error: result.error,
+          error: success ? undefined : errorMessage,
         };
 
         await ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health });
         await mutate();
-        if (result.success) {
+        if (success) {
           Message.success({
             content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
             duration: 3000,
           });
         } else {
           Message.error({
-            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
+            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
             duration: 5000,
           });
         }
@@ -394,15 +262,6 @@ const ModelModalContent: React.FC = () => {
         console.error('Failed to save health check result:', saveError);
       }
     } finally {
-      // 清理
-      if (timeoutId) clearTimeout(timeoutId);
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      if (tempConversationId) {
-        // 删除临时对话
-        ipcBridge.conversation.remove.invoke({ id: tempConversationId }).catch(() => {});
-      }
       setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
