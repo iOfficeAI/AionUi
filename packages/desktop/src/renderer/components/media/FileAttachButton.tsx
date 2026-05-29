@@ -169,7 +169,15 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
   );
 
   const mcpPanel = (
-    <div style={{ ...cardStyle, minWidth: 220 }} onClick={(e) => e.stopPropagation()}>
+    <div
+      style={{
+        ...cardStyle,
+        minWidth: 220,
+        width: 'min(320px, calc(100vw - 96px))',
+        maxWidth: 320,
+      }}
+      onClick={(e) => e.stopPropagation()}
+    >
       {mcpStatuses.map((item) => (
         <MenuItem
           key={`${item.id}-${item.status}`}
@@ -187,19 +195,26 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
         />
       ))}
       <div style={{ margin: '4px 12px', height: 1, backgroundColor: 'var(--color-border-1, #e5e6eb)' }} />
-      <div className='px-12px py-8px text-12px leading-16px text-t-secondary'>
-        <span>
+      <div className='px-12px py-8px'>
+        <div className='text-12px leading-16px text-t-secondary whitespace-normal break-words'>
           {t('conversation.mcp.managementHint', {
             defaultValue:
               'If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.',
           })}
-        </span>
-        <Button type='text' size='mini' className='ml-4px h-auto! px-0! align-baseline' onClick={handleOpenMcpSettings}>
-          <span className='inline-flex items-center gap-2px'>
+        </div>
+        <Button
+          type='text'
+          size='mini'
+          className='mt-6px h-auto! px-0! text-12px! inline-flex! items-center! gap-4px!'
+          onClick={handleOpenMcpSettings}
+        >
+          <span className='leading-none'>
             {t('conversation.mcp.openSettings', {
               defaultValue: 'Open Tools settings',
             })}
-            <Right theme='outline' size={10} strokeWidth={3} />
+          </span>
+          <span className='inline-flex h-12px w-12px flex-shrink-0 items-center justify-center'>
+            <Right theme='outline' size={12} strokeWidth={3} className='block' />
           </span>
         </Button>
       </div>
