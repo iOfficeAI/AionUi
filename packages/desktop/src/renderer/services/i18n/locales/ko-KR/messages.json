@@ -72,5 +72,41 @@
   "approveAllInProgress": "승인 중…",
   "pendingApprovalsHeader": "{{count}}개의 명령이 승인 대기 중",
   "pendingApprovalsHint": "아래에서 각각 확인하거나 한 번에 모두 승인",
-  "pendingApprovalsMoreShort": "추가 {{count}}개"
+  "pendingApprovalsMoreShort": "추가 {{count}}개",
+  "remoteSubagent": {
+    "tag": "Sub-agent",
+    "unnamed": "Sub-agent",
+    "running": "running…",
+    "completed": "completed in {{seconds}}s",
+    "failed": "failed",
+    "aborted": "aborted",
+    "toolCount_one": "{{count}} tool call",
+    "toolCount_other": "{{count}} tool calls",
+    "toolCount": "{{count}} tool calls"
+  },
+  "remoteToolInput": {
+    "constructing": "Constructing arguments…",
+    "finalArguments": "Arguments"
+  },
+  "remoteToolProgress": {
+    "terminal": "Terminal output",
+    "terminalEmpty": "(no output yet)",
+    "scanned": "Scanned: {{scanned}} files · Matches: {{matches}}",
+    "bytes": "{{processed}} / {{total}} bytes ({{pct}}%)",
+    "bytesProcessed": "{{processed}} bytes processed",
+    "mcpPrefix": "MCP ·",
+    "mcpUnknown": "in progress"
+  },
+  "remoteMcpElicitation": {
+    "title": "MCP input required",
+    "fromParent": "from main agent",
+    "fromSubagent": "from sub-agent",
+    "fromUnknown": "session unknown",
+    "freeText": "Response",
+    "freeTextHint": "Enter JSON or plain text",
+    "submit": "Submit",
+    "cancel": "Cancel"
+  },
+  "trustTreeShort": "Trust {{path}}",
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
 }

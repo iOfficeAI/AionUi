@@ -1,9 +1,11 @@
 import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import {
+  WORKSPACE_HAS_APPROVALS_EVENT,
   WORKSPACE_HAS_FILES_EVENT,
   WORKSPACE_HAS_TODOS_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
+  type WorkspaceHasApprovalsDetail,
   type WorkspaceHasFilesDetail,
   type WorkspaceHasTodosDetail,
 } from '@/renderer/utils/workspace/workspaceEvents';
@@ -188,6 +190,39 @@ export function useWorkspaceCollapse({
     window.addEventListener(WORKSPACE_HAS_TODOS_EVENT, handleHasTodos);
     return () => {
       window.removeEventListener(WORKSPACE_HAS_TODOS_EVENT, handleHasTodos);
+    };
+  }, [isMobile, workspaceEnabled, rightSiderCollapsed, preferenceKey]);
+
+  // Auto-expand the pane when a pending approval appears, so the Approvals tab
+  // surfaces without the user hunting for it. Mirrors the Todos behaviour and
+  // respects an explicit user collapse preference.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !workspaceEnabled) {
+      return undefined;
+    }
+    const handleHasApprovals = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceHasApprovalsDetail>).detail;
+      if (isMobile) {
+        return;
+      }
+      let userPreference: 'expanded' | 'collapsed' | null = null;
+      if (preferenceKey) {
+        try {
+          const stored = localStorage.getItem(`workspace-preference-${preferenceKey}`);
+          if (stored === 'expanded' || stored === 'collapsed') {
+            userPreference = stored;
+          }
+        } catch {
+          // ignore errors
+        }
+      }
+      if (!userPreference && detail.hasApprovals && rightSiderCollapsed) {
+        setRightSiderCollapsed(false);
+      }
+    };
+    window.addEventListener(WORKSPACE_HAS_APPROVALS_EVENT, handleHasApprovals);
+    return () => {
+      window.removeEventListener(WORKSPACE_HAS_APPROVALS_EVENT, handleHasApprovals);
     };
   }, [isMobile, workspaceEnabled, rightSiderCollapsed, preferenceKey]);
 

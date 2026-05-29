@@ -185,6 +185,10 @@
       "noUnstaged": "沒有未暫存的變更",
       "noStaged": "沒有已暫存的變更"
     },
+    "approvals": {
+      "tab": "審批",
+      "empty": "沒有待處理的審批。"
+    },
     "todos": {
       "tab": "待辦事項",
       "progress": "已完成 {{completed}} / {{total}}",

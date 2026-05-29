@@ -185,6 +185,10 @@
       "noUnstaged": "没有未暂存的更改",
       "noStaged": "没有已暂存的更改"
     },
+    "approvals": {
+      "tab": "审批",
+      "empty": "没有待处理的审批。"
+    },
     "todos": {
       "tab": "待办事项",
       "progress": "已完成 {{completed}} / {{total}}",

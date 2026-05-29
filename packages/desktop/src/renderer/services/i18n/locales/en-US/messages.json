@@ -72,5 +72,41 @@
     "yesAlwaysAllowTool": "Yes, always allow tool \"{{toolName}}\" from server \"{{serverName}}\"",
     "yesAlwaysAllowServer": "Yes, always allow all tools from server \"{{serverName}}\"",
     "no": "No (esc)"
-  }
+  },
+  "remoteSubagent": {
+    "tag": "Sub-agent",
+    "unnamed": "Sub-agent",
+    "running": "running…",
+    "completed": "completed in {{seconds}}s",
+    "failed": "failed",
+    "aborted": "aborted",
+    "toolCount_one": "{{count}} tool call",
+    "toolCount_other": "{{count}} tool calls",
+    "toolCount": "{{count}} tool calls"
+  },
+  "remoteToolInput": {
+    "constructing": "Constructing arguments…",
+    "finalArguments": "Arguments"
+  },
+  "remoteToolProgress": {
+    "terminal": "Terminal output",
+    "terminalEmpty": "(no output yet)",
+    "scanned": "Scanned: {{scanned}} files · Matches: {{matches}}",
+    "bytes": "{{processed}} / {{total}} bytes ({{pct}}%)",
+    "bytesProcessed": "{{processed}} bytes processed",
+    "mcpPrefix": "MCP ·",
+    "mcpUnknown": "in progress"
+  },
+  "remoteMcpElicitation": {
+    "title": "MCP input required",
+    "fromParent": "from main agent",
+    "fromSubagent": "from sub-agent",
+    "fromUnknown": "session unknown",
+    "freeText": "Response",
+    "freeTextHint": "Enter JSON or plain text",
+    "submit": "Submit",
+    "cancel": "Cancel"
+  },
+  "trustTreeShort": "Trust {{path}}",
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
 }

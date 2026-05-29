@@ -14,6 +14,7 @@ import { Down } from '@icon-park/react';
 import MessageAcpPermission from '@renderer/pages/conversation/Messages/acp/MessageAcpPermission';
 import MessagePermission from './components/MessagePermission';
 import MessageAcpToolCall from '@renderer/pages/conversation/Messages/acp/MessageAcpToolCall';
+import MessageOpencodeSubtask from '@renderer/pages/conversation/Messages/acp/MessageOpencodeSubtask';
 import classNames from 'classnames';
 import React, { createContext, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -138,11 +139,19 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
       case 'agent_status':
         return <MessageAgentStatus message={message}></MessageAgentStatus>;
       case 'permission':
-        return <MessagePermission message={message}></MessagePermission>;
+        // Permission approvals now live in the workspace "Approvals" tab
+        // (cleaner, dedicated UI). Only MCP elicitation prompts — which need a
+        // schema-driven form, not a yes/no/once choice — remain inline.
+        if ((message.content as { command_type?: string } | undefined)?.command_type === 'mcp_elicitation') {
+          return <MessagePermission message={message}></MessagePermission>;
+        }
+        return null;
       case 'acp_permission':
         return <MessageAcpPermission message={message}></MessageAcpPermission>;
       case 'acp_tool_call':
         return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
+      case 'opencode_subtask':
+        return <MessageOpencodeSubtask message={message}></MessageOpencodeSubtask>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':

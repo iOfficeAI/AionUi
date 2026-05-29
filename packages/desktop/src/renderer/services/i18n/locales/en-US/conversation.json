@@ -185,6 +185,10 @@
       "noUnstaged": "No unstaged changes",
       "noStaged": "No staged changes"
     },
+    "approvals": {
+      "tab": "Approvals",
+      "empty": "No pending approvals."
+    },
     "todos": {
       "tab": "Todos",
       "progress": "{{completed}} of {{total}} completed",

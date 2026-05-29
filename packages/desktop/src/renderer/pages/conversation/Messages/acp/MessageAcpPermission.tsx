@@ -7,7 +7,7 @@
 import type { IMessageAcpPermission, TMessage } from '@/common/chat/chatLib';
 import { conversation } from '@/common/adapter/ipcBridge';
 import { useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
-import { Button, Card, Radio, Typography } from '@arco-design/web-react';
+import { Button, Card, Radio, Tag, Typography } from '@arco-design/web-react';
 import React, { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -50,10 +50,24 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   const { title, icon } = getToolInfo();
   const [selected, setSelected] = useState<string | null>(null);
   const [isResponding, setIsResponding] = useState(false);
-  const [hasResponded, setHasResponded] = useState(false);
+  // hasResponded MUST follow message.content.responded so when the
+  // PendingApprovalsBanner ("Approve all") flips that flag via
+  // updateMessageList, this card re-renders as resolved instead of staying
+  // stuck on the radio prompt. useState(false) captured only the initial
+  // mount value and ignored every subsequent prop update — that's the
+  // "approve all does nothing visible" bug.
+  const propResponded = Boolean((message.content as { responded?: boolean } | undefined)?.responded);
+  const [locallyResponded, setLocallyResponded] = useState(false);
+  const hasResponded = propResponded || locallyResponded;
+  const setHasResponded = (_v: boolean) => setLocallyResponded(true);
 
   const handleConfirm = async () => {
-    if (hasResponded || !selected) return;
+    // Guard rapid double-submit on top of `hasResponded` (which only flips
+    // *after* the await). Without this an over-eager click bursts the same
+    // `confirm.invoke` twice — wasted round-trip and noisy 404 from
+    // OpenCode's PermissionNotFoundError. Backend dedupe catches it too but
+    // we should never get there.
+    if (hasResponded || isResponding || !selected) return;
 
     setIsResponding(true);
     try {
@@ -97,6 +111,17 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
       <div className='space-y-4'>
         {/* Header with icon and title */}
         <div className='flex items-center space-x-2'>
+          {/*
+            Sub-agent attribution: a permission whose `parent_session_id` is set
+            originated from a child OpenCode session. Flag it visibly so the
+            user knows they're approving a sub-agent's action, not the main
+            agent's — and can decide whether to scope the grant accordingly.
+          */}
+          {(message.content as { parent_session_id?: string })?.parent_session_id && (
+            <Tag color='arcoblue' size='small'>
+              {t('messages.remoteSubagent.tag')}
+            </Tag>
+          )}
           <span className='text-2xl'>{icon}</span>
           <Text className='block'>{title}</Text>
         </div>

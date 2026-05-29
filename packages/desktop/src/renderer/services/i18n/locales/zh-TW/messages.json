@@ -72,5 +72,41 @@
   "approveAllInProgress": "核准中…",
   "pendingApprovalsHeader": "{{count}} 個指令等待您的核准",
   "pendingApprovalsHint": "可逐一查看下方卡片，或一次全部核准",
-  "pendingApprovalsMoreShort": "還有 {{count}} 個"
+  "pendingApprovalsMoreShort": "還有 {{count}} 個",
+  "remoteSubagent": {
+    "tag": "Sub-agent",
+    "unnamed": "Sub-agent",
+    "running": "running…",
+    "completed": "completed in {{seconds}}s",
+    "failed": "failed",
+    "aborted": "aborted",
+    "toolCount_one": "{{count}} tool call",
+    "toolCount_other": "{{count}} tool calls",
+    "toolCount": "{{count}} tool calls"
+  },
+  "remoteToolInput": {
+    "constructing": "Constructing arguments…",
+    "finalArguments": "Arguments"
+  },
+  "remoteToolProgress": {
+    "terminal": "Terminal output",
+    "terminalEmpty": "(no output yet)",
+    "scanned": "Scanned: {{scanned}} files · Matches: {{matches}}",
+    "bytes": "{{processed}} / {{total}} bytes ({{pct}}%)",
+    "bytesProcessed": "{{processed}} bytes processed",
+    "mcpPrefix": "MCP ·",
+    "mcpUnknown": "in progress"
+  },
+  "remoteMcpElicitation": {
+    "title": "MCP input required",
+    "fromParent": "from main agent",
+    "fromSubagent": "from sub-agent",
+    "fromUnknown": "session unknown",
+    "freeText": "Response",
+    "freeTextHint": "Enter JSON or plain text",
+    "submit": "Submit",
+    "cancel": "Cancel"
+  },
+  "trustTreeShort": "Trust {{path}}",
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
 }

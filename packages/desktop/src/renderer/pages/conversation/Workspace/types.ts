@@ -111,4 +111,4 @@ export type ExtractNodeKeyFn = (node: NodeInstance | null | undefined) => string
 export type GetPathSeparatorFn = (targetPath: string) => string;
 export type FindNodeByKeyFn = (list: IDirOrFile[], key: string) => IDirOrFile | null;
 
-export type WorkspaceTab = 'files' | 'changes' | 'todos';
+export type WorkspaceTab = 'files' | 'changes' | 'todos' | 'approvals';

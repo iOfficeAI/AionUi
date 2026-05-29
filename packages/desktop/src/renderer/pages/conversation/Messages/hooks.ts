@@ -295,6 +295,12 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
       newList[existingIdx] = {
         ...existingMsg,
         ...message,
+        // Preserve the existing stable `id`. `transformMessage` mints a fresh
+        // `uuid()` for `id` on every update; if we let it overwrite the
+        // existing id, the React list key (keyed on `id`) changes each tick and
+        // the component remounts — the cause of the F01 "stacking" sub-agent
+        // cards on every progress event. `msg_id` is the real identity here.
+        id: existingMsg.id,
         content: message.content,
       } as TMessage;
       return newList;

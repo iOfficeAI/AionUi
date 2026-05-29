@@ -18,6 +18,8 @@ type WorkspaceTabBarProps = {
   branch: string | null;
   hasTodos?: boolean;
   todoPendingCount?: number;
+  hasApprovals?: boolean;
+  approvalPendingCount?: number;
 };
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
@@ -28,6 +30,8 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   branch,
   hasTodos,
   todoPendingCount,
+  hasApprovals,
+  approvalPendingCount,
 }) => {
   const changesTitle = (
     <span className='flex items-center'>
@@ -75,6 +79,15 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
     </span>
   );
 
+  const approvalsTitle = (
+    <span className='flex items-center'>
+      {t('conversation.workspace.approvals.tab')}
+      {approvalPendingCount !== undefined && approvalPendingCount > 0 && (
+        <span className='ml-2px text-warning'>({approvalPendingCount > 99 ? '99+' : approvalPendingCount})</span>
+      )}
+    </span>
+  );
+
   return (
     <Tabs
       activeTab={activeTab}
@@ -87,6 +100,7 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
       <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
       <Tabs.TabPane key='changes' title={changesTitle} />
       {hasTodos && <Tabs.TabPane key='todos' title={todosTitle} />}
+      {hasApprovals && <Tabs.TabPane key='approvals' title={approvalsTitle} />}
     </Tabs>
   );
 };

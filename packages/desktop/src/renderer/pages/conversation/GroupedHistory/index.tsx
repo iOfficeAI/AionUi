@@ -4,9 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
+import { addRecentWorkspace } from '@/renderer/components/workspace';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
@@ -35,7 +37,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   tooltipEnabled = false,
   batchMode = false,
   onBatchModeChange,
-  afterPinnedContent,
 }) => {
   const { id } = useParams();
   const { t } = useTranslation();
@@ -236,6 +237,20 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     return <ConversationRow key={conversation.id} {...rowProps} dimIcon={dimIcon} />;
   };
 
+  const handleCreateProject = useCallback(() => {
+    ipcBridge.dialog.showOpen
+      .invoke({ properties: ['openDirectory', 'createDirectory'] })
+      .then((dirs) => {
+        if (dirs && dirs[0]) {
+          addRecentWorkspace(dirs[0]);
+          void navigate('/guid', { state: { workspace: dirs[0] } });
+        }
+      })
+      .catch((error) => {
+        console.error('Failed to open directory dialog:', error);
+      });
+  }, [navigate]);
+
   // Collect all sortable IDs for the pinned section
   const pinnedIds = useMemo(() => pinnedConversations.map((c) => c.id), [pinnedConversations]);
 
@@ -271,16 +286,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     [timelineSections]
   );
 
-  if (timelineSections.length === 0 && pinnedConversations.length === 0 && archivedConversations.length === 0) {
-    return (
-      <>
-        {afterPinnedContent}
-        <div className='py-48px flex-center'>
-          <Empty description={t('conversation.history.noHistory')} />
-        </div>
-      </>
-    );
-  }
+  const isEmpty =
+    timelineSections.length === 0 && pinnedConversations.length === 0 && archivedConversations.length === 0;
 
   return (
     <>
@@ -543,98 +550,125 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           </DragOverlay>
         </DndContext>
 
-        {/* Slot 由父级（Sider）填入：例如 Team / CronJob sections，位于「置顶」之后、「项目」之前 */}
-        {afterPinnedContent}
-
-        {/* L1: Projects section — workspace folders, peer to conversations */}
-        {projectGroups.length > 0 && (
-          <div className='min-w-0'>
-            {!collapsed && <SectionLabel sectionKey='projects' label={t('conversation.history.projectsSection')} />}
-            {!collapsedSections.has('projects') &&
-              projectGroups.map((group) => {
-                const projectMenu = (
-                  <Menu
-                    onClickMenuItem={(key) => {
-                      if (key === 'remove') {
-                        handleRemoveProject(group.displayName, group.conversations);
+        {/* L1: Projects section — static sidebar entry. Header always renders
+            when expanded; project rows render only when workspace folders exist. */}
+        <div className='min-w-0'>
+          {!collapsed && (
+            <SectionLabel
+              sectionKey='projects'
+              label={t('conversation.history.projectsSection')}
+              trailing={
+                <Tooltip content={t('conversation.history.newProject')} position='top'>
+                  <span
+                    role='button'
+                    tabIndex={0}
+                    aria-label={t('conversation.history.newProject')}
+                    data-testid='project-create-btn'
+                    className='size-20px rd-4px flex items-center justify-center hover:bg-fill-4 transition-all shrink-0 cursor-pointer text-t-secondary hover:text-t-primary -mr-4px'
+                    onClick={handleCreateProject}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        handleCreateProject();
                       }
                     }}
                   >
-                    <Menu.Item key='remove' className='!text-[rgb(var(--danger-6))]'>
-                      <span className='flex items-center gap-8px'>
-                        <Delete theme='outline' size='14' />
-                        {t('conversation.history.removeProject')}
+                    <Plus
+                      theme='outline'
+                      size='14'
+                      fill='currentColor'
+                      className='block leading-none'
+                      style={{ lineHeight: 0 }}
+                    />
+                  </span>
+                </Tooltip>
+              }
+            />
+          )}
+          {!collapsedSections.has('projects') &&
+            projectGroups.map((group) => {
+              const projectMenu = (
+                <Menu
+                  onClickMenuItem={(key) => {
+                    if (key === 'remove') {
+                      handleRemoveProject(group.displayName, group.conversations);
+                    }
+                  }}
+                >
+                  <Menu.Item key='remove' className='!text-[rgb(var(--danger-6))]'>
+                    <span className='flex items-center gap-8px'>
+                      <Delete theme='outline' size='14' />
+                      {t('conversation.history.removeProject')}
+                    </span>
+                  </Menu.Item>
+                </Menu>
+              );
+              return (
+                <div key={group.workspace} className='min-w-0'>
+                  <WorkspaceCollapse
+                    expanded={expandedWorkspaces.includes(group.workspace)}
+                    onToggle={() => handleToggleWorkspace(group.workspace)}
+                    siderCollapsed={collapsed}
+                    header={
+                      <span className='text-14px font-[500] truncate flex-1 text-t-primary min-w-0'>
+                        {group.displayName}
                       </span>
-                    </Menu.Item>
-                  </Menu>
-                );
-                return (
-                  <div key={group.workspace} className='min-w-0'>
-                    <WorkspaceCollapse
-                      expanded={expandedWorkspaces.includes(group.workspace)}
-                      onToggle={() => handleToggleWorkspace(group.workspace)}
-                      siderCollapsed={collapsed}
-                      header={
-                        <span className='text-14px font-[500] truncate flex-1 text-t-primary min-w-0'>
-                          {group.displayName}
-                        </span>
-                      }
-                      trailing={
-                        <span className='flex items-center gap-6px'>
-                          <Tooltip content={t('conversation.history.newConversationInProject')} position='top'>
-                            <span
-                              role='button'
-                              tabIndex={0}
-                              aria-label={t('conversation.history.newConversationInProject')}
-                              className={classNames(
-                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                                isMobile ? 'flex' : 'hidden group-hover:flex'
-                              )}
-                              onClick={(e) => {
+                    }
+                    trailing={
+                      <span className='flex items-center gap-6px'>
+                        <Tooltip content={t('conversation.history.newConversationInProject')} position='top'>
+                          <span
+                            role='button'
+                            tabIndex={0}
+                            aria-label={t('conversation.history.newConversationInProject')}
+                            className={classNames(
+                              'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                              isMobile ? 'flex' : 'hidden group-hover:flex'
+                            )}
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              void navigate('/guid', { state: { workspace: group.workspace } });
+                            }}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter' || e.key === ' ') {
+                                e.preventDefault();
                                 e.stopPropagation();
                                 void navigate('/guid', { state: { workspace: group.workspace } });
-                              }}
-                              onKeyDown={(e) => {
-                                if (e.key === 'Enter' || e.key === ' ') {
-                                  e.preventDefault();
-                                  e.stopPropagation();
-                                  void navigate('/guid', { state: { workspace: group.workspace } });
-                                }
-                              }}
-                            >
-                              <Plus theme='outline' size='14' fill='currentColor' className='block leading-none' />
-                            </span>
-                          </Tooltip>
-                          <Dropdown
-                            droplist={projectMenu}
-                            trigger='click'
-                            position='br'
-                            getPopupContainer={() => document.body}
-                            unmountOnExit={false}
+                              }
+                            }}
                           >
-                            <span
-                              aria-label='Project actions'
-                              className={classNames(
-                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
-                                isMobile ? 'flex' : 'hidden group-hover:flex'
-                              )}
-                              onClick={(e) => e.stopPropagation()}
-                            >
-                              <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
-                            </span>
-                          </Dropdown>
-                        </span>
-                      }
-                    >
-                      <div className={classNames('flex flex-col min-w-0', { 'mt-1px': !collapsed })}>
-                        {group.conversations.map((conversation) => renderConversation(conversation, true))}
-                      </div>
-                    </WorkspaceCollapse>
-                  </div>
-                );
-              })}
-          </div>
-        )}
+                            <Plus theme='outline' size='14' fill='currentColor' className='block leading-none' />
+                          </span>
+                        </Tooltip>
+                        <Dropdown
+                          droplist={projectMenu}
+                          trigger='click'
+                          position='br'
+                          getPopupContainer={() => document.body}
+                          unmountOnExit={false}
+                        >
+                          <span
+                            aria-label='Project actions'
+                            className={classNames(
+                              'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                              isMobile ? 'flex' : 'hidden group-hover:flex'
+                            )}
+                            onClick={(e) => e.stopPropagation()}
+                          >
+                            <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />
+                          </span>
+                        </Dropdown>
+                      </span>
+                    }
+                  >
+                    <div className={classNames('flex flex-col min-w-0', { 'mt-1px': !collapsed })}>
+                      {group.conversations.map((conversation) => renderConversation(conversation, true))}
+                    </div>
+                  </WorkspaceCollapse>
+                </div>
+              );
+            })}
+        </div>
 
         {/* L1: Conversations section — peer to projects, internally split by timeline */}
         {conversationOnlySections.length > 0 && (
@@ -665,6 +699,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             {!collapsed && <SectionLabel sectionKey='archived' label={t('conversation.history.archivedSection')} />}
             {!collapsedSections.has('archived') &&
               archivedConversations.map((conversation) => renderConversation(conversation))}
+          </div>
+        )}
+
+        {isEmpty && !collapsed && (
+          <div className='py-48px flex-center'>
+            <Empty description={t('conversation.history.noHistory')} />
           </div>
         )}
       </div>

@@ -479,6 +479,8 @@ export type I18nKey =
   | 'conversation.welcome.uploadFile'
   | 'conversation.welcome.useCliModel'
   | 'conversation.workspace.addFile'
+  | 'conversation.workspace.approvals.empty'
+  | 'conversation.workspace.approvals.tab'
   | 'conversation.workspace.changes.changedFiles'
   | 'conversation.workspace.changes.currentBranchLabel'
   | 'conversation.workspace.changes.deletions'

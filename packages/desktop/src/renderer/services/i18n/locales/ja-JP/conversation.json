@@ -185,6 +185,10 @@
       "noUnstaged": "ステージされていない変更はありません",
       "noStaged": "ステージ済みの変更はありません"
     },
+    "approvals": {
+      "tab": "承認",
+      "empty": "保留中の承認はありません。"
+    },
     "todos": {
       "tab": "タスク",
       "progress": "{{completed}} / {{total}} 完了",

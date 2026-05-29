@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
+import type { AvailableCommand, TMessage, ToolProgress } from '@/common/chat/chatLib';
 import { transformMessage } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
@@ -13,7 +13,55 @@ import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
+import { uuid } from '@/common/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
+
+/**
+ * Best-effort classifier mapping a backend tool_progress payload into the
+ * discriminated `ToolProgress` shape consumed by the tool-call renderer. The
+ * backend's per-tool normalizer (`normalize_progress_payload`) has already
+ * stripped sensitive payload bodies; here we only pick a family discriminator
+ * so the UI can pick the right renderer (terminal block / counter / bar).
+ */
+function classifyProgress(toolName: string | undefined, raw: unknown): ToolProgress {
+  if (!raw || typeof raw !== 'object') {
+    return { kind: 'unknown', raw };
+  }
+  const obj = raw as Record<string, unknown>;
+  const name = (toolName ?? '').toLowerCase();
+  if (name === 'bash' || name === 'shell') {
+    return {
+      kind: 'bash',
+      stdoutChunk: typeof obj.stdoutChunk === 'string' ? obj.stdoutChunk : undefined,
+      stderrChunk: typeof obj.stderrChunk === 'string' ? obj.stderrChunk : undefined,
+      exitCode: typeof obj.exitCode === 'number' ? obj.exitCode : undefined,
+    };
+  }
+  if (name === 'grep' || name === 'glob') {
+    return {
+      kind: name as 'grep' | 'glob',
+      filesScanned: typeof obj.filesScanned === 'number' ? obj.filesScanned : undefined,
+      matches: typeof obj.matches === 'number' ? obj.matches : undefined,
+    };
+  }
+  if (name === 'read' || name === 'write') {
+    return {
+      kind: name as 'read' | 'write',
+      bytesProcessed: typeof obj.bytesProcessed === 'number' ? obj.bytesProcessed : undefined,
+      bytesTotal: typeof obj.bytesTotal === 'number' ? obj.bytesTotal : undefined,
+    };
+  }
+  // MCP and anything else with the conventional {step, percent, message} shape.
+  if (typeof obj.step === 'string' || typeof obj.percent === 'number' || typeof obj.message === 'string') {
+    return {
+      kind: 'mcp',
+      step: typeof obj.step === 'string' ? obj.step : undefined,
+      percent: typeof obj.percent === 'number' ? obj.percent : undefined,
+      message: typeof obj.message === 'string' ? obj.message : undefined,
+    };
+  }
+  return { kind: 'unknown', raw };
+}
 
 export type UseRemoteMessageReturn = {
   thought: ThoughtData;
@@ -285,6 +333,88 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
             );
           }
           break;
+        case 'opencode_subtask': {
+          // Sub-agent (OpenCode child session) lifecycle update. The hook
+          // surfaces it as its own message so the renderer can pin the
+          // collapsed Task chip + nested transcript at the right point in the
+          // parent transcript.
+          recoverRunning();
+          setThought({ subject: '', description: '' });
+          addOrUpdateMessage(transformedMessage);
+          break;
+        }
+        case 'tool_input': {
+          // Streamed JSON-construction phase for a tool call. We splice the
+          // partial JSON into the matching `acp_tool_call` bubble (by
+          // `part_id`/`tool_call_id`) so the renderer can show
+          // "Constructing arguments…" without us minting a separate message.
+          const data = message.data as {
+            session_id?: string;
+            parent_session_id?: string;
+            part_id?: string;
+            phase: 'started' | 'delta' | 'ended';
+            tool_name?: string;
+            input_delta?: string;
+            final_input?: unknown;
+          };
+          if (!data?.part_id) break;
+          // Concatenate deltas into a rolling `partial` string. The renderer
+          // tolerates invalid JSON (best-effort prettify) until `ended`.
+          const synthetic: TMessage = {
+            id: uuid(),
+            type: 'acp_tool_call',
+            msg_id: data.part_id,
+            position: 'left',
+            conversation_id: message.conversation_id,
+            created_at: message.created_at ?? Date.now(),
+            content: {
+              sessionUpdate: 'tool_call_update' as any,
+              tool_call_id: data.part_id,
+              ...(data.parent_session_id ? { parentSessionId: data.parent_session_id } : {}),
+              inputStreaming: {
+                partial:
+                  data.phase === 'ended'
+                    ? typeof data.final_input === 'string'
+                      ? data.final_input
+                      : JSON.stringify(data.final_input ?? {}, null, 2)
+                    : (data.input_delta ?? ''),
+                phase: data.phase,
+                toolName: data.tool_name,
+              },
+            } as any,
+          };
+          recoverRunning();
+          addOrUpdateMessage(synthetic);
+          break;
+        }
+        case 'tool_progress': {
+          const data = message.data as {
+            session_id?: string;
+            parent_session_id?: string;
+            part_id?: string;
+            tool_name?: string;
+            progress?: unknown;
+            at?: number;
+          };
+          if (!data?.part_id) break;
+          const synthetic: TMessage = {
+            id: uuid(),
+            type: 'acp_tool_call',
+            msg_id: data.part_id,
+            position: 'left',
+            conversation_id: message.conversation_id,
+            created_at: message.created_at ?? data.at ?? Date.now(),
+            content: {
+              sessionUpdate: 'tool_call_update' as any,
+              tool_call_id: data.part_id,
+              ...(data.parent_session_id ? { parentSessionId: data.parent_session_id } : {}),
+              progress: classifyProgress(data.tool_name, data.progress),
+            } as any,
+          };
+          recoverRunning();
+          addOrUpdateMessage(synthetic);
+          break;
+        }
         default:
           // tool_call, acp_tool_call, tool_group, plan, agent_status, system, …
           // (only reachable via the OpenClaw/ACP WebSocket forward path).

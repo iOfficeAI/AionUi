@@ -2,6 +2,7 @@ export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
 export const WORKSPACE_HAS_TODOS_EVENT = 'aionui-workspace-has-todos';
+export const WORKSPACE_HAS_APPROVALS_EVENT = 'aionui-workspace-has-approvals';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;
@@ -15,6 +16,11 @@ export interface WorkspaceHasFilesDetail {
 
 export interface WorkspaceHasTodosDetail {
   hasTodos: boolean;
+  conversation_id?: string;
+}
+
+export interface WorkspaceHasApprovalsDetail {
+  hasApprovals: boolean;
   conversation_id?: string;
 }
 
@@ -50,6 +56,19 @@ export function dispatchWorkspaceHasTodosEvent(hasTodos: boolean, conversation_i
   window.dispatchEvent(
     new CustomEvent<WorkspaceHasTodosDetail>(WORKSPACE_HAS_TODOS_EVENT, {
       detail: { hasTodos, conversation_id },
+    })
+  );
+}
+
+/**
+ * Dispatch when the conversation's pending-approvals status changes, so the
+ * collapsed workspace pane can auto-expand to surface the Approvals tab.
+ */
+export function dispatchWorkspaceHasApprovalsEvent(hasApprovals: boolean, conversation_id: string | undefined) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<WorkspaceHasApprovalsDetail>(WORKSPACE_HAS_APPROVALS_EVENT, {
+      detail: { hasApprovals, conversation_id },
     })
   );
 }

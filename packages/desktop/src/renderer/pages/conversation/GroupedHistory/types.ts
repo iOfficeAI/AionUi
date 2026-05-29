@@ -5,7 +5,6 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import type { ReactNode } from 'react';
 
 export type WorkspaceGroup = {
   workspace: string;
@@ -74,7 +73,6 @@ export type WorkspaceGroupedHistoryProps = {
   tooltipEnabled?: boolean;
   batchMode?: boolean;
   onBatchModeChange?: (value: boolean) => void;
-  afterPinnedContent?: ReactNode;
 };
 
 export type DragItemType = 'conversation' | 'workspace';

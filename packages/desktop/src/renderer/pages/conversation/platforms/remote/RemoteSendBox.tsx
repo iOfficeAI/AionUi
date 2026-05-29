@@ -22,7 +22,6 @@ import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import PendingApprovalsBanner from '@/renderer/pages/conversation/components/PendingApprovalsBanner';
 import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
@@ -375,7 +374,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
 
   return (
     <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
-      <PendingApprovalsBanner conversation_id={conversation_id} />
+      {/* Approvals moved to the workspace "Approvals" tab for remote/opencode. */}
       <CommandQueuePanel
         items={queuedCommands}
         paused={isQueuePaused}

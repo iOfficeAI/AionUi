@@ -14,6 +14,7 @@ import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/work
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import ApprovalsList from './components/ApprovalsList';
 import FileChangeList from './components/FileChangeList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import TodoList from './components/TodoList';
@@ -30,6 +31,7 @@ import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
 import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAbortUploadsOnConversationChange';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
+import { useWorkspaceApprovals } from './hooks/useWorkspaceApprovals';
 import { useWorkspaceTodos } from './hooks/useWorkspaceTodos';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
@@ -64,6 +66,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
   const todosHook = useWorkspaceTodos(conversation_id);
+  const approvalsHook = useWorkspaceApprovals(conversation_id);
 
   // Bind workspace uploads to the conversation lifecycle: switching the
   // workspace conversation or unmounting the panel cancels in-flight uploads.
@@ -204,6 +207,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     prevHasTodosRef.current = todosHook.hasTodos;
   }, [todosHook.hasTodos]);
 
+  // Auto-select the Approvals tab when a pending approval appears. Approvals
+  // are blocking (the agent waits on them), so they take precedence over the
+  // Todos auto-select above when both fire.
+  const prevHasApprovalsRef = React.useRef(false);
+  useEffect(() => {
+    if (approvalsHook.hasApprovals && !prevHasApprovalsRef.current) {
+      setActiveTab('approvals');
+    }
+    prevHasApprovalsRef.current = approvalsHook.hasApprovals;
+  }, [approvalsHook.hasApprovals]);
+
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
     treeHook.selectedNodeRef.current,
@@ -293,6 +307,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           branch={fileChangesHook.snapshotInfo?.branch ?? null}
           hasTodos={todosHook.hasTodos}
           todoPendingCount={todosHook.totalCount - todosHook.completedCount}
+          hasApprovals={approvalsHook.hasApprovals}
+          approvalPendingCount={approvalsHook.approvals.length}
         />
 
         {/* Toolbar: search input + directory name + action buttons */}
@@ -525,6 +541,13 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               completedCount={todosHook.completedCount}
               totalCount={todosHook.totalCount}
             />
+          </FlexFullContainer>
+        )}
+
+        {/* Approvals tab content */}
+        {!isWorkspaceCollapsed && activeTab === 'approvals' && approvalsHook.hasApprovals && (
+          <FlexFullContainer containerClassName='overflow-hidden'>
+            <ApprovalsList t={t} approvals={approvalsHook.approvals} respond={approvalsHook.respond} />
           </FlexFullContainer>
         )}
       </div>

@@ -180,6 +180,10 @@
       "noUnstaged": "Hazırlanmamış değişiklik yok",
       "noStaged": "Hazırlanmış değişiklik yok"
     },
+    "approvals": {
+      "tab": "Onaylar",
+      "empty": "Bekleyen onay yok."
+    },
     "todos": {
       "tab": "Yapılacaklar",
       "progress": "{{completed}} / {{total}} tamamlandı",

@@ -63,7 +63,8 @@ type TMessageType =
   | 'acp_tool_call'
   | 'plan'
   | 'thinking'
-  | 'available_commands';
+  | 'available_commands'
+  | 'opencode_subtask';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -219,19 +220,123 @@ export type IMessageAcpPermission = IMessage<'acp_permission', AcpPermissionRequ
 
 export type IMessagePermission = IMessage<'permission', IConfirmation>;
 
-export type IMessageAcpToolCall = IMessage<'acp_tool_call', ToolCallUpdate>;
+/**
+ * Streaming-input state for a tool call. Present while OpenCode is constructing
+ * the JSON arguments before the tool is invoked. `partial` is incremental JSON
+ * text and may be invalid until `phase === 'ended'`.
+ */
+export type ToolInputStreaming = {
+  partial: string;
+  phase: 'started' | 'delta' | 'ended';
+  /** Tool name reported by `started`. */
+  toolName?: string;
+};
+
+/**
+ * Per-family normalized tool-progress payload. `unknown` covers arbitrary MCP
+ * shapes. The renderer falls back to a stringified one-liner for `unknown`.
+ */
+export type ToolProgress =
+  | { kind: 'bash'; stdoutChunk?: string; stderrChunk?: string; exitCode?: number }
+  | { kind: 'grep' | 'glob'; filesScanned?: number; matches?: number }
+  | { kind: 'read' | 'write'; bytesProcessed?: number; bytesTotal?: number }
+  | { kind: 'mcp'; step?: string; percent?: number; message?: string }
+  | { kind: 'unknown'; raw: unknown };
+
+/**
+ * ACP-shaped tool call message. The `update` field mirrors OpenCode/ACP's
+ * `ToolCallUpdate` and is merged across multiple events for the same
+ * `tool_call_id`.
+ *
+ * Optional siblings on the same message carry streamed state that doesn't fit
+ * in `ToolCallUpdate`:
+ *   - `parentSessionId` — set when this call originated from a sub-agent
+ *     (OpenCode child session); routes the bubble to the right nested
+ *     transcript.
+ *   - `inputStreaming` — the streamed JSON-construction phase before execution.
+ *   - `progress` — the live progress payload during execution.
+ */
+export type IMessageAcpToolCall = IMessage<
+  'acp_tool_call',
+  ToolCallUpdate & {
+    parentSessionId?: string;
+    inputStreaming?: ToolInputStreaming;
+    progress?: ToolProgress;
+  }
+>;
+
+/**
+ * Sub-agent (OpenCode child session) bubble. Renders as a collapsed chip with
+ * a live counter and an Expand button; expanding reveals the nested transcript
+ * (rendered with the same tool-call/text/permission components as the parent).
+ */
+export type IMessageOpencodeSubtask = IMessage<
+  'opencode_subtask',
+  {
+    parent_session_id: string;
+    child_session_id: string;
+    phase: 'started' | 'progress' | 'completed';
+    agent_name?: string;
+    live_summary?: {
+      tool_calls_count: number;
+      current_tool_name?: string;
+      last_event_at: number;
+    };
+    status?: 'completed' | 'failed' | 'aborted';
+    summary?: string;
+    started_at?: number;
+    completed_at?: number;
+  }
+>;
 
 export const mergeAcpToolCallContent = (
   existing: IMessageAcpToolCall['content'],
   incoming: IMessageAcpToolCall['content']
-): IMessageAcpToolCall['content'] => ({
-  ...existing,
-  ...incoming,
-  update: {
-    ...existing.update,
-    ...incoming.update,
-  },
-});
+): IMessageAcpToolCall['content'] => {
+  // Default shallow merge.
+  const merged: IMessageAcpToolCall['content'] = {
+    ...existing,
+    ...incoming,
+    update: {
+      ...existing.update,
+      ...incoming.update,
+    },
+  };
+  // `inputStreaming` deltas accumulate into a rolling string until `ended`
+  // replaces the buffer with the final pretty-printed JSON. Falling back to
+  // the shallow merge would clobber the accumulated partial on each delta.
+  if (existing.inputStreaming || incoming.inputStreaming) {
+    const prev = existing.inputStreaming;
+    const next = incoming.inputStreaming;
+    if (next?.phase === 'ended') {
+      merged.inputStreaming = next;
+    } else if (next?.phase === 'delta' && prev) {
+      merged.inputStreaming = {
+        partial: prev.partial + (next.partial ?? ''),
+        phase: 'delta',
+        toolName: next.toolName ?? prev.toolName,
+      };
+    } else {
+      merged.inputStreaming = next ?? prev;
+    }
+  }
+  // Bash-style stdout/stderr are append-only; counter-style families replace.
+  if (existing.progress || incoming.progress) {
+    const prev = existing.progress;
+    const next = incoming.progress;
+    if (next?.kind === 'bash' && prev?.kind === 'bash') {
+      merged.progress = {
+        kind: 'bash',
+        stdoutChunk: (prev.stdoutChunk ?? '') + (next.stdoutChunk ?? ''),
+        stderrChunk: (prev.stderrChunk ?? '') + (next.stderrChunk ?? ''),
+        exitCode: next.exitCode ?? prev.exitCode,
+      };
+    } else {
+      merged.progress = next ?? prev;
+    }
+  }
+  return merged;
+};
 
 type ResponseTextData = {
   content: string;
@@ -322,7 +427,8 @@ export type TMessage =
   | IMessageAcpToolCall
   | IMessagePlan
   | IMessageThinking
-  | IMessageAvailableCommands;
+  | IMessageAvailableCommands
+  | IMessageOpencodeSubtask;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -341,6 +447,18 @@ export interface IConfirmation<Option extends any = any> {
    * Used for "always allow" permission memory
    */
   command_type?: string;
+  /**
+   * OpenCode session that raised this confirmation. For sub-agent
+   * (child-session) prompts this is the **child** session id; pair with
+   * `parent_session_id` to route the prompt to the right nested transcript.
+   */
+  session_id?: string;
+  /**
+   * Parent of `session_id` when this confirmation came from a sub-agent. Lets
+   * the renderer attach the prompt inside the sub-agent's bubble rather than
+   * surfacing it at the parent transcript level.
+   */
+  parent_session_id?: string;
 }
 
 /**
@@ -468,10 +586,30 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
       };
     }
     case 'acp_tool_call': {
+      // Promote backend `parent_session_id` to camelCase so renderers can route
+      // the bubble into a nested sub-agent transcript by id. Keep the rest of
+      // the payload (`update`, `_meta`, etc.) verbatim — the renderer merges by
+      // `tool_call_id`.
+      const raw = message.data as { session_id?: string; parent_session_id?: string } & Record<string, unknown>;
       return {
         id: uuid(),
         type: 'acp_tool_call',
         msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: {
+          ...(raw as any),
+          ...(raw.parent_session_id ? { parentSessionId: raw.parent_session_id } : {}),
+        },
+      };
+    }
+    case 'opencode_subtask': {
+      return {
+        id: uuid(),
+        type: 'opencode_subtask',
+        msg_id:
+          message.msg_id ?? `subtask-${(message.data as { child_session_id?: string })?.child_session_id ?? uuid()}`,
         position: 'left',
         conversation_id: message.conversation_id,
         created_at,
