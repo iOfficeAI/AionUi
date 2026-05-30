@@ -14,9 +14,11 @@ type ErrorWithDetails = Error & {
     stderrTail?: unknown;
     stdoutTail?: unknown;
     runtimeKey?: unknown;
+    binaryName?: unknown;
     bundledDirExists?: unknown;
     runtimeDirExists?: unknown;
     resourcesDirEntries?: unknown;
+    runtimeDirEntries?: unknown;
   };
 };
 
@@ -76,9 +78,18 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
   if (details.runtimeDirExists === false && typeof details.runtimeKey === 'string') {
     missingResources.push(`bundled-aioncore/${details.runtimeKey}/`);
   }
+  const runtimeDirEntries = getStringArray(details.runtimeDirEntries);
+  if (
+    details.runtimeDirExists === true &&
+    typeof details.runtimeKey === 'string' &&
+    typeof details.binaryName === 'string' &&
+    runtimeDirEntries &&
+    !runtimeDirEntries.includes(details.binaryName)
+  ) {
+    missingResources.push(`bundled-aioncore/${details.runtimeKey}/${details.binaryName}`);
+  }
 
-  const missingBundledRuntime = details.bundledDirExists === false || details.runtimeDirExists === false;
-  if (!missingBundledRuntime || missingResources.length === 0) return undefined;
+  if (missingResources.length === 0) return undefined;
 
   return {
     reason: 'backend_incomplete_installation',
