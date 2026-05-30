@@ -9,9 +9,10 @@ import type { TChatConversation } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import AionModal from '@/renderer/components/base/AionModal';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { findShadowedPaths } from './configShadowDiff';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { Branch, Copy, More, Refresh, ShareTwo, FileText } from '@icon-park/react';
+import { Branch, Copy, More, Refresh, ShareTwo, FileText, Setting } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -44,6 +45,21 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
   const [diffLoading, setDiffLoading] = useState(false);
   const [diffEntries, setDiffEntries] = useState<SessionDiffEntry[]>([]);
   const [toolHost, setToolHost] = useState<'local' | 'server' | undefined>(undefined);
+  const [protocol, setProtocol] = useState<string | undefined>(undefined);
+
+  // M19: server global-config editor state.
+  const [configOpen, setConfigOpen] = useState(false);
+  const [configLoading, setConfigLoading] = useState(false);
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configText, setConfigText] = useState('');
+  // Stash of the last server-confirmed config (pretty-printed). Used by the
+  // "Revert changes" affordance so a bad edit never has to be reconstructed by
+  // hand, and so we always PATCH from a known-good baseline (M19 §6).
+  const [lastGoodConfig, setLastGoodConfig] = useState('');
+  // M19 (Option A): dotted paths of the last save that were persisted to the
+  // global layer but are overridden by a higher-precedence layer (project /
+  // agent files), so they won't change behavior. Empty = all edits took effect.
+  const [shadowedPaths, setShadowedPaths] = useState<string[]>([]);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,7 +67,10 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
     const remoteAgentId = extra?.remoteAgentId || extra?.remote_agent_id;
     if (!remoteAgentId) return;
     void ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId }).then((agent) => {
-      if (!cancelled) setToolHost(agent?.tool_host ?? 'local');
+      if (!cancelled) {
+        setToolHost(agent?.tool_host ?? 'local');
+        setProtocol(agent?.protocol);
+      }
     });
     return () => {
       cancelled = true;
@@ -173,6 +192,76 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
       }
     });
 
+  // M19: load the server's global config into the editor (stashing a known-good
+  // baseline). Discards any unsaved local edits.
+  const loadConfig = async () => {
+    setConfigLoading(true);
+    setShadowedPaths([]);
+    try {
+      const config = await ipcBridge.conversation.getRemoteConfig.invoke({ conversation_id });
+      const pretty = JSON.stringify(config ?? {}, null, 2);
+      setConfigText(pretty);
+      setLastGoodConfig(pretty);
+    } catch (error) {
+      Message.error(t('conversation.session.configLoadFailed', { defaultValue: 'Failed to load server config' }));
+      console.error('[RemoteSessionActions] config load failed:', error);
+    } finally {
+      setConfigLoading(false);
+    }
+  };
+
+  const handleOpenConfig = () =>
+    runExclusive(async () => {
+      setConfigOpen(true);
+      await loadConfig();
+    });
+
+  // M19: parse the editor JSON and PATCH it (shallow-merged server-side). The
+  // server returns the new effective config, which becomes the new baseline.
+  const handleSaveConfig = async () => {
+    let partial: Record<string, unknown>;
+    try {
+      partial = JSON.parse(configText) as Record<string, unknown>;
+    } catch {
+      Message.error(t('conversation.session.configInvalidJson', { defaultValue: 'Config is not valid JSON' }));
+      return;
+    }
+    if (typeof partial !== 'object' || partial === null || Array.isArray(partial)) {
+      Message.error(t('conversation.session.configNotObject', { defaultValue: 'Config must be a JSON object' }));
+      return;
+    }
+    // Baseline (pre-edit) used to compute exactly which paths the user changed.
+    let baseline: Record<string, unknown> = {};
+    try {
+      baseline = JSON.parse(lastGoodConfig) as Record<string, unknown>;
+    } catch {
+      baseline = {};
+    }
+    setConfigSaving(true);
+    try {
+      const next = await ipcBridge.conversation.patchRemoteConfig.invoke({ conversation_id, partial });
+      const pretty = JSON.stringify(next ?? {}, null, 2);
+      setConfigText(pretty);
+      setLastGoodConfig(pretty);
+      Message.success(t('conversation.session.configSaved', { defaultValue: 'Server config saved' }));
+      // Option A: detect edits shadowed by a higher-precedence config layer.
+      // Best-effort — a failed effective-config read must not mask the save.
+      try {
+        const effective = await ipcBridge.conversation.getRemoteEffectiveConfig.invoke({ conversation_id });
+        setShadowedPaths(findShadowedPaths(baseline, partial, effective));
+      } catch (effErr) {
+        setShadowedPaths([]);
+        console.error('[RemoteSessionActions] effective-config read failed:', effErr);
+      }
+    } catch (error) {
+      // The server body (e.g. read-only field rejection) is surfaced verbatim.
+      Message.error(t('conversation.session.configSaveFailed', { defaultValue: 'Failed to save server config' }));
+      console.error('[RemoteSessionActions] config save failed:', error);
+    } finally {
+      setConfigSaving(false);
+    }
+  };
+
   const menu = (
     <Menu
       onClickMenuItem={(key) => {
@@ -194,6 +283,9 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
             break;
           case 'unrevert':
             void handleUnrevert();
+            break;
+          case 'config':
+            void handleOpenConfig();
             break;
         }
       }}
@@ -236,6 +328,14 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
           <span>{t('conversation.session.unshare', { defaultValue: 'Unshare session' })}</span>
         </div>
       </Menu.Item>
+      {protocol === 'opencode' && (
+        <Menu.Item key='config'>
+          <div className='flex items-center gap-8px'>
+            <Setting theme='outline' size='14' fill={iconColors.secondary} />
+            <span>{t('conversation.session.serverConfig', { defaultValue: 'Server config' })}</span>
+          </div>
+        </Menu.Item>
+      )}
     </Menu>
   );
 
@@ -341,6 +441,102 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
             })}
           </div>
         )}
+      </AionModal>
+
+      {/* M19: server global-config editor */}
+      <AionModal
+        visible={configOpen}
+        size='medium'
+        header={{ title: t('conversation.session.serverConfigTitle', { defaultValue: 'Server config' }), showClose: true }}
+        contentStyle={{ padding: '16px 24px' }}
+        onCancel={() => setConfigOpen(false)}
+        footer={{
+          render: () => (
+            <div className='flex items-center justify-between pt-16px'>
+              <Button
+                type='text'
+                disabled={configLoading || configSaving}
+                onClick={() => void loadConfig()}
+              >
+                <span className='flex items-center gap-6px'>
+                  <Refresh theme='outline' size='14' />
+                  {t('conversation.session.configReload', { defaultValue: 'Reload' })}
+                </span>
+              </Button>
+              <div className='flex gap-10px'>
+                <Button
+                  className='px-20px min-w-80px'
+                  style={{ borderRadius: 8 }}
+                  disabled={configSaving || configText === lastGoodConfig}
+                  onClick={() => {
+                    setConfigText(lastGoodConfig);
+                    setShadowedPaths([]);
+                  }}
+                >
+                  {t('conversation.session.configRevert', { defaultValue: 'Revert changes' })}
+                </Button>
+                <Button
+                  type='primary'
+                  className='px-20px min-w-80px'
+                  style={{ borderRadius: 8 }}
+                  loading={configSaving}
+                  disabled={configLoading || configText === lastGoodConfig}
+                  onClick={() => void handleSaveConfig()}
+                >
+                  {t('common.save', { defaultValue: 'Save' })}
+                </Button>
+              </div>
+            </div>
+          ),
+        }}
+      >
+        <div className='flex flex-col gap-10px'>
+          <div className='text-12px text-t-secondary leading-18px'>
+            {t('conversation.session.configRestartHint', {
+              defaultValue: 'Edits are shallow-merged into the server config. Some changes (e.g. model defaults) may require restarting the OpenCode server to take effect.',
+            })}
+          </div>
+          {shadowedPaths.length > 0 && (
+            <div
+              className='flex flex-col gap-4px rounded-8px px-12px py-10px text-12px leading-18px'
+              style={{ background: 'rgb(var(--warning-1))', border: '1px solid rgb(var(--warning-3))' }}
+            >
+              <span className='font-medium text-[rgb(var(--warning-6))]'>
+                {t('conversation.session.configShadowedTitle', {
+                  defaultValue: 'Saved, but overridden by a higher-precedence config — these will NOT take effect:',
+                })}
+              </span>
+              <ul className='m-0 pl-16px'>
+                {shadowedPaths.map((p) => (
+                  <li key={p} className='font-mono text-t-primary'>
+                    {p}
+                  </li>
+                ))}
+              </ul>
+              <span className='text-t-secondary'>
+                {t('conversation.session.configShadowedHint', {
+                  defaultValue: 'A project-level opencode.json or an agent file defines these. Edit them at that layer (and restart the OpenCode server) for changes to apply.',
+                })}
+              </span>
+            </div>
+          )}
+          {configLoading ? (
+            <div className='text-13px text-t-secondary py-20px text-center'>
+              {t('common.loading', { defaultValue: 'Loading…' })}
+            </div>
+          ) : (
+            <Input.TextArea
+              value={configText}
+              onChange={(v) => {
+                setConfigText(v);
+                if (shadowedPaths.length > 0) setShadowedPaths([]);
+              }}
+              autoSize={{ minRows: 14, maxRows: 24 }}
+              spellCheck={false}
+              style={{ fontFamily: 'var(--font-mono, monospace)', fontSize: 12 }}
+            />
+          )}
+        </div>
       </AionModal>
     </>
   );

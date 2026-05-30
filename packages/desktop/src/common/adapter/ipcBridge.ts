@@ -228,6 +228,28 @@ export const conversation = {
   remoteSessionDiff: httpGet<unknown, { conversation_id: string; message_id?: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/diff${p.message_id ? `?message_id=${p.message_id}` : ''}`
   ),
+  /** M19: read the remote OpenCode server's global config tree (`GET /global/config`). */
+  getRemoteConfig: httpGet<Record<string, unknown>, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/config`
+  ),
+  /**
+   * M19: shallow-merge a partial config into the remote OpenCode server's global
+   * config (`PATCH /global/config`). Returns the new effective config so the UI
+   * can refresh from the authoritative server response.
+   */
+  patchRemoteConfig: httpPatch<Record<string, unknown>, { conversation_id: string; partial: Record<string, unknown> }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/config`,
+    (p) => p.partial
+  ),
+  /**
+   * M19 (Option A): read the server's *effective* config (`GET /config`) — the
+   * merged view the engine runs. Used after a save to detect edits that were
+   * persisted to the global layer but are shadowed by a higher-precedence layer
+   * (project/agent files) and therefore won't take effect.
+   */
+  getRemoteEffectiveConfig: httpGet<Record<string, unknown>, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/config/effective`
+  ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
