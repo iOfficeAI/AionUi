@@ -27,7 +27,7 @@ type LspServer = { id: string; name: string; root: string; status: 'connected' |
  */
 const RemoteLspBadge: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
-  const [isOpencode, setIsOpencode] = useState(false);
+  const [isOpencodeServerMode, setIsOpencodeServerMode] = useState(false);
   const [servers, setServers] = useState<LspServer[] | null>(null);
   const [open, setOpen] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -40,7 +40,11 @@ const RemoteLspBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
       if (!remoteAgentId) return;
       const agent = await ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId });
       if (cancelled) return;
-      setIsOpencode(agent?.protocol === 'opencode');
+      // M15 is meaningful only in server-tools mode: `/lsp` reports the
+      // OpenCode server's own LSP attachments, which never apply to local
+      // files (they live on the client, accessed through the local-fs MCP).
+      // Per the plan §3.3, this indicator is gated to server mode.
+      setIsOpencodeServerMode(agent?.protocol === 'opencode' && agent?.tool_host === 'server');
     });
     return () => {
       cancelled = true;
@@ -60,11 +64,11 @@ const RemoteLspBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!isOpencode) return;
+    if (!isOpencodeServerMode) return;
     void fetchStatus();
-  }, [isOpencode, fetchStatus]);
+  }, [isOpencodeServerMode, fetchStatus]);
 
-  if (!isOpencode || !servers || servers.length === 0) return null;
+  if (!isOpencodeServerMode || !servers || servers.length === 0) return null;
 
   const connected = servers.filter((s) => s.status === 'connected').length;
   const total = servers.length;

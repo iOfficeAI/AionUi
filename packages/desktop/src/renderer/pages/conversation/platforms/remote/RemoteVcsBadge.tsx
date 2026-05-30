@@ -41,7 +41,7 @@ type VcsFileDiff = {
  */
 const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { t } = useTranslation();
-  const [isOpencode, setIsOpencode] = useState(false);
+  const [isOpencodeServerMode, setIsOpencodeServerMode] = useState(false);
   const [info, setInfo] = useState<VcsInfo | null>(null);
   const [statusRows, setStatusRows] = useState<VcsFileStatus[] | null>(null);
   const [diffRows, setDiffRows] = useState<VcsFileDiff[] | null>(null);
@@ -57,7 +57,11 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
       if (!remoteAgentId) return;
       const agent = await ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId });
       if (cancelled) return;
-      setIsOpencode(agent?.protocol === 'opencode');
+      // M16 is meaningful only in server-tools mode: `/vcs` reports the
+      // OpenCode server's own working-tree state, not the user's local
+      // project (which the server can't see). Per the plan §3.3, this
+      // indicator is gated to server mode.
+      setIsOpencodeServerMode(agent?.protocol === 'opencode' && agent?.tool_host === 'server');
     });
     return () => {
       cancelled = true;
@@ -81,11 +85,11 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
   }, [conversation_id]);
 
   useEffect(() => {
-    if (!isOpencode) return;
+    if (!isOpencodeServerMode) return;
     void fetchAll();
-  }, [isOpencode, fetchAll]);
+  }, [isOpencodeServerMode, fetchAll]);
 
-  if (!isOpencode || !info?.branch) return null;
+  if (!isOpencodeServerMode || !info?.branch) return null;
 
   const changeCount = statusRows?.length ?? 0;
   const label = changeCount > 0 ? `${info.branch} (${changeCount})` : info.branch;
