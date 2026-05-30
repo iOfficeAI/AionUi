@@ -24,6 +24,8 @@ import NanobotChat from '../platforms/nanobot/NanobotChat';
 import OpenClawChat from '../platforms/openclaw/OpenClawChat';
 import RemoteChat from '../platforms/remote/RemoteChat';
 import RemoteToolHostBadge from '../platforms/remote/RemoteToolHostBadge';
+import RemoteLspBadge from '../platforms/remote/RemoteLspBadge';
+import RemoteVcsBadge from '../platforms/remote/RemoteVcsBadge';
 import RemoteSessionActions from '../platforms/remote/RemoteSessionActions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -360,6 +362,16 @@ const ChatConversation: React.FC<{
       {conversation?.type === 'remote' && (
         <div className='shrink-0'>
           <RemoteToolHostBadge conversation_id={conversation.id} />
+        </div>
+      )}
+      {conversation?.type === 'remote' && (
+        <div className='shrink-0'>
+          <RemoteVcsBadge conversation_id={conversation.id} />
+        </div>
+      )}
+      {conversation?.type === 'remote' && (
+        <div className='shrink-0'>
+          <RemoteLspBadge conversation_id={conversation.id} />
         </div>
       )}
       {conversation?.type === 'remote' && (

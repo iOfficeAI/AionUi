@@ -250,6 +250,31 @@ export const conversation = {
   getRemoteEffectiveConfig: httpGet<Record<string, unknown>, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/config/effective`
   ),
+  /** M15: read the OpenCode server's LSP server statuses (`GET /lsp`). */
+  getRemoteLspStatus: httpGet<
+    Array<{ id: string; name: string; root: string; status: 'connected' | 'error' }>,
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/opencode/lsp`),
+  /** M16: read VCS info (`GET /vcs`) — `{ branch?, default_branch? }`. */
+  getRemoteVcsInfo: httpGet<{ branch?: string; default_branch?: string }, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/vcs`
+  ),
+  /** M16: read working-tree status (`GET /vcs/status`). */
+  getRemoteVcsStatus: httpGet<
+    Array<{ file: string; additions: number; deletions: number; status: 'added' | 'deleted' | 'modified' }>,
+    { conversation_id: string }
+  >((p) => `/api/conversations/${p.conversation_id}/opencode/vcs/status`),
+  /** M16: read structured working-tree diff (`GET /vcs/diff?mode=…`). */
+  getRemoteVcsDiff: httpGet<
+    Array<{
+      file: string;
+      patch?: string;
+      additions: number;
+      deletions: number;
+      status?: 'added' | 'deleted' | 'modified';
+    }>,
+    { conversation_id: string; mode?: 'git' | 'branch' }
+  >((p) => `/api/conversations/${p.conversation_id}/opencode/vcs/diff?mode=${p.mode ?? 'git'}`),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
