@@ -1,3 +1,17 @@
+/**
+ * Editor pane chrome — menubar, breadcrumb, status bar.
+ *
+ * All colors route through Chisl's semantic tokens (`--bg-*`,
+ * `--text-primary/secondary`, `--brand`, `--border-base`) so the editor
+ * inherits whichever palette is active (Chisl cream-and-rust, dark variant,
+ * or third-party CSS theme presets).
+ *
+ * Every `var(...)` carries an explicit fallback hex value tuned for high
+ * contrast against the corresponding background, so if a token fails to
+ * resolve (Catppuccin missing a key, browser quirk, etc.) the chrome stays
+ * readable instead of going pale-orange-on-cream.
+ */
+
 .editor-pane {
   background: var(--bg-1);
   display: flex;
@@ -14,14 +28,34 @@
   width: 100%;
   height: 100%;
   overflow: hidden;
-  background: var(--bg-1);
-  border-radius: 15px;
+  background: var(--bg-1, #f5f5f5);
+  /* Reduced from 15px — IDEs don't have sticky-note corners. Just enough
+     rounding to sit cleanly inside the workspace pane. */
+  border-radius: 6px;
+  /* Subtle 1px outline to give the editor surface its own visual frame,
+     separating it from the chat chrome to its left. */
+  box-shadow: 0 0 0 1px var(--border-base, #d4d4d4);
 }
 
 .editor-panel__body {
   min-height: 0;
   flex: 1;
   overflow: hidden;
+  display: flex;
+}
+
+.editor-panel__split {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+}
+
+.editor-panel__editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
 }
 
 .editor-panel__alert {
@@ -35,7 +69,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: var(--text-secondary);
+  color: var(--text-secondary, #6e6e6e);
   font-size: 13px;
 }
 
@@ -46,10 +80,98 @@
 }
 
 /* -------------------------------------------------------------------------
-   Breadcrumb path bar — between menubar and tabs. Reads as "you are here"
-   for the active file. Explicit hex colors for the same reason as the
-   menubar: we don't want to ride on Chisl's brand-orange tokens that have
-   been rendering as pale unreadable text.
+   Menubar — File / Edit / Find / View dropdowns + pane controls. Sits on
+   the warm-cream chrome surface, ink-dark text, hover lifts via bg-3.
+   ------------------------------------------------------------------------- */
+.editor-menubar {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 6px;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--bg-2, #ececec);
+  border-bottom: 1px solid var(--border-base, #d4d4d4);
+  color: var(--text-primary, #1f1f1f);
+  font-size: 13px;
+}
+
+.editor-menubar__item {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  color: var(--text-primary, #1f1f1f);
+  background: transparent;
+  border: 0;
+  font: inherit;
+  line-height: 1;
+  transition: background-color 100ms ease, color 100ms ease;
+}
+
+.editor-menubar__item:hover {
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-menubar__item:focus-visible {
+  outline: 1px solid var(--brand, #0078d4);
+  outline-offset: -1px;
+}
+
+.editor-menubar__item--secondary {
+  color: var(--text-secondary, #4e5969);
+}
+
+.editor-menubar__item--secondary:hover {
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-menubar__spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* Dropdown rows shared with status-bar pickers. Keyboard-shortcut hint on
+   the right, ✓ column on the left for toggleable items. */
+.editor-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  min-width: 220px;
+}
+
+.editor-menu-row__label {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-menu-row__check {
+  display: inline-block;
+  width: 12px;
+  margin-right: 4px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--brand, #1f1f1f);
+}
+
+.editor-menu-row__kbd {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-secondary, #6e6e6e);
+  font-variant-numeric: tabular-nums;
+}
+
+/* -------------------------------------------------------------------------
+   Breadcrumb path bar — between menubar and tabs. Subtle: same chrome
+   surface, secondary text for parent segments, primary text + weight for
+   the leaf (active file). Separator chevrons in tertiary tone.
    ------------------------------------------------------------------------- */
 .editor-breadcrumb {
   display: flex;
@@ -59,10 +181,10 @@
   height: 24px;
   padding: 0 12px;
   flex-shrink: 0;
-  background: #fafafa;
-  border-bottom: 1px solid #e1e1e1;
+  background: var(--bg-2, #ececec);
+  border-bottom: 1px solid var(--border-base, #d4d4d4);
   font-size: 12px;
-  color: #555;
+  color: var(--text-secondary, #555);
   overflow: hidden;
 }
 
@@ -76,68 +198,49 @@
 
 .editor-breadcrumb__seg {
   white-space: nowrap;
-  color: #555;
+  color: var(--text-secondary, #555);
 }
 
 .editor-breadcrumb__seg--leaf {
-  color: #1f1f1f;
+  color: var(--text-primary, #1f1f1f);
   font-weight: 500;
 }
 
 .editor-breadcrumb__sep {
   display: inline-flex;
   align-items: center;
-  color: #999;
+  color: var(--text-disabled, #999);
 }
 
 .editor-breadcrumb__meta {
-  color: #888;
+  color: var(--text-secondary, #888);
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   flex-shrink: 0;
 }
 
-body[arco-theme='dark'] .editor-breadcrumb,
-body[data-theme='dark'] .editor-breadcrumb {
-  background: #252526;
-  border-bottom-color: #1e1e1e;
-  color: #c8c8c8;
-}
-
-body[arco-theme='dark'] .editor-breadcrumb__seg,
-body[data-theme='dark'] .editor-breadcrumb__seg {
-  color: #c8c8c8;
-}
-
-body[arco-theme='dark'] .editor-breadcrumb__seg--leaf,
-body[data-theme='dark'] .editor-breadcrumb__seg--leaf {
-  color: #ffffff;
-}
-
-body[arco-theme='dark'] .editor-breadcrumb__sep,
-body[data-theme='dark'] .editor-breadcrumb__sep {
-  color: #7a7a7a;
-}
-
-body[arco-theme='dark'] .editor-breadcrumb__meta,
-body[data-theme='dark'] .editor-breadcrumb__meta {
-  color: #9d9d9d;
-}
-
 /* -------------------------------------------------------------------------
-   Status bar — VS Code-style. Brand-blue background, white text, clickable
-   segments with subtle hover lift. Explicit colors throughout.
+   Status bar — the Notepad++/VSCode-style strip. Chisl restraint: same
+   chrome surface as the menubar (bg-2) with a brand-accent left rail to
+   bookend the editor without going neon-blue. Interactive segments hover
+   to bg-3; the brand color is reserved for the active "modified" dot, the
+   ✓ checkmarks in pickers, and the focus ring.
    ------------------------------------------------------------------------- */
 .editor-statusbar {
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  height: 22px;
+  height: 24px;
   flex-shrink: 0;
-  background: #2b7bd6;
-  color: #ffffff;
+  background: var(--bg-2, #ececec);
+  color: var(--text-secondary, #4e5969);
   font-size: 12px;
   overflow: hidden;
+  border-top: 1px solid var(--border-base, #d4d4d4);
+  /* Subtle 2px brand-colored left rail — that's the editor's accent in
+     Chisl's printed-ink language, in place of VS Code's full blue bar. */
+  box-shadow: inset 2px 0 0 0 var(--brand, #b4480c);
+  padding-left: 6px;
 }
 
 .editor-statusbar__group {
@@ -149,50 +252,58 @@ body[data-theme='dark'] .editor-breadcrumb__meta {
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 22px;
+  height: 24px;
   padding: 0 10px;
   background: transparent;
   border: 0;
-  color: inherit;
+  color: var(--text-secondary, #4e5969);
   font: inherit;
+  font-size: 12px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 100ms ease;
+  transition: background-color 100ms ease, color 100ms ease;
   white-space: nowrap;
 }
 
 .editor-statusbar__seg:hover {
-  background: rgba(255, 255, 255, 0.18);
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-primary, #1f1f1f);
 }
 
 .editor-statusbar__seg--readonly {
   cursor: default;
+  color: var(--text-secondary, #4e5969);
 }
 
 .editor-statusbar__seg--readonly:hover {
   background: transparent;
+  color: var(--text-secondary, #4e5969);
 }
 
 .editor-statusbar__seg--icon {
   padding: 0 8px;
-  min-width: 22px;
+  min-width: 24px;
   justify-content: center;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
+  color: var(--text-primary, #1f1f1f);
 }
 
 .editor-statusbar__seg-icon {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 11px;
+  color: var(--brand, #b4480c);
   opacity: 0.9;
 }
 
 .editor-statusbar__seg--dirty {
   cursor: default;
+  color: var(--brand, #b4480c);
 }
 
 .editor-statusbar__seg--dirty:hover {
   background: transparent;
+  color: var(--brand, #b4480c);
 }
 
 .editor-statusbar__dirty-dot {
@@ -200,166 +311,240 @@ body[data-theme='dark'] .editor-breadcrumb__meta {
   width: 6px;
   height: 6px;
   border-radius: 50%;
-  background: #ffd166;
+  background: var(--brand, #b4480c);
 }
 
 .editor-statusbar__divider {
   display: inline-block;
   width: 1px;
-  background: rgba(255, 255, 255, 0.25);
-  margin: 4px 2px;
+  background: var(--border-base, #d4d4d4);
+  margin: 6px 4px;
 }
 
-body[arco-theme='dark'] .editor-statusbar,
-body[data-theme='dark'] .editor-statusbar {
-  background: #007acc;
-}
-
-body[arco-theme='dark'] .editor-statusbar__seg:hover,
-body[data-theme='dark'] .editor-statusbar__seg:hover {
-  background: rgba(255, 255, 255, 0.22);
-}
-
-/* Dropdown menus opened from status-bar pickers get the same kbd column treatment. */
 .editor-status-menu {
   max-height: 360px;
   overflow-y: auto;
 }
 
 /* -------------------------------------------------------------------------
-   Editor menubar — VS Code-style. Explicit colors with hard-coded contrast
-   so it stays readable across every theme/color-scheme combination the app
-   supports. The previous attempt routed through semantic tokens that didn't
-   resolve consistently and produced unreadable pale-orange text against the
-   panel background.
+   Tab badges — GitHub-style colored letter marks. Colors come from
+   fileTypeBadge.ts (per language); this rule just sizes the chip and
+   handles typography.
    ------------------------------------------------------------------------- */
-
-.editor-menubar {
-  display: flex;
-  align-items: center;
-  height: 28px;
-  padding: 0 6px;
-  gap: 2px;
-  flex-shrink: 0;
-  overflow: hidden;
-  background: #f3f3f3;
-  border-bottom: 1px solid #d4d4d4;
-  color: #1f1f1f;
-  font-size: 13px;
-}
-
-.editor-menubar__item {
+.editor-tab__badge {
   display: inline-flex;
   align-items: center;
-  height: 22px;
-  padding: 0 8px;
+  justify-content: center;
+  min-width: 28px;
+  height: 16px;
+  padding: 0 5px;
   border-radius: 3px;
-  cursor: pointer;
-  user-select: none;
-  color: #1f1f1f;
-  background: transparent;
-  border: 0;
-  font: inherit;
+  font-size: 9px;
+  font-weight: 700;
+  letter-spacing: 0.4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  flex-shrink: 0;
   line-height: 1;
-  transition: background-color 100ms ease;
 }
 
-.editor-menubar__item:hover {
-  background: #e8e8e8;
-  color: #1f1f1f;
+/* -------------------------------------------------------------------------
+   Outline / structure panel — left rail of the editor body. The single
+   biggest "this is an IDE" tell. Mirrors VS Code's outline view in
+   structure (header, file meta, symbol list with glyphs + line numbers)
+   while staying inside the Chisl visual language.
+   ------------------------------------------------------------------------- */
+.editor-outline {
+  width: 220px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--bg-2, #ececec);
+  border-right: 1px solid var(--border-base, #d4d4d4);
+  overflow: hidden;
+  font-size: 12px;
+  color: var(--text-secondary, #4e5969);
 }
 
-.editor-menubar__item:focus-visible {
-  outline: 1px solid #0078d4;
-  outline-offset: -1px;
-}
-
-.editor-menubar__item--secondary {
-  color: #3c3c3c;
-}
-
-.editor-menubar__item--secondary:hover {
-  color: #1f1f1f;
-}
-
-.editor-menubar__spacer {
-  flex: 1;
-  min-width: 8px;
-}
-
-/* Dropdown menu rows — keyboard shortcut text aligned right, checkmark column
-   on the left for toggleables. Colors explicit; Arco's dropdown surface is
-   white-ish/dark-ish per its own theme. */
-.editor-menu-row {
+.editor-outline__header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 32px;
-  min-width: 220px;
+  height: 26px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  background: var(--bg-3, #e0e0e0);
+  border-bottom: 1px solid var(--border-base, #d4d4d4);
+  font-size: 10px;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  color: var(--text-secondary, #4e5969);
+  font-weight: 600;
 }
 
-.editor-menu-row__label {
-  display: inline-flex;
-  align-items: center;
+.editor-outline__title {
+  color: var(--text-primary, #1f1f1f);
 }
 
-.editor-menu-row__check {
-  display: inline-block;
-  width: 12px;
-  margin-right: 4px;
-  text-align: center;
-  font-size: 11px;
-}
-
-.editor-menu-row__kbd {
-  font-size: 11px;
+.editor-outline__count {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: #6e6e6e;
+  font-size: 10px;
+  font-weight: 500;
+  color: var(--text-secondary, #6e6e6e);
   font-variant-numeric: tabular-nums;
 }
 
-/* Dark theme overrides — driven off body[arco-theme='dark'] which the app
-   already toggles for the rest of the chrome (see arco-override.css). */
-body[arco-theme='dark'] .editor-menubar,
-body[data-theme='dark'] .editor-menubar {
-  background: #2d2d30;
-  border-bottom-color: #1e1e1e;
-  color: #e8e8e8;
+.editor-outline__file {
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--border-base, #d4d4d4);
+  flex-shrink: 0;
 }
 
-body[arco-theme='dark'] .editor-menubar__item,
-body[data-theme='dark'] .editor-menubar__item {
-  color: #e8e8e8;
+.editor-outline__file-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary, #1f1f1f);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-body[arco-theme='dark'] .editor-menubar__item:hover,
-body[data-theme='dark'] .editor-menubar__item:hover {
-  background: #3e3e42;
+.editor-outline__file-meta {
+  font-size: 10px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--text-secondary, #6e6e6e);
+  margin-top: 2px;
+}
+
+.editor-outline__scroll {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.editor-outline__empty {
+  padding: 16px 12px;
+  font-size: 11px;
+  color: var(--text-disabled, #999);
+  font-style: italic;
+}
+
+.editor-outline__list {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.editor-outline__list li {
+  margin: 0;
+  padding: 0;
+}
+
+.editor-outline__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 3px 12px;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-primary, #1f1f1f);
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+  transition: background-color 80ms ease;
+  user-select: none;
+}
+
+.editor-outline__row:hover {
+  background: var(--bg-3, #e0e0e0);
+}
+
+.editor-outline__row:focus-visible {
+  outline: 1px solid var(--brand, #0078d4);
+  outline-offset: -1px;
+}
+
+.editor-outline__glyph {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  font-weight: 700;
   color: #ffffff;
+  flex-shrink: 0;
 }
 
-body[arco-theme='dark'] .editor-menubar__item--secondary,
-body[data-theme='dark'] .editor-menubar__item--secondary {
-  color: #c8c8c8;
+/* Per-kind glyph colors — borrowed from VS Code's symbol palette so each
+   row's category is recognisable from the glyph chip alone. */
+.editor-outline__glyph--function,
+.editor-outline__glyph--method {
+  background: #b180d7;
+}
+.editor-outline__glyph--class,
+.editor-outline__glyph--struct {
+  background: #ee9d28;
+}
+.editor-outline__glyph--interface {
+  background: #75beff;
+}
+.editor-outline__glyph--type {
+  background: #4ec9b0;
+}
+.editor-outline__glyph--enum {
+  background: #d19a66;
+}
+.editor-outline__glyph--const {
+  background: #569cd6;
+}
+.editor-outline__glyph--rule {
+  background: #c586c0;
 }
 
-body[arco-theme='dark'] .editor-menubar__item--secondary:hover,
-body[data-theme='dark'] .editor-menubar__item--secondary:hover {
-  color: #ffffff;
+.editor-outline__name {
+  flex: 1;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-body[arco-theme='dark'] .editor-menu-row__kbd,
-body[data-theme='dark'] .editor-menu-row__kbd {
-  color: #9d9d9d;
+.editor-outline__line {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: var(--text-secondary, #6e6e6e);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
 }
 
-/* Tab strip overflow scrollbar — thin, unobtrusive. */
+.editor-outline__scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.editor-outline__scroll::-webkit-scrollbar-thumb {
+  background: var(--bg-3, #d8c088);
+  border-radius: 3px;
+}
+
+.editor-outline__scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* -------------------------------------------------------------------------
+   Tab strip — already token-bound from earlier; this just rounds out the
+   border treatment so it sits cleanly between breadcrumb (bg-2) and the
+   editor body (bg-1).
+   ------------------------------------------------------------------------- */
 .editor-tabs::-webkit-scrollbar {
   height: 3px;
 }
 
 .editor-tabs::-webkit-scrollbar-thumb {
-  background: var(--bg-3);
+  background: var(--bg-3, #d8c088);
   border-radius: 2px;
 }
 
@@ -367,14 +552,19 @@ body[data-theme='dark'] .editor-menu-row__kbd {
   background: transparent;
 }
 
+/* -------------------------------------------------------------------------
+   Monaco widget polish — find, suggest, hover popups get the same
+   elevation shadow vocabulary as the surrounding Arco shell. Colors come
+   from monacoTheme.ts which is already token-bound.
+   ------------------------------------------------------------------------- */
 .editor-panel .monaco-editor .find-widget {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
   border-radius: 6px;
 }
 
 .editor-panel .monaco-editor .suggest-widget,
 .editor-panel .monaco-editor .monaco-hover {
-  box-shadow: var(--shadow-md);
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.15));
   border-radius: 6px;
 }
 

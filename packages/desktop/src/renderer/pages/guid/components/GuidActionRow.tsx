@@ -60,6 +60,7 @@ type GuidActionRowProps = {
   isButtonDisabled: boolean;
   speechInputNode?: React.ReactNode;
   onSend: () => void;
+  renderRemoteSkillsPicker?: () => React.ReactNode;
 };
 
 const GuidActionRow: React.FC<GuidActionRowProps> = ({
@@ -87,6 +88,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   isButtonDisabled,
   speechInputNode,
   onSend,
+  renderRemoteSkillsPicker,
 }) => {
   const { t } = useTranslation();
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
@@ -282,10 +284,11 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 onModeSelect={onModeSelect}
                 dynamicModes={remoteAgentModes}
                 groupTitleOverride={modeBackend === 'opencode' ? t('agentMode.agent') : undefined}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
                 modeLabelFormatter={getModeDisplayLabel}
               />
             )}
+            {renderRemoteSkillsPicker?.()}
           </div>
         )}
 

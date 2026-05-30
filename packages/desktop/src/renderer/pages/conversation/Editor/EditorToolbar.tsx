@@ -21,6 +21,7 @@ type Props = {
   wordWrap: boolean;
   showMinimap: boolean;
   renderWhitespace: boolean;
+  outlineVisible: boolean;
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
@@ -35,6 +36,7 @@ type Props = {
   onToggleWordWrap: () => void;
   onToggleMinimap: () => void;
   onToggleWhitespace: () => void;
+  onToggleOutline: () => void;
   onCollapse: () => void;
   onClose: () => void;
 };
@@ -67,6 +69,7 @@ const EditorToolbar: React.FC<Props> = ({
   wordWrap,
   showMinimap,
   renderWhitespace,
+  outlineVisible,
   onNew,
   onOpen,
   onSave,
@@ -81,6 +84,7 @@ const EditorToolbar: React.FC<Props> = ({
   onToggleWordWrap,
   onToggleMinimap,
   onToggleWhitespace,
+  onToggleOutline,
   onCollapse,
   onClose,
 }) => {
@@ -146,6 +150,9 @@ const EditorToolbar: React.FC<Props> = ({
   const viewMenu = useMemo(
     () => (
       <Menu>
+        <Menu.Item key='outline' onClick={onToggleOutline}>
+          <MenuRow label={t('conversation.editor.outlineToggle')} checked={outlineVisible} />
+        </Menu.Item>
         <Menu.Item key='wrap' onClick={onToggleWordWrap}>
           <MenuRow label={t('conversation.editor.wordWrap')} shortcut={kbd('⌥Z', 'Alt+Z')} checked={wordWrap} />
         </Menu.Item>
@@ -157,7 +164,7 @@ const EditorToolbar: React.FC<Props> = ({
         </Menu.Item>
       </Menu>
     ),
-    [onToggleWordWrap, onToggleMinimap, onToggleWhitespace, wordWrap, showMinimap, renderWhitespace, t]
+    [onToggleOutline, onToggleWordWrap, onToggleMinimap, onToggleWhitespace, outlineVisible, wordWrap, showMinimap, renderWhitespace, t]
   );
 
   return (

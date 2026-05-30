@@ -1,0 +1,150 @@
+/* RemoteSkillsPicker.module.css — visual design mirrors ModelSelectorDropdownMenu */
+
+.panel {
+  width: min(280px, calc(100vw - 24px));
+  max-height: min(440px, calc(100vh - 96px));
+  padding: 10px;
+  overflow: hidden;
+  color: var(--text-primary);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--brand) 5%, transparent), transparent 74px), var(--color-bg-1);
+  border: 1px solid var(--color-border-2);
+  border-radius: 14px;
+  box-shadow:
+    0 18px 48px color-mix(in srgb, #000 22%, transparent),
+    0 0 0 1px color-mix(in srgb, var(--color-bg-4) 30%, transparent) inset;
+}
+
+/* ── Search ─────────────────────────────────────────────────────────────── */
+
+.searchWrap {
+  padding: 0 0 8px;
+}
+
+.searchInput :global(.arco-input-inner-wrapper) {
+  height: 32px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-bg-2) 92%, var(--brand));
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.searchInput :global(.arco-input-inner-wrapper:hover) {
+  background: var(--color-bg-2);
+  border-color: var(--color-border-3);
+}
+
+.searchInput :global(.arco-input-inner-wrapper-focus) {
+  background: var(--color-bg-2);
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--color-border-3));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
+}
+
+.searchInput :global(.arco-input) {
+  height: 30px;
+  color: var(--text-primary);
+  caret-color: var(--brand);
+}
+
+.searchInput :global(.arco-input::placeholder) {
+  color: var(--text-disabled);
+}
+
+.searchInput :global(.arco-input-clear-btn) {
+  color: var(--text-secondary);
+}
+
+/* ── Menu ────────────────────────────────────────────────────────────────── */
+
+.menu {
+  max-height: min(320px, calc(100vh - 200px));
+  padding: 2px 0;
+  overflow-y: auto;
+  background: transparent !important;
+  border: 0;
+}
+
+.menu :global(.arco-menu-inner) {
+  padding: 0 !important;
+}
+
+.menu :global(.arco-menu-item-group-title) {
+  height: 28px;
+  padding: 0 8px 4px !important;
+  color: var(--text-secondary) !important;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 28px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+/* ── Options ─────────────────────────────────────────────────────────────── */
+
+.option {
+  height: 34px !important;
+  margin: 1px 0 !important;
+  padding: 0 6px 0 10px !important;
+  color: var(--text-primary) !important;
+  line-height: 34px !important;
+  background: transparent !important;
+  border: 1px solid transparent;
+  border-radius: 10px !important;
+  transition:
+    background-color 0.14s ease,
+    border-color 0.14s ease,
+    color 0.14s ease;
+}
+
+.option:hover {
+  color: var(--text-primary) !important;
+  background: color-mix(in srgb, var(--color-bg-3) 72%, var(--brand)) !important;
+  border-color: color-mix(in srgb, var(--color-border-2) 72%, var(--brand));
+}
+
+.selected {
+  background: color-mix(in srgb, var(--brand) 13%, var(--color-bg-3)) !important;
+  border-color: color-mix(in srgb, var(--brand) 38%, var(--color-border-2));
+}
+
+.checkmark {
+  color: var(--brand);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.optionLabel {
+  min-width: 0;
+  overflow: hidden;
+  color: var(--text-primary);
+  font-size: 13px;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyOption {
+  height: auto !important;
+  min-height: 48px;
+  padding: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 18px !important;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-bg-2) 72%, transparent) !important;
+  border: 1px dashed var(--color-border-2);
+  border-radius: 10px !important;
+}
+
+/* ── Trigger button ──────────────────────────────────────────────────────── */
+
+.triggerActive {
+  color: var(--brand) !important;
+}

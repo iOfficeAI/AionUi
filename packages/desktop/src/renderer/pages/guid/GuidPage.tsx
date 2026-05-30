@@ -14,6 +14,8 @@ import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
+import RemoteSkillsPicker from '@/renderer/components/agent/RemoteSkillsPicker';
+import { useRemoteSkills } from '@/renderer/hooks/chat/useRemoteSkills';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
@@ -112,6 +114,9 @@ const GuidPage: React.FC = () => {
     selectedAgentInfo: agentSelection.selectedAgentInfo,
   });
 
+  const isOpencodeAgent = agentSelection.selectedAgent === 'remote' && agentSelection.selectedAgentInfo?.protocol === 'opencode';
+  const remoteSkills = useRemoteSkills(agentSelection.selectedAgentInfo?.id || '', isOpencodeAgent, 'remote-agent');
+
   const send = useGuidSend({
     // Input state
     input: guidInput.input,
@@ -143,6 +148,7 @@ const GuidPage: React.FC = () => {
     guidEnabledSkills,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
+    remoteSkillsSelected: remoteSkills.selected,
 
     // Mention state reset
     setMentionOpen: mention.setMentionOpen,
@@ -558,6 +564,15 @@ const GuidPage: React.FC = () => {
           console.error('Failed to send message:', error);
         });
       }}
+      renderRemoteSkillsPicker={() =>
+        isOpencodeAgent ? (
+          <RemoteSkillsPicker
+            available={remoteSkills.available}
+            selected={remoteSkills.selected}
+            onToggle={remoteSkills.toggle}
+          />
+        ) : null
+      }
     />
   );
 

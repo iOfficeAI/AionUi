@@ -145,20 +145,24 @@ export const conversation = {
     fromApiConversation
   ),
   createWithConversation: withResponseMap(
-    httpPost<TChatConversation, { conversation: TChatConversation }>('/api/conversations/clone', (p) => {
-      const isAionrs = p.conversation.type === 'aionrs';
-      const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
-        model?: TProviderWithModel;
-      };
-      const conversation: Record<string, unknown> = { ...rest };
-      if (isAionrs) {
-        const model = toApiModelOptional(_rawModel);
-        if (model) conversation.model = model;
+    httpPost<TChatConversation, { conversation: TChatConversation; preserve_session_key?: boolean }>(
+      '/api/conversations/clone',
+      (p) => {
+        const isAionrs = p.conversation.type === 'aionrs';
+        const { model: _rawModel, ...rest } = p.conversation as TChatConversation & {
+          model?: TProviderWithModel;
+        };
+        const conversation: Record<string, unknown> = { ...rest };
+        if (isAionrs) {
+          const model = toApiModelOptional(_rawModel);
+          if (model) conversation.model = model;
+        }
+        return {
+          conversation,
+          preserve_session_key: p.preserve_session_key,
+        };
       }
-      return {
-        conversation,
-      };
-    }),
+    ),
     fromApiConversation
   ),
   get: withResponseMap(
@@ -193,6 +197,37 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/opencode-message/${p.message_id}`,
     (p) => ({ text: p.text })
   ),
+  // ── M01–M05: OpenCode session lifecycle ──────────────────────────
+  /** M01: fork the session (optionally from a local message row id). Returns the new OpenCode session id. */
+  forkRemoteSession: httpPost<{ session_id: string }, { conversation_id: string; message_id?: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/fork`,
+    (p) => ({ message_id: p.message_id })
+  ),
+  /** M02: revert the session to a local message row id. */
+  revertRemoteSession: httpPost<void, { conversation_id: string; message_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/revert`,
+    (p) => ({ message_id: p.message_id })
+  ),
+  /** M02: restore all reverted messages. */
+  unrevertRemoteSession: httpPost<void, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/unrevert`
+  ),
+  /** M04: summarize/compact the session using its current model. */
+  summarizeRemoteSession: httpPost<void, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/summarize`
+  ),
+  /** M03: create a shareable link for the session. */
+  shareRemoteSession: httpPost<{ url: string }, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/share`
+  ),
+  /** M03: revoke the session's shareable link. */
+  unshareRemoteSession: httpDelete<void, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/share`
+  ),
+  /** M05: fetch the session file diff (optionally for a local message row id). */
+  remoteSessionDiff: httpGet<unknown, { conversation_id: string; message_id?: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/diff${p.message_id ? `?message_id=${p.message_id}` : ''}`
+  ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
@@ -221,6 +256,10 @@ export const conversation = {
   ),
   getSlashCommands: httpGet<Array<{ command: string; description: string }>, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/slash-commands`
+  ),
+  // M10: server-side OpenCode skill catalog (GET /skill). Empty array for non-OpenCode backends.
+  getRemoteSkills: httpGet<Array<{ name: string; description?: string }>, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/skills`
   ),
   askSideQuestion: httpPost<ConversationSideQuestionResult, { conversation_id: string; question: string }>(
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
@@ -811,10 +850,7 @@ export const acpConversation = {
       available_modes?: Array<{ id: string; name?: string; description?: string }>;
     },
     { conversation_id: string }
-  >(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    { silentStatuses: [404] }
-  ),
+  >((p) => `/api/conversations/${p.conversation_id}/mode`, { silentStatuses: [404] }),
   getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
     { silentStatuses: [404] }
@@ -947,6 +983,17 @@ export const remoteAgent = {
    */
   listAgents: httpGet<Array<{ id: string; name?: string; description?: string }>, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/agents`
+  ),
+  /**
+   * M10: fetch the selectable skill catalog (`GET /skill`) from a remote
+   * OpenCode agent. Used by the Guid (New Chat) page so the user can pick
+   * server-side skills before any conversation exists. aioncore performs the
+   * upstream call so it can decrypt the stored `auth_token`. Non-OpenCode
+   * agents return an error (the picker is gated to protocol === 'opencode'
+   * so this is never called for them in practice).
+   */
+  listSkills: httpGet<Array<{ name: string; description?: string }>, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/skills`
   ),
   /**
    * List active sessions on a remote OpenCode agent. Used internally by

@@ -14,6 +14,7 @@ import { Close } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './EditorContext';
+import { badgeForFileName } from './fileTypeBadge';
 import type { OpenBuffer } from './types';
 
 type DragState = { fromKey: string | null };
@@ -164,7 +165,22 @@ const EditorTabs: React.FC = () => {
                 }
               }}
             >
-              <span className='flex items-center gap-4px whitespace-nowrap'>
+              <span className='flex items-center gap-6px whitespace-nowrap'>
+                {/* File-type badge — GitHub-style colored letter mark. Single biggest
+                    "this is an editor" signal at a glance. Colors are explicit per
+                    language, not theme-tokenised — yellow JS, blue TS, etc. */}
+                {(() => {
+                  const badge = badgeForFileName(b.fileName);
+                  return (
+                    <span
+                      className='editor-tab__badge'
+                      style={{ background: badge.bg, color: badge.fg }}
+                      aria-hidden
+                    >
+                      {badge.label}
+                    </span>
+                  );
+                })()}
                 <span className='truncate max-w-220px'>{b.fileName}</span>
                 {/* Dirty indicator matches PreviewTabs: 6px primary-colored dot, trailing the title. */}
                 {dirty && (

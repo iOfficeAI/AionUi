@@ -55,6 +55,15 @@ export type GuidSendDeps = {
   guidEnabledSkills: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
+  /**
+   * M10: server-side OpenCode skills selected on the Guid page. Only
+   * consumed when the current agent is an OpenCode remote agent —
+   * written into the `acp_initial_message_*` sessionStorage payload so
+   * the conversation-page send box can seed its picker and inject the
+   * same skills into the first prompt. Non-opencode agents never see
+   * this field.
+   */
+  remoteSkillsSelected?: string[];
 
   // Mention state reset
   setMentionOpen: React.Dispatch<React.SetStateAction<boolean>>;
@@ -103,6 +112,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     guidEnabledSkills,
     currentEffectiveAgentInfo,
     isGoogleAuth,
+    remoteSkillsSelected,
     setMentionOpen,
     setMentionQuery,
     setMentionSelectorOpen,
@@ -362,9 +372,20 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         emitter.emit('chat.history.refresh');
 
+        // M10: for OpenCode remote agents, carry the Guid-page skill
+        // selection into the conversation-page send box via sessionStorage
+        // so the picker stays seeded and the first prompt gets `inject_skills`.
+        // Non-opencode agents leave `inject_skills` untouched.
+        const isOpenCodeRemote = acpAgentInfo?.protocol === 'opencode';
+        const opencodeInjectSkills =
+          isOpenCodeRemote && remoteSkillsSelected && remoteSkillsSelected.length > 0
+            ? remoteSkillsSelected
+            : undefined;
+
         const initialMessage = {
           input,
           files: files.length > 0 ? files : undefined,
+          inject_skills: opencodeInjectSkills,
         };
         sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
 
@@ -392,6 +413,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
+    remoteSkillsSelected,
     navigate,
     t,
   ]);

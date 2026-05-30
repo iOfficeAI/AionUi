@@ -9,8 +9,9 @@ import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { iconColors } from '@/renderer/styles/colors';
 import { AgentLogoIcon } from './AgentBadge';
-import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Button, Dropdown, Input, Menu, Message } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -106,6 +107,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const isMobile = Boolean(layout?.isMobile);
   const [cachedModes, setCachedModes] = useState<AgentModeOption[]>([]);
   const [runtimeModes, setRuntimeModes] = useState<AgentModeOption[]>([]);
+  const [searchValue, setSearchValue] = useState('');
 
   // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
   // then fall back to `acp.cached_config_options` category=mode (codex)
@@ -256,11 +258,25 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   };
 
   // Dropdown menu (shared between compact and full mode)
+  const filteredModes = searchValue.trim()
+    ? modes.filter((m) => m.label.toLowerCase().includes(searchValue.trim().toLowerCase()))
+    : modes;
+
   const dropdownMenu = (
     <div className={styles.panel}>
+      <div className={styles.searchWrap}>
+        <Input
+          allowClear
+          size='small'
+          className={styles.searchInput}
+          value={searchValue}
+          onChange={setSearchValue}
+          placeholder={t('agentMode.searchPlaceholder', { defaultValue: 'Search…' })}
+        />
+      </div>
       <Menu className={styles.menu} onClickMenuItem={(key) => void handleModeChange(key)}>
         <Menu.ItemGroup title={groupTitleOverride ?? t('agentMode.switchMode', { defaultValue: 'Switch Mode' })}>
-          {modes.map((mode: AgentModeOption) => (
+          {filteredModes.map((mode: AgentModeOption) => (
             <Menu.Item
               key={mode.value}
               className={`${styles.option} ${current_mode === mode.value ? styles.selected : ''}`}
@@ -275,6 +291,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
               </div>
             </Menu.Item>
           ))}
+          {filteredModes.length === 0 && (
+            <Menu.Item key='no-match' disabled className={styles.emptyOption}>
+              {t('agentMode.noMatches', { defaultValue: 'No matches' })}
+            </Menu.Item>
+          )}
         </Menu.ItemGroup>
       </Menu>
     </div>
@@ -314,11 +335,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
             cursor: canInteract ? 'pointer' : 'default',
           }}
         >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
+          <span className='flex items-center gap-6px min-w-0'>
+            {compactLeadingIcon}
             {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
             <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
-            {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
+            {canInteract && <Down size={12} fill={iconColors.secondary} className='shrink-0' />}
           </span>
         </Button>
       </span>

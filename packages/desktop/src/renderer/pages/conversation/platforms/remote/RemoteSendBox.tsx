@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 import ContextUsageIndicator from '@/renderer/components/agent/ContextUsageIndicator';
+import RemoteSkillsPicker from '@/renderer/components/agent/RemoteSkillsPicker';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/sendbox';
 import ThoughtDisplay from '@/renderer/components/chat/ThoughtDisplay';
@@ -38,6 +39,7 @@ import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRemoteMessage } from './useRemoteMessage';
+import { useRemoteSkills } from '@/renderer/hooks/chat/useRemoteSkills';
 
 interface RemoteDraftData {
   _type: 'remote';
@@ -98,6 +100,37 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
     context_limit,
     resetState,
   } = useRemoteMessage(conversation_id);
+
+  // M10: server-side OpenCode skill catalog. Populated lazily from
+  // `GET /skill` when the protocol resolves to opencode; stays empty
+  // otherwise. Selected skill names flow into the sendMessage body.
+  //
+  // Sticky selection across the session. Additionally, on first mount we
+  // seed `selectedSkills` from any `inject_skills` carried through the
+  // `acp_initial_message_*` sessionStorage payload (set by the Guid page
+  // when the user chose skills before the conversation was created). That
+  // way the lightning-bolt count badge reflects what the user chose on
+  // Guid from the very first render, and subsequent messages keep the
+  // same selection until the user toggles it off.
+  const {
+    available: availableSkills,
+    selected: selectedSkills,
+    toggle: toggleSkill,
+    setSelection: setSkillsSelection,
+  } = useRemoteSkills(conversation_id, protocol === 'opencode');
+  useEffect(() => {
+    try {
+      const stored = sessionStorage.getItem(`acp_initial_message_${conversation_id}`);
+      if (!stored) return;
+      const parsed = JSON.parse(stored) as { inject_skills?: string[] };
+      if (Array.isArray(parsed.inject_skills) && parsed.inject_skills.length > 0 && selectedSkills.length === 0) {
+        setSkillsSelection(parsed.inject_skills);
+      }
+    } catch {
+      // sessionStorage may be unavailable or corrupted — ignore.
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const { data: draftData, mutate: mutateDraft } = useRemoteSendBoxDraft(conversation_id);
   const atPath = draftData?.atPath ?? EMPTY_AT_PATH;
@@ -193,7 +226,10 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
           input: initialDisplayMessage,
           conversation_id,
           files,
+          inject_skills: selectedSkills.length > 0 ? selectedSkills : undefined,
         });
+        // Skills remain selected (sticky) across messages until the user
+        // manually toggles them off in the picker — see useRemoteSkills.
         const { msg_id } = sendResult;
 
         const userMessage: TMessage = {
@@ -220,7 +256,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
     // Small delay to let the component mount and response stream listener attach
     const timer = setTimeout(() => void processInitialMessage(), 300);
     return () => clearTimeout(timer);
-  }, [conversation_id, workspacePath, addOrUpdateMessage, checkAndUpdateTitle]);
+  }, [conversation_id, workspacePath, addOrUpdateMessage, checkAndUpdateTitle, selectedSkills]);
 
   const handleFilesAdded = useCallback(
     (pastedFiles: FileMetadata[]) => {
@@ -263,6 +299,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
           input: displayMessage,
           conversation_id,
           files,
+          inject_skills: selectedSkills.length > 0 ? selectedSkills : undefined,
         });
         msg_id = res.msg_id;
         const userMessage: TMessage = {
@@ -275,7 +312,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
           created_at: Date.now(),
         };
         // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id against the DB row that useMessageLstCache may insert.
+        // by msg_id against the DB row that useMessageLstCache reloads.
         addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
@@ -284,7 +321,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, selectedSkills, workspacePath]
   );
 
   const {
@@ -421,20 +458,28 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
               tokenUsage={tokenUsage}
               context_limit={context_limit > 0 ? context_limit : undefined}
             />
+            {modelSelector}
             {protocol === 'opencode' ? (
               <AgentModeSelector
                 backend='opencode'
                 conversation_id={conversation_id}
                 compact
                 initialMode={session_mode}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.agent')}
                 groupTitleOverride={t('agentMode.agent')}
                 hideCompactLabelPrefixOnMobile
               />
             ) : null}
-            {modelSelector}
+            {protocol === 'opencode' ? (
+              <RemoteSkillsPicker
+                available={availableSkills}
+                selected={selectedSkills}
+                onToggle={toggleSkill}
+                ariaLabel={t('conversation.skills.tooltip', { defaultValue: 'Attach server skills' })}
+              />
+            ) : null}
           </div>
         }
         prefix={

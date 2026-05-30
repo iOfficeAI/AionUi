@@ -10,13 +10,18 @@ import { useConversationContextSafe } from '@/renderer/hooks/context/Conversatio
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
 import { ipcBridge } from '@/common';
+import { uuid } from '@/common/utils';
+import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { Alert, Button, Message, Tooltip } from '@arco-design/web-react';
-import { Copy, Delete } from '@icon-park/react';
+import { Branch, Copy, Delete, Undo } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useNavigate } from 'react-router-dom';
+import { emitter } from '@/renderer/utils/emitter';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
@@ -130,6 +135,17 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     [conversationContext?.workspace, files]
   );
 
+  // Rules of Hooks: every hook must run unconditionally before any early
+  // return. A streaming assistant message transitions empty → non-empty
+  // between renders; if these hooks lived below the empty-content guard the
+  // hook count would change between renders and React would crash the whole
+  // renderer ("rendered more hooks than during the previous render" → white
+  // screen). Keep all hook calls above the guard.
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
+  const navigate = useNavigate();
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
     return null;
@@ -164,10 +180,58 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // M07: delete a user message on remote OpenCode conversations. The backend
   // resolves the OpenCode messageID from the local row id (`msg_id`), deletes it
   // server-side, removes the local row, and broadcasts `message.removed`.
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const canDeleteRemote = conversationContext?.type === 'remote' && isUserMessage && Boolean(message.msg_id);
-  const [deleteOpen, setDeleteOpen] = useState(false);
-  const [deleting, setDeleting] = useState(false);
+
+  // M02: revert the remote session to this message (reversible via the header
+  // "Restore reverted" action).
+  const handleRevertToHere = async () => {
+    const msgId = message.msg_id;
+    const conversationId = conversationContext?.conversation_id;
+    if (!msgId || !conversationId) return;
+    try {
+      await ipcBridge.conversation.revertRemoteSession.invoke({ conversation_id: conversationId, message_id: msgId });
+      Message.success(t('messages.revertSuccess', { defaultValue: 'Reverted to this message' }));
+    } catch (error) {
+      Message.error(t('messages.revertFailed', { defaultValue: 'Failed to revert' }));
+      console.error('[MessageText] revertRemoteSession failed:', error);
+    }
+  };
+
+  // M01: fork the remote session from this message into a new conversation.
+  const handleForkFromHere = async () => {
+    const msgId = message.msg_id;
+    const conversationId = conversationContext?.conversation_id;
+    if (!msgId || !conversationId) return;
+    try {
+      const { session_id } = await ipcBridge.conversation.forkRemoteSession.invoke({
+        conversation_id: conversationId,
+        message_id: msgId,
+      });
+      const source = await getConversationOrNull(conversationId);
+      if (!source) {
+        Message.error(t('messages.forkFailed', { defaultValue: 'Failed to fork' }));
+        return;
+      }
+      const id = uuid();
+      const created = await ipcBridge.conversation.createWithConversation.invoke({
+        conversation: {
+          ...source,
+          id,
+          name: t('conversation.session.forkName', { name: source.name, defaultValue: `Fork of ${source.name}` }),
+          created_at: Date.now(),
+          modified_at: Date.now(),
+          extra: { ...source.extra, sessionKey: session_id, history_loaded: false },
+        } as unknown as TChatConversation,
+        preserve_session_key: true,
+      });
+      void navigate(`/conversation/${created.id}`);
+      emitter.emit('chat.history.refresh');
+      Message.success(t('messages.forkSuccess', { defaultValue: 'Forked session' }));
+    } catch (error) {
+      Message.error(t('messages.forkFailed', { defaultValue: 'Failed to fork' }));
+      console.error('[MessageText] forkRemoteSession failed:', error);
+    }
+  };
   const confirmDeleteRemote = async () => {
     const msgId = message.msg_id;
     const conversationId = conversationContext?.conversation_id;
@@ -194,6 +258,30 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         style={{ lineHeight: 0 }}
       >
         <Delete theme='outline' size='16' fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  ) : null;
+
+  const revertButton = canDeleteRemote ? (
+    <Tooltip content={t('messages.revertToHere', { defaultValue: 'Revert to here' })}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={() => void handleRevertToHere()}
+        style={{ lineHeight: 0 }}
+      >
+        <Undo theme='outline' size='16' fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  ) : null;
+
+  const forkButton = canDeleteRemote ? (
+    <Tooltip content={t('messages.forkFromHere', { defaultValue: 'Fork from here' })}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={() => void handleForkFromHere()}
+        style={{ lineHeight: 0 }}
+      >
+        <Branch theme='outline' size='16' fill={iconColors.secondary} />
       </div>
     </Tooltip>
   ) : null;
@@ -312,6 +400,8 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             })}
           >
             {copyButton}
+            {revertButton}
+            {forkButton}
             {deleteButton}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>

@@ -123,6 +123,8 @@ export type MonacoEditorHandle = {
   setIndent: (useSpaces: boolean, size: number) => void;
   /** Switch the active model's EOL sequence. */
   setEol: (eol: 'LF' | 'CRLF') => void;
+  /** Scroll the given 1-based line into the centre and place the cursor there. */
+  revealLine: (line: number) => void;
   /** Undo the last edit on the active model. */
   undo: () => void;
   /** Redo the last undone edit on the active model. */
@@ -443,6 +445,13 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
           editorRef.current
             ?.getModel()
             ?.setEOL(eol === 'LF' ? monaco.editor.EndOfLineSequence.LF : monaco.editor.EndOfLineSequence.CRLF);
+        },
+        revealLine: (line: number) => {
+          const ed = editorRef.current;
+          if (!ed) return;
+          ed.revealLineInCenter(line, monaco.editor.ScrollType.Smooth);
+          ed.setPosition({ lineNumber: line, column: 1 });
+          ed.focus();
         },
         undo: () => {
           editorRef.current?.trigger('toolbar', 'undo', null);

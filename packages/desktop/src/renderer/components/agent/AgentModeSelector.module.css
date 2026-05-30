@@ -59,6 +59,63 @@
   border-color: color-mix(in srgb, var(--brand) 38%, var(--color-border-2));
 }
 
+.searchWrap {
+  padding: 0 0 8px;
+}
+
+.searchInput :global(.arco-input-inner-wrapper) {
+  height: 32px;
+  padding: 0 10px;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-bg-2) 92%, var(--brand));
+  border: 1px solid var(--color-border-2);
+  border-radius: 10px;
+  box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
+  transition:
+    border-color 0.16s ease,
+    background-color 0.16s ease,
+    box-shadow 0.16s ease;
+}
+
+.searchInput :global(.arco-input-inner-wrapper:hover) {
+  background: var(--color-bg-2);
+  border-color: var(--color-border-3);
+}
+
+.searchInput :global(.arco-input-inner-wrapper-focus) {
+  background: var(--color-bg-2);
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--color-border-3));
+  box-shadow:
+    0 0 0 3px color-mix(in srgb, var(--brand) 14%, transparent),
+    0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
+}
+
+.searchInput :global(.arco-input) {
+  height: 30px;
+  color: var(--text-primary);
+  caret-color: var(--brand);
+}
+
+.searchInput :global(.arco-input::placeholder) {
+  color: var(--text-disabled);
+}
+
+.searchInput :global(.arco-input-clear-btn) {
+  color: var(--text-secondary);
+}
+
+.emptyOption {
+  height: auto !important;
+  min-height: 48px;
+  padding: 12px !important;
+  color: var(--text-secondary) !important;
+  line-height: 18px !important;
+  text-align: center;
+  background: color-mix(in srgb, var(--color-bg-2) 72%, transparent) !important;
+  border: 1px dashed var(--color-border-2);
+  border-radius: 10px !important;
+}
+
 .checkmark {
   color: var(--brand);
   font-weight: 700;

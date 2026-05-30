@@ -10,6 +10,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './EditorContext';
 import EditorBreadcrumb from './EditorBreadcrumb';
+import EditorOutline from './EditorOutline';
 import EditorStatusBar from './EditorStatusBar';
 import EditorTabs from './EditorTabs';
 import EditorToolbar from './EditorToolbar';
@@ -30,6 +31,7 @@ const EditorPanel: React.FC = () => {
   const [selectionInfo, setSelectionInfo] = useState<MonacoSelectionInfo>(INITIAL_SELECTION);
   const [indent, setIndent] = useState<{ useSpaces: boolean; size: number }>({ useSpaces: true, size: 2 });
   const [eol, setEol] = useState<'LF' | 'CRLF'>('LF');
+  const [outlineVisible, setOutlineVisible] = useState(true);
   const editor = useEditorContext();
   const monacoRef = useRef<MonacoEditorHandle | null>(null);
 
@@ -108,6 +110,7 @@ const EditorPanel: React.FC = () => {
         wordWrap={wordWrap}
         showMinimap={showMinimap}
         renderWhitespace={renderWhitespace}
+        outlineVisible={outlineVisible}
         onNew={editor.openUntitledEditor}
         onOpen={() => void editor.chooseAndOpenFile()}
         onSave={handleSave}
@@ -122,6 +125,7 @@ const EditorPanel: React.FC = () => {
         onToggleWordWrap={() => setWordWrap((prev) => !prev)}
         onToggleMinimap={() => setShowMinimap((prev) => !prev)}
         onToggleWhitespace={() => setRenderWhitespace((prev) => !prev)}
+        onToggleOutline={() => setOutlineVisible((prev) => !prev)}
         onCollapse={editor.collapseEditor}
         onClose={editor.requestCloseEditor}
       />
@@ -135,18 +139,28 @@ const EditorPanel: React.FC = () => {
             <span>{t('common.loading')}</span>
           </div>
         ) : (
-          <MonacoEditor
-            ref={monacoRef}
-            activeBuffer={active}
-            onContentChange={handleContentChange}
-            onViewStateChange={handleViewStateChange}
-            onSave={handleSave}
-            wordWrap={wordWrap}
-            showMinimap={showMinimap}
-            renderWhitespace={renderWhitespace}
-            onCursorChange={handleCursorChange}
-            onSelectionChange={handleSelectionChange}
-          />
+          <div className='editor-panel__split'>
+            {outlineVisible && (
+              <EditorOutline
+                activeBuffer={active}
+                onSelectSymbol={(s) => monacoRef.current?.revealLine(s.line)}
+              />
+            )}
+            <div className='editor-panel__editor'>
+              <MonacoEditor
+                ref={monacoRef}
+                activeBuffer={active}
+                onContentChange={handleContentChange}
+                onViewStateChange={handleViewStateChange}
+                onSave={handleSave}
+                wordWrap={wordWrap}
+                showMinimap={showMinimap}
+                renderWhitespace={renderWhitespace}
+                onCursorChange={handleCursorChange}
+                onSelectionChange={handleSelectionChange}
+              />
+            </div>
+          </div>
         )}
       </div>
       <EditorStatusBar
