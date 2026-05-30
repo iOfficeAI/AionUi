@@ -61,7 +61,7 @@ Before any trial installation or vendoring, all of these conditions must be met:
 
 ## Activation Copy
 
-Codex currently recognizes skills from the global Codex skills directory, so activation requires a copy under `~/.codex/skills/playwright-interactive/`. The reviewed source of truth is the Tier 1 vendor copy committed at `.codex/skills/external/playwright-interactive@b0401f0/`. The global `~/.codex` copy is Tier 2 activation-only state and must be treated as disposable and reproducible from Tier 1. Tier 2 must be updated only by one-way copy/overwrite from Tier 1; manual edits to Tier 2 are prohibited.
+Codex currently recognizes skills from the global Codex skills directory, so activation requires a copy under `~/.codex/skills/playwright-interactive/`. The reviewed source of truth is the Tier 1 vendor copy committed at `.codex/skills/external/playwright-interactive@b0401f0/`. Tier 1 vendor paths under `.codex/skills/external/` are excluded from format and lint hooks so upstream file hashes remain stable. The global `~/.codex` copy is Tier 2 activation-only state and must be treated as disposable and reproducible from Tier 1. Tier 2 must be updated only by one-way copy/overwrite from Tier 1; manual edits to Tier 2 are prohibited.
 
 ## Trial Procedure
 
