@@ -9,19 +9,27 @@ import type * as monaco from 'monaco-editor';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './EditorContext';
+import EditorBreadcrumb from './EditorBreadcrumb';
 import EditorStatusBar from './EditorStatusBar';
 import EditorTabs from './EditorTabs';
-import MonacoEditor, { type MonacoEditorHandle } from './MonacoEditor';
+import EditorToolbar from './EditorToolbar';
+import MonacoEditor, { type MonacoEditorHandle, type MonacoSelectionInfo } from './MonacoEditor';
 import { useLspBridge } from './useLspBridge';
 import './editor.css';
 
 const INITIAL_CURSOR = { line: 1, col: 1 };
+const INITIAL_SELECTION: MonacoSelectionInfo = { selectedChars: 0, selectedLines: 0 };
 
 const EditorPanel: React.FC = () => {
   const { t } = useTranslation();
   const [messageApi, messageContextHolder] = Message.useMessage();
   const [wordWrap, setWordWrap] = useState(true);
+  const [showMinimap, setShowMinimap] = useState(true);
+  const [renderWhitespace, setRenderWhitespace] = useState(false);
   const [cursor, setCursor] = useState(INITIAL_CURSOR);
+  const [selectionInfo, setSelectionInfo] = useState<MonacoSelectionInfo>(INITIAL_SELECTION);
+  const [indent, setIndent] = useState<{ useSpaces: boolean; size: number }>({ useSpaces: true, size: 2 });
+  const [eol, setEol] = useState<'LF' | 'CRLF'>('LF');
   const editor = useEditorContext();
   const monacoRef = useRef<MonacoEditorHandle | null>(null);
 
@@ -36,7 +44,31 @@ const EditorPanel: React.FC = () => {
   // Reset cursor display when switching files so stale values don't linger.
   useEffect(() => {
     setCursor(INITIAL_CURSOR);
+    setSelectionInfo(INITIAL_SELECTION);
   }, [editor.activeKey]);
+
+  const handleSelectionChange = useCallback((info: MonacoSelectionInfo) => {
+    setSelectionInfo(info);
+  }, []);
+
+  const handleChangeLanguage = useCallback((languageId: string) => {
+    monacoRef.current?.setLanguage(languageId);
+  }, []);
+
+  const handleChangeIndent = useCallback((useSpaces: boolean, size: number) => {
+    monacoRef.current?.setIndent(useSpaces, size);
+    setIndent({ useSpaces, size });
+  }, []);
+
+  const handleChangeEol = useCallback((next: 'LF' | 'CRLF') => {
+    monacoRef.current?.setEol(next);
+    setEol(next);
+  }, []);
+
+  const handleZoomIn = useCallback(() => monacoRef.current?.zoomIn(), []);
+  const handleZoomOut = useCallback(() => monacoRef.current?.zoomOut(), []);
+  const handleResetZoom = useCallback(() => monacoRef.current?.resetZoom(), []);
+  const handleGoToSymbol = useCallback(() => monacoRef.current?.goToSymbol(), []);
 
   const handleCursorChange = useCallback((line: number, column: number) => {
     setCursor((prev) => (prev.line === line && prev.col === column ? prev : { line, col: column }));
@@ -60,10 +92,6 @@ const EditorPanel: React.FC = () => {
     void editor.saveEditorFile();
   }, [editor]);
 
-  const handleOpenFind = useCallback(() => {
-    monacoRef.current?.openFind();
-  }, []);
-
   if (!editor.isOpen || editor.isCollapsed) return null;
 
   const active = editor.activeBuffer;
@@ -73,7 +101,30 @@ const EditorPanel: React.FC = () => {
   return (
     <div className='editor-panel'>
       {messageContextHolder}
+      <EditorBreadcrumb activeBuffer={active} />
       <EditorTabs />
+      <EditorToolbar
+        saving={active?.saving ?? false}
+        wordWrap={wordWrap}
+        showMinimap={showMinimap}
+        renderWhitespace={renderWhitespace}
+        onNew={editor.openUntitledEditor}
+        onOpen={() => void editor.chooseAndOpenFile()}
+        onSave={handleSave}
+        onSaveAs={() => void editor.saveEditorFileAs()}
+        onUndo={() => monacoRef.current?.undo()}
+        onRedo={() => monacoRef.current?.redo()}
+        onFind={() => monacoRef.current?.openFind()}
+        onReplace={() => monacoRef.current?.openReplace()}
+        onGoToLine={() => monacoRef.current?.goToLine()}
+        onToggleComment={() => monacoRef.current?.toggleLineComment()}
+        onFormatDocument={() => monacoRef.current?.formatDocument()}
+        onToggleWordWrap={() => setWordWrap((prev) => !prev)}
+        onToggleMinimap={() => setShowMinimap((prev) => !prev)}
+        onToggleWhitespace={() => setRenderWhitespace((prev) => !prev)}
+        onCollapse={editor.collapseEditor}
+        onClose={editor.requestCloseEditor}
+      />
       {showDiskAlert && (
         <Alert className='editor-panel__alert' type='warning' content={t('conversation.editor.fileChangedOnDisk')} />
       )}
@@ -91,7 +142,10 @@ const EditorPanel: React.FC = () => {
             onViewStateChange={handleViewStateChange}
             onSave={handleSave}
             wordWrap={wordWrap}
+            showMinimap={showMinimap}
+            renderWhitespace={renderWhitespace}
             onCursorChange={handleCursorChange}
+            onSelectionChange={handleSelectionChange}
           />
         )}
       </div>
@@ -99,9 +153,21 @@ const EditorPanel: React.FC = () => {
         language={active?.language ?? 'plaintext'}
         cursorLine={cursor.line}
         cursorColumn={cursor.col}
-        wordWrap={wordWrap}
-        onToggleWordWrap={() => setWordWrap((prev) => !prev)}
-        onFind={handleOpenFind}
+        totalChars={active?.content.length ?? 0}
+        selectedChars={selectionInfo.selectedChars}
+        selectedLines={selectionInfo.selectedLines}
+        indentSize={indent.size}
+        indentUsesSpaces={indent.useSpaces}
+        eol={eol}
+        encoding='UTF-8'
+        dirty={editor.isDirty}
+        onGoToSymbol={handleGoToSymbol}
+        onChangeLanguage={handleChangeLanguage}
+        onChangeIndent={handleChangeIndent}
+        onChangeEol={handleChangeEol}
+        onZoomIn={handleZoomIn}
+        onZoomOut={handleZoomOut}
+        onResetZoom={handleResetZoom}
       />
       <Modal
         visible={Boolean(editor.pendingAction)}

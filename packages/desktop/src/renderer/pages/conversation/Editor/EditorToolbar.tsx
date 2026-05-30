@@ -3,32 +3,18 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Editor toolbar. Hosts grouped actions for File, Edit, Find, Format, View,
- * and Pane operations. Each functional group is separated by a 1px vertical
- * rule so the toolbar reads as a real action surface instead of an
- * undifferentiated row of icons.
+ * Text-first editor menubar. VS Code-style menu words (File / Edit / Find /
+ * View) open Arco Dropdowns whose items are plain text + keyboard-shortcut
+ * hint. Styling lives in `editor.css` under `.editor-menubar*` with explicit
+ * hex colors keyed off `body[arco-theme='dark']` — semantic tokens were
+ * routing through Chisl's brand orange in some theme combinations and
+ * rendering as unreadable pale-orange-on-cream.
  */
 
-import { Tooltip } from '@arco-design/web-react';
-import {
-  CloseSmall,
-  Code,
-  Comment,
-  Exchange,
-  FolderOpen,
-  MapTwo,
-  Navigation,
-  Notes,
-  Plus,
-  Redo,
-  Save,
-  Search,
-  TextWrapOverflow,
-  Undo,
-  UploadLogs,
-} from '@icon-park/react';
-import React from 'react';
+import { Dropdown, Menu } from '@arco-design/web-react';
+import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
+import { isMacEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 
 type Props = {
   saving: boolean;
@@ -53,39 +39,31 @@ type Props = {
   onClose: () => void;
 };
 
-const BTN =
-  'inline-flex items-center justify-center w-30px h-30px rd-4px text-t-secondary hover:text-t-primary hover:bg-bg-3 transition-colors duration-100 cursor-pointer select-none disabled:opacity-40 disabled:cursor-not-allowed';
+/** Render the keyboard accelerator hint string. */
+function kbd(mac: string, other: string): string {
+  return isMacEnvironment() ? mac : other;
+}
 
-const BTN_ACTIVE =
-  'inline-flex items-center justify-center w-30px h-30px rd-4px text-white bg-brand hover:bg-brand-hover transition-colors duration-100 cursor-pointer select-none';
-
-const SEPARATOR = 'w-1px h-20px bg-bg-3 mx-4px flex-shrink-0';
-
-type ToolButtonProps = {
+type MenuRowProps = {
   label: string;
-  icon: React.ReactNode;
-  active?: boolean;
-  loading?: boolean;
-  onClick: () => void;
+  shortcut?: string;
+  checked?: boolean;
 };
 
-const ToolButton: React.FC<ToolButtonProps> = ({ label, icon, active, loading, onClick }) => (
-  <Tooltip content={label} position='bottom' mini>
-    <button
-      type='button'
-      aria-label={label}
-      aria-pressed={active}
-      disabled={loading}
-      className={active ? BTN_ACTIVE : BTN}
-      onClick={onClick}
-    >
-      {icon}
-    </button>
-  </Tooltip>
+const MenuRow: React.FC<MenuRowProps> = ({ label, shortcut, checked }) => (
+  <span className='editor-menu-row'>
+    <span className='editor-menu-row__label'>
+      <span className='editor-menu-row__check' aria-hidden>
+        {checked ? '✓' : ''}
+      </span>
+      {label}
+    </span>
+    {shortcut && <span className='editor-menu-row__kbd'>{shortcut}</span>}
+  </span>
 );
 
 const EditorToolbar: React.FC<Props> = ({
-  saving,
+  saving: _saving,
   wordWrap,
   showMinimap,
   renderWhitespace,
@@ -108,85 +86,119 @@ const EditorToolbar: React.FC<Props> = ({
 }) => {
   const { t } = useTranslation();
 
+  const fileMenu = useMemo(
+    () => (
+      <Menu>
+        <Menu.Item key='new' onClick={onNew}>
+          <MenuRow label={t('conversation.editor.newFile')} shortcut={kbd('⌘N', 'Ctrl+N')} />
+        </Menu.Item>
+        <Menu.Item key='open' onClick={onOpen}>
+          <MenuRow label={t('conversation.editor.openFile')} shortcut={kbd('⌘O', 'Ctrl+O')} />
+        </Menu.Item>
+        <Menu.Item key='save' onClick={onSave}>
+          <MenuRow label={t('common.save')} shortcut={kbd('⌘S', 'Ctrl+S')} />
+        </Menu.Item>
+        <Menu.Item key='saveAs' onClick={onSaveAs}>
+          <MenuRow label={t('conversation.editor.saveAs')} shortcut={kbd('⌘⇧S', 'Ctrl+Shift+S')} />
+        </Menu.Item>
+      </Menu>
+    ),
+    [onNew, onOpen, onSave, onSaveAs, t]
+  );
+
+  const editMenu = useMemo(
+    () => (
+      <Menu>
+        <Menu.Item key='undo' onClick={onUndo}>
+          <MenuRow label={t('conversation.editor.undo')} shortcut={kbd('⌘Z', 'Ctrl+Z')} />
+        </Menu.Item>
+        <Menu.Item key='redo' onClick={onRedo}>
+          <MenuRow label={t('conversation.editor.redo')} shortcut={kbd('⌘⇧Z', 'Ctrl+Shift+Z')} />
+        </Menu.Item>
+        <Menu.Item key='comment' onClick={onToggleComment}>
+          <MenuRow label={t('conversation.editor.toggleComment')} shortcut={kbd('⌘/', 'Ctrl+/')} />
+        </Menu.Item>
+        <Menu.Item key='format' onClick={onFormatDocument}>
+          <MenuRow label={t('conversation.editor.formatDocument')} shortcut={kbd('⇧⌥F', 'Shift+Alt+F')} />
+        </Menu.Item>
+      </Menu>
+    ),
+    [onUndo, onRedo, onToggleComment, onFormatDocument, t]
+  );
+
+  const findMenu = useMemo(
+    () => (
+      <Menu>
+        <Menu.Item key='find' onClick={onFind}>
+          <MenuRow label={t('conversation.editor.findInFile')} shortcut={kbd('⌘F', 'Ctrl+F')} />
+        </Menu.Item>
+        <Menu.Item key='replace' onClick={onReplace}>
+          <MenuRow label={t('conversation.editor.replace')} shortcut={kbd('⌘⌥F', 'Ctrl+H')} />
+        </Menu.Item>
+        <Menu.Item key='goto' onClick={onGoToLine}>
+          <MenuRow label={t('conversation.editor.goToLine')} shortcut={kbd('⌃G', 'Ctrl+G')} />
+        </Menu.Item>
+      </Menu>
+    ),
+    [onFind, onReplace, onGoToLine, t]
+  );
+
+  const viewMenu = useMemo(
+    () => (
+      <Menu>
+        <Menu.Item key='wrap' onClick={onToggleWordWrap}>
+          <MenuRow label={t('conversation.editor.wordWrap')} shortcut={kbd('⌥Z', 'Alt+Z')} checked={wordWrap} />
+        </Menu.Item>
+        <Menu.Item key='minimap' onClick={onToggleMinimap}>
+          <MenuRow label={t('conversation.editor.minimap')} checked={showMinimap} />
+        </Menu.Item>
+        <Menu.Item key='whitespace' onClick={onToggleWhitespace}>
+          <MenuRow label={t('conversation.editor.whitespace')} checked={renderWhitespace} />
+        </Menu.Item>
+      </Menu>
+    ),
+    [onToggleWordWrap, onToggleMinimap, onToggleWhitespace, wordWrap, showMinimap, renderWhitespace, t]
+  );
+
   return (
-    <div
-      role='toolbar'
-      aria-label={t('conversation.editor.toolbarLabel')}
-      className='flex items-center h-40px bg-bg-2 border-b border-b-1 px-8px gap-2px flex-shrink-0 overflow-x-auto overflow-y-hidden'
-    >
-      {/* File group */}
-      <ToolButton label={t('conversation.editor.newFile')} icon={<Plus size={16} />} onClick={onNew} />
-      <ToolButton label={t('conversation.editor.openFile')} icon={<FolderOpen size={16} />} onClick={onOpen} />
-      <ToolButton label={t('common.save')} icon={<Save size={16} />} loading={saving} onClick={onSave} />
-      <ToolButton
-        label={t('conversation.editor.saveAs')}
-        icon={<Save size={16} style={{ opacity: 0.6 }} />}
-        onClick={onSaveAs}
-      />
+    <div role='menubar' aria-label={t('conversation.editor.toolbarLabel')} className='editor-menubar'>
+      <Dropdown droplist={fileMenu} trigger='click' position='bl'>
+        <button type='button' className='editor-menubar__item' aria-haspopup='menu'>
+          {t('conversation.editor.fileMenu')}
+        </button>
+      </Dropdown>
+      <Dropdown droplist={editMenu} trigger='click' position='bl'>
+        <button type='button' className='editor-menubar__item' aria-haspopup='menu'>
+          {t('conversation.editor.editMenu')}
+        </button>
+      </Dropdown>
+      <Dropdown droplist={findMenu} trigger='click' position='bl'>
+        <button type='button' className='editor-menubar__item' aria-haspopup='menu'>
+          {t('conversation.editor.findMenu')}
+        </button>
+      </Dropdown>
+      <Dropdown droplist={viewMenu} trigger='click' position='bl'>
+        <button type='button' className='editor-menubar__item' aria-haspopup='menu'>
+          {t('conversation.editor.viewMenu')}
+        </button>
+      </Dropdown>
 
-      <span className={SEPARATOR} aria-hidden />
+      <div className='editor-menubar__spacer' />
 
-      {/* Edit group */}
-      <ToolButton label={t('conversation.editor.undo')} icon={<Undo size={16} />} onClick={onUndo} />
-      <ToolButton label={t('conversation.editor.redo')} icon={<Redo size={16} />} onClick={onRedo} />
-
-      <span className={SEPARATOR} aria-hidden />
-
-      {/* Find / navigate group */}
-      <ToolButton label={t('conversation.editor.findInFile')} icon={<Search size={16} />} onClick={onFind} />
-      <ToolButton label={t('conversation.editor.replace')} icon={<Exchange size={16} />} onClick={onReplace} />
-      <ToolButton
-        label={t('conversation.editor.goToLine')}
-        icon={<Navigation size={16} />}
-        onClick={onGoToLine}
-      />
-
-      <span className={SEPARATOR} aria-hidden />
-
-      {/* Code group */}
-      <ToolButton
-        label={t('conversation.editor.toggleComment')}
-        icon={<Comment size={16} />}
-        onClick={onToggleComment}
-      />
-      <ToolButton
-        label={t('conversation.editor.formatDocument')}
-        icon={<Code size={16} />}
-        onClick={onFormatDocument}
-      />
-
-      {/* Spacer */}
-      <div className='flex-1 min-w-8px' />
-
-      {/* View group */}
-      <ToolButton
-        label={wordWrap ? t('conversation.editor.disableWordWrap') : t('conversation.editor.enableWordWrap')}
-        icon={<TextWrapOverflow size={16} />}
-        active={wordWrap}
-        onClick={onToggleWordWrap}
-      />
-      <ToolButton
-        label={t('conversation.editor.toggleMinimap')}
-        icon={<MapTwo size={16} />}
-        active={showMinimap}
-        onClick={onToggleMinimap}
-      />
-      <ToolButton
-        label={t('conversation.editor.toggleWhitespace')}
-        icon={<Notes size={16} />}
-        active={renderWhitespace}
-        onClick={onToggleWhitespace}
-      />
-
-      <span className={SEPARATOR} aria-hidden />
-
-      {/* Pane group */}
-      <ToolButton
-        label={t('conversation.editor.collapseEditor')}
-        icon={<UploadLogs size={16} />}
+      <button
+        type='button'
+        className='editor-menubar__item editor-menubar__item--secondary'
         onClick={onCollapse}
-      />
-      <ToolButton label={t('common.close')} icon={<CloseSmall size={16} />} onClick={onClose} />
+      >
+        {t('conversation.editor.collapseEditor')}
+      </button>
+      <button
+        type='button'
+        className='editor-menubar__item editor-menubar__item--secondary'
+        onClick={onClose}
+      >
+        {t('common.close')}
+      </button>
     </div>
   );
 };

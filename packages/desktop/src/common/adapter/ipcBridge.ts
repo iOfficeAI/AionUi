@@ -176,6 +176,23 @@ export const conversation = {
     (list) => list.map(fromApiConversation)
   ),
   remove: httpDelete<boolean, { id: string }>((p) => `/api/conversations/${p.id}`),
+  /**
+   * M07: delete a message on a remote OpenCode conversation. `message_id` is the
+   * local message row id; aioncore resolves the OpenCode `messageID` from it,
+   * deletes it server-side, removes the local row, and broadcasts
+   * `message.removed`. Only valid for OpenCode remote conversations.
+   */
+  deleteRemoteMessage: httpDelete<void, { conversation_id: string; message_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode-message/${p.message_id}`
+  ),
+  /**
+   * M07: edit the text of a message on a remote OpenCode conversation. Sends the
+   * new text; aioncore PATCHes the underlying OpenCode text part.
+   */
+  editRemoteMessage: httpPut<void, { conversation_id: string; message_id: string; text: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode-message/${p.message_id}`,
+    (p) => ({ text: p.text })
+  ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {

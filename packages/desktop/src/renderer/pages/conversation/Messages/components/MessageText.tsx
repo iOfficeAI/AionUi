@@ -9,8 +9,11 @@ import { AIONUI_FILES_MARKER } from '@/common/config/constants';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { iconColors } from '@/renderer/styles/colors';
-import { Alert, Message, Tooltip } from '@arco-design/web-react';
-import { Copy } from '@icon-park/react';
+import { ipcBridge } from '@/common';
+import AionModal from '@/renderer/components/base/AionModal';
+import { useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { Alert, Button, Message, Tooltip } from '@arco-design/web-react';
+import { Copy, Delete } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -158,6 +161,75 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     </Tooltip>
   );
 
+  // M07: delete a user message on remote OpenCode conversations. The backend
+  // resolves the OpenCode messageID from the local row id (`msg_id`), deletes it
+  // server-side, removes the local row, and broadcasts `message.removed`.
+  const removeMessageByMsgId = useRemoveMessageByMsgId();
+  const canDeleteRemote = conversationContext?.type === 'remote' && isUserMessage && Boolean(message.msg_id);
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const confirmDeleteRemote = async () => {
+    const msgId = message.msg_id;
+    const conversationId = conversationContext?.conversation_id;
+    if (!msgId || !conversationId) return;
+    setDeleting(true);
+    try {
+      await ipcBridge.conversation.deleteRemoteMessage.invoke({ conversation_id: conversationId, message_id: msgId });
+      removeMessageByMsgId(msgId);
+      Message.success(t('messages.deleteMessageSuccess'));
+      setDeleteOpen(false);
+    } catch (error) {
+      Message.error(t('messages.deleteMessageFailed'));
+      console.error('[MessageText] deleteRemoteMessage failed:', error);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const deleteButton = canDeleteRemote ? (
+    <Tooltip content={t('common.delete', { defaultValue: 'Delete' })}>
+      <div
+        className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-within:opacity-100 focus-within:pointer-events-auto'
+        onClick={() => setDeleteOpen(true)}
+        style={{ lineHeight: 0 }}
+      >
+        <Delete theme='outline' size='16' fill={iconColors.secondary} />
+      </div>
+    </Tooltip>
+  ) : null;
+
+  const deleteModal = canDeleteRemote ? (
+    <AionModal
+      visible={deleteOpen}
+      size='small'
+      style={{ width: 420, height: 'auto' }}
+      header={{ title: t('messages.deleteMessageTitle'), showClose: true }}
+      contentStyle={{ padding: '20px 24px 0' }}
+      onCancel={() => !deleting && setDeleteOpen(false)}
+      footer={{
+        render: () => (
+          <div className='flex justify-end gap-10px pt-20px'>
+            <Button className='px-20px min-w-80px' style={{ borderRadius: 8 }} onClick={() => setDeleteOpen(false)}>
+              {t('conversation.history.cancelDelete')}
+            </Button>
+            <Button
+              type='primary'
+              status='warning'
+              loading={deleting}
+              className='px-20px min-w-80px'
+              style={{ borderRadius: 8 }}
+              onClick={() => void confirmDeleteRemote()}
+            >
+              {t('conversation.history.confirmDelete')}
+            </Button>
+          </div>
+        ),
+      }}
+    >
+      <div className='text-14px leading-22px text-t-secondary'>{t('messages.deleteMessageConfirm')}</div>
+    </AionModal>
+  ) : null;
+
   const cronMeta = message.content.cronMeta;
   const senderName = message.content.senderName;
   const senderAgentType = message.content.senderAgentType;
@@ -240,6 +312,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             })}
           >
             {copyButton}
+            {deleteButton}
             {message.created_at && (
               <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
                 {formatMessageTime(message.created_at)}
@@ -258,6 +331,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           closable={false}
         />
       )}
+      {deleteModal}
     </>
   );
 };

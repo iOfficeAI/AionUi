@@ -108,5 +108,9 @@
     "cancel": "Cancel"
   },
   "trustTreeShort": "Trust {{path}}",
-  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation",
+  "deleteMessageTitle": "Удалить сообщение?",
+  "deleteMessageConfirm": "Это безвозвратно удалит сообщение из удалённой сессии.",
+  "deleteMessageSuccess": "Сообщение удалено",
+  "deleteMessageFailed": "Не удалось удалить сообщение"
 }

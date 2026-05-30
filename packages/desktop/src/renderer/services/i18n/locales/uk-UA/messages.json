@@ -107,5 +107,9 @@
     "cancel": "Cancel"
   },
   "trustTreeShort": "Trust {{path}}",
-  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation",
+  "deleteMessageTitle": "Видалити повідомлення?",
+  "deleteMessageConfirm": "Це назавжди видалить повідомлення з віддаленого сеансу.",
+  "deleteMessageSuccess": "Повідомлення видалено",
+  "deleteMessageFailed": "Не вдалося видалити повідомлення"
 }

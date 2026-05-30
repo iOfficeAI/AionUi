@@ -45,8 +45,317 @@
   gap: 8px;
 }
 
+/* -------------------------------------------------------------------------
+   Breadcrumb path bar — between menubar and tabs. Reads as "you are here"
+   for the active file. Explicit hex colors for the same reason as the
+   menubar: we don't want to ride on Chisl's brand-orange tokens that have
+   been rendering as pale unreadable text.
+   ------------------------------------------------------------------------- */
+.editor-breadcrumb {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  height: 24px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  background: #fafafa;
+  border-bottom: 1px solid #e1e1e1;
+  font-size: 12px;
+  color: #555;
+  overflow: hidden;
+}
+
+.editor-breadcrumb__segments {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.editor-breadcrumb__seg {
+  white-space: nowrap;
+  color: #555;
+}
+
+.editor-breadcrumb__seg--leaf {
+  color: #1f1f1f;
+  font-weight: 500;
+}
+
+.editor-breadcrumb__sep {
+  display: inline-flex;
+  align-items: center;
+  color: #999;
+}
+
+.editor-breadcrumb__meta {
+  color: #888;
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  flex-shrink: 0;
+}
+
+body[arco-theme='dark'] .editor-breadcrumb,
+body[data-theme='dark'] .editor-breadcrumb {
+  background: #252526;
+  border-bottom-color: #1e1e1e;
+  color: #c8c8c8;
+}
+
+body[arco-theme='dark'] .editor-breadcrumb__seg,
+body[data-theme='dark'] .editor-breadcrumb__seg {
+  color: #c8c8c8;
+}
+
+body[arco-theme='dark'] .editor-breadcrumb__seg--leaf,
+body[data-theme='dark'] .editor-breadcrumb__seg--leaf {
+  color: #ffffff;
+}
+
+body[arco-theme='dark'] .editor-breadcrumb__sep,
+body[data-theme='dark'] .editor-breadcrumb__sep {
+  color: #7a7a7a;
+}
+
+body[arco-theme='dark'] .editor-breadcrumb__meta,
+body[data-theme='dark'] .editor-breadcrumb__meta {
+  color: #9d9d9d;
+}
+
+/* -------------------------------------------------------------------------
+   Status bar — VS Code-style. Brand-blue background, white text, clickable
+   segments with subtle hover lift. Explicit colors throughout.
+   ------------------------------------------------------------------------- */
+.editor-statusbar {
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  height: 22px;
+  flex-shrink: 0;
+  background: #2b7bd6;
+  color: #ffffff;
+  font-size: 12px;
+  overflow: hidden;
+}
+
+.editor-statusbar__group {
+  display: flex;
+  align-items: stretch;
+}
+
+.editor-statusbar__seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 22px;
+  padding: 0 10px;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 100ms ease;
+  white-space: nowrap;
+}
+
+.editor-statusbar__seg:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+.editor-statusbar__seg--readonly {
+  cursor: default;
+}
+
+.editor-statusbar__seg--readonly:hover {
+  background: transparent;
+}
+
+.editor-statusbar__seg--icon {
+  padding: 0 8px;
+  min-width: 22px;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 13px;
+}
+
+.editor-statusbar__seg-icon {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  opacity: 0.9;
+}
+
+.editor-statusbar__seg--dirty {
+  cursor: default;
+}
+
+.editor-statusbar__seg--dirty:hover {
+  background: transparent;
+}
+
+.editor-statusbar__dirty-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #ffd166;
+}
+
+.editor-statusbar__divider {
+  display: inline-block;
+  width: 1px;
+  background: rgba(255, 255, 255, 0.25);
+  margin: 4px 2px;
+}
+
+body[arco-theme='dark'] .editor-statusbar,
+body[data-theme='dark'] .editor-statusbar {
+  background: #007acc;
+}
+
+body[arco-theme='dark'] .editor-statusbar__seg:hover,
+body[data-theme='dark'] .editor-statusbar__seg:hover {
+  background: rgba(255, 255, 255, 0.22);
+}
+
+/* Dropdown menus opened from status-bar pickers get the same kbd column treatment. */
+.editor-status-menu {
+  max-height: 360px;
+  overflow-y: auto;
+}
+
+/* -------------------------------------------------------------------------
+   Editor menubar — VS Code-style. Explicit colors with hard-coded contrast
+   so it stays readable across every theme/color-scheme combination the app
+   supports. The previous attempt routed through semantic tokens that didn't
+   resolve consistently and produced unreadable pale-orange text against the
+   panel background.
+   ------------------------------------------------------------------------- */
+
+.editor-menubar {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 6px;
+  gap: 2px;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: #f3f3f3;
+  border-bottom: 1px solid #d4d4d4;
+  color: #1f1f1f;
+  font-size: 13px;
+}
+
+.editor-menubar__item {
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  padding: 0 8px;
+  border-radius: 3px;
+  cursor: pointer;
+  user-select: none;
+  color: #1f1f1f;
+  background: transparent;
+  border: 0;
+  font: inherit;
+  line-height: 1;
+  transition: background-color 100ms ease;
+}
+
+.editor-menubar__item:hover {
+  background: #e8e8e8;
+  color: #1f1f1f;
+}
+
+.editor-menubar__item:focus-visible {
+  outline: 1px solid #0078d4;
+  outline-offset: -1px;
+}
+
+.editor-menubar__item--secondary {
+  color: #3c3c3c;
+}
+
+.editor-menubar__item--secondary:hover {
+  color: #1f1f1f;
+}
+
+.editor-menubar__spacer {
+  flex: 1;
+  min-width: 8px;
+}
+
+/* Dropdown menu rows — keyboard shortcut text aligned right, checkmark column
+   on the left for toggleables. Colors explicit; Arco's dropdown surface is
+   white-ish/dark-ish per its own theme. */
+.editor-menu-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 32px;
+  min-width: 220px;
+}
+
+.editor-menu-row__label {
+  display: inline-flex;
+  align-items: center;
+}
+
+.editor-menu-row__check {
+  display: inline-block;
+  width: 12px;
+  margin-right: 4px;
+  text-align: center;
+  font-size: 11px;
+}
+
+.editor-menu-row__kbd {
+  font-size: 11px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: #6e6e6e;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Dark theme overrides — driven off body[arco-theme='dark'] which the app
+   already toggles for the rest of the chrome (see arco-override.css). */
+body[arco-theme='dark'] .editor-menubar,
+body[data-theme='dark'] .editor-menubar {
+  background: #2d2d30;
+  border-bottom-color: #1e1e1e;
+  color: #e8e8e8;
+}
+
+body[arco-theme='dark'] .editor-menubar__item,
+body[data-theme='dark'] .editor-menubar__item {
+  color: #e8e8e8;
+}
+
+body[arco-theme='dark'] .editor-menubar__item:hover,
+body[data-theme='dark'] .editor-menubar__item:hover {
+  background: #3e3e42;
+  color: #ffffff;
+}
+
+body[arco-theme='dark'] .editor-menubar__item--secondary,
+body[data-theme='dark'] .editor-menubar__item--secondary {
+  color: #c8c8c8;
+}
+
+body[arco-theme='dark'] .editor-menubar__item--secondary:hover,
+body[data-theme='dark'] .editor-menubar__item--secondary:hover {
+  color: #ffffff;
+}
+
+body[arco-theme='dark'] .editor-menu-row__kbd,
+body[data-theme='dark'] .editor-menu-row__kbd {
+  color: #9d9d9d;
+}
+
+/* Tab strip overflow scrollbar — thin, unobtrusive. */
 .editor-tabs::-webkit-scrollbar {
-  height: 4px;
+  height: 3px;
 }
 
 .editor-tabs::-webkit-scrollbar-thumb {
@@ -56,6 +365,17 @@
 
 .editor-tabs::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.editor-panel .monaco-editor .find-widget {
+  box-shadow: var(--shadow-md);
+  border-radius: 6px;
+}
+
+.editor-panel .monaco-editor .suggest-widget,
+.editor-panel .monaco-editor .monaco-hover {
+  box-shadow: var(--shadow-md);
+  border-radius: 6px;
 }
 
 .editor-pane-enter {

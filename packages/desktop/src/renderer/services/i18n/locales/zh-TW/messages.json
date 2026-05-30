@@ -108,5 +108,9 @@
     "cancel": "Cancel"
   },
   "trustTreeShort": "Trust {{path}}",
-  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation",
+  "deleteMessageTitle": "刪除訊息？",
+  "deleteMessageConfirm": "這將從遠端工作階段中永久刪除此訊息。",
+  "deleteMessageSuccess": "訊息已刪除",
+  "deleteMessageFailed": "刪除訊息失敗"
 }

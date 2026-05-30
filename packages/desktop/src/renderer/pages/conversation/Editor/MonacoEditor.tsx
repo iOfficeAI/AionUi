@@ -81,6 +81,13 @@ function mapToMonacoLanguage(id: string): string {
   }
 }
 
+export type MonacoSelectionInfo = {
+  /** Number of selected characters across all selections. */
+  selectedChars: number;
+  /** Number of fully-selected lines (rough — counts line-count of the selection range). */
+  selectedLines: number;
+};
+
 export type MonacoEditorHandle = {
   /** Underlying Monaco editor instance, or null before mount. */
   getEditor: () => monaco.editor.IStandaloneCodeEditor | null;
@@ -90,10 +97,32 @@ export type MonacoEditorHandle = {
   openReplace: () => void;
   /** Open the "Go to Line/Column" quick input. */
   goToLine: () => void;
+  /** Open the "Go to Symbol" quick-pick (document outline navigation). */
+  goToSymbol: () => void;
+  /** Open the command palette. */
+  openCommandPalette: () => void;
   /** Run document formatting (no-op if the active model has no formatter). */
   formatDocument: () => void;
   /** Toggle line comment on the current selection. */
   toggleLineComment: () => void;
+  /** Toggle block comment on the current selection. */
+  toggleBlockComment: () => void;
+  /** Fold all foldable regions in the active model. */
+  foldAll: () => void;
+  /** Unfold all folded regions. */
+  unfoldAll: () => void;
+  /** Increase editor font size by 1px. */
+  zoomIn: () => void;
+  /** Decrease editor font size by 1px (clamped at 8px). */
+  zoomOut: () => void;
+  /** Reset font size to the default (14px). */
+  resetZoom: () => void;
+  /** Force-change the active model's language. Pass a Monaco language id. */
+  setLanguage: (languageId: string) => void;
+  /** Switch indentation between tabs/spaces with a given tab size. */
+  setIndent: (useSpaces: boolean, size: number) => void;
+  /** Switch the active model's EOL sequence. */
+  setEol: (eol: 'LF' | 'CRLF') => void;
   /** Undo the last edit on the active model. */
   undo: () => void;
   /** Redo the last undone edit on the active model. */
@@ -113,21 +142,36 @@ type Props = {
   renderWhitespace: boolean;
   /** Reported back via `EditorPanel`'s status bar. */
   onCursorChange: (line: number, column: number) => void;
+  /** Reported back when the selection changes (for status-bar selection info). */
+  onSelectionChange?: (info: MonacoSelectionInfo) => void;
 };
 
+const DEFAULT_FONT_SIZE = 14;
+
 const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function MonacoEditor(
-  { activeBuffer, onContentChange, onViewStateChange, onSave, wordWrap, showMinimap, renderWhitespace, onCursorChange },
+  {
+    activeBuffer,
+    onContentChange,
+    onViewStateChange,
+    onSave,
+    wordWrap,
+    showMinimap,
+    renderWhitespace,
+    onCursorChange,
+    onSelectionChange,
+  },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const lastBufferKeyRef = useRef<string | null>(null);
+  const fontSizeRef = useRef<number>(DEFAULT_FONT_SIZE);
   // Suppresses the onContentChange callback for programmatic edits (model swap,
   // disk-sync). Without this, switching tabs would echo the new model's content
   // back into EditorContext as a "user edit" and clobber the originalContent.
   const suppressChangeRef = useRef(false);
-  const callbacksRef = useRef({ onContentChange, onViewStateChange, onSave, onCursorChange });
-  callbacksRef.current = { onContentChange, onViewStateChange, onSave, onCursorChange };
+  const callbacksRef = useRef({ onContentChange, onViewStateChange, onSave, onCursorChange, onSelectionChange });
+  callbacksRef.current = { onContentChange, onViewStateChange, onSave, onCursorChange, onSelectionChange };
   const { theme } = useThemeContext();
 
   // --- Mount once, dispose on unmount -----------------------------------------
@@ -137,21 +181,111 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     const editor = monaco.editor.create(containerRef.current, {
       automaticLayout: true,
       theme: themeNameFor(theme === 'dark' ? 'dark' : 'light'),
-      minimap: { enabled: true },
-      fontSize: 14,
+      // Font: ligature-capable coding fonts with conservative fallbacks. The
+      // editor body inherits this; the minimap reflects it at minimum size.
+      fontFamily:
+        "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+      fontLigatures: true,
+      fontSize: DEFAULT_FONT_SIZE,
+      lineHeight: 1.55,
+      letterSpacing: 0.2,
+
+      // Layout / gutter — rich Notepad++-style chrome around the text.
+      minimap: { enabled: showMinimap, renderCharacters: true, showSlider: 'always', size: 'proportional' },
+      lineNumbers: 'on',
+      lineNumbersMinChars: 4,
+      lineDecorationsWidth: 12,
+      glyphMargin: true,
+      folding: true,
+      foldingStrategy: 'auto',
+      foldingHighlight: true,
+      showFoldingControls: 'always',
+      unfoldOnClickAfterEndOfLine: true,
+
+      // Sticky scroll: pins the enclosing function / class header at the top
+      // as you scroll. The single highest-impact "feels like a real editor"
+      // flag Monaco ships.
+      stickyScroll: { enabled: true, maxLineCount: 5 },
+
+      // Selection / cursor
+      cursorBlinking: 'smooth',
+      cursorSmoothCaretAnimation: 'on',
+      cursorStyle: 'line',
+      cursorWidth: 2,
+      roundedSelection: true,
+      smoothScrolling: true,
+      mouseWheelZoom: true,
+      multiCursorModifier: 'alt',
+
+      // Highlighting
+      renderLineHighlight: 'all',
+      renderLineHighlightOnlyWhenFocus: false,
+      occurrencesHighlight: 'singleFile',
+      selectionHighlight: true,
+      bracketPairColorization: { enabled: true, independentColorPoolPerBracketType: true },
+      guides: {
+        bracketPairs: 'active',
+        bracketPairsHorizontal: 'active',
+        highlightActiveBracketPair: true,
+        indentation: true,
+        highlightActiveIndentation: 'always',
+      },
+      matchBrackets: 'always',
+      'semanticHighlighting.enabled': true,
+
+      // Whitespace / indentation
+      renderWhitespace: renderWhitespace ? 'all' : 'selection',
+      renderControlCharacters: true,
       tabSize: 2,
       insertSpaces: true,
+      detectIndentation: true,
+      trimAutoWhitespace: true,
+
+      // Word wrap + scroll
       wordWrap: wordWrap ? 'on' : 'off',
-      smoothScrolling: true,
-      cursorBlinking: 'smooth',
-      bracketPairColorization: { enabled: true },
-      'semanticHighlighting.enabled': true,
-      renderWhitespace: 'selection',
+      wordWrapColumn: 120,
       scrollBeyondLastLine: false,
-      lineNumbersMinChars: 3,
-      glyphMargin: false,
+      scrollBeyondLastColumn: 8,
+
+      // Editor intelligence affordances
+      suggestOnTriggerCharacters: true,
+      quickSuggestions: { other: true, comments: false, strings: false },
+      acceptSuggestionOnEnter: 'on',
+      tabCompletion: 'on',
+      formatOnPaste: false,
+      formatOnType: false,
+      linkedEditing: true,
+      links: true,
+      colorDecorators: true,
+      hover: { enabled: true, sticky: true, above: false, delay: 150 },
+      parameterHints: { enabled: true, cycle: true },
+      inlineSuggest: { enabled: true },
+      suggest: {
+        showWords: true,
+        showSnippets: true,
+        showStatusBar: true,
+        preview: true,
+        insertMode: 'replace',
+      },
+
+      // Scrollbar — visible but slim, native-app feel
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+        verticalScrollbarSize: 12,
+        horizontalScrollbarSize: 12,
+        useShadows: true,
+        alwaysConsumeMouseWheel: false,
+      },
+      overviewRulerLanes: 3,
+      overviewRulerBorder: false,
+      hideCursorInOverviewRuler: false,
+
+      // Padding so text doesn't kiss the gutter
+      padding: { top: 10, bottom: 10 },
     });
     editorRef.current = editor;
+    fontSizeRef.current = DEFAULT_FONT_SIZE;
 
     const onContent = editor.onDidChangeModelContent(() => {
       if (suppressChangeRef.current) return;
@@ -164,6 +298,19 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       callbacksRef.current.onCursorChange(e.position.lineNumber, e.position.column);
     });
 
+    const onSelection = editor.onDidChangeCursorSelection(() => {
+      const model = editor.getModel();
+      if (!model) return;
+      let chars = 0;
+      let lines = 0;
+      for (const sel of editor.getSelections() ?? []) {
+        if (sel.isEmpty()) continue;
+        chars += model.getValueLengthInRange(sel);
+        lines += sel.endLineNumber - sel.startLineNumber + 1;
+      }
+      callbacksRef.current.onSelectionChange?.({ selectedChars: chars, selectedLines: lines });
+    });
+
     // Cmd/Ctrl+S → save.  Monaco's KeyMod treats CtrlCmd as platform-aware.
     editor.addCommand(monaco.KeyMod.CtrlCmd | monaco.KeyCode.KeyS, () => {
       callbacksRef.current.onSave();
@@ -172,6 +319,7 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     return () => {
       onContent.dispose();
       onCursor.dispose();
+      onSelection.dispose();
       editor.dispose();
       editorRef.current = null;
     };
@@ -264,13 +412,38 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       const runAction = (id: string): void => {
         void editorRef.current?.getAction(id)?.run().catch((): void => undefined);
       };
+      const setFontSize = (px: number): void => {
+        const clamped = Math.max(8, Math.min(40, px));
+        fontSizeRef.current = clamped;
+        editorRef.current?.updateOptions({ fontSize: clamped });
+      };
       return {
         getEditor: () => editorRef.current,
         openFind: () => runAction('actions.find'),
         openReplace: () => runAction('editor.action.startFindReplaceAction'),
         goToLine: () => runAction('editor.action.gotoLine'),
+        goToSymbol: () => runAction('editor.action.quickOutline'),
+        openCommandPalette: () => runAction('editor.action.quickCommand'),
         formatDocument: () => runAction('editor.action.formatDocument'),
         toggleLineComment: () => runAction('editor.action.commentLine'),
+        toggleBlockComment: () => runAction('editor.action.blockComment'),
+        foldAll: () => runAction('editor.foldAll'),
+        unfoldAll: () => runAction('editor.unfoldAll'),
+        zoomIn: () => setFontSize(fontSizeRef.current + 1),
+        zoomOut: () => setFontSize(fontSizeRef.current - 1),
+        resetZoom: () => setFontSize(DEFAULT_FONT_SIZE),
+        setLanguage: (languageId: string) => {
+          const model = editorRef.current?.getModel();
+          if (model) monaco.editor.setModelLanguage(model, languageId);
+        },
+        setIndent: (useSpaces: boolean, size: number) => {
+          editorRef.current?.getModel()?.updateOptions({ insertSpaces: useSpaces, tabSize: size });
+        },
+        setEol: (eol: 'LF' | 'CRLF') => {
+          editorRef.current
+            ?.getModel()
+            ?.setEOL(eol === 'LF' ? monaco.editor.EndOfLineSequence.LF : monaco.editor.EndOfLineSequence.CRLF);
+        },
         undo: () => {
           editorRef.current?.trigger('toolbar', 'undo', null);
         },

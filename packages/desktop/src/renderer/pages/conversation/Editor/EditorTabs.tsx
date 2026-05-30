@@ -2,22 +2,21 @@
  * @license
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Tab strip for the editor pane. Matches `Preview/components/PreviewPanel/PreviewTabs.tsx`
+ * — same height (36px), same active/inactive coloring (bg-bg-1 vs bg-bg-2),
+ * same close button (Close at size 14). The editor sits beside the preview
+ * in the same workspace; its tabs should read as the same kind of object.
  */
 
-import { Button, Tooltip } from '@arco-design/web-react';
-import { CloseSmall, FolderOpen, Plus, Save, UploadLogs } from '@icon-park/react';
+import { Tooltip } from '@arco-design/web-react';
+import { Close } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './EditorContext';
 import type { OpenBuffer } from './types';
 
 type DragState = { fromKey: string | null };
-
-const TAB_BTN_BASE =
-  'group relative inline-flex items-center gap-6px h-32px px-12px text-12px font-medium border-r border-b-1 cursor-pointer select-none whitespace-nowrap transition-colors duration-100';
-
-const PANE_ACTION_BTN =
-  'inline-flex items-center justify-center w-28px h-28px rd-4px text-t-secondary hover:text-t-primary hover:bg-bg-3 transition-colors duration-100';
 
 const isBufferDirty = (b: OpenBuffer): boolean => b.content !== b.originalContent;
 
@@ -34,7 +33,7 @@ const EditorTabs: React.FC = () => {
     [editor]
   );
 
-  // Middle-click closes tab — using onAuxClick on a role="tab" div, which the
+  // Middle-click closes tab. Using onAuxClick on a role="tab" div, which the
   // AionUi raw-HTML rule allows (the rule applies to interactive form
   // controls, not ARIA-roled divs).
   const onTabAuxClick = useCallback(
@@ -71,7 +70,6 @@ const EditorTabs: React.FC = () => {
     return () => el.removeEventListener('wheel', handler);
   }, []);
 
-  // Keep the active tab scrolled into view.
   useEffect(() => {
     if (!editor.activeKey) return;
     const el = stripRef.current?.querySelector(`[data-tab-key="${CSS.escape(editor.activeKey)}"]`);
@@ -80,7 +78,7 @@ const EditorTabs: React.FC = () => {
     }
   }, [editor.activeKey]);
 
-  // Keyboard shortcuts: Cmd/Ctrl+W close, Cmd/Ctrl+Tab next, Cmd/Ctrl+Shift+Tab prev.
+  // Cmd/Ctrl+W close, Cmd/Ctrl+Tab next, Cmd/Ctrl+Shift+Tab prev.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -124,105 +122,72 @@ const EditorTabs: React.FC = () => {
   );
   const onDragEnd = useCallback(() => setDrag({ fromKey: null }), []);
 
-  const activeSaving = editor.activeBuffer?.saving ?? false;
+  if (editor.buffers.length === 0) return null;
 
   return (
-    <div className='flex items-stretch h-36px bg-bg-2 border-b border-b-1 flex-shrink-0'>
-      <div
-        ref={stripRef}
-        role='tablist'
-        aria-label={t('conversation.editor.tabsList')}
-        className='editor-tabs flex items-stretch flex-1 min-w-0 overflow-x-auto overflow-y-hidden'
-      >
-        {editor.buffers.map((b) => {
-          const active = b.key === editor.activeKey;
-          const dirty = isBufferDirty(b);
-          const className = `${TAB_BTN_BASE} ${
-            active
-              ? 'bg-bg-1 text-t-primary border-b-transparent'
-              : 'bg-bg-2 text-t-secondary hover:bg-bg-3 hover:text-t-primary'
-          }`;
-          return (
-            <Tooltip key={b.key} content={b.filePath ?? b.fileName} position='bottom' mini>
-              <div
-                role='tab'
-                aria-selected={active}
-                tabIndex={active ? 0 : -1}
-                data-tab-key={b.key}
-                className={className}
-                draggable
-                onDragStart={(e) => onDragStart(e, b.key)}
-                onDragOver={onDragOver}
-                onDrop={(e) => onDrop(e, b.key)}
-                onDragEnd={onDragEnd}
-                onClick={() => onTabClick(b.key)}
-                onAuxClick={(e) => onTabAuxClick(e, b.key)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    onTabClick(b.key);
-                  }
-                }}
-              >
+    <div
+      ref={stripRef}
+      role='tablist'
+      aria-label={t('conversation.editor.tabsList')}
+      // Match PreviewTabs: 36px tall, bg-bg-2 base, bottom border using --border-base
+      // so the bar visually rhymes with the preview panel above/beside it.
+      className='editor-tabs flex items-stretch bg-bg-2 flex-shrink-0 overflow-x-auto overflow-y-hidden h-36px'
+      style={{ borderBottom: '1px solid var(--border-base)' }}
+    >
+      {editor.buffers.map((b) => {
+        const active = b.key === editor.activeKey;
+        const dirty = isBufferDirty(b);
+        // Active tab "lifts" out of the bar by taking the body bg (bg-1) —
+        // matches PreviewTabs and the conversation pane's tab idiom.
+        const className =
+          'group relative flex items-center gap-6px px-10px h-full text-12px cursor-pointer select-none whitespace-nowrap transition-colors duration-150 flex-shrink-0 ' +
+          (active ? 'bg-bg-1 text-t-primary' : 'text-t-secondary hover:bg-bg-3 hover:text-t-primary');
+        return (
+          <Tooltip key={b.key} content={b.filePath ?? b.fileName} position='bottom' mini>
+            <div
+              role='tab'
+              aria-selected={active}
+              tabIndex={active ? 0 : -1}
+              data-tab-key={b.key}
+              className={className}
+              draggable
+              onDragStart={(e) => onDragStart(e, b.key)}
+              onDragOver={onDragOver}
+              onDrop={(e) => onDrop(e, b.key)}
+              onDragEnd={onDragEnd}
+              onClick={() => onTabClick(b.key)}
+              onAuxClick={(e) => onTabAuxClick(e, b.key)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                  e.preventDefault();
+                  onTabClick(b.key);
+                }
+              }}
+            >
+              <span className='flex items-center gap-4px whitespace-nowrap'>
+                <span className='truncate max-w-220px'>{b.fileName}</span>
+                {/* Dirty indicator matches PreviewTabs: 6px primary-colored dot, trailing the title. */}
                 {dirty && (
                   <span
-                    className='w-6px h-6px rd-full bg-brand flex-shrink-0'
+                    className='w-6px h-6px rd-full bg-primary inline-block'
                     aria-label={t('conversation.editor.unsavedDot')}
                   />
                 )}
-                <span className='truncate max-w-220px'>{b.fileName}</span>
-                <span
-                  role='button'
-                  aria-label={t('common.close')}
-                  className='inline-flex items-center justify-center w-16px h-16px rd-4px opacity-60 hover:opacity-100 hover:bg-bg-3'
-                  onClick={(e) => onCloseClick(e, b.key)}
-                >
-                  <CloseSmall size={12} />
-                </span>
-              </div>
-            </Tooltip>
-          );
-        })}
-      </div>
-      <div className='flex items-center gap-2px px-6px border-l border-b-1 flex-shrink-0'>
-        <Tooltip content={t('conversation.editor.newFile')} position='bottom' mini>
-          <Button size='mini' type='text' className={PANE_ACTION_BTN} onClick={editor.openUntitledEditor}>
-            <Plus size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('conversation.editor.openFile')} position='bottom' mini>
-          <Button
-            size='mini'
-            type='text'
-            className={PANE_ACTION_BTN}
-            onClick={() => void editor.chooseAndOpenFile()}
-          >
-            <FolderOpen size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('common.save')} position='bottom' mini>
-          <Button
-            size='mini'
-            type='text'
-            className={PANE_ACTION_BTN}
-            loading={activeSaving}
-            onClick={() => void editor.saveEditorFile()}
-          >
-            <Save size={14} />
-          </Button>
-        </Tooltip>
-        <span className='w-1px h-16px bg-bg-3 mx-2px' aria-hidden />
-        <Tooltip content={t('conversation.editor.collapseEditor')} position='bottom' mini>
-          <Button size='mini' type='text' className={PANE_ACTION_BTN} onClick={editor.collapseEditor}>
-            <UploadLogs size={14} />
-          </Button>
-        </Tooltip>
-        <Tooltip content={t('common.close')} position='bottom' mini>
-          <Button size='mini' type='text' className={PANE_ACTION_BTN} onClick={editor.requestCloseEditor}>
-            <CloseSmall size={14} />
-          </Button>
-        </Tooltip>
-      </div>
+              </span>
+              <span
+                role='button'
+                aria-label={t('common.close')}
+                // Close affordance: visually defers until hover, then expresses
+                // bg-3 lift — same family as PreviewTabs.
+                className='inline-flex items-center justify-center w-16px h-16px rd-4px text-t-tertiary opacity-60 hover:opacity-100 hover:text-t-primary hover:bg-bg-3'
+                onClick={(e) => onCloseClick(e, b.key)}
+              >
+                <Close size={14} strokeWidth={2} />
+              </span>
+            </div>
+          </Tooltip>
+        );
+      })}
     </div>
   );
 };

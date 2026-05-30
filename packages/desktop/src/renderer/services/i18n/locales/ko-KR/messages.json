@@ -108,5 +108,9 @@
     "cancel": "Cancel"
   },
   "trustTreeShort": "Trust {{path}}",
-  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation"
+  "trustTreeHint": "Approve all pending and auto-allow future reads under {{path}} for the rest of this conversation",
+  "deleteMessageTitle": "메시지를 삭제할까요?",
+  "deleteMessageConfirm": "원격 세션에서 이 메시지를 영구적으로 삭제합니다.",
+  "deleteMessageSuccess": "메시지가 삭제되었습니다",
+  "deleteMessageFailed": "메시지 삭제 실패"
 }
