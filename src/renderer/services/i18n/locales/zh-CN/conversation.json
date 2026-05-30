@@ -185,6 +185,7 @@
     "openWorkspace": "打开工作区文件夹",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Chrome 标签页",
       "terminal": "终端",
       "explorer": "文件资源管理器"
     }

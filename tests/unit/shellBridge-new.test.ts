@@ -183,6 +183,22 @@ describe('shellBridge with actual providers', () => {
       expect(result).toBe(false);
     });
 
+    it('returns true for Chrome when a Chrome executable is available on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      vi.mocked(exec).mockImplementation((cmd: string, callback: Function) => {
+        callback(new Error('not found'), { stdout: '', stderr: '' });
+        return undefined as any;
+      });
+      vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
+        return filepath === '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome';
+      });
+
+      const result = await registeredProviders['checkToolInstalled']({ tool: 'chrome' });
+
+      expect(result).toBe(true);
+      expect(fs.existsSync).toHaveBeenCalled();
+    });
+
     it('checks VS Code installation via file paths', async () => {
       // Mock fs.existsSync to return false for all paths, and exec to fail
       vi.mocked(fs.existsSync).mockReturnValue(false);
@@ -218,6 +234,24 @@ describe('shellBridge with actual providers', () => {
         detached: true,
         stdio: 'ignore',
       });
+    });
+
+    it('opens a blank Chrome tab with the installed Chrome app on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      vi.mocked(fs.existsSync).mockImplementation((filepath: string) => {
+        return filepath === '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome';
+      });
+
+      await registeredProviders['openFolderWith']({ folderPath: '/workspace/project', tool: 'chrome' });
+
+      expect(spawn).toHaveBeenCalledWith(
+        '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome',
+        ['--new-tab', 'about:blank'],
+        {
+          detached: true,
+          stdio: 'ignore',
+        }
+      );
     });
 
     it('opens folder with terminal on Windows using PowerShell', async () => {

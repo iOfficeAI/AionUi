@@ -2,12 +2,12 @@ import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { isTemporaryWorkspace } from '@/renderer/utils/workspace/workspace';
 import { dispatchWorkspaceTerminalOpenEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { Command, Down, Folder, Terminal } from '@icon-park/react';
+import { BrowserChrome, Command, Down, Folder, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
-type ToolType = 'vscode' | 'terminal' | 'explorer';
+type ToolType = 'vscode' | 'terminal' | 'explorer' | 'chrome';
 
 interface ToolOption {
   key: ToolType;
@@ -29,6 +29,7 @@ const STORAGE_KEY = 'workspace-open-preference';
 const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath }) => {
   const { t } = useTranslation();
   const [vscodeInstalled, setVscodeInstalled] = useState(false);
+  const [chromeInstalled, setChromeInstalled] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [preferredTool, setPreferredTool] = useState<ToolType | null>(null);
   const isTemporary = isTemporaryWorkspace(workspacePath);
@@ -38,11 +39,16 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     if (isTemporary) return;
     const checkTools = async () => {
       try {
-        const installed = await ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' });
-        setVscodeInstalled(installed);
+        const [vscodeResult, chromeResult] = await Promise.all([
+          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'vscode' }).catch(() => false),
+          ipcBridge.shell.checkToolInstalled.invoke({ tool: 'chrome' }).catch(() => false),
+        ]);
+        setVscodeInstalled(vscodeResult);
+        setChromeInstalled(chromeResult);
       } catch (error) {
         console.warn('[WorkspaceOpenButton] Failed to check VS Code:', error);
         setVscodeInstalled(false);
+        setChromeInstalled(false);
       }
     };
 
@@ -78,6 +84,12 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
       label: t('conversation.workspace.openWith.vscode', { defaultValue: 'VS Code' }),
       icon: <Command size={16} />,
       available: vscodeInstalled,
+    },
+    {
+      key: 'chrome',
+      label: t('conversation.workspace.openWith.chrome', { defaultValue: 'Chrome Tab' }),
+      icon: <BrowserChrome size={16} />,
+      available: chromeInstalled,
     },
     {
       key: 'terminal',
@@ -131,7 +143,10 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
 
   return (
     <div className='workspace-open-button flex items-center'>
-      <Tooltip content={t('conversation.workspace.openEmbeddedTerminal', { defaultValue: 'Open embedded terminal' })} mini>
+      <Tooltip
+        content={t('conversation.workspace.openEmbeddedTerminal', { defaultValue: 'Open embedded terminal' })}
+        mini
+      >
         <Button
           type='text'
           size='small'

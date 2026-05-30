@@ -185,6 +185,7 @@
     "openWorkspace": "ワークスペースを開く",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Chrome タブ",
       "terminal": "ターミナル",
       "explorer": "エクスプローラー"
     }

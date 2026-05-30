@@ -31,7 +31,14 @@
   cursor: nwse-resize;
   border-top-left-radius: 12px;
   background:
-    linear-gradient(135deg, transparent 0 43%, rgba(var(--primary-6), 0.65) 43% 47%, transparent 47% 57%, rgba(var(--primary-6), 0.65) 57% 61%, transparent 61% 100%),
+    linear-gradient(
+      135deg,
+      transparent 0 43%,
+      rgba(var(--primary-6), 0.65) 43% 47%,
+      transparent 47% 57%,
+      rgba(var(--primary-6), 0.65) 57% 61%,
+      transparent 61% 100%
+    ),
     linear-gradient(135deg, transparent 0 55%, rgba(var(--primary-6), 0.35) 55% 59%, transparent 59% 100%);
 }
 

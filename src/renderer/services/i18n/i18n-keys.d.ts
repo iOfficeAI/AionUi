@@ -487,6 +487,7 @@ export type I18nKey =
   | 'conversation.workspace.migration.targetWorkspace'
   | 'conversation.workspace.migration.title'
   | 'conversation.workspace.openEmbeddedTerminal'
+  | 'conversation.workspace.openWith.chrome'
   | 'conversation.workspace.openWith.explorer'
   | 'conversation.workspace.openWith.terminalPopOut'
   | 'conversation.workspace.openWith.vscode'

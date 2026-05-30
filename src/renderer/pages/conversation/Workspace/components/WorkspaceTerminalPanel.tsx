@@ -178,8 +178,7 @@ const WorkspaceTerminalPanel: React.FC<WorkspaceTerminalPanelProps> = ({ workspa
       cursorBlink: true,
       convertEol: true,
       scrollback: 5000,
-      fontFamily:
-        '"SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", "Segoe UI Mono", "Liberation Mono", monospace',
+      fontFamily: '"SFMono-Regular", "Menlo", "Monaco", "Cascadia Mono", "Segoe UI Mono", "Liberation Mono", monospace',
       fontSize: 13,
       allowTransparency: true,
       theme: {
@@ -333,60 +332,63 @@ const WorkspaceTerminalPanel: React.FC<WorkspaceTerminalPanelProps> = ({ workspa
     void resizeTerminal();
   }, [resizeTerminal]);
 
-  const handleDragStart = useCallback((event: React.PointerEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-    const panel = panelRef.current;
-    if (!panel) return;
+  const handleDragStart = useCallback(
+    (event: React.PointerEvent<HTMLButtonElement>) => {
+      event.preventDefault();
+      const panel = panelRef.current;
+      if (!panel) return;
 
-    const rect = panel.getBoundingClientRect();
-    dragStateRef.current = {
-      active: true,
-      pointerId: event.pointerId,
-      startX: event.clientX,
-      startY: event.clientY,
-      startWidth: size.width,
-      startHeight: size.height,
-    };
+      const rect = panel.getBoundingClientRect();
+      dragStateRef.current = {
+        active: true,
+        pointerId: event.pointerId,
+        startX: event.clientX,
+        startY: event.clientY,
+        startWidth: size.width,
+        startHeight: size.height,
+      };
 
-    const previousUserSelect = document.body.style.userSelect;
-    const previousCursor = document.body.style.cursor;
-    document.body.style.userSelect = 'none';
-    document.body.style.cursor = 'nwse-resize';
+      const previousUserSelect = document.body.style.userSelect;
+      const previousCursor = document.body.style.cursor;
+      document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'nwse-resize';
 
-    const finish = () => {
-      if (!dragStateRef.current.active) return;
-      dragStateRef.current.active = false;
-      document.body.style.userSelect = previousUserSelect;
-      document.body.style.cursor = previousCursor;
-      window.removeEventListener('pointermove', handleMove);
-      window.removeEventListener('pointerup', handleEnd);
-      window.removeEventListener('pointercancel', handleEnd);
-    };
+      const finish = () => {
+        if (!dragStateRef.current.active) return;
+        dragStateRef.current.active = false;
+        document.body.style.userSelect = previousUserSelect;
+        document.body.style.cursor = previousCursor;
+        window.removeEventListener('pointermove', handleMove);
+        window.removeEventListener('pointerup', handleEnd);
+        window.removeEventListener('pointercancel', handleEnd);
+      };
 
-    const handleMove = (moveEvent: PointerEvent) => {
-      if (!dragStateRef.current.active || moveEvent.pointerId !== dragStateRef.current.pointerId) return;
-      const nextWidth = clamp(
-        dragStateRef.current.startWidth + (moveEvent.clientX - dragStateRef.current.startX),
-        MIN_SIZE.width,
-        Math.max(MIN_SIZE.width, rect.width - 24)
-      );
-      const nextHeight = clamp(
-        dragStateRef.current.startHeight + (moveEvent.clientY - dragStateRef.current.startY),
-        MIN_SIZE.height,
-        Math.max(MIN_SIZE.height, rect.height - 24)
-      );
-      setSize({ width: nextWidth, height: nextHeight });
-    };
+      const handleMove = (moveEvent: PointerEvent) => {
+        if (!dragStateRef.current.active || moveEvent.pointerId !== dragStateRef.current.pointerId) return;
+        const nextWidth = clamp(
+          dragStateRef.current.startWidth + (moveEvent.clientX - dragStateRef.current.startX),
+          MIN_SIZE.width,
+          Math.max(MIN_SIZE.width, rect.width - 24)
+        );
+        const nextHeight = clamp(
+          dragStateRef.current.startHeight + (moveEvent.clientY - dragStateRef.current.startY),
+          MIN_SIZE.height,
+          Math.max(MIN_SIZE.height, rect.height - 24)
+        );
+        setSize({ width: nextWidth, height: nextHeight });
+      };
 
-    const handleEnd = (upEvent: PointerEvent) => {
-      if (dragStateRef.current.pointerId !== upEvent.pointerId) return;
-      finish();
-    };
+      const handleEnd = (upEvent: PointerEvent) => {
+        if (dragStateRef.current.pointerId !== upEvent.pointerId) return;
+        finish();
+      };
 
-    window.addEventListener('pointermove', handleMove);
-    window.addEventListener('pointerup', handleEnd);
-    window.addEventListener('pointercancel', handleEnd);
-  }, [size.height, size.width]);
+      window.addEventListener('pointermove', handleMove);
+      window.addEventListener('pointerup', handleEnd);
+      window.addEventListener('pointercancel', handleEnd);
+    },
+    [size.height, size.width]
+  );
 
   if (!isElectronDesktop()) {
     return (

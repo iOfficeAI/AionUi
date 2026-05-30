@@ -29,6 +29,159 @@ async function commandExists(command: string): Promise<boolean> {
 }
 
 /**
+ * Check if a Chrome executable is available.
+ */
+async function isChromeInstalled(): Promise<boolean> {
+  if (await commandExists('google-chrome')) {
+    return true;
+  }
+  if (await commandExists('google-chrome-stable')) {
+    return true;
+  }
+  if (await commandExists('chromium')) {
+    return true;
+  }
+  if (await commandExists('chromium-browser')) {
+    return true;
+  }
+
+  const platform = process.platform;
+  const possiblePaths: string[] = [];
+
+  if (platform === 'win32') {
+    const programFiles = process.env['ProgramFiles'];
+    const programFilesX86 = process.env['ProgramFiles(x86)'];
+    const localAppData = process.env['LOCALAPPDATA'];
+
+    if (programFiles) {
+      possiblePaths.push(path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(programFiles, 'Chromium', 'Application', 'chrome.exe'));
+    }
+    if (programFilesX86) {
+      possiblePaths.push(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(programFilesX86, 'Chromium', 'Application', 'chrome.exe'));
+    }
+    if (localAppData) {
+      possiblePaths.push(path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(localAppData, 'Chromium', 'Application', 'chrome.exe'));
+    }
+  } else if (platform === 'darwin') {
+    possiblePaths.push('/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
+    possiblePaths.push('/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome');
+    possiblePaths.push('/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary');
+  } else {
+    possiblePaths.push('/usr/bin/google-chrome');
+    possiblePaths.push('/usr/bin/google-chrome-stable');
+    possiblePaths.push('/usr/bin/chromium');
+    possiblePaths.push('/usr/bin/chromium-browser');
+    possiblePaths.push('/opt/google/chrome/chrome');
+    possiblePaths.push('/snap/bin/chromium');
+  }
+
+  for (const chromePath of possiblePaths) {
+    if (fs.existsSync(chromePath)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+/**
+ * Find the Chrome executable path.
+ */
+async function findChromeExecutable(): Promise<string | null> {
+  const platform = process.platform;
+
+  if (platform === 'win32') {
+    const programFiles = process.env['ProgramFiles'];
+    const programFilesX86 = process.env['ProgramFiles(x86)'];
+    const localAppData = process.env['LOCALAPPDATA'];
+    const possiblePaths: string[] = [];
+
+    if (programFiles) {
+      possiblePaths.push(path.join(programFiles, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(programFiles, 'Chromium', 'Application', 'chrome.exe'));
+    }
+    if (programFilesX86) {
+      possiblePaths.push(path.join(programFilesX86, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(programFilesX86, 'Chromium', 'Application', 'chrome.exe'));
+    }
+    if (localAppData) {
+      possiblePaths.push(path.join(localAppData, 'Google', 'Chrome', 'Application', 'chrome.exe'));
+      possiblePaths.push(path.join(localAppData, 'Chromium', 'Application', 'chrome.exe'));
+    }
+
+    for (const chromePath of possiblePaths) {
+      if (fs.existsSync(chromePath)) {
+        return chromePath;
+      }
+    }
+
+    return null;
+  }
+
+  if (platform === 'darwin') {
+    const possiblePaths = [
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome',
+      '/Applications/Google Chrome Canary.app/Contents/MacOS/Google Chrome Canary',
+    ];
+
+    for (const chromePath of possiblePaths) {
+      if (fs.existsSync(chromePath)) {
+        return chromePath;
+      }
+    }
+
+    return null;
+  }
+
+  const possibleCommands = ['google-chrome', 'google-chrome-stable', 'chromium', 'chromium-browser'];
+  for (const command of possibleCommands) {
+    if (await commandExists(command)) {
+      return command;
+    }
+  }
+
+  const possiblePaths = [
+    '/usr/bin/google-chrome',
+    '/usr/bin/google-chrome-stable',
+    '/usr/bin/chromium',
+    '/opt/google/chrome/chrome',
+    '/snap/bin/chromium',
+  ];
+  for (const chromePath of possiblePaths) {
+    if (fs.existsSync(chromePath)) {
+      return chromePath;
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Open a blank Chrome tab using the user's installed Chrome profile.
+ */
+async function openChromeBlankTab(): Promise<void> {
+  const chromePath = await findChromeExecutable();
+  if (!chromePath) {
+    await shell.openExternal('about:blank');
+    return;
+  }
+
+  const child = spawn(chromePath, ['--new-tab', 'about:blank'], {
+    detached: true,
+    stdio: 'ignore',
+  });
+  child.unref();
+
+  child.on('error', async () => {
+    await shell.openExternal('about:blank');
+  });
+}
+
+/**
  * Check if VS Code is installed
  */
 async function isVSCodeInstalled(): Promise<boolean> {
@@ -77,7 +230,10 @@ async function isVSCodeInstalled(): Promise<boolean> {
 /**
  * Open folder with specified tool
  */
-async function openFolderWithTool(folderPath: string, tool: 'vscode' | 'terminal' | 'explorer'): Promise<void> {
+async function openFolderWithTool(
+  folderPath: string,
+  tool: 'vscode' | 'terminal' | 'explorer' | 'chrome'
+): Promise<void> {
   const platform = process.platform;
 
   switch (tool) {
@@ -151,6 +307,11 @@ async function openFolderWithTool(folderPath: string, tool: 'vscode' | 'terminal
           await shell.openPath(folderPath);
         }
       }
+      break;
+    }
+
+    case 'chrome': {
+      await openChromeBlankTab();
       break;
     }
 
@@ -244,6 +405,8 @@ export function initShellBridge(): void {
     switch (tool) {
       case 'vscode':
         return isVSCodeInstalled();
+      case 'chrome':
+        return isChromeInstalled();
       case 'terminal': {
         if (process.platform === 'win32') {
           // On Windows, PowerShell is always available (or fallback to CMD)

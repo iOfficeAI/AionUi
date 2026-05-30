@@ -31,6 +31,7 @@ vi.mock('@arco-design/web-react', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Command: () => <span data-testid='icon-command' />,
+  BrowserChrome: () => <span data-testid='icon-browser-chrome' />,
   Down: () => <span data-testid='icon-down' />,
   Folder: () => <span data-testid='icon-folder' />,
   Terminal: () => <span data-testid='icon-terminal' />,
@@ -107,5 +108,26 @@ describe('WorkspaceOpenButton', () => {
 
     expect(mockOpenFolderWith).toHaveBeenCalledWith({ folderPath: '/home/user/project', tool: 'terminal' });
     expect(mockDispatchWorkspaceTerminalOpenEvent).not.toHaveBeenCalledWith('/home/user/project');
+  });
+
+  it('shows Chrome tab in the dropdown and opens a blank tab', async () => {
+    mockCheckToolInstalled.mockImplementation(({ tool }: { tool: string }) => Promise.resolve(tool === 'chrome'));
+
+    render(<WorkspaceOpenButton workspacePath='/home/user/project' />);
+
+    await waitFor(() => {
+      expect(mockCheckToolInstalled).toHaveBeenCalledWith({ tool: 'chrome' });
+    });
+
+    expect(screen.getByText('Chrome Tab')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Chrome Tab'));
+
+    await waitFor(() => {
+      expect(mockOpenFolderWith).toHaveBeenCalledWith({
+        folderPath: '/home/user/project',
+        tool: 'chrome',
+      });
+    });
   });
 });

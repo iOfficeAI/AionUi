@@ -180,6 +180,7 @@
     "openWorkspace": "Çalışma alanını aç",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Chrome Sekmesi",
       "terminal": "Terminal",
       "explorer": "Dosya Gezgini"
     }

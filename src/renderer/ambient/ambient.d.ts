@@ -5,7 +5,7 @@
  */
 
 // Required so that this file is treated as a module; otherwise `declare global` errors.
-export {};
+export type AmbientWindowModuleMarker = never;
 
 declare global {
   interface Window {

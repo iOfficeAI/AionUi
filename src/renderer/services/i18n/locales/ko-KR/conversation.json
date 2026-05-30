@@ -185,6 +185,7 @@
     "openWorkspace": "작업 공간 열기",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Chrome 탭",
       "terminal": "터미널",
       "explorer": "파일 탐색기"
     }

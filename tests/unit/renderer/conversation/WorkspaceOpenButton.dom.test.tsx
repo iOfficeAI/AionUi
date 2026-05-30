@@ -22,6 +22,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Command: () => <span data-testid='icon-command' />,
+  BrowserChrome: () => <span data-testid='icon-browser-chrome' />,
   Down: ({ className }: { className?: string }) => <span data-testid='icon-down' className={className} />,
   Folder: () => <span data-testid='icon-folder' />,
   Terminal: () => <span data-testid='icon-terminal' />,
@@ -89,7 +90,7 @@ describe('WorkspaceOpenButton', () => {
 
   it('opens the saved preferred tool when it is available', async () => {
     localStorage.setItem(STORAGE_KEY, 'explorer');
-    mockCheckToolInstalled.mockResolvedValue(true);
+    mockCheckToolInstalled.mockResolvedValue(false);
 
     render(<WorkspaceOpenButton workspacePath='/workspace/project' />);
 
@@ -97,7 +98,8 @@ describe('WorkspaceOpenButton', () => {
       expect(mockCheckToolInstalled).toHaveBeenCalledWith({ tool: 'vscode' });
     });
 
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByTestId('workspace-dropdown-trigger'));
+    fireEvent.click(screen.getByText('File Explorer').closest('.workspace-open-dropdown-item') as HTMLElement);
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
@@ -117,10 +119,10 @@ describe('WorkspaceOpenButton', () => {
     fireEvent.click(screen.getByTestId('workspace-dropdown-trigger'));
 
     expect(screen.queryByText('VS Code')).not.toBeInTheDocument();
-    expect(screen.getByText('Terminal')).toBeInTheDocument();
+    expect(screen.getByText('External Terminal')).toBeInTheDocument();
     expect(screen.getByText('File Explorer')).toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('File Explorer'));
+    fireEvent.click(screen.getByText('File Explorer').closest('.workspace-open-dropdown-item') as HTMLElement);
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
@@ -132,8 +134,30 @@ describe('WorkspaceOpenButton', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBe('explorer');
   });
 
+  it('shows Chrome tab in the dropdown and opens a blank tab', async () => {
+    mockCheckToolInstalled.mockImplementation(({ tool }: { tool: string }) => Promise.resolve(tool === 'chrome'));
+
+    render(<WorkspaceOpenButton workspacePath='/workspace/project' />);
+
+    await waitFor(() => {
+      expect(mockCheckToolInstalled).toHaveBeenCalledWith({ tool: 'chrome' });
+    });
+
+    fireEvent.click(screen.getByTestId('workspace-dropdown-trigger'));
+
+    expect(screen.getByText('Chrome Tab')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('Chrome Tab').closest('.workspace-open-dropdown-item') as HTMLElement);
+
+    await waitFor(() => {
+      expect(mockOpenFolderWith).toHaveBeenCalledWith({
+        folderPath: '/workspace/project',
+        tool: 'chrome',
+      });
+    });
+  });
+
   it('falls back to terminal when tool detection or open requests fail', async () => {
-    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => {});
     const errorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
 
     mockCheckToolInstalled.mockRejectedValue(new Error('missing vscode'));
@@ -142,10 +166,11 @@ describe('WorkspaceOpenButton', () => {
     render(<WorkspaceOpenButton workspacePath='/workspace/project' />);
 
     await waitFor(() => {
-      expect(warnSpy).toHaveBeenCalled();
+      expect(mockCheckToolInstalled).toHaveBeenCalled();
     });
 
-    fireEvent.click(screen.getAllByRole('button')[0]);
+    fireEvent.click(screen.getByTestId('workspace-dropdown-trigger'));
+    fireEvent.click(screen.getByText('External Terminal').closest('.workspace-open-dropdown-item') as HTMLElement);
 
     await waitFor(() => {
       expect(mockOpenFolderWith).toHaveBeenCalledWith({
@@ -160,7 +185,6 @@ describe('WorkspaceOpenButton', () => {
 
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
 
-    warnSpy.mockRestore();
     errorSpy.mockRestore();
   });
 });

@@ -216,6 +216,20 @@ describe('shellBridge', () => {
       const result = await checkToolInstalledProvider.fn!({ tool: 'unknown-tool' as any });
       expect(result).toBe(false);
     });
+
+    it('returns true for Chrome when a Chrome executable is available on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      execMock.mockImplementation((cmd: string, callback: (err: Error | null) => void) => {
+        callback(new Error('not found'));
+      });
+      fsMock.existsSync.mockImplementation(
+        (p: string) => p === '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome'
+      );
+
+      const result = await checkToolInstalledProvider.fn!({ tool: 'chrome' });
+
+      expect(result).toBe(true);
+    });
   });
 
   describe('openFolderWith', () => {
@@ -244,6 +258,24 @@ describe('shellBridge', () => {
         detached: true,
         stdio: 'ignore',
       });
+    });
+
+    it('opens a blank Chrome tab with the installed Chrome app on macOS', async () => {
+      Object.defineProperty(process, 'platform', { value: 'darwin' });
+      fsMock.existsSync.mockImplementation(
+        (p: string) => p === '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome'
+      );
+
+      await openFolderWithProvider.fn!({ folderPath: '/workspace/project', tool: 'chrome' });
+
+      expect(spawnMock).toHaveBeenCalledWith(
+        '/Applications/chrome/Google Chrome.app/Contents/MacOS/Google Chrome',
+        ['--new-tab', 'about:blank'],
+        {
+          detached: true,
+          stdio: 'ignore',
+        }
+      );
     });
 
     it('handles folder path with special characters', async () => {

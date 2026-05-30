@@ -201,6 +201,7 @@
     "openWorkspace": "Open workspace folder",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Chrome Tab",
       "terminalPopOut": "External Terminal",
       "explorer": "File Explorer"
     }

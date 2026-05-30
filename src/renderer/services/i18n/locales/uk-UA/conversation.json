@@ -185,6 +185,7 @@
     "openWorkspace": "Відкрити папку робочої області",
     "openWith": {
       "vscode": "VS Code",
+      "chrome": "Вкладка Chrome",
       "terminal": "Термінал",
       "explorer": "Провідник"
     }

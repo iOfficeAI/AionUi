@@ -105,10 +105,18 @@ describe('terminalBridge', () => {
   it('spawns a PTY session and forwards output events', async () => {
     initTerminalBridge();
 
-    const result = await registeredProviders.createSession({ cwd: '/Users/chixson/Documents/project', cols: 90, rows: 24 });
+    const result = await registeredProviders.createSession({
+      cwd: '/Users/chixson/Documents/project',
+      cols: 90,
+      rows: 24,
+    });
 
     expect(result.sessionId).toBeDefined();
-    expect(spawnMock).toHaveBeenCalledWith(expect.any(String), [], expect.objectContaining({ cwd: '/Users/chixson/Documents/project', cols: 90, rows: 24 }));
+    expect(spawnMock).toHaveBeenCalledWith(
+      expect.any(String),
+      [],
+      expect.objectContaining({ cwd: '/Users/chixson/Documents/project', cols: 90, rows: 24 })
+    );
 
     ptyState.onDataHandler?.('hello');
 
