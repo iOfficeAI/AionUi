@@ -1,5 +1,23 @@
 # Changelog
 
+## [2.1.8](https://github.com/iOfficeAI/AionUi/compare/v2.1.7...v2.1.8) (2026-05-30)
+
+### Desktop
+
+#### Bug Fixes
+
+- **desktop:** improve incomplete backend install diagnostics (#3121)
+- **web-host:** enrich backend health timeout diagnostics (#3120)
+- **feedback:** preserve structured live error tips (#3116)
+
+### Core ([v0.1.17](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.17))
+
+#### Bug Fixes
+
+- **agent:** make codex sandbox sync non-fatal ([#370](https://github.com/iOfficeAI/AionCore/issues/370))
+
+---
+
 ## [2.1.7](https://github.com/iOfficeAI/AionUi/compare/v2.1.6...v2.1.7) (2026-05-29)
 
 ### Desktop
