@@ -151,3 +151,12 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 | **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.
+
+## Changelog
+
+**Every commit must include an update to `/Users/matt/chisl-full/CHANGELOG.md`** (the shared changelog at the root of the monorepo).
+
+- Add an entry under today's date with the repo name (`AionUi` or `AionCore`) and a plain-English description of what changed and why.
+- Be specific: what was broken, what was added, what decision was made. "Added new features" is not acceptable.
+- The changelog lives at `~/chisl-full/CHANGELOG.md` and covers both repos in a single file.
+- If you are an AI agent: update the changelog before running `git commit`. Do not skip this step.
