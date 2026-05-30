@@ -9,7 +9,7 @@
  */
 
 import { type ChildProcess, spawn } from 'node:child_process';
-import { createServer } from 'node:net';
+import { connect, createServer, type Socket } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
@@ -18,9 +18,23 @@ type BackendStartupStage = 'resolve_binary' | 'find_port' | 'spawn' | 'spawn_err
 
 type HealthCheckDiagnostics = {
   healthCheckAttempts: number;
+  healthCheckUrl?: string;
+  healthCheckTimeoutMs?: number;
+  healthCheckIntervalMs?: number;
+  healthCheckElapsedMs?: number;
+  healthCheckLastAttemptAfterMs?: number;
   healthCheckLastError?: string;
+  healthCheckLastErrorName?: string;
+  healthCheckLastErrorCauseMessage?: string;
+  healthCheckLastErrorCauseCode?: string;
   healthCheckLastStatus?: number;
   healthCheckLastBody?: string;
+  healthCheckTcpProbeOk?: boolean;
+  healthCheckTcpProbeError?: string;
+  healthCheckTcpProbeErrorName?: string;
+  healthCheckTcpProbeErrorCode?: string;
+  healthCheckTcpProbeElapsedMs?: number;
+  healthCheckTcpProbeTimeoutMs?: number;
 };
 
 type HealthCheckResult = {
@@ -72,6 +86,7 @@ export type BackendStartupErrorDetails = {
   dataDir?: string;
   logDir?: string;
   workDir?: string;
+  backendPid?: number;
   exitCode?: number;
   signal?: NodeJS.Signals | string;
   causeMessage?: string;
@@ -89,9 +104,26 @@ export type BackendStartupErrorDetails = {
   pathLookupResult?: string;
   pathLookupError?: string;
   healthCheckAttempts?: number;
+  healthCheckUrl?: string;
+  healthCheckTimeoutMs?: number;
+  healthCheckIntervalMs?: number;
+  healthCheckElapsedMs?: number;
+  healthCheckLastAttemptAfterMs?: number;
   healthCheckLastError?: string;
+  healthCheckLastErrorName?: string;
+  healthCheckLastErrorCauseMessage?: string;
+  healthCheckLastErrorCauseCode?: string;
   healthCheckLastStatus?: number;
   healthCheckLastBody?: string;
+  healthCheckTcpProbeOk?: boolean;
+  healthCheckTcpProbeError?: string;
+  healthCheckTcpProbeErrorName?: string;
+  healthCheckTcpProbeErrorCode?: string;
+  healthCheckTcpProbeElapsedMs?: number;
+  healthCheckTcpProbeTimeoutMs?: number;
+  serverListeningObserved?: boolean;
+  serverListeningObservedAfterMs?: number;
+  serverListeningLine?: string;
 };
 
 export type BackendStartOptions = {
@@ -193,6 +225,39 @@ function getErrorMessage(error: unknown): string | undefined {
   return undefined;
 }
 
+function getErrorName(error: unknown): string | undefined {
+  if (error instanceof Error) return error.name;
+  return undefined;
+}
+
+function getErrorCode(error: unknown): string | undefined {
+  if (!error || typeof error !== 'object') return undefined;
+  const code = (error as { code?: unknown }).code;
+  if (typeof code === 'string') return code;
+  if (typeof code === 'number') return String(code);
+  return undefined;
+}
+
+function getErrorCause(error: unknown): unknown {
+  if (!error || typeof error !== 'object') return undefined;
+  return (error as { cause?: unknown }).cause;
+}
+
+function applyHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics, error: unknown): void {
+  const cause = getErrorCause(error);
+  diagnostics.healthCheckLastError = getErrorMessage(error);
+  diagnostics.healthCheckLastErrorName = getErrorName(error);
+  diagnostics.healthCheckLastErrorCauseMessage = getErrorMessage(cause);
+  diagnostics.healthCheckLastErrorCauseCode = getErrorCode(cause);
+}
+
+function clearHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics): void {
+  delete diagnostics.healthCheckLastError;
+  delete diagnostics.healthCheckLastErrorName;
+  delete diagnostics.healthCheckLastErrorCauseMessage;
+  delete diagnostics.healthCheckLastErrorCauseCode;
+}
+
 function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetails> | undefined {
   if (!error || typeof error !== 'object') return undefined;
   const diagnostics = (error as { diagnostics?: unknown }).diagnostics;
@@ -228,6 +293,52 @@ function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGT
       /* already exited */
     }
   }
+}
+
+async function probeHealthCheckTcpConnect(port: number, timeoutMs = 1_000): Promise<Partial<HealthCheckDiagnostics>> {
+  const start = Date.now();
+  return await new Promise((resolve) => {
+    let settled = false;
+    let socket: Socket | undefined;
+    const finish = (diagnostics: Partial<HealthCheckDiagnostics>) => {
+      if (settled) return;
+      settled = true;
+      socket?.destroy();
+      resolve({
+        ...diagnostics,
+        healthCheckTcpProbeElapsedMs: Date.now() - start,
+        healthCheckTcpProbeTimeoutMs: timeoutMs,
+      });
+    };
+
+    try {
+      socket = connect({ host: '127.0.0.1', port }, () => {
+        finish({ healthCheckTcpProbeOk: true });
+      });
+      socket.once('error', (error) => {
+        finish({
+          healthCheckTcpProbeOk: false,
+          healthCheckTcpProbeError: getErrorMessage(error),
+          healthCheckTcpProbeErrorName: getErrorName(error),
+          healthCheckTcpProbeErrorCode: getErrorCode(error),
+        });
+      });
+      socket.setTimeout(timeoutMs, () => {
+        finish({
+          healthCheckTcpProbeOk: false,
+          healthCheckTcpProbeError: `tcp connect timed out after ${timeoutMs}ms`,
+          healthCheckTcpProbeErrorName: 'TimeoutError',
+        });
+      });
+    } catch (error) {
+      finish({
+        healthCheckTcpProbeOk: false,
+        healthCheckTcpProbeError: getErrorMessage(error),
+        healthCheckTcpProbeErrorName: getErrorName(error),
+        healthCheckTcpProbeErrorCode: getErrorCode(error),
+      });
+    }
+  });
 }
 
 export class BackendLifecycleManager {
@@ -309,6 +420,11 @@ export class BackendLifecycleManager {
     let stdoutTail = '';
     let stderrTail = '';
     let startupSettled = false;
+    const startupStartedAt = Date.now();
+    let serverListeningObserved = false;
+    let serverListeningObservedAfterMs: number | undefined;
+    let serverListeningLine: string | undefined;
+    let backendPid: number | undefined;
     const makeStartupError = (
       stage: BackendStartupStage,
       message: string,
@@ -326,9 +442,13 @@ export class BackendLifecycleManager {
           dataDir: dbPath,
           logDir,
           workDir: dirs?.workDir,
+          backendPid,
           causeMessage: getErrorMessage(cause),
           stdoutTail: stdoutTail || undefined,
           stderrTail: stderrTail || undefined,
+          serverListeningObserved,
+          serverListeningObservedAfterMs,
+          serverListeningLine,
           ...extra,
         },
         cause
@@ -358,7 +478,8 @@ export class BackendLifecycleManager {
 
     this.childProcess.stdin?.end();
 
-    const pid = this.childProcess.pid;
+    backendPid = this.childProcess.pid;
+    const pid = backendPid;
     const killOnExit = () => {
       if (pid) killBackendProcessTree(this.childProcess, 'SIGKILL');
     };
@@ -408,7 +529,13 @@ export class BackendLifecycleManager {
     this.childProcess.stdout?.on('data', (data: Buffer) => {
       stdoutTail = appendOutputTail(stdoutTail, data);
       for (const line of data.toString().split('\n')) {
-        if (line.trim()) console.log(`[aioncore] ${line}`);
+        const trimmed = line.trim();
+        if (!serverListeningObserved && trimmed.includes(`Server listening on 127.0.0.1:${this._port}`)) {
+          serverListeningObserved = true;
+          serverListeningObservedAfterMs = Date.now() - startupStartedAt;
+          serverListeningLine = trimmed;
+        }
+        if (trimmed) console.log(`[aioncore] ${line}`);
       }
     });
 
@@ -435,7 +562,7 @@ export class BackendLifecycleManager {
         void Promise.resolve(options.onHealthTimeout?.(healthTimeoutError)).catch((error) => {
           console.error('[aioncore] health timeout handler failed:', error);
         });
-        this.continueWaitingForHealth(this._port, this.childProcess, options.onReady);
+        this.continueWaitingForHealth(this._port, this.childProcess, startupStartedAt, options.onReady);
         return this._port;
       }
       startupSettled = true;
@@ -479,26 +606,38 @@ export class BackendLifecycleManager {
     shouldContinue: () => boolean = () => true
   ): Promise<HealthCheckResult> {
     const start = Date.now();
-    const diagnostics: HealthCheckDiagnostics = { healthCheckAttempts: 0 };
+    const intervalMs = 200;
+    const healthCheckUrl = `http://127.0.0.1:${port}/health`;
+    const diagnostics: HealthCheckDiagnostics = {
+      healthCheckAttempts: 0,
+      healthCheckUrl,
+      healthCheckIntervalMs: intervalMs,
+      healthCheckTimeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
+    };
     while (Date.now() - start < timeoutMs && shouldContinue()) {
       diagnostics.healthCheckAttempts += 1;
+      diagnostics.healthCheckLastAttemptAfterMs = Date.now() - start;
       try {
-        const response = await fetch(`http://127.0.0.1:${port}/health`);
+        const response = await fetch(healthCheckUrl);
         if (response.ok) return { ok: true, diagnostics };
         diagnostics.healthCheckLastStatus = response.status;
-        delete diagnostics.healthCheckLastError;
+        clearHealthCheckErrorDiagnostics(diagnostics);
         try {
           diagnostics.healthCheckLastBody = (await response.text()).slice(0, 500);
         } catch (error) {
           delete diagnostics.healthCheckLastBody;
-          diagnostics.healthCheckLastError = getErrorMessage(error);
+          applyHealthCheckErrorDiagnostics(diagnostics, error);
         }
       } catch (error) {
-        diagnostics.healthCheckLastError = getErrorMessage(error);
+        applyHealthCheckErrorDiagnostics(diagnostics, error);
         delete diagnostics.healthCheckLastStatus;
         delete diagnostics.healthCheckLastBody;
       }
-      await new Promise((r) => setTimeout(r, 200));
+      await new Promise((r) => setTimeout(r, intervalMs));
+    }
+    diagnostics.healthCheckElapsedMs = Date.now() - start;
+    if (Number.isFinite(timeoutMs)) {
+      Object.assign(diagnostics, await probeHealthCheckTcpConnect(port));
     }
     return { ok: false, diagnostics };
   }
@@ -506,6 +645,7 @@ export class BackendLifecycleManager {
   private continueWaitingForHealth(
     port: number,
     childProcess: ChildProcess,
+    startupStartedAt: number,
     onReady?: (port: number) => Promise<void> | void
   ): void {
     void (async () => {
@@ -517,7 +657,10 @@ export class BackendLifecycleManager {
       if (!health.ok || this.childProcess !== childProcess || this._status !== 'starting') return;
       this._status = 'running';
       this.restartCount = 0;
-      console.log(`[aioncore] listening on port ${port}, data-dir: ${this._lastDbPath}`);
+      const elapsedMs = Date.now() - startupStartedAt;
+      console.log(
+        `[aioncore] late health ready on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
+      );
       await onReady?.(port);
     })().catch((error) => {
       console.error('[aioncore] background health wait failed:', error);

@@ -7,6 +7,7 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { EventEmitter } from 'node:events';
 import type { ChildProcess } from 'node:child_process';
+import type { Socket } from 'node:net';
 
 // ---- Module-level mocks ----
 vi.mock('node:child_process', () => ({
@@ -15,6 +16,7 @@ vi.mock('node:child_process', () => ({
 
 vi.mock('node:net', () => ({
   createServer: vi.fn(),
+  connect: vi.fn(),
 }));
 
 vi.mock('./agent-process-registry.js', () => ({
@@ -22,7 +24,7 @@ vi.mock('./agent-process-registry.js', () => ({
 }));
 
 import { spawn } from 'node:child_process';
-import { createServer } from 'node:net';
+import { connect, createServer } from 'node:net';
 import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import { buildSpawnArgs, buildSpawnEnv, findAvailablePort, BackendLifecycleManager } from './backend-launcher.js';
 import type { AppMetadata } from './types.js';
@@ -71,6 +73,14 @@ function makeFakeChild(): ChildProcess {
   child.kill = vi.fn() as unknown as ChildProcess['kill'];
   child.pid = 99999;
   return child as ChildProcess;
+}
+
+function makeFakeSocket(): Socket {
+  const socket = new EventEmitter() as EventEmitter & Partial<Socket>;
+  socket.setTimeout = vi.fn(() => socket as Socket) as unknown as Socket['setTimeout'];
+  socket.destroy = vi.fn() as unknown as Socket['destroy'];
+  socket.end = vi.fn() as unknown as Socket['end'];
+  return socket as Socket;
 }
 
 beforeEach(() => {
@@ -329,6 +339,133 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     await vi.advanceTimersByTimeAsync(31_000);
     await expectedRejection;
 
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records when server listening appears before health check times out', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33337) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch failed'));
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        stage: 'health_timeout',
+        port: 33337,
+        healthCheckLastError: 'fetch failed',
+        serverListeningObserved: true,
+        serverListeningObservedAfterMs: expect.any(Number),
+        serverListeningLine: expect.stringContaining('Server listening on 127.0.0.1:33337'),
+      }),
+    });
+
+    await Promise.resolve();
+    child.stdout?.emit('data', Buffer.from('2026-05-30T09:47:26Z INFO Server listening on 127.0.0.1:33337\n'));
+    await vi.advanceTimersByTimeAsync(31_000);
+
+    await expectedRejection;
+
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records TCP reachability when fetch fails after the server starts listening', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33338) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const socket = makeFakeSocket();
+    vi.mocked(connect).mockImplementation((_options, onConnect) => {
+      queueMicrotask(() => onConnect?.());
+      return socket;
+    });
+
+    const fetchError = new TypeError('fetch failed') as TypeError & { cause?: NodeJS.ErrnoException };
+    fetchError.cause = Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:33338'), {
+      code: 'ECONNREFUSED',
+    });
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(fetchError);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      details: expect.objectContaining({
+        backendPid: 99999,
+        healthCheckUrl: 'http://127.0.0.1:33338/health',
+        healthCheckTimeoutMs: 30_000,
+        healthCheckIntervalMs: 200,
+        healthCheckElapsedMs: expect.any(Number),
+        healthCheckLastAttemptAfterMs: expect.any(Number),
+        healthCheckLastError: 'fetch failed',
+        healthCheckLastErrorName: 'TypeError',
+        healthCheckLastErrorCauseMessage: 'connect ECONNREFUSED 127.0.0.1:33338',
+        healthCheckLastErrorCauseCode: 'ECONNREFUSED',
+        healthCheckTcpProbeOk: true,
+        healthCheckTcpProbeElapsedMs: expect.any(Number),
+        healthCheckTcpProbeTimeoutMs: 1_000,
+      }),
+    });
+
+    await Promise.resolve();
+    child.stdout?.emit('data', Buffer.from('2026-05-30T09:47:26Z INFO Server listening on 127.0.0.1:33338\n'));
+    await vi.advanceTimersByTimeAsync(31_000);
+
+    await expectedRejection;
+
+    expect(connect).toHaveBeenCalledWith({ host: '127.0.0.1', port: 33338 }, expect.any(Function));
+    expect(socket.destroy).toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records TCP connection errors when fetch fails and the port is unreachable', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33339) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const socket = makeFakeSocket();
+    vi.mocked(connect).mockImplementation(() => {
+      queueMicrotask(() => {
+        socket.emit(
+          'error',
+          Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:33339'), { code: 'ECONNREFUSED' })
+        );
+      });
+      return socket;
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockRejectedValue(new Error('fetch failed'));
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      details: expect.objectContaining({
+        port: 33339,
+        healthCheckLastError: 'fetch failed',
+        healthCheckTcpProbeOk: false,
+        healthCheckTcpProbeError: 'connect ECONNREFUSED 127.0.0.1:33339',
+        healthCheckTcpProbeErrorName: 'Error',
+        healthCheckTcpProbeErrorCode: 'ECONNREFUSED',
+        healthCheckTcpProbeElapsedMs: expect.any(Number),
+      }),
+    });
+
+    await vi.advanceTimersByTimeAsync(31_000);
+
+    await expectedRejection;
+
+    expect(socket.destroy).toHaveBeenCalled();
     fetchSpy.mockRestore();
   }, 15_000);
 
