@@ -10,6 +10,8 @@ import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { gzipSync } from 'node:zlib';
 import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
+import { readAutoUpdateDiagnostics } from './process/services/autoUpdateDiagnostics';
+import { collectBackendInstallDiagnostics } from './process/startup/backendInstallDiagnostics';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
@@ -139,6 +141,15 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
   const capturedError = error instanceof Error ? error : new Error(String(error));
   const details = getBackendStartupDetails(error);
   const failureInfo = classifyBackendStartupFailure(error);
+  const installDiagnostics = collectBackendInstallDiagnostics(details, {
+    appVersion: app.getVersion(),
+    arch: process.arch,
+    execPath: process.execPath,
+    isPackaged: app.isPackaged,
+    platform: process.platform,
+    resourcesPath: process.resourcesPath,
+  });
+  const autoUpdateDiagnostics = readAutoUpdateDiagnostics(app.getPath('userData'));
   Sentry.withScope((scope) => {
     scope.setTag('aionui.failure', 'backend_startup');
     scope.setTag('aionui.backend_startup.reason', failureInfo.reason);
@@ -154,6 +165,12 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
     }
     scope.setContext('aioncore_startup_classification', { ...failureInfo });
     scope.setExtra('aioncore_startup_classification', failureInfo);
+    scope.setContext('aioncore_install_diagnostics', installDiagnostics);
+    scope.setExtra('aioncore_install_diagnostics', installDiagnostics);
+    if (autoUpdateDiagnostics) {
+      scope.setContext('auto_update_diagnostics', autoUpdateDiagnostics);
+      scope.setExtra('auto_update_diagnostics', autoUpdateDiagnostics);
+    }
     Sentry.captureException(capturedError);
   });
   try {

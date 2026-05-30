@@ -17,6 +17,9 @@ vi.mock('electron', () => ({
 }));
 
 let sentryInitOptions: { beforeSend?: (event: unknown) => unknown } | undefined;
+const scopeSetContext = vi.fn();
+const scopeSetExtra = vi.fn();
+const scopeSetTag = vi.fn();
 
 vi.mock('@sentry/electron/main', () => ({
   init: vi.fn((options: { beforeSend?: (event: unknown) => unknown }) => {
@@ -26,9 +29,9 @@ vi.mock('@sentry/electron/main', () => ({
   setUser: vi.fn(),
   withScope: vi.fn((callback: (scope: unknown) => void) => {
     callback({
-      setTag: vi.fn(),
-      setExtra: vi.fn(),
-      setContext: vi.fn(),
+      setTag: scopeSetTag,
+      setExtra: scopeSetExtra,
+      setContext: scopeSetContext,
     });
   }),
   captureException: vi.fn(),
@@ -114,6 +117,14 @@ describe('captureBackendStartupFailure', () => {
     expect(Sentry.captureException).toHaveBeenCalledWith(error);
     expect(Sentry.flush).toHaveBeenCalledWith(2000);
     expect(Sentry.withScope).toHaveBeenCalledOnce();
+    expect(scopeSetContext).toHaveBeenCalledWith(
+      'aioncore_install_diagnostics',
+      expect.objectContaining({
+        appVersion: '0.0.0-test',
+        isPackaged: false,
+        platform: process.platform,
+      })
+    );
   });
 });
 
