@@ -1,3 +1,189 @@
+/* ─────────────────────── Phase 4: Message Surface Rhythm ─────────────────────── */
+
+/* Agent message: 2px left-edge accent, persistent author label, no card.
+ * The edge is the only frame; padding leaves an 8px gap to content. */
+.message-agent {
+  position: relative;
+  width: 100%;
+  padding-left: 16px;
+  border-left: 2px solid var(--msg-agent-edge, var(--brand));
+  background: var(--bg-base);
+  color: var(--text-primary);
+}
+
+/* User message: recessed block, no bubble. Full width, rounded card, no border.
+ * Uses `--message-user-bg` (defined by every shipped color preset — Chisl
+ * + Catppuccin + any future user preset) so the recessed ground always
+ * renders. Falls back to bg-2 for safety. */
+.message-user {
+  width: 100%;
+  padding: 12px;
+  background: var(--message-user-bg, var(--bg-2)) !important;
+  border-radius: var(--radius-card);
+  border: 0;
+  color: var(--text-primary) !important;
+}
+
+/* Persistent author label.
+ * Sticky-positioned so on tall messages the attribution stays visible while
+ * the user scrolls through the body. On short messages it behaves identically
+ * to a static label (sticky has no visible effect until the container scrolls
+ * past its top). Background fade keeps the label legible when it engages.
+ * Colors use !important so no inherited or vendor cascade can paint the
+ * author label in a hard-coded value that loses contrast under a theme. */
+.message-author {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.4;
+  color: var(--text-secondary) !important;
+  padding: 4px 0 6px;
+  background: linear-gradient(
+    to bottom,
+    var(--bg-base) 0%,
+    var(--bg-base) 70%,
+    color-mix(in srgb, var(--bg-base) 0%, transparent) 100%
+  );
+  user-select: none;
+}
+
+.message-user .message-author {
+  background: linear-gradient(
+    to bottom,
+    var(--message-user-bg, var(--bg-2)) 0%,
+    var(--message-user-bg, var(--bg-2)) 70%,
+    color-mix(in srgb, var(--message-user-bg, var(--bg-2)) 0%, transparent) 100%
+  );
+  color: var(--text-primary) !important;
+  justify-content: flex-end;
+}
+
+.message-user .message-author > span {
+  color: var(--text-primary) !important;
+}
+
+.message-author__model {
+  font-family:
+    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
+  font-size: 12px;
+  color: var(--text-secondary) !important;
+  opacity: 0.85;
+  user-select: text;
+}
+
+.message-author__time {
+  font-size: 12px;
+  /* Inherits color via !important rules above; opacity tones it down vs
+   * the name without nailing a token that may lose contrast under a theme. */
+  opacity: 0.75;
+}
+
+/* Tool-call unified shell. Identical border, radius, padding for every
+ * tool-related component (MessageToolCall, MessageToolGroup,
+ * MessageToolGroupSummary, MessageFileChanges, MessageThinking,
+ * MessageAgentStatus, and FileChangesPanel). */
+.tool-shell {
+  width: 100%;
+  box-sizing: border-box;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-card);
+  background: var(--bg-1);
+  padding: 8px 12px;
+  margin: 4px 0;
+  overflow: hidden;
+}
+
+.tool-shell__header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 22px;
+}
+
+.tool-shell__title {
+  flex: 1;
+  min-width: 0;
+  font-size: 13px;
+  line-height: 1.35;
+  color: var(--text-primary);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.tool-shell__title--cancelled {
+  text-decoration: line-through;
+  color: var(--text-secondary);
+  opacity: 0.75;
+}
+
+.tool-shell__meta {
+  flex-shrink: 0;
+  font-size: 12px;
+  color: var(--text-secondary);
+  opacity: 0.75;
+  margin-left: auto;
+}
+
+.tool-shell__expander {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: var(--radius-control);
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 0;
+  padding: 0;
+  transition: background-color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.tool-shell__expander:hover {
+  background: var(--bg-2);
+  color: var(--text-primary);
+}
+
+.tool-shell__expander:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
+.tool-shell__body {
+  margin-top: 8px;
+}
+
+/* Status pill breathing pulse for running state. */
+@keyframes status-pill-breathe {
+  0%,
+  100% {
+    opacity: 0.6;
+    transform: scale(0.92);
+  }
+  50% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.status-pill__dot--running {
+  animation: status-pill-breathe 1.6s ease-in-out infinite;
+  box-shadow: 0 0 4px color-mix(in srgb, var(--brand) 50%, transparent);
+}
+
+/* Tool-shell — when nested inside a message, drop our own outer border
+ * so we don't double-frame. */
+.message-agent .tool-shell,
+.message-user .tool-shell {
+  margin: 4px 0;
+}
+
 /* Mobile typography tuning: conversation readability */
 @media (max-width: 767px) {
   /* Message body — keep body type compact so messages don't dominate the screen */

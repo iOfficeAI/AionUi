@@ -76,6 +76,14 @@
   --message-user-bg: #313244;
   --message-tips-bg: #181825;
   --workspace-btn-bg: #181825;
+
+  /* Phase 0 semantic message accents (mirrors chisl-color-scheme.css so the
+   * Phase 4 message rhythm renders correctly under this preset). */
+  --msg-agent-edge: #cba6f7; /* mauve, the Catppuccin brand */
+  --msg-user-bg: #313244; /* surface0 — recessed user-message ground */
+  --msg-user-edge: transparent;
+  --activity-pulse: #cba6f7;
+  --activity-pulse-bg: rgba(203, 166, 247, 0.12);
 }
 
 [data-color-scheme='theme'][data-theme='dark'] {
@@ -153,4 +161,12 @@
   --message-user-bg: #313244;
   --message-tips-bg: #181825;
   --workspace-btn-bg: #181825;
+
+  /* Phase 0 semantic message accents (dark variant — same surface palette as
+   * the base block, since Catppuccin Mocha is itself a dark theme). */
+  --msg-agent-edge: #cba6f7;
+  --msg-user-bg: #313244;
+  --msg-user-edge: transparent;
+  --activity-pulse: #cba6f7;
+  --activity-pulse-bg: rgba(203, 166, 247, 0.12);
 }

@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMessageToolGroup } from '@/common/chat/chatLib';
 import { iconColors } from '@/renderer/styles/colors';
-import { Alert, Button, Image, Message, Radio, Tag, Tooltip } from '@arco-design/web-react';
+import { Button, Image, Message, Radio, Tooltip } from '@arco-design/web-react';
 import { Copy, Download, LoadingOne } from '@icon-park/react';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -23,16 +23,29 @@ import { ToolConfirmationOutcome } from '@renderer/utils/common';
 import { ImagePreviewContext } from '../MessageList';
 import { COLLAPSE_CONFIG, TEXT_CONFIG } from '../constants';
 import type { ImageGenerationResult, WriteFileResult } from '../types';
+import ToolShell from './ToolShell';
+import type { StatusPillState } from './StatusPill';
+import { STATE_LABEL_FALLBACK, STATE_LABEL_KEY } from './StatusPill';
 
 const CODE_STYLE = { marginTop: 4, marginBottom: 4 };
 
-// Alert 组件样式常量 Alert component style constant
-// 顶部对齐图标与内容，避免多行文本时图标垂直居中
-const ALERT_CLASSES =
-  '!items-start !rd-8px !px-8px [&_.arco-alert-icon]:flex [&_.arco-alert-icon]:items-start [&_.arco-alert-content-wrapper]:flex [&_.arco-alert-content-wrapper]:items-start [&_.arco-alert-content-wrapper]:w-full [&_.arco-alert-content]:flex-1';
-
 // CollapsibleContent 高度常量 CollapsibleContent height constants
 const RESULT_MAX_HEIGHT = COLLAPSE_CONFIG.MAX_HEIGHT;
+
+const toolStatusToPill = (status: string): StatusPillState => {
+  switch (status) {
+    case 'Success':
+      return 'success';
+    case 'Error':
+      return 'failed';
+    case 'Canceled':
+      return 'cancelled';
+    case 'Confirming':
+      return 'queued';
+    default:
+      return 'running';
+  }
+};
 
 interface IMessageToolGroupProps {
   message: IMessageToolGroup;
@@ -455,7 +468,7 @@ const ToolResultDisplay: React.FC<{
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
 
-  // 收集所有 WriteFile 结果用于汇总显示 / Collect all WriteFile results for summary display
+  // Collect all WriteFile results for summary display
   const writeFileResults = useMemo(() => {
     return message.content
       .filter(
@@ -468,7 +481,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
       .map((item) => item.result_display as WriteFileResult);
   }, [message.content]);
 
-  // 找到第一个 WriteFile 的索引 / Find the index of first WriteFile
+  // Find the index of first WriteFile
   const firstWriteFileIndex = useMemo(() => {
     return message.content.findIndex(
       (item) =>
@@ -483,36 +496,43 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
     <div>
       {message.content.map((content, index) => {
         const { status, call_id, name, description, result_display, confirmationDetails } = content;
-        const isLoading = status !== 'Success' && status !== 'Error' && status !== 'Canceled';
-        // status === "Confirming" &&
+
         if (confirmationDetails) {
+          const confirmState: StatusPillState = status === 'Confirming' ? 'queued' : toolStatusToPill(status);
           return (
-            <ConfirmationDetails
+            <ToolShell
               key={call_id}
-              content={content}
-              onConfirm={(outcome) => {
-                ipcBridge.conversation.confirmMessage
-                  .invoke({
-                    confirm_key: outcome,
-                    msg_id: message.id,
-                    call_id: call_id,
-                    conversation_id: message.conversation_id,
-                  })
-                  .then(() => {
-                    // confirmation sent successfully
-                  })
-                  .catch((error) => {
-                    console.error('Failed to confirm message:', error);
-                  });
-              }}
-            ></ConfirmationDetails>
+              state={confirmState}
+              stateLabel={t(STATE_LABEL_KEY[confirmState], { defaultValue: STATE_LABEL_FALLBACK[confirmState] })}
+              title={<span className='font-medium'>{name}</span>}
+              defaultExpanded
+              collapsible={false}
+            >
+              <ConfirmationDetails
+                content={content}
+                onConfirm={(outcome) => {
+                  ipcBridge.conversation.confirmMessage
+                    .invoke({
+                      confirm_key: outcome,
+                      msg_id: message.id,
+                      call_id: call_id,
+                      conversation_id: message.conversation_id,
+                    })
+                    .then(() => {
+                      // confirmation sent successfully
+                    })
+                    .catch((error) => {
+                      console.error('Failed to confirm message:', error);
+                    });
+                }}
+              />
+            </ToolShell>
           );
         }
 
-        // WriteFile 特殊处理：使用 MessageFileChanges 汇总显示 / WriteFile special handling: use MessageFileChanges for summary display
+        // WriteFile special handling: use MessageFileChanges (which itself uses ToolShell)
         if (name === 'WriteFile' && typeof result_display !== 'string') {
           if (result_display && typeof result_display === 'object' && 'file_diff' in result_display) {
-            // 只在第一个 WriteFile 位置显示汇总组件 / Only show summary component at first WriteFile position
             if (index === firstWriteFileIndex && writeFileResults.length > 0) {
               return (
                 <div className='w-full min-w-0' key={call_id}>
@@ -520,51 +540,51 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                 </div>
               );
             }
-            // 跳过其他 WriteFile / Skip other WriteFile
             return null;
           }
         }
 
-        // ImageGeneration 特殊处理：单独展示图片，不用 Alert 包裹 Special handling for ImageGeneration: display image separately without Alert wrapper
+        // ImageGeneration special handling: render the image inside a ToolShell so
+        // the chrome matches every other tool call.
         if (name === 'ImageGeneration' && typeof result_display === 'object') {
           const result = result_display as ImageGenerationResult;
           if (result.img_url) {
-            return <ImageDisplay key={call_id} imgUrl={result.img_url} relativePath={result.relative_path} />;
+            const imgState = toolStatusToPill(status);
+            return (
+              <ToolShell
+                key={call_id}
+                state={imgState}
+                stateLabel={t(STATE_LABEL_KEY[imgState], { defaultValue: STATE_LABEL_FALLBACK[imgState] })}
+                title={<span className='font-medium'>{name}</span>}
+                meta={result.relative_path}
+              >
+                <ImageDisplay imgUrl={result.img_url} relativePath={result.relative_path} />
+              </ToolShell>
+            );
           }
         }
 
-        // 通用工具调用展示 Generic tool call display
-        // 将可展开的长内容放在 Alert 下方，保持 Alert 仅展示头部信息
-        return (
-          <div key={call_id}>
-            <Alert
-              className={ALERT_CLASSES}
-              type={
-                status === 'Error'
-                  ? 'error'
-                  : status === 'Success'
-                    ? 'success'
-                    : status === 'Canceled'
-                      ? 'warning'
-                      : 'info'
-              }
-              icon={
-                isLoading && (
-                  <LoadingOne theme='outline' size='12' fill={iconColors.primary} className='loading lh-[1] flex' />
-                )
-              }
-              content={
-                <div>
-                  <Tag className={'mr-4px'}>
-                    {name}
-                    {status === 'Canceled' ? `(${t('messages.canceledExecution')})` : ''}
-                  </Tag>
-                </div>
-              }
-            />
+        // Generic tool call display.
+        const pillState = toolStatusToPill(status);
+        const stateLabel = t(STATE_LABEL_KEY[pillState], { defaultValue: STATE_LABEL_FALLBACK[pillState] });
+        const hasBody = Boolean(description || result_display || status === 'Error');
+        const titleNode = (
+          <span className='font-medium'>
+            {name}
+            {status === 'Canceled' ? ` (${t('messages.canceledExecution')})` : ''}
+          </span>
+        );
 
-            {(description || result_display || status === 'Error') && (
-              <div className='mt-8px'>
+        return (
+          <ToolShell
+            key={call_id}
+            state={pillState}
+            stateLabel={stateLabel}
+            title={titleNode}
+            collapsible={hasBody}
+          >
+            {hasBody && (
+              <div>
                 {description && (
                   <div
                     className={`text-12px text-t-secondary mb-2 ${status === 'Error' ? 'whitespace-pre-wrap break-words' : 'truncate'}`}
@@ -574,8 +594,6 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                 )}
                 {result_display && (
                   <div>
-                    {/* 在 Alert 外展示完整结果 Display full result outside Alert */}
-                    {/* ToolResultDisplay 内部已包含 CollapsibleContent，避免嵌套 */}
                     {/* ToolResultDisplay already contains CollapsibleContent internally, avoid nesting */}
                     <ToolResultDisplay content={content} />
                   </div>
@@ -587,7 +605,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
                 )}
               </div>
             )}
-          </div>
+          </ToolShell>
         );
       })}
     </div>

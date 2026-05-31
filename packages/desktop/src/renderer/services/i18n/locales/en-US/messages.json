@@ -112,5 +112,22 @@
   "deleteMessageTitle": "Delete message?",
   "deleteMessageConfirm": "This permanently deletes the message from the remote session.",
   "deleteMessageSuccess": "Message deleted",
-  "deleteMessageFailed": "Failed to delete message"
+  "deleteMessageFailed": "Failed to delete message",
+  "author": {
+    "you": "You",
+    "agent": "Agent"
+  },
+  "toolShell": {
+    "showDetails": "Show details",
+    "hideDetails": "Hide details",
+    "viewSteps": "View Steps",
+    "stateQueued": "Queued",
+    "stateRunning": "Running",
+    "stateDone": "Done",
+    "stateFailed": "Failed",
+    "stateCancelled": "Cancelled",
+    "stateSkipped": "Skipped",
+    "stateThinking": "Thinking",
+    "stateThought": "Thought"
+  }
 }

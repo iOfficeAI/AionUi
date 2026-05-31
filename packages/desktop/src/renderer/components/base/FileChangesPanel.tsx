@@ -5,10 +5,11 @@
  */
 
 import classNames from 'classnames';
-import React, { useState } from 'react';
-import { Down, PreviewOpen } from '@icon-park/react';
+import React from 'react';
+import { PreviewOpen } from '@icon-park/react';
 import { diffColors, iconColors } from '@/renderer/styles/colors';
 import { useTranslation } from 'react-i18next';
+import ToolShell from '@/renderer/pages/conversation/Messages/components/ToolShell';
 
 /**
  * 文件变更项数据 / File change item data
@@ -58,97 +59,90 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
   className,
 }) => {
   const { t } = useTranslation();
-  const [expanded, setExpanded] = useState(defaultExpanded);
 
   if (files.length === 0) {
     return null;
   }
 
-  return (
-    <div
-      className={classNames(
-        'w-full box-border rounded-8px overflow-hidden border border-solid border-[var(--aou-2)]',
-        className
-      )}
-      style={{ width: '100%' }}
-    >
-      {/* 标题栏 / Header */}
-      <div
-        className='flex items-center justify-between px-16px py-12px cursor-pointer select-none'
-        onClick={() => setExpanded(!expanded)}
-      >
-        <div className='flex items-center gap-8px'>
-          {/* 绿色圆点 / Green dot */}
-          <span className='w-8px h-8px rounded-full shrink-0' style={{ backgroundColor: diffColors.addition }}></span>
-          {/* 标题 / Title */}
-          <span className='text-14px text-t-primary font-medium'>{title}</span>
-        </div>
-        {/* 展开/收起箭头 / Expand/collapse arrow */}
-        <Down
-          theme='outline'
-          size='16'
-          fill={iconColors.secondary}
-          className={classNames('transition-transform duration-200', expanded && 'rotate-180')}
-        />
-      </div>
+  const totalInsertions = files.reduce((sum, f) => sum + f.insertions, 0);
+  const totalDeletions = files.reduce((sum, f) => sum + f.deletions, 0);
+  const metaLabel =
+    totalInsertions > 0 || totalDeletions > 0 ? (
+      <span className='flex items-center gap-4px'>
+        {totalInsertions > 0 && (
+          <span className='font-medium' style={{ color: diffColors.addition }}>
+            +{totalInsertions}
+          </span>
+        )}
+        {totalDeletions > 0 && (
+          <span className='font-medium' style={{ color: diffColors.deletion }}>
+            -{totalDeletions}
+          </span>
+        )}
+      </span>
+    ) : undefined;
 
-      {/* 文件列表 / File list */}
-      {expanded && (
-        <div className='w-full bg-2'>
-          {files.map((file, index) => (
-            <div
-              key={`${file.fullPath}-${index}`}
-              className={classNames(
-                'group flex items-center justify-between px-16px py-12px hover:bg-3 transition-colors'
-              )}
-            >
-              {/* 文件名 / File name */}
-              <div className='flex items-center min-w-0'>
-                <span className='text-14px text-t-primary truncate'>{file.file_name}</span>
-              </div>
-              {/* 变更统计 + 预览按钮 / Change statistics + Preview button */}
-              <div className='flex items-center gap-8px shrink-0'>
-                {/* 变更统计 - 点击打开 diff 对比 / Change stats - click to open diff view */}
-                {(file.insertions > 0 || file.deletions > 0) && (
-                  <span
-                    className={classNames(
-                      'flex items-center gap-4px rd-4px px-4px py-2px',
-                      onDiffClick && 'cursor-pointer hover:bg-4 transition-colors'
-                    )}
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      onDiffClick?.(file);
-                    }}
-                  >
-                    {file.insertions > 0 && (
-                      <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
-                        +{file.insertions}
-                      </span>
-                    )}
-                    {file.deletions > 0 && (
-                      <span className='text-14px font-medium' style={{ color: diffColors.deletion }}>
-                        -{file.deletions}
-                      </span>
-                    )}
-                  </span>
-                )}
-                {/* 预览按钮 - 点击打开文件预览 / Preview button - click to open file preview */}
+  return (
+    <ToolShell
+      state='success'
+      stateLabel={t('messages.toolShell.stateDone', { defaultValue: 'Done' })}
+      title={<span className='text-14px font-medium'>{title}</span>}
+      meta={metaLabel}
+      defaultExpanded={defaultExpanded}
+      className={className}
+    >
+      <div className='w-full -mx-12px -mb-8px'>
+        {files.map((file, index) => (
+          <div
+            key={`${file.fullPath}-${index}`}
+            className={classNames(
+              'group flex items-center justify-between px-12px py-8px hover:bg-2 transition-colors'
+            )}
+          >
+            {/* File name */}
+            <div className='flex items-center min-w-0'>
+              <span className='text-14px text-t-primary truncate'>{file.file_name}</span>
+            </div>
+            {/* Change stats + Preview button */}
+            <div className='flex items-center gap-8px shrink-0'>
+              {(file.insertions > 0 || file.deletions > 0) && (
                 <span
-                  className='group-hover:opacity-100 transition-opacity shrink-0 ml-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rd-4px px-4px py-2px hover:bg-4'
+                  className={classNames(
+                    'flex items-center gap-4px rounded-control px-4px py-2px',
+                    onDiffClick && 'cursor-pointer hover:bg-3 transition-colors'
+                  )}
                   onClick={(e) => {
                     e.stopPropagation();
-                    onFileClick?.(file);
+                    onDiffClick?.(file);
                   }}
                 >
-                  <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
-                  {t('preview.preview')}
+                  {file.insertions > 0 && (
+                    <span className='text-14px font-medium' style={{ color: diffColors.addition }}>
+                      +{file.insertions}
+                    </span>
+                  )}
+                  {file.deletions > 0 && (
+                    <span className='text-14px font-medium' style={{ color: diffColors.deletion }}>
+                      -{file.deletions}
+                    </span>
+                  )}
                 </span>
-              </div>
+              )}
+              <span
+                className='group-hover:opacity-100 transition-opacity shrink-0 ml-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rounded-control px-4px py-2px hover:bg-3'
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onFileClick?.(file);
+                }}
+              >
+                <PreviewOpen className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
+                {t('preview.preview')}
+              </span>
             </div>
-          ))}
-        </div>
-      )}
-    </div>
+          </div>
+        ))}
+      </div>
+    </ToolShell>
   );
 };
 

@@ -5,11 +5,10 @@
  */
 
 import type { IMessageThinking } from '@/common/chat/chatLib';
-import { Spin } from '@arco-design/web-react';
-import { Brain, Right } from '@icon-park/react';
 import React, { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from './MessageThinking.module.css';
+import ToolShell from './ToolShell';
 
 const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) => {
   const { t } = useTranslation();
@@ -38,17 +37,9 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   const { content: text, status, subject } = message.content;
   const duration = message.content.duration ?? (message.content as { duration_ms?: number }).duration_ms;
   const isDone = status === 'done';
-  const [expanded, setExpanded] = useState(!isDone);
   const [elapsedTime, setElapsedTime] = useState(0);
   const startTimeRef = useRef<number>(Date.now());
   const bodyRef = useRef<HTMLDivElement>(null);
-
-  // Auto-collapse when status changes to done
-  useEffect(() => {
-    if (isDone) {
-      setExpanded(false);
-    }
-  }, [isDone]);
 
   // Elapsed timer for active thinking
   useEffect(() => {
@@ -64,28 +55,32 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
 
   // Auto-scroll to bottom during streaming
   useEffect(() => {
-    if (!isDone && expanded && bodyRef.current) {
+    if (!isDone && bodyRef.current) {
       bodyRef.current.scrollTop = bodyRef.current.scrollHeight;
     }
-  }, [text, isDone, expanded]);
+  }, [text, isDone]);
 
-  const summaryText = isDone
-    ? `${t('conversation.thinking.complete', { defaultValue: 'Thought complete' })} · ${formatDuration(duration || 0)}`
-    : `${subject || t('conversation.thinking.label', { defaultValue: 'Thinking...' })} · ${formatElapsedTime(elapsedTime)}`;
+  const state = isDone ? 'success' : 'running';
+  const stateLabelKey = isDone ? 'messages.toolShell.stateThought' : 'messages.toolShell.stateThinking';
+  const stateLabelFallback = isDone ? 'Thought' : 'Thinking';
+  const stateLabel = t(stateLabelKey, { defaultValue: stateLabelFallback });
+  const title = isDone
+    ? t('conversation.thinking.complete', { defaultValue: 'Thought complete' })
+    : subject || t('conversation.thinking.label', { defaultValue: 'Thinking...' });
+  const meta = isDone ? formatDuration(duration || 0) : formatElapsedTime(elapsedTime);
 
   return (
-    <div className={styles.container}>
-      <div className={styles.header} onClick={() => setExpanded((v) => !v)}>
-        <span className={styles.headerIcon}>{!isDone ? <Spin size={12} /> : <Brain theme='outline' size='14' />}</span>
-        <span className={styles.summary}>{summaryText}</span>
-        <span className={`${styles.arrow} ${expanded ? styles.arrowExpanded : ''}`}>
-          <Right theme='outline' size='12' />
-        </span>
-      </div>
-      <div ref={bodyRef} className={`${styles.body} ${!expanded ? styles.collapsed : ''}`}>
+    <ToolShell
+      state={state}
+      stateLabel={stateLabel}
+      title={title}
+      meta={meta}
+      defaultExpanded={!isDone}
+    >
+      <div ref={bodyRef} className={styles.body}>
         {text}
       </div>
-    </div>
+    </ToolShell>
   );
 };
 

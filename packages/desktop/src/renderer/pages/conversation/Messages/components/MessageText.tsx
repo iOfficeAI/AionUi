@@ -323,23 +323,50 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const senderAgentType = message.content.senderAgentType;
   const senderConversationId = message.content.senderConversationId;
   const fallbackBackendLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
+  const modelLabel =
+    !isUserMessage && message.content.model?.providerId && message.content.model?.modelId
+      ? `${message.content.model.providerId}/${message.content.model.modelId}`
+      : null;
+  const authorLabel = isUserMessage
+    ? t('messages.author.you', { defaultValue: 'You' })
+    : isTeammateMessage && senderName
+      ? senderName
+      : modelLabel || t('messages.author.agent', { defaultValue: 'Agent' });
+  const showAuthor = !cronMeta;
 
   return (
     <>
-      <div className={classNames('min-w-0 flex flex-col group', isUserMessage ? 'items-end' : 'items-start')}>
+      <div
+        className={classNames(
+          'min-w-0 flex flex-col group w-full',
+          isUserMessage ? 'message-user' : 'message-agent'
+        )}
+      >
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
-        {isTeammateMessage && senderName && (
-          <div className='flex items-center gap-6px mb-4px'>
-            <TeammateMessageAvatar
-              senderName={senderName}
-              senderConversationId={senderConversationId}
-              backendLogo={fallbackBackendLogo}
-            />
-            <span className='text-12px text-t-secondary'>{senderName}</span>
+        {showAuthor && (
+          <div className='message-author'>
+            {isTeammateMessage && senderName ? (
+              <span className='flex items-center gap-6px'>
+                <TeammateMessageAvatar
+                  senderName={senderName}
+                  senderConversationId={senderConversationId}
+                  backendLogo={fallbackBackendLogo}
+                />
+                <span>{senderName}</span>
+              </span>
+            ) : (
+              <span className={isUserMessage ? '' : 'message-author__model'}>{authorLabel}</span>
+            )}
+            {message.created_at && (
+              <span className='message-author__time'>
+                {isUserMessage ? '· ' : ''}
+                {formatMessageTime(message.created_at)}
+              </span>
+            )}
           </div>
         )}
         {files.length > 0 && (
-          <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
+          <div className='mt-6px'>
             {resolvedFiles.length === 1 ? (
               <div className='flex items-center'>
                 <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
@@ -353,20 +380,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             )}
           </div>
         )}
-        <div
-          className={classNames('min-w-0 [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-1100px', {
-            'bg-aou-2 p-4px md:p-6px': isUserMessage || cronMeta,
-            'bg-3 p-4px md:p-6px': isTeammateMessage,
-            'w-full': !(isUserMessage || cronMeta || isTeammateMessage),
-          })}
-          style={{
-            ...(isUserMessage || cronMeta
-              ? { borderRadius: '8px 0 8px 8px', color: 'var(--text-primary)' }
-              : isTeammateMessage
-                ? { borderRadius: '0 8px 8px 8px' }
-                : undefined),
-          }}
-        >
+        <div className='min-w-0 w-full [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-1100px'>
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>
@@ -386,28 +400,14 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
-        {!isUserMessage && message.content.model?.providerId && message.content.model?.modelId && (
-          <div className='text-12px op-50 mt-2px font-mono select-text leading-none'>
-            {message.content.model.providerId}/{message.content.model.modelId}
-          </div>
-        )}
-        {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
+        {/* Hover-revealed action row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies. */}
         {!isMobile && (
-          <div
-            className={classNames('h-20px flex items-center mt-2px gap-8px', {
-              'flex-row-reverse': isUserMessage,
-            })}
-          >
+          <div className='h-20px flex items-center mt-2px gap-8px'>
             {copyButton}
             {revertButton}
             {forkButton}
             {deleteButton}
-            {message.created_at && (
-              <span className='text-12px text-t-secondary opacity-0 group-hover:opacity-100 transition-opacity select-none'>
-                {formatMessageTime(message.created_at)}
-              </span>
-            )}
           </div>
         )}
       </div>
