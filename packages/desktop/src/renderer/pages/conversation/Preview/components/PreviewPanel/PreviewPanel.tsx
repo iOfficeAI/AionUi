@@ -35,12 +35,7 @@ import {
   type PreviewTab,
 } from '.';
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
-import {
-  usePreviewHistory,
-  useScrollSync,
-  useTabOverflow,
-  useThemeDetection,
-} from '../../hooks';
+import { usePreviewHistory, useScrollSync, useTabOverflow, useThemeDetection } from '../../hooks';
 import { useTranslation } from 'react-i18next';
 import './preview.css';
 

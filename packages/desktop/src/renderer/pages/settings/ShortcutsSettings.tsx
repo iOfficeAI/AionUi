@@ -78,27 +78,30 @@ const ShortcutRecorder: React.FC<{
     void onSave(shortcut, draftAccelerator, Boolean(draftAccelerator));
   }, [draftAccelerator, editable, onSave, saving, shortcut]);
 
-  const handleKeyDown = React.useCallback((event: React.KeyboardEvent<HTMLDivElement>) => {
-    if (!editable) return;
-    event.preventDefault();
-    event.stopPropagation();
+  const handleKeyDown = React.useCallback(
+    (event: React.KeyboardEvent<HTMLDivElement>) => {
+      if (!editable) return;
+      event.preventDefault();
+      event.stopPropagation();
 
-    if (event.key === 'Escape') {
-      setDraftAccelerator(shortcut.currentAccelerator);
-      event.currentTarget.blur();
-      return;
-    }
+      if (event.key === 'Escape') {
+        setDraftAccelerator(shortcut.currentAccelerator);
+        event.currentTarget.blur();
+        return;
+      }
 
-    if (event.key === 'Backspace' || event.key === 'Delete') {
-      setDraftAccelerator(null);
-      return;
-    }
+      if (event.key === 'Backspace' || event.key === 'Delete') {
+        setDraftAccelerator(null);
+        return;
+      }
 
-    const accelerator = acceleratorFromKeyboardEvent(event.nativeEvent);
-    if (accelerator) {
-      setDraftAccelerator(accelerator);
-    }
-  }, [editable, shortcut.currentAccelerator]);
+      const accelerator = acceleratorFromKeyboardEvent(event.nativeEvent);
+      if (accelerator) {
+        setDraftAccelerator(accelerator);
+      }
+    },
+    [editable, shortcut.currentAccelerator]
+  );
 
   return (
     <div
@@ -236,16 +239,13 @@ const ShortcutsSettings: React.FC<ShortcutsSettingsProps> = ({ withWrapper = tru
     action: t('settings.keyboardShortcuts.columns.action'),
   };
 
-  const persistShortcutConfig = React.useCallback(
-    async (nextConfig: KeyboardShortcutsConfig | null) => {
-      if (nextConfig) {
-        await configService.set(KEYBOARD_SHORTCUTS_CONFIG_KEY, nextConfig);
-      } else {
-        await configService.remove(KEYBOARD_SHORTCUTS_CONFIG_KEY);
-      }
-    },
-    []
-  );
+  const persistShortcutConfig = React.useCallback(async (nextConfig: KeyboardShortcutsConfig | null) => {
+    if (nextConfig) {
+      await configService.set(KEYBOARD_SHORTCUTS_CONFIG_KEY, nextConfig);
+    } else {
+      await configService.remove(KEYBOARD_SHORTCUTS_CONFIG_KEY);
+    }
+  }, []);
 
   const saveShortcut = React.useCallback(
     async (shortcut: ShortcutDefinition, accelerator: string | null, enabled: boolean) => {
@@ -258,7 +258,13 @@ const ShortcutsSettings: React.FC<ShortcutsSettingsProps> = ({ withWrapper = tru
       }
 
       const nextAccelerator = normalized ?? null;
-      const conflicts = validateShortcutBindingOverride(commands, shortcutConfig, shortcut.id, nextAccelerator, enabled);
+      const conflicts = validateShortcutBindingOverride(
+        commands,
+        shortcutConfig,
+        shortcut.id,
+        nextAccelerator,
+        enabled
+      );
       if (conflicts.length > 0) {
         message.error(
           t('settings.keyboardShortcuts.shortcutConflict', {
@@ -269,7 +275,9 @@ const ShortcutsSettings: React.FC<ShortcutsSettingsProps> = ({ withWrapper = tru
       }
 
       const isDefault =
-        enabled && nextAccelerator !== null && normalizeAccelerator(shortcut.defaultAccelerator ?? '') === nextAccelerator;
+        enabled &&
+        nextAccelerator !== null &&
+        normalizeAccelerator(shortcut.defaultAccelerator ?? '') === nextAccelerator;
       const nextConfig = isDefault
         ? removeShortcutBindingOverride(shortcutConfig, shortcut.id)
         : setShortcutBindingOverride(shortcutConfig, shortcut.id, nextAccelerator, enabled);
@@ -333,9 +341,7 @@ const ShortcutsSettings: React.FC<ShortcutsSettingsProps> = ({ withWrapper = tru
   const content = (
     <div className='shortcuts-settings flex flex-col gap-18px'>
       <div className='flex flex-col gap-6px'>
-        <h1 className='m-0 text-26px font-700 leading-32px text-t-primary'>
-          {t('settings.keyboardShortcuts.title')}
-        </h1>
+        <h1 className='m-0 text-26px font-700 leading-32px text-t-primary'>{t('settings.keyboardShortcuts.title')}</h1>
         <p className='m-0 text-13px leading-20px text-t-secondary'>{t('settings.keyboardShortcuts.description')}</p>
       </div>
 

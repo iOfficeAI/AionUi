@@ -60,17 +60,20 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     void checkTools();
   }, [isTemporary]);
 
-  const handleOpenWith = useCallback(async (tool: ToolType) => {
-    try {
-      await ipcBridge.shell.openFolderWith.invoke({ folder_path: workspacePath, tool });
-      // Save preference
-      localStorage.setItem(STORAGE_KEY, tool);
-      setPreferredTool(tool);
-    } catch (error) {
-      console.error(`[WorkspaceOpenButton] Failed to open folder with ${tool}:`, error);
-    }
-    setDropdownOpen(false);
-  }, [workspacePath]);
+  const handleOpenWith = useCallback(
+    async (tool: ToolType) => {
+      try {
+        await ipcBridge.shell.openFolderWith.invoke({ folder_path: workspacePath, tool });
+        // Save preference
+        localStorage.setItem(STORAGE_KEY, tool);
+        setPreferredTool(tool);
+      } catch (error) {
+        console.error(`[WorkspaceOpenButton] Failed to open folder with ${tool}:`, error);
+      }
+      setDropdownOpen(false);
+    },
+    [workspacePath]
+  );
 
   // Build dropdown options
   const toolOptions: ToolOption[] = [

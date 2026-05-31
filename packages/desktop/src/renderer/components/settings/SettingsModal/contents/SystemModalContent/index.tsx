@@ -12,7 +12,18 @@ import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Radio, Switch, Tooltip } from '@arco-design/web-react';
+import {
+  Alert,
+  Button,
+  Collapse,
+  Form,
+  InputNumber,
+  Message,
+  Modal,
+  Radio,
+  Switch,
+  Tooltip,
+} from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';

@@ -30,8 +30,7 @@ export const useCompositionInput = () => {
       if (isComposing.current) return;
       if (onKeyDownIntercept?.(e)) return;
       const shouldSubmit =
-        e.key === 'Enter' &&
-        (enterBehavior === 'enterSubmit' ? !e.shiftKey : (e.ctrlKey || e.metaKey) && !e.shiftKey);
+        e.key === 'Enter' && (enterBehavior === 'enterSubmit' ? !e.shiftKey : (e.ctrlKey || e.metaKey) && !e.shiftKey);
       if (shouldSubmit) {
         e.preventDefault();
         onEnterPress();

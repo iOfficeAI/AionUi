@@ -37,7 +37,14 @@ export type ShortcutDefinition = {
   source?: 'default' | 'user' | 'future';
 };
 
-export const shortcutCategoryOrder: ShortcutCategory[] = ['app', 'conversation', 'workspace', 'team', 'preview', 'reserved'];
+export const shortcutCategoryOrder: ShortcutCategory[] = [
+  'app',
+  'conversation',
+  'workspace',
+  'team',
+  'preview',
+  'reserved',
+];
 
 const categoryByCommandCategory: Record<CommandCategory, ShortcutCategory> = {
   app: 'app',

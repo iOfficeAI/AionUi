@@ -22,16 +22,16 @@ Implemented a renderer-first command and shortcut registry V1. The registry is m
 
 ## Default Enabled Bindings
 
-| Command | Binding | Behavior |
-| --- | --- | --- |
-| `conversation.new` | `CtrlOrCmd+T` | Navigate to `/guid`. |
-| `conversation.nextVisible` | `Ctrl+Tab` | Cycle to the next visible conversation by sidebar order. |
-| `conversation.previousVisible` | `Ctrl+Shift+Tab` | Cycle to the previous visible conversation by sidebar order. |
-| `app.openSettings` | `CtrlOrCmd+,` | Navigate to `/settings/model`. |
-| `app.toggleSidebar` | `CtrlOrCmd+B` | Toggle the main left sidebar. |
-| `navigation.back` | `CtrlOrCmd+[` | Use `NavigationHistoryContext.back()`. |
-| `navigation.forward` | `CtrlOrCmd+]` | Use `NavigationHistoryContext.forward()`. |
-| `workspace.togglePanel` | `CtrlOrCmd+Shift+E` | Dispatch the existing workspace panel toggle event on conversation/team routes. |
+| Command                        | Binding             | Behavior                                                                        |
+| ------------------------------ | ------------------- | ------------------------------------------------------------------------------- |
+| `conversation.new`             | `CtrlOrCmd+T`       | Navigate to `/guid`.                                                            |
+| `conversation.nextVisible`     | `Ctrl+Tab`          | Cycle to the next visible conversation by sidebar order.                        |
+| `conversation.previousVisible` | `Ctrl+Shift+Tab`    | Cycle to the previous visible conversation by sidebar order.                    |
+| `app.openSettings`             | `CtrlOrCmd+,`       | Navigate to `/settings/model`.                                                  |
+| `app.toggleSidebar`            | `CtrlOrCmd+B`       | Toggle the main left sidebar.                                                   |
+| `navigation.back`              | `CtrlOrCmd+[`       | Use `NavigationHistoryContext.back()`.                                          |
+| `navigation.forward`           | `CtrlOrCmd+]`       | Use `NavigationHistoryContext.forward()`.                                       |
+| `workspace.togglePanel`        | `CtrlOrCmd+Shift+E` | Dispatch the existing workspace panel toggle event on conversation/team routes. |
 
 ## Existing And Reserved Bindings
 

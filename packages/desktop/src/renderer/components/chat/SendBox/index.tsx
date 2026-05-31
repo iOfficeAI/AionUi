@@ -1646,9 +1646,13 @@ const SendBox: React.FC<{
               }}
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
-              }, enterBehavior)}
+              onKeyDown={createKeyDownHandler(
+                sendMessageHandler,
+                (event) => {
+                  return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+                },
+                enterBehavior
+              )}
             ></Input.TextArea>
           </div>
           {isSingleLine && (

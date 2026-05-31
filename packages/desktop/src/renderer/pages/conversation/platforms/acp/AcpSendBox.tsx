@@ -35,10 +35,7 @@ import {
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
-import {
-  CHAT_ATTACH_FILE_EVENT,
-  CHAT_OPEN_MODEL_SELECTOR_EVENT,
-} from '@/renderer/utils/chat/chatShortcutEvents';
+import { CHAT_ATTACH_FILE_EVENT, CHAT_OPEN_MODEL_SELECTOR_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
