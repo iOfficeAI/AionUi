@@ -114,20 +114,24 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
       }
     });
 
-  // M04: summarize/compact the session using its current model.
+  // M04/M22: compact the session (V2 with V1 summarize fallback).
   const handleSummarize = () =>
     runExclusive(async () => {
       try {
-        Message.info(t('conversation.session.summarizeStarted', { defaultValue: 'Summarizing session…' }));
-        await ipcBridge.conversation.summarizeRemoteSession.invoke({ conversation_id });
+        Message.info(t('conversation.session.summarizeStarted', { defaultValue: 'Compacting session…' }));
+        try {
+          await ipcBridge.conversation.compactRemoteSession.invoke({ conversation_id });
+        } catch {
+          await ipcBridge.conversation.summarizeRemoteSession.invoke({ conversation_id });
+        }
         Message.success(
           t('conversation.session.summarizeSuccess', {
-            defaultValue: 'Session summarized. Future replies will use the compacted context.',
+            defaultValue: 'Session compacted. Future replies will use the compacted context.',
           })
         );
       } catch (error) {
-        Message.error(t('conversation.session.summarizeFailed', { defaultValue: 'Failed to summarize' }));
-        console.error('[RemoteSessionActions] summarize failed:', error);
+        Message.error(t('conversation.session.summarizeFailed', { defaultValue: 'Failed to compact' }));
+        console.error('[RemoteSessionActions] compact failed:', error);
       }
     });
 

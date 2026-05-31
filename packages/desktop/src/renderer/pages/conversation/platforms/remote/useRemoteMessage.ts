@@ -15,6 +15,8 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { uuid } from '@/common/utils';
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { Notification } from '@arco-design/web-react';
+import { useTranslation } from 'react-i18next';
 
 /**
  * Best-effort classifier mapping a backend tool_progress payload into the
@@ -97,6 +99,7 @@ export type UseRemoteMessageReturn = {
  * can keep driving its loading UI off `aiProcessing` alone.
  */
 export const useRemoteMessage = (conversation_id: string): UseRemoteMessageReturn => {
+  const { t } = useTranslation();
   const addOrUpdateMessage = useAddOrUpdateMessage();
   const [running, setRunning] = useState(false);
   const [hasHydratedRunningState, setHasHydratedRunningState] = useState(false);
@@ -413,6 +416,24 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           };
           recoverRunning();
           addOrUpdateMessage(synthetic);
+          break;
+        }
+        case 'opencode_session_compacted': {
+          const compacted = message.data as {
+            summary?: string;
+            tokens_reclaimed?: number;
+            original_start_message_id?: string;
+            original_end_message_id?: string;
+          };
+          if (compacted) {
+            Notification.info({
+              title: t('remoteCompaction.title'),
+              content: t('remoteCompaction.notification', {
+                tokens: Math.round((compacted.tokens_reclaimed ?? 0) / 1024),
+              }),
+              duration: 5000,
+            });
+          }
           break;
         }
         default:

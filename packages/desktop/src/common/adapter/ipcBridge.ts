@@ -275,6 +275,31 @@ export const conversation = {
     }>,
     { conversation_id: string; mode?: 'git' | 'branch' }
   >((p) => `/api/conversations/${p.conversation_id}/opencode/vcs/diff?mode=${p.mode ?? 'git'}`),
+  /** M22: compact the remote session using V2 (with V1 summarize fallback). */
+  compactRemoteSession: httpPost<void, { conversation_id: string; instructions?: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/compact`,
+    (p) => (p.instructions ? { instructions: p.instructions } : {}),
+  ),
+  /** M22: get the session's active context window (all messages after last compaction). */
+  getSessionContext: httpGet<unknown[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/context`,
+  ),
+  /** M22: get V2 session messages with cursor-based pagination. */
+  getV2Messages: httpGet<
+    { items: unknown[]; cursor?: { previous?: string; next?: string } },
+    { conversation_id: string; limit?: number; cursor?: string }
+  >(
+    (p) =>
+      `/api/conversations/${p.conversation_id}/opencode/v2-messages${p.limit ? `?limit=${p.limit}` : ''}${p.cursor ? `${p.limit ? '&' : '?'}cursor=${p.cursor}` : ''}`,
+  ),
+  /** M22: fetch V2 model list (richer data: status, cost, capabilities, limits). */
+  getV2ModelList: httpGet<unknown[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-models`,
+  ),
+  /** M22: fetch V2 provider list. */
+  getV2ProviderList: httpGet<unknown[], { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-providers`,
+  ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {

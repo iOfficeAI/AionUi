@@ -393,6 +393,10 @@
     "startNew": "New conversation on this server",
     "noConversations": "No conversations on this server yet"
   },
+  "remoteCompaction": {
+    "title": "Session compacted",
+    "notification": "Session compacted — ~{{tokens}}K tokens reclaimed"
+  },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
