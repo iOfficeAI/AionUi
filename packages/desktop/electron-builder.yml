@@ -143,6 +143,8 @@ mac:
   gatekeeperAssess: false
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
+  extendInfo:
+    NSLocalNetworkUsageDescription: AionUi connects to model providers and development services on your local network.
 
 dmg:
   # Use UDZO format which is more reliable on CI

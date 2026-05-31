@@ -180,6 +180,58 @@ describe('buildSpawnEnv', () => {
     expect(env.AIONUI_LOG_DIR).toBe('/l');
     expect(env.PATH).toBe(process.env.PATH); // inherits
   });
+
+  it('defaults provider subprocess proxy bypass for local and private networks', () => {
+    const previousNoProxy = process.env.NO_PROXY;
+    const previousLowerNoProxy = process.env.no_proxy;
+    delete process.env.NO_PROXY;
+    delete process.env.no_proxy;
+
+    try {
+      const env = buildSpawnEnv({
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+
+      expect(env.NO_PROXY).toBe(env.no_proxy);
+      expect(env.NO_PROXY?.split(',')).toEqual(
+        expect.arrayContaining(['localhost', '127.0.0.1', '192.168.0.0/16', '10.0.0.0/8'])
+      );
+    } finally {
+      if (previousNoProxy === undefined) delete process.env.NO_PROXY;
+      else process.env.NO_PROXY = previousNoProxy;
+      if (previousLowerNoProxy === undefined) delete process.env.no_proxy;
+      else process.env.no_proxy = previousLowerNoProxy;
+    }
+  });
+
+  it('preserves existing proxy bypass entries while adding provider-safe defaults', () => {
+    const previousNoProxy = process.env.NO_PROXY;
+    const previousLowerNoProxy = process.env.no_proxy;
+    process.env.NO_PROXY = 'api.example.com,localhost';
+    process.env.no_proxy = 'custom.internal';
+
+    try {
+      const env = buildSpawnEnv({
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+      const entries = env.NO_PROXY?.split(',') ?? [];
+
+      expect(entries).toEqual(
+        expect.arrayContaining(['api.example.com', 'custom.internal', 'localhost', '192.168.0.0/16'])
+      );
+      expect(entries.filter((entry) => entry === 'localhost')).toHaveLength(1);
+      expect(env.no_proxy).toBe(env.NO_PROXY);
+    } finally {
+      if (previousNoProxy === undefined) delete process.env.NO_PROXY;
+      else process.env.NO_PROXY = previousNoProxy;
+      if (previousLowerNoProxy === undefined) delete process.env.no_proxy;
+      else process.env.no_proxy = previousLowerNoProxy;
+    }
+  });
 });
 
 describe('findAvailablePort', () => {

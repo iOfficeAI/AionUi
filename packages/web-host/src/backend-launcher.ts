@@ -203,13 +203,54 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('aionui.dir').
  */
+const DEFAULT_NO_PROXY_ENTRIES = [
+  'localhost',
+  '127.0.0.1',
+  '::1',
+  '0.0.0.0',
+  '.local',
+  '10.0.0.0/8',
+  '172.16.0.0/12',
+  '192.168.0.0/16',
+  '169.254.0.0/16',
+  'fc00::/7',
+  'fe80::/10',
+] as const;
+
+function mergeNoProxyEntries(...values: Array<string | undefined>): string {
+  const merged: string[] = [];
+  const seen = new Set<string>();
+
+  const addEntry = (entry: string) => {
+    const normalized = entry.trim();
+    if (!normalized) return;
+
+    const key = normalized.toLowerCase();
+    if (seen.has(key)) return;
+
+    seen.add(key);
+    merged.push(normalized);
+  };
+
+  values.forEach((value) => value?.split(',').forEach(addEntry));
+  DEFAULT_NO_PROXY_ENTRIES.forEach(addEntry);
+
+  return merged.join(',');
+}
+
 export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
-  return {
+  const env: NodeJS.ProcessEnv = {
     ...process.env,
     AIONUI_CACHE_DIR: dirs.cacheDir,
     AIONUI_WORK_DIR: dirs.workDir,
     AIONUI_LOG_DIR: dirs.logDir,
   };
+
+  const noProxy = mergeNoProxyEntries(env.NO_PROXY, env.no_proxy);
+  env.NO_PROXY = noProxy;
+  env.no_proxy = noProxy;
+
+  return env;
 }
 
 const FETCH_FORBIDDEN_PORTS = new Set([
