@@ -6,7 +6,12 @@
 
 import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput, RemoteAgentProtocol } from '@/common/types/agent/remoteAgentTypes';
+import {
+  getDefaultRemoteAgentId,
+  setDefaultRemoteAgentId,
+} from '@/common/utils/defaultRemoteAgent';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
+import { useRemoteAgentHealth } from '@/renderer/hooks/agent/useRemoteAgentHealth';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import {
   Avatar,
@@ -20,10 +25,11 @@ import {
   Spin,
   Switch,
   Tag,
+  Tooltip,
   Typography,
 } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Attention, Edit, Plus, ReduceOne, Robot, Speed } from '@icon-park/react';
+import { Attention, Edit, Like, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -474,9 +480,23 @@ const RemoteAgentFormModal: React.FC<{
 const RemoteAgentManagement: React.FC = () => {
   const { t } = useTranslation();
   const { data: agents, mutate } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
+  const { health, refresh: refreshHealth } = useRemoteAgentHealth();
+  const [defaultAgentId, setDefaultAgentIdState] = useState<string | null>(() => getDefaultRemoteAgentId());
   const [modalVisible, setModalVisible] = useState(false);
   const [editAgent, setEditAgent] = useState<RemoteAgentConfig>();
   const remoteActionButtonClassName = '!rounded-10px !px-10px';
+
+  const handleSetDefault = useCallback((id: string | null) => {
+    setDefaultRemoteAgentId(id);
+    setDefaultAgentIdState(id);
+  }, []);
+
+  useEffect(() => {
+    if (!agents?.length) return;
+    if (defaultAgentId && !agents.some((a) => a.id === defaultAgentId)) {
+      handleSetDefault(null);
+    }
+  }, [agents, defaultAgentId, handleSetDefault]);
 
   const handleAdd = useCallback(() => {
     setEditAgent(undefined);
@@ -519,16 +539,28 @@ const RemoteAgentManagement: React.FC = () => {
             {t('settings.remoteAgent.guideAction')}
           </Link>
         </div>
-        <Button
-          type='outline'
-          shape='round'
-          size='small'
-          icon={<Plus size='16' />}
-          onClick={handleAdd}
-          className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
-        >
-          {t('settings.remoteAgent.add')}
-        </Button>
+        <div className='flex items-center gap-8px'>
+          <Tooltip content={t('settings.remoteAgent.healthChecking')}>
+            <Button
+              type='outline'
+              shape='round'
+              size='small'
+              icon={<Refresh size='16' />}
+              onClick={() => void refreshHealth()}
+              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-10px text-t-secondary hover:text-t-primary'
+            />
+          </Tooltip>
+          <Button
+            type='outline'
+            shape='round'
+            size='small'
+            icon={<Plus size='16' />}
+            onClick={handleAdd}
+            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+          >
+            {t('settings.remoteAgent.add')}
+          </Button>
+        </div>
       </div>
 
       {!agents || agents.length === 0 ? (
@@ -579,7 +611,41 @@ const RemoteAgentManagement: React.FC = () => {
                 <Tag size='small' color='arcoblue'>
                   {agent.protocol}
                 </Tag>
+                {defaultAgentId === agent.id && (
+                  <Tag size='small' color='orangered'>
+                    {t('settings.remoteAgent.defaultBadge')}
+                  </Tag>
+                )}
               </div>
+              {(() => {
+                const entry = health[agent.id];
+                const loading = entry === 'loading';
+                if (!entry) return null;
+                const color = loading
+                  ? 'gray'
+                  : entry.healthy
+                    ? 'green'
+                    : 'red';
+                return (
+                  <Tooltip
+                    content={
+                      !loading && entry.error
+                        ? entry.error
+                        : !loading
+                          ? t('settings.remoteAgent.healthLatency', { ms: entry.latency_ms })
+                          : t('settings.remoteAgent.healthChecking')
+                    }
+                  >
+                    <Tag size='small' color={color} className='mx-auto mb-8px'>
+                      {loading
+                        ? t('settings.remoteAgent.healthChecking')
+                        : entry.healthy
+                          ? t('settings.remoteAgent.healthHealthy')
+                          : t('settings.remoteAgent.healthUnhealthy')}
+                    </Tag>
+                  </Tooltip>
+                );
+              })()}
 
               <Typography.Text
                 type='secondary'
@@ -588,25 +654,38 @@ const RemoteAgentManagement: React.FC = () => {
                 {agent.url}
               </Typography.Text>
 
-              <div className='mt-auto grid grid-cols-2 gap-8px'>
+              <div className='mt-auto flex flex-col gap-8px'>
+                <div className='grid grid-cols-2 gap-8px'>
+                  <Button
+                    size='small'
+                    type='secondary'
+                    icon={<Edit theme='outline' size='14' />}
+                    className={remoteActionButtonClassName}
+                    onClick={() => handleEdit(agent)}
+                  >
+                    {t('common.edit', { defaultValue: 'Edit' })}
+                  </Button>
+                  <Button
+                    size='small'
+                    type='secondary'
+                    status='danger'
+                    icon={<ReduceOne theme='outline' size='14' />}
+                    className={remoteActionButtonClassName}
+                    onClick={() => void handleDelete(agent)}
+                  >
+                    {t('common.delete', { defaultValue: 'Delete' })}
+                  </Button>
+                </div>
                 <Button
                   size='small'
-                  type='secondary'
-                  icon={<Edit theme='outline' size='14' />}
-                  className={remoteActionButtonClassName}
-                  onClick={() => handleEdit(agent)}
+                  type='text'
+                  icon={<Like theme='outline' size='12' />}
+                  onClick={() => handleSetDefault(defaultAgentId === agent.id ? null : agent.id)}
+                  className='!rounded-10px !px-10px text-t-secondary hover:text-t-primary'
                 >
-                  {t('common.edit', { defaultValue: 'Edit' })}
-                </Button>
-                <Button
-                  size='small'
-                  type='secondary'
-                  status='danger'
-                  icon={<ReduceOne theme='outline' size='14' />}
-                  className={remoteActionButtonClassName}
-                  onClick={() => void handleDelete(agent)}
-                >
-                  {t('common.delete', { defaultValue: 'Delete' })}
+                  {defaultAgentId === agent.id
+                    ? t('settings.remoteAgent.clearDefault')
+                    : t('settings.remoteAgent.setDefault')}
                 </Button>
               </div>
             </div>

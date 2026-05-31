@@ -933,7 +933,14 @@
     "pendingApprovalHint": "Please approve this device on the OpenClaw Gateway",
     "pendingTimeout": "Approval request expired (5 minutes). Please try again.",
     "pendingCancel": "Cancel",
-    "pendingTimeRemaining": "Time remaining: {{time}}"
+    "pendingTimeRemaining": "Time remaining: {{time}}",
+    "healthHealthy": "Healthy",
+    "healthUnhealthy": "Unreachable",
+    "healthChecking": "Checking...",
+    "healthLatency": "{{ms}}ms",
+    "setDefault": "Set as default",
+    "clearDefault": "Clear default",
+    "defaultBadge": "Default"
   },
   "noExternalSources": "No external skill sources discovered"
 }

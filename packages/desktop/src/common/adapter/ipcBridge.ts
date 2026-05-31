@@ -1052,6 +1052,15 @@ export const remoteAgent = {
     (p) => `/api/remote-agents/${p.id}/sessions`
   ),
   /**
+   * A02: lightweight health probe (no status mutation). Returns
+   * `{ healthy, latency_ms, error? }`. The renderer polls this on a 60 s
+   * cadence for the settings card indicators and the conversation-header
+   * quick-switch dropdown.
+   */
+  pingHealth: httpGet<{ healthy: boolean; latency_ms: number; error?: string }, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/health`
+  ),
+  /**
    * Phase 4b: lazy-load the OpenCode message transcript into the
    * local conversation the first time the user opens it. Idempotent —
    * once `extra.history_loaded` flips true the call short-circuits

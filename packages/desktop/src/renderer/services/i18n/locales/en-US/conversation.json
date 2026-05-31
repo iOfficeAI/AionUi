@@ -386,6 +386,13 @@
     "localHint": "This conversation uses your computer's files via Chisl's local file tools.",
     "serverHint": "This conversation uses the OpenCode server's own files and tools."
   },
+  "remoteServerBadge": {
+    "switchServer": "Switch server",
+    "current": "Current",
+    "openExisting": "Open",
+    "startNew": "New conversation on this server",
+    "noConversations": "No conversations on this server yet"
+  },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
