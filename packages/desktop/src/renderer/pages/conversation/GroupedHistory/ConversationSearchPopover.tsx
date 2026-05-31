@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { CHAT_OPEN_CONVERSATION_SEARCH_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
@@ -310,6 +311,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   }, [disabled]);
 
   useEffect(() => {
+    window.addEventListener(CHAT_OPEN_CONVERSATION_SEARCH_EVENT, handleOpen);
     const handleGlobalSearchShortcut = (event: KeyboardEvent) => {
       if (event.defaultPrevented) return;
       if ((event as unknown as { isComposing?: boolean }).isComposing) return;
@@ -324,6 +326,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
 
     document.addEventListener('keydown', handleGlobalSearchShortcut, true);
     return () => {
+      window.removeEventListener(CHAT_OPEN_CONVERSATION_SEARCH_EVENT, handleOpen);
       document.removeEventListener('keydown', handleGlobalSearchShortcut, true);
     };
   }, [handleOpen]);

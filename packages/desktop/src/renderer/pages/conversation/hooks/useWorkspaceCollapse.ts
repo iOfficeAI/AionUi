@@ -1,5 +1,6 @@
 import { blurActiveElement } from '@/renderer/utils/ui/focus';
 import {
+  WORKSPACE_EXPAND_EVENT,
   WORKSPACE_HAS_FILES_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
@@ -92,9 +93,17 @@ export function useWorkspaceCollapse({
         return newState;
       });
     };
+    const handleWorkspaceExpand = () => {
+      if (!workspaceEnabled) {
+        return;
+      }
+      setRightSiderCollapsed(false);
+    };
     window.addEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+    window.addEventListener(WORKSPACE_EXPAND_EVENT, handleWorkspaceExpand);
     return () => {
       window.removeEventListener(WORKSPACE_TOGGLE_EVENT, handleWorkspaceToggle);
+      window.removeEventListener(WORKSPACE_EXPAND_EVENT, handleWorkspaceExpand);
     };
   }, [workspaceEnabled, preferenceKey]);
 

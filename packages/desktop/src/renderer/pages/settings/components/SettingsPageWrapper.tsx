@@ -15,6 +15,7 @@ import {
   LinkCloud,
   Puzzle,
   Robot,
+  Speed,
   System,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -59,6 +60,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       label: t('settings.display'),
       icon: <Computer theme='outline' size='16' />,
       path: 'display',
+    },
+    shortcuts: {
+      id: 'shortcuts',
+      label: t('settings.shortcuts', { defaultValue: 'Shortcuts' }),
+      icon: <Speed theme='outline' size='16' />,
+      path: 'shortcuts',
     },
     webui: {
       id: 'webui',

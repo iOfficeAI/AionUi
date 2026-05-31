@@ -54,6 +54,18 @@ export interface IConfigStorageRefer {
   colorScheme: string;
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
+  /** Renderer shortcut override config. Main-process accelerators remain outside this map. */
+  'keyboard.shortcuts'?: {
+    version: 1;
+    bindings: {
+      commandId: string;
+      accelerator: string | null;
+      scope?: 'global' | 'route' | 'component';
+      enabled?: boolean;
+    }[];
+  };
+  /** Chat input Enter behavior. Default preserves Enter-submit, Shift+Enter-newline. */
+  'chat.enterBehavior'?: 'enterSubmit' | 'enterNewline';
   /** Last-known main window size and position, restored on next launch */
   'window.bounds'?: { x?: number; y?: number; width: number; height: number };
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */

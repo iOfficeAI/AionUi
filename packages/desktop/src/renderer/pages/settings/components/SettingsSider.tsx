@@ -30,6 +30,7 @@ export const BUILTIN_TAB_IDS = [
   'assistants',
   'capabilities',
   'display',
+  'shortcuts',
   'webui',
   'pet',
   'system',
@@ -101,6 +102,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         path: 'capabilities',
       },
       display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
+      shortcuts: {
+        id: 'shortcuts',
+        label: t('settings.shortcuts', { defaultValue: 'Shortcuts' }),
+        icon: <Speed />,
+        path: 'shortcuts',
+      },
       webui: {
         id: 'webui',
         label: t('settings.webui'),

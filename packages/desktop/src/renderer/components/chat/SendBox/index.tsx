@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
 import AtFileMenu from '@/renderer/components/chat/AtFileMenu';
 import BtwOverlay from '@/renderer/components/chat/BtwOverlay';
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
@@ -31,6 +32,7 @@ import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useCompositionInput } from '@renderer/hooks/chat/useCompositionInput';
+import type { EnterBehavior } from '@renderer/hooks/chat/useCompositionInput';
 import { useConversationExport } from '@renderer/hooks/file/useConversationExport';
 import { useDragUpload } from '@renderer/hooks/file/useDragUpload';
 import { useLatestRef } from '@renderer/hooks/ui/useLatestRef';
@@ -225,6 +227,7 @@ const SendBox: React.FC<{
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
+  const [enterBehavior, setEnterBehavior] = useState<EnterBehavior>('enterSubmit');
   const isInputActive = isInputFocused;
   const { activeBorderColor, inactiveBorderColor, activeShadow } = useInputFocusRing();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -957,6 +960,16 @@ const SendBox: React.FC<{
   // 使用共享的输入法合成处理
   const { compositionHandlers, isComposingState, createKeyDownHandler } = useCompositionInput();
 
+  useEffect(() => {
+    const normalizeEnterBehavior = (value: unknown): EnterBehavior =>
+      value === 'enterNewline' ? 'enterNewline' : 'enterSubmit';
+    setEnterBehavior(normalizeEnterBehavior(configService.get('chat.enterBehavior')));
+    const unsubscribe = configService.subscribe('chat.enterBehavior', (value) => {
+      setEnterBehavior(normalizeEnterBehavior(value));
+    });
+    return unsubscribe;
+  }, []);
+
   // 使用共享的PasteService集成
   const { onPaste, onFocus: handlePasteFocus } = usePasteService({
     supportedExts,
@@ -1633,9 +1646,13 @@ const SendBox: React.FC<{
               }}
               {...compositionHandlers}
               autoSize={isSingleLine ? false : { minRows: 1, maxRows: 10 }}
-              onKeyDown={createKeyDownHandler(sendMessageHandler, (event) => {
-                return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
-              })}
+              onKeyDown={createKeyDownHandler(
+                sendMessageHandler,
+                (event) => {
+                  return handleAtFileMenuKeyDown(event) || handleOverlayKeyDown(event) || handleHistoryKeyDown(event);
+                },
+                enterBehavior
+              )}
             ></Input.TextArea>
           </div>
           {isSingleLine && (

@@ -52,5 +52,9 @@
       "interview": "Спланувати глибоке інтерв'ю між агентами",
       "expert_review": "Залучити кількох експертів до аналізу однієї проблеми"
     }
+  },
+  "removeAgent": {
+    "confirmTitle": "Remove Team Member",
+    "confirmContent": "This member is currently active. Force remove?"
   }
 }

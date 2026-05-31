@@ -12,7 +12,7 @@ import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
-export type WorkspaceEventPrefix = 'acp' | 'codex';
+export type WorkspaceEventPrefix = 'acp' | 'aionrs' | 'codex' | 'nanobot' | 'openclaw-gateway' | 'remote';
 
 /**
  * Hook to select a new workspace directory for the current conversation.

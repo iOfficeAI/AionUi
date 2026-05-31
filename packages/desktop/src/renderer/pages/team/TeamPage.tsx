@@ -9,6 +9,7 @@ import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import ChatLayout from '@/renderer/pages/conversation/components/ChatLayout';
+import ChatCommandPanel from '@/renderer/pages/conversation/components/ChatCommandPanel';
 import ChatSlider from '@renderer/pages/conversation/components/ChatSlider.tsx';
 import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
@@ -345,6 +346,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
       allConversationIds={allConversationIds}
     >
       {messageContext}
+      <ChatCommandPanel />
       <ChatLayout
         title={team.name}
         siderTitle={siderTitle}

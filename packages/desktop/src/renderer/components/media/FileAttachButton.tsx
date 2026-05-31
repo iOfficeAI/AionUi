@@ -5,7 +5,6 @@
  */
 
 import type { IConversationMcpStatus, IConversationMcpStatusKind } from '@/common/config/storage';
-import { ipcBridge } from '@/common';
 import { Button, Message, Trigger } from '@arco-design/web-react';
 import { FolderOpen, Lightning, Paperclip, Plus, Right, Shield } from '@icon-park/react';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
@@ -17,7 +16,6 @@ import { emitter } from '@/renderer/utils/emitter';
 import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import useSWR from 'swr';
 
 interface FileAttachButtonProps {
   openFileSelector: () => void;
@@ -92,11 +90,6 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     loadedMcpStatuses ?? conversationContext?.loadedMcpStatuses,
     conversationContext?.loadedMcpServers
   );
-  const { data: skillIndex } = useSWR(skillNames.length > 0 ? 'skills-index' : null, () =>
-    ipcBridge.fs.listAvailableSkills.invoke()
-  );
-  const descriptionByName = new Map((skillIndex ?? []).map((s) => [s.name, s.description]));
-
   const handleSkillClick = useCallback((name: string) => {
     setOpen(false);
     emitter.emit('sendbox.fill', `/${name} `);

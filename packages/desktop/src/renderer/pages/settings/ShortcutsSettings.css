@@ -1,0 +1,203 @@
+.shortcuts-settings {
+  color: var(--color-text-1);
+}
+
+.shortcuts-settings__toolbar {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  align-items: center;
+}
+
+.shortcuts-settings__summary {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.shortcuts-settings__summary-item {
+  min-width: 0;
+  border-radius: 16px;
+  background: var(--color-fill-1);
+  padding: 10px 12px;
+}
+
+.shortcuts-settings__diagnostics {
+  display: grid;
+  gap: 6px;
+  border: 1px solid var(--color-danger-4);
+  border-radius: 8px;
+  background: var(--color-danger-light-1);
+  color: var(--color-danger-6);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 10px 12px;
+}
+
+.shortcuts-settings__group {
+  overflow: hidden;
+  border-radius: 16px;
+  background: var(--color-fill-1);
+}
+
+.shortcuts-settings__group-header,
+.shortcuts-settings__row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.2fr) minmax(150px, 0.75fr) minmax(130px, 0.6fr) minmax(210px, 1fr) 148px;
+  gap: 12px;
+  align-items: center;
+}
+
+.shortcuts-settings__group-header {
+  min-height: 38px;
+  padding: 0 18px;
+  border-bottom: 1px solid var(--color-border-2);
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.shortcuts-settings__row {
+  min-height: 68px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--color-border-2);
+}
+
+.shortcuts-settings__row:last-child {
+  border-bottom: 0;
+}
+
+.shortcuts-settings__shortcut {
+  display: inline-flex;
+  max-width: 100%;
+  min-height: 30px;
+  align-items: center;
+  gap: 4px;
+  overflow: hidden;
+}
+
+.shortcuts-settings__key {
+  display: inline-flex;
+  min-width: 24px;
+  max-width: 100%;
+  height: 24px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 6px;
+  border: 0;
+  background: var(--color-fill-2);
+  color: var(--color-text-1);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0 7px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.shortcuts-settings__empty-key {
+  color: var(--color-text-4);
+  font-size: 13px;
+}
+
+.shortcuts-settings__note {
+  min-width: 0;
+}
+
+.shortcuts-settings__pill {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border-radius: 6px;
+  background: var(--color-fill-2);
+  color: var(--color-text-2);
+  font-size: 12px;
+  line-height: 18px;
+  padding: 2px 8px;
+}
+
+.shortcuts-settings__pill--muted {
+  color: var(--color-text-3);
+}
+
+.shortcuts-settings__actions {
+  display: flex;
+  min-width: 0;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.shortcuts-settings__recorder {
+  display: inline-flex;
+  min-width: 126px;
+  max-width: 100%;
+  min-height: 34px;
+  align-items: center;
+  justify-content: flex-start;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  cursor: text;
+  outline: none;
+  padding: 2px 6px;
+}
+
+.shortcuts-settings__recorder:focus {
+  border-color: var(--color-border-3);
+  background: var(--color-fill-2);
+}
+
+.shortcuts-settings__recorder--disabled {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.shortcuts-settings__recorder--saving {
+  opacity: 0.6;
+}
+
+.shortcuts-settings__mobile-label {
+  display: none;
+}
+
+@media (max-width: 1023px) {
+  .shortcuts-settings__group-header {
+    display: none;
+  }
+
+  .shortcuts-settings__row {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    align-items: stretch;
+  }
+
+  .shortcuts-settings__mobile-field {
+    display: grid;
+    grid-template-columns: 108px minmax(0, 1fr);
+    gap: 10px;
+    align-items: center;
+  }
+
+  .shortcuts-settings__actions {
+    justify-content: flex-start;
+  }
+
+  .shortcuts-settings__mobile-label {
+    display: block;
+    color: var(--color-text-3);
+    font-size: 12px;
+    font-weight: 600;
+  }
+}
+
+@media (max-width: 767px) {
+  .shortcuts-settings__toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .shortcuts-settings__summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

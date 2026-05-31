@@ -38,6 +38,7 @@ import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupCo
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
+import { CHAT_ATTACH_FILE_EVENT, CHAT_OPEN_MODEL_SELECTOR_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
@@ -363,6 +364,26 @@ const AionrsSendBox: React.FC<{
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
+
+  useEffect(() => {
+    const handleAttachFile = () => openFileSelector();
+    window.addEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    return () => {
+      window.removeEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    };
+  }, [openFileSelector]);
+
+  useEffect(() => {
+    const handleOpenModelSelector = () => {
+      if (isMobile) {
+        setIsMobileSheetOpen(true);
+      }
+    };
+    window.addEventListener(CHAT_OPEN_MODEL_SELECTOR_EVENT, handleOpenModelSelector);
+    return () => {
+      window.removeEventListener(CHAT_OPEN_MODEL_SELECTOR_EVENT, handleOpenModelSelector);
+    };
+  }, [isMobile]);
 
   const { entries: attachEntries, hiddenFileInput: attachHiddenInput } = useAttachEntry({
     openFileSelector,

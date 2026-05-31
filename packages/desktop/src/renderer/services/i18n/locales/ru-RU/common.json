@@ -98,5 +98,9 @@
   "optional": "(необязательно)",
   "clear": "Очистить",
   "historyBack": "Назад",
-  "agentMode": "Режим агента"
+  "agentMode": "Режим агента",
+  "unit": {
+    "minute_short": "m",
+    "second_short": "s"
+  }
 }

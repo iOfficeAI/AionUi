@@ -115,10 +115,16 @@ function getDownloadUrl(assetName, tag) {
 function downloadFile(url, outputPath) {
   console.log(`  Downloading aioncore from ${url}`);
   if (process.platform === 'win32') {
-    const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
-    execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
-      timeout: 120000,
-    });
+    try {
+      execFileSync('curl.exe', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url], {
+        timeout: 300000,
+      });
+    } catch (error) {
+      const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
+      execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
+        timeout: 300000,
+      });
+    }
     return;
   }
   try {

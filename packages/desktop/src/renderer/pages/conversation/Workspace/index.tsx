@@ -8,6 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { WORKSPACE_CHANGES_EVENT } from '@/renderer/utils/workspace/workspaceEvents';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
@@ -89,7 +90,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     conversation_id: conversation_id,
   });
 
-  const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
+  const searchHook = useWorkspaceSearch({
+    workspace,
+    loadWorkspace: treeHook.loadWorkspace,
+    onOpenSearch: () => setActiveTab('files'),
+  });
 
   const fileOpsHook = useWorkspaceFileOps({
     workspace,
@@ -190,6 +195,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
       fileChangesHook.refreshChanges();
     }
   }, [activeTab, fileChangesHook.refreshChanges]);
+
+  useEffect(() => {
+    const handleWorkspaceChanges = () => {
+      setActiveTab('changes');
+    };
+
+    window.addEventListener(WORKSPACE_CHANGES_EVENT, handleWorkspaceChanges);
+    return () => {
+      window.removeEventListener(WORKSPACE_CHANGES_EVENT, handleWorkspaceChanges);
+    };
+  }, []);
 
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
