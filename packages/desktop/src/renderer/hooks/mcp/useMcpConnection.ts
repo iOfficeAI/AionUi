@@ -2,6 +2,7 @@ import type React from 'react';
 import { useState, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mcpService } from '@/common/adapter/ipcBridge';
+import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
 
@@ -44,11 +45,17 @@ export const useMcpConnection = (
         last_test_status: IMcpServer['last_test_status'],
         additionalData?: Partial<IMcpServer>
       ) => {
-        setMcpServers((prevServers) =>
-          prevServers.map((s) =>
+        setMcpServers((prevServers) => {
+          const nextServers = prevServers.map((s) =>
             s.id === server.id ? { ...s, last_test_status, updated_at: Date.now(), ...additionalData } : s
-          )
-        );
+          );
+          // Persist terminal states so status survives page navigation.
+          // 'testing' is transient and not worth saving.
+          if (last_test_status === 'connected' || last_test_status === 'error' || last_test_status === 'disconnected') {
+            void configService.set('mcp.config', nextServers).catch(() => {});
+          }
+          return nextServers;
+        });
       };
 
       await updateServerStatus('testing');
