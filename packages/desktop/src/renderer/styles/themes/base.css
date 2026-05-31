@@ -19,6 +19,24 @@
   --duration-slow: 300ms;
   --duration-cinematic: 500ms;
 
+  /* Radius tokens (Phase 0)
+     One radius per surface category. Phases 1-10 should consume these via
+     UnoCSS utilities (rounded-control, rounded-panel, rounded-card) instead
+     of hardcoded pixel values. */
+  --radius-control: 4px; /* buttons, inputs, pills */
+  --radius-panel: 10px; /* preview, editor, workspace, modals */
+  --radius-card: 6px; /* secondary cards, message blocks */
+
+  /* Motion tokens — Phase 0 vocabulary.
+     Distinct from the existing duration- and ease- tokens above.
+     Phases 4, 6, 7, 10 will reference these for new motion.
+     Do not retrofit existing animations in this phase. */
+  --motion-fast: 120ms;
+  --motion-base: 200ms;
+  --motion-slow: 320ms;
+  --motion-ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --motion-ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+
   /* Shadow tokens */
   --shadow-sm: 0 1px 2px rgba(60, 56, 54, 0.06), 0 1px 3px rgba(60, 56, 54, 0.04);
   --shadow-md: 0 4px 6px rgba(60, 56, 54, 0.05), 0 10px 20px rgba(60, 56, 54, 0.08);

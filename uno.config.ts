@@ -157,6 +157,18 @@ export default defineConfig({
     // Wiggle animation for attention indicators (e.g. pending permission badge)
     // Shakes briefly then pauses — 3s cycle, active in first ~20%
     ['animate-wiggle', { animation: 'wiggle 3s ease-in-out infinite' }],
+
+    // Phase 0 — Foundation radius tokens (base.css)
+    // One radius per surface category. Use these instead of rounded-[Npx].
+    ['rounded-control', { 'border-radius': 'var(--radius-control)' }],
+    ['rounded-panel', { 'border-radius': 'var(--radius-panel)' }],
+    ['rounded-card', { 'border-radius': 'var(--radius-card)' }],
+
+    // Phase 0 — Foundation semantic message accents (chisl-color-scheme.css)
+    // Reserved for Phase 4 (message rhythm) and Phase 6 (live activity).
+    ['border-msg-agent', { 'border-color': 'var(--msg-agent-edge)' }],
+    ['bg-msg-user', { 'background-color': 'var(--msg-user-bg)' }],
+    ['bg-activity-pulse', { 'background-color': 'var(--activity-pulse-bg)' }],
   ],
   // Preflights - Global base styles 全局基础样式
   preflights: [

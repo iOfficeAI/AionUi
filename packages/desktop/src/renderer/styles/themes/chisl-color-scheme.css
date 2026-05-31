@@ -90,6 +90,14 @@
   --fill-white-to-black: #f6ecc8;
   --border-special: var(--bg-3);
   --color-guid-agent-bar: #ecdfb6;
+
+  /* Semantic message accents — Light Mode (Phase 0)
+     Reserved for Phase 4 (message rhythm) and Phase 6 (live activity). */
+  --msg-agent-edge: rgba(180, 72, 12, 0.45); /* rust at 45% */
+  --msg-user-bg: var(--bg-1);
+  --msg-user-edge: transparent;
+  --activity-pulse: var(--brand);
+  --activity-pulse-bg: rgba(180, 72, 12, 0.08);
 }
 
 /* ──────────────────────── Dark Mode ────────────────────────
@@ -165,4 +173,12 @@
   --fill-0: rgba(236, 223, 182, 0.08);
   --fill-white-to-black: #1f1c17;
   --border-special: #5b4d36;
+
+  /* Semantic message accents — Dark Mode (Phase 0)
+     Rust lifted to stay legible on warm dark grounds. */
+  --msg-agent-edge: rgba(224, 120, 32, 0.45); /* rust lifted at 45% */
+  --msg-user-bg: var(--bg-1);
+  --msg-user-edge: transparent;
+  --activity-pulse: var(--brand);
+  --activity-pulse-bg: rgba(224, 120, 32, 0.08);
 }
