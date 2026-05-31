@@ -31,11 +31,9 @@
 
 ## What Chisl Does
 
-Chisl is a desktop client for driving coding agents through a durable UI instead of a raw terminal. Its primary path is connecting the desktop app to a registered **OpenCode remote agent**. It also supports local CLI-backed agent sessions.
+Chisl is a desktop client for driving coding agents through a durable UI instead of a raw terminal. Its primary path is connecting to a registered **OpenCode remote agent**, and it also drives local CLI-backed agents. Project files, secrets, and tools come from whatever agent runtime and MCP connectors you configure — Chisl doesn't lock you into a layout.
 
-Chisl does not prescribe where project files, secrets, or execution context live. Context and tools can be supplied through the configured agent runtime and MCP/tooling connectors.
-
-Supported workflows visible in the codebase:
+Supported agents:
 
 | Workflow              | What Chisl exposes                                                                                                                                                                               |
 | --------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -46,58 +44,47 @@ Supported workflows visible in the codebase:
 | Codex                 | Use Codex sessions with Chisl conversation, tool-call, and permission UI.                                                                                                                        |
 | Custom local agent    | Define an ACP-style command, args, env, icon, and advanced settings from the Agent settings page.                                                                                                |
 
-## Feature Map
+## Features
 
-This section documents features from the implementation rather than product guesses.
-
-| Feature set                     | What exists                                                                                                                                                                                                                          | Source anchors                                                                                                                                                                                                                           |
-| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Remote agent registry           | Add, edit, delete, list, test connection, and handshake remote agents. Config includes name, protocol, URL, auth type, auth token/password, avatar, description, and insecure TLS toggle.                                            | `packages/desktop/src/renderer/pages/settings/AgentSettings/RemoteAgentManagement.tsx`, `packages/desktop/src/common/types/agent/remoteAgentTypes.ts`                                                                                    |
-| OpenCode remote model discovery | Registered OpenCode remote agents can have model metadata refreshed from the backend route that calls the OpenCode daemon provider endpoint.                                                                                         | `packages/desktop/src/renderer/utils/model/remoteAgentModels.ts`, `packages/desktop/src/common/adapter/ipcBridge.ts`                                                                                                                     |
-| Agent picker integration        | Remote-agent rows are merged into the same start-page agent list as detected local agents.                                                                                                                                           | `packages/desktop/src/renderer/pages/guid/hooks/useGuidAgentSelection.ts`                                                                                                                                                                |
-| OpenCode-specific controls      | OpenCode remote sessions enable mode switching and slash-command discovery; those controls are gated on `protocol === 'opencode'`.                                                                                                   | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                                                                                                    |
-| Conversation sending            | Messages are sent through the shared conversation bridge. Selected local files and workspace items are serialized as file paths alongside the prompt.                                                                                | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                                                                                                    |
-| Command queue                   | When a conversation is busy, new prompts can be queued, reordered, paused, resumed, edited, removed, or cleared.                                                                                                                     | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/useConversationCommandQueue.ts`                                                       |
-| Stop and running state          | Active remote runs can be stopped from the send box; stream/thought/running state is handled by the remote-message hook.                                                                                                             | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/useRemoteMessage.ts`                                                           |
-| Context usage display           | The remote send box shows token/context usage when the backend reports it.                                                                                                                                                           | `packages/desktop/src/renderer/components/agent/ContextUsageIndicator.tsx`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                        |
-| Session lifecycle actions       | OpenCode remote sessions expose fork, revert/restore-reverted, share/unshare (link), summarize/compact, file-changes (diff) view, and an editable server-config panel from a conversation-header menu.                               | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSessionActions.tsx`                                                                                                                                            |
-| Compaction awareness            | When the server compacts a session (auto or manual), Chisl surfaces a notification with tokens reclaimed; manual compact uses the V2 endpoint with a V1 summarize fallback.                                                          | `packages/desktop/src/renderer/pages/conversation/platforms/remote/useRemoteMessage.ts`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSessionActions.tsx`                                                    |
-| Server-state pills              | OpenCode sessions show a conversation-header pill for the connected server name with a quick-switch dropdown, plus a tool-host (local/server) badge; in server-tool-host mode they also show LSP server status and VCS branch/changes pills.                     | `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteServerBadge.tsx`, `.../RemoteToolHostBadge.tsx`, `.../RemoteLspBadge.tsx`, `.../RemoteVcsBadge.tsx`                                                              |
-| Multi-server health & default   | Settings shows live per-agent health (polled probe + manual refresh) and a default-server preference badge persisted to local storage.                                                                                              | `packages/desktop/src/renderer/hooks/agent/useRemoteAgentHealth.ts`, `packages/desktop/src/common/utils/defaultRemoteAgent.ts`, `packages/desktop/src/renderer/pages/settings/AgentSettings/RemoteAgentManagement.tsx`                   |
-| Skills injection                | OpenCode remote sessions can attach server-side skills to outgoing prompts from a picker in the send box; the selection is sticky across messages.                                                                                   | `packages/desktop/src/renderer/hooks/chat/useRemoteSkills.ts`, `packages/desktop/src/renderer/pages/conversation/platforms/remote/RemoteSendBox.tsx`                                                                                     |
-| Permissions & approvals         | Tool-permission and `/question` requests surface as per-call approval cards, a pending-approvals banner, and a dedicated workspace Approvals tab; bulk-approve is supported.                                                          | `packages/desktop/src/renderer/pages/conversation/components/PendingApprovalsBanner.tsx`, `packages/desktop/src/renderer/pages/conversation/Workspace/components/ApprovalsList.tsx`, `.../Messages/acp/MessageAcpPermission.tsx`         |
-| Sub-agents (subtasks)           | OpenCode child sessions render as inline collapsible subtask cards with a rolling summary in the parent transcript.                                                                                                                  | `packages/desktop/src/renderer/pages/conversation/Messages/acp/MessageOpencodeSubtask.tsx`                                                                                                                                              |
-| Edit/delete messages            | User messages and message parts in OpenCode remote conversations can be edited or deleted (mapped to the server's fork/revert primitives).                                                                                           | `packages/desktop/src/renderer/pages/conversation/platforms/remote/useRemoteMessage.ts`, `packages/desktop/src/common/adapter/ipcBridge.ts`                                                                                              |
-| Local detected agents           | Detected local agents are displayed in Agent settings and can be opened directly in chat.                                                                                                                                            | `packages/desktop/src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`                                                                                                                                                             |
-| Custom local agents             | Users can create, edit, enable/disable, and delete custom command-based agents.                                                                                                                                                      | `packages/desktop/src/renderer/pages/settings/AgentSettings/LocalAgents.tsx`, `packages/desktop/src/renderer/pages/settings/AgentSettings/InlineAgentEditor.tsx`                                                                         |
-| MCP and tools                   | Capabilities settings include MCP server management and speech-to-text settings. MCP server operations include add, batch import, edit, delete, enable/disable, connection testing, OAuth status/login, and sync/remove with agents. | `packages/desktop/src/renderer/pages/settings/CapabilitiesSettings.tsx`, `packages/desktop/src/renderer/components/settings/SettingsModal/contents/ToolsModalContent.tsx`                                                                |
-| Skills                          | Skills settings list available built-in, custom, and extension skills; support search, refresh, folder import, symlink import, and delete.                                                                                           | `packages/desktop/src/renderer/pages/settings/SkillsHubSettings.tsx`                                                                                                                                                                     |
-| Display and branding            | Chisl is the default color scheme; the "Theme" toggle disables the Chisl override so the active CSS theme preset (Catppuccin, built in) drives variables instead.                                                                    | `packages/desktop/src/renderer/styles/themes/chisl-color-scheme.css`, `packages/desktop/src/renderer/pages/settings/DisplaySettings/presets/catppuccin.css`, `packages/desktop/src/renderer/components/settings/ColorSchemeSwitcher.tsx` |
+| Capability            | What you can do                                                                                                                                                          |
+| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remote agent registry | Add, edit, delete, and list remote agents — name, protocol, URL, auth (token or basic), avatar, description, insecure-TLS toggle — and test/handshake before saving.     |
+| Model selection       | Refresh and pick from the models a connected OpenCode server advertises.                                                                                                |
+| Unified agent picker  | Remote agents sit alongside detected local agents on the start page.                                                                                                    |
+| Chat & context        | Send prompts with attached files and selected workspace items; see token/context usage when the agent reports it.                                                       |
+| Command queue         | Queue, reorder, pause, resume, edit, remove, or clear prompts while a run is busy.                                                                                       |
+| Run control           | Stop an active run, switch OpenCode modes, attach server-side skills (sticky across messages), and use slash commands.                                                   |
+| Session actions       | Fork, revert/restore, share/unshare a link, summarize/compact, view file changes (diff), and edit the server config — all from the conversation header.                 |
+| Compaction            | Get notified (with tokens reclaimed) when a session is compacted, manually or automatically.                                                                            |
+| Server-state pills    | See the connected server (with one-click switch) and tool-host mode; in server-tool-host mode, LSP status and VCS branch/changes too.                                    |
+| Multi-server          | Live per-agent health in settings and a default-server preference.                                                                                                      |
+| Permissions & approvals | Approve tool and question requests via per-request cards, a pending banner, and a dedicated Approvals tab — including bulk approve.                                    |
+| Sub-agents            | Watch delegated child sessions as inline, collapsible subtask cards.                                                                                                    |
+| Message editing       | Edit or delete your own messages in a remote conversation.                                                                                                              |
+| Local & custom agents | Use detected local CLIs (Claude Code, Gemini CLI, Codex, local OpenCode), or define your own ACP-style command agent.                                                   |
+| MCP & tools           | Add, import, edit, enable/disable, test, authenticate, and sync MCP servers; configure speech-to-text.                                                                  |
+| Skills                | Browse built-in, custom, and extension skills; import folders or symlinks; search, refresh, and delete.                                                                 |
+| Appearance            | Ships with Chisl's retro palette; a toggle hands control to a CSS theme preset (Catppuccin included).                                                                    |
 
 ## Remote OpenCode Flow
 
-The remote OpenCode path is configured as a remote-agent entry in Agent settings.
+Configure the remote OpenCode path as a remote-agent entry in Agent settings.
 
-Code-backed behavior:
-
-| Step               | Behavior                                                                                                                                                                            |
-| ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Register endpoint  | Add a remote agent with protocol `opencode`, URL, auth type, and optional token/password.                                                                                           |
-| Test connection    | The settings modal calls the remote-agent test route before saving if requested.                                                                                                    |
-| Save and handshake | Saving an OpenCode remote agent triggers a handshake.                                                                                                                               |
-| Select in chat     | Registered remote agents are merged into the start-page agent picker.                                                                                                               |
-| Fetch models       | OpenCode remote agents can refresh available models from the remote provider endpoint through the backend.                                                                          |
-| Chat               | Messages go through the shared conversation send bridge.                                                                                                                            |
-| Add context        | File attachments and selected workspace items are sent with the message as file paths. MCP/tool connectors can provide additional runtime context outside the README's assumptions. |
-| Control the run    | The UI can stop a run, queue additional prompts, and show mode/skills/context controls when available.                                                                              |
-| Manage the session | A conversation-header menu exposes fork, revert/restore, share/unshare, summarize/compact, file-changes (diff), and an editable server-config panel.                                |
-| Inspect server state | In server-tool-host mode, header pills show the connected server (with quick-switch), LSP status, and VCS branch/changes; permission and `/question` prompts route to the Approvals UI. |
+| Step               | What happens                                                                                                                          |
+| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Register endpoint  | Add a remote agent with protocol `opencode`, a URL, an auth type, and an optional token/password.                                    |
+| Test connection    | The settings modal can test the endpoint before you save.                                                                            |
+| Save and handshake | Saving an OpenCode remote agent runs a handshake.                                                                                    |
+| Select in chat     | The agent shows up in the start-page picker alongside your local agents.                                                             |
+| Fetch models       | Refresh the model list the server advertises.                                                                                        |
+| Chat               | Send prompts, attaching files and selected workspace items as needed.                                                                |
+| Control the run    | Stop a run, queue more prompts, switch modes, attach skills.                                                                          |
+| Manage the session | Fork, revert/restore, share/unshare, summarize/compact, view file changes, or edit the server config from the conversation header.   |
+| Inspect server state | In server-tool-host mode, header pills show the connected server (with quick-switch), LSP status, and VCS branch/changes; permission and question prompts route to the Approvals tab. |
 
 ## Local Agent Flow
 
-Local agents are secondary but supported.
-
-Code-backed behavior:
+Local CLI-backed agents are a secondary path.
 
 | Feature          | Behavior                                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------- |
@@ -108,7 +95,7 @@ Code-backed behavior:
 
 ## MCP, Skills, And Context
 
-Chisl includes UI for managing MCP servers and skills. These are the appropriate places to document tool/context integration; the README should not prescribe endpoint filesystem or secret layout.
+Chisl includes UI for managing MCP servers and skills — this is where tools and context come from, rather than any fixed filesystem or secret layout.
 
 | Area        | Behavior                                                                                                |
 | ----------- | ------------------------------------------------------------------------------------------------------- |
@@ -118,7 +105,7 @@ Chisl includes UI for managing MCP servers and skills. These are the appropriate
 
 ## Branding
 
-The README uses the same in-repo brand assets as the application.
+Brand assets live in the repo and are shared with the application.
 
 | Asset         | Path                                                                 |
 | ------------- | -------------------------------------------------------------------- |
@@ -192,7 +179,7 @@ node scripts/check-i18n.js
 
 ## Status
 
-Chisl is moving quickly. The README intentionally documents only features verified from the current codebase.
+Chisl is under active development.
 
 ## License
 
