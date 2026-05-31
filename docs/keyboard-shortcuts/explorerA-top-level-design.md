@@ -1,6 +1,6 @@
 # AionUI Keyboard Shortcuts Top-Level Design
 
-Author: explorerA  
+Author: explorerA
 Scope: design review only; no business code changes.
 
 ## Technical Stack Positioning

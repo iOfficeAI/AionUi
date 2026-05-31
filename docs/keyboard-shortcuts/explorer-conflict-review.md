@@ -1,7 +1,7 @@
 # explorer-conflict 快捷键冲突审查
 
-工作区：`C:\Projects\AionUI\keyboard_shortcuts`  
-审查角色：explorer-conflict  
+工作区：`C:\Projects\AionUI\keyboard_shortcuts`
+审查角色：explorer-conflict
 审查范围：基于 explorerA 顶层设计、三个 explorer 分项报告和 `C:\Projects\AionUI\raw\shortcuts_function_merged.md`。本文只做实现 scope 与冲突审查，不修改业务代码。
 
 ## 总体结论

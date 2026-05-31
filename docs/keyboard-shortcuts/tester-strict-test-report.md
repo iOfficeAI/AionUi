@@ -1,7 +1,7 @@
 # Keyboard Shortcuts Strict Tester Report
 
-Tester: independent strict tester for `keyboard_shortcuts` branch  
-Workspace: `C:\Projects\AionUI\keyboard_shortcuts`  
+Tester: independent strict tester for `keyboard_shortcuts` branch
+Workspace: `C:\Projects\AionUI\keyboard_shortcuts`
 Date: 2026-05-29
 
 ## Scope
