@@ -1,0 +1,106 @@
+# explorer-chat: Chat / Agent / Shell Shortcut Review
+
+Source: `C:\Projects\AionUI\raw\shortcuts_function_merged.md`
+
+Scope:
+
+- 会话与聊天
+- 会话切换与导航
+- 模型、Agent 与 MCP
+- 终端、Shell 与输入模式
+
+## 总体结论
+
+AionUI 目前没有统一的 command registry / shortcut registry。相关快捷键分散注册在 React hook、组件和独立 pet confirmation renderer 中，主路径是 `window.addEventListener('keydown')` 或 `document.addEventListener('keydown')`。因此，新增默认快捷键前建议先抽出窗口级命令注册层，至少统一处理：Electron-only 限定、输入框/编辑器/终端上下文过滤、冲突检测、命令面板复用、自定义快捷键配置。
+
+已确认存在的相关默认快捷键：
+
+| 快捷键 | 当前行为 | 核心位置 | 备注 |
+| --- | --- | --- | --- |
+| `Ctrl+T` / `Cmd+T` | 新建会话，导航到 `/guid` | `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts` | 仅 Electron Desktop 生效 |
+| `Ctrl+Tab` / `Ctrl+Shift+Tab` | 在可见会话列表中循环切换 | `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts` | 仅 Electron Desktop 生效 |
+| `Ctrl+F` / `Cmd+F` | 当前聊天内搜索/minimap 搜索 | `packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts` | Desktop 拦截，WebUI 保留浏览器查找 |
+| `Ctrl+Shift+F` / `Cmd+Shift+F` | 全局聊天消息搜索 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover.tsx` | Desktop 拦截 |
+| `Enter` / `Esc` / `A` / `Y` / `N` | pet 确认窗口批准/拒绝/始终允许/允许一次 | `packages/desktop/src/renderer/pet/petConfirmRenderer.ts` | 仅确认窗口上下文 |
+| `Ctrl+Shift+L` / `Cmd+Shift+L` | WebUI 场景登出 | `packages/desktop/src/renderer/components/layout/Sider/index.tsx` | 只在 `showLogout` 为真时注册 |
+
+## 逐项审查
+
+### 会话与聊天
+
+| 候选功能 | 推荐快捷键 | AionUI 是否已有功能/模块 | 核心文件路径 | 是否已有快捷键 | 可用性建议 | 实现难点 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 新建会话 / 新对话 | 保留 `Ctrl+T` / `Cmd+T`，可考虑补充 `Ctrl+N` | 有。侧栏新建按钮和快捷键均导航到 `/guid` | `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts`; `packages/desktop/src/renderer/components/layout/Sider/index.tsx`; `packages/desktop/src/renderer/pages/guid/GuidPage.tsx` | 已有 `Ctrl+T` / `Cmd+T` | 建议保持现状，不把 `Ctrl+T` 改给浏览器标签页。若补 `Ctrl+N`，需确认不会与模型选择或系统新建语义冲突 | 现有 handler 未过滤 textarea/input，输入框内按 `Ctrl+T` 也会触发；新增前应先统一上下文过滤 |
+| 新建快速对话 | 建议仅命令面板，暂不默认 | 有接近能力：`/guid` 可以带 `resetAssistant` 或 `selectedAgentKey` 状态预选 Agent，但没有独立 quick composer | `packages/desktop/src/renderer/pages/guid/GuidPage.tsx`; `packages/desktop/src/renderer/pages/guid/hooks/useGuidAgentSelection.ts`; `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts` | 无 | 不建议默认 `Ctrl+Alt+N`，先做命令入口：新会话并聚焦输入，必要时跳过视觉引导 | 需要定义 quick composer 与现有 Guid 页的差异，否则只是重复新建会话 |
+| 打开侧边聊天 | 不建议默认 | 未发现独立 side chat；有 side question `/btw` overlay/命令 | `packages/desktop/src/renderer/components/chat/BtwOverlay/index.tsx`; `packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts` | 无 | 若指 side question，建议命令面板或 slash command，不占全局键 | 需要明确“侧边聊天”产品语义；当前不是独立会话面板 |
+| 在新窗口中打开当前聊天 | 建议仅命令面板 | 未发现当前聊天 popout/new window 模块 | `packages/desktop/src/renderer/components/layout/Router.tsx`; `packages/desktop/src/process/` | 无 | 暂不设默认 | 需要主进程窗口管理、路由深链、会话状态同步 |
+| 归档聊天 / 会话 | 不设默认 | 未发现 archive；已有删除、批量删除、导出 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions.ts`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx` | 无 | 不建议采用 `Ctrl+Shift+A`。若未来实现归档，应二次确认或只命令面板 | 后端/数据模型需有归档字段和列表过滤；高风险动作需要确认流 |
+| 切换置顶状态 | `Ctrl+Alt+P` 可作为候选，但建议先命令面板 | 有。会话行菜单可 pin/unpin，写入 `conversation.extra.pinned` | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions.ts`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx` | 无 | 适合当前会话上下文命令；默认键可后置 | 需要获得当前 conversation id 并复用 `handleTogglePin` 逻辑；现有逻辑封装在列表 hook 中，不是全局命令 |
+| 重命名聊天 | `Ctrl+Alt+R` 可作为候选，但建议先命令面板 | 有。会话行菜单打开 rename modal | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversationActions.ts`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx`; `packages/desktop/src/renderer/pages/conversation/components/ChatTitleEditor.tsx` | 无 | 适合当前会话上下文；默认键需要避开浏览器/编辑器 rename 习惯 | 重命名 modal 状态在 GroupedHistory hook 内，当前聊天标题编辑和列表重命名可能需要统一 |
+| 查找当前聊天 | 保留 `Ctrl+F` / `Cmd+F` | 有。打开 ConversationTitleMinimap 搜索面板并支持上下/回车跳转 | `packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts`; `packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/index.tsx` | 已有 `Ctrl+F` / `Cmd+F` | 建议采用并保留当前实现；WebUI 保留浏览器查找是合理的 | 当前依赖 minimap hook 挂载；若标题组件未挂载或非 conversation 页面，应无操作 |
+| 搜索聊天 | 保留现有 `Ctrl+Shift+F`，不采用 `Ctrl+G` | 有。全局搜索所有聊天消息 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationSearchPopover.tsx`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/index.tsx` | 已有 `Ctrl+Shift+F` / `Cmd+Shift+F` | `Ctrl+G` 更常见为查找下一个，不建议默认给搜索聊天 | 已实现；若做统一 registry 需迁移现有捕获阶段 listener |
+| 复制当前聊天为 Markdown | 建议仅命令面板 | 有导出能力，可生成 `conversation.md` 并打包 zip；未发现直接复制当前聊天 Markdown 到剪贴板 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useExport.ts`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/utils/exportHelpers.ts`; `packages/desktop/src/renderer/utils/ui/clipboard.ts` | 无 | 建议新增为命令面板动作，不设默认 | 需要把 `buildConversationMarkdown` 从导出流程抽成当前会话可调用命令，并处理大消息/附件 |
+| 复制会话路径 | 不设默认 | 未发现会话路径复制；有 workspace path、deep link、route path 概念 | `packages/desktop/src/renderer/hooks/system/useDeepLink.ts`; `packages/desktop/src/renderer/utils/ui/clipboard.ts` | 无 | 偏诊断，不建议默认 | 需定义“会话路径”是路由、磁盘数据路径还是 workspace |
+| 复制 Deeplink | 建议仅命令面板 | 有 deep link 接收能力，未发现当前会话 deeplink 生成/复制 UI | `packages/desktop/src/renderer/hooks/system/useDeepLink.ts`; `packages/desktop/src/renderer/components/layout/Router.tsx` | 无 | 可作为开发/诊断命令，不默认 | 需要协议 URL 规范和跨平台注册确认 |
+| 复制 Session ID | 建议仅命令面板 | conversation id 存在于路由和数据模型；未发现复制入口 | `packages/desktop/src/renderer/pages/conversation/components/ChatConversation.tsx`; `packages/desktop/src/common/config/storage.ts`; `packages/desktop/src/renderer/utils/ui/clipboard.ts` | 无 | 偏诊断，不建议默认 | 需要当前会话上下文命令和成功提示 |
+| 复制工作目录 | 不建议默认 `Ctrl+Shift+C` | 有 workspace path，已有打开 workspace 按钮；未发现复制工作目录 | `packages/desktop/src/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton.tsx`; `packages/desktop/src/renderer/pages/conversation/components/ChatLayout/WorkspacePanelHeader.tsx`; `packages/desktop/src/renderer/utils/ui/clipboard.ts` | 无 | 若实现，放命令面板或 workspace 面板菜单；避免 `Ctrl+Shift+C` 终端复制冲突 | 需处理 temporary workspace 隐藏策略和无 workspace 会话 |
+| 分享会话 / 取消分享 | 不设默认 | 未发现 share/unshare 会话能力 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/` | 无 | 不应占用 `Ctrl+F`；功能不存在时不进入默认清单 | 需要后端分享 API、权限和可撤销状态 |
+| 从消息分叉 | 不设默认 | 未发现从某条消息 fork conversation 的用户入口；有 `createWithConversation` 复制当前会话创建新会话 | `packages/desktop/src/renderer/pages/conversation/components/ChatConversation.tsx`; `packages/desktop/src/renderer/pages/conversation/Messages/` | 无 | 不采用 `Ctrl+X`，会破坏剪切语义 | 需要消息级上下文、截断历史、会话复制语义和 UI 入口 |
+| 精简会话 / Compact | 建议仅命令面板 | 未发现 compact/summarize conversation 功能 | `packages/desktop/src/renderer/pages/conversation/` | 无 | 暂不默认 | 需要后端摘要/压缩能力和用户可见状态 |
+| 撤销 / 重做 | 不作为聊天全局默认 | 未发现消息级 undo/redo；输入框/编辑器应保留原生撤销重做 | `packages/desktop/src/renderer/components/chat/SendBox/index.tsx`; `packages/desktop/src/renderer/pages/conversation/Preview/hooks/usePreviewKeyboardShortcuts.ts` | 无聊天级快捷键 | 不建议使用 `Alt+U` 或 `Ctrl+R`；`Ctrl+R` 更适合刷新/浏览器上下文 | 聊天消息撤销需要明确可撤销对象；容易与文本编辑冲突 |
+
+### 会话切换与导航
+
+| 候选功能 | 推荐快捷键 | AionUI 是否已有功能/模块 | 核心文件路径 | 是否已有快捷键 | 可用性建议 | 实现难点 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 下一个最近查看的聊天 | 保留 `Ctrl+Tab` | 有。按可见会话列表顺序循环 | `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useVisibleConversationIds.ts` | 已有 `Ctrl+Tab` | 建议保留，但文案应叫“下一个可见聊天”，不是“最近查看” | 现实现不是 MRU；若要“最近查看”需维护访问栈 |
+| 上一个最近查看的聊天 | 保留 `Ctrl+Shift+Tab` | 有。反向循环 | 同上 | 已有 `Ctrl+Shift+Tab` | 同上 | 同上 |
+| 下一个/上一个对话 | 不新增默认 | 侧栏列表可点击；已有 `Ctrl+Tab` 概念 | `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts` | 无 `Alt+Up/Down` | 避免重复概念；可作为命令面板动作 | 需定义列表顺序、过滤折叠项目、未读项目是否参与 |
+| 下一个/上一个未读会话 | 暂不默认 | 有未读点状态 `hasCompletionUnread`，但未发现未读导航命令 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/ConversationRow.tsx`; `packages/desktop/src/renderer/pages/conversation/GroupedHistory/hooks/useConversations.ts` | 无 | 若未读是高频场景，可命令面板先行 | 需要稳定未读来源、排序和跨 workspace 可见规则 |
+| 下一条/上一条消息 | 暂不默认 | 当前聊天搜索结果可用上下键导航；普通消息焦点模型未发现 | `packages/desktop/src/renderer/pages/conversation/components/ConversationTitleMinimap/useMinimapPanel.ts`; `packages/desktop/src/renderer/pages/conversation/Messages/MessageList.tsx` | 搜索面板内有 `ArrowUp/Down` | 不建议全局 `Ctrl+Alt+[`/`]`，先设计消息焦点 | 消息列表 virtual/scroll、选中态、输入焦点冲突都需处理 |
+| 转到聊天 1-9 | 暂不默认 | 未发现聊天槽位或 `Ctrl+1..9` 注册 | `packages/desktop/src/renderer/pages/conversation/GroupedHistory/`; `packages/desktop/src/renderer/hooks/ui/useConversationShortcuts.ts` | 无 | 只有当 AionUI 明确采用“前 9 个可见会话/标签槽位”时再加入 | 需要决定按最近、置顶、可见列表还是项目分组排序 |
+
+### 模型、Agent 与 MCP
+
+| 候选功能 | 推荐快捷键 | AionUI 是否已有功能/模块 | 核心文件路径 | 是否已有快捷键 | 可用性建议 | 实现难点 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 选择模型 / 打开模型选择器 | `Ctrl+Shift+M` 可作为候选，但建议先命令面板 | 有。Guid 页、conversation header、移动端 action sheet 都有模型选择器 | `packages/desktop/src/renderer/pages/guid/components/GuidModelSelector.tsx`; `packages/desktop/src/renderer/pages/guid/hooks/useGuidModelSelection.ts`; `packages/desktop/src/renderer/components/agent/AcpModelSelector.tsx`; `packages/desktop/src/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector.tsx`; `packages/desktop/src/renderer/pages/conversation/components/ChatConversation.tsx` | 无 | 适合高频。推荐 `Ctrl+Shift+M`，不要用 `Ctrl+N` | 难点是“打开当前可见模型 dropdown”不是纯函数；不同 Agent 用不同 selector，需要抽统一 command 或事件 |
+| 切换智能体 | 不采用 `Tab`；建议命令面板或 `Ctrl+Shift+A` 以外的组合 | 有。Guid 页顶部 AgentPillBar、mention selector、preset assistant 切换主 Agent；设置页有 Agent 管理 | `packages/desktop/src/renderer/pages/guid/hooks/useGuidAgentSelection.ts`; `packages/desktop/src/renderer/pages/guid/components/AgentPillBar.tsx`; `packages/desktop/src/renderer/pages/guid/components/MentionDropdown.tsx`; `packages/desktop/src/renderer/components/settings/SettingsModal/contents/AgentModalContent.tsx` | 无 | 绝不全局绑定单独 `Tab`。更适合“打开 Agent 选择器”而不是“直接切换下一个” | Agent 选择只在 Guid 页创建会话前可变；已创建会话通常不能切换执行 Agent，需要产品规则 |
+| 反向切换智能体 | 不默认 | 有 Agent 列表，但无快捷切换函数 | 同上 | 无 | 不建议默认，避免不透明状态变化 | 需要定义列表顺序、会话创建前/后行为 |
+| 切换 MCPs / MCP 设置 | `Ctrl+;` 可作为候选，但建议打开命令/设置页而非直接 toggle | 有。Guid 新会话可选择 MCP；会话内可显示 loaded MCP；设置页可管理 MCP server | `packages/desktop/src/renderer/pages/guid/GuidPage.tsx`; `packages/desktop/src/renderer/pages/guid/components/GuidActionRow.tsx`; `packages/desktop/src/renderer/pages/settings/ToolsSettings/McpManagement.tsx`; `packages/desktop/src/renderer/hooks/mcp/useMcpServers.ts`; `packages/desktop/src/common/adapter/ipcBridge.ts` | 无 | 推荐命令“打开 MCP 设置”导航到 `/settings/capabilities?tab=tools` 或新会话 action row；暂不默认直接 toggle | MCP 选择有“新会话临时选择”和“全局 server 管理”两套语义，快捷键必须明确目标 |
+| 切换思考强度 / 权限模式 | 不采用 `Ctrl+Shift+D`；可命令面板 | 有接近功能：AgentModeSelector 切换 session mode / permission mode | `packages/desktop/src/renderer/components/agent/AgentModeSelector.tsx`; `packages/desktop/src/renderer/utils/model/agentModes.ts`; `packages/desktop/src/renderer/pages/conversation/platforms/acp/AcpSendBox.tsx`; `packages/desktop/src/renderer/pages/conversation/platforms/aionrs/AionrsSendBox.tsx` | 无 | 可做“打开模式选择器”；不建议默认直接循环切换，避免权限模式误改 | 不同 backend 的 mode 值不同；需要实时能力、缓存 fallback、会话内 IPC `acpConversation.setMode` |
+| 打开审查选项卡 / 切换审查 | 暂不默认 | 未发现独立 review tab；有 workspace diff/preview 和文件变更面板 | `packages/desktop/src/renderer/pages/conversation/Preview/`; `packages/desktop/src/renderer/components/base/FileChangesPanel.tsx`; `packages/desktop/src/renderer/pages/conversation/Messages/MessageFileChanges.tsx` | 无 | 不采用 `Ctrl+Shift+R`，避免刷新冲突 | 需要先定义 review 面板对象和当前状态 |
+| 自动接受权限 | 不设默认 | 有权限确认 UI，包括 inline message 和 pet confirmation；pet 支持 `A` 始终允许 | `packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePermission.tsx`; `packages/desktop/src/renderer/pet/petConfirmRenderer.ts`; `packages/desktop/src/common/adapter/ipcBridge.ts` | pet 窗口内有 `A`；无全局 `Ctrl+Shift+A` | 不应有全局默认快捷键。始终允许只应在确认窗口上下文生效 | 高风险动作；需要焦点/上下文硬隔离和清晰确认 |
+| 批准请求 | 仅请求上下文 `Enter` | 有。pet confirmation 支持 `Enter` 选择第一项；inline permission 需要手动选择 radio 后点击确认 | `packages/desktop/src/renderer/pet/petConfirmRenderer.ts`; `packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePermission.tsx` | pet 窗口已有 `Enter` | 保持上下文内快捷键，不做全局 | inline permission 若要支持 Enter，需要避免与输入框发送消息冲突 |
+| 拒绝请求 | 仅请求上下文 `Escape` | 有。pet confirmation 支持 `Esc` cancel/deny | `packages/desktop/src/renderer/pet/petConfirmRenderer.ts`; `packages/desktop/src/renderer/pages/conversation/Messages/components/MessagePermission.tsx` | pet 窗口已有 `Esc` | 保持上下文内快捷键 | inline permission 支持 Esc 需考虑 modal/dropdown 统一关闭语义 |
+
+### 终端、Shell 与输入模式
+
+| 候选功能 | 推荐快捷键 | AionUI 是否已有功能/模块 | 核心文件路径 | 是否已有快捷键 | 可用性建议 | 实现难点 |
+| --- | --- | --- | --- | --- | --- | --- |
+| 切换终端 | 暂不默认 | 未发现内置交互式 terminal panel；只有 Shell API 可打开外部文件/文件夹/terminal | `packages/desktop/src/common/adapter/ipcBridge.ts`; `packages/desktop/src/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton.tsx`; `packages/desktop/src/renderer/pages/conversation/Workspace/hooks/useWorkspaceFileOps.ts` | 无 | 不采用 `` Ctrl+` `` 或 `Ctrl+J`，除非后续内置 terminal panel | 当前没有可切换的 terminal UI；需要 xterm/pty 或外部 terminal 打开命令 |
+| 新建终端 | 建议仅 workspace 菜单，不默认 | 有后端 shell endpoint `openFolderWith(... tool: 'terminal')`，但未发现默认按钮/快捷键直达 | `packages/desktop/src/common/adapter/ipcBridge.ts`; `packages/desktop/src/renderer/pages/conversation/components/ChatLayout/WorkspaceOpenButton.tsx` | 无 | 可在 workspace open button 菜单中加“Open in Terminal”，不设全局 | 需要确认当前 workspace、临时 workspace 隐藏策略、WebUI fallback |
+| Prompt 模式 | 不默认 | 未发现 Prompt/Shell 输入模式切换；普通发送框支持文本、文件、slash command、`/btw` | `packages/desktop/src/renderer/components/chat/SendBox/index.tsx`; `packages/desktop/src/renderer/hooks/chat/useSlashCommands.ts`; `packages/desktop/src/renderer/components/chat/BtwOverlay/useBtwCommand.ts` | 无 | 不采用 `Ctrl+Shift+E`，该键更适合文件树/资源管理器语义 | 需要产品定义输入模式；当前无状态可切换 |
+| Shell 模式 | 不默认 | 未发现 chat input 的 Shell mode；Agent 可执行 Shell 工具，但不是用户输入模式 | `packages/desktop/src/renderer/components/chat/SendBox/index.tsx`; `packages/desktop/src/renderer/services/i18n/locales/en-US/tools.json`; `packages/desktop/src/common/adapter/ipcBridge.ts` | 无 | 保持 slash/tool 语义，不加默认快捷键 | 需要区分“让 Agent 执行 shell”和“用户本地 shell 输入” |
+| 开始听写 | `Ctrl+Shift+D` 可候选，但建议先做按钮可达性和命令面板 | 有。SpeechInputButton 支持录音/停止或选择音频文件，依赖 `tools.speechToText.enabled` | `packages/desktop/src/renderer/components/chat/SpeechInputButton.tsx`; `packages/desktop/src/renderer/hooks/system/useSpeechInput.ts`; `packages/desktop/src/renderer/services/SpeechToTextService.ts`; `packages/desktop/src/renderer/components/chat/SendBox/index.tsx` | 无 | 可考虑上下文快捷键，只在聊天输入区/SendBox 可用时生效；不要全局抢 `Ctrl+Shift+D` | `startRecording/stopRecording` 封装在按钮 hook 中，需上移为 SendBox command；还要处理权限、录音中二次按键停止 |
+| 切换语音模式 | 不默认 | 有 STT 配置和录音/文件 fallback，但未发现独立语音模式 | `packages/desktop/src/renderer/components/settings/SettingsModal/contents/ToolsModalContent.tsx`; `packages/desktop/src/renderer/components/chat/SpeechInputButton.tsx`; `packages/desktop/src/renderer/hooks/system/useSpeechInput.ts` | 无 | 不采用 `Ctrl+Shift+V`，会与粘贴/格式相关习惯冲突 | 需要定义 voice mode 状态，而不是一次性 STT |
+| 按住听写快捷键 | 不默认 | 未发现 push-to-talk 实现 | `packages/desktop/src/renderer/hooks/system/useSpeechInput.ts` | 无 | 暂不建议；桌面全局键风险高 | 需要 keydown/keyup、失焦取消、系统权限、与输入法组合键冲突处理 |
+| 切换听写快捷键 | 不默认 | 有 STT 设置，但未发现快捷键设置页 | `packages/desktop/src/renderer/components/settings/SettingsModal/contents/ToolsModalContent.tsx`; `packages/desktop/src/renderer/hooks/system/useSpeechInput.ts` | 无 | 等统一快捷键设置页后再做 | 依赖自定义 shortcut registry 和冲突检测 |
+
+## 推荐推进顺序
+
+1. 保留并文档化现有默认：`Ctrl+T`、`Ctrl+Tab`、`Ctrl+Shift+Tab`、`Ctrl+F`、`Ctrl+Shift+F`。
+2. 先建立统一命令层，再迁移现有分散 listener。至少提供 `command id`、`defaultShortcut`、`when` 条件、`run()`、`isEnabled()`。
+3. 优先新增命令面板动作，而不是直接默认快捷键：打开模型选择器、打开 Agent 选择器、打开 MCP 设置、置顶/取消置顶、重命名当前聊天、复制当前聊天 Markdown。
+4. 高风险动作不设全局默认：自动接受权限、归档/删除、直接切换权限/思考强度、push-to-talk。
+5. 终端相关先不加入默认快捷键；AionUI 当前没有可切换的内置 terminal panel。
+
+## 关键冲突与缺口
+
+- `Ctrl+T` 已被 AionUI 用作新建会话，应继续优先于“打开浏览器标签页”。
+- `Ctrl+F` 已是当前聊天搜索，OpenCode 的“分享会话”不应占用。
+- `Ctrl+Shift+F` 已是全局聊天搜索，清单里的 `Ctrl+G` 不建议再引入为搜索聊天。
+- `Ctrl+Shift+A` 不能作为自动接受权限或归档的默认键。
+- `Ctrl+Shift+D` 在思考强度和听写之间冲突；AionUI 当前有 STT，但没有快捷键，若采用只能是 SendBox 上下文内。
+- `Ctrl+Shift+C` 不建议复制工作目录，因为终端上下文常用于复制。
+- `Tab` 不应全局切换 Agent，会破坏焦点导航和输入可访问性。

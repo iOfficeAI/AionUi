@@ -6,11 +6,13 @@
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { CHAT_OPEN_MODEL_SELECTOR_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
-import React from 'react';
+import classNames from 'classnames';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
 
@@ -34,6 +36,8 @@ const AcpModelSelector: React.FC<{
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const { model_info, canSwitch, selectModel } = useAcpModelInfo({ conversation_id, backend, initialModelId });
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState(0);
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =
@@ -51,6 +55,63 @@ const AcpModelSelector: React.FC<{
   const tooltipContent = display_label;
 
   const renderLogo = () => <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />;
+
+  useEffect(() => {
+    if (!canSwitch) return undefined;
+    const handleOpenModelSelector = () => {
+      setDropdownOpen(true);
+    };
+    window.addEventListener(CHAT_OPEN_MODEL_SELECTOR_EVENT, handleOpenModelSelector);
+    return () => {
+      window.removeEventListener(CHAT_OPEN_MODEL_SELECTOR_EVENT, handleOpenModelSelector);
+    };
+  }, [canSwitch]);
+
+  const availableModels = useMemo(() => model_info?.available_models ?? [], [model_info?.available_models]);
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    const selectedIndex = availableModels.findIndex((model) => model.id === model_info?.current_model_id);
+    setActiveIndex(selectedIndex >= 0 ? selectedIndex : 0);
+  }, [availableModels, dropdownOpen, model_info?.current_model_id]);
+
+  const handleDropdownKeyDown = useCallback(
+    (event: React.KeyboardEvent | KeyboardEvent) => {
+      if (!availableModels.length) return;
+      if (event.key === 'Escape') {
+        event.preventDefault();
+        setDropdownOpen(false);
+        return;
+      }
+      if (event.key === 'ArrowDown' || event.key === 'Tab') {
+        event.preventDefault();
+        setActiveIndex((previous) => (previous + 1) % availableModels.length);
+        return;
+      }
+      if (event.key === 'ArrowUp') {
+        event.preventDefault();
+        setActiveIndex((previous) => (previous - 1 + availableModels.length) % availableModels.length);
+        return;
+      }
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const model = availableModels[activeIndex];
+        if (model) {
+          void selectModel(model.id);
+          setDropdownOpen(false);
+        }
+      }
+    },
+    [activeIndex, availableModels, selectModel]
+  );
+
+  useEffect(() => {
+    if (!dropdownOpen) return;
+    document.addEventListener('keydown', handleDropdownKeyDown, true);
+    return () => {
+      document.removeEventListener('keydown', handleDropdownKeyDown, true);
+    };
+  }, [dropdownOpen, handleDropdownKeyDown]);
 
   if (!model_info) {
     return (
@@ -91,15 +152,21 @@ const AcpModelSelector: React.FC<{
   return (
     <Dropdown
       trigger='click'
+      popupVisible={dropdownOpen}
+      onVisibleChange={setDropdownOpen}
       // Mobile: portal the popup to <body> so it escapes the titlebar slot.
       // Desktop: leave default container so click events reach Menu.Item normally.
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
-        <Menu>
-          {model_info.available_models.map((model) => (
+        <Menu tabIndex={-1} onKeyDown={handleDropdownKeyDown}>
+          {availableModels.map((model, index) => (
             <Menu.Item
               key={model.id}
-              className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
+              className={classNames({
+                'bg-2!': model.id === model_info.current_model_id,
+                '!bg-fill-3': index === activeIndex,
+              })}
+              onMouseEnter={() => setActiveIndex(index)}
               onClick={() => selectModel(model.id)}
             >
               <div className='flex items-center gap-8px w-full'>
@@ -110,7 +177,12 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
+      <Button
+        className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+        shape='round'
+        size='small'
+        onKeyDown={dropdownOpen ? handleDropdownKeyDown : undefined}
+      >
         <span className='flex items-center gap-6px min-w-0 leading-none'>
           {renderLogo()}
           <MarqueePillLabel>{display_label}</MarqueePillLabel>

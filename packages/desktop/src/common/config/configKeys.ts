@@ -2,6 +2,16 @@ import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } fro
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 
+export type KeyboardShortcutsConfig = {
+  version: 1;
+  bindings: {
+    commandId: string;
+    accelerator: string | null;
+    scope?: 'global' | 'route' | 'component';
+    enabled?: boolean;
+  }[];
+};
+
 export type ConfigKeyMap = {
   'google.config': {
     proxy?: string;
@@ -31,6 +41,8 @@ export type ConfigKeyMap = {
   theme: string;
   colorScheme: string;
   'ui.zoomFactor': number | undefined;
+  'keyboard.shortcuts': KeyboardShortcutsConfig | undefined;
+  'chat.enterBehavior': 'enterSubmit' | 'enterNewline' | undefined;
   'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;

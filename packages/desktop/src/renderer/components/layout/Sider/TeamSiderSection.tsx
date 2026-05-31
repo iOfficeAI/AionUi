@@ -14,6 +14,7 @@ import { useSWRConfig } from 'swr';
 import { iconColors } from '@renderer/styles/colors';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
+import { TEAM_CREATE_EVENT, TEAM_SWITCH_EVENT } from '@renderer/utils/team/teamShortcutEvents';
 import { useTeamList } from '@renderer/pages/team/hooks/useTeamList';
 import { useSiderTeamBadges } from '@renderer/pages/team/hooks/useSiderTeamBadges';
 import TeamCreateModal from '@renderer/pages/team/components/TeamCreateModal';
@@ -105,6 +106,33 @@ const TeamSiderSection: React.FC<TeamSiderSectionProps> = ({
     },
     [navigate, onSessionClick]
   );
+
+  useEffect(() => {
+    const handleCreateTeam = () => {
+      setCreateTeamVisible(true);
+    };
+    window.addEventListener(TEAM_CREATE_EVENT, handleCreateTeam);
+    return () => {
+      window.removeEventListener(TEAM_CREATE_EVENT, handleCreateTeam);
+    };
+  }, []);
+
+  useEffect(() => {
+    const handleSwitchTeam = () => {
+      setExpanded(true);
+      const currentTeamId = pathname.match(/^\/team\/([^/]+)/)?.[1];
+      const targetTeam = sortedTeams.find((team) => team.id !== currentTeamId) ?? sortedTeams[0];
+      if (targetTeam) {
+        handleTeamClick(targetTeam.id);
+        return;
+      }
+      setCreateTeamVisible(true);
+    };
+    window.addEventListener(TEAM_SWITCH_EVENT, handleSwitchTeam);
+    return () => {
+      window.removeEventListener(TEAM_SWITCH_EVENT, handleSwitchTeam);
+    };
+  }, [handleTeamClick, pathname, sortedTeams]);
 
   return (
     <>

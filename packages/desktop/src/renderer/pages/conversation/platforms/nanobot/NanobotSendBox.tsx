@@ -29,6 +29,7 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { CHAT_ATTACH_FILE_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -348,6 +349,14 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
+
+  useEffect(() => {
+    const handleAttachFile = () => openFileSelector();
+    window.addEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    return () => {
+      window.removeEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    };
+  }, [openFileSelector]);
 
   // Handle initial message from guid page — nanobot is stateless, send immediately
   useEffect(() => {

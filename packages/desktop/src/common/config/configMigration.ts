@@ -30,6 +30,8 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'theme',
   'colorScheme',
   'ui.zoomFactor',
+  'keyboard.shortcuts',
+  'chat.enterBehavior',
   'webui.desktop.enabled',
   'webui.desktop.allowRemote',
   'webui.desktop.port',

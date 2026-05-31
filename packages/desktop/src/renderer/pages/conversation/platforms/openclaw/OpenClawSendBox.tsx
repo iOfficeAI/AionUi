@@ -30,6 +30,7 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { CHAT_ATTACH_FILE_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -287,8 +288,8 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
 
   useAddEventListener(
     'staroffice.install.request',
-    ({ conversation_id, text }) => {
-      if (conversation_id !== conversation_id) return;
+    ({ conversation_id: eventConversationId, text }) => {
+      if (eventConversationId !== conversation_id) return;
       // Show the simplified prompt to user, inject star-office-helper skill via main process
       setAiProcessing(true);
       aiProcessingRef.current = true;
@@ -458,6 +459,14 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { openFileSelector, onSlashBuiltinCommand } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
+
+  useEffect(() => {
+    const handleAttachFile = () => openFileSelector();
+    window.addEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    return () => {
+      window.removeEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    };
+  }, [openFileSelector]);
 
   // Handle initial message from guid page.
   // In backend-proxy mode, warmup happens on the backend when send_message is

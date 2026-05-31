@@ -420,6 +420,7 @@
   "channels.mediaSendFailed": "{{name}} の送信に失敗しました",
   "channels.mediaPathNotAllowed": "{{name}} は許可された送信ディレクトリ外にあるため送信できません",
   "display": "表示",
+  "shortcuts": "Shortcuts",
   "imageGeneration": "画像生成",
   "imageGenerationToggle": "画像生成ツールを有効にする",
   "imageGenerationDescription": "画像ツールで使用する既存の画像対応モデルを選択します。",

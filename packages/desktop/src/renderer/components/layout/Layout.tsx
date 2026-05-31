@@ -21,7 +21,7 @@ import { useNotificationClick } from '@renderer/hooks/system/useNotificationClic
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
-import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
+import { useGlobalShortcuts } from '@renderer/hooks/ui/useGlobalShortcuts';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
@@ -100,6 +100,11 @@ const detectMobileViewportOrTouch = (): boolean => {
   return byWidth || (smallScreen && (byMedia || byTouchPoints));
 };
 
+const GlobalShortcutsBridge: React.FC<{ workspaceAvailable: boolean }> = ({ workspaceAvailable }) => {
+  useGlobalShortcuts({ workspaceAvailable });
+  return null;
+};
+
 const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
@@ -116,7 +121,6 @@ const Layout: React.FC<{
   useDeepLink();
   useNotificationClick();
   const navigate = useNavigate();
-  useConversationShortcuts({ navigate });
   const location = useLocation();
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
@@ -438,6 +442,7 @@ const Layout: React.FC<{
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
+        <GlobalShortcutsBridge workspaceAvailable={workspaceAvailable} />
         <div className='app-shell flex flex-col size-full min-h-0'>
           <Titlebar workspaceAvailable={workspaceAvailable} />
           {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
@@ -509,13 +514,13 @@ const Layout: React.FC<{
               </ArcoLayout.Header>
               <ArcoLayout.Content className='pt-0 px-8px pb-0 layout-sider-content'>
                 {React.isValidElement(sider)
-                  ? React.cloneElement(sider, {
+                  ? React.cloneElement(sider as React.ReactElement<{ onSessionClick?: () => void; collapsed?: boolean }>, {
                       onSessionClick: () => {
                         cleanupSiderTooltips();
                         if (isMobile) setCollapsed(true);
                       },
                       collapsed,
-                    } as any)
+                    })
                   : sider}
               </ArcoLayout.Content>
               {!isMobile && (

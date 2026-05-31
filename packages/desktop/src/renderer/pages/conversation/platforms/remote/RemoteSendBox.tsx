@@ -28,6 +28,7 @@ import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conve
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
+import { CHAT_ATTACH_FILE_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -436,6 +437,14 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   const { openFileSelector } = useOpenFileSelector({
     onFilesSelected: appendSelectedFiles,
   });
+
+  useEffect(() => {
+    const handleAttachFile = () => openFileSelector();
+    window.addEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    return () => {
+      window.removeEventListener(CHAT_ATTACH_FILE_EVENT, handleAttachFile);
+    };
+  }, [openFileSelector]);
 
   const handleStop = async (): Promise<void> => {
     // Best-effort cancel: swallow rejections (e.g. backend returns 409 when

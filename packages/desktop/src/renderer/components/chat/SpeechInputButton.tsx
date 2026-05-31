@@ -6,7 +6,7 @@
 
 import { configService } from '@/common/config/configService';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import {
   useSpeechInput,
@@ -37,6 +37,7 @@ const SpeechStopIcon = () => (
 const SpeechLoaderIcon = () => <span className='speech-loader-spinner' aria-hidden='true' />;
 
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const SPEECH_INPUT_TOGGLE_EVENT = 'aionui:speech-input-toggle';
 
 const getAvailabilityMessageKey = (availability: SpeechInputAvailability) => {
   switch (availability) {
@@ -177,7 +178,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
     clearError();
   }, [clearError, errorCode, errorMessage, t]);
 
-  const handleClick = () => {
+  const handleClick = useCallback(() => {
     if (disabled) {
       return;
     }
@@ -198,7 +199,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
     }
 
     void startRecording();
-  };
+  }, [availability, disabled, isRecording, startRecording, stopRecording, t]);
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -208,6 +209,17 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
     }
     void transcribeFile(file);
   };
+
+  useEffect(() => {
+    const handleSpeechInputToggle = () => {
+      handleClick();
+    };
+
+    window.addEventListener(SPEECH_INPUT_TOGGLE_EVENT, handleSpeechInputToggle);
+    return () => {
+      window.removeEventListener(SPEECH_INPUT_TOGGLE_EVENT, handleSpeechInputToggle);
+    };
+  }, [handleClick]);
 
   if (!isConfigLoaded || !isSpeechToTextEnabled) {
     return null;

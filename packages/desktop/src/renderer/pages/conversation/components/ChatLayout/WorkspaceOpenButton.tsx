@@ -1,8 +1,9 @@
 import { ipcBridge } from '@/common';
 import { isElectronDesktop } from '@/renderer/utils/platform';
+import { WORKSPACE_OPEN_FOLDER_EVENT } from '@/renderer/utils/workspace/workspaceEvents';
 import { Command, Down, Folder, Terminal } from '@icon-park/react';
 import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type ToolType = 'vscode' | 'terminal' | 'explorer';
@@ -59,7 +60,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
     void checkTools();
   }, [isTemporary]);
 
-  const handleOpenWith = async (tool: ToolType) => {
+  const handleOpenWith = useCallback(async (tool: ToolType) => {
     try {
       await ipcBridge.shell.openFolderWith.invoke({ folder_path: workspacePath, tool });
       // Save preference
@@ -69,7 +70,7 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
       console.error(`[WorkspaceOpenButton] Failed to open folder with ${tool}:`, error);
     }
     setDropdownOpen(false);
-  };
+  }, [workspacePath]);
 
   // Build dropdown options
   const toolOptions: ToolOption[] = [
@@ -119,6 +120,17 @@ const WorkspaceOpenButton: React.FC<WorkspaceOpenButtonProps> = ({ workspacePath
         return <Terminal size={16} />;
     }
   }, [currentTool]);
+
+  useEffect(() => {
+    if (!isElectronDesktop() || isTemporary) return undefined;
+    const openInExplorer = () => {
+      void handleOpenWith('explorer');
+    };
+    window.addEventListener(WORKSPACE_OPEN_FOLDER_EVENT, openInExplorer);
+    return () => {
+      window.removeEventListener(WORKSPACE_OPEN_FOLDER_EVENT, openInExplorer);
+    };
+  }, [handleOpenWith, isTemporary]);
 
   // Don't render in WebUI/browser mode — shell tools open on the server with no visible feedback
   // Don't render if workspace is temporary

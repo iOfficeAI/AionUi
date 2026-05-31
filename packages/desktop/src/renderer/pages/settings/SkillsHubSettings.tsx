@@ -154,7 +154,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         {/* ======== 我的技能 / My Skills ======== */}
         <div
           data-testid='my-skills-section'
-          className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
+          className='px-[16px] md:px-[32px] py-32px bg-fill-1 rd-16px md:rd-24px border border-border-1 relative overflow-hidden transition-all'
         >
           {/* Toolbar for My Skills */}
           <div className='flex flex-col lg:flex-row lg:items-center justify-between gap-16px mb-24px relative z-10'>
@@ -225,7 +225,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
-                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 hover:shadow-sm rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                  className={`group flex flex-col sm:flex-row gap-16px p-16px bg-2 border hover:border-border-1 hover:bg-fill-2 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
                     <div
@@ -286,7 +286,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               ))}
             </div>
           ) : (
-            <div className='text-center text-t-secondary text-13px py-40px bg-fill-1 rd-12px border border-b-base border-dashed relative z-10'>
+            <div className='text-center text-t-secondary text-13px py-40px bg-2 rd-12px border border-border-1 border-dashed relative z-10'>
               {loading
                 ? t('common.loading', { defaultValue: 'Please wait...' })
                 : t('settings.skillsHub.noSkills', {
@@ -300,7 +300,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         {extensionSkills.length > 0 && (
           <div
             data-testid='extension-skills-section'
-            className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
+            className='px-[16px] md:px-[32px] py-32px bg-fill-1 rd-16px md:rd-24px border border-border-1 relative overflow-hidden transition-all'
           >
             <div className='flex items-center gap-10px mb-24px'>
               <Puzzle theme='filled' size={20} fill='var(--color-primary-6)' />
@@ -318,7 +318,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
-                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-2 border hover:border-border-1 hover:bg-fill-2 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
                     <div className='w-40px h-40px rd-10px bg-[rgba(var(--primary-6),0.08)] flex items-center justify-center shadow-sm'>
@@ -346,7 +346,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         {builtinAutoSkills.length > 0 && (
           <div
             data-testid='auto-skills-section'
-            className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
+            className='px-[16px] md:px-[32px] py-32px bg-fill-1 rd-16px md:rd-24px border border-border-1 relative overflow-hidden transition-all'
           >
             <div className='flex items-center gap-10px mb-24px'>
               <Lightning theme='filled' size={20} fill='var(--color-primary-6)' />
@@ -364,7 +364,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                   ref={(el) => {
                     skillRefs.current[skill.name] = el;
                   }}
-                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-base border hover:border-border-1 hover:bg-fill-1 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
+                  className={`flex flex-col sm:flex-row gap-16px p-16px bg-2 border hover:border-border-1 hover:bg-fill-2 rd-12px transition-all duration-200 ${highlightedSkill === skill.name ? 'border-primary-5 bg-primary-1' : 'border-transparent'}`}
                 >
                   <div className='shrink-0 flex items-start sm:mt-2px'>
                     <div className='w-40px h-40px rd-10px bg-[rgba(var(--success-6),0.08)] flex items-center justify-center shadow-sm'>
@@ -389,7 +389,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         )}
 
         {/* ======== Usage Tip ======== */}
-        <div className='px-16px md:px-[24px] py-20px bg-base border border-b-base shadow-sm rd-16px flex items-start gap-12px text-t-secondary'>
+        <div className='px-16px md:px-[24px] py-20px bg-fill-1 border border-border-1 rd-16px flex items-start gap-12px text-t-secondary'>
           <Info size={18} className='text-primary-6 mt-2px shrink-0' />
           <div className='flex flex-col gap-4px'>
             <span className='font-bold text-t-primary text-14px'>

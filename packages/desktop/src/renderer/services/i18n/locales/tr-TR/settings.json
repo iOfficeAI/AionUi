@@ -420,6 +420,7 @@
   "channels.mediaSendFailed": "{{name}} gönderilemedi",
   "channels.mediaPathNotAllowed": "{{name}} dosyasi izin verilen gonderim dizinlerinin disinda oldugu icin gonderilemedi",
   "display": "Görünüm",
+  "shortcuts": "Shortcuts",
   "imageGeneration": "Görüntü Oluşturma",
   "imageGenerationToggle": "Görüntü oluşturma aracını etkinleştir",
   "imageGenerationDescription": "Aracın varsayılan olarak hangi yapılandırılmış görüntü yetenekli modeli kullanacağını seçin.",

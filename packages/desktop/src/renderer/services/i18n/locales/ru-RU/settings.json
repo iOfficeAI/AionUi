@@ -412,6 +412,7 @@
   "channels.mediaSendFailed": "Не удалось отправить {{name}}",
   "channels.mediaPathNotAllowed": "Не удалось отправить {{name}}, потому что файл находится вне разрешённых каталогов отправки",
   "display": "Отображение",
+  "shortcuts": "Shortcuts",
   "imageGeneration": "Генерация изображений",
   "imageGenerationToggle": "Включить инструмент генерации изображений",
   "imageGenerationDescription": "Выберите настроенную модель с поддержкой изображений для использования по умолчанию.",

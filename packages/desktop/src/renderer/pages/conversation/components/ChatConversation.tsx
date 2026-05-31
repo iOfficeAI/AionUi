@@ -34,6 +34,10 @@ import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
+import { useWorkspaceSelector } from '@/renderer/hooks/file/useWorkspaceSelector';
+import type { WorkspaceEventPrefix } from '@/renderer/hooks/file/useWorkspaceSelector';
+import { CHAT_SELECT_WORKSPACE_EVENT } from '@/renderer/utils/chat/chatShortcutEvents';
+import ChatCommandPanel from './ChatCommandPanel';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
 /** Check whether a specific skill is mounted on the conversation. */
@@ -160,9 +164,17 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
   const layout = useLayoutContext();
+  const selectWorkspace = useWorkspaceSelector(conversation.id, 'aionrs');
   // Mobile: model selection moved into the sendbox `+` action sheet to free up
   // header space; the dropdown stays available on desktop and tablets ≥768px.
   const isMobile = Boolean(layout?.isMobile);
+
+  React.useEffect(() => {
+    window.addEventListener(CHAT_SELECT_WORKSPACE_EVENT, selectWorkspace);
+    return () => {
+      window.removeEventListener(CHAT_SELECT_WORKSPACE_EVENT, selectWorkspace);
+    };
+  }, [selectWorkspace]);
 
   const chatLayoutProps = {
     title: conversation.name,
@@ -187,22 +199,30 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
-      <AionrsChat
-        conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        modelSelection={modelSelection}
-        session_mode={conversation.extra?.session_mode}
-        cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-        loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-        loadedMcpStatuses={
-          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-        }
-        agent_name={presetAssistantInfo?.name}
-      />
-    </ChatLayout>
+    <>
+      <ChatCommandPanel />
+      <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
+        <AionrsChat
+          conversation_id={conversation.id}
+          workspace={conversation.extra.workspace}
+          modelSelection={modelSelection}
+          session_mode={conversation.extra?.session_mode}
+          cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+          loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+          loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+          loadedMcpStatuses={
+            (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+          }
+          agent_name={presetAssistantInfo?.name}
+        />
+      </ChatLayout>
+    </>
   );
+};
+
+const getWorkspaceEventPrefix = (conversation: TChatConversation): WorkspaceEventPrefix => {
+  if (conversation.type === 'gemini') return 'acp';
+  return conversation.type;
 };
 
 const ChatConversation: React.FC<{
@@ -225,6 +245,16 @@ const ChatConversation: React.FC<{
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
+  const workspaceEventPrefix = conversation ? getWorkspaceEventPrefix(conversation) : 'acp';
+  const selectWorkspace = useWorkspaceSelector(conversation?.id ?? '', workspaceEventPrefix);
+
+  React.useEffect(() => {
+    if (!conversation?.id || isAionrsConversation) return undefined;
+    window.addEventListener(CHAT_SELECT_WORKSPACE_EVENT, selectWorkspace);
+    return () => {
+      window.removeEventListener(CHAT_SELECT_WORKSPACE_EVENT, selectWorkspace);
+    };
+  }, [conversation?.id, isAionrsConversation, selectWorkspace]);
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
@@ -405,21 +435,24 @@ const ChatConversation: React.FC<{
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      workspacePath={conversation?.extra?.workspace}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    <>
+      <ChatCommandPanel />
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        workspacePath={conversation?.extra?.workspace}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </>
   );
 };
 

@@ -17,7 +17,7 @@ const getCycledConversationId = (
     return null;
   }
 
-  const activeIndex = visibleConversationIds.findIndex((conversation_id) => conversation_id === activeConversationId);
+  const activeIndex = visibleConversationIds.findIndex((conversationId) => conversationId === activeConversationId);
   if (activeIndex === -1) {
     return null;
   }
@@ -34,6 +34,10 @@ const isNewConversationShortcut = (event: KeyboardEvent): boolean => {
   return (event.metaKey || event.ctrlKey) && !event.altKey && !event.shiftKey && event.key.toLowerCase() === 't';
 };
 
+/**
+ * @deprecated Global shortcuts are now handled by useGlobalShortcuts.
+ * This hook is kept only for reference during the keyboard shortcuts migration.
+ */
 export const useConversationShortcuts = ({ navigate }: UseConversationShortcutsParams): void => {
   const location = useLocation();
   const visibleConversationIds = useVisibleConversationIds();

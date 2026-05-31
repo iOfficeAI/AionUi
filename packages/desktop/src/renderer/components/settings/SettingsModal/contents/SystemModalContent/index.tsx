@@ -12,7 +12,7 @@ import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
 import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
-import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Switch, Tooltip } from '@arco-design/web-react';
+import { Alert, Button, Collapse, Form, InputNumber, Message, Modal, Radio, Switch, Tooltip } from '@arco-design/web-react';
 import { FolderSearch } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -52,6 +52,7 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [chatEnterBehavior, setChatEnterBehavior] = useState<'enterSubmit' | 'enterNewline'>('enterSubmit');
 
   useEffect(() => {
     if (!isDesktop) {
@@ -83,6 +84,7 @@ const SystemModalContent: React.FC = () => {
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
+    setChatEnterBehavior(configService.get('chat.enterBehavior') === 'enterNewline' ? 'enterNewline' : 'enterSubmit');
     const pt = configService.get('acp.promptTimeout');
     if (pt && pt > 0) setPromptTimeout(pt);
     const ait = configService.get('acp.agentIdleTimeout');
@@ -213,6 +215,15 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleChatEnterBehaviorChange = useCallback((value: 'enterSubmit' | 'enterNewline') => {
+    setChatEnterBehavior(value);
+    configService.set('chat.enterBehavior', value).catch(() => {
+      const fallback = value === 'enterSubmit' ? 'enterNewline' : 'enterSubmit';
+      setChatEnterBehavior(fallback);
+      configService.setLocal('chat.enterBehavior', fallback);
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -309,6 +320,16 @@ const SystemModalContent: React.FC = () => {
       label: t('settings.autoPreviewOfficeFiles'),
       description: t('settings.autoPreviewOfficeFilesDesc'),
       component: <Switch checked={autoPreviewOfficeFiles} onChange={handleAutoPreviewOfficeFilesChange} />,
+    },
+    {
+      key: 'chatEnterBehavior',
+      label: t('settings.chatEnterBehavior'),
+      component: (
+        <Radio.Group value={chatEnterBehavior} onChange={handleChatEnterBehaviorChange}>
+          <Radio value='enterSubmit'>{t('settings.chatEnterSubmit')}</Radio>
+          <Radio value='enterNewline'>{t('settings.chatEnterNewline')}</Radio>
+        </Radio.Group>
+      ),
     },
   ];
 

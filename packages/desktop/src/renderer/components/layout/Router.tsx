@@ -10,6 +10,7 @@ const AssistantSettings = React.lazy(() => import('@renderer/pages/settings/Assi
 const CapabilitiesSettings = React.lazy(() => import('@renderer/pages/settings/CapabilitiesSettings'));
 const DisplaySettings = React.lazy(() => import('@renderer/pages/settings/DisplaySettings'));
 const ModeSettings = React.lazy(() => import('@renderer/pages/settings/ModeSettings'));
+const ShortcutsSettings = React.lazy(() => import('@renderer/pages/settings/ShortcutsSettings'));
 const SystemSettings = React.lazy(() => import('@renderer/pages/settings/SystemSettings'));
 const WebuiSettings = React.lazy(() => import('@renderer/pages/settings/WebuiSettings'));
 const PetSettings = React.lazy(() => import('@renderer/pages/settings/PetSettings'));
@@ -66,6 +67,7 @@ const PanelRoute: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
           <Route path='/settings/skills-hub' element={<Navigate to='/settings/capabilities?tab=skills' replace />} />
           <Route path='/settings/tools' element={<Navigate to='/settings/capabilities?tab=tools' replace />} />
           <Route path='/settings/display' element={withRouteFallback(DisplaySettings)} />
+          <Route path='/settings/shortcuts' element={withRouteFallback(ShortcutsSettings)} />
           <Route path='/settings/webui' element={withRouteFallback(WebuiSettings)} />
           <Route path='/settings/pet' element={withRouteFallback(PetSettings)} />
           <Route path='/settings/system' element={withRouteFallback(SystemSettings)} />

@@ -37,7 +37,6 @@ import {
 import { DEFAULT_SPLIT_RATIO, FILE_TYPES_WITH_BUILTIN_OPEN, MAX_SPLIT_WIDTH, MIN_SPLIT_WIDTH } from '../../constants';
 import {
   usePreviewHistory,
-  usePreviewKeyboardShortcuts,
   useScrollSync,
   useTabOverflow,
   useThemeDetection,
@@ -110,11 +109,6 @@ const PreviewPanel: React.FC = () => {
   } = usePreviewHistory({
     activeTab,
     updateContent,
-  });
-
-  usePreviewKeyboardShortcuts({
-    isDirty: activeTab?.isDirty,
-    onSave: () => void saveContent(),
   });
 
   const setToolbarExtrasCallback = useCallback((extras: PreviewToolbarExtras | null) => {

@@ -420,6 +420,7 @@
   "channels.mediaSendFailed": "發送 {{name}} 失敗",
   "channels.mediaPathNotAllowed": "無法發送 {{name}}，因為該檔案不在允許發送的目錄中",
   "display": "顯示",
+  "shortcuts": "快捷鍵",
   "imageGeneration": "圖像生成",
   "imageGenerationToggle": "啟用圖像生成工具",
   "imageGenerationDescription": "選擇預設用於圖像工具的已配置模型。",
