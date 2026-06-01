@@ -11,6 +11,7 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
+import LiveActivityBand from '@renderer/pages/conversation/components/LiveActivityBand';
 import OpenClawSendBox from './OpenClawSendBox';
 
 const OpenClawChat: React.FC<{
@@ -41,6 +42,7 @@ const OpenClawChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot}></MessageList>
         </FlexFullContainer>
+        <LiveActivityBand />
         {!hideSendBox && <OpenClawSendBox conversation_id={conversation_id} />}
       </div>
     </ConversationProvider>

@@ -13,6 +13,7 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useMemo } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
+import LiveActivityBand from '@renderer/pages/conversation/components/LiveActivityBand';
 import AionrsSendBox from './AionrsSendBox';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
 
@@ -51,6 +52,7 @@ const AionrsChat: React.FC<{
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
+          <LiveActivityBand />
           <AionrsSendBox
             conversation_id={conversation_id}
             modelSelection={modelSelection}

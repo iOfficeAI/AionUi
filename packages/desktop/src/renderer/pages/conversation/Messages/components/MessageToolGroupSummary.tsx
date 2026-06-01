@@ -16,7 +16,7 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   const toggle = () => hasDetail && setExpanded((v) => !v);
 
   return (
-    <div className='flex flex-col'>
+    <div className='flex flex-col' data-tool-id={item.key}>
       <div className='flex items-center gap-8px'>
         <StatusPill state={state} label={stateLabel} />
         <span

@@ -12,6 +12,7 @@ import { MessageListProvider, useMessageLstCache } from '@renderer/pages/convers
 import HOC from '@renderer/utils/ui/HOC';
 import React, { useEffect, useRef } from 'react';
 import LocalImageView from '@renderer/components/media/LocalImageView';
+import LiveActivityBand from '@renderer/pages/conversation/components/LiveActivityBand';
 import RemoteSendBox from './RemoteSendBox';
 
 const RemoteChat: React.FC<{
@@ -85,6 +86,7 @@ const RemoteChat: React.FC<{
         <FlexFullContainer>
           <MessageList className='flex-1' emptySlot={emptySlot}></MessageList>
         </FlexFullContainer>
+        <LiveActivityBand />
         {!hideSendBox && (
           <RemoteSendBox conversation_id={conversation_id} session_mode={session_mode} modelSelector={modelSelector} />
         )}

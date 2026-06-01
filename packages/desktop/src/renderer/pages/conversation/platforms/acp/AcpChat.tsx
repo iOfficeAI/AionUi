@@ -12,6 +12,7 @@ import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messa
 import { MessageListProvider, useMessageLstCache } from '@renderer/pages/conversation/Messages/hooks';
 import HOC from '@renderer/utils/ui/HOC';
 import React from 'react';
+import LiveActivityBand from '@renderer/pages/conversation/components/LiveActivityBand';
 import AcpSendBox from './AcpSendBox';
 import { useAcpMessage } from './useAcpMessage';
 
@@ -51,6 +52,7 @@ const AcpChat: React.FC<{
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
+          <LiveActivityBand />
           {!hideSendBox && (
             <AcpSendBox
               conversation_id={conversation_id}
