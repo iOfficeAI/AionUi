@@ -98,7 +98,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     desktopAccountStatus?.user?.displayName ||
     desktopAccountStatus?.user?.username ||
     t('settings.newApiDefaultUserName');
-  const QUOTA_PER_RMB = 73529; // 1 RMB = 73529 quota units
+  const QUOTA_PER_RMB = 73259; // 1 RMB = 73529 quota units
   const formatQuota = (n: number): string => {
     const rmb = n / QUOTA_PER_RMB;
     if (rmb >= 1_000_000) return `¥${(rmb / 10_000).toFixed(0)}万`;
