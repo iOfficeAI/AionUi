@@ -46,11 +46,23 @@ const OPENCODE_MANAGED_FALLBACK_FILE_NAME = 'opencode.json';
 const CLAUDE_MANAGED_ENV_KEYS = [
   'ANTHROPIC_BASE_URL',
   'ANTHROPIC_MODEL',
-  'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
   'ANTHROPIC_DEFAULT_OPUS_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
   'ANTHROPIC_AUTH_TOKEN',
   'ANTHROPIC_API_KEY',
+] as const;
+
+/** Model-scoped env keys written into cc-switch.db for model_info.rs to
+ *  build the UI model picker. These must NOT be injected into agent
+ *  subprocesses (AionCore filters them at the injection boundary), and
+ *  must NOT be written into ~/.claude/settings.json env block (model
+ *  selection is managed via the "model" slot field). */
+const CLAUDE_MODEL_ENV_KEYS = [
+  'ANTHROPIC_DEFAULT_SONNET_MODEL',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL',
+  'ANTHROPIC_DEFAULT_HAIKU_MODEL',
+  'ANTHROPIC_MODEL',
 ] as const;
 
 type BridgeResponse<D = {}> = {
@@ -670,6 +682,17 @@ function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProv
   };
 }
 
+/** Connection-only env: base URL + auth tokens. Model selection is managed
+ *  via the "model" slot field and ACP session protocol, so model env keys
+ *  must NOT be included. Used when writing to ~/.claude/settings.json. */
+function buildClaudeConnectionEnv(profile: ProviderSyncProfile): Record<string, string> {
+  return {
+    ANTHROPIC_BASE_URL: profile.normalizedBaseUrl,
+    ANTHROPIC_AUTH_TOKEN: profile.provider.api_key,
+    ANTHROPIC_API_KEY: profile.provider.api_key,
+  };
+}
+
 function resolveHermesApiMode(profile: ProviderSyncProfile): 'anthropic_messages' | 'chat_completions' {
   return profile.protocol === 'anthropic' ? 'anthropic_messages' : 'chat_completions';
 }
@@ -846,12 +869,14 @@ function writeClaudeSettingsForProviderSync(provider: TProviderWithModel): void 
   for (const key of CLAUDE_MANAGED_ENV_KEYS) {
     delete nextEnv[key];
   }
+  // Model keys are excluded from the env block — model selection is
+  // managed via the "model" slot field below, not env overrides.
   const nextSettings: ClaudeSettings = {
     ...currentSettings,
     model: 'default',
     env: {
       ...nextEnv,
-      ...buildClaudeRuntimeProviderEnv(profile),
+      ...buildClaudeConnectionEnv(profile),
     },
   };
   fs.mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
@@ -1261,6 +1286,110 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel, _source
   fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
 }
 
+// ── Codex managed runtime ──────────────────────────────────────────
+
+function resolveCodexConfigPath(): string {
+  const override = process.env.CODEX_HOME?.trim();
+  const codexDir = override ? path.resolve(override) : path.join(os.homedir(), '.codex');
+  return path.join(codexDir, 'config.toml');
+}
+
+function resolveCodexWireApi(profile: ProviderSyncProfile): string {
+  // Codex's native protocol is OpenAI responses API. For anthropic/gemini
+  // models we fall back to chat_completions.
+  if (profile.protocol === 'openai') return 'responses';
+  return 'chat_completions';
+}
+
+function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
+  const profile = buildProviderSyncProfile(provider);
+  if (!profile) return;
+
+  const providerId = profile.managedProviderId;
+  const modelId = profile.normalizedModelId;
+  const baseUrl = resolveOpenClawBaseUrl(profile); // strip /v1 for OpenAI, keep for others
+  const wireApi = resolveCodexWireApi(profile);
+  const apiKey = profile.provider.api_key;
+
+  const toml = [
+    `model_provider = "${providerId}"`,
+    `model = "${modelId}"`,
+    '',
+    `[model_providers."${providerId}"]`,
+    `name = "${profile.provider.name || 'POUNDING API'}"`,
+    `base_url = "${baseUrl}"`,
+    `bearer_token = "${apiKey}"`,
+    `wire_api = "${wireApi}"`,
+    '',
+  ].join('\n');
+
+  const configPath = resolveCodexConfigPath();
+  fs.mkdirSync(path.dirname(configPath), { recursive: true });
+  fs.writeFileSync(configPath, toml, { encoding: 'utf8', mode: 0o600 });
+}
+
+function clearCodexManagedProviderModel(managedProviderId: string): void {
+  const configPath = resolveCodexConfigPath();
+  if (!fs.existsSync(configPath)) return;
+
+  const content = fs.readFileSync(configPath, 'utf8');
+  // Check if the active model_provider is a POUNDING managed one
+  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
+  const activeProvider = providerMatch?.[1]?.trim();
+  if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return;
+
+  fs.rmSync(configPath, { force: true });
+}
+
+function recoverApiKeyFromCodexConfig(): string | undefined {
+  const configPath = resolveCodexConfigPath();
+  if (!fs.existsSync(configPath)) return undefined;
+
+  const content = fs.readFileSync(configPath, 'utf8');
+  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
+  const activeProvider = providerMatch?.[1]?.trim();
+  if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return undefined;
+
+  // Extract bearer_token from [model_providers."<id>"] section
+  const sectionRegex = new RegExp(
+    `\\[model_providers\\."${activeProvider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\][^[]*bearer_token\\s*=\\s*"([^"]+)"`,
+    's'
+  );
+  const tokenMatch = content.match(sectionRegex);
+  return tokenMatch?.[1]?.trim() || undefined;
+}
+
+function recoverManagedRuntimeSnapshotFromCodexConfig(): RecoveredManagedRuntimeSnapshot | undefined {
+  const configPath = resolveCodexConfigPath();
+  if (!fs.existsSync(configPath)) return undefined;
+
+  const content = fs.readFileSync(configPath, 'utf8');
+  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
+  const activeProvider = providerMatch?.[1]?.trim();
+  if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return undefined;
+
+  const modelMatch = content.match(/^model\s*=\s*"(.+)"$/m);
+  const model = modelMatch?.[1]?.trim();
+
+  // Extract base_url and bearer_token from the provider section
+  const escapedId = activeProvider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const sectionRegex = new RegExp(
+    `\\[model_providers\\."${escapedId}"\\][^[]*base_url\\s*=\\s*"([^"]+)"[^[]*bearer_token\\s*=\\s*"([^"]+)"`,
+    's'
+  );
+  const sectionMatch = content.match(sectionRegex);
+  const baseUrl = sectionMatch?.[1]?.trim();
+  const token = sectionMatch?.[2]?.trim();
+
+  if (!token || !baseUrl || !model) return undefined;
+  return {
+    token,
+    baseUrl: normalizeBaseUrl(baseUrl),
+    models: [model],
+    managedProviderId: activeProvider,
+  };
+}
+
 function clearOpenClawManagedProviderModel(managedProviderId: string): void {
   const configPath = resolveOpenClawConfigPath();
   if (!fs.existsSync(configPath)) return;
@@ -1371,6 +1500,7 @@ function recoverManagedApiKeyFromRuntimeConfigs(): string | undefined {
     recoverApiKeyFromHermesEnv() ||
     recoverApiKeyFromOpenClawConfig() ||
     recoverApiKeyFromOpencodeConfig() ||
+    recoverApiKeyFromCodexConfig() ||
     recoverApiKeyFromClaudeSettings()
   );
 }
@@ -1379,6 +1509,7 @@ function recoverManagedRuntimeSnapshotFromConfigs(): RecoveredManagedRuntimeSnap
   return (
     recoverManagedRuntimeSnapshotFromOpenClawConfig() ||
     recoverManagedRuntimeSnapshotFromOpencodeConfig() ||
+    recoverManagedRuntimeSnapshotFromCodexConfig() ||
     recoverManagedRuntimeSnapshotFromClaudeSettings() ||
     recoverManagedRuntimeSnapshotFromHermesConfig()
   );
@@ -1392,6 +1523,10 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
     {
       cliTarget: 'claude',
       run: (providerWithModel) => writeClaudeSettingsForProviderSync(providerWithModel),
+    },
+    {
+      cliTarget: 'codex',
+      run: (providerWithModel) => writeCodexConfigForProviderSync(providerWithModel),
     },
     {
       cliTarget: 'hermes',
@@ -1604,6 +1739,7 @@ async function removeManagedProvider(): Promise<void> {
 async function clearManagedBackendSyncArtifacts(): Promise<void> {
   const managedProviderId = getManagedRuntimeProviderId(NEW_API_PROVIDER_NAME, NEW_API_MANAGED_PROVIDER_ID);
   clearClaudeSettingsForProviderSync();
+  clearCodexManagedProviderModel(managedProviderId);
   clearHermesConfigForProviderSync();
   clearOpencodeConfigForProviderSync(managedProviderId);
   clearOpenClawManagedProviderModel(managedProviderId);
@@ -1615,6 +1751,9 @@ function clearManagedRuntimeForCliTargetSync(cliTarget: ManagedRuntimeCliTarget)
   switch (cliTarget) {
     case 'claude':
       clearClaudeSettingsForProviderSync();
+      break;
+    case 'codex':
+      clearCodexManagedProviderModel(managedProviderId);
       break;
     case 'hermes':
       clearHermesConfigForProviderSync();
@@ -1890,10 +2029,14 @@ export const __TEST__ = {
   resolveOpenClawBaseUrl,
   recoverManagedRuntimeSnapshotFromConfigs,
   recoverManagedRuntimeSnapshotFromClaudeSettings,
+  recoverManagedRuntimeSnapshotFromCodexConfig,
   writeClaudeSettingsForProviderSync,
   clearClaudeSettingsForProviderSync,
+  writeCodexConfigForProviderSync,
+  clearCodexManagedProviderModel,
   readCcSwitchSettings,
   getManagedCliSelectableModels,
   clearOpenClawManagedProviderModel,
   clearManagedRuntimeForCliTargetSync,
+  CLAUDE_MODEL_ENV_KEYS,
 };

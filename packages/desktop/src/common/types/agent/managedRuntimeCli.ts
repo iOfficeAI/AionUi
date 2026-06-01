@@ -135,6 +135,9 @@ export function resolveManagedModelIdFromRuntime(
   if (!normalizedModelId) return undefined;
 
   switch (cliTarget) {
+    case 'codex':
+      // Codex config.toml model field is the raw model name.
+      return normalizedModelId;
     case 'hermes':
       return normalizedModelId.startsWith('custom:')
         ? normalizedModelId.slice('custom:'.length) || undefined
@@ -223,8 +226,21 @@ export function getManagedCliSelectableModels(
   });
 
   if (candidateModels.length > 0) return candidateModels;
-  return allModels.filter(
+
+  // Relaxed fallback: drop function_calling + excludeFromPrimary filters, keep
+  // protocol compatibility check so Claude still prefers anthropic models when
+  // available.
+  const relaxedModels = allModels.filter(
     (modelId) =>
-      provider.model_enabled?.[modelId] !== false && isManagedCliModelCompatible(provider, modelId, cliTarget)
+      provider.model_enabled?.[modelId] !== false &&
+      isManagedCliModelCompatible(provider, modelId, cliTarget)
+  );
+  if (relaxedModels.length > 0) return relaxedModels;
+
+  // Ultimate fallback: drop ALL compatibility filters so every CLI gets at
+  // least one selectable model. Without this, a user whose account only has
+  // OpenAI-protocol models would see zero options for Claude/Hermes/etc.
+  return allModels.filter(
+    (modelId) => provider.model_enabled?.[modelId] !== false
   );
 }

@@ -45,9 +45,17 @@ function selectDefaultModel(models: string[]): string | undefined {
   return models[0];
 }
 
+const CLI_TARGET_LABELS: Record<ManagedRuntimeCliTarget, string> = {
+  claude: 'Claude',
+  codex: 'Codex',
+  hermes: 'Hermes',
+  opencode: 'OpenCode',
+  openclaw: 'OpenClaw',
+};
+
 const CLI_TARGETS: CliTargetOption[] = MANAGED_RUNTIME_CLI_TARGETS.map((key) => ({
   key,
-  label: key === 'claude' ? 'Claude' : key === 'hermes' ? 'Hermes' : key === 'opencode' ? 'OpenCode' : 'OpenClaw',
+  label: CLI_TARGET_LABELS[key],
   backendAliases: getManagedRuntimeCliBackendAliases(key),
 }));
 
