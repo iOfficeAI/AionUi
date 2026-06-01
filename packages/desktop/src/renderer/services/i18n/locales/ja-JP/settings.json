@@ -935,5 +935,17 @@
     "pendingTimeout": "承認リクエストの期限が切れました（5分）。再試行してください。",
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
-  }
+  },
+  "mcpEditNameLocked": "編集中は MCP 名を変更できません。最上位のサーバー名は「{{name}}」のままにしてください。",
+  "mcpCheckedAtLabel": "確認時刻:",
+  "mcpCheckResultLabel": "手動チェック:",
+  "mcpCheckReasonLabel": "考えられる原因:",
+  "mcpCheckPurposeHint": "MCP 設定が利用可能かどうかを確認するために使用します。実際の実行時ステータスを表すものではありません。",
+  "mcpCheckAvailableSimple": "利用可能",
+  "mcpCheckPassedSimple": "手動チェック成功",
+  "mcpCheckFailedSimple": "失敗",
+  "mcpCheckPassedSummary": "手動チェックに成功しました",
+  "mcpCheckFailedSummary": "手動チェックに失敗しました",
+  "mcpInlineConfigHint": "設定が正しくない可能性があります。MCP JSON を確認して、もう一度テストしてください。",
+  "mcpInlineCommandHint": "このマシンに {{command}} がありません。インストールしてから、もう一度テストしてください。"
 }

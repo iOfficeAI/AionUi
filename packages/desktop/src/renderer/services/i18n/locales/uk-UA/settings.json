@@ -853,5 +853,17 @@
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
   "bugReport": "Повідомити про проблему",
-  "bugReportTitle": "Повідомити про проблему"
+  "bugReportTitle": "Повідомити про проблему",
+  "mcpEditNameLocked": "Під час редагування назву MCP змінювати не можна. Залиште ім'я сервера верхнього рівня як «{{name}}».",
+  "mcpCheckedAtLabel": "Перевірено о:",
+  "mcpCheckResultLabel": "Ручна перевірка:",
+  "mcpCheckReasonLabel": "Можлива причина:",
+  "mcpCheckPurposeHint": "Використовується, щоб перевірити, чи доступна конфігурація MCP. Не відображає фактичний стан під час виконання.",
+  "mcpCheckAvailableSimple": "Доступно",
+  "mcpCheckPassedSimple": "Ручна перевірка успішна",
+  "mcpCheckFailedSimple": "Не вдалося",
+  "mcpCheckPassedSummary": "Ручна перевірка пройшла успішно",
+  "mcpCheckFailedSummary": "Ручна перевірка завершилася помилкою",
+  "mcpInlineConfigHint": "Можливо, конфігурація неправильна. Перевірте MCP JSON і протестуйте ще раз.",
+  "mcpInlineCommandHint": "На цій машині відсутня команда {{command}}. Встановіть її й протестуйте ще раз."
 }

@@ -933,5 +933,17 @@
     "pendingTimeout": "Onay isteği süresi doldu (5 dakika). Lütfen tekrar deneyin.",
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
-  }
+  },
+  "mcpEditNameLocked": "Düzenleme sırasında MCP adı değiştirilemez. Üst düzey sunucu adını \"{{name}}\" olarak koruyun.",
+  "mcpCheckedAtLabel": "Kontrol zamanı:",
+  "mcpCheckResultLabel": "Manuel kontrol:",
+  "mcpCheckReasonLabel": "Olası neden:",
+  "mcpCheckPurposeHint": "MCP yapılandırmasının kullanılabilir olup olmadığını doğrulamak için kullanılır. Gerçek çalışma zamanındaki durumu göstermez.",
+  "mcpCheckAvailableSimple": "Kullanılabilir",
+  "mcpCheckPassedSimple": "Manuel kontrol başarılı",
+  "mcpCheckFailedSimple": "Başarısız",
+  "mcpCheckPassedSummary": "Manuel kontrol başarılı oldu",
+  "mcpCheckFailedSummary": "Manuel kontrol başarısız oldu",
+  "mcpInlineConfigHint": "Yapılandırma hatalı olabilir. MCP JSON'u gözden geçirip yeniden test edin.",
+  "mcpInlineCommandHint": "Bu makinede {{command}} bulunmuyor. Kurup tekrar test edin."
 }

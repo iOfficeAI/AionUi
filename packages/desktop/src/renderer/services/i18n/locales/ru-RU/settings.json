@@ -935,5 +935,17 @@
     "skills": "Навыки",
     "tools": "Инструменты"
   },
-  "capabilities": "Возможности"
+  "capabilities": "Возможности",
+  "mcpEditNameLocked": "Во время редактирования имя MCP менять нельзя. Сохраните имя сервера верхнего уровня как «{{name}}».",
+  "mcpCheckedAtLabel": "Проверено в:",
+  "mcpCheckResultLabel": "Ручная проверка:",
+  "mcpCheckReasonLabel": "Возможная причина:",
+  "mcpCheckPurposeHint": "Используется для проверки доступности конфигурации MCP. Не отражает фактическое состояние во время выполнения.",
+  "mcpCheckAvailableSimple": "Доступно",
+  "mcpCheckPassedSimple": "Ручная проверка успешна",
+  "mcpCheckFailedSimple": "Ошибка",
+  "mcpCheckPassedSummary": "Ручная проверка выполнена успешно",
+  "mcpCheckFailedSummary": "Ручная проверка завершилась ошибкой",
+  "mcpInlineConfigHint": "Возможно, конфигурация неверна. Проверьте MCP JSON и повторите тест.",
+  "mcpInlineCommandHint": "На этом устройстве отсутствует {{command}}. Установите его и повторите проверку."
 }
