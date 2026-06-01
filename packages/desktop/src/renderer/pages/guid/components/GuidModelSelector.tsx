@@ -87,6 +87,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     });
   }, [acpSelectedLabel, currentAcpCachedModelInfo?.current_model_id, defaultModelLabel, selectedAcpModel]);
 
+  // Managed provider models from POUNDING API — available as fallback when no ACP session
+  const managedModels = React.useMemo(() => {
+    if (!modelList || modelList.length === 0) return [];
+    return modelList.flatMap((p) => (p.models || []).map((m) => ({ provider: p, model: m })));
+  }, [modelList]);
+
   if (isGeminiMode) {
     return (
       <Dropdown
@@ -246,12 +252,6 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       </Tooltip>
     );
   }
-
-  // Check if provider-managed models are available (POUNDING API provider)
-  const managedModels = React.useMemo(() => {
-    if (!modelList || modelList.length === 0) return [];
-    return modelList.flatMap((p) => (p.models || []).map((m) => ({ provider: p, model: m })));
-  }, [modelList]);
 
   // Render managed provider models as selectable dropdown when available
   if (!isGeminiMode && !currentAcpCachedModelInfo?.available_models?.length && managedModels.length > 0) {
