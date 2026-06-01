@@ -13,7 +13,7 @@ interface AgentHubModalProps {
   onCancel: () => void;
 }
 
-const AION_HUB_REPO_URL = 'https://github.com/iOfficeAI/AionHub';
+const AION_HUB_REPO_URL = 'https://github.com/halojerry/AionHub';
 
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();

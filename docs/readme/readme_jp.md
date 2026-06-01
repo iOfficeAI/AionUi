@@ -247,7 +247,7 @@ _あなたの 24/7 AI アシスタント — あらゆるデバイス、どこ�
 
 <p align="center"><em>リモートでエージェントを監視・操作 — Claude、Gemini、Codex。ブラウザやスマホから、Claude Code remote のように使えます。</em></p>
 
-> [リモートインターネットアクセスのチュートリアル](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [リモートインターネットアクセスのチュートリアル](https://github.com/halojerry/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork の実演
 
@@ -406,7 +406,7 @@ _Gemini 駆動のインテリジェントな画像生成、編集、認識_
 
 </details>
 
-> [画像生成モデル設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [画像生成モデル設定ガイド](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -593,23 +593,23 @@ brew install aionui
 
 **🚀 クイックスタート**
 
-- [📖 完全インストールガイド](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — ダウンロードから設定までの詳細な手順
-- [⚙️ LLM 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — マルチプラットフォーム AI モデル設定
-- [🤖 マルチ Agent モード設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — ターミナル AI Agent を統合
-- [🔌 MCP ツール設定](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol サーバー設定
-- [🌐 WebUI 設定ガイド](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — 完全な WebUI セットアップと設定チュートリアル
+- [📖 完全インストールガイド](https://github.com/halojerry/AionUi/wiki/Getting-Started) — ダウンロードから設定までの詳細な手順
+- [⚙️ LLM 設定ガイド](https://github.com/halojerry/AionUi/wiki/LLM-Configuration) — マルチプラットフォーム AI モデル設定
+- [🤖 マルチ Agent モード設定](https://github.com/halojerry/AionUi/wiki/ACP-Setup) — ターミナル AI Agent を統合
+- [🔌 MCP ツール設定](https://github.com/halojerry/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol サーバー設定
+- [🌐 WebUI 設定ガイド](https://github.com/halojerry/AionUi/wiki/WebUI-Configuration-Guide) — 完全な WebUI セットアップと設定チュートリアル
 
 **🎯 使用例**
 
-- [📁 ファイル管理](https://github.com/iOfficeAI/AionUi/wiki/file-management) — スマートファイル整理
-- [📊 Excel 処理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI 駆動のデータ処理
-- [🎨 画像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 画像作成
-- [📚 その他の使用例](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 ファイル管理](https://github.com/halojerry/AionUi/wiki/file-management) — スマートファイル整理
+- [📊 Excel 処理](https://github.com/halojerry/AionUi/wiki/excel-processing) — AI 駆動のデータ処理
+- [🎨 画像生成](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 画像作成
+- [📚 その他の使用例](https://github.com/halojerry/AionUi/wiki/Use-Cases-Overview)
 
 **❓ サポートとヘルプ**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — 質問とトラブルシューティング
-- [🔧 設定と使用チュートリアル](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — 完全な設定ドキュメント
+- [❓ FAQ](https://github.com/halojerry/AionUi/wiki/FAQ) — 質問とトラブルシューティング
+- [🔧 設定と使用チュートリアル](https://github.com/halojerry/AionUi/wiki/Configuration-Guides) — 完全な設定ドキュメント
 
 </details>
 

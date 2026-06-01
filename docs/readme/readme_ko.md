@@ -234,7 +234,7 @@ _여러분의 24/7 AI 어시스턴트 — 어떤 기기, 어디서나 AionUi에 
 
 <p align="center"><em>에이전트 원격 감시 및 제어 — Claude, Gemini, Codex. 브라우저나 휴대폰에서 Claude Code remote처럼 사용하세요.</em></p>
 
-> [원격 인터넷 접근 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [원격 인터넷 접근 튜토리얼](https://github.com/halojerry/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork 실연
 
@@ -393,7 +393,7 @@ _Gemini 구동의 지능형 이미지 생성, 편집 및 인식_
 
 </details>
 
-> [이미지 생성 모델 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [이미지 생성 모델 구성 가이드](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -580,23 +580,23 @@ brew install aionui
 
 **🚀 빠른 시작**
 
-- [📖 완전한 설치 가이드](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — 다운로드부터 구성까지의 상세한 단계
-- [⚙️ LLM 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — 멀티 플랫폼 AI 모델 구성
-- [🤖 멀티 Agent 모드 설정](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — 터미널 AI Agent 통합
-- [🔌 MCP 도구 구성](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol 서버 설정
-- [🌐 WebUI 구성 가이드](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — 완전한 WebUI 설정 및 구성 튜토리얼
+- [📖 완전한 설치 가이드](https://github.com/halojerry/AionUi/wiki/Getting-Started) — 다운로드부터 구성까지의 상세한 단계
+- [⚙️ LLM 구성 가이드](https://github.com/halojerry/AionUi/wiki/LLM-Configuration) — 멀티 플랫폼 AI 모델 구성
+- [🤖 멀티 Agent 모드 설정](https://github.com/halojerry/AionUi/wiki/ACP-Setup) — 터미널 AI Agent 통합
+- [🔌 MCP 도구 구성](https://github.com/halojerry/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol 서버 설정
+- [🌐 WebUI 구성 가이드](https://github.com/halojerry/AionUi/wiki/WebUI-Configuration-Guide) — 완전한 WebUI 설정 및 구성 튜토리얼
 
 **🎯 사용 사례**
 
-- [📁 파일 관리](https://github.com/iOfficeAI/AionUi/wiki/file-management) — 스마트 파일 정리
-- [📊 Excel 처리](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI 구동 데이터 처리
-- [🎨 이미지 생성](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 이미지 생성
-- [📚 더 많은 사용 사례](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 파일 관리](https://github.com/halojerry/AionUi/wiki/file-management) — 스마트 파일 정리
+- [📊 Excel 처리](https://github.com/halojerry/AionUi/wiki/excel-processing) — AI 구동 데이터 처리
+- [🎨 이미지 생성](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 이미지 생성
+- [📚 더 많은 사용 사례](https://github.com/halojerry/AionUi/wiki/Use-Cases-Overview)
 
 **❓ 지원 및 도움말**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — 질문 및 문제 해결
-- [🔧 구성 및 사용 튜토리얼](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — 완전한 구성 문서
+- [❓ FAQ](https://github.com/halojerry/AionUi/wiki/FAQ) — 질문 및 문제 해결
+- [🔧 구성 및 사용 튜토리얼](https://github.com/halojerry/AionUi/wiki/Configuration-Guides) — 완전한 구성 문서
 
 </details>
 

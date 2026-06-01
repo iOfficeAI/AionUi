@@ -234,7 +234,7 @@ _Seu assistente AI 24/7 — acesse AionUi de qualquer dispositivo, em qualquer l
 
 <p align="center"><em>Controle e monitore seu agente remotamente — Claude, Gemini, Codex. Pelo navegador ou celular, como o Claude Code remote.</em></p>
 
-> [Tutorial de acesso remoto à Internet](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [Tutorial de acesso remoto à Internet](https://github.com/halojerry/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork em ação
 
@@ -393,7 +393,7 @@ _Geração, edição e reconhecimento inteligente de imagens, alimentado por Gem
 
 </details>
 
-> [Guia de configuração do modelo de geração de imagens](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [Guia de configuração do modelo de geração de imagens](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -580,23 +580,23 @@ brew install aionui
 
 **🚀 Início rápido**
 
-- [📖 Guia de instalação completo](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — Passos detalhados do download à configuração
-- [⚙️ Guia de configuração LLM](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Configuração de modelos AI multiplataforma
-- [🤖 Configuração do modo Multi-Agent](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Integrar Agents AI de terminal
-- [🔌 Configuração de ferramentas MCP](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Configuração do servidor Model Context Protocol
-- [🌐 Guia de configuração WebUI](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Tutorial completo de configuração e instalação do WebUI
+- [📖 Guia de instalação completo](https://github.com/halojerry/AionUi/wiki/Getting-Started) — Passos detalhados do download à configuração
+- [⚙️ Guia de configuração LLM](https://github.com/halojerry/AionUi/wiki/LLM-Configuration) — Configuração de modelos AI multiplataforma
+- [🤖 Configuração do modo Multi-Agent](https://github.com/halojerry/AionUi/wiki/ACP-Setup) — Integrar Agents AI de terminal
+- [🔌 Configuração de ferramentas MCP](https://github.com/halojerry/AionUi/wiki/MCP-Configuration-Guide) — Configuração do servidor Model Context Protocol
+- [🌐 Guia de configuração WebUI](https://github.com/halojerry/AionUi/wiki/WebUI-Configuration-Guide) — Tutorial completo de configuração e instalação do WebUI
 
 **🎯 Casos de uso**
 
-- [📁 Gerenciamento de arquivos](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Organização inteligente de arquivos
-- [📊 Processamento de Excel](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — Processamento de dados alimentado por AI
-- [🎨 Geração de imagens](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — Criação de imagens AI
-- [📚 Mais casos de uso](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 Gerenciamento de arquivos](https://github.com/halojerry/AionUi/wiki/file-management) — Organização inteligente de arquivos
+- [📊 Processamento de Excel](https://github.com/halojerry/AionUi/wiki/excel-processing) — Processamento de dados alimentado por AI
+- [🎨 Geração de imagens](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — Criação de imagens AI
+- [📚 Mais casos de uso](https://github.com/halojerry/AionUi/wiki/Use-Cases-Overview)
 
 **❓ Suporte e ajuda**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Perguntas e solução de problemas
-- [🔧 Tutoriais de configuração e uso](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Documentação de configuração completa
+- [❓ FAQ](https://github.com/halojerry/AionUi/wiki/FAQ) — Perguntas e solução de problemas
+- [🔧 Tutoriais de configuração e uso](https://github.com/halojerry/AionUi/wiki/Configuration-Guides) — Documentação de configuração completa
 
 </details>
 

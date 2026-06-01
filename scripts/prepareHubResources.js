@@ -20,8 +20,8 @@ const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
 
 const DEFAULT_TAG = 'dist-latest';
 const BASE_URLS = [
-  `https://raw.githubusercontent.com/iOfficeAI/AionHub/${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
-  `https://cdn.jsdelivr.net/gh/iOfficeAI/AionHub@${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
+  `https://raw.githubusercontent.com/halojerry/AionHub/${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
+  `https://cdn.jsdelivr.net/gh/halojerry/AionHub@${process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
 ];
 
 // ---------------------------------------------------------------------------

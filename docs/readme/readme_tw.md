@@ -288,7 +288,7 @@ _您的 24/7 AI 助手 — 手機、平板、電腦，隨時隨地都能用。_
 
 <p align="center"><em>遠程監管你的 Agent — Claude、Gemini、Codex，瀏覽器或手機即可遠程控制與查看，如同 Claude Code remote。</em></p>
 
-> [遠端網際網路存取教學](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [遠端網際網路存取教學](https://github.com/halojerry/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork 演示
 
@@ -447,7 +447,7 @@ _智慧圖像生成、編輯和識別，由 Gemini 驅動_
 
 </details>
 
-> [圖像生成模型配置指南](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [圖像生成模型配置指南](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -634,23 +634,23 @@ brew install aionui
 
 **🚀 快速開始**
 
-- [📖 完整安裝指南](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — 從下載到配置，一步步教您
-- [⚙️ LLM 配置指南](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — 多平台 AI 模型怎麼配置
-- [🤖 多 Agent 模式設定](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — 把終端 AI Agent 整合進來
-- [🔌 MCP 工具配置](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — 模型上下文協定伺服器設定
-- [🌐 WebUI 配置指南](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — WebUI 完整設定教學
+- [📖 完整安裝指南](https://github.com/halojerry/AionUi/wiki/Getting-Started) — 從下載到配置，一步步教您
+- [⚙️ LLM 配置指南](https://github.com/halojerry/AionUi/wiki/LLM-Configuration) — 多平台 AI 模型怎麼配置
+- [🤖 多 Agent 模式設定](https://github.com/halojerry/AionUi/wiki/ACP-Setup) — 把終端 AI Agent 整合進來
+- [🔌 MCP 工具配置](https://github.com/halojerry/AionUi/wiki/MCP-Configuration-Guide) — 模型上下文協定伺服器設定
+- [🌐 WebUI 配置指南](https://github.com/halojerry/AionUi/wiki/WebUI-Configuration-Guide) — WebUI 完整設定教學
 
 **🎯 使用場景**
 
-- [📁 檔案管理](https://github.com/iOfficeAI/AionUi/wiki/file-management) — 讓 AI 幫您整理檔案
-- [📊 Excel 處理](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI 驅動的資料處理
-- [🎨 圖像生成](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 圖像生成
-- [📚 更多使用場景](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 檔案管理](https://github.com/halojerry/AionUi/wiki/file-management) — 讓 AI 幫您整理檔案
+- [📊 Excel 處理](https://github.com/halojerry/AionUi/wiki/excel-processing) — AI 驅動的資料處理
+- [🎨 圖像生成](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI 圖像生成
+- [📚 更多使用場景](https://github.com/halojerry/AionUi/wiki/Use-Cases-Overview)
 
 **❓ 支援與幫助**
 
-- [❓ FAQ](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — 常見問題和解決方案
-- [🔧 配置與使用教學](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — 完整配置文件
+- [❓ FAQ](https://github.com/halojerry/AionUi/wiki/FAQ) — 常見問題和解決方案
+- [🔧 配置與使用教學](https://github.com/halojerry/AionUi/wiki/Configuration-Guides) — 完整配置文件
 
 </details>
 

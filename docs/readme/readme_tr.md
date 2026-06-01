@@ -234,7 +234,7 @@ _7/24 AI asistanınız — AionUi'ye herhangi bir cihazdan, her yerden erişin._
 
 <p align="center"><em>Agent'ınızı uzaktan kontrol edin ve izleyin — Claude, Gemini, Codex. Tarayıcı veya telefondan, Claude Code remote gibi.</em></p>
 
-> [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/iOfficeAI/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
+> [Uzaktan İnternet Erişimi Öğreticisi](https://github.com/halojerry/AionUi/wiki/Remote-Internet-Access-Guide-Chinese)
 
 ## ✨ Cowork Eylemde
 
@@ -393,7 +393,7 @@ _Gemini tarafından desteklenen akıllı görüntü oluşturma, düzenleme ve ta
 
 </details>
 
-> [Görüntü oluşturma modeli yapılandırma kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
+> [Görüntü oluşturma modeli yapılandırma kılavuzu](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide)
 
 ---
 
@@ -580,23 +580,23 @@ brew install aionui
 
 **🚀 Hızlı Başlangıç**
 
-- [📖 Tam Kurulum Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/Getting-Started) — İndirmeden yapılandırmaya kadar detaylı adımlar
-- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration) — Çoklu platform AI model yapılandırması
-- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/iOfficeAI/AionUi/wiki/ACP-Setup) — Terminal AI Agent'larını entegre edin
-- [🔌 MCP Araç Yapılandırması](https://github.com/iOfficeAI/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol sunucu kurulumu
-- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/iOfficeAI/AionUi/wiki/WebUI-Configuration-Guide) — Tam WebUI kurulum ve yapılandırma öğreticisi
+- [📖 Tam Kurulum Kılavuzu](https://github.com/halojerry/AionUi/wiki/Getting-Started) — İndirmeden yapılandırmaya kadar detaylı adımlar
+- [⚙️ LLM Yapılandırma Kılavuzu](https://github.com/halojerry/AionUi/wiki/LLM-Configuration) — Çoklu platform AI model yapılandırması
+- [🤖 Çoklu Agent Modu Kurulumu](https://github.com/halojerry/AionUi/wiki/ACP-Setup) — Terminal AI Agent'larını entegre edin
+- [🔌 MCP Araç Yapılandırması](https://github.com/halojerry/AionUi/wiki/MCP-Configuration-Guide) — Model Context Protocol sunucu kurulumu
+- [🌐 WebUI Yapılandırma Kılavuzu](https://github.com/halojerry/AionUi/wiki/WebUI-Configuration-Guide) — Tam WebUI kurulum ve yapılandırma öğreticisi
 
 **🎯 Kullanım Senaryoları**
 
-- [📁 Dosya Yönetimi](https://github.com/iOfficeAI/AionUi/wiki/file-management) — Akıllı dosya organizasyonu
-- [📊 Excel İşleme](https://github.com/iOfficeAI/AionUi/wiki/excel-processing) — AI destekli veri işleme
-- [🎨 Görüntü Oluşturma](https://github.com/iOfficeAI/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI görüntü oluşturma
-- [📚 Daha Fazla Kullanım Senaryosu](https://github.com/iOfficeAI/AionUi/wiki/Use-Cases-Overview)
+- [📁 Dosya Yönetimi](https://github.com/halojerry/AionUi/wiki/file-management) — Akıllı dosya organizasyonu
+- [📊 Excel İşleme](https://github.com/halojerry/AionUi/wiki/excel-processing) — AI destekli veri işleme
+- [🎨 Görüntü Oluşturma](https://github.com/halojerry/AionUi/wiki/AionUi-Image-Generation-Tool-Model-Configuration-Guide) — AI görüntü oluşturma
+- [📚 Daha Fazla Kullanım Senaryosu](https://github.com/halojerry/AionUi/wiki/Use-Cases-Overview)
 
 **❓ Destek ve Yardım**
 
-- [❓ SSS](https://github.com/iOfficeAI/AionUi/wiki/FAQ) — Sorular ve sorun giderme
-- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/iOfficeAI/AionUi/wiki/Configuration-Guides) — Tam yapılandırma dokümantasyonu
+- [❓ SSS](https://github.com/halojerry/AionUi/wiki/FAQ) — Sorular ve sorun giderme
+- [🔧 Yapılandırma ve Kullanım Öğreticileri](https://github.com/halojerry/AionUi/wiki/Configuration-Guides) — Tam yapılandırma dokümantasyonu
 
 </details>
 

@@ -74,12 +74,12 @@ const AboutModalContent: React.FC = () => {
     },
     {
       title: t('settings.contactMe'),
-      url: 'https://x.com/WailiVery',
+      url: 'https://github.com/halojerry/AionUi',
       icon: <Right theme='outline' size='16' />,
     },
     {
       title: t('settings.officialWebsite'),
-      url: 'https://www.aionui.com',
+      url: 'https://github.com/halojerry/AionUi',
       icon: <Right theme='outline' size='16' />,
     },
   ];
