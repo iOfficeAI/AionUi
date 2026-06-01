@@ -73,12 +73,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Ця система не підтримується вбудованим backend",
-      "description": "AionUi відкрився, але локальний backend AionCore не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть AionUi.",
+      "description": "POUNDING відкрився, але локальний backend AionCore не може працювати в цій версії Linux. Оновіться до підтримуваного дистрибутива Linux і перезапустіть POUNDING.",
       "requiredVersions": "Потрібні символи середовища виконання: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "Встановлення AionUi неповне",
-      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому AionCore не може запуститися. Завантажте та перевстановіть останню версію AionUi.",
+      "title": "Встановлення POUNDING неповне",
+      "description": "У цьому встановленні бракує потрібних локальних ресурсів, тому AionCore не може запуститися. Завантажте та перевстановіть останню версію POUNDING.",
       "downloadLatest": "Завантажити останню версію",
       "sendDiagnostics": "Надіслати діагностику"
     }

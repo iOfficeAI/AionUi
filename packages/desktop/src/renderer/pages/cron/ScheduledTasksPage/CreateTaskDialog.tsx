@@ -224,7 +224,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
-  // Providers compatible with aionrs (AionCLI does not support Google Auth).
+  // Providers compatible with aionrs (POUNDING CLI does not support Google Auth).
   // Computed independent of the current selection so the agent dropdown can
   // disable the aionrs entry when no provider is configured.
   const aionrsProviders = useMemo(

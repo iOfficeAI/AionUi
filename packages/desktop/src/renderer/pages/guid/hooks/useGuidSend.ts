@@ -288,7 +288,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          alert('Failed to create POUNDING CLI conversation. Please ensure aionrs is installed.');
           return;
         }
 
@@ -307,7 +307,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        alert(`Failed to create POUNDING CLI conversation: ${errorMessage}`);
         throw error;
       }
       return;

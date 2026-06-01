@@ -73,7 +73,7 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "This system is not supported by the bundled backend",
-      "description": "POUNDING opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart AionUi.",
+      "description": "POUNDING opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart POUNDING.",
       "requiredVersions": "Required runtime symbols: {{versions}}"
     },
     "incompleteInstallation": {

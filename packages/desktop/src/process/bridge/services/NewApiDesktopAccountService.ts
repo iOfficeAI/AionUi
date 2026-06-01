@@ -51,6 +51,10 @@ const CLAUDE_MANAGED_ENV_KEYS = [
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
   'ANTHROPIC_AUTH_TOKEN',
   'ANTHROPIC_API_KEY',
+  // Legacy keys from the _NAME suffix bug — included for cleanup so old
+  // installs don't carry orphaned env entries forever.
+  'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL_NAME',
 ] as const;
 
 /** Model-scoped env keys written into cc-switch.db for model_info.rs to
@@ -63,6 +67,9 @@ const CLAUDE_MODEL_ENV_KEYS = [
   'ANTHROPIC_DEFAULT_OPUS_MODEL',
   'ANTHROPIC_DEFAULT_HAIKU_MODEL',
   'ANTHROPIC_MODEL',
+  // Legacy keys from the _NAME suffix bug — included so old installs get cleaned up.
+  'ANTHROPIC_DEFAULT_SONNET_MODEL_NAME',
+  'ANTHROPIC_DEFAULT_OPUS_MODEL_NAME',
 ] as const;
 
 type BridgeResponse<D = {}> = {
@@ -1270,11 +1277,25 @@ function buildManagedOpenClawConfig(
   defaults.model = { primary: `${profile.managedProviderId}/${profile.normalizedModelId}` };
   defaults.models = defaultModels;
   agents.defaults = defaults;
+  const currentGateway = isRecord(current.gateway) ? current.gateway : {};
+  const gatewayAuth = isRecord(currentGateway.auth) ? currentGateway.auth : {};
+  // OpenClaw requires gateway.auth.token to be set, otherwise requests
+  // are rejected with "gateway token not configured". Use a stable token
+  // derived from the managed provider id so it survives restarts.
+  const gatewayToken =
+    typeof gatewayAuth.token === 'string' && gatewayAuth.token.trim()
+      ? gatewayAuth.token
+      : `${profile.managedProviderId}-gw`;
+
   return {
     ...current,
     gateway: {
+      ...currentGateway,
       mode: 'local',
-      ...(isRecord(current.gateway) ? current.gateway : {}),
+      auth: {
+        ...gatewayAuth,
+        token: gatewayToken,
+      },
     },
     models,
     agents,
