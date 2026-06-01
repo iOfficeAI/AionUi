@@ -163,6 +163,7 @@ const PDFPreview: React.FC<PDFPreviewProps> = ({ file_path, content, hideToolbar
           src={pdfSrc}
           className='w-full h-full'
           style={{ display: 'inline-flex' }}
+          webpreferences='contextIsolation=yes, nodeIntegration=no, sandbox=yes, nativeWindowOpen=no'
         />
       </div>
     </div>

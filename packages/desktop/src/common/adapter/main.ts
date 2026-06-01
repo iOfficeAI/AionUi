@@ -6,19 +6,12 @@
 
 import type { BrowserWindow } from 'electron';
 import { ipcMain } from 'electron';
+import * as Sentry from '@sentry/electron/main';
 
 import { bridge } from '@office-ai/platform';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './constant';
+import { isAdapterEventName, type AdapterBridgeEvent } from './events';
 import { registerWebSocketBroadcaster, getBridgeEmitter, setBridgeEmitter, broadcastToAll } from './registry';
-
-/**
- * Bridge event data structure for IPC communication
- * IPC 通信的桥接事件数据结构
- */
-interface BridgeEventData {
-  name: string;
-  data: unknown;
-}
 
 const adapterWindowList: Array<BrowserWindow> = [];
 
@@ -87,11 +80,19 @@ bridge.adapter({
     broadcastToAll(name, data);
   },
   on(emitter) {
-    // 保存 emitter 引用供 WebSocket 处理使用 / Save emitter reference for WebSocket handling
+    // Save emitter reference for WebSocket handling.
     setBridgeEmitter(emitter);
 
     ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (_event, info) => {
-      const { name, data } = JSON.parse(info) as BridgeEventData;
+      const { name, data } = info as AdapterBridgeEvent;
+      if (!isAdapterEventName(name)) {
+        Sentry.addBreadcrumb({
+          category: 'security',
+          message: 'IPC bridge event rejected',
+          data: { name },
+        });
+        return Promise.reject(new Error('IPC: unknown bridge event'));
+      }
       return Promise.resolve(emitter.emit(name, data));
     });
   },

@@ -21,10 +21,13 @@ type FeedbackContextValue = {
 const FeedbackContext = createContext<FeedbackContextValue | null>(null);
 
 const captureScreenshot = async (): Promise<PrefilledScreenshot | null> => {
+  const requestToken = window.electronAPI?.requestFeedbackScreenshotToken;
   const capture = window.electronAPI?.captureFeedbackScreenshot;
-  if (!capture) return null;
+  if (!requestToken || !capture) return null;
   try {
-    const result = await capture();
+    const token = await requestToken();
+    if (!token) return null;
+    const result = await capture(token);
     if (!result) return null;
     return {
       filename: result.filename,

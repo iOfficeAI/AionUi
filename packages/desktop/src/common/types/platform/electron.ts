@@ -11,14 +11,15 @@ export interface WebUIStatus {
 }
 
 export interface ElectronBridgeAPI {
-  emit: (name: string, data: unknown) => Promise<unknown> | void;
-  on: (callback: (event: { value: string }) => void) => void;
-  // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
+  emit: <Name extends AdapterEventName>(name: Name, data: AdapterEventMap[Name]) => Promise<AdapterEventResponseMap[Name]>;
+  on: (callback: AdapterMessageCallback) => void;
+  // Get absolute path for dragged file/directory.
   getPathForFile?: (file: File) => string;
-  // Feedback log collection / 收集反馈日志
+  // Feedback log collection.
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
-  // Feedback screenshot capture / 反馈截图
-  captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
+  // Feedback screenshot capture.
+  requestFeedbackScreenshotToken?: () => Promise<string | null>;
+  captureFeedbackScreenshot?: (token: string) => Promise<{ filename: string; data: number[] } | null>;
 }
 
 declare global {
@@ -26,3 +27,9 @@ declare global {
     electronAPI?: ElectronBridgeAPI;
   }
 }
+import type {
+  AdapterEventMap,
+  AdapterEventName,
+  AdapterEventResponseMap,
+  AdapterMessageCallback,
+} from '@/common/adapter/events';

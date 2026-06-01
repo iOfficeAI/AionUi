@@ -91,10 +91,35 @@ import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMap
 // Shell — routed to POST /api/shell/*
 // ---------------------------------------------------------------------------
 
+const ALLOWED_EXTERNAL_URL_SCHEMES = new Set(['http:', 'https:', 'mailto:']);
+
+const validateExternalUrl = (url: string): void => {
+  const parsed = new URL(url);
+  if (ALLOWED_EXTERNAL_URL_SCHEMES.has(parsed.protocol)) return;
+  void import('@sentry/electron/renderer')
+    .then((Sentry) => {
+      Sentry.addBreadcrumb({
+        category: 'security',
+        message: 'openExternal rejected',
+        data: { protocol: parsed.protocol },
+      });
+    })
+    .catch(() => {});
+  throw new Error(`URL scheme not allowed: ${parsed.protocol}`);
+};
+
+const openExternalViaHttp = httpPost<void, string>('/api/shell/open-external', (url) => ({ url }));
+
 export const shell = {
   openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
-  openExternal: httpPost<void, string>('/api/shell/open-external', (url) => ({ url })),
+  openExternal: {
+    provider: openExternalViaHttp.provider,
+    invoke: async (url: string) => {
+      validateExternalUrl(url);
+      return openExternalViaHttp.invoke(url);
+    },
+  },
   checkToolInstalled: httpPost<boolean, { tool: string }>('/api/shell/check-tool-installed'),
   openFolderWith: httpPost<void, { folder_path: string; tool: 'vscode' | 'terminal' | 'explorer' }>(
     '/api/shell/open-folder-with'

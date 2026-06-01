@@ -297,7 +297,11 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
       : { frame: false }),
     webPreferences: {
       preload: path.join(__dirname, '../preload/index.js'),
-      webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webSecurity: true,
+      webviewTag: true, // required for HTML preview; locked down in WebviewHost
     },
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);

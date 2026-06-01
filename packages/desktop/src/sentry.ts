@@ -16,6 +16,24 @@ import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 // 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
 const GPU_CRASH_DROP_PATTERNS = [/'GPU' process exited with /, /IntentionallyCrashBrowserForUnusableGpuProcess/];
 
+function scrubSentryEvent<T extends Sentry.Event>(event: T): T {
+  if (event.exception?.values) {
+    for (const ex of event.exception.values) {
+      if (ex.stacktrace?.frames) {
+        for (const frame of ex.stacktrace.frames) {
+          if (frame.filename) {
+            frame.filename = frame.filename.replace(/^\/Users\/[^/]+\//, '<HOME>/');
+          }
+        }
+      }
+    }
+  }
+  if (event.message && event.message.length > 500) {
+    event.message = event.message.slice(0, 500) + '…';
+  }
+  return event;
+}
+
 export function initSentry(): void {
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
@@ -34,8 +52,9 @@ export function initSentry(): void {
       if (GPU_CRASH_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
         return null;
       }
-      return event;
+      return scrubSentryEvent(event);
     },
+    denyUrls: [/chrome-extension:\/\//, /devtools:\/\//],
   });
 
   Sentry.setTag('app.arch', process.arch);

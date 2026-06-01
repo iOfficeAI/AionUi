@@ -11,40 +11,42 @@
 import '@sentry/electron/preload';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from '../common/adapter/constant';
+import type {
+  AdapterEventMap,
+  AdapterEventName,
+  AdapterEventResponseMap,
+  AdapterMessageCallback,
+} from '../common/adapter/events';
 
 /**
  * @description 注入到renderer进程中, 用于与main进程通信
  * */
 contextBridge.exposeInMainWorld('electronAPI', {
-  emit: (name: string, data: any) => {
-    return ipcRenderer
-      .invoke(
-        ADAPTER_BRIDGE_EVENT_KEY,
-        JSON.stringify({
-          name: name,
-          data: data,
-        })
-      )
-      .catch((error) => {
+  emit: <Name extends AdapterEventName>(name: Name, data: AdapterEventMap[Name]) => {
+    return (ipcRenderer.invoke(ADAPTER_BRIDGE_EVENT_KEY, { name, data }) as Promise<AdapterEventResponseMap[Name]>).catch(
+      (error: unknown) => {
         console.error('IPC invoke error:', error);
         throw error;
-      });
+      }
+    );
   },
-  on: (callback: any) => {
-    const handler = (event: any, value: any) => {
-      callback({ event, value });
+  on: (callback: AdapterMessageCallback) => {
+    const handler = (_event: Electron.IpcRendererEvent, value: string) => {
+      callback({ value });
     };
     ipcRenderer.on(ADAPTER_BRIDGE_EVENT_KEY, handler);
     return () => {
       ipcRenderer.off(ADAPTER_BRIDGE_EVENT_KEY, handler);
     };
   },
-  // 获取拖拽文件/目录的绝对路径 / Get absolute path for dragged file/directory
+  // Get absolute path for dragged file/directory.
   getPathForFile: (file: File) => webUtils.getPathForFile(file),
   // Feedback: collect and compress recent log files
   collectFeedbackLogs: () => ipcRenderer.invoke('feedback:collect-logs'),
-  // Feedback: capture a screenshot of the current window
-  captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
+  // Feedback: request consent before capturing a screenshot.
+  requestFeedbackScreenshotToken: () => ipcRenderer.invoke('feedback:request-screenshot-token'),
+  // Feedback: capture a screenshot of the current window using a one-shot token.
+  captureFeedbackScreenshot: (token: string) => ipcRenderer.invoke('feedback:capture-screenshot', { token }),
 });
 
 // Synchronously fetch the aioncore port and expose it to the renderer
