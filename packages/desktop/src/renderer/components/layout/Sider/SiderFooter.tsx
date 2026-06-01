@@ -105,9 +105,10 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     return String(n);
   };
   const isUnlimited = desktopAccountStatus?.user?.unlimitedQuota === true;
-  const usedQuota = isUnlimited ? 0 : (desktopAccountStatus?.user?.usedQuota ?? 0);
   const totalQuota = isUnlimited ? 1 : (desktopAccountStatus?.user?.quota ?? 520);
-  const usagePercent = isUnlimited ? 100 : (totalQuota > 0 ? Math.min(100, Math.round((usedQuota / totalQuota) * 100)) : 0);
+  const usedQuota = isUnlimited ? 0 : (desktopAccountStatus?.user?.usedQuota ?? 0);
+  const remainQuota = totalQuota - usedQuota;
+  const remainPercent = isUnlimited ? 100 : (totalQuota > 0 ? Math.max(0, Math.round((remainQuota / totalQuota) * 100)) : 0);
   const [accountPanelStyle, setAccountPanelStyle] = useState<React.CSSProperties>({
     left: 8,
     bottom: 56,
@@ -257,7 +258,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <span className='text-16px font-bold text-t-primary'>
             {isUnlimited
               ? t('settings.newApiQuotaUnlimited')
-              : t('settings.newApiQuotaTitle', { used: formatQuota(usedQuota), total: formatQuota(totalQuota) })}
+              : t('settings.newApiQuotaTitle', { remain: formatQuota(remainQuota) })}
           </span>
           <Button
             size='mini'
@@ -270,15 +271,13 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           </Button>
         </div>
         <div className='h-8px rd-999px bg-fill-2 overflow-hidden'>
-          <div className='h-full bg-[rgb(var(--primary-6))]' style={{ width: `${usagePercent}%` }} />
+          <div className='h-full bg-[rgb(var(--primary-6))]' style={{ width: `${remainPercent}%` }} />
         </div>
         <div className='mt-8px text-14px text-t-secondary'>
           {isUnlimited
             ? t('settings.newApiQuotaUnlimitedDesc')
             : t('settings.newApiQuotaSummary', {
-                used: String(usedQuota),
-                total: String(totalQuota),
-                percent: String(usagePercent),
+                remain: formatQuota(remainQuota),
               })}
         </div>
       </div>

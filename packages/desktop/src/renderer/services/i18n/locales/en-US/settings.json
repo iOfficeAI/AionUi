@@ -956,9 +956,9 @@
   "newApiDefaultUserName": "POUNDING User",
   "newApiVipTitle": "POUNDING VIP",
   "newApiUpgrade": "Upgrade",
-  "newApiQuotaSummary": "Used {used} / Total {total}",
+  "newApiQuotaSummary": "{remain} remaining",
   "helpCenter": "Help Center",
-  "newApiQuotaTitle": "Token Balance",
+  "newApiQuotaTitle": "Balance {remain}",
   "newApiQuotaUnlimited": "Unlimited",
   "newApiQuotaUnlimitedDesc": "Unlimited usage"
 }
