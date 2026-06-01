@@ -11,11 +11,13 @@ import type { ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import PoundingInteractiveLogo from '@/renderer/components/layout/PoundingInteractiveLogo';
 import Titlebar from '@/renderer/components/layout/Titlebar';
+import DesktopLoginGate from '@renderer/components/layout/DesktopLoginGate';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
@@ -114,6 +116,7 @@ const Layout: React.FC<{
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
+  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
   useDeepLink();
   useNotificationClick();
   const navigate = useNavigate();
@@ -436,6 +439,8 @@ const Layout: React.FC<{
         overflow: 'visible' as const,
       };
 
+  const shouldShowDesktopGate = isElectronDesktop() && newApiReady && !isNewApiLoggedIn;
+
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
@@ -528,7 +533,7 @@ const Layout: React.FC<{
                   : undefined
               }
             >
-              <Outlet />
+              {shouldShowDesktopGate ? <DesktopLoginGate /> : <Outlet />}
               {directorySelectionContextHolder}
               <PwaPullToRefresh />
               <Suspense fallback={null}>
