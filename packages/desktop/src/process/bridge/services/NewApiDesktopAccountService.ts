@@ -568,7 +568,20 @@ async function fetchJson<T>(requestPath: string, options: NewApiRequestOptions =
   });
 
   const cookies = normalizeCookies(getSetCookieValues(response));
-  const content = (await response.json().catch(() => ({}))) as T;
+  let content: T;
+  try {
+    content = (await response.json()) as T;
+  } catch (jsonError) {
+    const text = await response.text().catch(() => '<unreadable>');
+    console.error('[POUNDING] fetchJson: failed to parse JSON response', {
+      url: requestPath,
+      status: response.status,
+      contentType: response.headers.get('content-type'),
+      bodyPreview: text.slice(0, 500),
+      error: jsonError instanceof Error ? jsonError.message : String(jsonError),
+    });
+    content = {} as T;
+  }
   if (!response.ok) {
     throw new Error(extractMessage(content, `Request failed with status ${response.status}`));
   }
