@@ -59,10 +59,10 @@
   "historyBack": "뒤로",
   "more": "더보기",
   "refresh": "새로고침",
-  "tray.showWindow": "AionUi 표시",
+  "tray.showWindow": "POUNDING 표시",
   "tray.newChat": "새 채팅",
   "tray.closeToTray": "트레이에 숨기기",
-  "tray.about": "AionUi 소개",
+  "tray.about": "POUNDING 소개",
   "tray.restart": "앱 재시작",
   "tray.quit": "종료",
   "tray.runningTasks": "실행 중인 작업",
@@ -77,7 +77,7 @@
       "requiredVersions": "필요한 런타임 심볼: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi 설치가 불완전합니다",
+      "title": "POUNDING 설치가 불완전합니다",
       "description": "현재 설치에 필요한 로컬 리소스가 없어 AionCore를 시작할 수 없습니다. 최신 AionUi를 다운로드하여 다시 설치하세요.",
       "downloadLatest": "최신 버전 다운로드",
       "sendDiagnostics": "진단 보고서 보내기"

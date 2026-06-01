@@ -59,10 +59,10 @@
   "historyBack": "後退",
   "more": "更多",
   "refresh": "重新整理",
-  "tray.showWindow": "顯示 AionUi",
+  "tray.showWindow": "顯示 POUNDING",
   "tray.newChat": "新建對話",
   "tray.closeToTray": "隱藏到托盤",
-  "tray.about": "關於 AionUi",
+  "tray.about": "關於 POUNDING",
   "tray.restart": "重啟應用",
   "tray.quit": "結束",
   "tray.runningTasks": "運行中的任務",
@@ -77,7 +77,7 @@
       "requiredVersions": "需要的執行階段符號：{{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi 安裝不完整",
+      "title": "POUNDING 安裝不完整",
       "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi。",
       "downloadLatest": "下載最新版",
       "sendDiagnostics": "傳送診斷報告"

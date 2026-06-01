@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.pounding.app
+productName: POUNDING
+executableName: POUNDING
+copyright: Copyright © 2024 POUNDING
 
 protocols:
-  - name: AionUi Protocol
+  - name: POUNDING Protocol
     schemes:
-      - aionui
+      - pounding
 
 asar:
   smartUnpack: true

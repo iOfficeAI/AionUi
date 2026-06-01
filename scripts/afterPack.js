@@ -17,7 +17,7 @@ const {
 function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
   if (electronPlatformName !== 'darwin') return path.join(appOutDir, 'resources');
 
-  const appName = packager?.appInfo?.productFilename || 'AionUi';
+  const appName = packager?.appInfo?.productFilename || 'POUNDING';
   return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
 }
 

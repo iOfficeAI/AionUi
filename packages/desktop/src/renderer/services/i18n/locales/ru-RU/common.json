@@ -58,10 +58,10 @@
   "forward": "Вперёд",
   "more": "Ещё",
   "refresh": "Обновить",
-  "tray.showWindow": "Показать AionUi",
+  "tray.showWindow": "Показать POUNDING",
   "tray.newChat": "Новый чат",
   "tray.closeToTray": "Свернуть в трей",
-  "tray.about": "О программе AionUi",
+  "tray.about": "О программе POUNDING",
   "tray.restart": "Перезапустить",
   "tray.quit": "Выход",
   "tray.runningTasks": "Запущенные задачи",
@@ -76,7 +76,7 @@
       "requiredVersions": "Требуемые символы среды выполнения: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "Установка AionUi неполная",
+      "title": "Установка POUNDING неполная",
       "description": "В этой установке отсутствуют обязательные локальные ресурсы, поэтому AionCore не может запуститься. Загрузите и переустановите последнюю версию AionUi.",
       "downloadLatest": "Скачать последнюю версию",
       "sendDiagnostics": "Отправить диагностику"

@@ -59,10 +59,10 @@
   "historyBack": "后退",
   "more": "更多",
   "refresh": "刷新",
-  "tray.showWindow": "显示 AionUi",
+  "tray.showWindow": "显示 POUNDING",
   "tray.newChat": "新建对话",
   "tray.closeToTray": "隐藏到托盘",
-  "tray.about": "关于 AionUi",
+  "tray.about": "关于 POUNDING",
   "tray.restart": "重启应用",
   "tray.quit": "退出",
   "tray.runningTasks": "运行中的任务",
@@ -77,8 +77,8 @@
       "requiredVersions": "需要的运行时符号：{{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi 安装不完整",
-      "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 AionUi。",
+      "title": "POUNDING 安装不完整",
+      "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 POUNDING。",
       "downloadLatest": "下载最新版",
       "sendDiagnostics": "发送诊断报告"
     }
@@ -98,5 +98,9 @@
   "import": "导入",
   "processing": "处理中...",
   "optional": "（可选）",
-  "clear": "清除"
+  "clear": "清除",
+  "unit": {
+    "minute_short": "分",
+    "second_short": "秒"
+  }
 }

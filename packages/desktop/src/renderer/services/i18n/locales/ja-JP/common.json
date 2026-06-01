@@ -59,10 +59,10 @@
   "historyBack": "戻る",
   "more": "その他",
   "refresh": "更新",
-  "tray.showWindow": "AionUi を表示",
+  "tray.showWindow": "POUNDING を表示",
   "tray.newChat": "新しいチャット",
   "tray.closeToTray": "トレイに隠す",
-  "tray.about": "AionUi について",
+  "tray.about": "POUNDING について",
   "tray.restart": "アプリを再起動",
   "tray.quit": "終了",
   "tray.runningTasks": "実行中のタスク",
@@ -77,7 +77,7 @@
       "requiredVersions": "必要なランタイムシンボル: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi のインストールが不完全です",
+      "title": "POUNDING のインストールが不完全です",
       "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AionUi をダウンロードして再インストールしてください。",
       "downloadLatest": "最新版をダウンロード",
       "sendDiagnostics": "診断レポートを送信"
