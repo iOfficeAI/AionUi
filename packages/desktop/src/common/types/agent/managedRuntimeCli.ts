@@ -7,7 +7,7 @@ const ANSI_ESCAPE_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Z
 const ORPHAN_SGR_SUFFIX_PATTERN = /\[(?:\d{1,3}(?:;\d{1,3})*)m\]?$/i;
 const SET_MODEL_PREFIX_PATTERN = /^set model to\s+/i;
 
-export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'hermes', 'opencode', 'openclaw'] as const;
+export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'codex', 'hermes', 'opencode', 'openclaw'] as const;
 export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
 export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
 export const MANAGED_NEWAPI_PROVIDER_DISPLAY_NAME = 'POUNDING API';
@@ -39,6 +39,7 @@ export function sanitizeManagedRuntimeModelValue(value: string | null | undefine
 
 const MANAGED_RUNTIME_CLI_BACKEND_ALIASES: Record<ManagedRuntimeCliTarget, string[]> = {
   claude: ['claude', 'anthropic'],
+  codex: ['codex'],
   hermes: ['hermes'],
   opencode: ['opencode'],
   openclaw: ['openclaw', 'openclaw-gateway'],
@@ -113,6 +114,9 @@ export function buildManagedRuntimeModelId(cliTarget: ManagedRuntimeCliTarget, m
       // session/new resume and later prompts because the Claude ACP session
       // expects the slot id, not the underlying hosted model name.
       return 'default';
+    case 'codex':
+      // Codex config.toml uses the raw model name directly (no provider prefix).
+      return normalizedModelId;
     case 'hermes':
       return `custom:${normalizedModelId}`;
     case 'opencode':

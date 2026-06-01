@@ -31,6 +31,15 @@ export const MANAGED_CLI_CAPABILITIES: Record<ManagedRuntimeCliTarget, ManagedCl
     resume: 'supported',
     configSource: { kind: 'file_plus_env', envKeys: ['ANTHROPIC_BASE_URL', 'ANTHROPIC_API_KEY'] },
   },
+  codex: {
+    target: 'codex',
+    label: 'Codex',
+    protocol: 'acp',
+    secretMode: 'config_file_plain',
+    hotSwitch: 'supported',
+    resume: 'new_session_each_time',
+    configSource: { kind: 'static_json' },
+  },
   hermes: {
     target: 'hermes',
     label: 'Hermes',

@@ -1,7 +1,7 @@
 // POUNDING: stub types for managed CLI integrations
 // These types were moved from POUNDING-specific modules
 
-export type ManagedRuntimeCliTarget = 'claude' | 'hermes' | 'opencode' | 'openclaw';
+export type ManagedRuntimeCliTarget = 'claude' | 'codex' | 'hermes' | 'opencode' | 'openclaw';
 
 export interface NewApiAccountStatus {
   loggedIn: boolean;
@@ -55,6 +55,7 @@ export interface NewApiUserPayload {
   used_quota?: number;
   quota?: number;
   remain_quota?: number;
+  unlimited_quota?: boolean;
 }
 
 export interface NewApiTokenPayload {
