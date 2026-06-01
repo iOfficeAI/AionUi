@@ -8,11 +8,13 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { configService } from '@/common/config/configService';
 import type { ICssTheme } from '@/common/config/storage';
+import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
-import PoundingInteractiveLogo from '@/renderer/components/layout/PoundingInteractiveLogo';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import DesktopLoginGate from '@renderer/components/layout/DesktopLoginGate';
+import EnvConflictBanner from '@renderer/components/settings/EnvConflictBanner';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
+import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -28,25 +30,6 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
-
-const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox='0 0 48 48'
-    fill='none'
-    stroke='currentColor'
-    strokeWidth={strokeWidth}
-    strokeLinecap='round'
-    strokeLinejoin='round'
-    aria-hidden='true'
-    focusable='false'
-    style={{ display: 'inline-block', verticalAlign: 'middle' }}
-  >
-    <rect x='6' y='10' width='36' height='28' rx='5' />
-    <line x1='18' y1='10' x2='18' y2='38' />
-  </svg>
-);
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -80,7 +63,7 @@ const useDebug = () => {
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 
-const DEFAULT_SIDER_WIDTH = 260;
+const DEFAULT_SIDER_WIDTH = 250;
 const DESKTOP_COLLAPSED_WIDTH = 0;
 const SIDER_DRAG_SNAP_THRESHOLD = Math.round((DEFAULT_SIDER_WIDTH + DESKTOP_COLLAPSED_WIDTH) / 2);
 const SIDER_DRAG_HYSTERESIS = 6;
@@ -116,7 +99,7 @@ const Layout: React.FC<{
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
-  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn } = useNewApiAccount();
+  const { ready: newApiReady, isLoggedIn: isNewApiLoggedIn, status: newApiStatus } = useNewApiAccount();
   useDeepLink();
   useNotificationClick();
   const navigate = useNavigate();
@@ -425,6 +408,8 @@ const Layout: React.FC<{
     };
   }, []);
 
+  const shouldShowDesktopGate = isElectronDesktop() && newApiReady && !isNewApiLoggedIn;
+
   const siderStyle = isMobile
     ? {
         position: 'fixed' as const,
@@ -438,8 +423,6 @@ const Layout: React.FC<{
         position: 'relative' as const,
         overflow: 'visible' as const,
       };
-
-  const shouldShowDesktopGate = isElectronDesktop() && newApiReady && !isNewApiLoggedIn;
 
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
@@ -471,7 +454,7 @@ const Layout: React.FC<{
                 )}
               >
                 <div
-                  className={classNames('shrink-0 size-32px relative rd-0.5rem', {
+                  className={classNames('shrink-0 size-40px relative rd-0.5rem', {
                     '!size-24px': collapsed,
                   })}
                   onClick={onClick}
@@ -487,12 +470,15 @@ const Layout: React.FC<{
                 {isMobile && !collapsed && (
                   <button
                     type='button'
-                    className='app-titlebar__button app-titlebar__button--mobile'
+                    className='app-titlebar__button'
                     onClick={() => setCollapsed(true)}
-                    title='Collapse sidebar'
                     aria-label='Collapse sidebar'
                   >
-                    <SidebarIcon size={18} strokeWidth={2.5} />
+                    {collapsed ? (
+                      <MenuUnfold theme='outline' size='18' fill='currentColor' />
+                    ) : (
+                      <MenuFold theme='outline' size='18' fill='currentColor' />
+                    )}
                   </button>
                 )}
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
@@ -533,6 +519,9 @@ const Layout: React.FC<{
                   : undefined
               }
             >
+              {newApiStatus?.envConflicts && newApiStatus.envConflicts.length > 0 && (
+                <EnvConflictBanner conflicts={newApiStatus.envConflicts} onDismiss={() => {}} />
+              )}
               {shouldShowDesktopGate ? <DesktopLoginGate /> : <Outlet />}
               {directorySelectionContextHolder}
               <PwaPullToRefresh />

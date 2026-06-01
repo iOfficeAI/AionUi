@@ -18,9 +18,9 @@
 }
 
 .app-titlebar--mobile {
-  height: 48px;
-  min-height: 48px;
-  padding: 0 8px;
+  height: 58px;
+  min-height: 58px;
+  padding: 6px 10px 0;
 }
 
 .app-titlebar--mobile-conversation {
@@ -65,22 +65,24 @@
   pointer-events: none;
 }
 
-.app-titlebar--mobile .app-titlebar__brand {
-  position: static;
-  flex: 1 1 auto;
-  justify-content: flex-start;
-  text-align: left;
-  min-width: 0;
-  margin: 0 8px;
+.app-titlebar__brand-logo {
+  width: 26px;
+  height: 26px;
+  display: block;
+  color: inherit;
+  flex: none;
 }
 
-.app-titlebar--mobile .app-titlebar__brand--centered {
+.app-titlebar--mobile .app-titlebar__brand-logo {
+  width: 28px;
+  height: 28px;
+}
+
+.app-titlebar--mobile .app-titlebar__brand {
   position: absolute;
   left: 50%;
   transform: translateX(calc(-50% + var(--app-titlebar-mobile-center-offset, 0px)));
   max-width: calc(100% - 180px);
-  text-align: center;
-  margin: 0;
 }
 
 .app-titlebar__brand-mobile {
@@ -103,19 +105,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-  flex: 1 1 auto;
-  min-width: 0;
-}
-
-.app-titlebar__brand-icon {
-  display: inline-flex;
-  width: 16px;
-  height: 16px;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  line-height: 0;
-  color: var(--text-primary);
+  max-width: 42vw;
 }
 
 .app-titlebar__menu {
@@ -131,17 +121,6 @@
   -webkit-app-region: no-drag;
   margin-left: auto;
   min-height: var(--titlebar-height);
-}
-
-/* Mobile slot for chat-header actions (model picker, cron, etc.). */
-.app-titlebar__actions-slot {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.app-titlebar__actions-slot:empty {
-  display: none;
 }
 
 .app-titlebar__button {
@@ -195,14 +174,14 @@
 }
 
 .app-titlebar__button--mobile {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
 }
 
 .app-titlebar__button--mobile svg {
-  width: 18px !important;
-  height: 18px !important;
+  width: 24px !important;
+  height: 24px !important;
 }
 
 .app-window-controls {

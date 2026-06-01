@@ -6,7 +6,9 @@ import { cleanupSiderTooltips, getSiderTooltipProps } from '@renderer/utils/ui/s
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { blurActiveElement } from '@renderer/utils/ui/focus';
+import { isElectronDesktop, openExternalUrl } from '@renderer/utils/platform';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
+import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { useTeamCreatedRedirect } from '@renderer/pages/team/hooks/useTeamCreatedRedirect';
 import { SiderToolbar, SiderSearchEntry, SiderScheduledEntry } from './SiderNav';
@@ -33,6 +35,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { closePreview } = usePreviewContext();
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
+  const { status: newApiStatus, isLoggedIn: isNewApiLoggedIn, logout: logoutNewApi } = useNewApiAccount();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const { jobs: cronJobs } = useAllCronJobs();
   useTeamCreatedRedirect();
@@ -116,6 +119,20 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
       onSessionClick();
     }
   }, [closePreview, logout, onSessionClick]);
+
+  const handleDesktopNewApiLogout = useCallback(async () => {
+    cleanupSiderTooltips();
+    blurActiveElement();
+    closePreview();
+    await logoutNewApi();
+    if (onSessionClick) {
+      onSessionClick();
+    }
+  }, [closePreview, logoutNewApi, onSessionClick]);
+
+  const handleHelpCenterClick = useCallback(() => {
+    void openExternalUrl('https://wcnb2ddshm1z.feishu.cn/wiki/Zsr9wqyHHi3e5IkQYtwcQu6Knab');
+  }, []);
 
   useEffect(() => {
     if (!showLogout) return;
@@ -228,6 +245,11 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         onThemeToggle={handleQuickThemeToggle}
         showLogout={showLogout}
         onLogoutClick={handleLogout}
+        showDesktopAccount={isElectronDesktop()}
+        desktopAccountLoggedIn={isNewApiLoggedIn}
+        desktopAccountStatus={newApiStatus}
+        onDesktopHelpCenterClick={handleHelpCenterClick}
+        onDesktopLogoutClick={handleDesktopNewApiLogout}
       />
     </div>
   );
