@@ -115,8 +115,14 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
   const handleImport = async (skillPath: string) => {
     try {
-      await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
-      Message.success(t('settings.skillsHub.importSuccess', { defaultValue: 'Skill imported successfully' }));
+      const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
+      const count = result.skill_names?.length ?? (result.skill_name ? 1 : 0);
+      Message.success(
+        t('settings.skillsHub.importSuccess', {
+          count,
+          defaultValue: count > 1 ? `${count} skills imported successfully` : 'Skill imported successfully',
+        })
+      );
       void fetchData();
     } catch (error) {
       console.error('Failed to import skill:', error);
@@ -138,7 +144,8 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleManualImport = async () => {
     try {
       const result = await ipcBridge.dialog.showOpen.invoke({
-        properties: ['openDirectory', 'createDirectory'],
+        properties: ['openFile', 'openDirectory'],
+        filters: [{ name: 'Skill folders or zip archives', extensions: ['zip'] }],
       });
       if (result && result.length > 0) {
         await handleImport(result[0]);
@@ -200,7 +207,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
               >
                 <FolderOpen size={15} className='text-t-secondary' />
                 <span className='text-13px font-medium'>
-                  {t('settings.skillsHub.manualImport', { defaultValue: 'Import from Folder' })}
+                  {t('settings.skillsHub.manualImport', { defaultValue: 'Import Skills' })}
                 </span>
               </button>
             </div>

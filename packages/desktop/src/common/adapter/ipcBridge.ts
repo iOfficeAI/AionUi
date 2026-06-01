@@ -526,7 +526,9 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import-symlink'),
+  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
+    '/api/skills/import-symlink'
+  ),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
