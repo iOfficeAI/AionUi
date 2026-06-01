@@ -945,5 +945,13 @@
     "pendingTimeout": "Approval request expired (5 minutes). Please try again.",
     "pendingCancel": "Cancel",
     "pendingTimeRemaining": "Time remaining: {{time}}"
-  }
+  },
+  "newApiDesktopGateDesc": "Please log in to your POUNDING account",
+  "newApiDesktopGateTitle": "POUNDING Desktop Login",
+  "newApiDesktopGateHint": "Access all CLI tools and models after login",
+  "newApiLogin": "Login POUNDING",
+  "newApiLogout": "Logout",
+  "newApiRegister": "Register POUNDING",
+  "newApiLoginSuccess": "Login successful",
+  "newApiDefaultUserName": "POUNDING User"
 }

@@ -853,5 +853,13 @@
     "pendingTimeRemaining": "Залишилося часу: {{time}}"
   },
   "bugReport": "Повідомити про проблему",
-  "bugReportTitle": "Повідомити про проблему"
+  "bugReportTitle": "Повідомити про проблему",
+  "newApiDesktopGateDesc": "Будь ласка, увійдіть у свій обліковий запис POUNDING",
+  "newApiDesktopGateTitle": "Вхід у POUNDING",
+  "newApiDesktopGateHint": "Доступ до всіх CLI інструментів та моделей після входу",
+  "newApiLogin": "Увійти в POUNDING",
+  "newApiLogout": "Вийти",
+  "newApiRegister": "Реєстрація POUNDING",
+  "newApiLoginSuccess": "Вхід виконано",
+  "newApiDefaultUserName": "Користувач POUNDING"
 }

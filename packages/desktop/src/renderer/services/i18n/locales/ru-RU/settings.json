@@ -935,5 +935,13 @@
     "skills": "Навыки",
     "tools": "Инструменты"
   },
-  "capabilities": "Возможности"
+  "capabilities": "Возможности",
+  "newApiDesktopGateDesc": "Пожалуйста, войдите в аккаунт POUNDING",
+  "newApiDesktopGateTitle": "Вход в POUNDING",
+  "newApiDesktopGateHint": "Доступ ко всем CLI инструментам и моделям после входа",
+  "newApiLogin": "Войти в POUNDING",
+  "newApiLogout": "Выйти",
+  "newApiRegister": "Регистрация POUNDING",
+  "newApiLoginSuccess": "Вход выполнен",
+  "newApiDefaultUserName": "Пользователь POUNDING"
 }

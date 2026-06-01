@@ -247,7 +247,54 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
     );
   }
 
-  // Fallback: no model switching
+  // Check if provider-managed models are available (POUNDING API provider)
+  const managedModels = React.useMemo(() => {
+    if (!modelList || modelList.length === 0) return [];
+    return modelList.flatMap((p) => (p.models || []).map((m) => ({ provider: p, model: m })));
+  }, [modelList]);
+
+  // Render managed provider models as selectable dropdown when available
+  if (!isGeminiMode && !currentAcpCachedModelInfo?.available_models?.length && managedModels.length > 0) {
+    return (
+      <Dropdown
+        trigger='hover'
+        droplist={
+          <Menu>
+            {modelList.map((provider) => {
+              const available = getAvailableModels(provider);
+              if (!available.length) return null;
+              return (
+                <Menu.ItemGroup title={provider.name} key={provider.id}>
+                  {available.map((modelName) => (
+                    <Menu.Item
+                      key={provider.id + modelName}
+                      onClick={() => {
+                        setCurrentModel({ ...provider, use_model: modelName }).catch((error) => {
+                          console.error('Failed to set current model:', error);
+                        });
+                      }}
+                    >
+                      <span>{modelName}</span>
+                    </Menu.Item>
+                  ))}
+                </Menu.ItemGroup>
+              );
+            })}
+          </Menu>
+        }
+      >
+        <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
+          <span className='flex items-center gap-6px min-w-0'>
+            <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+            <span>{defaultModelLabel}</span>
+            <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
+          </span>
+        </Button>
+      </Dropdown>
+    );
+  }
+
+  // Fallback: no model switching available
   return (
     <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
       <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>

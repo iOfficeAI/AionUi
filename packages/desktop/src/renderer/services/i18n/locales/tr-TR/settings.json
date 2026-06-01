@@ -933,5 +933,13 @@
     "pendingTimeout": "Onay isteği süresi doldu (5 dakika). Lütfen tekrar deneyin.",
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
-  }
+  },
+  "newApiDesktopGateDesc": "Lütfen POUNDING hesabınıza giriş yapın",
+  "newApiDesktopGateTitle": "POUNDING Masaüstü Girişi",
+  "newApiDesktopGateHint": "Girişten sonra tüm CLI araçlarına ve modellere erişin",
+  "newApiLogin": "POUNDING Girişi",
+  "newApiLogout": "Çıkış",
+  "newApiRegister": "POUNDING Kaydı",
+  "newApiLoginSuccess": "Giriş başarılı",
+  "newApiDefaultUserName": "POUNDING Kullanıcısı"
 }

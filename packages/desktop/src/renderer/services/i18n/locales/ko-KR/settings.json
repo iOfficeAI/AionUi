@@ -935,5 +935,13 @@
     "pendingTimeout": "승인 요청이 만료되었습니다 (5분). 다시 시도해주세요.",
     "pendingCancel": "취소",
     "pendingTimeRemaining": "남은 시간: {{time}}"
-  }
+  },
+  "newApiDesktopGateDesc": "POUNDING 계정에 로그인하세요",
+  "newApiDesktopGateTitle": "POUNDING 데스크톱 로그인",
+  "newApiDesktopGateHint": "로그인 후 모든 CLI 도구 및 모델 사용 가능",
+  "newApiLogin": "POUNDING 로그인",
+  "newApiLogout": "로그아웃",
+  "newApiRegister": "POUNDING 등록",
+  "newApiLoginSuccess": "로그인 성공",
+  "newApiDefaultUserName": "POUNDING 사용자"
 }

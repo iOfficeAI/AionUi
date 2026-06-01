@@ -946,5 +946,13 @@
     "pendingTimeout": "审批请求已过期（5 分钟）。请重试。",
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
-  }
+  },
+  "newApiDesktopGateDesc": "请登录您的 POUNDING 账户以使用桌面客户端",
+  "newApiDesktopGateTitle": "POUNDING 桌面登录",
+  "newApiDesktopGateHint": "登录后可使用全部 CLI 工具和模型",
+  "newApiLogin": "登录 POUNDING",
+  "newApiLogout": "退出登录",
+  "newApiRegister": "注册 POUNDING",
+  "newApiLoginSuccess": "登录成功",
+  "newApiDefaultUserName": "POUNDING 用户"
 }

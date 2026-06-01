@@ -935,5 +935,13 @@
     "pendingTimeout": "承認リクエストの期限が切れました（5分）。再試行してください。",
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
-  }
+  },
+  "newApiDesktopGateDesc": "POUNDINGアカウントにログインしてください",
+  "newApiDesktopGateTitle": "POUNDING デスクトップログイン",
+  "newApiDesktopGateHint": "ログイン後にすべてのCLIツールとモデルを使用できます",
+  "newApiLogin": "POUNDINGにログイン",
+  "newApiLogout": "ログアウト",
+  "newApiRegister": "POUNDINGに登録",
+  "newApiLoginSuccess": "ログイン成功",
+  "newApiDefaultUserName": "POUNDINGユーザー"
 }
