@@ -59,6 +59,7 @@
   letter-spacing: 0.2px;
   color: var(--text-primary);
   flex: 1;
+  min-width: 0;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -117,6 +118,27 @@
   flex-shrink: 0;
   line-height: 0;
   color: var(--text-primary);
+}
+
+/* Desktop (macOS/Windows/Linux) brand line: the active workspace/conversation
+   name, truncated with ellipsis when the titlebar narrows. The parent brand
+   div has pointer-events: none so the surrounding titlebar stays draggable;
+   the inner span re-enables pointer events + no-drag so the native title
+   tooltip fires on truncation. */
+.app-titlebar__brand-desktop {
+  display: inline-block;
+  max-width: 100%;
+  min-width: 0;
+  padding: 0 8px;
+  color: var(--text-secondary);
+  font-size: 14px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: auto;
+  -webkit-app-region: no-drag;
 }
 
 .app-titlebar__menu {

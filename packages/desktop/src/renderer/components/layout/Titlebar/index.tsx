@@ -61,9 +61,9 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => 'Chisel', []);
+  const appTitle = useMemo(() => 'Chisl', []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
-  const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
+  const [activeWorkspaceName, setActiveWorkspaceName] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
   const navigationHistory = useNavigationHistory();
@@ -171,11 +171,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   }, [isSettingsRoute, location.pathname, location.search, location.hash]);
 
   useEffect(() => {
-    if (!layout?.isMobile) {
-      setMobileCenterTitle(appTitle);
-      return;
-    }
-
     // Team mode: show team name
     if (TEAM_MODE_ENABLED) {
       const teamMatch = location.pathname.match(/^\/team\/([^/]+)/);
@@ -186,11 +181,11 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
           .invoke({ id: team_id })
           .then((team) => {
             if (cancelled) return;
-            setMobileCenterTitle(team?.name || appTitle);
+            setActiveWorkspaceName(team?.name || appTitle);
           })
           .catch(() => {
             if (cancelled) return;
-            setMobileCenterTitle(appTitle);
+            setActiveWorkspaceName(appTitle);
           });
         return () => {
           cancelled = true;
@@ -202,7 +197,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     const match = location.pathname.match(/^\/conversation\/([^/]+)/);
     const conversation_id = match?.[1];
     if (!conversation_id) {
-      setMobileCenterTitle(appTitle);
+      setActiveWorkspaceName(appTitle);
       return;
     }
 
@@ -211,17 +206,17 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       .invoke({ id: conversation_id })
       .then((conversation) => {
         if (cancelled) return;
-        setMobileCenterTitle(conversation?.name || appTitle);
+        setActiveWorkspaceName(conversation?.name || appTitle);
       })
       .catch(() => {
         if (cancelled) return;
-        setMobileCenterTitle(appTitle);
+        setActiveWorkspaceName(appTitle);
       });
 
     return () => {
       cancelled = true;
     };
-  }, [appTitle, layout?.isMobile, location.pathname]);
+  }, [appTitle, location.pathname]);
 
   useEffect(() => {
     if (!layout?.isMobile) {
@@ -248,7 +243,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     if (toolbarRef.current) observer.observe(toolbarRef.current);
 
     return () => observer.disconnect();
-  }, [layout?.isMobile, showBackToChatButton, showWorkspaceButton, mobileCenterTitle]);
+  }, [layout?.isMobile, showBackToChatButton, showWorkspaceButton, activeWorkspaceName]);
 
   const mobileCenterStyle = layout?.isMobile
     ? ({
@@ -327,28 +322,34 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         className={classNames('app-titlebar__brand', {
           'app-titlebar__brand--centered': !location.pathname.match(/^\/(conversation|team)\//),
         })}
-        aria-label={layout?.isMobile ? mobileCenterTitle : appTitle}
-        title={layout?.isMobile ? mobileCenterTitle : appTitle}
+        aria-label={activeWorkspaceName}
       >
-        {layout?.isMobile &&
-          (() => {
-            const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
-            const conversation_id = conversationMatch?.[1];
-            if (conversation_id) {
-              return <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={mobileCenterTitle} />;
-            }
-            const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
-            return (
-              <span className='app-titlebar__brand-mobile'>
-                {isTeamRoute && (
-                  <span className='app-titlebar__brand-icon' aria-hidden='true'>
-                    <Peoples theme='outline' size='16' fill='currentColor' />
-                  </span>
-                )}
-                <span className='app-titlebar__brand-text'>{mobileCenterTitle}</span>
+        {layout?.isMobile
+          ? (() => {
+              const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
+              const conversation_id = conversationMatch?.[1];
+              if (conversation_id) {
+                return (
+                  <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={activeWorkspaceName} />
+                );
+              }
+              const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
+              return (
+                <span className='app-titlebar__brand-mobile'>
+                  {isTeamRoute && (
+                    <span className='app-titlebar__brand-icon' aria-hidden='true'>
+                      <Peoples theme='outline' size='16' fill='currentColor' />
+                    </span>
+                  )}
+                  <span className='app-titlebar__brand-text'>{activeWorkspaceName}</span>
+                </span>
+              );
+            })()
+          : (
+              <span className='app-titlebar__brand-desktop' title={activeWorkspaceName}>
+                {activeWorkspaceName}
               </span>
-            );
-          })()}
+            )}
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}

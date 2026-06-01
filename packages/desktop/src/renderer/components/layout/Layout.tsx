@@ -533,7 +533,7 @@ const Layout: React.FC<{
                   <div className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center' onClick={onClick}>
                     <img
                       src={brandWordmark}
-                      alt='Chisel'
+                      alt='Chisl'
                       className='block w-full h-auto max-h-60px object-contain select-none'
                       draggable={false}
                     />
@@ -544,7 +544,7 @@ const Layout: React.FC<{
                     className='collapsed-only shrink-0 size-18px relative items-center justify-center'
                     onClick={onClick}
                   >
-                    <img src={brandLogo} alt='Chisel' className='w-full h-full absolute inset-0 object-contain' />
+                    <img src={brandLogo} alt='Chisl' className='w-full h-full absolute inset-0 object-contain' />
                   </div>
                   {isMobile && !collapsed && (
                     <button
@@ -578,7 +578,13 @@ const Layout: React.FC<{
                     aria-hidden='true'
                     title='Drag to resize sidebar'
                   >
-                    <div className='absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-[rgb(var(--primary-6))] group-active:bg-[rgb(var(--primary-6))] transition-colors duration-150' />
+                    <div
+                      className={classNames(
+                        'absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-brand group-active:bg-brand',
+                        siderDragging && '!bg-brand'
+                      )}
+                      style={{ transition: 'background-color var(--motion-base) ease' }}
+                    />
                   </div>
                 )}
               </ArcoLayout.Sider>
