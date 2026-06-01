@@ -7,16 +7,9 @@
 import { ipcBridge } from '@/common';
 import { downloadFileFromPath } from '@/renderer/utils/file/download';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import type { PreviewContentType } from '@/common/types/office/preview';
-import { isLikelyEditableTextFile } from '@/renderer/pages/conversation/Editor';
 import type { EditorOpenRequest } from '@/renderer/pages/conversation/Editor';
-import { getContentTypeByExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
+import { getContentTypeByExtension, getFileExtension } from '@/renderer/pages/conversation/Preview/fileUtils';
 import { emitter } from '@/renderer/utils/emitter';
-import {
-  LARGE_TEXT_PREVIEW_MAX_LENGTH,
-  LARGE_TEXT_PREVIEW_THRESHOLD,
-} from '@/renderer/pages/conversation/Preview/constants';
-import { classifyPreviewError, previewErrorToI18nKey } from '@/renderer/utils/previewError';
 import { removeWorkspaceEntry, renameWorkspaceEntry } from '@/renderer/utils/file/workspaceFs';
 import { useCallback } from 'react';
 import type { MessageApi, RenameModalState, DeleteModalState } from '../types';
@@ -49,12 +42,9 @@ interface UseWorkspaceFileOpsOptions {
   setRenameModal: React.Dispatch<React.SetStateAction<RenameModalState>>;
   setDeleteModal: React.Dispatch<React.SetStateAction<DeleteModalState>>;
 
-  // Dependencies from preview context
-  openPreview: (content: string, type: PreviewContentType, metadata?: any) => void;
-
   // Dependencies from editor context — the native CodeMirror editor is the
-  // defacto preview for editable text files. When omitted, falls back to the
-  // preview pane (used by tests and any caller without an editor provider).
+  // sole in-app file opener for text files. When omitted (e.g. tests without
+  // an editor provider), text-file clicks are a no-op.
   openEditorFile?: (request: EditorOpenRequest) => Promise<boolean>;
 }
 
@@ -84,7 +74,6 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     closeContextMenu,
     setRenameModal,
     setDeleteModal,
-    openPreview,
     openEditorFile,
   } = options;
 
@@ -297,13 +286,16 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
   );
 
   /**
-   * Open a file for viewing/editing.
+   * Open a file from the workspace tree.
    *
-   * Routing policy:
-   * - Editable text files (code, markdown, html, diff, plaintext, etc.) open
-   *   in the native CodeMirror editor — the defacto text preview/editor.
-   * - Binary/visual files (images, PDF, Word, Excel, PPT) open in the preview
-   *   pane, which has dedicated renderers for those formats.
+   * Routing policy (the integrated CodeMirror editor is the SOLE in-app file
+   * opener; the preview pane is no longer wired here):
+   * - Visual/binary formats (images, PDF, Word, Excel, PPT) open in the OS
+   *   default application via `shell.openFile` — the editor can't render them.
+   *   `.csv` is treated as text and opens in the editor despite mapping to the
+   *   `excel` content type.
+   * - Everything else (code, markdown, html, diff, csv, extensionless, unknown)
+   *   opens in the native editor.
    */
   const handlePreviewFile = useCallback(
     async (nodeData: IDirOrFile | null) => {
@@ -311,60 +303,33 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
 
       closeContextMenu();
 
-      // Text files route to the editor whenever an editor context is wired.
-      if (openEditorFile && isLikelyEditableTextFile(nodeData.name)) {
-        await openEditorFile({ path: nodeData.fullPath, workspace });
+      const contentType = getContentTypeByExtension(nodeData.name);
+      const isCsv = getFileExtension(nodeData.name) === 'csv';
+      const opensExternally =
+        !isCsv &&
+        (contentType === 'image' ||
+          contentType === 'pdf' ||
+          contentType === 'word' ||
+          contentType === 'excel' ||
+          contentType === 'ppt');
+
+      if (opensExternally) {
+        // Visual/binary file — hand off to the OS default application.
+        try {
+          await ipcBridge.shell.openFile.invoke(nodeData.fullPath);
+        } catch (error) {
+          console.error('Failed to open file externally:', error);
+          messageApi.error(t('conversation.workspace.contextMenu.openFailed') || 'Failed to open');
+        }
         return;
       }
 
-      try {
-        const ext = nodeData.name.toLowerCase().split('.').pop() || '';
-        let contentType: PreviewContentType = getContentTypeByExtension(nodeData.name);
-        let content = '';
-        let isLargeTextTruncated = false;
-
-        // 根据文件类型读取内容 / Read content based on file type
-        if (contentType === 'pdf' || contentType === 'word' || contentType === 'excel' || contentType === 'ppt') {
-          content = '';
-        } else if (contentType === 'image') {
-          // 图片: 读取为 Base64 格式 / Image: Read as Base64 format
-          content = await ipcBridge.fs.getImageBase64.invoke({ path: nodeData.fullPath, workspace });
-          if (content == null) {
-            throw null;
-          }
-        } else {
-          // 文本文件：使用 UTF-8 编码读取 / Text files: Read using UTF-8 encoding
-          content = await ipcBridge.fs.readFile.invoke({ path: nodeData.fullPath, workspace });
-          if (content == null) {
-            throw null;
-          }
-
-          // 大文本仅保留前一段预览内容，避免切换/关闭 tab 时卡顿
-          // Keep only first chunk for large text preview to reduce tab switch/close jank
-          if (contentType === 'code' && content.length > LARGE_TEXT_PREVIEW_THRESHOLD) {
-            content = content.slice(0, LARGE_TEXT_PREVIEW_MAX_LENGTH);
-            isLargeTextTruncated = true;
-          }
-        }
-
-        // 打开预览面板并传入文件元数据 / Open preview panel with file metadata
-        openPreview(content, contentType, {
-          title: nodeData.name,
-          file_name: nodeData.name,
-          file_path: nodeData.fullPath,
-          workspace: workspace,
-          language: ext,
-          truncated: isLargeTextTruncated,
-          // Markdown 和图片文件默认为只读模式
-          // Markdown and image files default to read-only mode
-          editable: contentType === 'markdown' || contentType === 'image' || isLargeTextTruncated ? false : undefined,
-        });
-      } catch (error) {
-        const kind = classifyPreviewError(error);
-        messageApi.error(t(previewErrorToI18nKey(kind)));
+      // Text/code/markdown/html/diff/csv/extensionless/unknown → editor.
+      if (openEditorFile) {
+        await openEditorFile({ path: nodeData.fullPath, workspace });
       }
     },
-    [closeContextMenu, openEditorFile, openPreview, workspace, messageApi, t]
+    [closeContextMenu, openEditorFile, workspace, messageApi, t]
   );
 
   /**

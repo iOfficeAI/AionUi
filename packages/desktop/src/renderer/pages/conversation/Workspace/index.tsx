@@ -9,7 +9,6 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useEditorContext } from '@/renderer/pages/conversation/Editor';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -54,7 +53,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { openPreview } = usePreviewContext();
   const { openEditorFile } = useEditorContext();
 
   // Message API setup
@@ -120,7 +118,6 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     closeContextMenu: modalsHook.closeContextMenu,
     setRenameModal: modalsHook.setRenameModal,
     setDeleteModal: modalsHook.setDeleteModal,
-    openPreview,
     openEditorFile,
   });
 
