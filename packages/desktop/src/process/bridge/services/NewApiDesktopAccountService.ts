@@ -871,14 +871,17 @@ function writeClaudeSettingsForProviderSync(provider: TProviderWithModel): void 
   for (const key of CLAUDE_MANAGED_ENV_KEYS) {
     delete nextEnv[key];
   }
-  // Model keys are excluded from the env block — model selection is
-  // managed via the "model" slot field below, not env overrides.
+  // Include model env keys (e.g. ANTHROPIC_DEFAULT_SONNET_MODEL) in
+  // ~/.claude/settings.json — Claude Code reads this file natively to
+  // resolve slot ids ("default"/"opus"/"haiku") to actual model names.
+  // AionCore's provider_env.rs filters these keys at the subprocess
+  // injection boundary so they don't leak as process environment vars.
   const nextSettings: ClaudeSettings = {
     ...currentSettings,
     model: 'default',
     env: {
       ...nextEnv,
-      ...buildClaudeConnectionEnv(profile),
+      ...buildClaudeRuntimeProviderEnv(profile),
     },
   };
   fs.mkdirSync(path.dirname(claudeSettingsPath), { recursive: true });
@@ -1904,12 +1907,12 @@ export class NewApiDesktopAccountService {
 
   async refreshStatus(): Promise<BridgeResponse<NewApiAccountStatus>> {
     const status = await getStoredStatus();
-    if (!status.loggedIn || !status.token) {
+    if (!status.loggedIn || !status.cookies?.length) {
       return { success: true, data: status };
     }
     try {
       const selfResult = await fetchJson<NewApiResponse<unknown>>('/api/user/self', {
-        token: status.token,
+        cookies: status.cookies,
         userId: String(status.user?.id ?? ''),
       });
       const updatedUser = normalizeUser(selfResult.data?.data ?? selfResult.data, status.user?.username ?? '');
