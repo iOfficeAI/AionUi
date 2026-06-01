@@ -943,5 +943,9 @@
   "newApiLogout": "로그아웃",
   "newApiRegister": "POUNDING 등록",
   "newApiLoginSuccess": "로그인 성공",
-  "newApiDefaultUserName": "POUNDING 사용자"
+  "newApiDefaultUserName": "POUNDING 사용자",
+  "newApiVipTitle": "POUNDING VIP",
+  "newApiUpgrade": "Upgrade",
+  "newApiQuotaSummary": "Used {used} / Total {total}",
+  "helpCenter": "Help Center"
 }

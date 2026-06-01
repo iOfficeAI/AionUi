@@ -954,5 +954,9 @@
   "newApiLogout": "退出登录",
   "newApiRegister": "注册 POUNDING",
   "newApiLoginSuccess": "登录成功",
-  "newApiDefaultUserName": "POUNDING 用户"
+  "newApiDefaultUserName": "POUNDING 用户",
+  "newApiVipTitle": "POUNDING 会员",
+  "newApiUpgrade": "升级",
+  "newApiQuotaSummary": "已用 {used} / 总额 {total}",
+  "helpCenter": "帮助中心"
 }

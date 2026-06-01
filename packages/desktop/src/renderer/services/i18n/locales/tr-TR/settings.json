@@ -941,5 +941,9 @@
   "newApiLogout": "Çıkış",
   "newApiRegister": "POUNDING Kaydı",
   "newApiLoginSuccess": "Giriş başarılı",
-  "newApiDefaultUserName": "POUNDING Kullanıcısı"
+  "newApiDefaultUserName": "POUNDING Kullanıcısı",
+  "newApiVipTitle": "POUNDING VIP",
+  "newApiUpgrade": "Upgrade",
+  "newApiQuotaSummary": "Used {used} / Total {total}",
+  "helpCenter": "Help Center"
 }

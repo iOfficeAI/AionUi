@@ -943,5 +943,9 @@
   "newApiLogout": "Выйти",
   "newApiRegister": "Регистрация POUNDING",
   "newApiLoginSuccess": "Вход выполнен",
-  "newApiDefaultUserName": "Пользователь POUNDING"
+  "newApiDefaultUserName": "Пользователь POUNDING",
+  "newApiVipTitle": "POUNDING VIP",
+  "newApiUpgrade": "Upgrade",
+  "newApiQuotaSummary": "Used {used} / Total {total}",
+  "helpCenter": "Help Center"
 }
