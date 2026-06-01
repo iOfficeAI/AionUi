@@ -11,7 +11,6 @@ import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
-import AssistantSelectionArea from './components/AssistantSelectionArea';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import RemoteSkillsPicker from '@/renderer/components/agent/RemoteSkillsPicker';
@@ -270,23 +269,6 @@ const GuidPage: React.FC = () => {
     ]
   );
 
-  const handleSelectAssistant = useCallback(
-    (assistantId: string) => {
-      agentSelection.setSelectedAgentKey(assistantId);
-      mention.setMentionOpen(false);
-      mention.setMentionQuery(null);
-      mention.setMentionSelectorOpen(false);
-      mention.setMentionActiveIndex(0);
-    },
-    [
-      agentSelection.setSelectedAgentKey,
-      mention.setMentionOpen,
-      mention.setMentionQuery,
-      mention.setMentionSelectorOpen,
-      mention.setMentionActiveIndex,
-    ]
-  );
-
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
   const selectedAssistantRecord = useMemo(() => {
@@ -344,6 +326,17 @@ const GuidPage: React.FC = () => {
   ]);
   const [isDescriptionExpanded, setIsDescriptionExpanded] = useState(false);
   const [canExpandDescription, setCanExpandDescription] = useState(false);
+
+  // Focus the composer textarea on first mount only. The page-mount focus is
+  // the load-bearing affordance for Phase 8's calm landing — without it the
+  // user lands on chrome instead of the cursor.
+  useEffect(() => {
+    const node = guidContainerRef.current?.querySelector<HTMLTextAreaElement>('[data-testid="guid-input"]');
+    if (node && document.activeElement !== node) {
+      node.focus();
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Reset guid-local UI state before paint so same-route navigations do not
   // briefly show the previous draft or preset assistant layout.
@@ -685,7 +678,7 @@ const GuidPage: React.FC = () => {
                 </div>
               </div>
             ) : (
-              <p className='text-2xl font-semibold mb-0 text-0 text-center'>{heroTitle}</p>
+              <p className='text-t-primary text-2xl font-medium mb-0 text-center'>{heroTitle}</p>
             )}
           </div>
 
@@ -722,17 +715,21 @@ const GuidPage: React.FC = () => {
                 />
               ) : null}
             </div>
-          ) : agentSelection.availableAgents === undefined ? (
-            <AgentPillBarSkeleton />
-          ) : agentSelection.availableAgents.length > 0 ? (
-            <AgentPillBar
-              availableAgents={agentSelection.availableAgents}
-              selectedAgentKey={agentSelection.selectedAgentKey}
-              getAgentKey={agentSelection.getAgentKey}
-              onSelectAgent={handleSelectAgentFromPillBar}
-              onReorder={agentSelection.reorderAgents}
-              suppressSelectionAnimation={resetAssistantRequested}
-            />
+          ) : null}
+
+          {!agentSelection.is_presetAgent ? (
+            agentSelection.availableAgents === undefined ? (
+              <AgentPillBarSkeleton />
+            ) : agentSelection.availableAgents.length > 0 ? (
+              <AgentPillBar
+                availableAgents={agentSelection.availableAgents}
+                selectedAgentKey={agentSelection.selectedAgentKey}
+                getAgentKey={agentSelection.getAgentKey}
+                onSelectAgent={handleSelectAgentFromPillBar}
+                onReorder={agentSelection.reorderAgents}
+                suppressSelectionAnimation={resetAssistantRequested}
+              />
+            ) : null
           ) : null}
 
           <GuidInputCard
@@ -769,19 +766,6 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
 
-          <AssistantSelectionArea
-            is_presetAgent={agentSelection.is_presetAgent}
-            selectedAgentInfo={agentSelection.selectedAgentInfo}
-            assistants={agentSelection.assistants}
-            localeKey={localeKey}
-            currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
-            onSelectAssistant={handleSelectAssistant}
-            onSetInput={guidInput.setInput}
-            onFocusInput={guidInput.handleTextareaFocus}
-            onRegisterOpenDetails={(openDetails) => {
-              openAssistantDetailsRef.current = openDetails;
-            }}
-          />
         </div>
       </div>
     </ConfigProvider>
