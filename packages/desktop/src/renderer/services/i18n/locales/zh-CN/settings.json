@@ -958,5 +958,8 @@
   "newApiVipTitle": "POUNDING 会员",
   "newApiUpgrade": "升级",
   "newApiQuotaSummary": "已用 {used} / 总额 {total}",
-  "helpCenter": "帮助中心"
+  "helpCenter": "帮助中心",
+  "newApiQuotaTitle": "TOKEN 余量",
+  "newApiQuotaUnlimited": "无限配额",
+  "newApiQuotaUnlimitedDesc": "不限量使用"
 }

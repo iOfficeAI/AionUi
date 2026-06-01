@@ -98,6 +98,12 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     desktopAccountStatus?.user?.displayName ||
     desktopAccountStatus?.user?.username ||
     t('settings.newApiDefaultUserName');
+  const formatQuota = (n: number): string => {
+    if (n >= 1_000_000_000) return `${(n / 1_000_000_000).toFixed(1)}B`;
+    if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(1)}M`;
+    if (n >= 1_000) return `${(n / 1_000).toFixed(1)}K`;
+    return String(n);
+  };
   const isUnlimited = desktopAccountStatus?.user?.unlimitedQuota === true;
   const usedQuota = isUnlimited ? 0 : (desktopAccountStatus?.user?.usedQuota ?? 0);
   const totalQuota = isUnlimited ? 1 : (desktopAccountStatus?.user?.quota ?? 520);
@@ -248,7 +254,11 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
       </div>
       <div className='px-16px py-14px border-b border-[var(--color-border-2)]'>
         <div className='flex items-center justify-between mb-10px'>
-          <span className='text-16px font-bold text-t-primary'>{t('settings.newApiVipTitle')}</span>
+          <span className='text-16px font-bold text-t-primary'>
+            {isUnlimited
+              ? t('settings.newApiQuotaUnlimited')
+              : t('settings.newApiQuotaTitle', { used: formatQuota(usedQuota), total: formatQuota(totalQuota) })}
+          </span>
           <Button
             size='mini'
             type='primary'
@@ -263,11 +273,13 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <div className='h-full bg-[rgb(var(--primary-6))]' style={{ width: `${usagePercent}%` }} />
         </div>
         <div className='mt-8px text-14px text-t-secondary'>
-          {t('settings.newApiQuotaSummary', {
-            used: String(usedQuota),
-            total: String(totalQuota),
-            percent: String(usagePercent),
-          })}
+          {isUnlimited
+            ? t('settings.newApiQuotaUnlimitedDesc')
+            : t('settings.newApiQuotaSummary', {
+                used: String(usedQuota),
+                total: String(totalQuota),
+                percent: String(usagePercent),
+              })}
         </div>
       </div>
       <div className='py-4px'>

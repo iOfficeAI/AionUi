@@ -959,5 +959,8 @@
   "newApiVipTitle": "POUNDING VIP",
   "newApiUpgrade": "Upgrade",
   "newApiQuotaSummary": "Used {used} / Total {total}",
-  "helpCenter": "Help Center"
+  "helpCenter": "Help Center",
+  "newApiQuotaTitle": "Token Balance",
+  "newApiQuotaUnlimited": "Unlimited",
+  "newApiQuotaUnlimitedDesc": "Unlimited usage"
 }
