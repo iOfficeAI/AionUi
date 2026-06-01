@@ -51,3 +51,11 @@
 :global(.group):hover .pinnedTextSlot {
   padding-right: 18px;
 }
+
+/* Phase 2 — Mode ribbon back-to-chat focus ring. Renders a 2px rust outline
+   only when the user reaches the button via keyboard, so mouse clicks stay
+   clean and pointer/keyboard intent is differentiated. */
+.modeBack:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}

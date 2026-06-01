@@ -10,6 +10,7 @@ import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useTeamCreatedRedirect } from '@renderer/pages/team/hooks/useTeamCreatedRedirect';
 import { SiderToolbar, SiderSearchEntry } from './SiderNav';
 import SiderFooter from './SiderFooter';
+import SiderModeRibbon from './SiderModeRibbon';
 import siderStyles from './Sider.module.css';
 
 const WorkspaceGroupedHistory = React.lazy(() => import('@renderer/pages/conversation/GroupedHistory'));
@@ -129,6 +130,15 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
 
   return (
     <div className='size-full flex flex-col'>
+      {/* Mode ribbon — orients the user when the Sider flips between
+          Conversations history and the Settings menu. Reuses
+          handleSettingsClick (which already routes back to the last
+          non-settings path) for the "Back to chat" affordance. */}
+      <SiderModeRibbon
+        mode={isSettings ? 'settings' : 'conversations'}
+        collapsed={collapsed}
+        onBackToChat={handleSettingsClick}
+      />
       {/* Main content area */}
       <div className='flex-1 min-h-0 overflow-hidden'>
         {isSettings ? (

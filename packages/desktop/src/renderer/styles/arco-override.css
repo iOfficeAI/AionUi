@@ -150,15 +150,27 @@ body {
   font-size: 13px;
 }
 
-/* Switch — keep functional, slightly smaller default */
+/* Switch — keep functional, slightly smaller default. Track shrinks to 16px
+   tall and the dot to 12×12; the explicit top/left below recenter the dot
+   inside the smaller track. Arco's defaults assume a 24px track + 16px dot
+   (top: 4px; left: 4px) and the checked-state slide assumes a 16px dot
+   (calc(100% - 16px - 4px)); leaving those untouched leaves the dot off by
+   2px vertically and offsets the checked position by 4px horizontally. The
+   values below mirror Arco's own .arco-switch-small ruleset so the type-
+   circle path matches the small-modifier path geometrically. */
 .arco-switch-type-circle {
   min-width: 28px;
   height: 16px;
   line-height: 16px;
 }
 .arco-switch-type-circle .arco-switch-dot {
+  top: 2px;
+  left: 2px;
   width: 12px;
   height: 12px;
+}
+.arco-switch-type-circle.arco-switch-checked .arco-switch-dot {
+  left: calc(100% - 12px - 2px);
 }
 
 /* Checkbox / radio labels */

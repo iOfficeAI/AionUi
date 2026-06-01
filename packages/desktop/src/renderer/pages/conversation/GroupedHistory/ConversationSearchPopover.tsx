@@ -393,7 +393,9 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
   const hasSearchResults = items.length > 0;
   const useCompactHeight = !debouncedKeyword || (!loading && !hasSearchResults);
   const triggerClassName = fullWidth
-    ? 'conversation-search-trigger-full h-34px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-8px pl-10px pr-8px rd-0.5rem cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
+    ? // Sider sibling of the "+ New chat" row — mirror its h-24px, gap-6px,
+      // pl-6px pr-4px, rd-6px so the two rows align as a paired toolbar.
+      'conversation-search-trigger-full h-24px w-full p-0 bg-transparent border-none outline-none flex items-center justify-start gap-6px pl-6px pr-4px rd-6px cursor-pointer shrink-0 transition-all group text-t-primary focus:outline-none focus-visible:outline-none'
     : 'h-34px w-34px p-0 bg-transparent rd-0.5rem flex items-center justify-center cursor-pointer shrink-0 transition-all border border-solid border-transparent text-t-secondary hover:text-t-primary';
 
   return (
@@ -418,10 +420,12 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
           disabled={disabled}
         >
           {fullWidth ? (
-            <span className='size-22px flex items-center justify-center shrink-0 text-t-primary'>
+            // Match "+ New chat": size-16px decorated-box icon slot with a
+            // 12px glyph inside, so the two Sider toolbar rows pair visually.
+            <span className='size-16px rd-4px bg-aou-2 border border-solid border-[var(--color-border-2)] group-hover:bg-fill-3 group-hover:border-transparent flex items-center justify-center shrink-0 transition-colors'>
               <Search
                 theme='outline'
-                size='16'
+                size='12'
                 fill='currentColor'
                 className='block leading-none'
                 style={{ lineHeight: 0 }}
@@ -437,7 +441,7 @@ const ConversationSearchPopover: React.FC<ConversationSearchPopoverProps> = ({
             />
           )}
           {fullWidth && label ? (
-            <span className='collapsed-hidden text-t-primary text-14px font-[500] leading-24px'>{label}</span>
+            <span className='collapsed-hidden text-t-primary text-12px font-[500] leading-18px'>{label}</span>
           ) : null}
         </button>
       )}
