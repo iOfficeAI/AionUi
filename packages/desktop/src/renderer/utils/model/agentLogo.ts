@@ -20,7 +20,7 @@ import { resolveBackendAssetUrl } from '@/renderer/utils/platform';
  * Note: keys are lowercase, supports multiple variants (e.g., openclaw-gateway and openclaw)
  */
 const AGENT_LOGO_PATH_MAP = {
-  aionrs: 'brand/pounding-heart-solid.png',
+  aionrs: 'brand/aion.svg',
   claude: 'ai-major/claude.svg',
   gemini: 'ai-major/gemini.svg',
   qwen: 'ai-china/qwen.svg',

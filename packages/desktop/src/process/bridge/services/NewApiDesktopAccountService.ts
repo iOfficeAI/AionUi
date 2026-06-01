@@ -98,6 +98,9 @@ type NewApiChannelConnection = {
 type ResolvedManagedToken = {
   token: string;
   baseUrl: string;
+  quota?: number;
+  usedQuota?: number;
+  unlimitedQuota?: boolean;
 };
 
 type ManagedCliModelPrefs = Partial<Record<ManagedRuntimeCliTarget, string>>;
@@ -520,9 +523,13 @@ async function resolveManagedToken(
     extractToken(existingChannelConnection);
 
   if (existingToken) {
+    const entry = existingTokenEntry as Record<string, unknown> | undefined;
     return {
       token: existingToken,
       baseUrl: normalizeBaseUrl(existingChannelConnection?.url || NEW_API_BASE_URL),
+      quota: (entry?.remain_quota as number) ?? undefined,
+      usedQuota: (entry?.used_quota as number) ?? 0,
+      unlimitedQuota: (entry?.unlimited_quota as boolean) ?? false,
     };
   }
 
@@ -1800,7 +1807,7 @@ export class NewApiDesktopAccountService {
         };
       }
 
-      const { token, baseUrl: providerBaseUrl } = await resolveManagedToken(cookies, loginToken, resolvedUserId);
+      const { token, baseUrl: providerBaseUrl, quota, usedQuota, unlimitedQuota } = await resolveManagedToken(cookies, loginToken, resolvedUserId);
 
       const selfResult = await fetchJson<NewApiResponse<unknown>>('/api/user/self', {
         cookies,
@@ -1808,6 +1815,9 @@ export class NewApiDesktopAccountService {
         userId: resolvedUserId,
       });
       const user = normalizeUser(selfResult.data?.data ?? selfResult.data ?? loginPayload, username.trim());
+      // Merge token quota into user (self endpoint doesn't return quota)
+      if (quota !== undefined) user.quota = unlimitedQuota ? Number.MAX_SAFE_INTEGER : quota;
+      if (usedQuota !== undefined) user.usedQuota = usedQuota;
 
       const modelsResult = await fetchJson<NewApiResponse<unknown>>('/api/user/models', {
         cookies,
