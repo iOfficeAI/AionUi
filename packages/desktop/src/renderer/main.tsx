@@ -47,6 +47,7 @@ import { createRoot } from 'react-dom/client';
 import { AuthProvider } from './hooks/context/AuthContext';
 import { FeedbackProvider, useFeedback } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
+import { NewApiAccountProvider } from './hooks/context/NewApiAccountContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 
 // Arco Design
@@ -126,9 +127,13 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
     AuthProvider,
     null,
     React.createElement(
-      ThemeProvider,
+      NewApiAccountProvider,
       null,
-      React.createElement(PreviewProvider, null, React.createElement(FeedbackProvider, null, children))
+      React.createElement(
+        ThemeProvider,
+        null,
+        React.createElement(PreviewProvider, null, React.createElement(FeedbackProvider, null, children))
+      )
     )
   );
 
