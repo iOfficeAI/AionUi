@@ -28,6 +28,7 @@ export interface NewApiDesktopUser {
   email?: string;
   quota?: number;
   usedQuota?: number;
+  unlimitedQuota?: boolean;
   avatarLetter?: string;
 }
 

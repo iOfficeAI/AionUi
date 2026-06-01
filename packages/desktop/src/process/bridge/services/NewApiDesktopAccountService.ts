@@ -406,11 +406,11 @@ function extractUserId(payload: unknown): string | undefined {
   return undefined;
 }
 
-function normalizeUser(payload: unknown, usernameFallback: string): NewApiDesktopUser {
+function normalizeUser(payload: unknown, usernameFallback: string, tokenQuota?: { quota?: number; usedQuota?: number; unlimitedQuota?: boolean }): NewApiDesktopUser {
   const record = (payload && typeof payload === 'object' ? payload : {}) as NewApiUserPayload;
   const username = record.username || record.user_name || record.displayName || record.name || usernameFallback;
-  const usedQuota = record.usedQuota ?? record.used_quota ?? 0;
-  const quota = record.quota ?? (typeof record.remain_quota === 'number' ? usedQuota + record.remain_quota : 520);
+  const usedQuota = tokenQuota?.usedQuota ?? record.usedQuota ?? record.used_quota ?? 0;
+  const quota = tokenQuota?.quota ?? record.quota ?? (typeof record.remain_quota === 'number' ? usedQuota + record.remain_quota : 520);
   return {
     id: record.id,
     username,
@@ -418,6 +418,7 @@ function normalizeUser(payload: unknown, usernameFallback: string): NewApiDeskto
     email: record.email,
     quota,
     usedQuota,
+    unlimitedQuota: tokenQuota?.unlimitedQuota ?? false,
     avatarLetter: username.charAt(0).toUpperCase() || 'U',
   };
 }
@@ -1814,10 +1815,7 @@ export class NewApiDesktopAccountService {
         token,
         userId: resolvedUserId,
       });
-      const user = normalizeUser(selfResult.data?.data ?? selfResult.data ?? loginPayload, username.trim());
-      // Merge token quota into user (self endpoint doesn't return quota)
-      if (quota !== undefined) user.quota = unlimitedQuota ? Number.MAX_SAFE_INTEGER : quota;
-      if (usedQuota !== undefined) user.usedQuota = usedQuota;
+      const user = normalizeUser(selfResult.data?.data ?? selfResult.data ?? loginPayload, username.trim(), { quota, usedQuota, unlimitedQuota });
 
       const modelsResult = await fetchJson<NewApiResponse<unknown>>('/api/user/models', {
         cookies,

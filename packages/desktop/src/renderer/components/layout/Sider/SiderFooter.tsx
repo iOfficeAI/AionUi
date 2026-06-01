@@ -98,9 +98,10 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     desktopAccountStatus?.user?.displayName ||
     desktopAccountStatus?.user?.username ||
     t('settings.newApiDefaultUserName');
-  const usedQuota = desktopAccountStatus?.user?.usedQuota ?? 0;
-  const totalQuota = desktopAccountStatus?.user?.quota ?? 520;
-  const usagePercent = totalQuota > 0 ? Math.min(100, Math.round((usedQuota / totalQuota) * 100)) : 0;
+  const isUnlimited = desktopAccountStatus?.user?.unlimitedQuota === true;
+  const usedQuota = isUnlimited ? 0 : (desktopAccountStatus?.user?.usedQuota ?? 0);
+  const totalQuota = isUnlimited ? 1 : (desktopAccountStatus?.user?.quota ?? 520);
+  const usagePercent = isUnlimited ? 100 : (totalQuota > 0 ? Math.min(100, Math.round((usedQuota / totalQuota) * 100)) : 0);
   const [accountPanelStyle, setAccountPanelStyle] = useState<React.CSSProperties>({
     left: 8,
     bottom: 56,
