@@ -78,7 +78,7 @@
     },
     "incompleteInstallation": {
       "title": "AionUi 安裝不完整",
-      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi。",
+      "description": "目前安裝缺少必要的本機資源，AionCore 無法啟動。請下載並重新安裝最新版 AionUi；如果重新安裝後仍然出現，請檢查系統安全軟體或防毒軟體是否隔離了 AionCore。",
       "downloadLatest": "下載最新版",
       "sendDiagnostics": "傳送診斷報告"
     }

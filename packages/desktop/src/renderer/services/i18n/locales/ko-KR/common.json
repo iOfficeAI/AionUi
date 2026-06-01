@@ -78,7 +78,7 @@
     },
     "incompleteInstallation": {
       "title": "AionUi 설치가 불완전합니다",
-      "description": "현재 설치에 필요한 로컬 리소스가 없어 AionCore를 시작할 수 없습니다. 최신 AionUi를 다운로드하여 다시 설치하세요.",
+      "description": "현재 설치에 필요한 로컬 리소스가 없어 AionCore를 시작할 수 없습니다. 최신 AionUi를 다운로드하여 다시 설치하세요. 다시 설치한 후에도 문제가 반복되면 보안 또는 바이러스 백신 소프트웨어가 AionCore를 격리했는지 확인하세요.",
       "downloadLatest": "최신 버전 다운로드",
       "sendDiagnostics": "진단 보고서 보내기"
     }
