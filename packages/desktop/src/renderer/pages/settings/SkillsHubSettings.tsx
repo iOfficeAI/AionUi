@@ -116,13 +116,17 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleImport = async (skillPath: string) => {
     try {
       const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
-      const count = result.skill_names?.length ?? (result.skill_name ? 1 : 0);
+      const importedNames = result.skill_names?.length ? result.skill_names : result.skill_name ? [result.skill_name] : [];
+      const count = importedNames.length;
+      const names = importedNames.join(', ');
       Message.success(
-        t('settings.skillsHub.importSuccess', {
+        t('settings.skillsHub.importSuccessDetailed', {
           count,
-          defaultValue: count > 1 ? `${count} skills imported successfully` : 'Skill imported successfully',
+          names,
+          defaultValue: count > 1 ? `Imported ${count} skills: ${names}` : `Imported skill: ${names}`,
         })
       );
+      setSearchQuery('');
       void fetchData();
     } catch (error) {
       console.error('Failed to import skill:', error);

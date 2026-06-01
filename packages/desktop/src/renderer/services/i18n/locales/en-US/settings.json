@@ -12,6 +12,7 @@
     "tipContent": "Skills configured here can be enabled for any assistant in the \"Assistants\" setup page; import a skill folder, a parent folder, or a zip archive.",
     "fetchError": "Failed to fetch skills",
     "importSuccess": "Skill imported successfully",
+    "importSuccessDetailed": "Imported {{count}} skill(s): {{names}}",
     "importFailed": "Failed to import skill",
     "importError": "Error importing skill",
     "deleteSuccess": "Skill deleted",
