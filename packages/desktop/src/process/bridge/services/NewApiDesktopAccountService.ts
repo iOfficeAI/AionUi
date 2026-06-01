@@ -568,6 +568,12 @@ async function fetchJson<T>(requestPath: string, options: NewApiRequestOptions =
   });
 
   const cookies = normalizeCookies(getSetCookieValues(response));
+
+  if (response.status === 429) {
+    console.warn('[POUNDING] fetchJson: rate limited by NewAPI, request:', requestPath);
+    throw new Error('Rate limited by NewAPI — too many requests. Please wait and try again.');
+  }
+
   let content: T;
   try {
     content = (await response.json()) as T;
@@ -1632,11 +1638,20 @@ function parseReconcileInput(input?: ManagedRuntimeReconcileInput): {
 }
 
 export class NewApiDesktopAccountService {
+  private lastReconcileTime = 0;
+  private readonly RECONCILE_DEBOUNCE_MS = 30_000; // 30 seconds debounce
+
   async clearManagedRuntimeForCliTarget(cliTarget: ManagedRuntimeCliTarget): Promise<void> {
     clearManagedRuntimeForCliTargetSync(cliTarget);
   }
 
   async reconcileManagedRuntimeState(input?: ManagedRuntimeReconcileInput): Promise<void> {
+    const now = Date.now();
+    if (now - this.lastReconcileTime < this.RECONCILE_DEBOUNCE_MS) {
+      return;
+    }
+    this.lastReconcileTime = now;
+
     let status = await getStoredStatus();
     let recoveredToken = status.token?.trim() || recoverManagedApiKeyFromRuntimeConfigs();
     let provider = await findManagedProvider();
