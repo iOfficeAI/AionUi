@@ -12,6 +12,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -473,7 +474,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setHasHydratedRunningState(false);
 
     // Clear running/processing immediately for the new conversation. Hydration only
-    // turns these back on when the backend reports status === 'running'. Otherwise
+    // turns these back on when the backend reports runtime processing state. Otherwise
     // conversation.get's idle branch raced with useAcpInitialMessage's
     // setAiProcessing(true) and hid ThoughtDisplay until the first stream event.
     setRunning(false);
@@ -495,7 +496,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           setHasHydratedRunningState(true);
           return;
         }
-        const isRunning = res.status === 'running';
+        const isRunning = isConversationProcessing(res);
         setRunning(isRunning);
         runningRef.current = isRunning;
         if (isRunning) {

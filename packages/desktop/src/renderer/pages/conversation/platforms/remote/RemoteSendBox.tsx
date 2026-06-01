@@ -25,6 +25,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
@@ -159,7 +160,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         setHasHydratedRunningState(true);
         return;
       }
-      const isRunning = res.status === 'running';
+      const isRunning = isConversationProcessing(res);
       setAiProcessing(isRunning);
       aiProcessingRef.current = isRunning;
       setHasHydratedRunningState(true);
