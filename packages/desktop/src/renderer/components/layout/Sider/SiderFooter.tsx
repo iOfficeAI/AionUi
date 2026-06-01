@@ -109,10 +109,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
     return `¥${rmb.toFixed(2)}`;
   };
   const isUnlimited = desktopAccountStatus?.user?.unlimitedQuota === true;
-  const totalQuota = isUnlimited ? 1 : (desktopAccountStatus?.user?.quota ?? 520);
-  const usedQuota = isUnlimited ? 0 : (desktopAccountStatus?.user?.usedQuota ?? 0);
-  const remainQuota = totalQuota - usedQuota;
-  const remainPercent = isUnlimited ? 100 : (totalQuota > 0 ? Math.max(0, Math.round((remainQuota / totalQuota) * 100)) : 0);
+  const remainQuota = desktopAccountStatus?.user?.quota ?? 0;
+  // quota IS the remaining balance (not total)
+  const remainPercent = isUnlimited ? 100 : (remainQuota > 0 ? 100 : 0);
   const [accountPanelStyle, setAccountPanelStyle] = useState<React.CSSProperties>({
     left: 8,
     bottom: 56,
