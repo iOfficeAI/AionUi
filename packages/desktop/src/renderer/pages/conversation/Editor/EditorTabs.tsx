@@ -3,14 +3,25 @@
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
  *
- * Tab strip for the editor pane. Matches `Preview/components/PreviewPanel/PreviewTabs.tsx`
- * — same height (36px), same active/inactive coloring (bg-bg-1 vs bg-bg-2),
- * same close button (Close at size 14). The editor sits beside the preview
- * in the same workspace; its tabs should read as the same kind of object.
+ * Editor tab affordance. Renders in two modes depending on Phase 9's
+ * `expertMode` flag:
+ *
+ *   - Calm (default): single-file breadcrumb header, or compact pill list
+ *     when 2+ buffers are open. Pills are 28px, rounded-control, with a 2px
+ *     brand bottom-border on the active pill. Hover reveals the close
+ *     affordance. Horizontal scroll has arrow buttons at the edges when
+ *     overflow is present.
+ *
+ *   - Expert: the prior 36px PreviewTabs-style strip with file-type badges,
+ *     dirty dots, drag-to-reorder, and middle-click close.
+ *
+ * Drag-to-reorder, middle-click close, Cmd/Ctrl+W, and Cmd/Ctrl+Tab cycle
+ * are preserved in both modes — the calm view is a presentation change, not
+ * a feature regression.
  */
 
 import { Tooltip } from '@arco-design/web-react';
-import { Close } from '@icon-park/react';
+import { Close, Left, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useEditorContext } from './EditorContext';
@@ -21,11 +32,19 @@ type DragState = { fromKey: string | null };
 
 const isBufferDirty = (b: OpenBuffer): boolean => b.content !== b.originalContent;
 
-const EditorTabs: React.FC = () => {
+const breadcrumbPathFor = (buffer: OpenBuffer): string => buffer.filePath ?? buffer.fileName;
+
+type Props = {
+  expertMode: boolean;
+};
+
+const EditorTabs: React.FC<Props> = ({ expertMode }) => {
   const { t } = useTranslation();
   const editor = useEditorContext();
   const stripRef = useRef<HTMLDivElement | null>(null);
+  const pillScrollRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragState>({ fromKey: null });
+  const [pillOverflow, setPillOverflow] = useState<{ left: boolean; right: boolean }>({ left: false, right: false });
 
   const onTabClick = useCallback(
     (key: string) => {
@@ -34,9 +53,9 @@ const EditorTabs: React.FC = () => {
     [editor]
   );
 
-  // Middle-click closes tab. Using onAuxClick on a role="tab" div, which the
-  // AionUi raw-HTML rule allows (the rule applies to interactive form
-  // controls, not ARIA-roled divs).
+  // Middle-click closes a tab. Preserved in both calm-pill and expert modes
+  // because users have built muscle memory for it. Using onAuxClick on an
+  // ARIA-roled div is permitted by the AionUi raw-HTML rule.
   const onTabAuxClick = useCallback(
     (e: React.MouseEvent<HTMLDivElement>, key: string) => {
       if (e.button === 1) {
@@ -48,7 +67,7 @@ const EditorTabs: React.FC = () => {
   );
 
   const onCloseClick = useCallback(
-    (e: React.MouseEvent<HTMLSpanElement>, key: string) => {
+    (e: React.MouseEvent<HTMLElement>, key: string) => {
       e.stopPropagation();
       e.preventDefault();
       editor.requestCloseBuffer(key);
@@ -57,9 +76,10 @@ const EditorTabs: React.FC = () => {
   );
 
   // Horizontal scroll on wheel — vertical scroll wheels become horizontal,
-  // matching common editor tab behavior.
+  // matching common editor tab behavior. Applied to whichever strip is
+  // currently mounted (expert vs. calm pills).
   useEffect(() => {
-    const el = stripRef.current;
+    const el = expertMode ? stripRef.current : pillScrollRef.current;
     if (!el) return;
     const handler = (e: WheelEvent) => {
       if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
@@ -69,17 +89,48 @@ const EditorTabs: React.FC = () => {
     };
     el.addEventListener('wheel', handler, { passive: false });
     return () => el.removeEventListener('wheel', handler);
-  }, []);
+  }, [expertMode]);
 
   useEffect(() => {
     if (!editor.activeKey) return;
-    const el = stripRef.current?.querySelector(`[data-tab-key="${CSS.escape(editor.activeKey)}"]`);
+    const root = expertMode ? stripRef.current : pillScrollRef.current;
+    const el = root?.querySelector(`[data-tab-key="${CSS.escape(editor.activeKey)}"]`);
     if (el instanceof HTMLElement) {
       el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-  }, [editor.activeKey]);
+  }, [editor.activeKey, expertMode]);
 
-  // Cmd/Ctrl+W close, Cmd/Ctrl+Tab next, Cmd/Ctrl+Shift+Tab prev.
+  // Track pill overflow so the left/right arrow affordances only render when
+  // the strip can actually scroll. Re-evaluated on buffer change, mode flip,
+  // and resize.
+  useEffect(() => {
+    if (expertMode) return;
+    const el = pillScrollRef.current;
+    if (!el) return;
+    const recompute = () => {
+      const canLeft = el.scrollLeft > 1;
+      const canRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
+      setPillOverflow((prev) => (prev.left === canLeft && prev.right === canRight ? prev : { left: canLeft, right: canRight }));
+    };
+    recompute();
+    el.addEventListener('scroll', recompute, { passive: true });
+    const observer = new ResizeObserver(recompute);
+    observer.observe(el);
+    return () => {
+      el.removeEventListener('scroll', recompute);
+      observer.disconnect();
+    };
+  }, [expertMode, editor.buffers.length, editor.activeKey]);
+
+  const scrollPills = useCallback((direction: 'left' | 'right') => {
+    const el = pillScrollRef.current;
+    if (!el) return;
+    const delta = Math.max(120, Math.floor(el.clientWidth * 0.6));
+    el.scrollBy({ left: direction === 'left' ? -delta : delta, behavior: 'smooth' });
+  }, []);
+
+  // Cmd/Ctrl+W close, Cmd/Ctrl+Tab next, Cmd/Ctrl+Shift+Tab prev — same in
+  // both modes.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
@@ -125,6 +176,93 @@ const EditorTabs: React.FC = () => {
 
   if (editor.buffers.length === 0) return null;
 
+  // --- Calm mode: single file → breadcrumb; 2+ files → pill list -------------
+  if (!expertMode) {
+    if (editor.buffers.length === 1) {
+      const buffer = editor.buffers[0];
+      const dirty = isBufferDirty(buffer);
+      return (
+        <div className='editor-tabs-breadcrumb' aria-label={t('conversation.editor.tabsList')}>
+          <Tooltip content={buffer.filePath ?? buffer.fileName} position='bottom' mini>
+            <span className='editor-tabs-breadcrumb__path'>{breadcrumbPathFor(buffer)}</span>
+          </Tooltip>
+          {dirty && (
+            <span className='editor-tabs-breadcrumb__dirty' aria-label={t('conversation.editor.unsavedDot')} />
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <div className='editor-tabs-pills' role='tablist' aria-label={t('conversation.editor.tabsList')}>
+        {pillOverflow.left && (
+          <button
+            type='button'
+            className='editor-tabs-pills__arrow editor-tabs-pills__arrow--left'
+            onClick={() => scrollPills('left')}
+            aria-label={t('common.scrollLeft', { defaultValue: 'Scroll left' })}
+          >
+            <Left size={14} />
+          </button>
+        )}
+        <div ref={pillScrollRef} className='editor-tabs-pills__scroll'>
+          {editor.buffers.map((b) => {
+            const active = b.key === editor.activeKey;
+            const dirty = isBufferDirty(b);
+            return (
+              <Tooltip key={b.key} content={b.filePath ?? b.fileName} position='bottom' mini>
+                <div
+                  role='tab'
+                  aria-selected={active}
+                  tabIndex={active ? 0 : -1}
+                  data-tab-key={b.key}
+                  className={'editor-tabs-pill' + (active ? ' editor-tabs-pill--active' : '')}
+                  draggable
+                  onDragStart={(e) => onDragStart(e, b.key)}
+                  onDragOver={onDragOver}
+                  onDrop={(e) => onDrop(e, b.key)}
+                  onDragEnd={onDragEnd}
+                  onClick={() => onTabClick(b.key)}
+                  onAuxClick={(e) => onTabAuxClick(e, b.key)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      onTabClick(b.key);
+                    }
+                  }}
+                >
+                  <span className='truncate max-w-200px'>{b.fileName}</span>
+                  {dirty && (
+                    <span className='editor-tabs-pill__dirty' aria-label={t('conversation.editor.unsavedDot')} />
+                  )}
+                  <span
+                    role='button'
+                    aria-label={t('common.close')}
+                    className='editor-tabs-pill__close'
+                    onClick={(e) => onCloseClick(e, b.key)}
+                  >
+                    <Close size={12} strokeWidth={3} />
+                  </span>
+                </div>
+              </Tooltip>
+            );
+          })}
+        </div>
+        {pillOverflow.right && (
+          <button
+            type='button'
+            className='editor-tabs-pills__arrow editor-tabs-pills__arrow--right'
+            onClick={() => scrollPills('right')}
+            aria-label={t('common.scrollRight', { defaultValue: 'Scroll right' })}
+          >
+            <Right size={14} />
+          </button>
+        )}
+      </div>
+    );
+  }
+
+  // --- Expert mode: prior 36px strip ---------------------------------------
   return (
     <div
       ref={stripRef}

@@ -273,9 +273,13 @@ const ChatLayout: React.FC<{
       }}
     >
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
-        {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle */}
+        {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle.
+            `overflow-hidden` contains the inner chat-area (which has `flexShrink: 0` + `minWidth: 240px`)
+            when the wrapper is squeezed below 240px by the editor/workspace peers — without this,
+            the composer rail and header model pill would visually bleed across the editor pane's
+            left edge at narrow viewports. */}
         <div
-          className='flex flex-col min-w-0'
+          className='flex flex-col min-w-0 overflow-hidden'
           style={{
             flexGrow: 1,
             flexShrink: 1,
@@ -350,7 +354,6 @@ const ChatLayout: React.FC<{
               width: isEditorExpanded ? `${Math.round(editorWidthPx)}px` : '0px',
               minWidth: isEditorExpanded ? '360px' : '0px',
               overflow: isEditorExpanded ? 'visible' : 'hidden',
-              border: isEditorExpanded ? '1px solid var(--bg-3)' : 'none',
               boxSizing: 'border-box',
             }}
           >

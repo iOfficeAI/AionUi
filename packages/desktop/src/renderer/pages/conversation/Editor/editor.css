@@ -16,10 +16,30 @@
   background: var(--bg-1);
   display: flex;
   flex-direction: column;
+  /* Phase 9 polish (round 2) — earlier pass routed structural transitions through
+     `--motion-base` but the close still read as stark. Two root causes were
+     bypassing the transition: (1) the inline `border` style flipped between
+     `'none'` and `'1px solid var(--bg-3)'` (border shorthand cannot tween,
+     so the frame appeared/disappeared in a single frame); (2) opacity stayed
+     at 1 throughout close, so content was squeezed off rather than fading.
+     Fix: always render a `1px solid transparent` border, let `--expanded`
+     paint its color (transitions cleanly); declare base opacity 0 and let
+     `--expanded` lift it to 1 (transitions on close as well as open). Duration
+     bumped to `--motion-slow` (320ms) so the glide reads as deliberate. */
+  border: 1px solid transparent;
+  opacity: 0;
+  transition:
+    width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    flex-basis var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    min-width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    border-color var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    opacity var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease);
 }
 
 .editor-pane--expanded {
   background: var(--bg-1);
+  border-color: var(--bg-3);
+  opacity: 1;
 }
 
 .editor-panel {
@@ -230,12 +250,15 @@
   display: flex;
   align-items: stretch;
   justify-content: space-between;
-  height: 24px;
+  /* `min-height` (not a fixed `height`) so the bar can grow to two rows at
+     narrow widths instead of clipping the rightmost interactive controls
+     (the Phase 9 Expert toggle in particular). */
+  min-height: 24px;
   flex-shrink: 0;
+  flex-wrap: wrap;
   background: var(--bg-2, #ececec);
   color: var(--text-secondary, #4e5969);
   font-size: 12px;
-  overflow: hidden;
   border-top: 1px solid var(--border-base, #d4d4d4);
   /* Subtle 2px brand-colored left rail — that's the editor's accent in
      Chisl's printed-ink language, in place of VS Code's full blue bar. */
@@ -246,6 +269,8 @@
 .editor-statusbar__group {
   display: flex;
   align-items: stretch;
+  flex-wrap: wrap;
+  min-height: 24px;
 }
 
 .editor-statusbar__seg {
@@ -273,6 +298,14 @@
 .editor-statusbar__seg--readonly {
   cursor: default;
   color: var(--text-secondary, #4e5969);
+  /* At narrow editor pane widths, the right group can't fit every metadata
+     segment side-by-side. Make readonly cells the first to give ground —
+     they shrink and ellipsis-truncate, freeing space for the interactive
+     controls (zoom, Expert) further right. */
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .editor-statusbar__seg--readonly:hover {
@@ -287,6 +320,9 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 13px;
   color: var(--text-primary, #1f1f1f);
+  /* Interactive zoom controls stay clickable at every width — readonly
+     metadata yields first. */
+  flex-shrink: 0;
 }
 
 .editor-statusbar__seg-icon {
@@ -324,6 +360,216 @@
 .editor-status-menu {
   max-height: 360px;
   overflow-y: auto;
+}
+
+/* -------------------------------------------------------------------------
+   Phase 9 — Expert mode toggle. Calm idle treatment, brand-tinted when on.
+   Sits in the right-hand statusbar group at the far end.
+   ------------------------------------------------------------------------- */
+.editor-statusbar__seg--expert {
+  height: 20px;
+  padding: 0 10px;
+  margin: 2px 4px 2px 2px;
+  border-radius: var(--radius-control, 4px);
+  color: var(--bg-6, #806844);
+  background: transparent;
+  font-size: 11px;
+  letter-spacing: 0.2px;
+  /* Pin the Expert toggle visible at every viewport width — readonly
+     metadata to its left ellipsis-truncates first. */
+  flex-shrink: 0;
+  white-space: nowrap;
+  transition: background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+    color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
+}
+
+.editor-statusbar__seg--expert:hover {
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-secondary, #4e5969);
+}
+
+.editor-statusbar__seg--expert-on {
+  color: var(--brand, #b4480c);
+  background: var(--activity-pulse-bg, rgba(180, 72, 12, 0.08));
+}
+
+.editor-statusbar__seg--expert-on:hover {
+  background: var(--activity-pulse-bg, rgba(180, 72, 12, 0.08));
+  color: var(--brand, #b4480c);
+}
+
+.editor-statusbar__seg--expert:focus-visible {
+  outline: 2px solid var(--brand, #b4480c);
+  outline-offset: 1px;
+}
+
+/* -------------------------------------------------------------------------
+   Phase 9 — Calm-mode tab affordances. Single-file breadcrumb header and
+   the multi-file pill list. Used when Expert mode is off; Expert mode
+   reverts to the prior `.editor-tabs` strip rendered above.
+   ------------------------------------------------------------------------- */
+.editor-tabs-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  height: 28px;
+  padding: 0 12px;
+  flex-shrink: 0;
+  background: var(--bg-2, #ececec);
+  border-bottom: 1px solid var(--border-light, var(--border-base, #d4d4d4));
+  color: var(--text-secondary, #555);
+  font-size: 12px;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.editor-tabs-breadcrumb__path {
+  flex: 1;
+  min-width: 0;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
+.editor-tabs-breadcrumb__dirty {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand, #b4480c);
+  flex-shrink: 0;
+}
+
+.editor-tabs-pills {
+  position: relative;
+  display: flex;
+  align-items: center;
+  height: 32px;
+  flex-shrink: 0;
+  background: var(--bg-2, #ececec);
+  border-bottom: 1px solid var(--border-light, var(--border-base, #d4d4d4));
+  overflow: hidden;
+}
+
+.editor-tabs-pills__scroll {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0 6px;
+  overflow-x: auto;
+  overflow-y: hidden;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.editor-tabs-pills__scroll::-webkit-scrollbar {
+  display: none;
+}
+
+.editor-tabs-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  flex-shrink: 0;
+  border-radius: var(--radius-control, 4px);
+  font-size: 13px;
+  color: var(--text-secondary, #555);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  user-select: none;
+  white-space: nowrap;
+  transition: background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+    color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
+  /* Reserved 2px so the bottom-border on active pills doesn't shift layout. */
+  border-bottom: 2px solid transparent;
+}
+
+.editor-tabs-pill:hover {
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-tabs-pill--active {
+  color: var(--text-primary, #1f1f1f);
+  border-bottom: 2px solid var(--brand, #b4480c);
+  background: var(--bg-1, #f5f5f5);
+}
+
+.editor-tabs-pill--active:hover {
+  background: var(--bg-1, #f5f5f5);
+}
+
+.editor-tabs-pill:focus-visible {
+  outline: 2px solid var(--brand, #b4480c);
+  outline-offset: -2px;
+}
+
+.editor-tabs-pill__close {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border-radius: 3px;
+  color: var(--bg-6, #806844);
+  opacity: 0;
+  transition: opacity var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+    background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+    color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
+}
+
+.editor-tabs-pill:hover .editor-tabs-pill__close,
+.editor-tabs-pill:focus-within .editor-tabs-pill__close,
+.editor-tabs-pill--active .editor-tabs-pill__close {
+  opacity: 1;
+}
+
+.editor-tabs-pill__close:hover {
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-tabs-pill__dirty {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--brand, #b4480c);
+  flex-shrink: 0;
+}
+
+.editor-tabs-pills__arrow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 100%;
+  flex-shrink: 0;
+  border: 0;
+  background: var(--bg-2, #ececec);
+  color: var(--bg-6, #806844);
+  cursor: pointer;
+  transition: color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+    background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
+}
+
+.editor-tabs-pills__arrow:hover {
+  color: var(--text-primary, #1f1f1f);
+  background: var(--bg-3, #e0e0e0);
+}
+
+.editor-tabs-pills__arrow--left {
+  box-shadow: 1px 0 0 0 var(--border-light, var(--border-base, #d4d4d4));
+}
+
+.editor-tabs-pills__arrow--right {
+  box-shadow: -1px 0 0 0 var(--border-light, var(--border-base, #d4d4d4));
 }
 
 /* -------------------------------------------------------------------------
@@ -568,24 +814,14 @@
   border-radius: 6px;
 }
 
-.editor-pane-enter {
-  animation: editor-pane-enter 0.25s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  will-change: opacity, transform;
-}
-
-@keyframes editor-pane-enter {
-  from {
-    opacity: 0;
-    transform: translateX(20px);
-  }
-  to {
-    opacity: 1;
-    transform: translateX(0);
-  }
-}
-
+/* Phase 9 polish (round 2) — opacity ramp moved onto the base `.editor-pane`
+   rule + `.editor-pane--expanded` modifier so the fade runs in both directions
+   (open AND close), not just open. The earlier keyframe-based approach only
+   ran on add of `.editor-pane-enter`, so close was opaque-shrinking-to-zero.
+   The class is still applied by ChatLayout for backward compatibility but is
+   now a no-op; the transition handles everything. */
 @media (prefers-reduced-motion: reduce) {
-  .editor-pane-enter {
-    animation: none !important;
+  .editor-pane {
+    transition: none !important;
   }
 }

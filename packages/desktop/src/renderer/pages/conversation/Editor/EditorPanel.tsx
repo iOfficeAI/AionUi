@@ -8,6 +8,7 @@ import { Alert, Button, Message, Modal, Spin } from '@arco-design/web-react';
 import type * as monaco from 'monaco-editor';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { useParams } from 'react-router-dom';
 import { useEditorContext } from './EditorContext';
 import EditorBreadcrumb from './EditorBreadcrumb';
 import EditorOutline from './EditorOutline';
@@ -21,19 +22,63 @@ import './editor.css';
 const INITIAL_CURSOR = { line: 1, col: 1 };
 const INITIAL_SELECTION: MonacoSelectionInfo = { selectedChars: 0, selectedLines: 0 };
 
+// Per-workspace persistence key for the Expert-mode toggle. `workspaceId` is
+// the route :id param (conversation_id in single chats, team_id in team mode),
+// matching the existing `workspace-preference-${id}` convention from
+// useWorkspaceCollapse. Falls back to '__global__' if no workspace is in scope.
+const expertModeStorageKey = (workspaceId: string | undefined): string =>
+  `chisl.editor.expert.${workspaceId ?? '__global__'}`;
+
+const readPersistedExpertMode = (workspaceId: string | undefined): boolean => {
+  try {
+    return localStorage.getItem(expertModeStorageKey(workspaceId)) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 const EditorPanel: React.FC = () => {
   const { t } = useTranslation();
+  const { id: workspaceId } = useParams<{ id: string }>();
   const [messageApi, messageContextHolder] = Message.useMessage();
-  const [wordWrap, setWordWrap] = useState(true);
-  const [showMinimap, setShowMinimap] = useState(true);
+  // Phase 9: calm defaults. Word-wrap, minimap, and outline all start off; the
+  // user can toggle each individually via the existing toolbar controls, or
+  // flip Expert mode to restore the prior IDE-chrome posture wholesale.
+  const [expertMode, setExpertMode] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
+  const [wordWrap, setWordWrap] = useState(false);
+  const [showMinimap, setShowMinimap] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
   const [renderWhitespace, setRenderWhitespace] = useState(false);
+  const [outlineVisible, setOutlineVisible] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
   const [cursor, setCursor] = useState(INITIAL_CURSOR);
   const [selectionInfo, setSelectionInfo] = useState<MonacoSelectionInfo>(INITIAL_SELECTION);
   const [indent, setIndent] = useState<{ useSpaces: boolean; size: number }>({ useSpaces: true, size: 2 });
   const [eol, setEol] = useState<'LF' | 'CRLF'>('LF');
-  const [outlineVisible, setOutlineVisible] = useState(true);
   const editor = useEditorContext();
   const monacoRef = useRef<MonacoEditorHandle | null>(null);
+
+  // Re-read persistence on workspace change. Switching conversations (or
+  // entering a team) should pick up that workspace's Expert preference without
+  // a reload. Each derived chrome flag (minimap, outline) tracks the toggle.
+  useEffect(() => {
+    const persisted = readPersistedExpertMode(workspaceId);
+    setExpertMode(persisted);
+    setShowMinimap(persisted);
+    setOutlineVisible(persisted);
+  }, [workspaceId]);
+
+  const toggleExpertMode = useCallback(() => {
+    setExpertMode((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(expertModeStorageKey(workspaceId), String(next));
+      } catch {
+        // ignore storage errors
+      }
+      setShowMinimap(next);
+      setOutlineVisible(next);
+      return next;
+    });
+  }, [workspaceId]);
 
   useLspBridge(editor.activeBuffer);
 
@@ -104,7 +149,7 @@ const EditorPanel: React.FC = () => {
     <div className='editor-panel'>
       {messageContextHolder}
       <EditorBreadcrumb activeBuffer={active} />
-      <EditorTabs />
+      <EditorTabs expertMode={expertMode} />
       <EditorToolbar
         saving={active?.saving ?? false}
         wordWrap={wordWrap}
@@ -182,6 +227,8 @@ const EditorPanel: React.FC = () => {
         onZoomIn={handleZoomIn}
         onZoomOut={handleZoomOut}
         onResetZoom={handleResetZoom}
+        expertMode={expertMode}
+        onToggleExpertMode={toggleExpertMode}
       />
       <Modal
         visible={Boolean(editor.pendingAction)}

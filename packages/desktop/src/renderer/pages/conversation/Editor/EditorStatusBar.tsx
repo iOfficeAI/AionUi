@@ -41,6 +41,9 @@ type Props = {
   onZoomIn: () => void;
   onZoomOut: () => void;
   onResetZoom: () => void;
+  /** Phase 9: when true, the editor renders full IDE chrome (minimap, outline, full tab strip). */
+  expertMode: boolean;
+  onToggleExpertMode: () => void;
 };
 
 const LANGUAGE_CHOICES: Array<{ id: string; label: string }> = [
@@ -97,6 +100,8 @@ const EditorStatusBar: React.FC<Props> = ({
   onZoomIn,
   onZoomOut,
   onResetZoom,
+  expertMode,
+  onToggleExpertMode,
 }) => {
   const { t } = useTranslation();
   const languageLabel = getLanguageDisplayName(language);
@@ -234,6 +239,31 @@ const EditorStatusBar: React.FC<Props> = ({
         <Tooltip content={t('conversation.editor.zoomIn')} mini position='top'>
           <button type='button' className='editor-statusbar__seg editor-statusbar__seg--icon' onClick={onZoomIn}>
             +
+          </button>
+        </Tooltip>
+
+        <span className='editor-statusbar__divider' aria-hidden />
+
+        <Tooltip
+          content={t('conversation.editor.expertModeTooltip', {
+            defaultValue: 'Show full IDE chrome (minimap, outline, tabs).',
+          })}
+          mini
+          position='top'
+        >
+          <button
+            type='button'
+            className={
+              'editor-statusbar__seg editor-statusbar__seg--expert' +
+              (expertMode ? ' editor-statusbar__seg--expert-on' : '')
+            }
+            onClick={onToggleExpertMode}
+            aria-pressed={expertMode}
+            aria-label={t('conversation.editor.expertModeAria', {
+              defaultValue: 'Toggle Expert mode',
+            })}
+          >
+            {t('conversation.editor.expertMode', { defaultValue: 'Expert mode' })}
           </button>
         </Tooltip>
       </div>
