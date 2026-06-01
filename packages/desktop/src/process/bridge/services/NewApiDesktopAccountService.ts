@@ -261,6 +261,8 @@ function toPersistedAccountStatus(status: NewApiAccountStatus): NewApiAccountSta
     models: [...status.models],
     updatedAt: status.updatedAt,
     user: status.user ? { ...status.user } : undefined,
+    token: status.token,
+    cookies: status.cookies,
     managedProviderId: status.managedProviderId,
   };
 }
