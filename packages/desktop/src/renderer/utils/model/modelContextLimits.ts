@@ -41,11 +41,14 @@ const MODEL_CONTEXT_LIMITS: Record<string, number> = {
   'o3-mini': 200_000,
 
   // Claude 系列
-  'claude-opus-4.5': 200_000,
+  'claude-opus-4-8': 1_000_000,
+  'claude-opus-4-7': 1_000_000,
+  'claude-opus-4.5': 1_000_000,
   'claude-haiku-4.5': 200_000,
+  'claude-sonnet-4-6': 1_000_000,
   'claude-sonnet-4.5': 1_000_000,
-  'claude-opus-4.1': 200_000,
-  'claude-opus-4': 200_000,
+  'claude-opus-4.1': 1_000_000,
+  'claude-opus-4': 1_000_000,
   'claude-sonnet-4': 1_000_000,
   'claude-3.7-sonnet': 200_000,
   'claude-3.5-haiku': 200_000,
