@@ -8,18 +8,18 @@
 
 ### 1. `build-and-release.yml` - 主构建和发布流
 
-- **触发时机**: 仅推送到 `main` 分支
+- **触发时机**: 推送到 `main` / `feature/*` / `release/*` 分支，或手动触发
 - **功能**:
   - 代码质量检查 (ESLint, Prettier, TypeScript)
   - 多平台构建 (macOS Intel/Apple Silicon, Windows, Linux)
-  - 自动创建版本标签
-  - 创建 Draft Release (需要手动审批和发布)
+  - `feature/*` 仅验证，不自动发版
+  - `release/*` 负责创建标签并进入正式发布流程
 - **流程**:
   1. 代码质量检查
   2. 三平台并行构建
-  3. 自动创建基于 package.json 版本的标签
+  3. `release/*` 自动创建基于 package.json 版本的标签
   4. 等待环境审批
-  5. 创建 Draft Release (需要手动编辑和发布)
+  5. 创建 Release / Draft Release（按分支与 tag 状态决定）
 
 ## 必需的 GitHub Secrets 配置
 

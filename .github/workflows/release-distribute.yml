@@ -1,7 +1,8 @@
 name: Distribute Release Assets
 
 # Triggered after a GitHub Release is officially published.
-# Mirrors installer assets to the configured distribution endpoint for external download.
+# Mirrors desktop installers, updater metadata, blockmaps, and web-cli assets
+# to the configured distribution endpoint for external download / auto-update.
 #
 # Why `published` (not `released`)?
 #   - `released` is supposed to fire when a non-prerelease release is published,
@@ -10,33 +11,46 @@ name: Distribute Release Assets
 #   - `published` reliably fires on every draft → public transition, including
 #     prereleases. The `if` guard on the job filters out prereleases explicitly.
 #
-# All credentials / identifiers are read from repository secrets:
-#   - AWS_REGION
-#   - AWS_ROLE_ARN
-#   - AWS_S3_BUCKET
-# Do NOT hardcode these values in this file.
+# All credentials / identifiers are read from repository secrets / variables:
+#   Secrets:
+#   - TENCENT_COS_SECRET_ID
+#   - TENCENT_COS_SECRET_KEY
+#   Secrets:
+#   - TENCENT_COS_BUCKET
+#   - TENCENT_COS_REGION
+#   - POUNDING_UPDATE_PUBLIC_BASE (optional, e.g. https://download.api.mxou.cn)
+#   Variables:
+# Do NOT hardcode secrets in this file.
 
 on:
   release:
     types: [published]
-  # Manual trigger for smoke testing or for retrying a missed release:
-  # pick any existing release tag to re-run the distribution against.
   workflow_dispatch:
     inputs:
       tag:
         description: 'Existing release tag to redistribute (e.g. v1.9.21)'
         required: true
         type: string
+      cleanup_existing:
+        description: 'Delete existing version/latest objects before manual redistribution'
+        required: false
+        default: 'true'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
-  id-token: write # required for OIDC token
   contents: read
+
+concurrency:
+  group: release-distribute-${{ github.ref_name }}
+  cancel-in-progress: true
 
 jobs:
   distribute:
     name: Distribute release assets
     runs-on: ubuntu-latest
-    # Skip prereleases: manual dispatch always runs, automatic event runs only when not a prerelease.
     if: github.event_name == 'workflow_dispatch' || github.event.release.prerelease == false
     steps:
       - name: Extract version from tag
@@ -51,62 +65,169 @@ jobs:
             exit 1
           fi
           VERSION="${TAG#v}"
-          echo "tag=$TAG" >> $GITHUB_OUTPUT
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
           echo "Tag: $TAG / Version: $VERSION"
 
-      - name: Configure AWS credentials (OIDC)
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ secrets.AWS_ROLE_ARN }}
-          aws-region: ${{ secrets.AWS_REGION }}
+      - name: Validate COS configuration
+        env:
+          TENCENT_COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          TENCENT_COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          TENCENT_COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          TENCENT_COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
+        run: |
+          test -n "$TENCENT_COS_BUCKET" || { echo "::error::Missing repository secret TENCENT_COS_BUCKET"; exit 1; }
+          test -n "$TENCENT_COS_REGION" || { echo "::error::Missing repository secret TENCENT_COS_REGION"; exit 1; }
+          test -n "$TENCENT_COS_SECRET_ID" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_ID"; exit 1; }
+          test -n "$TENCENT_COS_SECRET_KEY" || { echo "::error::Missing repository secret TENCENT_COS_SECRET_KEY"; exit 1; }
+
+      - name: Install COSCLI
+        run: |
+          curl -L --fail --retry 3 --retry-delay 2 \
+            -o coscli \
+            https://cosbrowser.cloud.tencent.com/software/coscli/coscli-linux-amd64
+          echo '7165f2ae16c5f7ac495864c963ca574a76e04ec72680d7bc8a8eee3234d8cf91  coscli' | sha256sum -c -
+          chmod 755 coscli
+          ./coscli --version
 
       - name: Guard against same-version overwrite
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
+          CLEANUP_EXISTING: ${{ github.event.inputs.cleanup_existing || 'true' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          DEST="s3://${S3_BUCKET}/releases/${VERSION}/"
-          COUNT=$(aws s3 ls "$DEST" 2>/dev/null | wc -l | tr -d ' ')
-          if [ "$COUNT" -gt 0 ]; then
-            echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
-            echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
-            aws s3 ls "$DEST"
-            exit 1
+          set -euo pipefail
+
+          coscli_cmd() {
+            ./coscli "$@" \
+              -e "cos.${COS_REGION}.myqcloud.com" \
+              -i "$COS_SECRET_ID" \
+              -k "$COS_SECRET_KEY" \
+              --init-skip=true \
+              --disable-log=true
+          }
+
+          VERSION_PATH="cos://${COS_BUCKET}/pounding/releases/download/${VERSION}/"
+          EXISTING_COUNT=$(coscli_cmd ls "$VERSION_PATH" -r --limit -1 2>/dev/null | grep -c . || true)
+
+          if [ "$EXISTING_COUNT" -gt 0 ]; then
+            if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && [ "$CLEANUP_EXISTING" = 'true' ]; then
+              echo "Manual redistribution requested; removing $EXISTING_COUNT existing version object(s) before retry."
+              coscli_cmd rm "$VERSION_PATH" -r -f
+            else
+              echo "::error::Version directory already contains $EXISTING_COUNT file(s). Refusing to overwrite."
+              echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
+              coscli_cmd ls "$VERSION_PATH" -r --limit -1 || true
+              exit 1
+            fi
           fi
 
       - name: Download release assets from GitHub
         env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || github.token }}
         run: |
+          set -euo pipefail
           mkdir -p dist
-          gh release download "${{ steps.version.outputs.tag }}" \
-            --repo "${{ github.repository }}" \
-            --dir dist \
-            --pattern "*.dmg" \
-            --pattern "*.exe" \
-            --pattern "*.msi" \
-            --pattern "*.deb" \
-            --pattern "*.zip"
+          gh api "repos/${{ github.repository }}/releases" --paginate \
+            --jq '.[] | select(.tag_name == "${{ steps.version.outputs.tag }}") | .assets[] | [.name, .url] | @tsv' \
+            | while IFS=$'\t' read -r name url; do
+                case "$name" in
+                  *.dmg|*.exe|*.msi|*.deb|*.zip|*.yml|*.blockmap|*.tar.gz|*.sha256|install-web.sh)
+                    echo "Downloading $name"
+                    gh api --header "Accept: application/octet-stream" "$url" > "dist/$name"
+                    ;;
+                  *)
+                    echo "Skipping $name"
+                    ;;
+                esac
+              done
+          test -n "$(find dist -maxdepth 1 -type f -print -quit)" || {
+            echo "::error::No release assets were downloaded for tag ${{ steps.version.outputs.tag }}"
+            exit 1
+          }
           echo "Downloaded files:"
           ls -la dist
 
-      - name: Upload assets
+      - name: Upload assets to versioned and latest prefixes
         env:
-          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          COS_SECRET_ID: ${{ secrets.TENCENT_COS_SECRET_ID }}
+          COS_SECRET_KEY: ${{ secrets.TENCENT_COS_SECRET_KEY }}
           VERSION: ${{ steps.version.outputs.version }}
+          CLEANUP_EXISTING: ${{ github.event.inputs.cleanup_existing || 'true' }}
+          GITHUB_EVENT_NAME: ${{ github.event_name }}
         run: |
-          aws s3 cp dist/ "s3://${S3_BUCKET}/releases/${VERSION}/" --recursive
-          echo "Uploaded release ${VERSION}"
+          set -euo pipefail
+
+          coscli_cmd() {
+            ./coscli "$@" \
+              -e "cos.${COS_REGION}.myqcloud.com" \
+              -i "$COS_SECRET_ID" \
+              -k "$COS_SECRET_KEY" \
+              --init-skip=true \
+              --disable-log=true
+          }
+
+          VERSION_PATH="cos://${COS_BUCKET}/pounding/releases/download/${VERSION}/"
+          LATEST_PATH="cos://${COS_BUCKET}/pounding/releases/latest/"
+
+          if [ "$GITHUB_EVENT_NAME" = 'workflow_dispatch' ] && [ "$CLEANUP_EXISTING" = 'true' ]; then
+            coscli_cmd rm "$LATEST_PATH" -r -f || true
+          fi
+
+          coscli_cmd cp dist/ "$VERSION_PATH" -r
+          coscli_cmd cp dist/ "$LATEST_PATH" -r
+
+          find dist -maxdepth 1 -type f \( -name '*.yml' -o -name '*.blockmap' \) | sort | while read -r file; do
+            name="$(basename "$file")"
+            coscli_cmd cp \
+              "$file" \
+              "${LATEST_PATH}${name}" \
+              --meta 'Cache-Control:no-cache, no-store, must-revalidate, max-age=0'
+          done
+
+          echo "Uploaded release ${VERSION} to COS"
+
+      - name: Verify public distribution endpoints
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE }}
+        run: |
+          set -euo pipefail
+
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/pounding}"
+          URLS=(
+            "${BASE}/releases/latest/latest.yml"
+            "${BASE}/releases/latest/latest-mac.yml"
+            "${BASE}/releases/download/${VERSION}/POUNDING-${VERSION}-win-x64.exe"
+          )
+
+          for url in "${URLS[@]}"; do
+            echo "Verifying ${url}"
+            curl -fI --retry 5 --retry-delay 2 --retry-connrefused "$url"
+          done
 
       - name: Summary
         env:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
+          COS_BUCKET: ${{ secrets.TENCENT_COS_BUCKET }}
+          COS_REGION: ${{ secrets.TENCENT_COS_REGION }}
+          PUBLIC_BASE: ${{ secrets.POUNDING_UPDATE_PUBLIC_BASE }}
         run: |
+          BASE="${PUBLIC_BASE:-https://${COS_BUCKET}.cos.${COS_REGION}.myqcloud.com/pounding}"
           {
             echo "### Release assets distributed"
             echo ""
             echo "- Tag: \`${TAG}\`"
             echo "- Version: \`${VERSION}\`"
-          } >> $GITHUB_STEP_SUMMARY
+            echo "- Versioned assets: \`${BASE}/releases/download/${VERSION}/\`"
+            echo "- Auto-update feed: \`${BASE}/releases/latest/\`"
+          } >> "$GITHUB_STEP_SUMMARY"

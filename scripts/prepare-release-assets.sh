@@ -77,12 +77,12 @@ fi
 # ---------------------------------------------------------------------------
 echo "==> Collecting updater metadata ..."
 
-WIN_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-x64/*" -name "latest.yml" | sort | head -n 1 || true)
-WIN_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-arm64/*" -name "latest.yml" | sort | head -n 1 || true)
-MAC_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-x64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
-MAC_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-arm64/*" -name "latest-mac.yml" | sort | head -n 1 || true)
-LINUX_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build-x64/*" -name "latest-linux.yml" | sort | head -n 1 || true)
-LINUX_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build-arm64/*" -name "latest-linux-arm64.yml" | sort | head -n 1 || true)
+WIN_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-x64/*" \( -name "latest.yml" -o -name "Pounding.yml" \) | sort | head -n 1 || true)
+WIN_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/windows-build-arm64/*" \( -name "latest.yml" -o -name "Pounding.yml" \) | sort | head -n 1 || true)
+MAC_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-x64/*" \( -name "latest-mac.yml" -o -name "Pounding-mac.yml" \) | sort | head -n 1 || true)
+MAC_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/macos-build-arm64/*" \( -name "latest-mac.yml" -o -name "Pounding-mac.yml" \) | sort | head -n 1 || true)
+LINUX_X64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build-x64/*" \( -name "latest-linux.yml" -o -name "Pounding-linux.yml" \) | sort | head -n 1 || true)
+LINUX_ARM64_LATEST=$(find "$ARTIFACTS_DIR" -type f -path "*/linux-build-arm64/*" \( -name "latest-linux-arm64.yml" -o -name "Pounding-linux-arm64.yml" \) | sort | head -n 1 || true)
 
 # ---------------------------------------------------------------------------
 # 3) Publish deterministic canonical metadata for electron-updater

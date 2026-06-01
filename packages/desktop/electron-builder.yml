@@ -220,9 +220,14 @@ electronDownload:
   cache: ${env.ELECTRON_CACHE}
 
 publish:
-  provider: github
-  owner: iOfficeAI
-  repo: AionUi
-  publishAutoUpdate: true
-  releaseType: release
+  - provider: generic
+    url: https://yss-1256275613.cos.ap-guangzhou.myqcloud.com/pounding/releases/latest
+    useMultipleRangeRequest: false
+    channel: latest
+  - provider: github
+    owner: halojerry
+    repo: AionUi
+    publishAutoUpdate: true
+    releaseType: release
+    channel: latest
 detectUpdateChannel: false

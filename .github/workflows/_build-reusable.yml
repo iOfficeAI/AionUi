@@ -48,7 +48,7 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.13
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -103,7 +103,7 @@ jobs:
       - name: Setup bun
         uses: oven-sh/setup-bun@v2
         with:
-          bun-version: latest
+          bun-version: 1.3.13
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -304,13 +304,13 @@ jobs:
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
-      - name: Prepare aioncore binary
+      - name: Prepare packaged backend binary
         shell: bash
         run: node scripts/prepareAioncore.js
         env:
-          # Version is pinned in repo-root package.json (aioncoreVersion).
-          # Set AIONUI_BACKEND_VERSION here only to override for ad-hoc builds.
-          AIONUI_BACKEND_ARCH: ${{ matrix.arch }}
+          # Version is pinned in repo-root package.json (prefer aioncoreVersion, fallback aionuiBackendVersion).
+          # Set AIONCORE_VERSION here only to override for ad-hoc builds.
+          # Set AIONCORE_GITHUB_OWNER/REPO/SOURCE_BINARY_NAME to switch to our forked backend releases.
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
@@ -367,10 +367,10 @@ jobs:
           WindowsTargetPlatformVersion: 10.0.19041.0
           _WIN32_WINNT: 0x0A00
           # Sentry DSN (injected at build time via vite define)
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           # CI flag & GitHub token / CI 标识与 GitHub Token
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
@@ -458,10 +458,10 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -487,10 +487,10 @@ jobs:
           npm_config_disturl: https://electronjs.org/headers
           npm_config_runtime: electron
           npm_config_target_arch: ${{ matrix.arch }}
-          SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
+          SENTRY_DSN: ${{ secrets.SENTRY_DSN != '' && secrets.SENTRY_DSN || vars.SENTRY_DSN }}
           SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
+          SENTRY_ORG: ${{ secrets.SENTRY_ORG != '' && secrets.SENTRY_ORG || vars.SENTRY_ORG }}
+          SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT != '' && secrets.SENTRY_PROJECT || vars.SENTRY_PROJECT }}
           CI: true
           GH_TOKEN: ${{ secrets.GH_TOKEN }}
 
@@ -541,6 +541,17 @@ jobs:
 
       # Verify desktop asar does not contain packages/web-cli/ contamination
       # 验证桌面 asar 没有被 web-cli 代码污染
+
+      # Pack USB (dealer) zip for Windows and macOS — injects PORTABLE + dealer-config.json
+      # into the platform zip so dealers can distribute on USB drives.
+      # 打包经销商 U 盘版本 — 在平台 zip 中注入 PORTABLE + dealer-config.json
+      - name: Pack USB dealer zip
+        if: >-
+          success() &&
+          matrix.platform == 'windows-x64' &&
+          steps.windows-build.outputs.result == 'success'
+        shell: bash
+        run: bash scripts/pack-usb-zip.sh out
       - name: Verify desktop asar isolation
         if: >-
           success() &&
@@ -593,8 +604,9 @@ jobs:
             out/*.msi
             out/*.dmg
             out/*.deb
-            out/AionUi-*-win32-*.zip
-            out/AionUi-*-mac-*.zip
+            out/POUNDING-*-win-*.zip
+            out/POUNDING-*-mac-*.zip
+            out/dealer-kit.zip
             out/*.yml
           if-no-files-found: warn
           retention-days: 7
