@@ -116,7 +116,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const handleImport = async (skillPath: string) => {
     try {
       const result = await ipcBridge.fs.importSkillWithSymlink.invoke({ skill_path: skillPath });
-      const importedNames = result.skill_names?.length ? result.skill_names : result.skill_name ? [result.skill_name] : [];
+      const importedNames = result.skill_names?.length
+        ? result.skill_names
+        : result.skill_name
+          ? [result.skill_name]
+          : [];
       const count = importedNames.length;
       const names = importedNames.join(', ');
       Message.success(

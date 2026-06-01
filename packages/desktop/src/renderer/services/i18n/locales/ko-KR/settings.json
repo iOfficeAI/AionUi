@@ -12,6 +12,7 @@
     "tipContent": "여기서 설정한 스킬은 '어시스턴트' 설정 페이지에서 활성화할 수 있습니다. 스킬 가져오기는 심볼릭 링크를 사용합니다.",
     "fetchError": "스킬 가져오기 실패",
     "importSuccess": "스킬 가져오기 성공",
+    "importSuccessDetailed": "{{count}}개 스킬을 가져왔습니다: {{names}}",
     "importFailed": "스킬 가져오기 실패",
     "importError": "스킬 가져오기 오류",
     "deleteSuccess": "스킬이 삭제되었습니다",

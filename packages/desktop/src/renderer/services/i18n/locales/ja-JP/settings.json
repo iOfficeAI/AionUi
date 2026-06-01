@@ -12,6 +12,7 @@
     "tipContent": "ここで設定したスキルは「アシスタント」設定ページで有効にできます。スキルのインポートにはシンボリックリンクを使用します。",
     "fetchError": "スキルの取得に失敗しました",
     "importSuccess": "スキルのインポートに成功しました",
+    "importSuccessDetailed": "{{count}} 個のスキルをインポートしました：{{names}}",
     "importFailed": "スキルのインポートに失敗しました",
     "importError": "スキルのインポート中にエラーが発生しました",
     "deleteSuccess": "スキルを削除しました",

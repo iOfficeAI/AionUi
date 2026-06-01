@@ -12,6 +12,7 @@
     "tipContent": "Burada yapılandırılan beceriler, \"Asistanlar\" ayar sayfasında herhangi bir asistan için etkinleştirilebilir; beceri içe aktarımı sembolik bağlantılar kullanır.",
     "fetchError": "Beceriler alınamadı",
     "importSuccess": "Beceri başarıyla içe aktarıldı",
+    "importSuccessDetailed": "{{count}} beceri içe aktarıldı: {{names}}",
     "importFailed": "Beceri içe aktarılamadı",
     "importError": "Beceri içe aktarılırken hata oluştu",
     "deleteSuccess": "Beceri silindi",

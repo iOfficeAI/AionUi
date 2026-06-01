@@ -1726,6 +1726,7 @@ export type I18nKey =
   | 'settings.skillsHub.importError'
   | 'settings.skillsHub.importFailed'
   | 'settings.skillsHub.importSuccess'
+  | 'settings.skillsHub.importSuccessDetailed'
   | 'settings.skillsHub.manageInHub'
   | 'settings.skillsHub.manualImport'
   | 'settings.skillsHub.mySkillsTitle'
