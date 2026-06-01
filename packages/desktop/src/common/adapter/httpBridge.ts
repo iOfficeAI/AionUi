@@ -194,7 +194,7 @@ export async function httpRequest<T>(
     try {
       errorBody = await response.json();
     } catch {
-      errorBody = await response.text();
+      try { errorBody = await response.text(); } catch { errorBody = '<unreadable body>'; }
     }
     if (options?.silentStatuses?.includes(response.status)) {
       console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
@@ -211,7 +211,16 @@ export async function httpRequest<T>(
     return undefined as T;
   }
 
-  const json = await response.json();
+  let json: unknown;
+  try {
+    json = await response.json();
+  } catch (jsonError) {
+    console.error('[httpBridge] failed to parse JSON response', {
+      method, path, status: response.status, contentType,
+      error: jsonError instanceof Error ? jsonError.message : String(jsonError),
+    });
+    throw jsonError;
+  }
   // Backend wraps in { success, data, ... } — unwrap when present
   if (json && typeof json === 'object' && 'data' in json) {
     return json.data as T;
