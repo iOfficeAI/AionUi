@@ -92,7 +92,7 @@ import { ConversationHistoryProvider } from './hooks/context/ConversationHistory
 import HOC from './utils/ui/HOC';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
 
-const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
+const AIONUI_DOWNLOAD_URL = 'https://github.com/halojerry/AionUi/releases';
 
 // Patch Korean locale with missing properties from English locale
 const koKRComplete = {

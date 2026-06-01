@@ -130,6 +130,64 @@ Commit format: `<type>(<scope>): <subject>` in English. Types: feat, fix, refact
 
 For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.md`).
 
+## Branch Strategy (POUNDING Fork)
+
+**main is the stable POUNDING release branch. NEVER merge upstream directly into main.**
+
+```
+upstream (iOfficeAI/AionUi)
+    ↓ workflow_dispatch: sync-upstream
+feature/upstream-sync
+    ↓ manual PR (resolve conflicts, preserve POUNDING branding)
+dev (integration & verification)
+    ↓
+release/pounding-v*.*.x (final verification)
+    ↓
+main (stable — triggers release builds via tag)
+```
+
+**Rules for all agents:**
+
+- Upstream syncs go to `feature/upstream-sync` — the `sync-upstream.yml` workflow is locked to feature branches, it will refuse `main` or `dev` as targets.
+- After upstream sync, manually diff and restore all POUNDING branding (see checklist below).
+- POUNDING-specific features are developed on `feature/*` branches, PR'd to `dev`.
+- Tag format: `v<version>-Pounding` (e.g. `v2.1.5-Pounding`).
+- **NEVER run `git merge upstream/main` into main directly.**
+
+## POUNDING Branding Checklist
+
+When merging ANY upstream changes, verify these are not overwritten:
+
+| Category        | Key Files                                               | What to Check                                                                    |
+| --------------- | ------------------------------------------------------- | -------------------------------------------------------------------------------- |
+| App identity    | `electron-builder.yml`                                  | `productName: POUNDING`, `appId: com.pounding.app`, `detectUpdateChannel: false` |
+| App icons       | `resources/app.{ico,icns,png}`                          | Red square POUNDING icon (23KB/173KB/47KB)                                       |
+| Login page      | `locales/*/login.json`                                  | `"brand": "POUNDING"`                                                            |
+| Tray menu       | `locales/*/common.json`                                 | `"Show POUNDING"`, `"About POUNDING"`, `backendStartup.*` without "AionUi"       |
+| UI logo         | `PoundingInteractiveLogo.tsx`                           | Must exist and import POUNDING heart/eyes/nose assets                            |
+| NSIS installer  | `resources/windows-installer-*.nsh`                     | `"POUNDING installer"`, `halojerry/AionUi/releases`                              |
+| UI links        | `AboutModalContent.tsx`, `QuickActionButtons.tsx`, etc. | All `iOfficeAI/AionUi` → `halojerry/AionUi`                                      |
+| COS auto-update | `electron-builder.yml`, `build-and-release.yml`         | `pounding/releases/latest` paths                                                 |
+| install-web.sh  | `scripts/install-web.sh`                                | MIRROR URL includes `/pounding/` prefix                                          |
+| Dealer kit      | `scripts/pack-usb-zip.sh`                               | `dealer-kit.zip` with PORTABLE + dealer-config.json                              |
+| Portable mode   | `configureChromium.ts`                                  | PORTABLE detection + storage choice dialog                                       |
+| Sentry          | `sentry.ts`                                             | `brand: 'POUNDING'`, project `pounding`                                          |
+| Build scripts   | `afterPack.js`, `build-with-builder.js`                 | No `AionUi` fallback, no `AionUi.exe` hardcoding                                 |
+| CLI mirrors     | `managedCliInstallerBridge.ts`                          | Chinese mirrors (npmmirror + tsinghua) as primary                                |
+
+## POUNDING Custom Features
+
+Features unique to the POUNDING fork that must be preserved:
+
+| Feature              | Key Files                                                                 |
+| -------------------- | ------------------------------------------------------------------------- |
+| USB portable/dealer  | `configureChromium.ts`, `dealer-kit.zip`, `useDealerConfig.ts`            |
+| COS auto-update      | `electron-builder.yml` publish config, `build-and-release.yml` COS mirror |
+| Chinese CLI mirrors  | `managedCliInstallerBridge.ts` (npmmirror + tsinghua PyPI)                |
+| CC-Switch model sync | `NewApiDesktopAccountService.ts`, `managedRuntimeCli.ts`                  |
+| install-web.sh       | `/pounding/` COS prefix, `_VERSION_WAS_SET` fix                           |
+| Feedback → Sentry    | `sentry.ts`, `index.ts` Sentry.init with POUNDING tags                    |
+
 ## Skills Index
 
 | Skill             | Purpose                                                                               | Triggers                                                                                   |
