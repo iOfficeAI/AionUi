@@ -526,10 +526,12 @@ async function resolveManagedToken(
     };
   }
 
-  const tokenResult = await fetchJson<NewApiResponse<unknown>>('/api/user/token', {
+  const tokenResult = await fetchJson<NewApiResponse<unknown>>('/api/token/', {
+    method: 'POST',
     cookies,
     token: loginToken,
     userId,
+    body: { name: 'POUNDING Desktop', unlimited_quota: true },
   });
   const generatedChannelConnection = extractChannelConnection(tokenResult.data);
   const generatedToken =
