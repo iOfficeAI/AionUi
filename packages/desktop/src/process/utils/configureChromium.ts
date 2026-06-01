@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { app } from 'electron';
+import { app, dialog } from 'electron';
 import http from 'http';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -14,16 +14,88 @@ import { applyGpuRecoveryFlags } from './gpuRecovery';
 
 // ============ Environment Separation ============
 // Set app name before any getPath() call so userData is isolated from production.
-// Note: getPlatformServices() auto-registration also applies this as a safety net
-// in case Rollup loads initStorage's chunk before this module runs.
-// 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
+
+// Portable mode: detected via PORTABLE marker file next to the executable.
+// On first launch the user chooses where to store data:
+//   - USB  drive → ./data/   (portable, takes data anywhere)
+//   - This computer → system default AppData
+// Choice is persisted in data-location next to PORTABLE.
+let portableChoicePending: { exeDir: string; choiceFile: string } | null = null;
+
 if (!app.isPackaged) {
   const devAppName = getDevAppName();
   app.setName(devAppName);
-  // In Electron 28+, setName alone no longer updates userData path on macOS.
-  // Explicitly override userData to the dev directory.
   const appSupportDir = path.dirname(app.getPath('userData'));
   app.setPath('userData', path.join(appSupportDir, devAppName));
+} else {
+  let exeDir = path.dirname(app.getPath('exe'));
+  if (process.platform === 'darwin' && exeDir.endsWith('Contents/MacOS')) {
+    exeDir = path.dirname(path.dirname(path.dirname(exeDir)));
+  }
+  const portableMarker = path.join(exeDir, 'PORTABLE');
+  if (fs.existsSync(portableMarker)) {
+    const choiceFile = path.join(exeDir, 'data-location');
+    const useUSB = (() => {
+      if (fs.existsSync(choiceFile)) {
+        try {
+          const choice = JSON.parse(fs.readFileSync(choiceFile, 'utf-8'));
+          return choice.location !== 'computer';
+        } catch {
+          /* corrupt → ask again */
+        }
+      }
+      // No choice yet → default to USB, ask on first launch
+      return true;
+    })();
+
+    if (useUSB) {
+      const portableDataDir = path.join(exeDir, 'data');
+      if (!fs.existsSync(portableDataDir)) {
+        fs.mkdirSync(portableDataDir, { recursive: true });
+      }
+      const portableLogsDir = path.join(portableDataDir, 'logs');
+      if (!fs.existsSync(portableLogsDir)) {
+        fs.mkdirSync(portableLogsDir, { recursive: true });
+      }
+      app.setPath('userData', portableDataDir);
+      app.setPath('logs', portableLogsDir);
+    }
+
+    // Defer storage choice dialog until app is ready
+    if (!fs.existsSync(choiceFile)) {
+      portableChoicePending = { exeDir, choiceFile };
+    }
+  }
+}
+
+export async function showPortableStorageChoice(): Promise<void> {
+  if (!portableChoicePending) return;
+  const { exeDir, choiceFile } = portableChoicePending;
+  portableChoicePending = null;
+
+  const zh = app.getLocale().startsWith('zh');
+
+  const { response } = await dialog.showMessageBox({
+    type: 'question',
+    title: 'POUNDING',
+    message: zh ? '请选择数据存储位置' : 'Where would you like to store your data?',
+    detail: zh ? '包含聊天记录、设置、缓存等' : 'Includes chat history, settings, and cache.',
+    buttons: zh ? ['这台电脑', 'U盘'] : ['This Computer', 'USB Drive'],
+    defaultId: 1,
+    cancelId: 0,
+  });
+
+  const choice = response === 1 ? 'usb' : 'computer';
+  fs.writeFileSync(choiceFile, JSON.stringify({ location: choice }), 'utf-8');
+
+  if (choice === 'computer') {
+    dialog.showMessageBox({
+      type: 'info',
+      title: 'POUNDING',
+      message: zh ? '下次启动生效' : 'The change will take effect on the next launch.',
+      buttons: ['OK'],
+    });
+  }
 }
 
 // app.disableHardwareAcceleration() must run before app is ready.
@@ -71,13 +143,13 @@ if (isWebUI || isResetPassword) {
 //
 // Multi-instance support: a file-based registry tracks all active instances
 // so each one gets a unique port and MCP tools can discover them all.
-// Registry file: ~/.aionui-cdp-registry.json
+// Registry file: ~/.pounding-cdp-registry.json
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CDP_PORT = 9230;
 export const CDP_PORT_RANGE_START = 9230;
 export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
+const CDP_REGISTRY_FILE = path.join(os.homedir(), '.pounding-cdp-registry.json');
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */
@@ -164,7 +236,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.log(
-    `[CDP] Port ${preferredPort} is occupied by another AionUi instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
+    `[CDP] Port ${preferredPort} is occupied by another POUNDING instance, scanning range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END}`
   );
 
   for (let p = CDP_PORT_RANGE_START; p <= CDP_PORT_RANGE_END; p++) {
@@ -175,7 +247,7 @@ function findAvailablePort(preferredPort: number): number {
   }
 
   console.warn(
-    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active AionUi instances, trying ${preferredPort}`
+    `[CDP] All ports in range ${CDP_PORT_RANGE_START}-${CDP_PORT_RANGE_END} are used by active POUNDING instances, trying ${preferredPort}`
   );
   return preferredPort;
 }
