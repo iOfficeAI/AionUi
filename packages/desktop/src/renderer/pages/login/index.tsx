@@ -1,4 +1,4 @@
-import loginLogo from '@renderer/assets/logos/brand/app.png';
+import PoundingInteractiveLogo from '@renderer/components/layout/PoundingInteractiveLogo';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { changeLanguage } from '@/renderer/services/i18n';
@@ -216,8 +216,8 @@ const LoginPage: React.FC = () => {
         </label>
 
         <div className='login-page__header'>
-          <div className='login-page__logo'>
-            <img src={loginLogo} alt={t('login.brand')} />
+          <div className='login-page__logo' aria-hidden='true'>
+            <PoundingInteractiveLogo className='size-full' />
           </div>
           <h1 className='login-page__title'>{t('login.brand')}</h1>
           <p className='login-page__subtitle'>{t('login.subtitle')}</p>
