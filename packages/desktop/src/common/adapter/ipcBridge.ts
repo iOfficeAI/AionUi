@@ -1037,12 +1037,12 @@ export const windowControls = {
 };
 
 // ---------------------------------------------------------------------------
-// System Settings — routed to /api/settings/*
+// System Settings — routed to /api/settings/* unless they need Electron-native side effects.
 // ---------------------------------------------------------------------------
 
 export const systemSettings = {
-  getCloseToTray: httpGet<boolean, void>('/api/settings/client?key=closeToTray'),
-  setCloseToTray: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ closeToTray: p.enabled })),
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
   getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,

@@ -68,6 +68,7 @@ import {
   setCloseToTrayEnabled,
   setIsQuitting,
 } from './process/utils/tray';
+import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -709,8 +710,8 @@ const handleAppReady = async (): Promise<void> => {
       destroyTray();
     } else {
       try {
-        const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
-        setCloseToTrayEnabled(savedCloseToTray ?? false);
+        const savedCloseToTray = await readCloseToTraySetting();
+        setCloseToTrayEnabled(savedCloseToTray);
         if (getCloseToTrayEnabled()) {
           createOrUpdateTray();
         }

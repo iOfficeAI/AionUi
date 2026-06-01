@@ -79,6 +79,15 @@ const SystemModalContent: React.FC = () => {
 
   useEffect(() => {
     setCloseToTray(configService.get('system.closeToTray') ?? false);
+    if (isDesktop) {
+      ipcBridge.systemSettings.getCloseToTray
+        .invoke()
+        .then((enabled) => {
+          setCloseToTray(enabled);
+          configService.setLocal('system.closeToTray', enabled);
+        })
+        .catch(() => {});
+    }
     setNotificationEnabled(configService.get('system.notificationEnabled') ?? true);
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
@@ -87,16 +96,29 @@ const SystemModalContent: React.FC = () => {
     if (pt && pt > 0) setPromptTimeout(pt);
     const ait = configService.get('acp.agentIdleTimeout');
     if (ait && ait > 0) setAgentIdleTimeout(ait);
-  }, []);
+  }, [isDesktop]);
 
-  const handleCloseToTrayChange = useCallback((checked: boolean) => {
-    setCloseToTray(checked);
-    configService.setLocal('system.closeToTray', checked);
-    ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
-      setCloseToTray(!checked);
-      configService.setLocal('system.closeToTray', !checked);
-    });
-  }, []);
+  const handleCloseToTrayChange = useCallback(
+    (checked: boolean) => {
+      const previous = closeToTray;
+      setCloseToTray(checked);
+      configService.setLocal('system.closeToTray', checked);
+
+      if (!isDesktop) {
+        configService.set('system.closeToTray', checked).catch(() => {
+          setCloseToTray(previous);
+          configService.setLocal('system.closeToTray', previous);
+        });
+        return;
+      }
+
+      ipcBridge.systemSettings.setCloseToTray.invoke({ enabled: checked }).catch(() => {
+        setCloseToTray(previous);
+        configService.setLocal('system.closeToTray', previous);
+      });
+    },
+    [closeToTray, isDesktop]
+  );
 
   const handleHardwareAccelerationChange = useCallback(
     (checked: boolean) => {
