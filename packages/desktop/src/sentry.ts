@@ -97,7 +97,7 @@ function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> 
 
 export function initSentry(): void {
   Sentry.init({
-    dsn: process.env.SENTRY_DSN,
+    dsn: process.env.SENTRY_DSN || process.env.AIONUI_SENTRY_DSN || 'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368',
     environment: app.isPackaged ? 'production' : 'development',
     beforeSend(event) {
       const haystacks = collectEventSearchText(event);
