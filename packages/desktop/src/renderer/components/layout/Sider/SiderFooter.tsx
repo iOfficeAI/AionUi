@@ -46,6 +46,7 @@ interface SiderFooterProps {
   desktopAccountStatus?: NewApiAccountStatus;
   onDesktopHelpCenterClick?: () => void;
   onDesktopLogoutClick?: () => void;
+  onAccountPanelOpen?: () => void;
 }
 
 const SiderFooter: React.FC<SiderFooterProps> = ({
@@ -63,6 +64,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   desktopAccountStatus,
   onDesktopHelpCenterClick,
   onDesktopLogoutClick,
+  onAccountPanelOpen,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -422,7 +424,11 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
                     'bg-[rgba(var(--primary-6),0.12)] text-primary': accountPopupVisible,
                   })}
                   data-testid='desktop-account-trigger'
-                  onClick={() => setAccountPopupVisible((prev) => !prev)}
+                  onClick={() => {
+                    const opening = !accountPopupVisible;
+                    setAccountPopupVisible(opening);
+                    if (opening) onAccountPanelOpen?.();
+                  }}
                 >
                   <span className='w-28px h-24px flex items-center justify-center shrink-0'>
                     <Peoples

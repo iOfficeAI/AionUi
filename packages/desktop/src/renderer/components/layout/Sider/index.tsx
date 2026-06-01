@@ -35,7 +35,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
   const { closePreview } = usePreviewContext();
   const { logout, status } = useAuth();
   const { theme, setTheme } = useThemeContext();
-  const { status: newApiStatus, isLoggedIn: isNewApiLoggedIn, logout: logoutNewApi } = useNewApiAccount();
+  const { status: newApiStatus, isLoggedIn: isNewApiLoggedIn, logout: logoutNewApi, refresh } = useNewApiAccount();
   const [isBatchMode, setIsBatchMode] = useState(false);
   const { jobs: cronJobs } = useAllCronJobs();
   useTeamCreatedRedirect();
@@ -250,6 +250,7 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
         desktopAccountStatus={newApiStatus}
         onDesktopHelpCenterClick={handleHelpCenterClick}
         onDesktopLogoutClick={handleDesktopNewApiLogout}
+        onAccountPanelOpen={refresh}
       />
     </div>
   );
