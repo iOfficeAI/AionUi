@@ -1900,6 +1900,26 @@ export class NewApiDesktopAccountService {
     await syncManagedProviderRuntimeConfigs(provider, nextPrefs);
   }
 
+  async refreshStatus(): Promise<BridgeResponse<NewApiAccountStatus>> {
+    const status = await getStoredStatus();
+    if (!status.loggedIn || !status.token) {
+      return { success: true, data: status };
+    }
+    try {
+      const selfResult = await fetchJson<NewApiResponse<unknown>>('/api/user/self', {
+        token: status.token,
+        userId: String(status.user?.id ?? ''),
+      });
+      const updatedUser = normalizeUser(selfResult.data?.data ?? selfResult.data, status.user?.username ?? '');
+      const freshStatus = { ...status, user: updatedUser, updatedAt: Date.now() };
+      await saveStatus(freshStatus);
+      return { success: true, data: freshStatus };
+    } catch (error) {
+      console.warn('[POUNDING] Failed to refresh status from API:', error);
+      return { success: true, data: status };
+    }
+  }
+
   async getStatus(): Promise<BridgeResponse<NewApiAccountStatus>> {
     let status = await getStoredStatus();
     if (shouldSelfHealManagedRuntimeStatus(status)) {

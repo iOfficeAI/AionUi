@@ -12,6 +12,10 @@ export function initNewApiAccountBridge(): void {
     return await newApiDesktopAccountService.getStatus();
   });
 
+  ipcBridge.newApiAccount.refreshStatus.provider(async () => {
+    return await newApiDesktopAccountService.refreshStatus();
+  });
+
   ipcBridge.newApiAccount.login.provider(async (params) => {
     return await newApiDesktopAccountService.login(params);
   });

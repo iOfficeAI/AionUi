@@ -115,7 +115,10 @@ export const NewApiAccountProvider: React.FC<React.PropsWithChildren> = ({ child
   const refresh = useCallback(async () => {
     if (!isDesktopRuntime) return;
     setReady(false);
-    await mutate();
+    const result = await ipcBridge.newApiAccount.refreshStatus.invoke();
+    if (result.success && result.data) {
+      await mutate(result.data, false);
+    }
     setReady(true);
   }, [mutate]);
 

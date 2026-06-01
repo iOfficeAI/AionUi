@@ -1173,6 +1173,7 @@ export const webui = {
 
 export const newApiAccount = {
   getStatus: bridge.buildProvider<IBridgeResponse<NewApiAccountStatus>, void>('new-api-account.get-status'),
+  refreshStatus: bridge.buildProvider<IBridgeResponse<NewApiAccountStatus>, void>('new-api-account.refresh-status'),
   login: bridge.buildProvider<IBridgeResponse<NewApiLoginResponse>, NewApiLoginParams>('new-api-account.login'),
   logout: bridge.buildProvider<IBridgeResponse, void>('new-api-account.logout'),
   reconcileModel: bridge.buildProvider<IBridgeResponse, { cliTarget: ManagedRuntimeCliTarget; modelId?: string }>(
