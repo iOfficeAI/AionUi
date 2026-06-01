@@ -22,7 +22,7 @@ See [docs/contributing/file-structure.md](docs/contributing/file-structure.md) f
 
 ### UI Library & Icons
 
-- **Components**: `@arco-design/web-react` — no raw interactive HTML (`<button>`, `<input>`, `<select>`, etc.)
+- **Components**: Prefer `@arco-design/web-react` for full-Arco surfaces. Raw `<button>`, `<input>`, etc. are acceptable when they provide better accessibility or a smaller footprint than the Arco wrapper. Do not use `<div onClick>`. The Master Plan's accessibility rule (`button`, `nav`, `label`, `table`, `dialog`) takes precedence where this guidance conflicts.
 - **Icons**: `@icon-park/react`
 
 ### CSS
