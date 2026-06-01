@@ -307,18 +307,18 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
         )}
 
         {speechInputNode}
+        {/* Phase 5 remediation — parity with conversation rail. Drop the
+            hardcoded #000000 background; the global .send-button-custom rule
+            in sendbox.css paints the outline-style brand treatment. */}
         <Button
           shape='circle'
           type='primary'
           loading={loading}
           disabled={isButtonDisabled}
-          className='send-button-custom'
-          style={{
-            backgroundColor: isButtonDisabled ? undefined : '#000000',
-            borderColor: isButtonDisabled ? undefined : '#000000',
-          }}
-          icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
+          className='send-button-custom sendbox-send-btn'
+          icon={<ArrowUp theme='filled' size='14' fill='currentColor' strokeWidth={5} />}
           onClick={onSend}
+          aria-label={t('sendbox.send', { defaultValue: 'Send message' })}
           data-testid='guid-send-btn'
         />
       </div>

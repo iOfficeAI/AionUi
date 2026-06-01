@@ -321,11 +321,14 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       return null;
     }
 
+    // Phase 5 — flag the trigger as "active selection" when the user has moved
+    // off the backend's default mode, so the rail's brand-tinted border can engage.
+    const isNonDefault = compactLabelType === 'mode' && can_switchMode && current_mode !== defaultMode;
     const compactContent = (
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
         <Button
           data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
-          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
+          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}${isNonDefault ? ' sendbox-model-btn--active' : ''}`}
           shape='round'
           size='small'
           onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}

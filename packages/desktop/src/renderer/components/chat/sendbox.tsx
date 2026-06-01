@@ -23,8 +23,8 @@ import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMentions';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
-import { Button, Input, Message, Tag } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Quote } from '@icon-park/react';
+import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { ArrowUp, CloseSmall, Command, Quote } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -150,6 +150,14 @@ function extractBtwQuestion(value: string): string | null {
   const match = value.trim().match(BTW_COMMAND_RE);
   return match ? match[1] || '' : null;
 }
+
+// Phase 5 — composer toolbar pass. Local rail primitives. Inline rather than
+// promoted because they're trivial and only the composer needs this exact rhythm.
+const RailGroup: React.FC<{ children: React.ReactNode; className?: string }> = ({ children, className }) => (
+  <div className={`sendbox-rail__group${className ? ` ${className}` : ''}`}>{children}</div>
+);
+const RailDivider: React.FC = () => <span className='sendbox-rail__divider' aria-hidden='true' />;
+const RailSpacer: React.FC = () => <span className='sendbox-rail__spacer' aria-hidden='true' />;
 
 const SendBox: React.FC<{
   value?: string;
@@ -1258,6 +1266,35 @@ const SendBox: React.FC<{
     }
   };
 
+  // Phase 5 — clicking the slash button is a click-affordance for the slash
+  // menu. If the textarea is empty, set it to "/" so the slash controller's
+  // regex (`^\/[a-zA-Z0-9_-]*$`) matches and the dropdown opens. If there's
+  // already content, insert "/" at the caret — predictable text-insertion,
+  // even if the menu won't open (it requires a leading-only slash).
+  const handleSlashButtonClick = useCallback(() => {
+    const textarea = getTextareaElement();
+    if (!textarea) return;
+    if (!input) {
+      setInput('/');
+      requestAnimationFrame(() => {
+        textarea.focus();
+        textarea.setSelectionRange(1, 1);
+        setCaretPosition(1);
+      });
+      return;
+    }
+    const start = textarea.selectionStart ?? input.length;
+    const end = textarea.selectionEnd ?? start;
+    const next = input.slice(0, start) + '/' + input.slice(end);
+    setInput(next);
+    requestAnimationFrame(() => {
+      textarea.focus();
+      const caret = start + 1;
+      textarea.setSelectionRange(caret, caret);
+      setCaretPosition(caret);
+    });
+  }, [getTextareaElement, input, setInput]);
+
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
       const current_value = latestInputRef.current;
@@ -1274,26 +1311,34 @@ const SendBox: React.FC<{
 
   // Reusable send button component
   const sendButton = (
-    <Button
-      shape='circle'
-      type='primary'
-      disabled={isButtonDisabled}
-      className='send-button-custom'
-      icon={<ArrowUp theme='filled' size='14' fill='white' strokeWidth={5} />}
-      onClick={() => {
-        sendMessageHandler();
-      }}
-      data-testid='sendbox-send-btn'
-    />
+    <Tooltip
+      content={t('sendbox.sendDisabledTooltip', { defaultValue: 'Type a message to send.' })}
+      disabled={!isButtonDisabled}
+      position='top'
+    >
+      <Button
+        shape='circle'
+        type='primary'
+        disabled={isButtonDisabled}
+        className={`send-button-custom sendbox-send-btn ${isButtonDisabled ? 'sendbox-send-btn--disabled' : 'sendbox-send-btn--idle'}`}
+        icon={<ArrowUp theme='filled' size='14' fill='currentColor' strokeWidth={5} />}
+        onClick={() => {
+          sendMessageHandler();
+        }}
+        aria-label={t('sendbox.send', { defaultValue: 'Send message' })}
+        data-testid='sendbox-send-btn'
+      />
+    </Tooltip>
   );
 
   const stopButton = (
     <Button
       shape='circle'
       type='secondary'
-      className='bg-animate sendbox-stop-button'
-      icon={<div className='mx-auto size-12px bg-6'></div>}
+      className='bg-animate sendbox-stop-button sendbox-send-btn sendbox-send-btn--running'
+      icon={<div className='mx-auto size-10px rounded-2px bg-current'></div>}
       onClick={stopHandler}
+      aria-label={t('sendbox.stop', { defaultValue: 'Stop response' })}
     ></Button>
   );
 
@@ -1514,22 +1559,14 @@ const SendBox: React.FC<{
           )}
         </div>
         <UploadProgressBar source='sendbox' />
-        <div
-          className={isSingleLine ? 'flex items-center gap-2 w-full min-w-0 overflow-hidden' : 'w-full overflow-hidden'}
-        >
-          {isSingleLine && (
-            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'flex-shrink-0 sendbox-tools'}>
-              {tools}
-            </div>
-          )}
+        <div className='w-full overflow-hidden'>
           <div
-            className={`sendbox-highlight-container ${isSingleLine ? 'sendbox-highlight-container--single' : ''}`}
+            className='sendbox-highlight-container'
             style={{
-              width: isSingleLine ? 'auto' : '100%',
-              flex: isSingleLine ? 1 : 'none',
+              width: '100%',
               minWidth: 0,
               maxWidth: '100%',
-              marginBottom: isSingleLine ? 0 : '8px',
+              marginBottom: '8px',
               minHeight: isSingleLine ? '20px' : '40px',
             }}
           >
@@ -1556,13 +1593,10 @@ const SendBox: React.FC<{
               className={`${shouldUseHighlightOverlay ? 'sendbox-highlight-textarea ' : ''}pl-0 pr-0 !b-none focus:shadow-none m-0 !bg-transparent !focus:bg-transparent !hover:bg-transparent lh-[18px] !resize-none text-13px ${isMobile ? 'sendbox-input--mobile' : ''}`}
               data-testid='sendbox-input'
               style={{
-                width: isSingleLine ? 'auto' : '100%',
-                flex: isSingleLine ? 1 : 'none',
+                width: '100%',
                 minWidth: 0,
                 maxWidth: '100%',
-                marginLeft: 0,
-                marginRight: 0,
-                marginBottom: 0,
+                margin: 0,
                 height: isSingleLine ? '20px' : 'auto',
                 minHeight: isSingleLine ? '20px' : '40px',
                 overflowY: isSingleLine ? 'hidden' : 'auto',
@@ -1597,8 +1631,29 @@ const SendBox: React.FC<{
               })}
             ></Input.TextArea>
           </div>
-          {isSingleLine && (
-            <div className='flex items-center gap-2'>
+          {/* Phase 5 — single tool rail: [attach + slash] · divider · [model + agent + skills] · spacer · [speech + send] */}
+          <div className={`sendbox-rail ${isMobile ? 'sendbox-rail--mobile' : ''}`} data-testid='sendbox-rail'>
+            <RailGroup className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>
+              {tools}
+              <Tooltip
+                content={t('sendbox.slashTooltip', { defaultValue: 'Open command menu' })}
+                position='top'
+              >
+                <Button
+                  type='secondary'
+                  shape='circle'
+                  className='sendbox-rail__icon-btn'
+                  aria-label={t('sendbox.slashAria', { defaultValue: 'Open command menu' })}
+                  onClick={handleSlashButtonClick}
+                  data-testid='sendbox-slash-btn'
+                  icon={<Command theme='outline' size='14' fill='currentColor' />}
+                />
+              </Tooltip>
+            </RailGroup>
+            <RailDivider />
+            <RailGroup className='sendbox-actions sendbox-rail__group--selectors'>{rightTools}</RailGroup>
+            <RailSpacer />
+            <RailGroup className='sendbox-rail__group--actions'>
               <SpeechInputButton
                 disabled={disabled || isLoading || loading || isUploading}
                 locale={speechLocale}
@@ -1606,24 +1661,9 @@ const SendBox: React.FC<{
               />
               {sendButtonPrefix}
               {renderActionButtons()}
-            </div>
-          )}
-        </div>
-        {!isSingleLine && (
-          <div className='flex items-center justify-between gap-2 w-full'>
-            <div className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>{tools}</div>
-            <div className='sendbox-actions flex items-center gap-2'>
-              {rightTools}
-              <SpeechInputButton
-                disabled={disabled || isLoading || loading || isUploading}
-                locale={speechLocale}
-                onTranscript={handleSpeechTranscript}
-              />
-              {sendButtonPrefix}
-              {renderActionButtons()}
-            </div>
+            </RailGroup>
           </div>
-        )}
+        </div>
       </div>
     </div>
   );

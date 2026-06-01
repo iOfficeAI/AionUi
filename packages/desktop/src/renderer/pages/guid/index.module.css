@@ -367,6 +367,31 @@
   min-width: 0;
 }
 
+/* Phase 5 remediation — parity with the conversation rail icon buttons.
+   The attach (plus) button on the GUID landing matches the 32×32,
+   rounded-control footprint of the conversation rail attach button. */
+.actionTools :global(.arco-btn-shape-circle),
+.actionTools :global(.arco-btn-shape-circle.arco-btn) {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--text-secondary) !important;
+  box-shadow: none !important;
+}
+
+.actionTools :global(.arco-btn-shape-circle:hover:not(:disabled)) {
+  background-color: var(--bg-2) !important;
+  color: var(--text-primary) !important;
+}
+
+.actionTools :global(.arco-btn-shape-circle:focus-visible) {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
 .actionEntry {
   display: inline-flex;
   align-items: center;
@@ -383,23 +408,41 @@
   flex: 0 1 auto;
 }
 
-/* 首页输入框右下「模型 / 模式」按钮：与对话框 .sendbox-tools/.sendbox-actions 同款 */
+/* Phase 5 remediation — parity with the conversation rail.
+   The GUID action row's selector pills now share the new 32px-tall,
+   bg-1 ground, border-light edge treatment from sendbox.css. The old
+   transparent/borderless override is intentionally gone. */
 .actionSubmit :global(.sendbox-model-btn),
-.actionSubmit :global(.sendbox-model-btn:hover),
-.actionSubmit :global(.sendbox-model-btn:active),
-.actionSubmit :global(.sendbox-model-btn:focus),
-.actionSubmit :global(.sendbox-model-btn:focus-visible) {
-  background: transparent !important;
-  border: none !important;
+.actionSubmit :global(.sendbox-model-btn.arco-btn) {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: var(--bg-1) !important;
+  border: 1px solid var(--border-light) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
   box-shadow: none !important;
-  color: var(--text-secondary) !important;
 }
 
-.actionSubmit :global(.sendbox-model-btn:hover),
-.actionSubmit :global(.sendbox-model-btn:active),
-.actionSubmit :global(.sendbox-model-btn:focus),
-.actionSubmit :global(.sendbox-model-btn:focus-visible) {
+.actionSubmit :global(.sendbox-model-btn:hover:not(:disabled)),
+.actionSubmit :global(.sendbox-model-btn.arco-btn:hover:not(:disabled)) {
+  background-color: var(--bg-2) !important;
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-light)) !important;
   color: var(--text-primary) !important;
+}
+
+.actionSubmit :global(.sendbox-model-btn:focus-visible),
+.actionSubmit :global(.sendbox-model-btn.arco-btn:focus-visible) {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.actionSubmit :global(.sendbox-model-btn--active),
+.actionSubmit :global(.sendbox-model-btn--active.arco-btn),
+.actionSubmit :global(.sendbox-model-btn--active:hover:not(:disabled)) {
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important;
+  background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important;
 }
 
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {

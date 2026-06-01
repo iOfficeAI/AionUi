@@ -1,93 +1,128 @@
 /* Sendbox component styles */
 
-/* Send button disabled state - override Arco Design default disabled styles */
-.send-button-custom:disabled,
-.send-button-custom.arco-btn:disabled,
-.send-button-custom.arco-btn-primary:disabled {
-  background-color: #d3d4d9 !important;
-  border-color: #d3d4d9 !important;
-  opacity: 1 !important;
+/* Phase 5 (remediated, second pass) — send button is a clean icon-only
+   affordance. No border. No fill. The rust arrow carries the entire visual
+   signal: rust when ready, gray when disabled. Hover gets a soft bg-2 tint
+   and a 1px upward lift; that's it. Stop button stays bordered for clear
+   state contrast (see below).
+   Transitions cover every property that changes between disabled/idle/running
+   so state changes never snap — color, opacity, background, border-color,
+   transform, and shadow all share the same motion-base curve. */
+.send-button-custom,
+.send-button-custom.arco-btn,
+.send-button-custom.arco-btn-primary {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
+  color: var(--brand) !important;
+  box-shadow: none !important;
+  transition:
+    color var(--motion-base) var(--motion-ease-emphasized),
+    opacity var(--motion-base) var(--motion-ease-emphasized),
+    background-color var(--motion-base) var(--motion-ease-emphasized),
+    border-color var(--motion-base) var(--motion-ease-emphasized),
+    transform var(--motion-base) var(--motion-ease-emphasized),
+    box-shadow var(--motion-base) var(--motion-ease-emphasized);
 }
 
-/* Make arrow icon thicker */
-.send-button-custom .arco-icon > svg {
-  stroke-width: 5 !important;
-  filter: drop-shadow(0 0 0.5px currentColor);
-}
-
-/* Dark mode: adjust send button brightness */
-[data-theme='dark'] .send-button-custom:not(:disabled) {
-  background-color: var(--aou-4) !important;
-  border-color: var(--aou-4) !important;
-}
-
-[data-theme='dark'] .send-button-custom:disabled,
-[data-theme='dark'] .send-button-custom.arco-btn:disabled,
-[data-theme='dark'] .send-button-custom.arco-btn-primary:disabled {
-  background-color: color-mix(in srgb, var(--color-fill-4) 82%, var(--color-bg-2)) !important;
-  border-color: color-mix(in srgb, var(--color-fill-4) 88%, var(--color-bg-2)) !important;
-}
-
-.sendbox-stop-button,
-.sendbox-stop-button.arco-btn,
-.sendbox-stop-button.arco-btn-secondary {
-  border: none !important;
+.send-button-custom:hover:not(:disabled),
+.send-button-custom.arco-btn:hover:not(:disabled),
+.send-button-custom.arco-btn-primary:hover:not(:disabled) {
+  background-color: var(--bg-2) !important;
+  border-color: transparent !important;
+  color: var(--brand) !important;
+  transform: translateY(-1px);
   box-shadow: none !important;
 }
 
-[data-theme='dark'] .sendbox-stop-button,
-[data-theme='dark'] .sendbox-stop-button.arco-btn,
-[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary {
-  border: 1px solid color-mix(in srgb, var(--color-fill-4) 94%, var(--color-bg-2)) !important;
+.send-button-custom:focus-visible,
+.send-button-custom.arco-btn:focus-visible,
+.send-button-custom.arco-btn-primary:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+.send-button-custom:disabled,
+.send-button-custom.arco-btn:disabled,
+.send-button-custom.arco-btn-primary:disabled {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  color: var(--text-disabled) !important;
+  opacity: 0.6 !important;
+  cursor: not-allowed !important;
+  transform: none !important;
+  box-shadow: none !important;
+}
+
+.send-button-custom .arco-icon,
+.send-button-custom .arco-icon > svg {
+  color: currentColor !important;
+  fill: currentColor !important;
+}
+
+.send-button-custom .arco-icon > svg {
+  stroke-width: 5 !important;
+}
+
+/* Phase 5 — stop button: outline-style rust border, brand-coloured icon,
+   same 32×32 footprint as the send button. The breathing animation is
+   preserved (existing 1.4s ambient pulse — no Phase 0 motion token matches
+   a long ambient pulse, so the duration literal stays; only the easing
+   routes through the new motion vocabulary). Property transitions match
+   the send button so cross-fade hand-off feels like one continuous motion. */
+.sendbox-stop-button,
+.sendbox-stop-button.arco-btn,
+.sendbox-stop-button.arco-btn-secondary {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: transparent !important;
+  border: 1px solid var(--brand) !important;
+  color: var(--brand) !important;
+  box-shadow: none !important;
+  transition:
+    color var(--motion-base) var(--motion-ease-emphasized),
+    background-color var(--motion-base) var(--motion-ease-emphasized),
+    border-color var(--motion-base) var(--motion-ease-emphasized),
+    transform var(--motion-base) var(--motion-ease-emphasized);
+}
+
+.sendbox-stop-button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
 }
 
 .sendbox-stop-button.bg-animate,
 .sendbox-stop-button.arco-btn.bg-animate,
 .sendbox-stop-button.arco-btn-secondary.bg-animate {
-  animation: sendbox-stop-breathe 1.4s ease-in-out infinite alternate;
-}
-
-[data-theme='dark'] .sendbox-stop-button.bg-animate,
-[data-theme='dark'] .sendbox-stop-button.arco-btn.bg-animate,
-[data-theme='dark'] .sendbox-stop-button.arco-btn-secondary.bg-animate {
-  animation: sendbox-stop-breathe-dark 1.4s ease-in-out infinite alternate;
+  animation: sendbox-stop-breathe 1.4s var(--motion-ease-standard) infinite alternate;
 }
 
 .sendbox-stop-button.bg-animate .arco-icon,
 .sendbox-stop-button.bg-animate svg {
-  color: #fff !important;
-  fill: #fff !important;
+  color: var(--brand) !important;
+  fill: var(--brand) !important;
 }
 
+/* Phase 5 (remediated) — breathing pulse animates ground tint + a tight 2px
+   outer halo only. The earlier 1.04 scale + 6px ring blew past the cross-fade
+   wrap's 32×32 footprint and the panel's 8px right-edge padding, clipping
+   the right and bottom sides of the pulse. The pulse now stays within bounds. */
 @keyframes sendbox-stop-breathe {
   0% {
-    background-color: var(--aou-2) !important;
-    border-color: var(--aou-2) !important;
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-6-brand) 0%, transparent);
-    transform: scale(1);
+    background-color: transparent;
+    border-color: var(--brand);
+    box-shadow: 0 0 0 0 color-mix(in srgb, var(--brand) 0%, transparent);
   }
 
   100% {
-    background-color: var(--aou-5) !important;
-    border-color: var(--aou-5) !important;
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-6-brand) 22%, transparent);
-    transform: scale(1.08);
-  }
-}
-
-@keyframes sendbox-stop-breathe-dark {
-  0% {
-    background-color: var(--aou-2) !important;
-    border-color: var(--aou-2) !important;
-    box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-5) 0%, transparent);
-    transform: scale(1);
-  }
-
-  100% {
-    background-color: var(--aou-5) !important;
-    border-color: var(--aou-5) !important;
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-5) 28%, transparent);
-    transform: scale(1.08);
+    background-color: color-mix(in srgb, var(--brand) 10%, transparent);
+    border-color: var(--brand);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--brand) 22%, transparent);
   }
 }
 
@@ -112,14 +147,22 @@
   }
 }
 
-/* Send/stop button cross-fade container */
+/* Send/stop button cross-fade container — overflow visible so the stop
+   button's breathing halo isn't clipped by the wrap or the panel edge. */
 .sendbox-action-btn-wrap {
   position: relative;
   width: 32px;
   height: 32px;
   flex-shrink: 0;
+  overflow: visible;
 }
 
+/* Phase 5 (remediated, third pass) — send ↔ stop cross-fade. Duration
+   bumped from --duration-fast (150ms, spring) to a longer paired
+   transition so the swap reads as one continuous motion instead of a
+   1/0 snap. Opacity transitions over motion-slow (320ms) so the cross-
+   fade overlap is generous; transform uses motion-base (200ms) with
+   emphasized easing — no spring overshoot. */
 .sendbox-action-btn-layer {
   position: absolute;
   inset: 0;
@@ -127,13 +170,13 @@
   align-items: center;
   justify-content: center;
   transition:
-    opacity var(--duration-fast) ease,
-    transform var(--duration-fast) var(--ease-spring);
+    opacity var(--motion-slow) var(--motion-ease-emphasized),
+    transform var(--motion-base) var(--motion-ease-emphasized);
 }
 
 .sendbox-action-btn-layer--hidden {
   opacity: 0;
-  transform: scale(0.8);
+  transform: scale(0.9);
   pointer-events: none;
 }
 
@@ -141,6 +184,53 @@
   opacity: 1;
   transform: scale(1);
   pointer-events: auto;
+}
+
+/* Phase 5 — tool rail container. Acts as the single horizontal rhythm:
+   left attach+slash group · divider · right selector group · spacer · actions. */
+.sendbox-rail {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-width: 0;
+}
+
+.sendbox-rail__group {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-width: 0;
+}
+
+.sendbox-rail__group--selectors {
+  flex-shrink: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sendbox-rail__group--actions {
+  flex-shrink: 0;
+  gap: 8px;
+}
+
+.sendbox-rail__divider {
+  display: inline-block;
+  width: 1px;
+  height: 16px;
+  flex-shrink: 0;
+  margin: 0 4px;
+  background-color: var(--border-light);
+}
+
+.sendbox-rail__spacer {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.sendbox-rail--mobile {
+  flex-wrap: wrap;
+  row-gap: 4px;
 }
 
 /* Sendbox tools buttons - prevent layout jitter from theme hover transforms (#1075) */
@@ -151,32 +241,83 @@
   transform: none !important;
 }
 
-/* Conversation sendbox model/permission pills: blend into background */
-.sendbox-tools .sendbox-model-btn,
-.sendbox-tools .sendbox-model-btn:hover,
-.sendbox-tools .sendbox-model-btn:active,
-.sendbox-tools .sendbox-model-btn:focus,
-.sendbox-tools .sendbox-model-btn:focus-visible,
-.sendbox-actions .sendbox-model-btn,
-.sendbox-actions .sendbox-model-btn:hover,
-.sendbox-actions .sendbox-model-btn:active,
-.sendbox-actions .sendbox-model-btn:focus,
-.sendbox-actions .sendbox-model-btn:focus-visible {
-  background: transparent !important;
-  border: none !important;
-  box-shadow: none !important;
+/* Phase 5 — composer toolbar icon buttons: 32×32 tap target, 16px icon,
+   rounded-control, hover bg-2, focus ring brand. Applies to the attach
+   button (passed in via `tools`) and the inline slash button. */
+.sendbox-rail__icon-btn,
+.sendbox-rail__icon-btn.arco-btn,
+.sendbox-tools .arco-btn-shape-circle,
+.sendbox-tools .arco-btn-shape-circle.arco-btn {
+  width: 32px !important;
+  min-width: 32px !important;
+  height: 32px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: transparent !important;
+  border: 1px solid transparent !important;
   color: var(--text-secondary) !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease-standard),
+    color var(--motion-fast) var(--motion-ease-standard);
 }
 
-.sendbox-tools .sendbox-model-btn:hover,
-.sendbox-tools .sendbox-model-btn:active,
-.sendbox-tools .sendbox-model-btn:focus,
-.sendbox-tools .sendbox-model-btn:focus-visible,
-.sendbox-actions .sendbox-model-btn:hover,
-.sendbox-actions .sendbox-model-btn:active,
-.sendbox-actions .sendbox-model-btn:focus,
-.sendbox-actions .sendbox-model-btn:focus-visible {
+.sendbox-rail__icon-btn:hover:not(:disabled),
+.sendbox-tools .arco-btn-shape-circle:hover:not(:disabled) {
+  background-color: var(--bg-2) !important;
   color: var(--text-primary) !important;
+}
+
+.sendbox-rail__icon-btn:focus-visible,
+.sendbox-tools .arco-btn-shape-circle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Phase 5 — selector trigger pills: 32px tall, 10px h-padding, rounded-control,
+   bg-1 ground, border-light edge, text-primary, hover bg-2. Active selection
+   (when an internal class signals it) is brand-tinted via color-mix — matches
+   the existing convention in AgentModeSelector.module.css. */
+.sendbox-rail__group--selectors .sendbox-model-btn,
+.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn {
+  height: 32px !important;
+  min-height: 32px !important;
+  padding: 0 10px !important;
+  border-radius: var(--radius-control) !important;
+  background-color: var(--bg-1) !important;
+  border: 1px solid var(--border-light) !important;
+  color: var(--text-primary) !important;
+  font-size: 13px !important;
+  box-shadow: none !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease-standard),
+    border-color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.sendbox-rail__group--selectors .sendbox-model-btn:hover:not(:disabled),
+.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn:hover:not(:disabled) {
+  background-color: var(--bg-2) !important;
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-light)) !important;
+  color: var(--text-primary) !important;
+}
+
+.sendbox-rail__group--selectors .sendbox-model-btn:focus-visible,
+.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 2px;
+}
+
+/* Active selection — pill carries the `sendbox-model-btn--active` modifier
+   when its non-default value is set. Border picks up the brand tone. */
+.sendbox-rail__group--selectors .sendbox-model-btn--active,
+.sendbox-rail__group--selectors .sendbox-model-btn--active.arco-btn,
+.sendbox-rail__group--selectors .sendbox-model-btn--active:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important;
+  background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important;
 }
 
 .speech-input-control {

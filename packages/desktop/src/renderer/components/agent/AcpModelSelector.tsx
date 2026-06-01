@@ -381,6 +381,12 @@ const AcpModelSelector: React.FC<{
     ? `${selectedProviderId ?? backend ?? 'acp'}:${model_info.current_model_id}`
     : undefined;
 
+  // Phase 5 — once the user has explicitly switched models in this session,
+  // the rail pill picks up the active-selection brand border. The volatile
+  // hasUserChangedModel ref is the only durable "user made a non-default
+  // choice" signal available here — see changelog for why.
+  const isUserPicked = hasUserChangedModel.current;
+
   // State 3: Can switch — dropdown selector
   return (
     <Dropdown
@@ -402,13 +408,19 @@ const AcpModelSelector: React.FC<{
         />
       }
     >
-      <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
-        <span className='flex items-center gap-6px min-w-0 leading-none'>
-          {renderLogo()}
-          <MarqueePillLabel>{display_label}</MarqueePillLabel>
-          <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
-        </span>
-      </Button>
+      <Tooltip content={tooltipContent} position='top'>
+        <Button
+          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill${isUserPicked ? ' sendbox-model-btn--active' : ''}`}
+          shape='round'
+          size='small'
+        >
+          <span className='flex items-center gap-6px min-w-0 leading-none'>
+            {renderLogo()}
+            <MarqueePillLabel>{display_label}</MarqueePillLabel>
+            <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
+          </span>
+        </Button>
+      </Tooltip>
     </Dropdown>
   );
 };
