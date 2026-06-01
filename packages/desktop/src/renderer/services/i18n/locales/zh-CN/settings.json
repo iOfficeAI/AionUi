@@ -957,9 +957,9 @@
   "newApiDefaultUserName": "POUNDING 用户",
   "newApiVipTitle": "POUNDING 会员",
   "newApiUpgrade": "升级",
-  "newApiQuotaSummary": "剩余 {remain}",
+  "newApiQuotaSummary": "剩余",
   "helpCenter": "帮助中心",
-  "newApiQuotaTitle": "余额 {remain}",
+  "newApiQuotaTitle": "余额",
   "newApiQuotaUnlimited": "无限配额",
   "newApiQuotaUnlimitedDesc": "不限量使用"
 }
