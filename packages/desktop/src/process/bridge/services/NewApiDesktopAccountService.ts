@@ -1515,7 +1515,18 @@ function resolveManagedCliModelId(
   if (preferredModelId && sourceModels.includes(preferredModelId)) {
     return preferredModelId;
   }
-  return sourceModels[0];
+  return selectDefaultModel(sourceModels);
+}
+
+/** Preferred model name patterns for auto-selecting defaults (first match wins). */
+const PREFERRED_MODEL_PATTERNS = ['deepseek', 'claude-opus', 'claude-sonnet', 'claude-haiku'];
+
+function selectDefaultModel(models: string[]): string | undefined {
+  for (const pattern of PREFERRED_MODEL_PATTERNS) {
+    const match = models.find((m) => m.toLowerCase().includes(pattern));
+    if (match) return match;
+  }
+  return models[0];
 }
 
 async function findManagedProvider(): Promise<IProvider | null> {

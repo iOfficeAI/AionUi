@@ -35,6 +35,16 @@ type CliTargetOption = {
 const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
 const NEW_API_CLI_MODEL_PREFS_KEY = 'newApi.desktop.cliModelPrefs';
 
+const PREFERRED_MODEL_PATTERNS = ['deepseek', 'claude-opus', 'claude-sonnet', 'claude-haiku'];
+
+function selectDefaultModel(models: string[]): string | undefined {
+  for (const pattern of PREFERRED_MODEL_PATTERNS) {
+    const match = models.find((m) => m.toLowerCase().includes(pattern));
+    if (match) return match;
+  }
+  return models[0];
+}
+
 const CLI_TARGETS: CliTargetOption[] = MANAGED_RUNTIME_CLI_TARGETS.map((key) => ({
   key,
   label: key === 'claude' ? 'Claude' : key === 'hermes' ? 'Hermes' : key === 'opencode' ? 'OpenCode' : 'OpenClaw',
@@ -145,7 +155,7 @@ const AionrsSettings: React.FC = () => {
                 const matchedAgent = agents.find((agent) =>
                   target.backendAliases.includes((agent.backend || agent.agent_type || '').toLowerCase())
                 );
-                const selectedValue = cliModelPrefs[target.key] || managedModels[0];
+                const selectedValue = cliModelPrefs[target.key] || selectDefaultModel(managedModels);
                 return (
                   <div
                     key={target.key}
