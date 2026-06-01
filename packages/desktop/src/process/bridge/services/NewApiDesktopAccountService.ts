@@ -98,9 +98,6 @@ type NewApiChannelConnection = {
 type ResolvedManagedToken = {
   token: string;
   baseUrl: string;
-  quota?: number;
-  usedQuota?: number;
-  unlimitedQuota?: boolean;
 };
 
 type ManagedCliModelPrefs = Partial<Record<ManagedRuntimeCliTarget, string>>;
@@ -406,11 +403,14 @@ function extractUserId(payload: unknown): string | undefined {
   return undefined;
 }
 
-function normalizeUser(payload: unknown, usernameFallback: string, tokenQuota?: { quota?: number; usedQuota?: number; unlimitedQuota?: boolean }): NewApiDesktopUser {
+function normalizeUser(payload: unknown, usernameFallback: string): NewApiDesktopUser {
   const record = (payload && typeof payload === 'object' ? payload : {}) as NewApiUserPayload;
   const username = record.username || record.user_name || record.displayName || record.name || usernameFallback;
-  const usedQuota = tokenQuota?.usedQuota ?? record.usedQuota ?? record.used_quota ?? 0;
-  const quota = tokenQuota?.quota ?? record.quota ?? (typeof record.remain_quota === 'number' ? usedQuota + record.remain_quota : 520);
+  // Use account-level quota from /api/user/self (not API key token — admin can arbitrarily set that)
+  const usedQuota = record.usedQuota ?? record.used_quota ?? 0;
+  const quota = record.quota ?? 520;
+  // Effectively unlimited if quota > 1 trillion or remain_quota is -1 (unlimited flag)
+  const unlimitedQuota = record.remain_quota === -1 || record.unlimited_quota === true || quota > 1_000_000_000_000;
   return {
     id: record.id,
     username,
@@ -418,7 +418,7 @@ function normalizeUser(payload: unknown, usernameFallback: string, tokenQuota?: 
     email: record.email,
     quota,
     usedQuota,
-    unlimitedQuota: tokenQuota?.unlimitedQuota ?? false,
+    unlimitedQuota,
     avatarLetter: username.charAt(0).toUpperCase() || 'U',
   };
 }
@@ -524,13 +524,9 @@ async function resolveManagedToken(
     extractToken(existingChannelConnection);
 
   if (existingToken) {
-    const entry = existingTokenEntry as Record<string, unknown> | undefined;
     return {
       token: existingToken,
       baseUrl: normalizeBaseUrl(existingChannelConnection?.url || NEW_API_BASE_URL),
-      quota: (entry?.remain_quota as number) ?? undefined,
-      usedQuota: (entry?.used_quota as number) ?? 0,
-      unlimitedQuota: (entry?.unlimited_quota as boolean) ?? false,
     };
   }
 
@@ -1808,14 +1804,14 @@ export class NewApiDesktopAccountService {
         };
       }
 
-      const { token, baseUrl: providerBaseUrl, quota, usedQuota, unlimitedQuota } = await resolveManagedToken(cookies, loginToken, resolvedUserId);
+      const { token, baseUrl: providerBaseUrl } = await resolveManagedToken(cookies, loginToken, resolvedUserId);
 
       const selfResult = await fetchJson<NewApiResponse<unknown>>('/api/user/self', {
         cookies,
         token,
         userId: resolvedUserId,
       });
-      const user = normalizeUser(selfResult.data?.data ?? selfResult.data ?? loginPayload, username.trim(), { quota, usedQuota, unlimitedQuota });
+      const user = normalizeUser(selfResult.data?.data ?? selfResult.data ?? loginPayload, username.trim());
 
       const modelsResult = await fetchJson<NewApiResponse<unknown>>('/api/user/models', {
         cookies,
