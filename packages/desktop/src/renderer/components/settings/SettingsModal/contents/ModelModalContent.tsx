@@ -350,6 +350,7 @@ const ModelModalContent: React.FC = () => {
               icon={<Plus size='16' />}
               onClick={() => addPlatformModalCtrl.open()}
               className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              style={{ display: 'none' }}
             >
               {t('settings.addModel')}
             </Button>
@@ -450,7 +451,7 @@ const ModelModalContent: React.FC = () => {
                             checked={getProviderState(platform).checked}
                             onChange={() => toggleProviderEnabled(platform)}
                           />
-                          <div className='flex items-center gap-4px'>
+                          <div className='flex items-center gap-4px' style={{ display: 'none' }}>
                             <Button
                               size='mini'
                               className='model-provider-action-btn !w-28px !h-28px !min-w-28px text-t-secondary hover:text-t-primary'
@@ -561,6 +562,7 @@ const ModelModalContent: React.FC = () => {
                               </Tooltip>
 
                               <Popconfirm
+                                style={{ display: 'none' }}
                                 title={t('settings.deleteModelConfirm')}
                                 onOk={() => {
                                   const newModels = platform.models.filter((item: string) => item !== model);

@@ -105,6 +105,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   <Menu.Item
                     key='add-model'
                     className='text-12px text-t-secondary'
+                    style={{ display: 'none' }}
                     onClick={() => navigate('/settings/model')}
                   >
                     <Plus theme='outline' size='12' />
@@ -155,6 +156,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
                   <Menu.Item
                     key='add-model'
                     className='text-12px text-t-secondary'
+                    style={{ display: 'none' }}
                     onClick={() => navigate('/settings/model')}
                   >
                     <Plus theme='outline' size='12' />
