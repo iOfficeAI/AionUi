@@ -1,7 +1,7 @@
 // Layout constants for the chat layout panel sizing
 export const MIN_CHAT_RATIO = 25;
 export const MIN_PREVIEW_RATIO = 20;
-export const WORKSPACE_HEADER_HEIGHT = 26;
+export const WORKSPACE_HEADER_HEIGHT = 40;
 export const MIN_CHAT_PANEL_PX = 320;
 export const MIN_PREVIEW_PANEL_PX = 300;
 export const MIN_WORKSPACE_PANEL_PX = 200;

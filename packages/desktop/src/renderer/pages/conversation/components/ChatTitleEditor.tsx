@@ -1,4 +1,3 @@
-import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
 import { Input } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React from 'react';
@@ -30,7 +29,6 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   submitTitleRename,
   titleAreaMaxWidth,
   title,
-  conversation_id,
   leading,
 }) => {
   const { t } = useTranslation();
@@ -38,15 +36,13 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
   return (
     <div
       className={classNames(
-        'group flex min-w-0 max-w-full items-center rounded-12px border border-solid border-transparent transition-all duration-180',
-        editingTitle
-          ? 'bg-fill-2 border-[var(--color-fill-3)] shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
-          : 'hover:bg-fill-2 hover:border-[var(--color-fill-3)] hover:shadow-[0_1px_2px_rgba(15,23,42,0.06)] focus-within:bg-fill-2 focus-within:border-[var(--color-fill-3)] focus-within:shadow-[0_1px_2px_rgba(15,23,42,0.06)]'
+        'group flex min-w-0 max-w-full items-center rounded-4px transition-colors duration-150',
+        editingTitle ? 'bg-fill-1' : ''
       )}
       style={{ width: '100%', maxWidth: `${titleAreaMaxWidth}px` }}
     >
-      {leading && <div className='shrink-0 flex items-center pl-8px'>{leading}</div>}
-      <div className='min-w-0 flex-1 px-8px py-5px'>
+      {leading && <div className='shrink-0 flex items-center pl-4px'>{leading}</div>}
+      <div className='min-w-0 flex-1 px-6px py-1px'>
         {editingTitle && canRenameTitle ? (
           <Input
             autoFocus
@@ -82,7 +78,7 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
             role={canRenameTitle ? 'button' : undefined}
             tabIndex={canRenameTitle ? 0 : undefined}
             className={classNames(
-              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-13px font-bold text-t-primary transition-colors duration-150',
+              'block min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-12px font-medium text-t-primary transition-colors duration-150',
               canRenameTitle &&
                 'cursor-text group-hover:text-[rgb(var(--primary-6))] group-focus-within:text-[rgb(var(--primary-6))] focus:outline-none'
             )}
@@ -102,14 +98,6 @@ const ChatTitleEditor: React.FC<ChatTitleEditorProps> = ({
           </span>
         )}
       </div>
-      {!editingTitle && (
-        <div className='w-0 flex items-center overflow-hidden opacity-0 transition-all duration-180 group-hover:w-40px group-hover:opacity-100 group-focus-within:w-40px group-focus-within:opacity-100'>
-          <span className='h-16px w-1px shrink-0 rounded-full bg-[color:color-mix(in_srgb,var(--color-text-4)_44%,transparent)]' />
-          <div className='ml-4px mr-4px flex items-center justify-center'>
-            <ConversationTitleMinimap conversation_id={conversation_id} />
-          </div>
-        </div>
-      )}
     </div>
   );
 };

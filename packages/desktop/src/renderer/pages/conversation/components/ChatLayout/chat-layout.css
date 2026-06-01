@@ -1,5 +1,58 @@
 /* Chat layout header styles */
 
+/* Phase 10 — Path C: active-pane signal. A 1px rust inset draws the active
+   pane's outer edge without shifting layout. Inactive panes carry no extra
+   accent — they keep their existing borders. */
+.chat-pane {
+  transition: box-shadow var(--motion-fast) var(--motion-ease-standard);
+}
+
+.chat-pane--active {
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--brand) 60%, transparent);
+}
+
+/* Phase 10 — context-strip consolidation. The conversation header IS the strip:
+   one thin dense row carrying the agent logo, editable title, file activity, and
+   the right-side controls. De-bubble those controls (server picker, tool-host,
+   overflow) — drop the filled-pill background/border so they read as flat inline
+   controls, keeping their semantic text color as a subtle accent. */
+.chat-layout-header .arco-tag {
+  background-color: transparent !important;
+  border-color: transparent !important;
+  height: 20px;
+  line-height: 18px;
+  padding: 0 4px;
+  transition: background-color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.chat-layout-header .arco-tag:hover {
+  background-color: var(--bg-2) !important;
+}
+
+.chat-layout-header .arco-btn-secondary {
+  background-color: transparent !important;
+  border-color: transparent !important;
+}
+
+.chat-layout-header .arco-btn-secondary:hover {
+  background-color: var(--bg-2) !important;
+}
+
+/* Densify the controls so the whole strip collapses to ~24px instead of being
+   propped open by Arco's default small-button height. */
+.chat-layout-header .arco-btn-size-small {
+  height: 22px;
+  min-width: 22px;
+  padding: 0 4px;
+}
+
+.chat-layout-header .arco-btn-shape-circle.arco-btn-size-small {
+  width: 22px;
+}
+
+
+
+
 .chat-layout-header--mobile-unified {
   height: 46px !important;
   min-height: 46px;

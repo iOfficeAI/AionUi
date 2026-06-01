@@ -4,6 +4,8 @@ import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
+import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
+import { useFileChanges } from '@/renderer/pages/conversation/Workspace/hooks/useFileChanges';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
@@ -28,6 +30,7 @@ import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
+import { useTranslation } from 'react-i18next';
 import './chat-layout.css';
 
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
@@ -64,6 +67,7 @@ const ChatLayout: React.FC<{
 }> = (props) => {
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
   const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
+  const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMacRuntime = isMacEnvironment();
   const isWindowsRuntime = isWindowsEnvironment();
@@ -193,6 +197,28 @@ const ChatLayout: React.FC<{
     dynamicChatMaxRatio,
   });
 
+  // --- Hook F: workspace file-change count (drives the context strip) ---
+  const fileChanges = useFileChanges({ workspace: workspaceEnabled ? (workspacePath ?? '') : '' });
+  const changeCount = fileChanges.changeCount;
+  const refreshFileChanges = fileChanges.refreshChanges;
+  useEffect(() => {
+    if (!workspaceEnabled || !workspacePath || layout?.isMobile) return;
+    const id = window.setInterval(() => {
+      void refreshFileChanges();
+    }, 5000);
+    return () => window.clearInterval(id);
+  }, [workspaceEnabled, workspacePath, layout?.isMobile, refreshFileChanges]);
+
+  // --- Hook G: active-pane signal ---
+  type ActivePane = 'chat' | 'editor' | 'preview' | 'workspace';
+  const [activePane, setActivePane] = useState<ActivePane>('chat');
+  const markActive = (pane: ActivePane) => {
+    setActivePane((prev) => (prev === pane ? prev : pane));
+  };
+  const paneAccent = (pane: ActivePane) => (activePane === pane ? 'chat-pane--active' : undefined);
+
+  const projectName = typeof props.title === 'string' ? props.title : '';
+
   const [mobileActionsSlot, setMobileActionsSlot] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!layout?.isMobile) {
@@ -209,13 +235,34 @@ const ChatLayout: React.FC<{
     return () => observer.disconnect();
   }, [layout?.isMobile]);
 
+  const changesLabel =
+    changeCount === 1
+      ? t('conversation.contextStrip.changeCount', { defaultValue: '1 change' })
+      : t('conversation.contextStrip.changesCountPlural', {
+          count: changeCount,
+          defaultValue: '{{count}} changes',
+        });
+
   const desktopHeader = (
     <ArcoLayout.Header
-      className={classNames(
-        'min-h-36px flex items-center justify-between px-10px pt-4px pb-4px gap-10px !bg-1 chat-layout-header chat-layout-header--glass overflow-hidden'
-      )}
+      className='min-h-24px flex items-center justify-between px-12px py-2px gap-10px !bg-1 chat-layout-header chat-layout-strip overflow-hidden border-b border-b-light cursor-pointer'
+      role='button'
+      tabIndex={0}
+      onClick={(e) => {
+        const target = e.target as HTMLElement;
+        if (!target) return;
+        const interactive = target.closest('button, input, textarea, select, a, [role="button"], [role="textbox"]');
+        if (interactive !== null && interactive !== e.currentTarget) return;
+        dispatchWorkspaceToggleEvent();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          dispatchWorkspaceToggleEvent();
+        }
+      }}
     >
-      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center'>
+      <FlexFullContainer className='h-full min-w-0' containerClassName='flex items-center gap-8px min-w-0'>
         <ChatTitleEditor
           editingTitle={editingTitle}
           titleDraft={titleDraft}
@@ -224,7 +271,7 @@ const ChatLayout: React.FC<{
           renameLoading={renameLoading}
           canRenameTitle={canRenameTitle}
           submitTitleRename={submitTitleRename}
-          titleAreaMaxWidth={titleAreaMaxWidth}
+          titleAreaMaxWidth={Math.min(titleAreaMaxWidth, 240)}
           title={props.title}
           conversation_id={conversation_id}
           leading={
@@ -239,8 +286,18 @@ const ChatLayout: React.FC<{
             ))
           }
         />
+        <span className='shrink-0 flex items-center gap-4px text-xs whitespace-nowrap'>
+          <span className='text-t-tertiary' aria-hidden='true'>
+            ·
+          </span>
+          <span className='text-t-secondary'>{changesLabel}</span>
+        </span>
       </FlexFullContainer>
-      <div className='flex items-center gap-8px shrink-0'>
+      <div
+        className='flex items-center gap-8px shrink-0'
+        onClick={(e) => e.stopPropagation()}
+      >
+        {conversation_id && <ConversationTitleMinimap conversation_id={conversation_id} />}
         {props.headerExtra}
         {isWindowsRuntime && workspaceEnabled && (
           <button
@@ -274,10 +331,9 @@ const ChatLayout: React.FC<{
     >
       <div ref={containerRef} className='flex flex-1 relative w-full overflow-hidden'>
         {/* Unified layout: single DOM structure prevents children unmount/remount on preview toggle.
-            `overflow-hidden` contains the inner chat-area (which has `flexShrink: 0` + `minWidth: 240px`)
-            when the wrapper is squeezed below 240px by the editor/workspace peers — without this,
-            the composer rail and header model pill would visually bleed across the editor pane's
-            left edge at narrow viewports. */}
+            The outer wrapper carries `overflow-hidden` + `flex-shrink: 1` + `min-w-0`; the inner
+            chat-area also runs at `flex-shrink: 1` + `min-width: 0` so it respects bounds and the
+            composer's flex-wrap reflow engages within chat when peers compress it (Phase 10 bugfix). */}
         <div
           className='flex flex-col min-w-0 overflow-hidden'
           style={{
@@ -290,17 +346,19 @@ const ChatLayout: React.FC<{
           <div className='flex flex-1 min-h-0 relative'>
             {/* Chat area - always mounted, never unmounted on preview toggle */}
             <div
-              className='flex flex-col relative'
+              className={classNames('chat-pane flex flex-col relative', paneAccent('chat'))}
               style={{
                 flexGrow: isPreviewOpen && isDesktop ? 0 : 1,
-                flexShrink: 0,
+                flexShrink: 1,
                 flexBasis: isPreviewOpen && isDesktop ? `${chatFlex}%` : 0,
                 display: isPreviewOpen && isMobile ? 'none' : 'flex',
-                minWidth: '240px',
+                minWidth: 0,
               }}
               onClick={() => {
                 if (window.innerWidth < 768 && !rightSiderCollapsed) setRightSiderCollapsed(true);
               }}
+              onMouseDownCapture={() => markActive('chat')}
+              onFocusCapture={() => markActive('chat')}
             >
               <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
                 {props.children}
@@ -310,7 +368,8 @@ const ChatLayout: React.FC<{
             {isPreviewOpen && (
               <div
                 className={classNames(
-                  'preview-panel flex flex-col relative overflow-visible rounded-[15px]',
+                  'preview-panel chat-pane flex flex-col relative overflow-visible rounded-panel',
+                  paneAccent('preview'),
                   isDesktop ? 'mb-[6px] mr-[6px] ml-[4px]' : 'm-[4px]'
                 )}
                 style={{
@@ -323,6 +382,8 @@ const ChatLayout: React.FC<{
                   width: isMobile ? 'calc(100% - 16px)' : undefined,
                   boxSizing: 'border-box',
                 }}
+                onMouseDownCapture={() => markActive('preview')}
+                onFocusCapture={() => markActive('preview')}
               >
                 {isDesktop &&
                   createPreviewDragHandle({
@@ -332,7 +393,7 @@ const ChatLayout: React.FC<{
                     lineClassName: 'opacity-30 group-hover:opacity-100 group-active:opacity-100',
                     lineStyle: { width: '2px' },
                   })}
-                <div className='h-full w-full overflow-hidden rounded-[15px]'>
+                <div className='h-full w-full overflow-hidden rounded-panel'>
                   <PreviewPanel />
                 </div>
               </div>
@@ -343,7 +404,8 @@ const ChatLayout: React.FC<{
         {!layout?.isMobile && (
           <div
             className={classNames(
-              'editor-pane relative layout-sider flex flex-col overflow-visible rounded-[15px]',
+              'editor-pane chat-pane relative layout-sider flex flex-col overflow-visible rounded-panel',
+              paneAccent('editor'),
               isEditorExpanded && 'editor-pane--expanded editor-pane-enter',
               isDesktop && isEditorExpanded && 'mb-[6px] mr-[6px] ml-[4px]'
             )}
@@ -356,6 +418,8 @@ const ChatLayout: React.FC<{
               overflow: isEditorExpanded ? 'visible' : 'hidden',
               boxSizing: 'border-box',
             }}
+            onMouseDownCapture={() => isEditorExpanded && markActive('editor')}
+            onFocusCapture={() => isEditorExpanded && markActive('editor')}
           >
             {isDesktop &&
               isEditorExpanded &&
@@ -364,14 +428,14 @@ const ChatLayout: React.FC<{
                 style: {},
                 reverse: true,
               })}
-            <div className='h-full w-full overflow-hidden rounded-[15px]'>
+            <div className='h-full w-full overflow-hidden rounded-panel'>
               <EditorPanel />
             </div>
           </div>
         )}
         {workspaceEnabled && !layout?.isMobile && (
           <div
-            className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
+            className={classNames('!bg-1 chat-pane relative chat-layout-right-sider layout-sider', paneAccent('workspace'))}
             style={{
               flexGrow: 0,
               flexShrink: 0,
@@ -381,6 +445,8 @@ const ChatLayout: React.FC<{
               overflow: 'hidden',
               borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
             }}
+            onMouseDownCapture={() => !rightSiderCollapsed && markActive('workspace')}
+            onFocusCapture={() => !rightSiderCollapsed && markActive('workspace')}
           >
             {isDesktop &&
               !rightSiderCollapsed &&
@@ -392,6 +458,8 @@ const ChatLayout: React.FC<{
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
               workspacePath={workspacePath}
               isTemporaryWorkspace={isTemporaryWorkspace}
+              projectName={projectName}
+              changeCount={changeCount}
             >
               {props.siderTitle}
             </WorkspacePanelHeader>
