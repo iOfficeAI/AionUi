@@ -9,6 +9,7 @@ import type { CompareResult, FileChangeInfo, FileChangeOperation } from '@/commo
 export type RawFileChange = {
   file_path: string;
   relative_path: string;
+  relativePath?: string;
   operation: FileChangeOperation;
 };
 
@@ -24,7 +25,7 @@ export type RawCompareResult = {
 function mapFileChange(c: RawFileChange): FileChangeInfo {
   return {
     file_path: c.file_path,
-    relativePath: c.relative_path,
+    relativePath: c.relative_path || c.relativePath || '',
     operation: c.operation,
   };
 }

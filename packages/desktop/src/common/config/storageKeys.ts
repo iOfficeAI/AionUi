@@ -25,6 +25,9 @@ export const STORAGE_KEYS = {
 
   /** Language preference / 语言偏好 */
   LANGUAGE: 'aionui_language',
+
+  /** Conversation tabs order / 对话标签页顺序 */
+  CONVERSATION_TABS: 'aionui_conversation_tabs',
 } as const;
 
 export type StorageKey = (typeof STORAGE_KEYS)[keyof typeof STORAGE_KEYS];

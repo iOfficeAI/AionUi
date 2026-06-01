@@ -5,6 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -174,6 +175,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Managed New API desktop account status
+  'newApi.desktop.account'?: NewApiAccountStatus;
+  // Managed CLI model preferences per runtime target
+  'newApi.desktop.cliModelPrefs'?: Partial<Record<ManagedRuntimeCliTarget, string>>;
 }
 
 export interface IEnvStorageRefer {
@@ -187,7 +192,15 @@ export interface IEnvStorageRefer {
  * Conversation source type - identifies where the conversation was created
  * 会话来源类型 - 标识会话创建的来源
  */
-export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
+export type ConversationSource =
+  | 'pounding'
+  | 'aionui'
+  | 'telegram'
+  | 'lark'
+  | 'dingtalk'
+  | 'weixin'
+  | 'wecom'
+  | (string & {});
 
 interface IChatConversation<T, Extra> {
   created_at: number;
@@ -199,7 +212,6 @@ interface IChatConversation<T, Extra> {
   extra: Extra;
   model: TProviderWithModel;
   status?: 'pending' | 'running' | 'finished' | undefined;
-  /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channel_chat_id?: string;
@@ -609,8 +621,8 @@ export interface IConversationMcpStatus {
 
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
-export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
-export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
+export const BUILTIN_IMAGE_GEN_NAME = 'pounding-image-generation';
+export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['POUNDING Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {
   name: string;

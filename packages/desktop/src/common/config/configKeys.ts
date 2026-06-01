@@ -1,6 +1,7 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import type { ManagedRuntimeCliTarget, NewApiAccountStatus } from '@/common/types/newApiAccount';
 
 export type ConfigKeyMap = {
   'google.config': {
@@ -81,6 +82,8 @@ export type ConfigKeyMap = {
   // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).
   'migration.providersMigrated_v1': boolean | undefined;
   'migration.assistantsMigrated_v1': boolean | undefined;
+  'newApi.desktop.account': NewApiAccountStatus | undefined;
+  'newApi.desktop.cliModelPrefs': Partial<Record<ManagedRuntimeCliTarget, string>> | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;
