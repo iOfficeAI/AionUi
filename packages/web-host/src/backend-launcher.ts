@@ -185,34 +185,71 @@ export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
   };
 }
 
-export function findAvailablePort(preferredPort?: number): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    const requestedPort = preferredPort ?? 0;
+const FETCH_FORBIDDEN_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110,
+  111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532,
+  540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 5060, 5061, 6000,
+  6566, 6665, 6666, 6667, 6668, 6669, 6697, 10080,
+]);
 
-    const cleanup = () => {
-      server.removeAllListeners();
-    };
+const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
 
-    server.once('error', (error) => {
-      cleanup();
-      reject(error);
-    });
-    server.listen(requestedPort, '127.0.0.1', () => {
-      const addr = server.address();
-      const resolvedPort =
-        preferredPort ?? (addr && typeof addr !== 'string' && typeof addr.port === 'number' ? addr.port : 0);
+function isFetchForbiddenPort(port: number): boolean {
+  return FETCH_FORBIDDEN_PORTS.has(port);
+}
 
-      server.close(() => {
+export function findAvailablePort(
+  preferredPort?: number,
+  maxAttempts = FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS
+): Promise<number> {
+  if (maxAttempts < 1) {
+    return Promise.reject(new Error('Failed to get a fetch-compatible port'));
+  }
+
+  const firstRequestedPort = preferredPort && !isFetchForbiddenPort(preferredPort) ? preferredPort : 0;
+  if (preferredPort && firstRequestedPort === 0) {
+    console.info(`[aioncore] skipped fetch-blocked backend port ${preferredPort}`);
+  }
+
+  const tryPort = (requestedPort: number, remainingAttempts: number, attempt: number): Promise<number> =>
+    new Promise((resolve, reject) => {
+      const server = createServer();
+
+      const cleanup = () => {
+        server.removeAllListeners();
+      };
+
+      server.once('error', (error) => {
         cleanup();
-        if (resolvedPort > 0) {
-          resolve(resolvedPort);
-          return;
-        }
-        reject(new Error('Failed to get port'));
+        reject(error);
+      });
+      server.listen(requestedPort, '127.0.0.1', () => {
+        const addr = server.address();
+        const resolvedPort =
+          requestedPort > 0
+            ? requestedPort
+            : addr && typeof addr !== 'string' && typeof addr.port === 'number'
+              ? addr.port
+              : 0;
+
+        server.close(() => {
+          cleanup();
+          if (resolvedPort > 0 && !isFetchForbiddenPort(resolvedPort)) {
+            console.info(`[aioncore] selected backend port ${resolvedPort} after ${attempt} attempts`);
+            resolve(resolvedPort);
+            return;
+          }
+          if (resolvedPort > 0 && remainingAttempts > 1) {
+            console.info(`[aioncore] skipped fetch-blocked backend port ${resolvedPort}`);
+            tryPort(0, remainingAttempts - 1, attempt + 1).then(resolve, reject);
+            return;
+          }
+          reject(new Error('Failed to get a fetch-compatible port'));
+        });
       });
     });
-  });
+
+  return tryPort(firstRequestedPort, maxAttempts, 1);
 }
 
 function appendOutputTail(current: string, chunk: Buffer, maxLength = 4000): string {
@@ -575,7 +612,9 @@ export class BackendLifecycleManager {
     startupSettled = true;
     this._status = 'running';
     this.restartCount = 0;
-    console.log(`[aioncore] listening on port ${this._port}, data-dir: ${dbPath}`);
+    console.info(
+      `[aioncore] health ready on port ${this._port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${health.diagnostics.healthCheckElapsedMs}, data-dir: ${dbPath}`
+    );
     return this._port;
   }
 
@@ -619,7 +658,10 @@ export class BackendLifecycleManager {
       diagnostics.healthCheckLastAttemptAfterMs = Date.now() - start;
       try {
         const response = await fetch(healthCheckUrl);
-        if (response.ok) return { ok: true, diagnostics };
+        if (response.ok) {
+          diagnostics.healthCheckElapsedMs = Date.now() - start;
+          return { ok: true, diagnostics };
+        }
         diagnostics.healthCheckLastStatus = response.status;
         clearHealthCheckErrorDiagnostics(diagnostics);
         try {
@@ -657,9 +699,9 @@ export class BackendLifecycleManager {
       if (!health.ok || this.childProcess !== childProcess || this._status !== 'starting') return;
       this._status = 'running';
       this.restartCount = 0;
-      const elapsedMs = Date.now() - startupStartedAt;
-      console.log(
-        `[aioncore] late health ready on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
+      const elapsedMs = health.diagnostics.healthCheckElapsedMs ?? Date.now() - startupStartedAt;
+      console.info(
+        `[aioncore] late health ready on port ${port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
       );
       await onReady?.(port);
     })().catch((error) => {

@@ -185,6 +185,48 @@ describe('findAvailablePort', () => {
 
     expect(port).toBe(65303);
   });
+
+  it('skips ports blocked by Fetch so health checks can use the selected port', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      vi.mocked(createServer)
+        .mockImplementationOnce(() => makeFakeServer(1720) as unknown as ReturnType<typeof createServer>)
+        .mockImplementationOnce(() => makeFakeServer(40404) as unknown as ReturnType<typeof createServer>);
+
+      const port = await findAvailablePort();
+
+      expect(port).toBe(40404);
+      expect(createServer).toHaveBeenCalledTimes(2);
+      expect(infoSpy).toHaveBeenCalledWith('[aioncore] skipped fetch-blocked backend port 1720');
+      expect(infoSpy).toHaveBeenCalledWith('[aioncore] selected backend port 40404 after 2 attempts');
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
+
+  it('does not bind a preferred port when Fetch would block requests to it', async () => {
+    const server = makeFakeServer(40404);
+    server.listen = (port, host, cb) => {
+      expect(port).toBe(0);
+      expect(host).toBe('127.0.0.1');
+      setImmediate(cb);
+    };
+    vi.mocked(createServer).mockImplementationOnce(() => server as unknown as ReturnType<typeof createServer>);
+
+    const port = await findAvailablePort(1720);
+
+    expect(port).toBe(40404);
+  });
+
+  it('rejects instead of retrying forever when every attempt returns a Fetch-blocked port', async () => {
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(1720) as unknown as ReturnType<typeof createServer>
+    );
+
+    await expect(findAvailablePort(undefined, 2)).rejects.toThrow('Failed to get a fetch-compatible port');
+
+    expect(createServer).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('BackendLifecycleManager.start (success path)', () => {
@@ -198,48 +240,56 @@ describe('BackendLifecycleManager.start (success path)', () => {
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
 
     const resolveBackend = vi.fn(() => '/abs/path/aioncore');
     const mgr = new BackendLifecycleManager(APP_META_PACKAGED, resolveBackend);
 
-    const port = await mgr.start('/db/path', '/log/dir', {
-      cacheDir: '/c',
-      workDir: '/w',
-      logDir: '/l',
-    });
+    try {
+      const port = await mgr.start('/db/path', '/log/dir', {
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
 
-    expect(port).toBe(55555);
-    expect(mgr.port).toBe(55555);
-    expect(mgr.status).toBe('running');
-    expect(resolveBackend).toHaveBeenCalledTimes(1);
-    expect(spawn).toHaveBeenCalledTimes(1);
+      expect(port).toBe(55555);
+      expect(mgr.port).toBe(55555);
+      expect(mgr.status).toBe('running');
+      expect(resolveBackend).toHaveBeenCalledTimes(1);
+      expect(spawn).toHaveBeenCalledTimes(1);
 
-    const spawnCall = vi.mocked(spawn).mock.calls[0];
-    expect(spawnCall[0]).toBe('/abs/path/aioncore');
-    expect(spawnCall[1]).toEqual([
-      '--port',
-      '55555',
-      '--data-dir',
-      '/db/path',
-      '--log-level',
-      'info',
-      '--app-version',
-      '1.2.3',
-      '--log-dir',
-      '/log/dir',
-      '--work-dir',
-      '/w',
-      '--local',
-    ]);
-    const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
-    expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
-    expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
-    expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
-    expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
+      const spawnCall = vi.mocked(spawn).mock.calls[0];
+      expect(spawnCall[0]).toBe('/abs/path/aioncore');
+      expect(spawnCall[1]).toEqual([
+        '--port',
+        '55555',
+        '--data-dir',
+        '/db/path',
+        '--log-level',
+        'info',
+        '--app-version',
+        '1.2.3',
+        '--log-dir',
+        '/log/dir',
+        '--work-dir',
+        '/w',
+        '--local',
+      ]);
+      const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
+      expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
+      expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
+      expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
+      expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
 
-    expect(fetchSpy).toHaveBeenCalled();
-
-    fetchSpy.mockRestore();
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(infoSpy).toHaveBeenCalledWith('[aioncore] selected backend port 55555 after 1 attempts');
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[aioncore] health ready on port 55555 after 1 attempts, elapsed_ms=')
+      );
+    } finally {
+      fetchSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
   });
 });
 
