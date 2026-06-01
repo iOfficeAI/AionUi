@@ -18,7 +18,6 @@
 }
 
 .overlay {
-  backdrop-filter: blur(18px);
   background: var(--color-bg-2);
   border: 1px solid var(--color-border-2);
   box-shadow: var(--shadow-lg);
@@ -27,6 +26,13 @@
   overflow: hidden;
   pointer-events: auto;
   position: fixed;
+}
+
+@supports ((-webkit-backdrop-filter: blur(6px)) or (backdrop-filter: blur(6px))) {
+  .overlay {
+    -webkit-backdrop-filter: blur(18px);
+    backdrop-filter: blur(18px);
+  }
 }
 
 .answer {

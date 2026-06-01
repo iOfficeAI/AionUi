@@ -27,14 +27,14 @@ const normalizeTestId = (name: string): string => {
 };
 
 const getAvatarColorClass = (name: string) => {
-  if (!name) return 'bg-[#165DFF] text-white';
+  if (!name) return 'bg-[var(--brand)] text-[var(--bg-base)]';
   const colors = [
-    'bg-[#165DFF] text-white', // Blue
-    'bg-[#00B42A] text-white', // Green
-    'bg-[#722ED1] text-white', // Purple
-    'bg-[#F5319D] text-white', // Pink
-    'bg-[#F77234] text-white', // Orange
-    'bg-[#14C9C9] text-white', // Cyan
+    'bg-[var(--brand)] text-[var(--bg-base)]', // rust
+    'bg-[var(--success)] text-[var(--bg-base)]', // olive
+    'bg-[var(--warning)] text-[var(--text-primary)]', // mustard
+    'bg-[var(--info)] text-[var(--bg-base)]', // slate teal
+    'bg-[var(--border-base)] text-[var(--text-primary)]', // warm tan
+    'bg-[var(--text-primary)] text-[var(--bg-base)]', // olive ink inverse
   ];
   let hash = 0;
   for (let i = 0; i < name.length; i++) {
