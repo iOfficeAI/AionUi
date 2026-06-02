@@ -189,6 +189,18 @@ export interface IEnvStorageRefer {
  */
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
 
+export type TChatConversationStatus = 'pending' | 'running' | 'finished';
+export type TConversationRuntimeStateKind = 'idle' | 'starting' | 'running' | 'waiting_confirmation';
+
+export type TConversationRuntimeSummary = {
+  state: TConversationRuntimeStateKind;
+  can_send_message: boolean;
+  has_task: boolean;
+  task_status?: TChatConversationStatus;
+  is_processing: boolean;
+  pending_confirmations: number;
+};
+
 interface IChatConversation<T, Extra> {
   created_at: number;
   modified_at: number;
@@ -198,7 +210,8 @@ interface IChatConversation<T, Extra> {
   type: T;
   extra: Extra;
   model: TProviderWithModel;
-  status?: 'pending' | 'running' | 'finished' | undefined;
+  status?: TChatConversationStatus | undefined;
+  runtime?: TConversationRuntimeSummary;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */

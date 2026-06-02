@@ -4,8 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { act, renderHook, waitFor } from '@testing-library/react';
+import { createElement, type PropsWithChildren } from 'react';
+import { SWRConfig } from 'swr';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
@@ -14,13 +16,17 @@ const {
   getModelInvokeMock,
   setModelInvokeMock,
   conversationUpdateInvokeMock,
+  writeRendererLogInvokeMock,
   configServiceSetMock,
+  fetchDetectedAgentsMock,
   responseStreamHandlerRef,
 } = vi.hoisted(() => ({
   getModelInvokeMock: vi.fn(),
   setModelInvokeMock: vi.fn(),
   conversationUpdateInvokeMock: vi.fn(),
+  writeRendererLogInvokeMock: vi.fn(),
   configServiceSetMock: vi.fn(),
+  fetchDetectedAgentsMock: vi.fn(),
   responseStreamHandlerRef: {
     current: undefined as ((message: IResponseMessage) => void) | undefined,
   },
@@ -41,6 +47,9 @@ vi.mock('@/common', () => ({
     conversation: {
       update: { invoke: conversationUpdateInvokeMock },
     },
+    application: {
+      writeRendererLog: { invoke: writeRendererLogInvokeMock },
+    },
   },
 }));
 
@@ -51,13 +60,9 @@ vi.mock('@/common/config/configService', () => ({
   },
 }));
 
-vi.mock('swr', () => ({
-  default: () => ({ data: undefined }),
-}));
-
 vi.mock('@/renderer/utils/model/agentTypes', () => ({
   DETECTED_AGENTS_SWR_KEY: 'detected-agents',
-  fetchDetectedAgents: vi.fn(),
+  fetchDetectedAgents: fetchDetectedAgentsMock,
 }));
 
 const buildModelInfo = (overrides: Partial<AcpModelInfo> = {}): AcpModelInfo => ({
@@ -70,6 +75,38 @@ const buildModelInfo = (overrides: Partial<AcpModelInfo> = {}): AcpModelInfo => 
   ...overrides,
 });
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+const createSwrWrapper = () => {
+  const cache = new Map();
+
+  return function SwrTestWrapper({ children }: PropsWithChildren) {
+    return createElement(
+      SWRConfig,
+      {
+        value: {
+          provider: () => cache,
+          dedupingInterval: 0,
+          revalidateOnFocus: false,
+          revalidateOnReconnect: false,
+        },
+      },
+      children
+    );
+  };
+};
+
+const renderUseAcpModelInfo = (params: Parameters<typeof useAcpModelInfo>[0]) =>
+  renderHook(() => useAcpModelInfo(params), { wrapper: createSwrWrapper() });
+
 describe('useAcpModelInfo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -77,10 +114,17 @@ describe('useAcpModelInfo', () => {
     getModelInvokeMock.mockReset();
     setModelInvokeMock.mockReset();
     conversationUpdateInvokeMock.mockReset();
+    writeRendererLogInvokeMock.mockReset();
     configServiceSetMock.mockReset();
     setModelInvokeMock.mockResolvedValue(undefined);
     conversationUpdateInvokeMock.mockResolvedValue(true);
+    writeRendererLogInvokeMock.mockResolvedValue(undefined);
     configServiceSetMock.mockResolvedValue(undefined);
+    fetchDetectedAgentsMock.mockResolvedValue([]);
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
   });
 
   it('uses backend current_model_id when reloading even if initialModelId is stale (ELECTRON-1RV)', async () => {
@@ -88,9 +132,11 @@ describe('useAcpModelInfo', () => {
     // but `extra.current_model_id` (initialModelId) still says sonnet-4.
     getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
 
-    const { result } = renderHook(() =>
-      useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' })
-    );
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+    });
 
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
@@ -104,30 +150,48 @@ describe('useAcpModelInfo', () => {
       model_info: buildModelInfo({ current_model_id: '' as unknown as string }),
     });
 
-    const { result } = renderHook(() =>
-      useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'opus-4' })
-    );
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'opus-4',
+    });
 
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
   });
 
-  it('persists preferred model and conversation extra on selectModel', async () => {
-    getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
+  it('persists preferred model and conversation extra only after backend accepts selectModel', async () => {
+    const setModelDeferred = deferred<void>();
+    getModelInvokeMock
+      .mockResolvedValueOnce({ model_info: buildModelInfo() })
+      .mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
+    setModelInvokeMock.mockReturnValue(setModelDeferred.promise);
 
-    const { result } = renderHook(() =>
-      useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' })
-    );
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+    });
 
     await waitFor(() => {
       expect(result.current.canSwitch).toBe(true);
     });
 
-    result.current.selectModel('opus-4');
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
 
     await waitFor(() => {
       expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+    expect(configServiceSetMock).not.toHaveBeenCalled();
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
+
+    setModelDeferred.resolve(undefined);
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
     await waitFor(() => {
       expect(configServiceSetMock).toHaveBeenCalled();
@@ -143,12 +207,46 @@ describe('useAcpModelInfo', () => {
     });
   });
 
+  it('rolls back to backend model info and does not persist when selectModel fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
+    setModelInvokeMock.mockRejectedValue(new Error('model unavailable'));
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+    });
+
+    await waitFor(() => {
+      expect(result.current.canSwitch).toBe(true);
+    });
+
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
+
+    await waitFor(() => {
+      expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
+    });
+
+    expect(configServiceSetMock).not.toHaveBeenCalled();
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
+  });
+
   it('does not let initialModelId override backend current_model_id from acp_model_info stream', async () => {
     getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
 
-    const { result } = renderHook(() =>
-      useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' })
-    );
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+    });
 
     await waitFor(() => {
       expect(responseStreamHandlerRef.current).toBeTypeOf('function');
@@ -163,5 +261,92 @@ describe('useAcpModelInfo', () => {
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
+  });
+
+  it('shares selected model info across hook instances for the same conversation', async () => {
+    const setModelDeferred = deferred<void>();
+    const wrapper = createSwrWrapper();
+    getModelInvokeMock
+      .mockResolvedValueOnce({ model_info: buildModelInfo() })
+      .mockResolvedValueOnce({ model_info: buildModelInfo() })
+      .mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
+    setModelInvokeMock.mockReturnValue(setModelDeferred.promise);
+
+    const first = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+    const second = renderHook(
+      () => useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' }),
+      { wrapper }
+    );
+
+    await waitFor(() => {
+      expect(first.result.current.canSwitch).toBe(true);
+      expect(second.result.current.canSwitch).toBe(true);
+    });
+
+    act(() => {
+      first.result.current.selectModel('opus-4');
+    });
+
+    await waitFor(() => {
+      expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+
+    setModelDeferred.resolve(undefined);
+
+    await waitFor(() => {
+      expect(first.result.current.model_info?.current_model_id).toBe('opus-4');
+      expect(second.result.current.model_info?.current_model_id).toBe('opus-4');
+    });
+  });
+
+  it('does not restore stale handshake model when active session lookup returns 404 after cache exists', async () => {
+    fetchDetectedAgentsMock.mockResolvedValue([
+      {
+        agent_type: 'claude',
+        backend: 'claude',
+        handshake: {
+          available_models: buildModelInfo({
+            current_model_id: 'deepseek-v4-pro',
+            current_model_label: 'DeepSeek V4 Pro',
+            available_models: [{ id: 'deepseek-v4-pro', label: 'DeepSeek V4 Pro' }],
+          }),
+        },
+      },
+    ]);
+    getModelInvokeMock
+      .mockResolvedValueOnce({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) })
+      .mockRejectedValueOnce({
+        name: 'BackendHttpError',
+        status: 404,
+        code: 'NOT_FOUND',
+        message: 'no active session',
+      });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'deepseek-v4-pro',
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
+    });
+
+    vi.useFakeTimers();
+    await act(async () => {
+      responseStreamHandlerRef.current?.({
+        type: 'start',
+        conversation_id: 'conv-1',
+      } as unknown as IResponseMessage);
+      vi.advanceTimersByTime(250);
+      await Promise.resolve();
+    });
+
+    expect(getModelInvokeMock.mock.calls.length).toBeGreaterThanOrEqual(3);
+    expect(result.current.model_info?.current_model_id).toBe('opus-4');
+    vi.clearAllTimers();
   });
 });
