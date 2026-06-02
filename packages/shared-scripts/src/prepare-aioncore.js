@@ -174,9 +174,27 @@ function findAssetId(assetName, tag) {
   const headers = ['-H', `Authorization: token ${token}`, '-H', 'Accept: application/vnd.github+json'];
 
   try {
+    const result = execFileSync(
+      'curl',
+      [
+        '-sSL',
+        '-w',
+        '%{http_code}',
+        '-o',
+        '/dev/null',
+        ...headers,
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`,
+      ],
+      { encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
+    ).trim();
+    if (result !== '200') {
+      console.warn(`  API returned HTTP ${result} for releases/tags/${tag} (token may lack cross-repo access)`);
+      return null;
+    }
+    // Now fetch the full response
     const tagJson = execFileSync(
       'curl',
-      ['-fsSL', ...headers, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
+      ['-sSL', ...headers, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
       { encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const release = JSON.parse(tagJson);
