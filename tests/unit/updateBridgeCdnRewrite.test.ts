@@ -135,13 +135,17 @@ describe('updateBridge CDN URL rewriting', () => {
 
       const macAsset = assets.find((a: { name: string }) => a.name === 'AionUi-1.9.22-mac-arm64.dmg');
       expect(macAsset).toBeDefined();
-      expect(macAsset?.url).toBe('https://github.com/halojerry/AionUi/releases/download/releases/1.9.22/AionUi-1.9.22-mac-arm64.dmg');
+      expect(macAsset?.url).toBe(
+        'https://github.com/halojerry/AionUi/releases/download/releases/1.9.22/AionUi-1.9.22-mac-arm64.dmg'
+      );
       expect(macAsset?.fallbackUrl).toBe(
         'https://github.com/iOfficeAI/AionUi/releases/download/v1.9.22/AionUi-1.9.22-mac-arm64.dmg'
       );
 
       const linuxAsset = assets.find((a: { name: string }) => a.name === 'AionUi-1.9.22-linux-amd64.deb');
-      expect(linuxAsset?.url).toBe('https://github.com/halojerry/AionUi/releases/download/releases/1.9.22/AionUi-1.9.22-linux-amd64.deb');
+      expect(linuxAsset?.url).toBe(
+        'https://github.com/halojerry/AionUi/releases/download/releases/1.9.22/AionUi-1.9.22-linux-amd64.deb'
+      );
     } finally {
       vi.unstubAllGlobals();
     }
