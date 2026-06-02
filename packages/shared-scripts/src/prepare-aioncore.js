@@ -125,9 +125,13 @@ function downloadFile(url, outputPath) {
   }
   const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
   try {
-    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, ...authArgs, url], { timeout: 120000 });
+    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, ...authArgs, url], {
+      timeout: 120000,
+    });
   } catch {
-    execFileSync('wget', ['-q', '--header', `Authorization: token ${token}`, '-O', outputPath, url].filter(Boolean), { timeout: 120000 });
+    execFileSync('wget', ['-q', '--header', `Authorization: token ${token}`, '-O', outputPath, url].filter(Boolean), {
+      timeout: 120000,
+    });
   }
 }
 
