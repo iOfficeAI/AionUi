@@ -397,19 +397,67 @@
   "remoteRetry": {
     "tag": "{{reason}} · retry {{attempt}}",
     "tooltip": "{{reason}} retry attempt {{attempt}}",
-    "reason": { "rate_limit": "Rate-limited", "transient": "Transient error", "tool_error": "Tool error", "provider_error": "Provider error", "context_overflow": "Context overflow", "unknown": "Retry" }
+    "reason": {
+      "rate_limit": "Rate-limited",
+      "transient": "Transient error",
+      "tool_error": "Tool error",
+      "provider_error": "Provider error",
+      "context_overflow": "Context overflow",
+      "unknown": "Retry"
+    }
   },
   "remoteOpencodeError": {
-    "context_overflow": { "title": "Context window full", "body": "Context window full ({{used}} / {{limit}} tokens).", "compact": "Compact" },
-    "provider_auth": { "title": "Provider auth failed", "body": "Provider auth failed for {{providerId}}.", "reconnect": "Reconnect" },
-    "output_length": { "title": "Output limit reached", "continue": "Continue from here" },
-    "api": { "title": "API error", "status": "Status {{statusCode}}" },
-    "structured_output": { "title": "Structured output failed", "schema": "Schema: {{schema}}" },
-    "unknown": { "title": "OpenCode error" }
+    "context_overflow": {
+      "title": "Context window full",
+      "body": "Context window full ({{used}} / {{limit}} tokens).",
+      "compact": "Compact"
+    },
+    "provider_auth": {
+      "title": "Provider auth failed",
+      "body": "Provider auth failed for {{providerId}}.",
+      "reconnect": "Reconnect"
+    },
+    "output_length": {
+      "title": "Output limit reached",
+      "continue": "Continue from here"
+    },
+    "api": {
+      "title": "API error",
+      "status": "Status {{statusCode}}"
+    },
+    "structured_output": {
+      "title": "Structured output failed",
+      "schema": "Schema: {{schema}}"
+    },
+    "unknown": {
+      "title": "OpenCode error"
+    }
   },
-  "remoteSessionBadge": { "label": "Attached to {{sessionId}}", "tooltip": "OpenCode session {{sessionId}}\n{{directory}}", "copied": "Session id copied" },
+  "remoteSessionBadge": {
+    "label": "Attached to {{sessionId}}",
+    "tooltip": "OpenCode session {{sessionId}}\n{{directory}}",
+    "copied": "Session id copied"
+  },
   "sendbox": {
     "hint": "Введіть / для команд, @ для посилань на файли"
   },
-  "notFound": "Розмову не знайдено або її видалено"
+  "notFound": "Розмову не знайдено або її видалено",
+  "approval": {
+    "path": "Path",
+    "patterns": "Patterns",
+    "toolCallId": "Tool call",
+    "reject": "Reject",
+    "timedOut": "Timed out",
+    "actionRequired": "Action required",
+    "inheritance": "Apply to active sub-agents too",
+    "inheritanceHighRiskOff": "Not inherited (high-risk)",
+    "subagentHeader": "From sub-agent: {{label}}",
+    "questionFreeform": "Type your answer",
+    "questionFreeformSecret": "Type a secret answer (hidden)",
+    "questionMultiselectEmpty": "Pick at least one option",
+    "elicitSubmit": "Submit",
+    "elicitCancel": "Cancel",
+    "fromUnknownSession": "Session unknown",
+    "elicitSchemaFreeText": "Type your response"
+  }
 }

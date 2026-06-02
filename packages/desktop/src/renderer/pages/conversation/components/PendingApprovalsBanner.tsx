@@ -120,7 +120,7 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
   const [busy, setBusy] = useState(false);
 
   const pending = useMemo(() => {
-    const out: Array<{ call_id: string; msg_id?: string; preview: string; allowDirPath?: string }> = [];
+    const out: Array<{ call_id: string; msg_id?: string; preview: string; allowDirPath?: string; fromSubagent: boolean }> = [];
     for (const msg of list) {
       const content = readPermissionContent(msg);
       if (!content) continue;
@@ -129,11 +129,16 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
       const call_id = callIdOf(content);
       if (!call_id) continue;
       if (approved.has(call_id)) continue;
+      // P1.2a (D6): tag sub-agent-attributed prompts so the banner can
+      // surface a "Action required" red-dot chip when at least one
+      // collapsed sub-agent is blocked.
+      const fromSubagent = Boolean((content as { parent_session_id?: string }).parent_session_id);
       out.push({
         call_id,
         msg_id: msg.msg_id,
         preview: previewOf(content),
         allowDirPath: allowDirPathOf(content),
+        fromSubagent,
       });
     }
     return out;
@@ -292,6 +297,12 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
 
   const visiblePreviews = pending.slice(0, MAX_PREVIEW_ITEMS);
   const overflowCount = pending.length - visiblePreviews.length;
+  // P1.2a (D6): collapsed-subagent indicator. When at least one pending
+  // card is from a sub-agent (parent_session_id set), surface a red-dot
+  // "Action required" chip so the user can spot blocked child work even
+  // when the parent transcript is collapsed. Click scrolls the message
+  // list to the first sub-agent pending card.
+  const hasSubagentPending = pending.some((p) => p.fromSubagent);
 
   return (
     <div
@@ -305,13 +316,24 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
       aria-live='polite'
     >
       <div className='flex flex-col gap-1 min-w-0 flex-1'>
-        <div className='flex items-center gap-2'>
+        <div className='flex items-center gap-2 flex-wrap'>
           <Tag color='orange' bordered size='small'>
             {pending.length}
           </Tag>
           <span className='text-sm text-t-primary'>
             {t('messages.pendingApprovalsHeader', { count: pending.length })}
           </span>
+          {hasSubagentPending && (
+            <Tag
+              color='red'
+              bordered
+              size='small'
+              data-testid='pending-approvals-subagent-action-required'
+            >
+              <span className='inline-block w-6px h-6px rounded-full' style={{ background: 'rgb(var(--danger-6))' }} aria-hidden />
+              <span className='ml-4px'>{t('conversation.approval.actionRequired')}</span>
+            </Tag>
+          )}
         </div>
         <ul className='flex flex-col gap-0.5 pl-2 m-0 list-none'>
           {visiblePreviews.map((item) => (

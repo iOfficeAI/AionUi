@@ -41,7 +41,7 @@ function iconParkPlugin() {
             match,
             components.map((key: string) => `${key} as _${key.trim()}`).join(', ')
           );
-          const hoc = `import IconParkHOC from '@renderer/components/IconParkHOC';
+          const hoc = `import IconParkHOC from '@renderer/components/util/IconParkHOC';
           ${components.map((key: string) => `const ${key.trim()} = IconParkHOC(_${key.trim()})`).join(';\n')}`;
           return importComponent + ';' + hoc;
         }

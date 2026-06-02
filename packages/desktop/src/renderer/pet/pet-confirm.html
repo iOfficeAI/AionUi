@@ -9,30 +9,35 @@
         box-sizing: border-box;
       }
 
-      /* Light theme (default) */
+      /* Light theme (default)
+         Hex values mirror `packages/desktop/src/renderer/styles/themes/chisl-color-scheme.css`
+         (P1.2a token alignment). When the upstream token table changes, update
+         these values to match. The PET window is a standalone HTML asset and
+         cannot consume CSS variables defined in the React renderer. */
       :root {
-        --card-bg: #fbf1c7;
+        --card-bg: #f0e4b4; /* chisl --bg-1 */
         --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.12), 0 1px 3px rgba(0, 0, 0, 0.08);
         --card-border: rgba(0, 0, 0, 0.08);
-        --text-primary: #3c3836;
-        --text-secondary: #7c6f64;
-        --border: #d5c4a1;
-        --bg-hover: #ebdbb2;
-        --shortcut-bg: rgba(213, 196, 161, 0.6);
-        --shortcut-text: #7c6f64;
+        --text-primary: #303024; /* chisl --text-primary */
+        --text-secondary: #4a4434; /* chisl --text-secondary */
+        --border: #d0b878; /* chisl --border-base */
+        --bg-hover: #ecdfb6; /* chisl --bg-hover */
+        --shortcut-bg: rgba(208, 184, 120, 0.6); /* chisl --border-base @ 60% */
+        --shortcut-text: #4a4434; /* chisl --text-secondary */
       }
 
-      /* Dark theme */
+      /* Dark theme — values mirror the `[data-theme='dark']` block of
+         chisl-color-scheme.css. */
       [data-theme='dark'] {
-        --card-bg: #3c3836;
+        --card-bg: #28241d; /* chisl --bg-1 */
         --card-shadow: 0 4px 16px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.2);
         --card-border: rgba(255, 255, 255, 0.08);
-        --text-primary: #ebdbb2;
-        --text-secondary: #928374;
-        --border: #665c54;
-        --bg-hover: #504945;
-        --shortcut-bg: rgba(80, 73, 69, 0.6);
-        --shortcut-text: #928374;
+        --text-primary: #ecdfb6; /* chisl --text-primary */
+        --text-secondary: #d6c08c; /* chisl --text-secondary */
+        --border: #3d3528; /* chisl --bg-3 (border-equivalent) */
+        --bg-hover: #322c22; /* chisl --bg-2 */
+        --shortcut-bg: rgba(61, 53, 40, 0.6); /* chisl --bg-3 @ 60% */
+        --shortcut-text: #d6c08c; /* chisl --text-secondary */
       }
 
       html,

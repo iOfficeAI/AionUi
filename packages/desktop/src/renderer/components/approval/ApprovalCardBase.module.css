@@ -1,0 +1,147 @@
+.card {
+  background: var(--bg-1);
+  margin-bottom: 16px;
+  border: 1px solid var(--border-1);
+  border-radius: 8px;
+  outline: none;
+}
+
+.card:focus-within {
+  border-color: var(--brand);
+}
+
+.cardEnter {
+  animation: approval-card-enter 200ms var(--ease-out-expo, ease-out);
+}
+
+.staggerEnter {
+  animation: approval-card-enter 200ms var(--ease-out-expo, ease-out) backwards;
+}
+
+@keyframes approval-card-enter {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cardEnter {
+    animation: none;
+  }
+}
+
+.body {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  color: var(--text-primary);
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--text-primary);
+  word-break: break-word;
+}
+
+.block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.blockLabel {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.codeBlock {
+  display: block;
+  background: var(--bg-2);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  word-break: break-all;
+}
+
+.codeInline {
+  display: inline-block;
+  background: var(--bg-2);
+  padding: 1px 6px;
+  border-radius: 3px;
+  font-size: 11px;
+  color: var(--text-primary);
+  font-family: var(--font-mono, ui-monospace, SFMono-Regular, Menlo, monospace);
+  margin-right: 4px;
+}
+
+.patterns {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}
+
+.description {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.options {
+  margin-top: 8px;
+}
+
+.optionRow {
+  padding: 2px 0;
+}
+
+.optionTag {
+  margin-right: 6px;
+  text-transform: capitalize;
+}
+
+.optionLabel {
+  color: var(--text-primary);
+  font-size: 13px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  padding-left: 20px;
+}
+
+.responded {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border-radius: 6px;
+  background: var(--color-success-light-1);
+  border: 1px solid rgb(var(--success-3));
+  color: rgb(var(--success-6));
+}
+
+.respondedLabel {
+  font-size: 13px;
+  color: rgb(var(--success-6));
+}

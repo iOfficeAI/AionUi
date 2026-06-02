@@ -389,5 +389,23 @@
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照"
   },
-  "notFound": "会話が存在しないか、削除されました"
+  "notFound": "会話が存在しないか、削除されました",
+  "approval": {
+    "path": "Path",
+    "patterns": "Patterns",
+    "toolCallId": "Tool call",
+    "reject": "Reject",
+    "timedOut": "Timed out",
+    "actionRequired": "Action required",
+    "inheritance": "Apply to active sub-agents too",
+    "inheritanceHighRiskOff": "Not inherited (high-risk)",
+    "subagentHeader": "From sub-agent: {{label}}",
+    "questionFreeform": "Type your answer",
+    "questionFreeformSecret": "Type a secret answer (hidden)",
+    "questionMultiselectEmpty": "Pick at least one option",
+    "elicitSubmit": "Submit",
+    "elicitCancel": "Cancel",
+    "fromUnknownSession": "Session unknown",
+    "elicitSchemaFreeText": "Type your response"
+  }
 }

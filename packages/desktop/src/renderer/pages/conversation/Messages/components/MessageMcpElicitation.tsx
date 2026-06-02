@@ -8,6 +8,7 @@ import type { IMessagePermission, TMessage } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
 import { useUpdateMessageList } from '@/renderer/pages/conversation/Messages/hooks';
 import { Button, Card, Input, Tag, Typography } from '@arco-design/web-react';
+import { CheckOne, Code } from '@icon-park/react';
 import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -32,6 +33,12 @@ const { Text } = Typography;
  * Sub-agent attribution: `parent_session_id` set on the content means this
  * elicitation came from a child OpenCode session — we surface that with a
  * tag so the user knows it's a sub-agent asking, not the main agent.
+ *
+ * Header is the shared approval-card chrome (sub-agent tag + `Code` icon +
+ * title). The form body is bespoke: schema-driven, no yes/no options,
+ * local `responded` state. NOT routed through `ApprovalCardBase` because
+ * the source plan's Phase 6 call-out explicitly preserves the existing
+ * form body — only the header is unified.
  */
 const MessageMcpElicitation: React.FC<{ message: IMessagePermission }> = React.memo(({ message }) => {
   const { t } = useTranslation();
@@ -148,7 +155,7 @@ const MessageMcpElicitation: React.FC<{ message: IMessagePermission }> = React.m
     ? t('messages.remoteMcpElicitation.fromSubagent')
     : session_id
       ? t('messages.remoteMcpElicitation.fromParent')
-      : t('messages.remoteMcpElicitation.fromUnknown');
+      : t('conversation.approval.fromUnknownSession');
 
   return (
     <Card
@@ -164,7 +171,9 @@ const MessageMcpElicitation: React.FC<{ message: IMessagePermission }> = React.m
               {t('messages.remoteSubagent.tag')}
             </Tag>
           )}
-          <span className='text-2xl'>🔌</span>
+          <span className='inline-flex items-center text-t-primary' aria-hidden>
+            <Code theme='outline' size='20' />
+          </span>
           <Text className='block font-medium'>{title || t('messages.remoteMcpElicitation.title')}</Text>
         </div>
         <div className='text-xs text-t-secondary'>{sessionLabel}</div>
@@ -208,21 +217,23 @@ const MessageMcpElicitation: React.FC<{ message: IMessagePermission }> = React.m
                 onClick={handleSubmit}
                 data-testid='mcp-elicitation-submit'
               >
-                {t('messages.remoteMcpElicitation.submit')}
+                {t('conversation.approval.elicitSubmit')}
               </Button>
               <Button size='mini' disabled={isResponding} onClick={handleCancel} data-testid='mcp-elicitation-cancel'>
-                {t('messages.remoteMcpElicitation.cancel')}
+                {t('conversation.approval.elicitCancel')}
               </Button>
             </div>
           </div>
         )}
         {hasResponded && (
           <div
-            className='mt-10px p-2 rounded-md border'
+            className='mt-10px p-2 rounded-md border flex items-center gap-6px'
             style={{ backgroundColor: 'var(--color-success-light-1)', borderColor: 'rgb(var(--success-3))' }}
+            data-testid='mcp-elicitation-responded'
           >
+            <CheckOne theme='outline' size='14' />
             <Text className='text-sm' style={{ color: 'rgb(var(--success-6))' }}>
-              ✓ {t('messages.responseSentSuccessfully')}
+              {t('messages.responseSentSuccessfully')}
             </Text>
           </div>
         )}
