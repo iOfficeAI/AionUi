@@ -76,8 +76,8 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://github.com/halojerry/AionUi',
-            'X-Title': 'AionUi',
+            'HTTP-Referer': 'https://github.com/halojerry/pouding',
+            'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),
         };
@@ -127,8 +127,8 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://github.com/halojerry/AionUi',
-            'X-Title': 'AionUi',
+            'HTTP-Referer': 'https://github.com/halojerry/pouding',
+            'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),
         };
