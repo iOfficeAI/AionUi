@@ -166,7 +166,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
             placeholder={`/* ${t('settings.customCssDesc') || 'Enter custom CSS styles here'} */`}
             basicSetup={CODE_MIRROR_BASIC_SETUP}
             style={{ ...CODE_MIRROR_STYLE, minHeight: '200px' }}
-            className='[&_.cm-editor]:rounded-[6px]'
+            className='[&_.cm-editor]:rounded-card'
             height='200px'
           />
         </div>

@@ -368,13 +368,13 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
         footer={{
           render: () => (
             <div className='flex justify-end gap-10px pt-20px'>
-              <Button className='px-20px min-w-80px' style={{ borderRadius: 8 }} onClick={() => setShareUrl(null)}>
+              <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setShareUrl(null)}>
                 {t('common.close', { defaultValue: 'Close' })}
               </Button>
               <Button
                 type='primary'
                 className='px-20px min-w-80px'
-                style={{ borderRadius: 8 }}
+                style={{ borderRadius: 'var(--radius-control)' }}
                 onClick={() => {
                   if (shareUrl) {
                     void copyText(shareUrl).then(() => Message.success(t('messages.copySuccess')));
@@ -410,7 +410,7 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
         footer={{
           render: () => (
             <div className='flex justify-end pt-16px'>
-              <Button className='px-20px min-w-80px' style={{ borderRadius: 8 }} onClick={() => setDiffOpen(false)}>
+              <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setDiffOpen(false)}>
                 {t('common.close', { defaultValue: 'Close' })}
               </Button>
             </div>
@@ -470,7 +470,7 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
               <div className='flex gap-10px'>
                 <Button
                   className='px-20px min-w-80px'
-                  style={{ borderRadius: 8 }}
+                  style={{ borderRadius: 'var(--radius-control)' }}
                   disabled={configSaving || configText === lastGoodConfig}
                   onClick={() => {
                     setConfigText(lastGoodConfig);
@@ -482,7 +482,7 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
                 <Button
                   type='primary'
                   className='px-20px min-w-80px'
-                  style={{ borderRadius: 8 }}
+                  style={{ borderRadius: 'var(--radius-control)' }}
                   loading={configSaving}
                   disabled={configLoading || configText === lastGoodConfig}
                   onClick={() => void handleSaveConfig()}

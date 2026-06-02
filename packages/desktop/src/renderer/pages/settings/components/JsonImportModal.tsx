@@ -247,7 +247,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
       header={{ title: server ? t('settings.mcpEditServer') : t('settings.mcpImportFromJSON'), showClose: true }}
       style={{ width: 600, height: 450 }}
       contentStyle={{
-        borderRadius: 16,
+        borderRadius: 'var(--radius-panel)',
         padding: '24px',
         background: 'var(--dialog-fill-0)',
         overflow: 'auto',
@@ -286,7 +286,7 @@ const JsonImportModal: React.FC<JsonImportModalProps> = ({ visible, server, onCa
                 marginBottom: '20px',
                 overflow: 'hidden',
               }}
-              className='[&_.cm-editor]:rounded-[6px]'
+              className='[&_.cm-editor]:rounded-card'
             />
             {jsonInput && (
               <Button

@@ -70,7 +70,7 @@
   margin-top: 6px;
   margin-left: 20px;
   background: color-mix(in srgb, var(--aou-1) 50%, var(--bg-base));
-  border-radius: 8px;
+  border-radius: var(--radius-card);
 }
 
 [data-theme='dark'] .tool-group-summary__body {
@@ -99,7 +99,7 @@
   line-height: 1.5;
   color: var(--color-text-2, #4e5969);
   background: var(--color-fill-1, #f7f8fa);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   padding: 6px 8px;
   margin: 0;
   white-space: pre-wrap;

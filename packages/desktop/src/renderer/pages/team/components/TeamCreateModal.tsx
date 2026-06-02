@@ -228,7 +228,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       }}
       footer={
         <div className='flex justify-end gap-10px border-t border-border-2 bg-dialog-fill-0 px-24px py-16px'>
-          <Button onClick={handleClose} className='min-w-80px' style={{ borderRadius: 8 }}>
+          <Button onClick={handleClose} className='min-w-80px' style={{ borderRadius: 'var(--radius-control)' }}>
             {t('common.cancel', { defaultValue: 'Cancel' })}
           </Button>
           <Button
@@ -237,7 +237,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             loading={loading}
             disabled={!name.trim() || !dispatchAgentKey}
             className='min-w-80px'
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 'var(--radius-control)' }}
           >
             {t('team.create.confirm', { defaultValue: 'Create Team' })}
           </Button>

@@ -29,25 +29,25 @@ body {
   height: 26px;
   padding: 0 10px;
   font-size: 13px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
 }
 .arco-btn-size-small {
   height: 22px;
   padding: 0 8px;
   font-size: 12px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
 }
 .arco-btn-size-mini {
   height: 18px;
   padding: 0 6px;
   font-size: 12px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
 }
 .arco-btn-size-large {
   height: 30px;
   padding: 0 14px;
   font-size: 13px;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
 }
 .arco-btn-only-icon.arco-btn-size-default {
   width: 26px;
@@ -141,7 +141,7 @@ body {
   height: 18px;
   line-height: 18px;
   padding: 0 6px;
-  border-radius: 3px;
+  border-radius: var(--radius-control);
 }
 
 /* Tabs */
@@ -265,7 +265,7 @@ body {
 
 .arco-collapse {
   border: none;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   .arco-collapse-item-header {
     border-bottom: none;
   }
@@ -318,7 +318,7 @@ body[arco-theme='dark'] .arco-tag-checked.arco-tag-gray {
 .aionui-modal .arco-modal-content {
   background: var(--dialog-fill-0) !important;
   border: 1px solid var(--border-base) !important;
-  border-radius: 16px !important;
+  border-radius: var(--radius-panel) !important;
   box-shadow: var(--shadow-lg);
 }
 
@@ -451,7 +451,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   transition: background-color 0.2s;
   cursor: pointer;
   border: none;
@@ -466,7 +466,7 @@ body[arco-theme='dark'] .arco-modal-confirm-icon {
 /* Arco Message custom styles */
 .arco-message {
   border: none !important;
-  border-radius: 8px !important;
+  border-radius: var(--radius-card) !important;
 }
 
 /* Light mode */

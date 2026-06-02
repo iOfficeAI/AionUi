@@ -6,7 +6,7 @@
   background:
     linear-gradient(180deg, color-mix(in srgb, var(--brand) 5%, transparent), transparent 74px), var(--color-bg-1);
   border: 1px solid var(--color-border-2);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   box-shadow:
     0 18px 48px color-mix(in srgb, #000 22%, transparent),
     0 0 0 1px color-mix(in srgb, var(--color-bg-4) 30%, transparent) inset;
@@ -41,7 +41,7 @@
   line-height: 34px !important;
   background: transparent !important;
   border: 1px solid transparent;
-  border-radius: 10px !important;
+  border-radius: var(--radius-panel) !important;
   transition:
     background-color 0.14s ease,
     border-color 0.14s ease,
@@ -69,7 +69,7 @@
   color: var(--text-primary);
   background: color-mix(in srgb, var(--color-bg-2) 92%, var(--brand));
   border: 1px solid var(--color-border-2);
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   box-shadow: 0 1px 0 color-mix(in srgb, #fff 6%, transparent) inset;
   transition:
     border-color 0.16s ease,
@@ -113,7 +113,7 @@
   text-align: center;
   background: color-mix(in srgb, var(--color-bg-2) 72%, transparent) !important;
   border: 1px dashed var(--color-border-2);
-  border-radius: 10px !important;
+  border-radius: var(--radius-panel) !important;
 }
 
 .checkmark {

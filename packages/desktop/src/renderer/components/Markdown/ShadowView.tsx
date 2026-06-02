@@ -140,7 +140,7 @@ const createInitStyle = (
     background: var(--bg-3);
     color: var(--text-primary);
     padding: 2px 6px;
-    border-radius: 4px;
+    border-radius: var(--radius-control);
     font-size: 0.92em;
     font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   }
@@ -176,6 +176,7 @@ const createInitStyle = (
   pre::-webkit-scrollbar-thumb,
   .hljs::-webkit-scrollbar-thumb {
     background-color: ${currentTheme === 'dark' ? 'rgba(255, 255, 255, 0.18)' : 'rgba(0, 0, 0, 0.1)'};
+    /* intentional: 3px scrollbar — kept per Phase 0 audit */
     border-radius: 3px;
   }
   pre::-webkit-scrollbar-thumb:hover,

@@ -52,7 +52,7 @@ const AddModelModal = ModalHOC<{ data?: IProvider; onSubmit: (model: IProvider) 
         style={{ maxHeight: '90vh' }}
         contentStyle={{
           background: 'var(--dialog-fill-0)',
-          borderRadius: 16,
+          borderRadius: 'var(--radius-panel)',
           padding: '20px 24px',
           overflow: 'auto',
         }}

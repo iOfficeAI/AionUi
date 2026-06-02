@@ -231,7 +231,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
     <div className='flex justify-end gap-10px'>
       {currentStep === 1 && (
         <>
-          <Button onClick={onCancel} className='min-w-100px' style={{ borderRadius: 8 }}>
+          <Button onClick={onCancel} className='min-w-100px' style={{ borderRadius: 'var(--radius-control)' }}>
             {t('common.cancel')}
           </Button>
           <Button
@@ -239,7 +239,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
             onClick={handleNextStep}
             disabled={!selectedAgent}
             className='min-w-120px'
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 'var(--radius-control)' }}
           >
             {t('settings.mcpNextStep')}
           </Button>
@@ -247,7 +247,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       )}
       {currentStep === 2 && (
         <>
-          <Button onClick={handlePrevStep} className='min-w-100px' style={{ borderRadius: 8 }}>
+          <Button onClick={handlePrevStep} className='min-w-100px' style={{ borderRadius: 'var(--radius-control)' }}>
             {t('settings.mcpPrevStep')}
           </Button>
           <Button
@@ -255,14 +255,14 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
             onClick={handleNextStep}
             disabled={loadingImport || importableServers.length === 0}
             className='min-w-120px'
-            style={{ borderRadius: 8 }}
+            style={{ borderRadius: 'var(--radius-control)' }}
           >
             {t('settings.mcpImportButton')}
           </Button>
         </>
       )}
       {currentStep === 3 && (
-        <Button type='primary' onClick={onCancel} className='min-w-120px' style={{ borderRadius: 8 }}>
+        <Button type='primary' onClick={onCancel} className='min-w-120px' style={{ borderRadius: 'var(--radius-control)' }}>
           {t('settings.mcpConfirmButton')}
         </Button>
       )}
@@ -277,7 +277,7 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
       footer={{ render: renderFooter }}
       style={{ width: 600, height: 420 }}
       contentStyle={{
-        borderRadius: 16,
+        borderRadius: 'var(--radius-panel)',
         padding: '24px',
         background: 'var(--dialog-fill-0)',
         overflow: 'hidden',

@@ -86,6 +86,7 @@ export function generateInspectScript(inspectMode: boolean, messages: InspectMes
           background: #10b981;
           color: white;
           padding: 12px 20px;
+          /* intentional: runtime-injected webview style — renderer tokens don't propagate */
           border-radius: 6px;
           font-size: 14px;
           z-index: 1000000;

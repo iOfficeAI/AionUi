@@ -351,6 +351,7 @@
    (collapsed from agent-mode-compact-pill mobile sizing). */
 @media (max-width: 767px) {
   .composerPill {
+    /* intentional: 999px pill geometry — kept per Phase 0 audit */
     border-radius: 999px;
   }
 
@@ -662,7 +663,7 @@
      less vertical space on narrow screens. */
   .sendbox-panel {
     padding: 8px 10px !important; /* fights desktop padding */
-    border-radius: 16px !important; /* fights desktop border-radius */
+    border-radius: var(--radius-panel) !important; /* fights desktop border-radius */
   }
 
   .speech-input-feedback {

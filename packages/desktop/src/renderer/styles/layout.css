@@ -250,19 +250,19 @@
     height: 34px !important;
     gap: 8px !important;
     padding-inline: 10px !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-card) !important;
   }
 
   .sider-action-icon-btn-mobile {
     width: 34px !important;
     height: 34px !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-card) !important;
   }
 
   .sider-footer-btn-mobile {
     min-height: 34px !important;
     padding: 6px 10px !important;
-    border-radius: 8px !important;
+    border-radius: var(--radius-card) !important;
   }
 
   /* Mobile: remove left padding for message wrapper */

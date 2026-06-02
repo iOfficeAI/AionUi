@@ -186,15 +186,15 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
             style={{ width: '54%', borderColor: palette.border, background: palette.mainBg }}
           >
             <span
-              className='block h-6px rounded-[6px] w-4/5'
+              className='block h-6px rounded-card w-4/5'
               style={{ background: palette.aiBubble, opacity: 0.9 }}
             ></span>
             <span
-              className='block h-6px rounded-[6px] w-3/5 self-end'
+              className='block h-6px rounded-card w-3/5 self-end'
               style={{ background: palette.userBubble, opacity: 0.95 }}
             ></span>
             <span
-              className='block h-6px rounded-[6px] w-2/3'
+              className='block h-6px rounded-card w-2/3'
               style={{ background: palette.aiBubble, opacity: 0.82 }}
             ></span>
           </div>

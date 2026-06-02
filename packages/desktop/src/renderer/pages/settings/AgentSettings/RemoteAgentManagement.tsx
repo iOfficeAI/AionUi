@@ -239,10 +239,10 @@ const RemoteAgentFormModal: React.FC<{
           title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'),
           showClose: true,
         }}
-        style={{ maxWidth: '92vw', borderRadius: 16 }}
+        style={{ maxWidth: '92vw', borderRadius: 'var(--radius-panel)' }}
         contentStyle={{
           background: 'var(--dialog-fill-0)',
-          borderRadius: 16,
+          borderRadius: 'var(--radius-panel)',
           padding: '20px 24px 16px',
           overflow: 'auto',
         }}
@@ -287,10 +287,10 @@ const RemoteAgentFormModal: React.FC<{
         title: editAgent ? t('settings.remoteAgent.editTitle') : t('settings.remoteAgent.addTitle'),
         showClose: true,
       }}
-      style={{ maxWidth: '92vw', borderRadius: 16 }}
+      style={{ maxWidth: '92vw', borderRadius: 'var(--radius-panel)' }}
       contentStyle={{
         background: 'var(--dialog-fill-0)',
-        borderRadius: 16,
+        borderRadius: 'var(--radius-panel)',
         padding: '20px 24px 16px',
         overflow: 'auto',
       }}
@@ -339,7 +339,7 @@ const RemoteAgentFormModal: React.FC<{
               <Avatar
                 size={48}
                 shape='square'
-                style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, borderRadius: 12 }}
+                style={{ backgroundColor: 'var(--color-fill-2)', fontSize: 24, borderRadius: 'var(--radius-panel)' }}
               >
                 {avatar}
               </Avatar>

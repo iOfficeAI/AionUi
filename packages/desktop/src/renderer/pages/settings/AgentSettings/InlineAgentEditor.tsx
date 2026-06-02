@@ -305,7 +305,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             <Avatar
               size={48}
               shape='square'
-              style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
+              style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 'var(--radius-panel)' }}
             >
               {avatar}
             </Avatar>
@@ -463,7 +463,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
                   borderRadius: '10px',
                   overflow: 'hidden',
                 }}
-                className='[&_.cm-editor]:rounded-[10px]'
+                className='[&_.cm-editor]:rounded-panel'
               />
               {jsonError && <div className='mt-4px text-xs text-danger'>{jsonError}</div>}
             </div>

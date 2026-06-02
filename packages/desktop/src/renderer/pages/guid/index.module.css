@@ -50,6 +50,7 @@
   height: 30px;
   min-width: 30px;
   color: var(--color-text-2);
+  /* intentional: 999px pill geometry — kept per Phase 0 audit */
   border-radius: 999px;
   background: var(--color-fill-2);
   display: inline-flex;
@@ -142,6 +143,7 @@
   max-width: 760px;
   min-height: 40px;
   padding: 0 14px;
+  /* intentional: 20px hero card — flagged for R5 review */
   border-radius: 20px;
   color: var(--color-text-2);
   background: var(--assistant-surface-bg);
@@ -163,7 +165,7 @@
 .heroSubtitleExpanded {
   align-items: flex-start;
   padding: 10px 14px;
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   cursor: default;
 }
 
@@ -236,7 +238,7 @@
   height: 22px;
   min-height: 22px;
   padding: 0 6px;
-  border-radius: 10px;
+  border-radius: var(--radius-panel);
   border: 0;
   outline: 0;
   box-shadow: none;
@@ -279,7 +281,7 @@
   gap: 6px;
   height: 24px;
   padding: 0 8px;
-  border-radius: 12px;
+  border-radius: var(--radius-panel);
   background: var(--color-fill-1);
   border: 1px solid var(--color-border-2);
   color: var(--color-text-2);
@@ -341,6 +343,7 @@
 .guidInputInner {
   background: var(--bg-base, #fff);
   border: 1px solid var(--color-border-3);
+  /* intentional: 24px decorative outer radius — hero pill */
   border-radius: 24px;
   box-sizing: border-box;
 }
@@ -447,7 +450,7 @@
   background: transparent;
   border: none;
   padding: 4px 6px;
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   cursor: pointer;
   font-family: inherit;
   transition:
@@ -467,7 +470,7 @@
   align-items: center;
   background: transparent;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   overflow: hidden;
   max-width: 280px;
 }
@@ -513,7 +516,7 @@
   border: none;
   background: transparent;
   cursor: pointer;
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   color: var(--color-text-4);
   flex-shrink: 0;
   transition:
@@ -529,7 +532,7 @@
 .wsDropdown {
   background: var(--bg-base, #fff);
   border: 1px solid var(--color-border-2);
-  border-radius: 12px;
+  border-radius: var(--radius-panel);
   padding: 6px;
   box-shadow: var(--shadow-md);
   min-width: 230px;
@@ -544,7 +547,7 @@
   padding: 6px 10px;
   margin-bottom: 4px;
   background: var(--color-fill-2);
-  border-radius: 8px;
+  border-radius: var(--radius-card);
 }
 
 .wsDropdownSearchInput {
@@ -566,7 +569,7 @@
   align-items: center;
   gap: 8px;
   padding: 7px 10px;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
   cursor: pointer;
   font-size: 13px;
   color: var(--color-text-1);
@@ -836,7 +839,7 @@
   padding: 12px 14px;
   background: var(--bg-base, #fff);
   border: 1px solid color-mix(in srgb, var(--color-border-2) 70%, transparent);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   cursor: pointer;
   box-shadow: var(--shadow-sm);
   transition:
@@ -915,7 +918,7 @@
   padding: 12px 14px;
   background: var(--color-fill-1);
   border: 1px dashed color-mix(in srgb, var(--color-border-2) 70%, transparent);
-  border-radius: 14px;
+  border-radius: var(--radius-panel);
   cursor: pointer;
   transition: background-color 0.15s;
   color: var(--color-text-3);
@@ -950,7 +953,7 @@
   background: var(--color-fill-2);
   border: 1px solid var(--color-border-2);
   padding: 0;
-  border-radius: 16px;
+  border-radius: var(--radius-panel);
   cursor: pointer;
   user-select: none;
   transition: background-color var(--motion-base);
@@ -983,6 +986,7 @@
 
 .presetAgentTagMain:hover {
   background: var(--color-fill-3);
+  /* intentional: asymmetric — left corners only */
   border-radius: 16px 0 0 16px;
 }
 

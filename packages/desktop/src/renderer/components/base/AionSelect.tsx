@@ -31,7 +31,7 @@ export interface AionSelectProps extends NativeSelectProps {
  */
 const BASE_CLASS = classNames(
   'aion-select',
-  '[&_.arco-select-view]:rounded-[4px]',
+  '[&_.arco-select-view]:rounded-control',
   '[&_.arco-select-view]:border',
   '[&_.arco-select-view]:border-solid',
   '[&_.arco-select-view]:border-border-2',

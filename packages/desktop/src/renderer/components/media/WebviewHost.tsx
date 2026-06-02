@@ -503,7 +503,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
               height: 30px;
               min-width: 30px;
               padding: 0 10px;
-              border-radius: 10px;
+              border-radius: var(--radius-panel);
               border: 1px solid var(--viewer-border);
               background: var(--viewer-bg);
               color: var(--viewer-text);
@@ -542,7 +542,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
               height: 30px;
               min-width: 48px;
               padding: 0 10px;
-              border-radius: 10px;
+              border-radius: var(--radius-panel);
               border: 1px solid var(--viewer-border);
               background: var(--color-bg-2);
               color: var(--viewer-text-muted);
@@ -555,7 +555,7 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
               width: 100%;
               height: 30px;
               padding: 0 12px;
-              border-radius: 10px;
+              border-radius: var(--radius-panel);
               border: 1px solid var(--viewer-border);
               background: var(--viewer-bg);
               color: var(--color-text-1);

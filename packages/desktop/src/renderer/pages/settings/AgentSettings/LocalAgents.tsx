@@ -190,10 +190,10 @@ const LocalAgents: React.FC = () => {
           showClose: true,
         }}
         footer={null}
-        style={{ maxWidth: '92vw', borderRadius: 16 }}
+        style={{ maxWidth: '92vw', borderRadius: 'var(--radius-panel)' }}
         contentStyle={{
           background: 'var(--dialog-fill-0)',
-          borderRadius: 16,
+          borderRadius: 'var(--radius-panel)',
           padding: '20px 24px 16px',
           overflow: 'auto',
         }}

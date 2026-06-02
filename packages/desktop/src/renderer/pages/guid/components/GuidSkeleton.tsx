@@ -24,7 +24,7 @@ export const AgentPillBarSkeleton: React.FC = () => {
         }}
       >
         {/* First pill is wider to mimic the selected state */}
-        <div className={styles.skeleton} style={{ width: 48, height: 28, borderRadius: 20 }} />
+        <div className={styles.skeleton} style={{ width: 48, height: 28, borderRadius: 20 }} /* intentional: 20px skeleton chip — close to circular, flagged for R5 review */ />
         {[28, 28, 28, 28].map((size, i) => (
           <div key={i} className={styles.skeleton} style={{ width: size, height: size, borderRadius: '50%' }} />
         ))}

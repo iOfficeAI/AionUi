@@ -97,7 +97,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({ openFileSelector, o
 
   const cardStyle: React.CSSProperties = {
     backgroundColor: 'var(--color-bg-2, #fff)',
-    borderRadius: 12,
+    borderRadius: 'var(--radius-panel)',
     boxShadow: '0 4px 24px rgba(0,0,0,0.13)',
     border: '1px solid var(--color-border-1, #e5e6eb)',
     padding: '6px 0',

@@ -297,7 +297,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
       footer={{
         render: () => (
           <div className='flex justify-end gap-10px pt-20px'>
-            <Button className='px-20px min-w-80px' style={{ borderRadius: 8 }} onClick={() => setDeleteOpen(false)}>
+            <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setDeleteOpen(false)}>
               {t('conversation.history.cancelDelete')}
             </Button>
             <Button
@@ -305,7 +305,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
               status='warning'
               loading={deleting}
               className='px-20px min-w-80px'
-              style={{ borderRadius: 8 }}
+              style={{ borderRadius: 'var(--radius-control)' }}
               onClick={() => void confirmDeleteRemote()}
             >
               {t('conversation.history.confirmDelete')}

@@ -180,6 +180,7 @@ body,
 
 ::-webkit-scrollbar-thumb {
   background: transparent;
+  /* intentional: 3px scrollbar — kept per Phase 0 audit */
   border-radius: 3px;
   transition: background 0.3s;
 }

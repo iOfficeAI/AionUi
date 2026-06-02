@@ -119,7 +119,7 @@ const AddSkillsModal: React.FC<AddSkillsModalProps> = ({
           placeholder={t('settings.skillsHub.searchPlaceholder', { defaultValue: 'Search skills...' })}
           value={searchExternalQuery}
           onChange={(val) => setSearchExternalQuery(val)}
-          className='mb-12px shrink-0 rounded-[8px] bg-fill-2'
+          className='mb-12px shrink-0 rounded-card bg-fill-2'
         />
 
         {/* Skill list */}

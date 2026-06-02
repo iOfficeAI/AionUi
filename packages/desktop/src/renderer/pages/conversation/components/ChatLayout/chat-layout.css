@@ -102,7 +102,7 @@
 /* Workspace open button dropdown styles */
 .workspace-open-dropdown {
   background-color: var(--color-bg-2);
-  border-radius: 4px;
+  border-radius: var(--radius-control);
   box-shadow: var(--shadow-md);
   color: var(--color-text-1);
 }

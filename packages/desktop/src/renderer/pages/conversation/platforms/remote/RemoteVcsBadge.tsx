@@ -140,7 +140,7 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
             <div className='flex justify-end gap-10px pt-20px'>
               <Button
                 className='px-20px min-w-80px'
-                style={{ borderRadius: 8 }}
+                style={{ borderRadius: 'var(--radius-control)' }}
                 loading={loading}
                 onClick={() => void fetchAll()}
               >
@@ -149,7 +149,7 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
               <Button
                 type='primary'
                 className='px-20px min-w-80px'
-                style={{ borderRadius: 8 }}
+                style={{ borderRadius: 'var(--radius-control)' }}
                 onClick={() => {
                   setOpen(false);
                   setExpanded(null);

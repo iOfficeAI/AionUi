@@ -4,7 +4,7 @@
   width: 28px;
   height: 28px;
   border: none;
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   background: transparent;
   color: var(--text-primary);
   display: inline-flex;
@@ -84,7 +84,7 @@
   .chat-workspace .workspace-node-more-btn {
     width: 32px !important;
     height: 32px !important;
-    border-radius: 10px !important;
+    border-radius: var(--radius-panel) !important;
   }
 
   .chat-workspace .workspace-tree .arco-tree-node {

@@ -173,6 +173,7 @@
   width: var(--titlebar-btn-size);
   height: var(--titlebar-btn-size);
   border: none;
+  /* intentional: 5px platform-specific (Windows control button) */
   border-radius: 5px;
   background-color: transparent;
   color: var(--text-primary);
@@ -221,7 +222,7 @@
 .app-titlebar__button--mobile {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
+  border-radius: var(--radius-card);
 }
 
 .app-titlebar__button--mobile svg {
