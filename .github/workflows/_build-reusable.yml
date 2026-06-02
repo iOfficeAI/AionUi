@@ -309,8 +309,10 @@ jobs:
         run: node scripts/prepareAioncore.js
         env:
           # Version is pinned in repo-root package.json (prefer aioncoreVersion, fallback aionuiBackendVersion).
-          # Set AIONCORE_VERSION here only to override for ad-hoc builds.
-          # Set AIONCORE_GITHUB_OWNER/REPO/SOURCE_BINARY_NAME to switch to our forked backend releases.
+          # Override AIONCORE_VERSION for ad-hoc builds.
+          # AIONCORE_GITHUB_OWNER/REPO point to our private backend fork.
+          AIONCORE_GITHUB_OWNER: halojerry
+          AIONCORE_GITHUB_REPO: poundingcore
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
