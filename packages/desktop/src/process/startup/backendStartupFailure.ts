@@ -25,6 +25,7 @@ type ErrorWithDetails = Error & {
 const GLIBC_VERSION_RE = /GLIBC_(\d+\.\d+)/g;
 const GLIBC_NOT_FOUND_RE = /GLIBC_\d+\.\d+[\s\S]{0,160}not found|not found[\s\S]{0,160}GLIBC_\d+\.\d+/i;
 const PACKAGED_APP_MARKER_ENTRIES = new Set(['app.asar', 'app.asar.unpacked/']);
+const MAX_REPORTED_DIR_ENTRIES = 20;
 
 function collectBackendStartupText(error: unknown): string {
   const parts: string[] = [];
@@ -47,7 +48,7 @@ function extractMissingGlibcVersions(text: string): string[] {
     versions.add(match[1]);
   }
 
-  return [...versions].sort((a, b) => {
+  return [...versions].toSorted((a, b) => {
     const [aMajor, aMinor] = a.split('.').map(Number);
     const [bMajor, bMinor] = b.split('.').map(Number);
     return aMajor - bMajor || aMinor - bMinor;
@@ -64,6 +65,11 @@ function getStringArray(value: unknown): string[] | undefined {
   return strings.length === value.length ? strings : undefined;
 }
 
+function getMissingDirectoryFlag(entries: string[], directoryName: string): boolean | undefined {
+  if (entries.includes(directoryName)) return false;
+  return entries.length < MAX_REPORTED_DIR_ENTRIES ? true : undefined;
+}
+
 function classifyIncompleteInstallation(details: ErrorWithDetails['details']): BackendStartupFailureInfo | undefined {
   if (!details) return undefined;
   if (details.stage !== 'resolve_binary' || details.isPackaged !== true) return undefined;
@@ -74,26 +80,36 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
   const hasPackagedApp = resourcesDirEntries.some((entry) => PACKAGED_APP_MARKER_ENTRIES.has(entry));
   if (!hasPackagedApp) return undefined;
 
-  const missingResources = resourcesDirEntries.includes('bundled-aioncore/') ? [] : ['bundled-aioncore/'];
+  const missingBundledAioncoreDir = !resourcesDirEntries.includes('bundled-aioncore/');
+  const missingRuntimeDir = details.runtimeDirExists === false && typeof details.runtimeKey === 'string';
+  const missingResources = missingBundledAioncoreDir ? ['bundled-aioncore/'] : [];
   if (details.runtimeDirExists === false && typeof details.runtimeKey === 'string') {
     missingResources.push(`bundled-aioncore/${details.runtimeKey}/`);
   }
   const runtimeDirEntries = getStringArray(details.runtimeDirEntries);
-  if (
+  const missingRuntimeBinary =
     details.runtimeDirExists === true &&
     typeof details.runtimeKey === 'string' &&
     typeof details.binaryName === 'string' &&
-    runtimeDirEntries &&
-    !runtimeDirEntries.includes(details.binaryName)
-  ) {
+    runtimeDirEntries !== undefined &&
+    !runtimeDirEntries.includes(details.binaryName);
+  if (missingRuntimeBinary && typeof details.runtimeKey === 'string' && typeof details.binaryName === 'string') {
     missingResources.push(`bundled-aioncore/${details.runtimeKey}/${details.binaryName}`);
   }
 
   if (missingResources.length === 0) return undefined;
 
   return {
+    incompleteInstallationKind:
+      missingBundledAioncoreDir || missingRuntimeDir ? 'missing_directory_resources' : 'missing_backend_binary',
+    missingBackendBinary: missingBundledAioncoreDir || missingRuntimeDir || missingRuntimeBinary,
+    missingBundledAioncoreDir,
+    missingHubDir: getMissingDirectoryFlag(resourcesDirEntries, 'hub/'),
+    missingPetStatesDir: getMissingDirectoryFlag(resourcesDirEntries, 'pet-states/'),
+    missingPwaDir: getMissingDirectoryFlag(resourcesDirEntries, 'pwa/'),
     reason: 'backend_incomplete_installation',
     missingResources,
+    missingRuntimeDir,
   };
 }
 

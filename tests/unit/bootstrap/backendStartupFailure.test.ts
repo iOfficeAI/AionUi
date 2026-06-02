@@ -42,6 +42,7 @@ describe('classifyBackendStartupFailure', () => {
       stage: 'resolve_binary',
       isPackaged: true,
       runtimeKey: 'win32-x64',
+      binaryName: 'aioncore.exe',
       bundledDirExists: false,
       runtimeDirExists: false,
       resourcesDirEntries: [
@@ -57,7 +58,14 @@ describe('classifyBackendStartupFailure', () => {
 
     expect(classifyBackendStartupFailure(error)).toEqual({
       reason: 'backend_incomplete_installation',
+      incompleteInstallationKind: 'missing_directory_resources',
+      missingBackendBinary: true,
+      missingBundledAioncoreDir: true,
+      missingHubDir: true,
+      missingPetStatesDir: true,
+      missingPwaDir: true,
       missingResources: ['bundled-aioncore/', 'bundled-aioncore/win32-x64/'],
+      missingRuntimeDir: true,
     });
   });
 
@@ -79,7 +87,10 @@ describe('classifyBackendStartupFailure', () => {
         'app.png',
         'bundled-aioncore/',
         'elevate.exe',
+        'hub/',
         'manifest.webmanifest',
+        'pet-states/',
+        'pwa/',
         'sw.js',
       ],
       runtimeDirEntries: ['manifest.json'],
@@ -87,7 +98,14 @@ describe('classifyBackendStartupFailure', () => {
 
     expect(classifyBackendStartupFailure(error)).toEqual({
       reason: 'backend_incomplete_installation',
+      incompleteInstallationKind: 'missing_backend_binary',
+      missingBackendBinary: true,
+      missingBundledAioncoreDir: false,
+      missingHubDir: false,
+      missingPetStatesDir: false,
+      missingPwaDir: false,
       missingResources: ['bundled-aioncore/win32-x64/aioncore.exe'],
+      missingRuntimeDir: false,
     });
   });
 });

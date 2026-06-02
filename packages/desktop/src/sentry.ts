@@ -134,6 +134,45 @@ function getBackendStartupDetails(error: unknown): Record<string, unknown> | und
   return details as Record<string, unknown>;
 }
 
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function getBooleanTagValue(value: boolean | undefined): string | undefined {
+  return typeof value === 'boolean' ? String(value) : undefined;
+}
+
+function getInstallPathKind(resourcesPath: unknown): string | undefined {
+  const pathValue = getString(resourcesPath);
+  if (!pathValue) return undefined;
+
+  const normalized = pathValue.replace(/\//g, '\\').toLowerCase();
+  if (normalized.includes('\\appdata\\local\\programs\\aionui\\resources')) {
+    return 'user_local_programs';
+  }
+  if (
+    normalized.includes('\\program files\\aionui\\resources') ||
+    normalized.includes('\\program files (x86)\\aionui\\resources')
+  ) {
+    return 'program_files';
+  }
+  if (pathValue.startsWith('/Applications/') && pathValue.includes('.app/Contents/Resources')) {
+    return 'mac_applications';
+  }
+  if (pathValue.startsWith('/opt/')) {
+    return 'linux_opt';
+  }
+  return 'custom';
+}
+
+function getSecondsSince(timestamp: string | undefined): string | undefined {
+  if (!timestamp) return undefined;
+  const parsed = Date.parse(timestamp);
+  if (!Number.isFinite(parsed)) return undefined;
+  const elapsedSeconds = Math.floor((Date.now() - parsed) / 1000);
+  return elapsedSeconds >= 0 ? String(elapsedSeconds) : undefined;
+}
+
 const BACKEND_STARTUP_FLUSH_TIMEOUT_MS = 2000;
 
 export async function captureBackendStartupFailure(error: unknown): Promise<void> {
@@ -158,6 +197,25 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
     }
     if (typeof details?.stage === 'string') {
       scope.setTag('aionui.backend_startup.stage', details.stage);
+    }
+    if (failureInfo.incompleteInstallationKind) {
+      scope.setTag('aionui.backend_startup.incomplete_installation_kind', failureInfo.incompleteInstallationKind);
+    }
+    for (const [tag, value] of [
+      ['aionui.backend_startup.missing_bundled_dir', getBooleanTagValue(failureInfo.missingBundledAioncoreDir)],
+      ['aionui.backend_startup.missing_runtime_dir', getBooleanTagValue(failureInfo.missingRuntimeDir)],
+      ['aionui.backend_startup.missing_binary', getBooleanTagValue(failureInfo.missingBackendBinary)],
+      ['aionui.backend_startup.missing_hub_dir', getBooleanTagValue(failureInfo.missingHubDir)],
+      ['aionui.backend_startup.missing_pet_states_dir', getBooleanTagValue(failureInfo.missingPetStatesDir)],
+      ['aionui.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
+      ['aionui.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
+      ['aionui.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],
+      [
+        'aionui.backend_startup.seconds_since_quit_and_install',
+        getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),
+      ],
+    ] as const) {
+      if (value) scope.setTag(tag, value);
     }
     if (details) {
       scope.setContext('aioncore_startup', details);
