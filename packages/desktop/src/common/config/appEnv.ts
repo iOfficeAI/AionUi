@@ -18,6 +18,6 @@ import { getPlatformServices } from '@/common/platform';
  */
 export function getEnvAwareName(baseName: string): string {
   if (getPlatformServices().paths.isPackaged() === true) return baseName;
-  const suffix = process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
+  const suffix = process.env.POUNDING_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
   return `${baseName}${suffix}`;
 }

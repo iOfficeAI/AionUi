@@ -21,7 +21,7 @@ const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 const projectRoot = path.resolve(__dirname, '..');
 const platform = process.platform;
 // Support cross-compilation: AIONUI_BACKEND_ARCH > npm_config_target_arch > process.arch
-const arch = process.env.AIONUI_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
+const arch = process.env.POUNDING_BACKEND_ARCH || process.env.npm_config_target_arch || process.arch;
 const version = resolveAioncoreVersion(projectRoot);
 
 try {

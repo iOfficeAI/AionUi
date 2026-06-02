@@ -15,7 +15,7 @@ const fs = require('fs');
 const path = require('path');
 
 function resolveAioncoreVersion(projectRoot) {
-  const envOverride = process.env.AIONUI_BACKEND_VERSION;
+  const envOverride = process.env.POUNDING_BACKEND_VERSION;
   if (envOverride && envOverride.trim()) {
     return envOverride.trim();
   }

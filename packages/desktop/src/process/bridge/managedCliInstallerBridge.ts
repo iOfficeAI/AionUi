@@ -43,7 +43,7 @@ const HERMES_SHIM_PATH = path.join(HERMES_BIN_DIR, 'hermes');
 const UV_BIN_PATH = path.join(os.homedir(), '.local', 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv');
 const OPENCODE_CONFIG_ENV_NAME = 'OPENCODE_CONFIG';
 const XDG_CONFIG_HOME_ENV_NAME = 'XDG_CONFIG_HOME';
-const AIONUI_DEV_DIR = path.join(os.homedir(), getEnvAwareName('.pouding'));
+const AIONUI_DEV_DIR = path.join(os.homedir(), getEnvAwareName('.pounding'));
 const MANAGED_OPENCODE_CONFIG_PATH = path.join(AIONUI_DEV_DIR, 'managed-opencode', 'opencode.json');
 const MANAGED_OPENCODE_XDG_HOME = path.join(AIONUI_DEV_DIR, 'xdg-config');
 const BUN_HOME_DIR = process.env.BUN_INSTALL?.trim() || path.join(os.homedir(), '.bun');
@@ -51,10 +51,10 @@ const BUN_BIN_DIR = path.join(BUN_HOME_DIR, 'bin');
 const BUN_GLOBAL_NODE_MODULES_DIR = path.join(BUN_HOME_DIR, 'install', 'global', 'node_modules');
 const BUN_BIN_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.exe' : 'bun');
 const BUN_SHIM_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.cmd' : 'bun');
-const LEGACY_OPENCODE_XDG_HOME = path.join(os.homedir(), getEnvAwareName('.aionui'), 'xdg-config');
+const LEGACY_OPENCODE_XDG_HOME = path.join(os.homedir(), getEnvAwareName('.pounding'), 'xdg-config');
 const LEGACY_OPENCODE_CONFIG_PATH = path.join(
   os.homedir(),
-  getEnvAwareName('.aionui'),
+  getEnvAwareName('.pounding'),
   'managed-opencode',
   'opencode.json'
 );

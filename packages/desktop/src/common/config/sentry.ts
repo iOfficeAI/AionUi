@@ -22,11 +22,11 @@ const POUNDING_SENTRY_DSN =
   'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
 
 export function resolveDesktopSentryConfig(env: Record<string, string | undefined>): DesktopSentryConfig {
-  const dsn = trimEnv(env.AIONUI_SENTRY_DSN) || trimEnv(env.SENTRY_DSN) || POUNDING_SENTRY_DSN;
-  const release = trimEnv(env.AIONUI_SENTRY_RELEASE) || trimEnv(env.APP_VERSION);
-  const environment = trimEnv(env.AIONUI_SENTRY_ENVIRONMENT) || trimEnv(env.NODE_ENV) || 'production';
-  const serverName = trimEnv(env.AIONUI_SENTRY_SERVER_NAME) || trimEnv(env.npm_package_name);
-  const brand = trimEnv(env.AIONUI_BRAND_NAME) || 'POUNDING';
+  const dsn = trimEnv(env.POUNDING_SENTRY_DSN) || trimEnv(env.SENTRY_DSN) || POUNDING_SENTRY_DSN;
+  const release = trimEnv(env.POUNDING_SENTRY_RELEASE) || trimEnv(env.APP_VERSION);
+  const environment = trimEnv(env.POUNDING_SENTRY_ENVIRONMENT) || trimEnv(env.NODE_ENV) || 'production';
+  const serverName = trimEnv(env.POUNDING_SENTRY_SERVER_NAME) || trimEnv(env.npm_package_name);
+  const brand = trimEnv(env.POUNDING_BRAND_NAME) || 'POUNDING';
 
   return {
     enabled: Boolean(dsn),

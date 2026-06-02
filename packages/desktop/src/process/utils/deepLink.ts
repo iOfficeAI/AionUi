@@ -7,7 +7,7 @@
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
 
-export const PROTOCOL_SCHEME = 'aionui';
+export const PROTOCOL_SCHEME = 'pounding';
 
 /**
  * Parse an aionui:// URL into action and params.

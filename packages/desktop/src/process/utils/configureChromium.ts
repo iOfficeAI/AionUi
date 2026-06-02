@@ -320,7 +320,7 @@ export function saveCdpConfig(config: CdpConfig): void {
  * Returns null if explicitly disabled via env.
  */
 function resolveCdpPortFromEnv(): number | null | undefined {
-  const envVal = process.env.AIONUI_CDP_PORT;
+  const envVal = process.env.POUNDING_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return null;
   if (envVal) {
     const parsed = Number(envVal);
@@ -334,7 +334,7 @@ function resolveCdpPortFromEnv(): number | null | undefined {
  * Priority: env variable > config file > default (dev mode: true, production: false)
  */
 function shouldEnableCdp(config: CdpConfig): boolean {
-  const envVal = process.env.AIONUI_CDP_PORT;
+  const envVal = process.env.POUNDING_CDP_PORT;
   if (envVal === '0' || envVal === 'false') return false;
   if (envVal) return true;
 
