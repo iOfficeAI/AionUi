@@ -33,6 +33,7 @@ import path from 'node:path';
 import stripJsonComments from 'strip-json-comments';
 
 const NEW_API_BASE_URL = 'https://api.mxou.cn';
+const POUNDING_CONFIG_PATH = path.join(os.homedir(), '.pounding', 'config.json');
 const NEW_API_STORAGE_KEY = 'newApi.desktop.account';
 const NEW_API_CLI_MODEL_PREFS_KEY = 'newApi.desktop.cliModelPrefs';
 const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
@@ -1541,6 +1542,31 @@ function recoverManagedRuntimeSnapshotFromConfigs(): RecoveredManagedRuntimeSnap
   );
 }
 
+function writePoundingConfig(apiKey: string, baseUrl?: string): void {
+  const config = {
+    api: {
+      base_url: baseUrl || NEW_API_BASE_URL,
+      key: apiKey,
+    },
+  };
+  try {
+    fs.mkdirSync(path.dirname(POUNDING_CONFIG_PATH), { recursive: true });
+    fs.writeFileSync(POUNDING_CONFIG_PATH, JSON.stringify(config, null, 2) + '\n', { encoding: 'utf8', mode: 0o600 });
+  } catch (err) {
+    console.error('[POUNDING] Failed to write config.json:', err);
+  }
+}
+
+function clearPoundingConfig(): void {
+  try {
+    if (fs.existsSync(POUNDING_CONFIG_PATH)) {
+      fs.rmSync(POUNDING_CONFIG_PATH, { force: true });
+    }
+  } catch (err) {
+    console.error('[POUNDING] Failed to clear config.json:', err);
+  }
+}
+
 async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: ManagedCliModelPrefs): Promise<void> {
   const cliTasks: Array<{
     cliTarget: ManagedRuntimeCliTarget;
@@ -1579,6 +1605,12 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
       }
     })
   );
+
+  // Write ~/.pounding/config.json for skills to read the API key
+  const apiKey = provider.api_key;
+  if (apiKey) {
+    writePoundingConfig(apiKey, provider.base_url || undefined);
+  }
 }
 
 async function getStoredStatus(): Promise<NewApiAccountStatus> {
@@ -1769,6 +1801,7 @@ async function clearManagedBackendSyncArtifacts(): Promise<void> {
   clearHermesConfigForProviderSync();
   clearOpencodeConfigForProviderSync(managedProviderId);
   clearOpenClawManagedProviderModel(managedProviderId);
+  clearPoundingConfig();
 }
 
 function clearManagedRuntimeForCliTargetSync(cliTarget: ManagedRuntimeCliTarget): void {

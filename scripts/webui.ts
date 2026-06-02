@@ -116,7 +116,9 @@ function resolveStaticDir(): string {
   if (process.env.POUNDING_STATIC_DIR) return process.env.POUNDING_STATIC_DIR;
   const candidate = path.join(repoRoot, 'out', 'renderer');
   if (fs.existsSync(path.join(candidate, 'index.html'))) return candidate;
-  throw new Error(`Renderer assets not found at ${candidate}. Run "bun run package" first, or set POUNDING_STATIC_DIR.`);
+  throw new Error(
+    `Renderer assets not found at ${candidate}. Run "bun run package" first, or set POUNDING_STATIC_DIR.`
+  );
 }
 
 /**
