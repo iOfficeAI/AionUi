@@ -36,6 +36,8 @@ import MessageToolGroupSummary from './components/MessageToolGroupSummary';
 import MessageSkillSuggest from './components/MessageSkillSuggest';
 import MessageText from './components/MessageText';
 import MessageThinking from './components/MessageThinking';
+import OpencodeErrorCard from './components/OpencodeErrorCard';
+import RetryIndicator from './components/RetryIndicator';
 import type { WriteFileResult } from './types';
 import { useAutoScroll } from './useAutoScroll';
 import { useAutoPreviewOfficeFiles } from '@/renderer/hooks/file/useAutoPreviewOfficeFiles';
@@ -152,6 +154,10 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         return <MessageAcpToolCall message={message}></MessageAcpToolCall>;
       case 'opencode_subtask':
         return <MessageOpencodeSubtask message={message}></MessageOpencodeSubtask>;
+      case 'opencode_retry':
+        return <RetryIndicator message={message}></RetryIndicator>;
+      case 'opencode_error':
+        return <OpencodeErrorCard message={message}></OpencodeErrorCard>;
       case 'plan':
         return <MessagePlan message={message}></MessagePlan>;
       case 'thinking':

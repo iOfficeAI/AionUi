@@ -27,6 +27,7 @@ import RemoteToolHostBadge from '../platforms/remote/RemoteToolHostBadge';
 import RemoteLspBadge from '../platforms/remote/RemoteLspBadge';
 import RemoteVcsBadge from '../platforms/remote/RemoteVcsBadge';
 import RemoteSessionActions from '../platforms/remote/RemoteSessionActions';
+import RemoteSessionBadge from '../platforms/remote/RemoteSessionBadge';
 import RemoteServerBadge from '../platforms/remote/RemoteServerBadge';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -360,6 +361,11 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {conversation?.type === 'remote' && conversation && (
+        <div className='shrink-0'>
+          <RemoteSessionBadge conversation={conversation} />
+        </div>
+      )}
       {conversation?.type === 'remote' && conversation && (
         <div className='shrink-0'>
           <RemoteServerBadge conversation={conversation} />

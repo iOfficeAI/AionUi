@@ -78,6 +78,9 @@ export type UseRemoteMessageReturn = {
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
+  stopState: 'idle' | 'stopping' | 'force_available' | 'stopped';
+  beginStop: () => void;
+  acknowledgeStopLocally: () => void;
 };
 
 /**
@@ -108,6 +111,8 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
+  const [stopState, setStopState] = useState<'idle' | 'stopping' | 'force_available' | 'stopped'>('idle');
+  const stopTimeoutRef = useRef<number | undefined>(undefined);
 
   // Refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -131,6 +136,30 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
     model_id: string;
     session_mode?: string;
   } | null>(null);
+
+  const clearStopTimeout = useCallback(() => {
+    if (stopTimeoutRef.current) {
+      window.clearTimeout(stopTimeoutRef.current);
+      stopTimeoutRef.current = undefined;
+    }
+  }, []);
+
+  const beginStop = useCallback(() => {
+    clearStopTimeout();
+    setStopState('stopping');
+    stopTimeoutRef.current = window.setTimeout(() => {
+      setStopState((current) => (current === 'stopping' ? 'force_available' : current));
+    }, 10000);
+  }, [clearStopTimeout]);
+
+  const acknowledgeStopLocally = useCallback(() => {
+    clearStopTimeout();
+    setStopState('stopped');
+    setRunning(false);
+    runningRef.current = false;
+    setAiProcessing(false);
+    aiProcessingRef.current = false;
+  }, [clearStopTimeout]);
 
   const fetchSlashCommands = useCallback(() => {
     void ipcBridge.conversation.getSlashCommands
@@ -255,6 +284,8 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           setAiProcessing(false);
           aiProcessingRef.current = false;
           setThought({ subject: '', description: '' });
+          clearStopTimeout();
+          setStopState((current) => (current === 'stopping' || current === 'force_available' ? 'stopped' : 'idle'));
           hasContentInTurnRef.current = false;
           hasThinkingMessageRef.current = false;
           setHasThinkingMessage(false);
@@ -269,6 +300,16 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           }
           break;
         case 'error':
+          if ((message.data as { kind?: string; recoverable?: boolean } | undefined)?.kind === 'aborted') {
+            turnFinishedRef.current = true;
+            setRunning(false);
+            runningRef.current = false;
+            setAiProcessing(false);
+            aiProcessingRef.current = false;
+            clearStopTimeout();
+            setStopState('stopped');
+            break;
+          }
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
@@ -284,6 +325,47 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
               message.data
             );
             requestTraceRef.current = null;
+          }
+          break;
+        case 'session_status': {
+          const data = message.data as { status?: string };
+          if (data.status === 'aborting') {
+            setStopState('stopping');
+            setAiProcessing(true);
+            aiProcessingRef.current = true;
+          }
+          break;
+        }
+        case 'session_idle': {
+          const data = message.data as { reason?: string; at?: number };
+          turnFinishedRef.current = true;
+          setRunning(false);
+          runningRef.current = false;
+          setAiProcessing(false);
+          aiProcessingRef.current = false;
+          clearStopTimeout();
+          setStopState(data.reason === 'aborted' ? 'stopped' : 'idle');
+          const labelKey =
+            data.reason === 'aborted'
+              ? 'conversation.remoteAbort.stopped'
+              : `conversation.remoteAbort.${data.reason ?? 'completed'}`;
+          addOrUpdateMessage({
+            id: uuid(),
+            type: 'tips',
+            position: 'center',
+            conversation_id: message.conversation_id,
+            created_at: data.at ?? Date.now(),
+            content: {
+              content: t(labelKey, { defaultValue: data.reason === 'aborted' ? 'Stopped' : data.reason ?? 'Completed' }),
+              type: data.reason === 'errored' ? 'error' : 'success',
+            },
+          });
+          break;
+        }
+        case 'retry':
+        case 'session_error_recovered':
+          if (transformedMessage) {
+            addOrUpdateMessage(transformedMessage);
           }
           break;
         case 'acp_model_info':
@@ -427,8 +509,8 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           };
           if (compacted) {
             Notification.info({
-              title: t('remoteCompaction.title'),
-              content: t('remoteCompaction.notification', {
+              title: t('conversation.remoteCompaction.title'),
+              content: t('conversation.remoteCompaction.notification', {
                 tokens: Math.round((compacted.tokens_reclaimed ?? 0) / 1024),
               }),
               duration: 5000,
@@ -445,7 +527,7 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           break;
       }
     },
-    [conversation_id, addOrUpdateMessage, fetchSlashCommands]
+    [conversation_id, addOrUpdateMessage, fetchSlashCommands, clearStopTimeout, t]
   );
 
   useEffect(() => {
@@ -463,7 +545,9 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
-    setHasThinkingMessage(false);
+      setHasThinkingMessage(false);
+      clearStopTimeout();
+      setStopState('idle');
     setHasHydratedRunningState(false);
 
     setRunning(false);
@@ -542,5 +626,8 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
+    stopState,
+    beginStop,
+    acknowledgeStopLocally,
   };
 };

@@ -64,7 +64,9 @@ type TMessageType =
   | 'plan'
   | 'thinking'
   | 'available_commands'
-  | 'opencode_subtask';
+  | 'opencode_subtask'
+  | 'opencode_retry'
+  | 'opencode_error';
 
 interface IMessage<T extends TMessageType, Content extends Record<string, any>> {
   /**
@@ -289,6 +291,29 @@ export type IMessageOpencodeSubtask = IMessage<
   }
 >;
 
+export type IMessageRetry = IMessage<
+  'opencode_retry',
+  {
+    message_id: string;
+    part_id: string;
+    attempt: number;
+    reason: 'rate_limit' | 'transient' | 'tool_error' | 'provider_error' | 'context_overflow' | 'unknown';
+    retry_after?: number;
+    provider_hint?: string;
+    replay?: boolean;
+  }
+>;
+
+export type IMessageOpencodeError = IMessage<
+  'opencode_error',
+  {
+    message: string;
+    kind: 'provider_auth' | 'context_overflow' | 'output_length' | 'aborted' | 'structured_output' | 'api' | 'unknown';
+    metadata?: Record<string, unknown>;
+    recoverable?: boolean;
+  }
+>;
+
 export const mergeAcpToolCallContent = (
   existing: IMessageAcpToolCall['content'],
   incoming: IMessageAcpToolCall['content']
@@ -428,7 +453,9 @@ export type TMessage =
   | IMessagePlan
   | IMessageThinking
   | IMessageAvailableCommands
-  | IMessageOpencodeSubtask;
+  | IMessageOpencodeSubtask
+  | IMessageRetry
+  | IMessageOpencodeError;
 
 // 统一所有需要用户交互的用户类型
 export interface IConfirmation<Option extends any = any> {
@@ -469,6 +496,20 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
   switch (message.type) {
     case 'error': {
       const errorData = message.data;
+      if (typeof errorData === 'object' && errorData !== null) {
+        const typed = errorData as IMessageOpencodeError['content'];
+        if (typed.kind && typed.kind !== 'unknown' && typed.kind !== 'aborted') {
+          return {
+            id: uuid(),
+            type: 'opencode_error',
+            msg_id: message.msg_id,
+            position: 'left',
+            conversation_id: message.conversation_id,
+            created_at,
+            content: typed,
+          };
+        }
+      }
       const errorText =
         typeof errorData === 'string'
           ? errorData
@@ -616,6 +657,34 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
         content: message.data as any,
       };
     }
+    case 'retry':
+    case 'opencode_retry': {
+      const data = message.data as IMessageRetry['content'];
+      return {
+        id: uuid(),
+        type: 'opencode_retry',
+        msg_id: data.part_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: data,
+      };
+    }
+    case 'session_error_recovered':
+    case 'opencode_error': {
+      const data = message.type === 'session_error_recovered'
+        ? (message.data as { error: IMessageOpencodeError['content'] }).error
+        : (message.data as IMessageOpencodeError['content']);
+      return {
+        id: uuid(),
+        type: 'opencode_error',
+        msg_id: message.msg_id,
+        position: 'left',
+        conversation_id: message.conversation_id,
+        created_at,
+        content: data,
+      };
+    }
     case 'plan': {
       return {
         id: uuid(),
@@ -664,6 +733,8 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     case 'codex_model_info': // Legacy Codex model info updates
     case 'acp_context_usage': // Context usage updates, handled by AcpSendBox
     case 'request_trace': // Request trace events, logged to F12 console (not persisted)
+    case 'session_status':
+    case 'session_idle':
       break;
     default: {
       console.warn(
@@ -783,6 +854,28 @@ export const composeMessage = (
     }
     return pushMessage(message);
     // If no existing plan found, add new one
+  }
+
+  if (message.type === 'opencode_retry') {
+    for (let i = list.length - 1; i >= 0; i--) {
+      const msg = list[i];
+      if (msg.type !== 'opencode_retry') continue;
+      if (msg.content.message_id !== message.content.message_id) continue;
+      if (msg.content.reason !== message.content.reason) continue;
+      return updateMessage(i, {
+        ...msg,
+        content: {
+          ...msg.content,
+          ...message.content,
+          attempt: Math.max(msg.content.attempt, message.content.attempt),
+        },
+      });
+    }
+    return pushMessage(message);
+  }
+
+  if (message.type === 'opencode_error') {
+    return pushMessage(message);
   }
 
   // Handle thinking message merging — append streaming content by msg_id

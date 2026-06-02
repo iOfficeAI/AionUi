@@ -40,6 +40,7 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useRemoteMessage } from './useRemoteMessage';
 import { useRemoteSkills } from '@/renderer/hooks/chat/useRemoteSkills';
+import { Button, Alert } from '@arco-design/web-react';
 
 interface RemoteDraftData {
   _type: 'remote';
@@ -99,6 +100,9 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
     tokenUsage,
     context_limit,
     resetState,
+    stopState,
+    beginStop,
+    acknowledgeStopLocally,
   } = useRemoteMessage(conversation_id);
 
   // M10: server-side OpenCode skill catalog. Populated lazily from
@@ -396,14 +400,25 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
   });
 
   const handleStop = async (): Promise<void> => {
+    if (stopState === 'stopping') return;
+    beginStop();
     // Best-effort cancel: swallow rejections (e.g. backend returns 409 when
     // the WS session is not yet connected) so they don't surface as unhandled
-    // rejections. UI state is still reset via finally.
+    // rejections. OpenCode UI state clears only after canonical idle confirms.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
       console.warn('[RemoteSendBox] stop request failed', error);
+    }
+  };
+
+  const handleForceAbort = async (): Promise<void> => {
+    try {
+      await ipcBridge.conversation.stop.invoke({ conversation_id });
+    } catch (error) {
+      console.warn('[RemoteSendBox] force abort request failed', error);
     } finally {
+      acknowledgeStopLocally();
       resetState();
       resetActiveExecution('stop');
     }
@@ -426,6 +441,18 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
         onClear={clear}
       />
       <ThoughtDisplay thought={thought} running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
+      {stopState === 'force_available' ? (
+        <Alert
+          className='mb-8px'
+          type='warning'
+          content={t('conversation.remoteAbort.forceAbortHint')}
+          action={
+            <Button size='mini' type='secondary' onClick={handleForceAbort}>
+              {t('conversation.remoteAbort.forceAbort')}
+            </Button>
+          }
+        />
+      ) : null}
 
       <SendBox
         value={content}
@@ -437,7 +464,9 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
         disabled={false}
         className='z-10'
         placeholder={
-          aiProcessing
+          stopState === 'stopping'
+            ? t('conversation.remoteAbort.stopping')
+            : aiProcessing
             ? t('conversation.chat.processing')
             : t('acp.sendbox.placeholder', {
                 backend: agent_name,

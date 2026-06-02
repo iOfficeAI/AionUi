@@ -385,6 +385,29 @@
     "localHint": "Ця розмова використовує файли вашого комп'ютера через локальні файлові інструменти Chisl.",
     "serverHint": "Ця розмова використовує файли та інструменти самого сервера OpenCode."
   },
+  "remoteAbort": {
+    "stopping": "Stopping...",
+    "stopped": "Stopped",
+    "completed": "Completed",
+    "errored": "Errored",
+    "forceAbort": "Force abort",
+    "forceAbortHint": "The remote session may still be running. Force abort will stop waiting locally.",
+    "acknowledgedLocally": "Stopped locally"
+  },
+  "remoteRetry": {
+    "tag": "{{reason}} · retry {{attempt}}",
+    "tooltip": "{{reason}} retry attempt {{attempt}}",
+    "reason": { "rate_limit": "Rate-limited", "transient": "Transient error", "tool_error": "Tool error", "provider_error": "Provider error", "context_overflow": "Context overflow", "unknown": "Retry" }
+  },
+  "remoteOpencodeError": {
+    "context_overflow": { "title": "Context window full", "body": "Context window full ({{used}} / {{limit}} tokens).", "compact": "Compact" },
+    "provider_auth": { "title": "Provider auth failed", "body": "Provider auth failed for {{providerId}}.", "reconnect": "Reconnect" },
+    "output_length": { "title": "Output limit reached", "continue": "Continue from here" },
+    "api": { "title": "API error", "status": "Status {{statusCode}}" },
+    "structured_output": { "title": "Structured output failed", "schema": "Schema: {{schema}}" },
+    "unknown": { "title": "OpenCode error" }
+  },
+  "remoteSessionBadge": { "label": "Attached to {{sessionId}}", "tooltip": "OpenCode session {{sessionId}}\n{{directory}}", "copied": "Session id copied" },
   "sendbox": {
     "hint": "Введіть / для команд, @ для посилань на файли"
   },

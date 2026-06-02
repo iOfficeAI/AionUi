@@ -386,6 +386,29 @@
     "localHint": "此對話透過 Chisl 的本機檔案工具使用你電腦上的檔案。",
     "serverHint": "此對話使用 OpenCode 伺服器自身的檔案和工具。"
   },
+  "remoteAbort": {
+    "stopping": "Stopping...",
+    "stopped": "Stopped",
+    "completed": "Completed",
+    "errored": "Errored",
+    "forceAbort": "Force abort",
+    "forceAbortHint": "The remote session may still be running. Force abort will stop waiting locally.",
+    "acknowledgedLocally": "Stopped locally"
+  },
+  "remoteRetry": {
+    "tag": "{{reason}} · retry {{attempt}}",
+    "tooltip": "{{reason}} retry attempt {{attempt}}",
+    "reason": { "rate_limit": "Rate-limited", "transient": "Transient error", "tool_error": "Tool error", "provider_error": "Provider error", "context_overflow": "Context overflow", "unknown": "Retry" }
+  },
+  "remoteOpencodeError": {
+    "context_overflow": { "title": "Context window full", "body": "Context window full ({{used}} / {{limit}} tokens).", "compact": "Compact" },
+    "provider_auth": { "title": "Provider auth failed", "body": "Provider auth failed for {{providerId}}.", "reconnect": "Reconnect" },
+    "output_length": { "title": "Output limit reached", "continue": "Continue from here" },
+    "api": { "title": "API error", "status": "Status {{statusCode}}" },
+    "structured_output": { "title": "Structured output failed", "schema": "Schema: {{schema}}" },
+    "unknown": { "title": "OpenCode error" }
+  },
+  "remoteSessionBadge": { "label": "Attached to {{sessionId}}", "tooltip": "OpenCode session {{sessionId}}\n{{directory}}", "copied": "Session id copied" },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"
   },
