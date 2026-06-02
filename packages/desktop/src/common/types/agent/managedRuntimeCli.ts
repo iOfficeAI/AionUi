@@ -232,15 +232,12 @@ export function getManagedCliSelectableModels(
   // available.
   const relaxedModels = allModels.filter(
     (modelId) =>
-      provider.model_enabled?.[modelId] !== false &&
-      isManagedCliModelCompatible(provider, modelId, cliTarget)
+      provider.model_enabled?.[modelId] !== false && isManagedCliModelCompatible(provider, modelId, cliTarget)
   );
   if (relaxedModels.length > 0) return relaxedModels;
 
   // Ultimate fallback: drop ALL compatibility filters so every CLI gets at
   // least one selectable model. Without this, a user whose account only has
   // OpenAI-protocol models would see zero options for Claude/Hermes/etc.
-  return allModels.filter(
-    (modelId) => provider.model_enabled?.[modelId] !== false
-  );
+  return allModels.filter((modelId) => provider.model_enabled?.[modelId] !== false);
 }

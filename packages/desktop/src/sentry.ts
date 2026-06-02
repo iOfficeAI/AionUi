@@ -96,7 +96,10 @@ function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> 
 }
 
 export function initSentry(): void {
-  const DSN = process.env.SENTRY_DSN || process.env.AIONUI_SENTRY_DSN || 'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
+  const DSN =
+    process.env.SENTRY_DSN ||
+    process.env.AIONUI_SENTRY_DSN ||
+    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
   Sentry.init({
     dsn: DSN,
     environment: app.isPackaged ? 'production' : 'development',
@@ -315,7 +318,10 @@ async function runStartupLogReport(): Promise<void> {
 
   // DSN gate goes first so we don't read the disk for nothing.
   // Don't write state — the next launch with a DSN should still fire.
-  const DSN = process.env.SENTRY_DSN || process.env.AIONUI_SENTRY_DSN || 'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
+  const DSN =
+    process.env.SENTRY_DSN ||
+    process.env.AIONUI_SENTRY_DSN ||
+    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
   if (!DSN) {
     console.info('[sentry] startup log report skipped (SENTRY_DSN not set)');
     throw new UnretryableError('no DSN');

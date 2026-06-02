@@ -18,7 +18,8 @@ export type DesktopSentryConfig = {
   brand: string;
 };
 
-const POUNDING_SENTRY_DSN = 'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
+const POUNDING_SENTRY_DSN =
+  'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
 
 export function resolveDesktopSentryConfig(env: Record<string, string | undefined>): DesktopSentryConfig {
   const dsn = trimEnv(env.AIONUI_SENTRY_DSN) || trimEnv(env.SENTRY_DSN) || POUNDING_SENTRY_DSN;

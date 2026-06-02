@@ -111,7 +111,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const isUnlimited = desktopAccountStatus?.user?.unlimitedQuota === true;
   const remainQuota = desktopAccountStatus?.user?.quota ?? 0;
   // quota IS the remaining balance (not total)
-  const remainPercent = isUnlimited ? 100 : (remainQuota > 0 ? 100 : 0);
+  const remainPercent = isUnlimited ? 100 : remainQuota > 0 ? 100 : 0;
   const [accountPanelStyle, setAccountPanelStyle] = useState<React.CSSProperties>({
     left: 8,
     bottom: 56,
@@ -259,7 +259,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
       <div className='px-16px py-14px border-b border-[var(--color-border-2)]'>
         <div className='flex items-center justify-between mb-10px'>
           <span className='text-16px font-bold text-t-primary'>
-            {isUnlimited ? t('settings.newApiQuotaUnlimited') : `${t('settings.newApiQuotaTitle')} ${formatQuota(remainQuota)}`}
+            {isUnlimited
+              ? t('settings.newApiQuotaUnlimited')
+              : `${t('settings.newApiQuotaTitle')} ${formatQuota(remainQuota)}`}
           </span>
           <Button
             size='mini'
@@ -275,7 +277,9 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <div className='h-full bg-[rgb(var(--primary-6))]' style={{ width: `${remainPercent}%` }} />
         </div>
         <div className='mt-8px text-14px text-t-secondary'>
-          {isUnlimited ? t('settings.newApiQuotaUnlimitedDesc') : `${t('settings.newApiQuotaSummary')} ${formatQuota(remainQuota)}`}
+          {isUnlimited
+            ? t('settings.newApiQuotaUnlimitedDesc')
+            : `${t('settings.newApiQuotaSummary')} ${formatQuota(remainQuota)}`}
         </div>
       </div>
       <div className='py-4px'>

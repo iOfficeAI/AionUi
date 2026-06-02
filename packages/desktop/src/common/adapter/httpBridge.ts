@@ -194,7 +194,11 @@ export async function httpRequest<T>(
     try {
       errorBody = await response.json();
     } catch {
-      try { errorBody = await response.text(); } catch { errorBody = '<unreadable body>'; }
+      try {
+        errorBody = await response.text();
+      } catch {
+        errorBody = '<unreadable body>';
+      }
     }
     if (options?.silentStatuses?.includes(response.status)) {
       console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);
@@ -216,7 +220,10 @@ export async function httpRequest<T>(
     json = await response.json();
   } catch (jsonError) {
     console.error('[httpBridge] failed to parse JSON response', {
-      method, path, status: response.status, contentType,
+      method,
+      path,
+      status: response.status,
+      contentType,
       error: jsonError instanceof Error ? jsonError.message : String(jsonError),
     });
     throw jsonError;

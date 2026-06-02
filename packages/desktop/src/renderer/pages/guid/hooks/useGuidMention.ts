@@ -128,9 +128,7 @@ export const useGuidMention = ({
   );
 
   const selectedAgentLabel =
-    selectedAgentInfo?.name ||
-    mentionOptions.find((o) => o.key === selectedAgentKey)?.label ||
-    selectedAgentKey;
+    selectedAgentInfo?.name || mentionOptions.find((o) => o.key === selectedAgentKey)?.label || selectedAgentKey;
   const mentionMenuActiveOption = filteredMentionOptions[mentionActiveIndex] || filteredMentionOptions[0];
   const mentionMenuSelectedKey =
     mentionOpen || mentionSelectorOpen ? mentionMenuActiveOption?.key || selectedAgentKey : selectedAgentKey;
