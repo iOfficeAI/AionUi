@@ -45,6 +45,10 @@ const RULES: Array<{
     id: 'antigravity',
     match: (p) => !!p.name?.toLowerCase().includes('antigravity'),
   },
+  {
+    id: 'pounding-api',
+    match: (p) => p.platform === 'new-api',
+  },
 ];
 
 export const isImageGenSupported = (provider: ProviderShape, modelName: string): boolean => {
