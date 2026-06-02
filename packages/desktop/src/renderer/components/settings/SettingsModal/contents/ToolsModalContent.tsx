@@ -525,18 +525,33 @@ const ToolsModalContent: React.FC = () => {
     void loadConfigs();
   }, []);
 
-  const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
-    setSpeechToTextConfig((current) => {
-      const next = normalizeSpeechToTextConfig(updater(current));
-      configService.set('tools.speechToText', next).catch((error) => {
-        console.error('Failed to save speech-to-text config:', error);
+  const updateSpeechToTextConfig = useCallback(
+    (updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
+      setSpeechToTextConfig((current) => {
+        const next = normalizeSpeechToTextConfig(updater(current));
+        configService
+          .set('tools.speechToText', next)
+          .then(() => {
+            // Only notify listeners (e.g. the chat mic icon) once the config is
+            // actually persisted, so the UI never reflects a config that was lost.
+            if (typeof window !== 'undefined') {
+              window.dispatchEvent(new CustomEvent(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT));
+            }
+          })
+          .catch((error) => {
+            // Surface the failure instead of swallowing it with a console log —
+            // otherwise the user thinks the setting was saved and only discovers it
+            // was lost on the next restart (see issue #3075).
+            console.error('Failed to save speech-to-text config:', error);
+            mcpMessage.error(
+              error instanceof Error ? error.message : t('common.saveFailed', { defaultValue: 'Failed to save' })
+            );
+          });
+        return next;
       });
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT));
-      }
-      return next;
-    });
-  }, []);
+    },
+    [mcpMessage, t]
+  );
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
