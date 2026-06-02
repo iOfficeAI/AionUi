@@ -142,6 +142,45 @@ function getBooleanTagValue(value: boolean | undefined): string | undefined {
   return typeof value === 'boolean' ? String(value) : undefined;
 }
 
+function getFiniteNumber(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isFinite(value) ? value : undefined;
+}
+
+function getNumberBucket(value: unknown, buckets: readonly [number, string][], overflow: string): string | undefined {
+  const numberValue = getFiniteNumber(value);
+  if (numberValue === undefined) return undefined;
+  for (const [max, label] of buckets) {
+    if (numberValue <= max) return label;
+  }
+  return overflow;
+}
+
+function getHealthAttemptBucket(value: unknown): string | undefined {
+  return getNumberBucket(
+    value,
+    [
+      [1, '1'],
+      [25, '2-25'],
+      [75, '26-75'],
+      [150, '76-150'],
+    ],
+    '151+'
+  );
+}
+
+function getDurationBucket(value: unknown): string | undefined {
+  return getNumberBucket(
+    value,
+    [
+      [0, '0ms'],
+      [1_000, '1s_or_less'],
+      [10_000, '1s_to_10s'],
+      [60_000, '10s_to_60s'],
+    ],
+    'over_60s'
+  );
+}
+
 function getInstallPathKind(resourcesPath: unknown): string | undefined {
   const pathValue = getString(resourcesPath);
   if (!pathValue) return undefined;
@@ -210,6 +249,19 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       ['aionui.backend_startup.missing_pwa_dir', getBooleanTagValue(failureInfo.missingPwaDir)],
       ['aionui.backend_startup.install_path_kind', getInstallPathKind(details?.resourcesPath)],
       ['aionui.backend_startup.last_update_status', getString(autoUpdateDiagnostics?.lastEvent?.status)],
+      [
+        'aionui.backend_startup.health_polling_delayed',
+        getBooleanTagValue(
+          typeof details?.healthCheckPollingDelayed === 'boolean' ? details.healthCheckPollingDelayed : undefined
+        ),
+      ],
+      ['aionui.backend_startup.health_attempts_bucket', getHealthAttemptBucket(details?.healthCheckAttempts)],
+      [
+        'aionui.backend_startup.health_attempt_deficit_bucket',
+        getHealthAttemptBucket(details?.healthCheckAttemptDeficit),
+      ],
+      ['aionui.backend_startup.health_timeout_overrun_bucket', getDurationBucket(details?.healthCheckTimeoutOverrunMs)],
+      ['aionui.backend_startup.health_max_attempt_gap_bucket', getDurationBucket(details?.healthCheckMaxAttemptGapMs)],
       [
         'aionui.backend_startup.seconds_since_quit_and_install',
         getSecondsSince(autoUpdateDiagnostics?.lastQuitAndInstallAt),

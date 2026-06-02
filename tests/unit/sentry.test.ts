@@ -201,6 +201,33 @@ describe('captureBackendStartupFailure', () => {
       autoUpdateDiagnosticsMock.readAutoUpdateDiagnostics.mockReturnValue(undefined);
     }
   });
+
+  it('sets bucketed health polling tags for backend startup timeouts', async () => {
+    scopeSetTag.mockClear();
+    autoUpdateDiagnosticsMock.readAutoUpdateDiagnostics.mockReturnValue(undefined);
+    const error = new Error('aioncore failed to start within timeout') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'health_timeout',
+      binaryPath: '/abs/path/aioncore',
+      port: 33334,
+      healthCheckAttempts: 1,
+      healthCheckExpectedAttempts: 150,
+      healthCheckAttemptDeficit: 149,
+      healthCheckPollingDelayed: true,
+      healthCheckTimeoutOverrunMs: 515_417,
+      healthCheckMaxAttemptGapMs: 0,
+    };
+
+    await captureBackendStartupFailure(error);
+
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_polling_delayed', 'true');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempts_bucket', '1');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_attempt_deficit_bucket', '76-150');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_timeout_overrun_bucket', 'over_60s');
+    expect(scopeSetTag).toHaveBeenCalledWith('aionui.backend_startup.health_max_attempt_gap_bucket', '0ms');
+  });
 });
 
 describe('initSentry beforeSend', () => {

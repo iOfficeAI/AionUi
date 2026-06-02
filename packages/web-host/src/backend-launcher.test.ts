@@ -453,8 +453,12 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
         healthCheckUrl: 'http://127.0.0.1:33338/health',
         healthCheckTimeoutMs: 30_000,
         healthCheckIntervalMs: 200,
+        healthCheckExpectedAttempts: 150,
         healthCheckElapsedMs: expect.any(Number),
         healthCheckLastAttemptAfterMs: expect.any(Number),
+        healthCheckAttemptDeficit: expect.any(Number),
+        healthCheckTimeoutOverrunMs: expect.any(Number),
+        healthCheckPollingDelayed: expect.any(Boolean),
         healthCheckLastError: 'fetch failed',
         healthCheckLastErrorName: 'TypeError',
         healthCheckLastErrorCauseMessage: 'connect ECONNREFUSED 127.0.0.1:33338',
@@ -473,6 +477,51 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     expect(connect).toHaveBeenCalledWith({ host: '127.0.0.1', port: 33338 }, expect.any(Function));
     expect(socket.destroy).toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records polling delay when a health attempt stalls past the timeout', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33340) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const socket = makeFakeSocket();
+    vi.mocked(connect).mockImplementation(() => {
+      queueMicrotask(() => {
+        socket.emit(
+          'error',
+          Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:33340'), { code: 'ECONNREFUSED' })
+        );
+      });
+      return socket;
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('fetch failed')), 545_000);
+        })
+    );
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      details: expect.objectContaining({
+        port: 33340,
+        healthCheckAttempts: 1,
+        healthCheckExpectedAttempts: 150,
+        healthCheckAttemptDeficit: 149,
+        healthCheckPollingDelayed: true,
+        healthCheckTimeoutOverrunMs: expect.any(Number),
+      }),
+    });
+
+    await vi.advanceTimersByTimeAsync(545_250);
+    await expectedRejection;
+
     fetchSpy.mockRestore();
   }, 15_000);
 
