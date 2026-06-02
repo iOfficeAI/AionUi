@@ -214,6 +214,7 @@ export const useAcpModelInfo = ({
   const selectModel = useCallback(
     (model_id: string) => {
       hasUserChangedModel.current = true;
+      const previousModelInfo = model_info;
       setModelInfo((prev) => {
         if (!prev) return prev;
         const selectedModel = prev.available_models.find((m) => m.id === model_id);
@@ -223,36 +224,42 @@ export const useAcpModelInfo = ({
           current_model_label: selectedModel?.label || model_id,
         };
       });
-      ipcBridge.acpConversation.setModel
-        .invoke({ conversation_id, model_id })
-        .then(() => {
-          ipcBridge.acpConversation.getModel
-            .invoke({ conversation_id })
-            .then((result) => {
-              if (result?.model_info) updateModelInfo(result.model_info);
-            })
-            .catch(() => {});
-        })
-        .catch((error) => {
+
+      void (async () => {
+        try {
+          await ipcBridge.acpConversation.setModel.invoke({ conversation_id, model_id });
+        } catch (error) {
+          hasUserChangedModel.current = false;
           console.error('[useAcpModelInfo] Failed to set model:', error);
-        });
-      // Persist for the Guid page (next session default) and for this same
-      // conversation's `extra.current_model_id` so it stops shadowing the
-      // backend's authoritative value.
-      if (backend) {
-        void savePreferredModelId(backend, model_id);
-      }
-      void ipcBridge.conversation.update
-        .invoke({
+          if (previousModelInfo) {
+            updateModelInfo(previousModelInfo);
+          } else {
+            void reloadModelInfo({ preserveInitialModel: true }).catch(() => {});
+          }
+          return;
+        }
+
+        try {
+          const result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
+          if (result?.model_info) updateModelInfo(result.model_info);
+        } catch {
+          // The model switch already succeeded; a later refresh will reconcile UI state.
+        }
+
+        // Persist only after the active ACP session accepts the model switch.
+        if (backend) {
+          void savePreferredModelId(backend, model_id);
+        }
+        await ipcBridge.conversation.update.invoke({
           id: conversation_id,
           updates: { extra: { current_model_id: model_id } as TChatConversation['extra'] },
           merge_extra: true,
-        })
-        .catch((error) => {
-          console.error('[useAcpModelInfo] Failed to persist current_model_id:', error);
         });
+      })().catch((error) => {
+        console.error('[useAcpModelInfo] Failed to persist current_model_id:', error);
+      });
     },
-    [backend, conversation_id, updateModelInfo]
+    [backend, conversation_id, model_info, reloadModelInfo, updateModelInfo]
   );
 
   const canSwitch = Boolean(model_info && model_info.available_models.length > 0);
