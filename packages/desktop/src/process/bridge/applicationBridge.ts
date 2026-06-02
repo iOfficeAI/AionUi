@@ -157,6 +157,18 @@ export function initApplicationBridge(): void {
     return updatedFactor;
   });
 
+  ipcBridge.application.writeRendererLog.provider(async ({ level, tag, message, data }) => {
+    const prefix = `[Renderer:${tag}] ${message}`;
+    const args = data === undefined ? [prefix] : [prefix, data];
+    if (level === 'error') {
+      console.error(...args);
+    } else if (level === 'warn') {
+      console.warn(...args);
+    } else {
+      console.info(...args);
+    }
+  });
+
   // CDP status and configuration
   ipcBridge.application.getCdpStatus.provider(async () => {
     try {

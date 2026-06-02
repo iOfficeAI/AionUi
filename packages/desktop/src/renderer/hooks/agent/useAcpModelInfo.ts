@@ -5,13 +5,66 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
+import { useCallback, useEffect, useMemo, useRef } from 'react';
+import useSWR, { mutate as mutateGlobal } from 'swr';
+
+type AcpModelInfoKey = readonly ['acp-model-info', string];
+type AcpModelInfoFetchResult = {
+  model_info: AcpModelInfo | null;
+  missing_active_session: boolean;
+};
+
+const getAcpModelInfoKey = (conversation_id: string): AcpModelInfoKey => ['acp-model-info', conversation_id] as const;
+
+const summarizeModelInfo = (info: AcpModelInfo | null | undefined) => {
+  if (!info) return null;
+  return {
+    current_model_id: info.current_model_id,
+    current_model_label: info.current_model_label,
+    available_models: info.available_models.map((model) => ({ id: model.id, label: model.label })),
+  };
+};
+
+const logAcpModelInfo = (event: string, data: Record<string, unknown>) => {
+  const entry = { event, ...data };
+  console.info('[useAcpModelInfo]', entry);
+  void ipcBridge.application.writeRendererLog
+    .invoke({
+      level: 'info',
+      tag: 'useAcpModelInfo',
+      message: event,
+      data: entry,
+    })
+    .catch(() => {});
+};
+
+const fetchAcpModelInfoResult = async ([, conversation_id]: AcpModelInfoKey): Promise<AcpModelInfoFetchResult> => {
+  try {
+    const result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
+    return { model_info: result?.model_info ?? null, missing_active_session: false };
+  } catch (error) {
+    const missingActiveSession = isBackendHttpError(error) && error.status === 404;
+    if (!missingActiveSession) {
+      logAcpModelInfo('fetch_failed', {
+        conversation_id,
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+    // 404 before warmup or between ACP evict/rebuild. reloadModelInfo must
+    // not fall back directly; the no-cache fallback effect handles genuine
+    // first-load cases without overwriting an established model cache.
+    return { model_info: null, missing_active_session: missingActiveSession };
+  }
+};
+
+const fetchAcpModelInfo = async (key: AcpModelInfoKey): Promise<AcpModelInfo | null> =>
+  (await fetchAcpModelInfoResult(key)).model_info;
 
 function isSameModelInfo(a: AcpModelInfo | null | undefined, b: AcpModelInfo | null | undefined): boolean {
   if (a === b) return true;
@@ -53,13 +106,31 @@ export const useAcpModelInfo = ({
   backend?: string;
   initialModelId?: string;
 }): UseAcpModelInfoResult => {
-  const [model_info, setModelInfo] = useState<AcpModelInfo | null>(null);
   const hasUserChangedModel = useRef(false);
   const prevConversationIdRef = useRef(conversation_id);
+  const modelInfoRef = useRef<AcpModelInfo | null>(null);
+  const handshakeModelInfoRef = useRef<AcpModelInfo | null>(null);
+  const scheduledReloadTimersRef = useRef<number[]>([]);
+  const modelInfoKey = useMemo(() => getAcpModelInfoKey(conversation_id), [conversation_id]);
+  const {
+    data: cachedModelInfo,
+    isLoading: isModelInfoLoading,
+    mutate: mutateModelInfo,
+  } = useSWR<AcpModelInfo | null>(modelInfoKey, fetchAcpModelInfo);
+  const model_info = cachedModelInfo ?? null;
 
-  const updateModelInfo = useCallback((nextModelInfo: AcpModelInfo) => {
-    setModelInfo((prev) => (isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo));
-  }, []);
+  useEffect(() => {
+    modelInfoRef.current = model_info;
+  }, [model_info]);
+
+  const updateModelInfo = useCallback(
+    (nextModelInfo: AcpModelInfo) => {
+      void mutateModelInfo((prev) => {
+        return isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo;
+      }, false);
+    },
+    [mutateModelInfo]
+  );
 
   const { data: agentsData } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
   const handshakeModelInfo = useMemo<AcpModelInfo | null>(() => {
@@ -70,13 +141,26 @@ export const useAcpModelInfo = ({
     return info;
   }, [agentsData, backend]);
 
+  useEffect(() => {
+    handshakeModelInfoRef.current = handshakeModelInfo;
+  }, [handshakeModelInfo]);
+
   const loadFallbackModelInfo = useCallback(
     (options?: { preserveInitialModel?: boolean }) => {
-      const source = handshakeModelInfo;
+      const source = handshakeModelInfoRef.current;
       if (!source || source.available_models.length === 0) return false;
 
       const effectiveModelId =
         options?.preserveInitialModel && initialModelId ? initialModelId : (source.current_model_id ?? null);
+
+      logAcpModelInfo('fallback_from_handshake', {
+        conversation_id,
+        backend,
+        preserve_initial_model: Boolean(options?.preserveInitialModel),
+        initial_model_id: initialModelId,
+        effective_model_id: effectiveModelId,
+        source_model_info: summarizeModelInfo(source),
+      });
 
       updateModelInfo({
         ...source,
@@ -87,58 +171,88 @@ export const useAcpModelInfo = ({
       });
       return true;
     },
-    [handshakeModelInfo, initialModelId, updateModelInfo]
+    [backend, conversation_id, initialModelId, updateModelInfo]
   );
 
   const reloadModelInfo = useCallback(
-    async (options?: { preserveInitialModel?: boolean }) => {
-      let result: Awaited<ReturnType<typeof ipcBridge.acpConversation.getModel.invoke>> | null = null;
-      try {
-        result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
-      } catch {
-        // 404 before warmup — fall through to handshake fallback.
-      }
+    async (options?: { preserveInitialModel?: boolean }): Promise<boolean> => {
+      const { model_info: info, missing_active_session: missingActiveSession } =
+        await fetchAcpModelInfoResult(modelInfoKey);
 
-      if (result?.model_info) {
-        const info = result.model_info;
-        if (info.available_models?.length > 0) {
-          // Backend's `current_model_id` is the source of truth for an active
-          // session. Only fall back to `initialModelId` when the backend has
-          // no current model yet (genuine pre-handshake case) — never
-          // override a known backend value, otherwise re-entering an old
-          // conversation would clobber a switch the user already made
-          // (ELECTRON-1RV).
-          if (
-            options?.preserveInitialModel &&
-            initialModelId &&
-            !info.current_model_id &&
-            info.available_models.some((m) => m.id === initialModelId)
-          ) {
-            const match = info.available_models.find((m) => m.id === initialModelId);
-            if (match) {
-              updateModelInfo({
-                ...info,
-                current_model_id: initialModelId,
-                current_model_label: match.label || initialModelId,
-              });
-              return;
-            }
+      if (info?.available_models?.length) {
+        // Backend's `current_model_id` is the source of truth for an active
+        // session. Only fall back to `initialModelId` when the backend has
+        // no current model yet (genuine pre-handshake case); never
+        // override a known backend value, otherwise re-entering an old
+        // conversation would clobber a switch the user already made
+        // (ELECTRON-1RV).
+        if (
+          options?.preserveInitialModel &&
+          initialModelId &&
+          !info.current_model_id &&
+          info.available_models.some((m) => m.id === initialModelId)
+        ) {
+          const match = info.available_models.find((m) => m.id === initialModelId);
+          if (match) {
+            updateModelInfo({
+              ...info,
+              current_model_id: initialModelId,
+              current_model_label: match.label || initialModelId,
+            });
+            return true;
           }
-          updateModelInfo(info);
-          return;
         }
+        updateModelInfo(info);
+        return true;
       }
 
       if (backend) {
-        loadFallbackModelInfo(options);
+        const cached = modelInfoRef.current;
+        if (cached?.available_models?.length) {
+          logAcpModelInfo('reload_no_backend_model_keep_cached_model', {
+            conversation_id,
+            backend,
+            missing_active_session: missingActiveSession,
+            cached_model_info: summarizeModelInfo(cached),
+          });
+          return false;
+        }
+        if (missingActiveSession) {
+          return false;
+        }
+        return loadFallbackModelInfo(options);
       }
+      return false;
     },
-    [backend, conversation_id, initialModelId, loadFallbackModelInfo, updateModelInfo]
+    [backend, initialModelId, loadFallbackModelInfo, modelInfoKey, updateModelInfo]
+  );
+
+  const clearScheduledReloads = useCallback(() => {
+    scheduledReloadTimersRef.current.forEach((timerId) => window.clearTimeout(timerId));
+    scheduledReloadTimersRef.current = [];
+  }, []);
+
+  const scheduleModelInfoReload = useCallback(
+    (_reason: string, delays: number[]) => {
+      clearScheduledReloads();
+      scheduledReloadTimersRef.current = delays.map((delay) =>
+        window.setTimeout(() => {
+          void reloadModelInfo().catch(() => {});
+        }, delay)
+      );
+    },
+    [clearScheduledReloads, reloadModelInfo]
   );
 
   useEffect(() => {
+    return () => {
+      clearScheduledReloads();
+    };
+  }, [clearScheduledReloads, conversation_id]);
+
+  useEffect(() => {
     if (prevConversationIdRef.current !== conversation_id) {
-      // Resetting on conversation change is intentional — the in-flight
+      // Resetting on conversation change is intentional; the in-flight
       // model selection belongs to the previous conversation, not this one.
       hasUserChangedModel.current = false;
       prevConversationIdRef.current = conversation_id;
@@ -149,9 +263,10 @@ export const useAcpModelInfo = ({
   useEffect(() => {
     if (!backend || !handshakeModelInfo) return;
     if (model_info && model_info.available_models.length > 0) return;
+    if (isModelInfoLoading) return;
     if (hasUserChangedModel.current) return;
     loadFallbackModelInfo({ preserveInitialModel: true });
-  }, [backend, handshakeModelInfo, model_info, loadFallbackModelInfo]);
+  }, [backend, handshakeModelInfo, isModelInfoLoading, model_info, loadFallbackModelInfo]);
 
   // Claude doesn't push acp_model_info on warmup; poll while window has focus.
   useEffect(() => {
@@ -176,6 +291,17 @@ export const useAcpModelInfo = ({
   useEffect(() => {
     const handler = (message: IResponseMessage) => {
       if (message.conversation_id !== conversation_id) return;
+      if (message.type === 'start') {
+        scheduleModelInfoReload('start', [250, 1500]);
+      } else if (message.type === 'finish' || message.type === 'error') {
+        scheduleModelInfoReload(message.type, [250, 1500]);
+      } else if (message.type === 'agent_status') {
+        const data = message.data as { status?: string } | undefined;
+        if (data?.status === 'session_active') {
+          scheduleModelInfoReload('session_active', [250]);
+        }
+      }
+
       if (message.type === 'acp_model_info' && message.data) {
         const incoming = message.data as AcpModelInfo;
         // Same rule as reloadModelInfo: backend's current_model_id wins.
@@ -209,50 +335,104 @@ export const useAcpModelInfo = ({
       }
     };
     return ipcBridge.acpConversation.responseStream.on(handler);
-  }, [conversation_id, initialModelId, updateModelInfo]);
+  }, [conversation_id, initialModelId, scheduleModelInfoReload, updateModelInfo]);
 
   const selectModel = useCallback(
     (model_id: string) => {
       hasUserChangedModel.current = true;
-      setModelInfo((prev) => {
-        if (!prev) return prev;
-        const selectedModel = prev.available_models.find((m) => m.id === model_id);
-        return {
-          ...prev,
-          current_model_id: model_id,
-          current_model_label: selectedModel?.label || model_id,
-        };
+      const previousModelInfo = model_info;
+      logAcpModelInfo('select_model_requested', {
+        conversation_id,
+        backend,
+        requested_model_id: model_id,
+        previous_model_info: summarizeModelInfo(previousModelInfo),
       });
-      ipcBridge.acpConversation.setModel
-        .invoke({ conversation_id, model_id })
-        .then(() => {
-          ipcBridge.acpConversation.getModel
-            .invoke({ conversation_id })
-            .then((result) => {
-              if (result?.model_info) updateModelInfo(result.model_info);
-            })
-            .catch(() => {});
-        })
-        .catch((error) => {
+
+      void (async () => {
+        try {
+          await ipcBridge.acpConversation.setModel.invoke({ conversation_id, model_id });
+        } catch (error) {
+          hasUserChangedModel.current = false;
+          logAcpModelInfo('select_model_failed', {
+            conversation_id,
+            backend,
+            requested_model_id: model_id,
+            error: error instanceof Error ? error.message : String(error),
+          });
           console.error('[useAcpModelInfo] Failed to set model:', error);
+          if (previousModelInfo) {
+            updateModelInfo(previousModelInfo);
+          } else {
+            void mutateModelInfo(null, false);
+          }
+          void reloadModelInfo().catch(() => {});
+          return;
+        }
+
+        logAcpModelInfo('select_model_accepted', {
+          conversation_id,
+          backend,
+          requested_model_id: model_id,
         });
-      // Persist for the Guid page (next session default) and for this same
-      // conversation's `extra.current_model_id` so it stops shadowing the
-      // backend's authoritative value.
-      if (backend) {
-        void savePreferredModelId(backend, model_id);
-      }
-      void ipcBridge.conversation.update
-        .invoke({
+        const refreshed = await reloadModelInfo().catch(() => false);
+        logAcpModelInfo('select_model_refresh_completed', {
+          conversation_id,
+          backend,
+          requested_model_id: model_id,
+          refreshed,
+        });
+        if (!refreshed) {
+          void mutateModelInfo((prev) => {
+            if (!prev) return prev;
+            const selectedModel = prev.available_models.find((m) => m.id === model_id);
+            logAcpModelInfo('select_model_local_fallback', {
+              conversation_id,
+              backend,
+              requested_model_id: model_id,
+              previous_model_info: summarizeModelInfo(prev),
+              selected_model_label: selectedModel?.label,
+            });
+            return {
+              ...prev,
+              current_model_id: model_id,
+              current_model_label: selectedModel?.label || model_id,
+            };
+          }, false);
+        }
+
+        // Persist only after the active ACP session accepts the model switch.
+        if (backend) {
+          void savePreferredModelId(backend, model_id);
+        }
+        await ipcBridge.conversation.update.invoke({
           id: conversation_id,
           updates: { extra: { current_model_id: model_id } as TChatConversation['extra'] },
           merge_extra: true,
-        })
-        .catch((error) => {
-          console.error('[useAcpModelInfo] Failed to persist current_model_id:', error);
         });
+        logAcpModelInfo('select_model_persisted', {
+          conversation_id,
+          backend,
+          requested_model_id: model_id,
+        });
+        void mutateGlobal(
+          `conversation/${conversation_id}`,
+          (current: TChatConversation | null | undefined) => {
+            if (!current) return current;
+            return {
+              ...current,
+              extra: {
+                ...current.extra,
+                current_model_id: model_id,
+              },
+            };
+          },
+          false
+        );
+      })().catch((error) => {
+        console.error('[useAcpModelInfo] Failed to persist current_model_id:', error);
+      });
     },
-    [backend, conversation_id, updateModelInfo]
+    [backend, conversation_id, model_info, mutateModelInfo, reloadModelInfo, updateModelInfo]
   );
 
   const canSwitch = Boolean(model_info && model_info.available_models.length > 0);
