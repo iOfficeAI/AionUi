@@ -356,6 +356,15 @@ export interface IGpuStatus {
   lastCrashAt: number | null;
 }
 
+export type IRendererLogLevel = 'info' | 'warn' | 'error';
+
+export interface IRendererLogEntry {
+  level: IRendererLogLevel;
+  tag: string;
+  message: string;
+  data?: unknown;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -392,6 +401,7 @@ export const application = {
   setGpuOverride: bridge.buildProvider<IBridgeResponse<IGpuStatus>, { override: IGpuOverride | null }>(
     'app.set-gpu-override'
   ),
+  writeRendererLog: bridge.buildProvider<void, IRendererLogEntry>('app.write-renderer-log'),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
   ),
