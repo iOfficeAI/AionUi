@@ -11,14 +11,14 @@
 .send-button-custom,
 .send-button-custom.arco-btn,
 .send-button-custom.arco-btn-primary {
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: transparent !important;
-  border: 1px solid transparent !important;
-  color: var(--brand) !important;
-  box-shadow: none !important;
+  width: 32px; /* fights .arco-btn width auto */
+  min-width: 32px; /* fights .arco-btn min-width */
+  height: 32px; /* fights .arco-btn height */
+  border-radius: var(--radius-control); /* fights .arco-btn border-radius */
+  background-color: transparent !important; /* fights .arco-btn-primary bg */
+  border: 1px solid transparent !important; /* fights .arco-btn-primary border */
+  color: var(--brand) !important; /* fights .arco-btn-primary color */
+  box-shadow: none; /* fights .arco-btn box-shadow */
   transition:
     color var(--motion-base) var(--motion-ease-emphasized),
     opacity var(--motion-base) var(--motion-ease-emphasized),
@@ -31,11 +31,11 @@
 .send-button-custom:hover:not(:disabled),
 .send-button-custom.arco-btn:hover:not(:disabled),
 .send-button-custom.arco-btn-primary:hover:not(:disabled) {
-  background-color: var(--bg-2) !important;
-  border-color: transparent !important;
-  color: var(--brand) !important;
+  background-color: var(--bg-2) !important; /* fights .arco-btn-primary:hover bg */
+  border-color: transparent !important; /* fights .arco-btn-primary:hover border */
+  color: var(--brand) !important; /* fights .arco-btn-primary:hover color */
   transform: translateY(-1px);
-  box-shadow: none !important;
+  box-shadow: none; /* fights .arco-btn:hover box-shadow */
 }
 
 .send-button-custom:focus-visible,
@@ -48,23 +48,23 @@
 .send-button-custom:disabled,
 .send-button-custom.arco-btn:disabled,
 .send-button-custom.arco-btn-primary:disabled {
-  background-color: transparent !important;
-  border-color: transparent !important;
-  color: var(--text-disabled) !important;
-  opacity: 0.6 !important;
-  cursor: not-allowed !important;
-  transform: none !important;
-  box-shadow: none !important;
+  background-color: transparent !important; /* fights .arco-btn-primary disabled bg */
+  border-color: transparent !important; /* fights .arco-btn-primary disabled border */
+  color: var(--text-disabled) !important; /* fights .arco-btn-primary disabled color */
+  opacity: 0.6 !important; /* fights .arco-btn disabled opacity override */
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .send-button-custom .arco-icon,
 .send-button-custom .arco-icon > svg {
-  color: currentColor !important;
-  fill: currentColor !important;
+  color: currentColor !important; /* fights .arco-icon color */
+  fill: currentColor !important; /* fights .arco-icon fill */
 }
 
 .send-button-custom .arco-icon > svg {
-  stroke-width: 5 !important;
+  stroke-width: 5 !important; /* fights .arco-icon svg stroke-width */
 }
 
 /* Phase 5 — stop button: outline-style rust border, brand-coloured icon,
@@ -76,14 +76,14 @@
 .sendbox-stop-button,
 .sendbox-stop-button.arco-btn,
 .sendbox-stop-button.arco-btn-secondary {
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: transparent !important;
-  border: 1px solid var(--brand) !important;
-  color: var(--brand) !important;
-  box-shadow: none !important;
+  width: 32px; /* fights .arco-btn width auto */
+  min-width: 32px; /* fights .arco-btn min-width */
+  height: 32px; /* fights .arco-btn height */
+  border-radius: var(--radius-control); /* fights .arco-btn border-radius */
+  background-color: transparent !important; /* fights .arco-btn-secondary bg */
+  border: 1px solid var(--brand) !important; /* fights .arco-btn-secondary border */
+  color: var(--brand) !important; /* fights .arco-btn-secondary color */
+  box-shadow: none; /* fights .arco-btn box-shadow */
   transition:
     color var(--motion-base) var(--motion-ease-emphasized),
     background-color var(--motion-base) var(--motion-ease-emphasized),
@@ -104,8 +104,8 @@
 
 .sendbox-stop-button.bg-animate .arco-icon,
 .sendbox-stop-button.bg-animate svg {
-  color: var(--brand) !important;
-  fill: var(--brand) !important;
+  color: var(--brand) !important; /* fights .arco-icon default color */
+  fill: var(--brand) !important; /* fights .arco-icon default fill */
 }
 
 /* Phase 5 (remediated) — breathing pulse animates ground tint + a tight 2px
@@ -128,7 +128,7 @@
 
 /* Input placeholder color */
 ::placeholder {
-  color: var(--text-disabled) !important;
+  color: var(--text-disabled) !important; /* fights Arco input placeholder color */
 }
 
 /* Sendbox focus glow */
@@ -143,7 +143,7 @@
   .sendbox-panel {
     -webkit-backdrop-filter: saturate(120%) blur(8px);
     backdrop-filter: saturate(120%) blur(8px);
-    background-color: color-mix(in srgb, var(--bg-1) 88%, transparent) !important;
+    background-color: color-mix(in srgb, var(--bg-1) 88%, transparent) !important; /* fights .sendbox-panel solid bg */
   }
 }
 
@@ -238,7 +238,7 @@
 .sendbox-tools .arco-btn:hover,
 .sendbox-tools .arco-btn:active,
 .sendbox-tools .arco-btn:focus {
-  transform: none !important;
+  transform: none !important; /* fights Arco hover transform on all child buttons */
 }
 
 /* Phase 5 — composer toolbar icon buttons: 32×32 tap target, 16px icon,
@@ -248,17 +248,17 @@
 .sendbox-rail__icon-btn.arco-btn,
 .sendbox-tools .arco-btn-shape-circle,
 .sendbox-tools .arco-btn-shape-circle.arco-btn {
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: transparent !important;
-  border: 1px solid transparent !important;
-  color: var(--text-secondary) !important;
-  box-shadow: none !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  width: 32px; /* fights .arco-btn-shape-circle width */
+  min-width: 32px; /* fights .arco-btn min-width */
+  height: 32px; /* fights .arco-btn-shape-circle height */
+  border-radius: var(--radius-control); /* fights .arco-btn-shape-circle border-radius */
+  background-color: transparent !important; /* fights .arco-btn-shape-circle bg */
+  border: 1px solid transparent !important; /* fights .arco-btn border */
+  color: var(--text-secondary) !important; /* fights .arco-btn-shape-circle color */
+  box-shadow: none; /* fights .arco-btn box-shadow */
+  display: inline-flex; /* fights .arco-btn display */
+  align-items: center; /* fights .arco-btn alignment */
+  justify-content: center;
   transition:
     background-color var(--motion-fast) var(--motion-ease-standard),
     color var(--motion-fast) var(--motion-ease-standard);
@@ -266,8 +266,8 @@
 
 .sendbox-rail__icon-btn:hover:not(:disabled),
 .sendbox-tools .arco-btn-shape-circle:hover:not(:disabled) {
-  background-color: var(--bg-2) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--bg-2) !important; /* fights .arco-btn-shape-circle:hover bg */
+  color: var(--text-primary) !important; /* fights .arco-btn-shape-circle:hover color */
 }
 
 .sendbox-rail__icon-btn:focus-visible,
@@ -276,48 +276,91 @@
   outline-offset: 2px;
 }
 
-/* Phase 5 — selector trigger pills: 32px tall, 10px h-padding, rounded-control,
-   bg-1 ground, border-light edge, text-primary, hover bg-2. Active selection
-   (when an internal class signals it) is brand-tinted via color-mix — matches
-   the existing convention in AgentModeSelector.module.css. */
-.sendbox-rail__group--selectors .sendbox-model-btn,
-.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn {
-  height: 32px !important;
-  min-height: 32px !important;
-  padding: 0 10px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: var(--bg-1) !important;
-  border: 1px solid var(--border-light) !important;
-  color: var(--text-primary) !important;
-  font-size: 13px !important;
-  box-shadow: none !important;
-  display: inline-flex !important;
-  align-items: center !important;
+/* Phase 5 / R3 — unified composer pill (collapsed from sendbox-model-btn,
+   header-model-btn, agent-mode-compact-pill). 32px tall, 10px h-padding,
+   rounded-control, bg-1 ground, border-light edge, text-primary, hover bg-2.
+   Active selection is brand-tinted via color-mix. Globally scoped — no
+   ancestor gate. The GUID landing's :global() copy is removed; this rule
+   applies everywhere. Flex-shrink rules (formerly agent-mode-compact-pill)
+   are harmless outside a flex container. */
+.composerPill,
+.composerPill.arco-btn {
+  height: 32px;
+  min-height: 32px;
+  padding: 0 10px;
+  border-radius: var(--radius-control);
+  background-color: var(--bg-1) !important; /* fights .arco-btn bg */
+  border: 1px solid var(--border-light) !important; /* fights .arco-btn border */
+  color: var(--text-primary) !important; /* fights .arco-btn color */
+  font-size: 13px;
+  box-shadow: none;
+  display: inline-flex;
+  align-items: center;
+  min-width: 0;
+  overflow: hidden;
+  flex-shrink: 1;
+  flex-basis: 0;
+  flex-grow: 1;
+  max-width: max-content;
   transition:
     background-color var(--motion-fast) var(--motion-ease-standard),
     border-color var(--motion-fast) var(--motion-ease-standard);
 }
 
-.sendbox-rail__group--selectors .sendbox-model-btn:hover:not(:disabled),
-.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn:hover:not(:disabled) {
-  background-color: var(--bg-2) !important;
-  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-light)) !important;
-  color: var(--text-primary) !important;
+.composerPill .arco-btn-content {
+  min-width: 0;
+  overflow: hidden;
 }
 
-.sendbox-rail__group--selectors .sendbox-model-btn:focus-visible,
-.sendbox-rail__group--selectors .sendbox-model-btn.arco-btn:focus-visible {
+.composerPill:hover:not(:disabled),
+.composerPill.arco-btn:hover:not(:disabled) {
+  background-color: var(--bg-2); /* specificity (0,2,2) beats .arco-btn:hover (0,1,1) */
+  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-light));
+  color: var(--text-primary);
+}
+
+.composerPill:focus-visible,
+.composerPill.arco-btn:focus-visible {
   outline: 2px solid var(--brand);
   outline-offset: 2px;
 }
 
-/* Active selection — pill carries the `sendbox-model-btn--active` modifier
-   when its non-default value is set. Border picks up the brand tone. */
-.sendbox-rail__group--selectors .sendbox-model-btn--active,
-.sendbox-rail__group--selectors .sendbox-model-btn--active.arco-btn,
-.sendbox-rail__group--selectors .sendbox-model-btn--active:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important;
-  background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important;
+/* Active selection — pill carries the `composerPill--active` modifier */
+.composerPill--active,
+.composerPill--active.arco-btn,
+.composerPill--active:hover:not(:disabled) {
+  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important; /* fights .arco-btn border-color */
+  background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important; /* fights .arco-btn bg */
+}
+
+/* Read-only pills — no pointer events, flattened background. */
+.composerPill--readonly,
+.composerPill--readonly:hover,
+.composerPill--readonly:active,
+.composerPill--readonly:focus,
+.composerPill--readonly:focus-visible {
+  cursor: default !important; /* fights .arco-btn cursor */
+  pointer-events: none; /* specificity (0,3,0) beats any .arco-btn state */
+  background: var(--color-fill-2); /* specificity (0,3,0) beats .arco-btn */
+  border: none;
+  box-shadow: none;
+}
+
+/* Mobile: cap pill width in the conversation header slot. Collapsed from
+   header-model-btn max-width rule. Round pills on mobile for visual compactness
+   (collapsed from agent-mode-compact-pill mobile sizing). */
+@media (max-width: 767px) {
+  .composerPill {
+    border-radius: 999px;
+  }
+
+  .composerPill .arco-btn-content {
+    line-height: 1;
+  }
+
+  .composerPill--compact {
+    max-width: 140px;
+  }
 }
 
 .speech-input-control {
@@ -362,8 +405,8 @@
   background: color-mix(in srgb, var(--color-text-2) 72%, transparent);
   flex: 0 0 auto;
   transition:
-    height 120ms ease,
-    background-color 120ms ease;
+    height var(--motion-fast) ease,
+    background-color var(--motion-fast) ease;
 }
 
 .speech-input-feedback--processing .speech-input-feedback__bar {
@@ -387,26 +430,26 @@
   width: 32px;
   min-width: 32px;
   height: 32px;
-  padding: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  color: var(--color-text-3) !important;
-  border-radius: 999px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
+  padding: 0 !important; /* fights .arco-btn padding */
+  border: none !important; /* fights .arco-btn border */
+  box-shadow: none !important; /* fights .arco-btn box-shadow */
+  background: transparent !important; /* fights .arco-btn bg */
+  color: var(--color-text-3) !important; /* fights .arco-btn color */
+  border-radius: 999px; /* fights .arco-btn border-radius */
+  display: inline-flex; /* fights .arco-btn display */
+  align-items: center;
+  justify-content: center;
 }
 
 .speech-input-button .arco-btn-icon,
 .speech-input-button .arco-icon {
-  margin: 0 !important;
-  width: 18px !important;
-  height: 18px !important;
-  display: inline-flex !important;
-  align-items: center !important;
-  justify-content: center !important;
-  line-height: 1 !important;
+  margin: 0 !important; /* fights .arco-btn-icon margin */
+  width: 18px;
+  height: 18px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
 }
 
 .speech-input-button svg {
@@ -429,16 +472,16 @@
 .speech-input-button:disabled:active,
 .speech-input-button:disabled:focus,
 .speech-input-button:disabled:focus-visible {
-  opacity: 1 !important;
-  background: transparent !important;
-  color: var(--color-text-3) !important;
-  cursor: not-allowed !important;
+  opacity: 1 !important; /* fights .arco-btn:disabled opacity */
+  background: transparent !important; /* fights .arco-btn:disabled bg */
+  color: var(--color-text-3) !important; /* fights .arco-btn:disabled color */
+  cursor: not-allowed !important; /* fights .arco-btn:disabled cursor */
 }
 
 .speech-input-button--processing svg {
-  width: 18px !important;
-  height: 18px !important;
-  transform-origin: center center !important;
+  width: 18px;
+  height: 18px;
+  transform-origin: center center;
 }
 
 .speech-input-button--processing .speech-loader-spinner {
@@ -449,10 +492,10 @@
 .speech-input-button:active,
 .speech-input-button:focus,
 .speech-input-button:focus-visible {
-  border: none !important;
-  box-shadow: none !important;
-  background: color-mix(in srgb, var(--color-fill-2) 78%, transparent) !important;
-  color: var(--color-text-1) !important;
+  border: none !important; /* fights .arco-btn border */
+  box-shadow: none !important; /* fights .arco-btn box-shadow */
+  background: color-mix(in srgb, var(--color-fill-2) 78%, transparent) !important; /* fights .arco-btn:hover bg */
+  color: var(--color-text-1) !important; /* fights .arco-btn:hover color */
 }
 
 .speech-input-button--listening,
@@ -460,9 +503,9 @@
 .speech-input-button--listening:active,
 .speech-input-button--listening:focus,
 .speech-input-button--listening:focus-visible {
-  background: color-mix(in srgb, rgb(var(--danger-1)) 70%, transparent) !important;
-  color: rgb(var(--danger-6)) !important;
-  border-radius: 999px !important;
+  background: color-mix(in srgb, rgb(var(--danger-1)) 70%, transparent) !important; /* fights .arco-btn bg */
+  color: rgb(var(--danger-6)) !important; /* fights .arco-btn color */
+  border-radius: 999px;
 }
 
 .speech-input-button--processing,
@@ -470,10 +513,10 @@
 .speech-input-button--processing:active,
 .speech-input-button--processing:focus,
 .speech-input-button--processing:focus-visible {
-  border: none !important;
-  box-shadow: none !important;
-  background: color-mix(in srgb, var(--color-fill-2) 86%, transparent) !important;
-  color: var(--color-text-2) !important;
+  border: none !important; /* fights .arco-btn border */
+  box-shadow: none !important; /* fights .arco-btn box-shadow */
+  background: color-mix(in srgb, var(--color-fill-2) 86%, transparent) !important; /* fights .arco-btn bg */
+  color: var(--color-text-2) !important; /* fights .arco-btn color */
 }
 
 @keyframes speech-processing-pulse {
@@ -503,26 +546,7 @@
 
 /* Circle / icon-only buttons must not shrink */
 .sendbox-tools .arco-btn-shape-circle {
-  flex-shrink: 0 !important;
-}
-
-/* Only pill buttons shrink; file-attach / other fixed buttons stay rigid.
- * flex-basis:0 makes all pills share space equally when compressed,
- * max-width:max-content prevents short-text pills from stretching. */
-.sendbox-tools .agent-mode-compact-pill,
-.sendbox-actions .agent-mode-compact-pill {
-  min-width: 0 !important;
-  overflow: hidden !important;
-  flex-shrink: 1 !important;
-  flex-basis: 0 !important;
-  flex-grow: 1 !important;
-  max-width: max-content !important;
-}
-
-.sendbox-tools .agent-mode-compact-pill .arco-btn-content,
-.sendbox-actions .agent-mode-compact-pill .arco-btn-content {
-  min-width: 0 !important;
-  overflow: hidden !important;
+  flex-shrink: 0 !important; /* fights .arco-btn flex-shrink */
 }
 
 /* Pill marquee animation for overflowing text */
@@ -571,15 +595,15 @@
 }
 
 .sendbox-highlight-textarea {
-  background: transparent !important;
+  background: transparent !important; /* fights Arco textarea bg */
 }
 
 .sendbox-highlight-textarea {
   position: relative;
   z-index: 1;
-  color: transparent !important;
-  -webkit-text-fill-color: transparent !important;
-  caret-color: var(--text-primary) !important;
+  color: transparent !important; /* fights Arco textarea color */
+  -webkit-text-fill-color: transparent !important; /* fights WebKit text fill */
+  caret-color: var(--text-primary) !important; /* fights default caret color */
 }
 
 .sendbox-highlight-textarea::selection {
@@ -587,8 +611,8 @@
 }
 
 .sendbox-highlight-textarea::placeholder {
-  color: var(--text-disabled) !important;
-  -webkit-text-fill-color: var(--text-disabled) !important;
+  color: var(--text-disabled) !important; /* fights Arco placeholder color */
+  -webkit-text-fill-color: var(--text-disabled) !important; /* fights WebKit placeholder fill */
 }
 
 /* Mobile: allow horizontal scrolling for sendbox tools (model/permission pills) */
@@ -617,28 +641,28 @@
      container shares the same floor, and we trim the gap below the textarea
      (default inline 8px → 4px) so the toolbar sits closer. */
   .sendbox-input--mobile {
-    font-size: 14px !important;
-    line-height: 20px !important;
-    min-height: 20px !important;
+    font-size: 14px !important; /* fights Arco input font-size */
+    line-height: 20px !important; /* fights Arco input line-height */
+    min-height: 20px !important; /* fights Arco input min-height */
   }
 
   .sendbox-highlight-container {
-    min-height: 20px !important;
-    margin-bottom: 4px !important;
+    min-height: 20px !important; /* fights desktop min-height */
+    margin-bottom: 4px !important; /* fights desktop margin */
   }
 
   /* Mobile placeholder shares the input's 14px font for consistency. */
   .sendbox-input--mobile::placeholder,
   .sendbox-input--mobile::-webkit-input-placeholder,
   .sendbox-highlight-textarea.sendbox-input--mobile::placeholder {
-    font-size: 14px !important;
+    font-size: 14px !important; /* fights Arco placeholder font-size */
   }
 
   /* Tighter mobile sendbox: reduce outer padding so the bottom input takes
      less vertical space on narrow screens. */
   .sendbox-panel {
-    padding: 8px 10px !important;
-    border-radius: 16px !important;
+    padding: 8px 10px !important; /* fights desktop padding */
+    border-radius: 16px !important; /* fights desktop border-radius */
   }
 
   .speech-input-feedback {

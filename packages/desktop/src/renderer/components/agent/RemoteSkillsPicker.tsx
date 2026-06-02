@@ -92,7 +92,7 @@ const RemoteSkillsPicker: React.FC<RemoteSkillsPickerProps> = ({
         <Button
           size='small'
           aria-label={ariaLabel}
-          className={`sendbox-model-btn header-model-btn ${hasSelection ? `${styles.triggerActive} sendbox-model-btn--active` : ''}`}
+          className={`composerPill ${hasSelection ? `${styles.triggerActive} composerPill--active` : ''}`}
           shape='round'
         >
           <span className='flex items-center gap-6px min-w-0'>

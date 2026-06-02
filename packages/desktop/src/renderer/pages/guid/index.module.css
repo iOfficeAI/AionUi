@@ -45,21 +45,21 @@
   padding-right: 2px;
 }
 
-.heroBackButton {
-  width: 30px !important;
-  height: 30px !important;
-  min-width: 30px !important;
-  color: var(--color-text-2) !important;
-  border-radius: 999px !important;
-  background: var(--color-fill-2) !important;
-  display: inline-flex !important;
+.heroBackButton.arco-btn {
+  width: 30px;
+  height: 30px;
+  min-width: 30px;
+  color: var(--color-text-2);
+  border-radius: 999px;
+  background: var(--color-fill-2);
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0 !important;
+  padding: 0;
 }
 
-.heroBackButton:hover {
-  background: var(--color-fill-3) !important;
+.heroBackButton.arco-btn:hover {
+  background: var(--color-fill-3);
 }
 
 .heroBackButton :global(svg),
@@ -69,39 +69,39 @@
 }
 
 .heroBackButton :global(.arco-btn-icon) {
-  margin: 0 !important;
-  line-height: 0 !important;
+  margin: 0 !important; /* fights .arco-btn-icon margin from Arco */
+  line-height: 0 !important; /* fights .arco-btn-icon line-height from Arco */
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
 
-.heroTitleEdit {
-  width: 20px !important;
-  height: 20px !important;
-  min-width: 20px !important;
-  padding: 0 !important;
-  border: none !important;
-  border-radius: 0 !important;
-  color: var(--color-text-3) !important;
-  background: transparent !important;
-  display: inline-flex !important;
+.heroTitleEdit.arco-btn {
+  width: 20px;
+  height: 20px;
+  min-width: 20px;
+  padding: 0;
+  border: none;
+  border-radius: 0;
+  color: var(--color-text-3);
+  background: transparent;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   transform: translateY(1px);
 }
 
-.heroTitleEdit:hover {
-  background: transparent !important;
-  color: var(--color-text-2) !important;
+.heroTitleEdit.arco-btn:hover {
+  background: transparent;
+  color: var(--color-text-2);
 }
 
-.heroAgentSwitchButton {
-  color: var(--color-text-2) !important;
-  padding: 0 6px !important;
-  height: 34px !important;
-  min-height: 34px !important;
-  display: inline-flex !important;
+.heroAgentSwitchButton.arco-btn {
+  color: var(--color-text-2);
+  padding: 0 6px;
+  height: 34px;
+  min-height: 34px;
+  display: inline-flex;
   align-items: center;
   transform: translateY(1px);
 }
@@ -175,38 +175,38 @@
   margin-top: 2px;
 }
 
-.heroSubtitleBack {
+.heroSubtitleBack.arco-btn {
   flex-shrink: 0;
-  width: 24px !important;
-  height: 24px !important;
-  min-width: 24px !important;
-  padding: 0 !important;
-  border-radius: 999px !important;
-  color: var(--color-text-2) !important;
-  border-color: var(--color-border-2) !important;
-  background: var(--bg-active) !important;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+  padding: 0;
+  border-radius: 999px;
+  color: var(--color-text-2);
+  border-color: var(--color-border-2);
+  background: var(--bg-active);
 }
 
-.heroSubtitleBack:hover {
-  background: var(--bg-3) !important;
+.heroSubtitleBack.arco-btn:hover {
+  background: var(--bg-3);
 }
 
-.heroSubtitleToggle {
+.heroSubtitleToggle.arco-btn {
   flex-shrink: 0;
-  width: 28px !important;
-  height: 28px !important;
-  min-width: 28px !important;
-  padding: 0 !important;
-  border: none !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  color: var(--color-text-3) !important;
-  transition: transform 0.2s ease;
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  padding: 0;
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  color: var(--color-text-3);
+  transition: transform var(--motion-base) ease;
 }
 
-.heroSubtitleToggle:hover {
-  background: transparent !important;
-  color: var(--color-text-2) !important;
+.heroSubtitleToggle.arco-btn:hover {
+  background: transparent;
+  color: var(--color-text-2);
 }
 
 .heroSubtitleToggleExpanded {
@@ -231,36 +231,36 @@
   line-height: 1.6;
 }
 
-.heroSubtitleDetail {
+.heroSubtitleDetail.arco-btn {
   flex-shrink: 0;
-  height: 22px !important;
-  min-height: 22px !important;
-  padding: 0 6px !important;
-  border-radius: 10px !important;
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
-  background: transparent !important;
-  color: var(--color-text-3) !important;
-  font-size: 12px !important;
-  font-weight: 500 !important;
+  height: 22px;
+  min-height: 22px;
+  padding: 0 6px;
+  border-radius: 10px;
+  border: 0;
+  outline: 0;
+  box-shadow: none;
+  background: transparent;
+  color: var(--color-text-3);
+  font-size: 12px;
+  font-weight: 500;
   opacity: 0.9;
 }
 
-.heroSubtitleDetail:hover {
-  background: var(--color-fill-2) !important;
-  color: var(--color-text-2) !important;
-  border: 0 !important;
-  box-shadow: none !important;
+.heroSubtitleDetail.arco-btn:hover {
+  background: var(--color-fill-2);
+  color: var(--color-text-2);
+  border: 0;
+  box-shadow: none;
   opacity: 1;
 }
 
-.heroSubtitleDetail:focus,
-.heroSubtitleDetail:focus-visible,
-.heroSubtitleDetail:active {
-  border: 0 !important;
-  outline: 0 !important;
-  box-shadow: none !important;
+.heroSubtitleDetail.arco-btn:focus,
+.heroSubtitleDetail.arco-btn:focus-visible,
+.heroSubtitleDetail.arco-btn:active {
+  border: 0;
+  outline: 0;
+  box-shadow: none;
 }
 
 .assistantPromptChip {
@@ -287,9 +287,9 @@
   user-select: none;
   transform: translateY(-1px);
   transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    color 0.2s;
+    background-color var(--motion-base),
+    border-color var(--motion-base),
+    color var(--motion-base);
 }
 
 .assistantPromptAgentSwitcher:hover {
@@ -372,19 +372,19 @@
    rounded-control footprint of the conversation rail attach button. */
 .actionTools :global(.arco-btn-shape-circle),
 .actionTools :global(.arco-btn-shape-circle.arco-btn) {
-  width: 32px !important;
-  min-width: 32px !important;
-  height: 32px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: transparent !important;
-  border: 1px solid transparent !important;
-  color: var(--text-secondary) !important;
-  box-shadow: none !important;
+  width: 32px;
+  min-width: 32px;
+  height: 32px;
+  border-radius: var(--radius-control);
+  background-color: transparent;
+  border: 1px solid transparent;
+  color: var(--text-secondary);
+  box-shadow: none;
 }
 
 .actionTools :global(.arco-btn-shape-circle:hover:not(:disabled)) {
-  background-color: var(--bg-2) !important;
-  color: var(--text-primary) !important;
+  background-color: var(--bg-2);
+  color: var(--text-primary);
 }
 
 .actionTools :global(.arco-btn-shape-circle:focus-visible) {
@@ -408,49 +408,16 @@
   flex: 0 1 auto;
 }
 
-/* Phase 5 remediation — parity with the conversation rail.
-   The GUID action row's selector pills now share the new 32px-tall,
-   bg-1 ground, border-light edge treatment from sendbox.css. The old
-   transparent/borderless override is intentionally gone. */
-.actionSubmit :global(.sendbox-model-btn),
-.actionSubmit :global(.sendbox-model-btn.arco-btn) {
-  height: 32px !important;
-  min-height: 32px !important;
-  padding: 0 10px !important;
-  border-radius: var(--radius-control) !important;
-  background-color: var(--bg-1) !important;
-  border: 1px solid var(--border-light) !important;
-  color: var(--text-primary) !important;
-  font-size: 13px !important;
-  box-shadow: none !important;
+/* R3: The GUID landing's :global(.sendbox-model-btn) overrides are removed.
+   The unified .composerPill class from sendbox.css is globally scoped and
+   applies directly. Only the internal content gap overrides remain scoped
+   to .actionSubmit. */
+.actionConfigGroup :global(.composerPill .arco-btn-content) {
+  gap: 0;
 }
 
-.actionSubmit :global(.sendbox-model-btn:hover:not(:disabled)),
-.actionSubmit :global(.sendbox-model-btn.arco-btn:hover:not(:disabled)) {
-  background-color: var(--bg-2) !important;
-  border-color: color-mix(in srgb, var(--brand) 24%, var(--border-light)) !important;
-  color: var(--text-primary) !important;
-}
-
-.actionSubmit :global(.sendbox-model-btn:focus-visible),
-.actionSubmit :global(.sendbox-model-btn.arco-btn:focus-visible) {
-  outline: 2px solid var(--brand);
-  outline-offset: 2px;
-}
-
-.actionSubmit :global(.sendbox-model-btn--active),
-.actionSubmit :global(.sendbox-model-btn--active.arco-btn),
-.actionSubmit :global(.sendbox-model-btn--active:hover:not(:disabled)) {
-  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important;
-  background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important;
-}
-
-.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
-  gap: 0 !important;
-}
-
-.actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
-  gap: 4px !important;
+.actionConfigGroup :global(.composerPill .arco-btn-content > span:first-child) {
+  gap: 4px;
 }
 
 .actionSubmit {
@@ -518,8 +485,8 @@
   cursor: pointer;
   font-family: inherit;
   transition:
-    background 0.12s,
-    color 0.12s;
+    background var(--motion-fast),
+    color var(--motion-fast);
   max-width: 220px;
   overflow: hidden;
   white-space: nowrap;
@@ -550,9 +517,8 @@
   color: var(--color-text-4);
   flex-shrink: 0;
   transition:
-    background 0.12s,
-    color 0.12s;
-}
+    background var(--motion-fast),
+    color var(--motion-fast);}
 
 .workspacePillClose:hover {
   background: var(--color-fill-3);
@@ -820,10 +786,13 @@
   }
 }
 
+/* R3 — reduced to 5 !important declarations (from 93). Each remaining one
+   fights Arco internals or browser pseudo-element quirks. */
+
 /* 浅色占位符 */
 .lightPlaceholder :global(textarea::placeholder) {
-  color: var(--text-disabled) !important;
-  opacity: 1 !important;
+  color: var(--text-disabled) !important; /* fights Arco textarea placeholder color */
+  opacity: 1 !important; /* fights browser default placeholder opacity */
 }
 
 /* 助手卡片网格（首页 list view） */
@@ -984,7 +953,7 @@
   border-radius: 16px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 0.2s;
+  transition: background-color var(--motion-base);
   max-width: 100%;
   min-width: 0;
   overflow: hidden;
@@ -1058,7 +1027,7 @@
   border-radius: 50%;
   margin-left: 2px;
   margin-right: 6px;
-  transition: background-color 0.2s;
+  transition: background-color var(--motion-base);
   flex-shrink: 0;
 }
 
@@ -1075,7 +1044,7 @@
   border-radius: 50%;
   margin-left: 2px;
   margin-right: 8px;
-  transition: background-color 0.2s;
+  transition: background-color var(--motion-base);
   flex-shrink: 0;
 }
 
@@ -1104,7 +1073,7 @@
 /* iPhone专门优化 */
 @supports (-webkit-touch-callout: none) {
   .actionRow {
-    flex-wrap: nowrap !important;
+    flex-wrap: nowrap !important; /* fights Arco flexbox defaults on iOS */
   }
 
   .actionTools {

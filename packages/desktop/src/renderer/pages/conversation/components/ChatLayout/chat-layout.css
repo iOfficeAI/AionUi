@@ -107,39 +107,13 @@
   color: var(--color-text-1);
 }
 
-/* Header model pill — only cap width on mobile, where the titlebar slot has
-   limited horizontal room. Desktop lets the pill grow to fit the full name. */
+/* R3: header-model-btn, agent-mode-compact-pill, and
+   agent-mode-compact-pill--readonly collapsed into .composerPill
+   with modifiers in sendbox.css. The mobile pill sizing rules are
+   now handled by .composerPill base + .composerPill--compact
+   and .composerPill--readonly. No local overrides needed. */
+
 @media (max-width: 767px) {
-  .header-model-btn {
-    max-width: 140px;
-  }
-}
-
-/* Mobile: conversation header pills */
-@media (max-width: 767px) {
-  .agent-mode-compact-pill {
-    min-height: 32px !important;
-    height: 32px !important;
-    padding: 0 10px !important;
-    border-radius: 999px !important;
-  }
-
-  .agent-mode-compact-pill .arco-btn-content {
-    line-height: 1;
-  }
-
-  .agent-mode-compact-pill--readonly,
-  .agent-mode-compact-pill--readonly:hover,
-  .agent-mode-compact-pill--readonly:active,
-  .agent-mode-compact-pill--readonly:focus,
-  .agent-mode-compact-pill--readonly:focus-visible {
-    cursor: default !important;
-    pointer-events: none !important;
-    background: var(--color-fill-2) !important;
-    border: none !important;
-    box-shadow: none !important;
-  }
-
   .chat-header-cron-pill {
     margin-right: 4px;
   }

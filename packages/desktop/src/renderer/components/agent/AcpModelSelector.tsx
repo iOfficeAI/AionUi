@@ -327,7 +327,7 @@ const AcpModelSelector: React.FC<{
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
         <Button
-          className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+          className='composerPill'
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
@@ -347,7 +347,7 @@ const AcpModelSelector: React.FC<{
     return (
       <Tooltip content={tooltipContent} position='top'>
         <Button
-          className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+          className='composerPill'
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
@@ -410,7 +410,7 @@ const AcpModelSelector: React.FC<{
     >
       <Tooltip content={tooltipContent} position='top'>
         <Button
-          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill${isUserPicked ? ' sendbox-model-btn--active' : ''}`}
+          className={`composerPill${isUserPicked ? ' composerPill--active' : ''}`}
           shape='round'
           size='small'
         >

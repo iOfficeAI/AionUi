@@ -328,7 +328,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
         <Button
           data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
-          className={`sendbox-model-btn header-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}${isNonDefault ? ' sendbox-model-btn--active' : ''}`}
+          className={`composerPill ${canInteract ? '' : 'composerPill--readonly'}${isNonDefault ? ' composerPill--active' : ''}`}
           shape='round'
           size='small'
           onClick={canInteract ? () => !isLoading && setDropdownVisible((visible) => !visible) : undefined}
