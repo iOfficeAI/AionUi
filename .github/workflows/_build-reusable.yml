@@ -313,8 +313,8 @@ jobs:
           # AIONCORE_GITHUB_OWNER/REPO point to our private backend fork.
           AIONCORE_GITHUB_OWNER: halojerry
           AIONCORE_GITHUB_REPO: poundingcore
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')
