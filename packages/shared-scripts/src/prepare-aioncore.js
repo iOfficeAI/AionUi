@@ -162,13 +162,97 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
+function findAssetId(assetName, tag) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+  const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
+
+  // 1. Try gh CLI (fast path for CI)
+  try {
+    const out = execSync(
+      `gh release view ${tag} --repo ${GITHUB_OWNER}/${GITHUB_REPO} --json assets -q ".assets[] | select(.name==\\"${assetName}\\") | .id"`,
+      { encoding: 'utf-8', timeout: 15000 }
+    ).trim();
+    if (out) return out;
+  } catch {
+    // fall through to curl
+  }
+
+  // 2. Fall back to curl (GitHub API)
+  try {
+    const tagJson = execFileSync(
+      'curl',
+      ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
+      { encoding: 'utf-8', timeout: 15000 }
+    );
+    const release = JSON.parse(tagJson);
+    const asset = release.assets.find((a) => a.name === assetName);
+    if (asset) return String(asset.id);
+  } catch {
+    // fall through
+  }
+
+  return null;
+}
+
+function downloadAssetById(assetId, outputPath) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+  console.log(`  Downloading aioncore asset ${assetId} via GitHub API`);
+  const authHeader = token ? `Authorization: token ${token}` : '';
+  if (process.platform === 'win32') {
+    const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri 'https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/assets/${assetId}' -Headers @{Accept='application/octet-stream'${
+      authHeader ? `; Authorization='token ${token}'` : ''
+    }} -OutFile '${outputPath.replace(/'/g, "''")}'`;
+    execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
+      timeout: 120000,
+    });
+    return;
+  }
+  const authArgs = token ? ['-H', authHeader] : [];
+  try {
+    execFileSync(
+      'curl',
+      [
+        '-L',
+        '--fail',
+        '--silent',
+        '--show-error',
+        '-o',
+        outputPath,
+        ...authArgs,
+        '-H',
+        'Accept: application/octet-stream',
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/assets/${assetId}`,
+      ],
+      {
+        timeout: 120000,
+      }
+    );
+  } catch {
+    execFileSync(
+      'wget',
+      [
+        '-q',
+        '--header',
+        'Accept: application/octet-stream',
+        token ? `--header` : '',
+        token ? `Authorization: token ${token}` : '',
+        '-O',
+        outputPath,
+        `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/assets/${assetId}`,
+      ].filter(Boolean),
+      {
+        timeout: 120000,
+      }
+    );
+  }
+}
+
 function downloadAndExtract(platform, arch, tag) {
   const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
     throw new Error(`Unsupported aioncore target: ${platform}-${arch}`);
   }
 
-  const url = getDownloadUrl(assetName, tag);
   const tempDir = path.join(os.tmpdir(), 'aioncore-prepare', tag, `${platform}-${arch}`);
   const archivePath = path.join(tempDir, assetName);
   const extractDir = path.join(tempDir, 'extracted');
@@ -176,7 +260,17 @@ function downloadAndExtract(platform, arch, tag) {
   removeDirectorySafe(tempDir);
   ensureDirectory(tempDir);
 
-  downloadFile(url, archivePath);
+  // Private repos require API-based asset download; direct download URLs
+  // (releases/download) return 404 for private repos even with auth.
+  const assetId = findAssetId(assetName, tag);
+  if (assetId) {
+    downloadAssetById(assetId, archivePath);
+  } else {
+    // Fall back to direct URL (works for public repos)
+    const url = getDownloadUrl(assetName, tag);
+    downloadFile(url, archivePath);
+  }
+
   extractArchive(archivePath, extractDir, platform);
 
   const binaryName = getBinaryName(platform);
@@ -185,7 +279,7 @@ function downloadAndExtract(platform, arch, tag) {
     throw new Error(`Binary ${binaryName} not found in downloaded archive`);
   }
 
-  return { binaryPath, tempDir, url };
+  return { binaryPath, tempDir };
 }
 
 // ---------------------------------------------------------------------------
