@@ -835,9 +835,14 @@ export const mcpService = {
         _meta?: Record<string, unknown>;
       }>;
       error?: string;
+      code?: string;
+      details?: unknown;
       needsAuth?: boolean;
+      needs_auth?: boolean;
       authMethod?: 'oauth' | 'basic';
+      auth_method?: 'oauth' | 'basic';
       wwwAuthenticate?: string;
+      www_authenticate?: string;
     },
     IMcpServer
   >('/api/mcp/test-connection'),
