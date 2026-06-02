@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
@@ -70,6 +70,16 @@ const buildModelInfo = (overrides: Partial<AcpModelInfo> = {}): AcpModelInfo => 
   ...overrides,
 });
 
+function deferred<T>() {
+  let resolve!: (value: T | PromiseLike<T>) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
 describe('useAcpModelInfo', () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -113,8 +123,12 @@ describe('useAcpModelInfo', () => {
     });
   });
 
-  it('persists preferred model and conversation extra on selectModel', async () => {
-    getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
+  it('persists preferred model and conversation extra only after backend accepts selectModel', async () => {
+    const setModelDeferred = deferred<void>();
+    getModelInvokeMock
+      .mockResolvedValueOnce({ model_info: buildModelInfo() })
+      .mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
+    setModelInvokeMock.mockReturnValue(setModelDeferred.promise);
 
     const { result } = renderHook(() =>
       useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' })
@@ -124,10 +138,20 @@ describe('useAcpModelInfo', () => {
       expect(result.current.canSwitch).toBe(true);
     });
 
-    result.current.selectModel('opus-4');
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
 
     await waitFor(() => {
       expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+    expect(configServiceSetMock).not.toHaveBeenCalled();
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
+
+    setModelDeferred.resolve(undefined);
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
     });
     await waitFor(() => {
       expect(configServiceSetMock).toHaveBeenCalled();
@@ -141,6 +165,37 @@ describe('useAcpModelInfo', () => {
       updates: { extra: { current_model_id: 'opus-4' } },
       merge_extra: true,
     });
+  });
+
+  it('rolls back to backend model info and does not persist when selectModel fails', async () => {
+    const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+    getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
+    setModelInvokeMock.mockRejectedValue(new Error('model unavailable'));
+
+    const { result } = renderHook(() =>
+      useAcpModelInfo({ conversation_id: 'conv-1', backend: 'claude', initialModelId: 'sonnet-4' })
+    );
+
+    await waitFor(() => {
+      expect(result.current.canSwitch).toBe(true);
+    });
+
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
+
+    await waitFor(() => {
+      expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+    await waitFor(() => {
+      expect(getModelInvokeMock).toHaveBeenCalledTimes(2);
+    });
+
+    expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
+    expect(configServiceSetMock).not.toHaveBeenCalled();
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
+
+    consoleErrorSpy.mockRestore();
   });
 
   it('does not let initialModelId override backend current_model_id from acp_model_info stream', async () => {

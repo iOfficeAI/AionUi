@@ -215,15 +215,6 @@ export const useAcpModelInfo = ({
     (model_id: string) => {
       hasUserChangedModel.current = true;
       const previousModelInfo = model_info;
-      setModelInfo((prev) => {
-        if (!prev) return prev;
-        const selectedModel = prev.available_models.find((m) => m.id === model_id);
-        return {
-          ...prev,
-          current_model_id: model_id,
-          current_model_label: selectedModel?.label || model_id,
-        };
-      });
 
       void (async () => {
         try {
@@ -234,16 +225,32 @@ export const useAcpModelInfo = ({
           if (previousModelInfo) {
             updateModelInfo(previousModelInfo);
           } else {
-            void reloadModelInfo({ preserveInitialModel: true }).catch(() => {});
+            setModelInfo(null);
           }
+          void reloadModelInfo().catch(() => {});
           return;
         }
 
+        let refreshed = false;
         try {
           const result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
-          if (result?.model_info) updateModelInfo(result.model_info);
+          if (result?.model_info) {
+            updateModelInfo(result.model_info);
+            refreshed = true;
+          }
         } catch {
           // The model switch already succeeded; a later refresh will reconcile UI state.
+        }
+        if (!refreshed) {
+          setModelInfo((prev) => {
+            if (!prev) return prev;
+            const selectedModel = prev.available_models.find((m) => m.id === model_id);
+            return {
+              ...prev,
+              current_model_id: model_id,
+              current_model_label: selectedModel?.label || model_id,
+            };
+          });
         }
 
         // Persist only after the active ACP session accepts the model switch.
