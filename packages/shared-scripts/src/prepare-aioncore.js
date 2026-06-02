@@ -162,17 +162,44 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
-function findAssetId(assetName, tag) {
-  // Use the GH_TOKEN (PAT) for cross-repo access to private repos.
-  // GH_TOKEN must be a classic PAT with repo scope, or a fine-grained
-  // token with read access to both pouding and poundingcore.
-  const token = process.env.GH_TOKEN || '';
-  if (!token) {
-    console.warn('  GH_TOKEN not set — cannot access private repo assets');
-    return null;
+function downloadAssetViaGhCli(assetName, tag, outputPath) {
+  try {
+    execSync(
+      `gh release download "${tag}" --repo "${GITHUB_OWNER}/${GITHUB_REPO}" --pattern "${assetName}" --dir "${path.dirname(outputPath)}" --clobber`,
+      {
+        encoding: 'utf-8',
+        timeout: 120000,
+        stdio: 'pipe',
+      }
+    );
+    // gh renames the file; move to expected path
+    const downloaded = path.join(path.dirname(outputPath), assetName);
+    if (fs.existsSync(downloaded) && downloaded !== outputPath) {
+      fs.renameSync(downloaded, outputPath);
+    }
+    return fs.existsSync(outputPath);
+  } catch (err) {
+    console.warn(`  gh release download failed: ${err.message}`);
+    return false;
   }
-  const headers = ['-H', `Authorization: token ${token}`, '-H', 'Accept: application/vnd.github+json'];
+}
 
+function findAssetId(assetName, tag) {
+  // 1. Try gh CLI (handles auth for both public and private repos)
+  try {
+    const out = execSync(
+      `gh release view "${tag}" --repo "${GITHUB_OWNER}/${GITHUB_REPO}" --json assets -q ".assets[] | select(.name==\\"${assetName}\\") | .id"`,
+      { encoding: 'utf-8', timeout: 15000 }
+    ).trim();
+    if (out && /^\d+$/.test(out)) return out;
+  } catch {
+    // fall through to curl
+  }
+
+  // 2. Fallback: curl API (for environments without gh CLI)
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+  if (!token) return null;
+  const headers = ['-H', `Authorization: token ${token}`, '-H', 'Accept: application/vnd.github+json'];
   try {
     const result = execFileSync(
       'curl',
@@ -188,10 +215,9 @@ function findAssetId(assetName, tag) {
       { encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
     ).trim();
     if (result !== '200') {
-      console.warn(`  API returned HTTP ${result} for releases/tags/${tag} (token may lack cross-repo access)`);
+      console.warn(`  API returned HTTP ${result}`);
       return null;
     }
-    // Now fetch the full response
     const tagJson = execFileSync(
       'curl',
       ['-sSL', ...headers, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
@@ -200,11 +226,9 @@ function findAssetId(assetName, tag) {
     const release = JSON.parse(tagJson);
     const asset = (release.assets || []).find((a) => a.name === assetName);
     if (asset && asset.id) return String(asset.id);
-    console.warn(`  Asset ${assetName} not found in release ${tag}`);
   } catch (err) {
-    console.warn(`  Could not resolve asset ${assetName} via API: ${err.message}`);
+    console.warn(`  curl fallback failed: ${err.message}`);
   }
-
   return null;
 }
 
@@ -274,15 +298,18 @@ function downloadAndExtract(platform, arch, tag) {
   removeDirectorySafe(tempDir);
   ensureDirectory(tempDir);
 
-  // Private repos require API-based asset download; direct download URLs
-  // (releases/download) return 404 for private repos even with auth.
-  const assetId = findAssetId(assetName, tag);
-  if (assetId) {
-    downloadAssetById(assetId, archivePath);
+  // 1. Try gh CLI first (handles auth for private repos natively)
+  if (downloadAssetViaGhCli(assetName, tag, archivePath)) {
+    // downloaded successfully via gh CLI
   } else {
-    // Fall back to direct URL (works for public repos)
-    const url = getDownloadUrl(assetName, tag);
-    downloadFile(url, archivePath);
+    // 2. Try API-based download (curl with token)
+    const assetId = findAssetId(assetName, tag);
+    if (assetId) {
+      downloadAssetById(assetId, archivePath);
+    } else {
+      // 3. Fall back to direct URL (works for public repos)
+      downloadFile(getDownloadUrl(assetName, tag), archivePath);
+    }
   }
 
   extractArchive(archivePath, extractDir, platform);
