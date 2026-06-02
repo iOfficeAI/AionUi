@@ -163,32 +163,28 @@ function findBinaryInDir(dir, binaryName) {
 }
 
 function findAssetId(assetName, tag) {
-  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
-  const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
-
-  // 1. Try gh CLI (fast path for CI)
-  try {
-    const out = execSync(
-      `gh release view ${tag} --repo ${GITHUB_OWNER}/${GITHUB_REPO} --json assets -q ".assets[] | select(.name==\\"${assetName}\\") | .id"`,
-      { encoding: 'utf-8', timeout: 15000 }
-    ).trim();
-    if (out) return out;
-  } catch {
-    // fall through to curl
+  // Use the GH_TOKEN (PAT) for cross-repo access to private repos.
+  // GH_TOKEN must be a classic PAT with repo scope, or a fine-grained
+  // token with read access to both pouding and poundingcore.
+  const token = process.env.GH_TOKEN || '';
+  if (!token) {
+    console.warn('  GH_TOKEN not set — cannot access private repo assets');
+    return null;
   }
+  const headers = ['-H', `Authorization: token ${token}`, '-H', 'Accept: application/vnd.github+json'];
 
-  // 2. Fall back to curl (GitHub API)
   try {
     const tagJson = execFileSync(
       'curl',
-      ['-fsSL', ...authArgs, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
-      { encoding: 'utf-8', timeout: 15000 }
+      ['-fsSL', ...headers, `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/releases/tags/${tag}`],
+      { encoding: 'utf-8', timeout: 15000, stdio: ['pipe', 'pipe', 'pipe'] }
     );
     const release = JSON.parse(tagJson);
-    const asset = release.assets.find((a) => a.name === assetName);
-    if (asset) return String(asset.id);
-  } catch {
-    // fall through
+    const asset = (release.assets || []).find((a) => a.name === assetName);
+    if (asset && asset.id) return String(asset.id);
+    console.warn(`  Asset ${assetName} not found in release ${tag}`);
+  } catch (err) {
+    console.warn(`  Could not resolve asset ${assetName} via API: ${err.message}`);
   }
 
   return null;
