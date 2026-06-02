@@ -11,6 +11,7 @@ import { Button, Image, Message, Radio, Tooltip } from '@arco-design/web-react';
 import { Copy, Download, LoadingOne } from '@icon-park/react';
 import React, { useCallback, useContext, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { TFunction } from 'i18next';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
@@ -53,7 +54,7 @@ interface IMessageToolGroupProps {
 
 const useConfirmationButtons = (
   confirmationDetails: IMessageToolGroupProps['message']['content'][number]['confirmationDetails'],
-  t: (key: string, options?: any) => string
+  t: TFunction
 ) => {
   return useMemo(() => {
     if (!confirmationDetails) return {};

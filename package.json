@@ -38,6 +38,7 @@
     "build": "node scripts/build-with-builder.js auto --mac --arm64 --x64",
     "lint": "oxlint",
     "lint:fix": "oxlint --fix",
+    "typecheck": "tsc --noEmit",
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "i18n:types": "node scripts/generate-i18n-types.js",

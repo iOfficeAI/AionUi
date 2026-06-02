@@ -172,14 +172,41 @@ const LiveActivityBand: React.FC = () => {
       }
       return;
     }
-    if (intervalRef.current === null) {
-      intervalRef.current = setInterval(() => setTick((n) => n + 1), 1000);
-    }
-    return () => {
+    // Visibility-aware tick. While the tab is hidden (alt-tabbed away, OS-
+    // minimized, behind another window) the per-second re-render is wasted
+    // work and the user can't see the counter move anyway. On return we
+    // call tick() once before restarting the interval so the displayed
+    // elapsed time is correct without a stale-value flicker for one second.
+    const start = () => {
+      if (intervalRef.current === null) {
+        setTick((n) => n + 1);
+        intervalRef.current = setInterval(() => setTick((n) => n + 1), 1000);
+      }
+    };
+    const stop = () => {
       if (intervalRef.current !== null) {
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+    };
+    const onVisibilityChange = () => {
+      if (typeof document === 'undefined') return;
+      if (document.visibilityState === 'visible') {
+        start();
+      } else {
+        stop();
+      }
+    };
+    // Honor current visibility on mount/dependency change: if the tab
+    // already starts hidden, don't start the interval until the user
+    // returns.
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+      start();
+    }
+    document.addEventListener('visibilitychange', onVisibilityChange);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+      stop();
     };
   }, [hasRunning]);
 

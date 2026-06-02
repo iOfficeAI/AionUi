@@ -283,7 +283,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     autoHideMenuBar: true,
     // Set icon for Windows/Linux in development mode
     ...(devIcon && process.platform !== 'darwin' ? { icon: devIcon } : {}),
-    // Custom titlebar configuration / 自定义标题栏配置
+    // Custom titlebar configuration
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
@@ -666,7 +666,7 @@ const handleAppReady = async (): Promise<void> => {
       }
     });
   } else {
-    // 初始化关闭到托盘设置 / Initialize close-to-tray setting
+    // Initialize close-to-tray setting
     if (isE2ETestMode) {
       setCloseToTrayEnabled(false);
       destroyTray();
@@ -718,13 +718,13 @@ const handleAppReady = async (): Promise<void> => {
       console.error('[index] Failed to initialize i18n language:', error);
     }
 
-    // 监听语言变更，刷新托盘菜单文案 / Listen for language changes to refresh tray menu labels
+    // Listen for language changes to refresh tray menu labels
     onLanguageChanged(() => {
       void refreshTrayMenu();
     });
 
     if (!isE2ETestMode) {
-      // 窗口创建后异步恢复 WebUI，不阻塞 UI / Restore WebUI async after window creation, non-blocking
+      // Restore WebUI async after window creation, non-blocking
       restoreDesktopWebUIFromPreferences().catch((error) => {
         console.error('[WebUI] Failed to auto-restore:', error);
       });
@@ -792,7 +792,7 @@ void app
 // for applications and their menu bar to stay active until the user quits
 // explicitly with Cmd + Q.
 app.on('window-all-closed', () => {
-  // 当关闭到托盘启用时，不退出应用 / Don't quit when close-to-tray is enabled
+  // Don't quit when close-to-tray is enabled
   if (getCloseToTrayEnabled()) {
     return;
   }
@@ -809,7 +809,7 @@ app.on('activate', () => {
   if (!appReadyDone) return;
   if (!isWebUIMode && app.isReady()) {
     if (mainWindow && !mainWindow.isDestroyed()) {
-      // 从托盘恢复隐藏的窗口 / Restore hidden window from tray
+      // Restore hidden window from tray
       showAndFocusMainWindow(mainWindow);
       if (process.platform === 'darwin' && app.dock) {
         void app.dock.show();

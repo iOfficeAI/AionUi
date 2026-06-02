@@ -617,8 +617,13 @@ const WebviewHost: React.FC<WebviewHostProps> = ({
 
       {/* Loading indicator (when no nav bar) */}
       {!showNavBar && isLoading && (
-        <div className='absolute inset-0 flex items-center justify-center text-t-secondary text-14px z-10 pointer-events-none'>
-          <span className='animate-pulse'>Loading…</span>
+        <div className='absolute inset-0 flex items-center justify-center gap-8px text-t-secondary text-14px z-10 pointer-events-none'>
+          <span
+            aria-hidden='true'
+            className='status-pill__dot--running inline-block w-6px h-6px rounded-full'
+            style={{ backgroundColor: 'var(--brand)' }}
+          />
+          <span>Loading…</span>
         </div>
       )}
 

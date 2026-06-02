@@ -19,7 +19,7 @@ import type {
 } from '../common/adapter/events';
 
 /**
- * @description 注入到renderer进程中, 用于与main进程通信
+ * @description Preload bridge between renderer and main process.
  * */
 contextBridge.exposeInMainWorld('electronAPI', {
   emit: <Name extends AdapterEventName>(name: Name, data: AdapterEventMap[Name]) => {
@@ -54,7 +54,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
 
-// 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events
 const trayEvents = [
   'tray:navigate-to-guid',
