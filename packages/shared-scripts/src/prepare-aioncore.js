@@ -113,18 +113,21 @@ function getDownloadUrl(assetName, tag) {
 }
 
 function downloadFile(url, outputPath) {
+  const token = process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
   console.log(`  Downloading aioncore from ${url}`);
   if (process.platform === 'win32') {
-    const ps = `$ProgressPreference='SilentlyContinue'; Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
+    const authHeader = token ? `$headers=@{Authorization='token ${token}'}; ` : '';
+    const ps = `$ProgressPreference='SilentlyContinue'; ${authHeader}Invoke-WebRequest -Uri '${url}' -OutFile '${outputPath.replace(/'/g, "''")}'`;
     execFileSync('powershell', ['-NoProfile', '-NonInteractive', '-Command', ps], {
       timeout: 120000,
     });
     return;
   }
+  const authArgs = token ? ['-H', `Authorization: token ${token}`] : [];
   try {
-    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, url], { timeout: 120000 });
+    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', '-o', outputPath, ...authArgs, url], { timeout: 120000 });
   } catch {
-    execFileSync('wget', ['-q', '-O', outputPath, url], { timeout: 120000 });
+    execFileSync('wget', ['-q', '--header', `Authorization: token ${token}`, '-O', outputPath, url].filter(Boolean), { timeout: 120000 });
   }
 }
 
