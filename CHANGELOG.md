@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.1.10](https://github.com/iOfficeAI/AionUi/compare/v2.1.9...v2.1.10) (2026-06-02)
+
+### Desktop
+
+#### Bug Fixes
+
+- **runtime:** show runtime-specific MCP missing command hints (#3167)
+- **startup:** add health polling diagnostics (#3168)
+- **acp:** show model switch feedback
+- **acp:** avoid duplicate runtime sync requests
+- **acp:** wait for warmup before runtime sync
+- **sentry:** split incomplete install diagnostics (#3164)
+- normalize workspace path error handling (#3158)
+- **acp:** fix model state sync after session recovery (#3162)
+- **desktop:** persist close-to-tray setting (#3150)
+
+### Core ([v0.1.19](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.19))
+
+#### Bug Fixes
+
+- **aionui-ai-agent:** classify aionrs API connection errors ([#389](https://github.com/iOfficeAI/AionCore/issues/389))
+- classify missing MCP launcher runtimes ([#387](https://github.com/iOfficeAI/AionCore/issues/387))
+- enforce workspace path whitespace errors across create and runtime ([#381](https://github.com/iOfficeAI/AionCore/issues/381))
+- **startup:** add startup phase diagnostics ([#388](https://github.com/iOfficeAI/AionCore/issues/388))
+
+---
+
 ## [2.1.9](https://github.com/iOfficeAI/AionUi/compare/v2.1.8...v2.1.9) (2026-06-01)
 
 ### Desktop
