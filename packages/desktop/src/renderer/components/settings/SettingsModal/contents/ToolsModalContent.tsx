@@ -525,6 +525,27 @@ const ToolsModalContent: React.FC = () => {
     void loadConfigs();
   }, []);
 
+  // Auto-configure POUNDING API image model as default when no stored config exists
+  useEffect(() => {
+    if (!data || imageGenerationModel) return;
+    const storedModel = configService.get('tools.imageGenerationModel');
+    if (storedModel) return;
+    const poundingProvider = data.find((p) => p.platform === 'new-api');
+    if (!poundingProvider) return;
+    const imageModel = poundingProvider.models.find((m) => m === 'gpt-image-2' || m.toLowerCase().includes('image'));
+    if (!imageModel) return;
+    const defaultModel = {
+      id: poundingProvider.id,
+      name: poundingProvider.name,
+      platform: poundingProvider.platform,
+      base_url: poundingProvider.base_url,
+      api_key: poundingProvider.api_key,
+      use_model: imageModel,
+    } as ConfigKeyMap['tools.imageGenerationModel'];
+    setImageGenerationModel(defaultModel);
+    configService.set('tools.imageGenerationModel', defaultModel).catch(() => {});
+  }, [data, imageGenerationModel]);
+
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {
       const next = normalizeSpeechToTextConfig(updater(current));
