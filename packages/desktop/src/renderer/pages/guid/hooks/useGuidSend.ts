@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
+import { parseError } from '@/common/utils';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -436,6 +437,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       })
       .catch((error) => {
         console.error('Failed to send message:', error);
+        Message.error(parseError(error) || t('conversation.createFailed'));
       })
       .finally(() => {
         sendingRef.current = false;
@@ -452,6 +454,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     setMentionActiveIndex,
     setFiles,
     setDir,
+    t,
   ]);
 
   // Calculate button disabled state
