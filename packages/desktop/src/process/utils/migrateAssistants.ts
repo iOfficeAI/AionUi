@@ -509,7 +509,7 @@ async function uploadLegacyAssistantRules(legacyAssistantIds: Set<string>): Prom
  * `POST /api/assistants/import` directly.
  */
 export async function migrateAssistantsToBackend(configFile: ConfigFile): Promise<boolean> {
-  if (process.env.AIONUI_SKIP_ELECTRON_MIGRATION === '1') {
+  if (process.env.POUNDING_SKIP_ELECTRON_MIGRATION === '1') {
     console.log('[AionUi] Assistant migration skipped (env flag set)');
     return false;
   }

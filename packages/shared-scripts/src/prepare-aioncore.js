@@ -162,7 +162,20 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
+function isGhAvailable() {
+  try {
+    execSync('gh --version', { encoding: 'utf-8', timeout: 5000, stdio: 'pipe' });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 function downloadAssetViaGhCli(assetName, tag, outputPath) {
+  if (!isGhAvailable()) {
+    console.warn('  gh CLI not available — will use curl fallback');
+    return false;
+  }
   try {
     execSync(
       `gh release download "${tag}" --repo "${GITHUB_OWNER}/${GITHUB_REPO}" --pattern "${assetName}" --dir "${path.dirname(outputPath)}" --clobber`,
@@ -172,7 +185,6 @@ function downloadAssetViaGhCli(assetName, tag, outputPath) {
         stdio: 'pipe',
       }
     );
-    // gh renames the file; move to expected path
     const downloaded = path.join(path.dirname(outputPath), assetName);
     if (fs.existsSync(downloaded) && downloaded !== outputPath) {
       fs.renameSync(downloaded, outputPath);

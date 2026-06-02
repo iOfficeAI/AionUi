@@ -130,9 +130,9 @@ describe('buildSpawnArgs', () => {
     expect(args).not.toContain('--local');
   });
 
-  it('respects AIONUI_LOG_LEVEL override', () => {
-    const prev = process.env.AIONUI_LOG_LEVEL;
-    process.env.AIONUI_LOG_LEVEL = 'trace';
+  it('respects POUNDING_LOG_LEVEL override', () => {
+    const prev = process.env.POUNDING_LOG_LEVEL;
+    process.env.POUNDING_LOG_LEVEL = 'trace';
     try {
       const args = buildSpawnArgs({
         port: 1,
@@ -143,8 +143,8 @@ describe('buildSpawnArgs', () => {
       });
       expect(args).toContain('trace');
     } finally {
-      if (prev === undefined) delete process.env.AIONUI_LOG_LEVEL;
-      else process.env.AIONUI_LOG_LEVEL = prev;
+      if (prev === undefined) delete process.env.POUNDING_LOG_LEVEL;
+      else process.env.POUNDING_LOG_LEVEL = prev;
     }
   });
 });
