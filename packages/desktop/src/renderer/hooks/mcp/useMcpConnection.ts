@@ -46,11 +46,32 @@ const formatMcpErrorMessage = (t: TFunction, payload: McpErrorPayload): string =
 
   switch (payload.code) {
     case 'MCP_COMMAND_NOT_FOUND':
-      if (details.runtime === 'node') {
-        return t('settings.mcpErrorNodeCommandNotFound', {
-          command: details.command || 'npx',
-          defaultValue: fallback,
-        });
+      switch (details.runtime) {
+        case 'node':
+          return t('settings.mcpErrorNodeCommandNotFound', {
+            command: details.command || 'npx',
+            defaultValue: fallback,
+          });
+        case 'bun':
+          return t('settings.mcpErrorBunCommandNotFound', {
+            command: details.command || 'bunx',
+            defaultValue: fallback,
+          });
+        case 'uv':
+          return t('settings.mcpErrorUvCommandNotFound', {
+            command: details.command || 'uvx',
+            defaultValue: fallback,
+          });
+        case 'python':
+          return t('settings.mcpErrorPythonCommandNotFound', {
+            command: details.command || 'python',
+            defaultValue: fallback,
+          });
+        case 'deno':
+          return t('settings.mcpErrorDenoCommandNotFound', {
+            command: details.command || 'deno',
+            defaultValue: fallback,
+          });
       }
       return t('settings.mcpErrorCommandNotFound', {
         command: details.command || 'command',
