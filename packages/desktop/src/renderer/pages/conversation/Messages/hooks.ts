@@ -427,6 +427,34 @@ const parseJsonRecord = (value: unknown): Record<string, unknown> | undefined =>
 const normalizeTipType = (value: unknown, fallback: IMessageTips['content']['type']) =>
   value === 'success' || value === 'warning' || value === 'error' ? value : fallback;
 
+const normalizePersistedWorkspaceRuntimeError = (
+  parsed: Record<string, unknown>,
+  message: string
+): AgentStreamErrorInfo | undefined => {
+  if (parsed.code !== 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED') {
+    return undefined;
+  }
+
+  const details = isRecord(parsed.details) ? parsed.details : undefined;
+  const workspacePath = typeof details?.workspace_path === 'string' ? details.workspace_path : undefined;
+  if (!workspacePath) {
+    return undefined;
+  }
+
+  const persistedError = isRecord(parsed.error) ? parsed.error : undefined;
+  const detail = typeof persistedError?.detail === 'string' ? persistedError.detail : message;
+
+  return {
+    message,
+    code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+    ownership: 'aionui',
+    detail,
+    workspacePath,
+    retryable: false,
+    feedback_recommended: false,
+  };
+};
+
 const classifyPersistedSendFailure = (
   parsed: Record<string, unknown>,
   message: string
@@ -512,7 +540,8 @@ const normalizeDbTipsMessage = (msg: TMessage): TMessage => {
   const tipType = normalizeTipType(parsed.type, fallbackType);
   const structuredError =
     tipType === 'error'
-      ? (normalizeAgentStreamError(parsed.error) ??
+      ? (normalizePersistedWorkspaceRuntimeError(parsed, parsed.content) ??
+        normalizeAgentStreamError(parsed.error) ??
         classifyPersistedSendFailure(parsed, parsed.content) ??
         normalizeAgentStreamError({ ...parsed, message: parsed.content }))
       : undefined;

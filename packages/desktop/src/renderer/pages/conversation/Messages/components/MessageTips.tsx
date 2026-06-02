@@ -76,9 +76,15 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
         })
       : t('conversation.agentError.fallbackTitle');
     const body = code
-      ? t(`conversation.agentError.codes.${code}.body`, {
-          defaultValue: structuredError.message || content,
-        })
+      ? t(
+          structuredError.workspacePath
+            ? `conversation.agentError.codes.${code}.bodyWithPath`
+            : `conversation.agentError.codes.${code}.body`,
+          {
+            workspacePath: structuredError.workspacePath,
+            defaultValue: structuredError.message || content,
+          }
+        )
       : structuredError.message || content;
     const ownershipLabel = ownership
       ? t(`conversation.agentError.ownership.${ownership}`, {

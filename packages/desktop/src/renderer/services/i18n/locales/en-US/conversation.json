@@ -91,6 +91,11 @@
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "The selected workspace path \"{{workspacePath}}\" contains a folder name with spaces or other whitespace characters. Rename the affected folder or choose a workspace path whose every directory name avoids whitespace."
+    }
+  },
   "agentError": {
     "fallbackTitle": "The agent could not reply",
     "errorCode": "Error code",
@@ -255,6 +260,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "Model provider returned an empty response",
         "body": "The provider completed the request without usable content. Retry once or switch providers if it repeats."
+      },
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
+        "title": "This workspace path is no longer supported for execution",
+        "body": "This existing conversation or task uses a workspace path whose directory names contain spaces or other whitespace characters. AionUi no longer supports sending messages on paths like this. Create a new conversation or task with a workspace path that contains no whitespace.",
+        "bodyWithPath": "The existing workspace path \"{{workspacePath}}\" contains spaces or other whitespace characters. AionUi no longer supports sending messages in conversations or tasks that use this path. Create a new conversation or task with a workspace path that contains no whitespace."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "The upstream agent or provider failed",

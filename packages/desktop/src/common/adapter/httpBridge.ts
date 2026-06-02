@@ -87,6 +87,8 @@ export class BackendHttpError extends Error {
   readonly code: string;
   /** Backend-provided human message from `ErrorResponse.error`, or the raw body when parse failed. */
   readonly backendMessage: string;
+  /** Structured backend metadata from `ErrorResponse.details`, when present. */
+  readonly details: unknown;
   /** Raw parsed body (object on JSON response, string on text/non-JSON). */
   readonly body: unknown;
 
@@ -94,10 +96,12 @@ export class BackendHttpError extends Error {
     const { method, path, status, body } = params;
     let code = '';
     let backendMessage = '';
+    let details: unknown;
     if (body && typeof body === 'object') {
-      const b = body as { code?: unknown; error?: unknown };
+      const b = body as { code?: unknown; error?: unknown; details?: unknown };
       if (typeof b.code === 'string') code = b.code;
       if (typeof b.error === 'string') backendMessage = b.error;
+      details = b.details;
     } else if (typeof body === 'string') {
       backendMessage = body;
     }
@@ -106,6 +110,7 @@ export class BackendHttpError extends Error {
     this.status = status;
     this.code = code;
     this.backendMessage = backendMessage;
+    this.details = details;
     this.body = body;
   }
 }

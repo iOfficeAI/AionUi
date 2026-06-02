@@ -34,6 +34,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -158,7 +159,9 @@ const AionrsSendBox: React.FC<{
         .then(() => {
           setAgentWarmed(true);
         })
-        .catch(() => {});
+        .catch((error) => {
+          Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+        });
       return;
     }
     setAgentWarmed(false);
@@ -166,8 +169,10 @@ const AionrsSendBox: React.FC<{
       .then(() => {
         setAgentWarmed(true);
       })
-      .catch(() => {});
-  }, [conversation_id, teamPermission]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [conversation_id, teamPermission, t]);
 
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
@@ -255,6 +260,7 @@ const AionrsSendBox: React.FC<{
         }
       } catch (error) {
         if (msg_id) removeMessageByMsgId(msg_id);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
@@ -266,6 +272,7 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
+      t,
       workspacePath,
     ]
   );

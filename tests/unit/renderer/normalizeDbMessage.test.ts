@@ -78,4 +78,43 @@ describe('normalizeDbMessage', () => {
       },
     });
   });
+
+  it('prefers persisted workspace runtime errors over legacy unknown-upstream payloads', () => {
+    const normalized = normalizeDbMessage({
+      id: 'tip-runtime-workspace',
+      type: 'tips',
+      conversation_id: 'conversation-1',
+      position: 'center',
+      status: 'error',
+      content: JSON.stringify({
+        content: 'This workspace path is no longer supported for execution',
+        type: 'error',
+        source: 'send_failed',
+        code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+        details: {
+          workspace_path: '/Users/zhoukai/Documents/Archive ',
+        },
+        error: {
+          message: 'The upstream Agent failed while handling the request',
+          code: 'UNKNOWN_UPSTREAM_ERROR',
+          ownership: 'unknown_upstream',
+          detail:
+            '/Users/zhoukai/Documents/Archive . Rename the affected directory, then update this conversation or task to use a path without whitespace in any directory name.',
+          retryable: true,
+          feedback_recommended: true,
+        },
+      }),
+    } as unknown as IMessageTips) as IMessageTips;
+
+    expect(normalized.content.error).toEqual({
+      message: 'This workspace path is no longer supported for execution',
+      code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      ownership: 'aionui',
+      detail:
+        '/Users/zhoukai/Documents/Archive . Rename the affected directory, then update this conversation or task to use a path without whitespace in any directory name.',
+      workspacePath: '/Users/zhoukai/Documents/Archive ',
+      retryable: false,
+      feedback_recommended: false,
+    });
+  });
 });

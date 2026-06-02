@@ -16,10 +16,10 @@ import { CheckOne, CloseOne, Loading, Down, Up } from '@icon-park/react';
 import classNames from 'classnames';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
-import { parseError } from '@/common/utils';
 import type { AgentCheckResult } from '@/renderer/hooks/agent/useAgentReadinessCheck';
 import { applyDefaultConversationName } from '@/renderer/pages/conversation/utils/newConversationName';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 type AgentSetupCardProps = {
@@ -146,9 +146,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         void navigate(`/conversation/${newConversation.id}`);
       } catch (error) {
         console.error('Failed to switch agent:', error);
-        Message.error(
-          parseError(error) || t('conversation.chat.switchAgentFailed', { defaultValue: 'Failed to switch agent' })
-        );
+        Message.error(getConversationCreateErrorMessage(error, t));
       } finally {
         switchingRef.current = false;
         setSwitching(false);

@@ -594,11 +594,7 @@ const GuidPage: React.FC = () => {
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
-      onSend={() => {
-        send.handleSend().catch((error) => {
-          console.error('Failed to send message:', error);
-        });
-      }}
+      onSend={send.sendMessageHandler}
     />
   );
 

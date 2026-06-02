@@ -155,6 +155,7 @@ export type AgentStreamErrorInfo = {
   code?: string;
   ownership?: AgentErrorOwnership;
   detail?: string;
+  workspacePath?: string;
   retryable?: boolean;
   feedback_recommended?: boolean;
   resolution?: AgentErrorResolution;
@@ -448,11 +449,20 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
       ? (value.ownership as AgentErrorOwnership)
       : undefined;
   const detail = typeof value.detail === 'string' ? value.detail : undefined;
+  const workspacePath = typeof value.workspacePath === 'string' ? value.workspacePath : undefined;
   const retryable = typeof value.retryable === 'boolean' ? value.retryable : undefined;
   const feedback_recommended = typeof value.feedback_recommended === 'boolean' ? value.feedback_recommended : undefined;
   const resolution = normalizeAgentErrorResolution(value.resolution);
 
-  if (!code && !ownership && !detail && retryable === undefined && feedback_recommended === undefined && !resolution) {
+  if (
+    !code &&
+    !ownership &&
+    !detail &&
+    !workspacePath &&
+    retryable === undefined &&
+    feedback_recommended === undefined &&
+    !resolution
+  ) {
     return undefined;
   }
 
@@ -461,6 +471,7 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
     ...(code ? { code } : {}),
     ...(ownership ? { ownership } : {}),
     ...(detail ? { detail } : {}),
+    ...(workspacePath ? { workspacePath } : {}),
     ...(retryable !== undefined ? { retryable } : {}),
     ...(feedback_recommended !== undefined ? { feedback_recommended } : {}),
     ...(resolution ? { resolution } : {}),

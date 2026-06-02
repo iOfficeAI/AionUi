@@ -249,6 +249,11 @@
         "title": "Model sağlayıcı boş yanıt döndürdü",
         "body": "Sağlayıcı isteği tamamladı ancak kullanılabilir içerik döndürmedi. Bir kez yeniden deneyin; tekrarlanırsa sağlayıcı değiştirin."
       },
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
+        "title": "Bu çalışma alanı yolu artık yürütme için desteklenmiyor",
+        "body": "Bu mevcut konuşma veya görev, dizin adlarında boşluk ya da başka boşluk karakterleri içeren bir çalışma alanı yolu kullanıyor. AionUi artık bu tür yollarda mesaj göndermeyi desteklemiyor. Boşluk içermeyen bir çalışma alanı yolu ile yeni bir konuşma veya görev oluşturun.",
+        "bodyWithPath": "Mevcut çalışma alanı yolu \"{{workspacePath}}\" boşluk ya da başka boşluk karakterleri içeriyor. AionUi artık bu yolu kullanan konuşma veya görevlerde mesaj göndermeyi desteklemiyor. Boşluk içermeyen bir çalışma alanı yolu ile yeni bir konuşma veya görev oluşturun."
+      },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Üst ajan veya sağlayıcı başarısız oldu",
         "body": "Uygulama bir üst hata aldı ancak güvenle sınıflandıramadı. Aşağıdaki ayrıntıları inceleyin veya geri bildirim gönderin."
@@ -449,6 +454,11 @@
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "The selected workspace path \"{{workspacePath}}\" contains a folder name with spaces or other whitespace characters. Rename the affected folder or choose a workspace path whose every directory name avoids whitespace."
+    }
+  },
   "thinking": {
     "complete": "Düşünme tamamlandı",
     "label": "Düşünüyor..."

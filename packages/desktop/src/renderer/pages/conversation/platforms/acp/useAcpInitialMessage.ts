@@ -11,6 +11,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { getConversationRuntimeWorkspaceErrorMessage } from '../../utils/conversationCreateError';
 import { buildSendFailureError } from './buildSendFailureError';
 
 type UseAcpInitialMessageParams = {
@@ -83,7 +84,8 @@ export const useAcpInitialMessage = ({
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        const errorMessageText = parseError(error) ?? t('common.unknownError');
+        const errorMessageText =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
         console.error('[useAcpInitialMessage] Error sending initial message:', error);
         console.error('[useAcpInitialMessage] Error details:', {
           name: (error as Error)?.name,

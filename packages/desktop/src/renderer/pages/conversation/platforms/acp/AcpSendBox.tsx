@@ -32,6 +32,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -176,8 +177,10 @@ const AcpSendBox: React.FC<{
       .then(() => {
         fetchSlashCommands();
       })
-      .catch(() => {});
-  }, [teamPermission, conversation_id, fetchSlashCommands]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [teamPermission, conversation_id, fetchSlashCommands, t]);
 
   const handleContentChange = useCallback(
     (val: string) => {
@@ -267,7 +270,8 @@ const AcpSendBox: React.FC<{
         });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
-        const errorMsg = parseError(error) ?? t('common.unknownError');
+        const errorMsg =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,

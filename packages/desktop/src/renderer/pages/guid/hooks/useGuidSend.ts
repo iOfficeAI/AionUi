@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
-import { parseError } from '@/common/utils';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -16,6 +15,7 @@ import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
 import { type TFunction } from 'i18next';
 import type { NavigateFunction } from 'react-router-dom';
+import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 
 export type GuidSendDeps = {
@@ -187,7 +187,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         const conversation = await ipcBridge.conversation.create.invoke(openclawConversationParams);
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create OpenClaw conversation. Please ensure the OpenClaw Gateway is running.');
+          Message.error(t('conversation.createFailed'));
           return;
         }
 
@@ -205,8 +205,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create OpenClaw conversation: ${errorMessage}`);
+        console.error('Failed to create OpenClaw conversation:', error);
         throw error;
       }
       return;
@@ -235,7 +234,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         const conversation = await ipcBridge.conversation.create.invoke(nanobotConversationParams);
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Nanobot conversation. Please ensure nanobot is installed.');
+          Message.error(t('conversation.createFailed'));
           return;
         }
 
@@ -253,8 +252,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Nanobot conversation: ${errorMessage}`);
+        console.error('Failed to create Nanobot conversation:', error);
         throw error;
       }
       return;
@@ -289,7 +287,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          Message.error(t('conversation.createFailed'));
           return;
         }
 
@@ -307,8 +305,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
-        const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        console.error('Failed to create Aion CLI conversation:', error);
         throw error;
       }
       return;
@@ -437,7 +434,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       })
       .catch((error) => {
         console.error('Failed to send message:', error);
-        Message.error(parseError(error) || t('conversation.createFailed'));
+        Message.error(getConversationCreateErrorMessage(error, t));
       })
       .finally(() => {
         sendingRef.current = false;

@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { parseError, uuid } from '@/common/utils';
+import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
@@ -28,6 +28,7 @@ import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
@@ -125,7 +126,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
             emitter.emit('chat.history.refresh');
           } catch (error) {
             console.error('Failed to create conversation:', error);
-            Message.error(parseError(error) || t('conversation.createFailed'));
+            Message.error(getConversationCreateErrorMessage(error, t));
           } finally {
             isCreatingRef.current = false;
           }

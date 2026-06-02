@@ -8,12 +8,12 @@ import { describe, expect, it } from 'vitest';
 import { BackendHttpError } from '@/common/adapter/httpBridge';
 import { buildSendFailureError } from '@/renderer/pages/conversation/platforms/acp/buildSendFailureError';
 
-const httpError = (status: number, code: string, error: string) =>
+const httpError = (status: number, code: string, error: string, details?: unknown) =>
   new BackendHttpError({
     method: 'POST',
     path: '/api/conversations/abc/messages',
     status,
-    body: { success: false, code, error },
+    body: { success: false, code, error, details },
   });
 
 describe('buildSendFailureError', () => {
@@ -41,6 +41,30 @@ describe('buildSendFailureError', () => {
     expect(result.code).toBe('UNKNOWN_UPSTREAM_ERROR');
     expect(result.ownership).toBe('unknown_upstream');
     expect(result.retryable).toBe(true);
+  });
+
+  it('preserves workspace-path validation code as a structured non-retryable error', () => {
+    const err = httpError(
+      400,
+      'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      'Workspace path contains whitespace in one or more directory names and is no longer supported for send or warmup',
+      { workspace_path: '/tmp/Archive ' }
+    );
+
+    const result = buildSendFailureError(
+      err,
+      'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.'
+    );
+
+    expect(result).toEqual({
+      message: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
+      code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      ownership: 'aionui',
+      detail: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
+      workspacePath: '/tmp/Archive ',
+      retryable: false,
+      feedback_recommended: false,
+    });
   });
 
   it('falls back to AIONUI_INTERNAL_ERROR for non-conflict 409 (different message)', () => {
