@@ -208,12 +208,12 @@ gh pr view {PR_NUMBER} --json state,mergedAt,mergeStateStatus
 
 **Decision logic:**
 
-| `state` | Action |
-|----------|--------|
-| `MERGED` | Proceed to Step 13 |
-| `CLOSED` (not merged) | Stop: "PR was closed without merging. Please check and confirm how to proceed." |
+| `state`                                                                     | Action                                                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `MERGED`                                                                    | Proceed to Step 13                                                                     |
+| `CLOSED` (not merged)                                                       | Stop: "PR was closed without merging. Please check and confirm how to proceed."        |
 | `OPEN` with `mergeStateStatus: BLOCKED` or CI failure persisting > 3 checks | Stop: "PR merge is blocked (CI failure or review required). Please investigate: {URL}" |
-| `OPEN` otherwise | Wait 5 minutes, check again |
+| `OPEN` otherwise                                                            | Wait 5 minutes, check again                                                            |
 
 **Maximum wait:** 30 minutes (6 checks). If not merged after 30 minutes:
 
