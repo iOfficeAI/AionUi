@@ -667,7 +667,7 @@ function resolveSyncProtocol(provider: TProviderWithModel): 'anthropic' | 'gemin
 
 function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncProfile | null {
   const normalizedBaseUrl = normalizeBaseUrl(provider.base_url);
-  const normalizedModelId = provider.use_model?.trim();
+  const normalizedModelId = sanitizeManagedRuntimeModelValue(provider.use_model) || provider.use_model?.trim();
   const protocol = resolveSyncProtocol(provider);
   if (!protocol || !normalizedBaseUrl || !normalizedModelId) return null;
   const runtimeProviderName =
