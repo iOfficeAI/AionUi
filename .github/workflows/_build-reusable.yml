@@ -27,6 +27,7 @@ on:
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
   AIONUI_HUB_TAG: 'dist-ebc6a2b'
+  AIONUI_HUB_SKIP: '1'
 
 jobs:
   code-quality:
