@@ -20,8 +20,8 @@ const HUB_DIR = path.join(PROJECT_ROOT, 'resources', 'hub');
 
 const DEFAULT_TAG = 'dist-latest';
 const BASE_URLS = [
-  `https://raw.githubusercontent.com/halojerry/AionHub/${process.env.POUNDING_HUB_TAG || DEFAULT_TAG}/`,
-  `https://cdn.jsdelivr.net/gh/halojerry/AionHub@${process.env.POUNDING_HUB_TAG || DEFAULT_TAG}/`,
+  `https://raw.githubusercontent.com/halojerry/AionHub/${process.env.POUNDING_HUB_TAG || process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
+  `https://cdn.jsdelivr.net/gh/halojerry/AionHub@${process.env.POUNDING_HUB_TAG || process.env.AIONUI_HUB_TAG || DEFAULT_TAG}/`,
 ];
 
 // ---------------------------------------------------------------------------
@@ -94,12 +94,12 @@ function downloadUrl(url, destPath) {
 // ---------------------------------------------------------------------------
 
 async function prepareHubResources() {
-  if (process.env.POUNDING_HUB_SKIP === '1') {
-    console.log('[hub] Skipping hub resource preparation (POUNDING_HUB_SKIP=1)');
+  if (process.env.POUNDING_HUB_SKIP === '1' || process.env.AIONUI_HUB_SKIP === '1') {
+    console.log('[hub] Skipping hub resource preparation (HUB_SKIP=1)');
     return { skipped: true };
   }
 
-  const tag = process.env.POUNDING_HUB_TAG || DEFAULT_TAG;
+  const tag = process.env.POUNDING_HUB_TAG || process.env.AIONUI_HUB_TAG || DEFAULT_TAG;
   console.log(`[hub] Preparing hub resources from tag: ${tag}`);
 
   // Clean and create target directory
