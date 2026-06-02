@@ -92,6 +92,24 @@ function makeFakeSocket(): Socket {
   return socket as Socket;
 }
 
+function expectBackendTreeKill(
+  killSpy: ReturnType<typeof vi.spyOn<typeof process, 'kill'>>,
+  signal: 'SIGTERM' | 'SIGKILL'
+): void {
+  if (process.platform === 'win32') {
+    const expectedArgs = signal === 'SIGKILL' ? ['/F', '/PID', '99999', '/T'] : ['/PID', '99999', '/T'];
+
+    expect(vi.mocked(spawn).mock.calls).toEqual(
+      expect.arrayContaining([
+        ['taskkill', expectedArgs, expect.objectContaining({ stdio: 'ignore', windowsHide: true })],
+      ])
+    );
+    return;
+  }
+
+  expect(killSpy.mock.calls).toEqual(expect.arrayContaining([[expect.any(Number), signal]]));
+}
+
 beforeEach(() => {
   vi.clearAllMocks();
 });
@@ -214,8 +232,14 @@ describe('buildSpawnEnv', () => {
   it('preserves existing proxy bypass entries while adding provider-safe defaults', () => {
     const previousNoProxy = process.env.NO_PROXY;
     const previousLowerNoProxy = process.env.no_proxy;
+
+    delete process.env.NO_PROXY;
+    delete process.env.no_proxy;
+
     process.env.NO_PROXY = 'api.example.com,localhost';
-    process.env.no_proxy = 'custom.internal';
+    if (process.platform !== 'win32') {
+      process.env.no_proxy = 'custom.internal';
+    }
 
     try {
       const env = buildSpawnEnv({
@@ -224,13 +248,17 @@ describe('buildSpawnEnv', () => {
         logDir: '/l',
       });
       const entries = env.NO_PROXY?.split(',') ?? [];
+      const expectedEntries =
+        process.platform === 'win32'
+          ? ['api.example.com', 'localhost', '192.168.0.0/16']
+          : ['api.example.com', 'custom.internal', 'localhost', '192.168.0.0/16'];
 
-      expect(entries).toEqual(
-        expect.arrayContaining(['api.example.com', 'custom.internal', 'localhost', '192.168.0.0/16'])
-      );
+      expect(entries).toEqual(expect.arrayContaining(expectedEntries));
       expect(entries.filter((entry) => entry === 'localhost')).toHaveLength(1);
       expect(env.no_proxy).toBe(env.NO_PROXY);
     } finally {
+      delete process.env.NO_PROXY;
+      delete process.env.no_proxy;
       if (previousNoProxy === undefined) delete process.env.NO_PROXY;
       else process.env.NO_PROXY = previousNoProxy;
       if (previousLowerNoProxy === undefined) delete process.env.no_proxy;
@@ -537,7 +565,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     await expectedRejection;
 
     expect(mgr.status).toBe('error');
-    expect(killSpy).toHaveBeenCalled();
+    expectBackendTreeKill(killSpy, 'SIGKILL');
 
     fetchSpy.mockRestore();
     killSpy.mockRestore();
@@ -894,7 +922,7 @@ describe('BackendLifecycleManager.stop', () => {
     (child as unknown as EventEmitter).emit('exit', 0);
     await stopPromise;
 
-    expect(killSpy).toHaveBeenCalled();
+    expectBackendTreeKill(killSpy, 'SIGTERM');
     expect(cleanupRegisteredAgentProcesses).toHaveBeenCalledWith('/db');
     expect(mgr.status).toBe('stopped');
 
@@ -925,8 +953,8 @@ describe('BackendLifecycleManager.stop', () => {
     await new Promise((r) => setTimeout(r, 5_200));
     await stopPromise;
 
-    expect(killSpy.mock.calls).toEqual(expect.arrayContaining([[expect.any(Number), 'SIGTERM']]));
-    expect(killSpy.mock.calls).toEqual(expect.arrayContaining([[expect.any(Number), 'SIGKILL']]));
+    expectBackendTreeKill(killSpy, 'SIGTERM');
+    expectBackendTreeKill(killSpy, 'SIGKILL');
     expect(cleanupRegisteredAgentProcesses).toHaveBeenCalledWith('/db');
 
     fetchSpy.mockRestore();
