@@ -6,6 +6,8 @@
 
 import type { BrowserWindow } from 'electron';
 import { app } from 'electron';
+import fs from 'node:fs';
+import path from 'node:path';
 import { ipcBridge } from '@/common';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { getZoomFactor, setZoomFactor } from '@process/utils/zoom';
@@ -210,6 +212,26 @@ export function initApplicationBridge(): void {
       return { success: true, data: setGpuUserOverride(override) };
     } catch (e) {
       return { success: false, msg: e.message || e.toString() };
+    }
+  });
+
+  // Dealer config for portable/USB distribution mode.
+  // Reads dealer-config.json next to the executable (same dir as PORTABLE marker).
+  ipcBridge.application.getDealerConfig.provider(async () => {
+    try {
+      const exeDir = path.dirname(app.getPath('exe'));
+      const configPath = path.join(exeDir, 'dealer-config.json');
+      if (!fs.existsSync(configPath)) {
+        return { success: true };
+      }
+      const raw = fs.readFileSync(configPath, 'utf-8');
+      const config = JSON.parse(raw);
+      if (config && typeof config.ref === 'string' && config.ref.trim()) {
+        return { success: true, data: { ref: config.ref.trim() } };
+      }
+      return { success: true };
+    } catch (e) {
+      return { success: false, msg: e.message || String(e) };
     }
   });
 }

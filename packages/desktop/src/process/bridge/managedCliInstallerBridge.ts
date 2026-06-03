@@ -329,7 +329,9 @@ async function ensureBunInstalled(): Promise<string> {
       if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
         return getLocalBunBinaryPath();
       }
-    } catch { /* fall through */ }
+    } catch {
+      /* fall through */
+    }
   }
   throw new Error('Bun is required for this operation and could not be auto-installed.');
 }
@@ -359,7 +361,9 @@ async function ensureUvInstalled(): Promise<string> {
     const localUv = getLocalUvBinaryPath();
     if (isAbsoluteExecutablePath(localUv)) return localUv;
     if (await commandExists('uv')) return 'uv';
-  } catch { /* fall through */ }
+  } catch {
+    /* fall through */
+  }
   throw new Error(
     lastError instanceof Error
       ? `Failed to auto-install uv: ${lastError.message}`

@@ -110,7 +110,7 @@ jobs:
 
   pack-web-cli:
     name: Pack Web CLI
-    if: false  # Disabled to save CI time — re-enable when web CLI is needed
+    if: false # Disabled to save CI time — re-enable when web CLI is needed
     uses: ./.github/workflows/pack-web-cli.yml
     needs: code-quality
     with:
