@@ -155,6 +155,7 @@ type ProviderSyncProfile = {
   normalizedBaseUrl: string;
   normalizedModelId: string;
   managedProviderId: string;
+  modelList: string[];
 };
 
 type RecoveredManagedRuntimeSnapshot = {
@@ -665,7 +666,7 @@ function resolveSyncProtocol(provider: TProviderWithModel): 'anthropic' | 'gemin
   return null;
 }
 
-function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncProfile | null {
+function buildProviderSyncProfile(provider: TProviderWithModel, modelList?: string[]): ProviderSyncProfile | null {
   const normalizedBaseUrl = normalizeBaseUrl(provider.base_url);
   const normalizedModelId = sanitizeManagedRuntimeModelValue(provider.use_model) || provider.use_model?.trim();
   const protocol = resolveSyncProtocol(provider);
@@ -680,6 +681,7 @@ function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncPro
     normalizedBaseUrl,
     normalizedModelId,
     managedProviderId: getManagedRuntimeProviderId(runtimeProviderName, provider.id || 'default'),
+    modelList: modelList || [],
   };
 }
 
@@ -693,7 +695,7 @@ function resolveClaudeModelSlot(models: string[], prefer: string, fallbackPatter
 }
 
 function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProviderEnv {
-  const models = (profile.provider as IProvider).models || [];
+  const models = profile.modelList || [];
   const sonnetModel = sanitizeManagedRuntimeModelValue(profile.normalizedModelId) || profile.normalizedModelId;
   const opusModel = resolveClaudeModelSlot(models, sonnetModel, 'pro');
   const haikuModel =
@@ -883,8 +885,8 @@ function getCcSwitchPaths(homeDir = os.homedir()) {
   };
 }
 
-function writeClaudeSettingsForProviderSync(provider: TProviderWithModel): void {
-  const profile = buildProviderSyncProfile(provider);
+function writeClaudeSettingsForProviderSync(provider: TProviderWithModel, modelList?: string[]): void {
+  const profile = buildProviderSyncProfile(provider, modelList);
   if (!profile) return;
   const { claudeSettingsPath } = getCcSwitchPaths();
   ensureCcSwitchDatabase(profile);
@@ -1595,7 +1597,7 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
   }> = [
     {
       cliTarget: 'claude',
-      run: (providerWithModel) => writeClaudeSettingsForProviderSync(providerWithModel),
+      run: (providerWithModel) => writeClaudeSettingsForProviderSync(providerWithModel, provider.models),
     },
     {
       cliTarget: 'codex',
