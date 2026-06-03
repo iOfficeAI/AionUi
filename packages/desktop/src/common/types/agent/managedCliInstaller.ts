@@ -1,4 +1,4 @@
-export type ManagedCliInstallTarget = 'claude' | 'hermes' | 'opencode' | 'openclaw';
+export type ManagedCliInstallTarget = 'claude' | 'codex' | 'hermes' | 'opencode' | 'openclaw';
 
 export type ManagedCliInstallMirror = 'default' | 'npmmirror';
 

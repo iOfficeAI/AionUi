@@ -14,6 +14,7 @@ import type {
 } from '@/common/types/newApiAccount';
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import useSWR, { mutate as mutateSWR } from 'swr';
+import { DETECTED_AGENTS_SWR_KEY } from '@/renderer/utils/model/agentTypes';
 import { Message } from '@arco-design/web-react';
 
 type LoginParams = {
@@ -50,7 +51,7 @@ function refreshProviderCaches(): void {
   void mutateSWR('model.config.welcome');
 }
 
-const AUTO_INSTALL_TARGETS: Array<'hermes' | 'openclaw'> = ['hermes', 'openclaw'];
+const AUTO_INSTALL_TARGETS: ManagedRuntimeCliTarget[] = ['hermes', 'openclaw', 'claude', 'codex', 'opencode'];
 
 const DEFAULT_PREP_STATUS: NewApiManagedCliPrepStatus = {
   inProgress: false,
@@ -153,6 +154,8 @@ export const NewApiAccountProvider: React.FC<React.PropsWithChildren> = ({ child
           completedTargets: [...completedTargets],
         })
       );
+      // Refresh agent list so newly installed CLIs appear immediately
+      void mutateSWR(DETECTED_AGENTS_SWR_KEY);
     } catch (error) {
       console.error('Auto install managed CLI failed:', error);
       setPrepStatus(

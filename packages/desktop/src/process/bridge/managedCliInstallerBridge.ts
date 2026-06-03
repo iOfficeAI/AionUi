@@ -488,6 +488,31 @@ const DESCRIPTORS: Record<ManagedCliInstallTarget, ManagedCliDescriptor> = {
       await uninstallGlobalPackage('@anthropic-ai/claude-code');
     },
   },
+  codex: {
+    target: 'codex',
+    detectCommand: 'codex',
+    detectPaths: [
+      path.join(
+        process.env.HOME || os.homedir(),
+        '.codex',
+        '.npm-global',
+        'bin',
+        process.platform === 'win32' ? 'codex.cmd' : 'codex'
+      ),
+      path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'codex.cmd' : 'codex'),
+    ],
+    install: async () => {
+      const command = await getGlobalJsCommand();
+      if (command === getNpmCommand()) {
+        await installNpmPackage('@openai/codex-cli');
+        return;
+      }
+      await installBunPackage('@openai/codex-cli');
+    },
+    uninstall: async () => {
+      await uninstallGlobalPackage('@openai/codex-cli');
+    },
+  },
   hermes: {
     target: 'hermes',
     detectCommand: 'hermes',
