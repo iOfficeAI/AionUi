@@ -67,11 +67,12 @@
 }
 
 /* Clear Arco's title-level backgrounds so the full-row highlight isn't doubled
-   by a narrower inner box; selected text keeps the normal color (the row
-   background is the indicator). */
+   by a narrower (darker) inner box; selected text keeps the normal color (the
+   row background is the indicator). !important beats Arco's own :hover rule. */
 .chat-workspace .workspace-tree .arco-tree-node-title,
-.chat-workspace .workspace-tree .arco-tree-node-title:hover {
-  background-color: transparent;
+.chat-workspace .workspace-tree .arco-tree-node-title:hover,
+.chat-workspace .workspace-tree .arco-tree-node-title-block {
+  background-color: transparent !important;
 }
 
 .chat-workspace .workspace-tree .arco-tree-node-selected .arco-tree-node-title,
