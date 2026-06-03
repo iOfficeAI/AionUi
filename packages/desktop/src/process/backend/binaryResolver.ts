@@ -24,10 +24,23 @@ export function resolveBinaryPath(): string {
   const bundled = bundledPath();
   if (bundled) return bundled;
 
+  const devPath = devWorkspacePath();
+  if (devPath) return devPath;
+
   const fromPath = resolveFromSystemPATH();
   if (fromPath) return fromPath;
 
-  throw new Error(`Cannot find "${BINARY_NAME}" binary. Checked bundled location and system PATH.`);
+  throw new Error(`Cannot find "${BINARY_NAME}" binary. Checked bundled location, dev workspace, and system PATH.`);
+}
+
+/**
+ * Check the AionCore target/debug directory (for local development).
+ * Assumes the app is running with process.cwd() at AionUi root.
+ */
+function devWorkspacePath(): string | null {
+  const candidate = join(process.cwd(), '..', 'AionCore', 'target', 'debug', getBinaryName());
+  if (existsSync(candidate)) return candidate;
+  return null;
 }
 
 /**
