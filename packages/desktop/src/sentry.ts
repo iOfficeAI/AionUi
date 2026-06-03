@@ -28,6 +28,10 @@ const BACKEND_STARTUP_SECONDARY_DROP_PATTERNS = [
   /ECONNREFUSED/,
 ];
 
+const TRANSIENT_NETWORK_DROP_PATTERNS = [/fetch failed/, /network error/i, /ERR_CONNECTION_REFUSED/];
+
+const SUBPROCESS_IO_DROP_PATTERNS = [/write EIO/, /write EPIPE/, /afterWriteDispatched/];
+
 type SearchableEvent = {
   message?: unknown;
   exception?: { values?: unknown[] };
@@ -109,6 +113,12 @@ export function initSentry(): void {
         return null;
       }
       if (isBackendStartupSecondaryEvent(event, haystacks)) {
+        return null;
+      }
+      if (TRANSIENT_NETWORK_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
+        return null;
+      }
+      if (SUBPROCESS_IO_DROP_PATTERNS.some((re) => haystacks.some((h) => re.test(h)))) {
         return null;
       }
       return event;

@@ -183,11 +183,14 @@ export async function httpRequest<T>(
     body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
   );
 
-  const response = await fetch(url, {
-    method,
-    headers,
-    body: body !== undefined ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+  } catch (firstError) {
+    // Retry once on transient network errors
+    await new Promise((r) => setTimeout(r, 1000));
+    response = await fetch(url, { method, headers, body: body !== undefined ? JSON.stringify(body) : undefined });
+  }
 
   if (!response.ok) {
     let errorBody: unknown;
