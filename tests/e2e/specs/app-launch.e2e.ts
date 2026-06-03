@@ -9,12 +9,17 @@ import { createErrorCollector, waitForSettle } from '../helpers';
 
 test.describe('App Launch', () => {
   test('window opens and has a title', async ({ page }) => {
+    await page.waitForLoadState('domcontentloaded', { timeout: 60_000 }).catch(() => {
+      // DOM may have already loaded before this test started
+    });
     const title = await page.title();
     expect(title).toBeTruthy();
   });
 
   test('renderer loads successfully', async ({ page }) => {
-    await page.waitForSelector('body', { state: 'visible' });
+    await page.waitForLoadState('domcontentloaded', { timeout: 60_000 }).catch(() => {});
+    await page.waitForSelector('#root', { state: 'attached', timeout: 30_000 }).catch(() => {});
+    await page.waitForSelector('body', { state: 'visible', timeout: 30_000 });
     const body = await page.locator('body').textContent();
     expect(body).toBeTruthy();
   });
