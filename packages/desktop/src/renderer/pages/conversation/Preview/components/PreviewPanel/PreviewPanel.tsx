@@ -10,7 +10,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import CodePreview from '../viewers/CodeViewer';
 import DiffPreview from '../viewers/DiffViewer';
 import ExcelPreview from '../viewers/ExcelViewer';
@@ -74,6 +74,16 @@ const PreviewPanel: React.FC = () => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [inspectMode, setInspectMode] = useState(false);
   const [toolbarExtras, setToolbarExtras] = useState<PreviewToolbarExtras | null>(null);
+
+  // 切换文件时把视图模式复位为预览，避免上一个文件的 source 模式串到下一个文件（如代码文件丢失语法高亮）。
+  // 注意：单预览浏览模式下打开新文件会复用当前 tab 的 id，所以这里要监听实际显示的文件标识（路径 + 类型），
+  // 而不是 activeTabId（它不会变）。
+  // Reset view mode to preview when the displayed file changes so a previous file's source mode does not
+  // leak into the next one (e.g. a code file losing syntax highlighting). In single-preview browse mode a
+  // new file reuses the active tab's id, so we key on the file identity (path + type), not activeTabId.
+  useEffect(() => {
+    setViewMode('preview');
+  }, [activeTabId, activeTab?.metadata?.file_path, activeTab?.content_type]);
 
   // 确认对话框状态 / Confirmation dialog states
   const [showExitConfirm, setShowExitConfirm] = useState(false);
