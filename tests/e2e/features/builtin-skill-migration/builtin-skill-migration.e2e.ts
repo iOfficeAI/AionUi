@@ -76,13 +76,13 @@ interface MaterializeResponse {
 // ── Helpers ─────────────────────────────────────────────────────────────────
 
 function resolveBackendBinary(): string {
-  const candidates = [process.env.AIONUI_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
+  const candidates = [process.env.POUNDING_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
     (x): x is string => typeof x === 'string' && x.length > 0
   );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error('aioncore binary not found. Set AIONUI_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.');
+  throw new Error('aioncore binary not found. Set POUNDING_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.');
 }
 
 // ── Suite ───────────────────────────────────────────────────────────────────
@@ -344,10 +344,10 @@ test.describe('Built-in Skill Migration (T3)', () => {
       const logFd = fs.openSync(logPath, 'a');
       const parentEnv = { ...process.env };
       // Scrub any env vars that would leak main-Electron backend state.
-      delete parentEnv.AIONUI_EXTENSIONS_PATH;
-      delete parentEnv.AIONUI_EXTENSION_STATES_FILE;
-      delete parentEnv.AIONUI_E2E_TEST;
-      delete parentEnv.AIONUI_CDP_PORT;
+      delete parentEnv.POUNDING_EXTENSIONS_PATH;
+      delete parentEnv.POUNDING_EXTENSION_STATES_FILE;
+      delete parentEnv.POUNDING_E2E_TEST;
+      delete parentEnv.POUNDING_CDP_PORT;
       delete parentEnv.AIONUI_BUILTIN_SKILLS_PATH;
       backend = spawn(bin, ['--local', '--port', String(SIBLING_BACKEND_PORT), '--data-dir', dataDir], {
         stdio: ['ignore', logFd, logFd],

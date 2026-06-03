@@ -115,12 +115,12 @@ async function launchApp(): Promise<ElectronApplication> {
 
   const commonEnv = {
     ...process.env,
-    AIONUI_EXTENSIONS_PATH: process.env.AIONUI_EXTENSIONS_PATH || path.join(projectRoot, 'examples'),
-    AIONUI_EXTENSION_STATES_FILE: process.env.AIONUI_EXTENSION_STATES_FILE || e2eStateFile,
-    AIONUI_DISABLE_AUTO_UPDATE: '1',
-    AIONUI_DISABLE_DEVTOOLS: '1',
-    AIONUI_E2E_TEST: '1',
-    AIONUI_CDP_PORT: '0',
+    POUNDING_EXTENSIONS_PATH: process.env.POUNDING_EXTENSIONS_PATH || path.join(projectRoot, 'examples'),
+    POUNDING_EXTENSION_STATES_FILE: process.env.POUNDING_EXTENSION_STATES_FILE || e2eStateFile,
+    POUNDING_DISABLE_AUTO_UPDATE: '1',
+    POUNDING_DISABLE_DEVTOOLS: '1',
+    POUNDING_E2E_TEST: '1',
+    POUNDING_CDP_PORT: '0',
   };
 
   if (usePackaged) {
