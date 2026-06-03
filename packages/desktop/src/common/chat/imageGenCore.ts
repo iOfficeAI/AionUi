@@ -13,6 +13,7 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -236,16 +237,74 @@ export async function executeImageGeneration(
 
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [{ role: 'user', content: contentParts }];
 
-    // Create client and call API
-    const rotatingClient: RotatingClient = await ClientFactory.createRotatingClient(provider, {
-      proxy,
-      rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
-    });
+    // Check if model is a dedicated image generation model (uses /v1/images/generations)
+    const isDedicatedImageModel = /^(gpt-image|image-|dall-e)/i.test(provider.use_model);
 
-    const completion: UnifiedChatCompletionResponse = await rotatingClient.createChatCompletion(
-      { model: provider.use_model, messages: messages as any },
-      { signal, timeout: API_TIMEOUT_MS }
-    );
+    let completion: UnifiedChatCompletionResponse;
+    if (isDedicatedImageModel) {
+      // Use /v1/images/generations for dedicated image models
+      const baseUrl = provider.base_url.replace(/\/+$/, '');
+      const imagesUrl = `${baseUrl}/v1/images/generations`;
+      const response = await httpRequest(imagesUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${provider.api_key}`,
+        },
+        body: JSON.stringify({
+          model: provider.use_model,
+          prompt: params.prompt,
+          n: 1,
+          size: '1024x1024',
+        }),
+        signal,
+        timeout: API_TIMEOUT_MS,
+      });
+
+      const imageResult = safeJsonParse<{
+        data?: Array<{ url?: string; b64_json?: string }>;
+        results?: Array<{ url?: string }>;
+        error?: { message: string };
+      }>(response, null);
+
+      if (imageResult?.error) {
+        return {
+          success: false,
+          text: `Image API error: ${imageResult.error.message}`,
+          error: imageResult.error.message,
+        };
+      }
+
+      const imageUrl = imageResult?.data?.[0]?.url || imageResult?.results?.[0]?.url;
+      if (imageUrl) {
+        completion = {
+          choices: [
+            {
+              message: {
+                content: `Image generated: ${imageUrl}`,
+                role: 'assistant',
+                images: [{ type: 'image_url' as const, image_url: { url: imageUrl } }],
+              },
+              index: 0,
+              finish_reason: 'stop',
+            },
+          ],
+        } as any;
+      } else {
+        return { success: false, text: 'Image generation did not produce any images.', error: 'No image in response' };
+      }
+    } else {
+      // Standard chat completions for multimodal models
+      const rotatingClient: RotatingClient = await ClientFactory.createRotatingClient(provider, {
+        proxy,
+        rotatingOptions: { maxRetries: 3, retryDelay: 1000 },
+      });
+
+      completion = await rotatingClient.createChatCompletion(
+        { model: provider.use_model, messages: messages as any },
+        { signal, timeout: API_TIMEOUT_MS }
+      );
+    }
 
     const choice = completion.choices[0];
     if (!choice) {

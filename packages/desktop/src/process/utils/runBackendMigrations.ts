@@ -292,6 +292,15 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     await mcpService.batchImportServers.invoke({ servers: missing });
   }
 
+  // Ensure existing builtin MCP servers are enabled (in case they were
+  // previously created with enabled=false by an older migration).
+  for (const server of [...defaultServers, imageServer]) {
+    const existing = existingByName.get(server.name);
+    if (existing && !existing.enabled) {
+      await mcpService.toggleServer.invoke({ id: existing.id });
+    }
+  }
+
   const existingChromeDevtools = existingByName.get(BUILTIN_CHROME_DEVTOOLS_NAME);
   if (
     existingChromeDevtools &&
