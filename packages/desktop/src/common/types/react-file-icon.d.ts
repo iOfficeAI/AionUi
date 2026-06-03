@@ -13,7 +13,23 @@ declare module 'react-file-icon' {
     labelTextColor?: string;
     labelUppercase?: boolean;
     radius?: number;
-    type?: 'image' | 'document' | 'spreadsheet' | 'vector' | 'audio' | 'compressed' | 'binary' | 'presentation' | 'code' | 'settings' | 'video' | '3d' | 'acrobat' | 'font' | 'drive' | 'database';
+    type?:
+      | 'image'
+      | 'document'
+      | 'spreadsheet'
+      | 'vector'
+      | 'audio'
+      | 'compressed'
+      | 'binary'
+      | 'presentation'
+      | 'code'
+      | 'settings'
+      | 'video'
+      | '3d'
+      | 'acrobat'
+      | 'font'
+      | 'drive'
+      | 'database';
   };
 
   export const FileIcon: FC<FileIconProps>;
