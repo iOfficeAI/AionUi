@@ -50,35 +50,8 @@
   align-items: center;
 }
 
-/* Full-row hover / selection backgrounds (VSCode-style). Arco paints these on
-   the (narrower) title element; move them to the whole node row instead. */
-.chat-workspace .workspace-tree .arco-tree-node {
-  border-radius: 0;
-  transition: background-color 0.12s ease;
-}
-
-.chat-workspace .workspace-tree .arco-tree-node:hover {
-  background-color: var(--color-fill-2);
-}
-
-.chat-workspace .workspace-tree .arco-tree-node-selected,
-.chat-workspace .workspace-tree .arco-tree-node-selected:hover {
-  background-color: var(--color-fill-3);
-}
-
-/* Clear Arco's title-level backgrounds so the full-row highlight isn't doubled
-   by a narrower (darker) inner box; selected text keeps the normal color (the
-   row background is the indicator). !important beats Arco's own :hover rule. */
-.chat-workspace .workspace-tree .arco-tree-node-title,
-.chat-workspace .workspace-tree .arco-tree-node-title:hover,
-.chat-workspace .workspace-tree .arco-tree-node-title-block {
-  background-color: transparent !important;
-}
-
-.chat-workspace .workspace-tree .arco-tree-node-selected .arco-tree-node-title,
-.chat-workspace .workspace-tree .arco-tree-node-selected .arco-tree-node-title:hover {
-  color: var(--color-text-1);
-}
+/* Full-row hover & selection backgrounds live in styles/arco-override.css
+   (.workspace-tree ...), the project's home for Arco theme overrides. */
 
 /* Mobile: workspace panel adaptation */
 @media (max-width: 767px) {

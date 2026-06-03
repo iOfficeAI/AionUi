@@ -284,14 +284,32 @@ body[arco-theme='dark'] .arco-message-error {
   background: linear-gradient(90deg, rgba(255, 221, 219, 0.3) 0%, rgba(255, 243, 240, 0.3) 100%) !important;
 }
 
-/* Workspace tree selection styles - use text color instead of background */
+/* Workspace tree: full-row hover & selection backgrounds (VSCode-style).
+   Paint the whole node row, not the narrower title block. */
+.workspace-tree .arco-tree-node {
+  transition: background-color 0.12s ease;
+}
+
+.workspace-tree .arco-tree-node:hover {
+  background-color: var(--color-fill-2);
+}
+
+.workspace-tree .arco-tree-node-selected,
+.workspace-tree .arco-tree-node-selected:hover {
+  background-color: var(--color-fill-3);
+}
+
+/* Clear Arco's title-level backgrounds (incl. its hover rule) so the full-row
+   highlight isn't doubled by a darker inner box. */
+.workspace-tree .arco-tree-node-title,
+.workspace-tree .arco-tree-node:hover .arco-tree-node-title,
 .workspace-tree .arco-tree-node-selected .arco-tree-node-title {
   background-color: transparent !important;
 }
 
-/* Workspace tree hover styles - more visible hover effect */
-.workspace-tree .arco-tree-node:hover .arco-tree-node-title {
-  background-color: var(--color-fill-3) !important;
+/* Selected text keeps the normal color — the row background is the indicator. */
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title {
+  color: var(--color-text-1);
 }
 
 /* Alert styles - content is now displayed below the Alert card, so these rules are no longer needed */
