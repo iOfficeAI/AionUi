@@ -510,6 +510,8 @@ export type I18nKey =
   | 'conversation.remoteToolHost.server'
   | 'conversation.remoteToolHost.serverHint'
   | 'conversation.sendbox.hint'
+  | 'conversation.session.changesSummaryFiles'
+  | 'conversation.session.changesSummaryLines'
   | 'conversation.sideQuestion.alreadyRunning'
   | 'conversation.sideQuestion.answered'
   | 'conversation.sideQuestion.attachmentsNotAllowed'

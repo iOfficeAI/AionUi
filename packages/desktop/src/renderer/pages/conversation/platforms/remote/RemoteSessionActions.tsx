@@ -13,7 +13,7 @@ import { findShadowedPaths } from './configShadowDiff';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Branch, Copy, More, Refresh, ShareTwo, FileText, Setting } from '@icon-park/react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { emitter } from '@/renderer/utils/emitter';
@@ -60,6 +60,20 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
   // global layer but are overridden by a higher-precedence layer (project /
   // agent files), so they won't change behavior. Empty = all edits took effect.
   const [shadowedPaths, setShadowedPaths] = useState<string[]>([]);
+
+  // Task 17: diff-summary header (N files · +X / -Y lines) for the session
+  // changes modal. Sums the per-file `additions` / `deletions` returned by
+  // OpenCode's `GET /session/{id}/diff`; missing/non-numeric fields are
+  // treated as zero.
+  const diffSummary = useMemo(() => {
+    let additions = 0;
+    let deletions = 0;
+    for (const entry of diffEntries) {
+      if (typeof entry.additions === 'number') additions += entry.additions;
+      if (typeof entry.deletions === 'number') deletions += entry.deletions;
+    }
+    return { count: diffEntries.length, additions, deletions };
+  }, [diffEntries]);
 
   useEffect(() => {
     let cancelled = false;
@@ -427,6 +441,23 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
           </div>
         ) : (
           <div className='flex flex-col gap-6px'>
+            <div
+              data-testid='session-diff-summary'
+              className='flex items-center gap-10px px-10px py-8px rounded-6px text-13px font-medium'
+              style={{
+                background: 'rgb(var(--success-1))',
+                border: '1px solid rgb(var(--success-3))',
+              }}
+            >
+              <span className='text-t-primary'>{t('conversation.session.changesSummaryFiles', { count: diffSummary.count })}</span>
+              <span className='text-t-secondary'>·</span>
+              <span className='font-mono'>
+                <span className='text-[rgb(var(--success-6))]'>+{diffSummary.additions}</span>
+                <span className='text-t-secondary'> / </span>
+                <span className='text-[rgb(var(--danger-6))]'>-{diffSummary.deletions}</span>
+              </span>
+              <span className='text-t-secondary'>{t('conversation.session.changesSummaryLines')}</span>
+            </div>
             {diffEntries.map((entry, i) => {
               const path = entry.path ?? entry.file ?? '(unknown)';
               return (

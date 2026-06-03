@@ -450,6 +450,10 @@
     "tooltip": "OpenCode session {{sessionId}}\n{{directory}}",
     "copied": "Session id copied"
   },
+  "session": {
+    "changesSummaryFiles": "{{count}} files",
+    "changesSummaryLines": "lines"
+  },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
