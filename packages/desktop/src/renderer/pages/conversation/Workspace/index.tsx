@@ -19,6 +19,7 @@ import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
+import FileTypeIcon from './components/FileTypeIcon';
 import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
@@ -380,6 +381,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       }}
                     >
                       <span className='flex items-center gap-4px min-w-0'>
+                        <FileTypeIcon node={nodeData} expanded={treeHook.expandedKeys.includes(relativePath)} />
                         <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
                         {isPasteTarget && (
                           <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
