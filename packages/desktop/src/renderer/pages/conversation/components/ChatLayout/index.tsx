@@ -8,7 +8,6 @@ import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
 import { useLayoutConstraints } from '@/renderer/pages/conversation/hooks/useLayoutConstraints';
-import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/usePreviewAutoCollapse';
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -149,17 +148,6 @@ const ChatLayout: React.FC<{
     isPreviewOpen,
     rightSiderCollapsed,
     isMobile,
-  });
-
-  // --- Hook D: preview auto-collapse ---
-  usePreviewAutoCollapse({
-    isPreviewOpen,
-    isDesktop,
-    workspaceEnabled,
-    rightSiderCollapsed,
-    setRightSiderCollapsed,
-    siderCollapsed: layout?.siderCollapsed,
-    setSiderCollapsed: layout?.setSiderCollapsed,
   });
 
   // --- Hook E: layout constraints ---
