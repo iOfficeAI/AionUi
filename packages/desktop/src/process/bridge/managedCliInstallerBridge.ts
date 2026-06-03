@@ -310,12 +310,26 @@ async function ensureBunInstalled(): Promise<string> {
   if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
     return getLocalBunBinaryPath();
   }
+  // Try npm first (works with npmmirror for Chinese users)
   if (await commandExists('npm')) {
     await installNpmPackage('bun');
     if (await commandExists(getBunCommand())) return getBunCommand();
     if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
       return getLocalBunBinaryPath();
     }
+  }
+  // Fallback: direct install via official script (macOS/Linux only)
+  if (process.platform !== 'win32') {
+    try {
+      const shell = process.env.SHELL || '/bin/bash';
+      await runCommand(shell, ['-c', 'curl -fsSL https://bun.sh/install | bash'], {
+        env: { BUN_INSTALL: BUN_HOME_DIR },
+      });
+      if (await commandExists(getBunCommand())) return getBunCommand();
+      if (isAbsoluteExecutablePath(BUN_BIN_PATH) || isAbsoluteExecutablePath(BUN_SHIM_PATH)) {
+        return getLocalBunBinaryPath();
+      }
+    } catch { /* fall through */ }
   }
   throw new Error('Bun is required for this operation and could not be auto-installed.');
 }
@@ -324,6 +338,7 @@ async function ensureUvInstalled(): Promise<string> {
   const configuredUv = process.env.UV_BINARY?.trim() || 'uv';
   if (await commandExists(configuredUv)) return configuredUv;
   if (isAbsoluteExecutablePath(getLocalUvBinaryPath())) return getLocalUvBinaryPath();
+  // Try Python pip install first (tsinghua mirror for China)
   let lastError: unknown;
   for (const pythonCommand of getPythonLaunchers()) {
     if (!(await commandExists(pythonCommand))) continue;
@@ -333,10 +348,22 @@ async function ensureUvInstalled(): Promise<string> {
       lastError = error;
     }
   }
+  // Fallback: direct install via standalone installer (no Python needed)
+  try {
+    if (process.platform === 'win32') {
+      await runCommand('powershell', ['-c', 'irm https://astral.sh/uv/install.ps1 | iex']);
+    } else {
+      const shell = process.env.SHELL || '/bin/bash';
+      await runCommand(shell, ['-c', 'curl -LsSf https://astral.sh/uv/install.sh | sh']);
+    }
+    const localUv = getLocalUvBinaryPath();
+    if (isAbsoluteExecutablePath(localUv)) return localUv;
+    if (await commandExists('uv')) return 'uv';
+  } catch { /* fall through */ }
   throw new Error(
     lastError instanceof Error
-      ? `Failed to auto-install uv via Python mirror: ${lastError.message}`
-      : 'uv is required for Hermes installation. No suitable Python runtime was found to auto-install it.'
+      ? `Failed to auto-install uv: ${lastError.message}`
+      : 'uv is required for Hermes installation and could not be auto-installed.'
   );
 }
 
