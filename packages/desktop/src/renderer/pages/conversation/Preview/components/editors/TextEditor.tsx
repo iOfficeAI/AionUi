@@ -62,7 +62,8 @@ const TextEditor: React.FC<TextEditorProps> = ({ value, onChange, readOnly = fal
   // 缓存样式对象 / Memoize style object
   const editorStyle = useMemo(
     () => ({
-      fontSize: '14px',
+      fontSize: '13px',
+      fontFamily: 'var(--font-mono)',
       height: '100%',
       textAlign: 'left' as const, // 文本左对齐 / Text align left
     }),

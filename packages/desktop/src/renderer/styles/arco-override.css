@@ -1,5 +1,16 @@
 /* Arco Design custom overrides - non-theme related */
 
+/* Centralized font tokens. --font-mono is inherited (custom properties cross
+   the shadow DOM boundary), so Markdown rendered in shadow roots can reference it.
+   集中的字体 token。--font-mono 会被继承（自定义属性可穿透 Shadow DOM 边界），
+   因此 Shadow DOM 内渲染的 Markdown 也能引用它。 */
+:root {
+  --font-mono:
+    ui-monospace, 'SF Mono', SFMono-Regular, Menlo, 'Cascadia Code', 'Roboto Mono', Consolas, 'Liberation Mono',
+    monospace;
+  --code-font-size: 13px;
+}
+
 /* Arco's arco.css puts 'Inter' first in font-family, which causes very thin
    text on systems that have Inter installed. Override to use system fonts. */
 html,

@@ -197,7 +197,7 @@ const CodePreview: React.FC<CodePreviewProps> = ({
         {viewMode === 'source' || isLargeContent ? (
           // 原文模式或大文本：显示纯文本，避免高亮器阻塞
           // Source mode or large text: render plain text to avoid highlighter blocking
-          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-12px text-t-primary whitespace-pre-wrap break-words'>
+          <pre className='w-full m-0 p-12px bg-bg-2 rd-8px overflow-auto font-mono text-13px lh-[1.5] text-t-primary whitespace-pre-wrap break-words'>
             {displayedContent}
           </pre>
         ) : (
