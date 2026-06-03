@@ -162,7 +162,9 @@ describe('updateBridge CDN URL rewriting', () => {
       const handler = await getCheckHandler();
       const result = await handler({ repo: 'iOfficeAI/AionUi' });
       const asset = result.data?.latest?.assets?.[0];
-      expect(asset?.url).toMatch(/^https:\/\/github\.com\/halojerry\/pouding\/releases\/download\/releases\/1\.9\.22\//);
+      expect(asset?.url).toMatch(
+        /^https:\/\/github\.com\/halojerry\/pouding\/releases\/download\/releases\/1\.9\.22\//
+      );
       expect(asset?.url).not.toMatch(/\/v1\.9\.22\//);
     } finally {
       vi.unstubAllGlobals();
