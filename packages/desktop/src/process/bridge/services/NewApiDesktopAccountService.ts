@@ -1338,15 +1338,20 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel, _source
 
 // ── Codex managed runtime ──────────────────────────────────────────
 
-function resolveCodexConfigPath(): string {
+function resolveCodexDir(): string {
   const override = process.env.CODEX_HOME?.trim();
-  const codexDir = override ? path.resolve(override) : path.join(os.homedir(), '.codex');
-  return path.join(codexDir, 'config.toml');
+  return override ? path.resolve(override) : path.join(os.homedir(), '.codex');
+}
+
+function resolveCodexConfigPath(): string {
+  return path.join(resolveCodexDir(), 'config.toml');
+}
+
+function resolveCodexAuthPath(): string {
+  return path.join(resolveCodexDir(), 'auth.json');
 }
 
 function resolveCodexWireApi(profile: ProviderSyncProfile): string {
-  // Codex's native protocol is OpenAI responses API. For anthropic/gemini
-  // models we fall back to chat_completions.
   if (profile.protocol === 'openai') return 'responses';
   return 'chat_completions';
 }
@@ -1357,55 +1362,72 @@ function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
 
   const providerId = profile.managedProviderId;
   const modelId = profile.normalizedModelId;
-  const baseUrl = resolveOpenClawBaseUrl(profile); // strip /v1 for OpenAI, keep for others
+  const baseUrl = resolveOpenClawBaseUrl(profile);
   const wireApi = resolveCodexWireApi(profile);
   const apiKey = profile.provider.api_key;
+  const codexDir = resolveCodexDir();
 
+  // Write auth.json — Codex reads OPENAI_API_KEY from here
+  fs.mkdirSync(codexDir, { recursive: true });
+  fs.writeFileSync(resolveCodexAuthPath(), JSON.stringify({ OPENAI_API_KEY: apiKey }, null, 2) + '\n', {
+    encoding: 'utf8',
+    mode: 0o600,
+  });
+
+  // Write config.toml — Codex model provider config
   const toml = [
-    `model_provider = "${providerId}"`,
-    `model = "${modelId}"`,
-    '',
+    '[model_providers]',
     `[model_providers."${providerId}"]`,
     `name = "${profile.provider.name || 'POUNDING API'}"`,
     `base_url = "${baseUrl}"`,
-    `bearer_token = "${apiKey}"`,
     `wire_api = "${wireApi}"`,
+    `requires_openai_auth = true`,
     '',
   ].join('\n');
 
-  const configPath = resolveCodexConfigPath();
-  fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, toml, { encoding: 'utf8', mode: 0o600 });
+  fs.writeFileSync(resolveCodexConfigPath(), toml, { encoding: 'utf8', mode: 0o600 });
 }
 
 function clearCodexManagedProviderModel(managedProviderId: string): void {
+  // Clear auth.json
+  const authPath = resolveCodexAuthPath();
+  if (fs.existsSync(authPath)) {
+    try {
+      const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+      if (auth.OPENAI_API_KEY) {
+        fs.rmSync(authPath, { force: true });
+      }
+    } catch {
+      /* malformed JSON, remove it */ fs.rmSync(authPath, { force: true });
+    }
+  }
+
+  // Clear config.toml if it references a managed provider
   const configPath = resolveCodexConfigPath();
   if (!fs.existsSync(configPath)) return;
-
   const content = fs.readFileSync(configPath, 'utf8');
-  // Check if the active model_provider is a POUNDING managed one
-  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
+  const providerMatch = content.match(/^\[model_providers\."(.+)"\]$/m);
   const activeProvider = providerMatch?.[1]?.trim();
   if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return;
-
   fs.rmSync(configPath, { force: true });
 }
 
 function recoverApiKeyFromCodexConfig(): string | undefined {
+  // Try auth.json first
+  const authPath = resolveCodexAuthPath();
+  if (fs.existsSync(authPath)) {
+    try {
+      const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+      if (auth.OPENAI_API_KEY) return auth.OPENAI_API_KEY;
+    } catch {
+      /* fall through */
+    }
+  }
+  // Fall back to bearer_token in config.toml (old format)
   const configPath = resolveCodexConfigPath();
   if (!fs.existsSync(configPath)) return undefined;
-
   const content = fs.readFileSync(configPath, 'utf8');
-  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
-  const activeProvider = providerMatch?.[1]?.trim();
-  if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return undefined;
-
-  // Extract bearer_token from [model_providers."<id>"] section
-  const sectionRegex = new RegExp(
-    `\\[model_providers\\."${activeProvider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"\\][^[]*bearer_token\\s*=\\s*"([^"]+)"`,
-    's'
-  );
-  const tokenMatch = content.match(sectionRegex);
+  const tokenMatch = content.match(/^bearer_token\s*=\s*"([^"]+)"$/m);
   return tokenMatch?.[1]?.trim() || undefined;
 }
 
@@ -1414,28 +1436,28 @@ function recoverManagedRuntimeSnapshotFromCodexConfig(): RecoveredManagedRuntime
   if (!fs.existsSync(configPath)) return undefined;
 
   const content = fs.readFileSync(configPath, 'utf8');
-  const providerMatch = content.match(/^model_provider\s*=\s*"(.+)"$/m);
+  // New format: [model_providers."<id>"] section with requires_openai_auth
+  const providerMatch = content.match(/^\[model_providers\."(.+)"\]$/m);
   const activeProvider = providerMatch?.[1]?.trim();
   if (!activeProvider || !isManagedRuntimeProviderId(activeProvider)) return undefined;
 
-  const modelMatch = content.match(/^model\s*=\s*"(.+)"$/m);
-  const model = modelMatch?.[1]?.trim();
+  // Get token from auth.json
+  const token = recoverApiKeyFromCodexConfig();
+  if (!token) return undefined;
 
-  // Extract base_url and bearer_token from the provider section
+  // Extract base_url from the provider section
   const escapedId = activeProvider.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  const sectionRegex = new RegExp(
-    `\\[model_providers\\."${escapedId}"\\][^[]*base_url\\s*=\\s*"([^"]+)"[^[]*bearer_token\\s*=\\s*"([^"]+)"`,
-    's'
+  const baseUrlMatch = content.match(
+    new RegExp(`\\[model_providers\\."${escapedId}"\\][^[]*base_url\\s*=\\s*"([^"]+)"`, 's')
   );
-  const sectionMatch = content.match(sectionRegex);
-  const baseUrl = sectionMatch?.[1]?.trim();
-  const token = sectionMatch?.[2]?.trim();
+  const baseUrl = baseUrlMatch?.[1]?.trim();
+  if (!baseUrl) return undefined;
 
-  if (!token || !baseUrl || !model) return undefined;
+  // Models are tracked by the managed provider; use the models list from account status
   return {
     token,
     baseUrl: normalizeBaseUrl(baseUrl),
-    models: [model],
+    models: [], // populated by caller from account status
     managedProviderId: activeProvider,
   };
 }
