@@ -14,7 +14,7 @@ import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/pr
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useConfigModelListWithImage from '@/renderer/hooks/agent/useConfigModelListWithImage';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -545,12 +545,8 @@ const ToolsModalContent: React.FC = () => {
     } as ConfigKeyMap['tools.imageGenerationModel'];
     setImageGenerationModel(defaultModel);
     configService.set('tools.imageGenerationModel', defaultModel).catch(() => {});
-    // Auto-enable the built-in image gen MCP server if it exists and is disabled
     autoConfiguredRef.current = true;
-    if (builtinImageGenServer && !builtinImageGenServer.enabled && !isImageGenerationServerLoading) {
-      handleImageGenerationToggle(true).catch(() => {});
-    }
-  }, [data, imageGenerationModel, builtinImageGenServer, isImageGenerationServerLoading, handleImageGenerationToggle]);
+  }, [data, imageGenerationModel]);
 
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {
@@ -738,6 +734,19 @@ const ToolsModalContent: React.FC = () => {
     },
     [builtinImageGenServer, imageGenerationModel, mcpMessage, saveMcpServers, syncMcpServerEnv, t]
   );
+
+  // Auto-enable image gen server on first visit when model was auto-configured
+  useEffect(() => {
+    if (
+      autoConfiguredRef.current &&
+      builtinImageGenServer &&
+      !builtinImageGenServer.enabled &&
+      !isImageGenerationServerLoading &&
+      imageGenerationModel?.use_model
+    ) {
+      handleImageGenerationToggle(true).catch(() => {});
+    }
+  }, [builtinImageGenServer, isImageGenerationServerLoading, imageGenerationModel, handleImageGenerationToggle]);
 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';

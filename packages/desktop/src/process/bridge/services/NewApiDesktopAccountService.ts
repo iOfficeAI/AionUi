@@ -693,7 +693,7 @@ function resolveClaudeModelSlot(models: string[], prefer: string, fallbackPatter
 }
 
 function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProviderEnv {
-  const models = profile.provider.models || [];
+  const models = (profile.provider as IProvider).models || [];
   const sonnetModel = sanitizeManagedRuntimeModelValue(profile.normalizedModelId) || profile.normalizedModelId;
   const opusModel = resolveClaudeModelSlot(models, sonnetModel, 'pro');
   const haikuModel =
