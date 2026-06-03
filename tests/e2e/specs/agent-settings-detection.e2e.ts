@@ -24,7 +24,7 @@ test.describe('Agent Settings Detection', () => {
 
     // Check for known backend names
     const body = await page.locator('body').textContent();
-    const hasKnownAgent = ['Claude', 'Codex', 'Gemini', 'Aion', 'OpenCode', 'Qwen'].some((name) =>
+    const hasKnownAgent = ['Claude', 'Codex', 'Gemini', 'POUNDING', 'OpenCode', 'Qwen'].some((name) =>
       body?.includes(name)
     );
     expect(hasKnownAgent).toBeTruthy();
@@ -33,8 +33,8 @@ test.describe('Agent Settings Detection', () => {
   test('Gemini agent is present in detected list', async ({ page }) => {
     await goToSettings(page, 'agent');
 
-    // Gemini or Aion RS should be in the agent list
-    await expectBodyContainsAny(page, ['Gemini', 'gemini', 'Aion']);
+    // Gemini or POUNDING CLI should be in the agent list
+    await expectBodyContainsAny(page, ['Gemini', 'gemini', 'POUNDING']);
   });
 
   test('agent settings page has sidebar navigation item', async ({ page }) => {
