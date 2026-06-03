@@ -11,6 +11,10 @@ import React from 'react';
 import { FileIcon } from 'react-file-icon';
 
 const ICON_SIZE = 16;
+// react-file-icon renders a 40x48 SVG at full container width, so a 16px-wide
+// box would be ~19px tall. Constrain width so its height matches ICON_SIZE and
+// file rows stay the same height as folder rows.
+const FILE_ICON_WIDTH = Math.round((ICON_SIZE * 40) / 48);
 
 type FileTypeIconProps = {
   node: Pick<IDirOrFile, 'name' | 'relativePath' | 'isFile'>;
@@ -44,7 +48,7 @@ const FileTypeIcon: React.FC<FileTypeIconProps> = ({ node, expanded }) => {
     <span
       data-testid='file-type-icon-file'
       className='inline-flex items-center justify-center flex-shrink-0'
-      style={{ width: ICON_SIZE, lineHeight: 0 }}
+      style={{ width: FILE_ICON_WIDTH, height: ICON_SIZE, lineHeight: 0 }}
     >
       <FileIcon extension={ext || undefined} {...style} />
     </span>
