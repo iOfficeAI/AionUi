@@ -526,8 +526,9 @@ const ToolsModalContent: React.FC = () => {
   }, []);
 
   // Auto-configure POUNDING API image model as default when no stored config exists
+  const autoConfiguredRef = useRef(false);
   useEffect(() => {
-    if (!data || imageGenerationModel) return;
+    if (!data || imageGenerationModel || autoConfiguredRef.current) return;
     const storedModel = configService.get('tools.imageGenerationModel');
     if (storedModel) return;
     const poundingProvider = data.find((p) => p.platform === 'new-api');
@@ -544,7 +545,12 @@ const ToolsModalContent: React.FC = () => {
     } as ConfigKeyMap['tools.imageGenerationModel'];
     setImageGenerationModel(defaultModel);
     configService.set('tools.imageGenerationModel', defaultModel).catch(() => {});
-  }, [data, imageGenerationModel]);
+    // Auto-enable the built-in image gen MCP server if it exists and is disabled
+    autoConfiguredRef.current = true;
+    if (builtinImageGenServer && !builtinImageGenServer.enabled && !isImageGenerationServerLoading) {
+      handleImageGenerationToggle(true).catch(() => {});
+    }
+  }, [data, imageGenerationModel, builtinImageGenServer, isImageGenerationServerLoading, handleImageGenerationToggle]);
 
   const updateSpeechToTextConfig = useCallback((updater: (current: SpeechToTextConfig) => SpeechToTextConfig) => {
     setSpeechToTextConfig((current) => {

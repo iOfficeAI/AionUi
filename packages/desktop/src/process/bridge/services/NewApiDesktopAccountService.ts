@@ -683,10 +683,30 @@ function buildProviderSyncProfile(provider: TProviderWithModel): ProviderSyncPro
   };
 }
 
+function resolveClaudeModelSlot(models: string[], prefer: string, fallbackPattern: string): string {
+  const exact = models.find((m) => sanitizeManagedRuntimeModelValue(m) === prefer);
+  if (exact) return sanitizeManagedRuntimeModelValue(exact) || exact;
+  const match = models.find((m) => m.toLowerCase().includes(fallbackPattern));
+  if (match) return sanitizeManagedRuntimeModelValue(match) || match;
+  // Fall back to preferred model
+  return sanitizeManagedRuntimeModelValue(prefer) || prefer;
+}
+
 function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProviderEnv {
+  const models = profile.provider.models || [];
+  const sonnetModel = sanitizeManagedRuntimeModelValue(profile.normalizedModelId) || profile.normalizedModelId;
+  const opusModel = resolveClaudeModelSlot(models, sonnetModel, 'pro');
+  const haikuModel =
+    resolveClaudeModelSlot(models, sonnetModel, 'flash') === sonnetModel
+      ? resolveClaudeModelSlot(models, sonnetModel, 'lite')
+      : resolveClaudeModelSlot(models, sonnetModel, 'flash');
+  // Strip /v1 suffix — Anthropic protocol doesn't use it
+  const baseUrl = profile.normalizedBaseUrl.replace(/\/v1\/?$/, '');
   return {
-    ANTHROPIC_BASE_URL: profile.normalizedBaseUrl,
-    ANTHROPIC_DEFAULT_SONNET_MODEL: profile.normalizedModelId,
+    ANTHROPIC_BASE_URL: baseUrl,
+    ANTHROPIC_DEFAULT_SONNET_MODEL: sonnetModel,
+    ANTHROPIC_DEFAULT_OPUS_MODEL: opusModel,
+    ANTHROPIC_DEFAULT_HAIKU_MODEL: haikuModel,
     ANTHROPIC_AUTH_TOKEN: profile.provider.api_key,
     ANTHROPIC_API_KEY: profile.provider.api_key,
   };
@@ -696,8 +716,9 @@ function buildClaudeRuntimeProviderEnv(profile: ProviderSyncProfile): ClaudeProv
  *  via the "model" slot field and ACP session protocol, so model env keys
  *  must NOT be included. Used when writing to ~/.claude/settings.json. */
 function buildClaudeConnectionEnv(profile: ProviderSyncProfile): Record<string, string> {
+  const baseUrl = profile.normalizedBaseUrl.replace(/\/v1\/?$/, '');
   return {
-    ANTHROPIC_BASE_URL: profile.normalizedBaseUrl,
+    ANTHROPIC_BASE_URL: baseUrl,
     ANTHROPIC_AUTH_TOKEN: profile.provider.api_key,
     ANTHROPIC_API_KEY: profile.provider.api_key,
   };
