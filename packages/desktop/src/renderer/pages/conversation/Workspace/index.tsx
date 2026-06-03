@@ -11,6 +11,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
+import { Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
@@ -340,17 +341,22 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               </div>
             ) : (
               <Tree
-                className={`${isMobile ? '!pl-12px !pr-8px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
-                showLine
+                className={`${isMobile ? '!pl-12px !pr-8px chat-workspace-tree--mobile' : '!pl-16px !pr-16px'} workspace-tree`}
                 key={treeHook.treeKey}
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
                 actionOnClick={['select', 'expand']}
-                // Reuse the +/- glyph during lazy-load so the switcher doesn't
+                // VSCode-style explorer: no connector lines, a chevron switcher
+                // for folders (none for files), and per-type icons via FileTypeIcon.
+                // Reuse the chevron as the lazy-load icon so the switcher doesn't
                 // flash a spinner on first expand of each folder.
-                icons={(nodeProps) => ({
-                  loadingIcon: <span className={`arco-tree-node-${nodeProps.expanded ? 'minus' : 'plus'}-icon`} />,
-                })}
+                icons={(nodeProps) => {
+                  if (nodeProps.dataRef?.isFile) return { switcherIcon: null };
+                  // Rotation is owned by CSS (.workspace-tree-chevron): right when
+                  // collapsed, down when expanded — overriding Arco's default.
+                  const chevron = <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />;
+                  return { switcherIcon: chevron, loadingIcon: chevron };
+                }}
                 treeData={treeData}
                 fieldNames={{
                   children: 'children',
