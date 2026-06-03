@@ -533,7 +533,9 @@ const ToolsModalContent: React.FC = () => {
     if (storedModel) return;
     const poundingProvider = data.find((p) => p.platform === 'new-api');
     if (!poundingProvider) return;
-    const imageModel = poundingProvider.models.find((m) => m === 'gpt-image-2' || m.toLowerCase().includes('image'));
+    const imageModel =
+      poundingProvider.models.find((m) => m === 'nano-banana-fast' || m.toLowerCase().includes('banana')) ||
+      poundingProvider.models.find((m) => m.toLowerCase().includes('image'));
     if (!imageModel) return;
     const defaultModel = {
       id: poundingProvider.id,
