@@ -50,6 +50,35 @@
   align-items: center;
 }
 
+/* Full-row hover / selection backgrounds (VSCode-style). Arco paints these on
+   the (narrower) title element; move them to the whole node row instead. */
+.chat-workspace .workspace-tree .arco-tree-node {
+  border-radius: 0;
+  transition: background-color 0.12s ease;
+}
+
+.chat-workspace .workspace-tree .arco-tree-node:hover {
+  background-color: var(--color-fill-2);
+}
+
+.chat-workspace .workspace-tree .arco-tree-node-selected,
+.chat-workspace .workspace-tree .arco-tree-node-selected:hover {
+  background-color: var(--color-fill-3);
+}
+
+/* Clear Arco's title-level backgrounds so the full-row highlight isn't doubled
+   by a narrower inner box; selected text keeps the normal color (the row
+   background is the indicator). */
+.chat-workspace .workspace-tree .arco-tree-node-title,
+.chat-workspace .workspace-tree .arco-tree-node-title:hover {
+  background-color: transparent;
+}
+
+.chat-workspace .workspace-tree .arco-tree-node-selected .arco-tree-node-title,
+.chat-workspace .workspace-tree .arco-tree-node-selected .arco-tree-node-title:hover {
+  color: var(--color-text-1);
+}
+
 /* Mobile: workspace panel adaptation */
 @media (max-width: 767px) {
   .chat-workspace .workspace-toolbar-search {
