@@ -166,11 +166,16 @@ function buildDefaultMcpServers(): McpImportServer[] {
     args: ['-y', 'chrome-devtools-mcp@latest'],
   };
 
+  const imageGenConfig = {
+    command: 'node',
+    args: [getBuiltinMcpScriptPath('builtin-mcp-image-gen')],
+  };
+
   return [
     {
       name: BUILTIN_CHROME_DEVTOOLS_NAME,
       description: 'Default MCP server: chrome-devtools',
-      enabled: false,
+      enabled: true,
       builtin: true,
       transport: {
         type: 'stdio',
@@ -178,6 +183,18 @@ function buildDefaultMcpServers(): McpImportServer[] {
         args: chromeConfig.args,
       },
       original_json: JSON.stringify({ mcpServers: { [BUILTIN_CHROME_DEVTOOLS_NAME]: chromeConfig } }, null, 2),
+    },
+    {
+      name: BUILTIN_IMAGE_GEN_NAME,
+      description: 'Built-in image generation tool powered by AI models. Configure the model in Settings > Tools.',
+      enabled: true,
+      builtin: true,
+      transport: {
+        type: 'stdio',
+        command: imageGenConfig.command,
+        args: imageGenConfig.args,
+      },
+      original_json: JSON.stringify({ mcpServers: { [BUILTIN_IMAGE_GEN_NAME]: imageGenConfig } }, null, 2),
     },
   ];
 }
