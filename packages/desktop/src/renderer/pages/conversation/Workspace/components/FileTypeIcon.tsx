@@ -39,7 +39,7 @@ const FileTypeIcon: React.FC<FileTypeIconProps> = ({ node, expanded }) => {
   return (
     <span
       data-testid={isFolder ? 'file-type-icon-folder' : 'file-type-icon-file'}
-      className='workspace-file-type-icon inline-flex items-center justify-center flex-shrink-0'
+      className='inline-flex items-center justify-center flex-shrink-0'
       style={{ width: ICON_SIZE, height: ICON_SIZE, lineHeight: 0 }}
     >
       <Icon icon={`${ICON_PREFIX}:${name}`} width={ICON_SIZE} height={ICON_SIZE} />
