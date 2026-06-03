@@ -50,6 +50,17 @@
   align-items: center;
 }
 
+/* Light backgrounds wash out the brighter vscode-icons (JS/JSON/YAML/SQL). A
+   faint dark edge keeps them legible on white; removed on dark theme where the
+   icons already have enough contrast. */
+.chat-workspace .workspace-tree .workspace-file-type-icon svg {
+  filter: drop-shadow(0 0 0.5px rgba(0, 0, 0, 0.4));
+}
+
+body[arco-theme='dark'] .chat-workspace .workspace-tree .workspace-file-type-icon svg {
+  filter: none;
+}
+
 /* Full-row hover & selection backgrounds live in styles/arco-override.css
    (.workspace-tree ...), the project's home for Arco theme overrides. */
 
