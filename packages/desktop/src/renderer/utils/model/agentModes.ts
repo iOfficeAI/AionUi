@@ -147,6 +147,26 @@ export function supportsModeSwitch(backend: string | undefined): boolean {
 }
 
 /**
+ * Format an agent mode label through i18n.
+ *
+ * Resolves the translation under `agentMode.*` using `mode.labelKey`
+ * when available, falling back to `mode.value`. Falls back to
+ * `mode.label` (the CLI-matching display text) when no translation exists.
+ *
+ * Shared across components that render agent mode selectors.
+ *
+ * @param t - i18n translate function
+ * @param mode - Agent mode option
+ * @returns Translated label string
+ */
+export function formatAgentModeLabel(
+  t: (key: string, options?: { defaultValue?: string }) => string,
+  mode: AgentModeOption,
+): string {
+  return t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label });
+}
+
+/**
  * Full-auto mode value per backend.
  * Re-exported from common for backward compatibility.
  */

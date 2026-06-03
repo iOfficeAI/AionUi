@@ -44,7 +44,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
-import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { mergeWithCapabilities, formatAgentModeLabel, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -632,7 +632,7 @@ const AionrsSendBox: React.FC<{
             initialMode={session_mode}
             dynamicModes={dynamicModes}
             compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-            modeLabelFormatter={(mode) => t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label })}
+            modeLabelFormatter={(mode) => formatAgentModeLabel(t, mode)}
             compactLabelPrefix={t('agentMode.permission')}
             hideCompactLabelPrefixOnMobile
             onModeChanged={propagateMode}

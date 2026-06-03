@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
-import { supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { supportsModeSwitch, formatAgentModeLabel, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getCleanFileNames, FileService } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
@@ -129,7 +129,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   );
 
   const getModeDisplayLabel = (mode: AgentModeOption): string =>
-    t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label });
+    formatAgentModeLabel(t, mode);
 
   const isWebUI = !isElectronDesktop();
 
