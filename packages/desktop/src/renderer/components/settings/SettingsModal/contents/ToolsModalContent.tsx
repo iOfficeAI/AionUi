@@ -735,18 +735,28 @@ const ToolsModalContent: React.FC = () => {
     [builtinImageGenServer, imageGenerationModel, mcpMessage, saveMcpServers, syncMcpServerEnv, t]
   );
 
-  // Auto-enable image gen server on first visit when model was auto-configured
+  // Auto-enable and sync MCP env on first visit when model was auto-configured
   useEffect(() => {
     if (
-      autoConfiguredRef.current &&
-      builtinImageGenServer &&
-      !builtinImageGenServer.enabled &&
-      !isImageGenerationServerLoading &&
-      imageGenerationModel?.use_model
-    ) {
+      !autoConfiguredRef.current ||
+      !builtinImageGenServer ||
+      isImageGenerationServerLoading ||
+      !imageGenerationModel?.use_model
+    )
+      return;
+    if (!builtinImageGenServer.enabled) {
       handleImageGenerationToggle(true).catch(() => {});
+    } else {
+      // Server already enabled but env vars may be empty — sync credentials
+      syncMcpServerEnv(imageGenerationModel).catch(() => {});
     }
-  }, [builtinImageGenServer, isImageGenerationServerLoading, imageGenerationModel, handleImageGenerationToggle]);
+  }, [
+    builtinImageGenServer,
+    isImageGenerationServerLoading,
+    imageGenerationModel,
+    handleImageGenerationToggle,
+    syncMcpServerEnv,
+  ]);
 
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
