@@ -60,7 +60,12 @@ export interface PreviewContextValue {
   activeTab: PreviewTab | null;
 
   // 预览面板操作 / Preview panel operations
-  openPreview: (content: string, type: PreviewContentType, metadata?: PreviewMetadata, options?: OpenPreviewOptions) => void;
+  openPreview: (
+    content: string,
+    type: PreviewContentType,
+    metadata?: PreviewMetadata,
+    options?: OpenPreviewOptions
+  ) => void;
   closePreview: () => void;
   closeTab: (tabId: string) => void;
   switchTab: (tabId: string) => void;
@@ -338,7 +343,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         // stacking a new one — unless it has unsaved edits, then fall back to a
         // new tab so changes aren't lost.
         if (options?.replace) {
-          const activeIdx = activeTabIdRef.current ? prevTabs.findIndex((tab) => tab.id === activeTabIdRef.current) : -1;
+          const activeIdx = activeTabIdRef.current
+            ? prevTabs.findIndex((tab) => tab.id === activeTabIdRef.current)
+            : -1;
           const activeTab = activeIdx >= 0 ? prevTabs[activeIdx] : null;
           if (activeTab && !activeTab.isDirty) {
             nextActiveTabId = activeTab.id;

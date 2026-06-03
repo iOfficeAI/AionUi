@@ -354,7 +354,9 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   if (nodeProps.dataRef?.isFile) return { switcherIcon: null };
                   // Rotation is owned by CSS (.workspace-tree-chevron): right when
                   // collapsed, down when expanded — overriding Arco's default.
-                  const chevron = <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />;
+                  const chevron = (
+                    <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />
+                  );
                   return { switcherIcon: chevron, loadingIcon: chevron };
                 }}
                 treeData={treeData}

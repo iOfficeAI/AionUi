@@ -5,16 +5,22 @@
  */
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
-import { getFileIconStyle, getNodeIconExtension } from '@/renderer/pages/conversation/Workspace/utils/fileIcon';
-import { Folder, FolderOpen } from '@icon-park/react';
+import {
+  getFileIconName,
+  getFolderIconName,
+  ICON_PREFIX,
+} from '@/renderer/pages/conversation/Workspace/utils/fileIcon';
+import { addCollection, Icon, type IconifyJSON } from '@iconify/react';
 import React from 'react';
-import { FileIcon } from 'react-file-icon';
+import vscodeIconsData from '../utils/vscodeIconsData.json';
+
+// Register only the bundled subset of vscode-icons once, so <Icon> resolves
+// names offline without hitting the Iconify API. Intentional, isolated
+// deviation from the @icon-park-only icon convention (see AGENTS.md): the file
+// tree mirrors VSCode's explorer icons.
+addCollection(vscodeIconsData as IconifyJSON);
 
 const ICON_SIZE = 16;
-// react-file-icon renders a 40x48 SVG at full container width, so a 16px-wide
-// box would be ~19px tall. Constrain width so its height matches ICON_SIZE and
-// file rows stay the same height as folder rows.
-const FILE_ICON_WIDTH = Math.round((ICON_SIZE * 40) / 48);
 
 type FileTypeIconProps = {
   node: Pick<IDirOrFile, 'name' | 'relativePath' | 'isFile'>;
@@ -23,34 +29,20 @@ type FileTypeIconProps = {
 };
 
 /**
- * File-tree leading icon. Folders use @icon-park/react; files use
- * react-file-icon (VSCode/seti-style colored icons). Intentional, isolated
- * deviation from the @icon-park-only icon convention (see AGENTS.md).
+ * File-tree leading icon rendered with VSCode's "vscode-icons" theme: a colored
+ * per-type icon for files and an open/closed folder icon for directories.
  */
 const FileTypeIcon: React.FC<FileTypeIconProps> = ({ node, expanded }) => {
-  if (!node.isFile) {
-    const FolderGlyph = expanded ? FolderOpen : Folder;
-    return (
-      <span
-        data-testid='file-type-icon-folder'
-        className='inline-flex items-center justify-center flex-shrink-0'
-        style={{ width: ICON_SIZE, height: ICON_SIZE, lineHeight: 0 }}
-      >
-        <FolderGlyph size={ICON_SIZE} fill='currentColor' />
-      </span>
-    );
-  }
-
-  const ext = getNodeIconExtension(node);
-  const style = getFileIconStyle(ext);
+  const isFolder = !node.isFile;
+  const name = isFolder ? getFolderIconName(Boolean(expanded)) : getFileIconName(node);
 
   return (
     <span
-      data-testid='file-type-icon-file'
+      data-testid={isFolder ? 'file-type-icon-folder' : 'file-type-icon-file'}
       className='inline-flex items-center justify-center flex-shrink-0'
-      style={{ width: FILE_ICON_WIDTH, height: ICON_SIZE, lineHeight: 0 }}
+      style={{ width: ICON_SIZE, height: ICON_SIZE, lineHeight: 0 }}
     >
-      <FileIcon extension={ext || undefined} {...style} />
+      <Icon icon={`${ICON_PREFIX}:${name}`} width={ICON_SIZE} height={ICON_SIZE} />
     </span>
   );
 };
