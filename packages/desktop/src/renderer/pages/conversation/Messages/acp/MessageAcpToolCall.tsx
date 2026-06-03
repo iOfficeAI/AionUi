@@ -5,13 +5,18 @@
  */
 
 import type { IMessageAcpToolCall, ToolProgress } from '@/common/chat/chatLib';
+import { ipcBridge } from '@/common';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
-import { Card, Tag } from '@arco-design/web-react';
+import { Button, Card, Message, Tag, Tooltip } from '@arco-design/web-react';
+import { Refresh } from '@icon-park/react';
 import { createTwoFilesPatch } from 'diff';
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import AionModal from '@/renderer/components/base/AionModal';
+import { iconColors } from '@/renderer/styles/colors';
 import MarkdownView from '@renderer/components/Markdown';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
@@ -196,6 +201,8 @@ const ProgressView: React.FC<{ progress: ToolProgress }> = ({ progress }) => {
   );
 };
 
+const REVERTABLE_KINDS: ReadonlySet<string> = new Set(['edit', 'write', 'execute']);
+
 const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ message }) => {
   const { t } = useTranslation();
   const { content } = message;
@@ -204,6 +211,10 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   }
   const { update, parentSessionId, inputStreaming, progress } = content;
   const { tool_call_id, kind, title, status, rawInput, content: diffContent } = update;
+
+  const conversationContext = useConversationContextSafe();
+  const [revertOpen, setRevertOpen] = useState(false);
+  const [reverting, setReverting] = useState(false);
 
   const getKindDisplayName = (kind: string) => {
     switch (kind) {
@@ -218,45 +229,123 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
     }
   };
 
+  const showRevert = tool_call_id && status === 'completed' && REVERTABLE_KINDS.has(kind) && Boolean(conversationContext);
+
+  const handleRevertConfirm = async () => {
+    if (!tool_call_id || !conversationContext?.conversation_id) return;
+    setReverting(true);
+    try {
+      const result = await ipcBridge.conversation.revertToolCall.invoke({
+        conversation_id: conversationContext.conversation_id,
+        tool_call_id,
+      });
+      Message.success(
+        t('messages.revertToolCallSuccess', {
+          defaultValue: 'Tool call reverted — {{files}} file(s) restored',
+          files: result.files_reverted,
+        })
+      );
+      setRevertOpen(false);
+    } catch (error) {
+      Message.error(t('messages.revertToolCallFailed', { defaultValue: 'Failed to revert tool call' }));
+      console.error('[MessageAcpToolCall] revertToolCall failed:', error);
+    } finally {
+      setReverting(false);
+    }
+  };
+
   // Sub-agent attribution: when the call originated from a child session, add a
   // left border and a small "Sub-agent" tag so the user can tell at a glance.
   const isSubagent = Boolean(parentSessionId);
 
   return (
-    <Card className={`w-full mb-2 ${isSubagent ? 'border-l-4 border-l-primary' : ''}`} size='small' bordered>
-      <div className='flex items-start gap-3'>
-        <div className='flex-1 min-w-0'>
-          <div className='flex items-center gap-2 mb-2'>
-            {isSubagent && (
-              <Tag color='arcoblue' size='small'>
-                {t('messages.remoteSubagent.tag')}
-              </Tag>
+    <>
+      <Card className={`w-full mb-2 ${isSubagent ? 'border-l-4 border-l-primary' : ''}`} size='small' bordered>
+        <div className='flex items-start gap-3'>
+          <div className='flex-1 min-w-0'>
+            <div className='flex items-center gap-2 mb-2'>
+              {isSubagent && (
+                <Tag color='arcoblue' size='small'>
+                  {t('messages.remoteSubagent.tag')}
+                </Tag>
+              )}
+              <span className='font-medium text-t-primary'>{title || getKindDisplayName(kind)}</span>
+              {status ? <StatusTag status={status} /> : null}
+            </div>
+            {inputStreaming && <InputStreamingView streaming={inputStreaming} />}
+            {!inputStreaming && rawInput && (
+              <div className='text-sm'>
+                {typeof rawInput === 'string' ? (
+                  <MarkdownView>{`\`\`\`\n${rawInput}\n\`\`\``}</MarkdownView>
+                ) : (
+                  <pre className='bg-1 p-2 rounded text-xs overflow-x-auto'>{JSON.stringify(rawInput, null, 2)}</pre>
+                )}
+              </div>
             )}
-            <span className='font-medium text-t-primary'>{title || getKindDisplayName(kind)}</span>
-            {status ? <StatusTag status={status} /> : null}
-          </div>
-          {inputStreaming && <InputStreamingView streaming={inputStreaming} />}
-          {!inputStreaming && rawInput && (
-            <div className='text-sm'>
-              {typeof rawInput === 'string' ? (
-                <MarkdownView>{`\`\`\`\n${rawInput}\n\`\`\``}</MarkdownView>
-              ) : (
-                <pre className='bg-1 p-2 rounded text-xs overflow-x-auto'>{JSON.stringify(rawInput, null, 2)}</pre>
+            {progress && <ProgressView progress={progress} />}
+            {diffContent && diffContent.length > 0 && (
+              <div>
+                {diffContent.map((content, index) => (
+                  <ContentView key={index} content={content} />
+                ))}
+              </div>
+            )}
+            <div className='flex items-center justify-between mt-2'>
+              <span className='text-xs text-t-secondary'>Tool Call ID: {tool_call_id}</span>
+              {showRevert && (
+                <Tooltip content={t('messages.revertToolCall', { defaultValue: 'Revert this tool call' })}>
+                  <button
+                    type='button'
+                    className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
+                    onClick={() => setRevertOpen(true)}
+                    style={{ lineHeight: 0 }}
+                  >
+                    <Refresh theme='outline' size='16' fill={iconColors.secondary} />
+                  </button>
+                </Tooltip>
               )}
             </div>
-          )}
-          {progress && <ProgressView progress={progress} />}
-          {diffContent && diffContent.length > 0 && (
-            <div>
-              {diffContent.map((content, index) => (
-                <ContentView key={index} content={content} />
-              ))}
-            </div>
-          )}
-          <div className='text-xs text-t-secondary mt-2'>Tool Call ID: {tool_call_id}</div>
+          </div>
         </div>
-      </div>
-    </Card>
+      </Card>
+      {showRevert && (
+        <AionModal
+          visible={revertOpen}
+          size='small'
+          style={{ width: 420, height: 'auto' }}
+          header={{ title: t('messages.revertToolCallConfirmTitle'), showClose: true }}
+          contentStyle={{ padding: '20px 24px 0' }}
+          onCancel={() => !reverting && setRevertOpen(false)}
+          footer={{
+            render: () => (
+              <div className='flex justify-end gap-10px pt-20px'>
+                <Button
+                  className='px-20px min-w-80px'
+                  style={{ borderRadius: 'var(--radius-control)' }}
+                  onClick={() => setRevertOpen(false)}
+                >
+                  {t('conversation.history.cancelDelete', { defaultValue: 'Cancel' })}
+                </Button>
+                <Button
+                  type='primary'
+                  status='warning'
+                  loading={reverting}
+                  className='px-20px min-w-80px'
+                  style={{ borderRadius: 'var(--radius-control)' }}
+                  onClick={() => void handleRevertConfirm()}
+                >
+                  {t('messages.confirm', { defaultValue: 'Confirm' })}
+                </Button>
+              </div>
+            ),
+          }}
+        >
+          <div className='text-14px leading-22px text-t-secondary'>
+            {t('messages.revertToolCallConfirmMessage')}
+          </div>
+        </AionModal>
+      )}
+    </>
   );
 };
 

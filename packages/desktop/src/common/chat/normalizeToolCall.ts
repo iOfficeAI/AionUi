@@ -9,6 +9,7 @@ export interface NormalizedToolCall {
   description?: string;
   input?: string;
   output?: string;
+  kind?: string;
 }
 
 const formatValue = (value: unknown): string => {
@@ -153,6 +154,7 @@ export function normalizeAcpToolCall(message: IMessageAcpToolCall): NormalizedTo
     description: keyParam || (update.rawInput?.command as string) || update.kind,
     input,
     output,
+    kind: update.kind,
   };
 }
 

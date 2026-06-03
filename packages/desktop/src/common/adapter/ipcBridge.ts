@@ -233,6 +233,11 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/opencode/revert`,
     (p) => ({ message_id: p.message_id })
   ),
+  /** Task 15: revert a single tool call's file changes using per-call snapshots. */
+  revertToolCall: httpPost<{ tool_call_id: string; commit_sha: string; files_reverted: number }, { conversation_id: string; tool_call_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/revert-tool-call`,
+    (p) => ({ tool_call_id: p.tool_call_id })
+  ),
   /** M02: restore all reverted messages. */
   unrevertRemoteSession: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/unrevert`
