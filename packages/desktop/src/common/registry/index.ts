@@ -24,6 +24,26 @@ export {
 } from './httpServerConnection';
 export { HttpServerConnectionKey } from './httpServerConnection';
 
+export { basicAuthToken, httpServerAuthHeaders } from './httpServerAuth';
+
+export {
+  HTTP_SERVER_HEALTH_CACHE_MS,
+  HTTP_SERVER_HEALTH_POLL_MS,
+  HTTP_SERVER_HEALTH_RETRY_COUNT,
+  HTTP_SERVER_HEALTH_RETRY_DELAY_MS,
+  HTTP_SERVER_HEALTH_TIMEOUT_MS,
+  checkHttpServerHealth,
+  checkHttpServerHealthCached,
+  clearHttpServerHealthCache,
+  fetchHttpServerHealth,
+  globalHealthUrl,
+  httpServerHealthCacheKey,
+  mapHealthResponse,
+  type CheckHttpServerHealthOptions,
+  type HttpServerHealthResult,
+  type HttpServerHealthStatus,
+} from './httpServerHealth';
+
 export {
   coerceHttpServerConnection,
   filterHttpServerRecords,
