@@ -1,0 +1,50 @@
+{
+  "schema_version": "command-eve-brand-config/v0",
+  "version": "v1.0.0-alpha.0",
+  "generated_at": "2026-06-04T13:04:36.140Z",
+  "brand": {
+    "product": "Command EVE",
+    "display_name": "⌘ EVE",
+    "login_title_template": "⌘ EVE + {{version}}"
+  },
+  "language_pack": {
+    "default_language": "de-DE",
+    "supported_languages": [
+      "de-DE",
+      "en-US"
+    ],
+    "fallback_language": "de-DE",
+    "coverage": "full-key-parity",
+    "managed_locale": "de-DE",
+    "namespaces": [
+      "common",
+      "agentMode",
+      "update",
+      "login",
+      "fileSelection",
+      "preview",
+      "conversation",
+      "settings",
+      "messages",
+      "mcp",
+      "acp",
+      "codex",
+      "tools",
+      "google",
+      "cron",
+      "starOffice",
+      "guid",
+      "agent",
+      "team",
+      "pet"
+    ]
+  },
+  "login_media": {
+    "video": "/eve-wait-focus.mp4",
+    "animation": "/eve-wait-focus-loop.gif",
+    "poster": "/eve-wait-focus-anchor.png",
+    "aspect_ratio": "1 / 1",
+    "framing": "face-focus",
+    "autoplay_fallback": "animated-gif-until-video-playing"
+  }
+}

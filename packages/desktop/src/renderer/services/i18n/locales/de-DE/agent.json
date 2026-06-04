@@ -1,0 +1,34 @@
+{
+  "health": {
+    "detectedError": "Fehler beim aktuellen Agenten erkannt ({{agent}})",
+    "autoSwitching": ". Das System versucht automatisch zu wechseln.",
+    "evaluating": "Netzwerklatenz und Modellverfügbarkeit werden geprüft...",
+    "checking": "{{agent}}-Endpunkt wird geprüft...",
+    "foundBest": "Beste Alternative gefunden",
+    "recommendSwitch": "Empfohlen",
+    "available": "Verfügbar",
+    "lowLatency": "Niedrige Latenz",
+    "mediumLatency": "Mittlere Latenz",
+    "highLatency": "Hohe Latenz",
+    "bestMatch": "Beste Übereinstimmung",
+    "noAvailable": "Keine verfügbaren Agenten in der aktuellen Umgebung",
+    "checkConfig": "Bitte prüfe die Konfiguration oder versuche es später erneut"
+  },
+  "setup": {
+    "connectionError": "Verbindungsfehler",
+    "notConfigured": "{{agent}} ist nicht konfiguriert",
+    "authRequired": "Zur Nutzung dieses Agenten ist eine Authentifizierung oder ein API-Key erforderlich.",
+    "findingAlternatives": "Verfügbare Alternativen werden gesucht...",
+    "checkingAgent": "{{agent}} wird geprüft...",
+    "alternativesFound": "{{count}} verfügbare Alternativen gefunden",
+    "autoSwitching": "Automatischer Wechsel zum besten verfügbaren Agenten...",
+    "configError": "Konfigurationsfehler. Bitte prüfe deine Einstellungen oder wähle eine Alternative:",
+    "noAlternatives": "Keine verfügbaren Agenten gefunden",
+    "configureFirst": "Bitte konfiguriere zuerst einen Agenten in den Einstellungen.",
+    "switching": "Agent wird gewechselt..."
+  },
+  "model": {
+    "switchSuccess": "Modell erfolgreich gewechselt",
+    "switchFailed": "Modellwechsel fehlgeschlagen"
+  }
+}

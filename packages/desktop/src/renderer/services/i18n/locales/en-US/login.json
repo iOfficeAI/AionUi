@@ -1,6 +1,6 @@
 {
-  "pageTitle": "EVE - Sign In",
-  "brand": "EVE",
+  "pageTitle": "⌘ EVE - Sign In",
+  "brand": "⌘ EVE + {{version}}",
   "subtitle": "Welcome back, please sign in to your account",
   "username": "Username",
   "usernamePlaceholder": "Enter your username",

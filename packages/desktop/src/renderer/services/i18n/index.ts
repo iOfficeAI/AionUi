@@ -14,6 +14,7 @@ import {
 
 // Static imports for all locales to ensure packaged app can always switch language.
 import enUS from './locales/en-US/index';
+import deDE from './locales/de-DE/index';
 import zhCN from './locales/zh-CN/index';
 import jaJP from './locales/ja-JP/index';
 import zhTW from './locales/zh-TW/index';
@@ -32,6 +33,7 @@ export const supportedLanguages = i18nConfig.supportedLanguages;
 
 const localeData: LocaleData = {
   'en-US': enUS,
+  'de-DE': deDE,
   'zh-CN': zhCN,
   'ja-JP': jaJP,
   'zh-TW': zhTW,
@@ -98,7 +100,7 @@ async function initLanguage(): Promise<void> {
   try {
     await configService.whenReady();
     const savedLanguage = configService.get('language');
-    const language = savedLanguage || normalizeLanguageCode(navigator.language || DEFAULT_LANGUAGE);
+    const language = savedLanguage || DEFAULT_LANGUAGE;
     await ensureAndSwitch(i18n, language, loadLocaleModules);
     // Sync to localStorage so next page load can use it as a fast hint
     if (typeof localStorage !== 'undefined') {
