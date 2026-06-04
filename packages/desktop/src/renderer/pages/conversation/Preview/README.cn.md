@@ -30,7 +30,7 @@ Preview 模块是 AionUi 中的文件预览和编辑系统，支持多种文件�
 支持的编辑器（Editors）：
 
 - **Markdown 编辑器** - 实时预览 + 分屏模式
-- **代码编辑器** - Monaco Editor 集成
+- **代码编辑器** - CodeMirror 6 集成
 - **HTML 编辑器** - HTML 实时编辑
 
 ### 3. 高级功能
@@ -60,7 +60,7 @@ preview/
 │   │   └── PreviewHistoryDropdown.tsx # 历史版本下拉菜单
 │   ├── viewers/                       # 查看器组件
 │   │   ├── MarkdownViewer.tsx         # Markdown 渲染
-│   │   ├── CodeViewer.tsx             # 代码高亮
+
 │   │   ├── ImageViewer.tsx            # 图片查看
 │   │   ├── DiffViewer.tsx             # Diff 对比
 │   │   ├── PDFViewer.tsx              # PDF 查看
@@ -70,7 +70,7 @@ preview/
 │   │   └── URLViewer.tsx              # URL 网页查看
 │   ├── editors/                       # 编辑器组件
 │   │   ├── MarkdownEditor.tsx         # Markdown 编辑器
-│   │   ├── TextEditor.tsx             # 代码编辑器（Monaco）
+│   │   ├── CodeEditor.tsx             # 代码编辑器（CodeMirror 6）
 │   │   └── HTMLEditor.tsx             # HTML 编辑器
 │   └── renderers/                     # 特殊渲染器
 │       ├── HTMLRenderer.tsx           # HTML iframe 渲染器
@@ -397,7 +397,7 @@ const currentTheme = useThemeDetection(); // 'light' | 'dark'
 - 滚动同步
 - 语法高亮
 
-**代码编辑器（Monaco）**:
+**代码编辑器（CodeMirror 6）**:
 
 - 完整的代码编辑功能
 - 语法高亮
@@ -550,4 +550,4 @@ export const FILE_TYPES_WITH_BUILTIN_OPEN = ['pdf', 'word', 'excel', 'ppt'];
 
 - [Workspace 模块文档](../Workspace/README.cn.md)
 - [IPC Bridge 源码](../../../../common/adapter/ipcBridge.ts)
-- [Monaco Editor 文档](https://microsoft.github.io/monaco-editor/)
+- [CodeMirror 6 文档](https://codemirror.net/)

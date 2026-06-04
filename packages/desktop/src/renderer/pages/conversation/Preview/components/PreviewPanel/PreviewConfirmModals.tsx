@@ -60,8 +60,8 @@ interface PreviewConfirmModalsProps {
  * 预览面板确认对话框组件
  * Preview panel confirmation modals component
  *
- * 包含退出编辑确认和关闭 Tab 确认两个对话框
- * Contains exit edit confirmation and close tab confirmation dialogs
+ * 包含关闭 Tab 确认对话框
+ * Contains the close tab confirmation dialog
  */
 const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
   closeTabConfirm,

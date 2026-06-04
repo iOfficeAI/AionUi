@@ -153,8 +153,8 @@ interface PreviewToolbarProps {
  * 预览面板工具栏组件
  * Preview panel toolbar component
  *
- * 包含文件名、视图模式切换、编辑按钮、快照/历史按钮、下载按钮、关闭按钮等
- * Contains filename, view mode toggle, edit button, snapshot/history buttons, download button, close button, etc.
+ * 包含文件名、视图模式切换、快照/历史按钮、下载按钮、关闭按钮等
+ * Contains filename, view mode toggle, snapshot/history buttons, download button, close button, etc.
  */
 // eslint-disable-next-line max-len
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
