@@ -657,7 +657,6 @@ const PreviewPanel: React.FC = () => {
             content_type={content_type}
             isMarkdown={isMarkdown}
             isHTML={isHTML}
-            isEditable={isEditable}
             viewMode={viewMode}
             isSplitScreenEnabled={isSplitScreenEnabled}
             file_name={metadata?.file_name || activeTab.title}

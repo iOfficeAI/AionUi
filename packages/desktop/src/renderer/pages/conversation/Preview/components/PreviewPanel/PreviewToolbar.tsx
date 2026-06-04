@@ -35,12 +35,6 @@ interface PreviewToolbarProps {
   isHTML: boolean;
 
   /**
-   * 是否可编辑
-   * Whether editable
-   */
-  isEditable: boolean;
-
-  /**
    * 当前视图模式
    * Current view mode
    */
@@ -161,7 +155,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   content_type,
   isMarkdown,
   isHTML,
-  isEditable,
   viewMode,
   isSplitScreenEnabled,
   file_name,
@@ -184,6 +177,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
+  // 代码文件若已在磁盘上（有 file_path），下载即冗余 —— 仅 agent 生成、未落盘的内容才显示下载
+  // For on-disk code files download is redundant; only show it for agent-generated, not-yet-saved content
+  const showDownload = !(content_type === 'code' && showOpenInSystemButton);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
@@ -269,7 +265,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               <span>{t('preview.openInSystemApp')}</span>
             </div>
           )}
-          {preferActionButtonsInFront && (
+          {preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
                 width={toolbarIconSize}
@@ -294,8 +290,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           {rightExtra}
 
           {((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'code' && isEditable)) && (
+            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
             <>
               <div
                 className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
@@ -383,7 +378,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
-          {!preferActionButtonsInFront && (
+          {!preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
                 width={toolbarIconSize}
