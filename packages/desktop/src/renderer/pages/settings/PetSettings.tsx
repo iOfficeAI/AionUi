@@ -5,9 +5,10 @@
  */
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Radio, Switch } from '@arco-design/web-react';
+import { Button, Message, Radio, Select, Switch } from '@arco-design/web-react';
+import { FolderOpen } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { systemSettings } from '@/common/adapter/ipcBridge';
+import { shell, systemSettings, type IPetAssetPackage } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
@@ -20,6 +21,9 @@ const PetSettings: React.FC = () => {
   const [size, setSize] = useState(280);
   const [dnd, setDnd] = useState(false);
   const [confirmEnabled, setConfirmEnabled] = useState(true);
+  const [petAssets, setPetAssets] = useState<IPetAssetPackage[]>([]);
+  const [customPetsDir, setCustomPetsDir] = useState('');
+  const [selectedAssetId, setSelectedAssetId] = useState('aionui-default');
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -30,7 +34,20 @@ const PetSettings: React.FC = () => {
     setSize(configService.get('pet.size') ?? 280);
     setDnd(configService.get('pet.dnd') ?? false);
     setConfirmEnabled(configService.get('pet.confirmEnabled') ?? true);
+    setSelectedAssetId(configService.get('pet.assetId') ?? 'aionui-default');
   }, []);
+
+  useEffect(() => {
+    if (!isDesktop) return;
+    Promise.all([systemSettings.getPetAssets.invoke(), systemSettings.getSelectedPetAsset.invoke()])
+      .then(([catalog, assetId]) => {
+        setPetAssets(catalog.assets);
+        setCustomPetsDir(catalog.customPetsDir);
+        setSelectedAssetId(assetId);
+        configService.setLocal('pet.assetId', assetId);
+      })
+      .catch(() => {});
+  }, [isDesktop]);
 
   const handleEnabledChange = useCallback((checked: boolean) => {
     setEnabled(checked);
@@ -72,6 +89,27 @@ const PetSettings: React.FC = () => {
     });
   }, []);
 
+  const handleAssetChange = useCallback(
+    (assetId: string) => {
+      const previousAssetId = selectedAssetId;
+      setSelectedAssetId(assetId);
+      configService.setLocal('pet.assetId', assetId);
+      systemSettings.setSelectedPetAsset.invoke({ assetId }).catch(() => {
+        setSelectedAssetId(previousAssetId);
+        configService.setLocal('pet.assetId', previousAssetId);
+        Message.error(t('pet.petAssetUpdateFailed'));
+      });
+    },
+    [selectedAssetId, t]
+  );
+
+  const handleOpenCustomPetsDir = useCallback(() => {
+    if (!customPetsDir) return;
+    shell.openFile.invoke(customPetsDir).catch(() => {
+      Message.error(t('pet.customPetFolderOpenFailed'));
+    });
+  }, [customPetsDir, t]);
+
   if (!isDesktop) {
     return (
       <SettingsPageWrapper>
@@ -101,6 +139,39 @@ const PetSettings: React.FC = () => {
           <Radio value={280}>{t('pet.sizeMedium', { px: 280 })}</Radio>
           <Radio value={360}>{t('pet.sizeLarge', { px: 360 })}</Radio>
         </Radio.Group>
+      ),
+    },
+    {
+      key: 'asset',
+      label: t('pet.petAsset'),
+      description: customPetsDir ? (
+        <div className='flex items-center gap-6px flex-wrap'>
+          <span>{t('pet.customPetFolderLabel')}</span>
+          <Button
+            type='text'
+            size='mini'
+            icon={<FolderOpen size='13' />}
+            onClick={handleOpenCustomPetsDir}
+            className='!h-auto !px-2px !py-0 !text-12px !text-t-tertiary hover:!text-primary'
+          >
+            {customPetsDir}
+          </Button>
+        </div>
+      ) : undefined,
+      component: (
+        <Select value={selectedAssetId} onChange={handleAssetChange} disabled={!enabled} className='min-w-220px'>
+          {petAssets.map((asset) => (
+            <Select.Option key={asset.id} value={asset.id}>
+              <div className='flex flex-col py-2px'>
+                <span className='text-13px text-t-primary'>{asset.displayName}</span>
+                <span className='text-11px text-t-secondary'>
+                  {asset.source === 'custom' ? t('pet.customPetSource') : t('pet.builtinPetSource')}
+                  {asset.description ? ` - ${asset.description}` : ''}
+                </span>
+              </div>
+            </Select.Option>
+          ))}
+        </Select>
       ),
     },
     {

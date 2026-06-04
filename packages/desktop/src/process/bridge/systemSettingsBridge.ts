@@ -12,10 +12,12 @@
  * Handles read/write operations for system-level settings (e.g. close to tray)
  */
 
+import fs from 'node:fs/promises';
 import { ipcBridge } from '@/common';
 import { getPlatformServices } from '@/common/platform';
 import { ProcessConfig } from '@process/utils/initStorage';
 import { changeLanguage } from '@process/services/i18n';
+import { getCustomPetsDir, listPetAssets, resolvePetAsset } from '@process/pet/petAssets';
 import type { PetSize } from '@process/pet/petTypes';
 import { createOrUpdateTray, destroyTray, setCloseToTrayEnabled } from '@process/utils/tray';
 import { readCloseToTraySetting, writeCloseToTraySetting } from '@process/utils/closeToTraySetting';
@@ -140,5 +142,27 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('pet.confirmEnabled', enabled);
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
+  });
+
+  ipcBridge.systemSettings.getPetAssets.provider(async () => {
+    const customPetsDir = getCustomPetsDir();
+    await fs.mkdir(customPetsDir, { recursive: true });
+    return {
+      assets: await listPetAssets(),
+      customPetsDir,
+    };
+  });
+
+  ipcBridge.systemSettings.getSelectedPetAsset.provider(async () => {
+    const selected = await ProcessConfig.get('pet.assetId');
+    const asset = await resolvePetAsset(selected);
+    return asset.id;
+  });
+
+  ipcBridge.systemSettings.setSelectedPetAsset.provider(async ({ assetId }) => {
+    const asset = await resolvePetAsset(assetId);
+    await ProcessConfig.set('pet.assetId', asset.id);
+    const { reloadPetAsset } = await import('@process/pet/petManager');
+    await reloadPetAsset();
   });
 }

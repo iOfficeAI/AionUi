@@ -1086,6 +1086,23 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  getPetAssets: bridge.buildProvider<IPetAssetCatalog, void>('system-settings:get-pet-assets'),
+  getSelectedPetAsset: bridge.buildProvider<string, void>('system-settings:get-selected-pet-asset'),
+  setSelectedPetAsset: bridge.buildProvider<void, { assetId: string }>('system-settings:set-selected-pet-asset'),
+};
+
+export type IPetAssetPackage = {
+  id: string;
+  displayName: string;
+  description: string;
+  format: 'svg-states' | 'codex-spritesheet';
+  source: 'builtin' | 'custom';
+  spritesheetUrl?: string;
+};
+
+export type IPetAssetCatalog = {
+  assets: IPetAssetPackage[];
+  customPetsDir: string;
 };
 
 // ---------------------------------------------------------------------------

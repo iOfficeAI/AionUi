@@ -16,4 +16,19 @@ contextBridge.exposeInMainWorld('petAPI', {
   onResize: (cb: (size: number) => void) => {
     ipcRenderer.on('pet:resize', (_e, size: number) => cb(size));
   },
+  onNotificationSummary: (cb: (data: { pendingConfirmations: number }) => void) => {
+    ipcRenderer.on('pet:notification-summary', (_e, data) => cb(data));
+  },
+  onAssetChange: (
+    cb: (asset: {
+      id: string;
+      displayName: string;
+      description: string;
+      format: 'svg-states' | 'codex-spritesheet';
+      source: 'builtin' | 'custom';
+      spritesheetUrl?: string;
+    }) => void
+  ) => {
+    ipcRenderer.on('pet:asset-changed', (_e, asset) => cb(asset));
+  },
 });

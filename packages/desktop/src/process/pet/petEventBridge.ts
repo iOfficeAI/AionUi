@@ -6,6 +6,7 @@
 
 import type { PetStateMachine } from './petStateMachine';
 import type { PetIdleTicker } from './petIdleTicker';
+import type { PetNotificationSummary } from './petTypes';
 
 const STREAM_CHANNELS = new Set(['chat.response.stream', 'openclaw.response.stream']);
 
@@ -15,6 +16,8 @@ type StreamMessage = {
 
 export class PetEventBridge {
   private disposed = false;
+  private pendingConfirmationIds = new Set<string>();
+  private notificationListeners: Array<(summary: PetNotificationSummary) => void> = [];
 
   constructor(
     private sm: PetStateMachine,
@@ -26,8 +29,30 @@ export class PetEventBridge {
 
     // Permission request → notification state
     if (channelName === 'confirmation.add') {
+      const id = getConfirmationId(data);
+      if (id) {
+        this.pendingConfirmationIds.add(id);
+        this.emitNotificationSummary();
+      }
       this.ticker.resetIdle();
       this.sm.requestState('notification');
+      return;
+    }
+
+    if (channelName === 'confirmation.update') {
+      const id = getConfirmationId(data);
+      if (id) {
+        this.pendingConfirmationIds.add(id);
+        this.emitNotificationSummary();
+      }
+      return;
+    }
+
+    if (channelName === 'confirmation.remove') {
+      const id = getConfirmationId(data);
+      if (id && this.pendingConfirmationIds.delete(id)) {
+        this.emitNotificationSummary();
+      }
       return;
     }
 
@@ -83,7 +108,35 @@ export class PetEventBridge {
     this.sm.requestState('notification');
   }
 
+  onNotificationChange(cb: (summary: PetNotificationSummary) => void): void {
+    this.notificationListeners.push(cb);
+    cb(this.getNotificationSummary());
+  }
+
+  getNotificationSummary(): PetNotificationSummary {
+    return { pendingConfirmations: this.pendingConfirmationIds.size };
+  }
+
   dispose(): void {
     this.disposed = true;
+    this.pendingConfirmationIds.clear();
+    this.notificationListeners.length = 0;
   }
+
+  private emitNotificationSummary(): void {
+    const summary = this.getNotificationSummary();
+    for (const cb of this.notificationListeners) {
+      try {
+        cb(summary);
+      } catch {
+        // Never crash the bridge from an optional UI listener.
+      }
+    }
+  }
+}
+
+function getConfirmationId(data: unknown): string | null {
+  if (!data || typeof data !== 'object' || !('id' in data)) return null;
+  const id = (data as { id?: unknown }).id;
+  return typeof id === 'string' && id.length > 0 ? id : null;
 }

@@ -28,6 +28,10 @@ export type StateChangeCallback = (state: PetState, prev: PetState) => void;
 
 export type PetSize = 200 | 280 | 360;
 
+export type PetNotificationSummary = {
+  pendingConfirmations: number;
+};
+
 export type HitBounds = {
   x: number;
   y: number;
