@@ -922,6 +922,7 @@ export type I18nKey =
   | 'pet.sizeMedium'
   | 'pet.sizeSmall'
   | 'preview.addToChat'
+  | 'preview.aiWriting'
   | 'preview.closeAll'
   | 'preview.closeLeft'
   | 'preview.closeOthers'
