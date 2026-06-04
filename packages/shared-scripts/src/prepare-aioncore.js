@@ -155,6 +155,33 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
+function resolveLocalBinary(platform, projectRoot) {
+  const binaryName = getBinaryName(platform);
+
+  // 1. Explicit env override (absolute path to a locally built binary)
+  const envBin = process.env.AIONUI_BACKEND_BINARY || process.env.AIONUI_BACKEND_BIN;
+  if (envBin && envBin.trim()) {
+    const resolved = path.resolve(envBin.trim());
+    if (fs.existsSync(resolved)) {
+      console.log(`  Using AIONUI_BACKEND_BINARY: ${resolved}`);
+      return resolved;
+    }
+    console.warn(`  AIONUI_BACKEND_BINARY set but not found: ${resolved}`);
+  }
+
+  // 2. Sibling AionCore workspace: ../AionCore/target/{release,debug}/aioncore
+  const siblingRoot = path.join(projectRoot, '..', 'AionCore', 'target');
+  for (const profile of ['release', 'debug']) {
+    const candidate = path.join(siblingRoot, profile, binaryName);
+    if (fs.existsSync(candidate)) {
+      console.log(`  Using locally built AionCore binary: ${candidate}`);
+      return candidate;
+    }
+  }
+
+  return null;
+}
+
 function downloadAndExtract(platform, arch, tag) {
   const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
@@ -226,7 +253,21 @@ function prepareAioncore(options) {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Download from GitHub releases
+  // 1. Local workspace build (AIONUI_BACKEND_BINARY, AIONUI_BACKEND_BIN, or sibling AionCore/target/)
+  if (!sourcePath) {
+    try {
+      const localBin = resolveLocalBinary(platform, projectRoot);
+      if (localBin) {
+        sourcePath = localBin;
+        sourceType = 'local';
+        sourceDetail = { path: localBin };
+      }
+    } catch (error) {
+      console.warn(`  Local binary resolution failed: ${error.message}`);
+    }
+  }
+
+  // 2. Download from GitHub releases
   if (!sourcePath) {
     try {
       const result = downloadAndExtract(platform, arch, tag);
