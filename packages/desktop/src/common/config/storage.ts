@@ -5,6 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { HttpServerRegistrySnapshot } from '@/common/registry';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -14,6 +15,8 @@ export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.co
 export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
+  /** Chisl HTTP server connection registry (t2-registry-01). Metadata only; passwords are deferred to t2-registry-03. */
+  'chisl.httpServerRegistry.v1'?: HttpServerRegistrySnapshot;
   'google.config': {
     /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
     proxy?: string;

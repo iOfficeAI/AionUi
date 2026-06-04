@@ -11,6 +11,7 @@ export type ConfigFile = {
 };
 
 const ALL_LEGACY_KEYS: ConfigKey[] = [
+  'chisl.httpServerRegistry.v1',
   'codex.config',
   'acp.config',
   'acp.promptTimeout',

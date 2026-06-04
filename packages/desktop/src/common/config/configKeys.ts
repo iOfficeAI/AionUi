@@ -1,8 +1,11 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import type { HttpServerRegistrySnapshot } from '@/common/registry';
 
 export type ConfigKeyMap = {
+  /** Chisl HTTP server connection registry (t2-registry-01). Metadata only; passwords are deferred to t2-registry-03. */
+  'chisl.httpServerRegistry.v1': HttpServerRegistrySnapshot | undefined;
   'google.config': {
     proxy?: string;
   };
