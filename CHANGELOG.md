@@ -1,5 +1,35 @@
 # Changelog
 
+## [2.1.11](https://github.com/iOfficeAI/AionUi/compare/v2.1.10...v2.1.11) (2026-06-04)
+
+### Desktop
+
+#### Features
+
+- **preview:** unify code viewing & editing on CodeMirror 6 (#3194)
+- **preview:** unify code view font and fix view-mode/line-height regressions (#3185)
+- **workspace:** VSCode-style file tree icons + smoother preview browsing (#3181)
+- add managed acp artifact mirror workflow (#3182)
+
+#### Bug Fixes
+
+- **web-host:** use aioncore reported backend port (#3193)
+- **settings:** apply UI scale only on slider release (#3190)
+
+### Core ([v0.1.20](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.20))
+
+#### Bug Fixes
+
+- **app:** bind backend before startup services ([#397](https://github.com/iOfficeAI/AionCore/issues/397))
+- stabilize agent runtime terminal lifecycle ([#396](https://github.com/iOfficeAI/AionCore/pull/396))
+
+#### Refactoring
+
+- **error:** ACP error classification ([#393](https://github.com/iOfficeAI/AionCore/issues/393))
+- **error:** migrate phase2 service errors ([#395](https://github.com/iOfficeAI/AionCore/issues/395))
+
+---
+
 ## [2.1.10](https://github.com/iOfficeAI/AionUi/compare/v2.1.9...v2.1.10) (2026-06-02)
 
 ### Desktop
