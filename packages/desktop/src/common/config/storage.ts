@@ -174,6 +174,10 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+  // Notch Taskbox: whether the desktop notch taskbox is enabled.
+  'notchTaskbox.enabled'?: boolean;
+  // Notch Taskbox: reserve center space for hardware display notches on macOS.
+  'notchTaskbox.hardwareNotch'?: boolean;
 }
 
 export interface IEnvStorageRefer {

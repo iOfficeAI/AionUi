@@ -1,0 +1,328 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      * {
+        box-sizing: border-box;
+      }
+      html,
+      body {
+        width: 100%;
+        height: 100%;
+        margin: 0;
+        overflow: hidden;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.94);
+        font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', sans-serif;
+        user-select: none;
+      }
+      button,
+      textarea {
+        font: inherit;
+      }
+      .shell {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: 0 0 20px 20px;
+        background: transparent;
+        transform-origin: top center;
+        transition:
+          border-radius 0.34s cubic-bezier(0.18, 1, 0.28, 1),
+          filter 0.34s cubic-bezier(0.18, 1, 0.28, 1);
+      }
+      .shell.expanded {
+        border-radius: 0 0 24px 24px;
+        filter: drop-shadow(0 8px 12px rgba(0, 0, 0, 0.58)) drop-shadow(0 24px 42px rgba(0, 0, 0, 0.36));
+      }
+      .surface {
+        width: 100%;
+        height: 100%;
+        overflow: hidden;
+        border-radius: inherit;
+        background: linear-gradient(180deg, rgba(5, 5, 6, 0.99), rgba(0, 0, 0, 0.97));
+        box-shadow: inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+      }
+      .compact {
+        height: 44px;
+        padding: 5px 18px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 16px;
+        align-items: center;
+      }
+      .slot {
+        min-width: 0;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+      }
+      .slot.trailing {
+        justify-content: flex-end;
+      }
+      .dot {
+        width: 9px;
+        height: 9px;
+        border-radius: 999px;
+        background: #7d828c;
+        color: #7d828c;
+        box-shadow: 0 0 12px currentColor;
+        flex: 0 0 auto;
+      }
+      .dot.Working {
+        background: #8f7cff;
+        color: #8f7cff;
+      }
+      .dot.Waiting {
+        background: #ffc247;
+        color: #ffc247;
+      }
+      .dot.Error {
+        background: #ff6868;
+        color: #ff6868;
+      }
+      .dot.Done {
+        background: #47d68a;
+        color: #47d68a;
+      }
+      .request .dot {
+        animation: pulse 1.15s ease-in-out infinite;
+      }
+      @keyframes pulse {
+        0%,
+        100% {
+          transform: scale(1);
+          opacity: 1;
+        }
+        50% {
+          transform: scale(1.45);
+          opacity: 0.62;
+        }
+      }
+      .label,
+      .subtle,
+      .primary,
+      .secondary {
+        min-width: 0;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+      .label {
+        font-size: 12px;
+        font-weight: 680;
+        line-height: 15px;
+      }
+      .subtle {
+        color: rgba(255, 255, 255, 0.58);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 10px;
+        font-weight: 620;
+      }
+      .expanded-body {
+        height: calc(100% - 44px);
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) auto;
+        opacity: 0;
+        transform: scale(0.96) translateY(-8px);
+        transition:
+          opacity 0.2s ease,
+          transform 0.32s cubic-bezier(0.22, 1, 0.36, 1);
+      }
+      .expanded .expanded-body {
+        opacity: 1;
+        transform: scale(1) translateY(0);
+      }
+      .content {
+        min-height: 0;
+        overflow-y: auto;
+        padding: 10px 16px 8px;
+      }
+      .content::-webkit-scrollbar {
+        width: 0;
+      }
+      .section-title {
+        margin: 8px 2px 8px;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 10px;
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0.9px;
+      }
+      .card,
+      .row,
+      .detail,
+      .composer {
+        width: 100%;
+        border: 0;
+        border-radius: 12px;
+        background: rgba(255, 255, 255, 0.075);
+        color: inherit;
+        box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.055);
+      }
+      .card {
+        margin-bottom: 10px;
+        padding: 12px;
+        background: linear-gradient(180deg, rgba(255, 194, 71, 0.14), rgba(255, 255, 255, 0.07));
+      }
+      .permission-title {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        font-size: 13px;
+        font-weight: 720;
+      }
+      .permission-body {
+        margin: 8px 0 10px;
+        color: rgba(255, 255, 255, 0.68);
+        font-size: 12px;
+        line-height: 17px;
+      }
+      .actions {
+        display: flex;
+        gap: 7px;
+        flex-wrap: wrap;
+      }
+      .action {
+        border: 0;
+        border-radius: 999px;
+        padding: 6px 11px;
+        background: rgba(255, 255, 255, 0.13);
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        font-weight: 650;
+        cursor: pointer;
+      }
+      .action:hover {
+        background: rgba(255, 255, 255, 0.2);
+      }
+      .row {
+        margin-bottom: 7px;
+        padding: 10px;
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        gap: 9px;
+        align-items: center;
+        text-align: left;
+        cursor: pointer;
+      }
+      .row:hover {
+        background: rgba(255, 255, 255, 0.105);
+      }
+      .row.selected {
+        background: rgba(143, 124, 255, 0.24);
+      }
+      .primary {
+        font-size: 13px;
+        font-weight: 700;
+        line-height: 18px;
+      }
+      .secondary {
+        margin-top: 1px;
+        color: rgba(255, 255, 255, 0.54);
+        font-size: 11px;
+        line-height: 15px;
+      }
+      .progress {
+        color: rgba(255, 255, 255, 0.6);
+        font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+        font-size: 11px;
+      }
+      .dock {
+        position: relative;
+        padding: 8px 16px 16px;
+        background: linear-gradient(180deg, rgba(0, 0, 0, 0), rgba(0, 0, 0, 0.76) 18%, rgba(0, 0, 0, 0.96));
+      }
+      .detail {
+        margin-bottom: 8px;
+        padding: 10px 11px;
+      }
+      .detail-title {
+        font-size: 10px;
+        color: rgba(255, 255, 255, 0.46);
+        font-weight: 760;
+        text-transform: uppercase;
+        letter-spacing: 0.8px;
+      }
+      .detail-body {
+        margin-top: 5px;
+        color: rgba(255, 255, 255, 0.72);
+        font-size: 12px;
+        line-height: 17px;
+        max-height: 54px;
+        overflow: hidden;
+      }
+      .composer {
+        padding: 9px;
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 8px;
+        align-items: end;
+      }
+      textarea {
+        width: 100%;
+        min-height: 38px;
+        max-height: 88px;
+        resize: none;
+        border: 0;
+        outline: none;
+        background: transparent;
+        color: rgba(255, 255, 255, 0.92);
+        font-size: 12px;
+        line-height: 18px;
+        user-select: text;
+      }
+      textarea::placeholder {
+        color: rgba(255, 255, 255, 0.34);
+      }
+      .send {
+        width: 34px;
+        height: 34px;
+        border: 0;
+        border-radius: 10px;
+        background: rgba(143, 124, 255, 0.9);
+        color: #fff;
+        font-size: 15px;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .send:disabled {
+        cursor: default;
+        opacity: 0.42;
+      }
+      .empty {
+        margin: 28px 0;
+        color: rgba(255, 255, 255, 0.42);
+        font-size: 12px;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="shell" class="shell">
+      <div id="surface" class="surface">
+        <div id="compact" class="compact">
+          <div id="compact-main" class="slot">
+            <span id="status-dot" class="dot Idle"></span>
+            <span id="compact-label" class="label"></span>
+          </div>
+          <div class="slot trailing">
+            <span id="compact-meta" class="subtle"></span>
+          </div>
+        </div>
+        <div class="expanded-body">
+          <div id="content" class="content"></div>
+          <div class="dock">
+            <div id="detail" class="detail"></div>
+            <div class="composer">
+              <textarea id="reply" rows="2"></textarea>
+              <button id="send" class="send" type="button">↵</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script type="module" src="./notchTaskboxRenderer.ts"></script>
+  </body>
+</html>

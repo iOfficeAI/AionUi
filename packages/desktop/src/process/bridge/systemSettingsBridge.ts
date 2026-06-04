@@ -101,6 +101,9 @@ export function initSystemSettingsBridge(): void {
     }
     await ProcessConfig.set('pet.enabled', enabled);
     if (enabled) {
+      await ProcessConfig.set('notchTaskbox.enabled', false);
+      const { destroyNotchTaskboxWindow } = await import('@process/notchTaskbox/notchTaskboxWindowManager');
+      destroyNotchTaskboxWindow();
       createPetWindow();
     } else {
       destroyPetWindow();
@@ -140,5 +143,20 @@ export function initSystemSettingsBridge(): void {
     await ProcessConfig.set('pet.confirmEnabled', enabled);
     const { setPetConfirmEnabled } = await import('@process/pet/petManager');
     setPetConfirmEnabled(enabled);
+  });
+
+  ipcBridge.systemSettings.getNotchTaskboxStatus.provider(async () => {
+    const { getNotchTaskboxStatus } = await import('@process/notchTaskbox/notchTaskboxWindowManager');
+    return getNotchTaskboxStatus();
+  });
+
+  ipcBridge.systemSettings.setNotchTaskboxEnabled.provider(async ({ enabled }) => {
+    const { setNotchTaskboxEnabled } = await import('@process/notchTaskbox/notchTaskboxWindowManager');
+    return setNotchTaskboxEnabled(enabled);
+  });
+
+  ipcBridge.systemSettings.setNotchTaskboxHardwareNotch.provider(async ({ hardwareNotch }) => {
+    const { setNotchTaskboxHardwareNotch } = await import('@process/notchTaskbox/notchTaskboxWindowManager');
+    return setNotchTaskboxHardwareNotch(hardwareNotch);
   });
 }
