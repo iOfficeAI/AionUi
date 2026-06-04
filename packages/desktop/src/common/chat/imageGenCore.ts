@@ -13,7 +13,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
-import { httpRequest } from '@/common/adapter/httpBridge';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -245,7 +244,7 @@ export async function executeImageGeneration(
       // Use /v1/images/generations for dedicated image models
       const baseUrl = provider.base_url.replace(/\/+$/, '');
       const imagesUrl = `${baseUrl}/v1/images/generations`;
-      const response = await httpRequest(imagesUrl, {
+      const fetchResponse = await fetch(imagesUrl, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -258,14 +257,14 @@ export async function executeImageGeneration(
           size: '1024x1024',
         }),
         signal,
-        timeout: API_TIMEOUT_MS,
       });
+      const responseText = await fetchResponse.text();
 
       const imageResult = safeJsonParse<{
         data?: Array<{ url?: string; b64_json?: string }>;
         results?: Array<{ url?: string }>;
         error?: { message: string };
-      }>(response, null);
+      }>(responseText, null);
 
       if (imageResult?.error) {
         return {
