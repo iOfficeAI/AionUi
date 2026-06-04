@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { DEFAULT_CODE_EDITOR_CONFIG, getCodeEditorConfig } from '@/renderer/pages/conversation/Preview/theme/codeEditorConfig';
+import {
+  DEFAULT_CODE_EDITOR_CONFIG,
+  getCodeEditorConfig,
+} from '@/renderer/pages/conversation/Preview/theme/codeEditorConfig';
 
 describe('codeEditorConfig', () => {
   it('exposes mono font + 13px defaults', () => {

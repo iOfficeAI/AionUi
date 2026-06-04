@@ -5,7 +5,10 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { codeEditorFontTheme, getCodeEditorBaseTheme } from '@/renderer/pages/conversation/Preview/theme/codeEditorTheme';
+import {
+  codeEditorFontTheme,
+  getCodeEditorBaseTheme,
+} from '@/renderer/pages/conversation/Preview/theme/codeEditorTheme';
 
 describe('codeEditorTheme', () => {
   it('builds a non-null font theme extension', () => {

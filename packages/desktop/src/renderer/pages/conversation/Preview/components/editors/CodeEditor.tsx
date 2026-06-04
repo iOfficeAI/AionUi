@@ -7,7 +7,7 @@
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
 import type { Extension } from '@codemirror/state';
-import { EditorState } from '@codemirror/state';
+import type { EditorState } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -35,7 +35,15 @@ const STREAMING_IDLE_MS = 1200;
  * 基于 CodeMirror 6：语法高亮、行号、折叠、搜索（Cmd/Ctrl+F）、自动换行。
  * 主题/字体来自 Preview/theme 抽象层；大文件自动降级；流式写入自动滚动 + AI 写入角标。
  */
-const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, fileName, readOnly = false, containerRef, onScroll }) => {
+const CodeEditor: React.FC<CodeEditorProps> = ({
+  value,
+  onChange,
+  language,
+  fileName,
+  readOnly = false,
+  containerRef,
+  onScroll,
+}) => {
   const { theme } = useThemeContext();
   const { t } = useTranslation();
 
@@ -135,7 +143,13 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, file
   );
 
   const extensions = useMemo<Extension[]>(
-    () => [EditorView.lineWrapping, codeEditorFontTheme(), highlightSelectionMatches(), keymap.of(searchKeymap), ...languageExt],
+    () => [
+      EditorView.lineWrapping,
+      codeEditorFontTheme(),
+      highlightSelectionMatches(),
+      keymap.of(searchKeymap),
+      ...languageExt,
+    ],
     [languageExt]
   );
 

@@ -31,7 +31,10 @@ export const matchLanguageDescription = (languageName?: string, fileName?: strin
  * import is wrapped so it never throws: any load failure (or no match) resolves
  * to null, letting the editor degrade gracefully to plain text.
  */
-export const loadLanguageSupport = async (languageName?: string, fileName?: string): Promise<LanguageSupport | null> => {
+export const loadLanguageSupport = async (
+  languageName?: string,
+  fileName?: string
+): Promise<LanguageSupport | null> => {
   const desc = matchLanguageDescription(languageName, fileName);
   if (!desc) return null;
   try {

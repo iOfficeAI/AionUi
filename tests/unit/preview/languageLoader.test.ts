@@ -1,5 +1,8 @@
 import { describe, expect, it } from 'vitest';
-import { matchLanguageDescription, shouldDisableHighlighting } from '@/renderer/pages/conversation/Preview/theme/languageLoader';
+import {
+  matchLanguageDescription,
+  shouldDisableHighlighting,
+} from '@/renderer/pages/conversation/Preview/theme/languageLoader';
 
 describe('matchLanguageDescription', () => {
   it('matches by explicit language name', () => {
