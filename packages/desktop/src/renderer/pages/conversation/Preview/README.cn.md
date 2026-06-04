@@ -60,7 +60,6 @@ preview/
 │   │   └── PreviewHistoryDropdown.tsx # 历史版本下拉菜单
 │   ├── viewers/                       # 查看器组件
 │   │   ├── MarkdownViewer.tsx         # Markdown 渲染
-
 │   │   ├── ImageViewer.tsx            # 图片查看
 │   │   ├── DiffViewer.tsx             # Diff 对比
 │   │   ├── PDFViewer.tsx              # PDF 查看

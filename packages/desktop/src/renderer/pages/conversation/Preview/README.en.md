@@ -60,7 +60,6 @@ preview/
 │   │   └── PreviewHistoryDropdown.tsx # History version dropdown
 │   ├── viewers/                       # Viewer components
 │   │   ├── MarkdownViewer.tsx         # Markdown rendering
-
 │   │   ├── ImageViewer.tsx            # Image viewer
 │   │   ├── DiffViewer.tsx             # Diff comparison
 │   │   ├── PDFViewer.tsx              # PDF viewer
