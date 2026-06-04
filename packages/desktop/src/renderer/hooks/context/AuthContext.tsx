@@ -1,4 +1,5 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { configService } from '@/common/config/configService';
 // M6: CSRF removed with legacy webserver — stub functions for compatibility, re-implement in M7
 const withCsrfToken = <T extends Record<string, unknown>>(data: T): T => data;
 const hasValidCsrfToken = (): boolean => true;
@@ -110,7 +111,17 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
 
   const refresh = useCallback(async () => {
     if (isDesktopRuntime) {
-      setStatus('authenticated');
+      // Check POUNDING API login status — users must log in before using the app
+      try {
+        const stored = configService.get('newApi.desktop.account');
+        if (stored && typeof stored === 'object' && (stored as Record<string, unknown>).loggedIn === true) {
+          setStatus('authenticated');
+        } else {
+          setStatus('unauthenticated');
+        }
+      } catch {
+        setStatus('unauthenticated');
+      }
       setUser(null);
       setReady(true);
       return;

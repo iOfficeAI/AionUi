@@ -1834,9 +1834,30 @@ async function upsertManagedProvider(params: {
 }
 
 async function removeManagedProvider(): Promise<void> {
-  const existing = await findManagedProvider();
-  if (!existing) return;
-  await httpRequest<void>('DELETE', `/api/providers/${NEW_API_MANAGED_PROVIDER_ID}`);
+  // Force-delete the managed provider even if the API call fails.
+  // A failed API delete (e.g. 401 after token expired) must NOT leave
+  // the provider accessible to the next user.
+  try {
+    const existing = await findManagedProvider();
+    if (!existing) return;
+    await httpRequest<void>('DELETE', `/api/providers/${NEW_API_MANAGED_PROVIDER_ID}`);
+  } catch {
+    // API may reject (token expired / 401) — still clear local state below
+  }
+  // Force-clear the backend provider by re-creating as empty
+  try {
+    await httpRequest<void>('PUT', `/api/providers/${NEW_API_MANAGED_PROVIDER_ID}`, {
+      id: NEW_API_MANAGED_PROVIDER_ID,
+      platform: 'new-api',
+      name: 'POUNDING API',
+      base_url: '',
+      api_key: '',
+      models: [],
+      enabled: false,
+    }).catch(() => {});
+  } catch {
+    /* best-effort */
+  }
 }
 
 async function clearManagedBackendSyncArtifacts(): Promise<void> {
