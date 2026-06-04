@@ -11,6 +11,13 @@ type MessageState = {
   text: string;
 };
 
+type CommandEveLanguage = {
+  code: string;
+  label: string;
+  short: string;
+  flag: string;
+};
+
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
 const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
@@ -21,6 +28,9 @@ const COMMAND_EVE_BRAND_CONFIG_URL = '/command-eve-brand.json?v=command-eve-bran
 const COMMAND_EVE_LOGIN_VIDEO = '/eve-wait-focus.mp4?v=command-eve-login-20260604';
 const COMMAND_EVE_LOGIN_ANIMATION = '/eve-wait-focus-loop.gif?v=command-eve-login-20260604';
 const COMMAND_EVE_LOGIN_POSTER = '/eve-wait-focus-anchor.png?v=command-eve-login-20260604';
+const COMMAND_EVE_HERO_FIELD_GAP = 32;
+const COMMAND_EVE_HERO_FIELD_RADIUS = 175;
+const COMMAND_EVE_HERO_FIELD_AMPLITUDE = 9;
 
 // Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
 const obfuscate = (text: string): string => {
@@ -35,6 +45,209 @@ const deobfuscate = (text: string): string => {
   } catch {
     return '';
   }
+};
+
+const CommandEveHeroField: React.FC = () => {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const orb = { x: 0, y: 0 };
+    const mouse = { x: -9999, y: -9999, active: false };
+
+    let width = 0;
+    let height = 0;
+    let cols = 0;
+    let rows = 0;
+    let baseX = new Float32Array(0);
+    let baseY = new Float32Array(0);
+    let pointX = new Float32Array(0);
+    let pointY = new Float32Array(0);
+    let pointAlpha = new Float32Array(0);
+    let pointWarmth = new Float32Array(0);
+    let pointCrest = new Float32Array(0);
+    let raf = 0;
+
+    const buildField = () => {
+      const rect = canvas.getBoundingClientRect();
+      width = Math.max(1, rect.width);
+      height = Math.max(1, rect.height);
+      canvas.width = Math.round(width * dpr);
+      canvas.height = Math.round(height * dpr);
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      cols = Math.ceil(width / COMMAND_EVE_HERO_FIELD_GAP) + 2;
+      rows = Math.ceil(height / COMMAND_EVE_HERO_FIELD_GAP) + 2;
+      const count = cols * rows;
+
+      baseX = new Float32Array(count);
+      baseY = new Float32Array(count);
+      pointX = new Float32Array(count);
+      pointY = new Float32Array(count);
+      pointAlpha = new Float32Array(count);
+      pointWarmth = new Float32Array(count);
+      pointCrest = new Float32Array(count);
+
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const index = row * cols + col;
+          baseX[index] = col * COMMAND_EVE_HERO_FIELD_GAP + (row % 2 ? COMMAND_EVE_HERO_FIELD_GAP / 2 : 0);
+          baseY[index] = row * COMMAND_EVE_HERO_FIELD_GAP;
+        }
+      }
+
+      if (orb.x === 0) {
+        orb.x = width * 0.5;
+        orb.y = height * 0.45;
+      }
+    };
+
+    const drawCommandEveHeroField = (time: number) => {
+      const t = time * 0.001;
+      ctx.clearRect(0, 0, width, height);
+
+      const driftX = width * (0.5 + 0.26 * Math.sin(t * 0.18));
+      const driftY = height * (0.46 + 0.3 * Math.sin(t * 0.24 + 1.2));
+      const inside = mouse.active && mouse.x >= 0 && mouse.x <= width && mouse.y >= 0 && mouse.y <= height;
+      const targetX = inside ? mouse.x : driftX;
+      const targetY = inside ? mouse.y : driftY;
+
+      orb.x += (targetX - orb.x) * (inside ? 0.08 : 0.035);
+      orb.y += (targetY - orb.y) * (inside ? 0.08 : 0.035);
+
+      const glow = ctx.createRadialGradient(orb.x, orb.y, 0, orb.x, orb.y, COMMAND_EVE_HERO_FIELD_RADIUS * 1.15);
+      glow.addColorStop(0, 'rgba(249, 115, 22, 0.15)');
+      glow.addColorStop(0.5, 'rgba(251, 146, 60, 0.08)');
+      glow.addColorStop(1, 'rgba(249, 115, 22, 0)');
+      ctx.fillStyle = glow;
+      ctx.beginPath();
+      ctx.arc(orb.x, orb.y, COMMAND_EVE_HERO_FIELD_RADIUS * 1.15, 0, Math.PI * 2);
+      ctx.fill();
+
+      const count = cols * rows;
+      const focusX = inside ? mouse.x : orb.x;
+      const focusY = inside ? mouse.y : orb.y;
+
+      for (let index = 0; index < count; index += 1) {
+        const x = baseX[index];
+        const y = baseY[index];
+        const heightWave =
+          (Math.sin(x * 0.013 + t * 0.45) * 0.6 +
+            Math.sin(y * 0.017 - t * 0.38) * 0.5 +
+            Math.sin((x + y) * 0.01 + t * 0.55) * 0.45) /
+          1.55;
+        const mouseDx = x - focusX;
+        const mouseDy = y - focusY;
+        const mouseDistance = Math.sqrt(mouseDx * mouseDx + mouseDy * mouseDy);
+        const swell = Math.max(0, 1 - mouseDistance / COMMAND_EVE_HERO_FIELD_RADIUS);
+        const swell2 = swell * swell;
+        const orbDx = x - orb.x;
+        const orbDy = y - orb.y;
+        const orbSwell = Math.max(
+          0,
+          1 - Math.sqrt(orbDx * orbDx + orbDy * orbDy) / (COMMAND_EVE_HERO_FIELD_RADIUS * 1.3)
+        );
+        const crest = (heightWave + 1) / 2;
+        const lift = heightWave + swell2 * 1.6 + orbSwell * 0.5;
+        const warm = Math.min(1, swell2 * 1.1 + orbSwell * 0.35 + Math.max(0, crest - 0.82) * 1.2);
+
+        pointX[index] = x;
+        pointY[index] = y - lift * COMMAND_EVE_HERO_FIELD_AMPLITUDE;
+        pointCrest[index] = crest;
+        pointWarmth[index] = warm;
+        pointAlpha[index] = Math.min(0.92, 0.1 + crest * 0.26 + swell2 * 0.55 + orbSwell * 0.12);
+      }
+
+      ctx.lineWidth = 1;
+      for (let row = 0; row < rows; row += 1) {
+        for (let col = 0; col < cols; col += 1) {
+          const index = row * cols + col;
+          if (col < cols - 1) {
+            const nextIndex = index + 1;
+            const alpha =
+              (pointCrest[index] + pointCrest[nextIndex]) * 0.0425 +
+              (pointWarmth[index] + pointWarmth[nextIndex]) * 0.05;
+            if (alpha > 0.02) {
+              ctx.strokeStyle = `rgba(${pointWarmth[index] + pointWarmth[nextIndex] > 0.7 ? '249, 115, 22' : '59, 130, 246'}, ${alpha})`;
+              ctx.beginPath();
+              ctx.moveTo(pointX[index], pointY[index]);
+              ctx.lineTo(pointX[nextIndex], pointY[nextIndex]);
+              ctx.stroke();
+            }
+          }
+          if (row < rows - 1) {
+            const nextIndex = index + cols;
+            const alpha =
+              (pointCrest[index] + pointCrest[nextIndex]) * 0.0425 +
+              (pointWarmth[index] + pointWarmth[nextIndex]) * 0.05;
+            if (alpha > 0.02) {
+              ctx.strokeStyle = `rgba(${pointWarmth[index] + pointWarmth[nextIndex] > 0.7 ? '249, 115, 22' : '59, 130, 246'}, ${alpha})`;
+              ctx.beginPath();
+              ctx.moveTo(pointX[index], pointY[index]);
+              ctx.lineTo(pointX[nextIndex], pointY[nextIndex]);
+              ctx.stroke();
+            }
+          }
+        }
+      }
+
+      for (let index = 0; index < count; index += 1) {
+        const warm = pointWarmth[index];
+        const crest = pointCrest[index];
+        const size = 0.85 + crest * 1.7 + warm * 1.7;
+        const color =
+          warm > 0.7 ? '249, 115, 22' : warm > 0.38 ? '251, 146, 60' : crest > 0.8 ? '96, 165, 250' : '37, 99, 235';
+
+        ctx.fillStyle = `rgba(${color}, ${pointAlpha[index]})`;
+        ctx.beginPath();
+        ctx.arc(pointX[index], pointY[index], size, 0, Math.PI * 2);
+        ctx.fill();
+      }
+
+      if (!reduceMotion) {
+        raf = requestAnimationFrame(drawCommandEveHeroField);
+      }
+    };
+
+    const handleResize = () => {
+      buildField();
+      if (reduceMotion) {
+        drawCommandEveHeroField(0);
+      }
+    };
+
+    const handlePointerMove = (event: PointerEvent) => {
+      const rect = canvas.getBoundingClientRect();
+      mouse.x = event.clientX - rect.left;
+      mouse.y = event.clientY - rect.top;
+      mouse.active = true;
+    };
+
+    buildField();
+    window.addEventListener('resize', handleResize);
+    window.addEventListener('pointermove', handlePointerMove, { passive: true });
+
+    if (reduceMotion) {
+      drawCommandEveHeroField(0);
+    } else {
+      raf = requestAnimationFrame(drawCommandEveHeroField);
+    }
+
+    return () => {
+      cancelAnimationFrame(raf);
+      window.removeEventListener('resize', handleResize);
+      window.removeEventListener('pointermove', handlePointerMove);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} className='login-page__hero-field-canvas' aria-hidden='true' />;
 };
 
 const LoginPage: React.FC = () => {
@@ -217,19 +430,24 @@ const LoginPage: React.FC = () => {
     [clearMessageLater]
   );
 
-  const supportedLanguages = useMemo<{ code: string; label: string }[]>(
+  const supportedLanguages = useMemo<CommandEveLanguage[]>(
     () => [
-      { code: 'de-DE', label: 'Deutsch' },
-      { code: 'en-US', label: 'English' },
+      { code: 'de-DE', label: 'Deutsch', short: 'DE', flag: '🇩🇪' },
+      { code: 'en-US', label: 'English', short: 'EN', flag: '🇬🇧' },
     ],
     []
   );
 
-  const handleLanguageChange = useCallback((event: React.ChangeEvent<HTMLSelectElement>) => {
-    const nextLanguage = event.target.value;
+  const handleLanguageChange = useCallback((nextLanguage: string) => {
     changeLanguage(nextLanguage).catch((error: Error) => {
       console.error('Failed to change language:', error);
     });
+  }, []);
+
+  const handleCardPointerMove = useCallback((event: React.PointerEvent<HTMLDivElement>) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    event.currentTarget.style.setProperty('--mouse-x', `${event.clientX - rect.left}px`);
+    event.currentTarget.style.setProperty('--mouse-y', `${event.clientY - rect.top}px`);
   }, []);
 
   const handleSubmit = useCallback(
@@ -295,27 +513,37 @@ const LoginPage: React.FC = () => {
 
   return (
     <div className='login-page'>
+      <CommandEveHeroField />
+      <div className='login-page__hero-field-fade' aria-hidden='true' />
+
       {/* <div className='login-page__background' aria-hidden='true'>
         <div className='login-page__background-circle login-page__background-circle--lg' />
         <div className='login-page__background-circle login-page__background-circle--md' />
         <div className='login-page__background-circle login-page__background-circle--sm' />
       </div> */}
 
-      <div className='login-page__card'>
-        <label className='login-page__lang-select-wrapper' htmlFor='lang-select'>
-          <select
-            id='lang-select'
-            className='login-page__lang-select'
-            value={i18n.language}
-            onChange={handleLanguageChange}
-          >
-            {supportedLanguages.map((lang) => (
-              <option key={lang.code} value={lang.code}>
-                {lang.label}
-              </option>
-            ))}
-          </select>
-        </label>
+      <div className='login-page__card' onPointerMove={handleCardPointerMove}>
+        <div className='login-page__card-glow' aria-hidden='true' />
+        <div className='login-page__lang-toggle' role='group' aria-label={t('login.languageToggle')}>
+          {supportedLanguages.map((lang) => {
+            const active = i18n.language === lang.code || i18n.resolvedLanguage === lang.code;
+            return (
+              <button
+                key={lang.code}
+                type='button'
+                className={`login-page__lang-option ${active ? 'login-page__lang-option--active' : ''}`}
+                onClick={() => handleLanguageChange(lang.code)}
+                aria-label={lang.label}
+                aria-pressed={active}
+              >
+                <span className='login-page__lang-flag' aria-hidden='true'>
+                  {lang.flag}
+                </span>
+                <span className='login-page__lang-code'>{lang.short}</span>
+              </button>
+            );
+          })}
+        </div>
 
         <div className='login-page__header'>
           <div className='login-page__logo'>
@@ -345,7 +573,12 @@ const LoginPage: React.FC = () => {
               />
             </div>
           </div>
-          <h1 className='login-page__title'>{t('login.brand')}</h1>
+          <h1 className='login-page__title' aria-label={t('login.brand')}>
+            <span className='login-page__title-command' aria-hidden='true'>
+              ⌘
+            </span>
+            <span> EVE</span>
+          </h1>
           <p className='login-page__version'>{commandEveVersion}</p>
           <p className='login-page__subtitle'>{t('login.subtitle')}</p>
         </div>

@@ -14,7 +14,7 @@
   "hidePassword": "Passwort verbergen",
   "languageToggle": "Sprache ändern",
   "footerPrimary": "Command EVE Operator Shell",
-  "footerSecondary": "AionUI + Hermes",
+  "footerSecondary": "Company.OS mit Human-Gates",
   "errors": {
     "empty": "Bitte Benutzernamen und Passwort eingeben",
     "invalidCredentials": "Ungültiger Benutzername oder Passwort",

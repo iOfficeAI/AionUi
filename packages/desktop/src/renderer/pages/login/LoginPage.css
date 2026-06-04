@@ -13,20 +13,38 @@
     BlinkMacSystemFont,
     'Segoe UI',
     sans-serif;
-  background:
-    linear-gradient(rgba(37, 99, 235, 0.055) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(37, 99, 235, 0.055) 1px, transparent 1px),
-    linear-gradient(180deg, #fbfcfe 0%, #eef2f8 100%);
-  background-size: 56px 56px, 56px 56px, auto;
+  background: #fffdfa;
 }
 
 .login-page::before {
   content: '';
   position: absolute;
   inset: 0;
+  z-index: 0;
   pointer-events: none;
   background:
-    linear-gradient(180deg, rgba(251, 252, 254, 0.18) 0%, rgba(251, 252, 254, 0.9) 72%);
+    radial-gradient(circle at 50% 38%, rgba(249, 115, 22, 0.1), transparent 22%),
+    radial-gradient(circle at 62% 44%, rgba(251, 146, 60, 0.06), transparent 28%);
+}
+
+.login-page__hero-field-canvas {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+}
+
+.login-page__hero-field-fade {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 0;
+  height: 176px;
+  pointer-events: none;
+  background: linear-gradient(to top, #fffdfa, rgba(255, 253, 250, 0.72), transparent);
 }
 
 body.login-page-active {
@@ -53,6 +71,10 @@ body.login-page-active {
     0 30px 80px -42px rgba(37, 99, 235, 0.46),
     0 20px 48px -36px rgba(15, 23, 42, 0.36);
   animation: login-slide-up 0.48s ease-out;
+  transition:
+    border-color 0.24s ease,
+    box-shadow 0.24s ease,
+    transform 0.24s ease;
 }
 
 .login-page__card::before {
@@ -61,6 +83,7 @@ body.login-page-active {
   top: 0;
   left: 20px;
   right: 20px;
+  z-index: 1;
   height: 1px;
   background: linear-gradient(
     90deg,
@@ -76,11 +99,53 @@ body.login-page-active {
   position: absolute;
   right: 24px;
   bottom: 8px;
+  z-index: 0;
   pointer-events: none;
   color: rgba(37, 99, 235, 0.045);
   font-size: 104px;
   font-weight: 700;
   line-height: 1;
+}
+
+.login-page__card:hover,
+.login-page__card:focus-within {
+  border-color: rgba(37, 99, 235, 0.34);
+  box-shadow:
+    0 0 0 1px rgba(249, 115, 22, 0.14),
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 34px 88px -42px rgba(37, 99, 235, 0.56),
+    0 22px 54px -38px rgba(249, 115, 22, 0.36);
+  transform: translateY(-2px);
+}
+
+.login-page__card:hover .login-page__card-glow,
+.login-page__card:focus-within .login-page__card-glow {
+  opacity: 1;
+}
+
+.login-page__card-glow {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  padding: 1px;
+  border-radius: inherit;
+  background: radial-gradient(
+    260px circle at var(--mouse-x, 50%) var(--mouse-y, 0%),
+    rgba(37, 99, 235, 0.6) 0%,
+    rgba(249, 115, 22, 0.34) 38%,
+    transparent 72%
+  );
+  mask:
+    linear-gradient(#ffffff 0 0) content-box,
+    linear-gradient(#ffffff 0 0);
+  mask-composite: exclude;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.26s ease-out;
+  -webkit-mask:
+    linear-gradient(#ffffff 0 0) content-box,
+    linear-gradient(#ffffff 0 0);
+  -webkit-mask-composite: xor;
 }
 
 @keyframes login-slide-up {
@@ -94,50 +159,76 @@ body.login-page-active {
   }
 }
 
-.login-page__lang-select-wrapper {
+.login-page__lang-toggle {
   position: absolute;
   top: 18px;
   right: 18px;
   z-index: 2;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
+  display: inline-flex;
+  align-items: center;
   gap: 4px;
-  font-size: 13px;
-  color: #475569;
+  padding: 4px;
+  border: 1px solid rgba(203, 213, 225, 0.86);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.76);
+  box-shadow:
+    0 1px 2px rgba(15, 23, 42, 0.04),
+    0 16px 32px -26px rgba(15, 23, 42, 0.34);
+  backdrop-filter: blur(14px);
 }
 
-.login-page__lang-label {
-  font-weight: 600;
-}
-
-.login-page__lang-select {
-  min-width: 132px;
-  min-height: 34px;
-  padding: 6px 34px 6px 12px;
-  border: 1px solid rgba(203, 213, 225, 0.94);
-  border-radius: 10px;
-  background: #fbfcfe;
-  color: #0f172a;
-  font-size: 13px;
-  font-weight: 550;
+.login-page__lang-option {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
+  min-width: 58px;
+  height: 30px;
+  padding: 0 9px;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 760;
+  line-height: 1;
   cursor: pointer;
   transition:
-    border-color 0.18s ease,
+    background-color 0.18s ease,
+    color 0.18s ease,
     box-shadow 0.18s ease,
-    background-color 0.18s ease;
+    transform 0.18s ease;
 }
 
-.login-page__lang-select:hover,
-.login-page__lang-select:focus {
-  border-color: #2563eb;
-  background: #ffffff;
-  box-shadow: 0 0 0 4px rgba(37, 99, 235, 0.12);
+.login-page__lang-option:hover,
+.login-page__lang-option:focus-visible {
+  color: #0f172a;
+  background: rgba(239, 246, 255, 0.9);
   outline: none;
 }
 
-.login-page__lang-select option {
-  color: #0f172a;
+.login-page__lang-option--active {
+  background: #0f172a;
+  color: #ffffff;
+  box-shadow:
+    0 8px 18px -10px rgba(15, 23, 42, 0.86),
+    0 0 0 1px rgba(249, 115, 22, 0.18);
+}
+
+.login-page__lang-option--active:hover,
+.login-page__lang-option--active:focus-visible {
+  color: #ffffff;
+  background: #0f172a;
+}
+
+.login-page__lang-flag {
+  font-size: 14px;
+  line-height: 1;
+}
+
+.login-page__lang-code {
+  font-size: 11px;
+  line-height: 1;
 }
 
 .login-page__header {
@@ -209,6 +300,10 @@ body.login-page-active {
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.08;
+}
+
+.login-page__title-command {
+  color: #f97316;
 }
 
 .login-page__version {
@@ -434,6 +529,7 @@ body.login-page-active {
   display: flex;
   align-items: center;
   justify-content: center;
+  flex-wrap: wrap;
   gap: 8px;
   color: #64748b;
   font-size: 13px;
@@ -456,13 +552,14 @@ body.login-page-active {
     border-radius: 18px;
   }
 
-  .login-page__lang-select-wrapper {
+  .login-page__lang-toggle {
     top: 14px;
     right: 14px;
   }
 
-  .login-page__lang-select {
-    min-width: 118px;
+  .login-page__lang-option {
+    min-width: 52px;
+    padding: 0 8px;
   }
 
   .login-page__header {
@@ -492,7 +589,15 @@ body.login-page-active {
     animation: none;
   }
 
+  .login-page__card,
+  .login-page__card-glow,
+  .login-page__lang-option,
   .login-page__submit {
     transition: none;
+  }
+
+  .login-page__card:hover,
+  .login-page__card:focus-within {
+    transform: none;
   }
 }
