@@ -32,28 +32,10 @@ export interface CloseTabConfirmState {
  */
 interface PreviewConfirmModalsProps {
   /**
-   * 是否显示退出编辑确认对话框
-   * Whether to show exit edit confirmation dialog
-   */
-  showExitConfirm: boolean;
-
-  /**
    * 关闭 Tab 确认状态
    * Close tab confirmation state
    */
   closeTabConfirm: CloseTabConfirmState;
-
-  /**
-   * 确认退出编辑
-   * Confirm exit edit
-   */
-  onConfirmExit: () => void;
-
-  /**
-   * 取消退出编辑
-   * Cancel exit edit
-   */
-  onCancelExit: () => void;
 
   /**
    * 保存并关闭 Tab
@@ -82,10 +64,7 @@ interface PreviewConfirmModalsProps {
  * Contains exit edit confirmation and close tab confirmation dialogs
  */
 const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
-  showExitConfirm,
   closeTabConfirm,
-  onConfirmExit,
-  onCancelExit,
   onSaveAndCloseTab,
   onCloseWithoutSave,
   onCancelCloseTab,
@@ -94,21 +73,6 @@ const PreviewConfirmModals: React.FC<PreviewConfirmModalsProps> = ({
 
   return (
     <>
-      {/* 退出编辑确认对话框 / Exit edit confirmation modal */}
-      <Modal
-        visible={showExitConfirm}
-        title={t('preview.unsavedChangesTitle')}
-        onCancel={onCancelExit}
-        onOk={onConfirmExit}
-        okText={t('preview.confirmExit')}
-        cancelText={t('preview.continueEdit')}
-        style={{ borderRadius: '12px' }}
-        alignCenter
-        getPopupContainer={() => document.body}
-      >
-        <div className='text-14px text-t-secondary'>{t('preview.unsavedChangesMessage')}</div>
-      </Modal>
-
       {/* 关闭tab确认对话框 / Close tab confirmation modal */}
       <Modal
         visible={closeTabConfirm.show}
