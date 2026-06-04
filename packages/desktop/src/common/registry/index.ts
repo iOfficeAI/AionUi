@@ -56,3 +56,42 @@ export {
   upsertHttpServerConnection,
   type HttpServerRegistryState,
 } from './httpServerRegistry';
+
+export {
+  applyCredentialToHttp,
+  createInMemoryHttpServerCredentialStore,
+  credentialPayloadFromHttp,
+  hydrateHttpServerConnection,
+  hydrateHttpServerConnections,
+  persistHttpServerCredential,
+  snapshotHasPlaintextPassword,
+  storedRecordHasPlaintextPassword,
+  type EncryptedCredentialBlob,
+  type HttpServerCredentialEncryptor,
+  type HttpServerCredentialPayload,
+  type HttpServerCredentialStore,
+} from './httpServerCredentials';
+
+export {
+  HEADLESS_HTTP_SERVER_PASSWORD_ENV,
+  HEADLESS_HTTP_SERVER_PASSWORD_FLAG,
+  HEADLESS_HTTP_SERVER_URL_ENV,
+  HEADLESS_HTTP_SERVER_URL_FLAG,
+  HEADLESS_HTTP_SERVER_USERNAME_ENV,
+  HEADLESS_HTTP_SERVER_USERNAME_FLAG,
+  parseHeadlessHttpServerCredentials,
+  type HeadlessHttpServerCredentialInput,
+  type HeadlessHttpServerCredentialResult,
+  type ParseHeadlessHttpServerCredentialsOptions,
+} from './httpServerHeadlessCredentials';
+
+export {
+  HTTP_SERVER_GLOBAL_EVENT_PATH,
+  httpServerBaseUrl,
+  httpServerGlobalEventUrl,
+  httpServerPtyWebSocketUrl,
+  httpServerRoutingFromConnection,
+  httpServerSdkConfig,
+  httpServerSseRequestInit,
+  type HttpServerPtyConnectInput,
+} from './httpServerRouting';
