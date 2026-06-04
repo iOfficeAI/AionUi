@@ -424,10 +424,6 @@ const Layout: React.FC<{
         overflow: 'visible' as const,
       };
 
-  if (shouldShowDesktopGate) {
-    return <DesktopLoginGate />;
-  }
-
   return (
     <LayoutContext.Provider value={{ isMobile, siderCollapsed: collapsed, setSiderCollapsed: setCollapsed }}>
       <NavigationHistoryProvider>
@@ -526,7 +522,7 @@ const Layout: React.FC<{
               {newApiStatus?.envConflicts && newApiStatus.envConflicts.length > 0 && (
                 <EnvConflictBanner conflicts={newApiStatus.envConflicts} onDismiss={() => {}} />
               )}
-              <Outlet />
+              {shouldShowDesktopGate ? <DesktopLoginGate /> : <Outlet />}
               {directorySelectionContextHolder}
               <PwaPullToRefresh />
               <Suspense fallback={null}>
