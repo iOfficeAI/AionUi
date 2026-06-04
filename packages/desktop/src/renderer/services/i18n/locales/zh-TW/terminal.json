@@ -9,5 +9,31 @@
   "startingShell": "正在啟動 shell…",
   "exitedWithCode": "{{title}} — 已結束 (代碼 {{code}})",
   "exitedUnknown": "{{title}} — 已結束",
-  "shellNotFound": "在此系統上找不到可用的 shell。"
+  "shellNotFound": "在此系統上找不到可用的 shell。",
+  "layout": {
+    "modeDefault": "預設",
+    "modeSplitPane": "分割視窗",
+    "modeEditorFocused": "編輯器聚焦",
+    "modeDiffFocused": "差異聚焦",
+    "modeTerminalFocused": "終端機聚焦",
+    "regionSider": "側邊欄導覽",
+    "regionContent": "主要內容區",
+    "regionTerminal": "終端機面板",
+    "regionEditor": "編輯器面板",
+    "regionDiff": "差異檢視",
+    "resizeHandle": "調整終端機面板大小",
+    "selectorLabel": "佈局模式",
+    "selectorCurrent": "目前佈局：{{name}}",
+    "selectorUnavailable": "無法使用",
+    "selectorHint": "選擇佈局模式",
+    "shortcutSelect": "選擇佈局模式 {{number}}",
+    "shortcutCycleNext": "下一個佈局模式",
+    "shortcutCyclePrev": "上一個佈局模式",
+    "diffPlaceholderTitle": "差異檢視即將推出",
+    "diffPlaceholderBody": "靜態佔位符 — layout-01 階段尚未接上差異解析。",
+    "actionChat": "對話",
+    "actionCommandCenter": "指揮中心",
+    "actionTerminal": "終端機",
+    "actionDiff": "差異"
+  }
 }

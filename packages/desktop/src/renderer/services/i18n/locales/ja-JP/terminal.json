@@ -9,5 +9,31 @@
   "startingShell": "シェルを起動中…",
   "exitedWithCode": "{{title}} — 終了 (コード {{code}})",
   "exitedUnknown": "{{title}} — 終了",
-  "shellNotFound": "このシステムで使用可能なシェルが見つかりませんでした。"
+  "shellNotFound": "このシステムで使用可能なシェルが見つかりませんでした。",
+  "layout": {
+    "modeDefault": "デフォルト",
+    "modeSplitPane": "分割ビュー",
+    "modeEditorFocused": "エディターフォーカス",
+    "modeDiffFocused": "差分フォーカス",
+    "modeTerminalFocused": "ターミナルフォーカス",
+    "regionSider": "サイドバー",
+    "regionContent": "メインコンテンツ",
+    "regionTerminal": "ターミナルパネル",
+    "regionEditor": "エディターパネル",
+    "regionDiff": "差分ビュー",
+    "resizeHandle": "ターミナルパネルのサイズ変更",
+    "selectorLabel": "レイアウトモード",
+    "selectorCurrent": "現在のレイアウト：{{name}}",
+    "selectorUnavailable": "利用不可",
+    "selectorHint": "レイアウトモードを選択",
+    "shortcutSelect": "レイアウトモード {{number}} を選択",
+    "shortcutCycleNext": "次のレイアウトモード",
+    "shortcutCyclePrev": "前のレイアウトモード",
+    "diffPlaceholderTitle": "差分ビューは近日公開",
+    "diffPlaceholderBody": "静的プレースホルダー — layout-01 では差分解析は未実装です。",
+    "actionChat": "チャット",
+    "actionCommandCenter": "コマンドセンター",
+    "actionTerminal": "ターミナル",
+    "actionDiff": "差分"
+  }
 }

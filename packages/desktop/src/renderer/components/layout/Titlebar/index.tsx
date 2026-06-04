@@ -4,9 +4,11 @@ import {
   ArrowCircleLeft,
   ArrowLeft,
   ArrowRight,
-  EditOne,
+  Command,
   ExpandLeft,
   ExpandRight,
+  GithubOne,
+  MessageOne,
   Peoples,
   Terminal,
 } from '@icon-park/react';
@@ -21,8 +23,9 @@ import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/u
 import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
-import { useTerminalPanelSafe } from '@/renderer/hooks/context/TerminalPanelContext';
 import { useEditorContextSafe } from '@/renderer/pages/conversation/Editor';
+import { useTerminalPanelSafe } from '@/renderer/hooks/context/TerminalPanelContext';
+import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
@@ -67,11 +70,14 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
   const navigationHistory = useNavigationHistory();
-  const terminalPanel = useTerminalPanelSafe();
-  const editorPanel = useEditorContextSafe();
-  const isEditorVisible = Boolean(editorPanel?.isOpen && !editorPanel.isCollapsed);
   const location = useLocation();
   const navigate = useNavigate();
+  // Layout panes are global concerns driven from the titlebar's four-button
+  // control. Safe context variants are used so the titlebar still renders if a
+  // provider is ever absent (e.g. isolated test mounts).
+  const editorCtx = useEditorContextSafe();
+  const terminalPanel = useTerminalPanelSafe();
+  const layoutModeCtx = useLayoutModeSafe();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
   const toolbarRef = useRef<HTMLDivElement | null>(null);
@@ -119,12 +125,6 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const showHistoryNav = Boolean(navigationHistory) && !layout?.isMobile;
   const historyBackTooltip = t('common.historyBack', { defaultValue: 'Back' });
   const historyForwardTooltip = t('common.forward', { defaultValue: 'Forward' });
-  const terminalTooltip = terminalPanel?.open
-    ? t('terminal.collapse', { defaultValue: 'Hide terminal' })
-    : t('terminal.panelLabel', { defaultValue: 'Integrated terminal' });
-  const editorTooltip = isEditorVisible
-    ? t('conversation.editor.collapseEditor', { defaultValue: 'Hide editor' })
-    : t('conversation.editor.title', { defaultValue: 'Editor' });
 
   const handleSiderToggle = () => {
     if (!showSiderToggle || !layout?.setSiderCollapsed) return;
@@ -146,6 +146,77 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     }
     void navigate(-1);
   };
+
+  // --- Layout pane controls (titlebar four-button cluster) ---
+  // Replaces the rejected layout-mode dropdown with discrete, button-driven
+  // toggle states. The diff view is the only mode-driven surface; the editor
+  // and terminal are peer panes controlled directly via their contexts.
+  const isDiffActive = layoutModeCtx?.mode === 'diff-focused';
+  const isTerminalActive = Boolean(terminalPanel?.open);
+  const isEditorActive = Boolean(editorCtx?.isOpen) && !editorCtx?.isCollapsed && !isDiffActive;
+  const isCommandCenterActive = isEditorActive && isTerminalActive;
+  const isChatActive = !isDiffActive && !isTerminalActive && !editorCtx?.isOpen;
+
+  // Chat: clean single-pane view — close editor, diff, and terminal.
+  const handleChatView = () => {
+    layoutModeCtx?.setMode('default');
+    editorCtx?.requestCloseEditor();
+    terminalPanel?.close();
+  };
+
+  // Command Center: open the terminal and the (expanded) editor together.
+  const handleCommandCenter = () => {
+    layoutModeCtx?.setMode('default');
+    if (editorCtx) {
+      if (editorCtx.buffers.length === 0) {
+        editorCtx.openUntitledEditor();
+      } else {
+        editorCtx.expandEditor();
+      }
+    }
+    terminalPanel?.open_();
+  };
+
+  // Terminal: toggle the bottom terminal panel independently.
+  const handleToggleTerminal = () => {
+    terminalPanel?.toggle();
+  };
+
+  // Diff: show the diff view (hides the editor pane while active).
+  const handleDiffView = () => {
+    layoutModeCtx?.setMode('diff-focused');
+  };
+
+  const layoutActions = [
+    {
+      key: 'chat',
+      label: t('terminal.layout.actionChat', { defaultValue: 'Chat' }),
+      Icon: MessageOne,
+      onClick: handleChatView,
+      active: isChatActive,
+    },
+    {
+      key: 'command-center',
+      label: t('terminal.layout.actionCommandCenter', { defaultValue: 'Command Center' }),
+      Icon: Command,
+      onClick: handleCommandCenter,
+      active: isCommandCenterActive,
+    },
+    {
+      key: 'terminal',
+      label: t('terminal.layout.actionTerminal', { defaultValue: 'Terminal' }),
+      Icon: Terminal,
+      onClick: handleToggleTerminal,
+      active: isTerminalActive,
+    },
+    {
+      key: 'diff',
+      label: t('terminal.layout.actionDiff', { defaultValue: 'Diff' }),
+      Icon: GithubOne,
+      onClick: handleDiffView,
+      active: isDiffActive,
+    },
+  ];
 
   useEffect(() => {
     if (!isSettingsRoute) {
@@ -322,56 +393,54 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
         })}
         aria-label={activeWorkspaceName}
       >
-        {layout?.isMobile
-          ? (() => {
-              const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
-              const conversation_id = conversationMatch?.[1];
-              if (conversation_id) {
-                return (
-                  <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={activeWorkspaceName} />
-                );
-              }
-              const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
-              return (
-                <span className='app-titlebar__brand-mobile'>
-                  {isTeamRoute && (
-                    <span className='app-titlebar__brand-icon' aria-hidden='true'>
-                      <Peoples theme='outline' size='16' fill='currentColor' />
-                    </span>
-                  )}
-                  <span className='app-titlebar__brand-text'>{activeWorkspaceName}</span>
-                </span>
-              );
-            })()
-          : (
-              <span className='app-titlebar__brand-desktop' title={activeWorkspaceName}>
-                {activeWorkspaceName}
+        {layout?.isMobile ? (
+          (() => {
+            const conversationMatch = location.pathname.match(/^\/conversation\/([^/]+)/);
+            const conversation_id = conversationMatch?.[1];
+            if (conversation_id) {
+              return <MobileConversationBrand conversation_id={conversation_id} fallbackTitle={activeWorkspaceName} />;
+            }
+            const isTeamRoute = TEAM_MODE_ENABLED && /^\/team\/[^/]+/.test(location.pathname);
+            return (
+              <span className='app-titlebar__brand-mobile'>
+                {isTeamRoute && (
+                  <span className='app-titlebar__brand-icon' aria-hidden='true'>
+                    <Peoples theme='outline' size='16' fill='currentColor' />
+                  </span>
+                )}
+                <span className='app-titlebar__brand-text'>{activeWorkspaceName}</span>
               </span>
-            )}
+            );
+          })()
+        ) : (
+          <span className='app-titlebar__brand-desktop' title={activeWorkspaceName}>
+            {activeWorkspaceName}
+          </span>
+        )}
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
-        {terminalPanel && !layout?.isMobile && (
-          <button
-            type='button'
-            className={classNames('app-titlebar__button', terminalPanel.open && 'text-primary')}
-            onClick={() => terminalPanel.toggle()}
-            aria-label={terminalTooltip}
-            title={terminalTooltip}
+        {!layout?.isMobile && (
+          <div
+            className='app-titlebar__layout-actions'
+            role='group'
+            aria-label={t('terminal.layout.selectorLabel', { defaultValue: 'Layout mode' })}
           >
-            <Terminal theme='outline' size={iconSize} fill='currentColor' />
-          </button>
-        )}
-        {editorPanel && !layout?.isMobile && (
-          <button
-            type='button'
-            className={classNames('app-titlebar__button', isEditorVisible && 'text-primary')}
-            onClick={() => editorPanel.toggleEditor()}
-            aria-label={editorTooltip}
-            title={editorTooltip}
-          >
-            <EditOne theme='outline' size={iconSize} fill='currentColor' />
-          </button>
+            {layoutActions.map(({ key, label, Icon, onClick, active }) => (
+              <button
+                key={key}
+                type='button'
+                className={classNames('app-titlebar__mode-btn', { 'app-titlebar__mode-btn--active': active })}
+                onClick={onClick}
+                aria-label={label}
+                aria-pressed={active}
+                title={label}
+              >
+                <Icon theme='outline' size={14} fill='currentColor' strokeWidth={desktopIconStroke} />
+                <span className='app-titlebar__mode-btn-label'>{label}</span>
+              </button>
+            ))}
+          </div>
         )}
         {showWorkspaceButton && (
           <button

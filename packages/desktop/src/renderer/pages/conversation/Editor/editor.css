@@ -42,6 +42,57 @@
   opacity: 1;
 }
 
+/* Collapsed editor "blade" (Xbox-style drawer handle). When the editor is open
+   but collapsed it shrinks to a narrow vertical strip docked on the right edge
+   instead of disappearing; the base `.editor-pane` width/flex-basis transition
+   makes it slide. Opacity is forced to 1 here because the base `.editor-pane`
+   rule starts at 0 and only `--expanded` otherwise lifts it. */
+.editor-pane--blade {
+  border-color: var(--bg-3);
+  opacity: 1;
+}
+
+.editor-blade {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  height: 100%;
+  padding: 12px 0;
+  border: none;
+  background: var(--bg-2);
+  color: var(--text-secondary, #6e6e6e);
+  cursor: pointer;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--motion-ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--motion-ease-standard, ease);
+}
+
+.editor-blade:hover {
+  background: var(--bg-3);
+  color: var(--text-primary, #1f1f1f);
+}
+
+.editor-blade:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+.editor-blade__icon {
+  flex-shrink: 0;
+}
+
+.editor-blade__label {
+  writing-mode: vertical-rl;
+  text-orientation: mixed;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  user-select: none;
+}
+
 .editor-panel {
   display: flex;
   flex-direction: column;
@@ -131,7 +182,9 @@
   border: 0;
   font: inherit;
   line-height: 1;
-  transition: background-color 100ms ease, color 100ms ease;
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
 }
 
 .editor-menubar__item:hover {
@@ -287,7 +340,9 @@
   font-size: 12px;
   cursor: pointer;
   user-select: none;
-  transition: background-color 100ms ease, color 100ms ease;
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
   white-space: nowrap;
 }
 
@@ -380,7 +435,8 @@
      metadata to its left ellipsis-truncates first. */
   flex-shrink: 0;
   white-space: nowrap;
-  transition: background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+  transition:
+    background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
     color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
 }
 
@@ -485,7 +541,8 @@
   cursor: pointer;
   user-select: none;
   white-space: nowrap;
-  transition: background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+  transition:
+    background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
     color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
   /* Reserved 2px so the bottom-border on active pills doesn't shift layout. */
   border-bottom: 2px solid transparent;
@@ -520,7 +577,8 @@
   border-radius: 3px;
   color: var(--bg-6, #806844);
   opacity: 0;
-  transition: opacity var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+  transition:
+    opacity var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
     background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
     color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
 }
@@ -556,7 +614,8 @@
   background: var(--bg-2, #ececec);
   color: var(--bg-6, #806844);
   cursor: pointer;
-  transition: color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
+  transition:
+    color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease),
     background-color var(--motion-base, 200ms) var(--motion-ease-emphasized, ease);
 }
 

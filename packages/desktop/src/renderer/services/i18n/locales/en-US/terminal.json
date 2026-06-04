@@ -9,5 +9,31 @@
   "startingShell": "Starting shell…",
   "exitedWithCode": "{{title}} — exited (code {{code}})",
   "exitedUnknown": "{{title}} — exited",
-  "shellNotFound": "Could not find a usable shell on this system."
+  "shellNotFound": "Could not find a usable shell on this system.",
+  "layout": {
+    "modeDefault": "Default",
+    "modeSplitPane": "Split Pane",
+    "modeEditorFocused": "Editor Focused",
+    "modeDiffFocused": "Diff Focused",
+    "modeTerminalFocused": "Terminal Focused",
+    "regionSider": "Sidebar navigation",
+    "regionContent": "Main content",
+    "regionTerminal": "Terminal panel",
+    "regionEditor": "Editor panel",
+    "regionDiff": "Diff view",
+    "resizeHandle": "Resize terminal panel",
+    "selectorLabel": "Layout mode",
+    "selectorCurrent": "Current layout: {{name}}",
+    "selectorUnavailable": "Unavailable",
+    "selectorHint": "Choose a layout mode",
+    "shortcutSelect": "Select layout mode {{number}}",
+    "shortcutCycleNext": "Next layout mode",
+    "shortcutCyclePrev": "Previous layout mode",
+    "diffPlaceholderTitle": "Diff view coming soon",
+    "diffPlaceholderBody": "Static placeholder — no diff parsing is wired in layout-01.",
+    "actionChat": "Chat",
+    "actionCommandCenter": "Command Center",
+    "actionTerminal": "Terminal",
+    "actionDiff": "Diff"
+  }
 }

@@ -9,5 +9,31 @@
   "startingShell": "Запуск оболочки…",
   "exitedWithCode": "{{title}} — завершён (код {{code}})",
   "exitedUnknown": "{{title}} — завершён",
-  "shellNotFound": "В системе не найдено подходящей оболочки."
+  "shellNotFound": "В системе не найдено подходящей оболочки.",
+  "layout": {
+    "modeDefault": "По умолчанию",
+    "modeSplitPane": "Раздельное окно",
+    "modeEditorFocused": "Фокус на редакторе",
+    "modeDiffFocused": "Фокус на различиях",
+    "modeTerminalFocused": "Фокус на терминале",
+    "regionSider": "Боковая панель",
+    "regionContent": "Основное содержимое",
+    "regionTerminal": "Панель терминала",
+    "regionEditor": "Панель редактора",
+    "regionDiff": "Просмотр различий",
+    "resizeHandle": "Изменить размер панели терминала",
+    "selectorLabel": "Режим макета",
+    "selectorCurrent": "Текущий макет: {{name}}",
+    "selectorUnavailable": "Недоступно",
+    "selectorHint": "Выберите режим макета",
+    "shortcutSelect": "Выбрать режим макета {{number}}",
+    "shortcutCycleNext": "Следующий режим макета",
+    "shortcutCyclePrev": "Предыдущий режим макета",
+    "diffPlaceholderTitle": "Просмотр различий скоро появится",
+    "diffPlaceholderBody": "Статическая заглушка — синтаксический разбор различий в layout-01 не подключён.",
+    "actionChat": "Чат",
+    "actionCommandCenter": "Командный центр",
+    "actionTerminal": "Терминал",
+    "actionDiff": "Различия"
+  }
 }

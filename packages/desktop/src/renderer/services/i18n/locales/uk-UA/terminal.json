@@ -9,5 +9,31 @@
   "startingShell": "Запуск оболонки…",
   "exitedWithCode": "{{title}} — завершено (код {{code}})",
   "exitedUnknown": "{{title}} — завершено",
-  "shellNotFound": "У системі не знайдено придатної оболонки."
+  "shellNotFound": "У системі не знайдено придатної оболонки.",
+  "layout": {
+    "modeDefault": "За замовчуванням",
+    "modeSplitPane": "Розділене вікно",
+    "modeEditorFocused": "Фокус на редакторі",
+    "modeDiffFocused": "Фокус на відмінностях",
+    "modeTerminalFocused": "Фокус на терміналі",
+    "regionSider": "Бічна панель",
+    "regionContent": "Основний вміст",
+    "regionTerminal": "Панель термінала",
+    "regionEditor": "Панель редактора",
+    "regionDiff": "Перегляд відмінностей",
+    "resizeHandle": "Змінити розмір панелі термінала",
+    "selectorLabel": "Режим макета",
+    "selectorCurrent": "Поточний макет: {{name}}",
+    "selectorUnavailable": "Недоступно",
+    "selectorHint": "Виберіть режим макета",
+    "shortcutSelect": "Вибрати режим макета {{number}}",
+    "shortcutCycleNext": "Наступний режим макета",
+    "shortcutCyclePrev": "Попередній режим макета",
+    "diffPlaceholderTitle": "Перегляд відмінностей незабаром",
+    "diffPlaceholderBody": "Статична заглушка — у layout-01 аналіз відмінностей не підключено.",
+    "actionChat": "Чат",
+    "actionCommandCenter": "Командний центр",
+    "actionTerminal": "Термінал",
+    "actionDiff": "Відмінності"
+  }
 }

@@ -2,6 +2,7 @@ import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
@@ -15,6 +16,7 @@ import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRena
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
+import DiffPanel from '@/renderer/components/layout/TerminalPanel/DiffPanel';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -76,9 +78,31 @@ const ChatLayout: React.FC<{
 
   // Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
-  // Editor pane state (peer pane between chat-group and workspace)
-  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed } = useEditorContext();
-  const isEditorExpanded = isEditorOpen && !isEditorCollapsed;
+  // Editor pane state (peer pane between chat-group and workspace). The editor's
+  // open/collapsed state is owned by EditorContext and driven by the titlebar's
+  // four-button layout control plus the editor's own collapse control — it is no
+  // longer coupled to the layout mode.
+  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed, expandEditor } = useEditorContext();
+
+  // Active layout mode. Only the diff view is mode-driven now; the editor is a
+  // peer pane controlled directly via EditorContext.
+  const layoutMode = useLayoutModeSafe();
+  const activeMode = layoutMode?.mode ?? 'default';
+  const isDiffMode = activeMode === 'diff-focused';
+
+  // Diff occupies 70% of the canvas (content keeps 30%); mirrors DEFAULT_PANE_SIZES.
+  const DIFF_PANE_PCT = 70;
+  const DIFF_CONTENT_PCT = 30;
+  // Width of the collapsed editor "blade" (drawer handle) docked on the right.
+  const EDITOR_BLADE_WIDTH_PX = 44;
+
+  // Editor pane presentation (mutually exclusive with the diff view):
+  //   expanded → editor shown at its resizable width
+  //   blade    → editor open but collapsed: shrinks to a narrow vertical strip
+  //              (the click-to-expand "drawer" handle) instead of vanishing to 0px.
+  const isEditorExpanded = isEditorOpen && !isEditorCollapsed && !isDiffMode;
+  const isEditorBlade = isEditorOpen && isEditorCollapsed && !isDiffMode;
+  const isSecondaryPaneVisible = isDiffMode || isEditorExpanded || isEditorBlade;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -293,10 +317,7 @@ const ChatLayout: React.FC<{
           <span className='text-t-secondary'>{changesLabel}</span>
         </span>
       </FlexFullContainer>
-      <div
-        className='flex items-center gap-8px shrink-0'
-        onClick={(e) => e.stopPropagation()}
-      >
+      <div className='flex items-center gap-8px shrink-0' onClick={(e) => e.stopPropagation()}>
         {conversation_id && <ConversationTitleMinimap conversation_id={conversation_id} />}
         {props.headerExtra}
         {isWindowsRuntime && workspaceEnabled && (
@@ -337,9 +358,9 @@ const ChatLayout: React.FC<{
         <div
           className='flex flex-col min-w-0 overflow-hidden'
           style={{
-            flexGrow: 1,
+            flexGrow: isDiffMode ? 0 : 1,
             flexShrink: 1,
-            flexBasis: 0,
+            flexBasis: isDiffMode ? `${DIFF_CONTENT_PCT}%` : 0,
           }}
         >
           <div className='shrink-0 !bg-1'>{headerBlock}</div>
@@ -400,42 +421,79 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
-        {/* Editor pane — standalone peer pane, toggled from the Titlebar */}
+        {/* Editor pane — standalone peer pane, toggled from the Titlebar. When the
+            editor is collapsed it shrinks to a narrow vertical "blade" (Xbox-style
+            drawer handle) docked on the right edge instead of disappearing; the
+            base `.editor-pane` width/flex-basis transition makes it slide. */}
         {!layout?.isMobile && (
           <div
             className={classNames(
-              'editor-pane chat-pane relative layout-sider flex flex-col overflow-visible rounded-panel',
+              'editor-pane chat-pane relative layout-sider flex flex-col rounded-panel',
               paneAccent('editor'),
-              isEditorExpanded && 'editor-pane--expanded editor-pane-enter',
-              isDesktop && isEditorExpanded && 'mb-[6px] mr-[6px] ml-[4px]'
+              isSecondaryPaneVisible && !isEditorBlade && 'editor-pane--expanded editor-pane-enter',
+              isDesktop && isSecondaryPaneVisible && !isEditorBlade && 'mb-[6px] mr-[6px] ml-[4px]',
+              isEditorBlade && 'editor-pane--blade overflow-hidden',
+              !isEditorBlade && 'overflow-visible'
             )}
             style={{
               flexGrow: 0,
               flexShrink: 0,
-              flexBasis: isEditorExpanded ? `${Math.round(editorWidthPx)}px` : '0px',
-              width: isEditorExpanded ? `${Math.round(editorWidthPx)}px` : '0px',
-              minWidth: isEditorExpanded ? '360px' : '0px',
-              overflow: isEditorExpanded ? 'visible' : 'hidden',
+              flexBasis: isEditorBlade
+                ? `${EDITOR_BLADE_WIDTH_PX}px`
+                : isDiffMode
+                  ? `${DIFF_PANE_PCT}%`
+                  : isEditorExpanded
+                    ? `${Math.round(editorWidthPx)}px`
+                    : '0px',
+              width: isEditorBlade
+                ? `${EDITOR_BLADE_WIDTH_PX}px`
+                : isDiffMode
+                  ? `${DIFF_PANE_PCT}%`
+                  : isEditorExpanded
+                    ? `${Math.round(editorWidthPx)}px`
+                    : '0px',
+              minWidth: isEditorBlade ? `${EDITOR_BLADE_WIDTH_PX}px` : isSecondaryPaneVisible ? '360px' : '0px',
+              overflow: isEditorBlade ? 'hidden' : isSecondaryPaneVisible ? 'visible' : 'hidden',
               boxSizing: 'border-box',
             }}
-            onMouseDownCapture={() => isEditorExpanded && markActive('editor')}
-            onFocusCapture={() => isEditorExpanded && markActive('editor')}
+            onMouseDownCapture={() => isSecondaryPaneVisible && markActive('editor')}
+            onFocusCapture={() => isSecondaryPaneVisible && markActive('editor')}
           >
-            {isDesktop &&
-              isEditorExpanded &&
-              createEditorDragHandle({
-                className: 'absolute left-0 top-0 bottom-0 z-30',
-                style: {},
-                reverse: true,
-              })}
-            <div className='h-full w-full overflow-hidden rounded-panel'>
-              <EditorPanel />
-            </div>
+            {isEditorBlade ? (
+              <button
+                type='button'
+                className='editor-blade'
+                onClick={expandEditor}
+                aria-label={t('conversation.editor.expandEditor', { defaultValue: 'Expand editor' })}
+                title={t('conversation.editor.expandEditor', { defaultValue: 'Expand editor' })}
+              >
+                <ExpandLeft size={16} className='editor-blade__icon' />
+                <span className='editor-blade__label'>
+                  {t('conversation.editor.bladeLabel', { defaultValue: 'Editor' })}
+                </span>
+              </button>
+            ) : (
+              <>
+                {isDesktop &&
+                  isEditorExpanded &&
+                  createEditorDragHandle({
+                    className: 'absolute left-0 top-0 bottom-0 z-30',
+                    style: {},
+                    reverse: true,
+                  })}
+                <div className='h-full w-full overflow-hidden rounded-panel'>
+                  {isDiffMode ? <DiffPanel /> : <EditorPanel />}
+                </div>
+              </>
+            )}
           </div>
         )}
         {workspaceEnabled && !layout?.isMobile && (
           <div
-            className={classNames('!bg-1 chat-pane relative chat-layout-right-sider layout-sider', paneAccent('workspace'))}
+            className={classNames(
+              '!bg-1 chat-pane relative chat-layout-right-sider layout-sider',
+              paneAccent('workspace')
+            )}
             style={{
               flexGrow: 0,
               flexShrink: 0,

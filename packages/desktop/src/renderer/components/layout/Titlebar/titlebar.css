@@ -168,6 +168,66 @@
   display: none;
 }
 
+/* Four-button layout cluster (Chat / Command Center / Terminal / Diff) that
+   replaced the rejected layout-mode dropdown. */
+.app-titlebar__layout-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+
+.app-titlebar__mode-btn {
+  -webkit-app-region: no-drag;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  height: var(--titlebar-btn-size);
+  padding: 0 8px;
+  border: none;
+  /* intentional: 5px platform-specific (Windows control button) */
+  border-radius: 5px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: 500;
+  line-height: 1;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background-color 0.2s ease,
+    color 0.2s ease;
+}
+
+.app-titlebar__mode-btn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.app-titlebar__mode-btn:active {
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+.app-titlebar__mode-btn--active {
+  background-color: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: var(--brand);
+}
+
+[data-theme='dark'] .app-titlebar__mode-btn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .app-titlebar__mode-btn:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+/* Collapse the text labels to icon-only when the titlebar gets tight. */
+@media (max-width: 1100px) {
+  .app-titlebar__mode-btn-label {
+    display: none;
+  }
+}
+
 .app-titlebar__button {
   -webkit-app-region: no-drag;
   width: var(--titlebar-btn-size);

@@ -9,5 +9,31 @@
   "startingShell": "正在启动 shell…",
   "exitedWithCode": "{{title}} — 已退出 (代码 {{code}})",
   "exitedUnknown": "{{title}} — 已退出",
-  "shellNotFound": "在此系统上未找到可用的 shell。"
+  "shellNotFound": "在此系统上未找到可用的 shell。",
+  "layout": {
+    "modeDefault": "默认",
+    "modeSplitPane": "分屏",
+    "modeEditorFocused": "编辑器聚焦",
+    "modeDiffFocused": "差异聚焦",
+    "modeTerminalFocused": "终端聚焦",
+    "regionSider": "侧边栏导航",
+    "regionContent": "主内容区",
+    "regionTerminal": "终端面板",
+    "regionEditor": "编辑器面板",
+    "regionDiff": "差异视图",
+    "resizeHandle": "调整终端面板大小",
+    "selectorLabel": "布局模式",
+    "selectorCurrent": "当前布局：{{name}}",
+    "selectorUnavailable": "不可用",
+    "selectorHint": "选择布局模式",
+    "shortcutSelect": "选择布局模式 {{number}}",
+    "shortcutCycleNext": "下一个布局模式",
+    "shortcutCyclePrev": "上一个布局模式",
+    "diffPlaceholderTitle": "差异视图即将推出",
+    "diffPlaceholderBody": "静态占位符 — layout-01 阶段尚未接入差异解析。",
+    "actionChat": "对话",
+    "actionCommandCenter": "指挥中心",
+    "actionTerminal": "终端",
+    "actionDiff": "差异"
+  }
 }

@@ -239,6 +239,7 @@
     "closeEditor": "Close editor",
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
+    "bladeLabel": "Editor",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

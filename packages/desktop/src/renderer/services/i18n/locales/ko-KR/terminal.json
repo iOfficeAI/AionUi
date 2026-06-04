@@ -9,5 +9,31 @@
   "startingShell": "셸을 시작하는 중…",
   "exitedWithCode": "{{title}} — 종료됨 (코드 {{code}})",
   "exitedUnknown": "{{title}} — 종료됨",
-  "shellNotFound": "이 시스템에서 사용 가능한 셸을 찾을 수 없습니다."
+  "shellNotFound": "이 시스템에서 사용 가능한 셸을 찾을 수 없습니다.",
+  "layout": {
+    "modeDefault": "기본",
+    "modeSplitPane": "분할 창",
+    "modeEditorFocused": "편집기 집중",
+    "modeDiffFocused": "차이 집중",
+    "modeTerminalFocused": "터미널 집중",
+    "regionSider": "사이드바 탐색",
+    "regionContent": "메인 콘텐츠",
+    "regionTerminal": "터미널 패널",
+    "regionEditor": "편집기 패널",
+    "regionDiff": "차이 보기",
+    "resizeHandle": "터미널 패널 크기 조정",
+    "selectorLabel": "레이아웃 모드",
+    "selectorCurrent": "현재 레이아웃: {{name}}",
+    "selectorUnavailable": "사용 불가",
+    "selectorHint": "레이아웃 모드 선택",
+    "shortcutSelect": "레이아웃 모드 {{number}} 선택",
+    "shortcutCycleNext": "다음 레이아웃 모드",
+    "shortcutCyclePrev": "이전 레이아웃 모드",
+    "diffPlaceholderTitle": "차이 보기 곧 출시",
+    "diffPlaceholderBody": "정적 자리표시자 — layout-01에서는 차이 분석이 연결되지 않았습니다.",
+    "actionChat": "채팅",
+    "actionCommandCenter": "커맨드 센터",
+    "actionTerminal": "터미널",
+    "actionDiff": "차이"
+  }
 }
