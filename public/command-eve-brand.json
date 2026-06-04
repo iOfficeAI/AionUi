@@ -1,11 +1,12 @@
 {
   "schema_version": "command-eve-brand-config/v0",
   "version": "v1.0.0-alpha.0",
-  "generated_at": "2026-06-04T13:04:36.140Z",
+  "generated_at": "2026-06-04T13:19:36.665Z",
   "brand": {
     "product": "Command EVE",
     "display_name": "⌘ EVE",
-    "login_title_template": "⌘ EVE + {{version}}"
+    "login_title_template": "⌘ EVE",
+    "login_version_template": "{{version}}"
   },
   "language_pack": {
     "default_language": "de-DE",

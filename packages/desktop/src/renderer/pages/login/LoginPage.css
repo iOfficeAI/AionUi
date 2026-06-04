@@ -196,7 +196,7 @@ body.login-page-active {
 }
 
 .login-page__title {
-  margin: 0 0 8px;
+  margin: 0 0 4px;
   color: #0b1220;
   font-family:
     'Instrument Sans',
@@ -209,6 +209,15 @@ body.login-page-active {
   font-weight: 760;
   letter-spacing: 0;
   line-height: 1.08;
+}
+
+.login-page__version {
+  margin: 0 0 12px;
+  color: #64748b;
+  font-size: 12px;
+  font-weight: 640;
+  letter-spacing: 0;
+  line-height: 1.2;
 }
 
 .login-page__subtitle {

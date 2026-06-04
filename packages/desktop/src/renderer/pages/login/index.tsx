@@ -319,7 +319,7 @@ const LoginPage: React.FC = () => {
 
         <div className='login-page__header'>
           <div className='login-page__logo'>
-            <div className='login-page__media-frame' aria-label={t('login.brand', { version: commandEveVersion })}>
+            <div className='login-page__media-frame' aria-label={t('login.brand')}>
               <img
                 src={COMMAND_EVE_LOGIN_ANIMATION}
                 className={`login-page__brand-animation ${commandEveVideoPlaying ? 'login-page__brand-animation--hidden' : ''}`}
@@ -345,7 +345,8 @@ const LoginPage: React.FC = () => {
               />
             </div>
           </div>
-          <h1 className='login-page__title'>{t('login.brand', { version: commandEveVersion })}</h1>
+          <h1 className='login-page__title'>{t('login.brand')}</h1>
+          <p className='login-page__version'>{commandEveVersion}</p>
           <p className='login-page__subtitle'>{t('login.subtitle')}</p>
         </div>
 
