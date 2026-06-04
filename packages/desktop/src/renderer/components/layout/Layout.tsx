@@ -13,8 +13,10 @@ import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
+import { LayoutModeProvider } from '@renderer/hooks/context/LayoutModeContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
 import { TerminalPanelProvider } from '@renderer/hooks/context/TerminalPanelContext';
 import TerminalPanelHost from '@renderer/components/layout/TerminalPanel/TerminalPanelHost';
@@ -134,6 +136,7 @@ const Layout: React.FC<{
   sider: React.ReactNode;
   onSessionClick?: () => void;
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
+  const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
@@ -496,123 +499,137 @@ const Layout: React.FC<{
     >
       <NavigationHistoryProvider>
         <TerminalPanelProvider>
-          <div className='app-shell flex flex-col size-full min-h-0'>
-            <Titlebar workspaceAvailable={workspaceAvailable} />
-            {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
-            {isMobile && !collapsed && (
-              <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
-            )}
+          <LayoutModeProvider isMobile={isMobile} editorAvailable={!isMobile} diffAvailable={!isMobile}>
+            <div className='app-shell flex flex-col size-full min-h-0' role='application'>
+              <Titlebar workspaceAvailable={workspaceAvailable} />
+              {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
+              {isMobile && !collapsed && (
+                <div className='fixed inset-0 bg-black/30 z-90' onClick={() => setCollapsed(true)} aria-hidden='true' />
+              )}
 
-            <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
-              <ArcoLayout.Sider
-                collapsedWidth={isMobile ? 0 : 0}
-                collapsed={collapsed}
-                width={siderWidth}
-                className={classNames('!bg-2 layout-sider', {
-                  collapsed: collapsed,
-                  'layout-sider--dragging': siderDragging,
-                  'layout-sider--icon-only': !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
-                })}
-                style={siderStyle}
-              >
-                <ArcoLayout.Header
-                  className={classNames(
-                    'flex items-center justify-start pt-6px pb-6px pl-10px pr-8px gap-8px layout-sider-header',
-                    isMobile && 'layout-sider-header--mobile',
-                    {
-                      'cursor-pointer group ': collapsed,
-                    }
-                  )}
+              <ArcoLayout className={'size-full layout flex-1 min-h-0'}>
+                <ArcoLayout.Sider
+                  collapsedWidth={isMobile ? 0 : 0}
+                  collapsed={collapsed}
+                  width={siderWidth}
+                  className={classNames('!bg-2 layout-sider', {
+                    collapsed: collapsed,
+                    'layout-sider--dragging': siderDragging,
+                    'layout-sider--icon-only': !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
+                  })}
+                  style={siderStyle}
                 >
-                  {/* Expanded sider: wordmark covers both brand mark and name.
-                      Width fills the header so the wordmark grows with the
-                      user-sized sider; max-height caps it so a wide sider
-                      doesn't produce a banner-sized logo. Centered horizontally
-                      so it doesn't appear stuck against the left edge when the
-                      sider is much wider than the wordmark needs. */}
-                  <div className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center' onClick={onClick}>
-                    <img
-                      src={brandWordmark}
-                      alt='Chisl'
-                      className='block w-full h-auto max-h-60px object-contain select-none'
-                      draggable={false}
-                    />
-                  </div>
-                  {/* Collapsed / icon-only sider: wordmark won't fit, fall back to
-                      the hexagon so the brand still shows. */}
                   <div
-                    className='collapsed-only shrink-0 size-18px relative items-center justify-center'
-                    onClick={onClick}
+                    role='navigation'
+                    data-layout-region='sider'
+                    tabIndex={-1}
+                    className='size-full flex flex-col min-h-0'
                   >
-                    <img src={brandLogo} alt='Chisl' className='w-full h-full absolute inset-0 object-contain' />
-                  </div>
-                  {isMobile && !collapsed && (
-                    <button
-                      type='button'
-                      className='app-titlebar__button app-titlebar__button--mobile'
-                      onClick={() => setCollapsed(true)}
-                      title='Collapse sidebar'
-                      aria-label='Collapse sidebar'
-                    >
-                      <SidebarIcon size={18} strokeWidth={2.5} />
-                    </button>
-                  )}
-                  {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-                </ArcoLayout.Header>
-                <ArcoLayout.Content className='pt-0 px-4px pb-0 layout-sider-content'>
-                  {React.isValidElement(sider)
-                    ? React.cloneElement(sider, {
-                        onSessionClick: () => {
-                          cleanupSiderTooltips();
-                          if (isMobile) setCollapsed(true);
-                        },
-                        collapsed,
-                      } as any)
-                    : sider}
-                </ArcoLayout.Content>
-                {!isMobile && (
-                  <div
-                    className='absolute top-0 h-full w-10px z-20 cursor-col-resize group'
-                    style={{ right: '-5px' }}
-                    onMouseDown={beginSiderResizeDrag}
-                    aria-hidden='true'
-                    title='Drag to resize sidebar'
-                  >
-                    <div
+                    <ArcoLayout.Header
                       className={classNames(
-                        'absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-brand group-active:bg-brand',
-                        siderDragging && '!bg-brand'
+                        'flex items-center justify-start pt-6px pb-6px pl-10px pr-8px gap-8px layout-sider-header',
+                        isMobile && 'layout-sider-header--mobile',
+                        {
+                          'cursor-pointer group ': collapsed,
+                        }
                       )}
-                      style={{ transition: 'background-color var(--motion-base) ease' }}
-                    />
+                    >
+                      {/* Expanded sider: wordmark covers both brand mark and name.
+                        Width fills the header so the wordmark grows with the
+                        user-sized sider; max-height caps it so a wide sider
+                        doesn't produce a banner-sized logo. Centered horizontally
+                        so it doesn't appear stuck against the left edge when the
+                        sider is much wider than the wordmark needs. */}
+                      <div
+                        className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center'
+                        onClick={onClick}
+                      >
+                        <img
+                          src={brandWordmark}
+                          alt='Chisl'
+                          className='block w-full h-auto max-h-60px object-contain select-none'
+                          draggable={false}
+                        />
+                      </div>
+                      {/* Collapsed / icon-only sider: wordmark won't fit, fall back to
+                        the hexagon so the brand still shows. */}
+                      <div
+                        className='collapsed-only shrink-0 size-18px relative items-center justify-center'
+                        onClick={onClick}
+                      >
+                        <img src={brandLogo} alt='Chisl' className='w-full h-full absolute inset-0 object-contain' />
+                      </div>
+                      {isMobile && !collapsed && (
+                        <button
+                          type='button'
+                          className='app-titlebar__button app-titlebar__button--mobile'
+                          onClick={() => setCollapsed(true)}
+                          title={t('terminal.layout.regionSider', { defaultValue: 'Sidebar navigation' })}
+                          aria-label={t('common.collapse', { defaultValue: 'Collapse' })}
+                        >
+                          <SidebarIcon size={18} strokeWidth={2.5} />
+                        </button>
+                      )}
+                      {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
+                    </ArcoLayout.Header>
+                    <ArcoLayout.Content className='pt-0 px-4px pb-0 layout-sider-content'>
+                      {React.isValidElement(sider)
+                        ? React.cloneElement(sider, {
+                            onSessionClick: () => {
+                              cleanupSiderTooltips();
+                              if (isMobile) setCollapsed(true);
+                            },
+                            collapsed,
+                          } as any)
+                        : sider}
+                    </ArcoLayout.Content>
+                    {!isMobile && (
+                      <div
+                        className='absolute top-0 h-full w-10px z-20 cursor-col-resize group'
+                        style={{ right: '-5px' }}
+                        onMouseDown={beginSiderResizeDrag}
+                        aria-hidden='true'
+                        title='Drag to resize sidebar'
+                      >
+                        <div
+                          className={classNames(
+                            'absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-brand group-active:bg-brand',
+                            siderDragging && '!bg-brand'
+                          )}
+                          style={{ transition: 'background-color var(--motion-base) ease' }}
+                        />
+                      </div>
+                    )}
                   </div>
-                )}
-              </ArcoLayout.Sider>
+                </ArcoLayout.Sider>
 
-              <ArcoLayout.Content
-                className={'bg-1 layout-content flex flex-col min-h-0'}
-                onClick={() => {
-                  if (isMobile && !collapsed) setCollapsed(true);
-                }}
-                style={
-                  isMobile
-                    ? {
-                        width: '100%',
-                      }
-                    : undefined
-                }
-              >
-                <TerminalPanelHost isMobile={isMobile}>
-                  <Outlet />
-                </TerminalPanelHost>
-                {directorySelectionContextHolder}
-                <PwaPullToRefresh />
-                <Suspense fallback={null}>
-                  <UpdateModal />
-                </Suspense>
-              </ArcoLayout.Content>
-            </ArcoLayout>
-          </div>
+                <ArcoLayout.Content
+                  className={'bg-1 layout-content flex flex-col min-h-0'}
+                  onClick={() => {
+                    if (isMobile && !collapsed) setCollapsed(true);
+                  }}
+                  style={
+                    isMobile
+                      ? {
+                          width: '100%',
+                        }
+                      : undefined
+                  }
+                >
+                  <div role='main' data-layout-region='content' tabIndex={-1} className='flex flex-col flex-1 min-h-0'>
+                    <TerminalPanelHost isMobile={isMobile}>
+                      <Outlet />
+                    </TerminalPanelHost>
+                    {directorySelectionContextHolder}
+                    <PwaPullToRefresh />
+                    <Suspense fallback={null}>
+                      <UpdateModal />
+                    </Suspense>
+                  </div>
+                </ArcoLayout.Content>
+              </ArcoLayout>
+            </div>
+          </LayoutModeProvider>
         </TerminalPanelProvider>
       </NavigationHistoryProvider>
     </LayoutContext.Provider>
