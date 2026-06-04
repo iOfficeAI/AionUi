@@ -24,4 +24,10 @@ describe('CodeEditor', () => {
     const { container } = render(<CodeEditor value={'x'} onChange={() => {}} readOnly />);
     expect(container.querySelector('.cm-editor')).not.toBeNull();
   });
+
+  it('shows the AI-writing badge when content grows externally', () => {
+    const { container, rerender } = render(<CodeEditor value={'a'} onChange={() => {}} />);
+    rerender(<CodeEditor value={'a much longer streamed body of content'} onChange={() => {}} />);
+    expect(container.textContent).toContain('preview.aiWriting');
+  });
 });

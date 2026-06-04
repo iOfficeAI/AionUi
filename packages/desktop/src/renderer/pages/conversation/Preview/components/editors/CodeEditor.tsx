@@ -42,6 +42,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, file
   const [languageExt, setLanguageExt] = useState<Extension[]>([]);
   const [isStreaming, setIsStreaming] = useState(false);
 
+  // 依赖父组件对 onChange 后的 value 做 1:1 同步回显来区分用户编辑与外部流式写入
+  // Relies on the parent echoing value 1:1 synchronously after onChange to tell
+  // user edits apart from external (streaming) growth.
   const userEditRef = useRef(false); // 最近一次 value 变化来自用户编辑 / Last value change came from a user edit
   const prevLenRef = useRef(value.length);
   const viewRef = useRef<EditorView | null>(null);
@@ -64,6 +67,17 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, file
     };
   }, [language, fileName, disableHighlight]);
 
+  // 文件切换时重置流式追踪基线，避免复用实例时携带上一个文件的长度造成误判
+  // Reset streaming baseline on file-identity change so a reused instance does not
+  // carry a stale length and fire a false "AI writing" badge.
+  useEffect(() => {
+    prevLenRef.current = value.length;
+    userEditRef.current = false;
+    setIsStreaming(false);
+    // value intentionally omitted: we only re-baseline when the file identity changes
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [language, fileName]);
+
   // 区分外部流式增长 vs 用户编辑：外部增长时显示角标并自动滚到底
   // Distinguish external streaming growth from user edits: badge + auto-scroll on external growth
   useEffect(() => {
@@ -81,7 +95,7 @@ const CodeEditor: React.FC<CodeEditorProps> = ({ value, onChange, language, file
 
     const view = viewRef.current;
     if (view && !view.hasFocus) {
-      view.dispatch({ selection: { anchor: view.state.doc.length }, scrollIntoView: true });
+      view.dispatch({ effects: EditorView.scrollIntoView(view.state.doc.length) });
     }
   }, [value]);
 
