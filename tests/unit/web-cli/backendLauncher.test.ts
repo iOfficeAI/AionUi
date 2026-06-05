@@ -536,7 +536,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     await expectedRejection;
 
     expect(mgr.status).toBe('error');
-    expect(killSpy).toHaveBeenCalled();
+    expectBackendTreeKill(killSpy, 'SIGKILL');
 
     killSpy.mockRestore();
   }, 15_000);
