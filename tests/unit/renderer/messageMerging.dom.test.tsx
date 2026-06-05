@@ -19,6 +19,11 @@ import {
 
 vi.mock('@/common', () => ({
   ipcBridge: {
+    conversation: {
+      userCreated: {
+        on: vi.fn().mockReturnValue(() => {}),
+      },
+    },
     database: {
       getConversationMessages: {
         invoke: vi.fn(),
