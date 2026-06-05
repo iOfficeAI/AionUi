@@ -136,22 +136,15 @@ WEB_PLATFORMS=(
 for plat in "${WEB_PLATFORMS[@]}"; do
   tarball="aionui-web-${VERSION}-${plat}.tar.gz"
   if [ ! -f "$OUTPUT_DIR/$tarball" ]; then
-    echo "::error::Missing web-cli tarball: $tarball"
-    MISSING=1
+    echo "::warning::Missing web-cli tarball: $tarball (web-cli pack is disabled)"
   fi
   if [ ! -f "$OUTPUT_DIR/${tarball}.sha256" ]; then
-    echo "::error::Missing web-cli checksum: ${tarball}.sha256"
-    MISSING=1
+    echo "::warning::Missing web-cli checksum: ${tarball}.sha256 (web-cli pack is disabled)"
   fi
 done
 
 if [ ! -f "$OUTPUT_DIR/install-web.sh" ]; then
-  echo "::error::Missing install-web.sh"
-  MISSING=1
-fi
-
-if [ "$MISSING" -ne 0 ]; then
-  exit 1
+  echo "::warning::Missing install-web.sh (web-cli pack is disabled)"
 fi
 
 echo ""
