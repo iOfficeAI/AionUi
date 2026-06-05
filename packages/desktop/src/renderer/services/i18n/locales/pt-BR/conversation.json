@@ -93,6 +93,7 @@
   "createFailed": "Falha ao criar a conversa",
   "createError": {
     "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "O caminho do projeto selecionado não está disponível. Verifique se o caminho do projeto \"{{workspacePath}}\" existe e está acessível.",
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "O caminho do projeto selecionado \"{{workspacePath}}\" contém um nome de pasta com espaços ou outros caracteres de espaço em branco. Renomeie a pasta afetada ou escolha um caminho de projeto em que nenhum nome de diretório contenha espaços."
     }
   },
@@ -260,6 +261,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "O provedor de modelo retornou uma resposta vazia",
         "body": "O provedor concluiu a solicitação sem conteúdo utilizável. Tente novamente uma vez ou troque de provedor se isso se repetir."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "O agente atual não conseguiu executar neste caminho de projeto",
+        "body": "Verifique se o caminho de projeto atual existe.",
+        "bodyWithPath": "O agente atual não conseguiu executar no caminho de projeto \"{{workspacePath}}\". Verifique se o caminho de projeto existe."
       },
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
         "title": "Este caminho de projeto não é mais compatível com execução",
