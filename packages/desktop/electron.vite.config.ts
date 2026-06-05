@@ -205,7 +205,22 @@ export default defineConfig(({ mode }) => {
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
-        dedupe: ['react', 'react-dom', 'react-router-dom'],
+        // CodeMirror relies on module-level singletons (highlighterFacet, tag
+        // sets). If Vite pre-bundles two copies of @codemirror/language (one for
+        // our direct import, one nested under @uiw/react-codemirror), our custom
+        // markdown HighlightStyle registers on a facet the editor never reads,
+        // so the source view silently falls back to near-monochrome. Dedupe the
+        // singleton packages to a single physical copy.
+        dedupe: [
+          'react',
+          'react-dom',
+          'react-router-dom',
+          '@codemirror/state',
+          '@codemirror/view',
+          '@codemirror/language',
+          '@lezer/common',
+          '@lezer/highlight',
+        ],
       },
       plugins: [
         UnoCSS(unoConfig),
@@ -301,6 +316,12 @@ export default defineConfig(({ mode }) => {
           'remark-breaks',
           'rehype-raw',
           'rehype-katex',
+          // Pre-bundle the CodeMirror entry points together so they share a
+          // single @codemirror/language copy (see dedupe note above); otherwise
+          // the markdown source view loses its custom syntax highlighting.
+          '@uiw/react-codemirror',
+          '@codemirror/lang-markdown',
+          '@codemirror/language',
         ],
       },
     },
