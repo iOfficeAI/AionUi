@@ -109,7 +109,7 @@ extraResources:
     to: .
   - from: resources/app.png
     to: app.png
-  # aioncore binary (pre-compiled per platform/arch, ships its own bun runtime)
+  # aioncore binary (pre-compiled per platform/arch)
   - from: resources/bundled-aioncore
     to: bundled-aioncore
   - from: resources/hub

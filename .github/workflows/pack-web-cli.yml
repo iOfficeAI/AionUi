@@ -28,6 +28,7 @@ on:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   code-quality:
@@ -124,7 +125,7 @@ jobs:
         env:
           PACK_PLATFORM: ${{ matrix.platform }}
           PACK_ARCH: ${{ matrix.arch }}
-          # Version is pinned in repo-root package.json (aioncoreVersion).
+          # Version is pinned in repo-root package.json (aionuiBackendVersion).
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Upload tarball artifact

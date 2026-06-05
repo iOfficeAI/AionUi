@@ -14,7 +14,7 @@ on:
         default: false
   pull_request:
     types: [opened, synchronize, edited, closed, ready_for_review]
-    branches: [main, dev]
+    branches: [main, feature/**, release/pounding-*]
     paths-ignore:
       - '**/*.md'
       - 'docs/**'
@@ -34,6 +34,7 @@ permissions:
 
 env:
   BUN_INSTALL_REGISTRY: 'https://registry.npmjs.org/'
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
 
 jobs:
   # Cancel in-progress runs when PR is closed (merged or manually closed)
@@ -90,7 +91,7 @@ jobs:
     name: Unit Tests (${{ matrix.os }})
     if: github.event_name == 'workflow_dispatch' || (github.event.action != 'closed' && github.event.pull_request.draft == false)
     runs-on: ${{ matrix.os }}
-    timeout-minutes: 20
+    timeout-minutes: 10
     strategy:
       fail-fast: false
       matrix:
@@ -392,7 +393,7 @@ jobs:
           Write-Host "=========================================="
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
-          node scripts/build-with-builder.js x64 --win --x64
+          just build-win-x64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
@@ -409,7 +410,7 @@ jobs:
           Write-Host "=========================================="
           Write-Host "BUILD TEST: ${{ matrix.platform }}"
           Write-Host "=========================================="
-          node scripts/build-with-builder.js arm64 --win --arm64
+          just build-win-arm64
           Write-Host "✓Build test passed for ${{ matrix.platform }}"
         env:
           NODE_OPTIONS: '--max-old-space-size=8192'
