@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Equipes",
+    "createTeam": "Nova Equipe",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "rename": "Renomear",
+    "delete": "Excluir",
+    "renameTitle": "Rename Team",
+    "renamePlaceholder": "Team name",
+    "deleteConfirm": "Delete this team?",
+    "deleteConfirmContent": "This action cannot be undone.",
+    "deleteOk": "Excluir",
+    "deleteCancel": "Cancelar",
+    "renameOk": "Salvar",
+    "renameCancel": "Cancelar",
+    "renameSuccess": "Team renamed",
+    "deleteSuccess": "Team deleted"
+  },
+  "newAgent": "Novo Agente",
+  "noMessages": "No messages yet.",
+  "agentNotConfigured": "Agent not configured yet.",
+  "sendBox": {
+    "placeholder": "Message dispatch agent..."
+  },
+  "create": {
+    "title": "Criar Equipe",
+    "namePlaceholder": "Team name",
+    "dispatchAgentPlaceholder": "Select team leader",
+    "subAgentsPlaceholder": "Select sub agents",
+    "workspacePlaceholder": "Project folder path (optional)",
+    "confirm": "Criar Equipe",
+    "noSupportedAgents": "No supported agents installed",
+    "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",
+    "leaderDesc": "Understands your goals and coordinates agents to complete tasks",
+    "step": {
+      "dispatch": "Team Leader",
+      "subAgents": "Sub Agents",
+      "workspace": "Projeto"
+    },
+    "nameRequired": "Please enter a team name",
+    "leaderRequired": "Please select a team leader",
+    "selectFolder": "Select folder",
+    "recentLabel": "Recent",
+    "chooseDifferentFolder": "Choose a different folder",
+    "error": "Failed to create team"
+  },
+  "removeAgent": {
+    "confirmTitle": "Remove Team Member",
+    "confirmContent": "This member is currently active. Force remove?"
+  },
+  "emptyState": {
+    "subtitle": "Describe your goal and I'll get the team working on it",
+    "suggestions": {
+      "debate": "Organize a debate with agents taking different sides",
+      "interview": "Plan an in-depth interview between agents",
+      "expert_review": "Have multiple experts analyze the same problem"
+    }
+  }
+}
