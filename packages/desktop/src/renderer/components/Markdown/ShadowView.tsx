@@ -8,7 +8,7 @@ import { theme } from '@office-ai/platform';
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
-import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 /**
@@ -267,27 +267,16 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
-    const configuredCss = configService.get('customCss');
-    if (configuredCss) {
-      setCustomCss(addImportantToAll(configuredCss));
-    } else {
-      setCustomCss('');
-    }
-
-    // Listen to custom CSS update events
-    const handleCustomCssUpdate = (e: CustomEvent) => {
-      if (e.detail?.customCss !== undefined) {
-        const nextCss = e.detail.customCss || '';
-        // Use unified utility to auto-add !important
-        const processedCss = addImportantToAll(nextCss);
-        setCustomCss(processedCss);
-      }
+    let mounted = true;
+    const applyCss = (t: { css?: string } | null) => {
+      if (!mounted) return;
+      setCustomCss(t?.css ? addImportantToAll(t.css) : '');
     };
-
-    window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
-
+    ipcBridge.theme.requestCurrent.invoke().then(applyCss).catch(() => {});
+    const off = ipcBridge.theme.changed.on((t) => applyCss(t));
     return () => {
-      window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+      mounted = false;
+      off?.();
     };
   }, []);
 

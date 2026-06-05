@@ -22,6 +22,8 @@ async function initActiveTheme(): Promise<Theme> {
   const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
   applyTheme(resolved);
   try { localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance); } catch { /* noop */ }
+  // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
+  void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
   return resolved;
 }
 
