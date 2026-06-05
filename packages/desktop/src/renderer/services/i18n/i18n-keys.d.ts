@@ -1335,6 +1335,7 @@ export type I18nKey =
   | 'settings.cssSettings'
   | 'settings.cssTheme.addManually'
   | 'settings.cssTheme.addToPreset'
+  | 'settings.cssTheme.appearance'
   | 'settings.cssTheme.applied'
   | 'settings.cssTheme.applyFailed'
   | 'settings.cssTheme.cleared'

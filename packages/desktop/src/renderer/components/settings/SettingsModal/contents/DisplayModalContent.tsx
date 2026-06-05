@@ -7,7 +7,6 @@
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
-import { ThemeSwitcher } from '@/renderer/components/settings/ThemeSwitcher';
 import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import AionCollapse from '@/renderer/components/base/AionCollapse';
@@ -33,13 +32,12 @@ const PreferenceRow: React.FC<{
 /**
  * 显示设置内容组件 / Display settings content component
  *
- * 提供显示相关的配置选项，包括主题、缩放比例和自定义CSS
- * Provides display-related configuration options including theme, zoom scale and custom CSS
+ * 提供显示相关的配置选项，包括字体缩放和主题选择
+ * Provides display-related configuration options including font scale and theme selection
  *
  * @features
- * - 主题切换：亮色/暗色/跟随系统 / Theme: light/dark/system
  * - 缩放比例控制 / Zoom scale control
- * - 自定义CSS编辑器 / Custom CSS editor
+ * - 统一主题画廊（浅色、深色及装饰主题）/ Unified theme gallery (light, dark, decorative)
  */
 const DisplayModalContent: React.FC = () => {
   const { t } = useTranslation();
@@ -55,10 +53,7 @@ const DisplayModalContent: React.FC = () => {
     );
 
   // 显示设置项配置 / Display items configuration
-  const displayItems = [
-    { key: 'theme', label: t('settings.theme'), component: <ThemeSwitcher /> },
-    { key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> },
-  ];
+  const displayItems = [{ key: 'fontSize', label: t('settings.fontSize'), component: <FontSizeControl /> }];
 
   return (
     <div className='flex flex-col h-full w-full'>

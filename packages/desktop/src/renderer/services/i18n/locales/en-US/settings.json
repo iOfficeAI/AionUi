@@ -132,6 +132,7 @@
     "addToPreset": "Add Theme",
     "editTheme": "Edit Theme",
     "previewCover": "Background Image",
+    "appearance": "Appearance",
     "name": "Name",
     "namePlaceholder": "Enter preset name",
     "cssCode": "CSS Code",

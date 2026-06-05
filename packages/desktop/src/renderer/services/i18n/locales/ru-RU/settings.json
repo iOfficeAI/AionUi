@@ -132,6 +132,7 @@
     "addToPreset": "Добавить тему",
     "editTheme": "Редактировать тему",
     "previewCover": "Фоновое изображение",
+    "appearance": "Режим внешнего вида",
     "name": "Название",
     "namePlaceholder": "Введите название пресета",
     "cssCode": "CSS-код",
