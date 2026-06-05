@@ -1,0 +1,13 @@
+{
+  "login": "Entrar com Google",
+  "logout": "Sair",
+  "connected": "Conectado como {{email}}",
+  "disconnected": "Não conectado",
+  "error": "Erro de conexão Google",
+  "permissions": "Permissões necessárias",
+  "drive": "Google Drive",
+  "docs": "Google Docs",
+  "sheets": "Google Sheets",
+  "calendar": "Google Calendar",
+  "gmail": "Gmail"
+}

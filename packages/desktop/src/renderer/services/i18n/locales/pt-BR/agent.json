@@ -1,0 +1,31 @@
+{
+  "health": {
+    "detectedError": "Erro detectado com o agente atual ({{agent}})",
+    "autoSwitch": "Alternando automaticamente para {{agent}}...",
+    "switchFailed": "Falha ao alternar agente",
+    "notFound": "Agente não encontrado",
+    "restarting": "Reiniciando agente...",
+    "restarted": "Agente reiniciado",
+    "restartFailed": "Falha ao reiniciar agente"
+  },
+  "status": {
+    "idle": "Inativo",
+    "busy": "Ocupado",
+    "error": "Erro",
+    "offline": "Offline",
+    "connecting": "Conectando...",
+    "ready": "Pronto"
+  },
+  "permissions": {
+    "granted": "Permissão concedida",
+    "denied": "Permissão negada",
+    "pending": "Aguardando aprovação",
+    "yolo": "Modo automático (YOLO)",
+    "ask": "Perguntar sempre"
+  },
+  "actions": {
+    "stop": "Parar",
+    "restart": "Reiniciar",
+    "clear": "Limpar contexto"
+  }
+}

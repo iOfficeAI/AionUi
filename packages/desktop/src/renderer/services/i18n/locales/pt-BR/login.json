@@ -1,0 +1,23 @@
+{
+  "title": "Entrar",
+  "username": "Usuário",
+  "password": "Senha",
+  "login": "Entrar",
+  "logging_in": "Entrando...",
+  "error": "Usuário ou senha inválidos",
+  "empty_fields": "Preencha usuário e senha",
+  "remember": "Lembrar-me",
+  "forgot": "Esqueceu a senha?",
+  "no_account": "Não tem conta?",
+  "register": "Criar conta",
+  "register_title": "Criar Conta",
+  "confirm_password": "Confirmar Senha",
+  "passwords_match": "As senhas coincidem",
+  "passwords_mismatch": "As senhas não coincidem",
+  "register_success": "Conta criada com sucesso",
+  "register_error": "Falha ao criar conta",
+  "weak_password": "Senha muito fraca",
+  "username_taken": "Nome de usuário já existe",
+  "username_format": "Use apenas letras, números, hífens e sublinhados",
+  "username_length": "O nome de usuário deve ter entre 3 e 32 caracteres"
+}

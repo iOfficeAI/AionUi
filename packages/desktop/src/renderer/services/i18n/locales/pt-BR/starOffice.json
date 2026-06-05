@@ -1,0 +1,14 @@
+{
+  "title": "Star Office",
+  "monitor": "Monitor",
+  "detected": "Detectado em {{url}}",
+  "notDetected": "Não detectado",
+  "openMonitor": "Abrir Monitor",
+  "installPrompt": "Instalar Star Office",
+  "connectPrompt": "Conectar ao Star Office",
+  "url": "URL do Monitor",
+  "status": "Status",
+  "connecting": "Conectando...",
+  "connected": "Conectado",
+  "error": "Erro de conexão"
+}
