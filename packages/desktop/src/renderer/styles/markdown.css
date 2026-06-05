@@ -7,6 +7,9 @@
 
 .aionui-markdown {
   color: var(--text-primary);
+  /* Comfortable reading size for the rendered preview (source editor is 13px mono). */
+  font-size: 15px;
+  line-height: 1.7;
   word-break: break-word;
   overflow-wrap: anywhere;
   max-width: 100%;
