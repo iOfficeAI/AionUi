@@ -308,13 +308,13 @@ jobs:
 
       - name: Prepare packaged backend binary
         shell: bash
-        run: node scripts/prepareAioncore.js
+        run: node scripts/preparePoundingcore.js
         env:
           # Version is pinned in repo-root package.json (prefer aioncoreVersion, fallback aionuiBackendVersion).
-          # Override AIONCORE_VERSION for ad-hoc builds.
-          # AIONCORE_GITHUB_OWNER/REPO point to our private backend fork.
-          AIONCORE_GITHUB_OWNER: halojerry
-          AIONCORE_GITHUB_REPO: poundingcore
+          # Override POUNDINGCORE_VERSION for ad-hoc builds.
+          # POUNDINGCORE_GITHUB_OWNER/REPO point to our private backend fork.
+          POUNDINGCORE_GITHUB_OWNER: halojerry
+          POUNDINGCORE_GITHUB_REPO: poundingcore
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
 

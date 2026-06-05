@@ -455,11 +455,11 @@ try {
     return;
   }
 
-  // 5. Prepare aioncore binary (for packaged runtime usage)
-  const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+  // 5. Prepare poundingcore binary (for packaged runtime usage)
+  const { preparePoundingcore } = require('../packages/shared-scripts/src/prepare-poundingcore.js');
   const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
   const projectRoot = path.resolve(__dirname, '..');
-  prepareAioncore({
+  preparePoundingcore({
     projectRoot,
     platform: process.platform,
     arch: targetArch,

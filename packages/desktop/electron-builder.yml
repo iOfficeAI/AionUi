@@ -23,6 +23,7 @@ files:
   - out/renderer/**/*
   # Static resources — use explicit directory inclusion to prevent resource loss
   - public/**/*
+  - '!public/pet-states/**'
   - package.json
   # Native modules and their runtime dependencies
   - node_modules/better-sqlite3/**/*
@@ -105,13 +106,17 @@ files:
     to: static
 
 extraResources:
-  - from: public
-    to: .
+  - from: public/pwa
+    to: pwa
+  - from: public/sw.js
+    to: sw.js
+  - from: public/manifest.webmanifest
+    to: manifest.webmanifest
   - from: resources/app.png
     to: app.png
-  # aioncore binary (pre-compiled per platform/arch)
-  - from: resources/bundled-aioncore
-    to: bundled-aioncore
+  # poundingcore binary (pre-compiled per platform/arch)
+  - from: resources/bundled-poundingcore
+    to: bundled-poundingcore
   - from: resources/hub
     to: hub
 win:

@@ -6,7 +6,6 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Cat,
   Communication,
-  Computer,
   Earth,
   Info,
   Lightning,
@@ -16,6 +15,7 @@ import {
   Speed,
   System,
 } from '@icon-park/react';
+import ozonPng from '@renderer/assets/logos/brand/ozon.png';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -100,7 +100,7 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Lightning />,
         path: 'capabilities',
       },
-      display: { id: 'display', label: t('settings.display'), icon: <Computer />, path: 'display' },
+      display: { id: 'display', label: t('settings.display'), icon: <img src={ozonPng} alt='Display' style={{ width: 20, height: 20 }} />, path: 'display' },
       webui: {
         id: 'webui',
         label: t('settings.webui'),

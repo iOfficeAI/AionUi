@@ -8,7 +8,6 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Cat,
   Communication,
-  Computer,
   Earth,
   Info,
   Lightning,
@@ -17,6 +16,7 @@ import {
   Robot,
   System,
 } from '@icon-park/react';
+import ozonPng from '@renderer/assets/logos/brand/ozon.png';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
@@ -57,7 +57,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     display: {
       id: 'display',
       label: t('settings.display'),
-      icon: <Computer theme='outline' size='16' />,
+      icon: <img src={ozonPng} alt='Display' style={{ width: 16, height: 16 }} />,
       path: 'display',
     },
     webui: {

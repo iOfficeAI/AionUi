@@ -5,7 +5,7 @@
   "description": "Shared build scripts for AionUi packages",
   "type": "commonjs",
   "exports": {
-    "./prepare-aioncore": "./src/prepare-aioncore.js"
+    "./prepare-poundingcore": "./src/prepare-poundingcore.js"
   },
   "scripts": {
     "test": "vitest run",

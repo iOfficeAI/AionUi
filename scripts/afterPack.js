@@ -22,7 +22,7 @@ function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
 }
 
 function getBackendBinaryName(electronPlatformName) {
-  return electronPlatformName === 'win32' ? 'aioncore.exe' : 'aioncore';
+  return electronPlatformName === 'win32' ? 'poundingcore.exe' : 'poundingcore';
 }
 
 function requirePackagedResource(resourcesDir, relativePath, missing) {
@@ -38,10 +38,10 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
 
   requirePackagedResource(
     resourcesDir,
-    path.join('bundled-aioncore', runtimeKey, getBackendBinaryName(electronPlatformName)),
+    path.join('bundled-poundingcore', runtimeKey, getBackendBinaryName(electronPlatformName)),
     missing
   );
-  requirePackagedResource(resourcesDir, path.join('bundled-aioncore', runtimeKey, 'manifest.json'), missing);
+  requirePackagedResource(resourcesDir, path.join('bundled-poundingcore', runtimeKey, 'manifest.json'), missing);
 
   if (missing.length > 0) {
     throw new Error(`Packaged app is missing required resource(s): ${missing.join(', ')}`);

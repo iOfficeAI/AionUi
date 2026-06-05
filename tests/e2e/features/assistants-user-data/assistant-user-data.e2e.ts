@@ -59,13 +59,13 @@ function querySqliteIds(dataDir: string, sql: string): string[] {
 
 /** Backend binary resolved from PATH / cargo bin. */
 function resolveBackendBinary(): string {
-  const candidates = [process.env.POUNDING_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'aioncore')].filter(
+  const candidates = [process.env.POUNDING_BACKEND_BINARY, path.join(os.homedir(), '.cargo', 'bin', 'poundingcore')].filter(
     (x): x is string => typeof x === 'string' && x.length > 0
   );
   for (const c of candidates) {
     if (fs.existsSync(c)) return c;
   }
-  throw new Error(`aioncore binary not found. Set POUNDING_BACKEND_BINARY or install to ~/.cargo/bin/aioncore.`);
+  throw new Error(`poundingcore binary not found. Set POUNDING_BACKEND_BINARY or install to ~/.cargo/bin/poundingcore.`);
 }
 
 // ── Backend HTTP contract (shared with renderer httpBridge) ──────────────────
@@ -393,7 +393,7 @@ test.describe('Assistant User Data Migration (T5)', () => {
 
     async function startBackend(): Promise<void> {
       const bin = resolveBackendBinary();
-      const logPath = path.join(dataDir, 'sibling-aioncore.log');
+      const logPath = path.join(dataDir, 'sibling-poundingcore.log');
       const logFd = fs.openSync(logPath, 'a');
       // Scrub env vars that would drag the main Electron's backend state in.
       const parentEnv = { ...process.env };

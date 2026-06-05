@@ -12,7 +12,7 @@
  *   1. A `bun run webui` is already running on the default port → reach its
  *      reverse-proxied /api/webui/reset-password directly. Users don't have to
  *      stop the server first; the just-reset password can be used immediately.
- *   2. No webui running → spawn a short-lived aioncore against the same
+ *   2. No webui running → spawn a short-lived poundingcore against the same
  *      data-dir, POST /api/webui/reset-password, and stop the backend. This is
  *      the offline / cold-start path.
  *
@@ -30,7 +30,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import { startBackend, stopBackend } from '@aionui/web-host';
 
-const BACKEND_BINARY = process.platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+const BACKEND_BINARY = process.platform === 'win32' ? 'poundingcore.exe' : 'poundingcore';
 
 const __filename = fileURLToPath(import.meta.url);
 const repoRoot = path.resolve(path.dirname(__filename), '..');
@@ -82,7 +82,7 @@ function resolveWorkDir(): string {
 function resolveBackendBinary(): string {
   if (process.env.POUNDING_BACKEND_BIN) return process.env.POUNDING_BACKEND_BIN;
 
-  const bundledBase = process.env.POUNDING_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-aioncore');
+  const bundledBase = process.env.POUNDING_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-poundingcore');
   const runtimeKey = `${process.platform}-${process.arch}`;
   const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
   if (fs.existsSync(bundled)) return bundled;

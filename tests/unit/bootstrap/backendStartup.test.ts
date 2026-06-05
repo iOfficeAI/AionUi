@@ -28,7 +28,7 @@ describe('startBackendOrExit', () => {
   });
 
   it('captures startup failure and exits without registering a backend port by default', async () => {
-    const error = new Error('aioncore failed to start within timeout');
+    const error = new Error('poundingcore failed to start within timeout');
     const calls: string[] = [];
     const onStarted = vi.fn();
     const captureFailure = vi.fn(async () => {
@@ -52,7 +52,7 @@ describe('startBackendOrExit', () => {
     });
 
     expect(result).toEqual({ ok: false });
-    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start aioncore:', error);
+    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start poundingcore:', error);
     expect(captureFailure).toHaveBeenCalledWith(error);
     expect(exitApp).toHaveBeenCalledWith(1);
     expect(calls).toEqual(['capture-start', 'capture-end', 'exit']);
@@ -60,7 +60,7 @@ describe('startBackendOrExit', () => {
   });
 
   it('captures startup failure without dialog or exit when exitOnFailure is disabled', async () => {
-    const error = new Error('aioncore exited before health check passed');
+    const error = new Error('poundingcore exited before health check passed');
     const onStarted = vi.fn();
     const captureFailure = vi.fn();
     const exitApp = vi.fn();
@@ -78,14 +78,14 @@ describe('startBackendOrExit', () => {
     });
 
     expect(result).toEqual({ ok: false });
-    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start aioncore:', error);
+    expect(logError).toHaveBeenCalledWith('[AionUi] Failed to start poundingcore:', error);
     expect(captureFailure).toHaveBeenCalledWith(error);
     expect(exitApp).not.toHaveBeenCalled();
     expect(onStarted).not.toHaveBeenCalled();
   });
 
   it('does not capture or exit when backend startup is cancelled by shutdown', async () => {
-    const error = new Error('aioncore startup cancelled');
+    const error = new Error('poundingcore startup cancelled');
     error.name = 'BackendStartupCancelledError';
     const onStarted = vi.fn();
     const captureFailure = vi.fn();

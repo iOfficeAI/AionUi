@@ -36,7 +36,7 @@ log.transports.file.level = FILE_LOG_LEVEL;
 log.transports.file.maxSize = FILE_SIZE_LIMIT;
 log.transports.console.level = app.isPackaged ? false : CONSOLE_LOG_LEVEL;
 
-const BACKEND_PREFIX = '[aioncore]';
+const BACKEND_PREFIX = '[poundingcore]';
 
 // Strip ANSI escape sequences from a string.
 const ANSI_RE = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g');

@@ -1,5 +1,5 @@
 /**
- * HTTP client factory for communicating with the aioncore server.
+ * HTTP client factory for communicating with the poundingcore server.
  *
  * Usage:
  *   const api = createApiClient('http://127.0.0.1:9123')

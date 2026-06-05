@@ -52,7 +52,7 @@ export type BackendInstallDiagnostics = {
 };
 
 const MANIFEST_FILE_NAME = 'manifest.json';
-const BUNDLED_AIONCORE_DIR = 'bundled-aioncore';
+const BUNDLED_POUNDINGCORE_DIR = 'bundled-poundingcore';
 
 function getString(value: unknown): string | undefined {
   return typeof value === 'string' && value.length > 0 ? value : undefined;
@@ -143,9 +143,9 @@ export function collectBackendInstallDiagnostics(
   const resourcesPath = getString(details?.resourcesPath) ?? env.resourcesPath;
   const runtimeKey = getString(details?.runtimeKey);
   const binaryName = getString(details?.binaryName);
-  const bundledDirPath = resourcesPath ? pathApi.join(resourcesPath, BUNDLED_AIONCORE_DIR) : undefined;
+  const bundledDirPath = resourcesPath ? pathApi.join(resourcesPath, BUNDLED_POUNDINGCORE_DIR) : undefined;
   const runtimeDirPath =
-    resourcesPath && runtimeKey ? pathApi.join(resourcesPath, BUNDLED_AIONCORE_DIR, runtimeKey) : undefined;
+    resourcesPath && runtimeKey ? pathApi.join(resourcesPath, BUNDLED_POUNDINGCORE_DIR, runtimeKey) : undefined;
   const binaryPath =
     getString(details?.checkedBundledPath) ??
     (runtimeDirPath && binaryName ? pathApi.join(runtimeDirPath, binaryName) : undefined);
