@@ -39,7 +39,7 @@ type StdioEnvEntry = { name?: string; value?: string };
 type StdioConfig = { env?: StdioEnvEntry[] };
 type LeaderConversation = { id?: string; extra?: { teamMcpStdioConfig?: StdioConfig } } | null;
 
-/** Backend /api/teams/:id GET response shape — aligns with aioncore schema. */
+/** Backend /api/teams/:id GET response shape — aligns with poundingcore schema. */
 type TTeamBackendAgent = {
   slot_id: string;
   conversation_id: string;

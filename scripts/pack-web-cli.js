@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 const { execSync } = require('child_process');
-const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+const { preparePoundingcore } = require('../packages/shared-scripts/src/prepare-poundingcore.js');
 const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -23,9 +23,9 @@ const tarballPath = path.join(distDir, tarballName);
 
 console.log(`Packing web-cli for ${platform}-${arch}...`);
 
-// 1. Prepare bundled-aioncore
-console.log('1. Preparing aioncore...');
-prepareAioncore({
+// 1. Prepare bundled-poundingcore
+console.log('1. Preparing poundingcore...');
+preparePoundingcore({
   projectRoot,
   platform,
   arch,
@@ -77,11 +77,11 @@ if (fs.existsSync(rendererOutDir)) {
   throw new Error(`Desktop renderer output not found at ${rendererOutDir}. Run bunx electron-vite build first.`);
 }
 
-// 7. Copy bundled-aioncore
-const backendSrc = path.join(projectRoot, 'resources/bundled-aioncore', `${platform}-${arch}`);
-const backendDest = path.join(tarballContentDir, 'bundled-aioncore', `${platform}-${arch}`);
+// 7. Copy bundled-poundingcore
+const backendSrc = path.join(projectRoot, 'resources/bundled-poundingcore', `${platform}-${arch}`);
+const backendDest = path.join(tarballContentDir, 'bundled-poundingcore', `${platform}-${arch}`);
 if (!fs.existsSync(backendSrc)) {
-  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure prepareAioncore succeeded.`);
+  throw new Error(`Backend bundle dir missing at ${backendSrc}. Ensure preparePoundingcore succeeded.`);
 }
 fs.mkdirSync(path.dirname(backendDest), { recursive: true });
 fs.cpSync(backendSrc, backendDest, { recursive: true });

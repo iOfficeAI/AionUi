@@ -1,5 +1,5 @@
 /**
- * CLI wrapper for prepare-aioncore.
+ * CLI wrapper for prepare-poundingcore.
  *
  * Reads environment variables and invokes the shared module.
  *
@@ -15,7 +15,7 @@
  */
 
 const path = require('path');
-const { prepareAioncore } = require('../packages/shared-scripts/src/prepare-aioncore.js');
+const { preparePoundingcore } = require('../packages/shared-scripts/src/prepare-poundingcore.js');
 const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
 
 const projectRoot = path.resolve(__dirname, '..');
@@ -25,17 +25,17 @@ const arch = process.env.POUNDING_BACKEND_ARCH || process.env.npm_config_target_
 const version = resolveAioncoreVersion(projectRoot);
 
 try {
-  prepareAioncore({ projectRoot, platform, arch, version });
+  preparePoundingcore({ projectRoot, platform, arch, version });
 } catch (error) {
-  console.error('❌ prepareAioncore failed:', error.message);
+  console.error('❌ preparePoundingcore failed:', error.message);
   process.exit(1);
 }
 
 module.exports = function () {
   try {
-    return prepareAioncore({ projectRoot, platform, arch, version });
+    return preparePoundingcore({ projectRoot, platform, arch, version });
   } catch (error) {
-    console.error('❌ prepareAioncore failed:', error.message);
+    console.error('❌ preparePoundingcore failed:', error.message);
     throw error;
   }
 };

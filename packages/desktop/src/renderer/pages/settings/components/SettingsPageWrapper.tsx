@@ -8,7 +8,8 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Cat,
   Communication,
-  Computer,
+import ozonPng from '@renderer/assets/logos/brand/ozon.png';
+
   Earth,
   Info,
   Lightning,
@@ -57,7 +58,7 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
     display: {
       id: 'display',
       label: t('settings.display'),
-      icon: <Computer theme='outline' size='16' />,
+      icon: <img src={ozonPng} alt='Display' style={{ width: 16, height: 16 }} />,
       path: 'display',
     },
     webui: {

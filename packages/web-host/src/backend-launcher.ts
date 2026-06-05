@@ -1,5 +1,5 @@
 /**
- * Lifecycle manager for the aioncore subprocess (web-host version).
+ * Lifecycle manager for the poundingcore subprocess (web-host version).
  *
  * Migrated from packages/desktop/src/process/backend/lifecycleManager.ts in M4.
  * Electron dependency removed: `app.*` replaced with constructor-injected
@@ -146,7 +146,7 @@ export class BackendStartupError extends Error {
 }
 
 export class BackendStartupCancelledError extends Error {
-  constructor(message = 'aioncore startup cancelled') {
+  constructor(message = 'poundingcore startup cancelled') {
     super(message);
     this.name = 'BackendStartupCancelledError';
   }
@@ -172,7 +172,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
 
 /**
  * Backend reads AIONUI_{CACHE,WORK,LOG}_DIR env vars to report system dirs
- * (see AionCore/crates/aionui-system/src/sysinfo.rs). Inject them so the
+ * (see PoundingCore/crates/aionui-system/src/sysinfo.rs). Inject them so the
  * backend's `/api/system/info` matches what Electron main persists in
  * ProcessEnv('aionui.dir').
  */
@@ -380,7 +380,7 @@ export class BackendLifecycleManager {
     } catch (error) {
       const diagnostics = getResolveDiagnostics(error);
       throw new BackendStartupError(
-        'aioncore startup failed while resolving backend binary',
+        'poundingcore startup failed while resolving backend binary',
         {
           stage: 'resolve_binary',
           appVersion,
@@ -398,7 +398,7 @@ export class BackendLifecycleManager {
       this._port = await findAvailablePort(preferredPort);
     } catch (error) {
       throw new BackendStartupError(
-        'aioncore startup failed while finding an available port',
+        'poundingcore startup failed while finding an available port',
         {
           stage: 'find_port',
           appVersion,
@@ -463,7 +463,7 @@ export class BackendLifecycleManager {
       appVersion,
       isPackaged: this.appMeta.isPackaged,
     });
-    console.log(`[aioncore] starting: ${binaryPath} ${args.join(' ')}`);
+    console.log(`[poundingcore] starting: ${binaryPath} ${args.join(' ')}`);
 
     try {
       this.childProcess = spawn(binaryPath, args, {
@@ -473,7 +473,7 @@ export class BackendLifecycleManager {
       });
     } catch (error) {
       this._status = 'error';
-      throw makeStartupError('spawn', 'aioncore process spawn threw before startup', error);
+      throw makeStartupError('spawn', 'poundingcore process spawn threw before startup', error);
     }
 
     this.childProcess.stdin?.end();
@@ -489,19 +489,19 @@ export class BackendLifecycleManager {
       this.childProcess?.once('error', (error) => {
         if (startupSettled) return;
         this._status = 'error';
-        reject(makeStartupError('spawn_error', 'aioncore process emitted an error before startup', error));
+        reject(makeStartupError('spawn_error', 'poundingcore process emitted an error before startup', error));
       });
 
       this.childProcess?.once('exit', (code, signal) => {
         process.removeListener('exit', killOnExit);
         if (!startupSettled) {
           if (this._status === 'stopped') {
-            reject(new BackendStartupCancelledError('aioncore startup cancelled before health check passed'));
+            reject(new BackendStartupCancelledError('poundingcore startup cancelled before health check passed'));
             return;
           }
           this._status = 'error';
           reject(
-            makeStartupError('early_exit', 'aioncore exited before health check passed', undefined, {
+            makeStartupError('early_exit', 'poundingcore exited before health check passed', undefined, {
               exitCode: code ?? undefined,
               signal: signal ?? undefined,
             })
@@ -512,13 +512,13 @@ export class BackendLifecycleManager {
           this._status = 'error';
           void Promise.resolve(
             options?.onPendingExit?.(
-              makeStartupError('early_exit', 'aioncore exited after startup health timeout', undefined, {
+              makeStartupError('early_exit', 'poundingcore exited after startup health timeout', undefined, {
                 exitCode: code ?? undefined,
                 signal: signal ?? undefined,
               })
             )
           ).catch((error) => {
-            console.error('[aioncore] pending exit handler failed:', error);
+            console.error('[poundingcore] pending exit handler failed:', error);
           });
           return;
         }
@@ -535,14 +535,14 @@ export class BackendLifecycleManager {
           serverListeningObservedAfterMs = Date.now() - startupStartedAt;
           serverListeningLine = trimmed;
         }
-        if (trimmed) console.log(`[aioncore] ${line}`);
+        if (trimmed) console.log(`[poundingcore] ${line}`);
       }
     });
 
     this.childProcess.stderr?.on('data', (data: Buffer) => {
       stderrTail = appendOutputTail(stderrTail, data);
       for (const line of data.toString().split('\n')) {
-        if (line.trim()) console.error(`[aioncore] ${line}`);
+        if (line.trim()) console.error(`[poundingcore] ${line}`);
       }
     });
 
@@ -550,7 +550,7 @@ export class BackendLifecycleManager {
     if (!health.ok) {
       const healthTimeoutError = makeStartupError(
         'health_timeout',
-        'aioncore failed to start within timeout',
+        'poundingcore failed to start within timeout',
         undefined,
         {
           ...health.diagnostics,
@@ -558,9 +558,9 @@ export class BackendLifecycleManager {
       );
       if (options?.allowPendingOnHealthTimeout && this.childProcess) {
         startupSettled = true;
-        console.warn(`[aioncore] health check timed out; keeping process alive on port ${this._port}`);
+        console.warn(`[poundingcore] health check timed out; keeping process alive on port ${this._port}`);
         void Promise.resolve(options.onHealthTimeout?.(healthTimeoutError)).catch((error) => {
-          console.error('[aioncore] health timeout handler failed:', error);
+          console.error('[poundingcore] health timeout handler failed:', error);
         });
         this.continueWaitingForHealth(this._port, this.childProcess, startupStartedAt, options.onReady);
         return this._port;
@@ -575,7 +575,7 @@ export class BackendLifecycleManager {
     startupSettled = true;
     this._status = 'running';
     this.restartCount = 0;
-    console.log(`[aioncore] listening on port ${this._port}, data-dir: ${dbPath}`);
+    console.log(`[poundingcore] listening on port ${this._port}, data-dir: ${dbPath}`);
     return this._port;
   }
 
@@ -659,11 +659,11 @@ export class BackendLifecycleManager {
       this.restartCount = 0;
       const elapsedMs = Date.now() - startupStartedAt;
       console.log(
-        `[aioncore] late health ready on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
+        `[poundingcore] late health ready on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
       );
       await onReady?.(port);
     })().catch((error) => {
-      console.error('[aioncore] background health wait failed:', error);
+      console.error('[poundingcore] background health wait failed:', error);
     });
   }
 
@@ -686,12 +686,12 @@ export class BackendLifecycleManager {
 
     if (this.restartCount > this.maxRestarts) {
       this._status = 'error';
-      console.error('[aioncore] child exited unexpectedly; restart limit exceeded', crashContext);
+      console.error('[poundingcore] child exited unexpectedly; restart limit exceeded', crashContext);
       return;
     }
 
     const delay = Math.pow(2, this.restartCount - 1) * 1000;
-    console.warn('[aioncore] child exited unexpectedly; scheduling restart', {
+    console.warn('[poundingcore] child exited unexpectedly; scheduling restart', {
       ...crashContext,
       delayMs: delay,
     });
@@ -701,7 +701,7 @@ export class BackendLifecycleManager {
       this._status = 'starting';
       this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, undefined, restartPort).catch((error) => {
         this._status = 'error';
-        console.error('[aioncore] restart after crash failed', {
+        console.error('[poundingcore] restart after crash failed', {
           port: restartPort,
           restartCount: this.restartCount,
           maxRestarts: this.maxRestarts,

@@ -174,13 +174,13 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
       scope.setTag('pounding.backend_startup.stage', details.stage);
     }
     if (details) {
-      scope.setContext('aioncore_startup', details);
-      scope.setExtra('aioncore_startup', details);
+      scope.setContext('poundingcore_startup', details);
+      scope.setExtra('poundingcore_startup', details);
     }
-    scope.setContext('aioncore_startup_classification', { ...failureInfo });
-    scope.setExtra('aioncore_startup_classification', failureInfo);
-    scope.setContext('aioncore_install_diagnostics', installDiagnostics);
-    scope.setExtra('aioncore_install_diagnostics', installDiagnostics);
+    scope.setContext('poundingcore_startup_classification', { ...failureInfo });
+    scope.setExtra('poundingcore_startup_classification', failureInfo);
+    scope.setContext('poundingcore_install_diagnostics', installDiagnostics);
+    scope.setExtra('poundingcore_install_diagnostics', installDiagnostics);
     if (autoUpdateDiagnostics) {
       scope.setContext('auto_update_diagnostics', autoUpdateDiagnostics);
       scope.setExtra('auto_update_diagnostics', autoUpdateDiagnostics);

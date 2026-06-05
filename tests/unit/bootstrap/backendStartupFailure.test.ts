@@ -3,14 +3,14 @@ import { classifyBackendStartupFailure } from '@/process/startup/backendStartupF
 
 describe('classifyBackendStartupFailure', () => {
   it('classifies missing GLIBC symbols as an incompatible backend runtime', () => {
-    const error = new Error('aioncore exited before health check passed') as Error & {
+    const error = new Error('poundingcore exited before health check passed') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
       stage: 'early_exit',
       stderrTail:
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
-        "/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
+        "/opt/AionUi/resources/bundled-poundingcore/linux-x64/poundingcore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found\n" +
+        "/opt/AionUi/resources/bundled-poundingcore/linux-x64/poundingcore.bin: /lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.32' not found",
     };
 
     expect(classifyBackendStartupFailure(error)).toEqual({
@@ -21,7 +21,7 @@ describe('classifyBackendStartupFailure', () => {
   });
 
   it('keeps unrelated startup failures in the generic bucket', () => {
-    const error = new Error('aioncore failed to start within timeout') as Error & {
+    const error = new Error('poundingcore failed to start within timeout') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
@@ -35,7 +35,7 @@ describe('classifyBackendStartupFailure', () => {
   });
 
   it('classifies packaged app resources missing from installation as incomplete installation', () => {
-    const error = new Error('aioncore startup failed while resolving backend binary') as Error & {
+    const error = new Error('poundingcore startup failed while resolving backend binary') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
@@ -57,19 +57,19 @@ describe('classifyBackendStartupFailure', () => {
 
     expect(classifyBackendStartupFailure(error)).toEqual({
       reason: 'backend_incomplete_installation',
-      missingResources: ['bundled-aioncore/', 'bundled-aioncore/win32-x64/'],
+      missingResources: ['bundled-poundingcore/', 'bundled-poundingcore/win32-x64/'],
     });
   });
 
   it('classifies packaged runtime directories without the backend binary as incomplete installation', () => {
-    const error = new Error('aioncore startup failed while resolving backend binary') as Error & {
+    const error = new Error('poundingcore startup failed while resolving backend binary') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {
       stage: 'resolve_binary',
       isPackaged: true,
       runtimeKey: 'win32-x64',
-      binaryName: 'aioncore.exe',
+      binaryName: 'poundingcore.exe',
       bundledDirExists: true,
       runtimeDirExists: true,
       resourcesDirEntries: [
@@ -77,7 +77,7 @@ describe('classifyBackendStartupFailure', () => {
         'app.asar',
         'app.asar.unpacked/',
         'app.png',
-        'bundled-aioncore/',
+        'bundled-poundingcore/',
         'elevate.exe',
         'manifest.webmanifest',
         'sw.js',
@@ -87,7 +87,7 @@ describe('classifyBackendStartupFailure', () => {
 
     expect(classifyBackendStartupFailure(error)).toEqual({
       reason: 'backend_incomplete_installation',
-      missingResources: ['bundled-aioncore/win32-x64/aioncore.exe'],
+      missingResources: ['bundled-poundingcore/win32-x64/poundingcore.exe'],
     });
   });
 });

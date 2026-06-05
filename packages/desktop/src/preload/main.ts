@@ -47,7 +47,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   captureFeedbackScreenshot: () => ipcRenderer.invoke('feedback:capture-screenshot'),
 });
 
-// Synchronously fetch the aioncore port and expose it to the renderer
+// Synchronously fetch the poundingcore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;

@@ -1,13 +1,13 @@
 {
-  "name": "AionUi",
-  "short_name": "AionUi",
-  "description": "AionUi WebUI for mobile and desktop browsers.",
+  "name": "POUNDING",
+  "short_name": "POUNDING",
+  "description": "POUNDING WebUI for mobile and desktop browsers.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
   "background_color": "#ffffff",
-  "theme_color": "#4E5969",
+  "theme_color": "#FF4757",
   "icons": [
     {
       "src": "./pwa/icon-192.png",
