@@ -11,19 +11,14 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 
-const {
-  sendMessageInvokeMock,
-  addOrUpdateMessageMock,
-  resetStateMock,
-  emitterEmitMock,
-  setSendBoxHandlerMock,
-} = vi.hoisted(() => ({
-  sendMessageInvokeMock: vi.fn(),
-  addOrUpdateMessageMock: vi.fn(),
-  resetStateMock: vi.fn(),
-  emitterEmitMock: vi.fn(),
-  setSendBoxHandlerMock: vi.fn(),
-}));
+const { sendMessageInvokeMock, addOrUpdateMessageMock, resetStateMock, emitterEmitMock, setSendBoxHandlerMock } =
+  vi.hoisted(() => ({
+    sendMessageInvokeMock: vi.fn(),
+    addOrUpdateMessageMock: vi.fn(),
+    resetStateMock: vi.fn(),
+    emitterEmitMock: vi.fn(),
+    setSendBoxHandlerMock: vi.fn(),
+  }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {

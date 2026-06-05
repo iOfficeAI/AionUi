@@ -98,5 +98,14 @@ export const useAcpInitialMessage = ({
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, resetState, setAiProcessing, t, workspacePath]);
+  }, [
+    addOrUpdateMessage,
+    backend,
+    checkAndUpdateTitle,
+    conversation_id,
+    resetState,
+    setAiProcessing,
+    t,
+    workspacePath,
+  ]);
 };
