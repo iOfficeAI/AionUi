@@ -61,6 +61,7 @@ import type {
   UpdateDownloadRequest,
   UpdateDownloadResult,
 } from '../update/updateTypes';
+import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
@@ -1089,6 +1090,19 @@ export const windowControls = {
   close: bridge.buildProvider<void, void>('window-controls:close'),
   isMaximized: bridge.buildProvider<boolean, void>('window-controls:is-maximized'),
   maximizedChanged: bridge.buildEmitter<{ is_maximized: boolean }>('window-controls:maximized-changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Theme — stays IPC (main process owns the resolved-theme cache)
+// ---------------------------------------------------------------------------
+
+export const theme = {
+  // main → all renderers: the resolved active theme changed
+  changed: bridge.buildEmitter<Theme>('theme:changed'),
+  // renderer → main: publish a newly resolved theme (main caches + re-emits `changed`)
+  setActive: bridge.buildProvider<void, Theme>('theme:set-active'),
+  // any window → main: pull the currently cached resolved theme on load (null if none yet)
+  requestCurrent: bridge.buildProvider<Theme | null, void>('theme:request-current'),
 };
 
 // ---------------------------------------------------------------------------
