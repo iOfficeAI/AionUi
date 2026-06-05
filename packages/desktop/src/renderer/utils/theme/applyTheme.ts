@@ -5,6 +5,10 @@
  */
 
 import type { Theme } from '@/common/theme/types';
+import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
+import { resolveActiveTheme } from '@/common/theme/resolveTheme';
+import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
 import { processCustomCss } from './customCssProcessor';
 
 const TOKENS_STYLE_ID = 'theme-tokens';
@@ -36,4 +40,13 @@ export function applyTheme(theme: Theme, root: Document = document): void {
   root.body?.setAttribute('arco-theme', theme.appearance);
   upsertStyle(TOKENS_STYLE_ID, tokensToCss(theme.tokens), root);
   upsertStyle(DECORATION_STYLE_ID, theme.css ? processCustomCss(theme.css) : null, root);
+}
+
+/** Resolve `activeId` locally, apply, persist, and publish to main for cross-window broadcast. */
+export async function setActiveTheme(activeId: string): Promise<void> {
+  const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
+  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
+  applyTheme(resolved);
+  await configService.set('theme.activeId', activeId);
+  await ipcBridge.theme.setActive.invoke(resolved);
 }
