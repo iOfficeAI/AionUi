@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
@@ -160,6 +160,24 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       }
 
       if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
+        return;
+      }
+
+      if (isErrorTipMessage(message)) {
+        turnFinishedRef.current = true;
+        setRunning(false);
+        runningRef.current = false;
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        setThought({ subject: '', description: '' });
+        hasContentInTurnRef.current = false;
+        hasThinkingMessageRef.current = false;
+        activeThinkingRef.current = null;
+        setHasThinkingMessage(false);
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
         return;
       }
 

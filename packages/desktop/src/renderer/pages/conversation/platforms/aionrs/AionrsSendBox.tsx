@@ -26,7 +26,6 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import {
   shouldEnqueueConversationCommand,
@@ -173,8 +172,6 @@ const AionrsSendBox: React.FC<{
     agentStatus: agentWarmed ? 'active' : null,
   });
 
-  const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
   const isBusy = running;
 
@@ -220,51 +217,28 @@ const AionrsSendBox: React.FC<{
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        setActiveMsgId(msg_id);
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
-          },
-          created_at: Date.now(),
-        });
+        setActiveMsgId(res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
         Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
     [
-      addOrUpdateMessage,
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
       setActiveMsgId,
-      removeMessageByMsgId,
       setWaitingResponse,
       t,
       workspacePath,

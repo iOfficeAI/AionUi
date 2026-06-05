@@ -229,6 +229,15 @@ export const conversation = {
     (p) => ({ status: p.status })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  userCreated: wsEmitter<{
+    conversation_id: string;
+    msg_id: string;
+    content: string;
+    position: 'right';
+    status: 'finish';
+    hidden: boolean;
+    created_at: number;
+  }>('message.userCreated'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;

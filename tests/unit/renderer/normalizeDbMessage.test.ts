@@ -87,7 +87,7 @@ describe('normalizeDbMessage', () => {
       position: 'center',
       status: 'error',
       content: JSON.stringify({
-        content: 'This workspace path is no longer supported for execution',
+        content: 'The current Agent failed to run in this workspace path',
         type: 'error',
         source: 'send_failed',
         code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
@@ -95,11 +95,10 @@ describe('normalizeDbMessage', () => {
           workspace_path: '/Users/zhoukai/Documents/Archive ',
         },
         error: {
-          message: 'The upstream Agent failed while handling the request',
+          message: 'The current Agent failed to run in this workspace path',
           code: 'UNKNOWN_UPSTREAM_ERROR',
           ownership: 'unknown_upstream',
-          detail:
-            '/Users/zhoukai/Documents/Archive . Rename the affected directory, then update this conversation or task to use a path without whitespace in any directory name.',
+          detail: '/Users/zhoukai/Documents/Archive . Make sure the workspace path exists and is accessible.',
           retryable: true,
           feedback_recommended: true,
         },
@@ -107,11 +106,10 @@ describe('normalizeDbMessage', () => {
     } as unknown as IMessageTips) as IMessageTips;
 
     expect(normalized.content.error).toEqual({
-      message: 'This workspace path is no longer supported for execution',
-      code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      message: 'The current Agent failed to run in this workspace path',
+      code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
       ownership: 'aionui',
-      detail:
-        '/Users/zhoukai/Documents/Archive . Rename the affected directory, then update this conversation or task to use a path without whitespace in any directory name.',
+      detail: '/Users/zhoukai/Documents/Archive . Make sure the workspace path exists and is accessible.',
       workspacePath: '/Users/zhoukai/Documents/Archive ',
       retryable: false,
       feedback_recommended: false,
