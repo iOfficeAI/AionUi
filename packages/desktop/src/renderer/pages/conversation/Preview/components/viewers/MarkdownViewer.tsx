@@ -9,12 +9,8 @@ import { ipcBridge } from '@/common';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
 import 'katex/dist/katex.min.css';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import rehypeKatex from 'rehype-katex';
-import rehypeRaw from 'rehype-raw';
 import remarkBreaks from 'remark-breaks';
-import remarkGfm from 'remark-gfm';
-import remarkMath from 'remark-math';
-import { Streamdown } from 'streamdown';
+import { Streamdown, defaultRehypePlugins, defaultRemarkPlugins } from 'streamdown';
 import MarkdownEditor from '../editors/MarkdownEditor';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useContainerScroll, useContainerScrollTarget } from '../../hooks/useScrollSyncHelpers';
@@ -220,67 +216,6 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
     return normalized.slice(0, lastSlash);
   }, [file_path]);
 
-  useEffect(() => {
-    if (viewMode !== 'preview') return;
-    const container = containerRef.current;
-    if (!container) return;
-
-    const seen = new WeakSet<HTMLImageElement>();
-
-    const resolveLocalImage = (img: HTMLImageElement) => {
-      if (!img || seen.has(img)) return;
-      const rawAttr = img.getAttribute('src') || '';
-      if (!rawAttr || isDataOrRemoteUrl(rawAttr)) {
-        seen.add(img);
-        return;
-      }
-
-      const normalizedBase = baseDir ? baseDir.replace(/\\/g, '/') : undefined;
-      const cleanedSrc = rawAttr.replace(/\\/g, '/');
-      const absolutePath = isAbsoluteLocalPath(cleanedSrc)
-        ? cleanedSrc
-        : normalizedBase
-          ? joinPath(normalizedBase, cleanedSrc)
-          : undefined;
-      if (!absolutePath) {
-        seen.add(img);
-        return;
-      }
-
-      void ipcBridge.fs.getImageBase64
-        .invoke({ path: absolutePath, workspace })
-        .then((dataUrl) => {
-          if (dataUrl) {
-            img.src = dataUrl;
-          }
-        })
-        .catch((error) => {
-          console.error('[MarkdownPreview] Failed to inline rendered image:', { rawAttr, absolutePath, error });
-        })
-        .finally(() => {
-          seen.add(img);
-        });
-    };
-
-    const scanImages = () => {
-      const images = container.querySelectorAll('img');
-      images.forEach((img) => {
-        resolveLocalImage(img as HTMLImageElement);
-      });
-    };
-
-    scanImages();
-
-    const observer = new MutationObserver(() => {
-      scanImages();
-    });
-    observer.observe(container, { childList: true, subtree: true });
-
-    return () => {
-      observer.disconnect();
-    };
-  }, [baseDir, containerRef, viewMode, previewSource, workspace]);
-
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
       {/* 内容区域 / Content area */}
@@ -309,8 +244,8 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               mode='static'
               shikiTheme={getMarkdownShikiThemes()}
               mermaid={{ config: { theme: getMermaidTheme(currentTheme) } }}
-              remarkPlugins={[remarkGfm, remarkMath, remarkBreaks]}
-              rehypePlugins={[rehypeRaw, rehypeKatex]}
+              remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
+              rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
               components={{
                 img({ src, alt, ...props }: React.ImgHTMLAttributes<HTMLImageElement>) {
                   return <MarkdownImage src={src} alt={alt} baseDir={baseDir} workspace={workspace} {...props} />;
