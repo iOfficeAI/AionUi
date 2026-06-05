@@ -162,3 +162,54 @@
   color: var(--shiki-dark) !important;
   background-color: var(--shiki-dark-bg) !important;
 }
+
+/* Streamdown native code block chrome. Streamdown ships no CSS and styles the header/buttons
+   with Tailwind classes UnoCSS does not back. Render a clean bordered block with no language
+   label, no download button, and a single styled copy button. Selectors use stable
+   data-streamdown hooks (not Tailwind class names). */
+.aionui-markdown [data-streamdown='code-block'] {
+  margin-block: 12px;
+  border: 1px solid var(--bg-3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.aionui-markdown [data-streamdown='code-block-header'] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 30px;
+  padding: 2px 6px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+}
+/* hide the language label (first <span> in the header) */
+.aionui-markdown [data-streamdown='code-block-header'] > span:first-child {
+  display: none;
+}
+/* hide the download button (no per-button control in this Streamdown version) */
+.aionui-markdown [data-streamdown='code-block-download-button'] {
+  display: none;
+}
+/* style the copy button */
+.aionui-markdown [data-streamdown='code-block-copy-button'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+.aionui-markdown [data-streamdown='code-block-copy-button']:hover {
+  background: var(--bg-3);
+  color: var(--text-primary);
+}
+/* code body lives inside the wrapper, which owns border/radius/margin */
+.aionui-markdown [data-streamdown='code-block-body'] {
+  margin: 0;
+  border-radius: 0;
+  padding: 12px 16px;
+}
