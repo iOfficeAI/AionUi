@@ -3,6 +3,7 @@ export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
 export const WORKSPACE_HAS_TODOS_EVENT = 'aionui-workspace-has-todos';
 export const WORKSPACE_HAS_APPROVALS_EVENT = 'aionui-workspace-has-approvals';
+export const WORKSPACE_OPEN_REMOTE_CHANGES_EVENT = 'aionui-workspace-open-remote-changes';
 
 export interface WorkspaceStateDetail {
   collapsed: boolean;
@@ -22,6 +23,10 @@ export interface WorkspaceHasTodosDetail {
 export interface WorkspaceHasApprovalsDetail {
   hasApprovals: boolean;
   conversation_id?: string;
+}
+
+export interface WorkspaceOpenRemoteChangesDetail {
+  conversation_id: string;
 }
 
 export function dispatchWorkspaceToggleEvent() {
@@ -69,6 +74,15 @@ export function dispatchWorkspaceHasApprovalsEvent(hasApprovals: boolean, conver
   window.dispatchEvent(
     new CustomEvent<WorkspaceHasApprovalsDetail>(WORKSPACE_HAS_APPROVALS_EVENT, {
       detail: { hasApprovals, conversation_id },
+    })
+  );
+}
+
+export function dispatchWorkspaceOpenRemoteChangesEvent(conversation_id: string) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<WorkspaceOpenRemoteChangesDetail>(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, {
+      detail: { conversation_id },
     })
   );
 }

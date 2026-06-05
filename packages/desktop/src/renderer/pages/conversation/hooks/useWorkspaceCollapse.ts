@@ -3,11 +3,13 @@ import {
   WORKSPACE_HAS_APPROVALS_EVENT,
   WORKSPACE_HAS_FILES_EVENT,
   WORKSPACE_HAS_TODOS_EVENT,
+  WORKSPACE_OPEN_REMOTE_CHANGES_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
   type WorkspaceHasApprovalsDetail,
   type WorkspaceHasFilesDetail,
   type WorkspaceHasTodosDetail,
+  type WorkspaceOpenRemoteChangesDetail,
 } from '@/renderer/utils/workspace/workspaceEvents';
 import { useEffect, useRef, useState } from 'react';
 
@@ -225,6 +227,30 @@ export function useWorkspaceCollapse({
       window.removeEventListener(WORKSPACE_HAS_APPROVALS_EVENT, handleHasApprovals);
     };
   }, [isMobile, workspaceEnabled, rightSiderCollapsed, preferenceKey]);
+
+  // Force-expand the pane when the user explicitly opens remote session changes
+  // (e.g. "View changes" in RemoteSessionActions). Unlike the auto-expand
+  // listeners above, an explicit user action overrides the stored collapse
+  // preference. Mobile is left collapsed to avoid covering the chat.
+  useEffect(() => {
+    if (typeof window === 'undefined' || !workspaceEnabled) {
+      return undefined;
+    }
+    const handleOpenRemoteChanges = (_event: Event) => {
+      const detail = (_event as CustomEvent<WorkspaceOpenRemoteChangesDetail>).detail;
+      void detail;
+      if (isMobile) {
+        return;
+      }
+      if (rightSiderCollapsed) {
+        setRightSiderCollapsed(false);
+      }
+    };
+    window.addEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
+    return () => {
+      window.removeEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
+    };
+  }, [isMobile, workspaceEnabled, rightSiderCollapsed]);
 
   // Broadcast workspace state event
   useEffect(() => {

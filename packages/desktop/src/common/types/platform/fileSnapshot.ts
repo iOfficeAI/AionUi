@@ -11,6 +11,9 @@ export type FileChangeInfo = {
   file_path: string;
   relativePath: string;
   operation: FileChangeOperation;
+  patch?: string;
+  additions?: number;
+  deletions?: number;
 };
 
 /** Comparison result with staged/unstaged separation (git-repo mode) */

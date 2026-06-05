@@ -13,21 +13,12 @@ import { findShadowedPaths } from './configShadowDiff';
 import { iconColors } from '@/renderer/styles/colors';
 import { Button, Dropdown, Input, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Branch, Copy, More, Refresh, ShareTwo, FileText, Setting } from '@icon-park/react';
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { emitter } from '@/renderer/utils/emitter';
 import { copyText } from '@/renderer/utils/ui/clipboard';
-
-/** One file entry from OpenCode's `GET /session/{id}/diff` (`SnapshotFileDiff`). */
-type SessionDiffEntry = {
-  path?: string;
-  file?: string;
-  status?: string;
-  additions?: number;
-  deletions?: number;
-  diff?: string;
-};
+import { dispatchWorkspaceOpenRemoteChangesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 
 /**
  * Session-level OpenCode actions surfaced in the conversation header (M01–M05):
@@ -41,9 +32,6 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
 
   const [busy, setBusy] = useState(false);
   const [shareUrl, setShareUrl] = useState<string | null>(null);
-  const [diffOpen, setDiffOpen] = useState(false);
-  const [diffLoading, setDiffLoading] = useState(false);
-  const [diffEntries, setDiffEntries] = useState<SessionDiffEntry[]>([]);
   const [toolHost, setToolHost] = useState<'local' | 'server' | undefined>(undefined);
   const [protocol, setProtocol] = useState<string | undefined>(undefined);
 
@@ -60,20 +48,6 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
   // global layer but are overridden by a higher-precedence layer (project /
   // agent files), so they won't change behavior. Empty = all edits took effect.
   const [shadowedPaths, setShadowedPaths] = useState<string[]>([]);
-
-  // Task 17: diff-summary header (N files · +X / -Y lines) for the session
-  // changes modal. Sums the per-file `additions` / `deletions` returned by
-  // OpenCode's `GET /session/{id}/diff`; missing/non-numeric fields are
-  // treated as zero.
-  const diffSummary = useMemo(() => {
-    let additions = 0;
-    let deletions = 0;
-    for (const entry of diffEntries) {
-      if (typeof entry.additions === 'number') additions += entry.additions;
-      if (typeof entry.deletions === 'number') deletions += entry.deletions;
-    }
-    return { count: diffEntries.length, additions, deletions };
-  }, [diffEntries]);
 
   useEffect(() => {
     let cancelled = false;
@@ -185,7 +159,7 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
       }
     });
 
-  // M05: load + show the session file diff.
+  // M05: open the Workspace Changes tab with remote session diff source.
   const handleViewChanges = () =>
     runExclusive(async () => {
       if (toolHost !== 'server') {
@@ -196,18 +170,7 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
         );
         return;
       }
-      setDiffOpen(true);
-      setDiffLoading(true);
-      try {
-        const result = await ipcBridge.conversation.remoteSessionDiff.invoke({ conversation_id });
-        setDiffEntries(Array.isArray(result) ? (result as SessionDiffEntry[]) : []);
-      } catch (error) {
-        setDiffEntries([]);
-        Message.error(t('conversation.session.diffFailed', { defaultValue: 'Failed to load changes' }));
-        console.error('[RemoteSessionActions] diff failed:', error);
-      } finally {
-        setDiffLoading(false);
-      }
+      dispatchWorkspaceOpenRemoteChangesEvent(conversation_id);
     });
 
   // M19: load the server's global config into the editor (stashing a known-good
@@ -412,70 +375,6 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
           </div>
           <Input readOnly value={shareUrl ?? ''} />
         </div>
-      </AionModal>
-
-      {/* M05: changes / diff modal */}
-      <AionModal
-        visible={diffOpen}
-        size='medium'
-        header={{ title: t('conversation.session.changesTitle', { defaultValue: 'Session changes' }), showClose: true }}
-        contentStyle={{ padding: '16px 24px', maxHeight: '60vh', overflow: 'auto' }}
-        onCancel={() => setDiffOpen(false)}
-        footer={{
-          render: () => (
-            <div className='flex justify-end pt-16px'>
-              <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setDiffOpen(false)}>
-                {t('common.close', { defaultValue: 'Close' })}
-              </Button>
-            </div>
-          ),
-        }}
-      >
-        {diffLoading ? (
-          <div className='text-13px text-t-secondary py-20px text-center'>
-            {t('common.loading', { defaultValue: 'Loading…' })}
-          </div>
-        ) : diffEntries.length === 0 ? (
-          <div className='text-13px text-t-secondary py-20px text-center'>
-            {t('conversation.session.noChanges', { defaultValue: 'No file changes in this session.' })}
-          </div>
-        ) : (
-          <div className='flex flex-col gap-6px'>
-            <div
-              data-testid='session-diff-summary'
-              className='flex items-center gap-10px px-10px py-8px rounded-6px text-13px font-medium'
-              style={{
-                background: 'rgb(var(--success-1))',
-                border: '1px solid rgb(var(--success-3))',
-              }}
-            >
-              <span className='text-t-primary'>{t('conversation.session.changesSummaryFiles', { count: diffSummary.count })}</span>
-              <span className='text-t-secondary'>·</span>
-              <span className='font-mono'>
-                <span className='text-[rgb(var(--success-6))]'>+{diffSummary.additions}</span>
-                <span className='text-t-secondary'> / </span>
-                <span className='text-[rgb(var(--danger-6))]'>-{diffSummary.deletions}</span>
-              </span>
-              <span className='text-t-secondary'>{t('conversation.session.changesSummaryLines')}</span>
-            </div>
-            {diffEntries.map((entry, i) => {
-              const path = entry.path ?? entry.file ?? '(unknown)';
-              return (
-                <div key={`${path}-${i}`} className='flex items-center justify-between gap-12px text-13px'>
-                  <span className='font-mono truncate text-t-primary'>{path}</span>
-                  <span className='shrink-0 font-mono text-12px'>
-                    {typeof entry.additions === 'number' && (
-                      <span className='text-[rgb(var(--success-6))]'>+{entry.additions}</span>
-                    )}{' '}
-                    {typeof entry.deletions === 'number' && (
-                      <span className='text-[rgb(var(--danger-6))]'>-{entry.deletions}</span>
-                    )}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        )}
       </AionModal>
 
       {/* M19: server global-config editor */}

@@ -29,6 +29,7 @@ type FileChangeListProps = {
   onUnstageAll: () => void;
   onDiscardFile: (file_path: string, operation: FileChangeInfo['operation']) => void;
   onResetFile: (file_path: string, operation: FileChangeInfo['operation']) => void;
+  readOnly?: boolean;
 };
 
 const STATUS_COLORS: Record<FileChangeInfo['operation'], string> = {
@@ -160,6 +161,22 @@ const ActionBtn: React.FC<{
   </Tooltip>
 );
 
+const diffStateFromPatch = (change: FileChangeInfo): DiffState | null => {
+  if (!change.patch) return null;
+  const stats =
+    typeof change.additions === 'number' || typeof change.deletions === 'number'
+      ? {
+          additions: change.additions ?? 0,
+          deletions: change.deletions ?? 0,
+        }
+      : createDiffStats(change.patch);
+  return {
+    diff: change.patch,
+    additions: stats.additions,
+    deletions: stats.deletions,
+  };
+};
+
 const FileChangeList: React.FC<FileChangeListProps> = ({
   t,
   workspace,
@@ -175,8 +192,9 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
   onUnstageAll,
   onDiscardFile,
   onResetFile,
+  readOnly = false,
 }) => {
-  const isGitRepo = snapshotInfo?.mode === 'git-repo';
+  const isGitRepo = !readOnly && snapshotInfo?.mode === 'git-repo';
   const [expandedFilePath, setExpandedFilePath] = useState<string | null>(null);
   const [diffCache, setDiffCache] = useState<Record<string, DiffState>>({});
   const [loadingFilePath, setLoadingFilePath] = useState<string | null>(null);
@@ -185,6 +203,9 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
     async (change: FileChangeInfo) => {
       const file_name = change.relativePath;
       if (!isTextFile(file_name)) return null;
+
+      const fromPatch = diffStateFromPatch(change);
+      if (fromPatch) return fromPatch;
 
       try {
         let before = '';
@@ -262,7 +283,19 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
 
   const groupedChanges = useMemo(
     () =>
-      isGitRepo
+      readOnly
+        ? [
+            {
+              key: 'session',
+              title: t('conversation.workspace.changes.changedFiles'),
+              count: unstaged.length,
+              emptyText: t('conversation.workspace.changes.empty'),
+              items: unstaged,
+              headerAction: undefined as React.ReactNode,
+              renderActions: (_change: FileChangeInfo): React.ReactNode => null,
+            },
+          ]
+        : isGitRepo
         ? [
             {
               key: 'unstaged',
@@ -333,7 +366,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
               ),
             },
           ],
-    [isGitRepo, onDiscardFile, onResetFile, onStageAll, onStageFile, onUnstageAll, onUnstageFile, staged, t, unstaged]
+    [isGitRepo, onDiscardFile, onResetFile, onStageAll, onStageFile, onUnstageAll, onUnstageFile, readOnly, staged, t, unstaged]
   );
 
   if (loading) {
@@ -384,7 +417,7 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
               </div>
             ) : (
               group.items.map((change) => {
-                const diffState = diffCache[change.file_path];
+                const diffState = diffCache[change.file_path] ?? diffStateFromPatch(change) ?? undefined;
                 const isExpanded = expandedFilePath === change.file_path;
                 const isLoadingDiff = loadingFilePath === change.file_path;
                 const canExpand = isTextFile(change.relativePath);

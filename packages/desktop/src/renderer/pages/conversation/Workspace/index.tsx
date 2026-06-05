@@ -22,6 +22,7 @@ import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
 import { useFileChanges } from './hooks/useFileChanges';
+import { useRemoteSessionChanges } from './hooks/useRemoteSessionChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -34,6 +35,10 @@ import { useWorkspaceApprovals } from './hooks/useWorkspaceApprovals';
 import { useWorkspaceTodos } from './hooks/useWorkspaceTodos';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
+import {
+  WORKSPACE_OPEN_REMOTE_CHANGES_EVENT,
+  type WorkspaceOpenRemoteChangesDetail,
+} from '@/renderer/utils/workspace/workspaceEvents';
 import {
   computeContextMenuPosition,
   extractNodeData,
@@ -63,8 +68,15 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
+  const remoteChangesHook = useRemoteSessionChanges({ conversation_id, workspace });
   const todosHook = useWorkspaceTodos(conversation_id);
   const approvalsHook = useWorkspaceApprovals(conversation_id);
+
+  const isRemoteChanges = remoteChangesHook.source === 'remote';
+  const changesStaged = isRemoteChanges ? remoteChangesHook.staged : fileChangesHook.staged;
+  const changesUnstaged = isRemoteChanges ? remoteChangesHook.unstaged : fileChangesHook.unstaged;
+  const changesLoading = isRemoteChanges ? remoteChangesHook.loading : fileChangesHook.loading;
+  const changesCount = isRemoteChanges ? remoteChangesHook.changeCount : fileChangesHook.changeCount;
 
   // Bind workspace uploads to the conversation lifecycle: switching the
   // workspace conversation or unmounting the panel cancels in-flight uploads.
@@ -189,12 +201,33 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     [openEditorFile, workspace]
   );
 
-  // Auto-refresh changes when switching to changes tab
   useEffect(() => {
     if (activeTab === 'changes') {
-      fileChangesHook.refreshChanges();
+      if (isRemoteChanges) {
+        void remoteChangesHook.refreshChanges();
+      } else {
+        void fileChangesHook.refreshChanges();
+      }
     }
-  }, [activeTab, fileChangesHook.refreshChanges]);
+  }, [activeTab, isRemoteChanges, fileChangesHook.refreshChanges, remoteChangesHook.refreshChanges]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return undefined;
+    const handleOpenRemoteChanges = (event: Event) => {
+      const detail = (event as CustomEvent<WorkspaceOpenRemoteChangesDetail>).detail;
+      if (detail.conversation_id !== conversation_id) return;
+      // Pane expansion is handled by the layout's useWorkspaceCollapse listener
+      // for this same event; here we only own the tab + diff-source selection.
+      setActiveTab('changes');
+      void remoteChangesHook.activateRemote();
+    };
+    window.addEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
+    return () => window.removeEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
+  }, [conversation_id, remoteChangesHook.activateRemote]);
+
+  useEffect(() => {
+    remoteChangesHook.activateLocal();
+  }, [conversation_id, remoteChangesHook.activateLocal]);
 
   const prevHasTodosRef = React.useRef(false);
   useEffect(() => {
@@ -299,9 +332,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         <WorkspaceTabBar
           t={t}
           activeTab={activeTab}
-          onTabChange={setActiveTab}
-          changeCount={fileChangesHook.changeCount}
-          branch={fileChangesHook.snapshotInfo?.branch ?? null}
+          onTabChange={(tab) => {
+            if (tab !== 'changes' && isRemoteChanges) {
+              remoteChangesHook.activateLocal();
+            }
+            setActiveTab(tab);
+          }}
+          changeCount={changesCount}
+          branch={isRemoteChanges ? null : (fileChangesHook.snapshotInfo?.branch ?? null)}
           hasTodos={todosHook.hasTodos}
           todoPendingCount={todosHook.totalCount - todosHook.completedCount}
           hasApprovals={approvalsHook.hasApprovals}
@@ -513,11 +551,17 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
             <FileChangeList
               t={t}
               workspace={workspace}
-              staged={fileChangesHook.staged}
-              unstaged={fileChangesHook.unstaged}
-              loading={fileChangesHook.loading}
-              snapshotInfo={fileChangesHook.snapshotInfo}
-              onRefresh={fileChangesHook.refreshChanges}
+              staged={changesStaged}
+              unstaged={changesUnstaged}
+              loading={changesLoading}
+              snapshotInfo={isRemoteChanges ? null : fileChangesHook.snapshotInfo}
+              onRefresh={() => {
+                if (isRemoteChanges) {
+                  void remoteChangesHook.refreshChanges();
+                } else {
+                  void fileChangesHook.refreshChanges();
+                }
+              }}
               onOpenDiff={handleOpenChangeDiff}
               onStageFile={fileChangesHook.stageFile}
               onStageAll={fileChangesHook.stageAll}
@@ -525,6 +569,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               onUnstageAll={fileChangesHook.unstageAll}
               onDiscardFile={fileChangesHook.discardFile}
               onResetFile={fileChangesHook.resetFile}
+              readOnly={isRemoteChanges}
             />
           </FlexFullContainer>
         )}
