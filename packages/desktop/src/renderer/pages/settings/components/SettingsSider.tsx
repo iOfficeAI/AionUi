@@ -6,8 +6,6 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Cat,
   Communication,
-import ozonPng from '@renderer/assets/logos/brand/ozon.png';
-
   Earth,
   Info,
   Lightning,
@@ -17,6 +15,7 @@ import ozonPng from '@renderer/assets/logos/brand/ozon.png';
   Speed,
   System,
 } from '@icon-park/react';
+import ozonPng from '@renderer/assets/logos/brand/ozon.png';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';

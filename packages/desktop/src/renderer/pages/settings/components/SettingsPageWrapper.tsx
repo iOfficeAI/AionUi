@@ -8,8 +8,6 @@ import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSe
 import {
   Cat,
   Communication,
-import ozonPng from '@renderer/assets/logos/brand/ozon.png';
-
   Earth,
   Info,
   Lightning,
@@ -18,6 +16,7 @@ import ozonPng from '@renderer/assets/logos/brand/ozon.png';
   Robot,
   System,
 } from '@icon-park/react';
+import ozonPng from '@renderer/assets/logos/brand/ozon.png';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
