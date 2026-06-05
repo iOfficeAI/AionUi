@@ -5,7 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { addRecentWorkspace, getRecentWorkspaces } from '@/renderer/components/workspace';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { addRecentWorkspace, getRecentWorkspaces, pruneRecentWorkspaces } from '@/renderer/components/workspace';
 import { Tooltip } from '@arco-design/web-react';
 import { Close, Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -53,7 +54,25 @@ const GuidWorkspaceFootnote: React.FC<GuidWorkspaceFootnoteProps> = ({
   onClearWorkspace,
 }) => {
   const { t } = useTranslation();
-  const recentWorkspaces = getRecentWorkspaces();
+  // Synchronously seed from localStorage so the first paint matches the cache,
+  // then asynchronously verify each entry against the fs/browse API and drop
+  // any that no longer exist. See pruneRecentWorkspaces for the policy.
+  const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>(() => getRecentWorkspaces());
+  useEffect(() => {
+    let cancelled = false;
+    pruneRecentWorkspaces(getBaseUrl())
+      .then((survivors) => {
+        if (!cancelled) setRecentWorkspaces(survivors);
+      })
+      .catch(() => {
+        // Single-entry errors are already swallowed inside the helper; reaching
+        // this branch means localStorage itself is unavailable. Nothing useful
+        // to do other than keep the cached list.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [dropdownStyle, setDropdownStyle] = useState<React.CSSProperties>({});

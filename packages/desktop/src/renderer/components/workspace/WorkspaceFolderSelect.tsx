@@ -5,11 +5,17 @@
  */
 
 import { ipcBridge } from '@/common';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 import { Input } from '@arco-design/web-react';
 import { Check, Close, Down, FolderClose, FolderOpen } from '@icon-park/react';
 import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace, getRecentWorkspaces } from './recentWorkspaces';
+import {
+  DEFAULT_RECENT_WS_KEY,
+  addRecentWorkspace,
+  getRecentWorkspaces,
+  pruneRecentWorkspaces,
+} from './recentWorkspaces';
 
 const MENU_GAP = 4;
 const VIEWPORT_MARGIN = 8;
@@ -61,7 +67,21 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   const [menuPos, setMenuPos] = useState<MenuPosition>({ top: 0, left: 0, width: 0, maxHeight: MAX_MENU_HEIGHT });
   const triggerRef = useRef<HTMLDivElement>(null);
   const isDesktop = isElectronDesktop();
-  const recentWorkspaces = getRecentWorkspaces(recentStorageKey);
+  // Same strategy as GuidWorkspaceFootnote: seed synchronously from
+  // localStorage for the first paint, then asynchronously prune entries whose
+  // backing directory no longer exists.
+  const [recentWorkspaces, setRecentWorkspaces] = useState<string[]>(() => getRecentWorkspaces(recentStorageKey));
+  useEffect(() => {
+    let cancelled = false;
+    pruneRecentWorkspaces(getBaseUrl(), recentStorageKey)
+      .then((survivors) => {
+        if (!cancelled) setRecentWorkspaces(survivors);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [recentStorageKey]);
 
   const updateMenuPosition = useCallback(() => {
     if (!triggerRef.current) return;
