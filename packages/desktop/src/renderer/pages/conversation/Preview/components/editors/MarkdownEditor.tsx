@@ -6,8 +6,7 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { markdown } from '@codemirror/lang-markdown';
-import { syntaxHighlighting } from '@codemirror/language';
-import { Prec } from '@codemirror/state';
+import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import CodeMirror from '@uiw/react-codemirror';
 import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import React, { useRef, useCallback } from 'react';
@@ -59,7 +58,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           theme={theme === 'dark' ? 'dark' : 'light'}
           extensions={[
             markdown(),
-            Prec.high(syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light'))),
+            syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
+            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
           ]} // Markdown 语法支持 / Markdown syntax support
           onChange={onChange}
           readOnly={readOnly}
@@ -68,6 +68,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             highlightActiveLineGutter: true, // 高亮当前行号 / Highlight active line gutter
             highlightActiveLine: true, // 高亮当前行 / Highlight active line
             foldGutter: true, // 折叠功能 / Code folding
+            syntaxHighlighting: false, // 禁用默认高亮，使用自定义样式 / Disable default highlighter, use custom style
           }}
           style={{
             fontSize: '13px',
