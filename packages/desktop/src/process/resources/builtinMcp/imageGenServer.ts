@@ -13,6 +13,8 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import * as os from 'os';
+import * as path from 'path';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from './constants';
 import { executeImageGeneration } from '@/common/chat/imageGenCore';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -45,7 +47,7 @@ async function main() {
   });
 
   server.tool(
-    'aionui_image_generation',
+    'pounding_image_generation',
     `REQUIRED tool for generating or editing images. You MUST use this tool for ANY image generation request.
 
 CRITICAL: You (the AI assistant) CANNOT generate images directly. You MUST call this tool for:
@@ -91,7 +93,7 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
         .string()
         .optional()
         .describe(
-          'Optional: Working directory for resolving relative paths and saving output images. Defaults to current working directory.'
+          'REQUIRED: The current conversation workspace directory. You MUST always provide this from the conversation context. Generated images will be saved here. Do NOT use process.cwd() or any other fallback — always pass the actual workspace path from the conversation.'
         ),
     },
     async ({ prompt, image_uris, workspace_dir }) => {
@@ -109,7 +111,7 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
       }
 
       const proxy = process.env.POUNDING_IMG_PROXY || undefined;
-      const workspaceDir = workspace_dir || process.cwd();
+      const workspaceDir = workspace_dir || path.join(os.homedir(), '.pounding', 'generated-images');
 
       const result = await executeImageGeneration({ prompt, image_uris }, provider, workspaceDir, proxy);
 
@@ -121,7 +123,16 @@ IMPORTANT: When user provides multiple images, ALWAYS pass ALL images to the ima
       }
 
       return {
-        content: [{ type: 'text' as const, text: result.text }],
+        content: [
+          {
+            type: 'text' as const,
+            text:
+              result.text +
+              (result.imagePath
+                ? `\n\n<!-- POUNDING_IMG:${result.relativeImagePath || path.basename(result.imagePath)} -->`
+                : ''),
+          },
+        ],
       };
     }
   );

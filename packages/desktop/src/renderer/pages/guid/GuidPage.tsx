@@ -88,12 +88,18 @@ const GuidPage: React.FC = () => {
     void ensureBackendMcpCatalog()
       .then(({ allServers }) => {
         setAvailableMcpServers(allServers);
-        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+        // Respect the `enabled` flag from each MCP server so that
+        // servers configured as "default on" are pre-checked in new
+        // conversations (IMcpServer.enabled = "默认启用，新会话默认勾选").
+        setGuidSelectedMcpServerIds((prev) => {
+          if (prev !== undefined) return prev;
+          return allServers.filter((s) => s.enabled !== false).map((s) => s.id);
+        });
       })
       .catch((error) => {
         console.error('[GuidPage] Failed to load MCP catalog:', error);
         setAvailableMcpServers([]);
-        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+        setGuidSelectedMcpServerIds((prev) => prev ?? []); // Keep existing selection on error
       });
   }, []);
 

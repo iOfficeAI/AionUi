@@ -122,10 +122,11 @@ jobs:
             ~/.cache/electron
             ~/.cache/electron-builder
             ${{ env.LOCALAPPDATA }}\electron-builder\Cache
-          key: electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
+          key: electron-cache-${{ runner.os }}-${{ matrix.platform }}-${{ matrix.arch }}-${{ hashFiles('package.json', 'bun.lock') }}
           restore-keys: |
-            electron-cache-${{ matrix.platform }}-${{ matrix.arch }}-
-            electron-cache-${{ matrix.platform }}-
+            electron-cache-${{ runner.os }}-${{ matrix.platform }}-${{ matrix.arch }}-
+            electron-cache-${{ runner.os }}-${{ matrix.platform }}-
+            electron-cache-${{ runner.os }}-
 
       - name: Cache status
         run: echo "electron-cache-hit=${{ steps.electron-cache.outputs.cache-hit }}"

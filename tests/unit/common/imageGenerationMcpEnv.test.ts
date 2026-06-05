@@ -42,8 +42,8 @@ describe('resolveImageGenerationMcpEnv', () => {
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.source).toBe('field-match');
-    expect(result.env.AIONUI_IMG_PROVIDER_ID).toBe('03c8482c');
-    expect(result.env.AIONUI_IMG_API_KEY).toBe('provider-key');
+    expect(result.env[IMAGE_GEN_ENV_KEYS.providerId]).toBe('03c8482c');
+    expect(result.env[IMAGE_GEN_ENV_KEYS.apiKey]).toBe('provider-key');
   });
 
   it('fails loudly when neither provider id nor legacy fields match a provider', () => {

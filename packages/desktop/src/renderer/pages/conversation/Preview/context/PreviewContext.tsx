@@ -542,6 +542,8 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
               return tab;
             }
 
+            console.log(`[PreviewContext] tab content updated via contentUpdate: ${file_path}`);
+
             return {
               ...tab,
               content,

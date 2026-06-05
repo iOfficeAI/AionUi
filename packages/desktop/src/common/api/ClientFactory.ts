@@ -76,7 +76,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://github.com/halojerry/pouding',
+            'HTTP-Referer': 'https://github.com/halojerry/pounding',
             'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),
@@ -127,7 +127,7 @@ export class ClientFactory {
           baseURL: base_url,
           timeout: options.timeout,
           defaultHeaders: {
-            'HTTP-Referer': 'https://github.com/halojerry/pouding',
+            'HTTP-Referer': 'https://github.com/halojerry/pounding',
             'X-Title': 'POUNDING',
           },
           ...(options.baseConfig as OpenAIClientConfig),

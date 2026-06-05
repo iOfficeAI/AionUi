@@ -79,13 +79,42 @@ export function getFileExtensionFromDataUrl(dataUrl: string): string {
   return DEFAULT_IMAGE_EXTENSION;
 }
 
-export async function saveGeneratedImage(base64Data: string, workspaceDir: string): Promise<string> {
+export async function saveGeneratedImage(urlOrBase64: string, workspaceDir: string): Promise<string> {
   const timestamp = Date.now();
-  const fileExtension = getFileExtensionFromDataUrl(base64Data);
+
+  // Handle HTTP URL: download the image bytes before writing to disk
+  if (isHttpUrl(urlOrBase64)) {
+    try {
+      const response = await fetch(urlOrBase64);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      const contentType = response.headers.get('content-type') || '';
+      const mimeSubtype = contentType
+        .replace(/^image\//, '')
+        .split(';')[0]
+        .trim();
+      const ext = MIME_TO_EXT_MAP[mimeSubtype] || DEFAULT_IMAGE_EXTENSION;
+      const file_name = `img-${timestamp}${ext}`;
+      const file_path = path.join(workspaceDir, file_name);
+      const buffer = Buffer.from(await response.arrayBuffer());
+      await fs.promises.writeFile(file_path, buffer);
+      console.error('[ImageGen] Downloaded image from URL:', urlOrBase64.substring(0, 80), '→', file_path);
+      return file_path;
+    } catch (error) {
+      console.error('[ImageGen] Failed to download image from URL:', error);
+      throw new Error(`Failed to download image: ${error instanceof Error ? error.message : String(error)}`, {
+        cause: error,
+      });
+    }
+  }
+
+  // Handle data URL (base64-encoded image)
+  const fileExtension = getFileExtensionFromDataUrl(urlOrBase64);
   const file_name = `img-${timestamp}${fileExtension}`;
   const file_path = path.join(workspaceDir, file_name);
 
-  const base64WithoutPrefix = base64Data.replace(/^data:image\/[^;]+;base64,/, '');
+  const base64WithoutPrefix = urlOrBase64.replace(/^data:image\/[^;]+;base64,/, '');
   const imageBuffer = Buffer.from(base64WithoutPrefix, 'base64');
 
   try {

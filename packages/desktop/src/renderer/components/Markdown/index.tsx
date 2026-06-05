@@ -40,10 +40,12 @@ type MarkdownViewProps = {
   onRef?: (el?: HTMLDivElement | null) => void;
   /** Enable raw HTML rendering in markdown content. Use with caution — only for trusted sources. */
   allowHtml?: boolean;
+  /** Callback when an image is clicked. Receives the image src. */
+  onImageClick?: (src: string) => void;
 };
 
 const MarkdownView: React.FC<MarkdownViewProps> = React.memo(
-  ({ hiddenCodeCopyButton, codeStyle, className, onRef, allowHtml, children: childrenProp }) => {
+  ({ hiddenCodeCopyButton, codeStyle, className, onRef, allowHtml, onImageClick, children: childrenProp }) => {
     const { t } = useTranslation();
 
     const normalizedChildren = useMemo(() => {

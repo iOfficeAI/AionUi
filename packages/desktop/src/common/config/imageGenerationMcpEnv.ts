@@ -8,11 +8,11 @@ import type { ConfigKeyMap } from './configKeys';
 import type { IProvider } from './storage';
 
 export const IMAGE_GEN_ENV_KEYS = {
-  providerId: 'AIONUI_IMG_PROVIDER_ID',
-  platform: 'AIONUI_IMG_PLATFORM',
-  baseUrl: 'AIONUI_IMG_BASE_URL',
-  apiKey: 'AIONUI_IMG_API_KEY',
-  model: 'AIONUI_IMG_MODEL',
+  providerId: 'POUNDING_IMG_PROVIDER_ID',
+  platform: 'POUNDING_IMG_PLATFORM',
+  baseUrl: 'POUNDING_IMG_BASE_URL',
+  apiKey: 'POUNDING_IMG_API_KEY',
+  model: 'POUNDING_IMG_MODEL',
 } as const;
 
 type ImageGenerationSelection = Partial<ConfigKeyMap['tools.imageGenerationModel']>;
@@ -48,10 +48,11 @@ function getLegacyField(
   existingEnv: Record<string, string> | undefined
 ) {
   return {
-    providerId: selection?.id || existingEnv?.[IMAGE_GEN_ENV_KEYS.providerId],
-    platform: selection?.platform || existingEnv?.[IMAGE_GEN_ENV_KEYS.platform],
-    baseUrl: selection?.base_url || existingEnv?.[IMAGE_GEN_ENV_KEYS.baseUrl],
-    model: selection?.use_model || existingEnv?.[IMAGE_GEN_ENV_KEYS.model],
+    providerId:
+      selection?.id || existingEnv?.[IMAGE_GEN_ENV_KEYS.providerId] || existingEnv?.['AIONUI_IMG_PROVIDER_ID'],
+    platform: selection?.platform || existingEnv?.[IMAGE_GEN_ENV_KEYS.platform] || existingEnv?.['AIONUI_IMG_PLATFORM'],
+    baseUrl: selection?.base_url || existingEnv?.[IMAGE_GEN_ENV_KEYS.baseUrl] || existingEnv?.['AIONUI_IMG_BASE_URL'],
+    model: selection?.use_model || existingEnv?.[IMAGE_GEN_ENV_KEYS.model] || existingEnv?.['AIONUI_IMG_MODEL'],
   };
 }
 
@@ -156,9 +157,20 @@ export function resolveImageGenerationMcpEnv(
   };
 }
 
+const LEGACY_IMAGE_GEN_ENV_KEYS = [
+  'AIONUI_IMG_PROVIDER_ID',
+  'AIONUI_IMG_PLATFORM',
+  'AIONUI_IMG_BASE_URL',
+  'AIONUI_IMG_API_KEY',
+  'AIONUI_IMG_MODEL',
+];
+
 export function removeImageGenerationEnvKeys(env: Record<string, string>): Record<string, string> {
   const next = { ...env };
   Object.values(IMAGE_GEN_ENV_KEYS).forEach((key) => {
+    delete next[key];
+  });
+  LEGACY_IMAGE_GEN_ENV_KEYS.forEach((key) => {
     delete next[key];
   });
   return next;

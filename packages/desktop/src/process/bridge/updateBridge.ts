@@ -54,10 +54,10 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'halojerry/pouding';
+const DEFAULT_REPO = 'halojerry/pounding';
 const DEFAULT_USER_AGENT = 'POUNDING';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'github.com/halojerry/pouding/releases/download';
+const CDN_HOST = 'github.com/halojerry/pounding/releases/download';
 const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
@@ -312,7 +312,7 @@ const sanitizeFileName = (name: string): string => {
   // Keep only base name and trim weird whitespace.
   const base = path.basename(name).trim();
   // Avoid empty names.
-  return base || `AionUi-update-${Date.now()}`;
+  return base || `POUNDING-update-${Date.now()}`;
 };
 
 const ensureUniquePath = (target: string): string => {
