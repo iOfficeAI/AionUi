@@ -40,17 +40,17 @@ import '@/common/adapter/browser';
 
 // React and core dependencies
 import type { PropsWithChildren } from 'react';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { createRoot } from 'react-dom/client';
 
 // Context providers
 import { AuthProvider } from './hooks/context/AuthContext';
-import { FeedbackProvider, useFeedback } from './hooks/context/FeedbackContext';
+import { FeedbackProvider } from './hooks/context/FeedbackContext';
 import { ThemeProvider } from './hooks/context/ThemeContext';
 import { PreviewProvider } from './pages/conversation/Preview/context/PreviewContext';
 
 // Arco Design
-import { Button, ConfigProvider, Result, Space, Typography } from '@arco-design/web-react';
+import { Button, ConfigProvider, Modal, Typography } from '@arco-design/web-react';
 // Configure Arco Design to use React 18's createRoot, fixing Message component's CopyReactDOM.render error
 import '@arco-design/web-react/es/_util/react-19-adapter';
 import '@arco-design/web-react/dist/css/arco.css';
@@ -79,6 +79,7 @@ import './services/i18n';
 import { registerPwa } from './services/registerPwa';
 
 import { mutate as swrMutate } from 'swr';
+import { ipcBridge } from '@/common';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from './utils/model/agentTypes';
 import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJobTimeZone';
 
@@ -88,9 +89,9 @@ import Router from './components/layout/Router';
 import Sider from './components/layout/Sider';
 import { useAuth } from './hooks/context/AuthContext';
 import { ConversationHistoryProvider } from './hooks/context/ConversationHistoryContext';
-import GlobalRuntimeStatus from './runtime/GlobalRuntimeStatus';
 import HOC from './utils/ui/HOC';
 import type { BackendStartupFailureInfo } from '@/common/types/platform/electron';
+import type { IRuntimeStatusEvent } from '@/common/adapter/ipcBridge';
 
 const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
 
@@ -122,6 +123,42 @@ const arcoLocales: Record<string, typeof enUS> = {
   'en-US': enUS,
 };
 
+const RuntimeFailureDialogs: React.FC = () => {
+  const { t } = useTranslation();
+  const [modal, modalContextHolder] = Modal.useModal();
+  const shownFailuresRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    return ipcBridge.runtime.statusChanged.on((event: IRuntimeStatusEvent) => {
+      if (event.phase !== 'failed') {
+        return;
+      }
+      const signature = [
+        event.resource,
+        event.resource_id ?? '',
+        event.scope.kind,
+        event.scope.id,
+        event.failure_kind ?? 'unknown',
+        event.message ?? '',
+      ].join('|');
+      if (shownFailuresRef.current.has(signature)) {
+        return;
+      }
+      shownFailuresRef.current.add(signature);
+
+      modal.error({
+        title: t('common.backendStartup.incompleteInstallation.title'),
+        content: t('common.backendStartup.incompleteInstallation.description'),
+        okText: t('common.confirm'),
+        closable: false,
+        maskClosable: false,
+      });
+    });
+  }, [modal, t]);
+
+  return <>{modalContextHolder}</>;
+};
+
 const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
   React.createElement(
     AuthProvider,
@@ -135,7 +172,7 @@ const AppProviders: React.FC<PropsWithChildren> = ({ children }) =>
         React.createElement(
           FeedbackProvider,
           null,
-          React.createElement(React.Fragment, null, React.createElement(GlobalRuntimeStatus, null), children)
+          React.createElement(React.Fragment, null, React.createElement(RuntimeFailureDialogs, null), children)
         )
       )
     )
@@ -194,80 +231,47 @@ const Main = () => {
 
 const App = HOC.Wrapper(Config)(Main);
 
-const BackendIncompatibleRuntimeScreen: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
+const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
   const { t } = useTranslation();
+
+  const isIncompatibleRuntime = failure.reason === 'backend_incompatible_runtime';
+  const title = isIncompatibleRuntime
+    ? t('common.backendStartup.incompatibleRuntime.title')
+    : t('common.backendStartup.incompleteInstallation.title');
+  const description = isIncompatibleRuntime
+    ? t('common.backendStartup.incompatibleRuntime.description')
+    : t('common.backendStartup.incompleteInstallation.description');
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
-
-  return (
-    <div className='min-h-screen flex items-center justify-center bg-bg-1 px-6 text-center text-t-1'>
-      <Result
-        status='warning'
-        title={t('common.backendStartup.incompatibleRuntime.title')}
-        subTitle={
-          <div className='mx-auto max-w-[560px] text-t-secondary'>
-            <Typography.Paragraph className='m-0'>
-              {t('common.backendStartup.incompatibleRuntime.description')}
-            </Typography.Paragraph>
-            {requiredVersions ? (
-              <Typography.Paragraph className='mt-3 mb-0 text-12px text-t-tertiary'>
-                {t('common.backendStartup.incompatibleRuntime.requiredVersions', { versions: requiredVersions })}
-              </Typography.Paragraph>
-            ) : null}
-          </div>
-        }
-      />
-    </div>
-  );
-};
-
-const BackendIncompleteInstallationScreen: React.FC = () => {
-  const { t } = useTranslation();
-  const { openFeedback } = useFeedback();
 
   const handleDownload = () => {
     window.open(AIONUI_DOWNLOAD_URL, '_blank', 'noopener,noreferrer');
   };
 
-  const handleFeedback = () => {
-    void openFeedback({ module: 'system-settings' });
-  };
-
   return (
-    <div className='min-h-screen flex items-center justify-center bg-bg-1 px-6 text-center text-t-1'>
-      <Result
-        status='error'
-        title={t('common.backendStartup.incompleteInstallation.title')}
-        subTitle={
-          <div className='mx-auto max-w-[560px] text-t-secondary'>
-            <Typography.Paragraph className='m-0'>
-              {t('common.backendStartup.incompleteInstallation.description')}
-            </Typography.Paragraph>
-          </div>
-        }
-        extra={
-          <Space wrap>
+    <div className='min-h-screen bg-bg-1'>
+      <Modal
+        visible
+        closable={false}
+        maskClosable={false}
+        footer={
+          isIncompatibleRuntime ? null : (
             <Button type='primary' onClick={handleDownload}>
               {t('common.backendStartup.incompleteInstallation.downloadLatest')}
             </Button>
-            <Button onClick={handleFeedback}>
-              {t('common.backendStartup.incompleteInstallation.sendDiagnostics')}
-            </Button>
-          </Space>
+          )
         }
-      />
+        title={title}
+      >
+        <div className='text-t-1'>
+          <Typography.Paragraph className='mb-0 text-t-secondary'>{description}</Typography.Paragraph>
+          {requiredVersions ? (
+            <Typography.Paragraph className='mt-12px mb-0 text-12px text-t-tertiary'>
+              {t('common.backendStartup.incompatibleRuntime.requiredVersions', { versions: requiredVersions })}
+            </Typography.Paragraph>
+          ) : null}
+        </div>
+      </Modal>
     </div>
-  );
-};
-
-const BackendStartupFailureScreen: React.FC<{ failure: BackendStartupFailureInfo }> = ({ failure }) => {
-  if (failure.reason === 'backend_incompatible_runtime') {
-    return <BackendIncompatibleRuntimeScreen failure={failure} />;
-  }
-
-  return (
-    <FeedbackProvider>
-      <BackendIncompleteInstallationScreen />
-    </FeedbackProvider>
   );
 };
 
@@ -275,13 +279,14 @@ void registerPwa();
 
 const root = createRoot(document.getElementById('root')!);
 const backendStartupFailure = window.__backendStartupFailure;
-const shouldShowBackendStartupFailureScreen =
+const shouldShowBackendStartupFailureDialog =
   backendStartupFailure?.reason === 'backend_incompatible_runtime' ||
-  backendStartupFailure?.reason === 'backend_incomplete_installation';
-if (backendStartupFailure && shouldShowBackendStartupFailureScreen) {
+  backendStartupFailure?.reason === 'backend_incomplete_installation' ||
+  backendStartupFailure?.reason === 'backend_startup_failed';
+if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
   root.render(
     <Config>
-      <BackendStartupFailureScreen failure={backendStartupFailure} />
+      <BackendStartupFailureDialog failure={backendStartupFailure} />
     </Config>
   );
 } else {
