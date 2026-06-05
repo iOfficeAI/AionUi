@@ -94,6 +94,7 @@
     "@iconify-json/vscode-icons": "^1.2.53",
     "@iconify/react": "^6.0.2",
     "@larksuiteoapi/node-sdk": "^1.58.0",
+    "@lezer/highlight": "^1.2.3",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
     "@office-ai/aioncli-core": "^0.30.6",

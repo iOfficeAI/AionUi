@@ -6,7 +6,10 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { markdown } from '@codemirror/lang-markdown';
+import { syntaxHighlighting } from '@codemirror/language';
+import { Prec } from '@codemirror/state';
 import CodeMirror from '@uiw/react-codemirror';
+import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import React, { useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
@@ -54,7 +57,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           value={value}
           height='100%'
           theme={theme === 'dark' ? 'dark' : 'light'}
-          extensions={[markdown()]} // Markdown 语法支持 / Markdown syntax support
+          extensions={[
+            markdown(),
+            Prec.high(syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light'))),
+          ]} // Markdown 语法支持 / Markdown syntax support
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{
