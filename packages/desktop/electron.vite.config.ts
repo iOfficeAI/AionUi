@@ -210,7 +210,10 @@ export default defineConfig(({ mode }) => {
         // our direct import, one nested under @uiw/react-codemirror), our custom
         // markdown HighlightStyle registers on a facet the editor never reads,
         // so the source view silently falls back to near-monochrome. Dedupe the
-        // singleton packages to a single physical copy.
+        // singleton packages to a single physical copy. Only packages hoisted to
+        // the top-level node_modules may be deduped here — @lezer/common is not
+        // hoisted under bun's isolated layout, so listing it breaks the Rollup
+        // production build (cannot resolve from nested @codemirror/lang-* dirs).
         dedupe: [
           'react',
           'react-dom',
@@ -218,7 +221,6 @@ export default defineConfig(({ mode }) => {
           '@codemirror/state',
           '@codemirror/view',
           '@codemirror/language',
-          '@lezer/common',
           '@lezer/highlight',
         ],
       },
