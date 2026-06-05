@@ -227,6 +227,7 @@
     "electron-winstaller": "^5.4.0"
   },
   "resolutions": {
+    "@codemirror/language": "6.12.3",
     "body-parser": "^2.2.1",
     "hono": "^4.11.7",
     "jws": "4.0.1",
@@ -237,6 +238,7 @@
     "tmp": "^0.2.5"
   },
   "overrides": {
+    "@codemirror/language": "6.12.3",
     "body-parser": "^2.2.1",
     "hono": "^4.11.7",
     "jws@<4": "3.2.3",
