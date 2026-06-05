@@ -114,6 +114,35 @@
   "revertToolCallConfirmMessage": "Reverting this call will undo the file changes this tool made. The OpenCode session state is NOT changed.",
   "revertToolCallSuccess": "Tool call reverted — {{files}} file(s) restored",
   "revertToolCallFailed": "Failed to revert tool call",
+  "restorePlan": {
+    "title": "Restore Plan (read-only preview)",
+    "tooltip": "Preview restore plan (read-only)",
+    "loading": "Computing restore plan…",
+    "notFound": "No snapshot recorded for this tool call. The per-tool-call ledger only captures local_fs_mcp file mutations; tool calls that did not touch the working tree, or that were not snapshotted, will appear here as \"not found\".",
+    "errorTitle": "Failed to load restore plan",
+    "emptyPlan": "Restore plan is empty.",
+    "commitLabel": "Snapshot commit",
+    "actionable": "Actionable",
+    "notActionable": "Has errors",
+    "warningsTitle": "Plan warnings",
+    "errorsTitle": "Plan errors",
+    "previewBlocked": "Binary file — preview blocked",
+    "notRestorable": "Prior content not recoverable",
+    "binary": "binary",
+    "noPrior": "no prior",
+    "operation": {
+      "create": "Create",
+      "modify": "Modify",
+      "delete": "Delete",
+      "unknown": "Unknown"
+    },
+    "coverage": {
+      "title": "This plan does not cover",
+      "runShell": "run_shell post-exec deltas are NOT attributed to tool_call_id",
+      "nonLocalFsMcp": "Mutations outside local_fs_mcp are NOT in the ledger",
+      "sessionRevert": "OpenCode session-state revert is NOT applied by this plan"
+    }
+  },
   "deleteMessageTitle": "Delete message?",
   "deleteMessageConfirm": "This permanently deletes the message from the remote session.",
   "deleteMessageSuccess": "Message deleted",

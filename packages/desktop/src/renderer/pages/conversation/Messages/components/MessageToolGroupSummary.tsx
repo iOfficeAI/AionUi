@@ -12,6 +12,7 @@ import { Message, Button, Tooltip } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
 import { Refresh } from '@icon-park/react';
 import { iconColors } from '@/renderer/styles/colors';
+import RestorePlanPreview from './RestorePlanPreview';
 
 const REVERTABLE_KINDS: ReadonlySet<string> = new Set(['edit', 'write', 'execute', 'apply_patch']);
 
@@ -27,6 +28,7 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   const toggle = () => hasDetail && setExpanded((v) => !v);
 
   const showRevert = item.key && item.status === 'completed' && item.kind && REVERTABLE_KINDS.has(item.kind) && Boolean(conversationContext);
+  const showRestorePlan = item.key && item.status === 'completed' && Boolean(conversationContext);
 
   const handleRevertConfirm = async () => {
     if (!item.key || !conversationContext?.conversation_id) return;
@@ -83,6 +85,13 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
                 <Refresh theme='outline' size='14' fill={iconColors.secondary} />
               </button>
             </Tooltip>
+          )}
+          {showRestorePlan && item.key && conversationContext?.conversation_id && (
+            <RestorePlanPreview
+              conversationId={conversationContext.conversation_id}
+              toolCallId={item.key}
+              disabled={item.status !== 'completed'}
+            />
           )}
           {hasDetail && (
             <button

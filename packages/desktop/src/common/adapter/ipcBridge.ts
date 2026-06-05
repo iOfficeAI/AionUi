@@ -238,6 +238,45 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/opencode/revert-tool-call`,
     (p) => ({ tool_call_id: p.tool_call_id })
   ),
+  /**
+   * forge-5-02-03: read-only restore-plan preview for a single tool call.
+   * Returns the per-path operation, prior-content restorability, binary /
+   * preview-blocked marker, and the documented unsupported coverage
+   * (run_shell, non-local_fs_mcp, OpenCode session-state revert) without
+   * mutating the working tree. `found` is `false` when the ledger has no
+   * row for the requested `tool_call_id` in this conversation — the UI
+   * uses that to render a friendly "no snapshot" state instead of a
+   * hard error.
+   */
+  getToolCallRestorePlan: httpGet<
+    {
+      tool_call_id: string;
+      found: boolean;
+      actionable: boolean;
+      plan: {
+        commit_sha: string;
+        paths: Array<{
+          path: string;
+          operation: 'create' | 'modify' | 'delete' | 'unknown';
+          prior_content_restorable: boolean;
+          preview_blocked: boolean;
+          source_commit_sha: string | null;
+          warnings: string[];
+          errors: string[];
+        }>;
+        warnings: string[];
+        errors: string[];
+      } | null;
+      unsupported_coverage: {
+        run_shell_not_snapshotted: boolean;
+        non_local_fs_mcp_not_covered: boolean;
+        opencode_session_revert_not_used: boolean;
+      };
+    },
+    { conversation_id: string; tool_call_id: string }
+  >(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/tool-call-restore-plan?tool_call_id=${encodeURIComponent(p.tool_call_id)}`
+  ),
   /** M02: restore all reverted messages. */
   unrevertRemoteSession: httpPost<void, { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/unrevert`

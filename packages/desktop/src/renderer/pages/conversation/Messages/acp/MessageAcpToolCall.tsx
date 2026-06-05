@@ -18,6 +18,7 @@ import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { iconColors } from '@/renderer/styles/colors';
 import MarkdownView from '@renderer/components/Markdown';
+import RestorePlanPreview from '../components/RestorePlanPreview';
 
 const StatusTag: React.FC<{ status: string }> = ({ status }) => {
   const getTagProps = () => {
@@ -230,6 +231,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   };
 
   const showRevert = tool_call_id && status === 'completed' && REVERTABLE_KINDS.has(kind) && Boolean(conversationContext);
+  const showRestorePlan = tool_call_id && status === 'completed' && Boolean(conversationContext);
 
   const handleRevertConfirm = async () => {
     if (!tool_call_id || !conversationContext?.conversation_id) return;
@@ -292,18 +294,27 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
             )}
             <div className='flex items-center justify-between mt-2'>
               <span className='text-xs text-t-secondary'>Tool Call ID: {tool_call_id}</span>
-              {showRevert && (
-                <Tooltip content={t('messages.revertToolCall', { defaultValue: 'Revert this tool call' })}>
-                  <button
-                    type='button'
-                    className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
-                    onClick={() => setRevertOpen(true)}
-                    style={{ lineHeight: 0 }}
-                  >
-                    <Refresh theme='outline' size='16' fill={iconColors.secondary} />
-                  </button>
-                </Tooltip>
-              )}
+              <div className='flex items-center gap-4px'>
+                {showRestorePlan && tool_call_id && conversationContext?.conversation_id && (
+                  <RestorePlanPreview
+                    conversationId={conversationContext.conversation_id}
+                    toolCallId={tool_call_id}
+                    disabled={status !== 'completed'}
+                  />
+                )}
+                {showRevert && (
+                  <Tooltip content={t('messages.revertToolCall', { defaultValue: 'Revert this tool call' })}>
+                    <button
+                      type='button'
+                      className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors'
+                      onClick={() => setRevertOpen(true)}
+                      style={{ lineHeight: 0 }}
+                    >
+                      <Refresh theme='outline' size='16' fill={iconColors.secondary} />
+                    </button>
+                  </Tooltip>
+                )}
+              </div>
             </div>
           </div>
         </div>
