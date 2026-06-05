@@ -33,13 +33,16 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>] => {
   const [active, setActive] = useState<Theme | null>(null);
 
   useEffect(() => {
-    initialPromise?.then(setActive).catch((e) => console.error('init theme failed', e));
+    let mounted = true;
+    initialPromise
+      ?.then((t) => { if (mounted) setActive(t); })
+      .catch((e) => console.error('init theme failed', e));
     const off = ipcBridge.theme.changed.on((t: Theme) => {
       applyTheme(t);
-      setActive(t);
+      if (mounted) setActive((prev) => (prev?.id === t.id ? prev : t));
       try { localStorage.setItem(APPEARANCE_CACHE_KEY, t.appearance); } catch { /* noop */ }
     });
-    return () => { off?.(); };
+    return () => { mounted = false; off?.(); };
   }, []);
 
   const select = useCallback(async (activeId: string) => {
