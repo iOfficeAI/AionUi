@@ -6,7 +6,7 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
-import { syntaxHighlighting } from '@codemirror/language';
+import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
 import { languages } from '@codemirror/language-data';
 import CodeMirror from '@uiw/react-codemirror';
 import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
@@ -63,6 +63,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           extensions={[
             markdown({ base: markdownLanguage, codeLanguages: languages }),
             syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
+            syntaxHighlighting(defaultHighlightStyle),
           ]}
           onChange={onChange}
           readOnly={readOnly}

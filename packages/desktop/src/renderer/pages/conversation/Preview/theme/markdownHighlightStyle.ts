@@ -23,7 +23,7 @@ const LIGHT = HighlightStyle.define([
   { tag: t.emphasis, fontStyle: 'italic' },
   { tag: t.strikethrough, textDecoration: 'line-through' },
   { tag: [t.link, t.url], color: '#0969da', textDecoration: 'underline' },
-  { tag: t.monospace, color: '#0a7c5a' },
+  { tag: t.monospace, color: '#0d9488' },
   { tag: t.quote, color: '#6e7781', fontStyle: 'italic' },
   { tag: t.list, color: '#0550ae' },
   { tag: [t.meta, t.processingInstruction], color: '#8c959f' },
