@@ -1,0 +1,20 @@
+{
+  "title": "Equipe",
+  "create": "Criar Equipe",
+  "rename": "Renomear",
+  "delete": "Excluir",
+  "members": "Membros",
+  "addMember": "Adicionar Membro",
+  "removeMember": "Remover Membro",
+  "leader": "Líder",
+  "teammate": "Membro",
+  "workspace": "Área de Trabalho",
+  "noTeams": "Nenhuma equipe criada",
+  "taskBoard": "Quadro de Tarefas",
+  "chat": "Chat da Equipe",
+  "assignTask": "Atribuir Tarefa",
+  "taskComplete": "Tarefa Concluída",
+  "taskFailed": "Tarefa Falhou",
+  "taskPending": "Pendente",
+  "taskRunning": "Executando"
+}

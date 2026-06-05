@@ -1,0 +1,18 @@
+{
+  "title": "Pet Virtual",
+  "enable": "Ativar Pet",
+  "disable": "Desativar Pet",
+  "select": "Escolher Pet",
+  "idle": "Parado",
+  "walking": "Andando",
+  "sleeping": "Dormindo",
+  "eating": "Comendo",
+  "playing": "Brincando",
+  "feed": "Alimentar",
+  "play": "Brincar",
+  "sleep": "Dormir",
+  "wake": "Acordar",
+  "hunger": "Fome",
+  "happiness": "Felicidade",
+  "energy": "Energia"
+}

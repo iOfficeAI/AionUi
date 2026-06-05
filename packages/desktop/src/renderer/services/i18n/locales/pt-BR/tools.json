@@ -1,0 +1,47 @@
+{
+  "title": "Ferramentas",
+  "shell": "Comando Shell",
+  "fileOps": "Operações de Arquivo",
+  "webSearch": "Busca Web",
+  "mcp": "Ferramenta MCP: {{toolName}}",
+  "unknown": "Ferramenta Desconhecida",
+  "status": {
+    "pending": "Pendente",
+    "executing": "Executando",
+    "success": "Sucesso",
+    "error": "Erro",
+    "canceled": "Cancelado"
+  },
+  "labels": {
+    "search_query": "Busca:",
+    "command": "Comando:",
+    "working_directory": "Diretório:",
+    "exit_code": "Saída: {{code}}",
+    "duration": "Duração: {{seconds}}",
+    "auto_approved": "Auto-aprovado",
+    "manual_approval": "Aprovação manual",
+    "file_changes": "Alterações:",
+    "tool_details": "Detalhes:",
+    "arguments": "Argumentos:",
+    "result": "Resultado:",
+    "tool": "Ferramenta"
+  },
+  "actions": {
+    "create": "criar",
+    "modify": "modificar",
+    "delete": "excluir"
+  },
+  "titles": {
+    "web_search": "Busca Web",
+    "file_patch": "Patch de Arquivo",
+    "mcp_tool": "MCP: {{toolName}}",
+    "shell_command": "Comando Shell",
+    "command_output": "Saída do Comando",
+    "command_completed": "Comando Concluído"
+  },
+  "newFile": "Novo Arquivo",
+  "deletedFile": "Arquivo Excluído",
+  "modified": "Modificado",
+  "fileChanges": "Alterações",
+  "unknownFile": "Arquivo desconhecido"
+}

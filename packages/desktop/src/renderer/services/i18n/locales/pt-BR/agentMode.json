@@ -1,0 +1,15 @@
+{
+  "title": "Modo Agente",
+  "chat": "Chat",
+  "agent": "Agente",
+  "agentDesc": "O agente pode executar ferramentas e realizar tarefas de forma autônoma",
+  "chatDesc": "Modo de conversa simples, sem execução de ferramentas",
+  "switchToAgent": "Alternar para modo Agente",
+  "switchToChat": "Alternar para modo Chat",
+  "yoloMode": "Modo YOLO",
+  "yoloDesc": "Aprovar automaticamente todas as ações do agente sem confirmação manual",
+  "permissions": "Permissões",
+  "always": "Sempre",
+  "ask": "Perguntar",
+  "never": "Nunca"
+}

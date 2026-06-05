@@ -1,0 +1,19 @@
+{
+  "title": "Atualização",
+  "checking": "Verificando atualizações...",
+  "upToDate": "Você está atualizado",
+  "currentVersion": "Versão atual: {{version}}",
+  "available": "Atualização disponível",
+  "download": "Baixar",
+  "downloading": "Baixando...",
+  "install": "Instalar e Reiniciar",
+  "changelog": "Novidades",
+  "noReleaseNotes": "Sem notas de versão.",
+  "error": "Falha na atualização",
+  "restartNow": "Reiniciar Agora",
+  "later": "Depois",
+  "autoUpdate": "Atualização automática",
+  "includePrerelease": "Incluir versões beta",
+  "noCompatibleAsset": "Nenhum pacote compatível encontrado",
+  "goToRelease": "Ver Releases"
+}

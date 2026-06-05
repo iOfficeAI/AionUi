@@ -1,0 +1,14 @@
+{
+  "title": "Seleção de Arquivos",
+  "selectFile": "Selecionar Arquivo",
+  "selectFolder": "Selecionar Pasta",
+  "recentFiles": "Arquivos Recentes",
+  "workspaceFiles": "Arquivos do Projeto",
+  "noFiles": "Nenhum arquivo encontrado",
+  "filterByName": "Filtrar por nome...",
+  "sortBy": "Ordenar por",
+  "sortByName": "Nome",
+  "sortByDate": "Data",
+  "sortByType": "Tipo",
+  "sortBySize": "Tamanho"
+}

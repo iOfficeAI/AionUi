@@ -1,0 +1,14 @@
+{
+  "title": "Codex",
+  "status": {
+    "idle": "Inativo",
+    "running": "Executando",
+    "error": "Erro"
+  },
+  "config": {
+    "model": "Modelo",
+    "maxTokens": "Tokens Máximos",
+    "temperature": "Temperatura",
+    "reasoning": "Raciocínio"
+  }
+}

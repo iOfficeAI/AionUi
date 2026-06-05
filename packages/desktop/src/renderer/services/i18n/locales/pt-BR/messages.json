@@ -1,0 +1,17 @@
+{
+  "title": "Mensagens",
+  "noMessages": "Nenhuma mensagem",
+  "messageFailed": "Falha ao enviar mensagem",
+  "retry": "Tentar novamente",
+  "delete": "Excluir",
+  "edit": "Editar",
+  "copy": "Copiar",
+  "copied": "Copiado",
+  "confirmDelete": "Excluir mensagem?",
+  "messageSent": "Mensagem enviada",
+  "attachmentAdded": "Anexo adicionado",
+  "attachmentRemoved": "Anexo removido",
+  "typing": "digitando...",
+  "online": "online",
+  "offline": "offline"
+}
