@@ -585,18 +585,17 @@ const Layout: React.FC<{
                     </ArcoLayout.Content>
                     {!isMobile && (
                       <div
-                        className='absolute top-0 h-full w-10px z-20 cursor-col-resize group'
-                        style={{ right: '-5px' }}
+                        className='absolute top-0 h-full w-12px z-20 cursor-col-resize group flex items-center justify-center'
+                        style={{ right: '-6px' }}
                         onMouseDown={beginSiderResizeDrag}
                         aria-hidden='true'
                         title='Drag to resize sidebar'
                       >
                         <div
                           className={classNames(
-                            'absolute top-0 left-1/2 h-full w-2px -translate-x-1/2 bg-transparent group-hover:bg-brand group-active:bg-brand',
-                            siderDragging && '!bg-brand'
+                            'pointer-events-none block h-full w-2px bg-bg-3 opacity-90 rd-full transition-all duration-150 group-hover:w-6px group-hover:bg-brand group-active:w-6px group-active:bg-brand',
+                            siderDragging && '!w-6px !bg-brand'
                           )}
-                          style={{ transition: 'background-color var(--motion-base) ease' }}
                         />
                       </div>
                     )}

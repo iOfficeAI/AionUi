@@ -22,23 +22,28 @@
      `'none'` and `'1px solid var(--bg-3)'` (border shorthand cannot tween,
      so the frame appeared/disappeared in a single frame); (2) opacity stayed
      at 1 throughout close, so content was squeezed off rather than fading.
-     Fix: always render a `1px solid transparent` border, let `--expanded`
+     Fix: always render a `1px solid transparent` left divider, let `--expanded`
      paint its color (transitions cleanly); declare base opacity 0 and let
      `--expanded` lift it to 1 (transitions on close as well as open). Duration
-     bumped to `--motion-slow` (320ms) so the glide reads as deliberate. */
-  border: 1px solid transparent;
+     bumped to `--motion-slow` (320ms) so the glide reads as deliberate.
+
+     The divider is left-only: the editor is a docked pane flush to the window
+     edges, separated from the chat by a single clean vertical rule rather than
+     an all-around floating frame. */
+  border: none;
+  border-left: 1px solid transparent;
   opacity: 0;
   transition:
     width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     flex-basis var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     min-width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
-    border-color var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    border-left-color var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     opacity var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease);
 }
 
 .editor-pane--expanded {
   background: var(--bg-1);
-  border-color: var(--bg-3);
+  border-left-color: var(--bg-3);
   opacity: 1;
 }
 
@@ -48,7 +53,7 @@
    makes it slide. Opacity is forced to 1 here because the base `.editor-pane`
    rule starts at 0 and only `--expanded` otherwise lifts it. */
 .editor-pane--blade {
-  border-color: var(--bg-3);
+  border-left-color: var(--bg-3);
   opacity: 1;
 }
 
@@ -100,12 +105,9 @@
   height: 100%;
   overflow: hidden;
   background: var(--bg-1, #f5f5f5);
-  /* Reduced from 15px — IDEs don't have sticky-note corners. Just enough
-     rounding to sit cleanly inside the workspace pane. */
-  border-radius: var(--radius-card);
-  /* Subtle 1px outline to give the editor surface its own visual frame,
-     separating it from the chat chrome to its left. */
-  box-shadow: 0 0 0 1px var(--border-base, #d4d4d4);
+  /* Squared corners — the editor is a docked pane, not a floating card.
+     Separation from the chat lives on the `.editor-pane` left divider. */
+  border-radius: 0;
 }
 
 .editor-panel__body {

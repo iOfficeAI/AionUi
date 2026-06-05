@@ -428,10 +428,9 @@ const ChatLayout: React.FC<{
         {!layout?.isMobile && (
           <div
             className={classNames(
-              'editor-pane chat-pane relative layout-sider flex flex-col rounded-panel',
+              'editor-pane chat-pane relative layout-sider flex flex-col',
               paneAccent('editor'),
               isSecondaryPaneVisible && !isEditorBlade && 'editor-pane--expanded editor-pane-enter',
-              isDesktop && isSecondaryPaneVisible && !isEditorBlade && 'mb-[6px] mr-[6px] ml-[4px]',
               isEditorBlade && 'editor-pane--blade overflow-hidden',
               !isEditorBlade && 'overflow-visible'
             )}
@@ -481,7 +480,7 @@ const ChatLayout: React.FC<{
                     style: {},
                     reverse: true,
                   })}
-                <div className='h-full w-full overflow-hidden rounded-panel'>
+                <div className='h-full w-full overflow-hidden'>
                   {isDiffMode ? <DiffPanel /> : <EditorPanel />}
                 </div>
               </>

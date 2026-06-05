@@ -7,7 +7,8 @@
 import { bridge, logger } from '@office-ai/platform';
 import { WEBUI_DEFAULT_PORT } from '@/common/config/constants';
 import type { ElectronBridgeAPI } from '@/common/types/platform/electron';
-import { isAdapterEventName } from './events';
+import type { AdapterEventName } from './events';
+import { isAllowedAdapterBridgeEventName } from './events';
 
 interface CustomWindow extends Window {
   electronAPI?: ElectronBridgeAPI;
@@ -25,10 +26,10 @@ if (win.electronAPI) {
   // Electron 环境 - 使用 IPC 通信
   bridge.adapter({
     emit(name, data) {
-      if (!isAdapterEventName(name)) {
+      if (!isAllowedAdapterBridgeEventName(name)) {
         return Promise.reject(new Error('IPC: unknown bridge event'));
       }
-      return win.electronAPI.emit(name, data);
+      return win.electronAPI.emit(name as AdapterEventName, data as never);
     },
     on(emitter) {
       win.electronAPI?.on((event) => {

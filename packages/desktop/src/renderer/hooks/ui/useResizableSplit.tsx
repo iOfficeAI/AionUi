@@ -263,7 +263,7 @@ export const useResizableSplit = (options: UseResizableSplitOptions = {}) => {
     >
       <span
         className={classNames(
-          'pointer-events-none block h-full w-2px bg-bg-3 opacity-90 rd-full transition-all duration-150 group-hover:w-6px group-hover:bg-aou-6 group-active:w-6px group-active:bg-aou-6',
+          'pointer-events-none block h-full w-2px bg-bg-3 opacity-90 rd-full transition-all duration-150 group-hover:w-6px group-hover:bg-brand group-active:w-6px group-active:bg-brand',
           lineClassName
         )}
         style={lineStyle}

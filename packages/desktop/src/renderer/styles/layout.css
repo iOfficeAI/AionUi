@@ -281,3 +281,34 @@
     line-height: 20px !important;
   }
 }
+
+/* Terminal pane resize handle.
+   The handle itself has zero layout height so the terminal sits flush against
+   the pane above it — no gap, no padding. react-resizable-panels supplies the
+   grab band via its hit-area margin, so the (invisible) zero-height element is
+   still draggable. The visible rust bar is an overlay centered on the boundary
+   that only appears on hover/drag, matching the nav and editor handles. */
+.terminal-resize-handle {
+  z-index: 20;
+}
+
+.terminal-resize-handle__line {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  transform: translateY(-50%);
+  height: 2px;
+  background: transparent;
+  border-radius: 9999px;
+  pointer-events: none;
+  transition:
+    height var(--motion-fast, 150ms) var(--motion-ease-standard, ease),
+    background-color var(--motion-fast, 150ms) var(--motion-ease-standard, ease);
+}
+
+.terminal-resize-handle[data-resize-handle-state='hover'] .terminal-resize-handle__line,
+.terminal-resize-handle[data-resize-handle-state='drag'] .terminal-resize-handle__line {
+  height: 6px;
+  background: var(--brand);
+}

@@ -10,7 +10,7 @@ import * as Sentry from '@sentry/electron/main';
 
 import { bridge } from '@office-ai/platform';
 import { ADAPTER_BRIDGE_EVENT_KEY } from './constant';
-import { isAdapterEventName, type AdapterBridgeEvent } from './events';
+import { isAllowedAdapterBridgeEventName, type AdapterBridgeEvent } from './events';
 import { registerWebSocketBroadcaster, getBridgeEmitter, setBridgeEmitter, broadcastToAll } from './registry';
 
 const adapterWindowList: Array<BrowserWindow> = [];
@@ -85,7 +85,7 @@ bridge.adapter({
 
     ipcMain.handle(ADAPTER_BRIDGE_EVENT_KEY, (_event, info) => {
       const { name, data } = info as AdapterBridgeEvent;
-      if (!isAdapterEventName(name)) {
+      if (!isAllowedAdapterBridgeEventName(name)) {
         Sentry.addBreadcrumb({
           category: 'security',
           message: 'IPC bridge event rejected',

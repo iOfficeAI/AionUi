@@ -62,6 +62,8 @@ const TerminalPanel: React.FC = () => {
     [closeSession]
   );
 
+  const activeSession = sessions.find((session) => session.client_id === activeId) ?? sessions[0];
+
   return (
     <div
       className='size-full flex flex-col bg-1 min-h-0'
@@ -82,6 +84,12 @@ const TerminalPanel: React.FC = () => {
         {sessions.length === 0 ? (
           <div className='size-full flex-center text-t-tertiary text-12px'>
             {open ? t('terminal.startingShell') : t('terminal.empty')}
+          </div>
+        ) : activeSession && !activeSession.session_id ? (
+          <div className='size-full flex-center text-t-tertiary text-12px'>
+            {activeSession.exited
+              ? t('terminal.exitedUnknown', { title: activeSession.title })
+              : t('terminal.startingShell')}
           </div>
         ) : (
           sessions.map((session) =>

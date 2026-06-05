@@ -32,7 +32,6 @@ import { useTerminalPanel } from '@renderer/hooks/context/TerminalPanelContext';
 import { useLayoutModeSafe } from '@renderer/hooks/context/LayoutModeContext';
 import type { LayoutMode } from '@renderer/utils/layout/layoutModeStorage';
 import {
-  DEFAULT_PANE_SIZES,
   getTerminalHeightPctForMode,
   modeForcesTerminalOpen,
   modeHidesTerminal,
@@ -49,11 +48,17 @@ const MIN_TERM_PCT = 10;
 const COLLAPSED_PCT = 0;
 const RAIL_HEIGHT_PX = 40;
 
+const clampTerminalHeightPct = (pct: number): number => {
+  if (!Number.isFinite(pct)) return MIN_TERM_PCT;
+  return Math.max(MIN_TERM_PCT, Math.min(100, pct));
+};
+
 const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
   const { t } = useTranslation();
   const panel = useTerminalPanel();
   const layoutMode = useLayoutModeSafe();
   const handleRef = useRef<ImperativePanelHandle>(null);
+  const resizeRafRef = useRef<number | null>(null);
   const openRef = useRef(panel.open_);
   const closeRef = useRef(panel.close);
   const setHeightPctRef = useRef(panel.setHeightPct);
@@ -67,6 +72,62 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
     setHeightPctRef.current = panel.setHeightPct;
   }, [panel.setHeightPct]);
 
+  const activeMode: LayoutMode | undefined = layoutMode?.mode;
+  const storedPaneSizes = layoutMode?.paneSizes;
+  const modeRefreshCount = layoutMode?.modeRefreshCount ?? 0;
+
+  const resolveTerminalHeightPct = useCallback(
+    (mode: LayoutMode | undefined, persistedHeightPct: number): number => {
+      if (mode && modeForcesTerminalOpen(mode)) {
+        return clampTerminalHeightPct(getTerminalHeightPctForMode(mode, storedPaneSizes ?? {}));
+      }
+      return clampTerminalHeightPct(persistedHeightPct);
+    },
+    [storedPaneSizes]
+  );
+
+  const resizeOpenPanel = useCallback((target: number) => {
+    const clamped = clampTerminalHeightPct(target);
+
+    const applyResize = () => {
+      const handle = handleRef.current;
+      if (!handle) return;
+      if (handle.isCollapsed()) {
+        handle.expand();
+      }
+      handle.resize(clamped);
+    };
+
+    applyResize();
+    if (resizeRafRef.current !== null) {
+      cancelAnimationFrame(resizeRafRef.current);
+    }
+    resizeRafRef.current = requestAnimationFrame(() => {
+      applyResize();
+      resizeRafRef.current = requestAnimationFrame(() => {
+        applyResize();
+        resizeRafRef.current = null;
+      });
+    });
+  }, []);
+
+  const applyTerminalHeight = useCallback(
+    (target: number) => {
+      const clamped = clampTerminalHeightPct(target);
+      setHeightPctRef.current(clamped);
+      resizeOpenPanel(clamped);
+    },
+    [resizeOpenPanel]
+  );
+
+  useEffect(() => {
+    return () => {
+      if (resizeRafRef.current !== null) {
+        cancelAnimationFrame(resizeRafRef.current);
+      }
+    };
+  }, []);
+
   // Drive panel collapse/expand from context state.
   useEffect(() => {
     const handle = handleRef.current;
@@ -74,17 +135,18 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
     const collapsed = handle.isCollapsed();
     if (panel.open && collapsed) {
       handle.expand();
+      resizeOpenPanel(resolveTerminalHeightPct(activeMode, panel.heightPct));
     } else if (!panel.open && !collapsed) {
       handle.collapse();
     }
-  }, [panel.open]);
+  }, [activeMode, panel.heightPct, panel.open, resizeOpenPanel, resolveTerminalHeightPct]);
 
   // After mount, restore the persisted height when expanding for the first time.
   useEffect(() => {
     const handle = handleRef.current;
     if (!handle) return;
     if (panel.open && !handle.isCollapsed()) {
-      handle.resize(panel.heightPct);
+      resizeOpenPanel(resolveTerminalHeightPct(activeMode, panel.heightPct));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [panel.open]);
@@ -94,9 +156,6 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
   // pane-size-update re-renders, and a userCollapsedRef to prevent
   // stale pane-size writes from re-opening the terminal after the user
   // has manually collapsed it.
-  const activeMode: LayoutMode | undefined = layoutMode?.mode;
-  const storedPaneSizes = layoutMode?.paneSizes;
-  const modeRefreshCount = layoutMode?.modeRefreshCount ?? 0;
   const prevActiveModeRef = useRef<LayoutMode | undefined>(activeMode);
   const userCollapsedRef = useRef(false);
 
@@ -113,15 +172,14 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
     if (modeForcesTerminalOpen(activeMode)) {
       if (modeChanged || !userCollapsedRef.current) {
         openRef.current();
-        const target = getTerminalHeightPctForMode(activeMode, storedPaneSizes ?? {});
-        setHeightPctRef.current(target);
+        applyTerminalHeight(getTerminalHeightPctForMode(activeMode, storedPaneSizes ?? {}));
       }
     } else if (modeHidesTerminal(activeMode)) {
       if (modeChanged) {
         closeRef.current();
       }
     }
-  }, [activeMode, storedPaneSizes, modeRefreshCount]);
+  }, [activeMode, storedPaneSizes, modeRefreshCount, applyTerminalHeight]);
 
   // Terminal rail: when the user collapses the panel while in split-pane
   // mode, render a clickable 40 px strip at the bottom so the terminal
@@ -146,23 +204,17 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
     handleTerminalExpand();
   }, [handleTerminalExpand]);
 
-  // Close button: dismiss the terminal panel. In split-pane mode this
-  // also reverts the layout to 'default' so the user doesn't get
-  // stranded in a terminal-less split view.
-  const setMode = layoutMode?.setMode;
-  const handleCloseTerminal = useCallback(() => {
-    panel.close();
-    setTerminalRailOpen(false);
-    if (activeMode === 'split-pane' && setMode) {
-      setMode('default');
-    }
-  }, [panel, activeMode, setMode]);
-
+  const setPaneSizesForMode = layoutMode?.setPaneSizesForMode;
   const handleResize = useCallback(
     (size: number) => {
-      if (size > 0) panel.setHeightPct(size);
+      if (size <= 0) return;
+      const terminalSize = clampTerminalHeightPct(size);
+      panel.setHeightPct(terminalSize);
+      if (activeMode && setPaneSizesForMode) {
+        setPaneSizesForMode(activeMode, [Math.max(MIN_TOP_PCT, 100 - terminalSize), terminalSize]);
+      }
     },
-    [panel]
+    [activeMode, panel, setPaneSizesForMode]
   );
 
   // On mobile we don't expose the terminal at all.
@@ -170,13 +222,9 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
     return <>{children}</>;
   }
 
-  const defaultBottomPct =
-    activeMode && storedPaneSizes
-      ? getTerminalHeightPctForMode(activeMode, storedPaneSizes)
-      : DEFAULT_PANE_SIZES.default[1];
-  const defaultTopPct = Math.max(MIN_TOP_PCT, 100 - defaultBottomPct);
-  const topDefault = activeMode ? defaultTopPct : 70;
-  const bottomDefault = panel.open ? (activeMode ? defaultBottomPct : panel.heightPct) : COLLAPSED_PCT;
+  const openBottomPct = resolveTerminalHeightPct(activeMode, panel.heightPct);
+  const topDefault = Math.max(MIN_TOP_PCT, 100 - openBottomPct);
+  const bottomDefault = panel.open ? openBottomPct : COLLAPSED_PCT;
 
   return (
     <div className='relative flex flex-col flex-1 min-h-0'>
@@ -185,10 +233,12 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
           <div className='size-full overflow-auto flex flex-col min-h-0'>{children}</div>
         </Panel>
         <PanelResizeHandle
-          className='h-4px shrink-0 bg-transparent hover:bg-[var(--color-border-2)] active:bg-[var(--color-border-2)] transition-colors cursor-row-resize'
+          className='terminal-resize-handle relative h-0 shrink-0 cursor-row-resize'
           aria-label={t('terminal.layout.resizeHandle', { defaultValue: 'Resize terminal panel' })}
           aria-orientation='vertical'
-        />
+        >
+          <span className='terminal-resize-handle__line' aria-hidden='true' />
+        </PanelResizeHandle>
         <Panel
           ref={handleRef}
           collapsible
@@ -201,16 +251,6 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
           className='min-h-0'
         >
           <div className='flex flex-col size-full min-h-0'>
-            <div className='flex items-center justify-end shrink-0 h-24px px-4px bg-bg-2'>
-              <button
-                type='button'
-                className='flex items-center justify-center w-22px h-22px rounded-control cursor-pointer hover:bg-bg-3 text-t-secondary'
-                onClick={handleCloseTerminal}
-                aria-label={t('terminal.closePanel', { defaultValue: 'Close terminal panel' })}
-              >
-                <CloseSmall size={14} />
-              </button>
-            </div>
             <div className='flex-1 min-h-0'>
               <TerminalPanel />
             </div>
