@@ -244,6 +244,7 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
               mode='static'
               shikiTheme={getMarkdownShikiThemes()}
               mermaid={{ config: { theme: getMermaidTheme(currentTheme) } }}
+              controls={{ table: false }}
               remarkPlugins={[...Object.values(defaultRemarkPlugins), remarkBreaks]}
               rehypePlugins={[defaultRehypePlugins.raw, defaultRehypePlugins.sanitize, defaultRehypePlugins.katex]}
               components={{
