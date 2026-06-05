@@ -15,6 +15,33 @@ interface CustomWindow extends Window {
   __websocketReconnect?: () => void;
 }
 
+type BrowserWebSocketPayload = { name: string; data?: unknown };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function isBrowserWebSocketPayload(value: unknown): value is BrowserWebSocketPayload {
+  return isRecord(value) && typeof value.name === 'string';
+}
+
+export function isRealtimeAuthTerminalError(payload: unknown): boolean {
+  if (!isBrowserWebSocketPayload(payload)) {
+    return false;
+  }
+
+  if (payload.name === 'auth-expired') {
+    return true;
+  }
+
+  if (payload.name !== 'realtime.error' || !isRecord(payload.data)) {
+    return false;
+  }
+
+  const { code } = payload.data;
+  return code === 'REALTIME_AUTH_MISSING' || code === 'REALTIME_AUTH_EXPIRED';
+}
+
 const win = window as CustomWindow;
 
 /**
@@ -113,10 +140,11 @@ if (win.electronAPI) {
       }
 
       try {
-        const payload = JSON.parse(event.data as string) as {
-          name: string;
-          data: unknown;
-        };
+        const payload = JSON.parse(event.data as string) as unknown;
+
+        if (!isBrowserWebSocketPayload(payload)) {
+          return;
+        }
 
         // 处理服务端心跳 ping，立即回复 pong 以保持连接
         // Handle server heartbeat ping - respond with pong immediately to keep connection alive
@@ -129,7 +157,7 @@ if (win.electronAPI) {
 
         // 处理认证过期 - 停止重连并跳转到登录页
         // Handle auth expiration - stop reconnecting and redirect to login
-        if (payload.name === 'auth-expired') {
+        if (isRealtimeAuthTerminalError(payload)) {
           console.warn('[WebSocket] Authentication expired, stopping reconnection');
           shouldReconnect = false;
 
