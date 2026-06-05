@@ -25,7 +25,7 @@ interface ValidationResult {
 
 type ImportableMcpServer = Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>;
 
-const SPLITTABLE_STDIO_LAUNCHERS = ['npx', 'pnpx', 'bunx', 'uvx', 'uv', 'node', 'python', 'python3', 'deno'];
+const SPLITTABLE_STDIO_LAUNCHERS = new Set(['npx', 'pnpx', 'bunx', 'uvx', 'uv', 'node', 'python', 'python3', 'deno']);
 
 const shellSplit = (input: string): string[] => {
   const tokens: string[] = [];
@@ -87,7 +87,7 @@ const normalizeStdioCommand = (command: string, args?: string[]) => {
   }
 
   const firstToken = trimmed.split(/\s+/)[0]?.replace(/^['"]|['"]$/g, '');
-  if (!firstToken || !SPLITTABLE_STDIO_LAUNCHERS.includes(firstToken) || !/\s/.test(trimmed)) {
+  if (!firstToken || !SPLITTABLE_STDIO_LAUNCHERS.has(firstToken) || !/\s/.test(trimmed)) {
     return {
       command,
       args: args || [],

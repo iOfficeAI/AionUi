@@ -12,13 +12,15 @@ import { iconColors } from '@/renderer/styles/colors';
 import { Alert, Message, Tooltip } from '@arco-design/web-react';
 import { Copy } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import FilePreview from '@renderer/components/media/FilePreview';
 import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
+import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
 
@@ -50,13 +52,21 @@ import TeammateMessageAvatar from './TeammateMessageAvatar';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
 
+const LEGACY_FILES_MARKER = '[[AION_FILES]]';
+
 const parseFileMarker = (content: string) => {
-  const markerIndex = content.indexOf(AIONUI_FILES_MARKER);
+  let markerIndex = content.indexOf(AIONUI_FILES_MARKER);
+  let markerLength = AIONUI_FILES_MARKER.length;
+  // Fallback: also support the legacy marker from older conversations
+  if (markerIndex === -1) {
+    markerIndex = content.indexOf(LEGACY_FILES_MARKER);
+    markerLength = LEGACY_FILES_MARKER.length;
+  }
   if (markerIndex === -1) {
     return { text: content, files: [] as string[] };
   }
   const text = content.slice(0, markerIndex).trimEnd();
-  const afterMarker = content.slice(markerIndex + AIONUI_FILES_MARKER.length).trim();
+  const afterMarker = content.slice(markerIndex + markerLength).trim();
   const files = afterMarker
     ? afterMarker
         .split('\n')
@@ -127,6 +137,23 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     [conversationContext?.workspace, files]
   );
 
+  // Clickable file preview: clicking a file name/thumbnail opens it in PreviewPanel
+  const { launchPreview } = usePreviewLauncher();
+  const handleFileClick = useCallback(
+    (filePath: string) => {
+      const fileName = filePath.split(/[\\/]/).pop() || filePath;
+      const { contentType, editable, language } = getFileTypeInfo(fileName);
+      void launchPreview({
+        originalPath: filePath,
+        file_name: fileName,
+        contentType,
+        editable,
+        language,
+      });
+    },
+    [launchPreview]
+  );
+
   // 过滤空内容，避免渲染空DOM
   if (!message.content.content || (typeof message.content.content === 'string' && !message.content.content.trim())) {
     return null;
@@ -181,15 +208,50 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
         {files.length > 0 && (
           <div className={classNames('mt-6px', { 'self-end': isUserMessage })}>
             {resolvedFiles.length === 1 ? (
-              <div className='flex items-center'>
-                <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
+              <div className='flex items-center gap-8px'>
+                <div
+                  className='cursor-pointer'
+                  onClick={() => handleFileClick(resolvedFiles[0])}
+                  title={t('preview.openInPreview', 'Open in Preview')}
+                >
+                  <FilePreview path={resolvedFiles[0]} onRemove={() => undefined} readonly />
+                </div>
+                <span
+                  className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline'
+                  onClick={() => handleFileClick(resolvedFiles[0])}
+                >
+                  {resolvedFiles[0].split(/[\\/]/).pop()}
+                </span>
               </div>
             ) : (
-              <HorizontalFileList>
-                {resolvedFiles.map((path) => (
-                  <FilePreview key={path} path={path} onRemove={() => undefined} readonly />
-                ))}
-              </HorizontalFileList>
+              <div className='flex flex-col gap-4px'>
+                <HorizontalFileList>
+                  {resolvedFiles.map((path) => (
+                    <div
+                      key={path}
+                      className='cursor-pointer'
+                      onClick={() => handleFileClick(path)}
+                      title={t('preview.openInPreview', 'Open in Preview')}
+                    >
+                      <FilePreview path={path} onRemove={() => undefined} readonly />
+                    </div>
+                  ))}
+                </HorizontalFileList>
+                <div className='flex flex-wrap gap-x-12px gap-y-2px'>
+                  {resolvedFiles.map((path) => {
+                    const fileName = path.split(/[\\/]/).pop() || path;
+                    return (
+                      <span
+                        key={path}
+                        className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline'
+                        onClick={() => handleFileClick(path)}
+                      >
+                        {fileName}
+                      </span>
+                    );
+                  })}
+                </div>
+              </div>
             )}
           </div>
         )}

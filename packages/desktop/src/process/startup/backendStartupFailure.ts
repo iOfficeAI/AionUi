@@ -47,7 +47,7 @@ function extractMissingGlibcVersions(text: string): string[] {
     versions.add(match[1]);
   }
 
-  return [...versions].sort((a, b) => {
+  return [...versions].toSorted((a, b) => {
     const [aMajor, aMinor] = a.split('.').map(Number);
     const [bMajor, bMinor] = b.split('.').map(Number);
     return aMajor - bMajor || aMinor - bMinor;

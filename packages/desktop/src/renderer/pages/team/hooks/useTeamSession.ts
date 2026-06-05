@@ -28,7 +28,10 @@ export function useTeamSession(team: TTeam) {
   });
 
   useEffect(() => {
+    console.log('[useTeamSession] mounting team session listeners', { team_id: team.id, agents: team.agents.length });
+
     const unsubStatus = ipcBridge.team.agentStatusChanged.on((event: ITeamAgentStatusEvent) => {
+      console.log('[useTeamSession] team.agent.status event:', { slot_id: event.slot_id, status: event.status });
       if (event.team_id !== team.id) return;
       setStatusMap((prev) => {
         const next = new Map(prev);
@@ -38,7 +41,14 @@ export function useTeamSession(team: TTeam) {
     });
 
     const unsubSpawned = ipcBridge.team.agentSpawned.on((event: ITeamAgentSpawnedEvent) => {
-      if (event.team_id !== team.id) return;
+      console.log('[useTeamSession] team.agent.spawned event:', { team_id: event.team_id, agent: event.agent });
+      if (event.team_id !== team.id) {
+        console.log('[useTeamSession] spawned event team_id mismatch — ignoring', {
+          expected: team.id,
+          got: event.team_id,
+        });
+        return;
+      }
       void mutateTeam();
     });
 

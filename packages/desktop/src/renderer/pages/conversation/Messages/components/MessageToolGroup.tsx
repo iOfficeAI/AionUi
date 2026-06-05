@@ -18,6 +18,8 @@ import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import MessageFileChanges from '../MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/media/LocalImageView';
+import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import MarkdownView from '@renderer/components/Markdown';
 import { ToolConfirmationOutcome } from '@renderer/utils/common';
 import { ImagePreviewContext } from '../MessageList';
@@ -414,25 +416,85 @@ const ImageDisplay: React.FC<{
   );
 };
 
+const IMAGE_GEN_TOOL_NAMES = new Set([
+  'ImageGeneration',
+  'aionui_image_generation',
+  'image_generation',
+  'pounding_image_generation',
+]);
+
+/** Parse image path from image generation tool result text */
+function parseImagePathFromText(text: string): string | null {
+  // Try POUNDING_IMG marker first
+  const markerMatch = text.match(/<!--\s*POUNDING_IMG:(.+?)\s*-->/);
+  if (markerMatch) return markerMatch[1].trim();
+  // Fallback: parse "Generated image saved to: <path>"
+  const savedMatch = text.match(/Generated image saved to:\s*(.+)$/m);
+  if (savedMatch) return savedMatch[1].trim();
+  return null;
+}
+
 const ToolResultDisplay: React.FC<{
   content: IMessageToolGroupProps['message']['content'][number];
 }> = ({ content }) => {
   const { result_display, name } = content;
+  const { launchPreview } = usePreviewLauncher();
+
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent, filePath: string) => {
+      e.stopPropagation();
+      const fileName = filePath.split(/[\\/]/).pop() || filePath;
+      const { contentType, editable, language } = getFileTypeInfo(fileName);
+      void launchPreview({
+        originalPath: filePath,
+        file_name: fileName,
+        contentType,
+        editable,
+        language,
+      });
+    },
+    [launchPreview]
+  );
 
   // 图片生成特殊处理 Special handling for image generation
-  if (name === 'ImageGeneration' && typeof result_display === 'object') {
-    const result = result_display as ImageGenerationResult;
-    // 如果有 img_url 才显示图片，否则显示错误信息
-    if (result.img_url) {
-      return (
-        <LocalImageView
-          src={result.img_url}
-          alt={result.relative_path || result.img_url}
-          className='max-w-100% max-h-100%'
-        />
-      );
+  if (IMAGE_GEN_TOOL_NAMES.has(name)) {
+    // Structured result_display object
+    if (typeof result_display === 'object') {
+      const result = result_display as ImageGenerationResult;
+      if (result.img_url) {
+        const filePath = result.relative_path || result.img_url;
+        const displayName = result.relative_path?.split(/[\\/]/).pop() || filePath;
+        return (
+          <div className='flex flex-col gap-4px'>
+            <LocalImageView src={result.img_url} alt={displayName} className='max-w-100% max-h-100%' />
+            <span
+              className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+              onClick={(e) => handlePreviewClick(e, filePath)}
+            >
+              {displayName}
+            </span>
+          </div>
+        );
+      }
     }
-    // 如果是错误，继续走下面的 JSON 显示逻辑
+    // Parse image path from string result
+    if (typeof result_display === 'string') {
+      const imagePath = parseImagePathFromText(result_display);
+      if (imagePath) {
+        const displayName = imagePath.split(/[\\/]/).pop() || imagePath;
+        return (
+          <div className='flex flex-col gap-4px'>
+            <LocalImageView src={imagePath} alt={imagePath} className='max-w-100% max-h-100%' />
+            <span
+              className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+              onClick={(e) => handlePreviewClick(e, imagePath)}
+            >
+              {displayName}
+            </span>
+          </div>
+        );
+      }
+    }
   }
 
   // 将结果转换为字符串 Convert result to string
@@ -454,6 +516,23 @@ const ToolResultDisplay: React.FC<{
 
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
+  const { launchPreview } = usePreviewLauncher();
+
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent, filePath: string) => {
+      e.stopPropagation();
+      const fileName = filePath.split(/[\\/]/).pop() || filePath;
+      const { contentType, editable, language } = getFileTypeInfo(fileName);
+      void launchPreview({
+        originalPath: filePath,
+        file_name: fileName,
+        contentType,
+        editable,
+        language,
+      });
+    },
+    [launchPreview]
+  );
 
   // 收集所有 WriteFile 结果用于汇总显示 / Collect all WriteFile results for summary display
   const writeFileResults = useMemo(() => {
@@ -525,11 +604,43 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
           }
         }
 
-        // ImageGeneration 特殊处理：单独展示图片，不用 Alert 包裹 Special handling for ImageGeneration: display image separately without Alert wrapper
-        if (name === 'ImageGeneration' && typeof result_display === 'object') {
-          const result = result_display as ImageGenerationResult;
-          if (result.img_url) {
-            return <ImageDisplay key={call_id} imgUrl={result.img_url} relativePath={result.relative_path} />;
+        // ImageGeneration 特殊处理：单独展示图片，不用 Alert 包裹 Special handling for image generation tools: display image separately without Alert wrapper
+        if (IMAGE_GEN_TOOL_NAMES.has(name)) {
+          if (typeof result_display === 'object') {
+            const result = result_display as ImageGenerationResult;
+            if (result.img_url) {
+              const filePath = result.relative_path || result.img_url;
+              const displayName = result.relative_path?.split(/[\\/]/).pop() || String(filePath);
+              return (
+                <div key={call_id} className='flex flex-col gap-4px'>
+                  <ImageDisplay imgUrl={result.img_url} relativePath={result.relative_path} />
+                  <span
+                    className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+                    onClick={(e) => handlePreviewClick(e, String(filePath))}
+                  >
+                    {displayName}
+                  </span>
+                </div>
+              );
+            }
+          }
+          // Parse image path from string result (MCP tool text output)
+          if (typeof result_display === 'string') {
+            const imagePath = parseImagePathFromText(result_display);
+            if (imagePath) {
+              const displayName = imagePath.split('/').pop() || imagePath;
+              return (
+                <div key={call_id} className='flex flex-col gap-4px'>
+                  <ImageDisplay imgUrl={imagePath} relativePath={displayName} />
+                  <span
+                    className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+                    onClick={(e) => handlePreviewClick(e, imagePath)}
+                  >
+                    {displayName}
+                  </span>
+                </div>
+              );
+            }
           }
         }
 
