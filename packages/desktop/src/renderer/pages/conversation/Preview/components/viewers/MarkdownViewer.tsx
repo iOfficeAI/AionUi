@@ -25,7 +25,7 @@ import { convertLatexDelimiters } from '@/renderer/utils/chat/latexDelimiters';
 interface MarkdownPreviewProps {
   content: string; // Markdown 内容 / Markdown content
   viewMode?: 'source' | 'preview'; // 外部控制的视图模式 / External view mode
-  onViewModeChange?: (mode: 'source' | 'preview') => void; // 视图模式改变回调 / View mode change callback
+  onViewModeChange?: (mode: 'source' | 'preview') => void; // 视图模式改变回调（保留以兼容调用方，暂未使用）/ View mode change callback (kept for call-site compatibility, currently unused)
   onContentChange?: (content: string) => void; // 内容改变回调 / Content change callback
   containerRef?: React.RefObject<HTMLDivElement>; // 容器引用，用于滚动同步 / Container ref for scroll sync
   onScroll?: (scrollTop: number, scrollHeight: number, clientHeight: number) => void; // 滚动回调 / Scroll callback
@@ -203,10 +203,8 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
   useContainerScroll(containerRef, externalOnScroll);
   useContainerScrollTarget(containerRef);
 
-  const [internalViewMode] = useState<'source' | 'preview'>('preview'); // 内部视图模式 / Internal view mode
-
-  // 使用外部传入的 viewMode，否则使用内部状态 / Use external viewMode if provided, otherwise use internal state
-  const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
+  // 使用外部传入的 viewMode，默认预览模式 / Use external viewMode if provided, default to preview
+  const viewMode = externalViewMode ?? 'preview';
 
   // 预览源：转换 LaTeX 分隔符并重写外部媒体 URL / Preview source: convert LaTeX delimiters and rewrite external media URLs
   const previewSource = useMemo(() => convertLatexDelimiters(rewriteExternalMediaUrls(content)), [content]);
