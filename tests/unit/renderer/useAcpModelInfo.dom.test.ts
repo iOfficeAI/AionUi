@@ -116,7 +116,7 @@ describe('useAcpModelInfo', () => {
     conversationUpdateInvokeMock.mockReset();
     writeRendererLogInvokeMock.mockReset();
     configServiceSetMock.mockReset();
-    setModelInvokeMock.mockResolvedValue(undefined);
+    setModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
     conversationUpdateInvokeMock.mockResolvedValue(true);
     writeRendererLogInvokeMock.mockResolvedValue(undefined);
     configServiceSetMock.mockResolvedValue(undefined);
@@ -235,8 +235,8 @@ describe('useAcpModelInfo', () => {
     expect(setModelInvokeMock).not.toHaveBeenCalled();
   });
 
-  it('persists preferred model and conversation extra only after backend accepts selectModel', async () => {
-    const setModelDeferred = deferred<void>();
+  it('saves preferred model and does not persist conversation extra after backend confirms selectModel', async () => {
+    const setModelDeferred = deferred<{ model_info: AcpModelInfo | null }>();
     const onSelectModelSuccess = vi.fn();
     const onSelectModelFailed = vi.fn();
     getModelInvokeMock
@@ -266,7 +266,7 @@ describe('useAcpModelInfo', () => {
     expect(configServiceSetMock).not.toHaveBeenCalled();
     expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
 
-    setModelDeferred.resolve(undefined);
+    setModelDeferred.resolve({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
 
     await waitFor(() => {
       expect(result.current.model_info?.current_model_id).toBe('opus-4');
@@ -280,11 +280,7 @@ describe('useAcpModelInfo', () => {
     expect(acpConfigCall).toBeDefined();
     expect(acpConfigCall?.[1]).toEqual({ claude: { preferredModelId: 'opus-4' } });
 
-    expect(conversationUpdateInvokeMock).toHaveBeenCalledWith({
-      id: 'conv-1',
-      updates: { extra: { current_model_id: 'opus-4' } },
-      merge_extra: true,
-    });
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
   });
 
   it('rolls back to backend model info and does not persist when selectModel fails', async () => {
@@ -351,7 +347,7 @@ describe('useAcpModelInfo', () => {
   });
 
   it('shares selected model info across hook instances for the same conversation', async () => {
-    const setModelDeferred = deferred<void>();
+    const setModelDeferred = deferred<{ model_info: AcpModelInfo | null }>();
     const wrapper = createSwrWrapper();
     getModelInvokeMock
       .mockResolvedValueOnce({ model_info: buildModelInfo() })
@@ -381,7 +377,7 @@ describe('useAcpModelInfo', () => {
       expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
     });
 
-    setModelDeferred.resolve(undefined);
+    setModelDeferred.resolve({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
 
     await waitFor(() => {
       expect(first.result.current.model_info?.current_model_id).toBe('opus-4');

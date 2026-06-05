@@ -788,7 +788,7 @@ export const acpConversation = {
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<void, { conversation_id: string; mode: string }>(
+  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
   ),
@@ -805,7 +805,7 @@ export const acpConversation = {
     (p) => `/api/conversations/${p.conversation_id}/model`,
     { silentStatuses: [404] }
   ),
-  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
+  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
     (p) => ({ model_id: p.model_id })
   ),
