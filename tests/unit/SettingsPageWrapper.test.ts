@@ -24,26 +24,30 @@ describe('getBuiltinSettingsNavItems', () => {
 
     expect(items.map((item) => item.id)).toEqual([
       'gemini',
-      'agent',
+      'apikeys',
       'model',
       'assistants',
+      'agent',
       'capabilities',
       'display',
       'webui',
       'pet',
+      'providers',
       'system',
       'about',
     ]);
 
     expect(items.map((item) => item.label)).toEqual([
       'Gemini',
-      'Agents',
+      'API Keys',
       'Models',
       'Assistants',
+      'Agents',
       'Capabilities',
       'Display',
       'WebUI',
       'Desktop Pet',
+      'Provider Cockpit',
       'System',
       'About',
     ]);

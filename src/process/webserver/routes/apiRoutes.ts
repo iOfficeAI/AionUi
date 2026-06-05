@@ -86,6 +86,9 @@ type NovaMasterAgent = {
   queue?: number;
   model?: string;
   task?: string;
+  lane?: string;
+  source?: string;
+  health?: string;
   cost_today?: number;
   revenue_impact?: number;
 };
@@ -99,6 +102,45 @@ type NovaMasterAgentRole = {
 type NovaMasterAgentCatalog = {
   roles: NovaMasterAgentRole[];
   teams: string[];
+};
+
+type NovaMasterAgentLaneStatus = 'ready' | 'working' | 'degraded' | 'parked' | 'offline';
+
+type NovaMasterAgentLane = {
+  id: string;
+  name: string;
+  description: string;
+  status: NovaMasterAgentLaneStatus;
+  agents: NovaMasterAgent[];
+  queue: number;
+  model?: string;
+  services: string[];
+};
+
+type NovaMasterModelInfo = {
+  id: string;
+  label: string;
+  provider: string;
+  selected: boolean;
+  available: boolean;
+  source: 'nova-claude-model' | 'fallback';
+  tags: string[];
+};
+
+type NovaMasterModelRouter = {
+  current: string;
+  claudeLaunchModel?: string;
+  cliAvailable: boolean;
+  ollamaCloudAvailable: boolean;
+  models: NovaMasterModelInfo[];
+  updatedAt: string;
+};
+
+type NovaMasterControlPlane = {
+  mode: 'live' | 'pc-light' | 'degraded';
+  summary: string;
+  parked: string[];
+  risks: string[];
 };
 
 type NovaMasterTelemetry = {
@@ -123,6 +165,18 @@ type NovaMasterServiceAction = {
 };
 
 const JARVIS_AGENTS_PORT = 8765;
+const NOVA_CLAUDE_MODEL_CLI = '/home/faramix/bin/nova-claude-model';
+const NOVA_MODEL_FALLBACKS = [
+  'ollama/minimax-m3:cloud',
+  'ollama/kimi-k2.6:cloud',
+  'ollama/kimi-k2.5:cloud',
+  'ollama/qwen3-coder-next:cloud',
+  'ollama/glm-5.1:cloud',
+  'ollama/deepseek-v4-pro:cloud',
+  'openai/gpt-5.5',
+  'openai/gpt-5.5-pro',
+  'xai/grok-4.20',
+];
 
 const NOVAMASTER_PROBES: NovaMasterProbe[] = [
   {
@@ -616,6 +670,50 @@ async function probeNovaMasterService(probe: NovaMasterProbe): Promise<NovaMaste
   });
 }
 
+function withNovaDeadline<T>(promise: Promise<T>, timeoutMs: number, fallback: () => T): Promise<T> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const timer = setTimeout(() => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      resolve(fallback());
+    }, timeoutMs);
+
+    promise
+      .then((value) => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        resolve(value);
+      })
+      .catch(() => {
+        if (settled) {
+          return;
+        }
+        settled = true;
+        clearTimeout(timer);
+        resolve(fallback());
+      });
+  });
+}
+
+function buildNovaMasterProbeDeadlineResult(probe: NovaMasterProbe): NovaMasterProbeResult {
+  return {
+    ...getPublicNovaMasterProbe(probe),
+    port: probe.port,
+    openUrl: probe.openUrl,
+    status: 'offline',
+    latencyMs: null,
+    httpStatus: null,
+    error: 'probe deadline',
+    actions: getNovaMasterActions(probe),
+  };
+}
+
 async function probeNovaMasterTcpPort(probe: NovaMasterProbe): Promise<NovaMasterProbeResult> {
   const port = await resolveNovaMasterPort(probe);
   const openUrl = resolveNovaMasterOpenUrl(probe, port);
@@ -888,6 +986,313 @@ async function readNovaMasterAgents(catalog: NovaMasterAgentCatalog): Promise<No
   }
 }
 
+function runNovaLocalCommand(
+  command: string,
+  args: string[],
+  timeoutMs = 2500
+): Promise<{ stdout: string; stderr: string; exitCode: number | null; timedOut: boolean }> {
+  return new Promise((resolve) => {
+    let stdout = '';
+    let stderr = '';
+    let settled = false;
+    let timedOut = false;
+    const child = spawn(command, args, {
+      env: { ...process.env, NO_COLOR: '1' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+
+    const finish = (exitCode: number | null) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      clearTimeout(timer);
+      resolve({ stdout, stderr, exitCode, timedOut });
+    };
+
+    const timer = setTimeout(() => {
+      timedOut = true;
+      child.kill('SIGKILL');
+    }, timeoutMs);
+
+    child.stdout?.on('data', (chunk: Buffer) => {
+      stdout = `${stdout}${chunk.toString('utf8')}`.slice(-30000);
+    });
+    child.stderr?.on('data', (chunk: Buffer) => {
+      stderr = `${stderr}${chunk.toString('utf8')}`.slice(-12000);
+    });
+    child.once('error', (error) => {
+      stderr = error instanceof Error ? error.message : String(error);
+      finish(null);
+    });
+    child.once('close', (code) => finish(code));
+  });
+}
+
+function parseNovaKeyValueOutput(stdout: string): Record<string, string> {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter((line) => line.includes('='))
+    .reduce<Record<string, string>>((acc, line) => {
+      const index = line.indexOf('=');
+      const key = line.slice(0, index).trim();
+      const value = line.slice(index + 1).trim();
+      if (key) {
+        acc[key] = value;
+      }
+      return acc;
+    }, {});
+}
+
+function normalizeNovaModelId(modelId: string): string {
+  const trimmed = modelId.trim();
+  if (!trimmed) {
+    return '';
+  }
+  if (trimmed.includes('/') || !trimmed.includes(':cloud')) {
+    return trimmed;
+  }
+  return `ollama/${trimmed}`;
+}
+
+function getNovaModelProvider(modelId: string): string {
+  if (modelId.startsWith('ollama/')) return modelId.includes(':cloud') ? 'Ollama Cloud' : 'Ollama';
+  if (modelId.startsWith('openai/')) return 'OpenAI';
+  if (modelId.startsWith('deepseek/')) return 'DeepSeek';
+  if (modelId.startsWith('xai/')) return 'xAI';
+  if (modelId.startsWith('groq/')) return 'Groq';
+  if (modelId.startsWith('lmstudio/')) return 'LM Studio';
+  return 'Custom';
+}
+
+function getNovaModelLabel(modelId: string): string {
+  const shortId = modelId.replace(/^ollama\//, '').replace(/:cloud$/, '').replace(/^[^/]+\//, '');
+  return shortId
+    .split(/[-_:]+/)
+    .filter(Boolean)
+    .map((part) => {
+      const upper = part.toUpperCase();
+      if (['gpt', 'glm', 'm3', 'k2', 'qwen3'].includes(part.toLowerCase())) {
+        return upper;
+      }
+      return `${part.charAt(0).toUpperCase()}${part.slice(1)}`;
+    })
+    .join(' ');
+}
+
+function toNovaModelInfo(
+  modelId: string,
+  currentModel: string,
+  source: NovaMasterModelInfo['source']
+): NovaMasterModelInfo {
+  const provider = getNovaModelProvider(modelId);
+  const tags = [
+    modelId.includes(':cloud') ? 'cloud' : 'local',
+    modelId.includes('coder') || modelId.includes('deepseek') || modelId.includes('minimax') ? 'coding' : 'general',
+  ];
+  return {
+    id: modelId,
+    label: getNovaModelLabel(modelId),
+    provider,
+    selected: modelId === currentModel,
+    available: source === 'nova-claude-model',
+    source,
+    tags,
+  };
+}
+
+function parseNovaModelList(stdout: string): string[] {
+  return stdout
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .map((line) => {
+      const numbered = line.match(/^\d+\)\s+(.+?)\s{2,}(\S+)$/);
+      if (numbered?.[2]) {
+        return normalizeNovaModelId(numbered[2]);
+      }
+      const modelLike = line.match(/((?:ollama|openai|deepseek|xai|groq|lmstudio)\/[A-Za-z0-9._:-]+|[A-Za-z0-9._-]+:cloud)$/);
+      return modelLike?.[1] ? normalizeNovaModelId(modelLike[1]) : '';
+    })
+    .filter(Boolean);
+}
+
+async function readNovaMasterModelRouter(): Promise<NovaMasterModelRouter> {
+  const currentResult = await runNovaLocalCommand(NOVA_CLAUDE_MODEL_CLI, ['current'], 1800);
+  const currentKv = parseNovaKeyValueOutput(currentResult.stdout);
+  const currentModel = normalizeNovaModelId(currentKv.selected_model || currentKv.model || 'ollama/minimax-m3:cloud');
+  const claudeLaunchModel = currentKv.claude_launch_model || currentModel.replace(/^ollama\//, '');
+
+  const listResult = await runNovaLocalCommand(NOVA_CLAUDE_MODEL_CLI, ['list', '--target', 'claude'], 2600);
+  const liveIds = listResult.exitCode === 0 ? parseNovaModelList(listResult.stdout) : [];
+  const seen = new Set<string>();
+  const models = [...liveIds, currentModel, ...NOVA_MODEL_FALLBACKS]
+    .map(normalizeNovaModelId)
+    .filter(Boolean)
+    .filter((modelId) => {
+      if (seen.has(modelId)) return false;
+      seen.add(modelId);
+      return true;
+    })
+    .map((modelId) => toNovaModelInfo(modelId, currentModel, liveIds.includes(modelId) ? 'nova-claude-model' : 'fallback'));
+
+  return {
+    current: currentModel,
+    ...(claudeLaunchModel ? { claudeLaunchModel } : {}),
+    cliAvailable: currentResult.exitCode === 0,
+    ollamaCloudAvailable: models.some((model) => model.provider === 'Ollama Cloud' && model.available),
+    models,
+    updatedAt: new Date().toISOString(),
+  };
+}
+
+function getNovaServiceStatus(services: NovaMasterProbeResult[], serviceIds: string[]): NovaMasterProbeResult[] {
+  const byId = new Map(services.map((service) => [service.id, service]));
+  return serviceIds.map((id) => byId.get(id)).filter((service): service is NovaMasterProbeResult => Boolean(service));
+}
+
+function getNovaAgentStatusFromServices(services: NovaMasterProbeResult[]): NovaMasterAgentStatus {
+  if (services.some((service) => service.status === 'online')) return 'idle';
+  if (services.some((service) => service.status === 'degraded')) return 'error';
+  return 'offline';
+}
+
+function buildNovaMasterVisibleAgents(
+  catalog: NovaMasterAgentCatalog,
+  agents: NovaMasterAgent[],
+  services: NovaMasterProbeResult[],
+  modelRouter: NovaMasterModelRouter
+): NovaMasterAgent[] {
+  if (agents.length > 0) {
+    return agents.map((agent) => ({
+      ...agent,
+      model: agent.model || modelRouter.current,
+      source: agent.source || 'jarvis-agents',
+    }));
+  }
+
+  const blueprints: Array<Omit<NovaMasterAgent, 'status'> & { services: string[] }> = [
+    { id: 'planner', name: 'Planner', role: 'planner_agent', lane: 'orchestrate', description: 'Breaks goals into executable subagent tasks.', services: ['openclaw', 'hermes', 'jarvis'] },
+    { id: 'builder', name: 'Builder', role: 'builder_agent', lane: 'build', description: 'Implements code and stack changes through OpenClaw/Codex.', services: ['openclaw', 'goclaw', 'aionui'] },
+    { id: 'reviewer', name: 'Reviewer', role: 'review_agent', lane: 'build', description: 'Reviews diffs, risk, and missing verification.', services: ['openclaw', 'hermes'] },
+    { id: 'debugger', name: 'Debugger', role: 'debug_agent', lane: 'ops', description: 'Reads probes, logs, ports, and degraded services.', services: ['hermes', 'clawmem', 'litellm'] },
+    { id: 'researcher', name: 'Researcher', role: 'research_agent', lane: 'research', description: 'Runs source-backed web and local research tasks.', services: ['space-agent', 'openclaw'] },
+    { id: 'ui-agent', name: 'Aion UI Agent', role: 'ui_agent', lane: 'interface', description: 'Controls cockpit UI, native launchers, and operator flows.', services: ['aionui', 'jarvis'] },
+    { id: 'api-agent', name: 'API Agent', role: 'api_agent', lane: 'interface', description: 'Tracks OpenClaw, LiteLLM, Ollama, and service APIs.', services: ['openclaw', 'litellm', 'ollama'] },
+    { id: 'memory-curator', name: 'Memory Curator', role: 'memory_agent', lane: 'memory', description: 'Connects ClawMem, Graphify, receipts, and persistent context.', services: ['clawmem', 'hermes'] },
+    { id: 'discord-secretary', name: 'Discord Secretary', role: 'control_bus_agent', lane: 'ops', description: 'Primary mobile command bus and live proof channel.', services: ['jarvis', 'hermes'] },
+    { id: 'media-agent', name: 'Media Agent', role: 'media_agent', lane: 'media', description: 'Coordinates Video Factory, music clips, OCR, and assets.', services: ['video-factory', 'music-clips', 'vibevoice'] },
+  ];
+
+  const catalogDescriptions = new Map(catalog.roles.map((role) => [role.role, role.description]));
+  return blueprints.map((blueprint) => {
+    const relatedServices = getNovaServiceStatus(services, blueprint.services);
+    return {
+      id: blueprint.id,
+      name: blueprint.name,
+      status: getNovaAgentStatusFromServices(relatedServices),
+      role: blueprint.role,
+      lane: blueprint.lane,
+      source: 'aion-control-plane',
+      description: catalogDescriptions.get(blueprint.role || '') || blueprint.description,
+      model: modelRouter.current,
+      health: relatedServices.map((service) => `${service.name}:${service.status}`).join(', ') || 'no service probes',
+    };
+  });
+}
+
+function getNovaLaneStatus(agents: NovaMasterAgent[]): NovaMasterAgentLaneStatus {
+  if (agents.some((agent) => agent.status === 'working')) return 'working';
+  if (agents.some((agent) => agent.status === 'idle')) return 'ready';
+  if (agents.some((agent) => agent.status === 'error')) return 'degraded';
+  return 'parked';
+}
+
+function buildNovaMasterAgentLanes(
+  agents: NovaMasterAgent[],
+  services: NovaMasterProbeResult[],
+  modelRouter: NovaMasterModelRouter
+): NovaMasterAgentLane[] {
+  const laneSpecs = [
+    { id: 'orchestrate', name: 'Orchestrator', description: 'Planner and task routing across subagents.', services: ['openclaw', 'jarvis', 'hermes'] },
+    { id: 'build', name: 'Build Swarm', description: 'Codex/OpenClaw builder and reviewer lanes.', services: ['openclaw', 'goclaw', 'aionui'] },
+    { id: 'ops', name: 'Ops Guard', description: 'Ports, health, VPS split, Discord control bus.', services: ['hermes', 'jarvis', 'litellm'] },
+    { id: 'research', name: 'Research Mesh', description: 'Browser, web search, source-backed exploration.', services: ['space-agent', 'openclaw'] },
+    { id: 'interface', name: 'UI/API Bridge', description: 'Aion cockpit controls and safe API actions.', services: ['aionui', 'openclaw', 'ollama'] },
+    { id: 'memory', name: 'Memory Core', description: 'ClawMem, Graphify, receipts, and long-running context.', services: ['clawmem', 'hermes'] },
+    { id: 'media', name: 'Media Factory', description: 'Video Factory, music clips, voice, and OCR tooling.', services: ['video-factory', 'music-clips', 'vibevoice'] },
+  ];
+
+  return laneSpecs.map((lane) => {
+    const laneAgents = agents.filter((agent) => agent.lane === lane.id);
+    const relatedServices = getNovaServiceStatus(services, lane.services);
+    const serviceQueue = relatedServices.reduce((total, service) => {
+      const queue = typeof service.detail?.queue === 'number' ? service.detail.queue : 0;
+      return total + queue;
+    }, 0);
+    return {
+      id: lane.id,
+      name: lane.name,
+      description: lane.description,
+      services: lane.services,
+      status: getNovaLaneStatus(laneAgents),
+      agents: laneAgents,
+      queue: laneAgents.reduce((total, agent) => total + (agent.queue || 0), serviceQueue),
+      model: modelRouter.current,
+    };
+  });
+}
+
+function buildNovaMasterControlPlane(
+  services: NovaMasterProbeResult[],
+  lanes: NovaMasterAgentLane[],
+  modelRouter: NovaMasterModelRouter
+): NovaMasterControlPlane {
+  const coreOffline = services
+    .filter((service) => ['jarvis', 'hermes', 'claw3d', 'clawmem', 'space-agent', 'litellm'].includes(service.id))
+    .filter((service) => service.status === 'offline')
+    .map((service) => `${service.name} :${service.port || 'n/a'}`);
+  const degradedServices = services.filter((service) => service.status === 'degraded').map((service) => service.name);
+  const readyLanes = lanes.filter((lane) => lane.status === 'ready' || lane.status === 'working').length;
+
+  return {
+    mode: coreOffline.length > 0 ? 'pc-light' : degradedServices.length > 0 ? 'degraded' : 'live',
+    summary: `${readyLanes}/${lanes.length} lanes ready · ${modelRouter.current}`,
+    parked: coreOffline.slice(0, 8),
+    risks: [
+      ...degradedServices.map((service) => `${service} degraded`),
+      ...(modelRouter.cliAvailable ? [] : ['nova-claude-model CLI unavailable']),
+      ...(modelRouter.ollamaCloudAvailable ? [] : ['Ollama cloud list unavailable']),
+    ].slice(0, 8),
+  };
+}
+
+async function selectNovaMasterModel(modelId: string): Promise<Record<string, unknown>> {
+  const requestedModel = normalizeNovaModelId(modelId);
+  if (!requestedModel) {
+    throw new Error('Missing model id');
+  }
+
+  const router = await readNovaMasterModelRouter();
+  const allowedModels = new Set(router.models.map((model) => model.id));
+  if (!allowedModels.has(requestedModel)) {
+    throw new Error(`Unsupported NovaMaster model: ${requestedModel}`);
+  }
+
+  const result = await runNovaLocalCommand(NOVA_CLAUDE_MODEL_CLI, ['set', requestedModel], 6000);
+  if (result.exitCode !== 0) {
+    const msg = result.stderr.trim() || result.stdout.trim() || `exit ${result.exitCode ?? 'unknown'}`;
+    throw new Error(`Model select failed: ${msg.slice(0, 300)}`);
+  }
+
+  const modelRouter = await readNovaMasterModelRouter();
+  return {
+    requestedModel,
+    selectedModel: modelRouter.current,
+    modelRouter,
+  };
+}
+
 function buildNovaMasterTelemetry(
   services: NovaMasterProbeResult[],
   agents: NovaMasterAgent[]
@@ -913,9 +1318,23 @@ function buildNovaMasterTelemetry(
 }
 
 async function getNovaMasterStackStatus() {
-  const services = await Promise.all(NOVAMASTER_PROBES.map((probe) => probeNovaMasterService(probe)));
-  const agentCatalog = await readNovaMasterAgentCatalog();
-  const agents = await readNovaMasterAgents(agentCatalog);
+  const services = await Promise.all(
+    NOVAMASTER_PROBES.map((probe) =>
+      withNovaDeadline(probeNovaMasterService(probe), 2600, () => buildNovaMasterProbeDeadlineResult(probe))
+    )
+  );
+  const agentCatalog = await withNovaDeadline(readNovaMasterAgentCatalog(), 1800, () => ({ roles: [], teams: [] }));
+  const modelRouter = await withNovaDeadline(readNovaMasterModelRouter(), 3600, () => ({
+    current: 'ollama/minimax-m3:cloud',
+    claudeLaunchModel: 'minimax-m3:cloud',
+    cliAvailable: false,
+    ollamaCloudAvailable: false,
+    models: NOVA_MODEL_FALLBACKS.map((modelId) => toNovaModelInfo(modelId, 'ollama/minimax-m3:cloud', 'fallback')),
+    updatedAt: new Date().toISOString(),
+  }));
+  const rawAgents = await withNovaDeadline(readNovaMasterAgents(agentCatalog), 1800, () => []);
+  const agents = buildNovaMasterVisibleAgents(agentCatalog, rawAgents, services, modelRouter);
+  const agentLanes = buildNovaMasterAgentLanes(agents, services, modelRouter);
   const online = services.filter((service) => service.status === 'online').length;
   const degraded = services.filter((service) => service.status === 'degraded').length;
 
@@ -929,7 +1348,10 @@ async function getNovaMasterStackStatus() {
     },
     services,
     agents,
+    agentLanes,
     agentTeams: agentCatalog.teams,
+    modelRouter,
+    controlPlane: buildNovaMasterControlPlane(services, agentLanes, modelRouter),
     telemetry: buildNovaMasterTelemetry(services, agents),
     autopilot: 'manual',
   };
@@ -1574,6 +1996,41 @@ export function registerApiRoutes(app: Express): void {
       });
     }
   });
+
+  app.get('/api/novamaster/models', apiRateLimiter, async (_req: Request, res: Response) => {
+    try {
+      res.json({
+        success: true,
+        data: await readNovaMasterModelRouter(),
+      });
+    } catch (error) {
+      console.error('[API] NovaMaster model router error:', error);
+      res.status(500).json({
+        success: false,
+        msg: error instanceof Error ? error.message : 'Failed to read NovaMaster model router',
+      });
+    }
+  });
+
+  app.post(
+    '/api/novamaster/models/select',
+    apiRateLimiter,
+    wrapRouteHandler(async (req: Request, res: Response) => {
+      const modelId = typeof req.body?.modelId === 'string' ? req.body.modelId.trim() : '';
+      try {
+        res.json({
+          success: true,
+          data: await selectNovaMasterModel(modelId),
+        });
+      } catch (error) {
+        console.error('[API] NovaMaster model select error:', error);
+        res.status(400).json({
+          success: false,
+          msg: error instanceof Error ? error.message : 'Failed to select NovaMaster model',
+        });
+      }
+    })
+  );
 
   app.get('/api/novamaster/agents/roles', apiRateLimiter, async (_req: Request, res: Response) => {
     try {

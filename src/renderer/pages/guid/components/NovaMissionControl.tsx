@@ -57,10 +57,50 @@ interface NovaStackSummary {
   offline: number;
 }
 
+interface NovaAgentLane {
+  id: string;
+  name: string;
+  description: string;
+  status: 'ready' | 'working' | 'degraded' | 'parked' | 'offline';
+  agents: NovaAgent[];
+  queue: number;
+  model?: string;
+  services: string[];
+}
+
+interface NovaModelInfo {
+  id: string;
+  label: string;
+  provider: string;
+  selected: boolean;
+  available: boolean;
+  source: 'nova-claude-model' | 'fallback';
+  tags: string[];
+}
+
+interface NovaModelRouter {
+  current: string;
+  claudeLaunchModel?: string;
+  cliAvailable: boolean;
+  ollamaCloudAvailable: boolean;
+  models: NovaModelInfo[];
+  updatedAt: string;
+}
+
+interface NovaControlPlane {
+  mode: 'live' | 'pc-light' | 'degraded';
+  summary: string;
+  parked: string[];
+  risks: string[];
+}
+
 interface NovaStackData {
   services: NovaService[];
   agents: NovaAgent[];
+  agentLanes?: NovaAgentLane[];
   agentTeams?: string[];
+  modelRouter?: NovaModelRouter;
+  controlPlane?: NovaControlPlane;
   telemetry?: NovaTelemetry;
   summary?: NovaStackSummary;
   autopilot: string;
@@ -126,6 +166,7 @@ const renderMissionStatus = (
         <span className='nova-live-indicator' style={{ marginRight: 8 }}>LIVE</span>
         {telemetry.servicesOnline}/{telemetry.servicesTotal} services online ·
         {telemetry.agentsWorking} agents working ·
+        {stack.agentLanes?.filter((lane) => lane.status === 'ready' || lane.status === 'working').length ?? 0} lanes ready ·
         {autopilotStatus}
       </>
     );
@@ -303,6 +344,73 @@ const AgentTeamButton: React.FC<{
   );
 };
 
+const LANE_STATUS_LABELS: Record<NovaAgentLane['status'], string> = {
+  ready: 'READY',
+  working: 'WORK',
+  degraded: 'DEG',
+  parked: 'PARK',
+  offline: 'OFF',
+};
+
+const AgentLaneCard: React.FC<{ lane: NovaAgentLane }> = ({ lane }) => {
+  const onlineish = lane.status === 'ready' || lane.status === 'working';
+  return (
+    <Tooltip content={`${lane.description} · services: ${lane.services.join(', ')}`}>
+      <div className={`nova-agent-lane-card nova-agent-lane-${lane.status}`}>
+        <div className='nova-agent-lane-top'>
+          <span className='nova-agent-lane-name'>{lane.name}</span>
+          <span className={`nova-agent-lane-badge ${onlineish ? 'is-ready' : ''}`}>
+            {LANE_STATUS_LABELS[lane.status]}
+          </span>
+        </div>
+        <div className='nova-agent-lane-meta'>
+          <span>{lane.agents.length} agents</span>
+          <span>{lane.queue} queued</span>
+        </div>
+      </div>
+    </Tooltip>
+  );
+};
+
+const ModelRouterPanel: React.FC<{
+  router?: NovaModelRouter;
+  selectingId: string | null;
+  receipt?: string;
+  onSelect: (modelId: string) => void;
+}> = ({ router, selectingId, receipt, onSelect }) => {
+  const models = (router?.models || []).slice(0, 6);
+  return (
+    <div className='nova-router-panel'>
+      <div className='nova-panel-header compact'>
+        <span className='nova-panel-title'>Model Router</span>
+        <span className={`nova-panel-badge ${router?.ollamaCloudAvailable ? 'ok' : 'warn'}`}>
+          {router?.current || 'unknown'}
+        </span>
+      </div>
+      <div className='nova-router-current'>
+        <span>Claude launch</span>
+        <strong>{router?.claudeLaunchModel || router?.current || 'not connected'}</strong>
+      </div>
+      {receipt && <div className='nova-router-receipt'>{receipt}</div>}
+      <div className='nova-router-models'>
+        {models.map((model) => (
+          <Tooltip key={model.id} content={`${model.provider} · ${model.id}`}>
+            <button
+              type='button'
+              className={`nova-router-model ${model.selected ? 'selected' : ''}`}
+              disabled={selectingId !== null || !model.available}
+              onClick={() => onSelect(model.id)}
+            >
+              <span>{selectingId === model.id ? 'Switching' : model.label}</span>
+              <small>{model.provider}</small>
+            </button>
+          </Tooltip>
+        ))}
+      </div>
+    </div>
+  );
+};
+
 // ─── Main Component ───────────────────────────────────────────────────
 
 const NovaMissionControl: React.FC = () => {
@@ -313,6 +421,8 @@ const NovaMissionControl: React.FC = () => {
   const [receipts, setReceipts] = useState<Record<string, string>>({});
   const [agentTeamLoadingIds, setAgentTeamLoadingIds] = useState<Set<string>>(new Set());
   const [agentTeamReceipts, setAgentTeamReceipts] = useState<Record<string, string>>({});
+  const [selectingModelId, setSelectingModelId] = useState<string | null>(null);
+  const [modelReceipt, setModelReceipt] = useState<string>('');
   const [activePanel, setActivePanel] = useState<ActivePanel>('dashboard');
 
   // ── Fetch stack ──
@@ -336,6 +446,34 @@ const NovaMissionControl: React.FC = () => {
     fetchStack();
     const timer = setInterval(fetchStack, 12000);
     return () => clearInterval(timer);
+  }, [fetchStack]);
+
+  // ── Select Claude/OpenClaw model ──
+  const handleModelSelect = useCallback(async (modelId: string) => {
+    setSelectingModelId(modelId);
+    try {
+      const res = await fetch('/api/novamaster/models/select', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(withCsrfToken({ modelId })),
+      });
+      rememberCsrfTokenFromResponse(res);
+      const payload = await res.json();
+      if (!res.ok || !payload.success) {
+        throw new Error(payload.msg || `HTTP ${res.status}`);
+      }
+
+      const selected = payload.data?.selectedModel || modelId;
+      setModelReceipt(`Selected ${selected}`);
+      await fetchStack();
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : 'Model switch failed';
+      setModelReceipt(msg);
+      Message.error(msg);
+    } finally {
+      setSelectingModelId(null);
+    }
   }, [fetchStack]);
 
   // ── Launch Jarvis team ──
@@ -425,6 +563,7 @@ const NovaMissionControl: React.FC = () => {
   }, [stack]);
 
   const activeAgents = useMemo(() => (stack?.agents || []).filter((agent) => agent.status !== 'offline'), [stack]);
+  const activeAgentLanes = useMemo(() => stack?.agentLanes || [], [stack]);
   const workingAgentCount = useMemo(() => activeAgents.filter((agent) => agent.status === 'working').length, [activeAgents]);
   const hasAgentTeams = (stack?.agentTeams?.length ?? 0) > 0;
   const cpuAccent = getLoadAccent(telemetry.cpu, 'cyan', 'gold');
@@ -564,7 +703,7 @@ const NovaMissionControl: React.FC = () => {
             </div>
 
             {/* Services list */}
-            <div style={{ flex: 1, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
+            <div style={{ flex: '0 1 34%', minHeight: 180, overflow: 'auto', display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 14 }}>
               {priorityServices.map((svc) => (
                 <ServiceChip
                   key={svc.id}
@@ -575,6 +714,37 @@ const NovaMissionControl: React.FC = () => {
                 />
               ))}
             </div>
+
+            <ModelRouterPanel
+              router={stack?.modelRouter}
+              selectingId={selectingModelId}
+              receipt={modelReceipt}
+              onSelect={handleModelSelect}
+            />
+
+            {activeAgentLanes.length > 0 && (
+              <div className='nova-control-plane'>
+                <div className='nova-panel-header compact'>
+                  <span className='nova-panel-title'>Agent Swarm</span>
+                  <span className='nova-panel-badge'>{stack?.controlPlane?.summary || `${activeAgentLanes.length} lanes`}</span>
+                </div>
+                <div className='nova-agent-lane-grid'>
+                  {activeAgentLanes.map((lane) => (
+                    <AgentLaneCard key={lane.id} lane={lane} />
+                  ))}
+                </div>
+                {(stack?.controlPlane?.parked?.length || stack?.controlPlane?.risks?.length) ? (
+                  <div className='nova-control-plane-notes'>
+                    {(stack?.controlPlane?.parked || []).slice(0, 3).map((item) => (
+                      <span key={`parked-${item}`}>Parked: {item}</span>
+                    ))}
+                    {(stack?.controlPlane?.risks || []).slice(0, 2).map((item) => (
+                      <span key={`risk-${item}`}>Risk: {item}</span>
+                    ))}
+                  </div>
+                ) : null}
+              </div>
+            )}
 
             {/* Agents section */}
             {(stack?.agents?.length ?? 0) > 0 && (

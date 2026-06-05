@@ -83,6 +83,8 @@ vi.mock('@/common', () => ({
     },
     acpConversation: {
       sendMessage: { invoke: (...args: unknown[]) => mockAcpSendInvoke(...args) },
+      getModelInfo: { invoke: vi.fn(() => Promise.resolve({ data: { modelInfo: null } })) },
+      setModel: { invoke: vi.fn(() => Promise.resolve({ success: true })) },
     },
     geminiConversation: {
       sendMessage: { invoke: (...args: unknown[]) => mockGeminiSendInvoke(...args) },

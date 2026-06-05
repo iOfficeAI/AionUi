@@ -133,7 +133,7 @@ runOrSkip('includes manifest and apple touch icon links in the built renderer en
 
   expect(html).toContain('rel="manifest" href="./manifest.webmanifest"');
   expect(html).toContain('rel="apple-touch-icon" href="./pwa/icon-180.png"');
-  expect(html).toContain('name="theme-color" content="#4E5969"');
+  expect(html).toContain('name="theme-color" content="#050302"');
 });
 
 runOrSkip('copies PWA assets into renderer output and packaged app.asar', () => {

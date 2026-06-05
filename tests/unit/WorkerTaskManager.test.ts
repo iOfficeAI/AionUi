@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 
 vi.mock('electron', () => ({ app: { isPackaged: false, getPath: vi.fn(() => '/tmp') } }));
+vi.mock('@process/utils/initStorage', () => ({
+  ProcessConfig: {
+    get: vi.fn(() => Promise.resolve(undefined)),
+  },
+}));
 
 import { WorkerTaskManager } from '../../src/process/task/WorkerTaskManager';
 import type { IConversationRepository } from '../../src/process/services/database/IConversationRepository';

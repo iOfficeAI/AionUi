@@ -16,7 +16,7 @@ describe('NovaMaster mission control configuration', () => {
   it('keeps the primary native command bar focused on real stack actions', () => {
     expect(NOVA_COMMAND_ACTIONS.map((action) => action.label)).toEqual([
       'Jarvis Chat',
-      'OpenClaw Models',
+      'OpenClaw Health',
       'GoClaw Health',
       'Space Health',
       'Hermes Health',

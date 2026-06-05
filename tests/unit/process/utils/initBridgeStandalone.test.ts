@@ -35,6 +35,14 @@ vi.mock('@office-ai/platform', () => ({
   logger: {
     config: (...args: unknown[]) => mocks.loggerConfig(...args),
   },
+  storage: {
+    buildStorage: () => ({
+      getSync: () => undefined,
+      setSync: () => {},
+      get: () => Promise.resolve(undefined),
+      set: () => Promise.resolve(),
+    }),
+  },
 }));
 
 vi.mock('@process/agent/AgentRegistry', () => ({

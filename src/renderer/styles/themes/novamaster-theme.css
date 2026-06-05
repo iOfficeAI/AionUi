@@ -465,6 +465,194 @@ html, body, #root {
   box-shadow: var(--shadow-glow-red);
 }
 
+.nova-router-panel,
+.nova-control-plane {
+  border: 1px solid rgba(217, 164, 49, 0.16);
+  border-radius: 12px;
+  background:
+    linear-gradient(135deg, rgba(255, 241, 168, 0.055), transparent 46%),
+    rgba(8, 6, 3, 0.42);
+  box-shadow:
+    inset 0 0 0 1px rgba(255, 241, 168, 0.035),
+    0 12px 32px rgba(0, 0, 0, 0.24);
+  padding: 10px;
+  margin-bottom: 12px;
+}
+
+.nova-panel-header.compact {
+  margin-bottom: 8px;
+}
+
+.nova-panel-badge.ok {
+  color: var(--nova-success);
+}
+
+.nova-panel-badge.warn {
+  color: var(--nova-warning);
+}
+
+.nova-router-current {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 8px;
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+.nova-router-current strong {
+  color: var(--nova-core-light);
+  font-size: 12px;
+  max-width: 62%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nova-router-receipt {
+  margin-bottom: 8px;
+  padding: 6px 8px;
+  border-radius: 8px;
+  color: var(--nova-core-light);
+  background: rgba(217, 164, 49, 0.11);
+  font-size: 11px;
+}
+
+.nova-router-models {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.nova-router-model {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 2px;
+  align-items: flex-start;
+  justify-content: center;
+  min-height: 42px;
+  padding: 7px 8px;
+  border: 1px solid rgba(217, 164, 49, 0.16);
+  border-radius: 9px;
+  color: var(--text-primary);
+  background: rgba(255, 255, 255, 0.035);
+  cursor: pointer;
+  transition:
+    border-color 0.16s ease,
+    transform 0.16s ease,
+    background 0.16s ease;
+}
+
+.nova-router-model:hover:not(:disabled),
+.nova-router-model.selected {
+  border-color: rgba(123, 223, 242, 0.54);
+  background: rgba(123, 223, 242, 0.12);
+  transform: translateY(-1px);
+}
+
+.nova-router-model:disabled {
+  cursor: not-allowed;
+  opacity: 0.52;
+}
+
+.nova-router-model span {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.nova-router-model small {
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.nova-agent-lane-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 7px;
+}
+
+.nova-agent-lane-card {
+  min-width: 0;
+  padding: 8px;
+  border: 1px solid rgba(217, 164, 49, 0.13);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.24);
+}
+
+.nova-agent-lane-card.nova-agent-lane-ready,
+.nova-agent-lane-card.nova-agent-lane-working {
+  border-color: rgba(143, 211, 163, 0.26);
+  background:
+    radial-gradient(circle at 0 0, rgba(143, 211, 163, 0.12), transparent 42%),
+    rgba(0, 0, 0, 0.24);
+}
+
+.nova-agent-lane-card.nova-agent-lane-degraded {
+  border-color: rgba(217, 164, 49, 0.32);
+}
+
+.nova-agent-lane-card.nova-agent-lane-parked,
+.nova-agent-lane-card.nova-agent-lane-offline {
+  opacity: 0.68;
+}
+
+.nova-agent-lane-top,
+.nova-agent-lane-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.nova-agent-lane-name {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-primary);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.nova-agent-lane-badge {
+  flex: 0 0 auto;
+  color: var(--nova-warning);
+  font-size: 9px;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+}
+
+.nova-agent-lane-badge.is-ready {
+  color: var(--nova-success);
+}
+
+.nova-agent-lane-meta {
+  margin-top: 6px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.nova-control-plane-notes {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin-top: 8px;
+  color: var(--text-secondary);
+  font-size: 10px;
+}
+
+.nova-control-plane-notes span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 /* ═══════════════════════════════════════════════════════════════════════════
    Tabs
    ═══════════════════════════════════════════════════════════════════════════ */

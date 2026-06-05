@@ -82,7 +82,7 @@ export default function KanbanDetailPanel({ status, tasks, onClose, triggerRef }
     if (!status) return [];
     return tasks
       .filter((t) => t.status === status)
-      .sort((a, b) => {
+      .toSorted((a, b) => {
         const pa = a.priority ?? 0;
         const pb = b.priority ?? 0;
         if (pb !== pa) return pb - pa;

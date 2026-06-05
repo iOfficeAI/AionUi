@@ -2,7 +2,7 @@
  * Video Factory Panel — Live video/music clip pipeline
  * Embeds Video Factory dashboard for clip generation
  */
-import React, { useCallback, useState, useRef, useEffect } from 'react';
+import React, { useCallback, useState, useRef, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '@arco-design/web-react';
 
@@ -22,8 +22,13 @@ const VideoFactoryPanel: React.FC<VideoFactoryPanelProps> = ({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [mode, setMode] = useState<'autonomous' | 'manual'>('autonomous');
 
-  const videoFactoryUrl = `http://localhost:${port}/`;
+  const isAutonomous = mode === 'autonomous';
+  const videoFactoryUrl = useMemo(
+    () => `http://localhost:${port}/?mode=${mode}`,
+    [mode, port],
+  );
 
   const checkHealth = useCallback(async () => {
     try {
@@ -145,6 +150,30 @@ const VideoFactoryPanel: React.FC<VideoFactoryPanelProps> = ({
           {t('guid.videoFactory.title')}
         </div>
         <div style={styles.actions}>
+          <Button
+            size="mini"
+            type={isAutonomous ? 'primary' : 'outline'}
+            onClick={() => setMode('autonomous')}
+            style={{
+              borderColor: isAutonomous ? 'rgba(212,175,55,0.5)' : 'rgba(255,255,255,0.1)',
+              color: isAutonomous ? '#000' : '#aaa',
+              background: isAutonomous ? 'rgba(212,175,55,0.85)' : 'rgba(255,255,255,0.05)',
+            }}
+          >
+            Auto
+          </Button>
+          <Button
+            size="mini"
+            type={isAutonomous ? 'outline' : 'primary'}
+            onClick={() => setMode('manual')}
+            style={{
+              borderColor: isAutonomous ? 'rgba(255,255,255,0.1)' : 'rgba(212,175,55,0.5)',
+              color: isAutonomous ? '#aaa' : '#000',
+              background: isAutonomous ? 'rgba(255,255,255,0.05)' : 'rgba(212,175,55,0.85)',
+            }}
+          >
+            Manual
+          </Button>
           {connected && (
             <Button
               size="mini"
