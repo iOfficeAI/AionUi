@@ -334,14 +334,11 @@ const CssThemeSettings: React.FC = () => {
         let updatedThemes: Theme[];
         const normalizedThemeData = ensureBackgroundCss({ ...themeData, builtin: false });
 
+        let savedId: string | undefined;
         if (editingTheme && !editingTheme.builtin) {
           // 更新现有用户主题 / Update existing user theme
-          const savedId = editingTheme.id;
+          savedId = editingTheme.id;
           updatedThemes = themes.map((t) => (t.id === savedId ? { ...t, ...normalizedThemeData, updated_at: now } : t));
-          // If the saved theme is the active one, re-apply to pick up changes
-          if (activeThemeId === savedId) {
-            await selectTheme(savedId);
-          }
         } else {
           // 添加新主题 / Add new theme
           const newTheme: Theme = {
@@ -355,11 +352,17 @@ const CssThemeSettings: React.FC = () => {
           updatedThemes = [...themes, newTheme];
         }
 
-        // 只保存用户主题 / Only save user themes
+        // 只保存用户主题 / Only save user themes — persist BEFORE re-applying so selectTheme reads updated css
         const userThemes = updatedThemes.filter((t) => !t.builtin);
         await configService.set('theme.userThemes', userThemes);
 
         setThemes(updatedThemes);
+
+        // If the saved theme is the active one, re-apply to pick up changes
+        if (savedId !== undefined && activeThemeId === savedId) {
+          await selectTheme(savedId);
+        }
+
         setModalVisible(false);
         setEditingTheme(null);
         Message.success(t('common.saveSuccess'));
