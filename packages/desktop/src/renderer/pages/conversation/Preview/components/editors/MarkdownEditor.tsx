@@ -5,9 +5,8 @@
  */
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
-import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
-import { languages } from '@codemirror/language-data';
+import { markdown } from '@codemirror/lang-markdown';
+import { syntaxHighlighting } from '@codemirror/language';
 import CodeMirror from '@uiw/react-codemirror';
 import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import React, { useRef, useCallback } from 'react';
@@ -60,11 +59,7 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           // 自定义 markdown 高亮（非 fallback，优先于 basicSetup 的默认高亮）
           // Custom markdown highlight (non-fallback) wins over basicSetup's default highlighter,
           // while basicSetup's treeHighlighter keeps painting. basicSetup must keep syntaxHighlighting enabled.
-          extensions={[
-            markdown({ base: markdownLanguage, codeLanguages: languages }),
-            syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
-            syntaxHighlighting(defaultHighlightStyle),
-          ]}
+          extensions={[markdown(), syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light'))]}
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{
