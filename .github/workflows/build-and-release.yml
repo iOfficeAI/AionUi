@@ -88,7 +88,7 @@ jobs:
     needs: code-quality
     # main/feature/release 分支或正式 tag 触发构建（排除 -dev- tag，避免重复构建）
     if: |
-      needs.code-quality.result == 'success' &&
+      !cancelled() &&
       (
         github.event_name == 'workflow_dispatch' ||
         github.ref == 'refs/heads/main' ||
