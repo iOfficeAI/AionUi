@@ -4,9 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+
+// Mock PreviewContext to avoid "must be used within PreviewProvider" error
+vi.mock('@/renderer/pages/conversation/Preview', () => ({
+  usePreviewContext: () => ({
+    findPreviewTab: vi.fn(),
+    openPreview: vi.fn(),
+    isOpen: false,
+    tabs: [],
+    activeTabId: null,
+    closeTab: vi.fn(),
+    switchTab: vi.fn(),
+  }),
+}));
 
 // We test the standalone helper functions from the hook to avoid
 // complex IPC bridge mocking. The hook's integration with IPC events
