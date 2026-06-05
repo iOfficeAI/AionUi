@@ -211,7 +211,9 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
   );
 };
 
-const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: string; builtin?: boolean }>(theme: T): T => {
+const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: string; builtin?: boolean }>(
+  theme: T
+): T => {
   // Skip builtin themes (Light/Dark have no decorative css to inject)
   if (theme.builtin) {
     return theme;
@@ -335,9 +337,7 @@ const CssThemeSettings: React.FC = () => {
         if (editingTheme && !editingTheme.builtin) {
           // 更新现有用户主题 / Update existing user theme
           const savedId = editingTheme.id;
-          updatedThemes = themes.map((t) =>
-            t.id === savedId ? { ...t, ...normalizedThemeData, updated_at: now } : t
-          );
+          updatedThemes = themes.map((t) => (t.id === savedId ? { ...t, ...normalizedThemeData, updated_at: now } : t));
           // If the saved theme is the active one, re-apply to pick up changes
           if (activeThemeId === savedId) {
             await selectTheme(savedId);

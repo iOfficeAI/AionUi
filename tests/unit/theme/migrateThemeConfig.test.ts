@@ -10,11 +10,21 @@ import { LIGHT_THEME_ID, DARK_THEME_ID } from '@/common/theme/constants';
 
 describe('migrateThemeConfig', () => {
   it('maps old css.activeThemeId default-theme to Light', () => {
-    const out = migrateThemeConfig({ theme: 'light', 'css.activeThemeId': 'default-theme', 'css.themes': [], customCss: '' });
+    const out = migrateThemeConfig({
+      theme: 'light',
+      'css.activeThemeId': 'default-theme',
+      'css.themes': [],
+      customCss: '',
+    });
     expect(out['theme.activeId']).toBe(LIGHT_THEME_ID);
   });
   it('maps a preset id through unchanged', () => {
-    const out = migrateThemeConfig({ theme: 'light', 'css.activeThemeId': 'hello-kitty', 'css.themes': [], customCss: '' });
+    const out = migrateThemeConfig({
+      theme: 'light',
+      'css.activeThemeId': 'hello-kitty',
+      'css.themes': [],
+      customCss: '',
+    });
     expect(out['theme.activeId']).toBe('hello-kitty');
   });
   it('uses dark toggle when no active css theme', () => {

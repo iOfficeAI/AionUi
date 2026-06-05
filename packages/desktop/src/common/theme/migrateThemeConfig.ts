@@ -7,7 +7,15 @@
 import type { Theme } from './types';
 import { LIGHT_THEME_ID, DARK_THEME_ID } from './constants';
 
-type OldCssTheme = { id: string; name: string; cover?: string; css: string; is_preset?: boolean; created_at: number; updated_at: number };
+type OldCssTheme = {
+  id: string;
+  name: string;
+  cover?: string;
+  css: string;
+  is_preset?: boolean;
+  created_at: number;
+  updated_at: number;
+};
 
 export type OldThemeConfig = {
   theme?: string;

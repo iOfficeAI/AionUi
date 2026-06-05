@@ -272,7 +272,10 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
       if (!mounted) return;
       setCustomCss(t?.css ? addImportantToAll(t.css) : '');
     };
-    ipcBridge.theme.requestCurrent.invoke().then(applyCss).catch(() => {});
+    ipcBridge.theme.requestCurrent
+      .invoke()
+      .then(applyCss)
+      .catch(() => {});
     const off = ipcBridge.theme.changed.on((t) => applyCss(t));
     return () => {
       mounted = false;

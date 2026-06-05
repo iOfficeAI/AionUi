@@ -22,7 +22,11 @@ async function initActiveTheme(): Promise<Theme> {
     const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
     const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
     applyTheme(resolved);
-    try { localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance); } catch { /* noop */ }
+    try {
+      localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance);
+    } catch {
+      /* noop */
+    }
     // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
     void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
     return resolved;
@@ -44,14 +48,23 @@ const useTheme = (): [Theme | null, (activeId: string) => Promise<void>] => {
   useEffect(() => {
     let mounted = true;
     initialPromise
-      ?.then((t) => { if (mounted) setActive(t); })
+      ?.then((t) => {
+        if (mounted) setActive(t);
+      })
       .catch((e) => console.error('init theme failed', e));
     const off = ipcBridge.theme.changed.on((t: Theme) => {
       applyTheme(t);
       if (mounted) setActive((prev) => (prev?.id === t.id ? prev : t));
-      try { localStorage.setItem(APPEARANCE_CACHE_KEY, t.appearance); } catch { /* noop */ }
+      try {
+        localStorage.setItem(APPEARANCE_CACHE_KEY, t.appearance);
+      } catch {
+        /* noop */
+      }
     });
-    return () => { mounted = false; off?.(); };
+    return () => {
+      mounted = false;
+      off?.();
+    };
   }, []);
 
   const select = useCallback(async (activeId: string) => {

@@ -31,7 +31,10 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [activeTheme, selectTheme] = useTheme();
   const [fontScale, setFontScale] = useFontScale();
   const theme: ThemeAppearance = activeTheme?.appearance ?? 'light';
-  const setTheme = useCallback((appearance: ThemeAppearance) => selectTheme(appearance === 'dark' ? DARK_THEME_ID : LIGHT_THEME_ID), [selectTheme]);
+  const setTheme = useCallback(
+    (appearance: ThemeAppearance) => selectTheme(appearance === 'dark' ? DARK_THEME_ID : LIGHT_THEME_ID),
+    [selectTheme]
+  );
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale }}>
