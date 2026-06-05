@@ -1,5 +1,34 @@
 # Changelog
 
+## [2.1.12](https://github.com/iOfficeAI/AionUi/compare/v2.1.11...v2.1.12) (2026-06-05)
+
+### Desktop
+
+#### Features
+
+- **i18n:** add Brazilian Portuguese (pt-BR) translation (#3209)
+- **preview:** native Streamdown markdown rendering + full theming (#3204)
+
+#### Bug Fixes
+
+- **conversation:** align workspace path availability handling (#3207)
+- **preview:** dedupe @codemirror/language so markdown source highlight survives (#3206)
+
+### Core ([v0.1.22](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.22))
+
+#### Bug Fixes
+
+- **acp:** stabilize mode and model source of truth ([#409](https://github.com/iOfficeAI/AionCore/issues/409))
+- **conversation:** align workspace path availability handling ([#410](https://github.com/iOfficeAI/AionCore/issues/410))
+- **file:** lazy load browse roots ([#406](https://github.com/iOfficeAI/AionCore/issues/406))
+- prepare managed acp tools locally without cdn ([#408](https://github.com/iOfficeAI/AionCore/issues/408))
+
+#### Refactoring
+
+- **error:** finish ApiError phase3 ([#398](https://github.com/iOfficeAI/AionCore/issues/398))
+
+---
+
 ## [2.1.11](https://github.com/iOfficeAI/AionUi/compare/v2.1.10...v2.1.11) (2026-06-04)
 
 ### Desktop
