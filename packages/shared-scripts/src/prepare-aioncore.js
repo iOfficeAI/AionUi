@@ -69,7 +69,6 @@ function prepareManagedResources(binaryPath, targetDir) {
     env: {
       ...process.env,
       AIONUI_BUNDLED_MANAGED_RESOURCES: '',
-      AIONUI_DEV_MANAGED_RESOURCES: '',
     },
   });
 

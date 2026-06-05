@@ -115,6 +115,8 @@ describe('buildSpawnArgs', () => {
       'info',
       '--app-version',
       '9.9.9',
+      '--managed-resources-mode',
+      'bundled',
       '--log-dir',
       '/log/dir',
       '--local',
@@ -130,8 +132,21 @@ describe('buildSpawnArgs', () => {
       isPackaged: false,
     });
     expect(args).toContain('debug');
+    expect(args).not.toContain('--managed-resources-mode');
     expect(args).not.toContain('--log-dir');
     expect(args).not.toContain('--local');
+  });
+
+  it('passes bundled managed resources mode when packaged', () => {
+    const args = buildSpawnArgs({
+      port: 1,
+      dbPath: '/d',
+      local: false,
+      appVersion: '0.0.1',
+      isPackaged: true,
+    });
+    expect(args).toContain('--managed-resources-mode');
+    expect(args).toContain('bundled');
   });
 
   it('respects AIONUI_LOG_LEVEL override', () => {
@@ -270,6 +285,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
       'info',
       '--app-version',
       '1.2.3',
+      '--managed-resources-mode',
+      'bundled',
       '--log-dir',
       '/log/dir',
       '--work-dir',
@@ -320,6 +337,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
         'info',
         '--app-version',
         '1.2.3',
+        '--managed-resources-mode',
+        'bundled',
         '--log-dir',
         '/log/dir',
         '--work-dir',
