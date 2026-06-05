@@ -6,7 +6,7 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { markdown } from '@codemirror/lang-markdown';
-import { defaultHighlightStyle, syntaxHighlighting } from '@codemirror/language';
+import { syntaxHighlighting } from '@codemirror/language';
 import CodeMirror from '@uiw/react-codemirror';
 import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import React, { useRef, useCallback } from 'react';
@@ -56,11 +56,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           value={value}
           height='100%'
           theme={theme === 'dark' ? 'dark' : 'light'}
-          extensions={[
-            markdown(),
-            syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
-            syntaxHighlighting(defaultHighlightStyle, { fallback: true }),
-          ]} // Markdown 语法支持 / Markdown syntax support
+          // 自定义 markdown 高亮（非 fallback，优先于 basicSetup 的默认高亮）
+          // Custom markdown highlight (non-fallback) wins over basicSetup's default highlighter,
+          // while basicSetup's treeHighlighter keeps painting. basicSetup must keep syntaxHighlighting enabled.
+          extensions={[markdown(), syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light'))]}
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{
@@ -68,7 +67,6 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             highlightActiveLineGutter: true, // 高亮当前行号 / Highlight active line gutter
             highlightActiveLine: true, // 高亮当前行 / Highlight active line
             foldGutter: true, // 折叠功能 / Code folding
-            syntaxHighlighting: false, // 禁用默认高亮，使用自定义样式 / Disable default highlighter, use custom style
           }}
           style={{
             fontSize: '13px',
