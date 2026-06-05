@@ -27,6 +27,21 @@ export {
   type ChislApprovalStore,
 } from './repository';
 export { CHISL_APPROVAL_TABLES, initChislApprovalSchema } from './schema';
+export {
+  buildSuggestedApprovalRuleInput,
+  classifyPermissionCommand,
+  classifyShellCommand,
+  extractCommandFromPermissionPatterns,
+  suggestApprovalFromCommandSafety,
+} from './commandSafety';
+export type {
+  CommandSafetyApprovalSuggestion,
+  CommandSafetyClassification,
+  CommandSafetyContext,
+  CommandSafetyDecision,
+  CommandSafetyHazard,
+  CommandSafetyHazardKind,
+} from './commandSafety';
 export type {
   ApprovalAudit,
   ApprovalAuditRow,
