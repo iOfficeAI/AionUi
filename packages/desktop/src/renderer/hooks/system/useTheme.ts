@@ -16,15 +16,22 @@ import { useCallback, useEffect, useState } from 'react';
 const APPEARANCE_CACHE_KEY = '__aionui_theme';
 
 async function initActiveTheme(): Promise<Theme> {
-  await configService.whenReady();
-  const activeId = (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
-  const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
-  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
-  applyTheme(resolved);
-  try { localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance); } catch { /* noop */ }
-  // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
-  void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
-  return resolved;
+  try {
+    await configService.whenReady();
+    const activeId = (configService.get('theme.activeId') as string) || LIGHT_THEME_ID;
+    const userThemes = (configService.get('theme.userThemes') as Theme[]) ?? [];
+    const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
+    applyTheme(resolved);
+    try { localStorage.setItem(APPEARANCE_CACHE_KEY, resolved.appearance); } catch { /* noop */ }
+    // Seed the main-process relay so other surfaces (markdown shadow DOM, pet windows) can pull it.
+    void ipcBridge.theme.setActive.invoke(resolved).catch(() => {});
+    return resolved;
+  } catch (e) {
+    console.error('init theme failed', e);
+    const fallback = resolveActiveTheme(LIGHT_THEME_ID, BUILTIN_THEMES);
+    applyTheme(fallback);
+    return fallback;
+  }
 }
 
 let initialPromise: Promise<Theme> | null = null;
