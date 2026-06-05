@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -167,5 +167,114 @@ describe('useAcpMessage', () => {
         msg_id: 'msg-1',
       })
     );
+  });
+
+  describe('provider auth-failure auto-retry', () => {
+    const authError = (msgId: string): IResponseMessage => ({
+      type: 'error',
+      data: {
+        message: 'Internal error: Failed to authenticate. API Error: 401 Invalid authentication credentials',
+        code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+        retryable: false,
+      },
+      msg_id: msgId,
+      conversation_id: 'conv-1',
+    });
+
+    it('retries via the registered handler and suppresses the hard error on the first auth failure', async () => {
+      vi.mocked(getConversationOrNull).mockResolvedValue(null);
+      const retryHandler = vi.fn().mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useAcpMessage('conv-1'));
+      act(() => result.current.setAuthRetryHandler(retryHandler));
+
+      act(() => {
+        responseStreamHandlerRef.current?.(authError('msg-1'));
+      });
+
+      expect(retryHandler).toHaveBeenCalledTimes(1);
+      expect(addOrUpdateMessageMock).not.toHaveBeenCalled();
+      await waitFor(() => expect(result.current.authRetrying).toBe(true));
+    });
+
+    it('surfaces the hard error once the per-turn retry budget is exhausted', async () => {
+      vi.mocked(getConversationOrNull).mockResolvedValue(null);
+      const retryHandler = vi.fn().mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useAcpMessage('conv-1'));
+      act(() => result.current.setAuthRetryHandler(retryHandler));
+
+      act(() => responseStreamHandlerRef.current?.(authError('msg-1')));
+      act(() => responseStreamHandlerRef.current?.(authError('msg-1')));
+
+      expect(retryHandler).toHaveBeenCalledTimes(1);
+      expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tips',
+          content: expect.objectContaining({ type: 'error' }),
+        })
+      );
+      await waitFor(() => expect(result.current.authRetrying).toBe(false));
+    });
+
+    it('does not auto-retry when no handler is registered', () => {
+      vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+      const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+      act(() => responseStreamHandlerRef.current?.(authError('msg-1')));
+
+      expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tips',
+          content: expect.objectContaining({ type: 'error' }),
+        })
+      );
+      expect(result.current.authRetrying).toBe(false);
+    });
+
+    it('surfaces the original error and clears the indicator when the retry cannot be dispatched', async () => {
+      vi.mocked(getConversationOrNull).mockResolvedValue(null);
+      const retryHandler = vi.fn().mockRejectedValue(new Error('no turn to resend'));
+
+      const { result } = renderHook(() => useAcpMessage('conv-1'));
+      act(() => result.current.setAuthRetryHandler(retryHandler));
+
+      await act(async () => {
+        responseStreamHandlerRef.current?.(authError('msg-1'));
+      });
+
+      expect(retryHandler).toHaveBeenCalledTimes(1);
+      expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          type: 'tips',
+          content: expect.objectContaining({ type: 'error' }),
+        })
+      );
+      await waitFor(() => expect(result.current.authRetrying).toBe(false));
+    });
+
+    it('clears the retry indicator when content arrives after a retry', async () => {
+      vi.mocked(getConversationOrNull).mockResolvedValue(null);
+      const retryHandler = vi.fn().mockResolvedValue(undefined);
+
+      const { result } = renderHook(() => useAcpMessage('conv-1'));
+      act(() => result.current.setAuthRetryHandler(retryHandler));
+
+      act(() => responseStreamHandlerRef.current?.(authError('msg-1')));
+      await waitFor(() => expect(result.current.authRetrying).toBe(true));
+
+      act(() => {
+        responseStreamHandlerRef.current?.({
+          type: 'text',
+          data: 'hello',
+          msg_id: 'msg-2',
+          conversation_id: 'conv-1',
+          created_at: 1_000,
+        });
+      });
+
+      await waitFor(() => expect(result.current.authRetrying).toBe(false));
+    });
   });
 });

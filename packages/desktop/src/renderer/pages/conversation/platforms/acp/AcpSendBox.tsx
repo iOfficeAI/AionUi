@@ -42,7 +42,7 @@ import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
@@ -107,6 +107,9 @@ const AcpSendBox: React.FC<{
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
+    authRetrying,
+    setAuthRetryHandler,
+    beginUserTurn,
   } = messageState;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
@@ -218,6 +221,10 @@ const AcpSendBox: React.FC<{
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
 
+  // Remembers the last user turn so an auth failure can be transparently resent
+  // after a token-refreshing warmup.
+  const lastTurnRef = useRef<Pick<ConversationCommandQueueItem, 'input' | 'files'> | null>(null);
+
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
     atPath,
@@ -258,7 +265,14 @@ const AcpSendBox: React.FC<{
   });
 
   const executeCommand = useCallback(
-    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
+    async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>, opts?: { isRetry?: boolean }) => {
+      const isRetry = opts?.isRetry ?? false;
+      // A fresh user turn resets the auth-retry budget and is remembered so an
+      // auth failure can be transparently resent. Retries reuse that state.
+      if (!isRetry) {
+        beginUserTurn();
+        lastTurnRef.current = { input, files };
+      }
       if (teamPermission) await teamPermission.warmupSession();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
@@ -278,15 +292,18 @@ const AcpSendBox: React.FC<{
         // Use add=false (compose mode) so composeMessageWithIndex can de-dup
         // by msg_id — this prevents a duplicate bubble if useMessageLstCache
         // already inserted the DB row for this same msg_id.
-        addOrUpdateMessageRef.current({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: { content: displayMessage },
-          created_at: Date.now(),
-        });
+        // On an auth retry the original user bubble is already shown, so skip it.
+        if (!isRetry) {
+          addOrUpdateMessageRef.current({
+            id: msg_id,
+            msg_id,
+            type: 'text',
+            position: 'right',
+            conversation_id,
+            content: { content: displayMessage },
+            created_at: Date.now(),
+          });
+        }
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =
@@ -353,8 +370,42 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
+    [backend, beginUserTurn, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
   );
+  const executeCommandRef = useLatestRef(executeCommand);
+
+  // Register the auth-retry handler: on a provider auth failure, re-warm the
+  // conversation (re-spawns the agent → refreshes the OAuth token) and resend
+  // the remembered turn once. useAcpMessage owns the per-turn retry budget.
+  useEffect(() => {
+    setAuthRetryHandler(async () => {
+      const last = lastTurnRef.current;
+      // Nothing remembered to resend (e.g. an initial message sent outside this
+      // box): throw so useAcpMessage surfaces the original error instead of
+      // leaving the retry indicator stuck.
+      if (!last) throw new Error('acp-auth-retry: no turn to resend');
+      try {
+        await warmupConversation(conversation_id);
+      } catch {
+        // Warmup failed — resend anyway; the fresh send may still refresh the
+        // token. If it ultimately fails, executeCommand surfaces the error.
+      }
+      await executeCommandRef.current(last, { isRetry: true });
+    });
+    return () => setAuthRetryHandler(null);
+  }, [conversation_id, executeCommandRef, setAuthRetryHandler]);
+
+  // Transient, self-dismissing indicator while an auth failure is being retried.
+  useEffect(() => {
+    if (!authRetrying) return;
+    const close = Message.loading({
+      content: t('acp.auth.retrying', {
+        defaultValue: 'Authentication expired, reconnecting and retrying…',
+      }),
+      duration: 0,
+    });
+    return () => close();
+  }, [authRetrying, t]);
 
   const {
     items: queuedCommands,

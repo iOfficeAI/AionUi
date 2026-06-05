@@ -8,6 +8,7 @@ export type I18nKey =
   | 'acp.auth.console_error'
   | 'acp.auth.failed'
   | 'acp.auth.failed_confirm'
+  | 'acp.auth.retrying'
   | 'acp.config.default'
   | 'acp.config.reasoning_effort'
   | 'acp.send.failed'

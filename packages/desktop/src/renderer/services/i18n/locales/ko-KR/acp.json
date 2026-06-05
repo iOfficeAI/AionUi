@@ -1,6 +1,7 @@
 {
   "auth": {
     "failed": "{{backend}} 인증 실패:\n\n{{error}}\n\n로컬 CLI 도구 인증 상태를 확인하세요",
+    "retrying": "인증이 만료되어 다시 연결하여 재시도하는 중입니다…",
     "console_error": "ACP 인증 오류 세부사항:",
     "failed_confirm": "ACP {{backend}} 인증 실패:\n\n{{error}}\n\n지금 설정 페이지로 이동하여 구성하시겠습니까?"
   },

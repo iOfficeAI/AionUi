@@ -1,6 +1,7 @@
 {
   "auth": {
     "failed": "{{backend}} 认证失败：\n\n{{error}}\n\n请检查本地CLI工具的认证状态",
+    "retrying": "认证已过期，正在重新连接并重试…",
     "console_error": "ACP认证错误详情:",
     "failed_confirm": "ACP {{backend}} 认证失败：\n\n{{error}}\n\n是否现在前往设置页面配置？"
   },

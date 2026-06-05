@@ -1,6 +1,7 @@
 {
   "auth": {
     "failed": "{{backend}} 認証が失敗しました：\n\n{{error}}\n\nローカルCLIツールの認証状態を確認してください",
+    "retrying": "認証の有効期限が切れました。再接続して再試行しています…",
     "console_error": "ACP認証エラー詳細:",
     "failed_confirm": "ACP {{backend}} 認証が失敗しました：\n\n{{error}}\n\n設定ページで設定しますか？"
   },

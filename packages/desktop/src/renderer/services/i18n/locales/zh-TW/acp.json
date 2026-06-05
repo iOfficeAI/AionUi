@@ -1,6 +1,7 @@
 {
   "auth": {
     "failed": "{{backend}} 認證失敗：\n\n{{error}}\n\n請檢查本地CLI工具的認證狀態",
+    "retrying": "認證已過期，正在重新連接並重試…",
     "console_error": "ACP authentication error details:",
     "failed_confirm": "ACP {{backend}} 身份驗證失敗：\n\n{{error}}\n\n是否立即前往設定頁面進行配置？"
   },

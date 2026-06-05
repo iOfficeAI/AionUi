@@ -5,8 +5,9 @@
  */
 
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chat/chatLib';
+import { normalizeAgentStreamError, transformMessage } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
+import { decideAuthRetry, MAX_ACP_AUTH_RETRIES } from './acpAuthRetry';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
@@ -31,6 +32,12 @@ export type UseAcpMessageReturn = {
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
+  /** True while an auth failure is being transparently retried (token refresh). */
+  authRetrying: boolean;
+  /** Register the resend handler invoked when an auth failure should auto-retry. */
+  setAuthRetryHandler: (handler: (() => void | Promise<void>) | null) => void;
+  /** Reset the per-turn auth-retry budget. Call on every user-initiated send. */
+  beginUserTurn: () => void;
 };
 
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
@@ -52,6 +59,28 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
   const aiProcessingRef = useRef(aiProcessing);
+
+  // Auto-retry of provider auth failures (e.g. an expired Claude OAuth token).
+  // The budget is per user turn; a fresh warmup re-spawns the agent and refreshes
+  // the token. See acpAuthRetry.ts and AcpSendBox's registered handler.
+  const [authRetrying, setAuthRetrying] = useState(false);
+  const authRetryingRef = useRef(false);
+  const authRetriesRemainingRef = useRef(MAX_ACP_AUTH_RETRIES);
+  const authRetryHandlerRef = useRef<(() => void | Promise<void>) | null>(null);
+
+  const updateAuthRetrying = useCallback((value: boolean) => {
+    authRetryingRef.current = value;
+    setAuthRetrying(value);
+  }, []);
+
+  const setAuthRetryHandler = useCallback((handler: (() => void | Promise<void>) | null) => {
+    authRetryHandlerRef.current = handler;
+  }, []);
+
+  const beginUserTurn = useCallback(() => {
+    authRetriesRemainingRef.current = MAX_ACP_AUTH_RETRIES;
+    updateAuthRetrying(false);
+  }, [updateAuthRetrying]);
 
   // Track whether current turn has content output
   const hasContentInTurnRef = useRef(false);
@@ -268,6 +297,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setAiProcessing(false);
             aiProcessingRef.current = false;
           }
+          // Content arriving means a (possibly retried) auth handshake succeeded.
+          if (authRetryingRef.current) {
+            updateAuthRetrying(false);
+          }
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
@@ -410,7 +443,38 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             );
           }
           break;
-        case 'error':
+        case 'error': {
+          // Provider auth failure (e.g. expired OAuth token): transparently
+          // re-warm + resend once before surfacing a hard error to the user.
+          const streamError = normalizeAgentStreamError(message.data);
+          const authDecision = decideAuthRetry({
+            error: streamError,
+            retriesRemaining: authRetriesRemainingRef.current,
+            canRetry: Boolean(authRetryHandlerRef.current),
+          });
+          if (authDecision === 'retry') {
+            authRetriesRemainingRef.current -= 1;
+            updateAuthRetrying(true);
+            // Keep loading indicators on — the turn is being retried, not failed.
+            const suppressedError = transformedMessage;
+            void Promise.resolve(authRetryHandlerRef.current?.()).catch(() => {
+              // The retry could not be dispatched (e.g. nothing to resend, or
+              // warmup/send threw). Surface the original error and reset state
+              // so the user is never left with a stuck "retrying" indicator.
+              updateAuthRetrying(false);
+              turnFinishedRef.current = true;
+              setRunning(false);
+              runningRef.current = false;
+              setAiProcessing(false);
+              aiProcessingRef.current = false;
+              activeThinkingRef.current = null;
+              if (suppressedError) addOrUpdateMessage(suppressedError);
+            });
+            break;
+          }
+          // Not retrying — make sure any retry indicator is cleared.
+          updateAuthRetrying(false);
+
           // Stop all loading states when error occurs
           turnFinishedRef.current = true;
           setRunning(false);
@@ -431,6 +495,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             requestTraceRef.current = null;
           }
           break;
+        }
         default:
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
@@ -450,6 +515,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       setRunning,
       setAiProcessing,
       setAcpStatus,
+      updateAuthRetrying,
     ]
   );
 
@@ -614,5 +680,8 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
+    authRetrying,
+    setAuthRetryHandler,
+    beginUserTurn,
   };
 };
