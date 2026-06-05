@@ -209,18 +209,18 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       setIsLoading(true);
       try {
         await beforeRuntimeSync?.();
-        // setMode returns void; success if no throw
-        await ipcBridge.acpConversation.setMode.invoke({
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({
           conversation_id,
           mode,
         });
+        const confirmedMode = confirmed.mode || mode;
 
-        setCurrentMode(mode);
-        onModeChanged?.(mode);
+        setCurrentMode(confirmedMode);
+        onModeChanged?.(confirmedMode);
         if (backend) {
           // Mirror Guid page behaviour so a switch made inside the
           // conversation also becomes the next-session default.
-          void savePreferredMode(backend, mode);
+          void savePreferredMode(backend, confirmedMode);
         }
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
