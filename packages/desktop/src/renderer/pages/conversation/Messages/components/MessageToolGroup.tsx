@@ -19,6 +19,7 @@ import MessageFileChanges from '../MessageFileChanges';
 import CollapsibleContent from '@renderer/components/chat/CollapsibleContent';
 import LocalImageView from '@renderer/components/media/LocalImageView';
 import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
+import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import MarkdownView from '@renderer/components/Markdown';
 import { ToolConfirmationOutcome } from '@renderer/utils/common';
@@ -228,7 +229,8 @@ const ConfirmationDetails: React.FC<{
 const ImageDisplay: React.FC<{
   imgUrl: string;
   relativePath?: string;
-}> = ({ imgUrl, relativePath }) => {
+  workspace?: string;
+}> = ({ imgUrl, relativePath, workspace }) => {
   const { t } = useTranslation();
   const [messageApi, messageContext] = Message.useMessage();
   const [imageUrl, setImageUrl] = useState<string>(imgUrl);
@@ -245,7 +247,7 @@ const ImageDisplay: React.FC<{
       setLoading(true);
       setError(false);
       ipcBridge.fs.getImageBase64
-        .invoke({ path: imgUrl })
+        .invoke({ path: imgUrl, workspace: workspace || undefined })
         .then((base64) => {
           if (!base64) {
             throw new Error('Image file not found');
@@ -517,6 +519,8 @@ const ToolResultDisplay: React.FC<{
 const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
   const { t } = useTranslation();
   const { launchPreview } = usePreviewLauncher();
+  const conversationContext = useConversationContextSafe();
+  const workspace = conversationContext?.workspace;
 
   const handlePreviewClick = useCallback(
     (e: React.MouseEvent, filePath: string) => {
@@ -613,7 +617,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               const displayName = result.relative_path?.split(/[\\/]/).pop() || String(filePath);
               return (
                 <div key={call_id} className='flex flex-col gap-4px'>
-                  <ImageDisplay imgUrl={result.img_url} relativePath={result.relative_path} />
+                  <ImageDisplay imgUrl={result.img_url} relativePath={result.relative_path} workspace={workspace} />
                   <span
                     className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
                     onClick={(e) => handlePreviewClick(e, String(filePath))}
@@ -631,7 +635,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
               const displayName = imagePath.split('/').pop() || imagePath;
               return (
                 <div key={call_id} className='flex flex-col gap-4px'>
-                  <ImageDisplay imgUrl={imagePath} relativePath={displayName} />
+                  <ImageDisplay imgUrl={imagePath} relativePath={displayName} workspace={workspace} />
                   <span
                     className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
                     onClick={(e) => handlePreviewClick(e, imagePath)}
