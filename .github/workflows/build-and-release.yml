@@ -180,7 +180,7 @@ jobs:
     name: Create Tag from Branch
     runs-on: ubuntu-latest
     needs: [build-pipeline]
-    if: success() && (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch')
+    if: needs.build-pipeline.result == 'success' && (startsWith(github.ref, 'refs/heads/release/') || github.event_name == 'workflow_dispatch')
     outputs:
       tag_name: ${{ steps.create_tag.outputs.tag_name }}
       is_dev: ${{ steps.create_tag.outputs.is_dev }}
@@ -334,6 +334,17 @@ jobs:
               IS_DEV="false"
             fi
             echo "🛠️ Manual release metadata: $TAG_NAME (prerelease=$IS_DEV)"
+            echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
+            echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # If workflow_dispatch without manual tag, auto-generate a dev tag
+          if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
+            PKG_VERSION=$(node -p "require('./package.json').version")
+            TAG_NAME="v${PKG_VERSION}-Pounding"
+            IS_DEV="false"
+            echo "🛠️ Auto-generated release tag: $TAG_NAME"
             echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
             echo "is_dev=$IS_DEV" >> $GITHUB_OUTPUT
             exit 0
