@@ -14,7 +14,14 @@ import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
-type BackendStartupStage = 'resolve_binary' | 'find_port' | 'spawn' | 'spawn_error' | 'early_exit' | 'health_timeout';
+type BackendStartupStage =
+  | 'resolve_binary'
+  | 'find_port'
+  | 'spawn'
+  | 'spawn_error'
+  | 'early_exit'
+  | 'listen_timeout'
+  | 'health_timeout';
 
 type HealthCheckDiagnostics = {
   healthCheckAttempts: number;
@@ -205,6 +212,8 @@ const FETCH_FORBIDDEN_PORTS = new Set([
 ]);
 
 const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
+const AIONCORE_LISTENING_PREFIX = 'AIONCORE_LISTENING ';
+const BACKEND_PORT_REPORT_TIMEOUT_MS = 30_000;
 
 function isFetchForbiddenPort(port: number): boolean {
   return FETCH_FORBIDDEN_PORTS.has(port);
@@ -307,6 +316,18 @@ function clearHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics): 
   delete diagnostics.healthCheckLastErrorCauseCode;
 }
 
+function parseAioncoreListeningPort(line: string): number | undefined {
+  if (!line.startsWith(AIONCORE_LISTENING_PREFIX)) return undefined;
+  try {
+    const parsed = JSON.parse(line.slice(AIONCORE_LISTENING_PREFIX.length)) as { port?: unknown };
+    if (typeof parsed.port !== 'number' || !Number.isInteger(parsed.port)) return undefined;
+    if (parsed.port <= 0 || parsed.port > 65535) return undefined;
+    return parsed.port;
+  } catch {
+    return undefined;
+  }
+}
+
 function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetails> | undefined {
   if (!error || typeof error !== 'object') return undefined;
   const diagnostics = (error as { diagnostics?: unknown }).diagnostics;
@@ -397,6 +418,7 @@ export class BackendLifecycleManager {
   private _lastDbPath = '';
   private _lastLogDir?: string;
   private _lastDirs?: BackendDirConfig;
+  private _lastOptions?: BackendStartOptions;
   private restartCount = 0;
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
@@ -443,29 +465,12 @@ export class BackendLifecycleManager {
         error
       );
     }
-    try {
-      this._port = await findAvailablePort(preferredPort);
-    } catch (error) {
-      throw new BackendStartupError(
-        'aioncore startup failed while finding an available port',
-        {
-          stage: 'find_port',
-          appVersion,
-          isPackaged: this.appMeta.isPackaged,
-          binaryPath,
-          port: preferredPort,
-          dataDir: dbPath,
-          logDir,
-          workDir: dirs?.workDir,
-          causeMessage: getErrorMessage(error),
-        },
-        error
-      );
-    }
+    this._port = preferredPort ?? 0;
     this._status = 'starting';
     this._lastDbPath = dbPath;
     this._lastLogDir = logDir;
     this._lastDirs = dirs;
+    this._lastOptions = options;
     let stdoutTail = '';
     let stderrTail = '';
     let startupSettled = false;
@@ -575,11 +580,48 @@ export class BackendLifecycleManager {
       });
     });
 
+    let reportedPortSettled = false;
+    let reportedPortTimer: ReturnType<typeof setTimeout> | undefined;
+    let resolveReportedPort: (port: number) => void = () => {};
+    let rejectReportedPort: (error: BackendStartupError) => void = () => {};
+    const reportedPort = new Promise<number>((resolve, reject) => {
+      resolveReportedPort = (port) => {
+        if (reportedPortSettled) return;
+        reportedPortSettled = true;
+        if (reportedPortTimer) clearTimeout(reportedPortTimer);
+        resolve(port);
+      };
+      rejectReportedPort = (error) => {
+        if (reportedPortSettled) return;
+        reportedPortSettled = true;
+        reject(error);
+      };
+      reportedPortTimer = setTimeout(() => {
+        rejectReportedPort(
+          makeStartupError('listen_timeout', 'aioncore did not report its listening port before timeout', undefined, {
+            healthCheckTimeoutMs: BACKEND_PORT_REPORT_TIMEOUT_MS,
+            healthCheckElapsedMs: Date.now() - startupStartedAt,
+          })
+        );
+      }, BACKEND_PORT_REPORT_TIMEOUT_MS);
+    });
+
     this.childProcess.stdout?.on('data', (data: Buffer) => {
       stdoutTail = appendOutputTail(stdoutTail, data);
       for (const line of data.toString().split('\n')) {
         const trimmed = line.trim();
-        if (!serverListeningObserved && trimmed.includes(`Server listening on 127.0.0.1:${this._port}`)) {
+        const port = parseAioncoreListeningPort(trimmed);
+        if (port !== undefined) {
+          this._port = port;
+          serverListeningObserved = true;
+          serverListeningObservedAfterMs = Date.now() - startupStartedAt;
+          serverListeningLine = trimmed;
+          resolveReportedPort(port);
+        } else if (
+          !serverListeningObserved &&
+          this._port > 0 &&
+          trimmed.includes(`Server listening on 127.0.0.1:${this._port}`)
+        ) {
           serverListeningObserved = true;
           serverListeningObservedAfterMs = Date.now() - startupStartedAt;
           serverListeningLine = trimmed;
@@ -595,7 +637,19 @@ export class BackendLifecycleManager {
       }
     });
 
-    const health = await Promise.race([this.waitForHealth(this._port), startupFailure]);
+    let port: number;
+    try {
+      port = await Promise.race([reportedPort, startupFailure]);
+    } catch (error) {
+      if (error instanceof BackendStartupError && error.details.stage === 'listen_timeout') {
+        startupSettled = true;
+        killBackendProcessTree(this.childProcess, 'SIGKILL');
+        this.childProcess = null;
+        this._status = 'error';
+      }
+      throw error;
+    }
+    const health = await Promise.race([this.waitForHealth(port), startupFailure]);
     if (!health.ok) {
       const healthTimeoutError = makeStartupError(
         'health_timeout',
@@ -746,11 +800,10 @@ export class BackendLifecycleManager {
     }
     this.restartCount++;
 
-    const restartPort = this._port;
     const crashContext = {
       exitCode: code ?? undefined,
       signal: signal ?? undefined,
-      port: restartPort,
+      port: this._port,
       restartCount: this.restartCount,
       maxRestarts: this.maxRestarts,
     };
@@ -770,16 +823,22 @@ export class BackendLifecycleManager {
     setTimeout(() => {
       if (this._status === 'stopped') return;
       this._status = 'starting';
-      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, undefined, restartPort).catch((error) => {
-        this._status = 'error';
-        console.error('[aioncore] restart after crash failed', {
-          port: restartPort,
-          restartCount: this.restartCount,
-          maxRestarts: this.maxRestarts,
-          delayMs: delay,
-          error: getErrorMessage(error),
+      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, this._lastOptions, this._port)
+        .then(async (port) => {
+          if (this._status === 'running') {
+            await this._lastOptions?.onReady?.(port);
+          }
+        })
+        .catch((error) => {
+          this._status = 'error';
+          console.error('[aioncore] restart after crash failed', {
+            port: this._port,
+            restartCount: this.restartCount,
+            maxRestarts: this.maxRestarts,
+            delayMs: delay,
+            error: getErrorMessage(error),
+          });
         });
-      });
     }, delay);
   }
 }

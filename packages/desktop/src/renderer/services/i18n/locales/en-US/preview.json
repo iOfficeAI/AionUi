@@ -58,6 +58,7 @@
   "mermaidTitle": "Mermaid Diagram",
   "largeTextTruncatedHint": "Large file preview mode: showing first {{count}} characters for performance.",
   "truncatedBanner": "Preview content was truncated. Click download to view the full file.",
+  "aiWriting": "AI is writing…",
   "errors": {
     "missingFilePath": "File path is missing",
     "openWithoutPath": "Unable to open: file path is not provided",
