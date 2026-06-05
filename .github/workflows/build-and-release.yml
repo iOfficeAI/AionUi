@@ -342,7 +342,7 @@ jobs:
           # If workflow_dispatch without manual tag, auto-generate a dev tag
           if [[ "${{ github.event_name }}" == "workflow_dispatch" ]]; then
             PKG_VERSION=$(node -p "require('./package.json').version")
-            TAG_NAME="v${PKG_VERSION}-Pounding"
+            TAG_NAME="v${PKG_VERSION}"
             IS_DEV="false"
             echo "🛠️ Auto-generated release tag: $TAG_NAME"
             echo "tag_name=$TAG_NAME" >> $GITHUB_OUTPUT
@@ -396,27 +396,24 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || github.token }}
 
+      - name: Setup coscmd for COS upload
+        shell: bash
+        run: |
+          pip3 install coscmd
+          coscmd config -a "${{ secrets.TENCENT_COS_SECRET_ID }}" \
+                        -s "${{ secrets.TENCENT_COS_SECRET_KEY }}" \
+                        -b "${{ secrets.TENCENT_COS_BUCKET != '' && secrets.TENCENT_COS_BUCKET || vars.TENCENT_COS_BUCKET }}" \
+                        -r "${{ secrets.TENCENT_COS_REGION != '' && secrets.TENCENT_COS_REGION || vars.TENCENT_COS_REGION }}"
+
       - name: Mirror release assets to COS (versioned)
         timeout-minutes: 30
-        continue-on-error: true
-        uses: TencentCloud/cos-action@v1
-        with:
-          secret_id: ${{ secrets.TENCENT_COS_SECRET_ID }}
-          secret_key: ${{ secrets.TENCENT_COS_SECRET_KEY }}
-          cos_bucket: ${{ secrets.TENCENT_COS_BUCKET != '' && secrets.TENCENT_COS_BUCKET || vars.TENCENT_COS_BUCKET }}
-          cos_region: ${{ secrets.TENCENT_COS_REGION != '' && secrets.TENCENT_COS_REGION || vars.TENCENT_COS_REGION }}
-          local_path: release-assets
-          remote_path: pounding/releases/download/${{ steps.version.outputs.tag_name }}
+        shell: bash
+        run: |
+          coscmd upload -r release-assets/ "pounding/releases/download/${{ steps.version.outputs.tag_name }}/"
 
       - name: Mirror release assets to COS (latest)
         timeout-minutes: 30
-        continue-on-error: true
-        uses: TencentCloud/cos-action@v1
-        with:
-          secret_id: ${{ secrets.TENCENT_COS_SECRET_ID }}
-          secret_key: ${{ secrets.TENCENT_COS_SECRET_KEY }}
-          cos_bucket: ${{ secrets.TENCENT_COS_BUCKET != '' && secrets.TENCENT_COS_BUCKET || vars.TENCENT_COS_BUCKET }}
-          cos_region: ${{ secrets.TENCENT_COS_REGION != '' && secrets.TENCENT_COS_REGION || vars.TENCENT_COS_REGION }}
-          local_path: release-assets
-          remote_path: pounding/releases/latest
-          clean: true
+        shell: bash
+        run: |
+          coscmd delete -r -f "pounding/releases/latest/"
+          coscmd upload -r release-assets/ "pounding/releases/latest/"
