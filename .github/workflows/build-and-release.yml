@@ -397,7 +397,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GH_TOKEN != '' && secrets.GH_TOKEN || github.token }}
 
       - name: Mirror release assets to COS (versioned)
-        timeout-minutes: 15
+        timeout-minutes: 30
         continue-on-error: true
         uses: TencentCloud/cos-action@v1
         with:
@@ -409,7 +409,7 @@ jobs:
           remote_path: pounding/releases/download/${{ steps.version.outputs.tag_name }}
 
       - name: Mirror release assets to COS (latest)
-        timeout-minutes: 15
+        timeout-minutes: 30
         continue-on-error: true
         uses: TencentCloud/cos-action@v1
         with:
