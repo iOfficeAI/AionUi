@@ -139,7 +139,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
               ) : (
                 <>
                   <Plus theme='outline' size='20' fill={iconColors.secondary} />
-                  <span className='text-12px text-t-secondary mt-4px'>Upload</span>
+                  <span className='text-12px text-t-secondary mt-4px'>{t('common.upload')}</span>
                 </>
               )}
             </div>
