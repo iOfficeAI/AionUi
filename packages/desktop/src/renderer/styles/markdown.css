@@ -153,8 +153,10 @@
    classes have no backing). Activate the dark palette ourselves under data-theme='dark'.
    The code block <pre> carries data-streamdown="code-block-body"; tokens are descendant spans. */
 [data-theme='dark'] .aionui-markdown [data-streamdown='code-block-body'] {
-  background-color: var(--shiki-dark-bg) !important;
-  color: var(--shiki-dark) !important;
+  /* --shiki-dark-bg lives on per-token spans, not reliably on <pre>; fall back to an app
+     dark surface so the code block container is never a light box in dark mode. */
+  background-color: var(--shiki-dark-bg, var(--bg-2)) !important;
+  color: var(--shiki-dark, inherit) !important;
 }
 [data-theme='dark'] .aionui-markdown [data-streamdown='code-block-body'] span {
   color: var(--shiki-dark) !important;
