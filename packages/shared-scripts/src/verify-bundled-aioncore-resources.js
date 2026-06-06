@@ -9,6 +9,10 @@ function nodeBinaryName(platform) {
   return platform === 'win32' ? 'node.exe' : 'node';
 }
 
+function nodeExecutableParts(platform) {
+  return platform === 'win32' ? [nodeBinaryName(platform)] : ['bin', nodeBinaryName(platform)];
+}
+
 function normalize(relativePath) {
   return relativePath.split(path.sep).join('/');
 }
@@ -43,21 +47,21 @@ function isFile(filePath) {
 function requireManagedNode(baseDir, runtimeKey, platform, checked, missing) {
   const nodeRoot = path.join(baseDir, 'managed-resources', 'node');
   const versions = readDirectories(nodeRoot);
-  const binaryName = nodeBinaryName(platform);
+  const executableParts = nodeExecutableParts(platform);
 
   if (versions.length === 0) {
-    const relativePath = bundledPath(runtimeKey, 'managed-resources', 'node', '*', binaryName);
+    const relativePath = bundledPath(runtimeKey, 'managed-resources', 'node', '*', ...executableParts);
     checked.push(relativePath);
     missing.push(relativePath);
     return;
   }
 
   const executableFound = versions.some((version) => {
-    const executablePath = path.join(nodeRoot, version, binaryName);
+    const executablePath = path.join(nodeRoot, version, ...executableParts);
     return isFile(executablePath);
   });
 
-  const relativePath = bundledPath(runtimeKey, 'managed-resources', 'node', '*', binaryName);
+  const relativePath = bundledPath(runtimeKey, 'managed-resources', 'node', '*', ...executableParts);
   checked.push(relativePath);
 
   if (!executableFound) {

@@ -70,6 +70,62 @@ describe('verifyBundledAioncoreResources', () => {
     expect(result.missing).toContain('bundled-aioncore/win32-x64/managed-resources/node/*/node.exe');
   });
 
+  it('passes for non-Windows node runtime layout', () => {
+    const darwinResourcesDir = join(tmp, 'darwin-resources');
+    const darwinManagedResourcesDir = join(darwinResourcesDir, 'bundled-aioncore', 'darwin-arm64', 'managed-resources');
+
+    mkdirSync(join(darwinResourcesDir, 'bundled-aioncore', 'darwin-arm64'), { recursive: true });
+    writeFileSync(join(darwinResourcesDir, 'bundled-aioncore', 'darwin-arm64', 'aioncore'), '', { flush: true });
+    writeFileSync(join(darwinResourcesDir, 'bundled-aioncore', 'darwin-arm64', 'manifest.json'), '{}', {
+      flush: true,
+    });
+    mkdirSync(join(darwinManagedResourcesDir, 'node', 'node-v24.11.0-darwin-arm64', 'bin'), { recursive: true });
+    writeFileSync(join(darwinManagedResourcesDir, 'node', 'node-v24.11.0-darwin-arm64', 'bin', 'node'), '', {
+      flush: true,
+    });
+
+    const darwinCodexRoot = join(darwinManagedResourcesDir, 'acp', 'codex-acp', '0.14.0', 'darwin-arm64');
+    mkdirSync(darwinCodexRoot, { recursive: true });
+    writeFileSync(join(darwinCodexRoot, 'manifest.json'), JSON.stringify({ entrypoint: 'codex-acp' }), {
+      flush: true,
+    });
+    writeFileSync(join(darwinCodexRoot, 'codex-acp'), '', { flush: true });
+
+    const darwinClaudeRoot = join(darwinManagedResourcesDir, 'acp', 'claude-agent-acp', '0.13.0', 'darwin-arm64');
+    mkdirSync(darwinClaudeRoot, { recursive: true });
+    writeFileSync(join(darwinClaudeRoot, 'manifest.json'), JSON.stringify({ entrypoint: 'claude-agent-acp' }), {
+      flush: true,
+    });
+    writeFileSync(join(darwinClaudeRoot, 'claude-agent-acp'), '', { flush: true });
+
+    const result = verifyBundledAioncoreResources({
+      resourcesDir: darwinResourcesDir,
+      electronPlatformName: 'darwin',
+      targetArch: 'arm64',
+    });
+
+    expect(result.missing).toEqual([]);
+    expect(result.checked).toContain('bundled-aioncore/darwin-arm64/managed-resources/node/*/bin/node');
+  });
+
+  it('reports missing non-Windows managed node runtime executable', () => {
+    const linuxResourcesDir = join(tmp, 'linux-resources');
+    const linuxManagedResourcesDir = join(linuxResourcesDir, 'bundled-aioncore', 'linux-x64', 'managed-resources');
+
+    mkdirSync(join(linuxResourcesDir, 'bundled-aioncore', 'linux-x64'), { recursive: true });
+    writeFileSync(join(linuxResourcesDir, 'bundled-aioncore', 'linux-x64', 'aioncore'), '', { flush: true });
+    writeFileSync(join(linuxResourcesDir, 'bundled-aioncore', 'linux-x64', 'manifest.json'), '{}', { flush: true });
+    mkdirSync(join(linuxManagedResourcesDir, 'node', 'node-v24.11.0-linux-x64'), { recursive: true });
+
+    const result = verifyBundledAioncoreResources({
+      resourcesDir: linuxResourcesDir,
+      electronPlatformName: 'linux',
+      targetArch: 'x64',
+    });
+
+    expect(result.missing).toContain('bundled-aioncore/linux-x64/managed-resources/node/*/bin/node');
+  });
+
   it('reports missing managed ACP manifest', () => {
     rmSync(join(codexRoot, 'manifest.json'));
 
