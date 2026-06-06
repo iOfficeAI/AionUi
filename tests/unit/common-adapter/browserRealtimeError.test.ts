@@ -191,6 +191,33 @@ describe('browser WebSocket realtime error handling', () => {
     expect(location.hash).toBe('');
   });
 
+  it('stops reconnecting on unrecoverable non-auth realtime errors without redirecting', async () => {
+    const { adapter, location, socket } = await loadBrowserAdapter();
+    const emit = vi.fn();
+    adapter.on({ emit });
+    const payload = {
+      name: 'realtime.error',
+      data: {
+        code: 'REALTIME_HEARTBEAT_TIMEOUT',
+        message: 'Heartbeat timed out',
+        recoverable: false,
+        details: { connection_id: 7 },
+      },
+    };
+
+    socket.dispatchMessage(payload);
+
+    expect(socket.close).toHaveBeenCalledTimes(1);
+    expect(emit).toHaveBeenCalledWith(payload.name, payload.data);
+
+    socket.dispatchClose(1006);
+    const socketCountAfterClose = FakeWebSocket.instances.length;
+    vi.advanceTimersByTime(8000);
+
+    expect(FakeWebSocket.instances).toHaveLength(socketCountAfterClose);
+    expect(location.hash).toBe('');
+  });
+
   it('does not treat legacy auth-expired events as terminal auth errors', async () => {
     const { adapter, location, socket } = await loadBrowserAdapter();
     const emit = vi.fn();

@@ -26,16 +26,25 @@ function isBrowserWebSocketPayload(value: unknown): value is BrowserWebSocketPay
 }
 
 export function isRealtimeAuthTerminalError(payload: unknown): boolean {
-  if (!isBrowserWebSocketPayload(payload)) {
+  const data = getRealtimeErrorData(payload);
+  if (!data) {
     return false;
   }
 
-  if (payload.name !== 'realtime.error' || !isRecord(payload.data)) {
-    return false;
-  }
-
-  const { code } = payload.data;
+  const { code } = data;
   return code === 'REALTIME_AUTH_MISSING' || code === 'REALTIME_AUTH_EXPIRED';
+}
+
+function getRealtimeErrorData(payload: unknown): Record<string, unknown> | null {
+  if (!isBrowserWebSocketPayload(payload) || payload.name !== 'realtime.error' || !isRecord(payload.data)) {
+    return null;
+  }
+
+  return payload.data;
+}
+
+function isUnrecoverableRealtimeError(payload: unknown): boolean {
+  return getRealtimeErrorData(payload)?.recoverable === false;
 }
 
 const win = window as CustomWindow;
@@ -182,6 +191,20 @@ if (win.electronAPI) {
             window.location.hash = '/login';
           }, 1000);
 
+          return;
+        }
+
+        if (isUnrecoverableRealtimeError(payload)) {
+          console.warn('[WebSocket] Unrecoverable realtime error, stopping reconnection');
+          shouldReconnect = false;
+
+          if (reconnectTimer !== null) {
+            window.clearTimeout(reconnectTimer);
+            reconnectTimer = null;
+          }
+
+          emitterRef.emit(payload.name, payload.data);
+          socket?.close();
           return;
         }
 
