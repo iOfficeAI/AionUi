@@ -16,7 +16,6 @@ import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRena
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
-import DiffPanel from '@/renderer/components/layout/TerminalPanel/DiffPanel';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -83,27 +82,23 @@ const ChatLayout: React.FC<{
   // open/collapsed state is owned by EditorContext and driven by the titlebar's
   // four-button layout control plus the editor's own collapse control — it is no
   // longer coupled to the layout mode.
-  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed, expandEditor } = useEditorContext();
+  const editorCtx = useEditorContext();
+  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed, expandEditor } = editorCtx;
 
-  // Active layout mode. Only the diff view is mode-driven now; the editor is a
-  // peer pane controlled directly via EditorContext.
+  // Active layout mode.
   const layoutMode = useLayoutModeSafe();
-  const activeMode = layoutMode?.mode ?? 'default';
-  const isDiffMode = activeMode === 'diff-focused';
+  const activeMode = layoutMode?.mode ?? 'chat';
 
-  // Diff occupies 70% of the canvas (content keeps 30%); mirrors DEFAULT_PANE_SIZES.
-  const DIFF_PANE_PCT = 70;
-  const DIFF_CONTENT_PCT = 30;
   // Width of the collapsed editor "blade" (drawer handle) docked on the right.
   const EDITOR_BLADE_WIDTH_PX = 44;
 
-  // Editor pane presentation (mutually exclusive with the diff view):
+  // Editor pane presentation:
   //   expanded → editor shown at its resizable width
   //   blade    → editor open but collapsed: shrinks to a narrow vertical strip
   //              (the click-to-expand "drawer" handle) instead of vanishing to 0px.
-  const isEditorExpanded = isEditorOpen && !isEditorCollapsed && !isDiffMode;
-  const isEditorBlade = isEditorOpen && isEditorCollapsed && !isDiffMode;
-  const isSecondaryPaneVisible = isDiffMode || isEditorExpanded || isEditorBlade;
+  const isEditorExpanded = isEditorOpen && !isEditorCollapsed;
+  const isEditorBlade = isEditorOpen && isEditorCollapsed;
+  const isSecondaryPaneVisible = isEditorExpanded || isEditorBlade;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -359,9 +354,9 @@ const ChatLayout: React.FC<{
         <div
           className='flex flex-col min-w-0 overflow-hidden'
           style={{
-            flexGrow: isDiffMode ? 0 : 1,
+            flexGrow: 1,
             flexShrink: 1,
-            flexBasis: isDiffMode ? `${DIFF_CONTENT_PCT}%` : 0,
+            flexBasis: 0,
           }}
         >
           <div className='shrink-0 !bg-1'>{headerBlock}</div>
@@ -426,7 +421,7 @@ const ChatLayout: React.FC<{
             editor is collapsed it shrinks to a narrow vertical "blade" (Xbox-style
             drawer handle) docked on the right edge instead of disappearing; the
             base `.editor-pane` width/flex-basis transition makes it slide. */}
-        {!layout?.isMobile && (
+        {!layout?.isMobile && activeMode === 'command-center' && (
           <div
             className={classNames(
               'editor-pane chat-pane relative layout-sider flex flex-col',
@@ -440,18 +435,14 @@ const ChatLayout: React.FC<{
               flexShrink: 0,
               flexBasis: isEditorBlade
                 ? `${EDITOR_BLADE_WIDTH_PX}px`
-                : isDiffMode
-                  ? `${DIFF_PANE_PCT}%`
-                  : isEditorExpanded
-                    ? `${Math.round(editorWidthPx)}px`
-                    : '0px',
+                : isEditorExpanded
+                  ? `${Math.round(editorWidthPx)}px`
+                  : '0px',
               width: isEditorBlade
                 ? `${EDITOR_BLADE_WIDTH_PX}px`
-                : isDiffMode
-                  ? `${DIFF_PANE_PCT}%`
-                  : isEditorExpanded
-                    ? `${Math.round(editorWidthPx)}px`
-                    : '0px',
+                : isEditorExpanded
+                  ? `${Math.round(editorWidthPx)}px`
+                  : '0px',
               minWidth: isEditorBlade ? `${EDITOR_BLADE_WIDTH_PX}px` : isSecondaryPaneVisible ? '360px' : '0px',
               overflow: isEditorBlade ? 'hidden' : isSecondaryPaneVisible ? 'visible' : 'hidden',
               boxSizing: 'border-box',
@@ -482,7 +473,7 @@ const ChatLayout: React.FC<{
                     reverse: true,
                   })}
                 <div className='h-full w-full overflow-hidden'>
-                  {isDiffMode ? <DiffPanel /> : <EditorPanel />}
+                  <EditorPanel />
                 </div>
               </>
             )}

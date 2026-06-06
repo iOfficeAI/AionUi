@@ -1,16 +1,12 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import classNames from 'classnames';
 import {
   ArrowCircleLeft,
   ArrowLeft,
   ArrowRight,
-  Command,
   ExpandLeft,
   ExpandRight,
-  GithubOne,
-  MessageOne,
   Peoples,
-  Terminal,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -21,8 +17,6 @@ import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
-import { useEditorContextSafe } from '@/renderer/pages/conversation/Editor';
-import { useTerminalPanelSafe } from '@/renderer/hooks/context/TerminalPanelContext';
 import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
@@ -69,11 +63,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const navigationHistory = useNavigationHistory();
   const location = useLocation();
   const navigate = useNavigate();
-  // Layout panes are global concerns driven from the titlebar's four-button
-  // control. Safe context variants are used so the titlebar still renders if a
+  // Layout panes are global concerns driven from the titlebar's segmented
+  // control. Safe context variant is used so the titlebar still renders if a
   // provider is ever absent (e.g. isolated test mounts).
-  const editorCtx = useEditorContextSafe();
-  const terminalPanel = useTerminalPanelSafe();
   const layoutModeCtx = useLayoutModeSafe();
   const containerRef = useRef<HTMLDivElement | null>(null);
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -129,84 +121,16 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
     void navigate(-1);
   };
 
-  // --- Layout pane controls (titlebar four-button cluster) ---
-  // Replaces the rejected layout-mode dropdown with discrete, button-driven
-  // toggle states. The diff view is the only mode-driven surface; the editor
-  // and terminal are peer panes controlled directly via their contexts.
-  const isDiffActive = layoutModeCtx?.mode === 'diff-focused';
-  const isTerminalActive = Boolean(terminalPanel?.open);
-  const isEditorActive = Boolean(editorCtx?.isOpen) && !editorCtx?.isCollapsed && !isDiffActive;
-  const isCommandCenterActive = isEditorActive && isTerminalActive;
-  // Chat mode is now anchored to the right-hand ConversationPane (the primary
-  // navigation surface). It's "active" when the right pane is open and no
-  // content pane (editor / terminal / diff) is taking over. The left sider is
-  // demoted to an optional, independently-toggled surface and no longer gates
-  // this state.
-  const isChatActive = !isDiffActive && !isTerminalActive && !editorCtx?.isOpen && !conversationPaneCollapsed;
+  // --- Layout pane controls (titlebar pill-slider) ---
+  const activeLayoutMode = layoutModeCtx?.mode ?? 'chat';
 
-  // Chat: focus the conversation. Force the right-hand ConversationPane open
-  // and clear the content panes (editor / diff / terminal). The left sider is
-  // left untouched — it's optional and user-controlled.
-  const handleChatView = () => {
-    layoutModeCtx?.setMode('default');
-    editorCtx?.requestCloseEditor();
-    terminalPanel?.close();
-    layout?.setConversationPaneCollapsed?.(false);
-  };
+  const handleSelectChat = useCallback(() => {
+    layoutModeCtx?.setMode('chat');
+  }, [layoutModeCtx]);
 
-  // Command Center: open the terminal and the (expanded) editor together.
-  const handleCommandCenter = () => {
-    layoutModeCtx?.setMode('default');
-    if (editorCtx) {
-      if (editorCtx.buffers.length === 0) {
-        editorCtx.openUntitledEditor();
-      } else {
-        editorCtx.expandEditor();
-      }
-    }
-    terminalPanel?.open_();
-  };
-
-  // Terminal: toggle the bottom terminal panel independently.
-  const handleToggleTerminal = () => {
-    terminalPanel?.toggle();
-  };
-
-  // Diff: show the diff view (hides the editor pane while active).
-  const handleDiffView = () => {
-    layoutModeCtx?.setMode('diff-focused');
-  };
-
-  const layoutActions = [
-    {
-      key: 'chat',
-      label: t('terminal.layout.actionChat', { defaultValue: 'Chat' }),
-      Icon: MessageOne,
-      onClick: handleChatView,
-      active: isChatActive,
-    },
-    {
-      key: 'command-center',
-      label: t('terminal.layout.actionCommandCenter', { defaultValue: 'Command Center' }),
-      Icon: Command,
-      onClick: handleCommandCenter,
-      active: isCommandCenterActive,
-    },
-    {
-      key: 'terminal',
-      label: t('terminal.layout.actionTerminal', { defaultValue: 'Terminal' }),
-      Icon: Terminal,
-      onClick: handleToggleTerminal,
-      active: isTerminalActive,
-    },
-    {
-      key: 'diff',
-      label: t('terminal.layout.actionDiff', { defaultValue: 'Diff' }),
-      Icon: GithubOne,
-      onClick: handleDiffView,
-      active: isDiffActive,
-    },
-  ];
+  const handleSelectCommandCenter = useCallback(() => {
+    layoutModeCtx?.setMode('command-center');
+  }, [layoutModeCtx]);
 
   useEffect(() => {
     if (!isSettingsRoute) {
@@ -410,26 +334,34 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
       </div>
       <div ref={toolbarRef} className='app-titlebar__toolbar'>
         {layout?.isMobile && <div id='app-titlebar-actions-slot' className='app-titlebar__actions-slot' />}
-        {!layout?.isMobile && (
+        {!layout?.isMobile && layoutModeCtx && (
           <div
-            className='app-titlebar__layout-actions'
+            className='app-titlebar__pill-slider'
             role='group'
             aria-label={t('terminal.layout.selectorLabel', { defaultValue: 'Layout mode' })}
           >
-            {layoutActions.map(({ key, label, Icon, onClick, active }) => (
-              <button
-                key={key}
-                type='button'
-                className={classNames('app-titlebar__mode-btn', { 'app-titlebar__mode-btn--active': active })}
-                onClick={onClick}
-                aria-label={label}
-                aria-pressed={active}
-                title={label}
-              >
-                <Icon theme='outline' size={14} fill='currentColor' strokeWidth={desktopIconStroke} />
-                <span className='app-titlebar__mode-btn-label'>{label}</span>
-              </button>
-            ))}
+            <button
+              type='button'
+              className={classNames('app-titlebar__pill-slider__segment', {
+                'app-titlebar__pill-slider__segment--active': activeLayoutMode === 'chat',
+              })}
+              onClick={handleSelectChat}
+              aria-pressed={activeLayoutMode === 'chat'}
+              title='Chat'
+            >
+              Chat
+            </button>
+            <button
+              type='button'
+              className={classNames('app-titlebar__pill-slider__segment', {
+                'app-titlebar__pill-slider__segment--active': activeLayoutMode === 'command-center',
+              })}
+              onClick={handleSelectCommandCenter}
+              aria-pressed={activeLayoutMode === 'command-center'}
+              title='Command Center'
+            >
+              Command Center
+            </button>
           </div>
         )}
         {showWorkspaceButton && (

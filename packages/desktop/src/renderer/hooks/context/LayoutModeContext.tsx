@@ -19,8 +19,6 @@ import type { LayoutMode } from '@renderer/utils/layout/layoutModeStorage';
 import {
   DEFAULT_LAYOUT_MODE,
   LAYOUT_MODES,
-  getAvailableModes,
-  isModeAvailable,
   persistLayoutMode,
   persistPaneSizes,
   readStoredLayoutMode,
@@ -33,7 +31,7 @@ type LayoutModeContextValue = {
   paneSizes: Partial<Record<LayoutMode, number[]>>;
   modeRefreshCount: number;
   setMode: (mode: LayoutMode) => void;
-  cycleMode: (direction: 1 | -1) => void;
+  cycleMode: () => void;
   setPaneSizesForMode: (mode: LayoutMode, sizes: number[]) => void;
 };
 
@@ -76,39 +74,24 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
   const [modeRefreshCount, setModeRefreshCount] = useState(0);
   const mountedRef = useRef(false);
 
-  const availabilityCtx = useMemo(
-    () => ({ isMobile, editorAvailable, diffAvailable }),
-    [isMobile, editorAvailable, diffAvailable]
-  );
-
-  const availableModes = useMemo(() => getAvailableModes(availabilityCtx), [availabilityCtx]);
+  const availableModes = useMemo(() => [...LAYOUT_MODES] as LayoutMode[], []);
 
   // Fallback on mount: if persisted mode is unavailable, reset to default and warn.
   useEffect(() => {
     if (mountedRef.current) return;
     mountedRef.current = true;
-    if (!isModeAvailable(mode, availabilityCtx)) {
+    if (!LAYOUT_MODES.includes(mode)) {
       console.warn(
         `[layout] Persisted layout mode "${mode}" is not available. Falling back to "${DEFAULT_LAYOUT_MODE}".`
       );
       setModeState(DEFAULT_LAYOUT_MODE);
       persistLayoutMode(DEFAULT_LAYOUT_MODE);
     }
-  }, [mode, availabilityCtx]);
-
-  // Also handle runtime availability changes (e.g. editor panel unmounted).
-  useEffect(() => {
-    if (!mountedRef.current) return;
-    if (!isModeAvailable(mode, availabilityCtx)) {
-      console.warn(`[layout] Layout mode "${mode}" became unavailable. Falling back to "${DEFAULT_LAYOUT_MODE}".`);
-      setModeState(DEFAULT_LAYOUT_MODE);
-      persistLayoutMode(DEFAULT_LAYOUT_MODE);
-    }
-  }, [mode, availabilityCtx]);
+  }, [mode]);
 
   const setMode = useCallback(
     (next: LayoutMode) => {
-      if (!isModeAvailable(next, availabilityCtx)) return;
+      if (!LAYOUT_MODES.includes(next)) return;
       if (next === mode) {
         // Re-selecting the active mode signals intent to re-expand collapsed
         // panels — bump the refresh counter so consumers can react.
@@ -118,23 +101,14 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
       setModeState(next);
       persistLayoutMode(next);
     },
-    [availabilityCtx, mode]
+    [mode]
   );
 
-  const cycleMode = useCallback(
-    (direction: 1 | -1) => {
-      const modes = getAvailableModes(availabilityCtx);
-      if (modes.length === 0) return;
-      const currentIndex = modes.indexOf(mode);
-      const nextIndex = ((currentIndex < 0 ? 0 : currentIndex) + direction + modes.length) % modes.length;
-      const next = modes[nextIndex];
-      if (next) {
-        setModeState(next);
-        persistLayoutMode(next);
-      }
-    },
-    [mode, availabilityCtx]
-  );
+  const cycleMode = useCallback(() => {
+    const next = mode === 'chat' ? 'command-center' : 'chat';
+    setModeState(next);
+    persistLayoutMode(next);
+  }, [mode]);
 
   const setPaneSizesForMode = useCallback((targetMode: LayoutMode, sizes: number[]) => {
     setPaneSizes((prev) => {
@@ -160,12 +134,12 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
 
       if (event.repeat) return;
 
-      // Cmd/Ctrl+Alt+Shift+1..4 — direct mode selection.
+      // Cmd/Ctrl+Alt+Shift+1..2 — direct mode selection.
       const digit = event.key;
-      if (digit >= '1' && digit <= '4') {
+      if (digit >= '1' && digit <= '2') {
         const index = Number.parseInt(digit, 10) - 1;
         const target = LAYOUT_MODES[index];
-        if (target && isModeAvailable(target, availabilityCtx)) {
+        if (target) {
           event.preventDefault();
           setModeState(target);
           persistLayoutMode(target);
@@ -175,44 +149,30 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         return;
       }
 
-      // Cmd/Ctrl+Alt+Shift+] — cycle forward.
+      // Cmd/Ctrl+Alt+Shift+] — toggle to next mode.
       if (event.key === ']') {
         event.preventDefault();
-        const modes = getAvailableModes(availabilityCtx);
-        if (modes.length > 0) {
-          const currentIndex = modes.indexOf(mode);
-          const nextIndex = ((currentIndex < 0 ? 0 : currentIndex) + 1) % modes.length;
-          const next = modes[nextIndex];
-          if (next) {
-            setModeState(next);
-            persistLayoutMode(next);
-            requestAnimationFrame(() => focusRegion('content'));
-          }
-        }
+        const next = mode === 'chat' ? 'command-center' : 'chat';
+        setModeState(next);
+        persistLayoutMode(next);
+        requestAnimationFrame(() => focusRegion('content'));
         return;
       }
 
-      // Cmd/Ctrl+Alt+Shift+[ — cycle backward.
+      // Cmd/Ctrl+Alt+Shift+[ — toggle to previous mode.
       if (event.key === '[') {
         event.preventDefault();
-        const modes = getAvailableModes(availabilityCtx);
-        if (modes.length > 0) {
-          const currentIndex = modes.indexOf(mode);
-          const nextIndex = ((currentIndex < 0 ? 0 : currentIndex) - 1 + modes.length) % modes.length;
-          const next = modes[nextIndex];
-          if (next) {
-            setModeState(next);
-            persistLayoutMode(next);
-            requestAnimationFrame(() => focusRegion('content'));
-          }
-        }
+        const next = mode === 'chat' ? 'command-center' : 'chat';
+        setModeState(next);
+        persistLayoutMode(next);
+        requestAnimationFrame(() => focusRegion('content'));
         return;
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [mode, availabilityCtx, setMode]);
+  }, [mode, setMode]);
 
   // F6 / Shift+F6 pane focus cycling (desktop only).
   useEffect(() => {

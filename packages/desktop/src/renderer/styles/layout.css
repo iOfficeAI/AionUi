@@ -312,3 +312,43 @@
   height: 6px;
   background: var(--brand);
 }
+
+/* Terminal bottom blade — persistent collapsed/expanded strip mirroring the
+   editor blade pattern. 28px collapsed, full TerminalPanel height when expanded. */
+.terminal-blade {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 12px;
+  border: none;
+  border-top: 1px solid var(--bg-3);
+  background: var(--bg-2);
+  color: var(--text-secondary);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.6px;
+  user-select: none;
+  transition:
+    background-color var(--motion-fast, 150ms) var(--motion-ease-standard, ease),
+    color var(--motion-fast, 150ms) var(--motion-ease-standard, ease);
+  flex-shrink: 0;
+}
+
+.terminal-blade:hover {
+  background: var(--bg-3);
+  color: var(--text-primary);
+}
+
+.terminal-blade:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
+.terminal-blade__label {
+  text-transform: none;
+}

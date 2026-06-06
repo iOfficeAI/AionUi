@@ -13,21 +13,19 @@
  *   aionui.layoutPaneSizes — JSON Record<LayoutMode, number[]>, default '{}'
  */
 
-export const LAYOUT_MODES = ['default', 'split-pane', 'editor-focused', 'diff-focused'] as const;
+export const LAYOUT_MODES = ['chat', 'command-center'] as const;
 
 export type LayoutMode = (typeof LAYOUT_MODES)[number];
 
 const MODE_STORAGE_KEY = 'aionui.layoutMode';
 const PANE_SIZES_STORAGE_KEY = 'aionui.layoutPaneSizes';
 
-export const DEFAULT_LAYOUT_MODE: LayoutMode = 'default';
+export const DEFAULT_LAYOUT_MODE: LayoutMode = 'chat';
 
 // Default split ratios per mode: [primary%, secondary%]
 export const DEFAULT_PANE_SIZES: Record<LayoutMode, number[]> = {
-  default: [70, 30],
-  'split-pane': [50, 50],
-  'editor-focused': [30, 70],
-  'diff-focused': [30, 70],
+  chat: [100, 0],
+  'command-center': [70, 30],
 };
 
 // --- Storage helpers (follow existing aionui.* localStorage pattern from Layout.tsx) ---
@@ -101,10 +99,8 @@ export type AvailabilityContext = {
 const always = (): boolean => true;
 
 const availabilityRegistry: Record<LayoutMode, (ctx: AvailabilityContext) => boolean> = {
-  default: always,
-  'split-pane': (ctx) => !ctx.isMobile,
-  'editor-focused': (ctx) => !ctx.isMobile && ctx.editorAvailable,
-  'diff-focused': (ctx) => !ctx.isMobile && ctx.diffAvailable,
+  chat: always,
+  'command-center': always,
 };
 
 export const isModeAvailable = (mode: LayoutMode, ctx: AvailabilityContext): boolean => {
@@ -138,11 +134,12 @@ export const getTerminalHeightPctForMode = (
 };
 
 /**
- * True when the mode forces the terminal panel to remain visible
- * (split-pane: 50/50 fixed; terminal-focused: 20/80 dominant terminal).
+ * True when the mode forces the terminal panel to remain visible.
+ *
+ * No modes force terminal open with the 2-mode (chat / command-center) layout.
  */
-export const modeForcesTerminalOpen = (mode: LayoutMode): boolean => {
-  return mode === 'split-pane';
+export const modeForcesTerminalOpen = (_mode: LayoutMode): boolean => {
+  return false;
 };
 
 /**

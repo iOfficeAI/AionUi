@@ -31,6 +31,9 @@ import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils
 import { DEFAULT_THEME_ID } from '@renderer/pages/settings/DisplaySettings/presets';
 import { dispatchConversationPaneStateEvent } from '@renderer/utils/conversationPane/events';
 import ConversationPane from '@renderer/components/layout/ConversationPane';
+import { useTerminalPanelSafe } from '@renderer/hooks/context/TerminalPanelContext';
+import { useLayoutModeSafe } from '@renderer/hooks/context/LayoutModeContext';
+import { useEditorContextSafe } from '@renderer/pages/conversation/Editor';
 import '@renderer/styles/layout.css';
 import brandLogo from '@renderer/assets/logos/brand/app.png';
 import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
@@ -89,6 +92,37 @@ const UpdateModal = React.lazy(() => import('@/renderer/components/settings/Upda
 // ChatLayout is absent, so the titlebar's Command Center can open the editor
 // anywhere (e.g. /guid) without a second editor on conversation/team routes.
 const EditorPane = React.lazy(() => import('@/renderer/components/layout/EditorPane'));
+
+const LayoutModeOrchestrator: React.FC<{
+  setCollapsed: (val: boolean) => void;
+  isDesktop: boolean;
+}> = ({ setCollapsed, isDesktop }) => {
+  const layoutMode = useLayoutModeSafe();
+  const terminalCtx = useTerminalPanelSafe();
+  const editorCtx = useEditorContextSafe();
+
+  const activeMode = layoutMode?.mode;
+  const prevModeRef = useRef<string | undefined>(activeMode);
+
+  useEffect(() => {
+    if (!isDesktop || !activeMode) return;
+    if (activeMode === prevModeRef.current) return;
+    prevModeRef.current = activeMode;
+
+    if (activeMode === 'command-center') {
+      setCollapsed(false);
+      terminalCtx?.open_();
+      if (!editorCtx?.activeKey || !editorCtx?.buffers?.length) {
+        editorCtx?.openUntitledEditor();
+      } else {
+        editorCtx?.expandEditor();
+      }
+    }
+    // Chat entry DO NOT call setCollapsed(true)
+  }, [activeMode, isDesktop, setCollapsed, terminalCtx, editorCtx]);
+
+  return null;
+};
 
 const DEFAULT_SIDER_WIDTH = 200;
 const SIDER_MIN_WIDTH = 56;
@@ -164,7 +198,7 @@ const Layout: React.FC<{
   onSessionClick?: () => void;
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
   const { t } = useTranslation();
-  const [collapsed, setCollapsed] = useState(false);
+  const [collapsed, setCollapsed] = useState(true);
   const [conversationPaneCollapsed, setConversationPaneCollapsedState] = useState<boolean>(readStoredConversationPaneCollapsed);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
@@ -554,6 +588,7 @@ const Layout: React.FC<{
         <TerminalPanelProvider>
           <LayoutModeProvider isMobile={isMobile} editorAvailable={!isMobile} diffAvailable={!isMobile}>
             <div className='app-shell flex flex-col size-full min-h-0' role='application'>
+              <LayoutModeOrchestrator setCollapsed={setCollapsed} isDesktop={!isMobile} />
               <Titlebar workspaceAvailable={workspaceAvailable} />
               {/* 移动端左侧边栏蒙板 / Mobile left sider backdrop */}
               {isMobile && !collapsed && (
