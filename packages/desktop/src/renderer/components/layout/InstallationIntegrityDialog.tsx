@@ -1,6 +1,7 @@
-import { Typography } from '@arco-design/web-react';
+import { Modal, Typography } from '@arco-design/web-react';
 import type { TFunction } from 'i18next';
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
 
 const AIONUI_DOWNLOAD_URL = 'https://www.aionui.com/';
 
@@ -29,3 +30,34 @@ export const InstallationIntegrityContent: React.FC<{ description: string }> = (
     <Typography.Paragraph className='mb-0 text-t-secondary'>{description}</Typography.Paragraph>
   </div>
 );
+
+type InstallationIntegrityModalController = ReturnType<typeof Modal.useModal>[0];
+
+export function showInstallationIntegrityModal(
+  modal: InstallationIntegrityModalController,
+  t: TFunction,
+  description: string
+): void {
+  modal.error({
+    title: getInstallationIntegrityTitle(t),
+    content: <InstallationIntegrityContent description={description} />,
+    okText: getInstallationIntegrityDownloadText(t),
+    onOk: openDownloadLatest,
+    closable: false,
+    maskClosable: false,
+  });
+}
+
+export const InstallationIntegrityModalHost: React.FC<{ description: string }> = ({ description }) => {
+  const [modal, modalContextHolder] = Modal.useModal();
+  const { t } = useTranslation();
+  const shownRef = useRef(false);
+
+  useEffect(() => {
+    if (shownRef.current) return;
+    shownRef.current = true;
+    showInstallationIntegrityModal(modal, t, description);
+  }, [description, modal, t]);
+
+  return <>{modalContextHolder}</>;
+};

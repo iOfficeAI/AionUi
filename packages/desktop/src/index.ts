@@ -204,11 +204,16 @@ let disposeCronResumeListener: (() => void) | null = null;
 let backendStartedOk = false;
 let backendStartupFailed = false;
 let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
+let rendererInitialLanguage: string | null = null;
 let backendMigrationsScheduled = false;
 let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
   event.returnValue = backendManager.port;
+});
+
+ipcMain.on('get-initial-language', (event) => {
+  event.returnValue = rendererInitialLanguage;
 });
 
 ipcMain.on('get-backend-startup-failed', (event) => {
@@ -531,6 +536,7 @@ const handleAppReady = async (): Promise<void> => {
 
   try {
     await initializeProcess();
+    rendererInitialLanguage = ProcessConfig.getSync('language') ?? null;
     mark('initializeProcess');
   } catch (error) {
     console.error('Failed to initialize process:', error);

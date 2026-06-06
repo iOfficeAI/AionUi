@@ -10,6 +10,7 @@ import {
   mergeWithFallback,
   ensureAndSwitch,
   type LocaleData,
+  type SupportedLanguage,
 } from '@/common/config/i18n';
 
 // Static imports for all locales to ensure packaged app can always switch language.
@@ -57,6 +58,34 @@ function getLocaleModules(locale: string): Record<string, unknown> {
   return mergeWithFallback(fallbackLocale, modules);
 }
 
+function getLocalStorageLanguageHint(): string | null {
+  if (typeof localStorage === 'undefined') return null;
+  return localStorage.getItem('i18nextLng');
+}
+
+function getInjectedLanguageHint(): string | null {
+  if (typeof window === 'undefined') return null;
+  const language = window.__initialLanguage;
+  return typeof language === 'string' && language.trim() !== '' ? language : null;
+}
+
+function getElectronSystemLanguageHint(): string | null {
+  if (typeof window === 'undefined' || !window.electronAPI) return null;
+  return navigator.language || null;
+}
+
+function getInitialLanguage(): SupportedLanguage {
+  const backendStartupFailed =
+    typeof window !== 'undefined' && (window as Window & { __backendStartupFailed?: boolean }).__backendStartupFailed;
+  const localStorageLanguage = getLocalStorageLanguageHint();
+  const injectedLanguage = getInjectedLanguageHint();
+  const systemLanguage = backendStartupFailed ? getElectronSystemLanguageHint() : null;
+  const hint = backendStartupFailed
+    ? injectedLanguage || localStorageLanguage || systemLanguage
+    : localStorageLanguage || injectedLanguage;
+  return normalizeLanguageCode(hint || DEFAULT_LANGUAGE);
+}
+
 async function loadLocaleModules(locale: string): Promise<Record<string, unknown>> {
   const normalized = normalizeLanguageCode(locale);
   const cached = loadedTranslations.get(normalized);
@@ -67,22 +96,30 @@ async function loadLocaleModules(locale: string): Promise<Record<string, unknown
   return modules;
 }
 
-// Initialize i18n with fallback locale loaded synchronously to avoid FOUC.
+const initialLanguage = getInitialLanguage();
+const initialResources: Record<string, { translation: Record<string, unknown> }> = {
+  [DEFAULT_LANGUAGE]: {
+    translation: fallbackLocale,
+  },
+};
+if (initialLanguage !== DEFAULT_LANGUAGE) {
+  initialResources[initialLanguage] = {
+    translation: getLocaleModules(initialLanguage),
+  };
+}
+
+// Initialize i18n with fallback and initial locale loaded synchronously to avoid FOUC.
 // NOTE: We intentionally do NOT use i18next-browser-languagedetector here.
 // In WebUI mode the browser's localStorage is on a different origin than the
 // Electron renderer, so the detector would read the wrong (or missing) value
 // and fall back to navigator.language, causing a language mismatch (Issue #1176).
-// Instead, we use localStorage only as a hint for the initial render and let
-// configService (which bridges to the backend) be the single source of truth.
+// Instead, we use localStorage and Electron's injected local config language
+// only as hints for the initial render, then let configService be the source of truth.
 i18n
   .use(initReactI18next)
   .init({
-    resources: {
-      [DEFAULT_LANGUAGE]: {
-        translation: fallbackLocale,
-      },
-    },
-    lng: (typeof localStorage !== 'undefined' ? localStorage.getItem('i18nextLng') : null) || DEFAULT_LANGUAGE,
+    resources: initialResources,
+    lng: initialLanguage,
     fallbackLng: DEFAULT_LANGUAGE,
     debug: false,
     interpolation: { escapeValue: false },
