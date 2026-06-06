@@ -103,6 +103,17 @@ function shouldUsePackagedMode(): boolean {
   return !!process.env.CI;
 }
 
+function linuxElectronLaunchArgs(): string[] {
+  if (process.platform !== 'linux') return [];
+
+  return [
+    '--no-sandbox',
+    '--disable-gpu',
+    '--disable-dev-shm-usage',
+    '--disable-software-rasterizer',
+  ];
+}
+
 async function launchApp(): Promise<ElectronApplication> {
   const projectRoot = path.resolve(__dirname, '../..');
   const usePackaged = shouldUsePackagedMode();
@@ -128,10 +139,7 @@ async function launchApp(): Promise<ElectronApplication> {
 
     console.log(`[E2E] Launching PACKAGED app: ${packaged.executablePath}`);
 
-    const launchArgs: string[] = [];
-    if (process.platform === 'linux' && process.env.CI) {
-      launchArgs.push('--no-sandbox');
-    }
+    const launchArgs = linuxElectronLaunchArgs();
 
     const electronApp = await electron.launch({
       executablePath: packaged.executablePath,
@@ -150,10 +158,7 @@ async function launchApp(): Promise<ElectronApplication> {
   // Dev mode: launch via electron .
   console.log(`[E2E] Launching DEV app from: ${projectRoot}`);
 
-  const launchArgs = ['.'];
-  if (process.platform === 'linux' && process.env.CI) {
-    launchArgs.push('--no-sandbox');
-  }
+  const launchArgs = ['.', ...linuxElectronLaunchArgs()];
 
   const electronApp = await electron.launch({
     args: launchArgs,
@@ -161,6 +166,8 @@ async function launchApp(): Promise<ElectronApplication> {
     env: {
       ...commonEnv,
       NODE_ENV: 'development',
+      ELECTRON_DISABLE_GPU: '1',
+      LIBGL_ALWAYS_SOFTWARE: '1',
     },
     timeout: 60_000,
   });
