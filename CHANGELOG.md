@@ -1,5 +1,32 @@
 # Changelog
 
+## [2.1.9](https://github.com/iOfficeAI/AionUi/compare/v2.1.8...v2.1.9) (2026-06-01)
+
+### Desktop
+
+#### Bug Fixes
+
+- **web-host:** skip fetch-blocked backend ports (#3146)
+- **i18n:** clarify incomplete installation recovery (#3145)
+- **conversation:** map 409 already-processing to CONVERSATION_BUSY (#3142)
+- **i18n:** localize MCP check strings (#3141)
+
+#### Features
+
+- Allow importing skill folders and zip archives (#3144)
+
+### Core ([v0.1.18](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.18))
+
+#### Bug Fixes
+
+- **agent:** classify Bedrock 'model identifier is invalid' as model-not-found (AIO-12) ([#377](https://github.com/iOfficeAI/AionCore/issues/377))
+- **agent:** preserve process-group cleanup after leader exit ([#369](https://github.com/iOfficeAI/AionCore/issues/369))
+- **agent:** tighten send_error classifier (AIO-87, AIO-89, AIO-90) ([#375](https://github.com/iOfficeAI/AionCore/issues/375))
+- **aionui-ai-agent:** strip HTML body from sanitized error detail (AIO-13) ([#380](https://github.com/iOfficeAI/AionCore/issues/380))
+- recover deleted conversation workspaces ([#379](https://github.com/iOfficeAI/AionCore/issues/379))
+
+---
+
 ## [2.1.8](https://github.com/iOfficeAI/AionUi/compare/v2.1.7...v2.1.8) (2026-05-30)
 
 ### Desktop

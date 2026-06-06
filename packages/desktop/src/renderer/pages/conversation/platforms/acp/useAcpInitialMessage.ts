@@ -5,14 +5,13 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 import type { TMessage } from '@/common/chat/chatLib';
 import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildSendFailureError } from './buildSendFailureError';
 
 type UseAcpInitialMessageParams = {
   conversation_id: string;
@@ -21,28 +20,6 @@ type UseAcpInitialMessageParams = {
   setAiProcessing: (value: boolean) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
-};
-
-const buildSendFailureError = (error: unknown, message: string): AgentStreamErrorInfo => {
-  if (isBackendHttpError(error) && error.code === 'BAD_GATEWAY') {
-    return {
-      message,
-      code: 'UNKNOWN_UPSTREAM_ERROR',
-      ownership: 'unknown_upstream',
-      detail: message,
-      retryable: true,
-      feedback_recommended: true,
-    };
-  }
-
-  return {
-    message,
-    code: 'AIONUI_INTERNAL_ERROR',
-    ownership: 'aionui',
-    detail: message,
-    retryable: true,
-    feedback_recommended: true,
-  };
 };
 
 /**

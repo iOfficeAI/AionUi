@@ -12,6 +12,7 @@
     "tipContent": "Burada yapılandırılan beceriler, \"Asistanlar\" ayar sayfasında herhangi bir asistan için etkinleştirilebilir; beceri içe aktarımı sembolik bağlantılar kullanır.",
     "fetchError": "Beceriler alınamadı",
     "importSuccess": "Beceri başarıyla içe aktarıldı",
+    "importSuccessDetailed": "{{count}} beceri içe aktarıldı: {{names}}",
     "importFailed": "Beceri içe aktarılamadı",
     "importError": "Beceri içe aktarılırken hata oluştu",
     "deleteSuccess": "Beceri silindi",
@@ -949,4 +950,16 @@
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
   "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "mcpEditNameLocked": "Düzenleme sırasında MCP adı değiştirilemez. Üst düzey sunucu adını \"{{name}}\" olarak koruyun.",
+  "mcpCheckedAtLabel": "Kontrol zamanı:",
+  "mcpCheckResultLabel": "Manuel kontrol:",
+  "mcpCheckReasonLabel": "Olası neden:",
+  "mcpCheckPurposeHint": "MCP yapılandırmasının kullanılabilir olup olmadığını doğrulamak için kullanılır. Gerçek çalışma zamanındaki durumu göstermez.",
+  "mcpCheckAvailableSimple": "Kullanılabilir",
+  "mcpCheckPassedSimple": "Manuel kontrol başarılı",
+  "mcpCheckFailedSimple": "Başarısız",
+  "mcpCheckPassedSummary": "Manuel kontrol başarılı oldu",
+  "mcpCheckFailedSummary": "Manuel kontrol başarısız oldu",
+  "mcpInlineConfigHint": "Yapılandırma hatalı olabilir. MCP JSON'u gözden geçirip yeniden test edin.",
+  "mcpInlineCommandHint": "Bu makinede {{command}} bulunmuyor. Kurup tekrar test edin."
 }

@@ -12,6 +12,7 @@
     "tipContent": "Навыки, настроенные здесь, можно включить для любого ассистента на странице «Ассистенты»; навыки импортируются с помощью символических ссылок.",
     "fetchError": "Не удалось получить навыки",
     "importSuccess": "Навык успешно импортирован",
+    "importSuccessDetailed": "Импортировано навыков: {{count}} — {{names}}",
     "importFailed": "Не удалось импортировать навык",
     "importError": "Ошибка при импорте навыка",
     "deleteSuccess": "Навык удалён",
@@ -951,4 +952,16 @@
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
   "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "mcpEditNameLocked": "Во время редактирования имя MCP менять нельзя. Сохраните имя сервера верхнего уровня как «{{name}}».",
+  "mcpCheckedAtLabel": "Проверено в:",
+  "mcpCheckResultLabel": "Ручная проверка:",
+  "mcpCheckReasonLabel": "Возможная причина:",
+  "mcpCheckPurposeHint": "Используется для проверки доступности конфигурации MCP. Не отражает фактическое состояние во время выполнения.",
+  "mcpCheckAvailableSimple": "Доступно",
+  "mcpCheckPassedSimple": "Ручная проверка успешна",
+  "mcpCheckFailedSimple": "Ошибка",
+  "mcpCheckPassedSummary": "Ручная проверка выполнена успешно",
+  "mcpCheckFailedSummary": "Ручная проверка завершилась ошибкой",
+  "mcpInlineConfigHint": "Возможно, конфигурация неверна. Проверьте MCP JSON и повторите тест.",
+  "mcpInlineCommandHint": "На этом устройстве отсутствует {{command}}. Установите его и повторите проверку."
 }

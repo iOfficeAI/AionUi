@@ -1,7 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
@@ -44,6 +43,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -56,28 +56,6 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-
-const buildSendFailureError = (error: unknown, message: string): AgentStreamErrorInfo => {
-  if (isBackendHttpError(error) && error.code === 'BAD_GATEWAY') {
-    return {
-      message,
-      code: 'UNKNOWN_UPSTREAM_ERROR',
-      ownership: 'unknown_upstream',
-      detail: message,
-      retryable: true,
-      feedback_recommended: true,
-    };
-  }
-
-  return {
-    message,
-    code: 'AIONUI_INTERNAL_ERROR',
-    ownership: 'aionui',
-    detail: message,
-    retryable: true,
-    feedback_recommended: true,
-  };
-};
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
