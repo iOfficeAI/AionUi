@@ -369,6 +369,37 @@ export const conversation = {
   getV2ProviderList: httpGet<unknown[], { conversation_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/v2-providers`,
   ),
+  /** M13: list files on the remote OpenCode workspace (`GET /file`). */
+  listRemoteFiles: httpGet<unknown[], { conversation_id: string; path?: string }>(
+    (p) =>
+      `/api/conversations/${p.conversation_id}/opencode/files?path=${encodeURIComponent(p.path ?? '.')}`,
+  ),
+  /** M13: read file content from the remote OpenCode workspace (`POST /file/content`). */
+  readRemoteFile: httpPost<{ content?: string }, { conversation_id: string; path: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/opencode/file/content`,
+    (p) => ({ path: p.path }),
+  ),
+  /** M13: find files by name on the remote OpenCode workspace (`GET /find/file`). */
+  findRemoteFiles: httpGet<unknown, { conversation_id: string; query: string; limit?: number }>(
+    (p) => {
+      const params = new URLSearchParams({ query: p.query });
+      if (p.limit != null) params.set('limit', String(p.limit));
+      return `/api/conversations/${p.conversation_id}/opencode/find/files?${params.toString()}`;
+    },
+  ),
+  /** M13: grep-style text search on the remote OpenCode workspace (`GET /find`). */
+  findRemoteText: httpGet<unknown, { conversation_id: string; pattern: string; limit?: number }>(
+    (p) => {
+      const params = new URLSearchParams({ pattern: p.pattern });
+      if (p.limit != null) params.set('limit', String(p.limit));
+      return `/api/conversations/${p.conversation_id}/opencode/find/text?${params.toString()}`;
+    },
+  ),
+  /** M13: LSP symbol search on the remote OpenCode workspace (`GET /find/symbol`). */
+  findRemoteSymbols: httpGet<unknown, { conversation_id: string; query: string }>(
+    (p) =>
+      `/api/conversations/${p.conversation_id}/opencode/find/symbols?query=${encodeURIComponent(p.query)}`,
+  ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
     (p) => {
@@ -1153,6 +1184,27 @@ export const remoteAgent = {
    */
   pingHealth: httpGet<{ healthy: boolean; latency_ms: number; error?: string }, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/health`
+  ),
+  /** M12: list OpenCode providers with auth state for the settings UI (`GET /provider`). */
+  listProviders: httpGet<unknown, { id: string }>((p) => `/api/remote-agents/${p.id}/providers`),
+  /** M12: set provider API key on the remote OpenCode server. */
+  setProviderAuth: httpPost<void, { id: string; providerId: string; api_key: string }>(
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
+    (p) => ({ api_key: p.api_key }),
+  ),
+  /** M12: clear provider credentials on the remote OpenCode server. */
+  deleteProviderAuth: httpDelete<void, { id: string; providerId: string }>(
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
+  ),
+  /** M12: start provider OAuth — returns authorize URL payload from server. */
+  startProviderOAuth: httpPost<unknown, { id: string; providerId: string }>(
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/oauth/start`,
+    () => ({}),
+  ),
+  /** M12: complete provider OAuth with authorization code. */
+  completeProviderOAuth: httpPost<void, { id: string; providerId: string; code: string }>(
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/oauth/complete`,
+    (p) => ({ code: p.code }),
   ),
   /**
    * Phase 4b: lazy-load the OpenCode message transcript into the
