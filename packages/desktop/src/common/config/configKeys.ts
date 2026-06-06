@@ -83,6 +83,7 @@ export type ConfigKeyMap = {
   'pet.confirmEnabled': boolean | undefined;
   'terminal.panel.open': boolean | undefined;
   'terminal.panel.heightPct': number | undefined;
+  'terminal.panel.pinned': boolean | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

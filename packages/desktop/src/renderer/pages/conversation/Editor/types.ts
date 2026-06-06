@@ -80,6 +80,8 @@ export type EditorContextValue = EditorState & {
   reorderBuffers: (fromKey: string, toKey: string) => void;
   collapseEditor: () => void;
   expandEditor: () => void;
+  /** Hide the editor for chat mode while preserving open buffers. */
+  hideEditor: () => void;
   toggleEditor: () => void;
   setEditorContent: (content: string) => void;
   setBufferViewState: (key: string, viewState: EditorBufferViewState | null) => void;

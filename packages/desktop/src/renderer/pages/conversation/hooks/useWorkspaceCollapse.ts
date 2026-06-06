@@ -4,8 +4,10 @@ import {
   WORKSPACE_HAS_FILES_EVENT,
   WORKSPACE_HAS_TODOS_EVENT,
   WORKSPACE_OPEN_REMOTE_CHANGES_EVENT,
+  WORKSPACE_SET_COLLAPSED_EVENT,
   WORKSPACE_TOGGLE_EVENT,
   dispatchWorkspaceStateEvent,
+  type WorkspaceSetCollapsedDetail,
   type WorkspaceHasApprovalsDetail,
   type WorkspaceHasFilesDetail,
   type WorkspaceHasTodosDetail,
@@ -76,6 +78,22 @@ export function useWorkspaceCollapse({
   useEffect(() => {
     rightCollapsedRef.current = rightSiderCollapsed;
   }, [rightSiderCollapsed]);
+
+  // Layout-mode orchestration can force workspace collapsed/expanded.
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      return undefined;
+    }
+    const handleSetCollapsed = (event: Event) => {
+      const collapsed = (event as CustomEvent<WorkspaceSetCollapsedDetail>).detail?.collapsed;
+      if (typeof collapsed !== 'boolean') return;
+      setRightSiderCollapsed(collapsed);
+    };
+    window.addEventListener(WORKSPACE_SET_COLLAPSED_EVENT, handleSetCollapsed);
+    return () => {
+      window.removeEventListener(WORKSPACE_SET_COLLAPSED_EVENT, handleSetCollapsed);
+    };
+  }, []);
 
   // Listen for workspace toggle events
   useEffect(() => {

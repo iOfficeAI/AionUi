@@ -10,6 +10,7 @@ import { useTranslation } from 'react-i18next';
 import { ExpandLeft } from '@icon-park/react';
 
 import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
+import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 
 const EDITOR_BLADE_WIDTH_PX = 44;
@@ -34,6 +35,8 @@ const EDITOR_BLADE_WIDTH_PX = 44;
  */
 const EditorPane: React.FC = () => {
   const { t } = useTranslation();
+  const layoutMode = useLayoutModeSafe();
+  const activeMode = layoutMode?.mode ?? 'chat';
   const { isOpen, isCollapsed, expandEditor } = useEditorContext();
   const isExpanded = isOpen && !isCollapsed;
   const isBlade = isOpen && isCollapsed;
@@ -49,6 +52,10 @@ const EditorPane: React.FC = () => {
   });
 
   const sizePx = isBlade ? EDITOR_BLADE_WIDTH_PX : isExpanded ? Math.round(editorWidthPx) : 0;
+
+  if (activeMode !== 'command-center') {
+    return null;
+  }
 
   return (
     <div

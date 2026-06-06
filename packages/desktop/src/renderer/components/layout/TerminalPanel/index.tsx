@@ -29,7 +29,7 @@ import { useTerminalTheme } from './useTerminalTheme';
 
 const TerminalPanel: React.FC = () => {
   const { t } = useTranslation();
-  const { open, close } = useTerminalPanel();
+  const { open, close, pinned, togglePinned } = useTerminalPanel();
   const { fontScale } = useThemeContext();
   const theme = useTerminalTheme();
   const { sessions, activeId, setActive, openSession, closeSession, renameSession, cycleSession } =
@@ -79,6 +79,8 @@ const TerminalPanel: React.FC = () => {
         onRename={renameSession}
         onAdd={handleAdd}
         onCollapsePanel={close}
+        pinned={pinned}
+        onTogglePinned={togglePinned}
       />
       <div className='flex-1 min-h-0 relative'>
         {sessions.length === 0 ? (

@@ -22,6 +22,19 @@ const PANE_SIZES_STORAGE_KEY = 'aionui.layoutPaneSizes';
 
 export const DEFAULT_LAYOUT_MODE: LayoutMode = 'chat';
 
+/** In-memory mirror of the active layout mode for code outside LayoutModeProvider. */
+let activeLayoutModeRef: LayoutMode = DEFAULT_LAYOUT_MODE;
+
+export const syncActiveLayoutMode = (mode: LayoutMode): void => {
+  activeLayoutModeRef = mode;
+};
+
+export const getActiveLayoutMode = (): LayoutMode => activeLayoutModeRef;
+
+export const isEditorAccessibleInLayoutMode = (mode: LayoutMode = getActiveLayoutMode()): boolean => {
+  return mode === 'command-center';
+};
+
 // Default split ratios per mode: [primary%, secondary%]
 export const DEFAULT_PANE_SIZES: Record<LayoutMode, number[]> = {
   chat: [100, 0],
@@ -35,11 +48,13 @@ export const readStoredLayoutMode = (): LayoutMode => {
   try {
     const raw = window.localStorage.getItem(MODE_STORAGE_KEY);
     if (raw && LAYOUT_MODES.includes(raw as LayoutMode)) {
+      syncActiveLayoutMode(raw as LayoutMode);
       return raw as LayoutMode;
     }
   } catch {
     /* localStorage unavailable */
   }
+  syncActiveLayoutMode(DEFAULT_LAYOUT_MODE);
   return DEFAULT_LAYOUT_MODE;
 };
 

@@ -23,6 +23,7 @@ import {
   persistPaneSizes,
   readStoredLayoutMode,
   readStoredPaneSizes,
+  syncActiveLayoutMode,
 } from '@renderer/utils/layout/layoutModeStorage';
 
 type LayoutModeContextValue = {
@@ -69,7 +70,11 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
   editorAvailable,
   diffAvailable,
 }) => {
-  const [mode, setModeState] = useState<LayoutMode>(() => readStoredLayoutMode());
+  const [mode, setModeState] = useState<LayoutMode>(() => {
+    const stored = readStoredLayoutMode();
+    syncActiveLayoutMode(stored);
+    return stored;
+  });
   const [paneSizes, setPaneSizes] = useState<Partial<Record<LayoutMode, number[]>>>(readStoredPaneSizes);
   const [modeRefreshCount, setModeRefreshCount] = useState(0);
   const mountedRef = useRef(false);
@@ -85,6 +90,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         `[layout] Persisted layout mode "${mode}" is not available. Falling back to "${DEFAULT_LAYOUT_MODE}".`
       );
       setModeState(DEFAULT_LAYOUT_MODE);
+      syncActiveLayoutMode(DEFAULT_LAYOUT_MODE);
       persistLayoutMode(DEFAULT_LAYOUT_MODE);
     }
   }, [mode]);
@@ -99,6 +105,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         return;
       }
       setModeState(next);
+      syncActiveLayoutMode(next);
       persistLayoutMode(next);
     },
     [mode]
@@ -107,6 +114,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
   const cycleMode = useCallback(() => {
     const next = mode === 'chat' ? 'command-center' : 'chat';
     setModeState(next);
+    syncActiveLayoutMode(next);
     persistLayoutMode(next);
   }, [mode]);
 
@@ -142,6 +150,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         if (target) {
           event.preventDefault();
           setModeState(target);
+          syncActiveLayoutMode(target);
           persistLayoutMode(target);
           // Focus the content pane after mode switch.
           requestAnimationFrame(() => focusRegion('content'));
@@ -154,6 +163,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         event.preventDefault();
         const next = mode === 'chat' ? 'command-center' : 'chat';
         setModeState(next);
+        syncActiveLayoutMode(next);
         persistLayoutMode(next);
         requestAnimationFrame(() => focusRegion('content'));
         return;
@@ -164,6 +174,7 @@ export const LayoutModeProvider: React.FC<LayoutModeProviderProps> = ({
         event.preventDefault();
         const next = mode === 'chat' ? 'command-center' : 'chat';
         setModeState(next);
+        syncActiveLayoutMode(next);
         persistLayoutMode(next);
         requestAnimationFrame(() => focusRegion('content'));
         return;

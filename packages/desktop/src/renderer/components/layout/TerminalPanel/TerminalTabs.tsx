@@ -13,7 +13,7 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, Tooltip } from '@arco-design/web-react';
-import { Close, Down, Plus } from '@icon-park/react';
+import { Close, Down, Pin, Plus } from '@icon-park/react';
 import classNames from 'classnames';
 
 import type { TerminalSession } from './types';
@@ -26,9 +26,21 @@ type Props = {
   onRename: (client_id: string, title: string) => void;
   onAdd: () => void;
   onCollapsePanel: () => void;
+  pinned: boolean;
+  onTogglePinned: () => void;
 };
 
-const TerminalTabs: React.FC<Props> = ({ sessions, activeId, onSelect, onClose, onRename, onAdd, onCollapsePanel }) => {
+const TerminalTabs: React.FC<Props> = ({
+  sessions,
+  activeId,
+  onSelect,
+  onClose,
+  onRename,
+  onAdd,
+  onCollapsePanel,
+  pinned,
+  onTogglePinned,
+}) => {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [draft, setDraft] = useState('');
@@ -131,11 +143,37 @@ const TerminalTabs: React.FC<Props> = ({ sessions, activeId, onSelect, onClose, 
             <Plus theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
           </button>
         </Tooltip>
+        <Tooltip
+          content={t('terminal.pin', { defaultValue: pinned ? 'Unpin terminal' : 'Pin terminal open' })}
+          position='top'
+          mini
+        >
+          <button
+            type='button'
+            className={classNames(
+              'flex-center size-22px bg-transparent border-none p-0 m-0 cursor-pointer rd-4px transition-colors',
+              pinned
+                ? 'text-brand hover:bg-fill-3'
+                : 'text-t-secondary hover:bg-fill-3 hover:text-t-primary'
+            )}
+            aria-label={t('terminal.pin', { defaultValue: pinned ? 'Unpin terminal' : 'Pin terminal open' })}
+            aria-pressed={pinned}
+            onClick={onTogglePinned}
+          >
+            <Pin theme={pinned ? 'filled' : 'outline'} size='14' fill='currentColor' style={{ lineHeight: 0 }} />
+          </button>
+        </Tooltip>
         <Tooltip content={t('terminal.collapse')} position='top' mini>
           <button
             type='button'
-            className='flex-center size-22px bg-transparent border-none p-0 m-0 cursor-pointer rd-4px text-t-secondary hover:bg-fill-3 hover:text-t-primary transition-colors'
+            className={classNames(
+              'flex-center size-22px bg-transparent border-none p-0 m-0 rd-4px transition-colors',
+              pinned
+                ? 'cursor-not-allowed opacity-40 text-t-tertiary'
+                : 'cursor-pointer text-t-secondary hover:bg-fill-3 hover:text-t-primary'
+            )}
             aria-label={t('terminal.collapse')}
+            disabled={pinned}
             onClick={onCollapsePanel}
           >
             <Down theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />

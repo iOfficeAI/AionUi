@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { isEditorAccessibleInLayoutMode } from '@renderer/utils/layout/layoutModeStorage';
 import { EDITOR_MAX_EDITABLE_BYTES, getEditorFileName, inferEditorLanguage } from './editorLanguage';
 import type {
   EditorBufferViewState,
@@ -115,6 +116,8 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // ---------------------------------------------------------------------------
 
   const executeOpenFile = useCallback(async (request: EditorOpenRequest): Promise<boolean> => {
+    if (!isEditorAccessibleInLayoutMode()) return false;
+
     const key = bufferKeyFor(request);
 
     // If already open, just activate the tab.
@@ -201,6 +204,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   const executeNewFile = useCallback(() => {
+    if (!isEditorAccessibleInLayoutMode()) return;
     const buffer = newUntitledBuffer();
     upsertBuffer(buffer);
   }, [upsertBuffer]);
@@ -210,6 +214,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   }, [executeNewFile]);
 
   const chooseAndOpenFile = useCallback(async (): Promise<boolean> => {
+    if (!isEditorAccessibleInLayoutMode()) return false;
     const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openFile'] });
     const filePath = files?.[0];
     if (!filePath) return false;
@@ -352,6 +357,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // ---------------------------------------------------------------------------
 
   const setActiveBuffer = useCallback((key: string) => {
+    if (!isEditorAccessibleInLayoutMode()) return;
     setState((prev) =>
       prev.buffers.some((b) => b.key === key)
         ? { ...prev, activeKey: key, isOpen: true, isCollapsed: false }
@@ -377,14 +383,21 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // ---------------------------------------------------------------------------
 
   const collapseEditor = useCallback(() => {
+    if (!isEditorAccessibleInLayoutMode()) return;
     setState((prev) => ({ ...prev, isCollapsed: true }));
   }, []);
 
   const expandEditor = useCallback(() => {
+    if (!isEditorAccessibleInLayoutMode()) return;
     setState((prev) => ({ ...prev, isOpen: true, isCollapsed: false }));
   }, []);
 
+  const hideEditor = useCallback(() => {
+    setState((prev) => ({ ...prev, isOpen: false, isCollapsed: false }));
+  }, []);
+
   const toggleEditor = useCallback(() => {
+    if (!isEditorAccessibleInLayoutMode()) return;
     const current = stateRef.current;
     if (!current.isOpen) {
       executeNewFile();
@@ -531,6 +544,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reorderBuffers,
       collapseEditor,
       expandEditor,
+      hideEditor,
       toggleEditor,
       setEditorContent,
       setBufferViewState,
@@ -557,6 +571,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       reorderBuffers,
       collapseEditor,
       expandEditor,
+      hideEditor,
       toggleEditor,
       setEditorContent,
       setBufferViewState,

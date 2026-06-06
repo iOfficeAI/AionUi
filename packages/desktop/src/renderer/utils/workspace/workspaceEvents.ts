@@ -1,4 +1,5 @@
 export const WORKSPACE_TOGGLE_EVENT = 'aionui-workspace-toggle';
+export const WORKSPACE_SET_COLLAPSED_EVENT = 'aionui-workspace-set-collapsed';
 export const WORKSPACE_STATE_EVENT = 'aionui-workspace-state';
 export const WORKSPACE_HAS_FILES_EVENT = 'aionui-workspace-has-files';
 export const WORKSPACE_HAS_TODOS_EVENT = 'aionui-workspace-has-todos';
@@ -6,6 +7,10 @@ export const WORKSPACE_HAS_APPROVALS_EVENT = 'aionui-workspace-has-approvals';
 export const WORKSPACE_OPEN_REMOTE_CHANGES_EVENT = 'aionui-workspace-open-remote-changes';
 
 export interface WorkspaceStateDetail {
+  collapsed: boolean;
+}
+
+export interface WorkspaceSetCollapsedDetail {
   collapsed: boolean;
 }
 
@@ -32,6 +37,13 @@ export interface WorkspaceOpenRemoteChangesDetail {
 export function dispatchWorkspaceToggleEvent() {
   if (typeof window === 'undefined') return;
   window.dispatchEvent(new CustomEvent(WORKSPACE_TOGGLE_EVENT));
+}
+
+export function dispatchWorkspaceSetCollapsedEvent(collapsed: boolean) {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(
+    new CustomEvent<WorkspaceSetCollapsedDetail>(WORKSPACE_SET_COLLAPSED_EVENT, { detail: { collapsed } })
+  );
 }
 
 export function dispatchWorkspaceStateEvent(collapsed: boolean) {

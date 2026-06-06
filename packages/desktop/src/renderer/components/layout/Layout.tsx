@@ -34,6 +34,7 @@ import ConversationPane from '@renderer/components/layout/ConversationPane';
 import { useTerminalPanelSafe } from '@renderer/hooks/context/TerminalPanelContext';
 import { useLayoutModeSafe } from '@renderer/hooks/context/LayoutModeContext';
 import { useEditorContextSafe } from '@renderer/pages/conversation/Editor';
+import { dispatchWorkspaceSetCollapsedEvent } from '@renderer/utils/workspace/workspaceEvents';
 import '@renderer/styles/layout.css';
 import brandLogo from '@renderer/assets/logos/brand/app.png';
 import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
@@ -102,7 +103,7 @@ const LayoutModeOrchestrator: React.FC<{
   const editorCtx = useEditorContextSafe();
 
   const activeMode = layoutMode?.mode;
-  const prevModeRef = useRef<string | undefined>(activeMode);
+  const prevModeRef = useRef<string | undefined>(undefined);
 
   useEffect(() => {
     if (!isDesktop || !activeMode) return;
@@ -111,14 +112,22 @@ const LayoutModeOrchestrator: React.FC<{
 
     if (activeMode === 'command-center') {
       setCollapsed(false);
+      dispatchWorkspaceSetCollapsedEvent(false);
       terminalCtx?.open_();
-      if (!editorCtx?.activeKey || !editorCtx?.buffers?.length) {
+      if (!editorCtx?.buffers?.length) {
         editorCtx?.openUntitledEditor();
       } else {
         editorCtx?.expandEditor();
       }
     }
-    // Chat entry DO NOT call setCollapsed(true)
+    if (activeMode === 'chat') {
+      setCollapsed(true);
+      dispatchWorkspaceSetCollapsedEvent(true);
+      editorCtx?.hideEditor();
+      if (!terminalCtx?.pinned) {
+        terminalCtx?.close();
+      }
+    }
   }, [activeMode, isDesktop, setCollapsed, terminalCtx, editorCtx]);
 
   return null;

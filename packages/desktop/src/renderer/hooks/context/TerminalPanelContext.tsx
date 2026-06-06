@@ -27,14 +27,18 @@ const MAX_HEIGHT_PCT = 80;
 type TerminalPanelContextValue = {
   /** Whether the panel is visible (not collapsed). */
   open: boolean;
+  /** When pinned, the panel stays expanded and cannot dock to the blade. */
+  pinned: boolean;
   /** Panel height as a percentage of the layout area (10–80). */
   heightPct: number;
-  /** Toggle the panel open/closed. */
+  /** Toggle the panel open/closed. No-op when pinned. */
   toggle: () => void;
   /** Open the panel (no-op if already open). */
   open_: () => void;
-  /** Collapse the panel (no-op if already collapsed). */
+  /** Collapse the panel (no-op if already collapsed or pinned). */
   close: () => void;
+  /** Toggle whether the panel stays pinned open. */
+  togglePinned: () => void;
   /** Update the panel's persisted height. Clamps to [MIN, MAX]. */
   setHeightPct: (pct: number) => void;
 };
@@ -48,6 +52,7 @@ const clampPct = (pct: number): number => {
 
 export const TerminalPanelProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [open, setOpen] = useState<boolean>(false);
+  const [pinned, setPinnedState] = useState<boolean>(false);
   const [heightPct, setHeightPctState] = useState<number>(DEFAULT_HEIGHT_PCT);
 
   // Hydrate persisted state once configService is ready.
@@ -59,8 +64,10 @@ export const TerminalPanelProvider: React.FC<PropsWithChildren> = ({ children })
         if (cancelled) return;
         const persistedOpen = configService.get('terminal.panel.open');
         const persistedHeight = configService.get('terminal.panel.heightPct');
+        const persistedPinned = configService.get('terminal.panel.pinned');
         if (typeof persistedOpen === 'boolean') setOpen(persistedOpen);
         if (typeof persistedHeight === 'number') setHeightPctState(clampPct(persistedHeight));
+        if (typeof persistedPinned === 'boolean') setPinnedState(persistedPinned);
       })
       .catch(() => {
         /* fall back to defaults */
@@ -77,13 +84,33 @@ export const TerminalPanelProvider: React.FC<PropsWithChildren> = ({ children })
     });
   }, []);
 
-  const toggle = useCallback(() => persistOpen(!open), [open, persistOpen]);
+  const persistPinned = useCallback((next: boolean) => {
+    setPinnedState(next);
+    void configService.set('terminal.panel.pinned', next).catch(() => {
+      /* persistence failure shouldn't break the UI */
+    });
+    if (next) {
+      persistOpen(true);
+    }
+  }, [persistOpen]);
+
+  const toggle = useCallback(() => {
+    if (pinned) return;
+    persistOpen(!open);
+  }, [open, persistOpen, pinned]);
+
   const open_ = useCallback(() => {
     if (!open) persistOpen(true);
   }, [open, persistOpen]);
+
   const close = useCallback(() => {
-    if (open) persistOpen(false);
-  }, [open, persistOpen]);
+    if (pinned || !open) return;
+    persistOpen(false);
+  }, [open, persistOpen, pinned]);
+
+  const togglePinned = useCallback(() => {
+    persistPinned(!pinned);
+  }, [persistPinned, pinned]);
 
   const setHeightPct = useCallback((pct: number) => {
     const clamped = clampPct(pct);
@@ -94,8 +121,8 @@ export const TerminalPanelProvider: React.FC<PropsWithChildren> = ({ children })
   }, []);
 
   const value = useMemo<TerminalPanelContextValue>(
-    () => ({ open, heightPct, toggle, open_, close, setHeightPct }),
-    [open, heightPct, toggle, open_, close, setHeightPct]
+    () => ({ open, pinned, heightPct, toggle, open_, close, togglePinned, setHeightPct }),
+    [open, pinned, heightPct, toggle, open_, close, togglePinned, setHeightPct]
   );
 
   return <TerminalPanelContext.Provider value={value}>{children}</TerminalPanelContext.Provider>;
