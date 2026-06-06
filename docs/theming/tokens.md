@@ -65,7 +65,7 @@ Layered surface scale — higher number = stronger/darker separation in light mo
 | `--color-text-1` | `#000000` | `#ffffff` | Arco primary text — kept aligned with `--text-primary` |
 | `--text-secondary` | `#454d5f` | `#ced3da` | Secondary text (tuned for ~7.5:1 / ~11:1 contrast) / 次要文字 |
 | `--text-disabled` | `#c9cdd4` | `#737373` | Disabled text / 禁用文字 |
-| `--text-0` | `#000000` | `#ffffff` | "Pure black" text — flips to white in dark / 纯黑文字 |
+| `--text-0` | `#000000` | `#ffffff` | "Pure black" text — flips to white in dark / 纯黑文字 · ⚠️ **currently unused** (legacy; use `--text-primary`) |
 | `--text-white` | `#ffffff` | `#ffffff` | Always-white text (on colored fills) / 纯白文字 |
 
 ### Semantic state / 语义状态
@@ -76,7 +76,7 @@ Layered surface scale — higher number = stronger/darker separation in light mo
 | `--success` | `#00b42a` | `#23c343` | Success / 成功 |
 | `--warning` | `#ff7d00` | `#ff9a2e` | Warning / 警告 |
 | `--danger` | `#f53f3f` | `#f76560` | Error / destructive / 危险 |
-| `--info` | `#165dff` | `#4d9fff` | Informational (= primary) / 信息 |
+| `--info` | `#165dff` | `#4d9fff` | Informational (= primary) / 信息 · ⚠️ **currently unused** — components use `--primary` |
 
 ### Borders / 边框
 
@@ -84,7 +84,7 @@ Layered surface scale — higher number = stronger/darker separation in light mo
 |---|---|---|---|
 | `--border-base` | `#e5e6eb` | `#333333` | Default border / 基础边框 |
 | `--border-light` | `#f2f3f5` | `#262626` | Subtle border / 浅色边框 |
-| `--border-special` | `var(--bg-3)` | `#60677e` | Emphasized/special border / 特殊边框 |
+| `--border-special` | `var(--bg-3)` | `#60677e` | Emphasized/special border / 特殊边框 · ⚠️ **currently unused** (legacy; use `--border-base`) |
 
 ### Brand accents / 品牌强调
 
@@ -118,6 +118,39 @@ Arco Design components read their own `--color-*` variables (e.g. `--color-bg-1`
 `--color-primary-light-1..3`, `--color-border`, `--color-fill`). The built-in/decorative presets map
 these to the semantic tokens above (see `presets/default.css` and `styles/arco-override.css`). A full
 token theme that wants Arco components to follow it should also set the relevant `--color-*` aliases.
+
+## How tokens are consumed in the codebase / 代码里如何使用
+
+Most components do **not** write `var(--token)` directly — they use **UnoCSS utility classes**
+(wired in `uno.config.ts`). So a low raw-`var()` count does NOT mean a token is unused. Mapping:
+
+| Token(s) | UnoCSS class(es) |
+|---|---|
+| `--bg-base`, `--bg-1..10` | `bg-base`/`bg-1`…`bg-10` and `border-base`/`border-1`…`border-10` |
+| `--bg-hover`, `--bg-active` | `bg-hover`, `bg-active` |
+| `--text-primary` | `text-t-primary` |
+| `--text-secondary` | `text-t-secondary` |
+| `--bg-6` (as tertiary text) | `text-t-tertiary` |
+| `--text-disabled` | `text-t-disabled` |
+| `--primary`/`--success`/`--warning`/`--danger`/`--info` | `bg-primary`/`text-primary`/`border-primary`, … |
+| `--border-base`, `--border-light` | `border-b-base`, `border-b-light` |
+| `--brand`, `--brand-light`, `--brand-hover` | `bg-brand`, `bg-brand-light`, `bg-brand-hover` |
+| `--aou-1..10` | `bg-aou-1`…, `text-aou-1`…, `border-aou-1`… |
+| `--message-user-bg`/`--message-tips-bg`/`--workspace-btn-bg` | `bg-message-user`/`bg-message-tips`/`bg-workspace-btn` |
+| `--fill`, `--inverse` | `bg-fill`/`text-fill`, `bg-inverse`/`text-inverse` |
+| `--color-text-1..4` (Arco) | `text-1`…`text-4` (custom rule) |
+
+Override a token (via `tokens` or `css`) and every utility/component using it follows automatically.
+
+## Actual usage at a glance / 实际用量
+
+Measured across `packages/desktop/src/renderer` (raw `var()` + UnoCSS class references):
+
+- **Heavy** — used everywhere: `--text-primary`, `--text-secondary`, `--color-text-1`, `--bg-1`, `--bg-2`, `--bg-3`, `--bg-base`, `--bg-6` (as tertiary text), `--border-base`, `--fill`, `--primary`, `--success`/`--warning`/`--danger`.
+- **Moderate** — real but scoped scenarios: `--aou-1..10` (brand surfaces, home Agent bar), `--bg-4/5/8/9/10` (neutral ramp, scrollbars, disabled/high-contrast), `--bg-hover`/`--bg-active` (interaction states), `--message-user-bg`/`--message-tips-bg`/`--workspace-btn-bg` (chat & workspace), `--brand`/`--brand-light`/`--brand-hover`, `--inverse`, `--dialog-fill-0`, `--text-white`, `--text-disabled`, `--border-light`, `--fill-white-to-black`, `--color-guid-agent-bar`.
+- **Currently unused (legacy, kept for compatibility — see ⚠️ rows above):** `--info` (components use `--primary`), `--text-0` (use `--text-primary`), `--border-special` (use `--border-base`). Safe to prune in a future cleanup; harmless to leave.
+
+> A theme author only needs to set the tokens relevant to the surfaces they care about; unset tokens fall back to the base stylesheet values.
 
 ## Authoring a theme / 编写主题
 
