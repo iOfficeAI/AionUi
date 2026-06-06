@@ -964,7 +964,7 @@
   "helpCenter": "Help Center",
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
-  "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "newApiQuotaUnlimitedDesc": "Unlimited usage",
   "mcpEditNameLocked": "편집 중에는 MCP 이름을 변경할 수 없습니다. 최상위 서버 이름은 \"{{name}}\"으로 유지하세요.",
   "mcpCheckedAtLabel": "확인 시각:",
   "mcpCheckResultLabel": "수동 확인:",

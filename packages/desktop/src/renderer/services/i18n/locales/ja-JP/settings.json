@@ -964,7 +964,7 @@
   "helpCenter": "Help Center",
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
-  "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "newApiQuotaUnlimitedDesc": "Unlimited usage",
   "mcpEditNameLocked": "編集中は MCP 名を変更できません。最上位のサーバー名は「{{name}}」のままにしてください。",
   "mcpCheckedAtLabel": "確認時刻:",
   "mcpCheckResultLabel": "手動チェック:",
