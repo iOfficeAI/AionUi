@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Comunidade:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-10.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -76,7 +76,7 @@
 AionUi vem com um motor de Agent AI completo. Diferente de ferramentas que exigem instalar CLI Agents separadamente, **AionUi funciona no momento em que você o instala**.
 
 - **Sem ferramentas CLI para instalar** — o motor Agent está integrado
-- **Sem configuração complexa** — faça login com Google ou cole qualquer chave API
+- **Sem configuração complexa** — cole qualquer chave API para começar
 - **Capacidades completas do Agent** — leitura/escrita de arquivos, busca na web, geração de imagens, ferramentas MCP
 - **Assistentes prontos para usar** — 21 assistentes profissionais integrados (Cowork, PPT Creator, Morph PPT, Morph PPT 3D, Word Creator, Word Form Creator, Excel Creator, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator e mais) prontos para usar imediatamente
 
@@ -133,13 +133,13 @@ Execute múltiplos AI Agents como uma equipe organizada: um agente **Leader** re
 
 Outros apps de AI te dão uma caixa de chat com sua chave API. **AionUi te dá um Cowork Agent completo.**
 
-| Sua chave API                               | O que você obtém                   |
-| :------------------------------------------ | :--------------------------------- |
-| Chave API Gemini (ou login Google — grátis) | Cowork Agent alimentado por Gemini |
-| Chave API OpenAI                            | Cowork Agent alimentado por GPT    |
-| Chave API Anthropic                         | Cowork Agent alimentado por Claude |
-| Ollama / LM Studio (local)                  | Cowork Agent de modelo local       |
-| NewAPI Gateway                              | Acesso unificado a 20+ modelos     |
+| Sua chave API              | O que você obtém                   |
+| :------------------------- | :--------------------------------- |
+| Chave API Gemini           | Cowork Agent alimentado por Gemini |
+| Chave API OpenAI           | Cowork Agent alimentado por GPT    |
+| Chave API Anthropic        | Cowork Agent alimentado por Claude |
+| Ollama / LM Studio (local) | Cowork Agent de modelo local       |
+| NewAPI Gateway             | Acesso unificado a 20+ modelos     |
 
 As mesmas capacidades do Agent — leitura/escrita de arquivos, busca na web, geração de imagens, uso de ferramentas — independentemente do modelo que o alimenta. AionUi suporta **30+ plataformas AI** incluindo serviços em nuvem e implantações locais.
 
@@ -482,7 +482,7 @@ Suporte a cenários de escritório AI profundos:
 
 <details>
 <summary><strong>P: Preciso instalar primeiro Gemini CLI ou Claude Code?</strong></summary>
-R: <strong>Não.</strong> AionUi tem um AI Agent integrado que funciona imediatamente após a instalação. Basta fazer login com Google ou inserir qualquer chave API. Se você também tiver ferramentas CLI como Claude Code ou Gemini CLI instaladas, AionUi as detectará e integrará automaticamente para ainda mais capacidades.
+R: <strong>Não.</strong> AionUi tem um AI Agent integrado que funciona imediatamente após a instalação. Basta inserir qualquer chave API para começar. Se você também tiver ferramentas CLI como Claude Code ou Gemini CLI instaladas, AionUi as detectará e integrará automaticamente para ainda mais capacidades.
 </details>
 
 <details>
@@ -492,7 +492,7 @@ R: AionUi é seu <strong>espaço de trabalho Cowork privado</strong>. O Agent in
 
 <details>
 <summary><strong>P: É gratuito?</strong></summary>
-R: AionUi é completamente gratuito e de código aberto. Você pode fazer login com Google para usar Gemini gratuitamente, ou usar chaves API de qualquer provedor que preferir.
+R: AionUi é completamente gratuito e de código aberto. Você paga apenas pelo uso da API do provedor que escolher, e pode usar chaves API de qualquer provedor que preferir.
 </details>
 
 <details>
@@ -568,7 +568,7 @@ brew install aionui
 ### Comece em 3 passos
 
 1. **Instale** AionUi
-2. **Faça login** com conta Google ou insira qualquer chave API
+2. **Insira** qualquer chave API para começar
 3. **Comece a fazer Cowork** — o AI Agent integrado está pronto para usar
 
 ### 📖 Guias detalhados
@@ -616,7 +616,7 @@ brew install aionui
 - [Reportar problemas](https://github.com/iOfficeAI/AionUi/issues) — bugs e solicitações de recursos
 - [Atualizações de lançamento](https://github.com/iOfficeAI/AionUi/releases) — obtenha a última versão
 - [Comunidade Discord](https://discord.gg/2QAwJn7Egx) — comunidade em inglês
-- [Grupo WeChat](../../resources/wx-9.png) — comunidade chinesa
+- [Grupo WeChat](../../resources/wx-10.png) — comunidade chinesa
 
 ### Contribuindo
 

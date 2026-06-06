@@ -85,8 +85,9 @@ const createInitStyle = (
     margin-bottom: 12px;
   }
   code span{
-    font-size:13px;
+    font-size:var(--code-font-size, 13px);
     line-height:20px;
+    font-family: var(--font-mono);
   }
 
   .markdown-shadow-body>p:last-child{
@@ -109,8 +110,8 @@ const createInitStyle = (
     color: var(--text-primary);
     padding: 2px 6px;
     border-radius: 4px;
-    font-size: 0.92em;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.875em;
+    font-family: var(--font-mono);
   }
   blockquote {
     border-left: 3px solid var(--bg-3);
@@ -266,9 +267,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
-    const css = configService.get('customCss');
-    if (css) {
-      setCustomCss(addImportantToAll(css));
+    const configuredCss = configService.get('customCss');
+    if (configuredCss) {
+      setCustomCss(addImportantToAll(configuredCss));
     } else {
       setCustomCss('');
     }
@@ -276,9 +277,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     // Listen to custom CSS update events
     const handleCustomCssUpdate = (e: CustomEvent) => {
       if (e.detail?.customCss !== undefined) {
-        const css = e.detail.customCss || '';
+        const nextCss = e.detail.customCss || '';
         // Use unified utility to auto-add !important
-        const processedCss = addImportantToAll(css);
+        const processedCss = addImportantToAll(nextCss);
         setCustomCss(processedCss);
       }
     };

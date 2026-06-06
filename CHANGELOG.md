@@ -1,5 +1,118 @@
 # Changelog
 
+## [2.1.12](https://github.com/iOfficeAI/AionUi/compare/v2.1.11...v2.1.12) (2026-06-05)
+
+### Desktop
+
+#### Features
+
+- **i18n:** add Brazilian Portuguese (pt-BR) translation (#3209)
+- **preview:** native Streamdown markdown rendering + full theming (#3204)
+
+#### Bug Fixes
+
+- **conversation:** align workspace path availability handling (#3207)
+- **preview:** dedupe @codemirror/language so markdown source highlight survives (#3206)
+
+### Core ([v0.1.22](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.22))
+
+#### Bug Fixes
+
+- **acp:** stabilize mode and model source of truth ([#409](https://github.com/iOfficeAI/AionCore/issues/409))
+- **conversation:** align workspace path availability handling ([#410](https://github.com/iOfficeAI/AionCore/issues/410))
+- **file:** lazy load browse roots ([#406](https://github.com/iOfficeAI/AionCore/issues/406))
+- prepare managed acp tools locally without cdn ([#408](https://github.com/iOfficeAI/AionCore/issues/408))
+
+#### Refactoring
+
+- **error:** finish ApiError phase3 ([#398](https://github.com/iOfficeAI/AionCore/issues/398))
+
+---
+
+## [2.1.11](https://github.com/iOfficeAI/AionUi/compare/v2.1.10...v2.1.11) (2026-06-04)
+
+### Desktop
+
+#### Features
+
+- **preview:** unify code viewing & editing on CodeMirror 6 (#3194)
+- **preview:** unify code view font and fix view-mode/line-height regressions (#3185)
+- **workspace:** VSCode-style file tree icons + smoother preview browsing (#3181)
+- add managed acp artifact mirror workflow (#3182)
+
+#### Bug Fixes
+
+- **web-host:** use aioncore reported backend port (#3193)
+- **settings:** apply UI scale only on slider release (#3190)
+
+### Core ([v0.1.20](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.20))
+
+#### Bug Fixes
+
+- **app:** bind backend before startup services ([#397](https://github.com/iOfficeAI/AionCore/issues/397))
+- stabilize agent runtime terminal lifecycle ([#396](https://github.com/iOfficeAI/AionCore/pull/396))
+
+#### Refactoring
+
+- **error:** ACP error classification ([#393](https://github.com/iOfficeAI/AionCore/issues/393))
+- **error:** migrate phase2 service errors ([#395](https://github.com/iOfficeAI/AionCore/issues/395))
+
+---
+
+## [2.1.10](https://github.com/iOfficeAI/AionUi/compare/v2.1.9...v2.1.10) (2026-06-02)
+
+### Desktop
+
+#### Bug Fixes
+
+- **runtime:** show runtime-specific MCP missing command hints (#3167)
+- **startup:** add health polling diagnostics (#3168)
+- **acp:** show model switch feedback
+- **acp:** avoid duplicate runtime sync requests
+- **acp:** wait for warmup before runtime sync
+- **sentry:** split incomplete install diagnostics (#3164)
+- normalize workspace path error handling (#3158)
+- **acp:** fix model state sync after session recovery (#3162)
+- **desktop:** persist close-to-tray setting (#3150)
+
+### Core ([v0.1.19](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.19))
+
+#### Bug Fixes
+
+- **aionui-ai-agent:** classify aionrs API connection errors ([#389](https://github.com/iOfficeAI/AionCore/issues/389))
+- classify missing MCP launcher runtimes ([#387](https://github.com/iOfficeAI/AionCore/issues/387))
+- enforce workspace path whitespace errors across create and runtime ([#381](https://github.com/iOfficeAI/AionCore/issues/381))
+- **startup:** add startup phase diagnostics ([#388](https://github.com/iOfficeAI/AionCore/issues/388))
+
+---
+
+## [2.1.9](https://github.com/iOfficeAI/AionUi/compare/v2.1.8...v2.1.9) (2026-06-01)
+
+### Desktop
+
+#### Bug Fixes
+
+- **web-host:** skip fetch-blocked backend ports (#3146)
+- **i18n:** clarify incomplete installation recovery (#3145)
+- **conversation:** map 409 already-processing to CONVERSATION_BUSY (#3142)
+- **i18n:** localize MCP check strings (#3141)
+
+#### Features
+
+- Allow importing skill folders and zip archives (#3144)
+
+### Core ([v0.1.18](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.18))
+
+#### Bug Fixes
+
+- **agent:** classify Bedrock 'model identifier is invalid' as model-not-found (AIO-12) ([#377](https://github.com/iOfficeAI/AionCore/issues/377))
+- **agent:** preserve process-group cleanup after leader exit ([#369](https://github.com/iOfficeAI/AionCore/issues/369))
+- **agent:** tighten send_error classifier (AIO-87, AIO-89, AIO-90) ([#375](https://github.com/iOfficeAI/AionCore/issues/375))
+- **aionui-ai-agent:** strip HTML body from sanitized error detail (AIO-13) ([#380](https://github.com/iOfficeAI/AionCore/issues/380))
+- recover deleted conversation workspaces ([#379](https://github.com/iOfficeAI/AionCore/issues/379))
+
+---
+
 ## [2.1.8](https://github.com/iOfficeAI/AionUi/compare/v2.1.7...v2.1.8) (2026-05-30)
 
 ### Desktop

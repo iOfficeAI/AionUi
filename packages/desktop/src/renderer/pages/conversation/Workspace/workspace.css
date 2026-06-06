@@ -27,6 +27,32 @@
   border: 1px solid var(--bg-3);
 }
 
+/* VSCode-style file tree: chevron switcher + per-type icons, no connector lines */
+.chat-workspace .workspace-tree .workspace-tree-chevron {
+  opacity: 0.55;
+  transition: transform 0.15s ease;
+}
+
+/* Chevron points right when collapsed, rotates down when expanded (VSCode-style).
+   Overrides Arco's default switcher rotation (-90deg collapsed / 0 expanded),
+   which is applied to the inner <svg>. */
+.chat-workspace .workspace-tree .arco-tree-node-switcher-icon svg {
+  transform: rotate(0deg) !important;
+  transition: transform 0.15s ease;
+}
+
+.chat-workspace .workspace-tree .arco-tree-node-expanded .arco-tree-node-switcher-icon svg {
+  transform: rotate(90deg) !important;
+}
+
+.chat-workspace .workspace-tree .arco-tree-node-title {
+  display: flex;
+  align-items: center;
+}
+
+/* Full-row hover & selection backgrounds live in styles/arco-override.css
+   (.workspace-tree ...), the project's home for Arco theme overrides. */
+
 /* Mobile: workspace panel adaptation */
 @media (max-width: 767px) {
   .chat-workspace .workspace-toolbar-search {

@@ -26,7 +26,6 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import {
   shouldEnqueueConversationCommand,
@@ -34,6 +33,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -141,6 +141,12 @@ const AionrsSendBox: React.FC<{
   );
 
   const [agentWarmed, setAgentWarmed] = useState(false);
+  const prepareRuntimeSync = useCallback(async () => {
+    if (teamPermission) {
+      await teamPermission.warmupSession();
+    }
+    await warmupConversation(conversation_id);
+  }, [conversation_id, teamPermission]);
 
   useEffect(() => {
     void getConversationOrNull(conversation_id).then((res) => {
@@ -151,31 +157,21 @@ const AionrsSendBox: React.FC<{
 
   useEffect(() => {
     if (!conversation_id) return;
-    if (teamPermission) {
-      void teamPermission
-        .warmupSession()
-        .then(() => warmupConversation(conversation_id))
-        .then(() => {
-          setAgentWarmed(true);
-        })
-        .catch(() => {});
-      return;
-    }
     setAgentWarmed(false);
-    void warmupConversation(conversation_id)
+    void prepareRuntimeSync()
       .then(() => {
         setAgentWarmed(true);
       })
-      .catch(() => {});
-  }, [conversation_id, teamPermission]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [conversation_id, prepareRuntimeSync, t]);
 
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
     agentStatus: agentWarmed ? 'active' : null,
   });
 
-  const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
   const isBusy = running;
 
@@ -221,51 +217,30 @@ const AionrsSendBox: React.FC<{
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        setActiveMsgId(msg_id);
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
-          },
-          created_at: Date.now(),
-        });
+        setActiveMsgId(res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
     [
-      addOrUpdateMessage,
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
       setActiveMsgId,
-      removeMessageByMsgId,
       setWaitingResponse,
+      t,
       workspacePath,
     ]
   );
@@ -376,25 +351,28 @@ const AionrsSendBox: React.FC<{
     async (mode: string) => {
       if (mode === currentMode) return;
       try {
-        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
-        setCurrentMode(mode);
-        void savePreferredMode('aionrs', mode);
-        propagateMode?.(mode);
-        Message.success('Mode switched');
+        await prepareRuntimeSync();
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        const confirmedMode = confirmed.mode || mode;
+        setCurrentMode(confirmedMode);
+        void savePreferredMode('aionrs', confirmedMode);
+        propagateMode?.(confirmedMode);
+        Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AionrsSendBox] Failed to switch mode via sheet:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       }
     },
-    [conversation_id, currentMode, propagateMode]
+    [conversation_id, currentMode, prepareRuntimeSync, propagateMode, t]
   );
 
   // Sync currentMode from backend when the sheet first opens / conversation switches
   useEffect(() => {
+    if (!isMobile || !isMobileSheetOpen) return;
     if (!conversation_id) return;
     let cancelled = false;
-    void ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+    void prepareRuntimeSync()
+      .then(() => ipcBridge.acpConversation.getMode.invoke({ conversation_id }))
       .then((result) => {
         if (cancelled || !result) return;
         if (result.initialized !== false) {
@@ -405,7 +383,7 @@ const AionrsSendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, isMobile, isMobileSheetOpen, prepareRuntimeSync]);
 
   const handleSheetModelSelect = useCallback(
     (value: string) => {
@@ -623,6 +601,7 @@ const AionrsSendBox: React.FC<{
             compactLabelPrefix={t('agentMode.permission')}
             hideCompactLabelPrefixOnMobile
             onModeChanged={propagateMode}
+            beforeRuntimeSync={prepareRuntimeSync}
           />
         }
         prefix={

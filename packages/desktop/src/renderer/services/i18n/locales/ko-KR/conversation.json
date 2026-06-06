@@ -91,6 +91,11 @@
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "선택한 작업공간 경로를 사용할 수 없습니다. 작업공간 경로 \"{{workspacePath}}\" 가 실제로 존재하고 접근 가능한지 확인하세요."
+    }
+  },
   "agentError": {
     "fallbackTitle": "에이전트가 응답하지 못했습니다",
     "errorCode": "오류 코드",
@@ -255,6 +260,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "모델 제공자가 빈 응답을 반환했습니다",
         "body": "제공자가 요청을 완료했지만 사용할 수 있는 내용을 반환하지 않았습니다. 한 번 재시도하고 반복되면 제공자를 전환하세요."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "현재 Agent가 이 작업공간 경로에서 실행되지 못했습니다",
+        "body": "현재 작업공간 경로가 실제로 존재하는지 확인하세요.",
+        "bodyWithPath": "현재 Agent가 작업공간 경로 \"{{workspacePath}}\" 에서 실행되지 못했습니다. 작업공간 경로가 실제로 존재하는지 확인하세요."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "상위 에이전트 또는 제공자에서 오류가 발생했습니다",
@@ -463,6 +473,9 @@
       "failed": "실패",
       "unsupported": "지원되지 않음"
     }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "실행 환경을 준비하는 중입니다. 첫 시작은 조금 더 오래 걸릴 수 있습니다."
   },
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"

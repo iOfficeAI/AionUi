@@ -14,15 +14,28 @@ import { cleanupRegisteredAgentProcesses } from './agent-process-registry.js';
 import type { AppMetadata, BackendBinaryResolver } from './types.js';
 
 type BackendStatus = 'stopped' | 'starting' | 'running' | 'error';
-type BackendStartupStage = 'resolve_binary' | 'find_port' | 'spawn' | 'spawn_error' | 'early_exit' | 'health_timeout';
+type BackendStartupStage =
+  | 'resolve_binary'
+  | 'find_port'
+  | 'spawn'
+  | 'spawn_error'
+  | 'early_exit'
+  | 'listen_timeout'
+  | 'health_timeout';
 
 type HealthCheckDiagnostics = {
   healthCheckAttempts: number;
   healthCheckUrl?: string;
   healthCheckTimeoutMs?: number;
   healthCheckIntervalMs?: number;
+  healthCheckExpectedAttempts?: number;
+  healthCheckAttemptDeficit?: number;
   healthCheckElapsedMs?: number;
   healthCheckLastAttemptAfterMs?: number;
+  healthCheckLastAttemptGapMs?: number;
+  healthCheckMaxAttemptGapMs?: number;
+  healthCheckTimeoutOverrunMs?: number;
+  healthCheckPollingDelayed?: boolean;
   healthCheckLastError?: string;
   healthCheckLastErrorName?: string;
   healthCheckLastErrorCauseMessage?: string;
@@ -107,8 +120,14 @@ export type BackendStartupErrorDetails = {
   healthCheckUrl?: string;
   healthCheckTimeoutMs?: number;
   healthCheckIntervalMs?: number;
+  healthCheckExpectedAttempts?: number;
+  healthCheckAttemptDeficit?: number;
   healthCheckElapsedMs?: number;
   healthCheckLastAttemptAfterMs?: number;
+  healthCheckLastAttemptGapMs?: number;
+  healthCheckMaxAttemptGapMs?: number;
+  healthCheckTimeoutOverrunMs?: number;
+  healthCheckPollingDelayed?: boolean;
   healthCheckLastError?: string;
   healthCheckLastErrorName?: string;
   healthCheckLastErrorCauseMessage?: string;
@@ -164,6 +183,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
     '--app-version',
     config.appVersion,
   ];
+  if (config.isPackaged) args.push('--managed-resources-mode', 'bundled');
   if (config.logDir) args.push('--log-dir', config.logDir);
   if (config.workDir) args.push('--work-dir', config.workDir);
   if (config.local) args.push('--local');
@@ -185,34 +205,73 @@ export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
   };
 }
 
-export function findAvailablePort(preferredPort?: number): Promise<number> {
-  return new Promise((resolve, reject) => {
-    const server = createServer();
-    const requestedPort = preferredPort ?? 0;
+const FETCH_FORBIDDEN_PORTS = new Set([
+  1, 7, 9, 11, 13, 15, 17, 19, 20, 21, 22, 23, 25, 37, 42, 43, 53, 69, 77, 79, 87, 95, 101, 102, 103, 104, 109, 110,
+  111, 113, 115, 117, 119, 123, 135, 137, 139, 143, 161, 179, 389, 427, 465, 512, 513, 514, 515, 526, 530, 531, 532,
+  540, 548, 554, 556, 563, 587, 601, 636, 989, 990, 993, 995, 1719, 1720, 1723, 2049, 3659, 4045, 5060, 5061, 6000,
+  6566, 6665, 6666, 6667, 6668, 6669, 6697, 10080,
+]);
 
-    const cleanup = () => {
-      server.removeAllListeners();
-    };
+const FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS = 50;
+const AIONCORE_LISTENING_PREFIX = 'AIONCORE_LISTENING ';
+const BACKEND_PORT_REPORT_TIMEOUT_MS = 30_000;
 
-    server.once('error', (error) => {
-      cleanup();
-      reject(error);
-    });
-    server.listen(requestedPort, '127.0.0.1', () => {
-      const addr = server.address();
-      const resolvedPort =
-        preferredPort ?? (addr && typeof addr !== 'string' && typeof addr.port === 'number' ? addr.port : 0);
+function isFetchForbiddenPort(port: number): boolean {
+  return FETCH_FORBIDDEN_PORTS.has(port);
+}
 
-      server.close(() => {
+export function findAvailablePort(
+  preferredPort?: number,
+  maxAttempts = FETCH_COMPATIBLE_PORT_MAX_ATTEMPTS
+): Promise<number> {
+  if (maxAttempts < 1) {
+    return Promise.reject(new Error('Failed to get a fetch-compatible port'));
+  }
+
+  const firstRequestedPort = preferredPort && !isFetchForbiddenPort(preferredPort) ? preferredPort : 0;
+  if (preferredPort && firstRequestedPort === 0) {
+    console.info(`[aioncore] skipped fetch-blocked backend port ${preferredPort}`);
+  }
+
+  const tryPort = (requestedPort: number, remainingAttempts: number, attempt: number): Promise<number> =>
+    new Promise((resolve, reject) => {
+      const server = createServer();
+
+      const cleanup = () => {
+        server.removeAllListeners();
+      };
+
+      server.once('error', (error) => {
         cleanup();
-        if (resolvedPort > 0) {
-          resolve(resolvedPort);
-          return;
-        }
-        reject(new Error('Failed to get port'));
+        reject(error);
+      });
+      server.listen(requestedPort, '127.0.0.1', () => {
+        const addr = server.address();
+        const resolvedPort =
+          requestedPort > 0
+            ? requestedPort
+            : addr && typeof addr !== 'string' && typeof addr.port === 'number'
+              ? addr.port
+              : 0;
+
+        server.close(() => {
+          cleanup();
+          if (resolvedPort > 0 && !isFetchForbiddenPort(resolvedPort)) {
+            console.info(`[aioncore] selected backend port ${resolvedPort} after ${attempt} attempts`);
+            resolve(resolvedPort);
+            return;
+          }
+          if (resolvedPort > 0 && remainingAttempts > 1) {
+            console.info(`[aioncore] skipped fetch-blocked backend port ${resolvedPort}`);
+            tryPort(0, remainingAttempts - 1, attempt + 1).then(resolve, reject);
+            return;
+          }
+          reject(new Error('Failed to get a fetch-compatible port'));
+        });
       });
     });
-  });
+
+  return tryPort(firstRequestedPort, maxAttempts, 1);
 }
 
 function appendOutputTail(current: string, chunk: Buffer, maxLength = 4000): string {
@@ -256,6 +315,18 @@ function clearHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics): 
   delete diagnostics.healthCheckLastErrorName;
   delete diagnostics.healthCheckLastErrorCauseMessage;
   delete diagnostics.healthCheckLastErrorCauseCode;
+}
+
+function parseAioncoreListeningPort(line: string): number | undefined {
+  if (!line.startsWith(AIONCORE_LISTENING_PREFIX)) return undefined;
+  try {
+    const parsed = JSON.parse(line.slice(AIONCORE_LISTENING_PREFIX.length)) as { port?: unknown };
+    if (typeof parsed.port !== 'number' || !Number.isInteger(parsed.port)) return undefined;
+    if (parsed.port <= 0 || parsed.port > 65535) return undefined;
+    return parsed.port;
+  } catch {
+    return undefined;
+  }
 }
 
 function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetails> | undefined {
@@ -348,6 +419,7 @@ export class BackendLifecycleManager {
   private _lastDbPath = '';
   private _lastLogDir?: string;
   private _lastDirs?: BackendDirConfig;
+  private _lastOptions?: BackendStartOptions;
   private restartCount = 0;
   private restartWindowStart = 0;
   private readonly maxRestarts = 3;
@@ -394,29 +466,12 @@ export class BackendLifecycleManager {
         error
       );
     }
-    try {
-      this._port = await findAvailablePort(preferredPort);
-    } catch (error) {
-      throw new BackendStartupError(
-        'poundingcore startup failed while finding an available port',
-        {
-          stage: 'find_port',
-          appVersion,
-          isPackaged: this.appMeta.isPackaged,
-          binaryPath,
-          port: preferredPort,
-          dataDir: dbPath,
-          logDir,
-          workDir: dirs?.workDir,
-          causeMessage: getErrorMessage(error),
-        },
-        error
-      );
-    }
+    this._port = preferredPort ?? 0;
     this._status = 'starting';
     this._lastDbPath = dbPath;
     this._lastLogDir = logDir;
     this._lastDirs = dirs;
+    this._lastOptions = options;
     let stdoutTail = '';
     let stderrTail = '';
     let startupSettled = false;
@@ -526,11 +581,48 @@ export class BackendLifecycleManager {
       });
     });
 
+    let reportedPortSettled = false;
+    let reportedPortTimer: ReturnType<typeof setTimeout> | undefined;
+    let resolveReportedPort: (port: number) => void = () => {};
+    let rejectReportedPort: (error: BackendStartupError) => void = () => {};
+    const reportedPort = new Promise<number>((resolve, reject) => {
+      resolveReportedPort = (port) => {
+        if (reportedPortSettled) return;
+        reportedPortSettled = true;
+        if (reportedPortTimer) clearTimeout(reportedPortTimer);
+        resolve(port);
+      };
+      rejectReportedPort = (error) => {
+        if (reportedPortSettled) return;
+        reportedPortSettled = true;
+        reject(error);
+      };
+      reportedPortTimer = setTimeout(() => {
+        rejectReportedPort(
+          makeStartupError('listen_timeout', 'aioncore did not report its listening port before timeout', undefined, {
+            healthCheckTimeoutMs: BACKEND_PORT_REPORT_TIMEOUT_MS,
+            healthCheckElapsedMs: Date.now() - startupStartedAt,
+          })
+        );
+      }, BACKEND_PORT_REPORT_TIMEOUT_MS);
+    });
+
     this.childProcess.stdout?.on('data', (data: Buffer) => {
       stdoutTail = appendOutputTail(stdoutTail, data);
       for (const line of data.toString().split('\n')) {
         const trimmed = line.trim();
-        if (!serverListeningObserved && trimmed.includes(`Server listening on 127.0.0.1:${this._port}`)) {
+        const port = parseAioncoreListeningPort(trimmed);
+        if (port !== undefined) {
+          this._port = port;
+          serverListeningObserved = true;
+          serverListeningObservedAfterMs = Date.now() - startupStartedAt;
+          serverListeningLine = trimmed;
+          resolveReportedPort(port);
+        } else if (
+          !serverListeningObserved &&
+          this._port > 0 &&
+          trimmed.includes(`Server listening on 127.0.0.1:${this._port}`)
+        ) {
           serverListeningObserved = true;
           serverListeningObservedAfterMs = Date.now() - startupStartedAt;
           serverListeningLine = trimmed;
@@ -546,7 +638,19 @@ export class BackendLifecycleManager {
       }
     });
 
-    const health = await Promise.race([this.waitForHealth(this._port), startupFailure]);
+    let port: number;
+    try {
+      port = await Promise.race([reportedPort, startupFailure]);
+    } catch (error) {
+      if (error instanceof BackendStartupError && error.details.stage === 'listen_timeout') {
+        startupSettled = true;
+        killBackendProcessTree(this.childProcess, 'SIGKILL');
+        this.childProcess = null;
+        this._status = 'error';
+      }
+      throw error;
+    }
+    const health = await Promise.race([this.waitForHealth(port), startupFailure]);
     if (!health.ok) {
       const healthTimeoutError = makeStartupError(
         'health_timeout',
@@ -575,7 +679,9 @@ export class BackendLifecycleManager {
     startupSettled = true;
     this._status = 'running';
     this.restartCount = 0;
-    console.log(`[poundingcore] listening on port ${this._port}, data-dir: ${dbPath}`);
+    console.info(
+      `[poundingcore] health ready on port ${this._port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${health.diagnostics.healthCheckElapsedMs}, data-dir: ${dbPath}`
+    );
     return this._port;
   }
 
@@ -608,18 +714,31 @@ export class BackendLifecycleManager {
     const start = Date.now();
     const intervalMs = 200;
     const healthCheckUrl = `http://127.0.0.1:${port}/health`;
+    const expectedAttempts = Number.isFinite(timeoutMs) ? Math.ceil(timeoutMs / intervalMs) : undefined;
     const diagnostics: HealthCheckDiagnostics = {
       healthCheckAttempts: 0,
       healthCheckUrl,
       healthCheckIntervalMs: intervalMs,
       healthCheckTimeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
+      healthCheckExpectedAttempts: expectedAttempts,
     };
+    let previousAttemptAt: number | undefined;
     while (Date.now() - start < timeoutMs && shouldContinue()) {
+      const attemptStartedAt = Date.now();
+      if (previousAttemptAt !== undefined) {
+        const attemptGapMs = attemptStartedAt - previousAttemptAt;
+        diagnostics.healthCheckLastAttemptGapMs = attemptGapMs;
+        diagnostics.healthCheckMaxAttemptGapMs = Math.max(diagnostics.healthCheckMaxAttemptGapMs ?? 0, attemptGapMs);
+      }
+      previousAttemptAt = attemptStartedAt;
       diagnostics.healthCheckAttempts += 1;
-      diagnostics.healthCheckLastAttemptAfterMs = Date.now() - start;
+      diagnostics.healthCheckLastAttemptAfterMs = attemptStartedAt - start;
       try {
         const response = await fetch(healthCheckUrl);
-        if (response.ok) return { ok: true, diagnostics };
+        if (response.ok) {
+          diagnostics.healthCheckElapsedMs = Date.now() - start;
+          return { ok: true, diagnostics };
+        }
         diagnostics.healthCheckLastStatus = response.status;
         clearHealthCheckErrorDiagnostics(diagnostics);
         try {
@@ -636,6 +755,13 @@ export class BackendLifecycleManager {
       await new Promise((r) => setTimeout(r, intervalMs));
     }
     diagnostics.healthCheckElapsedMs = Date.now() - start;
+    if (Number.isFinite(timeoutMs)) {
+      diagnostics.healthCheckAttemptDeficit = Math.max(0, (expectedAttempts ?? 0) - diagnostics.healthCheckAttempts);
+      diagnostics.healthCheckTimeoutOverrunMs = Math.max(0, diagnostics.healthCheckElapsedMs - timeoutMs);
+      diagnostics.healthCheckPollingDelayed =
+        (diagnostics.healthCheckMaxAttemptGapMs ?? 0) > intervalMs * 3 ||
+        diagnostics.healthCheckTimeoutOverrunMs > intervalMs * 3;
+    }
     if (Number.isFinite(timeoutMs)) {
       Object.assign(diagnostics, await probeHealthCheckTcpConnect(port));
     }
@@ -657,9 +783,9 @@ export class BackendLifecycleManager {
       if (!health.ok || this.childProcess !== childProcess || this._status !== 'starting') return;
       this._status = 'running';
       this.restartCount = 0;
-      const elapsedMs = Date.now() - startupStartedAt;
-      console.log(
-        `[poundingcore] late health ready on port ${port}, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
+      const elapsedMs = health.diagnostics.healthCheckElapsedMs ?? Date.now() - startupStartedAt;
+      console.info(
+        `[poundingcore] late health ready on port ${port} after ${health.diagnostics.healthCheckAttempts} attempts, elapsed_ms=${elapsedMs}, data-dir: ${this._lastDbPath}`
       );
       await onReady?.(port);
     })().catch((error) => {
@@ -675,11 +801,10 @@ export class BackendLifecycleManager {
     }
     this.restartCount++;
 
-    const restartPort = this._port;
     const crashContext = {
       exitCode: code ?? undefined,
       signal: signal ?? undefined,
-      port: restartPort,
+      port: this._port,
       restartCount: this.restartCount,
       maxRestarts: this.maxRestarts,
     };
@@ -699,16 +824,22 @@ export class BackendLifecycleManager {
     setTimeout(() => {
       if (this._status === 'stopped') return;
       this._status = 'starting';
-      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, undefined, restartPort).catch((error) => {
-        this._status = 'error';
-        console.error('[poundingcore] restart after crash failed', {
-          port: restartPort,
-          restartCount: this.restartCount,
-          maxRestarts: this.maxRestarts,
-          delayMs: delay,
-          error: getErrorMessage(error),
+      this.start(this._lastDbPath, this._lastLogDir, this._lastDirs, this._lastOptions, this._port)
+        .then(async (port) => {
+          if (this._status === 'running') {
+            await this._lastOptions?.onReady?.(port);
+          }
+        })
+        .catch((error) => {
+          this._status = 'error';
+          console.error('[poundingcore] restart after crash failed', {
+            port: this._port,
+            restartCount: this.restartCount,
+            maxRestarts: this.maxRestarts,
+            delayMs: delay,
+            error: getErrorMessage(error),
+          });
         });
-      });
     }, delay);
   }
 }

@@ -75,6 +75,10 @@ function makeFakeChild(): ChildProcess {
   return child as ChildProcess;
 }
 
+function emitListening(child: ChildProcess, port: number): void {
+  child.stdout?.emit('data', Buffer.from(`AIONCORE_LISTENING {"host":"127.0.0.1","port":${port}}\n`));
+}
+
 function makeFakeSocket(): Socket {
   const socket = new EventEmitter() as EventEmitter & Partial<Socket>;
   socket.setTimeout = vi.fn(() => socket as Socket) as unknown as Socket['setTimeout'];
@@ -185,13 +189,55 @@ describe('findAvailablePort', () => {
 
     expect(port).toBe(65303);
   });
+
+  it('skips ports blocked by Fetch so health checks can use the selected port', async () => {
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+    try {
+      vi.mocked(createServer)
+        .mockImplementationOnce(() => makeFakeServer(1720) as unknown as ReturnType<typeof createServer>)
+        .mockImplementationOnce(() => makeFakeServer(40404) as unknown as ReturnType<typeof createServer>);
+
+      const port = await findAvailablePort();
+
+      expect(port).toBe(40404);
+      expect(createServer).toHaveBeenCalledTimes(2);
+      expect(infoSpy).toHaveBeenCalledWith('[aioncore] skipped fetch-blocked backend port 1720');
+      expect(infoSpy).toHaveBeenCalledWith('[aioncore] selected backend port 40404 after 2 attempts');
+    } finally {
+      infoSpy.mockRestore();
+    }
+  });
+
+  it('does not bind a preferred port when Fetch would block requests to it', async () => {
+    const server = makeFakeServer(40404);
+    server.listen = (port, host, cb) => {
+      expect(port).toBe(0);
+      expect(host).toBe('127.0.0.1');
+      setImmediate(cb);
+    };
+    vi.mocked(createServer).mockImplementationOnce(() => server as unknown as ReturnType<typeof createServer>);
+
+    const port = await findAvailablePort(1720);
+
+    expect(port).toBe(40404);
+  });
+
+  it('rejects instead of retrying forever when every attempt returns a Fetch-blocked port', async () => {
+    vi.mocked(createServer).mockImplementation(
+      () => makeFakeServer(1720) as unknown as ReturnType<typeof createServer>
+    );
+
+    await expect(findAvailablePort(undefined, 2)).rejects.toThrow('Failed to get a fetch-compatible port');
+
+    expect(createServer).toHaveBeenCalledTimes(2);
+  });
 });
 
 describe('BackendLifecycleManager.start (success path)', () => {
-  it('spawns with correct args, waits for /health, reports running', async () => {
-    vi.mocked(createServer).mockImplementation(
-      () => makeFakeServer(55555) as unknown as ReturnType<typeof createServer>
-    );
+  it('lets aioncore choose the backend port and waits for the reported listening event', async () => {
+    vi.mocked(createServer).mockImplementation(() => {
+      throw new Error('launcher must not pre-bind backend ports');
+    });
     const child = makeFakeChild();
     vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
 
@@ -199,26 +245,25 @@ describe('BackendLifecycleManager.start (success path)', () => {
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
-    const resolveBackend = vi.fn(() => '/abs/path/poundingcore');
-    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, resolveBackend);
-
-    const port = await mgr.start('/db/path', '/log/dir', {
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', {
       cacheDir: '/c',
       workDir: '/w',
       logDir: '/l',
     });
 
+    await Promise.resolve();
+    child.stdout?.emit('data', Buffer.from('AIONCORE_LISTENING {"host":"127.0.0.1","port":55555}\n'));
+
+    const port = await startPromise;
+
     expect(port).toBe(55555);
     expect(mgr.port).toBe(55555);
-    expect(mgr.status).toBe('running');
-    expect(resolveBackend).toHaveBeenCalledTimes(1);
-    expect(spawn).toHaveBeenCalledTimes(1);
-
-    const spawnCall = vi.mocked(spawn).mock.calls[0];
-    expect(spawnCall[0]).toBe('/abs/path/poundingcore');
-    expect(spawnCall[1]).toEqual([
+    expect(createServer).not.toHaveBeenCalled();
+    expect(fetchSpy).toHaveBeenCalledWith('http://127.0.0.1:55555/health');
+    expect(vi.mocked(spawn).mock.calls[0][1]).toEqual([
       '--port',
-      '55555',
+      '0',
       '--data-dir',
       '/db/path',
       '--log-level',
@@ -231,19 +276,99 @@ describe('BackendLifecycleManager.start (success path)', () => {
       '/w',
       '--local',
     ]);
-    const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
-    expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
-    expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
-    expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
-    expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
-
-    expect(fetchSpy).toHaveBeenCalled();
 
     fetchSpy.mockRestore();
+  });
+
+  it('spawns with correct args, waits for /health, reports running', async () => {
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const fetchSpy = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
+    const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
+
+    const resolveBackend = vi.fn(() => '/abs/path/poundingcore');
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, resolveBackend);
+
+    try {
+      const startPromise = mgr.start('/db/path', '/log/dir', {
+        cacheDir: '/c',
+        workDir: '/w',
+        logDir: '/l',
+      });
+      await Promise.resolve();
+      emitListening(child, 55555);
+
+      const port = await startPromise;
+
+      expect(port).toBe(55555);
+      expect(mgr.port).toBe(55555);
+      expect(mgr.status).toBe('running');
+      expect(resolveBackend).toHaveBeenCalledTimes(1);
+      expect(spawn).toHaveBeenCalledTimes(1);
+
+      const spawnCall = vi.mocked(spawn).mock.calls[0];
+      expect(spawnCall[0]).toBe('/abs/path/poundingcore');
+      expect(spawnCall[1]).toEqual([
+        '--port',
+        '0',
+        '--data-dir',
+        '/db/path',
+        '--log-level',
+        'info',
+        '--app-version',
+        '1.2.3',
+        '--log-dir',
+        '/log/dir',
+        '--work-dir',
+        '/w',
+        '--local',
+      ]);
+      const opts = spawnCall[2] as { env: NodeJS.ProcessEnv };
+      expect(opts.env.AIONUI_CACHE_DIR).toBe('/c');
+      expect(opts.env.AIONUI_WORK_DIR).toBe('/w');
+      expect(opts.env.AIONUI_LOG_DIR).toBe('/l');
+      expect((spawnCall[2] as { detached?: boolean }).detached).toBe(process.platform !== 'win32');
+
+      expect(fetchSpy).toHaveBeenCalled();
+      expect(infoSpy).toHaveBeenCalledWith(
+        expect.stringContaining('[aioncore] health ready on port 55555 after 1 attempts, elapsed_ms=')
+      );
+    } finally {
+      fetchSpy.mockRestore();
+      infoSpy.mockRestore();
+    }
   });
 });
 
 describe('BackendLifecycleManager.start (health timeout)', () => {
+  it('kills child and reports listen_timeout when aioncore never reports a port', async () => {
+    vi.useFakeTimers();
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+    const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        stage: 'listen_timeout',
+        port: 0,
+      }),
+    });
+
+    await vi.advanceTimersByTimeAsync(31_000);
+    await expectedRejection;
+
+    expect(mgr.status).toBe('error');
+    expect(killSpy).toHaveBeenCalled();
+
+    killSpy.mockRestore();
+  }, 15_000);
+
   it('kills child and throws when /health never responds OK within timeout', async () => {
     vi.useFakeTimers();
     vi.mocked(createServer).mockImplementation(
@@ -258,6 +383,9 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
     const startPromise = mgr.start('/db');
     const expectedRejection = expect(startPromise).rejects.toThrow(/failed to start within timeout/);
+
+    await Promise.resolve();
+    emitListening(child, 33333);
 
     // First await the timer advance so all setTimeout callbacks fire
     await vi.advanceTimersByTimeAsync(31_000);
@@ -303,6 +431,7 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
 
     await Promise.resolve();
     await Promise.resolve();
+    emitListening(child, 33334);
     child.stderr?.emit('data', Buffer.from('database is locked\n'));
     await vi.advanceTimersByTimeAsync(31_000);
 
@@ -336,6 +465,8 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
       }),
     });
 
+    await Promise.resolve();
+    emitListening(child, 33336);
     await vi.advanceTimersByTimeAsync(31_000);
     await expectedRejection;
 
@@ -362,12 +493,12 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
         healthCheckLastError: 'fetch failed',
         serverListeningObserved: true,
         serverListeningObservedAfterMs: expect.any(Number),
-        serverListeningLine: expect.stringContaining('Server listening on 127.0.0.1:33337'),
+        serverListeningLine: expect.stringContaining('AIONCORE_LISTENING'),
       }),
     });
 
     await Promise.resolve();
-    child.stdout?.emit('data', Buffer.from('2026-05-30T09:47:26Z INFO Server listening on 127.0.0.1:33337\n'));
+    emitListening(child, 33337);
     await vi.advanceTimersByTimeAsync(31_000);
 
     await expectedRejection;
@@ -403,8 +534,12 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
         healthCheckUrl: 'http://127.0.0.1:33338/health',
         healthCheckTimeoutMs: 30_000,
         healthCheckIntervalMs: 200,
+        healthCheckExpectedAttempts: 150,
         healthCheckElapsedMs: expect.any(Number),
         healthCheckLastAttemptAfterMs: expect.any(Number),
+        healthCheckAttemptDeficit: expect.any(Number),
+        healthCheckTimeoutOverrunMs: expect.any(Number),
+        healthCheckPollingDelayed: expect.any(Boolean),
         healthCheckLastError: 'fetch failed',
         healthCheckLastErrorName: 'TypeError',
         healthCheckLastErrorCauseMessage: 'connect ECONNREFUSED 127.0.0.1:33338',
@@ -416,13 +551,60 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
     });
 
     await Promise.resolve();
-    child.stdout?.emit('data', Buffer.from('2026-05-30T09:47:26Z INFO Server listening on 127.0.0.1:33338\n'));
+    emitListening(child, 33338);
     await vi.advanceTimersByTimeAsync(31_000);
 
     await expectedRejection;
 
     expect(connect).toHaveBeenCalledWith({ host: '127.0.0.1', port: 33338 }, expect.any(Function));
     expect(socket.destroy).toHaveBeenCalled();
+    fetchSpy.mockRestore();
+  }, 15_000);
+
+  it('records polling delay when a health attempt stalls past the timeout', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33340) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const socket = makeFakeSocket();
+    vi.mocked(connect).mockImplementation(() => {
+      queueMicrotask(() => {
+        socket.emit(
+          'error',
+          Object.assign(new Error('connect ECONNREFUSED 127.0.0.1:33340'), { code: 'ECONNREFUSED' })
+        );
+      });
+      return socket;
+    });
+
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(
+      () =>
+        new Promise<Response>((_resolve, reject) => {
+          setTimeout(() => reject(new Error('fetch failed')), 545_000);
+        })
+    );
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path');
+    const expectedRejection = expect(startPromise).rejects.toMatchObject({
+      details: expect.objectContaining({
+        port: 33340,
+        healthCheckAttempts: 1,
+        healthCheckExpectedAttempts: 150,
+        healthCheckAttemptDeficit: 149,
+        healthCheckPollingDelayed: true,
+        healthCheckTimeoutOverrunMs: expect.any(Number),
+      }),
+    });
+
+    await Promise.resolve();
+    emitListening(child, 33340);
+    await vi.advanceTimersByTimeAsync(545_250);
+    await expectedRejection;
+
     fetchSpy.mockRestore();
   }, 15_000);
 
@@ -461,6 +643,8 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
       }),
     });
 
+    await Promise.resolve();
+    emitListening(child, 33339);
     await vi.advanceTimersByTimeAsync(31_000);
 
     await expectedRejection;
@@ -488,6 +672,8 @@ describe('BackendLifecycleManager.start (health timeout)', () => {
       onReady,
     });
 
+    await Promise.resolve();
+    emitListening(child, 33335);
     await vi.advanceTimersByTimeAsync(31_000);
     await expect(startPromise).resolves.toBe(33335);
 
@@ -553,7 +739,10 @@ describe('BackendLifecycleManager.stop', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
-    await mgr.start('/db');
+    const startPromise = mgr.start('/db');
+    await Promise.resolve();
+    emitListening(child, 22222);
+    await startPromise;
 
     const stopPromise = mgr.stop();
     // Simulate graceful child exit
@@ -581,7 +770,10 @@ describe('BackendLifecycleManager.stop', () => {
     const killSpy = vi.spyOn(process, 'kill').mockImplementation(() => true);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
-    await mgr.start('/db');
+    const startPromise = mgr.start('/db');
+    await Promise.resolve();
+    emitListening(child, 22223);
+    await startPromise;
 
     const stopPromise = mgr.stop();
     // Let real timeout happen (5s), then check result
@@ -598,39 +790,35 @@ describe('BackendLifecycleManager.stop', () => {
 });
 
 describe('BackendLifecycleManager crash restart', () => {
-  it('restarts by requesting the same port after an unexpected exit', async () => {
-    const listenPorts: number[] = [];
-    const resolvedPorts = [65303, 65303];
-    vi.mocked(createServer).mockImplementation(() => {
-      const server = makeFakeServer(resolvedPorts.shift() ?? 65303);
-      server.listen = (port, host, cb) => {
-        listenPorts.push(port);
-        expect(host).toBe('127.0.0.1');
-        setImmediate(cb);
-      };
-      return server as unknown as ReturnType<typeof createServer>;
-    });
+  it('restarts on the existing backend port after an unexpected exit', async () => {
     const child1 = makeFakeChild();
     const child2 = makeFakeChild();
     vi.mocked(spawn)
       .mockReturnValueOnce(child1 as unknown as ChildProcess)
       .mockReturnValueOnce(child2 as unknown as ChildProcess);
+    const onReady = vi.fn();
 
     const fetchSpy = vi
       .spyOn(globalThis, 'fetch')
       .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
-    await mgr.start('/db');
+    const startPromise = mgr.start('/db', undefined, undefined, { onReady });
+    await Promise.resolve();
+    emitListening(child1, 65303);
+    await startPromise;
     expect(mgr.status).toBe('running');
-    expect(vi.mocked(spawn).mock.calls[0][1]).toContain('65303');
+    expect(vi.mocked(spawn).mock.calls[0][1]).toContain('0');
 
     (child1 as unknown as EventEmitter).emit('exit', 1, 'SIGABRT');
     await new Promise((r) => setTimeout(r, 1_200));
+    emitListening(child2, 65303);
+    await new Promise((r) => setTimeout(r, 1));
 
     expect(vi.mocked(spawn)).toHaveBeenCalledTimes(2);
     expect(vi.mocked(spawn).mock.calls[1][1]).toContain('65303');
-    expect(listenPorts).toEqual([0, 65303]);
+    expect(mgr.port).toBe(65303);
+    expect(onReady).toHaveBeenCalledWith(65303);
 
     fetchSpy.mockRestore();
   }, 5_000);
@@ -651,7 +839,10 @@ describe('BackendLifecycleManager crash restart', () => {
       .mockResolvedValue(new Response('ok', { status: 200 }) as unknown as Response);
 
     const mgr = new BackendLifecycleManager(APP_META, () => '/x');
-    await mgr.start('/db');
+    const startPromise = mgr.start('/db');
+    await Promise.resolve();
+    emitListening(child1, 65303);
+    await startPromise;
 
     (child1 as unknown as EventEmitter).emit('exit', 1, 'SIGABRT');
     await new Promise((r) => setTimeout(r, 1_200));

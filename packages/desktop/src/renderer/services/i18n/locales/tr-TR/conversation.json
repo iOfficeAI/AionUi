@@ -249,6 +249,11 @@
         "title": "Model sağlayıcı boş yanıt döndürdü",
         "body": "Sağlayıcı isteği tamamladı ancak kullanılabilir içerik döndürmedi. Bir kez yeniden deneyin; tekrarlanırsa sağlayıcı değiştirin."
       },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "Geçerli Agent bu çalışma alanı yolunda çalıştırılamadı",
+        "body": "Geçerli çalışma alanı yolunun gerçekten var olduğundan emin olun.",
+        "bodyWithPath": "Geçerli Agent çalışma alanı yolu \"{{workspacePath}}\" içinde çalıştırılamadı. Çalışma alanı yolunun gerçekten var olduğundan emin olun."
+      },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Üst ajan veya sağlayıcı başarısız oldu",
         "body": "Uygulama bir üst hata aldı ancak güvenle sınıflandıramadı. Aşağıdaki ayrıntıları inceleyin veya geri bildirim gönderin."
@@ -449,6 +454,11 @@
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "Seçilen çalışma alanı yolu kullanılamıyor. Çalışma alanı yolu \"{{workspacePath}}\" gerçekten var ve erişilebilir olduğundan emin olun."
+    }
+  },
   "thinking": {
     "complete": "Düşünme tamamlandı",
     "label": "Düşünüyor..."
@@ -465,6 +475,9 @@
       "failed": "Başarısız",
       "unsupported": "Desteklenmiyor"
     }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
   },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"

@@ -5,8 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -19,20 +18,22 @@ import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
+import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -60,7 +61,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { checkAndUpdateTitle } = useAutoTitle();
   const slash_commands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -162,7 +162,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         return;
       }
 
-      const isRunning = res?.status === 'running';
+      const isRunning = isConversationProcessing(res);
       setAiProcessing(isRunning);
       setHasHydratedRunningState(true);
     });
@@ -192,6 +192,16 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
       if (conversation_id !== message.conversation_id) {
+        return;
+      }
+
+      if (isErrorTipMessage(message)) {
+        setThought({ subject: '', description: '' });
+        setAiProcessing(false);
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
         return;
       }
       switch (message.type) {
@@ -253,37 +263,19 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const res = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: displayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+    [checkAndUpdateTitle, conversation_id, t, workspacePath]
   );
 
   const {
@@ -371,34 +363,17 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         const initialDisplayMessage = buildDisplayMessage(input, files, resolvedWorkspace);
 
         void checkAndUpdateTitle(conversation_id, input);
-        // Fetch the server-assigned msg_id before rendering the optimistic
-        // bubble so the local row uses the same id as the persisted DB row.
-        const sendResult = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           conversation_id,
           files,
         });
-        const { msg_id } = sendResult;
-
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: initialDisplayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage(userMessage);
-
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
-      } catch {
+      } catch (error) {
         sessionStorage.removeItem(processedKey);
         setAiProcessing(false);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
       }
     };
     processInitialMessage().catch(console.error);

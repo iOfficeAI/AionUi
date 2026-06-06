@@ -12,7 +12,7 @@ import { CronJobManager } from '@/renderer/pages/cron';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -28,6 +28,7 @@ import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
@@ -125,6 +126,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
             emitter.emit('chat.history.refresh');
           } catch (error) {
             console.error('Failed to create conversation:', error);
+            Message.error(getConversationCreateErrorMessage(error, t));
           } finally {
             isCreatingRef.current = false;
           }
@@ -343,6 +345,7 @@ const ChatConversation: React.FC<{
           conversation_id={conversation.id}
           backend={extra.backend}
           initialModelId={extra.current_model_id}
+          waitForWarmup
         />
       );
     }

@@ -40,8 +40,8 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
     }
     setVisible(false);
     setActiveSubKey(null);
-    const t = setTimeout(() => setMounted(false), 280);
-    return () => clearTimeout(t);
+    const closeTimer = setTimeout(() => setMounted(false), 280);
+    return () => clearTimeout(closeTimer);
   }, [open]);
 
   // Visibility lifecycle — flips `.visible` only after the off-screen frame

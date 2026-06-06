@@ -26,5 +26,9 @@
     "noAlternatives": "사용 가능한 에이전트가 없습니다",
     "configureFirst": "먼저 설정에서 에이전트를 구성하세요.",
     "switching": "에이전트 전환 중..."
+  },
+  "model": {
+    "switchSuccess": "모델이 성공적으로 전환되었습니다",
+    "switchFailed": "모델 전환에 실패했습니다"
   }
 }

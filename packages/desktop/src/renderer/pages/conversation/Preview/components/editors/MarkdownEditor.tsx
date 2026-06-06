@@ -6,7 +6,9 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { markdown } from '@codemirror/lang-markdown';
+import { syntaxHighlighting } from '@codemirror/language';
 import CodeMirror from '@uiw/react-codemirror';
+import { getMarkdownHighlightStyle } from '../../theme/markdownHighlightStyle';
 import React, { useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
@@ -54,7 +56,10 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           value={value}
           height='100%'
           theme={theme === 'dark' ? 'dark' : 'light'}
-          extensions={[markdown()]} // Markdown 语法支持 / Markdown syntax support
+          // 自定义 markdown 高亮（非 fallback，优先于 basicSetup 的默认高亮）
+          // Custom markdown highlight (non-fallback) wins over basicSetup's default highlighter,
+          // while basicSetup's treeHighlighter keeps painting. basicSetup must keep syntaxHighlighting enabled.
+          extensions={[markdown(), syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light'))]}
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{
@@ -64,7 +69,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             foldGutter: true, // 折叠功能 / Code folding
           }}
           style={{
-            fontSize: '14px',
+            fontSize: '13px',
+            fontFamily: 'var(--font-mono)',
             height: '100%',
           }}
         />

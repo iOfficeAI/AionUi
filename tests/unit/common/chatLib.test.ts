@@ -144,6 +144,20 @@ describe('normalizeAgentStreamError', () => {
       })
     ).toBeUndefined();
   });
+
+  it('preserves workspace path metadata on structured errors', () => {
+    expect(
+      normalizeAgentStreamError({
+        message: 'The current Agent failed to run in this workspace path.',
+        code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
+        workspacePath: '/tmp/Archive ',
+      })
+    ).toEqual({
+      message: 'The current Agent failed to run in this workspace path.',
+      code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
+      workspacePath: '/tmp/Archive ',
+    });
+  });
 });
 
 describe('transformMessage', () => {
@@ -167,6 +181,7 @@ describe('transformMessage', () => {
         code: 'USER_LLM_PROVIDER_AUTH_FAILED',
         ownership: 'user_llm_provider',
         detail: 'Provider returned 401.',
+        workspacePath: '/tmp/provider-test',
         retryable: false,
         feedback_recommended: false,
         resolution: {
@@ -187,6 +202,7 @@ describe('transformMessage', () => {
       code: 'USER_LLM_PROVIDER_AUTH_FAILED',
       ownership: 'user_llm_provider',
       detail: 'Provider returned 401.',
+      workspacePath: '/tmp/provider-test',
       retryable: false,
       feedback_recommended: false,
       resolution: {

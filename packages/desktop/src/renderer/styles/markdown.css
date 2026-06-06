@@ -1,0 +1,228 @@
+/**
+ * Shared markdown content styles.
+ * Scoped under `.aionui-markdown`. Colors/fonts use semantic CSS variables only,
+ * so light/dark and any future color scheme adapt automatically (no hardcoded colors).
+ * Content mirrors the chat-side ShadowView markdown styles for visual consistency.
+ */
+
+.aionui-markdown {
+  color: var(--text-primary);
+  /* Comfortable reading size for the rendered preview (source editor is 13px mono). */
+  font-size: 15px;
+  line-height: 1.7;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  max-width: 100%;
+}
+
+.aionui-markdown :where(p) {
+  margin-block-start: 16px;
+  margin-block-end: 16px;
+}
+.aionui-markdown > :where(p):first-child {
+  margin-top: 0;
+}
+.aionui-markdown > :where(p):last-child {
+  margin-bottom: 0;
+}
+
+.aionui-markdown :where(h1, h2, h3, h4, h5, h6) {
+  font-weight: bold;
+  color: var(--text-primary);
+}
+.aionui-markdown :where(h1) {
+  font-size: 24px;
+  line-height: 32px;
+  margin-top: 24px;
+  margin-bottom: 16px;
+}
+.aionui-markdown :where(h2, h3, h4, h5, h6) {
+  font-size: 16px;
+  line-height: 24px;
+  margin-top: 20px;
+  margin-bottom: 12px;
+}
+
+.aionui-markdown :where(a) {
+  color: var(--primary);
+  text-decoration: none;
+  cursor: pointer;
+  word-break: break-all;
+  overflow-wrap: anywhere;
+}
+.aionui-markdown :where(a):hover {
+  text-decoration: underline;
+}
+
+.aionui-markdown :where(strong) {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.aionui-markdown :where(ol, ul) {
+  padding-inline-start: 24px;
+}
+.aionui-markdown :where(li) {
+  margin-block-start: 6px;
+  margin-block-end: 6px;
+}
+
+.aionui-markdown :where(hr) {
+  border: none;
+  border-top: 1px solid var(--bg-3);
+  margin: 28px 0;
+}
+
+.aionui-markdown :where(blockquote) {
+  border-left: 3px solid var(--bg-3);
+  padding-left: 12px;
+  color: var(--text-primary);
+  margin: 16px 0;
+}
+
+/* Inline code (not inside a highlighted code block) */
+.aionui-markdown :where(code):not(:where(pre code)) {
+  background: var(--bg-3);
+  color: var(--text-primary);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.875em;
+  font-family: var(--font-mono);
+  word-break: break-word;
+  overflow-wrap: anywhere;
+}
+
+/* Code blocks (Shiki output lives inside pre) */
+.aionui-markdown :where(pre) {
+  max-width: 100%;
+  overflow-x: auto;
+  margin-block-start: 8px;
+  margin-block-end: 8px;
+  border-radius: 8px;
+  font-size: var(--code-font-size, 13px);
+  line-height: 1.5;
+}
+.aionui-markdown :where(pre) :where(code) {
+  font-family: var(--font-mono);
+}
+
+/* Code block scrollbar — blends with surface */
+.aionui-markdown :where(pre) {
+  scrollbar-width: thin;
+}
+.aionui-markdown :where(pre)::-webkit-scrollbar {
+  height: 6px;
+  background: transparent;
+}
+.aionui-markdown :where(pre)::-webkit-scrollbar-thumb {
+  background-color: rgba(127, 127, 127, 0.35);
+  border-radius: 3px;
+}
+
+.aionui-markdown :where(img) {
+  max-width: 100%;
+  height: auto;
+}
+
+.aionui-markdown :where(table) {
+  border-collapse: collapse;
+  max-width: 100%;
+}
+.aionui-markdown :where(th) {
+  padding: 8px;
+  border: 1px solid var(--bg-3);
+  background-color: var(--bg-1);
+  font-weight: bold;
+}
+.aionui-markdown :where(td) {
+  padding: 8px;
+  border: 1px solid var(--bg-3);
+  min-width: 120px;
+}
+
+/* KaTeX uses its own line-height for fractions/superscripts */
+.aionui-markdown :where(.katex, .katex *) {
+  line-height: normal;
+}
+.aionui-markdown :where(.katex-display) {
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.5em 0;
+}
+
+/* Streamdown/Shiki dual-theme: Shiki puts light colors in inline color/background and
+   dark colors in inline custom properties (--shiki-dark / --shiki-dark-bg). Streamdown
+   ships no CSS and relies on Tailwind `dark:` classes (this app uses UnoCSS, so those
+   classes have no backing). Activate the dark palette ourselves under data-theme='dark'.
+   The code block <pre> carries data-streamdown="code-block-body"; tokens are descendant spans. */
+[data-theme='dark'] .aionui-markdown [data-streamdown='code-block-body'] {
+  /* --shiki-dark-bg lives on per-token spans, not reliably on <pre>; fall back to an app
+     dark surface so the code block container is never a light box in dark mode. */
+  background-color: var(--shiki-dark-bg, var(--bg-2)) !important;
+  color: var(--shiki-dark, inherit) !important;
+}
+[data-theme='dark'] .aionui-markdown [data-streamdown='code-block-body'] span {
+  color: var(--shiki-dark) !important;
+  background-color: var(--shiki-dark-bg) !important;
+}
+
+/* Streamdown native code block chrome. Streamdown ships no CSS and styles the header/buttons
+   with Tailwind classes UnoCSS does not back. Render a clean bordered block with no language
+   label, no download button, and a single styled copy button. Selectors use stable
+   data-streamdown hooks (not Tailwind class names). */
+.aionui-markdown [data-streamdown='code-block'] {
+  margin-block: 12px;
+  border: 1px solid var(--bg-3);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.aionui-markdown [data-streamdown='code-block-header'] {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  min-height: 30px;
+  padding: 2px 6px;
+  background: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+}
+/* hide the language label (first <span> in the header) */
+.aionui-markdown [data-streamdown='code-block-header'] > span:first-child {
+  display: none;
+}
+/* hide the download button (no per-button control in this Streamdown version) */
+.aionui-markdown [data-streamdown='code-block-download-button'] {
+  display: none;
+}
+/* style the copy button */
+.aionui-markdown [data-streamdown='code-block-copy-button'] {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border: none;
+  background: transparent;
+  border-radius: 4px;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.aionui-markdown [data-streamdown='code-block-copy-button']:hover {
+  background: var(--bg-3);
+  color: var(--text-primary);
+}
+/* code body lives inside the wrapper, which owns border/radius/margin */
+.aionui-markdown [data-streamdown='code-block-body'] {
+  margin: 0;
+  border-radius: 0;
+  padding: 12px 16px;
+}
+
+/* Mermaid diagrams render statically — no pan/zoom/drag. Streamdown attaches an
+   unconditional wheel + pointer pan-zoom handler that its `controls` flag does NOT
+   disable; pointer-events:none (inherited by the inner pan-zoom layer) stops those
+   handlers from receiving events, so the page scrolls normally over the diagram. */
+.aionui-markdown [data-streamdown='mermaid-block'] {
+  pointer-events: none;
+}

@@ -58,6 +58,7 @@
   "mermaidTitle": "Mermaid 図",
   "largeTextTruncatedHint": "大きなファイルのプレビューでは、パフォーマンスのため先頭 {{count}} 文字のみ表示します。",
   "truncatedBanner": "プレビュー内容は途中で切り詰められています。完全な内容はダウンロードして確認してください。",
+  "aiWriting": "AI が書き込み中…",
   "errors": {
     "missingFilePath": "ファイルパスが指定されていません",
     "openWithoutPath": "ファイルパスがないため開けません",

@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Спільнота:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-10.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -76,7 +76,7 @@
 AionUi постачається з повноцінним рушієм AI-агентів. На відміну від інструментів, що вимагають окремого встановлення CLI-агентів, **AionUi працює одразу після встановлення**.
 
 - **Не потрібно встановлювати CLI-інструменти** — рушій агента вже вбудований
-- **Жодних складних налаштувань** — увійдіть через Google або додайте будь-який API ключ
+- **Жодних складних налаштувань** — додайте будь-який API ключ, щоб почати
 - **Повні можливості агента** — читання/запис файлів, веб-пошук, генерація зображень, MCP інструменти
 - **Готові до використання асистенти** — 21 вбудований професійний асистент (Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator та інші)
 
@@ -185,13 +185,13 @@ AionUi постачається з повноцінним рушієм AI-аге
 
 Інші додатки дають лише вікно чату. **AionUi дає повноцінного агента для спільної роботи.**
 
-| Ваш API ключ                                | Що ви отримуєте             |
-| :------------------------------------------ | :-------------------------- |
-| Gemini API (або Google login — безкоштовно) | Cowork агент на базі Gemini |
-| OpenAI API                                  | Cowork агент на базі GPT    |
-| Anthropic API                               | Cowork агент на базі Claude |
-| Ollama / LM Studio (локально)               | Локальний Cowork агент      |
-| Шлюз NewAPI                                 | Доступ до 20+ моделей       |
+| Ваш API ключ                  | Що ви отримуєте             |
+| :---------------------------- | :-------------------------- |
+| Gemini API                    | Cowork агент на базі Gemini |
+| OpenAI API                    | Cowork агент на базі GPT    |
+| Anthropic API                 | Cowork агент на базі Claude |
+| Ollama / LM Studio (локально) | Локальний Cowork агент      |
+| Шлюз NewAPI                   | Доступ до 20+ моделей       |
 
 Ті ж самі можливості — читання/запис файлів, веб-пошук, генерація зображень — незалежно від того, яка модель використовується. AionUi підтримує **30+ AI-платформ**.
 
@@ -376,7 +376,7 @@ brew install aionui
 ### Початок роботи за 3 кроки
 
 1. **Встановіть** AionUi
-2. **Увійдіть** через Google або додайте API ключ
+2. **Додайте** будь-який API ключ, щоб почати
 3. **Почніть працювати** — вбудований агент уже готовий до дії
 
 ---

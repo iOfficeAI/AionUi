@@ -78,4 +78,41 @@ describe('normalizeDbMessage', () => {
       },
     });
   });
+
+  it('prefers persisted workspace runtime errors over legacy unknown-upstream payloads', () => {
+    const normalized = normalizeDbMessage({
+      id: 'tip-runtime-workspace',
+      type: 'tips',
+      conversation_id: 'conversation-1',
+      position: 'center',
+      status: 'error',
+      content: JSON.stringify({
+        content: 'The current Agent failed to run in this workspace path',
+        type: 'error',
+        source: 'send_failed',
+        code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+        details: {
+          workspace_path: '/Users/zhoukai/Documents/Archive ',
+        },
+        error: {
+          message: 'The current Agent failed to run in this workspace path',
+          code: 'UNKNOWN_UPSTREAM_ERROR',
+          ownership: 'unknown_upstream',
+          detail: '/Users/zhoukai/Documents/Archive . Make sure the workspace path exists and is accessible.',
+          retryable: true,
+          feedback_recommended: true,
+        },
+      }),
+    } as unknown as IMessageTips) as IMessageTips;
+
+    expect(normalized.content.error).toEqual({
+      message: 'The current Agent failed to run in this workspace path',
+      code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
+      ownership: 'aionui',
+      detail: '/Users/zhoukai/Documents/Archive . Make sure the workspace path exists and is accessible.',
+      workspacePath: '/Users/zhoukai/Documents/Archive ',
+      retryable: false,
+      feedback_recommended: false,
+    });
+  });
 });

@@ -91,6 +91,11 @@
   "noAgentsAvailable": "利用可能なエージェントはありません",
   "noModelConfigured": "モデルが設定されていません。設定ページで設定してください。",
   "createFailed": "会話の作成に失敗しました",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "選択したワークスペースパスは利用できません。ワークスペースパス「{{workspacePath}}」が実在し、アクセス可能であることを確認してください。"
+    }
+  },
   "agentError": {
     "fallbackTitle": "エージェントが応答できませんでした",
     "errorCode": "エラーコード",
@@ -255,6 +260,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "モデルプロバイダーが空の応答を返しました",
         "body": "プロバイダーはリクエストを完了しましたが、利用可能な内容を返しませんでした。一度再試行し、繰り返す場合はプロバイダーを切り替えてください。"
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "現在の Agent はこのワークスペースパスで実行に失敗しました",
+        "body": "現在のワークスペースパスが実在することを確認してください。",
+        "bodyWithPath": "現在の Agent はワークスペースパス「{{workspacePath}}」で実行に失敗しました。ワークスペースパスが実在することを確認してください。"
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上流のエージェントまたはプロバイダーで失敗しました",
@@ -463,6 +473,9 @@
       "failed": "失敗",
       "unsupported": "非対応"
     }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "実行環境を準備しています。初回起動は少し時間がかかる場合があります。"
   },
   "sendbox": {
     "hint": "/ でコマンド、@ でファイルを参照"

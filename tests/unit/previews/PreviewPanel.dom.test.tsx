@@ -4,7 +4,26 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { describe, it, expect } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+
+beforeEach(() => {
+  window.__backendPort = 13400;
+  vi.stubGlobal(
+    'fetch',
+    vi.fn(async () => {
+      return new Response(JSON.stringify({ data: {} }), {
+        status: 200,
+        headers: { 'Content-Type': 'application/json' },
+      });
+    })
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.resetModules();
+  delete window.__backendPort;
+});
 
 describe('PreviewPanel', () => {
   it('is a React component module that exports a default function', async () => {

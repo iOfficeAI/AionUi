@@ -1,6 +1,6 @@
 ---
 name: bump-version
-description: Use when bumping the AionUi version: query AionCore release, verify artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, wait for merge, tag release.
+description: Use when bumping the AionUi version: query AionCore release, verify artifacts, update package.json, generate CHANGELOG, branch, commit, push, create PR, auto-merge, tag release.
 ---
 
 # Bump Version
@@ -182,7 +182,7 @@ If `--skip-core`:
 git commit -m "chore: bump version to {target}"
 ```
 
-### Step 11: Create PR
+### Step 11: Create PR + Enable Auto-Merge
 
 ```bash
 gh pr create --base main \
@@ -190,13 +190,40 @@ gh pr create --base main \
   --body "<the CHANGELOG entry generated in Step 7>"
 ```
 
-Display PR URL. Then pause:
+Capture the PR number from the output. Then enable auto-merge (squash):
 
-> "PR created: {URL}. Please confirm when it has been merged to continue."
+```bash
+gh pr merge {PR_NUMBER} --auto --squash
+```
 
-**Wait for user confirmation before proceeding.**
+Display: "PR created: {URL}. Auto-merge enabled — will merge automatically once CI passes."
 
-### Step 12: Cleanup + Tag
+### Step 12: Poll for Merge
+
+Check PR merge status every 5 minutes:
+
+```bash
+gh pr view {PR_NUMBER} --json state,mergedAt,mergeStateStatus
+```
+
+**Decision logic:**
+
+| `state`                                                                     | Action                                                                                 |
+| --------------------------------------------------------------------------- | -------------------------------------------------------------------------------------- |
+| `MERGED`                                                                    | Proceed to Step 13                                                                     |
+| `CLOSED` (not merged)                                                       | Stop: "PR was closed without merging. Please check and confirm how to proceed."        |
+| `OPEN` with `mergeStateStatus: BLOCKED` or CI failure persisting > 3 checks | Stop: "PR merge is blocked (CI failure or review required). Please investigate: {URL}" |
+| `OPEN` otherwise                                                            | Wait 5 minutes, check again                                                            |
+
+**Maximum wait:** 30 minutes (6 checks). If not merged after 30 minutes:
+
+> "PR has not merged after 30 minutes. Please check status: {URL}. Reply 'continue' when merged, or 'abort' to stop."
+
+**Wait for user confirmation only in this timeout case.**
+
+### Step 13: Cleanup + Tag
+
+After merge is confirmed (either via polling or user confirmation):
 
 ```bash
 git checkout main
@@ -241,6 +268,7 @@ Display: "Tag v{target} created and pushed. Release build triggered! Action: {ru
  8. lint + format + tsc
  9. vitest run
 10. branch → commit → push
-11. gh pr create → wait for merge
-12. cleanup → git tag → git push tag
+11. gh pr create → enable auto-merge (squash)
+12. poll merge status (every 5min, max 30min) → stop on failure
+13. cleanup → git tag → git push tag
 ```

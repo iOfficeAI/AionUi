@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Community:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="./resources/wx-10.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -76,7 +76,7 @@
 AionUi ships with a complete AI agent engine. Unlike tools that require you to install CLI agents separately, **AionUi works the moment you install it**.
 
 - **No CLI tools to install** — the agent engine is built in
-- **No complex setup** — sign in with Google or paste any API key
+- **No complex setup** — paste any API key to get started
 - **Full agent capabilities** — file read/write, web search, image generation, MCP (Model Context Protocol) tools
 - **Ready-to-use assistants** — 21 built-in professional assistants (Cowork, PPT Creator, Word Creator, Word Form Creator, Excel Creator, Morph PPT, Morph PPT 3D, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator, and more) ready to use immediately
 
@@ -186,14 +186,14 @@ Run multiple AI agents as an organized team: a **Leader** agent receives your in
 
 Other AI apps give you a chatbox with your API key. **AionUi gives you a full Cowork agent.**
 
-| Your API Key                            | What You Get                                |
-| :-------------------------------------- | :------------------------------------------ |
-| Gemini API Key (or Google login — free) | Gemini-powered Cowork Agent                 |
-| OpenAI API Key                          | GPT-powered Cowork Agent                    |
-| Anthropic API Key                       | Claude-powered Cowork Agent                 |
-| AWS Bedrock credentials                 | Bedrock-powered Agent via Aion CLI (aionrs) |
-| Ollama / LM Studio (local)              | Local model Cowork Agent                    |
-| NewAPI Gateway                          | Unified access to 20+ models                |
+| Your API Key               | What You Get                                |
+| :------------------------- | :------------------------------------------ |
+| Gemini API Key             | Gemini-powered Cowork Agent                 |
+| OpenAI API Key             | GPT-powered Cowork Agent                    |
+| Anthropic API Key          | Claude-powered Cowork Agent                 |
+| AWS Bedrock credentials    | Bedrock-powered Agent via Aion CLI (aionrs) |
+| Ollama / LM Studio (local) | Local model Cowork Agent                    |
+| NewAPI Gateway             | Unified access to 20+ models                |
 
 Same agent capabilities — file read/write, web search, image generation, tool use — regardless of which model powers it. AionUi supports **30+ AI platforms** including cloud services and local deployments.
 
@@ -538,7 +538,7 @@ Deep AI Office Scenario Support:
 
 <details>
 <summary><strong>Q: Do I need to install Gemini CLI or Claude Code first?</strong></summary>
-A: <strong>No.</strong> AionUi has a built-in AI agent that works immediately after installation. Just sign in with Google or enter any API key. If you also have CLI tools like Claude Code or Gemini CLI installed, AionUi will auto-detect and integrate them for even more capabilities.
+A: <strong>No.</strong> AionUi has a built-in AI agent that works immediately after installation. Just enter any API key to get started. If you also have CLI tools like Claude Code or Gemini CLI installed, AionUi will auto-detect and integrate them for even more capabilities.
 </details>
 
 <details>
@@ -548,7 +548,7 @@ A: AionUi is your <strong>private Cowork workspace</strong>. The built-in agent 
 
 <details>
 <summary><strong>Q: Is it free?</strong></summary>
-A: AionUi is completely free and open source. You can sign in with Google to use Gemini for free, or use API keys from any provider you prefer.
+A: AionUi is completely free and open source. You only pay for the API usage of whichever provider you choose, and you can use API keys from any provider you prefer.
 </details>
 
 <details>
@@ -629,7 +629,7 @@ brew install aionui
 ### Get Started in 3 Steps
 
 1. **Install** AionUi
-2. **Sign in** with Google account or enter any API key
+2. **Enter** any API key to get started
 3. **Start Coworking** — the built-in AI agent is ready to go
 
 ### 📖 Detailed Guides
@@ -677,7 +677,7 @@ brew install aionui
 - [Report Issues](https://github.com/iOfficeAI/AionUi/issues) — bugs and feature requests
 - [Release Updates](https://github.com/iOfficeAI/AionUi/releases) — get the latest version
 - [Discord Community](https://discord.gg/2QAwJn7Egx) — English community
-- [WeChat Group](./resources/wx-9.png) — Chinese community
+- [WeChat Group](./resources/wx-10.png) — Chinese community
 
 ### Contributing
 

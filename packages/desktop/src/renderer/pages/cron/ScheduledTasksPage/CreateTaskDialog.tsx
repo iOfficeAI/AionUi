@@ -24,6 +24,7 @@ import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
+import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -485,9 +486,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       onClose();
     } catch (err) {
-      if (err instanceof Error) {
-        Message.error(err.message);
-      }
+      Message.error(getConversationCreateErrorMessage(err, t));
     } finally {
       setSubmitting(false);
     }

@@ -240,6 +240,15 @@ export const conversation = {
     (p) => ({ status: p.status })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  userCreated: wsEmitter<{
+    conversation_id: string;
+    msg_id: string;
+    content: string;
+    position: 'right';
+    status: 'finish';
+    hidden: boolean;
+    created_at: number;
+  }>('message.userCreated'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
@@ -258,13 +267,13 @@ export const conversation = {
         };
     const rawRuntime = (r.runtime ?? {}) as Record<string, unknown>;
     const runtime: IConversationTurnCompletedEvent['runtime'] = {
+      state: (rawRuntime.state ?? 'idle') as IConversationTurnCompletedEvent['runtime']['state'],
+      can_send_message: (rawRuntime.can_send_message ?? rawRuntime.canSendMessage ?? true) as boolean,
       has_task: (rawRuntime.has_task ?? rawRuntime.hasTask ?? false) as boolean,
       task_status: (rawRuntime.task_status ??
         rawRuntime.taskStatus) as IConversationTurnCompletedEvent['runtime']['task_status'],
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
-      db_status: (rawRuntime.db_status ??
-        rawRuntime.dbStatus) as IConversationTurnCompletedEvent['runtime']['db_status'],
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -325,6 +334,10 @@ export const conversation = {
   },
 };
 
+export const runtime = {
+  statusChanged: wsEmitter<IRuntimeStatusEvent>('runtime.statusChanged'),
+};
+
 // ---------------------------------------------------------------------------
 // CDP status / config types (used by application, stays IPC)
 // ---------------------------------------------------------------------------
@@ -348,6 +361,33 @@ export interface ICdpConfig {
   port?: number;
 }
 
+export type RuntimeStatusScopeKind = 'conversation' | 'mcp' | 'custom_agent';
+export type RuntimeResourceKind = 'node' | 'acp_tool';
+export type RuntimeStatusPhase = 'waiting_for_lock' | 'downloading' | 'extracting' | 'validating' | 'ready' | 'failed';
+export type RuntimeFailureKind =
+  | 'timeout'
+  | 'download_failed'
+  | 'http_status'
+  | 'checksum_mismatch'
+  | 'validation_failed'
+  | 'unsupported_platform'
+  | 'unknown';
+
+export interface IRuntimeStatusScope {
+  kind: RuntimeStatusScopeKind;
+  id: string;
+}
+
+export interface IRuntimeStatusEvent {
+  resource: RuntimeResourceKind;
+  resource_id?: string;
+  scope: IRuntimeStatusScope;
+  phase: RuntimeStatusPhase;
+  failure_kind?: RuntimeFailureKind;
+  message?: string;
+  status_code?: number;
+}
+
 export interface IStartOnBootStatus {
   supported: boolean;
   enabled: boolean;
@@ -365,6 +405,15 @@ export interface IGpuStatus {
   autoDisabled: boolean;
   crashCount: number;
   lastCrashAt: number | null;
+}
+
+export type IRendererLogLevel = 'info' | 'warn' | 'error';
+
+export interface IRendererLogEntry {
+  level: IRendererLogLevel;
+  tag: string;
+  message: string;
+  data?: unknown;
 }
 
 // ---------------------------------------------------------------------------
@@ -403,6 +452,7 @@ export const application = {
   setGpuOverride: bridge.buildProvider<IBridgeResponse<IGpuStatus>, { override: IGpuOverride | null }>(
     'app.set-gpu-override'
   ),
+  writeRendererLog: bridge.buildProvider<void, IRendererLogEntry>('app.write-renderer-log'),
   logStream: bridge.buildEmitter<{ level: 'log' | 'warn' | 'error'; tag: string; message: string; data?: unknown }>(
     'app.log-stream'
   ),
@@ -546,7 +596,9 @@ export const fs = {
     }>,
     void
   >('/api/skills/detect-external'),
-  importSkillWithSymlink: httpPost<{ skill_name: string }, { skill_path: string }>('/api/skills/import-symlink'),
+  importSkillWithSymlink: httpPost<{ skill_name: string; skill_names?: string[] }, { skill_path: string }>(
+    '/api/skills/import-symlink'
+  ),
   deleteSkill: httpDelete<void, { skill_name: string }>((p) => `/api/skills/${p.skill_name}`),
   getSkillPaths: httpGet<{ user_skills_dir: string; builtin_skills_dir: string }, void>('/api/skills/paths'),
   getCustomExternalPaths: httpGet<Array<{ name: string; path: string }>, void>('/api/skills/external-paths'),
@@ -713,7 +765,7 @@ export const acpConversation = {
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
-    { command: string; acp_args?: string[]; env?: Record<string, string> }
+    { command: string; acp_args?: string[]; env?: Record<string, string>; runtime_scope_id?: string }
   >('/api/agents/custom/try-connect'),
   createCustomAgent: httpPost<
     AgentMetadata,
@@ -765,7 +817,7 @@ export const acpConversation = {
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<void, { conversation_id: string; mode: string }>(
+  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
   ),
@@ -782,7 +834,7 @@ export const acpConversation = {
     (p) => `/api/conversations/${p.conversation_id}/model`,
     { silentStatuses: [404] }
   ),
-  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
+  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
     (p) => ({ model_id: p.model_id })
   ),
@@ -843,11 +895,16 @@ export const mcpService = {
         _meta?: Record<string, unknown>;
       }>;
       error?: string;
+      code?: string;
+      details?: unknown;
       needsAuth?: boolean;
+      needs_auth?: boolean;
       authMethod?: 'oauth' | 'basic';
+      auth_method?: 'oauth' | 'basic';
       wwwAuthenticate?: string;
+      www_authenticate?: string;
     },
-    IMcpServer
+    IMcpServer & { runtime_scope_id?: string }
   >('/api/mcp/test-connection'),
   checkOAuthStatus: httpPost<{ authenticated: boolean }, { server_url: string }>('/api/mcp/oauth/check-status'),
   loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server_url: string }>('/api/mcp/oauth/login'),
@@ -1055,12 +1112,12 @@ export const windowControls = {
 };
 
 // ---------------------------------------------------------------------------
-// System Settings — routed to /api/settings/*
+// System Settings — routed to /api/settings/* unless they need Electron-native side effects.
 // ---------------------------------------------------------------------------
 
 export const systemSettings = {
-  getCloseToTray: httpGet<boolean, void>('/api/settings/client?key=closeToTray'),
-  setCloseToTray: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({ closeToTray: p.enabled })),
+  getCloseToTray: bridge.buildProvider<boolean, void>('system-settings:get-close-to-tray'),
+  setCloseToTray: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-close-to-tray'),
   getNotificationEnabled: httpGet<boolean, void>('/api/settings/client?key=notificationEnabled'),
   setNotificationEnabled: httpPut<void, { enabled: boolean }>('/api/settings/client', (p) => ({
     notificationEnabled: p.enabled,
@@ -1089,6 +1146,10 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  ensureNodeRuntime: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope }>('/api/system/ensure-node-runtime'),
+  ensureManagedAcpTool: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope; tool_id: string }>(
+    '/api/system/ensure-managed-acp-tool'
+  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1480,11 +1541,12 @@ export interface IConversationTurnCompletedEvent {
   detail: string;
   can_send_message: boolean;
   runtime: {
+    state: 'idle' | 'starting' | 'running' | 'waiting_confirmation';
+    can_send_message: boolean;
     has_task: boolean;
     task_status?: 'pending' | 'running' | 'finished';
     is_processing: boolean;
     pending_confirmations: number;
-    db_status?: 'pending' | 'running' | 'finished';
   };
   workspace: string;
   model: {

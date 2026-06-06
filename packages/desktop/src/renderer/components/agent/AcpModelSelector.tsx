@@ -6,11 +6,12 @@
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
-import React from 'react';
+import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
 
@@ -29,11 +30,21 @@ const AcpModelSelector: React.FC<{
   backend?: string;
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
-}> = ({ conversation_id, backend, initialModelId }) => {
+  /** Wait for ACP warmup before reading runtime model info. */
+  waitForWarmup?: boolean;
+}> = ({ conversation_id, backend, initialModelId, waitForWarmup = false }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
-  const { model_info, canSwitch, selectModel } = useAcpModelInfo({ conversation_id, backend, initialModelId });
+  const prepareRuntime = useCallback(() => warmupConversation(conversation_id), [conversation_id]);
+  const { model_info, canSwitch, selectModel } = useAcpModelInfo({
+    conversation_id,
+    backend,
+    initialModelId,
+    prepareRuntime: waitForWarmup ? prepareRuntime : undefined,
+    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+    onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
+  });
 
   const defaultModelLabel = t('common.defaultModel');
   const rawDisplayLabel =

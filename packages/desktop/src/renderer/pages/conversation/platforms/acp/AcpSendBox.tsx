@@ -1,7 +1,6 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
-import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
@@ -33,6 +32,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts } from '@/renderer/services/FileService';
@@ -44,6 +44,7 @@ import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { buildSendFailureError } from './buildSendFailureError';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
 
@@ -56,28 +57,6 @@ const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
 
 const EMPTY_AT_PATH: Array<string | FileOrFolderItem> = [];
 const EMPTY_UPLOAD_FILES: string[] = [];
-
-const buildSendFailureError = (error: unknown, message: string): AgentStreamErrorInfo => {
-  if (isBackendHttpError(error) && error.code === 'BAD_GATEWAY') {
-    return {
-      message,
-      code: 'UNKNOWN_UPSTREAM_ERROR',
-      ownership: 'unknown_upstream',
-      detail: message,
-      retryable: true,
-      feedback_recommended: true,
-    };
-  }
-
-  return {
-    message,
-    code: 'AIONUI_INTERNAL_ERROR',
-    ownership: 'aionui',
-    detail: message,
-    retryable: true,
-    feedback_recommended: true,
-  };
-};
 
 const useSendBoxDraft = (conversation_id: string) => {
   const { data, mutate } = useAcpSendBoxDraft(conversation_id);
@@ -149,17 +128,35 @@ const AcpSendBox: React.FC<{
     }));
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
+  const prepareRuntimeSync = useCallback(async () => {
+    if (teamPermission) {
+      await teamPermission.warmupSession();
+    }
+    await warmupConversation(conversation_id);
+  }, [conversation_id, teamPermission]);
 
   // Drive the mobile sheet's model entry off the same source AcpModelSelector uses
-  const { model_info, canSwitch: canSwitchModel, selectModel } = useAcpModelInfo({ conversation_id, backend });
+  const {
+    model_info,
+    canSwitch: canSwitchModel,
+    selectModel,
+  } = useAcpModelInfo({
+    conversation_id,
+    backend,
+    prepareRuntime: prepareRuntimeSync,
+    enabled: isMobile,
+    onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
+    onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
+  });
   const availableAgentModes = useAgentModesForBackend(backend);
 
   // Mirror AgentModeSelector's getMode sync so the sheet shows the live mode label.
   useEffect(() => {
+    if (!isMobile || !isMobileSheetOpen) return;
     if (!conversation_id) return;
     let cancelled = false;
-    void ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+    void prepareRuntimeSync()
+      .then(() => ipcBridge.acpConversation.getMode.invoke({ conversation_id }))
       .then((result) => {
         if (cancelled || !result) return;
         if (result.initialized !== false) {
@@ -170,23 +167,25 @@ const AcpSendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, isMobile, isMobileSheetOpen, prepareRuntimeSync]);
 
   const handleSheetModeChange = useCallback(
     async (mode: string) => {
       if (mode === currentMode) return;
       try {
-        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
-        setCurrentMode(mode);
-        if (backend) void savePreferredMode(backend, mode);
-        if (isLeaderInTeam) teamPermission?.propagateMode?.(mode);
-        Message.success('Mode switched');
+        await prepareRuntimeSync();
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        const confirmedMode = confirmed.mode || mode;
+        setCurrentMode(confirmedMode);
+        if (backend) void savePreferredMode(backend, confirmedMode);
+        if (isLeaderInTeam) teamPermission?.propagateMode?.(confirmedMode);
+        Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AcpSendBox] Failed to switch mode via sheet:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       }
     },
-    [backend, conversation_id, currentMode, isLeaderInTeam, teamPermission]
+    [backend, conversation_id, currentMode, isLeaderInTeam, prepareRuntimeSync, t, teamPermission]
   );
 
   // In team mode, warmup the agent then fetch slash commands
@@ -198,8 +197,10 @@ const AcpSendBox: React.FC<{
       .then(() => {
         fetchSlashCommands();
       })
-      .catch(() => {});
-  }, [teamPermission, conversation_id, fetchSlashCommands]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [teamPermission, conversation_id, fetchSlashCommands, t]);
 
   const handleContentChange = useCallback(
     (val: string) => {
@@ -253,6 +254,7 @@ const AcpSendBox: React.FC<{
     backend,
     workspacePath,
     setAiProcessing,
+    resetState,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
   });
@@ -266,30 +268,15 @@ const AcpSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+        await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessageRef.current({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: { content: displayMessage },
-          created_at: Date.now(),
-        });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
-        const errorMsg = parseError(error) ?? t('common.unknownError');
+        const errorMsg =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
@@ -344,6 +331,7 @@ Please check your local CLI tool authentication status`,
           );
         }
 
+        resetState();
         setAiProcessing(false);
         throw error;
       }
@@ -352,7 +340,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
+    [backend, checkAndUpdateTitle, conversation_id, resetState, setAiProcessing, t, workspacePath]
   );
 
   const {
@@ -630,6 +618,7 @@ Please check your local CLI tool authentication status`,
               compactLabelPrefix={t('agentMode.permission')}
               hideCompactLabelPrefixOnMobile
               onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+              beforeRuntimeSync={prepareRuntimeSync}
             />
           ) : undefined
         }
