@@ -189,6 +189,14 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     launchPath: '/home/faramix/bin/novamaster-open-aionui-native',
   },
   {
+    id: 'novacore-control',
+    name: 'NovaCore Control',
+    role: 'Control-plane source',
+    kind: 'local',
+    rootPath: '/mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack',
+    openUrl: 'file:///mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack/NovaCore%20Control%20Plane.md',
+  },
+  {
     id: 'jarvis',
     name: 'Jarvis',
     role: 'Command cockpit API',

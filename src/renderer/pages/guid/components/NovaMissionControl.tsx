@@ -537,7 +537,18 @@ const NovaMissionControl: React.FC = () => {
 
   // ── Priority services ──
   const priorityServices = useMemo(() => {
-    const order = ['aionui', 'jarvis', 'openclaw', 'space-agent', 'hermes', 'claw3d', 'clawmem', 'ollama', 'video-factory'];
+    const order = [
+      'aionui',
+      'novacore-control',
+      'jarvis',
+      'openclaw',
+      'space-agent',
+      'hermes',
+      'claw3d',
+      'clawmem',
+      'ollama',
+      'video-factory',
+    ];
     const map = new Map((stack?.services || []).map((s) => [s.id, s]));
     return order.map((id) => map.get(id)).filter(Boolean) as NovaService[];
   }, [stack]);

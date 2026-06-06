@@ -68,6 +68,7 @@ export const NOVA_AGENT_TEAM_ACTIONS: NovaAgentTeamAction[] = [
 
 const NOVA_PRIORITY_SERVICE_IDS = [
   'aionui',
+  'novacore-control',
   'jarvis',
   'openclaw',
   'goclaw',
