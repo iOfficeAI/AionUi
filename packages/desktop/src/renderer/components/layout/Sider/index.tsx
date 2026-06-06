@@ -9,6 +9,7 @@ import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useTeamCreatedRedirect } from '@renderer/pages/team/hooks/useTeamCreatedRedirect';
 import SiderFooter from './SiderFooter';
 import SiderModeRibbon from './SiderModeRibbon';
+import SiderWorkspacePanel from './SiderWorkspacePanel';
 
 const SettingsSider = React.lazy(() => import('@renderer/pages/settings/components/SettingsSider'));
 
@@ -114,7 +115,9 @@ const Sider: React.FC<SiderProps> = ({ onSessionClick, collapsed = false }) => {
           <Suspense fallback={<div className='size-full' />}>
             <SettingsSider collapsed={collapsed} tooltipEnabled={tooltipEnabled} />
           </Suspense>
-        ) : null}
+        ) : (
+          <SiderWorkspacePanel collapsed={collapsed} />
+        )}
       </div>
       {/* Footer */}
       <SiderFooter

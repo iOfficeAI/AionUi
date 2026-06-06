@@ -31,6 +31,10 @@ interface SiderModeRibbonProps {
 const SiderModeRibbon: React.FC<SiderModeRibbonProps> = ({ mode, collapsed = false, onBackToChat }) => {
   const { t } = useTranslation();
 
+  if (mode !== 'settings') {
+    return null;
+  }
+
   const divider = (
     <div
       className={classNames(
