@@ -55,6 +55,11 @@ type HealthCheckResult = {
   diagnostics: HealthCheckDiagnostics;
 };
 
+type ParsedBackendBoundaryError = {
+  code: string;
+  stage?: string;
+};
+
 type SpawnConfig = {
   port: number;
   dbPath: string;
@@ -103,6 +108,8 @@ export type BackendStartupErrorDetails = {
   exitCode?: number;
   signal?: NodeJS.Signals | string;
   causeMessage?: string;
+  backendBoundaryCode?: string;
+  backendBoundaryStage?: string;
   stdoutTail?: string;
   stderrTail?: string;
   resourcesPath?: string;
@@ -302,6 +309,18 @@ function getErrorCause(error: unknown): unknown {
   return (error as { cause?: unknown }).cause;
 }
 
+function parseBackendBoundaryError(text: string): ParsedBackendBoundaryError | undefined {
+  const lines = text.split(/\r?\n/).filter(Boolean);
+  for (let i = lines.length - 1; i >= 0; i -= 1) {
+    const line = lines[i];
+    const match = /^(BOOTSTRAP_[A-Z0-9_]+|CLI_[A-Z0-9_]+|MCP_[A-Z0-9_]+)\b(?:[^\n]*?\bstage=([^:\s]+))?/.exec(line);
+    if (match) {
+      return { code: match[1], stage: match[2] };
+    }
+  }
+  return undefined;
+}
+
 function applyHealthCheckErrorDiagnostics(diagnostics: HealthCheckDiagnostics, error: unknown): void {
   const cause = getErrorCause(error);
   diagnostics.healthCheckLastError = getErrorMessage(error);
@@ -485,8 +504,9 @@ export class BackendLifecycleManager {
       message: string,
       cause?: unknown,
       extra?: Partial<BackendStartupErrorDetails>
-    ) =>
-      new BackendStartupError(
+    ) => {
+      const boundary = parseBackendBoundaryError(stderrTail);
+      return new BackendStartupError(
         message,
         {
           stage,
@@ -499,6 +519,8 @@ export class BackendLifecycleManager {
           workDir: dirs?.workDir,
           backendPid,
           causeMessage: getErrorMessage(cause),
+          backendBoundaryCode: boundary?.code,
+          backendBoundaryStage: boundary?.stage,
           stdoutTail: stdoutTail || undefined,
           stderrTail: stderrTail || undefined,
           serverListeningObserved,
@@ -508,6 +530,7 @@ export class BackendLifecycleManager {
         },
         cause
       );
+    };
 
     const args = buildSpawnArgs({
       port: this._port,

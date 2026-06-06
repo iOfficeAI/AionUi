@@ -34,6 +34,24 @@ describe('classifyBackendStartupFailure', () => {
     });
   });
 
+  it('preserves backend bootstrap code and stage for generic startup failures', () => {
+    const error = new Error('aioncore exited before health check passed') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'early_exit',
+      stderrTail: 'BOOTSTRAP_DATA_INIT_FAILED stage=database.open: failed to initialize application data',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.open',
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_startup_failed',
+      backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+      backendBoundaryStage: 'database.open',
+    });
+  });
+
   it('classifies packaged app resources missing from installation as incomplete installation', () => {
     const error = new Error('aioncore startup failed while resolving backend binary') as Error & {
       details?: Record<string, unknown>;

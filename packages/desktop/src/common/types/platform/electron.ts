@@ -36,6 +36,8 @@ export interface BackendStartupFailureInfo {
   missingPetStatesDir?: boolean;
   missingPwaDir?: boolean;
   reason: BackendStartupFailureReason;
+  backendBoundaryCode?: string;
+  backendBoundaryStage?: string;
   runtime?: 'glibc';
   requiredVersions?: string[];
   missingResources?: string[];

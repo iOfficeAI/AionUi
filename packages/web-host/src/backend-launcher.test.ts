@@ -363,6 +363,39 @@ describe('BackendLifecycleManager.start (success path)', () => {
 });
 
 describe('BackendLifecycleManager.start (health timeout)', () => {
+  it('captures backend boundary code and stage from early-exit stderr', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33337) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', {
+      cacheDir: '/cache',
+      workDir: '/work',
+      logDir: '/log',
+    });
+
+    await Promise.resolve();
+    child.stderr?.emit(
+      'data',
+      Buffer.from(
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+      )
+    );
+    child.emit('exit', 1, null);
+
+    await expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+        backendBoundaryStage: 'database.open',
+      }),
+    });
+  });
+
   it('kills child and reports listen_timeout when aioncore never reports a port', async () => {
     vi.useFakeTimers();
     const child = makeFakeChild();

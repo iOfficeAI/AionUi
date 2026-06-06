@@ -13,6 +13,8 @@ type ErrorWithDetails = Error & {
     causeMessage?: unknown;
     stderrTail?: unknown;
     stdoutTail?: unknown;
+    backendBoundaryCode?: unknown;
+    backendBoundaryStage?: unknown;
     runtimeKey?: unknown;
     binaryName?: unknown;
     bundledDirExists?: unknown;
@@ -125,7 +127,8 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
 }
 
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
-  const incompleteInstallation = classifyIncompleteInstallation(getBackendStartupDetails(error));
+  const details = getBackendStartupDetails(error);
+  const incompleteInstallation = classifyIncompleteInstallation(details);
   if (incompleteInstallation) return incompleteInstallation;
 
   const text = collectBackendStartupText(error);
@@ -138,5 +141,14 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
     };
   }
 
-  return { reason: 'backend_startup_failed' };
+  const backendBoundaryCode =
+    typeof details?.backendBoundaryCode === 'string' ? details.backendBoundaryCode : undefined;
+  const backendBoundaryStage =
+    typeof details?.backendBoundaryStage === 'string' ? details.backendBoundaryStage : undefined;
+
+  return {
+    reason: 'backend_startup_failed',
+    backendBoundaryCode,
+    backendBoundaryStage,
+  };
 }
