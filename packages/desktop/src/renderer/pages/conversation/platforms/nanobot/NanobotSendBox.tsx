@@ -26,13 +26,15 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
+import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
 import { allSupportedExts, type FileMetadata } from '@/renderer/services/FileService';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
-import { Tag } from '@arco-design/web-react';
+import { Message, Tag } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -162,7 +164,7 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         return;
       }
 
-      const isRunning = res?.status === 'running';
+      const isRunning = isConversationProcessing(res);
       setAiProcessing(isRunning);
       setHasHydratedRunningState(true);
     });
@@ -280,10 +282,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       } catch (error) {
         if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, workspacePath]
+    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, t, workspacePath]
   );
 
   const {
@@ -396,9 +399,10 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
 
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
-      } catch {
+      } catch (error) {
         sessionStorage.removeItem(processedKey);
         setAiProcessing(false);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
       }
     };
     processInitialMessage().catch(console.error);

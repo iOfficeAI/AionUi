@@ -91,6 +91,11 @@
   "noAgentsAvailable": "사용 가능한 에이전트가 없습니다",
   "noModelConfigured": "모델이 설정되지 않았습니다. 설정 페이지에서 설정하세요.",
   "createFailed": "대화 생성에 실패했습니다",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "선택한 작업공간 경로 \"{{workspacePath}}\" 안의 폴더 이름에는 공백이나 기타 공백 문자가 포함될 수 없습니다. 해당 폴더 이름을 변경하거나 모든 디렉터리 이름에 공백이 없는 작업공간 경로를 선택하세요."
+    }
+  },
   "agentError": {
     "fallbackTitle": "에이전트가 응답하지 못했습니다",
     "errorCode": "오류 코드",
@@ -255,6 +260,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "모델 제공자가 빈 응답을 반환했습니다",
         "body": "제공자가 요청을 완료했지만 사용할 수 있는 내용을 반환하지 않았습니다. 한 번 재시도하고 반복되면 제공자를 전환하세요."
+      },
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
+        "title": "이 작업공간 경로는 더 이상 실행에 지원되지 않습니다",
+        "body": "이 기존 대화 또는 작업에서 사용하는 작업공간 경로의 디렉터리 이름에 공백 또는 기타 공백 문자가 포함되어 있습니다. AionUi는 이런 경로에서 더 이상 메시지 전송을 지원하지 않습니다. 공백이 없는 작업공간 경로로 새 대화 또는 작업을 다시 만드세요.",
+        "bodyWithPath": "기존 작업공간 경로 \"{{workspacePath}}\" 에는 공백 또는 기타 공백 문자가 포함되어 있습니다. AionUi는 이 경로를 사용하는 대화나 작업에서 더 이상 메시지 전송을 지원하지 않습니다. 공백이 없는 작업공간 경로로 새 대화 또는 작업을 다시 만드세요."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "상위 에이전트 또는 제공자에서 오류가 발생했습니다",

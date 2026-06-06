@@ -34,7 +34,7 @@
 </p>
 
 <p align="center">
-  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-9.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
+  <strong>💬 Topluluk:</strong> <a href="https://discord.gg/2QAwJn7Egx" target="_blank">Discord (English)</a> | <a href="../../resources/wx-10.png" target="_blank">微信 (中文群)</a> | <a href="https://twitter.com/AionUI" target="_blank">Twitter</a>
 </p>
 
 ---
@@ -76,7 +76,7 @@
 AionUi tam bir AI Agent motoru ile birlikte gelir. CLI Agent'ları ayrı olarak kurmanızı gerektiren araçların aksine, **AionUi kurduğunuz anda çalışır**.
 
 - **Kurulacak CLI araçları yok** — Agent motoru yerleşiktir
-- **Karmaşık kurulum yok** — Google ile giriş yapın veya herhangi bir API anahtarı yapıştırın
+- **Karmaşık kurulum yok** — başlamak için herhangi bir API anahtarı yapıştırın
 - **Tam Agent yetenekleri** — dosya okuma/yazma, web arama, görüntü oluşturma, MCP araçları
 - **Kullanıma hazır asistanlar** — 21 yerleşik profesyonel asistan (Cowork, PPT Creator, Morph PPT, Morph PPT 3D, Word Creator, Word Form Creator, Excel Creator, Pitch Deck Creator, Dashboard Creator, Academic Paper Writer, Financial Model Creator ve daha fazlası) hemen kullanıma hazır
 
@@ -133,13 +133,13 @@ Birden fazla AI Agent'ı organize bir ekip olarak çalıştırın: bir **Leader*
 
 Diğer AI uygulamaları size API anahtarınızla bir sohbet kutusu verir. **AionUi size tam bir Cowork Agent verir.**
 
-| API Anahtarınız                                     | Ne Alırsınız                 |
-| :-------------------------------------------------- | :--------------------------- |
-| Gemini API Anahtarı (veya Google girişi — ücretsiz) | Gemini destekli Cowork Agent |
-| OpenAI API Anahtarı                                 | GPT destekli Cowork Agent    |
-| Anthropic API Anahtarı                              | Claude destekli Cowork Agent |
-| Ollama / LM Studio (yerel)                          | Yerel model Cowork Agent     |
-| NewAPI Gateway                                      | 20+ modele birleşik erişim   |
+| API Anahtarınız            | Ne Alırsınız                 |
+| :------------------------- | :--------------------------- |
+| Gemini API Anahtarı        | Gemini destekli Cowork Agent |
+| OpenAI API Anahtarı        | GPT destekli Cowork Agent    |
+| Anthropic API Anahtarı     | Claude destekli Cowork Agent |
+| Ollama / LM Studio (yerel) | Yerel model Cowork Agent     |
+| NewAPI Gateway             | 20+ modele birleşik erişim   |
 
 Aynı Agent yetenekleri — dosya okuma/yazma, web arama, görüntü oluşturma, araç kullanımı — hangi modelin güç verdiğine bakılmaksızın. AionUi bulut hizmetleri ve yerel dağıtımlar dahil **30+ AI platformunu** destekler.
 
@@ -482,7 +482,7 @@ Derin AI Ofis Senaryosu Desteği:
 
 <details>
 <summary><strong>S: Önce Gemini CLI veya Claude Code'u kurmam gerekiyor mu?</strong></summary>
-C: <strong>Hayır.</strong> AionUi kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Sadece Google ile giriş yapın veya herhangi bir API anahtarı girin. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, AionUi bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
+C: <strong>Hayır.</strong> AionUi kurulumdan hemen sonra çalışan yerleşik bir AI Agent'a sahiptir. Başlamak için herhangi bir API anahtarı girmeniz yeterli. Ayrıca Claude Code veya Gemini CLI gibi CLI araçlarınız da kuruluysa, AionUi bunları otomatik olarak algılayacak ve daha fazla yetenek için entegre edecektir.
 </details>
 
 <details>
@@ -492,7 +492,7 @@ C: AionUi sizin <strong>özel Cowork çalışma alanınızdır</strong>. Yerleş
 
 <details>
 <summary><strong>S: Ücretsiz mi?</strong></summary>
-C: AionUi tamamen ücretsiz ve açık kaynaklıdır. Gemini'yi ücretsiz kullanmak için Google ile giriş yapabilir veya tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
+C: AionUi tamamen ücretsiz ve açık kaynaklıdır. Yalnızca seçtiğiniz sağlayıcının API kullanımı için ödeme yaparsınız ve tercih ettiğiniz herhangi bir sağlayıcıdan API anahtarları kullanabilirsiniz.
 </details>
 
 <details>
@@ -568,7 +568,7 @@ brew install aionui
 ### 3 Adımda Başlayın
 
 1. **Kurun** AionUi
-2. **Giriş yapın** Google hesabı ile veya herhangi bir API anahtarı girin
+2. **Girin** başlamak için herhangi bir API anahtarı
 3. **Cowork'a başlayın** — yerleşik AI Agent kullanıma hazır
 
 ### 📖 Detaylı Kılavuzlar
@@ -616,7 +616,7 @@ brew install aionui
 - [Sorun Bildir](https://github.com/iOfficeAI/AionUi/issues) — hatalar ve özellik istekleri
 - [Sürüm Güncellemeleri](https://github.com/iOfficeAI/AionUi/releases) — en son sürümü alın
 - [Discord Topluluğu](https://discord.gg/2QAwJn7Egx) — İngilizce topluluk
-- [WeChat Grubu](../../resources/wx-9.png) — Çince topluluk
+- [WeChat Grubu](../../resources/wx-10.png) — Çince topluluk
 
 ### Katkıda Bulunma
 

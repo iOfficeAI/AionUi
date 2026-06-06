@@ -21,6 +21,7 @@ import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -137,7 +138,7 @@ const TaskDetailPage: React.FC = () => {
         navigate(`/conversation/${result.conversation_id}`);
       }
     } catch (err) {
-      Message.error(String(err));
+      Message.error(getConversationRuntimeWorkspaceErrorMessage(err, t));
     } finally {
       setRunningNow(false);
     }

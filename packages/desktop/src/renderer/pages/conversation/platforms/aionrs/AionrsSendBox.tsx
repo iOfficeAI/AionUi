@@ -34,6 +34,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -141,6 +142,12 @@ const AionrsSendBox: React.FC<{
   );
 
   const [agentWarmed, setAgentWarmed] = useState(false);
+  const prepareRuntimeSync = useCallback(async () => {
+    if (teamPermission) {
+      await teamPermission.warmupSession();
+    }
+    await warmupConversation(conversation_id);
+  }, [conversation_id, teamPermission]);
 
   useEffect(() => {
     void getConversationOrNull(conversation_id).then((res) => {
@@ -151,23 +158,15 @@ const AionrsSendBox: React.FC<{
 
   useEffect(() => {
     if (!conversation_id) return;
-    if (teamPermission) {
-      void teamPermission
-        .warmupSession()
-        .then(() => warmupConversation(conversation_id))
-        .then(() => {
-          setAgentWarmed(true);
-        })
-        .catch(() => {});
-      return;
-    }
     setAgentWarmed(false);
-    void warmupConversation(conversation_id)
+    void prepareRuntimeSync()
       .then(() => {
         setAgentWarmed(true);
       })
-      .catch(() => {});
-  }, [conversation_id, teamPermission]);
+      .catch((error) => {
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+      });
+  }, [conversation_id, prepareRuntimeSync, t]);
 
   const slash_commands = useSlashCommands(conversation_id, {
     conversation_type: 'aionrs',
@@ -255,6 +254,7 @@ const AionrsSendBox: React.FC<{
         }
       } catch (error) {
         if (msg_id) removeMessageByMsgId(msg_id);
+        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
@@ -266,6 +266,7 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId,
       removeMessageByMsgId,
       setWaitingResponse,
+      t,
       workspacePath,
     ]
   );
@@ -376,25 +377,27 @@ const AionrsSendBox: React.FC<{
     async (mode: string) => {
       if (mode === currentMode) return;
       try {
+        await prepareRuntimeSync();
         await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
         setCurrentMode(mode);
         void savePreferredMode('aionrs', mode);
         propagateMode?.(mode);
-        Message.success('Mode switched');
+        Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AionrsSendBox] Failed to switch mode via sheet:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       }
     },
-    [conversation_id, currentMode, propagateMode]
+    [conversation_id, currentMode, prepareRuntimeSync, propagateMode, t]
   );
 
   // Sync currentMode from backend when the sheet first opens / conversation switches
   useEffect(() => {
+    if (!isMobile || !isMobileSheetOpen) return;
     if (!conversation_id) return;
     let cancelled = false;
-    void ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+    void prepareRuntimeSync()
+      .then(() => ipcBridge.acpConversation.getMode.invoke({ conversation_id }))
       .then((result) => {
         if (cancelled || !result) return;
         if (result.initialized !== false) {
@@ -405,7 +408,7 @@ const AionrsSendBox: React.FC<{
     return () => {
       cancelled = true;
     };
-  }, [conversation_id]);
+  }, [conversation_id, isMobile, isMobileSheetOpen, prepareRuntimeSync]);
 
   const handleSheetModelSelect = useCallback(
     (value: string) => {
@@ -623,6 +626,7 @@ const AionrsSendBox: React.FC<{
             compactLabelPrefix={t('agentMode.permission')}
             hideCompactLabelPrefixOnMobile
             onModeChanged={propagateMode}
+            beforeRuntimeSync={prepareRuntimeSync}
           />
         }
         prefix={

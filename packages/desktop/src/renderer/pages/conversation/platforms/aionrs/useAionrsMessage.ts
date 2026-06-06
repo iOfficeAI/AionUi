@@ -12,6 +12,7 @@ import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { processLocalCronResponse } from './localCronCommands';
 
@@ -367,7 +368,7 @@ export const useAionrsMessage = (
         setHasHydratedRunningState(true);
         return;
       }
-      const isRunning = res.status === 'running';
+      const isRunning = isConversationProcessing(res);
       setStreamRunning(isRunning);
       streamRunningRef.current = isRunning;
       // Reset tool states - they will be restored by incoming messages if still active

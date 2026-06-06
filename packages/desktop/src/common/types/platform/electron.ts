@@ -26,11 +26,20 @@ export type BackendStartupFailureReason =
   | 'backend_incomplete_installation'
   | 'backend_startup_failed';
 
+export type BackendIncompleteInstallationKind = 'missing_backend_binary' | 'missing_directory_resources';
+
 export interface BackendStartupFailureInfo {
+  incompleteInstallationKind?: BackendIncompleteInstallationKind;
+  missingBackendBinary?: boolean;
+  missingBundledAioncoreDir?: boolean;
+  missingHubDir?: boolean;
+  missingPetStatesDir?: boolean;
+  missingPwaDir?: boolean;
   reason: BackendStartupFailureReason;
   runtime?: 'glibc';
   requiredVersions?: string[];
   missingResources?: string[];
+  missingRuntimeDir?: boolean;
 }
 
 declare global {

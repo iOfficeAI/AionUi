@@ -1,6 +1,8 @@
 import type React from 'react';
 import { useState, useCallback } from 'react';
+import type { TFunction } from 'i18next';
 import { useTranslation } from 'react-i18next';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { IMcpServer } from '@/common/config/storage';
 import { globalMessageQueue } from './messageQueue';
@@ -14,6 +16,110 @@ const truncateErrorMessage = (message: string, maxLength: number = 150): string 
     return message;
   }
   return message.substring(0, maxLength) + '...';
+};
+
+type McpErrorPayload = {
+  error?: string;
+  code?: string;
+  details?: unknown;
+};
+
+type McpErrorDetails = {
+  command?: string;
+  runtime?: string;
+  timeout_seconds?: number;
+  status?: number;
+  method?: string;
+  rpc_code?: number;
+};
+
+const getMcpErrorDetails = (details: unknown): McpErrorDetails => {
+  if (!details || typeof details !== 'object' || Array.isArray(details)) {
+    return {};
+  }
+  return details as McpErrorDetails;
+};
+
+const formatMcpErrorMessage = (t: TFunction, payload: McpErrorPayload): string => {
+  const fallback = payload.error || t('settings.mcpError');
+  const details = getMcpErrorDetails(payload.details);
+
+  switch (payload.code) {
+    case 'MCP_COMMAND_NOT_FOUND':
+      switch (details.runtime) {
+        case 'node':
+          return t('settings.mcpErrorNodeCommandNotFound', {
+            command: details.command || 'npx',
+            defaultValue: fallback,
+          });
+        case 'bun':
+          return t('settings.mcpErrorBunCommandNotFound', {
+            command: details.command || 'bunx',
+            defaultValue: fallback,
+          });
+        case 'uv':
+          return t('settings.mcpErrorUvCommandNotFound', {
+            command: details.command || 'uvx',
+            defaultValue: fallback,
+          });
+        case 'python':
+          return t('settings.mcpErrorPythonCommandNotFound', {
+            command: details.command || 'python',
+            defaultValue: fallback,
+          });
+        case 'deno':
+          return t('settings.mcpErrorDenoCommandNotFound', {
+            command: details.command || 'deno',
+            defaultValue: fallback,
+          });
+      }
+      return t('settings.mcpErrorCommandNotFound', {
+        command: details.command || 'command',
+        defaultValue: fallback,
+      });
+    case 'MCP_COMMAND_PERMISSION_DENIED':
+      return t('settings.mcpErrorCommandPermissionDenied', {
+        command: details.command || 'command',
+        defaultValue: fallback,
+      });
+    case 'MCP_COMMAND_START_FAILED':
+      return t('settings.mcpErrorCommandStartFailed', {
+        command: details.command || 'command',
+        defaultValue: fallback,
+      });
+    case 'MCP_TIMEOUT':
+      return t('settings.mcpErrorTimeout', {
+        seconds: details.timeout_seconds ?? 30,
+        defaultValue: fallback,
+      });
+    case 'MCP_CONNECTION_FAILED':
+      return t('settings.mcpErrorConnectionFailed', { defaultValue: fallback });
+    case 'MCP_HTTP_ERROR':
+      return t('settings.mcpErrorHttp', {
+        status: details.status ?? 'unknown',
+        defaultValue: fallback,
+      });
+    case 'MCP_RPC_ERROR':
+      return t('settings.mcpErrorRpc', {
+        method: details.method || 'request',
+        defaultValue: fallback,
+      });
+    case 'MCP_PROTOCOL_ERROR':
+      return t('settings.mcpErrorProtocol', { defaultValue: fallback });
+    default:
+      return fallback;
+  }
+};
+
+const formatThrownMcpErrorMessage = (t: TFunction, error: unknown): string => {
+  if (isBackendHttpError(error)) {
+    return formatMcpErrorMessage(t, {
+      error: error.backendMessage,
+      code: error.code,
+      details: error.details,
+    });
+  }
+  return error instanceof Error ? error.message : t('settings.mcpError');
 };
 
 /**
@@ -55,9 +161,10 @@ export const useMcpConnection = (
 
       try {
         const result = await mcpService.testMcpConnection.invoke(server);
+        const needsAuth = result.needsAuth ?? result.needs_auth;
 
         // 检查是否需要认证
-        if (result.needsAuth) {
+        if (needsAuth) {
           await updateServerStatus('disconnected');
           if (notify) {
             await globalMessageQueue.add(() => {
@@ -97,7 +204,7 @@ export const useMcpConnection = (
         } else {
           // Record the latest failed availability test in local UI state.
           await updateServerStatus('error');
-          const errorMsg = truncateErrorMessage(result.error || t('settings.mcpError'));
+          const errorMsg = truncateErrorMessage(formatMcpErrorMessage(t, result));
           if (notify) {
             await globalMessageQueue.add(() => {
               message.error({
@@ -114,7 +221,7 @@ export const useMcpConnection = (
       } catch (error) {
         // Record the latest failed availability test in local UI state.
         await updateServerStatus('error');
-        const errorMsg = truncateErrorMessage(error instanceof Error ? error.message : t('settings.mcpError'));
+        const errorMsg = truncateErrorMessage(formatThrownMcpErrorMessage(t, error));
         if (notify) {
           await globalMessageQueue.add(() => {
             message.error({

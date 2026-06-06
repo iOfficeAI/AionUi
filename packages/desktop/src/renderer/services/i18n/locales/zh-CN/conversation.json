@@ -91,6 +91,11 @@
   "noAgentsAvailable": "没有可用的 Agent",
   "noModelConfigured": "未配置模型，请前往设置页面配置。",
   "createFailed": "创建会话失败",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "所选项目路径“{{workspacePath}}”中的任意目录名称都不能包含空格或其他空白字符。请重命名相关目录，或选择一个每一级目录名都不含空白字符的工作区路径。"
+    }
+  },
   "agentError": {
     "fallbackTitle": "Agent 未能回复",
     "errorCode": "错误码",
@@ -255,6 +260,11 @@
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
         "title": "模型服务商返回了空响应",
         "body": "服务商完成了请求，但没有返回可用内容。请先重试一次；如果反复出现，可切换服务商。"
+      },
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
+        "title": "该工作区路径已不再支持继续运行",
+        "body": "该历史会话或任务绑定的工作区路径包含空格或其他空白字符。AionUi 不再支持在这类路径上继续发送消息。请使用不包含空格或其他空白字符的工作区路径重新创建对话或任务。",
+        "bodyWithPath": "该历史会话或任务绑定的工作区路径“{{workspacePath}}”包含空格或其他空白字符。AionUi 不再支持在这类路径上继续发送消息。请使用不包含空格或其他空白字符的工作区路径重新创建对话或任务。"
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服务商出错",

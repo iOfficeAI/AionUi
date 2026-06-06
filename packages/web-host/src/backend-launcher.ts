@@ -21,8 +21,14 @@ type HealthCheckDiagnostics = {
   healthCheckUrl?: string;
   healthCheckTimeoutMs?: number;
   healthCheckIntervalMs?: number;
+  healthCheckExpectedAttempts?: number;
+  healthCheckAttemptDeficit?: number;
   healthCheckElapsedMs?: number;
   healthCheckLastAttemptAfterMs?: number;
+  healthCheckLastAttemptGapMs?: number;
+  healthCheckMaxAttemptGapMs?: number;
+  healthCheckTimeoutOverrunMs?: number;
+  healthCheckPollingDelayed?: boolean;
   healthCheckLastError?: string;
   healthCheckLastErrorName?: string;
   healthCheckLastErrorCauseMessage?: string;
@@ -107,8 +113,14 @@ export type BackendStartupErrorDetails = {
   healthCheckUrl?: string;
   healthCheckTimeoutMs?: number;
   healthCheckIntervalMs?: number;
+  healthCheckExpectedAttempts?: number;
+  healthCheckAttemptDeficit?: number;
   healthCheckElapsedMs?: number;
   healthCheckLastAttemptAfterMs?: number;
+  healthCheckLastAttemptGapMs?: number;
+  healthCheckMaxAttemptGapMs?: number;
+  healthCheckTimeoutOverrunMs?: number;
+  healthCheckPollingDelayed?: boolean;
   healthCheckLastError?: string;
   healthCheckLastErrorName?: string;
   healthCheckLastErrorCauseMessage?: string;
@@ -647,15 +659,25 @@ export class BackendLifecycleManager {
     const start = Date.now();
     const intervalMs = 200;
     const healthCheckUrl = `http://127.0.0.1:${port}/health`;
+    const expectedAttempts = Number.isFinite(timeoutMs) ? Math.ceil(timeoutMs / intervalMs) : undefined;
     const diagnostics: HealthCheckDiagnostics = {
       healthCheckAttempts: 0,
       healthCheckUrl,
       healthCheckIntervalMs: intervalMs,
       healthCheckTimeoutMs: Number.isFinite(timeoutMs) ? timeoutMs : undefined,
+      healthCheckExpectedAttempts: expectedAttempts,
     };
+    let previousAttemptAt: number | undefined;
     while (Date.now() - start < timeoutMs && shouldContinue()) {
+      const attemptStartedAt = Date.now();
+      if (previousAttemptAt !== undefined) {
+        const attemptGapMs = attemptStartedAt - previousAttemptAt;
+        diagnostics.healthCheckLastAttemptGapMs = attemptGapMs;
+        diagnostics.healthCheckMaxAttemptGapMs = Math.max(diagnostics.healthCheckMaxAttemptGapMs ?? 0, attemptGapMs);
+      }
+      previousAttemptAt = attemptStartedAt;
       diagnostics.healthCheckAttempts += 1;
-      diagnostics.healthCheckLastAttemptAfterMs = Date.now() - start;
+      diagnostics.healthCheckLastAttemptAfterMs = attemptStartedAt - start;
       try {
         const response = await fetch(healthCheckUrl);
         if (response.ok) {
@@ -678,6 +700,13 @@ export class BackendLifecycleManager {
       await new Promise((r) => setTimeout(r, intervalMs));
     }
     diagnostics.healthCheckElapsedMs = Date.now() - start;
+    if (Number.isFinite(timeoutMs)) {
+      diagnostics.healthCheckAttemptDeficit = Math.max(0, (expectedAttempts ?? 0) - diagnostics.healthCheckAttempts);
+      diagnostics.healthCheckTimeoutOverrunMs = Math.max(0, diagnostics.healthCheckElapsedMs - timeoutMs);
+      diagnostics.healthCheckPollingDelayed =
+        (diagnostics.healthCheckMaxAttemptGapMs ?? 0) > intervalMs * 3 ||
+        diagnostics.healthCheckTimeoutOverrunMs > intervalMs * 3;
+    }
     if (Number.isFinite(timeoutMs)) {
       Object.assign(diagnostics, await probeHealthCheckTcpConnect(port));
     }

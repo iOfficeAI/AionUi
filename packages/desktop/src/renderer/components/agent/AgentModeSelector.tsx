@@ -66,6 +66,8 @@ export interface AgentModeSelectorProps {
   onModeChanged?: (mode: string) => void;
   /** Dynamic modes from capabilities (overrides static list when non-empty) */
   dynamicModes?: AgentModeOption[];
+  /** Optional runtime preparation before reading active-session mode. */
+  beforeRuntimeSync?: () => Promise<void>;
 }
 
 /**
@@ -93,6 +95,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   hideCompactLabelPrefixOnMobile = false,
   onModeChanged,
   dynamicModes,
+  beforeRuntimeSync,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -163,8 +166,10 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     if (!conversation_id || !can_switchMode) return;
     let cancelled = false;
 
-    ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+    void (async () => {
+      await beforeRuntimeSync?.();
+      return ipcBridge.acpConversation.getMode.invoke({ conversation_id });
+    })()
       .then((result) => {
         if (!cancelled && result) {
           // Only sync from backend when manager is initialized;
@@ -182,7 +187,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [conversation_id, can_switchMode]);
+  }, [conversation_id, can_switchMode, beforeRuntimeSync]);
 
   const handleModeChange = useCallback(
     async (mode: string) => {
@@ -203,6 +208,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
       setIsLoading(true);
       try {
+        await beforeRuntimeSync?.();
         // setMode returns void; success if no throw
         await ipcBridge.acpConversation.setMode.invoke({
           conversation_id,
@@ -216,15 +222,15 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
           // conversation also becomes the next-session default.
           void savePreferredMode(backend, mode);
         }
-        Message.success('Mode switched');
+        Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       } finally {
         setIsLoading(false);
       }
     },
-    [backend, conversation_id, current_mode, onModeChanged, onModeSelect]
+    [backend, beforeRuntimeSync, conversation_id, current_mode, onModeChanged, onModeSelect, t]
   );
 
   const renderLogo = () => (

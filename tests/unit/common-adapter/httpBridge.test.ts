@@ -160,10 +160,18 @@ describe('httpBridge', () => {
   describe('error handling', () => {
     it('non-2xx response throws BackendHttpError with code/status/backendMessage', async () => {
       const fetchSpy = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: false, error: 'bad', code: 'X_BAD' }), {
-          status: 400,
-          headers: { 'Content-Type': 'application/json' },
-        })
+        new Response(
+          JSON.stringify({
+            success: false,
+            error: 'bad',
+            code: 'X_BAD',
+            details: { workspace_path: '/tmp/Archive ' },
+          }),
+          {
+            status: 400,
+            headers: { 'Content-Type': 'application/json' },
+          }
+        )
       );
       vi.stubGlobal('fetch', fetchSpy);
       vi.spyOn(console, 'debug').mockImplementation(() => {});
@@ -178,7 +186,13 @@ describe('httpBridge', () => {
         expect(err.status).toBe(400);
         expect(err.code).toBe('X_BAD');
         expect(err.backendMessage).toBe('bad');
-        expect(err.body).toEqual({ success: false, error: 'bad', code: 'X_BAD' });
+        expect(err.details).toEqual({ workspace_path: '/tmp/Archive ' });
+        expect(err.body).toEqual({
+          success: false,
+          error: 'bad',
+          code: 'X_BAD',
+          details: { workspace_path: '/tmp/Archive ' },
+        });
       }
     });
   });

@@ -5,6 +5,7 @@
  */
 
 import { isBackendHttpError } from '@/common/adapter/httpBridge';
+import { getWorkspacePathFromErrorDetails, normalizeWorkspacePathErrorCode } from '../../utils/conversationCreateError';
 import type { AgentStreamErrorInfo } from '@/common/chat/chatLib';
 
 const isConversationBusyError = (error: unknown): boolean => {
@@ -14,6 +15,20 @@ const isConversationBusyError = (error: unknown): boolean => {
 };
 
 export const buildSendFailureError = (error: unknown, message: string): AgentStreamErrorInfo => {
+  const workspacePathErrorCode = normalizeWorkspacePathErrorCode(error);
+  if (workspacePathErrorCode) {
+    const workspacePath = getWorkspacePathFromErrorDetails(error);
+    return {
+      message,
+      code: workspacePathErrorCode,
+      ownership: 'aionui',
+      detail: message,
+      ...(workspacePath ? { workspacePath } : {}),
+      retryable: false,
+      feedback_recommended: false,
+    };
+  }
+
   if (isBackendHttpError(error) && error.code === 'BAD_GATEWAY') {
     return {
       message,
