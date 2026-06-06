@@ -261,19 +261,7 @@
   "engines": {
     "node": ">=22 <25"
   },
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
   "aioncoreVersion": "v0.1.22-Pounding",
-=======
-  "aioncoreVersion": "v0.1.19",
->>>>>>> v2.1.10
-=======
-  "aioncoreVersion": "v0.1.20",
->>>>>>> v2.1.11
-=======
-  "aioncoreVersion": "v0.1.22",
->>>>>>> v2.1.12
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },
