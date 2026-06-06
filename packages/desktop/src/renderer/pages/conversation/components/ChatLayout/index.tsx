@@ -158,17 +158,6 @@ const ChatLayout: React.FC<{
     isMobile,
   });
 
-  // --- Hook D: preview auto-collapse ---
-  usePreviewAutoCollapse({
-    isPreviewOpen,
-    isDesktop,
-    workspaceEnabled,
-    rightSiderCollapsed,
-    setRightSiderCollapsed,
-    siderCollapsed: layout?.siderCollapsed,
-    setSiderCollapsed: layout?.setSiderCollapsed,
-  });
-
   // --- Hook E: layout constraints ---
   useLayoutConstraints({
     containerWidth,

@@ -40,6 +40,16 @@ export interface PreviewTab {
   originalContent?: string; // 原始内容，用于对比 / Original content for comparison
 }
 
+export interface OpenPreviewOptions {
+  /**
+   * Reuse the active tab instead of opening a new one — used by file-tree
+   * browsing so switching files swaps the single preview instead of stacking
+   * tabs. Ignored when the active tab has unsaved edits (falls back to a new
+   * tab to avoid losing changes).
+   */
+  replace?: boolean;
+}
+
 export interface PreviewContextValue {
   // 预览面板状态 / Preview panel state
   isOpen: boolean;
@@ -50,7 +60,12 @@ export interface PreviewContextValue {
   activeTab: PreviewTab | null;
 
   // 预览面板操作 / Preview panel operations
-  openPreview: (content: string, type: PreviewContentType, metadata?: PreviewMetadata) => void;
+  openPreview: (
+    content: string,
+    type: PreviewContentType,
+    metadata?: PreviewMetadata,
+    options?: OpenPreviewOptions
+  ) => void;
   closePreview: () => void;
   closeTab: (tabId: string) => void;
   switchTab: (tabId: string) => void;
@@ -155,6 +170,9 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [isOpen, setIsOpen] = useState(persistedState.isOpen);
   const [tabs, setTabs] = useState<PreviewTab[]>(persistedState.tabs);
   const [activeTabId, setActiveTabId] = useState<string | null>(persistedState.activeTabId);
+  // Mirror activeTabId in a ref so setTabs updaters can read the latest value
+  // without adding activeTabId to their dependencies.
+  const activeTabIdRef = useRef<string | null>(persistedState.activeTabId);
   // const [sendBoxHandler, setSendBoxHandlerState] = useState<((text: string) => void) | null>(null);
   const sendBoxHandler = useRef<((text: string) => void) | null>(null);
   const [domSnippets, setDomSnippets] = useState<DomSnippet[]>([]);
@@ -179,6 +197,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   // 持久化 activeTabId（单独存储，避免切换 tab 时重复序列化大内容）
   // Persist activeTabId separately to avoid re-serializing large tab content on tab switch
   useEffect(() => {
+    activeTabIdRef.current = activeTabId;
     try {
       if (activeTabId) {
         localStorage.setItem(PREVIEW_ACTIVE_TAB_ID_KEY, activeTabId);
@@ -268,7 +287,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
   );
 
   const openPreview = useCallback(
-    (new_content: string, type: PreviewContentType, meta?: PreviewMetadata) => {
+    (new_content: string, type: PreviewContentType, meta?: PreviewMetadata, options?: OpenPreviewOptions) => {
       let nextActiveTabId: string | null = null;
 
       setTabs((prevTabs) => {
@@ -319,6 +338,21 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           isDirty: false,
           originalContent: new_content, // 保存原始内容 / Save original content
         };
+
+        // Single-preview browse mode: reuse the active tab in place instead of
+        // stacking a new one — unless it has unsaved edits, then fall back to a
+        // new tab so changes aren't lost.
+        if (options?.replace) {
+          const activeIdx = activeTabIdRef.current
+            ? prevTabs.findIndex((tab) => tab.id === activeTabIdRef.current)
+            : -1;
+          const activeTab = activeIdx >= 0 ? prevTabs[activeIdx] : null;
+          if (activeTab && !activeTab.isDirty) {
+            nextActiveTabId = activeTab.id;
+            const replacedTab: PreviewTab = { ...newTab, id: activeTab.id };
+            return prevTabs.map((tab, idx) => (idx === activeIdx ? replacedTab : tab));
+          }
+        }
 
         nextActiveTabId = tabId;
         return [...prevTabs, newTab];

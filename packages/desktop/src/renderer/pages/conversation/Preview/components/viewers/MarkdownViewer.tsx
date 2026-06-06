@@ -494,7 +494,9 @@ const MarkdownPreview: React.FC<MarkdownPreviewProps> = ({
                         margin: 0,
                         borderRadius: '8px',
                         padding: '16px',
-                        fontSize: '14px',
+                        fontSize: '13px',
+                        fontFamily: 'var(--font-mono)',
+                        lineHeight: 1.5,
                         maxWidth: '100%',
                         overflow: 'auto',
                       }}

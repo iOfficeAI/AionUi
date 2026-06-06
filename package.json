@@ -1,6 +1,6 @@
 {
   "name": "AionUi",
-  "version": "2.1.10-Pounding",
+  "version": "2.1.11-Pounding",
   "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
   "keywords": [],
   "license": "Apache-2.0",
@@ -79,6 +79,10 @@
     "@codemirror/lang-html": "^6.4.11",
     "@codemirror/lang-json": "^6.0.2",
     "@codemirror/lang-markdown": "^6.5.0",
+    "@codemirror/language": "^6.12.3",
+    "@codemirror/language-data": "^6.5.2",
+    "@codemirror/search": "^6.7.0",
+    "@codemirror/state": "^6.6.0",
     "@codemirror/view": "^6.38.6",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
@@ -87,6 +91,8 @@
     "@google/genai": "^1.16.0",
     "@grammyjs/transformer-throttler": "^1.2.1",
     "@icon-park/react": "^1.4.2",
+    "@iconify-json/vscode-icons": "^1.2.53",
+    "@iconify/react": "^6.0.2",
     "@larksuiteoapi/node-sdk": "^1.58.0",
     "@modelcontextprotocol/sdk": "^1.20.0",
     "@monaco-editor/react": "^4.7.0",
@@ -253,10 +259,14 @@
     "node": ">=22 <25"
   },
 <<<<<<< HEAD
+<<<<<<< HEAD
   "aioncoreVersion": "v0.1.22-Pounding",
 =======
   "aioncoreVersion": "v0.1.19",
 >>>>>>> v2.1.10
+=======
+  "aioncoreVersion": "v0.1.20",
+>>>>>>> v2.1.11
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },

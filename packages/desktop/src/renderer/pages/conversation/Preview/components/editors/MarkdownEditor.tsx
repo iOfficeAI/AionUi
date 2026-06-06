@@ -64,7 +64,8 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
             foldGutter: true, // 折叠功能 / Code folding
           }}
           style={{
-            fontSize: '14px',
+            fontSize: '13px',
+            fontFamily: 'var(--font-mono)',
             height: '100%',
           }}
         />

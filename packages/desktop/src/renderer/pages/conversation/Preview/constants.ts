@@ -70,16 +70,11 @@ export const LARGE_TEXT_PREVIEW_THRESHOLD = 120_000;
 export const LARGE_TEXT_PREVIEW_MAX_LENGTH = 40_000;
 
 /**
- * 代码查看器降级渲染阈值（字符）
- * Threshold for switching CodeViewer to lightweight rendering
+ * 代码编辑器降级阈值（字符）：超过则关闭语法高亮与折叠以保持响应（内容不截断）
+ * Threshold (chars) above which the code editor disables syntax highlighting
+ * and folding to stay responsive. Content is never truncated.
  */
 export const LARGE_TEXT_VIEWER_THRESHOLD = 30_000;
-
-/**
- * 代码查看器在大文本场景的最大渲染字符数（字符）
- * Maximum rendered characters in CodeViewer for large text
- */
-export const LARGE_TEXT_VIEWER_RENDER_LIMIT = 20_000;
 
 /**
  * 具有内置打开按钮的文件类型

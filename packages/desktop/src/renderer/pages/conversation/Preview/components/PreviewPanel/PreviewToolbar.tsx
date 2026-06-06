@@ -35,18 +35,6 @@ interface PreviewToolbarProps {
   isHTML: boolean;
 
   /**
-   * 是否可编辑
-   * Whether editable
-   */
-  isEditable: boolean;
-
-  /**
-   * 是否处于编辑模式
-   * Whether in edit mode
-   */
-  isEditMode: boolean;
-
-  /**
    * 当前视图模式
    * Current view mode
    */
@@ -93,18 +81,6 @@ interface PreviewToolbarProps {
    * Set split-screen mode
    */
   onSplitScreenToggle: () => void;
-
-  /**
-   * 编辑按钮点击
-   * Edit button click
-   */
-  onEditClick: () => void;
-
-  /**
-   * 退出编辑按钮点击
-   * Exit edit button click
-   */
-  onExitEdit: () => void;
 
   /**
    * 保存快照
@@ -171,16 +147,14 @@ interface PreviewToolbarProps {
  * 预览面板工具栏组件
  * Preview panel toolbar component
  *
- * 包含文件名、视图模式切换、编辑按钮、快照/历史按钮、下载按钮、关闭按钮等
- * Contains filename, view mode toggle, edit button, snapshot/history buttons, download button, close button, etc.
+ * 包含文件名、视图模式切换、快照/历史按钮、下载按钮、关闭按钮等
+ * Contains filename, view mode toggle, snapshot/history buttons, download button, close button, etc.
  */
 // eslint-disable-next-line max-len
 const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   content_type,
   isMarkdown,
   isHTML,
-  isEditable,
-  isEditMode,
   viewMode,
   isSplitScreenEnabled,
   file_name,
@@ -189,8 +163,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   snapshotSaving,
   onViewModeChange,
   onSplitScreenToggle,
-  onEditClick,
-  onExitEdit,
   onSaveSnapshot,
   onRefreshHistory,
   renderHistoryDropdown,
@@ -205,6 +177,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
+  // 代码文件若已在磁盘上（有 file_path），下载即冗余 —— 仅 agent 生成、未落盘的内容才显示下载
+  // For on-disk code files download is redundant; only show it for agent-generated, not-yet-saved content
+  const showDownload = !(content_type === 'code' && showOpenInSystemButton);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
@@ -272,54 +247,6 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </>
           )}
 
-          {content_type === 'code' && isEditable && (
-            <div
-              className={`${toolbarBtn} ${isEditMode ? toolbarBtnActive : ''}`}
-              onClick={() => (isEditMode ? onExitEdit() : onEditClick())}
-              title={isEditMode ? t('preview.exitEdit') : t('preview.edit')}
-            >
-              <svg
-                width={toolbarIconSize}
-                height={toolbarIconSize}
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='1.8'
-                className={isEditMode ? 'text-white' : 'text-t-secondary'}
-              >
-                <path d='M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7' />
-                <path d='M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z' />
-              </svg>
-              <span>{isEditMode ? t('preview.exitEdit') : t('preview.edit')}</span>
-            </div>
-          )}
-
-          {isEditable && isEditMode && (
-            <div
-              className={`flex items-center px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 ${isSplitScreenEnabled ? toolbarBtnActive : 'text-t-secondary hover:bg-bg-3'}`}
-              onClick={() => {
-                try {
-                  onSplitScreenToggle();
-                } catch {
-                  /* ignore */
-                }
-              }}
-              title={isSplitScreenEnabled ? t('preview.closeSplitScreen') : t('preview.openSplitScreen')}
-            >
-              <svg
-                width={toolbarIconSize}
-                height={toolbarIconSize}
-                viewBox='0 0 24 24'
-                fill='none'
-                stroke='currentColor'
-                strokeWidth='2'
-              >
-                <rect x='3' y='3' width='18' height='18' rx='2' />
-                <line x1='12' y1='3' x2='12' y2='21' />
-              </svg>
-            </div>
-          )}
-
           {preferActionButtonsInFront && showOpenInSystemButton && (
             <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>
               <svg
@@ -338,7 +265,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
               <span>{t('preview.openInSystemApp')}</span>
             </div>
           )}
-          {preferActionButtonsInFront && (
+          {preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
                 width={toolbarIconSize}
@@ -363,8 +290,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
           {rightExtra}
 
           {((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'code' && isEditable && isEditMode)) && (
+            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
             <>
               <div
                 className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
@@ -452,7 +378,7 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
             </div>
           )}
 
-          {!preferActionButtonsInFront && (
+          {!preferActionButtonsInFront && showDownload && (
             <div className={toolbarBtn} onClick={() => void onDownload()} title={t('preview.downloadFile')}>
               <svg
                 width={toolbarIconSize}

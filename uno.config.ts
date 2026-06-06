@@ -192,5 +192,10 @@ export default defineConfig({
       ...componentColors,
       ...specialColors,
     },
+    fontFamily: {
+      // Unified monospace stack for all code views (source, code blocks, editors)
+      // 所有代码视图（原文、代码块、编辑器）统一的等宽字体栈
+      mono: 'ui-monospace, "SF Mono", SFMono-Regular, Menlo, "Cascadia Code", "Roboto Mono", Consolas, "Liberation Mono", monospace',
+    },
   },
 });

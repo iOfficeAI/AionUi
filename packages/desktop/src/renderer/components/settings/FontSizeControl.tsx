@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Button, Slider } from '@arco-design/web-react';
 import { useTranslation } from 'react-i18next';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
@@ -31,8 +31,15 @@ const FontSizeControl: React.FC = () => {
   const { t } = useTranslation();
   const { fontScale, setFontScale, theme } = useThemeContext();
 
+  // 拖动中的临时值，仅用于驱动滑块和百分比显示，松手前不应用缩放
+  // Transient value while dragging — drives the slider/label only, scale is applied on release
+  const [draggingValue, setDraggingValue] = useState<number | null>(null);
+
+  // 拖动时优先展示临时值，否则展示已应用的缩放 / Prefer the dragging value, fall back to the applied scale
+  const displayValue = draggingValue ?? fontScale;
+
   // 格式化显示值为百分比 / Format display value as percentage
-  const formattedValue = useMemo(() => `${Math.round(fontScale * 100)}%`, [fontScale]);
+  const formattedValue = useMemo(() => `${Math.round(displayValue * 100)}%`, [displayValue]);
 
   // 默认标记（100%位置）/ Default mark (100% position)
   const defaultMarks = useMemo(
@@ -43,13 +50,24 @@ const FontSizeControl: React.FC = () => {
   );
 
   /**
-   * 处理滑块值变化 / Handle slider value change
+   * 拖动过程中只更新临时显示值，不触发缩放 / While dragging, only update the transient value — no scaling
    * @param value - 新的缩放值 / New scale value
    */
   const handleSliderChange = (value: number | number[]) => {
     if (typeof value === 'number') {
+      setDraggingValue(clamp(Number(value.toFixed(2))));
+    }
+  };
+
+  /**
+   * 松开滑块时才真正应用缩放 / Apply the scale only when the slider is released
+   * @param value - 最终的缩放值 / Final scale value
+   */
+  const handleSliderAfterChange = (value: number | number[]) => {
+    if (typeof value === 'number') {
       void setFontScale(clamp(Number(value.toFixed(2))));
     }
+    setDraggingValue(null);
   };
 
   /**
@@ -90,8 +108,9 @@ const FontSizeControl: React.FC = () => {
             min={FONT_SCALE_MIN}
             max={FONT_SCALE_MAX}
             step={FONT_SCALE_STEP}
-            value={fontScale}
+            value={displayValue}
             onChange={handleSliderChange}
+            onAfterChange={handleSliderAfterChange}
             marks={defaultMarks}
           />
           <Button
