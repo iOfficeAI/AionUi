@@ -195,6 +195,7 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     kind: 'local',
     rootPath: '/mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack',
     openUrl: 'file:///mnt/c/Users/roseo/OneDrive/Bureaublad/nova/NovaMaster/Stack/NovaCore%20Control%20Plane.md',
+    launchPath: '/home/faramix/bin/novamaster-open-novacore-control-native',
   },
   {
     id: 'jarvis',
