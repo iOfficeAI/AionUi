@@ -564,43 +564,71 @@ export class BackendLifecycleManager {
     process.on('exit', killOnExit);
 
     const startupFailure = new Promise<never>((_resolve, reject) => {
+      let failureSettled = false;
+      let pendingStartupExit:
+        | {
+            code: number | null;
+            signal: NodeJS.Signals | null;
+            startupSettledAtExit: boolean;
+            statusAtExit: BackendStatus;
+          }
+        | undefined;
+      const rejectOnce = (error: unknown) => {
+        if (failureSettled) return;
+        failureSettled = true;
+        reject(error);
+      };
+
       this.childProcess?.once('error', (error) => {
         if (startupSettled) return;
         this._status = 'error';
-        reject(makeStartupError('spawn_error', 'aioncore process emitted an error before startup', error));
+        rejectOnce(makeStartupError('spawn_error', 'aioncore process emitted an error before startup', error));
       });
 
       this.childProcess?.once('exit', (code, signal) => {
         process.removeListener('exit', killOnExit);
-        if (!startupSettled) {
-          if (this._status === 'stopped') {
-            reject(new BackendStartupCancelledError('aioncore startup cancelled before health check passed'));
+        if (this._status === 'running') {
+          this.handleCrash(code, signal);
+          return;
+        }
+        pendingStartupExit = {
+          code,
+          signal,
+          startupSettledAtExit: startupSettled,
+          statusAtExit: this._status,
+        };
+        if (this._status !== 'stopped') this._status = 'error';
+      });
+
+      this.childProcess?.once('close', (code, signal) => {
+        if (!pendingStartupExit) return;
+        const exitCode = pendingStartupExit.code ?? code;
+        const exitSignal = pendingStartupExit.signal ?? signal;
+        if (!pendingStartupExit.startupSettledAtExit) {
+          if (pendingStartupExit.statusAtExit === 'stopped') {
+            rejectOnce(new BackendStartupCancelledError('aioncore startup cancelled before health check passed'));
             return;
           }
-          this._status = 'error';
-          reject(
+          rejectOnce(
             makeStartupError('early_exit', 'aioncore exited before health check passed', undefined, {
-              exitCode: code ?? undefined,
-              signal: signal ?? undefined,
+              exitCode: exitCode ?? undefined,
+              signal: exitSignal ?? undefined,
             })
           );
           return;
         }
-        if (this._status === 'starting') {
-          this._status = 'error';
+        if (pendingStartupExit.statusAtExit === 'starting') {
           void Promise.resolve(
             options?.onPendingExit?.(
               makeStartupError('early_exit', 'aioncore exited after startup health timeout', undefined, {
-                exitCode: code ?? undefined,
-                signal: signal ?? undefined,
+                exitCode: exitCode ?? undefined,
+                signal: exitSignal ?? undefined,
               })
             )
           ).catch((error) => {
             console.error('[aioncore] pending exit handler failed:', error);
           });
-          return;
         }
-        if (this._status === 'running') this.handleCrash(code, signal);
       });
     });
 
