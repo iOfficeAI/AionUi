@@ -1185,26 +1185,62 @@ export const remoteAgent = {
   pingHealth: httpGet<{ healthy: boolean; latency_ms: number; error?: string }, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/health`
   ),
-  /** M12: list OpenCode providers with auth state for the settings UI (`GET /provider`). */
-  listProviders: httpGet<unknown, { id: string }>((p) => `/api/remote-agents/${p.id}/providers`),
-  /** M12: set provider API key on the remote OpenCode server. */
-  setProviderAuth: httpPost<void, { id: string; providerId: string; api_key: string }>(
-    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
-    (p) => ({ api_key: p.api_key }),
+  /** M12: OpenCode catalog (`GET /provider`, §9) — `{ all, default, connected }`. */
+  listProviders: httpGet<import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderListResponse, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/providers`,
   ),
-  /** M12: clear provider credentials on the remote OpenCode server. */
+  /** M12: auth methods per provider (`GET /provider/auth`, §8). */
+  listProviderAuthMethods: httpGet<
+    import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderAuthMethodsResponse,
+    { id: string }
+  >((p) => `/api/remote-agents/${p.id}/providers/auth`),
+  /** M12: set credentials (`PUT /auth/{providerID}`, §8 `Auth` union). */
+  setProviderAuth: httpPost<
+    void,
+    {
+      id: string;
+      providerId: string;
+      api_key?: string;
+      wellknown_key?: string;
+      wellknown_token?: string;
+      auth?: import('@/common/types/opencode/opencodeProviderTypes').OpenCodeApiAuth;
+    }
+  >(
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
+    (p) => {
+      const body: Record<string, unknown> = {};
+      if (p.api_key) body.api_key = p.api_key;
+      if (p.wellknown_key) body.wellknown_key = p.wellknown_key;
+      if (p.wellknown_token) body.wellknown_token = p.wellknown_token;
+      if (p.auth) body.auth = p.auth;
+      return body;
+    },
+  ),
+  /** M12: clear credentials (`DELETE /auth/{providerID}`, §8). */
   deleteProviderAuth: httpDelete<void, { id: string; providerId: string }>(
     (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
   ),
-  /** M12: start provider OAuth — returns authorize URL payload from server. */
-  startProviderOAuth: httpPost<unknown, { id: string; providerId: string }>(
+  /** M12: start OAuth (`POST /provider/{id}/oauth/authorize`, §8) → `ProviderAuthAuthorization`. */
+  startProviderOAuth: httpPost<
+    import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderAuthAuthorization,
+    { id: string; providerId: string; method?: number; inputs?: Record<string, string> }
+  >(
     (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/oauth/start`,
-    () => ({}),
+    (p) => ({
+      ...(p.method != null ? { method: p.method } : {}),
+      ...(p.inputs ? { inputs: p.inputs } : {}),
+    }),
   ),
-  /** M12: complete provider OAuth with authorization code. */
-  completeProviderOAuth: httpPost<void, { id: string; providerId: string; code: string }>(
+  /** M12: complete OAuth (`POST /provider/{id}/oauth/callback`, §8). */
+  completeProviderOAuth: httpPost<
+    void,
+    { id: string; providerId: string; method?: number; code?: string }
+  >(
     (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/oauth/complete`,
-    (p) => ({ code: p.code }),
+    (p) => ({
+      ...(p.method != null ? { method: p.method } : {}),
+      ...(p.code ? { code: p.code } : {}),
+    }),
   ),
   /**
    * Phase 4b: lazy-load the OpenCode message transcript into the
