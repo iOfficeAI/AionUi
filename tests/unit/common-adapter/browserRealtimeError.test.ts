@@ -152,7 +152,6 @@ describe('browser WebSocket realtime error handling', () => {
   });
 
   it.each([
-    { name: 'auth-expired', data: { reason: 'legacy' } },
     { name: 'realtime.error', data: { code: 'REALTIME_AUTH_MISSING', message: 'Missing auth', recoverable: false } },
     { name: 'realtime.error', data: { code: 'REALTIME_AUTH_EXPIRED', message: 'Expired auth', recoverable: false } },
   ])('treats $name auth payload as terminal and redirects to login', async (payload) => {
@@ -190,5 +189,28 @@ describe('browser WebSocket realtime error handling', () => {
     expect(emit).toHaveBeenCalledTimes(1);
     expect(emit).toHaveBeenCalledWith(payload.name, payload.data);
     expect(location.hash).toBe('');
+  });
+
+  it('does not treat legacy auth-expired events as terminal auth errors', async () => {
+    const { adapter, location, socket } = await loadBrowserAdapter();
+    const emit = vi.fn();
+    adapter.on({ emit });
+    const payload = { name: 'auth-expired', data: { reason: 'legacy' } };
+
+    socket.dispatchMessage(payload);
+
+    expect(socket.close).not.toHaveBeenCalled();
+    expect(emit).toHaveBeenCalledWith(payload.name, payload.data);
+    expect(location.hash).toBe('');
+  });
+
+  it('does not redirect to login from close code 1008 without an auth error event', async () => {
+    const { location, socket } = await loadBrowserAdapter();
+
+    socket.dispatchClose(1008);
+    vi.advanceTimersByTime(500);
+
+    expect(location.hash).toBe('');
+    expect(FakeWebSocket.instances).toHaveLength(2);
   });
 });

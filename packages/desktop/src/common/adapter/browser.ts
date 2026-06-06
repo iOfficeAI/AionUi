@@ -30,10 +30,6 @@ export function isRealtimeAuthTerminalError(payload: unknown): boolean {
     return false;
   }
 
-  if (payload.name === 'auth-expired') {
-    return true;
-  }
-
   if (payload.name !== 'realtime.error' || !isRecord(payload.data)) {
     return false;
   }
@@ -199,31 +195,6 @@ if (win.electronAPI) {
       // Only null the outer reference if it still points at this socket.
       if (socket === currentSocket) {
         socket = null;
-      }
-
-      // Detect auth failure from close code (server sends 1008 for token issues).
-      // This acts as a fallback in case the auth-expired message was not received
-      // (e.g., socket not yet ready for sending during initial handshake).
-      if (event.code === 1008 && !shouldReconnect) {
-        return; // Already handled by auth-expired message handler
-      }
-      if (event.code === 1008) {
-        console.warn('[WebSocket] Connection rejected by server (policy violation), redirecting to login');
-        shouldReconnect = false;
-        if (reconnectTimer !== null) {
-          window.clearTimeout(reconnectTimer);
-          reconnectTimer = null;
-        }
-        // 已在登录页则不再重定向，防止无限刷新循环
-        // Skip redirect if already on login page to prevent infinite reload loop
-        if (window.location.pathname === '/login' || window.location.hash.includes('/login')) {
-          return;
-        }
-        // Use hash navigation to stay within the SPA (HashRouter)
-        setTimeout(() => {
-          window.location.hash = '/login';
-        }, 500);
-        return;
       }
 
       scheduleReconnect();
