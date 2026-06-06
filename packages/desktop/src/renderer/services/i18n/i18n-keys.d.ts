@@ -167,6 +167,7 @@ export type I18nKey =
   | 'common.backendStartup.incompatibleRuntime.title'
   | 'common.backendStartup.incompleteInstallation.description'
   | 'common.backendStartup.incompleteInstallation.downloadLatest'
+  | 'common.backendStartup.incompleteInstallation.runtimeComponentDescription'
   | 'common.backendStartup.incompleteInstallation.sendDiagnostics'
   | 'common.backendStartup.incompleteInstallation.title'
   | 'common.browse'

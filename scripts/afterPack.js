@@ -8,6 +8,7 @@ const {
   verifyModuleBinary,
   getModulesToRebuild,
 } = require('./rebuildNativeModules');
+const { verifyBundledAioncoreResources } = require('../packages/shared-scripts/src/verify-bundled-aioncore-resources');
 
 /**
  * afterPack hook for electron-builder
@@ -21,34 +22,19 @@ function resolveResourcesDir(electronPlatformName, appOutDir, packager) {
   return path.join(appOutDir, `${appName}.app`, 'Contents', 'Resources');
 }
 
-function getBackendBinaryName(electronPlatformName) {
-  return electronPlatformName === 'win32' ? 'aioncore.exe' : 'aioncore';
-}
-
-function requirePackagedResource(resourcesDir, relativePath, missing) {
-  const absolutePath = path.join(resourcesDir, relativePath);
-  if (!fs.existsSync(absolutePath)) {
-    missing.push(relativePath);
-  }
-}
-
 function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) {
-  const runtimeKey = `${electronPlatformName}-${targetArch}`;
-  const missing = [];
-
-  requirePackagedResource(
+  const result = verifyBundledAioncoreResources({
     resourcesDir,
-    path.join('bundled-aioncore', runtimeKey, getBackendBinaryName(electronPlatformName)),
-    missing
-  );
-  requirePackagedResource(resourcesDir, path.join('bundled-aioncore', runtimeKey, 'manifest.json'), missing);
-  requirePackagedResource(resourcesDir, path.join('bundled-aioncore', runtimeKey, 'managed-resources'), missing);
+    electronPlatformName,
+    targetArch,
+  });
 
-  if (missing.length > 0) {
-    throw new Error(`Packaged app is missing required resource(s): ${missing.join(', ')}`);
+  if (result.missing.length > 0) {
+    console.error(`   Missing bundled resources: ${result.missing.join(', ')}`);
+    throw new Error(`Packaged app is missing required bundled resource(s): ${result.missing.join(', ')}`);
   }
 
-  console.log(`   ✓ Bundled resources verified for ${runtimeKey}`);
+  console.log(`   ✓ Bundled resources verified for ${result.runtimeKey} (${result.checked.length} checks)`);
 }
 
 module.exports = async function afterPack(context) {

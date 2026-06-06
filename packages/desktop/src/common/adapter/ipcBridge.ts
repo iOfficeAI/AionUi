@@ -360,6 +360,8 @@ export type RuntimeFailureKind =
   | 'checksum_mismatch'
   | 'validation_failed'
   | 'unsupported_platform'
+  | 'bundled_resource_missing'
+  | 'bundled_resource_invalid'
   | 'unknown';
 
 export interface IRuntimeStatusScope {

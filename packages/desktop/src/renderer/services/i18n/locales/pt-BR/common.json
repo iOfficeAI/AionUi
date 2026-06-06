@@ -80,7 +80,8 @@
       "title": "A instalação do AionUi está incompleta",
       "description": "Esta instalação está faltando recursos locais necessários, portanto o AionCore não pode ser iniciado. Por favor, baixe e reinstale a versão mais recente do AionUi.",
       "downloadLatest": "Baixar mais recente",
-      "sendDiagnostics": "Enviar diagnósticos"
+      "sendDiagnostics": "Enviar diagnósticos",
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
     }
   },
   "fileAttach.addFiles": "Adicionar arquivos",
