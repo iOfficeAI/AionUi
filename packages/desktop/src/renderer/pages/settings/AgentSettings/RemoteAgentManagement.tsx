@@ -29,11 +29,12 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Attention, Edit, Like, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
+import { Attention, Edit, Key, Like, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import { getRemoteProtocolOption, REMOTE_PROTOCOL_OPTIONS } from './remoteAgentProtocolOptions';
+import RemoteProviderAuthModal from './RemoteProviderAuthModal';
 
 const FormItem = Form.Item;
 
@@ -484,6 +485,7 @@ const RemoteAgentManagement: React.FC = () => {
   const [defaultAgentId, setDefaultAgentIdState] = useState<string | null>(() => getDefaultRemoteAgentId());
   const [modalVisible, setModalVisible] = useState(false);
   const [editAgent, setEditAgent] = useState<RemoteAgentConfig>();
+  const [providerAgent, setProviderAgent] = useState<RemoteAgentConfig>();
   const remoteActionButtonClassName = '!rounded-10px !px-10px';
 
   const handleSetDefault = useCallback((id: string | null) => {
@@ -506,6 +508,10 @@ const RemoteAgentManagement: React.FC = () => {
   const handleEdit = useCallback((agent: RemoteAgentConfig) => {
     setEditAgent(agent);
     setModalVisible(true);
+  }, []);
+
+  const handleManageProviders = useCallback((agent: RemoteAgentConfig) => {
+    setProviderAgent(agent);
   }, []);
 
   const handleDelete = useCallback(
@@ -655,6 +661,17 @@ const RemoteAgentManagement: React.FC = () => {
               </Typography.Text>
 
               <div className='mt-auto flex flex-col gap-8px'>
+                {agent.protocol === 'opencode' ? (
+                  <Button
+                    size='small'
+                    type='secondary'
+                    icon={<Key theme='outline' size='14' />}
+                    className={remoteActionButtonClassName}
+                    onClick={() => handleManageProviders(agent)}
+                  >
+                    {t('settings.remoteAgent.providers.manage')}
+                  </Button>
+                ) : null}
                 <div className='grid grid-cols-2 gap-8px'>
                   <Button
                     size='small'
@@ -698,6 +715,11 @@ const RemoteAgentManagement: React.FC = () => {
         editAgent={editAgent}
         onClose={() => setModalVisible(false)}
         onSaved={handleSaved}
+      />
+      <RemoteProviderAuthModal
+        visible={Boolean(providerAgent)}
+        agent={providerAgent}
+        onClose={() => setProviderAgent(undefined)}
       />
     </div>
   );

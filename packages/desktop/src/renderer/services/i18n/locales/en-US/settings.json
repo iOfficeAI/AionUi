@@ -940,7 +940,34 @@
     "healthLatency": "{{ms}}ms",
     "setDefault": "Set as default",
     "clearDefault": "Clear default",
-    "defaultBadge": "Default"
+    "defaultBadge": "Default",
+    "providers": {
+      "manage": "LLM Providers",
+      "title": "Provider auth — {{name}}",
+      "description": "Configure API keys and OAuth for LLM providers on this OpenCode server. Credentials are stored on the remote server, not in Chisl.",
+      "refresh": "Refresh",
+      "empty": "No providers returned from the OpenCode server.",
+      "loadFailed": "Failed to load providers: {{error}}",
+      "connected": "Connected",
+      "notConnected": "Not configured",
+      "apiKeyPlaceholder": "Paste API key",
+      "apiKeyRequired": "Enter an API key first",
+      "saveKey": "Save key",
+      "saved": "Credentials saved for {{name}}",
+      "saveFailed": "Failed to save credentials: {{error}}",
+      "disconnect": "Remove credentials",
+      "cleared": "Credentials removed for {{name}}",
+      "clearFailed": "Failed to remove credentials: {{error}}",
+      "startOAuth": "Open OAuth",
+      "oauthOpened": "Complete sign-in in your browser, then paste the authorization code below.",
+      "oauthUrlMissing": "Server did not return an OAuth authorize URL.",
+      "oauthStartFailed": "Failed to start OAuth: {{error}}",
+      "oauthCodePlaceholder": "Authorization code",
+      "oauthCodeRequired": "Paste the authorization code from your browser",
+      "completeOAuth": "Complete OAuth",
+      "oauthComplete": "OAuth connected for {{name}}",
+      "oauthCompleteFailed": "OAuth completion failed: {{error}}"
+    }
   },
   "noExternalSources": "No external skill sources discovered"
 }
