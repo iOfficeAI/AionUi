@@ -13,6 +13,9 @@ export interface LayoutContextValue {
   siderWidth: number;
   /** True when sider is in icon-only mode due to narrow drag-resized width. */
   siderIconOnly: boolean;
+  /** Whether the right-side ConversationPane is collapsed (true = hidden). */
+  conversationPaneCollapsed: boolean;
+  setConversationPaneCollapsed: (value: boolean) => void;
 }
 
 export const LayoutContext = React.createContext<LayoutContextValue | null>(null);

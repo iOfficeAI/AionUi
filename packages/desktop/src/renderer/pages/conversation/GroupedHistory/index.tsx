@@ -16,7 +16,7 @@ import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable'
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
 import { Delete, FolderOpen, MoreOne, Plus, Right } from '@icon-park/react';
 import classNames from 'classnames';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate, useParams } from 'react-router-dom';
 
@@ -29,6 +29,7 @@ import { useConversationActions } from './hooks/useConversationActions';
 import { useConversations } from './hooks/useConversations';
 import { useDragAndDrop } from './hooks/useDragAndDrop';
 import { useExport } from './hooks/useExport';
+import { useCollapsedSections } from './hooks/useCollapsedSections';
 import type { ConversationRowProps, WorkspaceGroupedHistoryProps } from './types';
 
 const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
@@ -49,30 +50,7 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   // Seed `'archived'` only when the user has never written the key — that way
   // the section starts collapsed on first encounter but a user toggle later
   // takes precedence forever.
-  const COLLAPSED_SECTIONS_KEY = 'grouped-history-collapsed-sections';
-  const [collapsedSections, setCollapsedSections] = useState<Set<string>>(() => {
-    try {
-      const raw = localStorage.getItem(COLLAPSED_SECTIONS_KEY);
-      if (!raw) return new Set(['archived']);
-      const arr = JSON.parse(raw) as string[];
-      return new Set(Array.isArray(arr) ? arr : []);
-    } catch {
-      return new Set(['archived']);
-    }
-  });
-  const toggleSection = useCallback((key: string) => {
-    setCollapsedSections((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      try {
-        localStorage.setItem(COLLAPSED_SECTIONS_KEY, JSON.stringify([...next]));
-      } catch {
-        // ignore storage errors
-      }
-      return next;
-    });
-  }, []);
+  const { collapsedSections, toggleSection } = useCollapsedSections();
 
   const SectionLabel = useCallback(
     ({ sectionKey, label, trailing }: { sectionKey: string; label: string; trailing?: React.ReactNode }) => {

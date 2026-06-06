@@ -380,7 +380,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             )}
           </div>
         )}
-        <div className='min-w-0 w-full [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px md:max-w-1100px'>
+        <div className='min-w-0 w-full [&>p:first-child]:mt-0px [&>p:last-child]:mb-0px'>
           {/* JSON 内容使用折叠组件 Use CollapsibleContent for JSON content */}
           {shouldRenderPlainText ? (
             <div className='whitespace-pre-wrap break-words' data-testid='message-text-content'>

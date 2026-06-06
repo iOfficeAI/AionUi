@@ -19,8 +19,6 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import MobileConversationBrand from './MobileConversationBrand';
 import WindowControls from '../WindowControls';
-import { WORKSPACE_STATE_EVENT, dispatchWorkspaceToggleEvent } from '@renderer/utils/workspace/workspaceEvents';
-import type { WorkspaceStateDetail } from '@renderer/utils/workspace/workspaceEvents';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useNavigationHistory } from '@/renderer/hooks/context/NavigationHistoryContext';
 import { useEditorContextSafe } from '@/renderer/pages/conversation/Editor';
@@ -65,7 +63,6 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
   const appTitle = useMemo(() => 'Chisl', []);
-  const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [activeWorkspaceName, setActiveWorkspaceName] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);
   const layout = useLayoutContext();
@@ -83,33 +80,21 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const toolbarRef = useRef<HTMLDivElement | null>(null);
   const lastNonSettingsPathRef = useRef('/guid');
 
-  // 监听工作空间折叠状态，保持按钮图标一致 / Sync workspace collapsed state for toggle button
-  useEffect(() => {
-    if (typeof window === 'undefined') {
-      return undefined;
-    }
-    const handler = (event: Event) => {
-      const customEvent = event as CustomEvent<WorkspaceStateDetail>;
-      if (typeof customEvent.detail?.collapsed === 'boolean') {
-        setWorkspaceCollapsed(customEvent.detail.collapsed);
-      }
-    };
-    window.addEventListener(WORKSPACE_STATE_EVENT, handler as EventListener);
-    return () => {
-      window.removeEventListener(WORKSPACE_STATE_EVENT, handler as EventListener);
-    };
-  }, []);
+  // The right-side ConversationPane collapsed state comes straight from the
+  // layout context (single source of truth) — no local mirror, no init race.
+  const conversationPaneCollapsed = layout?.conversationPaneCollapsed ?? true;
 
   const isDesktopRuntime = isElectronDesktop();
   const isMacRuntime = isDesktopRuntime && isMacOS();
   // Windows/Linux 显示自定义窗口按钮；macOS 在标题栏给工作区一个切换入口
   const showWindowControls = isDesktopRuntime && !isMacRuntime;
-  // WebUI 和 macOS 桌面都需要在标题栏放工作区开关
-  const showWorkspaceButton = workspaceAvailable && (!isDesktopRuntime || isMacRuntime);
 
-  const workspaceTooltip = workspaceCollapsed ? t('common.expandMore') : t('common.collapse');
+  const workspaceTooltip = conversationPaneCollapsed ? t('common.expandMore') : t('common.collapse');
   const backToChatTooltip = t('common.back', { defaultValue: 'Back to Chat' });
   const isSettingsRoute = location.pathname.startsWith('/settings');
+  // Conversation-pane toggle: available on every route except Settings, on
+  // all platforms (the pane is now the only way to manage chats).
+  const showWorkspaceButton = !isSettingsRoute;
   const iconSize = 16;
   // Desktop uses slimmer strokes to match macOS-native chrome aesthetics;
   // mobile keeps the default weight so icons stay legible at larger sizes.
@@ -132,10 +117,7 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   };
 
   const handleWorkspaceToggle = () => {
-    if (!workspaceAvailable) {
-      return;
-    }
-    dispatchWorkspaceToggleEvent();
+    layout?.setConversationPaneCollapsed?.(!conversationPaneCollapsed);
   };
 
   const handleBackToChat = () => {
@@ -155,13 +137,21 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const isTerminalActive = Boolean(terminalPanel?.open);
   const isEditorActive = Boolean(editorCtx?.isOpen) && !editorCtx?.isCollapsed && !isDiffActive;
   const isCommandCenterActive = isEditorActive && isTerminalActive;
-  const isChatActive = !isDiffActive && !isTerminalActive && !editorCtx?.isOpen;
+  // Chat mode is now anchored to the right-hand ConversationPane (the primary
+  // navigation surface). It's "active" when the right pane is open and no
+  // content pane (editor / terminal / diff) is taking over. The left sider is
+  // demoted to an optional, independently-toggled surface and no longer gates
+  // this state.
+  const isChatActive = !isDiffActive && !isTerminalActive && !editorCtx?.isOpen && !conversationPaneCollapsed;
 
-  // Chat: clean single-pane view — close editor, diff, and terminal.
+  // Chat: focus the conversation. Force the right-hand ConversationPane open
+  // and clear the content panes (editor / diff / terminal). The left sider is
+  // left untouched — it's optional and user-controlled.
   const handleChatView = () => {
     layoutModeCtx?.setMode('default');
     editorCtx?.requestCloseEditor();
     terminalPanel?.close();
+    layout?.setConversationPaneCollapsed?.(false);
   };
 
   // Command Center: open the terminal and the (expanded) editor together.
@@ -448,8 +438,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
             className={classNames('app-titlebar__button', layout?.isMobile && 'app-titlebar__button--mobile')}
             onClick={handleWorkspaceToggle}
             aria-label={workspaceTooltip}
+            aria-pressed={!conversationPaneCollapsed}
           >
-            {workspaceCollapsed ? (
+            {conversationPaneCollapsed ? (
               <ExpandRight theme='outline' size={iconSize} fill='currentColor' />
             ) : (
               <ExpandLeft theme='outline' size={iconSize} fill='currentColor' />

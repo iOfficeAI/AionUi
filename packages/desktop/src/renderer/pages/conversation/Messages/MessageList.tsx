@@ -114,7 +114,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         data-message-type={message.type}
         data-message-position={message.position}
         className={classNames(
-          'min-w-0 flex items-start message-item [&>div]:max-w-full px-6px m-t-4px max-w-full md:max-w-1100px mx-auto',
+          'min-w-0 flex items-start message-item [&>div]:max-w-full px-6px m-t-4px max-w-full w-full',
           message.type,
           {
             'justify-center': message.position === 'center',
@@ -394,7 +394,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           id={`message-${getProcessedItemAnchorId(item)}`}
           data-conversation-artifact-kind={item.artifact.kind}
           data-testid={`conversation-artifact-${item.artifact.kind}`}
-          className='min-w-0 message-item px-6px m-t-4px max-w-full md:max-w-1100px mx-auto'
+          className='min-w-0 message-item px-6px m-t-4px max-w-full w-full'
           style={highlighted ? highlightStyle : undefined}
         >
           <MessageSkillSuggest artifact={item.artifact} />
@@ -406,7 +406,7 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         <div
           key={item.id}
           id={`message-${getProcessedItemAnchorId(item)}`}
-          className={'min-w-0 message-item px-6px m-t-4px max-w-full md:max-w-1100px mx-auto ' + item.type}
+          className={'min-w-0 message-item px-6px m-t-4px max-w-full w-full ' + item.type}
           style={highlighted ? highlightStyle : undefined}
         >
           {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}

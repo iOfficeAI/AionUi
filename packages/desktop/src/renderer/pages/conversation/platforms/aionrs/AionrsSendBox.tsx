@@ -367,7 +367,7 @@ const AionrsSendBox: React.FC<{
   };
 
   return (
-    <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
+    <div className='w-full flex flex-col mt-auto'>
       <PendingApprovalsBanner conversation_id={conversation_id} />
       <CommandQueuePanel
         items={queuedCommands}

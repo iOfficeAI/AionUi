@@ -28,6 +28,7 @@ import {
   WORKSPACE_HEADER_HEIGHT,
   calcLayoutMetrics,
 } from '@/renderer/pages/conversation/utils/layoutCalc';
+import { WORKSPACE_PANE_GHOSTED } from '@/common/config/constants';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import { ExpandLeft, ExpandRight } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
@@ -320,7 +321,7 @@ const ChatLayout: React.FC<{
       <div className='flex items-center gap-8px shrink-0' onClick={(e) => e.stopPropagation()}>
         {conversation_id && <ConversationTitleMinimap conversation_id={conversation_id} />}
         {props.headerExtra}
-        {isWindowsRuntime && workspaceEnabled && (
+        {isWindowsRuntime && workspaceEnabled && !WORKSPACE_PANE_GHOSTED && (
           <button
             type='button'
             className='workspace-header__toggle'
@@ -487,7 +488,7 @@ const ChatLayout: React.FC<{
             )}
           </div>
         )}
-        {workspaceEnabled && !layout?.isMobile && (
+        {workspaceEnabled && !layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
           <div
             className={classNames(
               '!bg-1 chat-pane relative chat-layout-right-sider layout-sider',
@@ -527,7 +528,7 @@ const ChatLayout: React.FC<{
         )}
 
         {/* Mobile workspace overlay: backdrop + fixed panel + floating collapse handle */}
-        {workspaceEnabled && layout?.isMobile && (
+        {workspaceEnabled && layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
           <MobileWorkspaceOverlay
             rightSiderCollapsed={rightSiderCollapsed}
             setRightSiderCollapsed={setRightSiderCollapsed}
@@ -541,7 +542,7 @@ const ChatLayout: React.FC<{
         )}
 
         {/* Desktop expand button when workspace is collapsed */}
-        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
+        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
           <DesktopWorkspaceToggle />
         )}
       </div>

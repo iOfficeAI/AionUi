@@ -1,0 +1,159 @@
+/* ConversationPane — right-side conversation navigation surface.
+   Replaces the conversation list that used to live in the left Sider. */
+
+.paneRoot {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 0 0 auto;
+  background-color: var(--bg-2);
+  border-left: 1px solid var(--bg-3);
+  box-sizing: border-box;
+  overflow: hidden;
+}
+
+/* Smooth collapse/expand — mirrors `.layout-sider`'s width animation so the
+   right pane slides exactly like the left navigation bar. Only applied while
+   toggling collapsed state; resize-dragging runs without it (instant). */
+.paneAnimating {
+  transition:
+    width var(--duration-slow) var(--ease-out-expo),
+    flex-basis var(--duration-slow) var(--ease-out-expo),
+    border-left-width var(--duration-slow) var(--ease-out-expo);
+}
+
+/* Fully collapsed: clip content and drop the divider so no 1px seam shows. */
+.paneCollapsed {
+  border-left-width: 0;
+  pointer-events: none;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--bg-3);
+  background-color: var(--bg-2);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.actionBtn:hover {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.actionBtn:active {
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+[data-theme='dark'] .actionBtn:hover {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .actionBtn:active {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.actionBtnActive {
+  background-color: color-mix(in srgb, var(--brand) 16%, transparent);
+  color: var(--brand);
+}
+
+.actionBtnActive:hover {
+  background-color: color-mix(in srgb, var(--brand) 24%, transparent);
+  color: var(--brand);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.bodyInner {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+
+.bodyInner::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+
+/* Mobile overlay — full-screen backdrop + fixed panel that mimics the
+   existing MobileWorkspaceOverlay pattern. */
+.mobileBackdrop {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  z-index: 90;
+}
+
+.mobilePanel {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background-color: var(--bg-2);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  animation: slideInFromRight 180ms ease-out;
+}
+
+@keyframes slideInFromRight {
+  from {
+    transform: translateX(100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mobilePanel {
+    animation: none;
+  }
+}

@@ -29,6 +29,8 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import { DEFAULT_THEME_ID } from '@renderer/pages/settings/DisplaySettings/presets';
+import { dispatchConversationPaneStateEvent } from '@renderer/utils/conversationPane/events';
+import ConversationPane from '@renderer/components/layout/ConversationPane';
 import '@renderer/styles/layout.css';
 import brandLogo from '@renderer/assets/logos/brand/app.png';
 import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
@@ -83,6 +85,10 @@ const useDebug = () => {
 };
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
+// App-wide editor pane (Monaco is heavy → lazy). Mounted only on routes where
+// ChatLayout is absent, so the titlebar's Command Center can open the editor
+// anywhere (e.g. /guid) without a second editor on conversation/team routes.
+const EditorPane = React.lazy(() => import('@/renderer/components/layout/EditorPane'));
 
 const DEFAULT_SIDER_WIDTH = 200;
 const SIDER_MIN_WIDTH = 56;
@@ -117,6 +123,27 @@ const persistSiderWidth = (value: number): void => {
   }
 };
 
+const CONVERSATION_PANE_COLLAPSE_KEY = 'aionui.conversationPaneCollapsed';
+
+// Default: OPEN on desktop so the conversation list is immediately usable.
+const readStoredConversationPaneCollapsed = (): boolean => {
+  if (typeof window === 'undefined') return false;
+  try {
+    return window.localStorage.getItem(CONVERSATION_PANE_COLLAPSE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
+const persistConversationPaneCollapsed = (value: boolean): void => {
+  if (typeof window === 'undefined') return;
+  try {
+    window.localStorage.setItem(CONVERSATION_PANE_COLLAPSE_KEY, String(value));
+  } catch {
+    /* localStorage unavailable */
+  }
+};
+
 const detectMobileViewportOrTouch = (): boolean => {
   if (typeof window === 'undefined') return false;
   if (isElectronDesktop()) {
@@ -138,6 +165,7 @@ const Layout: React.FC<{
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(false);
+  const [conversationPaneCollapsed, setConversationPaneCollapsedState] = useState<boolean>(readStoredConversationPaneCollapsed);
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
@@ -155,6 +183,14 @@ const Layout: React.FC<{
   const location = useLocation();
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+  const isSettingsRoute = location.pathname.startsWith('/settings');
+  // The conversation pane is available everywhere except the Settings menu.
+  const conversationPaneEnabled = !isSettingsRoute;
+
+  const setConversationPaneCollapsed = useCallback((value: boolean) => {
+    setConversationPaneCollapsedState(value);
+    persistConversationPaneCollapsed(value);
+  }, []);
   const collapsedRef = useRef(collapsed);
   const desktopSiderWidthRef = useRef(desktopSiderWidth);
   const lastCssRef = useRef('');
@@ -318,6 +354,21 @@ const Layout: React.FC<{
       return;
     }
     setCollapsed(true);
+  }, [isMobile]);
+
+  // Broadcast the new ConversationPane state to the event bus so decoupled
+  // listeners (e.g. mobile overlay animations, third-party widgets) can
+  // mirror it. Direct tree descendants should read from LayoutContext.
+  useEffect(() => {
+    dispatchConversationPaneStateEvent(conversationPaneCollapsed);
+  }, [conversationPaneCollapsed]);
+
+  // Mobile: force-collapse the ConversationPane by default so it never
+  // opens over a fresh chat unless the user explicitly invokes it.
+  useEffect(() => {
+    if (isMobile) {
+      setConversationPaneCollapsed(true);
+    }
   }, [isMobile]);
 
   // 清理侧栏 Tooltip 残留节点，避免移动端路由切换后浮层卡在左上角
@@ -495,6 +546,8 @@ const Layout: React.FC<{
         setSiderCollapsed: setCollapsed,
         siderWidth: isMobile ? 0 : desktopSiderWidth,
         siderIconOnly: !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
+        conversationPaneCollapsed,
+        setConversationPaneCollapsed,
       }}
     >
       <NavigationHistoryProvider>
@@ -626,6 +679,21 @@ const Layout: React.FC<{
                     </Suspense>
                   </div>
                 </ArcoLayout.Content>
+
+                {/* App-wide editor pane — only where ChatLayout isn't already
+                    hosting one (i.e. not on conversation/team routes). Lets
+                    Command Center open the editor on /guid and elsewhere. */}
+                {!workspaceAvailable && !isMobile && (
+                  <Suspense fallback={null}>
+                    <EditorPane />
+                  </Suspense>
+                )}
+
+                {/* Right-side conversation navigation pane — app-wide peer of
+                    the main content (replaces the old left-Sider chat list).
+                    Hidden on Settings routes. Visibility within an enabled
+                    route is driven by LayoutContext.conversationPaneCollapsed. */}
+                {conversationPaneEnabled && <ConversationPane />}
               </ArcoLayout>
             </div>
           </LayoutModeProvider>

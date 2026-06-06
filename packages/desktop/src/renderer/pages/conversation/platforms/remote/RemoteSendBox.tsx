@@ -425,7 +425,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
   };
 
   return (
-    <div className='max-w-1100px w-full mx-auto flex flex-col mt-auto'>
+    <div className='w-full flex flex-col mt-auto'>
       {/* Approvals moved to the workspace "Approvals" tab for remote/opencode. */}
       <CommandQueuePanel
         items={queuedCommands}

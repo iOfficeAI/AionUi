@@ -39,6 +39,7 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
   const fitRef = useRef<FitAddon | null>(null);
   const resizeObsRef = useRef<ResizeObserver | null>(null);
   const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null);
+  const fitDebounceRef = useRef<number | null>(null);
 
   // Mount the terminal once. We re-fit on visibility changes and resizes.
   useEffect(() => {
@@ -79,7 +80,15 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
     });
 
     // Watch container size to re-fit + push the new dimensions to the PTY.
-    const obs = new ResizeObserver(() => {
+    //
+    // Debounced: while a layout pane (the left sider or the right
+    // ConversationPane) animates its width, this container's width changes on
+    // every animation frame. Fitting per-frame reflows the xterm grid and the
+    // PTY, which reads as rapid flicker for the full ~300ms slide. Coalescing
+    // to a single fit ~120ms after the size stops changing means we fit once,
+    // after the animation settles — no flicker, no PTY resize spam.
+    const runFit = () => {
+      fitDebounceRef.current = null;
       if (!host.isConnected || host.offsetParent === null) return;
       try {
         fit.fit();
@@ -92,6 +101,13 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
         lastSizeRef.current = { cols, rows };
         void ipcBridge.terminal.resize.invoke({ session_id, cols, rows });
       }
+    };
+    const obs = new ResizeObserver(() => {
+      if (!host.isConnected || host.offsetParent === null) return;
+      if (fitDebounceRef.current !== null) {
+        window.clearTimeout(fitDebounceRef.current);
+      }
+      fitDebounceRef.current = window.setTimeout(runFit, 120);
     });
     obs.observe(host);
     resizeObsRef.current = obs;
@@ -101,6 +117,10 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
       offOutput();
       obs.disconnect();
       resizeObsRef.current = null;
+      if (fitDebounceRef.current !== null) {
+        window.clearTimeout(fitDebounceRef.current);
+        fitDebounceRef.current = null;
+      }
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -147,7 +167,18 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
     <div
       ref={hostRef}
       className='size-full overflow-hidden'
-      style={{ display: visible ? 'block' : 'none' }}
+      style={{
+        display: visible ? 'block' : 'none',
+        // Promote the terminal (and its xterm canvases) to its own compositor
+        // layer + isolate its paint. When a layout pane (left sider / right
+        // ConversationPane) animates its width, the main content reflows every
+        // frame; without isolation the browser repaints the canvases each
+        // frame → visible flicker. On its own layer the terminal is merely
+        // re-composited, not repainted.
+        transform: 'translateZ(0)',
+        contain: 'layout paint',
+        backfaceVisibility: 'hidden',
+      }}
       aria-hidden={!visible}
     />
   );

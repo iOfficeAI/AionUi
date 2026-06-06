@@ -60,6 +60,16 @@ export const WEBUI_DEFAULT_PORT = (() => {
 
 export const TEAM_MODE_ENABLED = true;
 
+// ===== MoE Runbook: Conversation Pane migration =====
+
+/**
+ * Set to `true` to hide the old right-side workspace pane (file browser /
+ * editor / approvals) without removing its source. Roll this flag back to
+ * `false` to instantly restore the old pane. The new right-side
+ * ConversationPane is mounted by ChatLayout independently of this flag.
+ */
+export const WORKSPACE_PANE_GHOSTED = true;
+
 // ===== AI Provider 相关常量 =====
 
 // Stable ID for the Google Auth virtual provider.
