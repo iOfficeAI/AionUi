@@ -174,10 +174,11 @@ const AcpSendBox: React.FC<{
       if (mode === currentMode) return;
       try {
         await prepareRuntimeSync();
-        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
-        setCurrentMode(mode);
-        if (backend) void savePreferredMode(backend, mode);
-        if (isLeaderInTeam) teamPermission?.propagateMode?.(mode);
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        const confirmedMode = confirmed.mode || mode;
+        setCurrentMode(confirmedMode);
+        if (backend) void savePreferredMode(backend, confirmedMode);
+        if (isLeaderInTeam) teamPermission?.propagateMode?.(confirmedMode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AcpSendBox] Failed to switch mode via sheet:', error);
@@ -253,6 +254,7 @@ const AcpSendBox: React.FC<{
     backend,
     workspacePath,
     setAiProcessing,
+    resetState,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
   });
@@ -266,26 +268,10 @@ const AcpSendBox: React.FC<{
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+        await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
-        });
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessageRef.current({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: { content: displayMessage },
-          created_at: Date.now(),
         });
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
@@ -345,6 +331,7 @@ Please check your local CLI tool authentication status`,
           );
         }
 
+        resetState();
         setAiProcessing(false);
         throw error;
       }
@@ -353,7 +340,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
+    [backend, checkAndUpdateTitle, conversation_id, resetState, setAiProcessing, t, workspacePath]
   );
 
   const {

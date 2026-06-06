@@ -46,7 +46,7 @@ describe('buildSendFailureError', () => {
   it('preserves workspace-path validation code as a structured non-retryable error', () => {
     const err = httpError(
       400,
-      'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
       'Workspace path contains whitespace in one or more directory names and is no longer supported for send or warmup',
       { workspace_path: '/tmp/Archive ' }
     );
@@ -58,7 +58,7 @@ describe('buildSendFailureError', () => {
 
     expect(result).toEqual({
       message: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
-      code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
       ownership: 'aionui',
       detail: 'The existing workspace path "/tmp/Archive " is no longer supported for send or warmup.',
       workspacePath: '/tmp/Archive ',

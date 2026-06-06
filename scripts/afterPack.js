@@ -42,6 +42,7 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
     missing
   );
   requirePackagedResource(resourcesDir, path.join('bundled-poundingcore', runtimeKey, 'manifest.json'), missing);
+  requirePackagedResource(resourcesDir, path.join('bundled-poundingcore', runtimeKey, 'managed-resources'), missing);
 
   if (missing.length > 0) {
     throw new Error(`Packaged app is missing required resource(s): ${missing.join(', ')}`);

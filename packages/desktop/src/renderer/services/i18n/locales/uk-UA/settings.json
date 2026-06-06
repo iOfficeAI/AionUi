@@ -467,7 +467,7 @@
   "mcpAuthenticated": "Автентифіковано",
   "mcpDisconnected": "Не тестувалося",
   "mcpError": "Останній тест завершився помилкою",
-  "mcpErrorNodeCommandNotFound": "Command {{command}} was not found. Install Node.js (which includes npm/npx), restart AionUI, or configure this MCP server to use an absolute command path.",
+  "mcpErrorNodeCommandNotFound": "Не вдалося підготувати команду {{command}}. Зазвичай AionCore автоматично готує кероване середовище Node. Повторіть тест підключення; якщо помилка не зникне, перевірте логи бекенда або вкажіть для цього MCP-сервера абсолютний шлях до команди.",
   "mcpErrorBunCommandNotFound": "Command {{command}} was not found. Install Bun (which includes bun/bunx), restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorUvCommandNotFound": "Command {{command}} was not found. Install uv, restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorPythonCommandNotFound": "Command {{command}} was not found. Install Python, restart AionUI, or configure this MCP server to use an absolute command path.",
@@ -619,8 +619,8 @@
   "testConnectionBtn": "Тест підключення",
   "testConnectionTesting": "Тестування...",
   "testConnectionSuccess": "Підключення успішне! CLI існує і протокол ACP працює.",
-  "testConnectionFailCli": "Команду не знайдено. Переконайтеся, що вона встановлена і знаходиться в PATH.",
-  "testConnectionFailAcp": "CLI знайдено, але ініціалізація ACP не вдалася.",
+  "testConnectionFailCli": "Не вдалося підготувати CLI-команду.",
+  "testConnectionFailAcp": "CLI запущено, але ініціалізація ACP не вдалася.",
   "addCustomAgentTitle": "Додати власного агента",
   "simpleModeTip": "Виберіть виявлений CLI і дайте йому власне ім'я. Для змінних оточення та інших опцій перейдіть у розширений режим.",
   "command": "Команда",
@@ -894,5 +894,32 @@
   "mcpCheckPassedSummary": "Ручна перевірка пройшла успішно",
   "mcpCheckFailedSummary": "Ручна перевірка завершилася помилкою",
   "mcpInlineConfigHint": "Можливо, конфігурація неправильна. Перевірте MCP JSON і протестуйте ще раз.",
-  "mcpInlineCommandHint": "На цій машині відсутня команда {{command}}. Встановіть її й протестуйте ще раз."
+  "mcpInlineCommandHint": "На цій машині відсутня команда {{command}}. Встановіть її й протестуйте ще раз.",
+  "retry": "Retry",
+  "runtimeStatus": {
+    "waitingForLock": "Waiting for another task to finish preparing {{resource}}.",
+    "downloading": "Preparing {{resource}}.",
+    "extracting": "Preparing {{resource}}.",
+    "validating": "Validating {{resource}}.",
+    "ready": "{{resource}} is ready.",
+    "failedTimeout": "Preparing {{resource}} timed out. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedDownload": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedHttp": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedValidation": "Validating {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedBundled": "Preparing {{resource}} failed because the bundled component files are invalid. Reinstall the app or download a fresh package and try again.",
+    "failedUnsupported": "{{resource}} is not supported on this platform.",
+    "failedUnknown": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedChecksum": "Не вдалося перевірити {{resource}}: файли компонента можуть бути пошкоджені. Перевстановіть застосунок або завантажте свіжий пакет і спробуйте ще раз."
+  },
+  "runtimeScope": {
+    "conversation": "Conversation",
+    "mcp": "MCP",
+    "customAgent": "Custom Agent"
+  },
+  "runtimeResource": {
+    "node": "the managed Node runtime",
+    "acpTool": "the managed ACP tool",
+    "codexAcp": "the Codex ACP runtime component",
+    "claudeAgentAcp": "the Claude ACP runtime component"
+  }
 }

@@ -5,8 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/SendBox';
 import ThoughtDisplay, { type ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
@@ -19,7 +18,7 @@ import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -62,7 +61,6 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
   const { checkAndUpdateTitle } = useAutoTitle();
   const slash_commands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -196,6 +194,16 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       if (conversation_id !== message.conversation_id) {
         return;
       }
+
+      if (isErrorTipMessage(message)) {
+        setThought({ subject: '', description: '' });
+        setAiProcessing(false);
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
+        return;
+      }
       switch (message.type) {
         case 'thought':
           throttledSetThought(message.data as ThoughtData);
@@ -255,38 +263,19 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
       let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const res = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: displayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, t, workspacePath]
+    [checkAndUpdateTitle, conversation_id, t, workspacePath]
   );
 
   const {
@@ -374,29 +363,11 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         const initialDisplayMessage = buildDisplayMessage(input, files, resolvedWorkspace);
 
         void checkAndUpdateTitle(conversation_id, input);
-        // Fetch the server-assigned msg_id before rendering the optimistic
-        // bubble so the local row uses the same id as the persisted DB row.
-        const sendResult = await ipcBridge.conversation.sendMessage.invoke({
+        await ipcBridge.conversation.sendMessage.invoke({
           input: initialDisplayMessage,
           conversation_id,
           files,
         });
-        const { msg_id } = sendResult;
-
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: initialDisplayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage(userMessage);
-
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch (error) {

@@ -471,7 +471,7 @@
   "mcpAuthenticated": "Kimlik doğrulandı",
   "mcpDisconnected": "Test edilmedi",
   "mcpError": "Son test başarısız",
-  "mcpErrorNodeCommandNotFound": "Command {{command}} was not found. Install Node.js (which includes npm/npx), restart AionUI, or configure this MCP server to use an absolute command path.",
+  "mcpErrorNodeCommandNotFound": "{{command}} komutu hazırlanamadı. AionCore genellikle yönetilen Node çalışma zamanını otomatik olarak hazırlar. Bağlantı testini yeniden deneyin; sorun sürerse arka uç günlüklerini kontrol edin veya bu MCP sunucusu için mutlak komut yolu yapılandırın.",
   "mcpErrorBunCommandNotFound": "Command {{command}} was not found. Install Bun (which includes bun/bunx), restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorUvCommandNotFound": "Command {{command}} was not found. Install uv, restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorPythonCommandNotFound": "Command {{command}} was not found. Install Python, restart AionUI, or configure this MCP server to use an absolute command path.",
@@ -670,8 +670,8 @@
   "testConnectionBtn": "Bağlantıyı Test Et",
   "testConnectionTesting": "Test ediliyor...",
   "testConnectionSuccess": "Bağlantı başarılı! CLI mevcut ve ACP protokolü çalışıyor.",
-  "testConnectionFailCli": "Komut bulunamadı. Yüklü olduğundan ve PATH'te olduğundan emin olun.",
-  "testConnectionFailAcp": "CLI bulundu ancak ACP başlatma başarısız oldu.",
+  "testConnectionFailCli": "CLI komutu hazırlanamadı.",
+  "testConnectionFailAcp": "CLI başladı ancak ACP başlatma başarısız oldu.",
   "addCustomAgentTitle": "Özel Ajan Ekle",
   "simpleModeTip": "Algılanan bir CLI seçin ve özel bir isim verin. Ortam değişkenleri ve diğer seçenekler için Gelişmiş moda geçin.",
   "command": "Komut",
@@ -974,5 +974,32 @@
   "mcpCheckPassedSummary": "Manuel kontrol başarılı oldu",
   "mcpCheckFailedSummary": "Manuel kontrol başarısız oldu",
   "mcpInlineConfigHint": "Yapılandırma hatalı olabilir. MCP JSON'u gözden geçirip yeniden test edin.",
-  "mcpInlineCommandHint": "Bu makinede {{command}} bulunmuyor. Kurup tekrar test edin."
+  "mcpInlineCommandHint": "Bu makinede {{command}} bulunmuyor. Kurup tekrar test edin.",
+  "retry": "Retry",
+  "runtimeStatus": {
+    "waitingForLock": "Waiting for another task to finish preparing {{resource}}.",
+    "downloading": "Preparing {{resource}}.",
+    "extracting": "Preparing {{resource}}.",
+    "validating": "Validating {{resource}}.",
+    "ready": "{{resource}} is ready.",
+    "failedTimeout": "Preparing {{resource}} timed out. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedDownload": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedHttp": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedValidation": "Validating {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedBundled": "Preparing {{resource}} failed because the bundled component files are invalid. Reinstall the app or download a fresh package and try again.",
+    "failedUnsupported": "{{resource}} is not supported on this platform.",
+    "failedUnknown": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedChecksum": "{{resource}} doğrulanamadı; bileşen dosyaları bozulmuş olabilir. Uygulamayı yeniden yükleyin veya yeni bir paket indirip tekrar deneyin."
+  },
+  "runtimeScope": {
+    "conversation": "Conversation",
+    "mcp": "MCP",
+    "customAgent": "Custom Agent"
+  },
+  "runtimeResource": {
+    "node": "the managed Node runtime",
+    "acpTool": "the managed ACP tool",
+    "codexAcp": "the Codex ACP runtime component",
+    "claudeAgentAcp": "the Claude ACP runtime component"
+  }
 }

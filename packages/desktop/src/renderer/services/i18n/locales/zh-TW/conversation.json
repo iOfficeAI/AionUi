@@ -93,7 +93,7 @@
   "createFailed": "建立對話失敗",
   "createError": {
     "pathVariants": {
-      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "所選專案路徑「{{workspacePath}}」中的任一層目錄名稱都不能包含空格或其他空白字元。請重新命名相關目錄，或選擇一個每一層目錄名稱都不含空白字元的工作區路徑。"
+      "WORKSPACE_PATH_UNAVAILABLE": "所選工作區路徑不可用。請確認工作區路徑「{{workspacePath}}」確實存在且可存取。"
     }
   },
   "agentError": {
@@ -261,10 +261,10 @@
         "title": "模型服務商返回了空回應",
         "body": "服務商完成了請求，但沒有返回可用內容。請先重試一次；如果反覆出現，可切換服務商。"
       },
-      "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
-        "title": "此工作區路徑已不再支援繼續執行",
-        "body": "此歷史對話或任務綁定的工作區路徑包含空格或其他空白字元。AionUi 不再支援在這類路徑上繼續發送訊息。請使用不包含空格或其他空白字元的工作區路徑重新建立對話或任務。",
-        "bodyWithPath": "此歷史對話或任務綁定的工作區路徑「{{workspacePath}}」包含空格或其他空白字元。AionUi 不再支援在這類路徑上繼續發送訊息。請使用不包含空格或其他空白字元的工作區路徑重新建立對話或任務。"
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "目前 Agent 在該工作區路徑下執行失敗",
+        "body": "請確認目前工作區路徑確實存在。",
+        "bodyWithPath": "目前 Agent 在該工作區路徑下執行失敗。請確認工作區路徑「{{workspacePath}}」確實存在。"
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "上游 Agent 或模型服務商出錯",
@@ -473,6 +473,9 @@
       "failed": "失敗",
       "unsupported": "不支援"
     }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "正在準備執行環境。首次啟動可能會稍慢一些。"
   },
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"

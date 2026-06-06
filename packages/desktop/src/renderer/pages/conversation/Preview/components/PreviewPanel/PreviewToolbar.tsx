@@ -10,6 +10,7 @@ import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { shouldShowDownload } from './previewToolbarUtils';
 
 /**
  * PreviewToolbar 组件属性
@@ -177,9 +178,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
-  // 代码文件若已在磁盘上（有 file_path），下载即冗余 —— 仅 agent 生成、未落盘的内容才显示下载
-  // For on-disk code files download is redundant; only show it for agent-generated, not-yet-saved content
-  const showDownload = !(content_type === 'code' && showOpenInSystemButton);
+  // showOpenInSystemButton === Boolean(metadata.file_path) upstream — i.e. "file is on disk".
+  const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';

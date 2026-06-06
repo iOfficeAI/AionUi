@@ -463,7 +463,7 @@
   "mcpAuthenticated": "Аутентификация выполнена",
   "mcpDisconnected": "Не тестировалось",
   "mcpError": "Последний тест завершился ошибкой",
-  "mcpErrorNodeCommandNotFound": "Command {{command}} was not found. Install Node.js (which includes npm/npx), restart AionUI, or configure this MCP server to use an absolute command path.",
+  "mcpErrorNodeCommandNotFound": "Не удалось подготовить команду {{command}}. Обычно AionCore автоматически подготавливает управляемую среду Node. Повторите тест подключения; если ошибка не исчезнет, проверьте логи бэкенда или укажите для этого MCP-сервера абсолютный путь к команде.",
   "mcpErrorBunCommandNotFound": "Command {{command}} was not found. Install Bun (which includes bun/bunx), restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorUvCommandNotFound": "Command {{command}} was not found. Install uv, restart AionUI, or configure this MCP server to use an absolute command path.",
   "mcpErrorPythonCommandNotFound": "Command {{command}} was not found. Install Python, restart AionUI, or configure this MCP server to use an absolute command path.",
@@ -662,8 +662,8 @@
   "testConnectionBtn": "Тест подключения",
   "testConnectionTesting": "Тестирование...",
   "testConnectionSuccess": "Подключение успешно! CLI существует и протокол ACP работает.",
-  "testConnectionFailCli": "Команда не найдена. Убедитесь, что она установлена и находится в PATH.",
-  "testConnectionFailAcp": "CLI найден, но инициализация ACP не удалась.",
+  "testConnectionFailCli": "Не удалось подготовить команду CLI.",
+  "testConnectionFailAcp": "CLI запустился, но инициализация ACP не удалась.",
   "addCustomAgentTitle": "Добавить пользовательского агента",
   "simpleModeTip": "Выберите обнаруженный CLI и дайте ему пользовательское имя. Для переменных окружения и других опций переключитесь в расширенный режим.",
   "command": "Команда",
@@ -976,5 +976,32 @@
   "mcpCheckPassedSummary": "Ручная проверка выполнена успешно",
   "mcpCheckFailedSummary": "Ручная проверка завершилась ошибкой",
   "mcpInlineConfigHint": "Возможно, конфигурация неверна. Проверьте MCP JSON и повторите тест.",
-  "mcpInlineCommandHint": "На этом устройстве отсутствует {{command}}. Установите его и повторите проверку."
+  "mcpInlineCommandHint": "На этом устройстве отсутствует {{command}}. Установите его и повторите проверку.",
+  "retry": "Retry",
+  "runtimeStatus": {
+    "waitingForLock": "Waiting for another task to finish preparing {{resource}}.",
+    "downloading": "Preparing {{resource}}.",
+    "extracting": "Preparing {{resource}}.",
+    "validating": "Validating {{resource}}.",
+    "ready": "{{resource}} is ready.",
+    "failedTimeout": "Preparing {{resource}} timed out. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedDownload": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedHttp": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedValidation": "Validating {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedBundled": "Preparing {{resource}} failed because the bundled component files are invalid. Reinstall the app or download a fresh package and try again.",
+    "failedUnsupported": "{{resource}} is not supported on this platform.",
+    "failedUnknown": "Preparing {{resource}} failed. Restart the app and try again. If it continues, reinstall the app or download a fresh package.",
+    "failedChecksum": "Не удалось проверить {{resource}}: файлы компонента могут быть повреждены. Переустановите приложение или скачайте новый пакет и повторите попытку."
+  },
+  "runtimeScope": {
+    "conversation": "Conversation",
+    "mcp": "MCP",
+    "customAgent": "Custom Agent"
+  },
+  "runtimeResource": {
+    "node": "the managed Node runtime",
+    "acpTool": "the managed ACP tool",
+    "codexAcp": "the Codex ACP runtime component",
+    "claudeAgentAcp": "the Claude ACP runtime component"
+  }
 }

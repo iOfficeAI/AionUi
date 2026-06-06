@@ -19,6 +19,7 @@ type UseAcpInitialMessageParams = {
   backend: string;
   workspacePath?: string;
   setAiProcessing: (value: boolean) => void;
+  resetState: () => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
 };
@@ -32,6 +33,7 @@ export const useAcpInitialMessage = ({
   backend,
   workspacePath,
   setAiProcessing,
+  resetState,
   checkAndUpdateTitle,
   addOrUpdateMessage,
 }: UseAcpInitialMessageParams): void => {
@@ -55,30 +57,11 @@ export const useAcpInitialMessage = ({
 
         setAiProcessing(true);
 
-        // POST first to obtain the server-assigned msg_id, then render the
-        // optimistic user bubble with that canonical id. Doing it in this
-        // order prevents `useMessageLstCache` from treating the optimistic
-        // row as a separate "streaming-only" entry when the DB load races
-        // with sendMessage — which previously produced two duplicated user
-        // bubbles on the first conversation render.
         void checkAndUpdateTitle(conversation_id, input);
-        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+        await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id: conversation_id,
           files,
-        });
-
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: { content: displayMessage },
-          created_at: Date.now(),
         });
 
         // Initial message sent successfully
@@ -107,12 +90,22 @@ export const useAcpInitialMessage = ({
           created_at: Date.now() + 2,
         };
         addOrUpdateMessage(errorMessage, true);
-        setAiProcessing(false); // Stop loading state on error
+        resetState();
+        setAiProcessing(false); // Keep the prop-setter in sync with the hook reset
       }
     };
 
     sendInitialMessage().catch((error) => {
       console.error('Failed to send initial message:', error);
     });
-  }, [addOrUpdateMessage, backend, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]);
+  }, [
+    addOrUpdateMessage,
+    backend,
+    checkAndUpdateTitle,
+    conversation_id,
+    resetState,
+    setAiProcessing,
+    t,
+    workspacePath,
+  ]);
 };

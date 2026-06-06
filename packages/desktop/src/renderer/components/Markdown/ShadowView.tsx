@@ -267,9 +267,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
-    const css = configService.get('customCss');
-    if (css) {
-      setCustomCss(addImportantToAll(css));
+    const configuredCss = configService.get('customCss');
+    if (configuredCss) {
+      setCustomCss(addImportantToAll(configuredCss));
     } else {
       setCustomCss('');
     }
@@ -277,9 +277,9 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
     // Listen to custom CSS update events
     const handleCustomCssUpdate = (e: CustomEvent) => {
       if (e.detail?.customCss !== undefined) {
-        const css = e.detail.customCss || '';
+        const nextCss = e.detail.customCss || '';
         // Use unified utility to auto-add !important
-        const processedCss = addImportantToAll(css);
+        const processedCss = addImportantToAll(nextCss);
         setCustomCss(processedCss);
       }
     };
