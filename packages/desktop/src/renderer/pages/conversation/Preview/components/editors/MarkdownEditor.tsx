@@ -61,7 +61,11 @@ const MarkdownEditor: React.FC<MarkdownEditorProps> = ({
           // 自定义 markdown 高亮（非 fallback，优先于 basicSetup 的默认高亮）
           // Custom markdown highlight (non-fallback) wins over basicSetup's default highlighter,
           // while basicSetup's treeHighlighter keeps painting. basicSetup must keep syntaxHighlighting enabled.
-          extensions={[markdown(), syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')), Prec.highest(codeEditorSurfaceTheme())]}
+          extensions={[
+            markdown(),
+            syntaxHighlighting(getMarkdownHighlightStyle(theme === 'dark' ? 'dark' : 'light')),
+            Prec.highest(codeEditorSurfaceTheme()),
+          ]}
           onChange={onChange}
           readOnly={readOnly}
           basicSetup={{
