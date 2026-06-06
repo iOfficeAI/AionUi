@@ -8,7 +8,9 @@ import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { html } from '@codemirror/lang-html';
 import { history, historyKeymap } from '@codemirror/commands';
 import { keymap } from '@codemirror/view';
+import { Prec } from '@codemirror/state';
 import CodeMirror from '@uiw/react-codemirror';
+import { codeEditorSurfaceTheme } from '../../theme/codeEditorTheme';
 import React, { useMemo, useRef, useCallback } from 'react';
 import { useCodeMirrorScroll, useScrollSyncTarget } from '../../hooks/useScrollSyncHelpers';
 
@@ -69,6 +71,7 @@ const HTMLEditor: React.FC<HTMLEditorProps> = ({ value, onChange, containerRef, 
       html(),
       history(), // 显式添加历史记录支持 / Explicitly add history support
       keymap.of(historyKeymap), // 添加历史记录快捷键 / Add history keymaps
+      Prec.highest(codeEditorSurfaceTheme()), // surface bg follows theme tokens
     ],
     []
   );
