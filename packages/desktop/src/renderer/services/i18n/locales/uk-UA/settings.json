@@ -122,7 +122,6 @@
   "agent_name": "Ім'я Агента",
   "rule_content": "Вміст правила / Інструкції",
   "delete_preset_confirm": "Ви впевнені, що хочете видалити цей пресет?",
-  "cssSettings": "Налаштування CSS",
   "cssTheme": {
     "selectOrCustomize": "Виберіть пресет теми або власний CSS",
     "addManually": "Додати вручну",

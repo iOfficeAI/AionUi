@@ -124,9 +124,8 @@
   "agent_name": "Ajan Adı",
   "rule_content": "Kural İçeriği / Talimatlar",
   "delete_preset_confirm": "Bu hazır ayarı silmek istediğinizden emin misiniz?",
-  "cssSettings": "CSS Ayarları",
   "cssTheme": {
-    "selectOrCustomize": "Hazır tema seç veya özel CSS kullan",
+    "selectOrCustomize": "Bir tema seçin veya özelleştirin",
     "addManually": "Manuel Ekle",
     "default": "Varsayılan",
     "addToPreset": "Tema Ekle",

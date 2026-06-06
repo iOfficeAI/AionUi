@@ -1332,7 +1332,6 @@ export type I18nKey =
   | 'settings.contactMe'
   | 'settings.createAssistant'
   | 'settings.cronNotificationEnabled'
-  | 'settings.cssSettings'
   | 'settings.cssTheme.addManually'
   | 'settings.cssTheme.addToPreset'
   | 'settings.cssTheme.appearance'
