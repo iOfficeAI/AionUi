@@ -195,16 +195,9 @@ if (win.electronAPI) {
         }
 
         if (isUnrecoverableRealtimeError(payload)) {
-          console.warn('[WebSocket] Unrecoverable realtime error, stopping reconnection');
-          shouldReconnect = false;
-
-          if (reconnectTimer !== null) {
-            window.clearTimeout(reconnectTimer);
-            reconnectTimer = null;
-          }
-
+          console.warn('[WebSocket] Unrecoverable realtime error, reconnecting');
           emitterRef.emit(payload.name, payload.data);
-          socket?.close();
+          currentSocket.close();
           return;
         }
 

@@ -191,7 +191,7 @@ describe('browser WebSocket realtime error handling', () => {
     expect(location.hash).toBe('');
   });
 
-  it('stops reconnecting on unrecoverable non-auth realtime errors without redirecting', async () => {
+  it('reconnects after unrecoverable non-auth realtime errors without redirecting', async () => {
     const { adapter, location, socket } = await loadBrowserAdapter();
     const emit = vi.fn();
     adapter.on({ emit });
@@ -211,10 +211,11 @@ describe('browser WebSocket realtime error handling', () => {
     expect(emit).toHaveBeenCalledWith(payload.name, payload.data);
 
     socket.dispatchClose(1006);
-    const socketCountAfterClose = FakeWebSocket.instances.length;
-    vi.advanceTimersByTime(8000);
 
-    expect(FakeWebSocket.instances).toHaveLength(socketCountAfterClose);
+    expect(FakeWebSocket.instances).toHaveLength(1);
+    vi.advanceTimersByTime(500);
+
+    expect(FakeWebSocket.instances).toHaveLength(2);
     expect(location.hash).toBe('');
   });
 
