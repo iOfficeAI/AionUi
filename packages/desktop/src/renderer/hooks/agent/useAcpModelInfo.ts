@@ -345,10 +345,11 @@ export const useAcpModelInfo = ({
     updateModelInfo(managedModelInfo);
   }, [backend, enabled, managedModelInfo, handshakeModelInfo, isModelInfoLoading, model_info, conversation_id, updateModelInfo]);
 
-  // Claude doesn't push acp_model_info on warmup; poll while window has focus.
+  // Poll backend for model info while window has focus.
+  // Originally Claude-only; now extended to all ACP backends so users
+  // see model info for Codex, Gemini, Qwen, Hermes, and others.
   useEffect(() => {
     if (!enabled) return;
-    if (backend !== 'claude') return;
     if (model_info) return;
     const refresh = () => {
       void reloadModelInfo().catch(() => {});
