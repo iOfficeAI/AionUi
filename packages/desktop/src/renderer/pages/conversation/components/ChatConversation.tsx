@@ -338,14 +338,15 @@ const ChatConversation: React.FC<{
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
     if (isMobile) return undefined;
-    if (conversation.type === 'acp') {
+    if (conversation.type === 'acp' || conversation.type === 'openclaw-gateway') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      const backend = extra.backend || (conversation.type === 'openclaw-gateway' ? 'openclaw-gateway' : undefined);
       return (
         <AcpModelSelector
           conversation_id={conversation.id}
-          backend={extra.backend}
+          backend={backend}
           initialModelId={extra.current_model_id}
-          waitForWarmup
+          waitForWarmup={conversation.type === 'acp'}
         />
       );
     }

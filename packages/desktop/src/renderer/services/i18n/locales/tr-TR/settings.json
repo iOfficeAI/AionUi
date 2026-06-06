@@ -962,7 +962,7 @@
   "helpCenter": "Help Center",
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
-  "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "newApiQuotaUnlimitedDesc": "Unlimited usage",
   "mcpEditNameLocked": "Düzenleme sırasında MCP adı değiştirilemez. Üst düzey sunucu adını \"{{name}}\" olarak koruyun.",
   "mcpCheckedAtLabel": "Kontrol zamanı:",
   "mcpCheckResultLabel": "Manuel kontrol:",

@@ -964,7 +964,7 @@
   "helpCenter": "Help Center",
   "newApiQuotaTitle": "Token Balance",
   "newApiQuotaUnlimited": "Unlimited",
-  "newApiQuotaUnlimitedDesc": "Unlimited usage"
+  "newApiQuotaUnlimitedDesc": "Unlimited usage",
   "mcpEditNameLocked": "Во время редактирования имя MCP менять нельзя. Сохраните имя сервера верхнего уровня как «{{name}}».",
   "mcpCheckedAtLabel": "Проверено в:",
   "mcpCheckResultLabel": "Ручная проверка:",

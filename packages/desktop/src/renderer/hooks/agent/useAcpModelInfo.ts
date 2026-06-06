@@ -10,6 +10,9 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import { getManagedCliSelectableModels, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
+import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 
@@ -151,6 +154,27 @@ export const useAcpModelInfo = ({
   useEffect(() => {
     handshakeModelInfoRef.current = handshakeModelInfo;
   }, [handshakeModelInfo]);
+
+  // Managed runtime CLI fallback for OpenClaw etc.
+  const { data: providers } = useProvidersQuery();
+  const cliTarget = useMemo(() => {
+    if (!backend) return undefined;
+    return resolveManagedRuntimeCliTarget(backend);
+  }, [backend]);
+  const managedModelInfo = useMemo<AcpModelInfo | null>(() => {
+    if (!cliTarget || !providers) return null;
+    const managedProvider = providers.find((p) => p.id === 'desktop-newapi-managed-provider');
+    if (!managedProvider) return null;
+    const models = getManagedCliSelectableModels(managedProvider, cliTarget);
+    if (models.length === 0) return null;
+    const prefs = (configService.get('newApi.desktop.cliModelPrefs') ?? {}) as Record<string, string>;
+    const currentModelId = prefs[cliTarget] ?? models[0];
+    return {
+      current_model_id: currentModelId,
+      current_model_label: currentModelId,
+      available_models: models.map((id) => ({ id, label: id })),
+    };
+  }, [cliTarget, providers]);
 
   const loadFallbackModelInfo = useCallback(
     (options?: { preserveInitialModel?: boolean }) => {
@@ -301,6 +325,25 @@ export const useAcpModelInfo = ({
     if (hasUserChangedModel.current) return;
     loadFallbackModelInfo({ preserveInitialModel: true });
   }, [backend, enabled, handshakeModelInfo, isModelInfoLoading, model_info, loadFallbackModelInfo]);
+
+  // Managed runtime CLI fallback: use managed provider model info when
+  // neither the backend nor ACP handshake provide models (e.g. OpenClaw).
+  const managedModelInfoRef = useRef(managedModelInfo);
+  managedModelInfoRef.current = managedModelInfo;
+  useEffect(() => {
+    if (!enabled) return;
+    if (!managedModelInfo || managedModelInfo.available_models.length === 0) return;
+    if (model_info && model_info.available_models.length > 0) return;
+    if (isModelInfoLoading) return;
+    if (hasUserChangedModel.current) return;
+    if (handshakeModelInfo) return; // prefer handshake over managed
+    logAcpModelInfo('fallback_from_managed_provider', {
+      conversation_id,
+      backend,
+      source_model_info: summarizeModelInfo(managedModelInfo),
+    });
+    updateModelInfo(managedModelInfo);
+  }, [backend, enabled, managedModelInfo, handshakeModelInfo, isModelInfoLoading, model_info, conversation_id, updateModelInfo]);
 
   // Claude doesn't push acp_model_info on warmup; poll while window has focus.
   useEffect(() => {
