@@ -13,6 +13,7 @@ import {
   getManagedRuntimeCliBackendAliases,
   MANAGED_RUNTIME_CLI_TARGETS,
 } from '@/common/types/agent/managedRuntimeCli';
+import { MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
 import DesktopLoginGate from '@/renderer/components/layout/DesktopLoginGate';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
 import { useAgents } from '@/renderer/hooks/agent/useAgents';
@@ -32,7 +33,6 @@ type CliTargetOption = {
   backendAliases: string[];
 };
 
-const NEW_API_MANAGED_PROVIDER_ID = 'desktop-newapi-managed-provider';
 const NEW_API_CLI_MODEL_PREFS_KEY = 'newApi.desktop.cliModelPrefs';
 
 const PREFERRED_MODEL_PATTERNS = ['deepseek', 'claude-opus', 'claude-sonnet', 'claude-haiku'];
@@ -72,7 +72,7 @@ const AionrsSettings: React.FC = () => {
   }, [agents]);
 
   const managedProvider = useMemo<IProvider | undefined>(
-    () => providers?.find((provider) => provider.id === NEW_API_MANAGED_PROVIDER_ID),
+    () => providers?.find((provider) => provider.id === MANAGED_NEWAPI_PROVIDER_ID),
     [providers]
   );
 

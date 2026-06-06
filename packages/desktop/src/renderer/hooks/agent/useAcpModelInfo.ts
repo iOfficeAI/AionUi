@@ -11,7 +11,7 @@ import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
-import { getManagedCliSelectableModels, resolveManagedRuntimeCliTarget } from '@/common/types/agent/managedRuntimeCli';
+import { getManagedCliSelectableModels, resolveManagedRuntimeCliTarget, MANAGED_NEWAPI_PROVIDER_ID } from '@/common/types/agent/managedRuntimeCli';
 import { configService } from '@/common/config/configService';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
@@ -163,7 +163,7 @@ export const useAcpModelInfo = ({
   }, [backend]);
   const managedModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!cliTarget || !providers) return null;
-    const managedProvider = providers.find((p) => p.id === 'desktop-newapi-managed-provider');
+    const managedProvider = providers.find((p) => p.id === MANAGED_NEWAPI_PROVIDER_ID);
     if (!managedProvider) return null;
     const models = getManagedCliSelectableModels(managedProvider, cliTarget);
     if (models.length === 0) return null;
