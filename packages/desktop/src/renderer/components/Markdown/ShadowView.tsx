@@ -29,7 +29,7 @@ const createInitStyle = (
     : '';
 
   const lineHeight = isMobile ? '19.6px' : '28px';
-  const fontSize = isMobile ? '14px' : '16px';
+  const fontSize = isMobile ? 'var(--chat-font-size, 14px)' : 'var(--chat-font-size, 16px)';
 
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
@@ -297,6 +297,8 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
         '--text-primary': computedStyle.getPropertyValue('--text-primary'),
         '--text-secondary': computedStyle.getPropertyValue('--text-secondary'),
+        '--chat-font-size': computedStyle.getPropertyValue('--chat-font-size'),
+        '--code-font-size': computedStyle.getPropertyValue('--code-font-size'),
       };
 
       // Remove old style and add new style
@@ -334,7 +336,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'class'],
+      attributeFilter: ['data-theme', 'class', 'style'],
     });
 
     return () => observer.disconnect();
