@@ -11,6 +11,8 @@ import type { Theme, ThemeAppearance } from '@/common/theme/types';
 import useTheme from '@renderer/hooks/system/useTheme';
 import { LIGHT_THEME_ID, DARK_THEME_ID } from '@/common/theme/constants';
 import useFontScale from '@renderer/hooks/ui/useFontScale';
+import useFontSizes from '@renderer/hooks/ui/useFontSizes';
+import type { FontSizeKey, FontSizes } from '@/common/config/fontSizes';
 
 interface ThemeContextValue {
   // Light/Dark appearance of the active theme (back-compat for existing consumers)
@@ -23,6 +25,9 @@ interface ThemeContextValue {
   // Font scaling (unchanged)
   fontScale: number;
   setFontScale: (scale: number) => Promise<void>;
+  // Per-region font sizes (px)
+  fontSizes: FontSizes;
+  setFontSize: (key: FontSizeKey, px: number) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
@@ -30,6 +35,7 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   const [activeTheme, selectTheme] = useTheme();
   const [fontScale, setFontScale] = useFontScale();
+  const { fontSizes, setFontSize } = useFontSizes();
   const theme: ThemeAppearance = activeTheme?.appearance ?? 'light';
   const setTheme = useCallback(
     (appearance: ThemeAppearance) => selectTheme(appearance === 'dark' ? DARK_THEME_ID : LIGHT_THEME_ID),
@@ -37,7 +43,7 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   );
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale }}>
+    <ThemeContext.Provider value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}>
       {children}
     </ThemeContext.Provider>
   );
