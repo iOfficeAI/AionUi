@@ -55,6 +55,10 @@ export interface IConfigStorageRefer {
   colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
+  /** Per-region configurable font sizes (px), set in Appearance settings */
+  'ui.fontSize.chat'?: number;
+  'ui.fontSize.markdown'?: number;
+  'ui.fontSize.code'?: number;
   /** Last-known main window size and position, restored on next launch */
   'window.bounds'?: { x?: number; y?: number; width: number; height: number };
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
