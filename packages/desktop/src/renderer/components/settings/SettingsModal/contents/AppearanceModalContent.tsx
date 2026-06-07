@@ -64,15 +64,6 @@ const AppearanceModalContent: React.FC = () => {
             <CssThemeSettings />
           </div>
 
-          {/* 缩放控制 / Scale Control */}
-          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
-            <div className='w-full flex flex-col divide-y divide-border-2'>
-              <PreferenceRow label={t('settings.scale')}>
-                <ScaleControl />
-              </PreferenceRow>
-            </div>
-          </div>
-
           {/* 字体大小 / Font sizes */}
           <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
@@ -89,6 +80,15 @@ const AppearanceModalContent: React.FC = () => {
                   />
                 </PreferenceRow>
               ))}
+            </div>
+          </div>
+
+          {/* 缩放控制 / Scale Control */}
+          <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
+            <div className='w-full flex flex-col divide-y divide-border-2'>
+              <PreferenceRow label={t('settings.scale')}>
+                <ScaleControl />
+              </PreferenceRow>
             </div>
           </div>
         </div>
