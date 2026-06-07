@@ -8,6 +8,36 @@
   margin: 0 auto;
 }
 
+.brandMark {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 24px;
+  padding-top: 10px;
+}
+
+.brandMarkButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: default;
+  line-height: 0;
+}
+
+.brandWordmark {
+  display: block;
+  width: min(240px, 68%);
+  max-width: 100%;
+  height: auto;
+  object-fit: contain;
+  user-select: none;
+}
+
 .heroHeader {
   display: flex;
   align-items: center;
@@ -786,6 +816,15 @@
 
   .guidContainer .guidLayout {
     margin-top: 0;
+  }
+
+  .brandMark {
+    margin-bottom: 20px;
+    padding-top: 8px;
+  }
+
+  .brandWordmark {
+    width: min(200px, 76%);
   }
 }
 

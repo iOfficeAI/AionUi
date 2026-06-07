@@ -68,7 +68,7 @@
   padding: 12px 0;
   border: none;
   background: var(--bg-2);
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   cursor: pointer;
   transition:
     background-color var(--motion-fast, 150ms) var(--motion-ease-standard, ease),
@@ -142,7 +142,7 @@
   align-items: center;
   justify-content: center;
   gap: 10px;
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   font-size: 13px;
 }
 
@@ -200,7 +200,7 @@
 }
 
 .editor-menubar__item--secondary {
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
 }
 
 .editor-menubar__item--secondary:hover {
@@ -240,7 +240,7 @@
 .editor-menu-row__kbd {
   font-size: 11px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   font-variant-numeric: tabular-nums;
 }
 
@@ -313,7 +313,7 @@
   flex-shrink: 0;
   flex-wrap: wrap;
   background: var(--bg-2, #ececec);
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
   font-size: 12px;
   border-top: 1px solid var(--border-base, #d4d4d4);
   /* Subtle 2px brand-colored left rail — that's the editor's accent in
@@ -337,7 +337,7 @@
   padding: 0 10px;
   background: transparent;
   border: 0;
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
@@ -355,7 +355,7 @@
 
 .editor-statusbar__seg--readonly {
   cursor: default;
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
   /* At narrow editor pane widths, the right group can't fit every metadata
      segment side-by-side. Make readonly cells the first to give ground —
      they shrink and ellipsis-truncate, freeing space for the interactive
@@ -368,7 +368,7 @@
 
 .editor-statusbar__seg--readonly:hover {
   background: transparent;
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
 }
 
 .editor-statusbar__seg--icon {
@@ -444,7 +444,7 @@
 
 .editor-statusbar__seg--expert:hover {
   background: var(--bg-3, #e0e0e0);
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
 }
 
 .editor-statusbar__seg--expert-on {
@@ -670,7 +670,7 @@
   border-right: 1px solid var(--border-base, #d4d4d4);
   overflow: hidden;
   font-size: 12px;
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
 }
 
 .editor-outline__header {
@@ -685,7 +685,7 @@
   font-size: 10px;
   letter-spacing: 0.6px;
   text-transform: uppercase;
-  color: var(--text-secondary, #4e5969);
+  color: var(--text-secondary, #4a4434);
   font-weight: 600;
 }
 
@@ -697,7 +697,7 @@
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px;
   font-weight: 500;
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   font-variant-numeric: tabular-nums;
 }
 
@@ -719,7 +719,7 @@
 .editor-outline__file-meta {
   font-size: 10px;
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   margin-top: 2px;
 }
 
@@ -824,7 +824,7 @@
 .editor-outline__line {
   font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
   font-size: 10px;
-  color: var(--text-secondary, #6e6e6e);
+  color: var(--text-secondary, #6b5f48);
   font-variant-numeric: tabular-nums;
   flex-shrink: 0;
 }

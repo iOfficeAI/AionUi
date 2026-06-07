@@ -5,6 +5,7 @@
  */
 
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
+import ModelSelectorDropdown from '@/renderer/components/agent/ModelSelectorDropdown';
 import ModelSelectorDropdownMenu, {
   type GroupedModelDropdownOption,
 } from '@/renderer/components/agent/ModelSelectorDropdownMenu';
@@ -13,7 +14,7 @@ import { iconColors } from '@/renderer/styles/colors';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import type { AcpModelInfo } from '../types';
 import { getAvailableModels } from '../utils/modelUtils';
-import { Button, Dropdown, Menu, Tooltip } from '@arco-design/web-react';
+import { Button, Menu, Tooltip } from '@arco-design/web-react';
 import { Brain, Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -119,8 +120,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       current_model?.id && current_model.use_model ? `${current_model.id}:${current_model.use_model}` : undefined;
 
     return (
-      <Dropdown
-        trigger='click'
+      <ModelSelectorDropdown
+        preload={geminiOptions.length > 0}
         droplist={
           <>
             {!enabledModelList || enabledModelList.length === 0 ? (
@@ -186,7 +187,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
           </span>
         </Button>
-      </Dropdown>
+      </ModelSelectorDropdown>
     );
   }
 
@@ -216,8 +217,8 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
       const selectedOptionKey = selectedModelId ? `${selectedProviderId ?? 'guid-acp'}:${selectedModelId}` : undefined;
 
       return (
-        <Dropdown
-          trigger='click'
+        <ModelSelectorDropdown
+          preload
           droplist={
             <ModelSelectorDropdownMenu
               options={acpOptions}
@@ -239,7 +240,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
               <Down theme='outline' size='12' fill={iconColors.secondary} className='shrink-0' />
             </span>
           </Button>
-        </Dropdown>
+        </ModelSelectorDropdown>
       );
     }
 

@@ -36,8 +36,6 @@ import { useLayoutModeSafe } from '@renderer/hooks/context/LayoutModeContext';
 import { useEditorContextSafe } from '@renderer/pages/conversation/Editor';
 import { dispatchWorkspaceSetCollapsedEvent } from '@renderer/utils/workspace/workspaceEvents';
 import '@renderer/styles/layout.css';
-import brandLogo from '@renderer/assets/logos/brand/app.png';
-import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
@@ -57,36 +55,6 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
     <line x1='18' y1='10' x2='18' y2='38' />
   </svg>
 );
-
-const useDebug = () => {
-  const [count, setCount] = useState(0);
-  const timer = useRef<any>(null);
-  const onClick = () => {
-    const open = () => {
-      ipcBridge.application.openDevTools.invoke().catch((error) => {
-        console.error('Failed to open dev tools:', error);
-      });
-      setCount(0);
-    };
-    if (count >= 3) {
-      return open();
-    }
-    setCount((prev) => {
-      if (prev >= 2) {
-        open();
-        return 0;
-      }
-      return prev + 1;
-    });
-    clearTimeout(timer.current);
-    timer.current = setTimeout(() => {
-      clearTimeout(timer.current);
-      setCount(0);
-    }, 1000);
-  };
-
-  return { onClick };
-};
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 // App-wide editor pane (Monaco is heavy → lazy). Mounted only on routes where
@@ -217,7 +185,6 @@ const Layout: React.FC<{
   const [siderDragging, setSiderDragging] = useState(false);
   const [customCss, setCustomCss] = useState<string>('');
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
-  const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
   useNotificationClick();
@@ -622,41 +589,12 @@ const Layout: React.FC<{
                     tabIndex={-1}
                     className='size-full flex flex-col min-h-0'
                   >
-                    <ArcoLayout.Header
-                      className={classNames(
-                        'flex items-center justify-start pt-6px pb-6px pl-10px pr-8px gap-8px layout-sider-header',
-                        isMobile && 'layout-sider-header--mobile',
-                        {
-                          'cursor-pointer group ': collapsed,
-                        }
-                      )}
-                    >
-                      {/* Expanded sider: wordmark covers both brand mark and name.
-                        Width fills the header so the wordmark grows with the
-                        user-sized sider; max-height caps it so a wide sider
-                        doesn't produce a banner-sized logo. Centered horizontally
-                        so it doesn't appear stuck against the left edge when the
-                        sider is much wider than the wordmark needs. */}
-                      <div
-                        className='flex-1 min-w-0 collapsed-hidden flex items-center justify-center'
-                        onClick={onClick}
+                    {isMobile && !collapsed ? (
+                      <ArcoLayout.Header
+                        className={classNames(
+                          'flex items-center justify-end pt-6px pb-6px pl-10px pr-8px gap-8px layout-sider-header layout-sider-header--mobile'
+                        )}
                       >
-                        <img
-                          src={brandWordmark}
-                          alt='Chisl'
-                          className='block w-full h-auto max-h-60px object-contain select-none'
-                          draggable={false}
-                        />
-                      </div>
-                      {/* Collapsed / icon-only sider: wordmark won't fit, fall back to
-                        the hexagon so the brand still shows. */}
-                      <div
-                        className='collapsed-only shrink-0 size-18px relative items-center justify-center'
-                        onClick={onClick}
-                      >
-                        <img src={brandLogo} alt='Chisl' className='w-full h-full absolute inset-0 object-contain' />
-                      </div>
-                      {isMobile && !collapsed && (
                         <button
                           type='button'
                           className='app-titlebar__button app-titlebar__button--mobile'
@@ -666,9 +604,8 @@ const Layout: React.FC<{
                         >
                           <SidebarIcon size={18} strokeWidth={2.5} />
                         </button>
-                      )}
-                      {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}
-                    </ArcoLayout.Header>
+                      </ArcoLayout.Header>
+                    ) : null}
                     <ArcoLayout.Content className='pt-0 px-4px pb-0 layout-sider-content'>
                       {React.isValidElement(sider)
                         ? React.cloneElement(sider, {

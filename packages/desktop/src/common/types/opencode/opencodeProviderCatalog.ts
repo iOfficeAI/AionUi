@@ -61,14 +61,17 @@ function parseAuthMethods(raw: unknown): OpenCodeProviderAuthMethodsResponse {
   for (const [providerId, methods] of Object.entries(o)) {
     if (!Array.isArray(methods)) continue;
     out[providerId] = methods
-      .map((m) => {
+      .map((m): OpenCodeProviderAuthMethod | null => {
         const rec = asRecord(m);
         if (!rec || (rec.type !== 'oauth' && rec.type !== 'api')) return null;
-        return {
+        const method: OpenCodeProviderAuthMethod = {
           type: rec.type,
           label: typeof rec.label === 'string' ? rec.label : rec.type,
-          prompts: Array.isArray(rec.prompts) ? (rec.prompts as OpenCodeProviderAuthMethod['prompts']) : undefined,
-        } satisfies OpenCodeProviderAuthMethod;
+        };
+        if (Array.isArray(rec.prompts)) {
+          method.prompts = rec.prompts as OpenCodeProviderAuthMethod['prompts'];
+        }
+        return method;
       })
       .filter((m): m is OpenCodeProviderAuthMethod => m !== null);
   }

@@ -108,16 +108,18 @@ const ConversationPaneDesktop: React.FC<ConversationPaneDesktopProps> = ({ colla
       />
       <div className={styles.body}>
         <PanelGroup direction='vertical' autoSaveId='conversation-pane-split' className='size-full min-h-0'>
-          <Panel defaultSize={60} minSize={20} className='min-h-0'>
-            <Suspense fallback={<div className='min-h-200px' />}>
-              <WorkspaceGroupedHistory
-                batchMode={isBatchMode}
-                onBatchModeChange={setIsBatchMode}
-                collapsed={false}
-                tooltipEnabled={false}
-                onSessionClick={onSessionClick}
-              />
-            </Suspense>
+          <Panel defaultSize={60} minSize={20} className='min-h-0 overflow-hidden'>
+            <div className={styles.bodyInner}>
+              <Suspense fallback={<div className='min-h-200px' />}>
+                <WorkspaceGroupedHistory
+                  batchMode={isBatchMode}
+                  onBatchModeChange={setIsBatchMode}
+                  collapsed={false}
+                  tooltipEnabled={false}
+                  onSessionClick={onSessionClick}
+                />
+              </Suspense>
+            </div>
           </Panel>
           <PanelResizeHandle className='group relative h-8px shrink-0 flex items-center justify-center cursor-row-resize'>
             <span className='h-3px w-32px rounded-full bg-[var(--color-border-2)] group-hover:bg-[var(--color-primary)] transition-colors' />

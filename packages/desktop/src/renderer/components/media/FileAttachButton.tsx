@@ -34,7 +34,7 @@ const MenuItem: React.FC<{
     className={`flex items-center gap-10px px-12px py-9px rounded-8px cursor-pointer hover:bg-fill-2 transition-colors text-14px text-t-primary select-none ${className}`}
     onClick={onClick}
   >
-    <span className='flex-shrink-0 inline-flex items-center justify-center color-#86909c w-18px leading-none'>
+    <span className='flex-shrink-0 inline-flex items-center justify-center text-t-tertiary w-18px leading-none'>
       {icon}
     </span>
     <span className='flex-1 leading-none'>{label}</span>

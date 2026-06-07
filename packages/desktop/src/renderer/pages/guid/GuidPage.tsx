@@ -32,9 +32,42 @@ import { useTranslation } from 'react-i18next';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import brandWordmark from '@renderer/assets/logos/brand/wordmark.png';
 import styles from './index.module.css';
 
+const useBrandMarkClick = () => {
+  const [count, setCount] = useState(0);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const onClick = () => {
+    const open = () => {
+      ipcBridge.application.openDevTools.invoke().catch((error) => {
+        console.error('Failed to open dev tools:', error);
+      });
+      setCount(0);
+    };
+    if (count >= 3) {
+      return open();
+    }
+    setCount((prev) => {
+      if (prev >= 2) {
+        open();
+        return 0;
+      }
+      return prev + 1;
+    });
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => {
+      timer.current = null;
+      setCount(0);
+    }, 1000);
+  };
+
+  return { onClick };
+};
+
 const GuidPage: React.FC = () => {
+  const { onClick: onBrandMarkClick } = useBrandMarkClick();
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const location = useLocation();
@@ -573,6 +606,22 @@ const GuidPage: React.FC = () => {
     <ConfigProvider getPopupContainer={() => guidContainerRef.current || document.body}>
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
+          <div className={styles.brandMark}>
+            <button
+              type='button'
+              className={styles.brandMarkButton}
+              onClick={onBrandMarkClick}
+              aria-label='Chisl'
+            >
+              <img
+                src={brandWordmark}
+                alt='Chisl'
+                className={styles.brandWordmark}
+                draggable={false}
+              />
+            </button>
+          </div>
+
           <div className={styles.heroHeader}>
             {agentSelection.is_presetAgent ? (
               <div className={styles.heroHeaderControls}>

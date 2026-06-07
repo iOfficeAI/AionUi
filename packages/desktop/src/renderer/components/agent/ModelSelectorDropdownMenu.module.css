@@ -1,6 +1,9 @@
 .panel {
-  width: min(380px, calc(100vw - 24px));
-  max-height: min(520px, calc(100vh - 96px));
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+  max-height: 100%;
   padding: 10px;
   overflow: hidden;
   color: var(--text-primary);
@@ -15,6 +18,7 @@
 
 .searchWrap {
   padding: 0 0 8px;
+  flex-shrink: 0;
 }
 
 .searchInput :global(.arco-input-inner-wrapper) {
@@ -58,87 +62,49 @@
   color: var(--text-secondary);
 }
 
-.menu {
-  max-height: min(390px, calc(100vh - 180px));
-  padding: 2px 0;
-  overflow-y: auto;
-  background: transparent !important;
-  border: 0;
+.menuList {
+  flex-shrink: 0;
 }
-
-.menu :global(.arco-menu-inner) {
-  padding: 0 !important;
-}
-
-/* --- Hardcoded Custom Headers and Dividers --- */
 
 .groupHeader {
-  display: flex !important;
-  align-items: center !important;
-  height: 28px !important;
-  padding: 0 8px 4px !important;
-  color: var(--text-secondary) !important;
-  font-size: 11px !important;
-  font-weight: 700 !important;
-  letter-spacing: 0.06em !important;
-  text-transform: uppercase !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: default !important;
-  pointer-events: none !important;
-  opacity: 1 !important; /* Force override Arco's disabled opacity */
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 8px 4px;
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: transparent;
+  pointer-events: none;
 }
 
 .groupDivider {
-  height: auto !important;
-  min-height: unset !important;
-  padding: 0 !important;
-  margin: 8px 10px 8px 10px !important;
-  background: transparent !important;
-  border: none !important;
-  cursor: default !important;
-  pointer-events: none !important;
-  opacity: 1 !important;
+  padding: 0;
+  margin: 8px 10px;
+  pointer-events: none;
 }
 
 .dividerLine {
   width: 100%;
   height: 2px;
   background: color-mix(in srgb, var(--color-border-2) 100%, var(--text-secondary) 15%);
-  /* intentional: 1px hairline divider — kept per Phase 0 audit */
   border-radius: 1px;
 }
 
-.menu :global(.arco-menu-item-group-title) {
-  display: flex;
-  height: 28px;
-  padding: 0 8px 6px !important;
-  color: var(--text-secondary) !important;
-  font-size: 11px;
-  font-weight: 700;
-  line-height: 18px;
-  letter-spacing: 0.06em;
-  text-transform: uppercase;
-  align-items: center;
-  gap: 8px;
-}
-
-.menu :global(.arco-menu-item-group-title)::after {
-  content: '';
-  flex: 1;
-  height: 1px;
-  background: color-mix(in srgb, var(--color-border-2) 76%, transparent);
-}
-
 .option {
-  height: 34px !important;
-  margin: 1px 0 !important;
-  padding: 0 6px 0 10px !important;
-  color: var(--text-primary) !important;
-  line-height: 34px !important;
-  background: transparent !important;
+  display: flex;
+  align-items: center;
+  height: 34px;
+  margin: 1px 0;
+  padding: 0 6px 0 10px;
+  color: var(--text-primary);
+  line-height: 34px;
+  background: transparent;
   border: 1px solid transparent;
-  border-radius: var(--radius-panel) !important;
+  border-radius: var(--radius-panel);
+  cursor: pointer;
   transition:
     background-color 0.14s ease,
     border-color 0.14s ease,
@@ -146,13 +112,13 @@
 }
 
 .option:hover {
-  color: var(--text-primary) !important;
-  background: color-mix(in srgb, var(--color-bg-3) 72%, var(--brand)) !important;
+  color: var(--text-primary);
+  background: color-mix(in srgb, var(--color-bg-3) 72%, var(--brand));
   border-color: color-mix(in srgb, var(--color-border-2) 72%, var(--brand));
 }
 
 .selected {
-  background: color-mix(in srgb, var(--brand) 13%, var(--color-bg-3)) !important;
+  background: color-mix(in srgb, var(--brand) 13%, var(--color-bg-3));
   border-color: color-mix(in srgb, var(--brand) 38%, var(--color-border-2));
 }
 
@@ -167,12 +133,18 @@
 }
 
 .favoriteButton {
-  width: 26px !important;
-  height: 26px !important;
-  padding: 0 !important;
-  color: var(--text-secondary) !important;
-  border-radius: var(--radius-card) !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--radius-card);
   opacity: 0.72;
+  cursor: pointer;
   transition:
     opacity 0.14s ease,
     background-color 0.14s ease,
@@ -180,7 +152,7 @@
 }
 
 .favoriteButton:hover {
-  background: color-mix(in srgb, var(--warning) 14%, transparent) !important;
+  background: color-mix(in srgb, var(--warning) 14%, transparent);
   opacity: 1;
   transform: scale(1.04);
 }
@@ -198,6 +170,7 @@
 }
 
 .footer {
+  flex-shrink: 0;
   padding-top: 8px;
   margin-top: 8px;
   border-top: 1px solid var(--color-border-2);

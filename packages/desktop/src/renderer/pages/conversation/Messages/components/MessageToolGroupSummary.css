@@ -89,7 +89,7 @@
 
 .tool-detail-label {
   font-size: 11px;
-  color: var(--color-text-3, #86909c);
+  color: var(--color-text-3, #6b5f48);
   font-weight: 500;
   margin-bottom: 2px;
 }
@@ -97,8 +97,8 @@
 .tool-detail-content {
   font-size: 12px;
   line-height: 1.5;
-  color: var(--color-text-2, #4e5969);
-  background: var(--color-fill-1, #f7f8fa);
+  color: var(--color-text-2, #4a4434);
+  background: var(--color-fill-1, #f0e4b4);
   border-radius: var(--radius-control);
   padding: 6px 8px;
   margin: 0;

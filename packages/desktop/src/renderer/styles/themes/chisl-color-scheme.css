@@ -52,9 +52,14 @@
 
   /* Text Colors — Light Mode (dark olive ink on cream) */
   --text-primary: #303024;
-  --color-text-1: #303024;
   --text-secondary: #4a4434;
+  --text-tertiary: #6b5f48;
   --text-disabled: #80694a;
+  /* Arco Design token bridge — warm Chisl ladder replaces Arco's blue-grays. */
+  --color-text-1: var(--text-primary);
+  --color-text-2: var(--text-secondary);
+  --color-text-3: var(--text-tertiary);
+  --color-text-4: #9a8668;
 
   /* Semantic Colors — Light Mode
      Saturation kept down so accents read as printed-ink, not RGB neon. */
@@ -67,6 +72,11 @@
   /* Border Colors — Light Mode */
   --border-base: #d0b878;
   --border-light: #e0cc94;
+  --color-border: var(--border-base);
+  --color-border-1: var(--border-light);
+  --color-border-2: var(--border-base);
+  --color-border-3: var(--bg-4);
+  --color-border-4: var(--bg-5);
 
   /* Brand Colors — Light Mode */
   --brand: #b4480c;
@@ -81,10 +91,20 @@
   /* Special Colors — Light Mode */
   --fill: #f0e4b4;
   --inverse: #f6ecc8;
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-bg-4: var(--bg-4);
+  --color-bg-5: var(--bg-5);
+  --color-fill-1: var(--bg-1);
+  --color-fill-2: var(--bg-2);
+  --color-fill-3: var(--bg-3);
+  --color-fill-4: var(--bg-4);
 
   /* Custom Colors — Light Mode */
   --dialog-fill-0: #f6ecc8;
   --text-0: #303024;
+  --color-text-0: var(--text-0);
   --text-white: #f6ecc8;
   --fill-0: #f6ecc8;
   --fill-white-to-black: #f6ecc8;
@@ -137,9 +157,14 @@
 
   /* Text Colors — Dark Mode (cream on ink) */
   --text-primary: #ecdfb6;
-  --color-text-1: #ecdfb6;
   --text-secondary: #d6c08c;
+  --text-tertiary: #b8a378;
   --text-disabled: #80694a;
+  /* Arco Design token bridge — warm Chisl ladder replaces Arco's blue-grays. */
+  --color-text-1: var(--text-primary);
+  --color-text-2: var(--text-secondary);
+  --color-text-3: var(--text-tertiary);
+  --color-text-4: #8a7658;
 
   /* Semantic Colors — Dark Mode */
   --primary: #e07820; /* rust, lifted */
@@ -151,6 +176,11 @@
   /* Border Colors — Dark Mode */
   --border-base: #4a4030;
   --border-light: #322c22;
+  --color-border: var(--border-base);
+  --color-border-1: var(--border-light);
+  --color-border-2: var(--border-base);
+  --color-border-3: var(--bg-4);
+  --color-border-4: var(--bg-5);
 
   /* Brand Colors — Dark Mode */
   --brand: #e07820;
@@ -165,10 +195,20 @@
   /* Special Colors — Dark Mode */
   --fill: #322c22;
   --inverse: #ecdfb6;
+  --color-bg-1: var(--bg-1);
+  --color-bg-2: var(--bg-2);
+  --color-bg-3: var(--bg-3);
+  --color-bg-4: var(--bg-4);
+  --color-bg-5: var(--bg-5);
+  --color-fill-1: var(--bg-1);
+  --color-fill-2: var(--bg-2);
+  --color-fill-3: var(--bg-3);
+  --color-fill-4: var(--bg-4);
 
   /* Custom Colors — Dark Mode */
   --dialog-fill-0: #322c22;
   --text-0: #ecdfb6;
+  --color-text-0: var(--text-0);
   --text-white: #ecdfb6;
   --fill-0: rgba(236, 223, 182, 0.08);
   --fill-white-to-black: #1f1c17;

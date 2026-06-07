@@ -287,12 +287,11 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
     ...(process.platform === 'darwin'
       ? {
           titleBarStyle: 'hidden',
-          // Align traffic-light vertical center with the titlebar button centers.
-          // Titlebar is 45px; buttons are 36px flex-centered → button center y≈22.5.
-          // Empirically y=13 places the traffic lights on the same horizontal line
-          // as the sidebar / back / forward icons.
+          // Align traffic-light vertical center with the custom titlebar controls.
+          // Titlebar is 40px; traffic lights are ~12px tall → y=(40-12)/2=14 centers them
+          // on the same line as sidebar / nav / layout-toggle buttons.
           // NOTE: requires a full app restart to take effect (BrowserWindow option).
-          trafficLightPosition: { x: 10, y: 13 },
+          trafficLightPosition: { x: 12, y: 14 },
         }
       : { frame: false }),
     webPreferences: {

@@ -9,11 +9,12 @@ import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
+import ModelSelectorDropdown from '@/renderer/components/agent/ModelSelectorDropdown';
 import ModelSelectorDropdownMenu, {
   type GroupedModelDropdownOption,
 } from '@/renderer/components/agent/ModelSelectorDropdownMenu';
 import { cleanModelLabel } from '@/renderer/components/agent/modelSelectorUtils';
-import { Button, Dropdown, Tooltip } from '@arco-design/web-react';
+import { Button, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
@@ -77,11 +78,8 @@ const AionrsModelSelector: React.FC<{
     current_model?.id && current_model?.use_model ? `${current_model.id}:${current_model.use_model}` : undefined;
 
   return (
-    <Dropdown
-      trigger='click'
-      // Mobile: portal the popup to <body> so it escapes the titlebar slot.
-      // Desktop: leave default container so click events reach Menu.Item normally.
-      {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
+    <ModelSelectorDropdown
+      preload={options.length > 0}
       droplist={
         <ModelSelectorDropdownMenu
           options={options}
@@ -115,7 +113,7 @@ const AionrsModelSelector: React.FC<{
           <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
         </span>
       </Button>
-    </Dropdown>
+    </ModelSelectorDropdown>
   );
 };
 

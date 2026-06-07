@@ -19,8 +19,9 @@ export const isConversationPinned = (conversation: TChatConversation): boolean =
 
 export const isConversationArchived = (conversation: TChatConversation): boolean => {
   if (conversation.type !== 'remote') return false;
-  const extra = conversation.extra as { archived?: boolean } | undefined;
-  return Boolean(extra?.archived);
+  const extra = conversation.extra as { archived?: boolean; archived_at?: number } | undefined;
+  if (extra?.archived === true) return true;
+  return typeof extra?.archived_at === 'number' && extra.archived_at > 0;
 };
 
 export const getConversationArchivedAt = (conversation: TChatConversation): number => {

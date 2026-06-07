@@ -71,15 +71,17 @@ const ConversationPaneMobileOverlay: React.FC<ConversationPaneMobileOverlayProps
           onSessionClick={handleClosePane}
         />
         <div className={styles.body}>
-          <Suspense fallback={<div className='min-h-200px' />}>
-            <WorkspaceGroupedHistory
+          <div className={styles.bodyInner}>
+            <Suspense fallback={<div className='min-h-200px' />}>
+              <WorkspaceGroupedHistory
               batchMode={isBatchMode}
               onBatchModeChange={setIsBatchMode}
               collapsed={false}
               tooltipEnabled={false}
               onSessionClick={handleClosePane}
-            />
-          </Suspense>
+              />
+            </Suspense>
+          </div>
         </div>
       </div>
     </>

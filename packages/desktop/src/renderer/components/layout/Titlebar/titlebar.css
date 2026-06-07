@@ -4,10 +4,9 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 0 8px;
+  padding: 0 12px;
   height: var(--titlebar-height);
   min-height: var(--titlebar-height);
-  line-height: var(--titlebar-height);
   user-select: none;
   position: relative;
   z-index: 10;
@@ -29,21 +28,12 @@
 }
 
 .app-titlebar--mac {
-  height: 32px;
-  min-height: 32px;
-  /* Reserve space for macOS traffic light buttons (left side) */
-  padding-right: 8px;
+  /* macOS traffic lights sit in the left inset; keep right padding for toolbar controls. */
+  padding-right: 12px;
 }
 
-/* Windows/Linux desktop: titlebar matches title height so buttons fit
-   without smooshing, with left padding so the first button isn't glued to
-   the window edge. */
+/* Windows/Linux desktop: stretch toolbar so system window controls go full height. */
 .app-titlebar--desktop:not(.app-titlebar--mac) {
-  height: 32px;
-  min-height: 32px;
-  padding-left: 8px;
-  /* Let the right-side toolbar stretch edge-to-edge so system window controls
-     (minimize/maximize/close) go full height like native Windows chrome. */
   align-items: stretch;
 }
 
@@ -145,16 +135,26 @@
   -webkit-app-region: no-drag;
   display: flex;
   align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.app-titlebar--mac .app-titlebar__menu,
+.app-titlebar--mac .app-titlebar__brand,
+.app-titlebar--mac .app-titlebar__toolbar {
+  /* Keep all chrome on the same vertical centerline as the traffic lights. */
+  align-self: center;
 }
 
 .app-titlebar__toolbar {
   display: flex;
   align-items: center;
-  gap: 2px;
+  gap: 8px;
   -webkit-app-region: no-drag;
   margin-left: auto;
+  flex-shrink: 0;
   min-height: var(--titlebar-height);
-  padding-right: 4px;
+  padding-right: 0;
 }
 
 /* Mobile slot for chat-header actions (model picker, cron, etc.). */
@@ -347,12 +347,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  height: 24px;
-  padding: 0 12px;
+  height: 20px;
+  padding: 0 16px;
   border: none;
   background: transparent;
   color: var(--text-secondary);
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 500;
   border-radius: 999px;
   cursor: pointer;

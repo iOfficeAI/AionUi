@@ -2,7 +2,7 @@
 
 :root {
   --app-min-width: 360px;
-  --titlebar-height: 32px;
+  --titlebar-height: 40px;
   --titlebar-btn-size: 28px;
   /* Independent of UI scale: multiplies font-size in chat/markdown/sendbox.
      Wired by useChatFontScale hook. */

@@ -53,7 +53,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { collapsedSections, toggleSection } = useCollapsedSections();
 
   const SectionLabel = useCallback(
-    ({ sectionKey, label, trailing }: { sectionKey: string; label: string; trailing?: React.ReactNode }) => {
+    ({
+      sectionKey,
+      label,
+      trailing,
+      alwaysShowChevron = false,
+    }: {
+      sectionKey: string;
+      label: string;
+      trailing?: React.ReactNode;
+      alwaysShowChevron?: boolean;
+    }) => {
       const isCollapsed = collapsedSections.has(sectionKey);
       return (
         <div
@@ -63,7 +73,12 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
           <span className='text-14px text-t-tertiary sider-section-title group-hover/label:text-t-primary transition-colors font-[500] leading-none'>
             {label}
           </span>
-          <span className='ml-2px flex items-center justify-center opacity-0 group-hover/label:opacity-100 transition-opacity text-t-tertiary shrink-0'>
+          <span
+            className={classNames(
+              'ml-2px flex items-center justify-center transition-opacity text-t-tertiary shrink-0',
+              alwaysShowChevron ? 'opacity-100' : 'opacity-0 group-hover/label:opacity-100'
+            )}
+          >
             <Right
               theme='outline'
               size={12}
@@ -672,11 +687,25 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
 
         {/* L1: Archived section — collapsed-by-default soft-delete for remote
             (OpenCode) chats that would otherwise resurrect on the next sync tick. */}
-        {archivedConversations.length > 0 && (
+        {!collapsed && (
           <div className='min-w-0'>
-            {!collapsed && <SectionLabel sectionKey='archived' label={t('conversation.history.archivedSection')} />}
+            <SectionLabel
+              sectionKey='archived'
+              alwaysShowChevron
+              label={
+                archivedConversations.length > 0
+                  ? `${t('conversation.history.archivedSection')} (${archivedConversations.length})`
+                  : t('conversation.history.archivedSection')
+              }
+            />
             {!collapsedSections.has('archived') &&
-              archivedConversations.map((conversation) => renderConversation(conversation))}
+              (archivedConversations.length > 0 ? (
+                archivedConversations.map((conversation) => renderConversation(conversation))
+              ) : (
+                <div className='px-16px py-8px text-12px text-t-tertiary'>
+                  {t('conversation.history.noArchived', { defaultValue: 'No archived chats' })}
+                </div>
+              ))}
           </div>
         )}
 

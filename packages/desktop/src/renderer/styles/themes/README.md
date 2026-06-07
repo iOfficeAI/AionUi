@@ -68,7 +68,8 @@ pages/settings/DisplaySettings/presets/
 
 ### Text Colors 文字色
 
-- `--text-primary`, `--text-secondary`, `--text-disabled`
+- `--text-primary`, `--text-secondary`, `--text-tertiary`, `--text-disabled`
+- Arco bridge (Chisl scheme): `--color-text-1` … `--color-text-4`, `--color-fill-*`, `--color-border-*`
 
 ### Semantic Colors 语义色
 

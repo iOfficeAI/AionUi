@@ -157,10 +157,12 @@ export const colorMapping: Record<string, string> = {
   '#f2f3f5': 'var(--color-bg-2)',
   '#E5E6EB': 'var(--color-bg-3)',
   '#e5e6eb': 'var(--color-bg-3)',
-  '#86909C': 'var(--color-bg-6)',
-  '#86909c': 'var(--color-bg-6)',
-  '#1D2129': 'var(--color-bg-9)',
-  '#1d2129': 'var(--color-bg-9)',
+  '#86909C': 'var(--color-text-3)',
+  '#86909c': 'var(--color-text-3)',
+  '#4E5969': 'var(--color-text-2)',
+  '#4e5969': 'var(--color-text-2)',
+  '#1D2129': 'var(--color-text-1)',
+  '#1d2129': 'var(--color-text-1)',
 
   // Semantic colors
   '#165DFF': 'var(--color-primary)',
