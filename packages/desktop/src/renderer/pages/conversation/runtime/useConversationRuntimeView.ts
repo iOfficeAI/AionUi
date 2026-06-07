@@ -60,10 +60,7 @@ const getRuntimeOrNull = (runtime: TConversationRuntimeSummary | undefined): TCo
   runtime ?? null;
 
 export const useConversationRuntimeView = (conversation_id: string): UseConversationRuntimeViewReturn => {
-  const getSnapshot = useCallback(
-    () => getConversationRuntimeViewSnapshot(conversation_id),
-    [conversation_id]
-  );
+  const getSnapshot = useCallback(() => getConversationRuntimeViewSnapshot(conversation_id), [conversation_id]);
   const view = useSyncExternalStore(subscribeConversationRuntimeView, getSnapshot, getSnapshot);
 
   useEffect(() => {
