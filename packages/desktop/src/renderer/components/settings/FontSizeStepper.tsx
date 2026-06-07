@@ -19,7 +19,15 @@ type FontSizeStepperProps = {
 };
 
 /** Integer-px font size stepper: − [value] + ↺ */
-const FontSizeStepper: React.FC<FontSizeStepperProps> = ({ value, min, max, step, defaultValue, resetLabel, onChange }) => {
+const FontSizeStepper: React.FC<FontSizeStepperProps> = ({
+  value,
+  min,
+  max,
+  step,
+  defaultValue,
+  resetLabel,
+  onChange,
+}) => {
   const { t } = useTranslation();
   // Defensive bound only; the parent already clamps via clampFontSize before persisting.
   const clamp = (n: number) => Math.min(max, Math.max(min, n));

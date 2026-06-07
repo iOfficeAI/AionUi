@@ -43,7 +43,9 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
   );
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}
+    >
       {children}
     </ThemeContext.Provider>
   );

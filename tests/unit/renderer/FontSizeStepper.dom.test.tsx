@@ -22,15 +22,7 @@ describe('FontSizeStepper', () => {
   it('renders the current value and steps within bounds', () => {
     const onChange = vi.fn();
     render(
-      <FontSizeStepper
-        value={16}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={16} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     expect(screen.getByText('16')).toBeTruthy();
     fireEvent.click(screen.getByLabelText(INCREASE));
@@ -42,27 +34,11 @@ describe('FontSizeStepper', () => {
   it('disables decrease at min and increase at max', () => {
     const onChange = vi.fn();
     const { rerender } = render(
-      <FontSizeStepper
-        value={12}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={12} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     expect((screen.getByLabelText(DECREASE) as HTMLButtonElement).disabled).toBe(true);
     rerender(
-      <FontSizeStepper
-        value={22}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={22} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     expect((screen.getByLabelText(INCREASE) as HTMLButtonElement).disabled).toBe(true);
   });
@@ -70,15 +46,7 @@ describe('FontSizeStepper', () => {
   it('resets to defaultValue and disables reset when already at default', () => {
     const onChange = vi.fn();
     const { rerender } = render(
-      <FontSizeStepper
-        value={18}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={18} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     const reset = screen.getByText('Reset').closest('button') as HTMLButtonElement;
     expect(reset.disabled).toBe(false);
@@ -86,15 +54,7 @@ describe('FontSizeStepper', () => {
     expect(onChange).toHaveBeenCalledWith(16);
 
     rerender(
-      <FontSizeStepper
-        value={16}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={16} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     expect((screen.getByText('Reset').closest('button') as HTMLButtonElement).disabled).toBe(true);
   });
@@ -102,29 +62,13 @@ describe('FontSizeStepper', () => {
   it('does not fire onChange when clicking disabled bound buttons', () => {
     const onChange = vi.fn();
     const { rerender } = render(
-      <FontSizeStepper
-        value={12}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={12} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     fireEvent.click(screen.getByLabelText(DECREASE));
     expect(onChange).not.toHaveBeenCalled();
 
     rerender(
-      <FontSizeStepper
-        value={22}
-        min={12}
-        max={22}
-        step={1}
-        onChange={onChange}
-        resetLabel='Reset'
-        defaultValue={16}
-      />
+      <FontSizeStepper value={22} min={12} max={22} step={1} onChange={onChange} resetLabel='Reset' defaultValue={16} />
     );
     fireEvent.click(screen.getByLabelText(INCREASE));
     expect(onChange).not.toHaveBeenCalled();
