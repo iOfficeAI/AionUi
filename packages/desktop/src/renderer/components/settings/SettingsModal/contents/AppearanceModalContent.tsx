@@ -8,7 +8,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import ScaleControl from '@/renderer/components/settings/ScaleControl';
 import FontSizeStepper from '@/renderer/components/settings/FontSizeStepper';
-import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
+import CssThemeSettings from '@renderer/pages/settings/AppearanceSettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
@@ -47,7 +47,7 @@ const PreferenceRow: React.FC<{
  * - 统一主题画廊（浅色、深色及装饰主题）/ Unified theme gallery (light, dark, decorative)
  * - 缩放比例控制 / Zoom scale control
  */
-const DisplayModalContent: React.FC = () => {
+const AppearanceModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
@@ -97,4 +97,4 @@ const DisplayModalContent: React.FC = () => {
   );
 };
 
-export default DisplayModalContent;
+export default AppearanceModalContent;

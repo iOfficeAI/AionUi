@@ -14,15 +14,15 @@ import {
   retroWindowsCover,
   y2kJpCover,
   retromaObsidianBookCover,
-} from '@renderer/pages/settings/DisplaySettings/themeCovers';
+} from '@renderer/pages/settings/AppearanceSettings/themeCovers';
 
-import misakaMikotoCss from '@renderer/pages/settings/DisplaySettings/presets/misaka-mikoto.css?raw';
-import helloKittyCss from '@renderer/pages/settings/DisplaySettings/presets/hello-kitty.css?raw';
-import retroWindowsCss from '@renderer/pages/settings/DisplaySettings/presets/retro-windows.css?raw';
-import retromaY2kCss from '@renderer/pages/settings/DisplaySettings/presets/retroma-y2k.css?raw';
-import retromaObsidianBookCss from '@renderer/pages/settings/DisplaySettings/presets/retroma-obsidian-book.css?raw';
-import discourseHorizonCss from '@renderer/pages/settings/DisplaySettings/presets/discourse-horizon.css?raw';
-import glitteringInputFieldCss from '@renderer/pages/settings/DisplaySettings/presets/glittering-input-field.css?raw';
+import misakaMikotoCss from '@renderer/pages/settings/AppearanceSettings/presets/misaka-mikoto.css?raw';
+import helloKittyCss from '@renderer/pages/settings/AppearanceSettings/presets/hello-kitty.css?raw';
+import retroWindowsCss from '@renderer/pages/settings/AppearanceSettings/presets/retro-windows.css?raw';
+import retromaY2kCss from '@renderer/pages/settings/AppearanceSettings/presets/retroma-y2k.css?raw';
+import retromaObsidianBookCss from '@renderer/pages/settings/AppearanceSettings/presets/retroma-obsidian-book.css?raw';
+import discourseHorizonCss from '@renderer/pages/settings/AppearanceSettings/presets/discourse-horizon.css?raw';
+import glitteringInputFieldCss from '@renderer/pages/settings/AppearanceSettings/presets/glittering-input-field.css?raw';
 
 const T0 = 0;
 
