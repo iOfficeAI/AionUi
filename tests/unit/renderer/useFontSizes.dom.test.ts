@@ -1,10 +1,14 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-// store must be defined at module scope BEFORE the mock factory so that
-// hoisted vi.mock can capture it via closure without TDZ issues.
-// We use a plain object to avoid the const TDZ trap.
+// store/subscribers must be defined at module scope BEFORE the mock factory so
+// the hoisted vi.mock can capture them via closure without TDZ issues.
 const store: Map<string, unknown> = new Map();
+const subscribers: Map<string, Set<(value: unknown) => void>> = new Map();
+
+// Real subscriber-registry mock mirroring configService: set() writes the store
+// then synchronously notifies subscribers for that key (as the real service does
+// before its await), so the hook's subscription is the single update path.
 vi.mock('@/common/config/configService', () => {
   // defer whenReady so the module-level fire doesn't race with store init
   const whenReady = () => new Promise<void>((resolve) => setTimeout(resolve, 0));
@@ -14,8 +18,22 @@ vi.mock('@/common/config/configService', () => {
       get: (k: string) => store.get(k),
       set: vi.fn(async (k: string, v: unknown) => {
         store.set(k, v);
+        const subs = subscribers.get(k);
+        if (subs) {
+          for (const cb of subs) {
+            cb(v);
+          }
+        }
       }),
-      subscribe: () => () => {},
+      subscribe: (k: string, cb: (value: unknown) => void) => {
+        if (!subscribers.has(k)) {
+          subscribers.set(k, new Set());
+        }
+        subscribers.get(k)!.add(cb);
+        return () => {
+          subscribers.get(k)?.delete(cb);
+        };
+      },
     },
   };
 });
@@ -26,6 +44,7 @@ import { configService } from '@/common/config/configService';
 describe('useFontSizes', () => {
   beforeEach(() => {
     store.clear();
+    subscribers.clear();
     document.documentElement.removeAttribute('style');
     vi.clearAllMocks();
   });
@@ -34,6 +53,13 @@ describe('useFontSizes', () => {
     const { result } = renderHook(() => useFontSizes());
     await waitFor(() => expect(result.current.fontSizes.chat).toBe(16));
     expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('16px');
+  });
+
+  it('loads an out-of-range persisted value clamped and applies it', async () => {
+    store.set('ui.fontSize.chat', 999);
+    const { result } = renderHook(() => useFontSizes());
+    await waitFor(() => expect(result.current.fontSizes.chat).toBe(22)); // clamped to max
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('22px');
   });
 
   it('persists clamped value and updates CSS variable on setFontSize', async () => {
