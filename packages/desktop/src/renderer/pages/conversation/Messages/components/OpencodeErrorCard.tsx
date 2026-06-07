@@ -40,7 +40,9 @@ const OpencodeErrorCard: React.FC<{ message: IMessageOpencodeError }> = ({ messa
               defaultValue: `Context window full (${used ?? 'unknown'} / ${limit ?? 'unknown'} tokens).`,
             })}
           </Typography.Text>
-          {COMPACT_ENABLED ? <Button size='mini'>{t('conversation.remoteOpencodeError.context_overflow.compact')}</Button> : null}
+          {COMPACT_ENABLED ? (
+            <Button size='mini'>{t('conversation.remoteOpencodeError.context_overflow.compact')}</Button>
+          ) : null}
         </div>
       )}
       {kind === 'provider_auth' && (
@@ -51,21 +53,37 @@ const OpencodeErrorCard: React.FC<{ message: IMessageOpencodeError }> = ({ messa
               defaultValue: `Provider auth failed for ${providerId ?? 'provider'}.`,
             })}
           </Typography.Text>
-          <Button size='mini' type='primary' onClick={() => { window.location.hash = '/settings/agents'; }}>
+          <Button
+            size='mini'
+            type='primary'
+            onClick={() => {
+              window.location.hash = '/settings/agents';
+            }}
+          >
             {t('conversation.remoteOpencodeError.provider_auth.reconnect')}
           </Button>
         </div>
       )}
-      {kind === 'output_length' && <Button size='mini'>{t('conversation.remoteOpencodeError.output_length.continue')}</Button>}
+      {kind === 'output_length' && (
+        <Button size='mini'>{t('conversation.remoteOpencodeError.output_length.continue')}</Button>
+      )}
       {kind === 'api' && (
         <div className='flex flex-col gap-8px'>
-          <Typography.Text>{t('conversation.remoteOpencodeError.api.status', { statusCode: statusCode ?? 'unknown' })}</Typography.Text>
-          {body ? <Typography.Paragraph copyable code>{body}</Typography.Paragraph> : null}
+          <Typography.Text>
+            {t('conversation.remoteOpencodeError.api.status', { statusCode: statusCode ?? 'unknown' })}
+          </Typography.Text>
+          {body ? (
+            <Typography.Paragraph copyable code>
+              {body}
+            </Typography.Paragraph>
+          ) : null}
         </div>
       )}
       {kind === 'structured_output' && (
         <div className='flex flex-col gap-8px'>
-          <Typography.Text>{t('conversation.remoteOpencodeError.structured_output.schema', { schema: schema ?? 'schema' })}</Typography.Text>
+          <Typography.Text>
+            {t('conversation.remoteOpencodeError.structured_output.schema', { schema: schema ?? 'schema' })}
+          </Typography.Text>
           <Typography.Paragraph code>{JSON.stringify(metadata?.partial ?? {}, null, 2)}</Typography.Paragraph>
         </div>
       )}

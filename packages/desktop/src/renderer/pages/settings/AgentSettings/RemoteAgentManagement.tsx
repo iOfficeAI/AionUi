@@ -6,10 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput, RemoteAgentProtocol } from '@/common/types/agent/remoteAgentTypes';
-import {
-  getDefaultRemoteAgentId,
-  setDefaultRemoteAgentId,
-} from '@/common/utils/defaultRemoteAgent';
+import { getDefaultRemoteAgentId, setDefaultRemoteAgentId } from '@/common/utils/defaultRemoteAgent';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { useRemoteAgentHealth } from '@/renderer/hooks/agent/useRemoteAgentHealth';
 import { openExternalUrl } from '@/renderer/utils/platform';
@@ -627,11 +624,7 @@ const RemoteAgentManagement: React.FC = () => {
                 const entry = health[agent.id];
                 const loading = entry === 'loading';
                 if (!entry) return null;
-                const color = loading
-                  ? 'gray'
-                  : entry.healthy
-                    ? 'green'
-                    : 'red';
+                const color = loading ? 'gray' : entry.healthy ? 'green' : 'red';
                 return (
                   <Tooltip
                     content={

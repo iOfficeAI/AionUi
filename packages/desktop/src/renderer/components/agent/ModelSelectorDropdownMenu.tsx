@@ -163,10 +163,7 @@ const ModelSelectorDropdownMenu: React.FC<ModelSelectorDropdownMenuProps> = ({
   const [searchValue, setSearchValue] = useState('');
   const [favoriteKeys, setFavoriteKeys] = useState<string[]>(() => readFavoriteKeys(storageKey));
 
-  const listHeight = useMemo(
-    () => computeModelListHeight(panelMaxHeight, Boolean(footer)),
-    [footer, panelMaxHeight]
-  );
+  const listHeight = useMemo(() => computeModelListHeight(panelMaxHeight, Boolean(footer)), [footer, panelMaxHeight]);
 
   const optionsByKey = useMemo(() => new Map(options.map((option) => [option.key, option])), [options]);
   const favoriteKeySet = useMemo(() => new Set(favoriteKeys), [favoriteKeys]);

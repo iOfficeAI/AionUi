@@ -577,13 +577,7 @@ const MessageToolGroup: React.FC<IMessageToolGroupProps> = ({ message }) => {
         );
 
         return (
-          <ToolShell
-            key={call_id}
-            state={pillState}
-            stateLabel={stateLabel}
-            title={titleNode}
-            collapsible={hasBody}
-          >
+          <ToolShell key={call_id} state={pillState} stateLabel={stateLabel} title={titleNode} collapsible={hasBody}>
             {hasBody && (
               <div>
                 {description && (

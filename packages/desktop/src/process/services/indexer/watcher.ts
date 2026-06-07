@@ -115,14 +115,10 @@ export class ChislIndexWatcher {
     // Lazy require so test environments without native fs.watch can still load the module.
     // eslint-disable-next-line @typescript-eslint/no-var-requires
     const fs = require('fs') as typeof import('fs');
-    const handle = fs.watch(
-      dir,
-      { recursive: true, persistent: false },
-      (eventType, filename) => {
-        if (!filename) return;
-        this.handleNativeEvent(dir, filename.toString(), eventType);
-      }
-    );
+    const handle = fs.watch(dir, { recursive: true, persistent: false }, (eventType, filename) => {
+      if (!filename) return;
+      this.handleNativeEvent(dir, filename.toString(), eventType);
+    });
     handle.on('error', (err) => this.emitter.emit('error', err));
     this.watchers.add(handle);
   }

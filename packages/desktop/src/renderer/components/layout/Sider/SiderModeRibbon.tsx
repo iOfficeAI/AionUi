@@ -37,10 +37,7 @@ const SiderModeRibbon: React.FC<SiderModeRibbonProps> = ({ mode, collapsed = fal
 
   const divider = (
     <div
-      className={classNames(
-        'shrink-0 mt-4px mb-1px h-1px bg-[var(--color-border-2)]',
-        collapsed ? 'mx-4px' : 'mx-6px'
-      )}
+      className={classNames('shrink-0 mt-4px mb-1px h-1px bg-[var(--color-border-2)]', collapsed ? 'mx-4px' : 'mx-6px')}
       aria-hidden='true'
     />
   );

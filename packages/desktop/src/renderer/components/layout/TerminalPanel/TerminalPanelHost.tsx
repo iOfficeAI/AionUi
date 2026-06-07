@@ -92,9 +92,7 @@ const TerminalPanelHost: React.FC<Props> = ({ isMobile, children }) => {
             aria-label={t('terminal.expand', { defaultValue: 'Expand terminal' })}
             title={t('terminal.expand', { defaultValue: 'Expand terminal' })}
           >
-            <span className='terminal-blade__label'>
-              {t('terminal.bladeLabel', { defaultValue: 'Terminal' })}
-            </span>
+            <span className='terminal-blade__label'>{t('terminal.bladeLabel', { defaultValue: 'Terminal' })}</span>
           </button>
         )}
       </div>

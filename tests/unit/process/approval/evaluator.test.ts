@@ -49,7 +49,10 @@ function rule(overrides: Partial<ApprovalRule> & Pick<ApprovalRule, 'id' | 'name
 describe('filterActiveApprovalRules', () => {
   it('excludes disabled rules', () => {
     const active = filterActiveApprovalRules(
-      [rule({ id: 'r1', name: 'enabled', action: 'allow' }), rule({ id: 'r2', name: 'disabled', action: 'allow', enabled: false })],
+      [
+        rule({ id: 'r1', name: 'enabled', action: 'allow' }),
+        rule({ id: 'r2', name: 'disabled', action: 'allow', enabled: false }),
+      ],
       NOW
     );
     expect(active.map((r) => r.id)).toEqual(['r1']);
@@ -73,10 +76,34 @@ describe('sortApprovalRulesForEvaluation', () => {
   it('orders by scope (session > workspace > global) then priority desc', () => {
     const sorted = sortApprovalRulesForEvaluation([
       rule({ id: 'g-low', name: 'global low', action: 'allow', scope: 'global', priority: 1, createdAt: NOW + 2 }),
-      rule({ id: 's-mid', name: 'session mid', action: 'allow', scope: 'session', scopeRef: 'sess-a', priority: 5, createdAt: NOW + 10 }),
-      rule({ id: 's-high', name: 'session high', action: 'allow', scope: 'session', scopeRef: 'sess-a', priority: 0, createdAt: NOW + 11 }),
+      rule({
+        id: 's-mid',
+        name: 'session mid',
+        action: 'allow',
+        scope: 'session',
+        scopeRef: 'sess-a',
+        priority: 5,
+        createdAt: NOW + 10,
+      }),
+      rule({
+        id: 's-high',
+        name: 'session high',
+        action: 'allow',
+        scope: 'session',
+        scopeRef: 'sess-a',
+        priority: 0,
+        createdAt: NOW + 11,
+      }),
       rule({ id: 'g-high', name: 'global high', action: 'allow', scope: 'global', priority: 10, createdAt: NOW }),
-      rule({ id: 'w-mid', name: 'workspace', action: 'allow', scope: 'workspace', scopeRef: 'ws-1', priority: 5, createdAt: NOW + 1 }),
+      rule({
+        id: 'w-mid',
+        name: 'workspace',
+        action: 'allow',
+        scope: 'workspace',
+        scopeRef: 'ws-1',
+        priority: 5,
+        createdAt: NOW + 1,
+      }),
     ]);
     expect(sorted.map((r) => r.id)).toEqual(['s-mid', 's-high', 'w-mid', 'g-high', 'g-low']);
   });

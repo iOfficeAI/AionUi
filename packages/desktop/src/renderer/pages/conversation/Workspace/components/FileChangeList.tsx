@@ -296,77 +296,89 @@ const FileChangeList: React.FC<FileChangeListProps> = ({
             },
           ]
         : isGitRepo
-        ? [
-            {
-              key: 'unstaged',
-              title: t('conversation.workspace.changes.unstaged'),
-              count: unstaged.length,
-              emptyText: t('conversation.workspace.changes.noUnstaged'),
-              items: unstaged,
-              headerAction:
-                unstaged.length > 0 ? (
+          ? [
+              {
+                key: 'unstaged',
+                title: t('conversation.workspace.changes.unstaged'),
+                count: unstaged.length,
+                emptyText: t('conversation.workspace.changes.noUnstaged'),
+                items: unstaged,
+                headerAction:
+                  unstaged.length > 0 ? (
+                    <ActionBtn
+                      tooltip={t('conversation.workspace.changes.stageAll')}
+                      icon={<Plus size={14} />}
+                      onClick={onStageAll}
+                    />
+                  ) : undefined,
+                renderActions: (change: FileChangeInfo) => (
+                  <>
+                    <ActionBtn
+                      tooltip={t('conversation.workspace.changes.discard')}
+                      icon={<Redo size={14} />}
+                      onClick={() => onDiscardFile(change.relativePath, change.operation)}
+                    />
+                    <ActionBtn
+                      tooltip={t('conversation.workspace.changes.stage')}
+                      icon={<Plus size={14} />}
+                      onClick={() => onStageFile(change.relativePath)}
+                    />
+                  </>
+                ),
+              },
+              {
+                key: 'staged',
+                title: t('conversation.workspace.changes.staged'),
+                count: staged.length,
+                emptyText: t('conversation.workspace.changes.noStaged'),
+                items: staged,
+                headerAction:
+                  staged.length > 0 ? (
+                    <ActionBtn
+                      tooltip={t('conversation.workspace.changes.unstageAll')}
+                      icon={<Minus size={14} />}
+                      onClick={onUnstageAll}
+                    />
+                  ) : undefined,
+                renderActions: (change: FileChangeInfo) => (
                   <ActionBtn
-                    tooltip={t('conversation.workspace.changes.stageAll')}
-                    icon={<Plus size={14} />}
-                    onClick={onStageAll}
-                  />
-                ) : undefined,
-              renderActions: (change: FileChangeInfo) => (
-                <>
-                  <ActionBtn
-                    tooltip={t('conversation.workspace.changes.discard')}
-                    icon={<Redo size={14} />}
-                    onClick={() => onDiscardFile(change.relativePath, change.operation)}
-                  />
-                  <ActionBtn
-                    tooltip={t('conversation.workspace.changes.stage')}
-                    icon={<Plus size={14} />}
-                    onClick={() => onStageFile(change.relativePath)}
-                  />
-                </>
-              ),
-            },
-            {
-              key: 'staged',
-              title: t('conversation.workspace.changes.staged'),
-              count: staged.length,
-              emptyText: t('conversation.workspace.changes.noStaged'),
-              items: staged,
-              headerAction:
-                staged.length > 0 ? (
-                  <ActionBtn
-                    tooltip={t('conversation.workspace.changes.unstageAll')}
+                    tooltip={t('conversation.workspace.changes.unstage')}
                     icon={<Minus size={14} />}
-                    onClick={onUnstageAll}
+                    onClick={() => onUnstageFile(change.relativePath)}
                   />
-                ) : undefined,
-              renderActions: (change: FileChangeInfo) => (
-                <ActionBtn
-                  tooltip={t('conversation.workspace.changes.unstage')}
-                  icon={<Minus size={14} />}
-                  onClick={() => onUnstageFile(change.relativePath)}
-                />
-              ),
-            },
-          ]
-        : [
-            {
-              key: 'changed',
-              title: t('conversation.workspace.changes.changedFiles'),
-              count: unstaged.length,
-              emptyText: t('conversation.workspace.changes.empty'),
-              items: unstaged,
-              headerAction: undefined,
-              renderActions: (change: FileChangeInfo) => (
-                <ActionBtn
-                  tooltip={t('conversation.workspace.changes.reset')}
-                  icon={<Redo size={14} />}
-                  onClick={() => onResetFile(change.relativePath, change.operation)}
-                />
-              ),
-            },
-          ],
-    [isGitRepo, onDiscardFile, onResetFile, onStageAll, onStageFile, onUnstageAll, onUnstageFile, readOnly, staged, t, unstaged]
+                ),
+              },
+            ]
+          : [
+              {
+                key: 'changed',
+                title: t('conversation.workspace.changes.changedFiles'),
+                count: unstaged.length,
+                emptyText: t('conversation.workspace.changes.empty'),
+                items: unstaged,
+                headerAction: undefined,
+                renderActions: (change: FileChangeInfo) => (
+                  <ActionBtn
+                    tooltip={t('conversation.workspace.changes.reset')}
+                    icon={<Redo size={14} />}
+                    onClick={() => onResetFile(change.relativePath, change.operation)}
+                  />
+                ),
+              },
+            ],
+    [
+      isGitRepo,
+      onDiscardFile,
+      onResetFile,
+      onStageAll,
+      onStageFile,
+      onUnstageAll,
+      onUnstageFile,
+      readOnly,
+      staged,
+      t,
+      unstaged,
+    ]
   );
 
   if (loading) {

@@ -63,7 +63,7 @@ describe('parseHeadlessHttpServerCredentials', () => {
     expect(
       parseHeadlessHttpServerCredentials({
         env: { [HEADLESS_HTTP_SERVER_PASSWORD_ENV]: 'secret' },
-      }),
+      })
     ).toEqual({ error: 'missing_server_url' });
   });
 
@@ -71,7 +71,7 @@ describe('parseHeadlessHttpServerCredentials', () => {
     expect(
       parseHeadlessHttpServerCredentials({
         env: { [HEADLESS_HTTP_SERVER_URL_ENV]: '   ' },
-      }),
+      })
     ).toEqual({ error: 'invalid_server_url' });
   });
 

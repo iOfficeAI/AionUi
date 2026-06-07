@@ -345,7 +345,11 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
         footer={{
           render: () => (
             <div className='flex justify-end gap-10px pt-20px'>
-              <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setShareUrl(null)}>
+              <Button
+                className='px-20px min-w-80px'
+                style={{ borderRadius: 'var(--radius-control)' }}
+                onClick={() => setShareUrl(null)}
+              >
                 {t('common.close', { defaultValue: 'Close' })}
               </Button>
               <Button
@@ -381,17 +385,16 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
       <AionModal
         visible={configOpen}
         size='medium'
-        header={{ title: t('conversation.session.serverConfigTitle', { defaultValue: 'Server config' }), showClose: true }}
+        header={{
+          title: t('conversation.session.serverConfigTitle', { defaultValue: 'Server config' }),
+          showClose: true,
+        }}
         contentStyle={{ padding: '16px 24px' }}
         onCancel={() => setConfigOpen(false)}
         footer={{
           render: () => (
             <div className='flex items-center justify-between pt-16px'>
-              <Button
-                type='text'
-                disabled={configLoading || configSaving}
-                onClick={() => void loadConfig()}
-              >
+              <Button type='text' disabled={configLoading || configSaving} onClick={() => void loadConfig()}>
                 <span className='flex items-center gap-6px'>
                   <Refresh theme='outline' size='14' />
                   {t('conversation.session.configReload', { defaultValue: 'Reload' })}
@@ -427,7 +430,8 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
         <div className='flex flex-col gap-10px'>
           <div className='text-12px text-t-secondary leading-18px'>
             {t('conversation.session.configRestartHint', {
-              defaultValue: 'Edits are shallow-merged into the server config. Some changes (e.g. model defaults) may require restarting the OpenCode server to take effect.',
+              defaultValue:
+                'Edits are shallow-merged into the server config. Some changes (e.g. model defaults) may require restarting the OpenCode server to take effect.',
             })}
           </div>
           {shadowedPaths.length > 0 && (
@@ -449,7 +453,8 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
               </ul>
               <span className='text-t-secondary'>
                 {t('conversation.session.configShadowedHint', {
-                  defaultValue: 'A project-level opencode.json or an agent file defines these. Edit them at that layer (and restart the OpenCode server) for changes to apply.',
+                  defaultValue:
+                    'A project-level opencode.json or an agent file defines these. Edit them at that layer (and restart the OpenCode server) for changes to apply.',
                 })}
               </span>
             </div>

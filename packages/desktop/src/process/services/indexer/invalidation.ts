@@ -8,12 +8,7 @@ import { stat } from 'fs/promises';
 import path from 'path';
 import { computeFileContentHash } from './contentHash';
 import { shouldIgnoreIndexPath, toWorkspaceRelativePath, type IndexIgnoreOptions } from './ignore';
-import {
-  createIndexJob,
-  deleteFile,
-  getFile,
-  type ChislIndexStore,
-} from './repository';
+import { createIndexJob, deleteFile, getFile, type ChislIndexStore } from './repository';
 
 export type FileChangeEvent = {
   relativePath: string;
@@ -121,8 +116,7 @@ export async function processFileChangeEvents(
       continue;
     }
 
-    const relative =
-      toWorkspaceRelativePath(workspaceRoot, event.absolutePath) ?? event.relativePath;
+    const relative = toWorkspaceRelativePath(workspaceRoot, event.absolutePath) ?? event.relativePath;
     const absolute = path.resolve(workspaceRoot, relative);
     if (await scheduleFileReindexIfChanged(store, options, relative, absolute)) {
       reindexScheduled += 1;

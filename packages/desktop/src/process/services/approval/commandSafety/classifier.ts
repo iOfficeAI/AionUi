@@ -404,7 +404,10 @@ function classifySegment(
 
   return {
     decision: 'deny',
-    hazards: [...hazards, { kind: 'unknown_command', detail: `Unknown or unlisted command: ${baseCommand ?? 'empty'}` }],
+    hazards: [
+      ...hazards,
+      { kind: 'unknown_command', detail: `Unknown or unlisted command: ${baseCommand ?? 'empty'}` },
+    ],
     reasons: [`Unknown command; default deny: ${baseCommand ?? 'empty'}`],
   };
 }

@@ -11,10 +11,7 @@ export type DebouncedBatch<T> = {
   readonly size: number;
 };
 
-export function createDebouncedBatch<T>(
-  delayMs: number,
-  onFlush: (items: readonly T[]) => void
-): DebouncedBatch<T> {
+export function createDebouncedBatch<T>(delayMs: number, onFlush: (items: readonly T[]) => void): DebouncedBatch<T> {
   const pending = new Set<T>();
   let timer: ReturnType<typeof setTimeout> | null = null;
 

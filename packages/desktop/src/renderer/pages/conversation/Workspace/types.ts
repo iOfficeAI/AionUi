@@ -4,11 +4,22 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { TChatConversation } from '@/common/config/storage';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import type { NodeInstance } from '@arco-design/web-react/es/Tree/interface';
 import type { Message } from '@arco-design/web-react';
 
 export type MessageApi = ReturnType<typeof Message.useMessage>[0];
+
+/**
+ * Conversation types that can host a Workspace panel.
+ *
+ * Derived from `TChatConversation['type']` so that any new conversation
+ * type that carries an `extra.workspace` automatically becomes a valid
+ * `eventPrefix` — the Workspace tree, file-ops, and event hooks all key
+ * off this prefix when emitting `acp.selected.file` style events.
+ */
+export type WorkspaceEventPrefix = TChatConversation['type'];
 
 /**
  * Workspace 组件的 Props 定义
@@ -24,7 +35,7 @@ export interface WorkspaceProps {
    * Renamed here to camelCase per the frontend prop convention.
    */
   isTemporaryWorkspace?: boolean;
-  eventPrefix?: 'acp' | 'codex' | 'aionrs' | 'remote';
+  eventPrefix?: WorkspaceEventPrefix;
   messageApi?: MessageApi;
 }
 

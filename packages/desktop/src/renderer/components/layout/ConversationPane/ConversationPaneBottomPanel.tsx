@@ -41,10 +41,7 @@ const ConversationPaneBottomPanel: React.FC<ConversationPaneBottomPanelProps> = 
         size='small'
         className='px-12px [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px flex flex-col flex-1 min-h-0'
       >
-        <Tabs.TabPane
-          key='approvals'
-          title='Approvals'
-        >
+        <Tabs.TabPane key='approvals' title='Approvals'>
           {approvalsHook.hasApprovals ? (
             <ApprovalsList t={t} approvals={approvalsHook.approvals} respond={approvalsHook.respond} />
           ) : (
@@ -53,10 +50,7 @@ const ConversationPaneBottomPanel: React.FC<ConversationPaneBottomPanelProps> = 
             </div>
           )}
         </Tabs.TabPane>
-        <Tabs.TabPane
-          key='questions'
-          title='Questions'
-        >
+        <Tabs.TabPane key='questions' title='Questions'>
           {elicitationsHook.hasElicitations ? (
             <ApprovalsList t={t} approvals={elicitationsHook.elicitations} respond={elicitationsHook.respond} />
           ) : (
@@ -65,11 +59,10 @@ const ConversationPaneBottomPanel: React.FC<ConversationPaneBottomPanelProps> = 
             </div>
           )}
         </Tabs.TabPane>
-        <Tabs.TabPane
-          key='history'
-          title='History'
-        >
-          <div className='flex items-center justify-center h-full text-xs text-[var(--color-text-3)]'>History coming soon</div>
+        <Tabs.TabPane key='history' title='History'>
+          <div className='flex items-center justify-center h-full text-xs text-[var(--color-text-3)]'>
+            History coming soon
+          </div>
         </Tabs.TabPane>
       </Tabs>
     </div>

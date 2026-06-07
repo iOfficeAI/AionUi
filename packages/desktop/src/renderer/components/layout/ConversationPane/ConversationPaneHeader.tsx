@@ -32,11 +32,12 @@ const ConversationPaneHeader: React.FC<ConversationPaneHeaderProps> = ({
 
   return (
     <div className={styles.header}>
-      <h3 className={styles.title}>
-        {t('sider.modeConversations', { defaultValue: 'Conversations' })}
-      </h3>
+      <h3 className={styles.title}>{t('sider.modeConversations', { defaultValue: 'Conversations' })}</h3>
       <div className={styles.actions}>
-        <Tooltip content={t('conversation.welcome.newConversation', { defaultValue: 'New conversation' })} position='bottom'>
+        <Tooltip
+          content={t('conversation.welcome.newConversation', { defaultValue: 'New conversation' })}
+          position='bottom'
+        >
           <button
             type='button'
             className={styles.actionBtn}
@@ -49,7 +50,10 @@ const ConversationPaneHeader: React.FC<ConversationPaneHeaderProps> = ({
         <ConversationSearchPopover
           onSessionClick={onSessionClick}
           renderTrigger={({ onClick, isActive }) => (
-            <Tooltip content={t('conversation.historySearch.tooltip', { defaultValue: 'Search conversations' })} position='bottom'>
+            <Tooltip
+              content={t('conversation.historySearch.tooltip', { defaultValue: 'Search conversations' })}
+              position='bottom'
+            >
               <button
                 type='button'
                 className={classNames(styles.actionBtn, { [styles.actionBtnActive]: isActive })}
@@ -62,18 +66,22 @@ const ConversationPaneHeader: React.FC<ConversationPaneHeaderProps> = ({
           )}
         />
         <Tooltip
-          content={isBatchMode
-            ? t('conversation.history.batchModeExit', { defaultValue: 'Exit batch mode' })
-            : t('conversation.history.batchManage', { defaultValue: 'Batch manage' })}
+          content={
+            isBatchMode
+              ? t('conversation.history.batchModeExit', { defaultValue: 'Exit batch mode' })
+              : t('conversation.history.batchManage', { defaultValue: 'Batch manage' })
+          }
           position='bottom'
         >
           <button
             type='button'
             className={classNames(styles.actionBtn, { [styles.actionBtnActive]: isBatchMode })}
             onClick={onToggleBatchMode}
-            aria-label={isBatchMode
-              ? t('conversation.history.batchModeExit', { defaultValue: 'Exit batch mode' })
-              : t('conversation.history.batchManage', { defaultValue: 'Batch manage' })}
+            aria-label={
+              isBatchMode
+                ? t('conversation.history.batchModeExit', { defaultValue: 'Exit batch mode' })
+                : t('conversation.history.batchManage', { defaultValue: 'Batch manage' })
+            }
             aria-pressed={isBatchMode}
           >
             <ListCheckbox theme='outline' size={14} fill='currentColor' />

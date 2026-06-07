@@ -126,10 +126,12 @@ describe('retry classification', () => {
   });
 
   it('fails when retries exhausted', () => {
-    expect(shouldRetryChislQueueItem(
-      createDefaultChislQueueItemFields({ commandType: 'prompt', payload: {}, retryCount: 3 }),
-      { httpStatus: 503 }
-    )).toBe(false);
+    expect(
+      shouldRetryChislQueueItem(
+        createDefaultChislQueueItemFields({ commandType: 'prompt', payload: {}, retryCount: 3 }),
+        { httpStatus: 503 }
+      )
+    ).toBe(false);
     const retried = applyChislQueueRetry(
       createDefaultChislQueueItemFields({ commandType: 'prompt', payload: {}, retryCount: 3, maxRetries: 3 }),
       { httpStatus: 503 }
@@ -138,10 +140,10 @@ describe('retry classification', () => {
   });
 
   it('requeues on retryable failure', () => {
-    const retried = applyChislQueueRetry(
-      createDefaultChislQueueItemFields({ commandType: 'prompt', payload: {} }),
-      { httpStatus: 503, message: 'down' }
-    );
+    const retried = applyChislQueueRetry(createDefaultChislQueueItemFields({ commandType: 'prompt', payload: {} }), {
+      httpStatus: 503,
+      message: 'down',
+    });
     expect(retried.status).toBe('queued');
     expect(retried.retryCount).toBe(1);
     expect(retried.dispatchedAt).toBeNull();

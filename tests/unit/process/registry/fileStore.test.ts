@@ -43,7 +43,12 @@ describe('createChislServerRegistryFileStore', () => {
     const store = createChislServerRegistryFileStore(jsonPath);
     const snapshot: HttpServerRegistrySnapshot = {
       list: [
-        { type: 'http', http: { url: 'http://example.com', username: 'alice' }, displayName: 'prod', hasPassword: true },
+        {
+          type: 'http',
+          http: { url: 'http://example.com', username: 'alice' },
+          displayName: 'prod',
+          hasPassword: true,
+        },
         { type: 'http', http: { url: 'http://localhost:3000' } },
       ],
       activeKey: 'http://example.com' as never,

@@ -13,15 +13,7 @@ import {
   promptVisible,
 } from '@/common/types/opencode/opencodeProviderCatalog';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import {
-  Button,
-  Collapse,
-  Input,
-  Message,
-  Select,
-  Tag,
-  Typography,
-} from '@arco-design/web-react';
+import { Button, Collapse, Input, Message, Select, Tag, Typography } from '@arco-design/web-react';
 import { Key, LinkOne } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -244,9 +236,7 @@ const ProviderAuthCard: React.FC<{
           </div>
         </div>
         <Tag size='small' color={connected ? 'green' : 'gray'}>
-          {connected
-            ? t('settings.remoteAgent.providers.connected')
-            : t('settings.remoteAgent.providers.notConnected')}
+          {connected ? t('settings.remoteAgent.providers.connected') : t('settings.remoteAgent.providers.notConnected')}
         </Tag>
       </div>
 

@@ -7,13 +7,7 @@
 import { httpServerAuthHeaders } from './httpServerAuth';
 import type { HttpServerHttpBase } from './httpServerConnection';
 
-export type HttpServerHealthStatus =
-  | 'unknown'
-  | 'checking'
-  | 'healthy'
-  | 'unhealthy'
-  | 'auth_failed'
-  | 'error';
+export type HttpServerHealthStatus = 'unknown' | 'checking' | 'healthy' | 'unhealthy' | 'auth_failed' | 'error';
 
 export type HttpServerHealthResult = {
   status: HttpServerHealthStatus;
@@ -101,9 +95,7 @@ export function mapHealthResponse(status: number, body: unknown): HttpServerHeal
     const data = body as { healthy?: unknown; version?: unknown } | null;
     const healthy = data?.healthy === true;
     const version = typeof data?.version === 'string' ? data.version : undefined;
-    return healthy
-      ? { status: 'healthy', healthy: true, version }
-      : { status: 'unhealthy', healthy: false, version };
+    return healthy ? { status: 'healthy', healthy: true, version } : { status: 'unhealthy', healthy: false, version };
   }
   return { status: 'unhealthy', healthy: false, error: `http_${status}` };
 }
@@ -111,7 +103,7 @@ export function mapHealthResponse(status: number, body: unknown): HttpServerHeal
 export async function fetchHttpServerHealth(
   http: HttpServerHttpBase,
   fetchFn: typeof globalThis.fetch,
-  signal?: AbortSignal,
+  signal?: AbortSignal
 ): Promise<HttpServerHealthResult> {
   const headers = httpServerAuthHeaders(http);
   const init: RequestInit = { method: 'GET', signal };
@@ -137,7 +129,7 @@ export async function fetchHttpServerHealth(
 
 export async function checkHttpServerHealth(
   http: HttpServerHttpBase,
-  opts?: CheckHttpServerHealthOptions,
+  opts?: CheckHttpServerHealthOptions
 ): Promise<HttpServerHealthResult> {
   const fetchFn = opts?.fetch ?? globalThis.fetch;
   const timeout = opts?.signal ? undefined : timeoutSignal(opts?.timeoutMs ?? HTTP_SERVER_HEALTH_TIMEOUT_MS);
@@ -167,7 +159,11 @@ export async function checkHttpServerHealth(
       if (!retryable(error, signal)) {
         return { status: 'error', healthy: false, error: error instanceof Error ? error.message : 'network_error' };
       }
-      return next(count, { status: 'error', healthy: false, error: error instanceof Error ? error.message : 'network_error' });
+      return next(count, {
+        status: 'error',
+        healthy: false,
+        error: error instanceof Error ? error.message : 'network_error',
+      });
     }
   };
 
@@ -176,7 +172,7 @@ export async function checkHttpServerHealth(
 
 export function checkHttpServerHealthCached(
   http: HttpServerHttpBase,
-  opts?: CheckHttpServerHealthOptions,
+  opts?: CheckHttpServerHealthOptions
 ): Promise<HttpServerHealthResult> {
   const fetchFn = opts?.fetch ?? globalThis.fetch;
   const key = httpServerHealthCacheKey(http);

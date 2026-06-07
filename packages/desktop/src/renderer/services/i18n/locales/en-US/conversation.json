@@ -474,7 +474,8 @@
     "questionMultiselectEmpty": "Pick at least one option",
     "elicitSubmit": "Submit",
     "elicitCancel": "Cancel",
-    "fromUnknownSession": "Session unknown",
+    "fromUnknownSession": "Local shell (session unknown)",
+    "mainSession": "Main session",
     "elicitSchemaFreeText": "Type your response"
   }
 }

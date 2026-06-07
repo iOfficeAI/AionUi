@@ -297,7 +297,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
       footer={{
         render: () => (
           <div className='flex justify-end gap-10px pt-20px'>
-            <Button className='px-20px min-w-80px' style={{ borderRadius: 'var(--radius-control)' }} onClick={() => setDeleteOpen(false)}>
+            <Button
+              className='px-20px min-w-80px'
+              style={{ borderRadius: 'var(--radius-control)' }}
+              onClick={() => setDeleteOpen(false)}
+            >
               {t('conversation.history.cancelDelete')}
             </Button>
             <Button
@@ -337,10 +341,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   return (
     <>
       <div
-        className={classNames(
-          'min-w-0 flex flex-col group w-full',
-          isUserMessage ? 'message-user' : 'message-agent'
-        )}
+        className={classNames('min-w-0 flex flex-col group w-full', isUserMessage ? 'message-user' : 'message-agent')}
       >
         {cronMeta && <MessageCronBadge meta={cronMeta} />}
         {showAuthor && (

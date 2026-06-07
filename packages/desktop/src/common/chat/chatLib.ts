@@ -672,9 +672,10 @@ export const transformMessage = (message: IResponseMessage): TMessage => {
     }
     case 'session_error_recovered':
     case 'opencode_error': {
-      const data = message.type === 'session_error_recovered'
-        ? (message.data as { error: IMessageOpencodeError['content'] }).error
-        : (message.data as IMessageOpencodeError['content']);
+      const data =
+        message.type === 'session_error_recovered'
+          ? (message.data as { error: IMessageOpencodeError['content'] }).error
+          : (message.data as IMessageOpencodeError['content']);
       return {
         id: uuid(),
         type: 'opencode_error',

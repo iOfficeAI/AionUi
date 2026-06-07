@@ -60,7 +60,7 @@ export function filterHttpServerRecords(values: unknown[]): HttpServerStoredReco
 }
 
 export function loadHttpServerRegistrySnapshot(
-  snapshot: HttpServerRegistrySnapshot | undefined,
+  snapshot: HttpServerRegistrySnapshot | undefined
 ): HttpServerRegistryState {
   const list = filterHttpServerRecords(snapshot?.list ?? []).map(toHttpServerConnection);
   const activeKey = snapshot?.activeKey;
@@ -81,7 +81,7 @@ export function serializeHttpServerRegistry(state: HttpServerRegistryState): Htt
 
 export function upsertHttpServerConnection(
   state: HttpServerRegistryState,
-  input: HttpServerRegistryInput,
+  input: HttpServerRegistryInput
 ): HttpServerRegistryState {
   const conn = prepareHttpServerConnectionInput(input);
   if (!conn) return state;
@@ -113,7 +113,7 @@ export function upsertHttpServerConnection(
 
 export function removeHttpServerConnection(
   state: HttpServerRegistryState,
-  key: HttpServerConnectionKey,
+  key: HttpServerConnectionKey
 ): HttpServerRegistryState {
   const nextList = state.list.filter((entry) => httpServerConnectionKey(entry) !== key);
   const activeKey =
@@ -127,7 +127,7 @@ export function removeHttpServerConnection(
 
 export function setActiveHttpServerConnection(
   state: HttpServerRegistryState,
-  key: HttpServerConnectionKey,
+  key: HttpServerConnectionKey
 ): HttpServerRegistryState {
   const exists = state.list.some((entry) => httpServerConnectionKey(entry) === key);
   if (!exists) return state;

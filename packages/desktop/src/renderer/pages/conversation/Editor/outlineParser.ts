@@ -30,7 +30,10 @@ const TS_RULES: Rule[] = [
   { kind: 'function', re: /^\s*(?:export\s+(?:default\s+)?|async\s+)*function\s*\*?\s*([A-Za-z_$][\w$]*)/ },
   { kind: 'const', re: /^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*=\s*(?:async\s+)?\(/ },
   { kind: 'const', re: /^\s*(?:export\s+)?(?:const|let|var)\s+([A-Za-z_$][\w$]*)\s*[:=]/ },
-  { kind: 'method', re: /^\s{2,}(?:public|private|protected|static|async|readonly|\*)?\s*([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*[{:]/ },
+  {
+    kind: 'method',
+    re: /^\s{2,}(?:public|private|protected|static|async|readonly|\*)?\s*([A-Za-z_$][\w$]*)\s*\([^)]*\)\s*[{:]/,
+  },
 ];
 
 const PY_RULES: Rule[] = [
@@ -58,16 +61,15 @@ const JAVA_RULES: Rule[] = [
   { kind: 'class', re: /^\s*(?:public|private|protected|abstract|final|static|\s)*class\s+([A-Za-z_][\w]*)/ },
   { kind: 'interface', re: /^\s*(?:public|private|protected|abstract|\s)*interface\s+([A-Za-z_][\w]*)/ },
   { kind: 'enum', re: /^\s*(?:public|private|protected|\s)*enum\s+([A-Za-z_][\w]*)/ },
-  { kind: 'method', re: /^\s+(?:public|private|protected|static|final|abstract|synchronized|\s)+[\w<>,?[\]\s]+\s+([A-Za-z_][\w]*)\s*\(/ },
+  {
+    kind: 'method',
+    re: /^\s+(?:public|private|protected|static|final|abstract|synchronized|\s)+[\w<>,?[\]\s]+\s+([A-Za-z_][\w]*)\s*\(/,
+  },
 ];
 
-const CSS_RULES: Rule[] = [
-  { kind: 'rule', re: /^\s*(\.[\w-]+|#[\w-]+|@[\w-]+|:\w+(?:-\w+)*|[a-z]+)[^{]*\{/ },
-];
+const CSS_RULES: Rule[] = [{ kind: 'rule', re: /^\s*(\.[\w-]+|#[\w-]+|@[\w-]+|:\w+(?:-\w+)*|[a-z]+)[^{]*\{/ }];
 
-const JSON_RULES: Rule[] = [
-  { kind: 'const', re: /^\s*"([^"]+)"\s*:\s*[[{]/ },
-];
+const JSON_RULES: Rule[] = [{ kind: 'const', re: /^\s*"([^"]+)"\s*:\s*[[{]/ }];
 
 const RULES_BY_LANG: Record<string, Rule[]> = {
   typescript: TS_RULES,

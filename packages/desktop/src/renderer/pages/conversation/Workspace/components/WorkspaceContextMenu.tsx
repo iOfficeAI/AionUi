@@ -7,7 +7,6 @@
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import React from 'react';
 import type { TFunction } from 'i18next';
-import { isPreviewSupportedExt } from '../utils/filePreview';
 
 type WorkspaceContextMenuProps = {
   visible: boolean;
@@ -16,10 +15,11 @@ type WorkspaceContextMenuProps = {
   t: TFunction;
   // File operation handlers
   handleAddToChat: (node: IDirOrFile) => void;
+  // Open the item with the IDE's smart routing: files go through the
+  // preview/open pipeline (text → in-app editor, binary → OS default),
+  // folders go through the OS shell (file manager).
   handleOpenNode: (node: IDirOrFile) => Promise<void>;
   handleRevealNode: (node: IDirOrFile) => Promise<void>;
-  // "Preview" entry — opens the file in the native editor for editable text,
-  // or in the preview pane for binary/visual formats (image, pdf, office).
   handlePreviewFile: (node: IDirOrFile) => Promise<void>;
   handleDownloadFile: (node: IDirOrFile) => Promise<void>;
   handleDeleteNode: (node: IDirOrFile) => void;
@@ -50,7 +50,19 @@ const WorkspaceContextMenu: React.FC<WorkspaceContextMenuProps> = ({
 
   const isFile = !!node.isFile;
   const isRoot = !node.relativePath || node.relativePath === '';
-  const isPreviewSupported = isFile && !!node.name && isPreviewSupportedExt(node.name);
+
+  // Routing for the "Open" entry:
+  // - Folders → OS shell (file manager)
+  // - Files → in-app editor for text/code, OS default for binary/visual.
+  //   `handlePreviewFile` already implements that smart routing.
+  const handleOpenClick = () => {
+    if (isFile) {
+      void handlePreviewFile(node);
+    } else {
+      void handleOpenNode(node);
+    }
+    closeContextMenu();
+  };
 
   return (
     <div
@@ -72,14 +84,7 @@ const WorkspaceContextMenu: React.FC<WorkspaceContextMenuProps> = ({
         >
           {t('conversation.workspace.contextMenu.addToChat')}
         </button>
-        <button
-          type='button'
-          className={MENU_BUTTON_BASE}
-          onClick={() => {
-            void handleOpenNode(node);
-            closeContextMenu();
-          }}
-        >
+        <button type='button' className={MENU_BUTTON_BASE} onClick={handleOpenClick}>
           {t('conversation.workspace.contextMenu.open')}
         </button>
         <button
@@ -92,17 +97,6 @@ const WorkspaceContextMenu: React.FC<WorkspaceContextMenuProps> = ({
         >
           {t('conversation.workspace.contextMenu.openLocation')}
         </button>
-        {isFile && isPreviewSupported && (
-          <button
-            type='button'
-            className={MENU_BUTTON_BASE}
-            onClick={() => {
-              void handlePreviewFile(node);
-            }}
-          >
-            {t('conversation.workspace.contextMenu.preview')}
-          </button>
-        )}
         {isFile && (
           <button
             type='button'

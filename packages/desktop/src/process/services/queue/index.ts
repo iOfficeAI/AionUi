@@ -53,8 +53,4 @@ export type {
   ChislQueueRecoveryBootstrapInput,
   ChislQueueRecoveryBootstrapResult,
 } from './types';
-export {
-  CHISL_QUEUE_ACTIVE_STATUSES,
-  CHISL_QUEUE_TERMINAL_STATUSES,
-  CHISL_QUEUE_NON_TERMINAL_STATUSES,
-} from './types';
+export { CHISL_QUEUE_ACTIVE_STATUSES, CHISL_QUEUE_TERMINAL_STATUSES, CHISL_QUEUE_NON_TERMINAL_STATUSES } from './types';

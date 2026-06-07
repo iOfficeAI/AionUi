@@ -41,7 +41,15 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
     return <MessageMcpElicitation message={message} />;
   }
 
-  const { options = [], description, title, action, call_id, command_type, parent_session_id } = content;
+  const { options = [], description, title, action, call_id, command_type, parent_session_id, session_id } = content;
+  const shellCommandLine =
+    command_type === 'run_shell' && description
+      ? (description
+          .split('\n')
+          .find((line) => line.trimStart().startsWith('$ '))
+          ?.trimStart()
+          .slice(2) ?? null)
+      : null;
   const normalized = fromChislOptions(options);
 
   // CRITICAL banner-sync fix (do not regress): `hasResponded` MUST stay in
@@ -134,10 +142,12 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
     <ApprovalCardBase
       testIdPrefix='message-permission'
       parentSessionId={parent_session_id ?? null}
+      sessionId={session_id ?? null}
       action={action ?? null}
       title={title ?? null}
       description={description ?? null}
-      commandType={command_type ?? null}
+      commandType={shellCommandLine ?? command_type ?? null}
+      approvalCallId={call_id ?? null}
       targetPath={typeof targetPath === 'string' && targetPath.startsWith('/') ? targetPath : null}
       options={normalized}
       responded={propResponded}
@@ -147,18 +157,13 @@ const MessagePermission: React.FC<MessagePermissionProps> = React.memo(({ messag
       }}
       bodySlot={
         showInheritanceRow ? (
-          <div
-            className='flex items-center gap-8px px-20px'
-            data-testid='message-permission-inheritance-row'
-          >
+          <div className='flex items-center gap-8px px-20px' data-testid='message-permission-inheritance-row'>
             <Checkbox
               checked={inheritToSubagents}
               onChange={(v) => setInheritToSubagents(Boolean(v))}
               disabled={isHighRisk}
             >
-              {isHighRisk
-                ? t('conversation.approval.inheritanceHighRiskOff')
-                : t('conversation.approval.inheritance')}
+              {isHighRisk ? t('conversation.approval.inheritanceHighRiskOff') : t('conversation.approval.inheritance')}
             </Checkbox>
           </div>
         ) : null

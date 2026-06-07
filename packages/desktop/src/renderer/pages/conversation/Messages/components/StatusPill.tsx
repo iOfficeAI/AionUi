@@ -31,7 +31,17 @@ export const STATE_LABEL_FALLBACK: Record<StatusPillState, string> = {
 
 /** Map the internal `NormalizedToolStatus` vocabulary to the StatusPill state set. */
 export function statusPillFromNormalized(
-  status: 'pending' | 'running' | 'completed' | 'error' | 'canceled' | 'queued' | 'success' | 'failed' | 'cancelled' | 'skipped'
+  status:
+    | 'pending'
+    | 'running'
+    | 'completed'
+    | 'error'
+    | 'canceled'
+    | 'queued'
+    | 'success'
+    | 'failed'
+    | 'cancelled'
+    | 'skipped'
 ): StatusPillState {
   switch (status) {
     case 'pending':

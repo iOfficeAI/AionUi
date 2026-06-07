@@ -112,7 +112,9 @@ const RemoteServerBadge: React.FC<{ conversation: Pick<TChatConversation, 'id' |
           <Menu.Item key={agent.id} className={isCurrent ? 'opacity-60' : ''}>
             <div className='flex items-center justify-between gap-8px'>
               <div className='flex min-w-0 items-center gap-8px'>
-                <span className={`inline-block h-6px w-6px shrink-0 rounded-full ${healthDotColor(healthy, loading)}`} />
+                <span
+                  className={`inline-block h-6px w-6px shrink-0 rounded-full ${healthDotColor(healthy, loading)}`}
+                />
                 <Typography.Ellipsis className='max-w-[180px] font-medium'>{agent.name}</Typography.Ellipsis>
               </div>
               {isCurrent ? (

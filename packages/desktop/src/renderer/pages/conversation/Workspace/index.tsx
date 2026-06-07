@@ -11,6 +11,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useEditorContext } from '@/renderer/pages/conversation/Editor';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
+import { MessageOne, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ApprovalsList from './components/ApprovalsList';
@@ -19,6 +20,7 @@ import PasteConfirmModal from './components/PasteConfirmModal';
 import TodoList from './components/TodoList';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
+import { WorkspaceFileIcon } from './components/WorkspaceFileIcon';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
 import { useFileChanges } from './hooks/useFileChanges';
@@ -405,8 +407,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               </div>
             ) : (
               <Tree
-                className={`${isMobile ? '!pl-20px !pr-10px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
-                showLine
+                className={`workspace-tree ${isMobile ? 'chat-workspace-tree--mobile' : ''}`}
                 key={treeHook.treeKey}
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
@@ -414,6 +415,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                 // Reuse the +/- glyph during lazy-load so the switcher doesn't
                 // flash a spinner on first expand of each folder.
                 icons={(nodeProps) => ({
+                  switcherIcon: <Right className='arco-tree-node-switcher-icon' theme='outline' size={14} />,
                   loadingIcon: <span className={`arco-tree-node-${nodeProps.expanded ? 'minus' : 'plus'}-icon`} />,
                 })}
                 treeData={treeData}
@@ -430,65 +432,101 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   const isPasteTarget = !isFile && pasteHook.pasteTargetFolder === relativePath;
                   const nodeData = node.dataRef as IDirOrFile;
 
+                  // Double-click a file: open it in the in-app editor (text/code) or
+                  // the OS default app for binary/visual formats. Matches the
+                  // single-click flow used elsewhere in the tree.
+                  const handleNodeDoubleClick = () => {
+                    if (!isFile) return;
+                    void fileOpsHook.handlePreviewFile(nodeData);
+                  };
+
+                  // Inline "Add to chat" button — fires the same path as the
+                  // right-click "Add to chat" entry. stopPropagation on mousedown
+                  // + click prevents the tree from intercepting the click as a
+                  // row-selection event.
+                  const handleInlineAddToChat = (event: React.MouseEvent) => {
+                    event.stopPropagation();
+                    fileOpsHook.handleAddToChat(nodeData);
+                  };
+
                   return (
                     <div
-                      className='flex items-center justify-between gap-6px min-w-0'
+                      className='group flex items-center justify-between gap-6px min-w-0'
                       style={{ color: 'inherit' }}
-                      onDoubleClick={() => {
-                        if (isFile) {
-                          fileOpsHook.handleAddToChat(nodeData);
-                        }
-                      }}
+                      onDoubleClick={handleNodeDoubleClick}
                       onContextMenu={(event) => {
                         event.preventDefault();
                         event.stopPropagation();
                         openNodeContextMenu(nodeData, event.clientX, event.clientY);
                       }}
                     >
-                      <span className='flex items-center gap-4px min-w-0'>
-                        <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
+                      <span className='flex items-center gap-6px min-w-0 flex-1'>
+                        <WorkspaceFileIcon
+                          name={node.title as string}
+                          isFolder={!isFile}
+                          expanded={treeHook.expandedKeys.includes(nodeData.relativePath)}
+                          size={15}
+                        />
+                        <span
+                          className={`overflow-hidden text-ellipsis whitespace-nowrap ${isFile ? '' : 'opacity-85'}`}
+                        >
+                          {node.title}
+                        </span>
                         {isPasteTarget && (
                           <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
                             PASTE
                           </span>
                         )}
                       </span>
-                      {isMobile && (
+                      <div
+                        className='flex items-center gap-2px flex-shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150'
+                        // Stop the row's own click handler from firing when the
+                        // user mouses down inside the action group.
+                        onMouseDown={(event) => event.stopPropagation()}
+                      >
                         <button
                           type='button'
-                          className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
-                          aria-label={t('common.more')}
-                          onMouseDown={(event) => {
-                            event.stopPropagation();
-                          }}
-                          onClick={(event) => {
-                            event.stopPropagation();
-                            const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
-                            const menuWidth = 220;
-                            const menuHeight = 220;
-                            const maxX =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerWidth - menuWidth - 8)
-                                : rect.left;
-                            const maxY =
-                              typeof window !== 'undefined'
-                                ? Math.max(8, window.innerHeight - menuHeight - 8)
-                                : rect.bottom;
-                            const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
-                            const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
-                            openNodeContextMenu(nodeData, menuX, menuY);
-                          }}
+                          className='h-20px w-20px flex items-center justify-center rounded-4px text-t-tertiary hover:text-t-primary hover:bg-fill-3 active:bg-fill-4 focus:outline-none focus-visible:outline-none transition-colors'
+                          aria-label={t('conversation.workspace.contextMenu.addToChat')}
+                          title={t('conversation.workspace.contextMenu.addToChat')}
+                          onClick={handleInlineAddToChat}
                         >
-                          <div
-                            className='flex flex-col gap-2px items-center justify-center'
-                            style={{ width: '12px', height: '12px' }}
-                          >
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                          </div>
+                          <MessageOne size={13} />
                         </button>
-                      )}
+                        {isMobile && (
+                          <button
+                            type='button'
+                            className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
+                            aria-label={t('common.more')}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              const rect = (event.currentTarget as HTMLButtonElement).getBoundingClientRect();
+                              const menuWidth = 220;
+                              const menuHeight = 220;
+                              const maxX =
+                                typeof window !== 'undefined'
+                                  ? Math.max(8, window.innerWidth - menuWidth - 8)
+                                  : rect.left;
+                              const maxY =
+                                typeof window !== 'undefined'
+                                  ? Math.max(8, window.innerHeight - menuHeight - 8)
+                                  : rect.bottom;
+                              const menuX = Math.min(Math.max(8, rect.left - menuWidth + rect.width), maxX);
+                              const menuY = Math.min(Math.max(8, rect.bottom + 4), maxY);
+                              openNodeContextMenu(nodeData, menuX, menuY);
+                            }}
+                          >
+                            <div
+                              className='flex flex-col gap-2px items-center justify-center'
+                              style={{ width: '12px', height: '12px' }}
+                            >
+                              <div className='w-2px h-2px rounded-full bg-current'></div>
+                              <div className='w-2px h-2px rounded-full bg-current'></div>
+                              <div className='w-2px h-2px rounded-full bg-current'></div>
+                            </div>
+                          </button>
+                        )}
+                      </div>
                     </div>
                   );
                 }}

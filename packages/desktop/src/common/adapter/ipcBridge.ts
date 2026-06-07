@@ -234,7 +234,10 @@ export const conversation = {
     (p) => ({ message_id: p.message_id })
   ),
   /** Task 15: revert a single tool call's file changes using per-call snapshots. */
-  revertToolCall: httpPost<{ tool_call_id: string; commit_sha: string; files_reverted: number }, { conversation_id: string; tool_call_id: string }>(
+  revertToolCall: httpPost<
+    { tool_call_id: string; commit_sha: string; files_reverted: number },
+    { conversation_id: string; tool_call_id: string }
+  >(
     (p) => `/api/conversations/${p.conversation_id}/opencode/revert-tool-call`,
     (p) => ({ tool_call_id: p.tool_call_id })
   ),
@@ -275,7 +278,8 @@ export const conversation = {
     },
     { conversation_id: string; tool_call_id: string }
   >(
-    (p) => `/api/conversations/${p.conversation_id}/opencode/tool-call-restore-plan?tool_call_id=${encodeURIComponent(p.tool_call_id)}`
+    (p) =>
+      `/api/conversations/${p.conversation_id}/opencode/tool-call-restore-plan?tool_call_id=${encodeURIComponent(p.tool_call_id)}`
   ),
   /** M02: restore all reverted messages. */
   unrevertRemoteSession: httpPost<void, { conversation_id: string }>(
@@ -347,11 +351,11 @@ export const conversation = {
   /** M22: compact the remote session using V2 (with V1 summarize fallback). */
   compactRemoteSession: httpPost<void, { conversation_id: string; instructions?: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/compact`,
-    (p) => (p.instructions ? { instructions: p.instructions } : {}),
+    (p) => (p.instructions ? { instructions: p.instructions } : {})
   ),
   /** M22: get the session's active context window (all messages after last compaction). */
   getSessionContext: httpGet<unknown[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/opencode/context`,
+    (p) => `/api/conversations/${p.conversation_id}/opencode/context`
   ),
   /** M22: get V2 session messages with cursor-based pagination. */
   getV2Messages: httpGet<
@@ -359,46 +363,40 @@ export const conversation = {
     { conversation_id: string; limit?: number; cursor?: string }
   >(
     (p) =>
-      `/api/conversations/${p.conversation_id}/opencode/v2-messages${p.limit ? `?limit=${p.limit}` : ''}${p.cursor ? `${p.limit ? '&' : '?'}cursor=${p.cursor}` : ''}`,
+      `/api/conversations/${p.conversation_id}/opencode/v2-messages${p.limit ? `?limit=${p.limit}` : ''}${p.cursor ? `${p.limit ? '&' : '?'}cursor=${p.cursor}` : ''}`
   ),
   /** M22: fetch V2 model list (richer data: status, cost, capabilities, limits). */
   getV2ModelList: httpGet<unknown[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-models`,
+    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-models`
   ),
   /** M22: fetch V2 provider list. */
   getV2ProviderList: httpGet<unknown[], { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-providers`,
+    (p) => `/api/conversations/${p.conversation_id}/opencode/v2-providers`
   ),
   /** M13: list files on the remote OpenCode workspace (`GET /file`). */
   listRemoteFiles: httpGet<unknown[], { conversation_id: string; path?: string }>(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/opencode/files?path=${encodeURIComponent(p.path ?? '.')}`,
+    (p) => `/api/conversations/${p.conversation_id}/opencode/files?path=${encodeURIComponent(p.path ?? '.')}`
   ),
   /** M13: read file content from the remote OpenCode workspace (`POST /file/content`). */
   readRemoteFile: httpPost<{ content?: string }, { conversation_id: string; path: string }>(
     (p) => `/api/conversations/${p.conversation_id}/opencode/file/content`,
-    (p) => ({ path: p.path }),
+    (p) => ({ path: p.path })
   ),
   /** M13: find files by name on the remote OpenCode workspace (`GET /find/file`). */
-  findRemoteFiles: httpGet<unknown, { conversation_id: string; query: string; limit?: number }>(
-    (p) => {
-      const params = new URLSearchParams({ query: p.query });
-      if (p.limit != null) params.set('limit', String(p.limit));
-      return `/api/conversations/${p.conversation_id}/opencode/find/files?${params.toString()}`;
-    },
-  ),
+  findRemoteFiles: httpGet<unknown, { conversation_id: string; query: string; limit?: number }>((p) => {
+    const params = new URLSearchParams({ query: p.query });
+    if (p.limit != null) params.set('limit', String(p.limit));
+    return `/api/conversations/${p.conversation_id}/opencode/find/files?${params.toString()}`;
+  }),
   /** M13: grep-style text search on the remote OpenCode workspace (`GET /find`). */
-  findRemoteText: httpGet<unknown, { conversation_id: string; pattern: string; limit?: number }>(
-    (p) => {
-      const params = new URLSearchParams({ pattern: p.pattern });
-      if (p.limit != null) params.set('limit', String(p.limit));
-      return `/api/conversations/${p.conversation_id}/opencode/find/text?${params.toString()}`;
-    },
-  ),
+  findRemoteText: httpGet<unknown, { conversation_id: string; pattern: string; limit?: number }>((p) => {
+    const params = new URLSearchParams({ pattern: p.pattern });
+    if (p.limit != null) params.set('limit', String(p.limit));
+    return `/api/conversations/${p.conversation_id}/opencode/find/text?${params.toString()}`;
+  }),
   /** M13: LSP symbol search on the remote OpenCode workspace (`GET /find/symbol`). */
   findRemoteSymbols: httpGet<unknown, { conversation_id: string; query: string }>(
-    (p) =>
-      `/api/conversations/${p.conversation_id}/opencode/find/symbols?query=${encodeURIComponent(p.query)}`,
+    (p) => `/api/conversations/${p.conversation_id}/opencode/find/symbols?query=${encodeURIComponent(p.query)}`
   ),
   update: httpPatch<boolean, { id: string; updates: Partial<TChatConversation>; merge_extra?: boolean }>(
     (p) => `/api/conversations/${p.id}`,
@@ -1186,9 +1184,10 @@ export const remoteAgent = {
     (p) => `/api/remote-agents/${p.id}/health`
   ),
   /** M12: OpenCode catalog (`GET /provider`, §9) — `{ all, default, connected }`. */
-  listProviders: httpGet<import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderListResponse, { id: string }>(
-    (p) => `/api/remote-agents/${p.id}/providers`,
-  ),
+  listProviders: httpGet<
+    import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderListResponse,
+    { id: string }
+  >((p) => `/api/remote-agents/${p.id}/providers`),
   /** M12: auth methods per provider (`GET /provider/auth`, §8). */
   listProviderAuthMethods: httpGet<
     import('@/common/types/opencode/opencodeProviderTypes').OpenCodeProviderAuthMethodsResponse,
@@ -1214,11 +1213,11 @@ export const remoteAgent = {
       if (p.wellknown_token) body.wellknown_token = p.wellknown_token;
       if (p.auth) body.auth = p.auth;
       return body;
-    },
+    }
   ),
   /** M12: clear credentials (`DELETE /auth/{providerID}`, §8). */
   deleteProviderAuth: httpDelete<void, { id: string; providerId: string }>(
-    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`,
+    (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/auth`
   ),
   /** M12: start OAuth (`POST /provider/{id}/oauth/authorize`, §8) → `ProviderAuthAuthorization`. */
   startProviderOAuth: httpPost<
@@ -1229,18 +1228,15 @@ export const remoteAgent = {
     (p) => ({
       ...(p.method != null ? { method: p.method } : {}),
       ...(p.inputs ? { inputs: p.inputs } : {}),
-    }),
+    })
   ),
   /** M12: complete OAuth (`POST /provider/{id}/oauth/callback`, §8). */
-  completeProviderOAuth: httpPost<
-    void,
-    { id: string; providerId: string; method?: number; code?: string }
-  >(
+  completeProviderOAuth: httpPost<void, { id: string; providerId: string; method?: number; code?: string }>(
     (p) => `/api/remote-agents/${p.id}/providers/${encodeURIComponent(p.providerId)}/oauth/complete`,
     (p) => ({
       ...(p.method != null ? { method: p.method } : {}),
       ...(p.code ? { code: p.code } : {}),
-    }),
+    })
   ),
   /**
    * Phase 4b: lazy-load the OpenCode message transcript into the

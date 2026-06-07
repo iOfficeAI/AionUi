@@ -31,7 +31,9 @@ afterEach(() => {
 
 const matcher: ApprovalMatcher = { type: 'exact', field: 'permission', patterns: ['bash'] };
 
-function baseRule(overrides: Partial<Parameters<typeof createApprovalRule>[1]> = {}): Parameters<typeof createApprovalRule>[1] {
+function baseRule(
+  overrides: Partial<Parameters<typeof createApprovalRule>[1]> = {}
+): Parameters<typeof createApprovalRule>[1] {
   return {
     name: 'allow bash',
     scope: 'global',
@@ -65,10 +67,7 @@ describe('createApprovalRule', () => {
   });
 
   it('preserves scopeRef and tool when provided', () => {
-    const created = createApprovalRule(
-      store,
-      baseRule({ scope: 'session', scopeRef: 'sess-a', tool: 'bash' })
-    );
+    const created = createApprovalRule(store, baseRule({ scope: 'session', scopeRef: 'sess-a', tool: 'bash' }));
     const loaded = getApprovalRule(store, created.id);
     expect(loaded?.scope).toBe('session');
     expect(loaded?.scopeRef).toBe('sess-a');

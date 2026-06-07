@@ -110,7 +110,9 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
     const recompute = () => {
       const canLeft = el.scrollLeft > 1;
       const canRight = el.scrollLeft + el.clientWidth < el.scrollWidth - 1;
-      setPillOverflow((prev) => (prev.left === canLeft && prev.right === canRight ? prev : { left: canLeft, right: canRight }));
+      setPillOverflow((prev) =>
+        prev.left === canLeft && prev.right === canRight ? prev : { left: canLeft, right: canRight }
+      );
     };
     recompute();
     el.addEventListener('scroll', recompute, { passive: true });
@@ -186,9 +188,7 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
           <Tooltip content={buffer.filePath ?? buffer.fileName} position='bottom' mini>
             <span className='editor-tabs-breadcrumb__path'>{breadcrumbPathFor(buffer)}</span>
           </Tooltip>
-          {dirty && (
-            <span className='editor-tabs-breadcrumb__dirty' aria-label={t('conversation.editor.unsavedDot')} />
-          )}
+          {dirty && <span className='editor-tabs-breadcrumb__dirty' aria-label={t('conversation.editor.unsavedDot')} />}
         </div>
       );
     }
@@ -310,11 +310,7 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
                 {(() => {
                   const badge = badgeForFileName(b.fileName);
                   return (
-                    <span
-                      className='editor-tab__badge'
-                      style={{ background: badge.bg, color: badge.fg }}
-                      aria-hidden
-                    >
+                    <span className='editor-tab__badge' style={{ background: badge.bg, color: badge.fg }} aria-hidden>
                       {badge.label}
                     </span>
                   );

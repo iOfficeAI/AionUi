@@ -70,13 +70,7 @@ const MessageThinking: React.FC<{ message: IMessageThinking }> = ({ message }) =
   const meta = isDone ? formatDuration(duration || 0) : formatElapsedTime(elapsedTime);
 
   return (
-    <ToolShell
-      state={state}
-      stateLabel={stateLabel}
-      title={title}
-      meta={meta}
-      defaultExpanded={!isDone}
-    >
+    <ToolShell state={state} stateLabel={stateLabel} title={title} meta={meta} defaultExpanded={!isDone}>
       <div ref={bodyRef} className={styles.body}>
         {text}
       </div>

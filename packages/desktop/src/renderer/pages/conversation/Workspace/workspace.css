@@ -91,3 +91,111 @@
     margin-bottom: 2px;
   }
 }
+
+/* Premium Developer Aesthetic (Zed/Linear-like) File Tree Styling */
+
+.workspace-tree {
+  font-family: var(--font-ui, system-ui, -apple-system, sans-serif);
+  font-size: 13px;
+  color: var(--color-text-2, rgba(204, 204, 204, 0.9));
+  padding: 8px !important;
+  background-color: transparent;
+}
+
+.workspace-tree .arco-tree-node {
+  line-height: 26px !important;
+  margin: 1px 0 !important;
+  padding: 0 !important;
+}
+
+.workspace-tree .arco-tree-node-title {
+  border-radius: 6px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  font-weight: 500;
+  flex: 1;
+  min-width: 0;
+  transition: color 0.15s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.workspace-tree .arco-tree-node-title-wrapper {
+  border-radius: 6px !important;
+  margin: 0 !important;
+  padding: 0 8px 0 2px !important;
+  min-height: 26px !important;
+  display: flex !important;
+  align-items: center;
+  transition:
+    background 0.15s cubic-bezier(0.4, 0, 0.2, 1),
+    box-shadow 0.15s ease !important;
+  position: relative;
+  overflow: hidden;
+}
+
+/* Base Hover */
+.workspace-tree .arco-tree-node-title-wrapper:hover {
+  background-color: var(--color-fill-2, rgba(255, 255, 255, 0.04)) !important;
+  color: var(--color-text-1, #ffffff) !important;
+}
+
+/* Selection state: rich subtle gradient, left accent */
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title-wrapper {
+  background: linear-gradient(
+    90deg,
+    var(--color-fill-3, rgba(255, 255, 255, 0.08)) 0%,
+    var(--color-fill-2, rgba(255, 255, 255, 0.02)) 100%
+  ) !important;
+  color: var(--color-text-1, #ffffff) !important;
+  box-shadow: inset 2px 0 0 0 rgb(var(--primary-6)) !important;
+}
+
+/* Dim folders slightly vs files */
+.workspace-tree .arco-tree-node[data-is-folder='true'] > .arco-tree-node-title .arco-tree-node-title-wrapper {
+  color: var(--color-text-3, rgba(170, 170, 170, 0.8));
+}
+.workspace-tree .arco-tree-node[data-is-folder='true'] > .arco-tree-node-title .arco-tree-node-title-wrapper:hover,
+.workspace-tree
+  .arco-tree-node[data-is-folder='true'].arco-tree-node-selected
+  > .arco-tree-node-title
+  .arco-tree-node-title-wrapper {
+  color: var(--color-text-1, #ffffff);
+}
+
+/* Compact expand/collapse switcher */
+.workspace-tree .arco-tree-node-switcher {
+  width: 20px !important;
+  height: 26px !important;
+  line-height: 26px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 2px !important;
+  color: var(--color-text-3) !important;
+  transition: color 0.15s ease !important;
+}
+
+.workspace-tree .arco-tree-node-switcher:hover {
+  color: var(--color-text-1) !important;
+}
+
+/* Indent blocks */
+.workspace-tree .arco-tree-node-indent-block {
+  width: 14px !important;
+  position: relative;
+}
+
+.workspace-tree .arco-tree-node-indent-block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 7px;
+  border-left: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.workspace-tree:hover .arco-tree-node-indent-block::before {
+  border-left-color: var(--color-border-1, rgba(128, 128, 128, 0.15));
+}

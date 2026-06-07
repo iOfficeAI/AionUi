@@ -164,7 +164,17 @@ const EditorToolbar: React.FC<Props> = ({
         </Menu.Item>
       </Menu>
     ),
-    [onToggleOutline, onToggleWordWrap, onToggleMinimap, onToggleWhitespace, outlineVisible, wordWrap, showMinimap, renderWhitespace, t]
+    [
+      onToggleOutline,
+      onToggleWordWrap,
+      onToggleMinimap,
+      onToggleWhitespace,
+      outlineVisible,
+      wordWrap,
+      showMinimap,
+      renderWhitespace,
+      t,
+    ]
   );
 
   return (
@@ -192,18 +202,10 @@ const EditorToolbar: React.FC<Props> = ({
 
       <div className='editor-menubar__spacer' />
 
-      <button
-        type='button'
-        className='editor-menubar__item editor-menubar__item--secondary'
-        onClick={onCollapse}
-      >
+      <button type='button' className='editor-menubar__item editor-menubar__item--secondary' onClick={onCollapse}>
         {t('conversation.editor.collapseEditor')}
       </button>
-      <button
-        type='button'
-        className='editor-menubar__item editor-menubar__item--secondary'
-        onClick={onClose}
-      >
+      <button type='button' className='editor-menubar__item editor-menubar__item--secondary' onClick={onClose}>
         {t('common.close')}
       </button>
     </div>

@@ -39,10 +39,7 @@ const AionrsModelSelector: React.FC<{
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
         <Button
-          className={classNames(
-            'composerPill composerPill--compact',
-            isMobileHeaderCompact && '!max-w-[160px]'
-          )}
+          className={classNames('composerPill composerPill--compact', isMobileHeaderCompact && '!max-w-[160px]')}
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
@@ -99,11 +96,11 @@ const AionrsModelSelector: React.FC<{
     >
       <Button
         data-testid='aionrs-model-selector'
-          className={classNames(
-            'composerPill composerPill--compact',
-            compact && '!max-w-[120px]',
-            isMobileHeaderCompact && '!max-w-[160px]'
-          )}
+        className={classNames(
+          'composerPill composerPill--compact',
+          compact && '!max-w-[120px]',
+          isMobileHeaderCompact && '!max-w-[160px]'
+        )}
         shape='round'
         size='small'
       >

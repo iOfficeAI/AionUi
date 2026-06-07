@@ -42,6 +42,8 @@ export type ApprovalCardBaseProps = {
   testIdPrefix: string;
   /** Sub-agent / child-session id, if any. Renders a visible tag. */
   parentSessionId?: string | null;
+  /** Originating OpenCode session id when known (main or child). */
+  sessionId?: string | null;
   /** Action key (e.g. "exec", "edit", "mcp") → icon. Falls back to Shield. */
   action?: string | null;
   /** Title shown in the header. Falls back to `t('messages.permissionRequest')`. */
@@ -56,6 +58,8 @@ export type ApprovalCardBaseProps = {
   patterns?: string[] | null;
   /** Optional tool-call id (e.g. `messageID`/`toolCallID` from the OpenCode payload). */
   toolCallId?: string | null;
+  /** Stable approval `call_id` for scroll-to-card from the pending banner. */
+  approvalCallId?: string | null;
   /** Normalized option list. */
   options: ApprovalOption[];
   /** Optional body slot used by the question freeform input / multi-select chips / MCP schema form. */
@@ -80,7 +84,9 @@ export type ApprovalCardBaseProps = {
  * (rather than reaching into a map in the caller) so the visual contract
  * lives with the component.
  */
-function iconFor(action: string | null | undefined): React.ComponentType<{ theme?: 'outline' | 'filled'; size?: number | string }> {
+function iconFor(
+  action: string | null | undefined
+): React.ComponentType<{ theme?: 'outline' | 'filled'; size?: number | string }> {
   if (!action) return Shield;
   return ACTION_ICONS[action] ?? Shield;
 }
@@ -104,6 +110,7 @@ function iconFor(action: string | null | undefined): React.ComponentType<{ theme
 const ApprovalCardBase: React.FC<ApprovalCardBaseProps> = ({
   testIdPrefix,
   parentSessionId,
+  sessionId,
   action,
   title,
   targetPath,
@@ -111,6 +118,7 @@ const ApprovalCardBase: React.FC<ApprovalCardBaseProps> = ({
   description,
   patterns,
   toolCallId,
+  approvalCallId,
   options,
   bodySlot,
   responded,
@@ -129,7 +137,7 @@ const ApprovalCardBase: React.FC<ApprovalCardBaseProps> = ({
   const safeDefaultId = useMemo(() => {
     if (defaultOptionId) return defaultOptionId;
     const once = options.find((opt) => opt.kind === 'allow_once' || opt.id.toLowerCase().includes('once'));
-    return once ? once.id : options[0]?.id ?? null;
+    return once ? once.id : (options[0]?.id ?? null);
   }, [options, defaultOptionId]);
 
   const [selectedId, setSelectedId] = useState<string | null>(safeDefaultId);
@@ -223,14 +231,23 @@ const ApprovalCardBase: React.FC<ApprovalCardBaseProps> = ({
       tabIndex={0}
       onKeyDown={handleKeyDown}
       data-testid={`${testIdPrefix}-card`}
+      data-approval-call-id={approvalCallId ?? undefined}
     >
       <div className={styles.body}>
         <div className={styles.header}>
-          {parentSessionId && (
+          {parentSessionId ? (
             <Tag color='arcoblue' size='small' data-testid={`${testIdPrefix}-subagent-tag`}>
               {t('messages.remoteSubagent.tag')}
             </Tag>
-          )}
+          ) : sessionId ? (
+            <Tag color='gray' size='small' data-testid={`${testIdPrefix}-main-session-tag`}>
+              {t('conversation.approval.mainSession')}
+            </Tag>
+          ) : commandType?.includes('run_shell') || action === 'run_shell' ? (
+            <Tag color='orange' size='small' data-testid={`${testIdPrefix}-session-unknown-tag`}>
+              {t('conversation.approval.fromUnknownSession')}
+            </Tag>
+          ) : null}
           <span className={styles.icon} aria-hidden>
             <Icon theme='outline' size='20' />
           </span>
@@ -292,17 +309,15 @@ const ApprovalCardBase: React.FC<ApprovalCardBaseProps> = ({
             {options.map((option) => {
               const color = KIND_TO_ARCO_COLOR[option.kind];
               return (
-                <div
-                  key={option.id}
-                  className={styles.optionRow}
-                  data-testid={`${testIdPrefix}-option-${option.id}`}
-                >
+                <div key={option.id} className={styles.optionRow} data-testid={`${testIdPrefix}-option-${option.id}`}>
                   <Radio value={option.id}>
                     <Tag color={color} size='small' bordered className={styles.optionTag}>
                       {option.kind}
                     </Tag>
                     <span className={styles.optionLabel}>
-                      {option.isI18nKey ? t(option.label, { ...option.params, defaultValue: option.label }) : option.label}
+                      {option.isI18nKey
+                        ? t(option.label, { ...option.params, defaultValue: option.label })
+                        : option.label}
                     </span>
                   </Radio>
                 </div>

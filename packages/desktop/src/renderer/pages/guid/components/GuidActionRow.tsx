@@ -106,7 +106,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   // server's agent catalog (build/plan + custom agents like `ui-expert`)
   // directly from the remote-agent endpoint and feed it to the selector as
   // `dynamicModes`. Non-opencode agents skip this and use the static list.
-  const remoteAgentId = modeBackend === 'opencode' && selectedAgentInfo?.protocol === 'opencode' ? selectedAgentInfo?.id : undefined;
+  const remoteAgentId =
+    modeBackend === 'opencode' && selectedAgentInfo?.protocol === 'opencode' ? selectedAgentInfo?.id : undefined;
   const { data: remoteAgentModes } = useSWR(
     remoteAgentId ? ['remote-agent-agents', remoteAgentId] : null,
     async (): Promise<AgentModeOption[]> => {
@@ -284,7 +285,9 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
                 onModeSelect={onModeSelect}
                 dynamicModes={remoteAgentModes}
                 groupTitleOverride={modeBackend === 'opencode' ? t('agentMode.agent') : undefined}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
+                compactLeadingIcon={
+                  <Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+                }
                 modeLabelFormatter={getModeDisplayLabel}
               />
             )}

@@ -80,7 +80,7 @@ function parseAuthMethods(raw: unknown): OpenCodeProviderAuthMethodsResponse {
 
 function modelList(provider: OpenCodeProvider): OpenCodeProviderModel[] {
   if (!provider.models) return [];
-  return Object.values(provider.models).sort((a, b) => a.name.localeCompare(b.name));
+  return Object.values(provider.models).toSorted((a, b) => a.name.localeCompare(b.name));
 }
 
 export function parseProviderListResponse(raw: unknown): OpenCodeProviderListResponse | null {
@@ -92,10 +92,7 @@ export function parseProviderListResponse(raw: unknown): OpenCodeProviderListRes
   return { all, default: defaultMap, connected };
 }
 
-export function buildProviderCatalogView(
-  catalogRaw: unknown,
-  authMethodsRaw: unknown
-): OpenCodeProviderCatalogView {
+export function buildProviderCatalogView(catalogRaw: unknown, authMethodsRaw: unknown): OpenCodeProviderCatalogView {
   const catalog = parseProviderListResponse(catalogRaw);
   const authMethods = parseAuthMethods(authMethodsRaw);
   if (!catalog) {
@@ -103,8 +100,7 @@ export function buildProviderCatalogView(
   }
 
   const connectedIds = parseConnectedIds(catalog.connected);
-  const defaultProviderId =
-    catalog.default?.providerID ?? catalog.default?.providerId ?? catalog.default?.provider_id;
+  const defaultProviderId = catalog.default?.providerID ?? catalog.default?.providerId ?? catalog.default?.provider_id;
   const defaultModelId = catalog.default?.modelID ?? catalog.default?.modelId ?? catalog.default?.model_id;
 
   const providers: OpenCodeProviderView[] = catalog.all
@@ -118,7 +114,7 @@ export function buildProviderCatalogView(
         isDefaultProvider: Boolean(defaultProviderId && provider.id === defaultProviderId),
       } satisfies OpenCodeProviderView;
     })
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (a.connected !== b.connected) return a.connected ? -1 : 1;
       if (a.isDefaultProvider !== b.isDefaultProvider) return a.isDefaultProvider ? -1 : 1;
       return a.provider.name.localeCompare(b.provider.name);

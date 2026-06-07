@@ -91,7 +91,7 @@ describe('checkHttpServerHealth retry behavior', () => {
     const fetchFn = mockFetch(0, null, { reject: true });
     const promise = checkHttpServerHealth(
       { url: 'http://example.com' },
-      { fetch: fetchFn, retryCount: HTTP_SERVER_HEALTH_RETRY_COUNT, retryDelayMs: 100 },
+      { fetch: fetchFn, retryCount: HTTP_SERVER_HEALTH_RETRY_COUNT, retryDelayMs: 100 }
     );
 
     await vi.runAllTimersAsync();

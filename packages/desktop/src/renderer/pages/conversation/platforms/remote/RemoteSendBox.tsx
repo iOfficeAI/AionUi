@@ -467,11 +467,11 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
           stopState === 'stopping'
             ? t('conversation.remoteAbort.stopping')
             : aiProcessing
-            ? t('conversation.chat.processing')
-            : t('acp.sendbox.placeholder', {
-                backend: agent_name,
-                defaultValue: `Send message to ${agent_name}...`,
-              })
+              ? t('conversation.chat.processing')
+              : t('acp.sendbox.placeholder', {
+                  backend: agent_name,
+                  defaultValue: `Send message to ${agent_name}...`,
+                })
         }
         onStop={handleStop}
         onFilesAdded={handleFilesAdded}
@@ -494,7 +494,9 @@ const RemoteSendBox: React.FC<{ conversation_id: string; session_mode?: string; 
                 conversation_id={conversation_id}
                 compact
                 initialMode={session_mode}
-                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
+                compactLeadingIcon={
+                  <Shield theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+                }
                 modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
                 compactLabelPrefix={t('agentMode.agent')}
                 groupTitleOverride={t('agentMode.agent')}

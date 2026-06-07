@@ -39,9 +39,7 @@ export function initChislQueueSchema(db: ISqliteDriver): void {
   )`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_queue_items_status ON queue_items(status)');
   db.exec('CREATE INDEX IF NOT EXISTS idx_queue_items_session_id ON queue_items(session_id)');
-  db.exec(
-    'CREATE INDEX IF NOT EXISTS idx_queue_items_session_order ON queue_items(session_id, session_order)'
-  );
+  db.exec('CREATE INDEX IF NOT EXISTS idx_queue_items_session_order ON queue_items(session_id, session_order)');
 
   db.exec(`CREATE TABLE IF NOT EXISTS queue_session_counters (
     session_key TEXT PRIMARY KEY,

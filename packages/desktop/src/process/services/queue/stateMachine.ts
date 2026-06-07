@@ -62,10 +62,7 @@ export function createDefaultChislQueueItemFields(
   };
 }
 
-export function canTransitionChislQueueStatus(
-  from: ChislQueueItemStatus,
-  to: ChislQueueItemStatus
-): boolean {
+export function canTransitionChislQueueStatus(from: ChislQueueItemStatus, to: ChislQueueItemStatus): boolean {
   if (from === to) {
     return true;
   }
@@ -76,13 +73,7 @@ export function canTransitionChislQueueStatus(
     case 'queued':
       return to === 'dispatching' || to === 'cancelled' || to === 'failed';
     case 'dispatching':
-      return (
-        to === 'running' ||
-        to === 'blocked' ||
-        to === 'failed' ||
-        to === 'cancelled' ||
-        to === 'queued'
-      );
+      return to === 'running' || to === 'blocked' || to === 'failed' || to === 'cancelled' || to === 'queued';
     case 'running':
       return to === 'blocked' || to === 'complete' || to === 'failed' || to === 'cancelled';
     case 'blocked':
@@ -122,19 +113,14 @@ export function getSessionActiveItem(
   sessionID: string | null
 ): ChislQueueItem | null {
   const key = sessionKey(sessionID);
-  const active = items.filter(
-    (item) => sessionKey(item.sessionID) === key && isChislQueueActiveStatus(item.status)
-  );
+  const active = items.filter((item) => sessionKey(item.sessionID) === key && isChislQueueActiveStatus(item.status));
   if (active.length === 0) {
     return null;
   }
   return active.reduce((lowest, item) => (item.sessionOrder < lowest.sessionOrder ? item : lowest));
 }
 
-export function hasBlockingSameSessionItem(
-  items: readonly ChislQueueItem[],
-  candidate: ChislQueueItem
-): boolean {
+export function hasBlockingSameSessionItem(items: readonly ChislQueueItem[], candidate: ChislQueueItem): boolean {
   const key = sessionKey(candidate.sessionID);
   return items.some(
     (item) =>
@@ -145,10 +131,7 @@ export function hasBlockingSameSessionItem(
   );
 }
 
-export function isSameSessionDispatchable(
-  items: readonly ChislQueueItem[],
-  candidate: ChislQueueItem
-): boolean {
+export function isSameSessionDispatchable(items: readonly ChislQueueItem[], candidate: ChislQueueItem): boolean {
   if (candidate.status !== 'queued') {
     return false;
   }
@@ -170,7 +153,7 @@ export function listGloballyDispatchableItems(
   }
   const candidates = items
     .filter((item) => isSameSessionDispatchable(items, item))
-    .sort((a, b) => {
+    .toSorted((a, b) => {
       if (a.createdAt !== b.createdAt) {
         return a.createdAt - b.createdAt;
       }
@@ -218,20 +201,10 @@ export function classifyChislQueueRetryError(
   if (code === 'dispatch_timeout' || message.includes('dispatch timeout')) {
     return { retryable: true, kind: 'dispatch_timeout' };
   }
-  if (
-    code === 'network' ||
-    code === 'econnreset' ||
-    code === 'etimedout' ||
-    message.includes('network')
-  ) {
+  if (code === 'network' || code === 'econnreset' || code === 'etimedout' || message.includes('network')) {
     return { retryable: true, kind: 'network' };
   }
-  if (
-    code === 'busy' ||
-    code === 'session_busy' ||
-    message.includes('busy') ||
-    message.includes('already running')
-  ) {
+  if (code === 'busy' || code === 'session_busy' || message.includes('busy') || message.includes('already running')) {
     return { retryable: true, kind: 'transient_busy' };
   }
   if (status === 404 || code === 'session_not_found') {
@@ -252,10 +225,7 @@ export function classifyChislQueueRetryError(
   return { retryable: false, kind: 'unknown' };
 }
 
-export function shouldRetryChislQueueItem(
-  item: ChislQueueItem,
-  error: ChislQueueDispatchErrorInput
-): boolean {
+export function shouldRetryChislQueueItem(item: ChislQueueItem, error: ChislQueueDispatchErrorInput): boolean {
   const classification = classifyChislQueueRetryError(error, item.retryCount, item.maxRetries);
   return classification.retryable;
 }
@@ -318,7 +288,7 @@ export function cancelChislQueueItem(
       cancelledBy,
       cancelledAt: at,
       metadata: {
-        ...(item.metadata ?? {}),
+        ...item.metadata,
         cancellationIntent: true,
       },
       updatedAt: at,

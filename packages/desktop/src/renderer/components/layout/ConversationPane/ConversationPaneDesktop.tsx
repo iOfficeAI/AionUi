@@ -19,9 +19,7 @@ import ConversationPaneBottomPanel from './ConversationPaneBottomPanel';
 import ConversationPaneHeader from './ConversationPaneHeader';
 import styles from './ConversationPane.module.css';
 
-const WorkspaceGroupedHistory = React.lazy(
-  () => import('@/renderer/pages/conversation/GroupedHistory')
-);
+const WorkspaceGroupedHistory = React.lazy(() => import('@/renderer/pages/conversation/GroupedHistory'));
 
 const DEFAULT_PANE_WIDTH_PX = 300;
 const MIN_PANE_WIDTH_PX = 240;

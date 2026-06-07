@@ -146,7 +146,8 @@ const GuidPage: React.FC = () => {
     selectedAgentInfo: agentSelection.selectedAgentInfo,
   });
 
-  const isOpencodeAgent = agentSelection.selectedAgent === 'remote' && agentSelection.selectedAgentInfo?.protocol === 'opencode';
+  const isOpencodeAgent =
+    agentSelection.selectedAgent === 'remote' && agentSelection.selectedAgentInfo?.protocol === 'opencode';
   const remoteSkills = useRemoteSkills(agentSelection.selectedAgentInfo?.id || '', isOpencodeAgent, 'remote-agent');
 
   const send = useGuidSend({
@@ -607,18 +608,8 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.brandMark}>
-            <button
-              type='button'
-              className={styles.brandMarkButton}
-              onClick={onBrandMarkClick}
-              aria-label='Chisl'
-            >
-              <img
-                src={brandWordmark}
-                alt='Chisl'
-                className={styles.brandWordmark}
-                draggable={false}
-              />
+            <button type='button' className={styles.brandMarkButton} onClick={onBrandMarkClick} aria-label='Chisl'>
+              <img src={brandWordmark} alt='Chisl' className={styles.brandWordmark} draggable={false} />
             </button>
           </div>
 
@@ -814,7 +805,6 @@ const GuidPage: React.FC = () => {
             onSelectWorkspace={(dir) => guidInput.setDir(dir)}
             onClearWorkspace={() => guidInput.setDir('')}
           />
-
         </div>
       </div>
     </ConfigProvider>

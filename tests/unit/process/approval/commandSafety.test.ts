@@ -20,17 +20,7 @@ function classify(command: string) {
 }
 
 describe('classifyShellCommand allow_once commands', () => {
-  const safeCommands = [
-    'ls',
-    'pwd',
-    'echo hello',
-    'which node',
-    'where npm',
-    'date',
-    'whoami',
-    'id',
-    'uname -a',
-  ];
+  const safeCommands = ['ls', 'pwd', 'echo hello', 'which node', 'where npm', 'date', 'whoami', 'id', 'uname -a'];
 
   it.each(safeCommands)('allows %s', (command) => {
     const result = classify(command);

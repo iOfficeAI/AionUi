@@ -16,7 +16,9 @@ export function basicAuthToken(http: Pick<HttpServerHttpBase, 'username' | 'pass
   return btoa(credentials);
 }
 
-export function httpServerAuthHeaders(http: Pick<HttpServerHttpBase, 'username' | 'password'>): HeadersInit | undefined {
+export function httpServerAuthHeaders(
+  http: Pick<HttpServerHttpBase, 'username' | 'password'>
+): HeadersInit | undefined {
   const token = basicAuthToken(http);
   if (!token) return undefined;
   return { Authorization: `Basic ${token}` };

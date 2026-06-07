@@ -175,12 +175,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           </>
         }
       >
-        <Button
-          className={'composerPill'}
-          shape='round'
-          size='small'
-          data-testid='guid-model-selector'
-        >
+        <Button className={'composerPill'} shape='round' size='small' data-testid='guid-model-selector'>
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{geminiButtonLabel}</span>
@@ -246,12 +241,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
 
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button
-          className={'composerPill'}
-          shape='round'
-          size='small'
-          style={{ cursor: 'default' }}
-        >
+        <Button className={'composerPill'} shape='round' size='small' style={{ cursor: 'default' }}>
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
             <span>{acpButtonLabel}</span>

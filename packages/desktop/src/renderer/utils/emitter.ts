@@ -7,6 +7,7 @@
 import EventEmitter from 'eventemitter3';
 import type { DependencyList } from 'react';
 import { useEffect } from 'react';
+import type { TChatConversation } from '@/common/config/storage';
 import type { FileOrFolderItem } from '@/renderer/utils/file/fileTypes';
 import type { PreviewContentType } from '@/common/types/office/preview';
 
@@ -16,31 +17,42 @@ export type ReplyQuote = {
   position: 'left' | 'right' | 'center' | 'pop';
 };
 
-interface EventTypes {
-  'aionrs.selected.file': [Array<string | FileOrFolderItem>];
-  'aionrs.selected.file.append': [Array<string | FileOrFolderItem>];
-  'aionrs.selected.file.clear': void;
-  'aionrs.workspace.refresh': void;
-  'acp.selected.file': [Array<string | FileOrFolderItem>];
-  'acp.selected.file.append': [Array<string | FileOrFolderItem>];
-  'acp.selected.file.clear': void;
-  'acp.workspace.refresh': void;
-  'codex.selected.file': [Array<string | FileOrFolderItem>];
-  'codex.selected.file.append': [Array<string | FileOrFolderItem>];
-  'codex.selected.file.clear': void;
-  'codex.workspace.refresh': void;
-  'openclaw-gateway.selected.file': [Array<string | FileOrFolderItem>];
-  'openclaw-gateway.selected.file.append': [Array<string | FileOrFolderItem>];
-  'openclaw-gateway.selected.file.clear': void;
-  'openclaw-gateway.workspace.refresh': void;
-  'nanobot.selected.file': [Array<string | FileOrFolderItem>];
-  'nanobot.selected.file.append': [Array<string | FileOrFolderItem>];
-  'nanobot.selected.file.clear': void;
-  'nanobot.workspace.refresh': void;
-  'remote.selected.file': [Array<string | FileOrFolderItem>];
-  'remote.selected.file.append': [Array<string | FileOrFolderItem>];
-  'remote.selected.file.clear': void;
-  'remote.workspace.refresh': void;
+/**
+ * Conversation backends that participate in the Workspace event protocol.
+ *
+ * Derived from `TChatConversation['type']` so any new conversation type
+ * that ships a workspace automatically gets the corresponding
+ * `*.selected.file` / `*.workspace.refresh` events wired up.
+ */
+type WorkspaceBackendPrefix = TChatConversation['type'];
+
+/**
+ * Per-backend workspace event names, generated from
+ * `WorkspaceBackendPrefix` so we don't have to hand-maintain a list that
+ * drifts from the conversation-type union. Each prefix produces the
+ * same four events.
+ */
+type WorkspaceBackendEvents = {
+  [P in WorkspaceBackendPrefix]:
+    | `${P}.selected.file`
+    | `${P}.selected.file.append`
+    | `${P}.selected.file.clear`
+    | `${P}.workspace.refresh`;
+}[WorkspaceBackendPrefix];
+
+/**
+ * Map a workspace event name to its payload type. Every
+ * `*.selected.file` and `*.selected.file.append` event carries a
+ * file/folder list; `*.selected.file.clear` and `*.workspace.refresh`
+ * are fire-and-forget.
+ */
+type WorkspaceEventPayload<E extends WorkspaceBackendEvents> = E extends
+  | `${string}.selected.file.clear`
+  | `${string}.workspace.refresh`
+  ? void
+  : [Array<string | FileOrFolderItem>];
+
+type EventTypes = {
   'chat.history.refresh': void;
   // 会话删除事件 / Conversation deletion event
   'conversation.deleted': [string]; // conversation_id
@@ -54,7 +66,9 @@ interface EventTypes {
   'sendbox.reply.clear': void; // clear reply quote
   'staroffice.install.request': [{ conversation_id: string; text: string; detectedUrl?: string | null }];
   'staroffice.install.finished': [{ conversation_id: string }];
-}
+} & {
+  [E in WorkspaceBackendEvents]: WorkspaceEventPayload<E>;
+};
 
 export const emitter = new EventEmitter<EventTypes>();
 

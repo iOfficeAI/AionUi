@@ -186,10 +186,7 @@ const EditorPanel: React.FC = () => {
         ) : (
           <div className='editor-panel__split'>
             {outlineVisible && (
-              <EditorOutline
-                activeBuffer={active}
-                onSelectSymbol={(s) => monacoRef.current?.revealLine(s.line)}
-              />
+              <EditorOutline activeBuffer={active} onSelectSymbol={(s) => monacoRef.current?.revealLine(s.line)} />
             )}
             <div className='editor-panel__editor'>
               <MonacoEditor

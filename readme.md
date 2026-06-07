@@ -46,40 +46,40 @@ Supported agents:
 
 ## Features
 
-| Capability            | What you can do                                                                                                                                                          |
-| --------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Remote agent registry | Add, edit, delete, and list remote agents — name, protocol, URL, auth (token or basic), avatar, description, insecure-TLS toggle — and test/handshake before saving.     |
-| Model selection       | Refresh and pick from the models a connected OpenCode server advertises.                                                                                                |
-| Unified agent picker  | Remote agents sit alongside detected local agents on the start page.                                                                                                    |
-| Chat & context        | Send prompts with attached files and selected workspace items; see token/context usage when the agent reports it.                                                       |
-| Command queue         | Queue, reorder, pause, resume, edit, remove, or clear prompts while a run is busy.                                                                                       |
-| Run control           | Stop an active run, switch OpenCode modes, attach server-side skills (sticky across messages), and use slash commands.                                                   |
-| Session actions       | Fork, revert/restore, share/unshare a link, summarize/compact, view file changes (diff), and edit the server config — all from the conversation header.                 |
-| Compaction            | Get notified (with tokens reclaimed) when a session is compacted, manually or automatically.                                                                            |
-| Server-state pills    | See the connected server (with one-click switch) and tool-host mode; in server-tool-host mode, LSP status and VCS branch/changes too.                                    |
-| Multi-server          | Live per-agent health in settings and a default-server preference.                                                                                                      |
-| Permissions & approvals | Approve tool and question requests via per-request cards, a pending banner, and a dedicated Approvals tab — including bulk approve.                                    |
-| Sub-agents            | Watch delegated child sessions as inline, collapsible subtask cards.                                                                                                    |
-| Message editing       | Edit or delete your own messages in a remote conversation.                                                                                                              |
-| Local & custom agents | Use detected local CLIs (Claude Code, Gemini CLI, Codex, local OpenCode), or define your own ACP-style command agent.                                                   |
-| MCP & tools           | Add, import, edit, enable/disable, test, authenticate, and sync MCP servers; configure speech-to-text.                                                                  |
-| Skills                | Browse built-in, custom, and extension skills; import folders or symlinks; search, refresh, and delete.                                                                 |
-| Appearance            | Ships with Chisl's retro palette; a toggle hands control to a CSS theme preset (Catppuccin included).                                                                    |
+| Capability              | What you can do                                                                                                                                                      |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Remote agent registry   | Add, edit, delete, and list remote agents — name, protocol, URL, auth (token or basic), avatar, description, insecure-TLS toggle — and test/handshake before saving. |
+| Model selection         | Refresh and pick from the models a connected OpenCode server advertises.                                                                                             |
+| Unified agent picker    | Remote agents sit alongside detected local agents on the start page.                                                                                                 |
+| Chat & context          | Send prompts with attached files and selected workspace items; see token/context usage when the agent reports it.                                                    |
+| Command queue           | Queue, reorder, pause, resume, edit, remove, or clear prompts while a run is busy.                                                                                   |
+| Run control             | Stop an active run, switch OpenCode modes, attach server-side skills (sticky across messages), and use slash commands.                                               |
+| Session actions         | Fork, revert/restore, share/unshare a link, summarize/compact, view file changes (diff), and edit the server config — all from the conversation header.              |
+| Compaction              | Get notified (with tokens reclaimed) when a session is compacted, manually or automatically.                                                                         |
+| Server-state pills      | See the connected server (with one-click switch) and tool-host mode; in server-tool-host mode, LSP status and VCS branch/changes too.                                |
+| Multi-server            | Live per-agent health in settings and a default-server preference.                                                                                                   |
+| Permissions & approvals | Approve tool and question requests via per-request cards, a pending banner, and a dedicated Approvals tab — including bulk approve.                                  |
+| Sub-agents              | Watch delegated child sessions as inline, collapsible subtask cards.                                                                                                 |
+| Message editing         | Edit or delete your own messages in a remote conversation.                                                                                                           |
+| Local & custom agents   | Use detected local CLIs (Claude Code, Gemini CLI, Codex, local OpenCode), or define your own ACP-style command agent.                                                |
+| MCP & tools             | Add, import, edit, enable/disable, test, authenticate, and sync MCP servers; configure speech-to-text.                                                               |
+| Skills                  | Browse built-in, custom, and extension skills; import folders or symlinks; search, refresh, and delete.                                                              |
+| Appearance              | Ships with Chisl's retro palette; a toggle hands control to a CSS theme preset (Catppuccin included).                                                                |
 
 ## Remote OpenCode Flow
 
 Configure the remote OpenCode path as a remote-agent entry in Agent settings.
 
-| Step               | What happens                                                                                                                          |
-| ------------------ | ------------------------------------------------------------------------------------------------------------------------------------ |
-| Register endpoint  | Add a remote agent with protocol `opencode`, a URL, an auth type, and an optional token/password.                                    |
-| Test connection    | The settings modal can test the endpoint before you save.                                                                            |
-| Save and handshake | Saving an OpenCode remote agent runs a handshake.                                                                                    |
-| Select in chat     | The agent shows up in the start-page picker alongside your local agents.                                                             |
-| Fetch models       | Refresh the model list the server advertises.                                                                                        |
-| Chat               | Send prompts, attaching files and selected workspace items as needed.                                                                |
-| Control the run    | Stop a run, queue more prompts, switch modes, attach skills.                                                                          |
-| Manage the session | Fork, revert/restore, share/unshare, summarize/compact, view file changes, or edit the server config from the conversation header.   |
+| Step                 | What happens                                                                                                                                                                          |
+| -------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Register endpoint    | Add a remote agent with protocol `opencode`, a URL, an auth type, and an optional token/password.                                                                                     |
+| Test connection      | The settings modal can test the endpoint before you save.                                                                                                                             |
+| Save and handshake   | Saving an OpenCode remote agent runs a handshake.                                                                                                                                     |
+| Select in chat       | The agent shows up in the start-page picker alongside your local agents.                                                                                                              |
+| Fetch models         | Refresh the model list the server advertises.                                                                                                                                         |
+| Chat                 | Send prompts, attaching files and selected workspace items as needed.                                                                                                                 |
+| Control the run      | Stop a run, queue more prompts, switch modes, attach skills.                                                                                                                          |
+| Manage the session   | Fork, revert/restore, share/unshare, summarize/compact, view file changes, or edit the server config from the conversation header.                                                    |
 | Inspect server state | In server-tool-host mode, header pills show the connected server (with quick-switch), LSP status, and VCS branch/changes; permission and question prompts route to the Approvals tab. |
 
 ## Local Agent Flow

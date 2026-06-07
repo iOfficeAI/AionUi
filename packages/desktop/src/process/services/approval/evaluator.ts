@@ -59,7 +59,7 @@ export function filterActiveApprovalRules(rules: ApprovalRule[], now = Date.now(
 }
 
 export function sortApprovalRulesForEvaluation(rules: ApprovalRule[]): ApprovalRule[] {
-  return [...rules].sort(compareRules);
+  return [...rules].toSorted(compareRules);
 }
 
 export function findMatchingApprovalRules(

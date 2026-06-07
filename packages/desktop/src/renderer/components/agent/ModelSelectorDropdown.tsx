@@ -28,14 +28,8 @@ function computePopupStyle(trigger: HTMLElement): AnchoredPopupStyle {
   const viewportWidth = window.innerWidth;
   const viewportHeight = window.innerHeight;
   const width = Math.min(PANEL_WIDTH_PX, viewportWidth - VIEWPORT_MARGIN_PX * 2);
-  const left = Math.max(
-    VIEWPORT_MARGIN_PX,
-    Math.min(rect.left, viewportWidth - width - VIEWPORT_MARGIN_PX)
-  );
-  const maxHeight = Math.max(
-    160,
-    Math.min(PANEL_MAX_HEIGHT_PX, rect.top - VIEWPORT_MARGIN_PX - MENU_GAP_PX)
-  );
+  const left = Math.max(VIEWPORT_MARGIN_PX, Math.min(rect.left, viewportWidth - width - VIEWPORT_MARGIN_PX));
+  const maxHeight = Math.max(160, Math.min(PANEL_MAX_HEIGHT_PX, rect.top - VIEWPORT_MARGIN_PX - MENU_GAP_PX));
 
   return {
     position: 'fixed',
@@ -170,10 +164,7 @@ const ModelSelectorDropdown: React.FC<ModelSelectorDropdownProps> = ({
 
   const handlePanelClick = (event: React.MouseEvent<HTMLDivElement>) => {
     const target = event.target as Element | null;
-    if (
-      target?.closest('[data-model-option-row]') ||
-      target?.closest('.arco-menu-item:not(.arco-menu-disabled)')
-    ) {
+    if (target?.closest('[data-model-option-row]') || target?.closest('.arco-menu-item:not(.arco-menu-disabled)')) {
       closePanel();
     }
   };
@@ -216,12 +207,7 @@ const ModelSelectorDropdown: React.FC<ModelSelectorDropdownProps> = ({
 
   return (
     <>
-      <span
-        ref={triggerRef}
-        className='inline-flex'
-        onPointerEnter={handlePointerEnter}
-        onClick={togglePanel}
-      >
+      <span ref={triggerRef} className='inline-flex' onPointerEnter={handlePointerEnter} onClick={togglePanel}>
         {children}
       </span>
       {popup}

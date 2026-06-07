@@ -15,9 +15,7 @@ import { cleanupSiderTooltips } from '@/renderer/utils/ui/siderTooltip';
 import ConversationPaneHeader from './ConversationPaneHeader';
 import styles from './ConversationPane.module.css';
 
-const WorkspaceGroupedHistory = React.lazy(
-  () => import('@/renderer/pages/conversation/GroupedHistory')
-);
+const WorkspaceGroupedHistory = React.lazy(() => import('@/renderer/pages/conversation/GroupedHistory'));
 
 interface ConversationPaneMobileOverlayProps {
   onSessionClick?: () => void;
@@ -74,11 +72,11 @@ const ConversationPaneMobileOverlay: React.FC<ConversationPaneMobileOverlayProps
           <div className={styles.bodyInner}>
             <Suspense fallback={<div className='min-h-200px' />}>
               <WorkspaceGroupedHistory
-              batchMode={isBatchMode}
-              onBatchModeChange={setIsBatchMode}
-              collapsed={false}
-              tooltipEnabled={false}
-              onSessionClick={handleClosePane}
+                batchMode={isBatchMode}
+                onBatchModeChange={setIsBatchMode}
+                collapsed={false}
+                tooltipEnabled={false}
+                onSessionClick={handleClosePane}
               />
             </Suspense>
           </div>

@@ -45,11 +45,7 @@ function getOrCreateModel(buffer: OpenBuffer): monaco.editor.ITextModel {
       // External update — push content through pushEditOperations so undo
       // history is preserved.
       const fullRange = existing.getFullModelRange();
-      existing.pushEditOperations(
-        [],
-        [{ range: fullRange, text: buffer.content }],
-        (): null => null
-      );
+      existing.pushEditOperations([], [{ range: fullRange, text: buffer.content }], (): null => null);
     }
     const desiredLanguage = mapToMonacoLanguage(buffer.language);
     if (existing.getLanguageId() !== desiredLanguage) {
@@ -408,61 +404,60 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   // Monaco mechanism for invoking the same commands the command palette uses.
   // `trigger` is the older API and we use it for undo/redo where there's no
   // public action id.
-  useImperativeHandle(
-    ref,
-    () => {
-      const runAction = (id: string): void => {
-        void editorRef.current?.getAction(id)?.run().catch((): void => undefined);
-      };
-      const setFontSize = (px: number): void => {
-        const clamped = Math.max(8, Math.min(40, px));
-        fontSizeRef.current = clamped;
-        editorRef.current?.updateOptions({ fontSize: clamped });
-      };
-      return {
-        getEditor: () => editorRef.current,
-        openFind: () => runAction('actions.find'),
-        openReplace: () => runAction('editor.action.startFindReplaceAction'),
-        goToLine: () => runAction('editor.action.gotoLine'),
-        goToSymbol: () => runAction('editor.action.quickOutline'),
-        openCommandPalette: () => runAction('editor.action.quickCommand'),
-        formatDocument: () => runAction('editor.action.formatDocument'),
-        toggleLineComment: () => runAction('editor.action.commentLine'),
-        toggleBlockComment: () => runAction('editor.action.blockComment'),
-        foldAll: () => runAction('editor.foldAll'),
-        unfoldAll: () => runAction('editor.unfoldAll'),
-        zoomIn: () => setFontSize(fontSizeRef.current + 1),
-        zoomOut: () => setFontSize(fontSizeRef.current - 1),
-        resetZoom: () => setFontSize(DEFAULT_FONT_SIZE),
-        setLanguage: (languageId: string) => {
-          const model = editorRef.current?.getModel();
-          if (model) monaco.editor.setModelLanguage(model, languageId);
-        },
-        setIndent: (useSpaces: boolean, size: number) => {
-          editorRef.current?.getModel()?.updateOptions({ insertSpaces: useSpaces, tabSize: size });
-        },
-        setEol: (eol: 'LF' | 'CRLF') => {
-          editorRef.current
-            ?.getModel()
-            ?.setEOL(eol === 'LF' ? monaco.editor.EndOfLineSequence.LF : monaco.editor.EndOfLineSequence.CRLF);
-        },
-        revealLine: (line: number) => {
-          const ed = editorRef.current;
-          if (!ed) return;
-          ed.revealLineInCenter(line, monaco.editor.ScrollType.Smooth);
-          ed.setPosition({ lineNumber: line, column: 1 });
-          ed.focus();
-        },
-        undo: () => {
-          editorRef.current?.trigger('toolbar', 'undo', null);
-        },
-        redo: () => {
-          editorRef.current?.trigger('toolbar', 'redo', null);
-        },
-      };
-    },
-    []
-  );
+  useImperativeHandle(ref, () => {
+    const runAction = (id: string): void => {
+      void editorRef.current
+        ?.getAction(id)
+        ?.run()
+        .catch((): void => undefined);
+    };
+    const setFontSize = (px: number): void => {
+      const clamped = Math.max(8, Math.min(40, px));
+      fontSizeRef.current = clamped;
+      editorRef.current?.updateOptions({ fontSize: clamped });
+    };
+    return {
+      getEditor: () => editorRef.current,
+      openFind: () => runAction('actions.find'),
+      openReplace: () => runAction('editor.action.startFindReplaceAction'),
+      goToLine: () => runAction('editor.action.gotoLine'),
+      goToSymbol: () => runAction('editor.action.quickOutline'),
+      openCommandPalette: () => runAction('editor.action.quickCommand'),
+      formatDocument: () => runAction('editor.action.formatDocument'),
+      toggleLineComment: () => runAction('editor.action.commentLine'),
+      toggleBlockComment: () => runAction('editor.action.blockComment'),
+      foldAll: () => runAction('editor.foldAll'),
+      unfoldAll: () => runAction('editor.unfoldAll'),
+      zoomIn: () => setFontSize(fontSizeRef.current + 1),
+      zoomOut: () => setFontSize(fontSizeRef.current - 1),
+      resetZoom: () => setFontSize(DEFAULT_FONT_SIZE),
+      setLanguage: (languageId: string) => {
+        const model = editorRef.current?.getModel();
+        if (model) monaco.editor.setModelLanguage(model, languageId);
+      },
+      setIndent: (useSpaces: boolean, size: number) => {
+        editorRef.current?.getModel()?.updateOptions({ insertSpaces: useSpaces, tabSize: size });
+      },
+      setEol: (eol: 'LF' | 'CRLF') => {
+        editorRef.current
+          ?.getModel()
+          ?.setEOL(eol === 'LF' ? monaco.editor.EndOfLineSequence.LF : monaco.editor.EndOfLineSequence.CRLF);
+      },
+      revealLine: (line: number) => {
+        const ed = editorRef.current;
+        if (!ed) return;
+        ed.revealLineInCenter(line, monaco.editor.ScrollType.Smooth);
+        ed.setPosition({ lineNumber: line, column: 1 });
+        ed.focus();
+      },
+      undo: () => {
+        editorRef.current?.trigger('toolbar', 'undo', null);
+      },
+      redo: () => {
+        editorRef.current?.trigger('toolbar', 'redo', null);
+      },
+    };
+  }, []);
 
   return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
 });

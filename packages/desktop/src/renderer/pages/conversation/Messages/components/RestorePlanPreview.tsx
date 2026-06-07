@@ -171,7 +171,10 @@ const RestorePlanPreview: React.FC<RestorePlanPreviewProps> = ({ conversationId,
         );
       case 'error':
         return (
-          <div className='flex items-start gap-8px p-12px rd-6px' style={{ background: 'var(--color-danger-light, #fdecec)' }}>
+          <div
+            className='flex items-start gap-8px p-12px rd-6px'
+            style={{ background: 'var(--color-danger-light, #fdecec)' }}
+          >
             <IconExclamationCircle style={{ color: 'var(--color-danger, #d9534f)', marginTop: 2, flexShrink: 0 }} />
             <div className='text-13px leading-18px'>
               <div className='font-medium'>
@@ -245,9 +248,7 @@ const RestorePlanPreview: React.FC<RestorePlanPreviewProps> = ({ conversationId,
 
   return (
     <>
-      <Tooltip
-        content={t('messages.restorePlan.tooltip', { defaultValue: 'Preview restore plan (read-only)' })}
-      >
+      <Tooltip content={t('messages.restorePlan.tooltip', { defaultValue: 'Preview restore plan (read-only)' })}>
         <button
           type='button'
           className='p-4px rd-4px cursor-pointer hover:bg-3 transition-colors shrink-0'

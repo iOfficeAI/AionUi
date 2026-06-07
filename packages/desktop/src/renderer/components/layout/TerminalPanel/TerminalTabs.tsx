@@ -152,9 +152,7 @@ const TerminalTabs: React.FC<Props> = ({
             type='button'
             className={classNames(
               'flex-center size-22px bg-transparent border-none p-0 m-0 cursor-pointer rd-4px transition-colors',
-              pinned
-                ? 'text-brand hover:bg-fill-3'
-                : 'text-t-secondary hover:bg-fill-3 hover:text-t-primary'
+              pinned ? 'text-brand hover:bg-fill-3' : 'text-t-secondary hover:bg-fill-3 hover:text-t-primary'
             )}
             aria-label={t('terminal.pin', { defaultValue: pinned ? 'Unpin terminal' : 'Pin terminal open' })}
             aria-pressed={pinned}

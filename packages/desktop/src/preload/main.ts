@@ -23,12 +23,12 @@ import type {
  * */
 contextBridge.exposeInMainWorld('electronAPI', {
   emit: <Name extends AdapterEventName>(name: Name, data: AdapterEventMap[Name]) => {
-    return (ipcRenderer.invoke(ADAPTER_BRIDGE_EVENT_KEY, { name, data }) as Promise<AdapterEventResponseMap[Name]>).catch(
-      (error: unknown) => {
-        console.error('IPC invoke error:', error);
-        throw error;
-      }
-    );
+    return (
+      ipcRenderer.invoke(ADAPTER_BRIDGE_EVENT_KEY, { name, data }) as Promise<AdapterEventResponseMap[Name]>
+    ).catch((error: unknown) => {
+      console.error('IPC invoke error:', error);
+      throw error;
+    });
   },
   on: (callback: AdapterMessageCallback) => {
     const handler = (_event: Electron.IpcRendererEvent, value: string) => {

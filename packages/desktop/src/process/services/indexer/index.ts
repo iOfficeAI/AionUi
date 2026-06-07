@@ -51,10 +51,7 @@ export {
   type FileChangeEvent,
   type IndexInvalidationOptions,
 } from './invalidation';
-export {
-  runStartupIndexScan,
-  type StartupScanResult,
-} from './startupScan';
+export { runStartupIndexScan, type StartupScanResult } from './startupScan';
 export {
   ChislIndexWatcher,
   type ChislIndexWatcherOptions,

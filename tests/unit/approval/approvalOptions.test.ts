@@ -48,8 +48,18 @@ describe('fromChislOptions', () => {
   });
 
   it('preserves the label as an i18n key and carries params', () => {
-    const out = fromChislOptions([{ label: 'messages.confirmation.yesAllowOnce', value: 'once', params: { path: '/x' } }]);
-    expect(out).toEqual([{ id: 'once', label: 'messages.confirmation.yesAllowOnce', isI18nKey: true, kind: 'allow_once', params: { path: '/x' } }]);
+    const out = fromChislOptions([
+      { label: 'messages.confirmation.yesAllowOnce', value: 'once', params: { path: '/x' } },
+    ]);
+    expect(out).toEqual([
+      {
+        id: 'once',
+        label: 'messages.confirmation.yesAllowOnce',
+        isI18nKey: true,
+        kind: 'allow_once',
+        params: { path: '/x' },
+      },
+    ]);
   });
 
   it('falls back to `option_<index>` when value is missing', () => {
@@ -63,7 +73,10 @@ describe('fromChislOptions', () => {
   });
 
   it('coerces numeric / boolean values to string ids', () => {
-    const out = fromChislOptions([{ label: 'lbl', value: 7 }, { label: 'lbl2', value: true }]);
+    const out = fromChislOptions([
+      { label: 'lbl', value: 7 },
+      { label: 'lbl2', value: true },
+    ]);
     expect(out[0]?.id).toBe('7');
     expect(out[1]?.id).toBe('true');
   });
@@ -87,7 +100,9 @@ describe('fromAcpOptions', () => {
 
   it('uses option_id as id and name as label, marked non-i18n', () => {
     const out = fromAcpOptions([{ option_id: 'allow_once', name: 'Allow once' }]);
-    expect(out).toEqual([{ id: 'allow_once', label: 'Allow once', isI18nKey: false, kind: 'allow_once', params: undefined }]);
+    expect(out).toEqual([
+      { id: 'allow_once', label: 'Allow once', isI18nKey: false, kind: 'allow_once', params: undefined },
+    ]);
   });
 
   it('prefers the explicit ACP `kind` when present', () => {

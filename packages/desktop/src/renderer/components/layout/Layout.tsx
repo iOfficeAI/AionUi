@@ -176,7 +176,9 @@ const Layout: React.FC<{
 }> = ({ sider, onSessionClick: _onSessionClick }) => {
   const { t } = useTranslation();
   const [collapsed, setCollapsed] = useState(true);
-  const [conversationPaneCollapsed, setConversationPaneCollapsedState] = useState<boolean>(readStoredConversationPaneCollapsed);
+  const [conversationPaneCollapsed, setConversationPaneCollapsedState] = useState<boolean>(
+    readStoredConversationPaneCollapsed
+  );
   const [isMobile, setIsMobile] = useState(false);
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth

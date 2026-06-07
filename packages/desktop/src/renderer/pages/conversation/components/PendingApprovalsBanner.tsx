@@ -120,7 +120,13 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
   const [busy, setBusy] = useState(false);
 
   const pending = useMemo(() => {
-    const out: Array<{ call_id: string; msg_id?: string; preview: string; allowDirPath?: string; fromSubagent: boolean }> = [];
+    const out: Array<{
+      call_id: string;
+      msg_id?: string;
+      preview: string;
+      allowDirPath?: string;
+      fromSubagent: boolean;
+    }> = [];
     for (const msg of list) {
       const content = readPermissionContent(msg);
       if (!content) continue;
@@ -324,13 +330,12 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
             {t('messages.pendingApprovalsHeader', { count: pending.length })}
           </span>
           {hasSubagentPending && (
-            <Tag
-              color='red'
-              bordered
-              size='small'
-              data-testid='pending-approvals-subagent-action-required'
-            >
-              <span className='inline-block w-6px h-6px rounded-full' style={{ background: 'rgb(var(--danger-6))' }} aria-hidden />
+            <Tag color='red' bordered size='small' data-testid='pending-approvals-subagent-action-required'>
+              <span
+                className='inline-block w-6px h-6px rounded-full'
+                style={{ background: 'rgb(var(--danger-6))' }}
+                aria-hidden
+              />
               <span className='ml-4px'>{t('conversation.approval.actionRequired')}</span>
             </Tag>
           )}
@@ -338,7 +343,17 @@ const PendingApprovalsBanner: React.FC<{ conversation_id: string }> = ({ convers
         <ul className='flex flex-col gap-0.5 pl-2 m-0 list-none'>
           {visiblePreviews.map((item) => (
             <li key={item.call_id} className='text-xs text-t-secondary truncate'>
-              <code className='font-mono'>{item.preview || item.call_id}</code>
+              <button
+                type='button'
+                className='border-0 bg-transparent p-0 text-left cursor-pointer text-inherit'
+                data-call-id={item.call_id}
+                onClick={() => {
+                  const el = document.querySelector(`[data-approval-call-id="${item.call_id}"]`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }}
+              >
+                <code className='font-mono'>{item.preview || item.call_id}</code>
+              </button>
             </li>
           ))}
           {overflowCount > 0 && (

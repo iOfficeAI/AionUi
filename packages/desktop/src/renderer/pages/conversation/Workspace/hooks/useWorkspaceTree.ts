@@ -9,13 +9,13 @@ import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter } from '@/renderer/utils/emitter';
 import { dispatchWorkspaceHasFilesEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useCallback, useRef, useState } from 'react';
-import type { SelectedNodeRef } from '../types';
+import type { SelectedNodeRef, WorkspaceEventPrefix } from '../types';
 import { getFirstLevelKeys, mergeLoadedChildren } from '../utils/treeHelpers';
 
 interface UseWorkspaceTreeOptions {
   workspace: string;
   conversation_id: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs' | 'remote';
+  eventPrefix: WorkspaceEventPrefix;
 }
 
 /**

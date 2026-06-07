@@ -324,12 +324,7 @@ const AcpModelSelector: React.FC<{
   if (!model_info) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button
-          className='composerPill'
-          shape='round'
-          size='small'
-          style={{ cursor: 'default' }}
-        >
+        <Button className='composerPill' shape='round' size='small' style={{ cursor: 'default' }}>
           <span className='flex items-center gap-6px min-w-0 leading-none'>
             {renderLogo()}
             <MarqueePillLabel>{t('conversation.welcome.useCliModel')}</MarqueePillLabel>
@@ -344,12 +339,7 @@ const AcpModelSelector: React.FC<{
   if (!canSwitch) {
     return (
       <Tooltip content={tooltipContent} position='top'>
-        <Button
-          className='composerPill'
-          shape='round'
-          size='small'
-          style={{ cursor: 'default' }}
-        >
+        <Button className='composerPill' shape='round' size='small' style={{ cursor: 'default' }}>
           <span className='flex items-center gap-6px min-w-0 leading-none'>
             {renderLogo()}
             <MarqueePillLabel>{display_label}</MarqueePillLabel>
@@ -404,11 +394,7 @@ const AcpModelSelector: React.FC<{
       }
     >
       <Tooltip content={tooltipContent} position='top'>
-        <Button
-          className={`composerPill${isUserPicked ? ' composerPill--active' : ''}`}
-          shape='round'
-          size='small'
-        >
+        <Button className={`composerPill${isUserPicked ? ' composerPill--active' : ''}`} shape='round' size='small'>
           <span className='flex items-center gap-6px min-w-0 leading-none'>
             {renderLogo()}
             <MarqueePillLabel>{display_label}</MarqueePillLabel>

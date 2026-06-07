@@ -12,6 +12,9 @@ export const MODEL_SELECTOR_PANEL_PADDING_PX = 20;
 export const MODEL_SELECTOR_FOOTER_CHROME_PX = 44;
 
 export function computeModelListHeight(panelMaxHeight: number, hasFooter: boolean): number {
-  const chrome = MODEL_SELECTOR_SEARCH_CHROME_PX + MODEL_SELECTOR_PANEL_PADDING_PX + (hasFooter ? MODEL_SELECTOR_FOOTER_CHROME_PX : 0);
+  const chrome =
+    MODEL_SELECTOR_SEARCH_CHROME_PX +
+    MODEL_SELECTOR_PANEL_PADDING_PX +
+    (hasFooter ? MODEL_SELECTOR_FOOTER_CHROME_PX : 0);
   return Math.max(120, panelMaxHeight - chrome);
 }

@@ -551,7 +551,8 @@
   flex-shrink: 0;
   transition:
     background var(--motion-fast),
-    color var(--motion-fast);}
+    color var(--motion-fast);
+}
 
 .workspacePillClose:hover {
   background: var(--color-fill-3);

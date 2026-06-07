@@ -84,15 +84,18 @@ export const TerminalPanelProvider: React.FC<PropsWithChildren> = ({ children })
     });
   }, []);
 
-  const persistPinned = useCallback((next: boolean) => {
-    setPinnedState(next);
-    void configService.set('terminal.panel.pinned', next).catch(() => {
-      /* persistence failure shouldn't break the UI */
-    });
-    if (next) {
-      persistOpen(true);
-    }
-  }, [persistOpen]);
+  const persistPinned = useCallback(
+    (next: boolean) => {
+      setPinnedState(next);
+      void configService.set('terminal.panel.pinned', next).catch(() => {
+        /* persistence failure shouldn't break the UI */
+      });
+      if (next) {
+        persistOpen(true);
+      }
+    },
+    [persistOpen]
+  );
 
   const toggle = useCallback(() => {
     if (pinned) return;

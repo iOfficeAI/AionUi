@@ -21,17 +21,19 @@ afterEach(() => {
 });
 
 function listTables(): string[] {
-  return (store.driver
-    .prepare(
-      `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC`
-    )
-    .all() as { name: string }[]).map((row) => row.name);
+  return (
+    store.driver
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC`)
+      .all() as { name: string }[]
+  ).map((row) => row.name);
 }
 
 function listIndexes(table: string): string[] {
-  return (store.driver
-    .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ? ORDER BY name ASC`)
-    .all(table) as { name: string }[]).map((row) => row.name);
+  return (
+    store.driver
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ? ORDER BY name ASC`)
+      .all(table) as { name: string }[]
+  ).map((row) => row.name);
 }
 
 describe('initChislQueueSchema', () => {

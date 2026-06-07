@@ -90,11 +90,7 @@ const ToolShell: React.FC<ToolShellProps> = ({
         )}
       </header>
       {hasBody && (
-        <div
-          id={bodyId}
-          className='tool-shell__body'
-          hidden={collapsible && !expanded}
-        >
+        <div id={bodyId} className='tool-shell__body' hidden={collapsible && !expanded}>
           {children}
         </div>
       )}

@@ -8,10 +8,7 @@
  */
 
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import {
-  CHISL_INDEX_TABLES,
-  initChislIndexSchema,
-} from '@/process/services/indexer/schema';
+import { CHISL_INDEX_TABLES, initChislIndexSchema } from '@/process/services/indexer/schema';
 import {
   createIndexJob,
   deleteFile,
@@ -43,9 +40,11 @@ afterEach(() => {
 });
 
 function listTableNames(): string[] {
-  return (store.driver
-    .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`)
-    .all() as { name: string }[]).map((row) => row.name);
+  return (
+    store.driver.prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%'`).all() as {
+      name: string;
+    }[]
+  ).map((row) => row.name);
 }
 
 describe('openChislIndexStore', () => {
@@ -115,7 +114,9 @@ describe('listFiles / getFile / deleteFile', () => {
     upsertFile(store, { path: '/b.ts', workspace_root: 'ws1' });
     upsertFile(store, { path: '/a.ts', workspace_root: 'ws2' });
 
-    const ws1 = listFiles(store, 'ws1').map((row) => row.path).sort();
+    const ws1 = listFiles(store, 'ws1')
+      .map((row) => row.path)
+      .toSorted();
     const ws2 = listFiles(store, 'ws2').map((row) => row.path);
 
     expect(ws1).toEqual(['/a.ts', '/b.ts']);
@@ -163,9 +164,9 @@ describe('replaceChunksForFile / listChunksForFile', () => {
       { chunk_index: 0, start_line: 0, end_line: 1, start_offset: 0, end_offset: 1 },
     ]);
     deleteFile(store, '/a.ts', 'ws1');
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM chunks WHERE file_id = ?`)
-      .get(file.id) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM chunks WHERE file_id = ?`).get(file.id) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 });
@@ -187,17 +188,7 @@ describe('replaceSymbolsForFile / listSymbolsForFile', () => {
 
   it('accepts every approved symbol kind', () => {
     const file = upsertFile(store, { path: '/a.ts', workspace_root: 'ws1' });
-    const kinds = [
-      'function',
-      'class',
-      'interface',
-      'type',
-      'const',
-      'method',
-      'struct',
-      'enum',
-      'rule',
-    ] as const;
+    const kinds = ['function', 'class', 'interface', 'type', 'const', 'method', 'struct', 'enum', 'rule'] as const;
     replaceSymbolsForFile(
       store,
       file.id,
@@ -222,9 +213,9 @@ describe('replaceSymbolsForFile / listSymbolsForFile', () => {
     const file = upsertFile(store, { path: '/a.ts', workspace_root: 'ws1' });
     replaceSymbolsForFile(store, file.id, [{ kind: 'function', name: 'foo', line: 1 }]);
     deleteFile(store, '/a.ts', 'ws1');
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM symbols WHERE file_id = ?`)
-      .get(file.id) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM symbols WHERE file_id = ?`).get(file.id) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 });
@@ -235,9 +226,7 @@ describe('upsertEmbedding / listEmbeddingsForChunk', () => {
     replaceChunksForFile(store, file.id, [
       { chunk_index: 0, start_line: 0, end_line: 1, start_offset: 0, end_offset: 1 },
     ]);
-    const chunk = store.driver
-      .prepare(`SELECT id FROM chunks WHERE file_id = ?`)
-      .get(file.id) as { id: number };
+    const chunk = store.driver.prepare(`SELECT id FROM chunks WHERE file_id = ?`).get(file.id) as { id: number };
     return { fileId: file.id, chunkId: chunk.id };
   }
 
@@ -269,16 +258,16 @@ describe('upsertEmbedding / listEmbeddingsForChunk', () => {
     upsertEmbedding(store, { chunk_id: chunkId, model: 'm1', vector: new Float32Array([1, 2]) });
     upsertEmbedding(store, { chunk_id: chunkId, model: 'm2', vector: new Float32Array([3, 4]) });
     const rows = listEmbeddingsForChunk(store, chunkId);
-    expect(rows.map((r) => r.model).sort()).toEqual(['m1', 'm2']);
+    expect(rows.map((r) => r.model).toSorted()).toEqual(['m1', 'm2']);
   });
 
   it('cascades embeddings on chunk delete', () => {
     const { chunkId } = makeFileAndChunk();
     upsertEmbedding(store, { chunk_id: chunkId, model: 'm1', vector: new Float32Array([1, 2]) });
     store.driver.prepare(`DELETE FROM chunks WHERE id = ?`).run(chunkId);
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM embeddings WHERE chunk_id = ?`)
-      .get(chunkId) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM embeddings WHERE chunk_id = ?`).get(chunkId) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 });

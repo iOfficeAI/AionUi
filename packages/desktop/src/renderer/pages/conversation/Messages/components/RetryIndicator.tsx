@@ -8,7 +8,9 @@ const redReasons = new Set(['provider_error', 'tool_error']);
 const RetryIndicator: React.FC<{ message: IMessageRetry }> = ({ message }) => {
   const { t } = useTranslation();
   const color = redReasons.has(message.content.reason) ? 'red' : 'orange';
-  const label = t(`conversation.remoteRetry.reason.${message.content.reason}`, { defaultValue: message.content.reason });
+  const label = t(`conversation.remoteRetry.reason.${message.content.reason}`, {
+    defaultValue: message.content.reason,
+  });
   return (
     <Tooltip
       content={t('conversation.remoteRetry.tooltip', {
@@ -18,7 +20,11 @@ const RetryIndicator: React.FC<{ message: IMessageRetry }> = ({ message }) => {
       })}
     >
       <Tag color={color} size='small'>
-        {t('conversation.remoteRetry.tag', { reason: label, attempt: message.content.attempt, defaultValue: `${label} · retry ${message.content.attempt}` })}
+        {t('conversation.remoteRetry.tag', {
+          reason: label,
+          attempt: message.content.attempt,
+          defaultValue: `${label} · retry ${message.content.attempt}`,
+        })}
       </Tag>
     </Tooltip>
   );

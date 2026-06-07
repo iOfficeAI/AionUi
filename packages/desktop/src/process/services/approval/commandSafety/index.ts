@@ -4,16 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-export {
-  classifyPermissionCommand,
-  classifyShellCommand,
-  extractCommandFromPermissionPatterns,
-} from './classifier';
+export { classifyPermissionCommand, classifyShellCommand, extractCommandFromPermissionPatterns } from './classifier';
 export { checkPathArgument, isWorkspaceContainedPath } from './paths';
-export {
-  buildSuggestedApprovalRuleInput,
-  suggestApprovalFromCommandSafety,
-} from './integration';
+export { buildSuggestedApprovalRuleInput, suggestApprovalFromCommandSafety } from './integration';
 export type {
   CommandSafetyApprovalSuggestion,
   CommandSafetyClassification,

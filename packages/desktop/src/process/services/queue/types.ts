@@ -13,12 +13,7 @@ export type ChislQueueItemStatus =
   | 'cancelled'
   | 'complete';
 
-export type ChislQueueCommandType =
-  | 'create_session'
-  | 'prompt'
-  | 'abort'
-  | 'delete_session'
-  | 'permission_reply';
+export type ChislQueueCommandType = 'create_session' | 'prompt' | 'abort' | 'delete_session' | 'permission_reply';
 
 export const CHISL_QUEUE_ACTIVE_STATUSES: readonly ChislQueueItemStatus[] = [
   'dispatching',

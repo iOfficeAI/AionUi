@@ -137,13 +137,18 @@ const ApprovalCardItem: React.FC<{
         // Stamp the typed value as a synthetic one-element answer so the
         // opencode_question reply path picks it up unchanged. The
         // `confirm_key` carries the value verbatim.
-        await respond(approval, typed, { kind: freeformKind, secret: isSecret ? 'true' : undefined } as Record<string, string>);
+        await respond(approval, typed, { kind: freeformKind, secret: isSecret ? 'true' : undefined } as Record<
+          string,
+          string
+        >);
         return;
       }
       // D4: multi-select "All" sentinel — submit every provided option.
       if (isQuestion && allSentinel && option.id === QUESTION_ALL_VALUE) {
         const allLabels = normalized
-          .filter((o) => o.id !== QUESTION_FREEFORM_VALUE && o.id !== QUESTION_ALL_VALUE && o.id !== QUESTION_REJECT_VALUE)
+          .filter(
+            (o) => o.id !== QUESTION_FREEFORM_VALUE && o.id !== QUESTION_ALL_VALUE && o.id !== QUESTION_REJECT_VALUE
+          )
           .map((o) => o.id);
         // POST each label as its own answer. The backend
         // `opencode_question::record` accepts `Vec<String>` for one slot.
@@ -164,69 +169,88 @@ const ApprovalCardItem: React.FC<{
       // Default (single-select permission / question option / reject).
       await respond(approval, option.id, option.params);
     },
-    [approval, respond, isQuestion, freeform, freeformText, freeformKind, isSecret, allSentinel, normalized, multiPicked, t]
+    [
+      approval,
+      respond,
+      isQuestion,
+      freeform,
+      freeformText,
+      freeformKind,
+      isSecret,
+      allSentinel,
+      normalized,
+      multiPicked,
+      t,
+    ]
   );
 
-  const bodySlot = isQuestion && freeform ? (
-    <div className='space-y-2' data-testid='workspace-approval-freeform'>
-      <div className='text-xs text-t-secondary'>{t('conversation.approval.questionFreeform')}</div>
-      {isSecret ? (
-        <input
-          type='password'
-          value={freeformText}
-          onChange={(e) => setFreeformText(e.target.value)}
-          // P1.2a security: `type=password` masks the typed value. We never
-          // log / telemetry / i18n the typed content.
-          data-testid='workspace-approval-freeform-input'
-          className='w-full text-xs rounded border p-2'
-          style={{ background: 'var(--bg-2)', color: 'var(--text-primary)', borderColor: 'var(--border-1)' }}
-        />
-      ) : (
-        <textarea
-          value={freeformText}
-          onChange={(e) => setFreeformText(e.target.value)}
-          rows={3}
-          data-testid='workspace-approval-freeform-input'
-          className='w-full text-xs rounded border p-2'
-          style={{ background: 'var(--bg-2)', color: 'var(--text-primary)', borderColor: 'var(--border-1)' }}
-        />
-      )}
-    </div>
-  ) : isQuestion && allSentinel ? (
-    <div className='space-y-2' data-testid='workspace-approval-multiselect'>
-      <div className='flex flex-wrap gap-2'>
-        {normalized
-          .filter((o) => o.id !== QUESTION_FREEFORM_VALUE && o.id !== QUESTION_ALL_VALUE && o.id !== QUESTION_REJECT_VALUE)
-          .map((o) => {
-            const checked = multiPicked.has(o.id);
-            return (
-              <button
-                key={o.id}
-                type='button'
-                onClick={() => {
-                  setMultiError(null);
-                  setMultiPicked((prev) => {
-                    const next = new Set(prev);
-                    if (next.has(o.id)) next.delete(o.id);
-                    else next.add(o.id);
-                    return next;
-                  });
-                }}
-                data-testid={`workspace-approval-multiselect-chip-${o.id}`}
-                className={`px-2 py-1 rounded text-xs border ${checked ? 'border-brand' : 'border-1'}`}
-                style={{
-                  background: checked ? 'var(--brand-light)' : 'var(--bg-2)',
-                  color: 'var(--text-primary)',
-                }}
-              >
-                {o.label}
-              </button>
-            );
-          })}
+  const bodySlot =
+    isQuestion && freeform ? (
+      <div className='space-y-2' data-testid='workspace-approval-freeform'>
+        <div className='text-xs text-t-secondary'>{t('conversation.approval.questionFreeform')}</div>
+        {isSecret ? (
+          <input
+            type='password'
+            value={freeformText}
+            onChange={(e) => setFreeformText(e.target.value)}
+            // P1.2a security: `type=password` masks the typed value. We never
+            // log / telemetry / i18n the typed content.
+            data-testid='workspace-approval-freeform-input'
+            className='w-full text-xs rounded border p-2'
+            style={{ background: 'var(--bg-2)', color: 'var(--text-primary)', borderColor: 'var(--border-1)' }}
+          />
+        ) : (
+          <textarea
+            value={freeformText}
+            onChange={(e) => setFreeformText(e.target.value)}
+            rows={3}
+            data-testid='workspace-approval-freeform-input'
+            className='w-full text-xs rounded border p-2'
+            style={{ background: 'var(--bg-2)', color: 'var(--text-primary)', borderColor: 'var(--border-1)' }}
+          />
+        )}
       </div>
-      {multiError && <div className='text-xs' style={{ color: 'rgb(var(--danger-6))' }}>{multiError}</div>}
-    </div>
-  ) : null;
+    ) : isQuestion && allSentinel ? (
+      <div className='space-y-2' data-testid='workspace-approval-multiselect'>
+        <div className='flex flex-wrap gap-2'>
+          {normalized
+            .filter(
+              (o) => o.id !== QUESTION_FREEFORM_VALUE && o.id !== QUESTION_ALL_VALUE && o.id !== QUESTION_REJECT_VALUE
+            )
+            .map((o) => {
+              const checked = multiPicked.has(o.id);
+              return (
+                <button
+                  key={o.id}
+                  type='button'
+                  onClick={() => {
+                    setMultiError(null);
+                    setMultiPicked((prev) => {
+                      const next = new Set(prev);
+                      if (next.has(o.id)) next.delete(o.id);
+                      else next.add(o.id);
+                      return next;
+                    });
+                  }}
+                  data-testid={`workspace-approval-multiselect-chip-${o.id}`}
+                  className={`px-2 py-1 rounded text-xs border ${checked ? 'border-brand' : 'border-1'}`}
+                  style={{
+                    background: checked ? 'var(--brand-light)' : 'var(--bg-2)',
+                    color: 'var(--text-primary)',
+                  }}
+                >
+                  {o.label}
+                </button>
+              );
+            })}
+        </div>
+        {multiError && (
+          <div className='text-xs' style={{ color: 'rgb(var(--danger-6))' }}>
+            {multiError}
+          </div>
+        )}
+      </div>
+    ) : null;
 
   return (
     <div
@@ -236,6 +260,8 @@ const ApprovalCardItem: React.FC<{
       <ApprovalCardBase
         testIdPrefix='workspace-approval'
         parentSessionId={(approval as { parent_session_id?: string | null }).parent_session_id ?? null}
+        sessionId={(approval as { session_id?: string | null }).session_id ?? null}
+        approvalCallId={approval.call_id ?? null}
         action={approval.action ?? null}
         title={approval.title ?? null}
         description={description ?? null}

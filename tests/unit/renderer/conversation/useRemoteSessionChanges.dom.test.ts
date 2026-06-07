@@ -46,9 +46,7 @@ describe('useRemoteSessionChanges', () => {
   });
 
   it('defaults to local source with no remote changes', () => {
-    const { result } = renderHook(() =>
-      useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' })
-    );
+    const { result } = renderHook(() => useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' }));
 
     expect(result.current.source).toBe('local');
     expect(result.current.staged).toEqual([]);
@@ -68,9 +66,7 @@ describe('useRemoteSessionChanges', () => {
       },
     ]);
 
-    const { result } = renderHook(() =>
-      useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' })
-    );
+    const { result } = renderHook(() => useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' }));
 
     await act(async () => {
       await result.current.activateRemote();
@@ -101,9 +97,7 @@ describe('useRemoteSessionChanges', () => {
   it('clears remote result when switching back to local', async () => {
     remoteSessionDiffInvoke.mockResolvedValue([{ path: 'x.ts', status: 'added', additions: 1, deletions: 0 }]);
 
-    const { result } = renderHook(() =>
-      useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' })
-    );
+    const { result } = renderHook(() => useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' }));
 
     await act(async () => {
       await result.current.activateRemote();
@@ -122,9 +116,7 @@ describe('useRemoteSessionChanges', () => {
   it('surfaces an empty result when the remote diff call fails', async () => {
     remoteSessionDiffInvoke.mockRejectedValue(new Error('boom'));
 
-    const { result } = renderHook(() =>
-      useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' })
-    );
+    const { result } = renderHook(() => useRemoteSessionChanges({ conversation_id: 'conv-1', workspace: '/ws' }));
 
     await act(async () => {
       await result.current.activateRemote();

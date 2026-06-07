@@ -4,12 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  ApprovalLeafMatcher,
-  ApprovalMatcher,
-  ApprovalMatchMode,
-  ChislPermissionRequest,
-} from './types';
+import type { ApprovalLeafMatcher, ApprovalMatcher, ApprovalMatchMode, ChislPermissionRequest } from './types';
 
 function matchMode(mode: ApprovalMatchMode | undefined, results: boolean[]): boolean {
   const effective = mode ?? 'any';

@@ -1635,10 +1635,7 @@ const SendBox: React.FC<{
           <div className={`sendbox-rail ${isMobile ? 'sendbox-rail--mobile' : ''}`} data-testid='sendbox-rail'>
             <RailGroup className={isMobile ? 'sendbox-tools sendbox-tools-scroll-mobile' : 'sendbox-tools'}>
               {tools}
-              <Tooltip
-                content={t('sendbox.slashTooltip', { defaultValue: 'Open command menu' })}
-                position='top'
-              >
+              <Tooltip content={t('sendbox.slashTooltip', { defaultValue: 'Open command menu' })} position='top'>
                 <Button
                   type='secondary'
                   shape='circle'

@@ -533,9 +533,12 @@ const ChatLayout: React.FC<{
         )}
 
         {/* Desktop expand button when workspace is collapsed */}
-        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
-          <DesktopWorkspaceToggle />
-        )}
+        {!isMacRuntime &&
+          !isWindowsRuntime &&
+          workspaceEnabled &&
+          rightSiderCollapsed &&
+          !layout?.isMobile &&
+          !WORKSPACE_PANE_GHOSTED && <DesktopWorkspaceToggle />}
       </div>
     </ArcoLayout>
   );

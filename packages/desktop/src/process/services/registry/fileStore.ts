@@ -30,7 +30,7 @@ function ensureDir(filePath: string): void {
 }
 
 export function createChislServerRegistryFileStore(
-  jsonPath = resolveChislServersJsonPath(),
+  jsonPath = resolveChislServersJsonPath()
 ): ChislServerRegistryFileStore {
   return {
     load(): HttpServerRegistrySnapshot {
@@ -79,7 +79,7 @@ export type ChislServerCredentialFileStore = HttpServerCredentialStore & {
 
 export function createChislServerCredentialFileStore(
   encryptor: HttpServerCredentialEncryptor,
-  sidecarPath?: string,
+  sidecarPath?: string
 ): ChislServerCredentialFileStore {
   const resolvedPath = sidecarPath ?? resolveChislServersJsonPath().replace(/\.json$/, '-credentials.json');
   const memory = new Map<string, HttpServerCredentialPayload>();

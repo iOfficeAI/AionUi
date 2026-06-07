@@ -41,7 +41,7 @@ function readEnv(env: Record<string, string | undefined> | undefined, name: stri
 }
 
 export function parseHeadlessHttpServerCredentials(
-  opts?: ParseHeadlessHttpServerCredentialsOptions,
+  opts?: ParseHeadlessHttpServerCredentialsOptions
 ): HeadlessHttpServerCredentialResult {
   const env = opts?.env ?? (typeof process !== 'undefined' ? process.env : {});
   const flags = opts?.flags;

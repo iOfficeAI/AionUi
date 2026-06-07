@@ -23,17 +23,19 @@ afterEach(() => {
 });
 
 function listTables(): string[] {
-  return (store.driver
-    .prepare(
-      `SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC`
-    )
-    .all() as { name: string }[]).map((row) => row.name);
+  return (
+    store.driver
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' ORDER BY name ASC`)
+      .all() as { name: string }[]
+  ).map((row) => row.name);
 }
 
 function listIndexes(table: string): string[] {
-  return (store.driver
-    .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ? ORDER BY name ASC`)
-    .all(table) as { name: string }[]).map((row) => row.name);
+  return (
+    store.driver
+      .prepare(`SELECT name FROM sqlite_master WHERE type = 'index' AND tbl_name = ? ORDER BY name ASC`)
+      .all(table) as { name: string }[]
+  ).map((row) => row.name);
 }
 
 describe('initChislIndexSchema', () => {
@@ -134,9 +136,9 @@ describe('chunks table constraints', () => {
       )
       .run(fileId, 0);
     store.driver.prepare(`DELETE FROM files WHERE id = ?`).run(fileId);
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM chunks WHERE file_id = ?`)
-      .get(fileId) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM chunks WHERE file_id = ?`).get(fileId) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 
@@ -192,9 +194,9 @@ describe('symbols table constraints', () => {
       .prepare(`INSERT INTO symbols (file_id, kind, name, line, created_at) VALUES (?, ?, ?, ?, ?)`)
       .run(fileId, 'function', 'foo', 10, 1);
     store.driver.prepare(`DELETE FROM files WHERE id = ?`).run(fileId);
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM symbols WHERE file_id = ?`)
-      .get(fileId) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM symbols WHERE file_id = ?`).get(fileId) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 });
@@ -224,7 +226,9 @@ describe('embeddings table constraints', () => {
     const chunkId = insertFileAndChunk();
     const blob = Buffer.from(new Float32Array([1, 2, 3]).buffer);
     store.driver
-      .prepare(`INSERT INTO embeddings (chunk_id, model, dimensions, vector, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`)
+      .prepare(
+        `INSERT INTO embeddings (chunk_id, model, dimensions, vector, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`
+      )
       .run(chunkId, 'm1', 3, blob, 1, 1);
     expect(() =>
       store.driver
@@ -239,12 +243,14 @@ describe('embeddings table constraints', () => {
     const chunkId = insertFileAndChunk();
     const blob = Buffer.from(new Float32Array([1, 2, 3]).buffer);
     store.driver
-      .prepare(`INSERT INTO embeddings (chunk_id, model, dimensions, vector, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`)
+      .prepare(
+        `INSERT INTO embeddings (chunk_id, model, dimensions, vector, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)`
+      )
       .run(chunkId, 'm1', 3, blob, 1, 1);
     store.driver.prepare(`DELETE FROM chunks WHERE id = ?`).run(chunkId);
-    const remaining = store.driver
-      .prepare(`SELECT COUNT(*) AS c FROM embeddings WHERE chunk_id = ?`)
-      .get(chunkId) as { c: number };
+    const remaining = store.driver.prepare(`SELECT COUNT(*) AS c FROM embeddings WHERE chunk_id = ?`).get(chunkId) as {
+      c: number;
+    };
     expect(remaining.c).toBe(0);
   });
 });

@@ -11,7 +11,10 @@ export interface WebUIStatus {
 }
 
 export interface ElectronBridgeAPI {
-  emit: <Name extends AdapterEventName>(name: Name, data: AdapterEventMap[Name]) => Promise<AdapterEventResponseMap[Name]>;
+  emit: <Name extends AdapterEventName>(
+    name: Name,
+    data: AdapterEventMap[Name]
+  ) => Promise<AdapterEventResponseMap[Name]>;
   on: (callback: AdapterMessageCallback) => void;
   // Get absolute path for dragged file/directory.
   getPathForFile?: (file: File) => string;

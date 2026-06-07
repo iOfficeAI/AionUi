@@ -105,9 +105,7 @@ const PulseDot: React.FC<{ reducedMotion: boolean }> = ({ reducedMotion }) => {
         width: 8,
         height: 8,
         animation: reducedMotion ? 'none' : 'status-pill-breathe 1.6s ease-in-out infinite',
-        boxShadow: reducedMotion
-          ? undefined
-          : '0 0 4px color-mix(in srgb, var(--brand) 50%, transparent)',
+        boxShadow: reducedMotion ? undefined : '0 0 4px color-mix(in srgb, var(--brand) 50%, transparent)',
       }}
     />
   );
@@ -228,9 +226,7 @@ const LiveActivityBand: React.FC = () => {
       // Phase 4's MessageToolGroupSummary tags each rendered tool row with
       // `data-tool-id={call_id}`, so the band's primary running tool can be
       // brought into view directly without depending on Virtuoso indices.
-      const direct = document.querySelector<HTMLElement>(
-        `[data-tool-id="${CSS.escape(primary.callId)}"]`
-      );
+      const direct = document.querySelector<HTMLElement>(`[data-tool-id="${CSS.escape(primary.callId)}"]`);
       if (direct) {
         direct.scrollIntoView({ behavior: 'smooth', block: 'center' });
         return;
@@ -327,10 +323,7 @@ const LiveActivityBand: React.FC = () => {
             <span className='text-t-tertiary text-12px shrink-0'>+{others.length}</span>
           </Tooltip>
         )}
-        <span
-          className='ml-auto text-t-tertiary text-12px shrink-0'
-          style={{ fontVariantNumeric: 'tabular-nums' }}
-        >
+        <span className='ml-auto text-t-tertiary text-12px shrink-0' style={{ fontVariantNumeric: 'tabular-nums' }}>
           {elapsed}
         </span>
         <button

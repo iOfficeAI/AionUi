@@ -49,14 +49,16 @@ export function createInMemoryHttpServerCredentialStore(): HttpServerCredentialS
   };
 }
 
-export function credentialPayloadFromHttp(http: Pick<HttpServerHttpBase, 'username' | 'password'>): HttpServerCredentialPayload | undefined {
+export function credentialPayloadFromHttp(
+  http: Pick<HttpServerHttpBase, 'username' | 'password'>
+): HttpServerCredentialPayload | undefined {
   if (!http.password) return undefined;
   return { username: http.username, password: http.password };
 }
 
 export function applyCredentialToHttp(
   http: HttpServerHttpBase,
-  payload: HttpServerCredentialPayload | undefined,
+  payload: HttpServerCredentialPayload | undefined
 ): HttpServerHttpBase {
   if (!payload) {
     const { password: _password, ...rest } = http;
@@ -69,10 +71,7 @@ export function applyCredentialToHttp(
   };
 }
 
-export function persistHttpServerCredential(
-  conn: HttpServerConnection,
-  store: HttpServerCredentialStore,
-): void {
+export function persistHttpServerCredential(conn: HttpServerConnection, store: HttpServerCredentialStore): void {
   const key = httpServerConnectionKey(conn);
   const payload = credentialPayloadFromHttp(conn.http);
   if (payload) store.set(key, payload);
@@ -81,7 +80,7 @@ export function persistHttpServerCredential(
 
 export function hydrateHttpServerConnection(
   record: HttpServerStoredRecord,
-  store: HttpServerCredentialStore,
+  store: HttpServerCredentialStore
 ): HttpServerConnection {
   const conn = toHttpServerConnection(record);
   const key = httpServerConnectionKey(conn);
@@ -94,7 +93,7 @@ export function hydrateHttpServerConnection(
 
 export function hydrateHttpServerConnections(
   records: HttpServerStoredRecord[],
-  store: HttpServerCredentialStore,
+  store: HttpServerCredentialStore
 ): HttpServerConnection[] {
   return records.map((record) => hydrateHttpServerConnection(record, store));
 }

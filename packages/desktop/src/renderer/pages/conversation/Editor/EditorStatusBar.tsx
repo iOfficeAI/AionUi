@@ -185,7 +185,10 @@ const EditorStatusBar: React.FC<Props> = ({
           </button>
         </Tooltip>
         {dirty && (
-          <span className='editor-statusbar__seg editor-statusbar__seg--dirty' aria-label={t('conversation.editor.unsavedDot')}>
+          <span
+            className='editor-statusbar__seg editor-statusbar__seg--dirty'
+            aria-label={t('conversation.editor.unsavedDot')}
+          >
             <span className='editor-statusbar__dirty-dot' />
             {t('conversation.editor.modified')}
           </span>

@@ -64,9 +64,7 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
       title={
         <>
           <span className='font-medium'>{normalized.name}</span>
-          {normalized.description && (
-            <span className='m-l-4px opacity-80'>{normalized.description}</span>
-          )}
+          {normalized.description && <span className='m-l-4px opacity-80'>{normalized.description}</span>}
         </>
       }
       collapsible={hasDetail}

@@ -45,7 +45,7 @@ describe('filterHttpServerRecords — HTTP-only filtering', () => {
     const filtered = filterHttpServerRecords(input);
 
     expect(filtered).toHaveLength(2);
-    expect(filtered.map((r) => r.http.url).sort()).toEqual(['http://a', 'http://c']);
+    expect(filtered.map((r) => r.http.url).toSorted()).toEqual(['http://a', 'http://c']);
   });
 
   it('drops records with invalid or empty URLs', () => {

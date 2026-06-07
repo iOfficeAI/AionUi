@@ -74,7 +74,9 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
       const [vcsInfo, rows, diff] = await Promise.all([
         ipcBridge.conversation.getRemoteVcsInfo.invoke({ conversation_id }).catch(() => ({}) as VcsInfo),
         ipcBridge.conversation.getRemoteVcsStatus.invoke({ conversation_id }).catch(() => [] as VcsFileStatus[]),
-        ipcBridge.conversation.getRemoteVcsDiff.invoke({ conversation_id, mode: 'git' }).catch(() => [] as VcsFileDiff[]),
+        ipcBridge.conversation.getRemoteVcsDiff
+          .invoke({ conversation_id, mode: 'git' })
+          .catch(() => [] as VcsFileDiff[]),
       ]);
       setInfo(vcsInfo ?? {});
       setStatusRows(Array.isArray(rows) ? rows : []);
@@ -93,16 +95,17 @@ const RemoteVcsBadge: React.FC<{ conversation_id: string }> = ({ conversation_id
 
   const changeCount = statusRows?.length ?? 0;
   const label = changeCount > 0 ? `${info.branch} (${changeCount})` : info.branch;
-  const tooltip = changeCount > 0
-    ? t('conversation.remoteVcs.tooltipWithChanges', {
-        branch: info.branch,
-        count: changeCount,
-        defaultValue: `${info.branch} — ${changeCount} uncommitted change${changeCount === 1 ? '' : 's'}`,
-      })
-    : t('conversation.remoteVcs.tooltipClean', {
-        branch: info.branch,
-        defaultValue: `${info.branch} — working tree clean`,
-      });
+  const tooltip =
+    changeCount > 0
+      ? t('conversation.remoteVcs.tooltipWithChanges', {
+          branch: info.branch,
+          count: changeCount,
+          defaultValue: `${info.branch} — ${changeCount} uncommitted change${changeCount === 1 ? '' : 's'}`,
+        })
+      : t('conversation.remoteVcs.tooltipClean', {
+          branch: info.branch,
+          defaultValue: `${info.branch} — working tree clean`,
+        });
 
   const findPatchFor = (file: string) => diffRows?.find((d) => d.file === file)?.patch ?? '';
 

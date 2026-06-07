@@ -262,7 +262,12 @@ const OneClickImportModal: React.FC<OneClickImportModalProps> = ({ visible, onCa
         </>
       )}
       {currentStep === 3 && (
-        <Button type='primary' onClick={onCancel} className='min-w-120px' style={{ borderRadius: 'var(--radius-control)' }}>
+        <Button
+          type='primary'
+          onClick={onCancel}
+          className='min-w-120px'
+          style={{ borderRadius: 'var(--radius-control)' }}
+        >
           {t('settings.mcpConfirmButton')}
         </Button>
       )}

@@ -10,7 +10,11 @@ import { mkdtempSync, rmSync, writeFileSync } from 'fs';
 import { tmpdir } from 'os';
 import path from 'path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { computeFileContentHash, CONTENT_HASH_ALGORITHM, hashFileContent } from '@/process/services/indexer/contentHash';
+import {
+  computeFileContentHash,
+  CONTENT_HASH_ALGORITHM,
+  hashFileContent,
+} from '@/process/services/indexer/contentHash';
 
 let tempDir: string;
 

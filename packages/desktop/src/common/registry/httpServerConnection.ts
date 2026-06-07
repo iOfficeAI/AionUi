@@ -64,7 +64,7 @@ export function httpServerConnectionKey(conn: Pick<HttpServerConnection, 'http'>
 
 export function httpServerDisplayName(
   conn?: Pick<HttpServerConnection, 'displayName' | 'http'>,
-  ignoreDisplayName = false,
+  ignoreDisplayName = false
 ): string {
   if (!conn) return '';
   if (conn.displayName && !ignoreDisplayName) return conn.displayName;

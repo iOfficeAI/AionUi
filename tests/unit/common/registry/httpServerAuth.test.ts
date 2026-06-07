@@ -19,7 +19,9 @@ describe('httpServerAuthHeaders', () => {
   it('sends Basic auth with explicit username when password is truthy', () => {
     const headers = httpServerAuthHeaders({ url: 'http://example.com', username: 'alice', password: 'secret' });
     expect(headers).toEqual({ Authorization: `Basic ${basicAuthToken({ username: 'alice', password: 'secret' })}` });
-    expect(basicAuthToken({ username: 'alice', password: 'secret' })).toBe(Buffer.from('alice:secret', 'utf8').toString('base64'));
+    expect(basicAuthToken({ username: 'alice', password: 'secret' })).toBe(
+      Buffer.from('alice:secret', 'utf8').toString('base64')
+    );
   });
 
   it('defaults username to opencode when only password is provided', () => {

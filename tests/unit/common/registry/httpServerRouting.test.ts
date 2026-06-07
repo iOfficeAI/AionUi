@@ -19,10 +19,10 @@ import {
 describe('httpServerGlobalEventUrl', () => {
   it('builds SSE URL from base server URL', () => {
     expect(httpServerGlobalEventUrl({ url: 'http://example.com' })).toBe(
-      `http://example.com${HTTP_SERVER_GLOBAL_EVENT_PATH}`,
+      `http://example.com${HTTP_SERVER_GLOBAL_EVENT_PATH}`
     );
     expect(httpServerGlobalEventUrl({ url: 'http://example.com/' })).toBe(
-      `http://example.com${HTTP_SERVER_GLOBAL_EVENT_PATH}`,
+      `http://example.com${HTTP_SERVER_GLOBAL_EVENT_PATH}`
     );
   });
 });

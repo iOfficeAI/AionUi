@@ -230,7 +230,8 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
     }
   };
 
-  const showRevert = tool_call_id && status === 'completed' && REVERTABLE_KINDS.has(kind) && Boolean(conversationContext);
+  const showRevert =
+    tool_call_id && status === 'completed' && REVERTABLE_KINDS.has(kind) && Boolean(conversationContext);
   const showRestorePlan = tool_call_id && status === 'completed' && Boolean(conversationContext);
 
   const handleRevertConfirm = async () => {
@@ -351,9 +352,7 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
             ),
           }}
         >
-          <div className='text-14px leading-22px text-t-secondary'>
-            {t('messages.revertToolCallConfirmMessage')}
-          </div>
+          <div className='text-14px leading-22px text-t-secondary'>{t('messages.revertToolCallConfirmMessage')}</div>
         </AionModal>
       )}
     </>

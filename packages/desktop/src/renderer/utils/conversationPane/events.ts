@@ -34,5 +34,7 @@ export function dispatchConversationPaneToggleEvent(): void {
 
 export function dispatchConversationPaneStateEvent(collapsed: boolean): void {
   if (typeof window === 'undefined') return;
-  window.dispatchEvent(new CustomEvent<ConversationPaneStateDetail>(CONVERSATION_PANE_STATE_EVENT, { detail: { collapsed } }));
+  window.dispatchEvent(
+    new CustomEvent<ConversationPaneStateDetail>(CONVERSATION_PANE_STATE_EVENT, { detail: { collapsed } })
+  );
 }

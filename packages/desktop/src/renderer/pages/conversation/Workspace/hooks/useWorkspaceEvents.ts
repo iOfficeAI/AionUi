@@ -8,11 +8,11 @@ import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
-import type { ContextMenuState } from '../types';
+import type { ContextMenuState, WorkspaceEventPrefix } from '../types';
 
 interface UseWorkspaceEventsOptions {
   conversation_id: string;
-  eventPrefix: 'acp' | 'codex' | 'aionrs' | 'remote';
+  eventPrefix: WorkspaceEventPrefix;
 
   // Dependencies from useWorkspaceTree
   refreshWorkspace: () => void;

@@ -97,9 +97,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     setState((prev) => {
       const existingIndex = prev.buffers.findIndex((b) => b.key === buffer.key);
       const buffers =
-        existingIndex >= 0
-          ? prev.buffers.map((b, i) => (i === existingIndex ? buffer : b))
-          : [...prev.buffers, buffer];
+        existingIndex >= 0 ? prev.buffers.map((b, i) => (i === existingIndex ? buffer : b)) : [...prev.buffers, buffer];
       return {
         ...prev,
         isOpen: true,
@@ -359,9 +357,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   const setActiveBuffer = useCallback((key: string) => {
     if (!isEditorAccessibleInLayoutMode()) return;
     setState((prev) =>
-      prev.buffers.some((b) => b.key === key)
-        ? { ...prev, activeKey: key, isOpen: true, isCollapsed: false }
-        : prev
+      prev.buffers.some((b) => b.key === key) ? { ...prev, activeKey: key, isOpen: true, isCollapsed: false } : prev
     );
   }, []);
 

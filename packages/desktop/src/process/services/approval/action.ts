@@ -4,12 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type {
-  ApprovalDecisionKind,
-  ApprovalEndpointUsed,
-  ApprovalReplySent,
-  ApprovalRuleAction,
-} from './types';
+import type { ApprovalDecisionKind, ApprovalEndpointUsed, ApprovalReplySent, ApprovalRuleAction } from './types';
 
 export function mapApprovalActionToReply(action: ApprovalRuleAction | null): ApprovalReplySent {
   switch (action) {

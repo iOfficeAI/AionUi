@@ -62,16 +62,31 @@ const MessageAcpPermission: React.FC<MessageAcpPermissionProps> = React.memo(({ 
   }
 
   const targetPath = (tool_call as { raw_input?: { path?: string } }).raw_input?.path;
+  const content = message.content as {
+    description?: string;
+    command_type?: string;
+    parent_session_id?: string | null;
+    session_id?: string | null;
+  };
   const command = tool_call.raw_input?.command || tool_call.title;
+  const shellCommandLine =
+    content.command_type === 'run_shell' && content.description
+      ? (content.description
+          .split('\n')
+          .find((line) => line.trimStart().startsWith('$ '))
+          ?.trimStart()
+          .slice(2) ?? null)
+      : null;
 
   return (
     <ApprovalCardBase
       testIdPrefix='message-acp-permission'
-      parentSessionId={(message.content as { parent_session_id?: string | null } | undefined)?.parent_session_id ?? null}
-      action={tool_call.kind ?? null}
+      parentSessionId={content.parent_session_id ?? null}
+      sessionId={content.session_id ?? null}
+      action={tool_call.kind ?? content.command_type ?? null}
       title={tool_call.title ?? tool_call.raw_input?.description ?? null}
-      description={null}
-      commandType={typeof command === 'string' ? command : null}
+      description={content.description ?? null}
+      commandType={shellCommandLine ?? (typeof command === 'string' ? command : null)}
       targetPath={typeof targetPath === 'string' && targetPath.startsWith('/') ? targetPath : null}
       options={normalized}
       responded={propResponded}

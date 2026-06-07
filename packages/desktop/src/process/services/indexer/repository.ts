@@ -129,7 +129,11 @@ export function listChunksForFile(store: ChislIndexStore, fileId: number): Index
     .all(fileId) as IndexChunkRow[];
 }
 
-export function replaceSymbolsForFile(store: ChislIndexStore, fileId: number, symbols: readonly IndexSymbolInput[]): void {
+export function replaceSymbolsForFile(
+  store: ChislIndexStore,
+  fileId: number,
+  symbols: readonly IndexSymbolInput[]
+): void {
   const tx = store.driver.transaction((items: readonly IndexSymbolInput[]) => {
     store.driver.prepare(`DELETE FROM symbols WHERE file_id = ?`).run(fileId);
     const insert = store.driver.prepare(
@@ -145,7 +149,9 @@ export function replaceSymbolsForFile(store: ChislIndexStore, fileId: number, sy
 
 export function listSymbolsForFile(store: ChislIndexStore, fileId: number): IndexSymbolRow[] {
   return store.driver
-    .prepare(`SELECT id, file_id, kind, name, line, created_at FROM symbols WHERE file_id = ? ORDER BY line ASC, name ASC`)
+    .prepare(
+      `SELECT id, file_id, kind, name, line, created_at FROM symbols WHERE file_id = ? ORDER BY line ASC, name ASC`
+    )
     .all(fileId) as IndexSymbolRow[];
 }
 

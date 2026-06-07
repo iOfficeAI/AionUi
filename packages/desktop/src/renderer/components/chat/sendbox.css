@@ -329,7 +329,11 @@
 .composerPill--active,
 .composerPill--active.arco-btn,
 .composerPill--active:hover:not(:disabled) {
-  border-color: color-mix(in srgb, var(--brand) 58%, var(--border-light)) !important; /* fights .arco-btn border-color */
+  border-color: color-mix(
+    in srgb,
+    var(--brand) 58%,
+    var(--border-light)
+  ) !important; /* fights .arco-btn border-color */
   background-color: color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important; /* fights .arco-btn bg */
 }
 

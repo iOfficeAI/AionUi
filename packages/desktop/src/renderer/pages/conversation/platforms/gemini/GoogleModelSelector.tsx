@@ -38,10 +38,7 @@ const GoogleModelSelector: React.FC<{
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
         <Button
-          className={classNames(
-            'composerPill composerPill--compact',
-            isMobileHeaderCompact && '!max-w-[160px]'
-          )}
+          className={classNames('composerPill composerPill--compact', isMobileHeaderCompact && '!max-w-[160px]')}
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
@@ -79,11 +76,11 @@ const GoogleModelSelector: React.FC<{
       </Button>
     ) : (
       <Button
-          className={classNames(
-            'composerPill composerPill--compact',
-            compact && '!max-w-[120px]',
-            isMobileHeaderCompact && '!max-w-[160px]'
-          )}
+        className={classNames(
+          'composerPill composerPill--compact',
+          compact && '!max-w-[120px]',
+          isMobileHeaderCompact && '!max-w-[160px]'
+        )}
         shape='round'
         size='small'
         data-testid='chat-model-selector'

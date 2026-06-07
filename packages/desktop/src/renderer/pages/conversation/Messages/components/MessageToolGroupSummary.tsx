@@ -27,7 +27,12 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
   const [reverting, setReverting] = useState(false);
   const toggle = () => hasDetail && setExpanded((v) => !v);
 
-  const showRevert = item.key && item.status === 'completed' && item.kind && REVERTABLE_KINDS.has(item.kind) && Boolean(conversationContext);
+  const showRevert =
+    item.key &&
+    item.status === 'completed' &&
+    item.kind &&
+    REVERTABLE_KINDS.has(item.kind) &&
+    Boolean(conversationContext);
   const showRestorePlan = item.key && item.status === 'completed' && Boolean(conversationContext);
 
   const handleRevertConfirm = async () => {
@@ -127,7 +132,10 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
           visible={revertOpen}
           size='small'
           style={{ width: 420, height: 'auto' }}
-          header={{ title: t('messages.revertToolCallConfirmTitle', { defaultValue: 'Revert Tool Call?' }), showClose: true }}
+          header={{
+            title: t('messages.revertToolCallConfirmTitle', { defaultValue: 'Revert Tool Call?' }),
+            showClose: true,
+          }}
           contentStyle={{ padding: '20px 24px 0' }}
           onCancel={() => !reverting && setRevertOpen(false)}
           footer={{
@@ -155,7 +163,10 @@ const ToolItemRow: React.FC<{ item: NormalizedToolCall }> = ({ item }) => {
           }}
         >
           <div className='text-14px leading-22px text-t-secondary'>
-            {t('messages.revertToolCallConfirmMessage', { defaultValue: 'Reverting this call will undo the file changes this tool made. The OpenCode session state is NOT changed.' })}
+            {t('messages.revertToolCallConfirmMessage', {
+              defaultValue:
+                'Reverting this call will undo the file changes this tool made. The OpenCode session state is NOT changed.',
+            })}
           </div>
         </AionModal>
       )}

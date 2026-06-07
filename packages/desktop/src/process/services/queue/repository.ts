@@ -53,9 +53,7 @@ function allocateSessionOrder(store: ChislQueueStore, sessionID: string | null):
       .prepare(`SELECT next_order FROM queue_session_counters WHERE session_key = ?`)
       .get(key) as { next_order: number } | undefined;
     if (!existing) {
-      store.driver
-        .prepare(`INSERT INTO queue_session_counters (session_key, next_order) VALUES (?, 1)`)
-        .run(key);
+      store.driver.prepare(`INSERT INTO queue_session_counters (session_key, next_order) VALUES (?, 1)`).run(key);
       return 0;
     }
     const order = existing.next_order;
@@ -69,9 +67,7 @@ function allocateSessionOrder(store: ChislQueueStore, sessionID: string | null):
 
 export function createChislQueueItem(store: ChislQueueStore, input: ChislQueueItemCreate): ChislQueueItem {
   const now = Date.now();
-  const sessionOrder =
-    input.session_order ??
-    allocateSessionOrder(store, input.session_id ?? null);
+  const sessionOrder = input.session_order ?? allocateSessionOrder(store, input.session_id ?? null);
   const item = createDefaultChislQueueItemFields({
     id: input.id ?? randomUUID(),
     sessionID: input.session_id ?? null,

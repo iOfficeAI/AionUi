@@ -356,7 +356,9 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
             conversation_id: message.conversation_id,
             created_at: data.at ?? Date.now(),
             content: {
-              content: t(labelKey, { defaultValue: data.reason === 'aborted' ? 'Stopped' : data.reason ?? 'Completed' }),
+              content: t(labelKey, {
+                defaultValue: data.reason === 'aborted' ? 'Stopped' : (data.reason ?? 'Completed'),
+              }),
               type: data.reason === 'errored' ? 'error' : 'success',
             },
           });
@@ -545,9 +547,9 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
-      setHasThinkingMessage(false);
-      clearStopTimeout();
-      setStopState('idle');
+    setHasThinkingMessage(false);
+    clearStopTimeout();
+    setStopState('idle');
     setHasHydratedRunningState(false);
 
     setRunning(false);

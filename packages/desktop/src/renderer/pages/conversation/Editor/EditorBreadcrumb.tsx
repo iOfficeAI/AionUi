@@ -44,9 +44,7 @@ const EditorBreadcrumb: React.FC<Props> = ({ activeBuffer }) => {
           const isLast = i === segments.length - 1;
           return (
             <React.Fragment key={`${seg}-${i}`}>
-              <span className={`editor-breadcrumb__seg ${isLast ? 'editor-breadcrumb__seg--leaf' : ''}`}>
-                {seg}
-              </span>
+              <span className={`editor-breadcrumb__seg ${isLast ? 'editor-breadcrumb__seg--leaf' : ''}`}>{seg}</span>
               {!isLast && (
                 <span className='editor-breadcrumb__sep' aria-hidden>
                   <Right size={10} />
