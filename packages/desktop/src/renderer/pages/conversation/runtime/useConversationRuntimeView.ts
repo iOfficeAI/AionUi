@@ -42,7 +42,12 @@ type UseConversationRuntimeViewReturn = {
 const normalizeReason = (reason: string): string => reason.trim().slice(0, 200) || 'unknown';
 
 const logConversationRuntimeView = (entry: ConversationRuntimeViewLogEntry): void => {
-  void ipcBridge.application.writeRendererLog
+  const rendererLogger = ipcBridge.application?.writeRendererLog;
+  if (!rendererLogger) {
+    return;
+  }
+
+  void rendererLogger
     .invoke({
       level: entry.level,
       tag: 'conversationRuntimeView',
@@ -96,14 +101,20 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
       return;
     }
 
-    const disposeTurnCompleted = ipcBridge.conversation.turnCompleted.on((event) => {
+    const turnCompletedEmitter = ipcBridge.conversation.turnCompleted;
+    const listChangedEmitter = ipcBridge.conversation.listChanged;
+    if (!turnCompletedEmitter || !listChangedEmitter) {
+      return;
+    }
+
+    const disposeTurnCompleted = turnCompletedEmitter.on((event) => {
       if (event.session_id !== conversation_id) {
         return;
       }
       flushRuntimeViewLogs(turnCompleted(conversation_id, event.runtime));
     });
 
-    const disposeListChanged = ipcBridge.conversation.listChanged.on((event) => {
+    const disposeListChanged = listChangedEmitter.on((event) => {
       if (event.conversation_id !== conversation_id || event.action !== 'deleted') {
         return;
       }
@@ -168,7 +179,12 @@ export const logStreamTerminalObserved = (
   platform: 'acp' | 'aionrs',
   stream_type: string
 ): void => {
-  void ipcBridge.application.writeRendererLog
+  const rendererLogger = ipcBridge.application?.writeRendererLog;
+  if (!rendererLogger) {
+    return;
+  }
+
+  void rendererLogger
     .invoke({
       level: 'info',
       tag: 'conversationRuntimeView',
