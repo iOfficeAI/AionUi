@@ -91,6 +91,35 @@ const createLog = (
 const applyRuntimeSummary = (
   previous: ConversationRuntimeView,
   runtime: TConversationRuntimeSummary
+): ConversationRuntimeView => {
+  if (previous.localSubmitting) {
+    return {
+      ...previous,
+      state: previous.state === 'idle' ? 'starting' : previous.state,
+      isProcessing: true,
+      canSendMessage: false,
+      pendingConfirmations: runtime.pending_confirmations,
+      hasBackendRuntime: true,
+      hydrated: true,
+    };
+  }
+
+  return {
+    ...previous,
+    state: runtime.state,
+    isProcessing: runtime.is_processing,
+    canSendMessage: runtime.can_send_message,
+    pendingConfirmations: runtime.pending_confirmations,
+    hasBackendRuntime: true,
+    hydrated: true,
+    localSubmitting: runtime.state === 'idle' ? false : previous.localSubmitting,
+    localStopping: runtime.state === 'idle' ? false : previous.localStopping,
+  };
+};
+
+const applyRuntimeCompletionSummary = (
+  previous: ConversationRuntimeView,
+  runtime: TConversationRuntimeSummary
 ): ConversationRuntimeView => ({
   ...previous,
   state: runtime.state,
@@ -173,7 +202,7 @@ export const turnCompletedConversationRuntimeView = (
     return withLogs(view, [createLog('warn', 'turn_completed_missing_runtime', view)]);
   }
 
-  const view = applyRuntimeSummary(base, runtime);
+  const view = applyRuntimeCompletionSummary(base, runtime);
   const logs = [createLog('info', 'turn_completed_applied', view)];
   if (view.canSendMessage && !view.isProcessing) {
     logs.push(createLog('info', 'runtime_release_confirmed', view, { source: 'turn_completed' }));
@@ -251,7 +280,7 @@ export const localStopAcknowledgedConversationRuntimeView = (
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
   const view = {
     ...base,
-    localStopping: true,
+    localStopping: base.isProcessing || !base.canSendMessage ? true : base.localStopping,
     hydrated: true,
   };
   return withLogs(view, [createLog('info', 'local_stop_acknowledged', view)]);

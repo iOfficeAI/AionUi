@@ -105,6 +105,21 @@ describe('conversationRuntimeViewStore', () => {
     });
   });
 
+  it('does not let late hydrate idle unlock a local send gate', () => {
+    const started = localSendStartedConversationRuntimeView(undefined, conversation_id).view;
+    const { view, logs } = hydrateSucceededConversationRuntimeView(started, conversation_id, runtime({}));
+
+    expect(view).toMatchObject({
+      state: 'starting',
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs.map((log) => log.event)).not.toContain('runtime_release_confirmed');
+  });
+
   it('keeps a send accepted turn busy until runtime confirmation', () => {
     const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
 
@@ -152,6 +167,21 @@ describe('conversationRuntimeViewStore', () => {
 
     const { view } = turnCompletedConversationRuntimeView(acknowledged, conversation_id, runtime({}));
     expect(view).toMatchObject({
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      localStopping: false,
+    });
+  });
+
+  it('does not re-mark stopping after runtime has already released', () => {
+    const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
+    const requested = localStopRequestedConversationRuntimeView(accepted, conversation_id).view;
+    const completed = turnCompletedConversationRuntimeView(requested, conversation_id, runtime({})).view;
+    const acknowledged = localStopAcknowledgedConversationRuntimeView(completed, conversation_id).view;
+
+    expect(acknowledged).toMatchObject({
+      state: 'idle',
       isProcessing: false,
       canSendMessage: true,
       localSubmitting: false,
