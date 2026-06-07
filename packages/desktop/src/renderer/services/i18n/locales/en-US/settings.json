@@ -426,7 +426,7 @@
   "channels.extension.defaultDesc": "Extension channel plugin",
   "channels.mediaSendFailed": "Failed to send {{name}}",
   "channels.mediaPathNotAllowed": "Couldn't send {{name}} because the file is outside the allowed send directories",
-  "display": "Appearance",
+  "appearancePanel": "Appearance",
   "imageGeneration": "Image Generation",
   "imageGenerationToggle": "Enable image generation tool",
   "imageGenerationDescription": "Choose which configured image-capable model the tool should use by default.",

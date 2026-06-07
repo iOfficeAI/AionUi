@@ -422,7 +422,7 @@
   "channels.extension.defaultDesc": "Плагін розширення каналу",
   "channels.mediaSendFailed": "Не вдалося надіслати {{name}}",
   "channels.mediaPathNotAllowed": "Не вдалося надіслати {{name}}, тому що файл знаходиться поза дозволеними каталогами надсилання",
-  "display": "Вигляд",
+  "appearancePanel": "Вигляд",
   "imageGeneration": "Генерація зображень",
   "imageGenerationToggle": "Увімкнути інструмент генерації зображень",
   "imageGenerationDescription": "Виберіть налаштовану модель з підтримкою зображень для використання за замовчуванням.",

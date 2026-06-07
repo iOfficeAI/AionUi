@@ -426,7 +426,7 @@
   "channels.extension.defaultDesc": "Plugin do canal de extensão",
   "channels.mediaSendFailed": "Falha ao enviar {{name}}",
   "channels.mediaPathNotAllowed": "Não foi possível enviar {{name}} porque o arquivo está fora dos diretórios de envio permitidos",
-  "display": "Aparência",
+  "appearancePanel": "Aparência",
   "imageGeneration": "Geração de Imagens",
   "imageGenerationToggle": "Habilitar ferramenta de geração de imagens",
   "imageGenerationDescription": "Escolha qual modelo configurado capaz de gerar imagens a ferramenta deve usar por padrão.",
