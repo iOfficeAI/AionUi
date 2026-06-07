@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { useTranslation } from 'react-i18next';
-import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
+import ScaleControl from '@/renderer/components/settings/ScaleControl';
 import FontSizeStepper from '@/renderer/components/settings/FontSizeStepper';
 import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
@@ -67,8 +67,8 @@ const DisplayModalContent: React.FC = () => {
           {/* 缩放控制 / Scale Control */}
           <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
-              <PreferenceRow label={t('settings.fontSize')}>
-                <FontSizeControl />
+              <PreferenceRow label={t('settings.scale')}>
+                <ScaleControl />
               </PreferenceRow>
             </div>
           </div>

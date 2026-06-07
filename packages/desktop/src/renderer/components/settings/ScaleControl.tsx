@@ -22,12 +22,12 @@ const RESET_THRESHOLD = 0.01;
 const clamp = (value: number) => Math.min(FONT_SCALE_MAX, Math.max(FONT_SCALE_MIN, value));
 
 /**
- * 字体大小控制组件 / Font size control component
+ * 缩放控制组件 / Scale control component
  *
  * 提供界面缩放功能，支持滑块和按钮调节
  * Provides interface scaling with slider and button controls
  */
-const FontSizeControl: React.FC = () => {
+const ScaleControl: React.FC = () => {
   const { t } = useTranslation();
   const { fontScale, setFontScale, theme } = useThemeContext();
 
@@ -146,7 +146,7 @@ const FontSizeControl: React.FC = () => {
               opacity: 1,
             }}
           >
-            {t('settings.fontSizeReset')}
+            {t('settings.scaleReset')}
           </Button>
         </div>
       </div>
@@ -154,4 +154,4 @@ const FontSizeControl: React.FC = () => {
   );
 };
 
-export default FontSizeControl;
+export default ScaleControl;
