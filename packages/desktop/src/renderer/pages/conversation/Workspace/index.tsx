@@ -394,24 +394,54 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           />
         )}
 
-        {/* Toolbar: Sider files pane = diff-style bar; full workspace = rich toolbar */}
-        {!isChangesMode &&
-          isFilesMode &&
-          siderFilesChrome === 'embedded' && (
-            <FilesTreeToolbar
-              t={t}
-              label={workspaceDisplayName}
-              loading={treeHook.loading}
-              onRefresh={treeHook.refreshWorkspace}
-              onExpandFlyout={onExpandFilesFlyout}
-              activeTab={activeTab}
-              onTabChange={setActiveTab}
-              hasTodos={todosHook.hasTodos}
-              todoPendingCount={todosHook.totalCount - todosHook.completedCount}
-              hasApprovals={approvalsHook.hasApprovals}
-              approvalPendingCount={approvalsHook.approvals.length}
-            />
-          )}
+        {/* Embedded Sider: folder title lives in SiderFileTree header only — optional todos/approvals strip */}
+        {!isChangesMode && isFilesMode && siderFilesChrome === 'embedded' && (todosHook.hasTodos || approvalsHook.hasApprovals) && (
+          <div className='sider-files-aux-nav flex items-center gap-6px px-12px py-6px border-b border-[var(--bg-3)] bg-[var(--bg-2)] flex-shrink-0'>
+            {activeTab !== 'files' ? (
+              <button
+                type='button'
+                className='text-11px font-medium text-brand border-0 bg-transparent cursor-pointer p-0'
+                onClick={() => setActiveTab('files')}
+              >
+                {t('conversation.workspace.siderBackToTree', { defaultValue: '← File tree' })}
+              </button>
+            ) : (
+              <span className='text-11px font-semibold uppercase tracking-wide text-t-tertiary'>
+                {t('conversation.workspace.siderAuxViews', { defaultValue: 'Also' })}
+              </span>
+            )}
+            {todosHook.hasTodos && (
+              <button
+                type='button'
+                className={`text-11px font-medium px-6px py-2px rounded-control border-0 cursor-pointer ${
+                  activeTab === 'todos'
+                    ? 'bg-[color-mix(in_srgb,var(--brand)_18%,transparent)] text-brand'
+                    : 'bg-transparent text-t-secondary hover:text-t-primary'
+                }`}
+                onClick={() => setActiveTab('todos')}
+              >
+                {t('conversation.workspace.todos.tab')}
+                {todosHook.totalCount - todosHook.completedCount > 0
+                  ? ` (${todosHook.totalCount - todosHook.completedCount})`
+                  : ''}
+              </button>
+            )}
+            {approvalsHook.hasApprovals && (
+              <button
+                type='button'
+                className={`text-11px font-medium px-6px py-2px rounded-control border-0 cursor-pointer ${
+                  activeTab === 'approvals'
+                    ? 'bg-[color-mix(in_srgb,var(--warning)_22%,transparent)] text-warning'
+                    : 'bg-transparent text-t-secondary hover:text-t-primary'
+                }`}
+                onClick={() => setActiveTab('approvals')}
+              >
+                {t('conversation.workspace.approvals.tab')}
+                {approvalsHook.approvals.length > 0 ? ` (${approvalsHook.approvals.length})` : ''}
+              </button>
+            )}
+          </div>
+        )}
         {!isChangesMode && activeTab === 'files' && !isFilesMode && (
           <WorkspaceToolbar
             t={t}

@@ -77,7 +77,7 @@ const WorkspaceFilesFlyoutModal: React.FC<WorkspaceFilesFlyoutModalProps> = ({
             <Close size={16} />
           </button>
         </div>
-        <div className='flex-1 min-h-0 border border-solid border-[var(--color-border-2)] rd-8px overflow-hidden bg-bg-1'>
+        <div className='git-diff-flyout-modal__workspace'>
           <ChatWorkspace
             conversation_id={conversationId}
             workspace={workspace}

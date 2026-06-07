@@ -234,3 +234,8 @@
 [data-testid='sider-workspace-panel'] .chat-workspace {
   background: transparent;
 }
+
+.git-diff-flyout-modal__workspace .chat-workspace .flex-1.relative.min-h-0 {
+  flex: 1 1 auto;
+  min-height: 0;
+}

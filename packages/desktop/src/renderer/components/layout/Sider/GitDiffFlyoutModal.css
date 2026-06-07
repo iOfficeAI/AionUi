@@ -47,8 +47,29 @@ body[arco-theme='dark'] .git-diff-flyout-modal {
   overflow: hidden !important;
 }
 
+.git-diff-flyout-modal .aionui-modal-wrapper {
+  display: flex !important;
+  flex-direction: column !important;
+  height: 100% !important;
+  min-height: 0 !important;
+  max-height: 100% !important;
+}
+
 .git-diff-flyout-modal .aionui-modal-body-content {
   padding: 0 !important;
+  flex: 1 1 auto !important;
+  min-height: 0 !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+}
+
+.git-diff-flyout-modal.aionui-modal .arco-modal-body {
+  height: 100% !important;
+  max-height: 100% !important;
+  overflow: hidden !important;
+  display: flex !important;
+  flex-direction: column !important;
 }
 
 .git-diff-flyout-modal__panel {
@@ -57,7 +78,39 @@ body[arco-theme='dark'] .git-diff-flyout-modal {
   -webkit-backdrop-filter: blur(2px) saturate(106%);
   border: none;
   box-shadow: none;
-  padding: 24px 24px 22px;
+  padding: 20px 20px 16px;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.git-diff-flyout-modal__workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  border: 1px solid var(--git-diff-flyout-panel-border);
+  border-radius: var(--radius-panel);
+  background: var(--bg-2);
+}
+
+.git-diff-flyout-modal__workspace .chat-workspace {
+  flex: 1 1 auto;
+  min-height: 0;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.git-diff-flyout-modal__workspace .chat-workspace > .flex-1 {
+  min-height: 0;
+}
+
+.git-diff-flyout-modal__workspace .git-change-list-root {
+  min-height: 0;
 }
 
 .git-diff-flyout-modal__header {

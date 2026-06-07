@@ -94,7 +94,7 @@ const FileChangeItem: React.FC<{
     <div className='border-b border-b-base last:border-b-0'>
       <div
         className={`group flex items-center justify-between px-8px py-6px transition-colors ${
-          expandable ? 'cursor-pointer hover:bg-fill-2' : ''
+          expandable ? 'cursor-pointer hover:bg-[var(--bg-hover)]' : ''
         }`}
         onClick={expandable ? onToggle : undefined}
         role={expandable ? 'button' : undefined}
@@ -158,15 +158,16 @@ const PanelHeader: React.FC<{
   count: number;
   actions?: React.ReactNode;
 }> = ({ title, count, actions }) => (
-  <div className='flex items-center justify-between px-8px py-4px bg-transparent border-b border-b-base select-none flex-shrink-0'>
-    <span className='text-11px font-semibold text-t-secondary uppercase tracking-wide'>
-      {title} <span className='text-t-tertiary ml-2px font-normal'>({count})</span>
+  <div className='git-change-section-head flex items-center justify-between px-12px py-6px border-b border-[var(--bg-3)] select-none flex-shrink-0 bg-[var(--bg-2)]'>
+    <span className='text-11px font-semibold uppercase tracking-wide text-t-secondary'>
+      {title}
+      <span className='ml-6px font-normal normal-case tracking-normal text-t-tertiary'>({count})</span>
     </span>
-    {actions && (
+    {actions ? (
       <div className='flex items-center gap-2px' onClick={(e) => e.stopPropagation()}>
         {actions}
       </div>
-    )}
+    ) : null}
   </div>
 );
 
@@ -357,7 +358,7 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
   const totalCount = staged.length + unstaged.length + conflicted.length;
 
   return (
-    <div className='flex flex-col size-full'>
+    <div className='git-change-list-root flex flex-col flex-1 min-h-0 h-full'>
       {!hideToolbar && (
         <div className='px-8px py-4px border-b border-b-base flex items-center justify-between flex-shrink-0 min-h-32px'>
           <div className='flex items-center gap-6px min-w-0 flex-1'>
@@ -401,9 +402,9 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
           />
         </div>
       ) : (
-        <div className='flex-1 overflow-y-auto flex flex-col gap-16px py-8px'>
+        <div className='flex-1 overflow-y-auto flex flex-col gap-0 min-h-0 bg-[var(--bg-2)]'>
           {conflicted.length > 0 && (
-            <div className='border-y border-base bg-bg-1'>
+            <div className='border-b border-[var(--bg-3)]'>
               <PanelHeader title={t('conversation.workspace.changes.conflicted')} count={conflicted.length} />
               {conflicted.map((change) => (
                 <FileChangeItem
@@ -427,7 +428,7 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
             </div>
           )}
 
-          <div className='border-y border-base bg-bg-1'>
+          <div className='border-b border-[var(--bg-3)]'>
             <PanelHeader
               title={t('conversation.workspace.changes.staged')}
               count={staged.length}
@@ -500,7 +501,7 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
             )}
           </div>
 
-          <div className='border-y border-base bg-bg-1'>
+          <div className='border-b border-[var(--bg-3)]'>
             <PanelHeader
               title={t('conversation.workspace.changes.unstaged')}
               count={unstaged.length}
@@ -581,21 +582,22 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
       )}
 
       {/* Commit Box */}
-      <div className='p-8px border-t border-t-base bg-bg-2 flex flex-col gap-6px flex-shrink-0'>
+      <div className='p-12px border-t border-[var(--bg-3)] bg-[var(--bg-2)] flex flex-col gap-8px flex-shrink-0'>
         <textarea
           placeholder={t('conversation.workspace.changes.commitPlaceholder')}
           value={commitMessage}
           onChange={(e) => setCommitMessage(e.target.value)}
-          className='w-full text-12px p-6px bg-bg-1 text-t-primary border border-base rounded-4px resize-y focus:outline-none focus:border-brand placeholder:text-t-tertiary transition-colors'
+          className='w-full text-12px p-8px bg-[var(--bg-1)] text-t-primary border border-[var(--border-base)] rounded-control resize-y focus:outline-none focus:border-[var(--brand)] placeholder:text-t-tertiary'
           style={{ fontFamily: 'inherit', minHeight: '48px', maxHeight: '120px' }}
         />
         <button
+          type='button'
           disabled={staged.length === 0 || !commitMessage.trim() || committing}
           onClick={handleCommit}
-          className='w-full py-4px px-8px text-12px font-medium rounded-4px flex items-center justify-center transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+          className='w-full py-6px px-8px text-12px font-semibold rounded-control flex items-center justify-center transition-colors disabled:opacity-55 disabled:cursor-not-allowed border-0'
           style={{
             backgroundColor: (staged.length === 0 || !commitMessage.trim()) ? 'var(--bg-3)' : 'var(--brand)',
-            color: (staged.length === 0 || !commitMessage.trim()) ? 'var(--text-tertiary)' : 'var(--bg-base)',
+            color: (staged.length === 0 || !commitMessage.trim()) ? 'var(--text-secondary)' : 'var(--bg-base)',
             border: 'none',
           }}
         >

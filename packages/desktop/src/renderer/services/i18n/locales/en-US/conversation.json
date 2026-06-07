@@ -228,6 +228,8 @@
         "low": "Low"
       }
     },
+    "siderBackToTree": "← File tree",
+    "siderAuxViews": "Also",
     "openWorkspace": "Open project folder",
     "openWith": {
       "vscode": "VS Code",
