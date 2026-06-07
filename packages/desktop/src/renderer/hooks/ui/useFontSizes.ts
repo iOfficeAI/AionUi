@@ -30,7 +30,10 @@ function readFontSizes(): FontSizes {
 
 // Apply persisted sizes ASAP at module load to minimize first-paint flash (FOUC).
 if (typeof window !== 'undefined') {
-  void configService.whenReady().then(() => applyFontSizes(readFontSizes()));
+  void configService
+    .whenReady()
+    .then(() => applyFontSizes(readFontSizes()))
+    .catch((error) => console.error('Failed to apply persisted font sizes:', error));
 }
 
 export type UseFontSizes = {
@@ -43,12 +46,15 @@ export const useFontSizes = (): UseFontSizes => {
 
   useEffect(() => {
     let mounted = true;
-    void configService.whenReady().then(() => {
-      if (!mounted) return;
-      const next = readFontSizes();
-      setFontSizesState(next);
-      applyFontSizes(next);
-    });
+    void configService
+      .whenReady()
+      .then(() => {
+        if (!mounted) return;
+        const next = readFontSizes();
+        setFontSizesState(next);
+        applyFontSizes(next);
+      })
+      .catch((error) => console.error('Failed to load persisted font sizes:', error));
     // Same-window reactivity: re-apply if any font-size key changes elsewhere.
     const offs = FONT_SIZE_KEYS.map((key) =>
       configService.subscribe(fontSizeConfigKey(key), () => {
