@@ -29,6 +29,7 @@ import { changeLanguage } from '@/renderer/services/i18n';
 import { useNewApiAccount } from '@renderer/hooks/context/NewApiAccountContext';
 import { iconColors } from '@renderer/styles/colors';
 import { isElectronDesktop, openExternalUrl } from '@renderer/utils/platform';
+import { useDealerConfig } from '@/renderer/hooks/useDealerConfig';
 import type { SiderTooltipProps } from '@renderer/utils/ui/siderTooltip';
 
 interface SiderFooterProps {
@@ -70,6 +71,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
   const navigate = useNavigate();
   const { login } = useNewApiAccount();
   const { openFeedback } = useFeedback();
+  const { openRegisterUrl } = useDealerConfig();
   const [loginLoading, setLoginLoading] = useState(false);
   const [accountPopupVisible, setAccountPopupVisible] = useState(false);
   const [loginForm] = Form.useForm<{ username: string; password: string }>();
@@ -338,7 +340,7 @@ const SiderFooter: React.FC<SiderFooterProps> = ({
           <Button
             type='secondary'
             onClick={() => {
-              void openExternalUrl('https://api.mxou.cn/register');
+              void openRegisterUrl();
             }}
           >
             {t('settings.newApiRegister')}

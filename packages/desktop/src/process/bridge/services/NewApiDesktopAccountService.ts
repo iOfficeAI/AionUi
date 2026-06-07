@@ -407,6 +407,11 @@ function extractToken(payload: unknown): string | undefined {
   return undefined;
 }
 
+/** Returns true when the token value looks like a masked/redacted key (e.g. sk-***abcd). */
+function isMaskedToken(token: string): boolean {
+  return token.includes('***') || token.includes('...');
+}
+
 function extractUserId(payload: unknown): string | undefined {
   if (!payload) return undefined;
   if (typeof payload === 'string' || typeof payload === 'number') {
@@ -543,15 +548,21 @@ async function resolveManagedToken(
       ? existingTokenEntry.id
       : undefined;
   const existingToken =
-    (existingTokenId ? await fetchFullTokenKey(existingTokenId, cookies, loginToken, userId) : undefined) ??
-    extractToken(existingChannelConnection);
+    (existingTokenId ? await fetchFullTokenKey(existingTokenId, cookies, loginToken, userId) : undefined);
 
-  if (existingToken) {
+  // Guard: never use a masked key. The token list endpoint may return
+  // masked keys (sk-***abcd) and the channel-connection fallback can
+  // pick them up. When fetchFullTokenKey succeeds, the key is unmasked.
+  if (existingToken && !isMaskedToken(existingToken)) {
     return {
       token: existingToken,
       baseUrl: normalizeBaseUrl(existingChannelConnection?.url || NEW_API_BASE_URL),
     };
   }
+
+  // Existing token is masked or unavailable — create a new one.
+  // Do NOT fall back to extractToken(existingChannelConnection); it may
+  // contain a masked key from the token list (sk-***abcd).
 
   const tokenResult = await fetchJson<NewApiResponse<unknown>>('/api/token/', {
     method: 'POST',
@@ -1588,6 +1599,12 @@ function recoverManagedRuntimeSnapshotFromConfigs(): RecoveredManagedRuntimeSnap
 }
 
 function writePoundingConfig(apiKey: string, baseUrl?: string): void {
+  // Guard: never write a masked key to config.json. Skills read this file
+  // and need the full API key to call LLM endpoints.
+  if (isMaskedToken(apiKey)) {
+    console.error('[POUNDING] Refusing to write masked API key to config.json');
+    return;
+  }
   const config = {
     api: {
       base_url: baseUrl || NEW_API_BASE_URL,
@@ -2116,6 +2133,12 @@ export class NewApiDesktopAccountService {
         nextPrefs[cliTarget] = resolveManagedCliModelId(provider, nextPrefs, cliTarget);
       }
       await saveManagedModelPrefs(nextPrefs);
+      // Write config.json IMMEDIATELY with the full key from login.
+      // token is the verified, unmasked API key from resolveManagedToken.
+      // Do NOT wait for syncManagedProviderRuntimeConfigs — that path may
+      // receive a masked key from findManagedProvider if reconciliation
+      // runs before the backend has the full key.
+      writePoundingConfig(token, providerBaseUrl);
       await syncManagedProviderRuntimeConfigs(provider, nextPrefs);
 
       const status: NewApiAccountStatus = {

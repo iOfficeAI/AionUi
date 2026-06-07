@@ -238,8 +238,8 @@ export function initApplicationBridge(): void {
       }
       const raw = fs.readFileSync(configPath, 'utf-8');
       const config = JSON.parse(raw);
-      if (config && typeof config.ref === 'string' && config.ref.trim()) {
-        return { success: true, data: { ref: config.ref.trim() } };
+      if (config && typeof config.aff === 'string' && config.aff.trim()) {
+        return { success: true, data: { aff: config.aff.trim() } };
       }
       return { success: true };
     } catch (e) {

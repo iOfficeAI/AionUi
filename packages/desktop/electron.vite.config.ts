@@ -142,6 +142,14 @@ export default defineConfig(({ mode }) => {
       define: {
         'process.env.NODE_ENV': JSON.stringify(mode),
         'process.env.env': JSON.stringify(process.env.env),
+        // Inject Sentry DSN from CI secrets/vars so the packaged app uses the
+        // correct project, not the hardcoded fallback.  Without this, the
+        // runtime process.env.SENTRY_DSN is always undefined on end-user
+        // machines and events go to the wrong Sentry project (or nowhere).
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.POUNDING_SENTRY_DSN': JSON.stringify(process.env.POUNDING_SENTRY_DSN ?? ''),
+        'process.env.POUNDING_SENTRY_ENVIRONMENT': JSON.stringify(process.env.POUNDING_SENTRY_ENVIRONMENT ?? ''),
+        'process.env.POUNDING_SENTRY_RELEASE': JSON.stringify(process.env.POUNDING_SENTRY_RELEASE ?? ''),
       },
     },
 
@@ -292,6 +300,12 @@ export default defineConfig(({ mode }) => {
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),
         global: 'globalThis',
+        // Inject Sentry DSN from CI secrets/vars so the renderer SDK can
+        // inherit the correct project via IPC transport.
+        'process.env.SENTRY_DSN': JSON.stringify(process.env.SENTRY_DSN ?? ''),
+        'process.env.POUNDING_SENTRY_DSN': JSON.stringify(process.env.POUNDING_SENTRY_DSN ?? ''),
+        'process.env.POUNDING_SENTRY_ENVIRONMENT': JSON.stringify(process.env.POUNDING_SENTRY_ENVIRONMENT ?? ''),
+        'process.env.POUNDING_SENTRY_RELEASE': JSON.stringify(process.env.POUNDING_SENTRY_RELEASE ?? ''),
       },
       optimizeDeps: {
         exclude: ['electron'],

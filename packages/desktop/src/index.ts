@@ -19,6 +19,8 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
+import { mcpService } from '@/common/adapter/ipcBridge';
+import type { IMcpServer, IMcpServerTransportStdio } from '@/common/config/storage';
 import { initializeProcess } from './process';
 import { startBackendOrExit } from './process/startup/backendStartup';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
@@ -787,6 +789,38 @@ const handleAppReady = async (): Promise<void> => {
       console.log(
         `[CDP] MCP chrome-devtools: npx chrome-devtools-mcp@0.16.0 --browser-url=http://127.0.0.1:${cdpPort}`
       );
+
+      // Update the chrome-devtools MCP server in the backend DB with the actual
+      // CDP port. This handles port-conflict scenarios (9231, 9232, etc.) where
+      // the runtime port differs from the default 9230 used during migration
+      // bootstrap.
+      try {
+        const servers = await mcpService.listServers.invoke();
+        const chromeDevtools = servers.find(
+          (s: IMcpServer) => s.name === 'chrome-devtools' && s.builtin === true && s.transport.type === 'stdio'
+        );
+        if (chromeDevtools) {
+          const transport = chromeDevtools.transport as IMcpServerTransportStdio;
+          const currentArgs: string[] = transport.args ?? [];
+          const browserUrlArg = `--browser-url=http://127.0.0.1:${cdpPort}`;
+          const hasUrl = currentArgs.some((a) => a.startsWith('--browser-url='));
+          const needsUpdate = !hasUrl || !currentArgs.includes(browserUrlArg);
+          if (needsUpdate) {
+            const newArgs = hasUrl
+              ? currentArgs.map((a) => (a.startsWith('--browser-url=') ? browserUrlArg : a))
+              : [...currentArgs, browserUrlArg];
+            await mcpService.updateServer.invoke({
+              id: chromeDevtools.id,
+              data: {
+                transport: { ...transport, args: newArgs },
+              },
+            });
+            console.log(`[CDP] Updated chrome-devtools MCP server --browser-url to port ${cdpPort}`);
+          }
+        }
+      } catch (error) {
+        console.warn('[CDP] Failed to update chrome-devtools MCP server config:', error);
+      }
     } else {
       console.warn(`[CDP] Warning: Remote debugging port ${cdpPort} not responding`);
     }

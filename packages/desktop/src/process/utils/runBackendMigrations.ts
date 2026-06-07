@@ -163,7 +163,7 @@ function isSameStdioTransport(left: IMcpServer['transport'], right: IMcpServer['
 function buildDefaultMcpServers(): McpImportServer[] {
   const chromeConfig = {
     command: 'npx',
-    args: ['-y', 'chrome-devtools-mcp@latest'],
+    args: ['-y', 'chrome-devtools-mcp@latest', '--browser-url=http://127.0.0.1:9230'],
   };
 
   const imageGenConfig = {

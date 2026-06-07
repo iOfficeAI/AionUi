@@ -132,6 +132,19 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 
 ## Branch Strategy (POUNDING Fork)
 
+### Three-Tier Repository Structure
+
+```
+iOfficeAI/AionUi (上游)
+    ↓ sync-upstream workflow
+halojerry/AionUi (开发复刻 — 此仓库)
+    ↓ PR: dev → release/pounding-v*.*.x → main
+halojerry/pounding (发布仓库 — 最终产物)
+```
+
+**`halojerry/pounding` 是最终发布仓库**，只接收 `halojerry/AionUi` 的稳定代码。
+**永远不要**从 `iOfficeAI/AionUi` 直接同步到 `halojerry/pounding`。
+
 **main is the stable POUNDING release branch. NEVER merge upstream directly into main.**
 
 ```
@@ -153,6 +166,36 @@ main (stable — triggers release builds via tag)
 - POUNDING-specific features are developed on `feature/*` branches, PR'd to `dev`.
 - Tag format: `v<version>-Pounding` (e.g. `v2.1.5-Pounding`).
 - **NEVER run `git merge upstream/main` into main directly.**
+
+### Upstream Sync Process (detailed)
+
+**Trigger**: Manual `workflow_dispatch` via GitHub Actions → `sync-upstream.yml`.
+
+**What the workflow does automatically**:
+1. Validates target branch is NOT `main` or `dev` (refuses direct sync)
+2. Fetches from `iOfficeAI/AionUi` upstream
+3. Fast-forward merges (`--ff-only`) into `feature/upstream-sync` (or custom target branch)
+4. If conflicts: job fails, manual resolution required
+5. On success: creates a PR from sync branch → `dev` with upstream commit summary
+
+**Manual steps after sync (MANDATORY)**:
+1. Check the auto-created PR diff — look for POUNDING branding overwrites
+2. Run `bash scripts/check-branding.sh` locally
+3. Restore ALL items in the Branding Checklist below that were overwritten
+4. Pay special attention to: `electron-builder.yml`, `locales/*/login.json`, `locales/*/common.json`
+5. Rebuild and smoke-test: `bun run dev`
+6. Merge PR to `dev` only after all checks pass
+
+**Known pitfalls**:
+- `electron-builder.yml` `productName`/`appId` often gets overwritten to `AionUi`/`com.aionui.app`
+- Locale files in `pt-BR/`, `tr-TR/` etc. are the most likely to revert to `"brand": "AionUi"`
+- New upstream files may reference `iOfficeAI/AionUi` — grep and replace
+- The merge may introduce new dependencies or config formats — test `bun run dev` before merging
+
+**Before merging to main (release)**:
+- Version bump via `bump-version` skill
+- Tag: `v<version>-Pounding`
+- This triggers `build-and-release.yml` → COS upload + GitHub Release
 
 ## POUNDING Branding Checklist
 
@@ -204,3 +247,76 @@ Features unique to the POUNDING fork that must be preserved:
 | **pr-automation** | PR automation orchestrator: poll PRs, review, fix, and merge via label state machine  | Invoked by daemon script (`pr-automation.sh`), `/pr-automation`                            |
 
 > Skills are located in `.claude/skills/` and contain project conventions that apply to **all** agents and contributors.
+
+## Troubleshooting & Lessons Learned
+
+Lessons from POUNDING branding/fix sessions. When debugging similar symptoms, check these first.
+
+### Sentry: user feedback not arriving
+
+**Symptom**: Users submit feedback via Settings → Report Issue, nothing appears in Sentry.
+
+**Root cause**: The `feedback:submit` IPC handler in `feedbackBridge.ts` was fully implemented but never exposed in the preload bridge (`preload/main.ts`). The fallback path (`FeedbackReportModal.tsx` → `@sentry/electron/renderer` dynamic import → IPC transport) silently swallowed all errors.
+
+**Fix**: Added `submitFeedback` to `preload/main.ts` contextBridge and updated `FeedbackReportModal.tsx` to call it via `electronAPI.submitFeedback()`.
+
+**Key files**: `preload/main.ts`, `FeedbackReportModal.tsx`, `feedbackBridge.ts`, `electron.ts` (type)
+
+### Sentry: wrong DSN in production builds
+
+**Symptom**: Production builds always use the hardcoded fallback DSN, ignoring `SENTRY_DSN` from GitHub secrets/vars.
+
+**Root cause**: `electron.vite.config.ts` `define:` blocks did NOT inject `process.env.SENTRY_DSN`. The DSN was only available as a build-time env var; Vite treated `process.env.SENTRY_DSN` as a runtime expression, which is always `undefined` on end-user machines.
+
+**Fix**: Added `process.env.SENTRY_DSN`, `POUNDING_SENTRY_DSN`, `POUNDING_SENTRY_ENVIRONMENT`, `POUNDING_SENTRY_RELEASE` to both main and renderer `define:` blocks.
+
+**Key files**: `electron.vite.config.ts`, `_build-reusable.yml`, `sentry.ts`
+
+### Chrome DevTools MCP: handshake fails
+
+**Symptom**: "AionUI can't complete MCP handshake" for chrome-devtools MCP server.
+
+**Root cause**: The default MCP server config (`runBackendMigrations.ts` `buildDefaultMcpServers()`) lacked `--browser-url`. chrome-devtools-mcp defaults to port 9222, but POUNDING CDP runs on port 9230.
+
+**Fix**: (a) Added `--browser-url=http://127.0.0.1:9230` to default args; (b) After CDP is ready, `index.ts` updates the MCP server config in the backend DB with the actual CDP port (handles port conflicts).
+
+**Key files**: `runBackendMigrations.ts`, `index.ts`, `configureChromium.ts`
+
+### CLI model: switch reverts to default
+
+**Symptom**: User switches model in the conversation header model selector, but after refresh it shows the default model again.
+
+**Root cause**: Storage key disconnect. `useAcpModelInfo.ts` reads current model from `newApi.desktop.cliModelPrefs[cliTarget]`, but `selectModel` saves to `acp.config[backend].preferredModelId`. `cliModelPrefs` was only written from `AionrsSettings.tsx` (settings page), never from the in-conversation selector.
+
+**Fix**: In `selectModel`, after successful switch, also update `newApi.desktop.cliModelPrefs[cliTarget]` and call `reconcileModel` IPC to sync CLI config files.
+
+**Key files**: `useAcpModelInfo.ts`, `AionrsSettings.tsx`, `agentSelectionUtils.ts`
+
+### Dealer kit: invitation link not triggered
+
+**Symptom**: Dealer referral code from `dealer-config.json` never reaches the registration URL.
+
+**Root cause**: `useDealerConfig` hook was defined but had zero consumers. The registration button in `SiderFooter.tsx` used a hardcoded `https://api.mxou.cn/register` without `?aff=` parameter. Also the URL changed from `/register?ref=` to `/sign-up?aff=`.
+
+**Fix**: Updated field name `ref`→`aff` across all files (`ipcBridge.ts`, `useDealerConfig.ts`, `applicationBridge.ts`, `pack-usb-zip.sh`); connected `useDealerConfig.openRegisterUrl()` to `SiderFooter.tsx` registration button.
+
+**Key files**: `SiderFooter.tsx`, `useDealerConfig.ts`, `applicationBridge.ts`, `pack-usb-zip.sh`
+
+### pt-BR locale: AionUi branding residue
+
+**Symptom**: pt-BR users see "AionUi" instead of "POUNDING" in login page, tray menu, and backend startup errors.
+
+**Root cause**: 5 strings in `locales/pt-BR/login.json` and `locales/pt-BR/common.json` were never updated from upstream AionUi branding.
+
+**Fix**: Replaced all "AionUi"→"POUNDING" and "AionCore"→"poundingcore" in pt-BR locale files.
+
+**Key files**: `locales/pt-BR/login.json`, `locales/pt-BR/common.json`
+
+### Branding drift: no automated checks
+
+**Symptom**: Branding regressions (pt-BR, iOfficeAI comments, Sentry config) go undetected after upstream syncs.
+
+**Fix**: Created `scripts/check-branding.sh` (37 checks for AionUi, 11 for AionCore) and added `branding-check` job to CI (`pr-checks.yml` for AionUi, `ci.yml` for AionCore).
+
+**Key files**: `scripts/check-branding.sh`, `.github/workflows/pr-checks.yml`
+
