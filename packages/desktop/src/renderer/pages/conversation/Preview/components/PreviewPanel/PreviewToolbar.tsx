@@ -13,6 +13,13 @@ import { useTranslation } from 'react-i18next';
 import { shouldShowDownload } from './previewToolbarUtils';
 
 /**
+ * 暂时隐藏快照/历史入口（保留底层逻辑，日后翻 true 即恢复）
+ * Temporarily hide the snapshot/history entry (underlying logic is kept;
+ * flip to true to restore the UI).
+ */
+const SHOW_SNAPSHOT_HISTORY = false;
+
+/**
  * PreviewToolbar 组件属性
  * PreviewToolbar component props
  */
@@ -289,8 +296,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
         <div className='flex items-center gap-4px flex-shrink-0'>
           {rightExtra}
 
-          {((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
+          {SHOW_SNAPSHOT_HISTORY &&
+            ((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
+              (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
             <>
               <div
                 className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
