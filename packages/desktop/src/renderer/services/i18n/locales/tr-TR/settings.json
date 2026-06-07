@@ -246,6 +246,8 @@
   "fontSizeMarkdown": "Markdown metin boyutu",
   "fontSizeCode": "Kod yazı tipi boyutu",
   "fontSizeStepperReset": "Sıfırla",
+  "fontSizeDecrease": "Küçült",
+  "fontSizeIncrease": "Büyüt",
   "lightMode": "Açık",
   "darkMode": "Koyu",
   "agent": "Ajan",

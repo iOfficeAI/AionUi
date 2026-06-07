@@ -244,6 +244,8 @@
   "fontSizeMarkdown": "Розмір тексту Markdown",
   "fontSizeCode": "Розмір шрифту коду",
   "fontSizeStepperReset": "Скинути",
+  "fontSizeDecrease": "Зменшити",
+  "fontSizeIncrease": "Збільшити",
   "lightMode": "Світла",
   "darkMode": "Темна",
   "agent": "Агент",

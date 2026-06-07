@@ -246,6 +246,8 @@
   "fontSizeMarkdown": "Markdown text size",
   "fontSizeCode": "Code font size",
   "fontSizeStepperReset": "Reset",
+  "fontSizeDecrease": "Decrease",
+  "fontSizeIncrease": "Increase",
   "lightMode": "Light",
   "darkMode": "Dark",
   "agent": "Agent",

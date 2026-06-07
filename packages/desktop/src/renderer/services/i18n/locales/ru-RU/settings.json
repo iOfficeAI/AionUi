@@ -243,6 +243,8 @@
   "fontSizeMarkdown": "Размер текста Markdown",
   "fontSizeCode": "Размер шрифта кода",
   "fontSizeStepperReset": "Сбросить",
+  "fontSizeDecrease": "Уменьшить",
+  "fontSizeIncrease": "Увеличить",
   "lightMode": "Светлая",
   "darkMode": "Тёмная",
   "agent": "Агент",

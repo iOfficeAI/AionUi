@@ -10,9 +10,16 @@ import FontSizeControl from '@/renderer/components/settings/FontSizeControl';
 import FontSizeStepper from '@/renderer/components/settings/FontSizeStepper';
 import CssThemeSettings from '@renderer/pages/settings/DisplaySettings/CssThemeSettings';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import { FONT_SIZE_SPECS, FONT_SIZE_STEP } from '@/common/config/fontSizes';
+import { FONT_SIZE_KEYS, FONT_SIZE_SPECS, FONT_SIZE_STEP, type FontSizeKey } from '@/common/config/fontSizes';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext';
 import { useSettingsViewMode } from '../settingsViewContext';
+
+/** Map each configurable font-size region to its row label i18n key. */
+const FONT_SIZE_LABEL_KEY: Record<FontSizeKey, string> = {
+  chat: 'settings.fontSizeChat',
+  markdown: 'settings.fontSizeMarkdown',
+  code: 'settings.fontSizeCode',
+};
 
 /**
  * 偏好设置行组件 / Preference row component
@@ -69,39 +76,19 @@ const DisplayModalContent: React.FC = () => {
           {/* 字体大小 / Font sizes */}
           <div className='px-16px md:px-24px lg:px-28px py-14px md:py-16px bg-2 rd-16px'>
             <div className='w-full flex flex-col divide-y divide-border-2'>
-              <PreferenceRow label={t('settings.fontSizeChat')}>
-                <FontSizeStepper
-                  value={fontSizes.chat}
-                  min={FONT_SIZE_SPECS.chat.min}
-                  max={FONT_SIZE_SPECS.chat.max}
-                  step={FONT_SIZE_STEP}
-                  defaultValue={FONT_SIZE_SPECS.chat.default}
-                  resetLabel={t('settings.fontSizeStepperReset')}
-                  onChange={(px) => void setFontSize('chat', px)}
-                />
-              </PreferenceRow>
-              <PreferenceRow label={t('settings.fontSizeMarkdown')}>
-                <FontSizeStepper
-                  value={fontSizes.markdown}
-                  min={FONT_SIZE_SPECS.markdown.min}
-                  max={FONT_SIZE_SPECS.markdown.max}
-                  step={FONT_SIZE_STEP}
-                  defaultValue={FONT_SIZE_SPECS.markdown.default}
-                  resetLabel={t('settings.fontSizeStepperReset')}
-                  onChange={(px) => void setFontSize('markdown', px)}
-                />
-              </PreferenceRow>
-              <PreferenceRow label={t('settings.fontSizeCode')}>
-                <FontSizeStepper
-                  value={fontSizes.code}
-                  min={FONT_SIZE_SPECS.code.min}
-                  max={FONT_SIZE_SPECS.code.max}
-                  step={FONT_SIZE_STEP}
-                  defaultValue={FONT_SIZE_SPECS.code.default}
-                  resetLabel={t('settings.fontSizeStepperReset')}
-                  onChange={(px) => void setFontSize('code', px)}
-                />
-              </PreferenceRow>
+              {FONT_SIZE_KEYS.map((key) => (
+                <PreferenceRow key={key} label={t(FONT_SIZE_LABEL_KEY[key])}>
+                  <FontSizeStepper
+                    value={fontSizes[key]}
+                    min={FONT_SIZE_SPECS[key].min}
+                    max={FONT_SIZE_SPECS[key].max}
+                    step={FONT_SIZE_STEP}
+                    defaultValue={FONT_SIZE_SPECS[key].default}
+                    resetLabel={t('settings.fontSizeStepperReset')}
+                    onChange={(px) => void setFontSize(key, px)}
+                  />
+                </PreferenceRow>
+              ))}
             </div>
           </div>
         </div>

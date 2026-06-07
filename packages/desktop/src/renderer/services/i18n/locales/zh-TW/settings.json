@@ -246,6 +246,8 @@
   "fontSizeMarkdown": "Markdown 字級",
   "fontSizeCode": "程式碼字級",
   "fontSizeStepperReset": "重設",
+  "fontSizeDecrease": "縮小",
+  "fontSizeIncrease": "放大",
   "lightMode": "淺色",
   "darkMode": "深色",
   "agent": "代理",

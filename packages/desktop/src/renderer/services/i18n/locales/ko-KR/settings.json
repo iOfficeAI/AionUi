@@ -246,6 +246,8 @@
   "fontSizeMarkdown": "Markdown 텍스트 크기",
   "fontSizeCode": "코드 글꼴 크기",
   "fontSizeStepperReset": "초기화",
+  "fontSizeDecrease": "줄이기",
+  "fontSizeIncrease": "키우기",
   "lightMode": "라이트",
   "darkMode": "다크",
   "agent": "에이전트",

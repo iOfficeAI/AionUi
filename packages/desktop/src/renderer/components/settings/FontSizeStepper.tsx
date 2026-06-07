@@ -5,6 +5,7 @@
  */
 
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { Button } from '@arco-design/web-react';
 
 type FontSizeStepperProps = {
@@ -19,6 +20,8 @@ type FontSizeStepperProps = {
 
 /** Integer-px font size stepper: − [value] + ↺ */
 const FontSizeStepper: React.FC<FontSizeStepperProps> = ({ value, min, max, step, defaultValue, resetLabel, onChange }) => {
+  const { t } = useTranslation();
+  // Defensive bound only; the parent already clamps via clampFontSize before persisting.
   const clamp = (n: number) => Math.min(max, Math.max(min, n));
   return (
     <div className='flex items-center gap-10px ml-auto'>
@@ -26,7 +29,7 @@ const FontSizeStepper: React.FC<FontSizeStepperProps> = ({ value, min, max, step
         size='mini'
         type='secondary'
         shape='circle'
-        aria-label='decrease'
+        aria-label={t('settings.fontSizeDecrease')}
         className='w-28px h-28px !min-w-28px flex items-center justify-center p-0'
         onClick={() => onChange(clamp(value - step))}
         disabled={value <= min}
@@ -40,7 +43,7 @@ const FontSizeStepper: React.FC<FontSizeStepperProps> = ({ value, min, max, step
         size='mini'
         type='secondary'
         shape='circle'
-        aria-label='increase'
+        aria-label={t('settings.fontSizeIncrease')}
         className='w-28px h-28px !min-w-28px flex items-center justify-center p-0'
         onClick={() => onChange(clamp(value + step))}
         disabled={value >= max}

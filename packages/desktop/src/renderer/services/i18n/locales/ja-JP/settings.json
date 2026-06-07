@@ -246,6 +246,8 @@
   "fontSizeMarkdown": "Markdownの文字サイズ",
   "fontSizeCode": "コードのフォントサイズ",
   "fontSizeStepperReset": "リセット",
+  "fontSizeDecrease": "小さく",
+  "fontSizeIncrease": "大きく",
   "lightMode": "ライト",
   "darkMode": "ダーク",
   "agent": "エージェント",
