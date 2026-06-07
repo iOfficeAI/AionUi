@@ -1,0 +1,156 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { TConversationRuntimeSummary } from '@/common/config/storage';
+import { describe, expect, it } from 'vitest';
+import {
+  createDefaultConversationRuntimeView,
+  hydrateSucceededConversationRuntimeView,
+  localSendAcceptedConversationRuntimeView,
+  localSendFailedConversationRuntimeView,
+  localSendStartedConversationRuntimeView,
+  localStopAcknowledgedConversationRuntimeView,
+  localStopRequestedConversationRuntimeView,
+  turnCompletedConversationRuntimeView,
+} from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
+
+const conversation_id = 'conversation-1';
+
+const runtime = (overrides: Partial<TConversationRuntimeSummary>): TConversationRuntimeSummary => ({
+  state: 'idle',
+  can_send_message: true,
+  has_task: false,
+  task_status: 'finished',
+  is_processing: false,
+  pending_confirmations: 0,
+  ...overrides,
+});
+
+describe('conversationRuntimeViewStore', () => {
+  it('hydrates a running runtime as processing and not sendable', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+      })
+    );
+
+    expect(view).toMatchObject({
+      state: 'running',
+      isProcessing: true,
+      canSendMessage: false,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+  });
+
+  it('hydrates an idle runtime as sendable', () => {
+    const { view, logs } = hydrateSucceededConversationRuntimeView(undefined, conversation_id, runtime({}));
+
+    expect(view).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs.map((log) => log.event)).toContain('runtime_release_confirmed');
+  });
+
+  it('marks local send start as busy before backend runtime arrives', () => {
+    const { view } = localSendStartedConversationRuntimeView(undefined, conversation_id);
+
+    expect(view).toMatchObject({
+      state: 'starting',
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      hydrated: true,
+    });
+  });
+
+  it('clears a failed local send gate and restores sendability without backend runtime', () => {
+    const started = localSendStartedConversationRuntimeView(undefined, conversation_id).view;
+    const { view } = localSendFailedConversationRuntimeView(started, conversation_id, 'network error');
+
+    expect(view).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      hydrated: true,
+    });
+  });
+
+  it('keeps a send accepted turn busy until runtime confirmation', () => {
+    const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
+
+    expect(accepted).toMatchObject({
+      state: 'starting',
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+    });
+
+    const { view } = turnCompletedConversationRuntimeView(accepted, conversation_id, runtime({}));
+
+    expect(view).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+    });
+  });
+
+  it('does not unlock when turn completed has no runtime', () => {
+    const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
+    const { view, logs } = turnCompletedConversationRuntimeView(accepted, conversation_id, null);
+
+    expect(view).toMatchObject({
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      hydrated: true,
+    });
+    expect(logs.map((log) => log.event)).toEqual(['turn_completed_missing_runtime']);
+  });
+
+  it('does not release on stop acknowledgement without runtime confirmation', () => {
+    const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
+    const requested = localStopRequestedConversationRuntimeView(accepted, conversation_id).view;
+    const acknowledged = localStopAcknowledgedConversationRuntimeView(requested, conversation_id).view;
+
+    expect(acknowledged).toMatchObject({
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      localStopping: true,
+    });
+
+    const { view } = turnCompletedConversationRuntimeView(acknowledged, conversation_id, runtime({}));
+    expect(view).toMatchObject({
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      localStopping: false,
+    });
+  });
+
+  it('defaults to an idle view before hydration', () => {
+    expect(createDefaultConversationRuntimeView(conversation_id)).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      hasBackendRuntime: false,
+      hydrated: false,
+    });
+  });
+});
