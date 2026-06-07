@@ -464,8 +464,8 @@ export const application = {
 // Dealer configuration (USB portable version)
 // ---------------------------------------------------------------------------
 export interface DealerConfig {
-  /** Dealer referral code, appended as ?ref=xxx to the register URL */
-  ref: string;
+  /** Dealer affiliate code, appended as ?aff=xxx to the sign-up URL */
+  aff: string;
 }
 
 // ---------------------------------------------------------------------------

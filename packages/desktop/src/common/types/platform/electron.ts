@@ -19,6 +19,14 @@ export interface ElectronBridgeAPI {
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
   // Feedback screenshot capture / 反馈截图
   captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
+  // Submit feedback to Sentry via main process (has real DSN + proper error handling)
+  submitFeedback?: (payload: {
+    module: string;
+    summary: string;
+    description: string;
+    logs?: { filename: string; data: number[] } | null;
+    screenshots?: Array<{ filename: string; data: number[]; contentType: string }>;
+  }) => Promise<{ ok: boolean }>;
 }
 
 export type BackendStartupFailureReason =

@@ -13,7 +13,7 @@ OUT_DIR="$(cd "${1:-out}" && pwd)"
 TEMP_DIR="$(mktemp -d)"
 trap 'rm -rf "$TEMP_DIR"' EXIT
 
-DEALER_CONFIG='{"ref": "YOUR_REF_CODE"}'
+DEALER_CONFIG='{"aff": "YOUR_AFF_CODE"}'
 
 WORKDIR="$TEMP_DIR/dealer-kit"
 mkdir -p "$WORKDIR"

@@ -479,6 +479,32 @@ export const useAcpModelInfo = ({
         if (backend) {
           void savePreferredModelId(backend, confirmedModelId);
         }
+
+        // For managed CLI backends, also write to newApi.desktop.cliModelPrefs
+        // and reconcile the model to the CLI's config files on disk. Without this,
+        // the model selector reads stale values from cliModelPrefs on next render
+        // and shows the wrong model.
+        if (cliTarget) {
+          try {
+            const prefs = (configService.get('newApi.desktop.cliModelPrefs') ?? {}) as Record<string, string>;
+            await configService.set('newApi.desktop.cliModelPrefs', { ...prefs, [cliTarget]: confirmedModelId });
+            await ipcBridge.newApiAccount.reconcileModel.invoke({ cliTarget, modelId: confirmedModelId });
+            logAcpModelInfo('select_model_cli_prefs_updated', {
+              conversation_id,
+              backend,
+              cli_target: cliTarget,
+              confirmed_model_id: confirmedModelId,
+            });
+          } catch (error) {
+            logAcpModelInfo('select_model_cli_prefs_update_failed', {
+              conversation_id,
+              backend,
+              cli_target: cliTarget,
+              confirmed_model_id: confirmedModelId,
+              error: error instanceof Error ? error.message : String(error),
+            });
+          }
+        }
         logAcpModelInfo('select_model_preference_save_queued', {
           conversation_id,
           backend,

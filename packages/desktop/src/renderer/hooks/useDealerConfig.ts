@@ -2,10 +2,10 @@ import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
 
 interface DealerConfig {
-  ref: string;
+  aff: string;
 }
 
-const REGISTER_BASE_URL = 'https://api.mxou.cn/register';
+const REGISTER_BASE_URL = 'https://api.mxou.cn/sign-up';
 
 const isDesktopRuntime = typeof window !== 'undefined' && Boolean(window.electronAPI);
 
@@ -34,8 +34,8 @@ export function useDealerConfig(): {
   }, []);
 
   const openRegisterUrl = useCallback(async () => {
-    const ref = dealerConfig?.ref;
-    const url = ref ? `${REGISTER_BASE_URL}?ref=${encodeURIComponent(ref)}` : REGISTER_BASE_URL;
+    const aff = dealerConfig?.aff;
+    const url = aff ? `${REGISTER_BASE_URL}?aff=${encodeURIComponent(aff)}` : REGISTER_BASE_URL;
     await ipcBridge.shell.openExternal.invoke(url);
   }, [dealerConfig]);
 

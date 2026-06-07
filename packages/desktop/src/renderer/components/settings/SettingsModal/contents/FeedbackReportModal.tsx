@@ -160,28 +160,13 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
         )
       ).filter((item): item is ScreenshotBuffer => item !== null);
 
-      // Submit via Sentry
-      // Use hint.attachments instead of scope.addAttachment to avoid
-      // @sentry/electron's ScopeToMain normalize() corrupting Uint8Array binary data.
-      const Sentry = await import('@sentry/electron/renderer');
-
-      const attachments: Array<{ filename: string; data: Uint8Array; contentType: string }> = [];
-
-      if (logData) {
-        attachments.push({
-          filename: logData.filename,
-          data: new Uint8Array(logData.data),
-          contentType: 'application/gzip',
-        });
+      // Submit via main process IPC (has real Sentry DSN + proper error handling).
+      // The renderer-direct path (@sentry/electron/renderer with dummy DSN + IPC transport)
+      // was fragile and silently swallowed errors.
+      const electronAPI = window.electronAPI;
+      if (!electronAPI?.submitFeedback) {
+        throw new Error('submitFeedback not available');
       }
-
-      screenshotBuffers.forEach((screenshot, index) => {
-        attachments.push({
-          filename: `screenshot-${index + 1}-${screenshot.name}`,
-          data: screenshot.data,
-          contentType: screenshot.type,
-        });
-      });
 
       const normalizedDescription = description.trim().replace(/\s+/g, ' ');
       const summaryPreview =
@@ -190,26 +175,18 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
           : normalizedDescription;
       const eventSummary = `${t(selectedModule?.i18nKey ?? 'settings.bugReportModuleOther')}: ${summaryPreview}`;
 
-      Sentry.withScope((scope) => {
-        scope.setTag('type', 'user-feedback');
-        scope.setTag('module', module);
-        Object.entries(feedbackTags ?? {}).forEach(([key, value]) => {
-          if (value.trim()) {
-            scope.setTag(key, value);
-          }
-        });
+      const screenshotPayloads = screenshotBuffers.map((s) => ({
+        filename: s.name,
+        data: Array.from(s.data),
+        contentType: s.type,
+      }));
 
-        Sentry.captureEvent(
-          {
-            level: 'info',
-            message: eventSummary,
-            extra: {
-              description: normalizedDescription,
-              ...feedbackExtra,
-            },
-          },
-          { attachments }
-        );
+      await electronAPI.submitFeedback({
+        module,
+        summary: eventSummary,
+        description: normalizedDescription,
+        logs: logData ? { filename: logData.filename, data: Array.from(logData.data) } : undefined,
+        screenshots: screenshotPayloads.length > 0 ? screenshotPayloads : undefined,
       });
 
       Message.success(t('settings.bugReportSuccess'));
@@ -220,7 +197,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  }, [module, description, screenshots, t, onCancel, resetForm, selectedModule, feedbackExtra, feedbackTags]);
+  }, [module, description, screenshots, t, onCancel, resetForm, selectedModule]);
 
   const isFormValid = module !== undefined && description.trim().length > 0;
 
