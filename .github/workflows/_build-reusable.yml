@@ -314,7 +314,7 @@ jobs:
           # Override POUNDINGCORE_VERSION for ad-hoc builds.
           # POUNDINGCORE_GITHUB_OWNER/REPO point to our private backend fork.
           POUNDINGCORE_GITHUB_OWNER: halojerry
-          POUNDINGCORE_GITHUB_REPO: AionCore
+          POUNDINGCORE_GITHUB_REPO: poundingcore
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
 

@@ -136,14 +136,30 @@ For pull request creation, see the `oss-pr` skill (`.claude/skills/oss-pr/SKILL.
 
 ```
 iOfficeAI/AionUi (上游)
-    ↓ sync-upstream workflow
-halojerry/AionUi (开发复刻 — 此仓库)
-    ↓ PR: dev → release/pounding-v*.*.x → main
-halojerry/pounding (发布仓库 — 最终产物)
+    ↓ sync-upstream (此仓库的 workflow)
+halojerry/AionUi (开发仓库 — 此仓库，POUNDING 保护层)
+    ↓ sync-downstream (pounding 发布仓库的 workflow)
+halojerry/pounding (发布仓库 — 最终产物，桌面应用发布)
 ```
 
 **`halojerry/pounding` 是最终发布仓库**，只接收 `halojerry/AionUi` 的稳定代码。
 **永远不要**从 `iOfficeAI/AionUi` 直接同步到 `halojerry/pounding`。
+
+### Sync Downstream (Dev → Release)
+
+代码从开发仓库同步到发布仓库由 `halojerry/pounding` 的 `sync-downstream.yml` 负责。
+该 workflow 从 `halojerry/AionUi`（此仓库）拉取代码，经过 branding 检查后创建 PR。
+
+**触发方式**: 在 `halojerry/pounding` 仓库手动 `workflow_dispatch` → `sync-downstream.yml`。
+
+**流程**:
+1. 验证目标分支（阻止直接同步到 main/dev）
+2. 运行 `check-branding.sh` 作为预检门禁
+3. Fast-forward 合并到 `feature/downstream-sync` 分支
+4. 再次运行 branding 检查
+5. 创建 PR 供人工审核
+
+**发布仓库永远不直接从 iOfficeAI 同步** — 所有上游变更必须先经过此开发仓库处理。
 
 **main is the stable POUNDING release branch. NEVER merge upstream directly into main.**
 
