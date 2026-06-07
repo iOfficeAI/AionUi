@@ -102,11 +102,14 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
  * ProcessEnv('aionui.dir').
  */
 export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
+  const disableToolSnapshot =
+    process.env.AIONUI_DISABLE_TOOL_SNAPSHOT !== undefined ? process.env.AIONUI_DISABLE_TOOL_SNAPSHOT : '1';
   return {
     ...process.env,
     AIONUI_CACHE_DIR: dirs.cacheDir,
     AIONUI_WORK_DIR: dirs.workDir,
     AIONUI_LOG_DIR: dirs.logDir,
+    AIONUI_DISABLE_TOOL_SNAPSHOT: disableToolSnapshot,
   };
 }
 

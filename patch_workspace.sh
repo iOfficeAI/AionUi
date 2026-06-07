@@ -1,0 +1,2 @@
+sed -i '' 's/import { useFileChanges } from '\''\.\/hooks\/useFileChanges'\'';/import { useGitChanges } from '\''\.\/hooks\/useGitChanges'\'';/g' packages/desktop/src/renderer/pages/conversation/Workspace/index.tsx
+sed -i '' 's/import FileChangeList from '\''\.\/components\/FileChangeList'\'';/import GitChangeList from '\''\.\/components\/GitChangeList'\'';\nimport FileChangeList from '\''\.\/components\/FileChangeList'\'';/g' packages/desktop/src/renderer/pages/conversation/Workspace/index.tsx

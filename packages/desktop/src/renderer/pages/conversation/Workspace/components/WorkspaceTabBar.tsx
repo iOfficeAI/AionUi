@@ -20,6 +20,10 @@ type WorkspaceTabBarProps = {
   todoPendingCount?: number;
   hasApprovals?: boolean;
   approvalPendingCount?: number;
+  /** Whether to render the Changes tab. false for panelMode='files' (top tree pane) */
+  showChangesTab?: boolean;
+  /** Left Sider: wrap tabs in ConversationPane-style strip */
+  siderTabStripClassName?: string;
 };
 
 const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
@@ -32,6 +36,8 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
   todoPendingCount,
   hasApprovals,
   approvalPendingCount,
+  showChangesTab = true,
+  siderTabStripClassName,
 }) => {
   const changesTitle = (
     <span className='flex items-center'>
@@ -88,21 +94,27 @@ const WorkspaceTabBar: React.FC<WorkspaceTabBarProps> = ({
     </span>
   );
 
-  return (
+  const tabs = (
     <Tabs
       activeTab={activeTab}
       onChange={(key) => onTabChange(key as WorkspaceTab)}
       type='line'
       size='small'
-      className='px-12px [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px'
+      className='workspace-tab-bar [&_.arco-tabs-nav]:border-b-0 [&_.arco-tabs-header-title]:!mr-8px'
       extra={branchDropdown}
     >
       <Tabs.TabPane key='files' title={t('conversation.workspace.changes.filesTab')} />
-      <Tabs.TabPane key='changes' title={changesTitle} />
+      {showChangesTab && <Tabs.TabPane key='changes' title={changesTitle} />}
       {hasTodos && <Tabs.TabPane key='todos' title={todosTitle} />}
       {hasApprovals && <Tabs.TabPane key='approvals' title={approvalsTitle} />}
     </Tabs>
   );
+
+  if (siderTabStripClassName) {
+    return <div className={siderTabStripClassName}>{tabs}</div>;
+  }
+
+  return tabs;
 };
 
 export default WorkspaceTabBar;

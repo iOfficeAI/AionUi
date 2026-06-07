@@ -6,7 +6,7 @@ import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
-import { useFileChanges } from '@/renderer/pages/conversation/Workspace/hooks/useFileChanges';
+import { useGitChanges } from '@/renderer/pages/conversation/Workspace/hooks/useGitChanges';
 import MobileWorkspaceOverlay from './MobileWorkspaceOverlay';
 import WorkspacePanelHeader, { DesktopWorkspaceToggle } from './WorkspacePanelHeader';
 import { useContainerWidth } from '@/renderer/pages/conversation/hooks/useContainerWidth';
@@ -217,17 +217,11 @@ const ChatLayout: React.FC<{
     dynamicChatMaxRatio,
   });
 
-  // --- Hook F: workspace file-change count (drives the context strip) ---
-  const fileChanges = useFileChanges({ workspace: workspaceEnabled ? (workspacePath ?? '') : '' });
-  const changeCount = fileChanges.changeCount;
-  const refreshFileChanges = fileChanges.refreshChanges;
-  useEffect(() => {
-    if (!workspaceEnabled || !workspacePath || layout?.isMobile) return;
-    const id = window.setInterval(() => {
-      void refreshFileChanges();
-    }, 5000);
-    return () => window.clearInterval(id);
-  }, [workspaceEnabled, workspacePath, layout?.isMobile, refreshFileChanges]);
+  // --- Hook F: workspace change count (drives the context strip) ---
+  // useGitChanges subscribes to ipcBridge.git.changed internally when enabled
+  // (debounced refresh in the hook), so no extra polling is required here.
+  const gitChanges = useGitChanges(workspacePath ?? '', workspaceEnabled);
+  const changeCount = gitChanges.changeCount;
 
   // --- Hook G: active-pane signal ---
   type ActivePane = 'chat' | 'editor' | 'preview' | 'workspace';

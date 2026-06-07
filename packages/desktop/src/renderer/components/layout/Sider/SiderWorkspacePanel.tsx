@@ -38,7 +38,7 @@ const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) 
     <PanelGroup
       direction='vertical'
       autoSaveId='sider-workspace-split'
-      className='size-full min-h-0'
+      className='size-full min-h-0 bg-[var(--bg-2)]'
       data-testid='sider-workspace-panel'
     >
       <Panel defaultSize={50} minSize={15} className='min-h-0'>

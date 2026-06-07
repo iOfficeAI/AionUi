@@ -43,6 +43,18 @@ import type {
   TerminalWriteRequest,
 } from '../types/terminal/terminalTypes';
 import type {
+  GitChangedEvent,
+  GitCommitRequest,
+  GitCommitResult,
+  GitDiffRequest,
+  GitDiffResult,
+  GitFilePathRequest,
+  GitInitResult,
+  GitRepoInfo,
+  GitStatus,
+  GitWorkspaceRequest,
+} from '../types/git/gitTypes';
+import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
@@ -84,7 +96,6 @@ import {
   fromBackendTeamOptional,
   toBackendAgent,
 } from './teamMapper';
-import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import { absoluteToRelativePath, fromBackendWorkspaceList } from './workspaceMapper';
 
 // ---------------------------------------------------------------------------
@@ -633,6 +644,41 @@ export const terminal = {
 };
 
 // ---------------------------------------------------------------------------
+// Git — stays IPC (system git binary is owned by the Electron main process).
+// Fully decoupled from aioncore: GitService (simple-git) lives in the main
+// process and is reached only through these channels.
+// ---------------------------------------------------------------------------
+
+export const git = {
+  /** Discover repo root + branch + git availability for a workspace. */
+  getRepoInfo: bridge.buildProvider<IBridgeResponse<GitRepoInfo>, GitWorkspaceRequest>('git.repo-info'),
+  /** Full working-tree status (staged / unstaged / conflicted). */
+  getStatus: bridge.buildProvider<IBridgeResponse<GitStatus>, GitWorkspaceRequest>('git.status'),
+  /** `git init` in the workspace + default .gitignore (no auto-commit). */
+  init: bridge.buildProvider<IBridgeResponse<GitInitResult>, GitWorkspaceRequest>('git.init'),
+  /** Unified diff for a single file (staged or unstaged side). */
+  getDiff: bridge.buildProvider<IBridgeResponse<GitDiffResult>, GitDiffRequest>('git.diff'),
+  /** Stage a single file (`git add`). */
+  stageFile: bridge.buildProvider<IBridgeResponse, GitFilePathRequest>('git.stage'),
+  /** Stage all changes. */
+  stageAll: bridge.buildProvider<IBridgeResponse, GitWorkspaceRequest>('git.stage-all'),
+  /** Unstage a single file (`git restore --staged`). */
+  unstageFile: bridge.buildProvider<IBridgeResponse, GitFilePathRequest>('git.unstage'),
+  /** Unstage all changes. */
+  unstageAll: bridge.buildProvider<IBridgeResponse, GitWorkspaceRequest>('git.unstage-all'),
+  /** Discard working-tree changes for a file (destructive — UI must confirm). */
+  discardFile: bridge.buildProvider<IBridgeResponse, GitFilePathRequest>('git.discard'),
+  /** List local branch names. */
+  getBranches: bridge.buildProvider<IBridgeResponse<string[]>, GitWorkspaceRequest>('git.branches'),
+  /** Commit currently staged changes. */
+  commit: bridge.buildProvider<IBridgeResponse<GitCommitResult>, GitCommitRequest>('git.commit'),
+  /** Release the file watcher for a workspace (renderer calls on unmount). */
+  unwatch: bridge.buildProvider<IBridgeResponse, GitWorkspaceRequest>('git.unwatch'),
+  /** Debounced working-tree change notification for the watched repo root. */
+  changed: bridge.buildEmitter<GitChangedEvent>('git.changed'),
+};
+
+// ---------------------------------------------------------------------------
 // Update — stays IPC (Electron-native auto-updater)
 // ---------------------------------------------------------------------------
 
@@ -835,43 +881,6 @@ export const fileStream = {
     relative_path: string;
     operation: 'write' | 'delete';
   }>('fileStream.contentUpdate'),
-};
-
-// File snapshot providers
-export const fileSnapshot = {
-  init: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/init'
-  ),
-  compare: withResponseMap(
-    httpPost<RawCompareResult, { workspace: string }>('/api/fs/snapshot/compare'),
-    fromBackendCompareResult
-  ),
-  getBaselineContent: httpPost<string | null, { workspace: string; file_path: string }>('/api/fs/snapshot/baseline'),
-  getInfo: httpPost<import('@/common/types/platform/fileSnapshot').SnapshotInfo, { workspace: string }>(
-    '/api/fs/snapshot/info'
-  ),
-  dispose: httpPost<void, { workspace: string }>('/api/fs/snapshot/dispose'),
-  stageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/stage'),
-  stageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/stage-all'),
-  unstageFile: httpPost<void, { workspace: string; file_path: string }>('/api/fs/snapshot/unstage'),
-  unstageAll: httpPost<void, { workspace: string }>('/api/fs/snapshot/unstage-all'),
-  discardFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/discard'),
-  resetFile: httpPost<
-    void,
-    {
-      workspace: string;
-      file_path: string;
-      operation: import('@/common/types/platform/fileSnapshot').FileChangeOperation;
-    }
-  >('/api/fs/snapshot/reset'),
-  getBranches: httpPost<string[], { workspace: string }>('/api/fs/snapshot/branches'),
 };
 
 // ---------------------------------------------------------------------------

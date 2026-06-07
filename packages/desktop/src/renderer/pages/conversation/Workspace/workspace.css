@@ -1,5 +1,40 @@
 /* Workspace component styles */
 
+/* File tree row: add-to-chat — neutral default; brand only on hover (matches toolbar icons). */
+.workspace-tree-add-to-chat {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  margin: 1px 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: var(--radius-control);
+  background: transparent;
+  color: var(--text-tertiary);
+  cursor: pointer;
+  opacity: 1;
+  transition:
+    background-color var(--motion-fast) var(--motion-ease-standard),
+    color var(--motion-fast) var(--motion-ease-standard);
+}
+
+.workspace-tree-add-to-chat:hover {
+  background: var(--brand);
+  color: var(--bg-base);
+}
+
+.workspace-tree-add-to-chat:active {
+  background: var(--brand-hover);
+  color: var(--bg-base);
+}
+
+.workspace-tree-add-to-chat:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: 1px;
+}
+
 .workspace-header__toggle {
   width: 28px;
   height: 28px;
@@ -97,7 +132,7 @@
 .workspace-tree {
   font-family: var(--font-ui, system-ui, -apple-system, sans-serif);
   font-size: 13px;
-  color: var(--color-text-2, rgba(204, 204, 204, 0.9));
+  color: var(--text-secondary);
   padding: 8px !important;
   background-color: transparent;
 }
@@ -136,31 +171,27 @@
 
 /* Base Hover */
 .workspace-tree .arco-tree-node-title-wrapper:hover {
-  background-color: var(--color-fill-2, rgba(255, 255, 255, 0.04)) !important;
-  color: var(--color-text-1, #ffffff) !important;
+  background-color: var(--bg-hover) !important;
+  color: var(--text-primary) !important;
 }
 
-/* Selection state: rich subtle gradient, left accent */
+/* Selection state: subtle gradient + rust left accent (Chisl brand) */
 .workspace-tree .arco-tree-node-selected .arco-tree-node-title-wrapper {
-  background: linear-gradient(
-    90deg,
-    var(--color-fill-3, rgba(255, 255, 255, 0.08)) 0%,
-    var(--color-fill-2, rgba(255, 255, 255, 0.02)) 100%
-  ) !important;
-  color: var(--color-text-1, #ffffff) !important;
-  box-shadow: inset 2px 0 0 0 rgb(var(--primary-6)) !important;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 12%, var(--bg-1)) 0%, var(--bg-hover) 100%) !important;
+  color: var(--text-primary) !important;
+  box-shadow: inset 2px 0 0 0 var(--brand) !important;
 }
 
 /* Dim folders slightly vs files */
 .workspace-tree .arco-tree-node[data-is-folder='true'] > .arco-tree-node-title .arco-tree-node-title-wrapper {
-  color: var(--color-text-3, rgba(170, 170, 170, 0.8));
+  color: var(--text-tertiary);
 }
 .workspace-tree .arco-tree-node[data-is-folder='true'] > .arco-tree-node-title .arco-tree-node-title-wrapper:hover,
 .workspace-tree
   .arco-tree-node[data-is-folder='true'].arco-tree-node-selected
   > .arco-tree-node-title
   .arco-tree-node-title-wrapper {
-  color: var(--color-text-1, #ffffff);
+  color: var(--text-primary);
 }
 
 /* Compact expand/collapse switcher */
@@ -172,12 +203,12 @@
   align-items: center !important;
   justify-content: center !important;
   margin-right: 2px !important;
-  color: var(--color-text-3) !important;
+  color: var(--text-tertiary) !important;
   transition: color 0.15s ease !important;
 }
 
 .workspace-tree .arco-tree-node-switcher:hover {
-  color: var(--color-text-1) !important;
+  color: var(--text-primary) !important;
 }
 
 /* Indent blocks */
@@ -197,5 +228,9 @@
 }
 
 .workspace-tree:hover .arco-tree-node-indent-block::before {
-  border-left-color: var(--color-border-1, rgba(128, 128, 128, 0.15));
+  border-left-color: var(--border-light);
+}
+
+[data-testid='sider-workspace-panel'] .chat-workspace {
+  background: transparent;
 }

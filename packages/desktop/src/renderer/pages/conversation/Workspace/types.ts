@@ -37,6 +37,39 @@ export interface WorkspaceProps {
   isTemporaryWorkspace?: boolean;
   eventPrefix?: WorkspaceEventPrefix;
   messageApi?: MessageApi;
+  /**
+   * Controls what the Workspace renders inside the Sider split:
+   * - 'full': complete ChatWorkspace with tab bar (files/changes/todos/approvals) + tree + drag import (default, used outside Sider)
+   * - 'files': Files + Todos + Approvals only (no Changes tab); used for top SiderFileTree pane
+   * - 'changes': GitChangeList only (no tab bar, no tree, no drag import); used for bottom SiderDiffSection pane
+   */
+  panelMode?: WorkspacePanelMode;
+
+  /**
+   * Called by 'changes' (and 'full' when on changes) with live meta for an outer header
+   * (e.g. SiderDiffSection can show "Diff (N)" and branch without duplicating hooks).
+   */
+  onChangesMeta?: (meta: { count: number; branch: string | null; isRemote: boolean }) => void;
+
+  /** Opens the large diff fly-out (Sider diff pane only). */
+  onExpandFlyout?: () => void;
+
+  /** Opens the large files fly-out (Sider file tree only). */
+  onExpandFilesFlyout?: () => void;
+
+  /**
+   * Left Sider file pane: parent renders section header + actions; hide duplicate toolbar row.
+   */
+  siderFilesChrome?: 'embedded';
+
+  /** Left Sider: parent header refresh button calls into the tree loader. */
+  onSiderFilesRefreshReady?: (refresh: () => void) => void;
+
+  /** Left Sider diff pane: parent renders section header; hide GitChangeList toolbar. */
+  siderDiffChrome?: 'embedded';
+
+  /** Left Sider: parent diff header refresh calls into useGitChanges.refresh. */
+  onSiderDiffRefreshReady?: (refresh: () => void) => void;
 }
 
 /**
@@ -123,3 +156,5 @@ export type GetPathSeparatorFn = (targetPath: string) => string;
 export type FindNodeByKeyFn = (list: IDirOrFile[], key: string) => IDirOrFile | null;
 
 export type WorkspaceTab = 'files' | 'changes' | 'todos' | 'approvals';
+
+export type WorkspacePanelMode = 'full' | 'files' | 'changes';

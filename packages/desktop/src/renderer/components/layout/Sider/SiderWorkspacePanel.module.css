@@ -1,0 +1,120 @@
+/* Left Sider workspace split — mirrors ConversationPane header/actions. */
+
+.section {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 auto;
+  background-color: var(--bg-2);
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 44px;
+  min-height: 44px;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--bg-3);
+  background-color: var(--bg-2);
+  flex-shrink: 0;
+}
+
+.title {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+  margin: 0;
+  letter-spacing: 0.1px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.actionBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 6px;
+  background-color: transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition:
+    background-color 0.18s ease,
+    color 0.18s ease;
+}
+
+.actionBtn:hover:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.08);
+  color: var(--text-primary);
+}
+
+.actionBtn:active:not(:disabled) {
+  background-color: rgba(0, 0, 0, 0.14);
+}
+
+.actionBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+[data-theme='dark'] .actionBtn:hover:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+[data-theme='dark'] .actionBtn:active:not(:disabled) {
+  background-color: rgba(255, 255, 255, 0.16);
+}
+
+.body {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-2);
+}
+
+.tabStrip {
+  flex-shrink: 0;
+  padding: 0 12px;
+  border-bottom: 1px solid var(--bg-3);
+  background-color: var(--bg-2);
+}
+
+.tabStrip :global(.arco-tabs-nav) {
+  margin-bottom: 0 !important;
+}
+
+.tabStrip :global(.arco-tabs-header-nav) {
+  border-bottom: none !important;
+}
+
+.tabStrip :global(.arco-tabs-header-title) {
+  font-size: 12px !important;
+  padding: 8px 0 !important;
+  margin-right: 12px !important;
+  color: var(--text-secondary) !important;
+}
+
+.tabStrip :global(.arco-tabs-header-title-active) {
+  color: var(--text-primary) !important;
+  font-weight: 600 !important;
+}
+
+.tabStrip :global(.arco-tabs-header-ink) {
+  background-color: var(--brand) !important;
+}

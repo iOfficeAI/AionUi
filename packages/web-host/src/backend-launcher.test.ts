@@ -144,6 +144,7 @@ describe('buildSpawnEnv', () => {
     expect(env.AIONUI_CACHE_DIR).toBe('/c');
     expect(env.AIONUI_WORK_DIR).toBe('/w');
     expect(env.AIONUI_LOG_DIR).toBe('/l');
+    expect(env.AIONUI_DISABLE_TOOL_SNAPSHOT).toBe('1');
     expect(env.PATH).toBe(process.env.PATH); // inherits
   });
 });

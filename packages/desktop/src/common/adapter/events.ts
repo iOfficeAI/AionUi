@@ -13,6 +13,13 @@ import type {
 } from '../update/updateTypes';
 import type { ICdpConfig, IGpuOverride } from './ipcBridge';
 import type {
+  GitChangedEvent,
+  GitCommitRequest,
+  GitDiffRequest,
+  GitFilePathRequest,
+  GitWorkspaceRequest,
+} from '../types/git/gitTypes';
+import type {
   TerminalExitEvent,
   TerminalKillRequest,
   TerminalOutputEvent,
@@ -45,6 +52,18 @@ export type AdapterEventMap = {
   'terminal.write': TerminalWriteRequest;
   'terminal.resize': TerminalResizeRequest;
   'terminal.kill': TerminalKillRequest;
+  'git.repo-info': GitWorkspaceRequest;
+  'git.status': GitWorkspaceRequest;
+  'git.init': GitWorkspaceRequest;
+  'git.diff': GitDiffRequest;
+  'git.stage': GitFilePathRequest;
+  'git.stage-all': GitWorkspaceRequest;
+  'git.unstage': GitFilePathRequest;
+  'git.unstage-all': GitWorkspaceRequest;
+  'git.discard': GitFilePathRequest;
+  'git.branches': GitWorkspaceRequest;
+  'git.commit': GitCommitRequest;
+  'git.unwatch': GitWorkspaceRequest;
   'update.check': UpdateCheckRequest;
   'update.download': UpdateDownloadRequest;
   'auto-update.check': { includePrerelease?: boolean };
@@ -95,6 +114,18 @@ export type AdapterEventResponseMap = {
   'terminal.write': BridgeResponse;
   'terminal.resize': BridgeResponse;
   'terminal.kill': BridgeResponse;
+  'git.repo-info': BridgeResponse;
+  'git.status': BridgeResponse;
+  'git.init': BridgeResponse;
+  'git.diff': BridgeResponse;
+  'git.stage': BridgeResponse;
+  'git.stage-all': BridgeResponse;
+  'git.unstage': BridgeResponse;
+  'git.unstage-all': BridgeResponse;
+  'git.discard': BridgeResponse;
+  'git.branches': BridgeResponse;
+  'git.commit': BridgeResponse;
+  'git.unwatch': BridgeResponse;
   'update.check': BridgeResponse;
   'update.download': BridgeResponse;
   'auto-update.check': BridgeResponse;
@@ -146,6 +177,18 @@ export const ADAPTER_EVENT_NAMES = [
   'terminal.write',
   'terminal.resize',
   'terminal.kill',
+  'git.repo-info',
+  'git.status',
+  'git.init',
+  'git.diff',
+  'git.stage',
+  'git.stage-all',
+  'git.unstage',
+  'git.unstage-all',
+  'git.discard',
+  'git.branches',
+  'git.commit',
+  'git.unwatch',
   'update.check',
   'update.download',
   'auto-update.check',
@@ -216,6 +259,7 @@ export type AdapterOutboundEvent =
   | { name: 'app.devtools-state-changed'; data: { isOpen: boolean } }
   | { name: 'terminal.output'; data: TerminalOutputEvent }
   | { name: 'terminal.exit'; data: TerminalExitEvent }
+  | { name: 'git.changed'; data: GitChangedEvent }
   | { name: 'update.open'; data: { source?: 'menu' | 'about' } }
   | { name: 'update.download.progress'; data: UpdateDownloadProgressEvent }
   | { name: 'auto-update.status'; data: AutoUpdateStatus }

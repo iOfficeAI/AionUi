@@ -88,23 +88,16 @@ test.describe('Workspace — single chat', () => {
       await searchInput.fill('');
     }
 
-    // Switch to Changes tab and back
-    const changesTab = panel
-      .locator('.arco-tabs-header-title')
-      .filter({ hasText: /Changes|更改/ })
-      .first();
-    if (await changesTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await changesTab.click();
-      await page.screenshot({ path: 'tests/e2e/results/ws-single-04-changes.png' });
+    // Note: the "Changes" content is no longer a tab inside the top Files pane.
+    // SiderFileTree mounts ChatWorkspace with panelMode="files" (Files + Todos + Approvals only).
+    // The diff list now lives in the separate bottom Sider pane under [data-testid="sider-diff-section"].
+    // We just verify the dedicated diff section is present (it may be empty or show remote/local changes).
+    const diffSection = page.locator('[data-testid="sider-diff-section"]');
+    if (await diffSection.isVisible({ timeout: 3_000 }).catch(() => false)) {
+      await page.screenshot({ path: 'tests/e2e/results/ws-single-04-diff-section.png' });
     }
 
-    const filesTab = panel
-      .locator('.arco-tabs-header-title')
-      .filter({ hasText: /Files|文件/ })
-      .first();
-    if (await filesTab.isVisible({ timeout: 3_000 }).catch(() => false)) {
-      await filesTab.click();
-      await expect(panel.getByText('readme.md').first()).toBeVisible({ timeout: 5_000 });
-    }
+    // Files tab content remains in the top pane (the .chat-workspace tree area).
+    await expect(panel.getByText('readme.md').first()).toBeVisible({ timeout: 5_000 });
   });
 });

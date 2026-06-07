@@ -66,7 +66,7 @@ const WorkspaceContextMenu: React.FC<WorkspaceContextMenuProps> = ({
 
   return (
     <div
-      className='fixed z-100 min-w-200px max-w-240px rounded-12px bg-base/95 shadow-[0_12px_40px_rgba(15,23,42,0.16)] backdrop-blur-sm p-6px'
+      className='fixed z-100 min-w-200px max-w-240px rounded-panel bg-base/95 border border-b-base shadow-lg backdrop-blur-sm p-6px'
       style={{ top: style.top, left: style.left }}
       onClick={(event) => event.stopPropagation()}
       onContextMenu={(event) => {

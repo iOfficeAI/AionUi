@@ -840,6 +840,18 @@ app.on('before-quit', async () => {
       console.error('[App] Failed to dispose terminal service:', err);
     }
 
+    // Tear down the Git service (close all chokidar watchers) and detach the
+    // bridge subscription. Runs after the terminal block so a slow fs
+    // shutdown doesn't block PTY teardown.
+    try {
+      const { getGitService } = await import('./process/services/git');
+      const { disposeGitBridge } = await import('./process/bridge');
+      disposeGitBridge();
+      await getGitService().dispose();
+    } catch (err) {
+      console.error('[App] Failed to dispose git service:', err);
+    }
+
     // Stop aioncore subprocess — backend shutdown kills all agent
     // children transitively (no separate frontend workerTaskManager remains)
     await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));

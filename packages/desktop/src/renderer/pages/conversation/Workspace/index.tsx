@@ -11,20 +11,21 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useEditorContext } from '@/renderer/pages/conversation/Editor';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
-import { MessageOne, Right } from '@icon-park/react';
+import { Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import ApprovalsList from './components/ApprovalsList';
-import FileChangeList from './components/FileChangeList';
+import GitChangeList from './components/GitChangeList';
 import PasteConfirmModal from './components/PasteConfirmModal';
 import TodoList from './components/TodoList';
 import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import { WorkspaceFileIcon } from './components/WorkspaceFileIcon';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
+import FilesTreeToolbar from './components/FilesTreeToolbar';
+import { WorkspaceTreeAddToChatButton } from './components/WorkspaceTreeAddToChatButton';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
-import { useFileChanges } from './hooks/useFileChanges';
-import { useRemoteSessionChanges } from './hooks/useRemoteSessionChanges';
+import { useGitChanges } from './hooks/useGitChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
 import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
@@ -48,6 +49,7 @@ import {
   flattenSingleRoot,
   getTargetFolderPath,
 } from './utils/treeHelpers';
+import siderWorkspaceStyles from '@/renderer/components/layout/Sider/SiderWorkspacePanel.module.css';
 import './workspace.css';
 
 const ChatWorkspace: React.FC<WorkspaceProps> = ({
@@ -56,6 +58,14 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   isTemporaryWorkspace: isTemporaryWorkspaceProp,
   eventPrefix = 'acp',
   messageApi: externalMessageApi,
+  panelMode = 'full',
+  onChangesMeta,
+  onExpandFlyout,
+  onExpandFilesFlyout,
+  siderFilesChrome,
+  onSiderFilesRefreshReady,
+  siderDiffChrome,
+  onSiderDiffRefreshReady,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -69,16 +79,37 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
 
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
-  const fileChangesHook = useFileChanges({ workspace });
-  const remoteChangesHook = useRemoteSessionChanges({ conversation_id, workspace });
+  const isFullMode = panelMode === 'full';
+  const isFilesMode = panelMode === 'files';
+  const isChangesMode = panelMode === 'changes';
+  const showChangesTab = panelMode !== 'files';
+
+  // For 'files' mode (top Sider pane) we disable the local git hooks to avoid
+  // double-mounting useGitChanges (which calls ipcBridge.git.unwatch on unmount)
+  // when SiderDiffSection mounts a 'changes' instance below. 'changes' mode
+  // enables them (dedicated diff pane). 'full' enables for legacy tab behavior.
+  const gitChangesHook = useGitChanges(workspace, !isFilesMode);
   const todosHook = useWorkspaceTodos(conversation_id);
   const approvalsHook = useWorkspaceApprovals(conversation_id);
 
-  const isRemoteChanges = remoteChangesHook.source === 'remote';
-  const changesStaged = isRemoteChanges ? remoteChangesHook.staged : fileChangesHook.staged;
-  const changesUnstaged = isRemoteChanges ? remoteChangesHook.unstaged : fileChangesHook.unstaged;
-  const changesLoading = isRemoteChanges ? remoteChangesHook.loading : fileChangesHook.loading;
-  const changesCount = isRemoteChanges ? remoteChangesHook.changeCount : fileChangesHook.changeCount;
+  const changesCount = gitChangesHook.changeCount;
+
+
+
+  // Live meta for outer headers (SiderDiffSection etc.). We notify the parent
+  // (e.g. SiderDiffSection header) so it can render "Diff (N)" / branch without
+  // duplicating the hooks. Only relevant for changes-aware modes.
+  const currentMeta = useMemo(
+    () => ({
+      count: changesCount,
+      branch: gitChangesHook.repoInfo?.branch ?? null,
+      isRemote: false,
+    }),
+    [changesCount, gitChangesHook.repoInfo?.branch]
+  );
+  useEffect(() => {
+    if (onChangesMeta) onChangesMeta(currentMeta);
+  }, [onChangesMeta, currentMeta]);
 
   // Bind workspace uploads to the conversation lifecycle: switching the
   // workspace conversation or unmounting the panel cancels in-flight uploads.
@@ -87,6 +118,15 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
   const treeHook = useWorkspaceTree({ workspace, conversation_id, eventPrefix });
+
+  useEffect(() => {
+    onSiderFilesRefreshReady?.(treeHook.refreshWorkspace);
+  }, [onSiderFilesRefreshReady, treeHook.refreshWorkspace]);
+
+  useEffect(() => {
+    onSiderDiffRefreshReady?.(gitChangesHook.refresh);
+  }, [onSiderDiffRefreshReady, gitChangesHook.refresh]);
+
   const modalsHook = useWorkspaceModals();
   const pasteHook = useWorkspacePaste({
     conversation_id: conversation_id,
@@ -102,12 +142,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     closePasteConfirm: modalsHook.closePasteConfirm,
   });
 
-  const dragImportHook = useWorkspaceDragImport({
-    messageApi,
-    t,
-    onFilesDropped: pasteHook.handleFilesToAdd,
-    conversation_id: conversation_id,
-  });
+  // Drag import only makes sense for the full files tree (not for the pure 'changes' diff pane).
+  const dragImportHook =
+    isFullMode || isFilesMode
+      ? useWorkspaceDragImport({
+          messageApi,
+          t,
+          onFilesDropped: pasteHook.handleFilesToAdd,
+          conversation_id: conversation_id,
+        })
+      : { dragHandlers: {}, isDragging: false };
 
   const searchHook = useWorkspaceSearch({ workspace, loadWorkspace: treeHook.loadWorkspace });
 
@@ -204,51 +248,51 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   );
 
   useEffect(() => {
-    if (activeTab === 'changes') {
-      if (isRemoteChanges) {
-        void remoteChangesHook.refreshChanges();
-      } else {
-        void fileChangesHook.refreshChanges();
-      }
+    // In dedicated 'changes' panelMode we always keep the list mounted; refresh
+    // on mount and whenever the changes tab is reactivated in full mode.
+    if (isChangesMode || activeTab === 'changes') {
+      void gitChangesHook.refresh();
     }
-  }, [activeTab, isRemoteChanges, fileChangesHook.refreshChanges, remoteChangesHook.refreshChanges]);
+  }, [isChangesMode, activeTab, gitChangesHook.refresh]);
 
+  // Switch to the Changes tab only when the user explicitly asks (e.g. remote
+  // session "View changes"). Never force changes on conversation load — that
+  // broke panelMode="files" (top Sider tree) by hiding the file tree.
   useEffect(() => {
-    if (typeof window === 'undefined') return undefined;
+    if (typeof window === 'undefined' || isChangesMode || isFilesMode) return undefined;
     const handleOpenRemoteChanges = (event: Event) => {
       const detail = (event as CustomEvent<WorkspaceOpenRemoteChangesDetail>).detail;
       if (detail.conversation_id !== conversation_id) return;
-      // Pane expansion is handled by the layout's useWorkspaceCollapse listener
-      // for this same event; here we only own the tab + diff-source selection.
       setActiveTab('changes');
-      void remoteChangesHook.activateRemote();
     };
     window.addEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
     return () => window.removeEventListener(WORKSPACE_OPEN_REMOTE_CHANGES_EVENT, handleOpenRemoteChanges);
-  }, [conversation_id, remoteChangesHook.activateRemote]);
+  }, [conversation_id, isChangesMode, isFilesMode]);
 
   useEffect(() => {
-    remoteChangesHook.activateLocal();
-  }, [conversation_id, remoteChangesHook.activateLocal]);
+    if (!isChangesMode) {
+      setActiveTab('files');
+    }
+  }, [conversation_id, isChangesMode]);
 
   const prevHasTodosRef = React.useRef(false);
   useEffect(() => {
-    if (todosHook.hasTodos && !prevHasTodosRef.current) {
+    if (!isChangesMode && todosHook.hasTodos && !prevHasTodosRef.current) {
       setActiveTab('todos');
     }
     prevHasTodosRef.current = todosHook.hasTodos;
-  }, [todosHook.hasTodos]);
+  }, [todosHook.hasTodos, isChangesMode]);
 
   // Auto-select the Approvals tab when a pending approval appears. Approvals
   // are blocking (the agent waits on them), so they take precedence over the
   // Todos auto-select above when both fire.
   const prevHasApprovalsRef = React.useRef(false);
   useEffect(() => {
-    if (approvalsHook.hasApprovals && !prevHasApprovalsRef.current) {
+    if (!isChangesMode && approvalsHook.hasApprovals && !prevHasApprovalsRef.current) {
       setActiveTab('approvals');
     }
     prevHasApprovalsRef.current = approvalsHook.hasApprovals;
-  }, [approvalsHook.hasApprovals]);
+  }, [approvalsHook.hasApprovals, isChangesMode]);
 
   // Get target folder path for paste confirm modal
   const targetFolderPathForModal = getTargetFolderPath(
@@ -281,11 +325,11 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
         {dragImportHook.isDragging && (
           <div className='absolute inset-0 pointer-events-none z-30 flex items-center justify-center px-32px'>
             <div
-              className='w-full max-w-480px text-center text-white rounded-16px px-32px py-28px'
+              className='w-full max-w-480px text-center text-t-primary rounded-16px px-32px py-28px'
               style={{
-                background: 'rgba(6, 11, 25, 0.85)',
-                border: '1px dashed rgb(var(--primary-6))',
-                boxShadow: '0 20px 60px rgba(15, 23, 42, 0.45)',
+                background: 'color-mix(in srgb, var(--bg-10) 88%, transparent)',
+                border: '1px dashed var(--brand)',
+                boxShadow: 'var(--shadow-lg, 0 20px 60px color-mix(in srgb, var(--bg-10) 35%, transparent))',
               }}
             >
               <div className='text-18px font-semibold mb-8px'>
@@ -307,49 +351,68 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </div>
         )}
 
-        {/* Paste Confirm Modal */}
-        <PasteConfirmModal
-          pasteConfirm={modalsHook.pasteConfirm}
-          setPasteConfirm={modalsHook.setPasteConfirm}
-          closePasteConfirm={modalsHook.closePasteConfirm}
-          handlePasteConfirm={pasteHook.handlePasteConfirm}
-          targetFolderPath={targetFolderPathForModal}
-          t={t}
-        />
+        {/* Paste Confirm Modal — only relevant for tree modes that support drag/paste */}
+        {!isChangesMode && (
+          <>
+            <PasteConfirmModal
+              pasteConfirm={modalsHook.pasteConfirm}
+              setPasteConfirm={modalsHook.setPasteConfirm}
+              closePasteConfirm={modalsHook.closePasteConfirm}
+              handlePasteConfirm={pasteHook.handlePasteConfirm}
+              targetFolderPath={targetFolderPathForModal}
+              t={t}
+            />
 
-        {/* Rename + Delete Modals */}
-        <WorkspaceDialogs
-          t={t}
-          renameModal={modalsHook.renameModal}
-          setRenameModal={modalsHook.setRenameModal}
-          closeRenameModal={modalsHook.closeRenameModal}
-          handleRenameConfirm={fileOpsHook.handleRenameConfirm}
-          renameLoading={modalsHook.renameLoading}
-          deleteModal={modalsHook.deleteModal}
-          closeDeleteModal={modalsHook.closeDeleteModal}
-          handleDeleteConfirm={fileOpsHook.handleDeleteConfirm}
-        />
+            {/* Rename + Delete Modals */}
+            <WorkspaceDialogs
+              t={t}
+              renameModal={modalsHook.renameModal}
+              setRenameModal={modalsHook.setRenameModal}
+              closeRenameModal={modalsHook.closeRenameModal}
+              handleRenameConfirm={fileOpsHook.handleRenameConfirm}
+              renameLoading={modalsHook.renameLoading}
+              deleteModal={modalsHook.deleteModal}
+              closeDeleteModal={modalsHook.closeDeleteModal}
+              handleDeleteConfirm={fileOpsHook.handleDeleteConfirm}
+            />
+          </>
+        )}
 
-        {/* Tab bar */}
-        <WorkspaceTabBar
-          t={t}
-          activeTab={activeTab}
-          onTabChange={(tab) => {
-            if (tab !== 'changes' && isRemoteChanges) {
-              remoteChangesHook.activateLocal();
-            }
-            setActiveTab(tab);
-          }}
-          changeCount={changesCount}
-          branch={isRemoteChanges ? null : (fileChangesHook.snapshotInfo?.branch ?? null)}
-          hasTodos={todosHook.hasTodos}
-          todoPendingCount={todosHook.totalCount - todosHook.completedCount}
-          hasApprovals={approvalsHook.hasApprovals}
-          approvalPendingCount={approvalsHook.approvals.length}
-        />
+        {/* Tab bar — hidden entirely for dedicated 'changes' (diff) pane; also hidden for 'files' mode with embedded chrome (we show inline badges instead) */}
+        {!isChangesMode && !(isFilesMode && siderFilesChrome === 'embedded') && (
+          <WorkspaceTabBar
+            t={t}
+            activeTab={activeTab}
+            onTabChange={setActiveTab}
+            changeCount={changesCount}
+            branch={gitChangesHook.repoInfo?.branch ?? null}
+            hasTodos={todosHook.hasTodos}
+            todoPendingCount={todosHook.totalCount - todosHook.completedCount}
+            hasApprovals={approvalsHook.hasApprovals}
+            approvalPendingCount={approvalsHook.approvals.length}
+            showChangesTab={showChangesTab}
+          />
+        )}
 
-        {/* Toolbar: search input + directory name + action buttons */}
-        {activeTab === 'files' && (
+        {/* Toolbar: Sider files pane = diff-style bar; full workspace = rich toolbar */}
+        {!isChangesMode &&
+          isFilesMode &&
+          siderFilesChrome === 'embedded' && (
+            <FilesTreeToolbar
+              t={t}
+              label={workspaceDisplayName}
+              loading={treeHook.loading}
+              onRefresh={treeHook.refreshWorkspace}
+              onExpandFlyout={onExpandFilesFlyout}
+              activeTab={activeTab}
+              onTabChange={setActiveTab}
+              hasTodos={todosHook.hasTodos}
+              todoPendingCount={todosHook.totalCount - todosHook.completedCount}
+              hasApprovals={approvalsHook.hasApprovals}
+              approvalPendingCount={approvalsHook.approvals.length}
+            />
+          )}
+        {!isChangesMode && activeTab === 'files' && !isFilesMode && (
           <WorkspaceToolbar
             t={t}
             isWorkspaceCollapsed={isWorkspaceCollapsed}
@@ -368,8 +431,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           />
         )}
 
-        {/* Main content area */}
-        {!isWorkspaceCollapsed && activeTab === 'files' && (
+        {/* Main content area (tree) — only in non-changes modes on Files tab */}
+        {!isChangesMode && activeTab === 'files' && (isFilesMode || !isWorkspaceCollapsed) && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
             {/* Context Menu */}
             <WorkspaceContextMenu
@@ -473,26 +536,16 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                           {node.title}
                         </span>
                         {isPasteTarget && (
-                          <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
-                            PASTE
+                          <span className='ml-1 text-11px font-semibold text-t-primary bg-info px-6px py-2px rounded-control'>
+                            {t('conversation.workspace.pasteConfirm_paste')}
                           </span>
                         )}
                       </span>
                       <div
-                        className='flex items-center gap-2px flex-shrink-0 opacity-0 group-hover:opacity-100 group-focus-within:opacity-100 transition-opacity duration-150'
-                        // Stop the row's own click handler from firing when the
-                        // user mouses down inside the action group.
+                        className='flex items-center gap-4px flex-shrink-0'
                         onMouseDown={(event) => event.stopPropagation()}
                       >
-                        <button
-                          type='button'
-                          className='h-20px w-20px flex items-center justify-center rounded-4px text-t-tertiary hover:text-t-primary hover:bg-fill-3 active:bg-fill-4 focus:outline-none focus-visible:outline-none transition-colors'
-                          aria-label={t('conversation.workspace.contextMenu.addToChat')}
-                          title={t('conversation.workspace.contextMenu.addToChat')}
-                          onClick={handleInlineAddToChat}
-                        >
-                          <MessageOne size={13} />
-                        </button>
+                        <WorkspaceTreeAddToChatButton onClick={handleInlineAddToChat} />
                         {isMobile && (
                           <button
                             type='button'
@@ -583,37 +636,37 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Changes tab content */}
-        {!isWorkspaceCollapsed && activeTab === 'changes' && (
+        {/* Changes tab content (or dedicated changes pane) */}
+        {(isChangesMode || (!isChangesMode && !isWorkspaceCollapsed && activeTab === 'changes')) && (
           <FlexFullContainer containerClassName='overflow-y-auto'>
-            <FileChangeList
+            <GitChangeList
               t={t}
               workspace={workspace}
-              staged={changesStaged}
-              unstaged={changesUnstaged}
-              loading={changesLoading}
-              snapshotInfo={isRemoteChanges ? null : fileChangesHook.snapshotInfo}
-              onRefresh={() => {
-                if (isRemoteChanges) {
-                  void remoteChangesHook.refreshChanges();
-                } else {
-                  void fileChangesHook.refreshChanges();
-                }
-              }}
+              repoInfo={gitChangesHook.repoInfo}
+              staged={gitChangesHook.staged}
+              unstaged={gitChangesHook.unstaged}
+              conflicted={gitChangesHook.conflicted}
+              loading={gitChangesHook.loading}
+              error={gitChangesHook.error}
+              statusVersion={gitChangesHook.statusVersion}
+              onRefresh={gitChangesHook.refresh}
+              onInitRepo={gitChangesHook.initRepo}
               onOpenDiff={handleOpenChangeDiff}
-              onStageFile={fileChangesHook.stageFile}
-              onStageAll={fileChangesHook.stageAll}
-              onUnstageFile={fileChangesHook.unstageFile}
-              onUnstageAll={fileChangesHook.unstageAll}
-              onDiscardFile={fileChangesHook.discardFile}
-              onResetFile={fileChangesHook.resetFile}
-              readOnly={isRemoteChanges}
+              onStageFile={gitChangesHook.stageFile}
+              onStageAll={gitChangesHook.stageAll}
+              onUnstageFile={gitChangesHook.unstageFile}
+              onUnstageAll={gitChangesHook.unstageAll}
+              onDiscardFile={gitChangesHook.discardFile}
+              onCommit={gitChangesHook.commit}
+              onGetDiff={gitChangesHook.getDiff}
+              onExpandFlyout={onExpandFlyout}
+              hideToolbar={siderDiffChrome === 'embedded'}
             />
           </FlexFullContainer>
         )}
 
-        {/* Todos tab content */}
-        {!isWorkspaceCollapsed && activeTab === 'todos' && todosHook.hasTodos && (
+        {/* Todos tab content — suppressed in dedicated changes pane */}
+        {!isChangesMode && !isWorkspaceCollapsed && activeTab === 'todos' && todosHook.hasTodos && (
           <FlexFullContainer containerClassName='overflow-hidden'>
             <TodoList
               t={t}
@@ -624,8 +677,8 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
           </FlexFullContainer>
         )}
 
-        {/* Approvals tab content */}
-        {!isWorkspaceCollapsed && activeTab === 'approvals' && approvalsHook.hasApprovals && (
+        {/* Approvals tab content — suppressed in dedicated changes pane */}
+        {!isChangesMode && !isWorkspaceCollapsed && activeTab === 'approvals' && approvalsHook.hasApprovals && (
           <FlexFullContainer containerClassName='overflow-hidden'>
             <ApprovalsList t={t} approvals={approvalsHook.approvals} respond={approvalsHook.respond} />
           </FlexFullContainer>

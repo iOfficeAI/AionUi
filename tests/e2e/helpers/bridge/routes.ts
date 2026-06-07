@@ -145,20 +145,4 @@ export const HTTP_ROUTES: Record<string, HttpRoute> = {
     }),
     mapResponse: 'previewSnapshotContent',
   },
-  // File snapshot — git-backed staging/compare/discard for workspace changes.
-  'fs.snapshot.init': { method: 'POST', path: '/api/fs/snapshot/init' },
-  'fs.snapshot.info': { method: 'POST', path: '/api/fs/snapshot/info' },
-  'fs.snapshot.compare': {
-    method: 'POST',
-    path: '/api/fs/snapshot/compare',
-    mapResponse: 'snapshotCompare',
-  },
-  'fs.snapshot.stage': { method: 'POST', path: '/api/fs/snapshot/stage' },
-  'fs.snapshot.stage-all': { method: 'POST', path: '/api/fs/snapshot/stage-all' },
-  'fs.snapshot.unstage': { method: 'POST', path: '/api/fs/snapshot/unstage' },
-  'fs.snapshot.unstage-all': { method: 'POST', path: '/api/fs/snapshot/unstage-all' },
-  'fs.snapshot.discard': { method: 'POST', path: '/api/fs/snapshot/discard' },
-  'fs.snapshot.reset': { method: 'POST', path: '/api/fs/snapshot/reset' },
-  'fs.snapshot.branches': { method: 'POST', path: '/api/fs/snapshot/branches' },
-  'fs.snapshot.dispose': { method: 'POST', path: '/api/fs/snapshot/dispose' },
 };

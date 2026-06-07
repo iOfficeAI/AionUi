@@ -1,21 +1,24 @@
 /**
- * E2E: Workspace Changes tab — real user flow.
+ * E2E: Workspace Diff section (Sider) — real user flow.
  *
  * Creates a team with a seeded workspace, writes a file to disk to produce a
- * diff, then drives the Changes tab in the workspace panel:
- *   1. Click the Changes tab
- *   2. Verify the unstaged file appears
+ * diff, then interacts with the dedicated bottom Diff pane in the Sider:
+ *   1. The Diff content lives under [data-testid="sider-diff-section"]
+ *      (moved out of the top "Files" tree pane's tab bar)
+ *   2. Verify the unstaged file appears in the diff list
  *   3. Click Stage → verify it moves to Staged
  *
- * The snake-case staging pipeline (init/compare/stage/unstage/discard) is
- * covered by direct unit tests against `WorkspaceSnapshotService` in the
- * integration suite; this file only asserts the rendered UI state.
+ * Workspace changes are powered by the Git IPC bridge (`ipcBridge.git.*`); the
+ * workspace is a fresh `git init` repo, so untracked files surface as unstaged
+ * diffs and `git add` moves them to staged. The status plumbing itself is
+ * covered by `useGitChanges` unit tests; this file only asserts the rendered UI.
  */
 import { test, expect } from '../../fixtures';
 import { cleanupTeamsByName, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
 import fs from 'fs';
 import path from 'path';
 import os from 'os';
+import { execSync } from 'child_process';
 
 const TEAM_NAME = `E2E Workspace Snapshot ${Date.now()}`;
 
@@ -24,6 +27,8 @@ test.describe('Workspace Changes — UI panel', () => {
 
   test.beforeAll(() => {
     workspace = fs.mkdtempSync(path.join(os.tmpdir(), 'aionui-e2e-ws-snap-'));
+    // Initialize a git repo so ipcBridge.git.getStatus has something to report.
+    execSync('git init -q', { cwd: workspace });
     fs.writeFileSync(path.join(workspace, 'baseline.txt'), 'original');
   });
 
@@ -81,28 +86,27 @@ test.describe('Workspace Changes — UI panel', () => {
     await expect(modal).toBeHidden({ timeout: 15_000 });
     await page.waitForURL(/\/team\//, { timeout: 15_000 });
 
-    const panel = page.locator('.chat-workspace');
-    await expect(panel).toBeVisible({ timeout: 30_000 });
+    // Diff content now lives in the dedicated bottom Sider pane (panelMode="changes").
+    // The top pane (SiderFileTree) mounts ChatWorkspace with panelMode="files" (no Changes tab).
+    const diffSection = page.locator('[data-testid="sider-diff-section"]');
+    await expect(diffSection).toBeVisible({ timeout: 30_000 });
 
-    // ── Seed a diff on disk (snapshot baseline was captured on team create) ─
+    // ── Seed a diff on disk (git init ran in beforeAll; this write produces
+    //    an untracked change that ipcBridge.git.getStatus surfaces as unstaged) ─
     fs.writeFileSync(path.join(workspace, 'created.txt'), 'hello-snapshot');
 
-    // ── Switch to Changes tab ────────────────────────────────────────────
-    const changesTab = panel.locator('.arco-tabs-header-title').filter({ hasText: /Changes|更改/ });
-    await expect(changesTab.first()).toBeVisible({ timeout: 10_000 });
-    await changesTab.first().click();
-
+    // ── Diff list renders directly in the Sider diff section ─────────────
     await page.screenshot({ path: 'tests/e2e/results/workspace-snapshot-01-changes-tab.png' });
 
-    // ── Newly created file should surface somewhere in the Changes list ──
-    const createdEntry = panel.getByText('created.txt').first();
+    // ── Newly created file should surface somewhere in the diff list ─────
+    const createdEntry = diffSection.getByText('created.txt').first();
     await expect(createdEntry).toBeVisible({ timeout: 30_000 });
 
     await page.screenshot({ path: 'tests/e2e/results/workspace-snapshot-02-unstaged.png' });
 
     // ── Click a Stage button if available (per-file or Stage All) ────────
-    // The FileChangeList renders a Stage-all action + per-file stage buttons.
-    const stageButton = panel
+    // The GitChangeList renders a Stage-all action + per-file stage buttons.
+    const stageButton = diffSection
       .locator('button, [role="button"]')
       .filter({ hasText: /Stage All|全部暂存|Stage|暂存/ })
       .first();
@@ -110,7 +114,7 @@ test.describe('Workspace Changes — UI panel', () => {
     if (stageVisible) {
       await stageButton.click({ trial: false }).catch(() => {});
       // After staging, the file should still be in the list (just under Staged).
-      await expect(panel.getByText('created.txt').first()).toBeVisible({ timeout: 10_000 });
+      await expect(diffSection.getByText('created.txt').first()).toBeVisible({ timeout: 10_000 });
       await page.screenshot({ path: 'tests/e2e/results/workspace-snapshot-03-staged.png' });
     }
 

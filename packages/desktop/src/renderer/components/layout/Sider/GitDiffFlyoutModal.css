@@ -1,0 +1,108 @@
+.git-diff-flyout-modal {
+  --git-diff-flyout-mask-bg: color-mix(in srgb, var(--bg-10) 12%, transparent);
+  --git-diff-flyout-panel-bg: color-mix(in srgb, var(--bg-1) 78%, transparent);
+  --git-diff-flyout-panel-inner-bg: color-mix(in srgb, var(--bg-2) 88%, transparent);
+  --git-diff-flyout-panel-border: var(--border-base);
+  --git-diff-flyout-panel-shadow: 0 14px 34px color-mix(in srgb, var(--bg-10) 18%, transparent);
+  --git-diff-flyout-panel-outline: color-mix(in srgb, var(--border-light) 72%, transparent);
+}
+
+[data-theme='dark'] .git-diff-flyout-modal,
+body[arco-theme='dark'] .git-diff-flyout-modal {
+  --git-diff-flyout-mask-bg: color-mix(in srgb, var(--color-bg-5) 58%, transparent);
+  --git-diff-flyout-panel-bg: color-mix(in srgb, var(--color-bg-2) 76%, transparent);
+  --git-diff-flyout-panel-inner-bg: color-mix(in srgb, var(--color-bg-3) 82%, transparent);
+  --git-diff-flyout-panel-border: var(--color-border-2);
+  --git-diff-flyout-panel-shadow: 0 20px 44px rgba(0, 0, 0, 0.38);
+  --git-diff-flyout-panel-outline: color-mix(in srgb, var(--color-border-3) 56%, transparent);
+}
+
+.git-diff-flyout-modal.aionui-modal .arco-modal,
+.git-diff-flyout-modal.aionui-modal .arco-modal-content,
+.git-diff-flyout-modal.aionui-modal .arco-modal-header,
+.git-diff-flyout-modal.aionui-modal .arco-modal-body,
+.git-diff-flyout-modal.aionui-modal .arco-modal-footer,
+.git-diff-flyout-modal .aionui-modal-wrapper,
+.git-diff-flyout-modal .aionui-modal-body-content {
+  background: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
+}
+
+.git-diff-flyout-modal.aionui-modal .arco-modal-content,
+.git-diff-flyout-modal .arco-modal-content {
+  position: relative;
+  background: var(--git-diff-flyout-panel-bg) !important;
+  border: 1px solid var(--git-diff-flyout-panel-border) !important;
+  border-radius: 24px !important;
+  box-shadow: var(--git-diff-flyout-panel-shadow) !important;
+  outline: 1px solid var(--git-diff-flyout-panel-outline);
+  outline-offset: -1px;
+  backdrop-filter: blur(10px) saturate(115%);
+  -webkit-backdrop-filter: blur(10px) saturate(115%);
+  padding: 0 !important;
+  margin: 0 !important;
+  overflow: hidden !important;
+}
+
+.git-diff-flyout-modal .aionui-modal-body-content {
+  padding: 0 !important;
+}
+
+.git-diff-flyout-modal__panel {
+  background: var(--git-diff-flyout-panel-inner-bg) !important;
+  backdrop-filter: blur(2px) saturate(106%);
+  -webkit-backdrop-filter: blur(2px) saturate(106%);
+  border: none;
+  box-shadow: none;
+  padding: 24px 24px 22px;
+}
+
+.git-diff-flyout-modal__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 2px 2px 14px;
+  border-bottom: none;
+}
+
+.git-diff-flyout-modal__header-main {
+  min-width: 0;
+  flex: 1;
+}
+
+.git-diff-flyout-modal__title {
+  font-size: 17px;
+  font-weight: 600;
+  line-height: 26px;
+  color: var(--text-primary);
+}
+
+.git-diff-flyout-modal__description {
+  margin-top: 2px;
+}
+
+.git-diff-flyout-modal__close-btn {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  border-radius: 999px;
+  color: var(--text-secondary);
+  background: transparent;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.16s ease,
+    color 0.16s ease;
+}
+
+.git-diff-flyout-modal__close-btn:hover {
+  background: var(--fill-0);
+  color: var(--text-primary);
+}

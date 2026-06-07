@@ -1,0 +1,71 @@
+/* VSCode-like File Tree Styling */
+
+.workspace-tree {
+  font-family: var(--font-ui, system-ui, -apple-system, sans-serif);
+  font-size: 13px;
+  color: var(--color-text-2, rgba(204, 204, 204, 0.9));
+  padding-left: 8px !important; /* Small padding so arrows don't touch the very edge */
+  padding-right: 8px !important;
+  background-color: transparent;
+}
+
+.workspace-tree .arco-tree-node {
+  line-height: 22px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* Remove default floating pill effect */
+.workspace-tree .arco-tree-node-title {
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+  background: transparent !important;
+  font-size: 13px !important;
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-tree .arco-tree-node-title-wrapper {
+  border-radius: 0 !important;
+  margin: 0 !important;
+  padding: 0 8px 0 2px !important; /* Right padding, small left padding */
+  min-height: 22px !important;
+  display: flex !important;
+  align-items: center;
+  transition: none !important;
+}
+
+/* Base Hover and Selection: Flat, squared-off */
+.workspace-tree .arco-tree-node-title-wrapper:hover {
+  background-color: var(--color-fill-2) !important;
+  color: var(--color-text-1) !important;
+}
+
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title-wrapper {
+  background-color: var(--color-fill-3) !important;
+  color: var(--color-text-1) !important;
+}
+
+/* Compact expand/collapse switcher */
+.workspace-tree .arco-tree-node-switcher {
+  width: 18px !important;
+  height: 22px !important;
+  line-height: 22px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  margin-right: 0px !important;
+  color: var(--color-text-3) !important;
+}
+
+/* Make indent blocks smaller for higher density */
+.workspace-tree .arco-tree-node-indent-block {
+  width: 12px !important; /* VSCode uses smaller indents (8px-12px) */
+}
+
+/* Adjust indent guide lines for showLine mode to be subtle */
+.workspace-tree.arco-tree-show-line .arco-tree-node-indent-block::before {
+  border-left: 1px solid var(--color-border-1, rgba(128, 128, 128, 0.2)) !important;
+  left: 6px !important; /* Center the line in the smaller indent block */
+}

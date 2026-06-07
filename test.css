@@ -1,0 +1,48 @@
+/* Arco Tree VSCode-like styling */
+.workspace-tree {
+  font-size: 13px !important;
+  color: var(--color-text-2, #ccc) !important;
+}
+
+.workspace-tree .arco-tree-node {
+  line-height: 22px !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+.workspace-tree .arco-tree-node-title-wrapper {
+  min-height: 22px !important;
+  line-height: 22px !important;
+  padding: 0 4px !important;
+  border-radius: 0 !important; /* Flat, no pill */
+  display: flex;
+  align-items: center;
+}
+
+.workspace-tree .arco-tree-node-title {
+  font-size: 13px !important;
+}
+
+/* Make hover/selection span full width if possible, but at least remove the rounded look */
+.workspace-tree .arco-tree-node-title-wrapper:hover {
+  background-color: var(--color-fill-2) !important; /* Subtle hover */
+}
+
+.workspace-tree .arco-tree-node-selected .arco-tree-node-title-wrapper {
+  background-color: var(--color-fill-3) !important;
+  color: var(--color-text-1) !important;
+}
+
+/* Adjust the switcher (the expand/collapse arrow) */
+.workspace-tree .arco-tree-node-switcher {
+  width: 16px !important;
+  height: 22px !important;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.workspace-tree .arco-tree-node-switcher-icon {
+  font-size: 12px !important;
+  color: var(--color-text-3) !important;
+}

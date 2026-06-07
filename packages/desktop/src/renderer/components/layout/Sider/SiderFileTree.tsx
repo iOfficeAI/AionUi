@@ -16,13 +16,20 @@
 import { ipcBridge } from '@/common';
 import type { TChatConversation } from '@/common/config/storage';
 import ChatWorkspace from '@/renderer/pages/conversation/Workspace';
+import { getWorkspaceDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty } from '@arco-design/web-react';
-import { FolderOpen, Code } from '@icon-park/react';
-import React from 'react';
+import { Code, FullScreen, Refresh } from '@icon-park/react';
+import { SiderWorkspaceActionBtn } from './SiderWorkspaceActionBtn';
+import panelStyles from './SiderWorkspacePanel.module.css';
+import React, { useCallback, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import useSWR from 'swr';
+import SiderWorkspaceSectionHeader from './SiderWorkspaceSectionHeader';
+import WorkspaceFilesFlyoutModal from './WorkspaceFilesFlyoutModal';
 
 const SiderFileTree: React.FC = () => {
+  const { t } = useTranslation();
   const { id: conversationId } = useParams<{ id: string }>();
   const { data: conversation } = useSWR<TChatConversation | undefined>(
     conversationId ? `sider-file-tree.conversation.${conversationId}` : null,
@@ -34,32 +41,90 @@ const SiderFileTree: React.FC = () => {
   const isTemporaryWorkspace = (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)
     ?.is_temporary_workspace;
   const eventPrefix = conversation?.type;
+  const [flyoutVisible, setFlyoutVisible] = useState(false);
+  const [refreshWorkspace, setRefreshWorkspace] = useState<(() => void) | null>(null);
+  const [treeLoading, setTreeLoading] = useState(false);
 
-  // Real workspace available — mount the shared file-tree/tabs panel.
+  const workspaceLabel = useMemo(
+    () =>
+      workspace
+        ? getWorkspaceDisplayName(workspace, isTemporaryWorkspace ?? false, (key) => t(key))
+        : '',
+    [workspace, isTemporaryWorkspace, t]
+  );
+
+  const handleSiderRefreshReady = useCallback((refresh: () => void) => {
+    setRefreshWorkspace(() => refresh);
+  }, []);
+
+  const handleRefreshClick = useCallback(() => {
+    if (!refreshWorkspace) return;
+    setTreeLoading(true);
+    void Promise.resolve(refreshWorkspace()).finally(() => setTreeLoading(false));
+  }, [refreshWorkspace]);
+
   if (workspace && conversationId && eventPrefix) {
     return (
-      <ChatWorkspace
-        conversation_id={conversationId}
-        workspace={workspace}
-        isTemporaryWorkspace={isTemporaryWorkspace}
-        eventPrefix={eventPrefix}
-      />
+      <div
+        className={`${panelStyles.section} size-full`}
+        role='region'
+        aria-label={t('conversation.workspace.changes.filesTab')}
+        data-testid='sider-file-tree'
+      >
+        <SiderWorkspaceSectionHeader
+          title={workspaceLabel}
+          actions={
+            <>
+              <SiderWorkspaceActionBtn
+                tooltip={t('conversation.workspace.files.expandFlyout')}
+                icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
+                onClick={() => setFlyoutVisible(true)}
+              />
+              <SiderWorkspaceActionBtn
+                tooltip={t('conversation.workspace.refresh')}
+                icon={<Refresh theme='outline' size={14} fill='currentColor' className={treeLoading ? 'animate-spin' : undefined} />}
+                onClick={handleRefreshClick}
+                disabled={treeLoading || !refreshWorkspace}
+              />
+            </>
+          }
+        />
+        <div className={panelStyles.body}>
+          <ChatWorkspace
+            conversation_id={conversationId}
+            workspace={workspace}
+            isTemporaryWorkspace={isTemporaryWorkspace}
+            eventPrefix={eventPrefix}
+            panelMode='files'
+            siderFilesChrome='embedded'
+            onExpandFilesFlyout={() => setFlyoutVisible(true)}
+            onSiderFilesRefreshReady={handleSiderRefreshReady}
+          />
+        </div>
+        <WorkspaceFilesFlyoutModal
+          visible={flyoutVisible}
+          onClose={() => setFlyoutVisible(false)}
+          conversationId={conversationId}
+          workspace={workspace}
+          isTemporaryWorkspace={isTemporaryWorkspace}
+          eventPrefix={eventPrefix}
+        />
+      </div>
     );
   }
 
   return (
-    <div className='size-full flex flex-col min-h-0' role='region' aria-label='File tree' data-testid='sider-file-tree'>
-      <div className='flex items-center gap-8px px-12px py-6px border-b border-[var(--border-base)] text-t-primary text-13px font-medium'>
-        <FolderOpen theme='outline' size={16} fill='currentColor' />
-        <span>Files</span>
-      </div>
-      <div className='flex-1 min-h-0 flex-center'>
+    <div className={`${panelStyles.section} size-full`} role='region' aria-label='File tree' data-testid='sider-file-tree'>
+      <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.filesTab')} />
+      <div className={`${panelStyles.body} flex-center`}>
         <Empty
           icon={<Code theme='outline' size={48} fill='var(--text-tertiary)' />}
           description={
             <div className='flex flex-col items-center gap-4px'>
-              <span className='text-t-primary text-13px font-medium'>No active workspace</span>
-              <span className='text-t-tertiary text-12px'>Open a conversation with a workspace to see its files.</span>
+              <span className='text-t-primary text-13px font-medium'>
+                {t('conversation.workspace.changes.noActiveWorkspace')}
+              </span>
+              <span className='text-t-tertiary text-12px'>{t('conversation.workspace.emptyDescription')}</span>
             </div>
           }
         />

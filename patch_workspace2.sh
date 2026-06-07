@@ -1,0 +1,1 @@
+sed -i '' "s/<span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}<\/span>/<span className={\`overflow-hidden text-ellipsis whitespace-nowrap \${isFile ? '' : 'opacity-85'}\`}>{node.title}<\/span>/" ./packages/desktop/src/renderer/pages/conversation/Workspace/index.tsx

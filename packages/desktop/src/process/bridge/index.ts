@@ -6,6 +6,7 @@
 
 import { initApplicationBridge } from './applicationBridge';
 import { initDialogBridge } from './dialogBridge';
+import { initGitBridge } from './gitBridge';
 import { initTerminalBridge } from './terminalBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
@@ -19,6 +20,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initDialogBridge();
   initApplicationBridge();
   initTerminalBridge();
+  initGitBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
@@ -29,6 +31,7 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
 export {
   initApplicationBridge,
   initDialogBridge,
+  initGitBridge,
   initNotificationBridge,
   initSystemSettingsBridge,
   initTerminalBridge,
@@ -36,6 +39,7 @@ export {
   initWindowControlsBridge,
   initWebuiBridge,
 };
+export { disposeGitBridge } from './gitBridge';
 export { disposeTerminalBridge } from './terminalBridge';
 export { registerWindowMaximizeListeners } from './windowControlsBridge';
 export const disposeAllTeamSessions = (): Promise<void> => Promise.resolve();

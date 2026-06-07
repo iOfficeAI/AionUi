@@ -1,0 +1,18 @@
+/* VSCode-like vertical indent guides */
+.workspace-tree .arco-tree-node-indent-block {
+  position: relative;
+}
+
+.workspace-tree .arco-tree-node-indent-block::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 6px; /* Center in the 12px block */
+  border-left: 1px solid transparent;
+  transition: border-color 0.2s ease;
+}
+
+.workspace-tree:hover .arco-tree-node-indent-block::before {
+  border-left-color: var(--color-border-1, rgba(128, 128, 128, 0.2));
+}
