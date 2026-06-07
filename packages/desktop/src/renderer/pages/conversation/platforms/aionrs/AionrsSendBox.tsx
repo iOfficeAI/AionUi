@@ -32,6 +32,7 @@ import {
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
@@ -120,15 +121,15 @@ const AionrsSendBox: React.FC<{
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, hasHydratedRunningState, setActiveMsgId, setWaitingResponse, resetState } =
-    useAionrsMessage(conversation_id, {
-      onConfigChanged: (capabilities) => {
-        const modes = (capabilities as { modes?: string[] })?.modes;
-        if (modes && modes.length > 0) {
-          setDynamicModes(mergeWithCapabilities('aionrs', modes));
-        }
-      },
-    });
+  const { thought, running, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(conversation_id, {
+    onConfigChanged: (capabilities) => {
+      const modes = (capabilities as { modes?: string[] })?.modes;
+      if (modes && modes.length > 0) {
+        setDynamicModes(mergeWithCapabilities('aionrs', modes));
+      }
+    },
+  });
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -173,7 +174,7 @@ const AionrsSendBox: React.FC<{
   });
 
   const { setSendBoxHandler } = usePreviewContext();
-  const isBusy = running;
+  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -214,6 +215,7 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
+      runtimeView.markSendStarted();
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
@@ -225,12 +227,17 @@ const AionrsSendBox: React.FC<{
           files,
         });
         setActiveMsgId(res.msg_id);
+        runtimeView.markSendAccepted(res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+        const errorMessage =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) ||
+          (error instanceof Error ? error.message : String(error));
+        runtimeView.markSendFailed(errorMessage);
+        Message.error(errorMessage);
         throw error;
       }
     },
@@ -238,6 +245,7 @@ const AionrsSendBox: React.FC<{
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
+      runtimeView,
       setActiveMsgId,
       setWaitingResponse,
       t,
@@ -263,7 +271,11 @@ const AionrsSendBox: React.FC<{
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    isHydrated: hasHydratedRunningState,
+    runtimeGate: {
+      hydrated: runtimeView.hydrated,
+      canSendMessage: runtimeView.canSendMessage,
+      isProcessing: runtimeView.isProcessing,
+    },
     onExecute: executeCommand,
   });
 
@@ -295,11 +307,6 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (isBusy) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -528,11 +535,13 @@ const AionrsSendBox: React.FC<{
   const handleStop = async (): Promise<void> => {
     // Best-effort cancel: swallow rejections so they don't bubble up as
     // unhandled rejections. UI state is still reset via finally.
+    runtimeView.markStopRequested();
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
       console.warn('[AionrsSendBox] stop request failed', error);
     } finally {
+      runtimeView.markStopAcknowledged();
       resetState();
       resetActiveExecution('stop');
     }

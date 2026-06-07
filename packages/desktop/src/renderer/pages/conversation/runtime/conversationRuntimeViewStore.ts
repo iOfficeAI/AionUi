@@ -222,9 +222,9 @@ export const localSendFailedConversationRuntimeView = (
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
   const view: ConversationRuntimeView = {
     ...base,
-    state: base.hasBackendRuntime ? base.state : 'idle',
-    isProcessing: base.hasBackendRuntime ? base.isProcessing : false,
-    canSendMessage: base.hasBackendRuntime ? base.canSendMessage : true,
+    state: 'idle',
+    isProcessing: false,
+    canSendMessage: true,
     localSubmitting: false,
     hydrated: true,
   };

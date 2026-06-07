@@ -32,6 +32,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -99,8 +100,6 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
 }> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState }) => {
   const {
-    running,
-    hasHydratedRunningState,
     aiProcessing,
     setAiProcessing,
     resetState,
@@ -218,6 +217,7 @@ const AcpSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   // Shared file handling logic
   const { handleFilesAdded, clearFiles } = useSendBoxFiles({
@@ -226,7 +226,7 @@ const AcpSendBox: React.FC<{
     setAtPath,
     setUploadFile,
   });
-  const isBusy = running || aiProcessing;
+  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -255,28 +255,34 @@ const AcpSendBox: React.FC<{
     workspacePath,
     setAiProcessing,
     resetState,
+    markSendStarted: runtimeView.markSendStarted,
+    markSendAccepted: runtimeView.markSendAccepted,
+    markSendFailed: runtimeView.markSendFailed,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
   });
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
-      if (teamPermission) await teamPermission.warmupSession();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
+      runtimeView.markSendStarted();
       setAiProcessing(true);
 
       try {
+        if (teamPermission) await teamPermission.warmupSession();
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.acpConversation.sendMessage.invoke({
+        const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
+        runtimeView.markSendAccepted(result.msg_id);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
+        runtimeView.markSendFailed(errorMsg);
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
@@ -340,7 +346,7 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, resetState, setAiProcessing, t, workspacePath]
+    [backend, checkAndUpdateTitle, conversation_id, resetState, runtimeView, setAiProcessing, t, workspacePath]
   );
 
   const {
@@ -361,7 +367,11 @@ Please check your local CLI tool authentication status`,
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    isHydrated: hasHydratedRunningState,
+    runtimeGate: {
+      hydrated: runtimeView.hydrated,
+      canSendMessage: runtimeView.canSendMessage,
+      isProcessing: runtimeView.isProcessing,
+    },
     onExecute: executeCommand,
   });
 
@@ -549,11 +559,13 @@ Please check your local CLI tool authentication status`,
     // Cancelling is best-effort: swallow errors (e.g. backend WS not yet
     // connected → 409) so they don't bubble up as unhandled rejections.
     // UI state is still reset via finally.
+    runtimeView.markStopRequested();
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
       console.warn('[AcpSendBox] stop request failed', error);
     } finally {
+      runtimeView.markStopAcknowledged();
       resetState();
       resetActiveExecution('stop');
     }

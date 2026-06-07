@@ -90,6 +90,21 @@ describe('conversationRuntimeViewStore', () => {
     });
   });
 
+  it('clears a failed local send gate after an idle backend runtime was hydrated', () => {
+    const hydrated = hydrateSucceededConversationRuntimeView(undefined, conversation_id, runtime({})).view;
+    const started = localSendStartedConversationRuntimeView(hydrated, conversation_id).view;
+    const { view } = localSendFailedConversationRuntimeView(started, conversation_id, 'network error');
+
+    expect(view).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+  });
+
   it('keeps a send accepted turn busy until runtime confirmation', () => {
     const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
 

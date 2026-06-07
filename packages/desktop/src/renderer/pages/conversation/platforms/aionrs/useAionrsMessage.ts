@@ -11,6 +11,7 @@ import type { TChatConversation, TokenUsageData } from '@/common/config/storage'
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -240,6 +241,7 @@ export const useAionrsMessage = (
           break;
         case 'finish':
           {
+            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
             // aionrs stream_end carries usage in data field
             const usageData = message.data as TokenUsage | undefined;
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
@@ -330,6 +332,7 @@ export const useAionrsMessage = (
           break;
         default: {
           if (message.type === 'error') {
+            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
             setStreamRunning(false);
             streamRunningRef.current = false;
             setWaitingResponse(false);
