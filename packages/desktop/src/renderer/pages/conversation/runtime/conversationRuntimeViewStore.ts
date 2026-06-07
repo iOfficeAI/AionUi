@@ -45,10 +45,29 @@ type ConversationRuntimeSnapshot = {
 };
 
 type ConversationRuntimeViewListener = () => void;
+type ConversationRuntimeMetadata = {
+  activeTurnSeq: number;
+  pendingStopTurnSeq: number | null;
+};
 
 const listeners = new Set<ConversationRuntimeViewListener>();
 const runtimeViews = new Map<string, ConversationRuntimeView>();
 const fallbackSnapshots = new Map<string, ConversationRuntimeView>();
+const runtimeMetadata = new Map<string, ConversationRuntimeMetadata>();
+
+const getRuntimeMetadata = (conversation_id: string): ConversationRuntimeMetadata => {
+  const existing = runtimeMetadata.get(conversation_id);
+  if (existing) {
+    return existing;
+  }
+
+  const next: ConversationRuntimeMetadata = {
+    activeTurnSeq: 0,
+    pendingStopTurnSeq: null,
+  };
+  runtimeMetadata.set(conversation_id, next);
+  return next;
+};
 
 export const createDefaultConversationRuntimeView = (conversation_id: string): ConversationRuntimeView => ({
   conversation_id,
@@ -363,6 +382,7 @@ export const conversationDeleted = (conversation_id: string): ConversationRuntim
   const previous = runtimeViews.get(conversation_id) ?? fallbackSnapshots.get(conversation_id);
   runtimeViews.delete(conversation_id);
   fallbackSnapshots.delete(conversation_id);
+  runtimeMetadata.delete(conversation_id);
   listeners.forEach((listener) => listener());
   return previous
     ? [
@@ -373,11 +393,15 @@ export const conversationDeleted = (conversation_id: string): ConversationRuntim
     : [];
 };
 
-export const localSendStarted = (conversation_id: string): ConversationRuntimeViewLogEntry[] =>
-  setConversationRuntimeSnapshot(
+export const localSendStarted = (conversation_id: string): ConversationRuntimeViewLogEntry[] => {
+  const metadata = getRuntimeMetadata(conversation_id);
+  metadata.activeTurnSeq += 1;
+  metadata.pendingStopTurnSeq = null;
+  return setConversationRuntimeSnapshot(
     conversation_id,
     localSendStartedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
   );
+};
 
 export const localSendAccepted = (conversation_id: string, msg_id?: string): ConversationRuntimeViewLogEntry[] =>
   setConversationRuntimeSnapshot(
@@ -391,17 +415,37 @@ export const localSendFailed = (conversation_id: string, reason: string): Conver
     localSendFailedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, reason)
   );
 
-export const localStopRequested = (conversation_id: string): ConversationRuntimeViewLogEntry[] =>
-  setConversationRuntimeSnapshot(
+export const localStopRequested = (conversation_id: string): ConversationRuntimeViewLogEntry[] => {
+  const metadata = getRuntimeMetadata(conversation_id);
+  metadata.pendingStopTurnSeq = metadata.activeTurnSeq;
+  return setConversationRuntimeSnapshot(
     conversation_id,
     localStopRequestedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
   );
+};
 
-export const localStopAcknowledged = (conversation_id: string): ConversationRuntimeViewLogEntry[] =>
-  setConversationRuntimeSnapshot(
+export const localStopAcknowledged = (conversation_id: string): ConversationRuntimeViewLogEntry[] => {
+  const metadata = getRuntimeMetadata(conversation_id);
+  const base = runtimeViews.get(conversation_id) ?? createDefaultConversationRuntimeView(conversation_id);
+  const isCurrentStopAck =
+    metadata.pendingStopTurnSeq !== null && metadata.pendingStopTurnSeq === metadata.activeTurnSeq;
+
+  if (!isCurrentStopAck) {
+    const logs = [
+      createLog('info', 'local_stop_acknowledged', base, {
+        ignored: true,
+        reason: 'stale_stop_ack',
+      }),
+    ];
+    return setConversationRuntimeSnapshot(conversation_id, withLogs(base, logs));
+  }
+
+  metadata.pendingStopTurnSeq = null;
+  return setConversationRuntimeSnapshot(
     conversation_id,
-    localStopAcknowledgedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id)
+    localStopAcknowledgedConversationRuntimeView(base, conversation_id)
   );
+};
 
 export const resetLocalGate = (conversation_id: string, reason: string): ConversationRuntimeViewLogEntry[] =>
   setConversationRuntimeSnapshot(
@@ -412,5 +456,6 @@ export const resetLocalGate = (conversation_id: string, reason: string): Convers
 export const resetConversationRuntimeViewStoreForTest = () => {
   runtimeViews.clear();
   fallbackSnapshots.clear();
+  runtimeMetadata.clear();
   listeners.clear();
 };

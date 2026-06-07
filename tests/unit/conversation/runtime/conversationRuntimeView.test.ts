@@ -8,12 +8,19 @@ import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { describe, expect, it } from 'vitest';
 import {
   createDefaultConversationRuntimeView,
+  getConversationRuntimeViewSnapshot,
   hydrateSucceededConversationRuntimeView,
+  localSendAccepted,
   localSendAcceptedConversationRuntimeView,
+  localSendStarted,
   localSendFailedConversationRuntimeView,
   localSendStartedConversationRuntimeView,
+  localStopAcknowledged,
   localStopAcknowledgedConversationRuntimeView,
+  localStopRequested,
   localStopRequestedConversationRuntimeView,
+  resetConversationRuntimeViewStoreForTest,
+  turnCompleted,
   turnCompletedConversationRuntimeView,
 } from '@/renderer/pages/conversation/runtime/conversationRuntimeViewStore';
 
@@ -186,6 +193,33 @@ describe('conversationRuntimeViewStore', () => {
       canSendMessage: true,
       localSubmitting: false,
       localStopping: false,
+    });
+  });
+
+  it('ignores a stale stop acknowledgement after the next local send started', () => {
+    resetConversationRuntimeViewStoreForTest();
+
+    localSendStarted(conversation_id);
+    localSendAccepted(conversation_id, 'message-1');
+    localStopRequested(conversation_id);
+    turnCompleted(conversation_id, runtime({}));
+    localSendStarted(conversation_id);
+    const logs = localStopAcknowledged(conversation_id);
+
+    expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
+      state: 'starting',
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      localStopping: false,
+    });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      event: 'local_stop_acknowledged',
+      data: {
+        ignored: true,
+        reason: 'stale_stop_ack',
+      },
     });
   });
 
