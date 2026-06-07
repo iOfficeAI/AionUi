@@ -10,6 +10,7 @@ import {
   createDefaultConversationRuntimeView,
   getConversationRuntimeViewSnapshot,
   hydrateSucceededConversationRuntimeView,
+  hydrateSucceeded,
   localSendAccepted,
   localSendAcceptedConversationRuntimeView,
   localSendStarted,
@@ -125,6 +126,41 @@ describe('conversationRuntimeViewStore', () => {
       hydrated: true,
     });
     expect(logs.map((log) => log.event)).not.toContain('runtime_release_confirmed');
+  });
+
+  it('keeps an unaccepted local send busy when a stale idle hydrate arrives', () => {
+    resetConversationRuntimeViewStoreForTest();
+
+    localSendStarted(conversation_id);
+    const logs = hydrateSucceeded(conversation_id, runtime({}));
+
+    expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
+      state: 'starting',
+      isProcessing: true,
+      canSendMessage: false,
+      localSubmitting: true,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs.map((log) => log.event)).not.toContain('runtime_release_confirmed');
+  });
+
+  it('releases an accepted local send when a later hydrate confirms the backend is idle', () => {
+    resetConversationRuntimeViewStoreForTest();
+
+    localSendStarted(conversation_id);
+    localSendAccepted(conversation_id, 'message-1');
+    const logs = hydrateSucceeded(conversation_id, runtime({}));
+
+    expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs.map((log) => log.event)).toContain('runtime_release_confirmed');
   });
 
   it('keeps a send accepted turn busy until runtime confirmation', () => {
