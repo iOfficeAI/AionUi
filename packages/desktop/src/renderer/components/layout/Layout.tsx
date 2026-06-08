@@ -57,10 +57,10 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 );
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
-// App-wide editor pane (Monaco is heavy → lazy). Mounted only on routes where
-// ChatLayout is absent, so the titlebar's Command Center can open the editor
-// anywhere (e.g. /guid) without a second editor on conversation/team routes.
-const EditorPane = React.lazy(() => import('@/renderer/components/layout/EditorPane'));
+// Command Center editor pane — a single shell-level editor host rendered as a
+// peer column to the LEFT of the chat content on all non-team routes
+// (conversation, /guid, settings). Monaco stays lazy inside it.
+const CommandCenterEditorHost = React.lazy(() => import('@/renderer/components/layout/CommandCenterEditorHost'));
 
 const LayoutModeOrchestrator: React.FC<{
   setCollapsed: (val: boolean) => void;
@@ -195,6 +195,10 @@ const Layout: React.FC<{
   const location = useLocation();
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
+  // The Command Center editor pane is a conversation-route concern (it resolves
+  // the active conversation's workspace from the route `:id`). Team routes use a
+  // different id shape and have no editor today, so gate strictly on this.
+  const isConversationRoute = location.pathname.startsWith('/conversation/');
   const isSettingsRoute = location.pathname.startsWith('/settings');
   // The conversation pane is available everywhere except the Settings menu.
   const conversationPaneEnabled = !isSettingsRoute;
@@ -638,6 +642,18 @@ const Layout: React.FC<{
                   </div>
                 </ArcoLayout.Sider>
 
+                {/* Command Center editor pane — peer column to the LEFT of the
+                    chat content (desktop), universal across routes: conversation
+                    routes and non-workspace routes (/guid, settings). Team routes
+                    are excluded (no editor; different id shape). Self-gates to
+                    command-center mode; renders null otherwise. A later phase
+                    adds the left/right dock-side preference. */}
+                {(isConversationRoute || !workspaceAvailable) && !isMobile && (
+                  <Suspense fallback={null}>
+                    <CommandCenterEditorHost />
+                  </Suspense>
+                )}
+
                 <ArcoLayout.Content
                   className={'bg-1 layout-content flex flex-col min-h-0'}
                   onClick={() => {
@@ -662,15 +678,6 @@ const Layout: React.FC<{
                     </Suspense>
                   </div>
                 </ArcoLayout.Content>
-
-                {/* App-wide editor pane — only where ChatLayout isn't already
-                    hosting one (i.e. not on conversation/team routes). Lets
-                    Command Center open the editor on /guid and elsewhere. */}
-                {!workspaceAvailable && !isMobile && (
-                  <Suspense fallback={null}>
-                    <EditorPane />
-                  </Suspense>
-                )}
 
                 {/* Right-side conversation navigation pane — app-wide peer of
                     the main content (replaces the old left-Sider chat list).

@@ -1,9 +1,7 @@
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import CommandCenterEditorHost from '@/renderer/components/layout/CommandCenterEditorHost';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
-import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 import ChatTitleEditor from '@/renderer/pages/conversation/components/ChatTitleEditor';
 import ConversationTitleMinimap from '@/renderer/pages/conversation/components/ConversationTitleMinimap';
@@ -78,10 +76,6 @@ const ChatLayout: React.FC<{
 
   // Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
-
-  // Active layout mode (gates the in-place Command Center editor pane).
-  const layoutMode = useLayoutModeSafe();
-  const activeMode = layoutMode?.mode ?? 'chat';
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -383,11 +377,6 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
-        {/* Command Center editor pane (Phase 1: rendered in place to prove
-            parity; later hoisted to the app shell). */}
-        {!layout?.isMobile && activeMode === 'command-center' && (
-          <CommandCenterEditorHost workspaceRoot={workspacePath} />
-        )}
         {workspaceEnabled && !layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
           <div
             className={classNames(

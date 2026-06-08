@@ -8,7 +8,11 @@ import classNames from 'classnames';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExpandLeft } from '@icon-park/react';
+import { useParams } from 'react-router-dom';
+import useSWR from 'swr';
 
+import { ipcBridge } from '@/common';
+import type { TChatConversation } from '@/common/config/storage';
 import ErrorBoundary from '@/renderer/components/base/ErrorBoundary';
 import { useEditorContext } from '@/renderer/pages/conversation/Editor';
 import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
@@ -51,6 +55,17 @@ const CommandCenterEditorHost: React.FC<CommandCenterEditorHostProps> = ({ works
   const { isOpen, isCollapsed, expandEditor } = useEditorContext();
   const isExpanded = isOpen && !isCollapsed;
   const isBlade = isOpen && isCollapsed;
+
+  // Resolve the active conversation's workspace root from the route `:id`
+  // (mirrors SiderFileTree). Only fetched in command-center mode; an explicit
+  // `workspaceRoot` prop, when provided, takes precedence.
+  const { id: conversationId } = useParams<{ id: string }>();
+  const { data: conversation } = useSWR<TChatConversation | undefined>(
+    conversationId && activeMode === 'command-center' ? `command-center-editor.conversation.${conversationId}` : null,
+    () => ipcBridge.conversation.get.invoke({ id: conversationId as string }),
+    { revalidateOnFocus: false }
+  );
+  const resolvedWorkspaceRoot = workspaceRoot ?? conversation?.extra?.workspace;
 
   const { splitRatio: editorWidthPx, createDragHandle } = useResizableSplit({
     unit: 'px',
@@ -115,7 +130,7 @@ const CommandCenterEditorHost: React.FC<CommandCenterEditorHostProps> = ({ works
                   console.error('[CommandCenterEditorHost] Editor chunk crashed; rendering fallback surface.', err);
                 }}
               >
-                <EditorLazyEntry workspaceRoot={workspaceRoot} />
+                <EditorLazyEntry workspaceRoot={resolvedWorkspaceRoot} />
               </ErrorBoundary>
             </React.Suspense>
           </div>
