@@ -33,6 +33,7 @@ import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
+import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
@@ -218,6 +219,7 @@ const ChatConversation: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
 
   const isAionrsConversation = conversation?.type === 'aionrs';
+  const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation?.type);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -241,7 +243,7 @@ const ChatConversation: React.FC<{
             session_mode={conversation.extra?.session_mode}
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
             loadedMcpStatuses={
@@ -250,12 +252,8 @@ const ChatConversation: React.FC<{
           ></AcpChat>
         );
       case 'gemini':
-        // Legacy Gemini conversation: the dedicated Gemini runtime has been
-        // removed. The message history is still served by the shared messages
-        // table, so AcpChat renders it fine. The composer is left enabled —
-        // any send attempt will get a BadRequest from the factory branch in
-        // aionui-common/src/enums.rs → factory.rs, surfacing a clear error
-        // to the user.
+        // Legacy Gemini conversation: message history remains readable, but
+        // the retired Gemini runtime must not be resumed.
         return (
           <AcpChat
             key={conversation.id}
@@ -264,7 +262,7 @@ const ChatConversation: React.FC<{
             backend='gemini'
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
             loadedMcpStatuses={
@@ -280,7 +278,7 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             backend='codex'
             agent_name={assistantDisplayName}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
             loadedMcpStatuses={
@@ -295,6 +293,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
           />
         );
@@ -305,6 +304,7 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
           />
         );
@@ -315,13 +315,14 @@ const ChatConversation: React.FC<{
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
           />
         );
       default:
         return null;
     }
-  }, [conversation, isAionrsConversation, assistantDisplayName, hideSendBox]);
+  }, [conversation, isAionrsConversation, assistantDisplayName, resolvedHideSendBox]);
 
   const sliderTitle = useMemo(() => {
     return (

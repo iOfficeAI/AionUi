@@ -4,6 +4,7 @@ import { Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
@@ -69,6 +70,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
   // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
+  const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation.type);
   const emptySlot = team_id ? (
     <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
   ) : undefined;
@@ -83,7 +85,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             backend={conversation.extra?.backend || 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
@@ -95,7 +97,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             workspace={conversation.extra?.workspace}
             backend='codex'
             agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
@@ -114,7 +116,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
@@ -124,7 +126,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
@@ -134,7 +136,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
