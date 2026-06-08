@@ -98,9 +98,8 @@ import {
   InstallationIntegrityContent,
   InstallationIntegrityModalHost,
   getBackendStartupInstallationDescription,
-  getInstallationIntegrityDownloadText,
+  getDownloadLatestModalActionProps,
   getRuntimeComponentInstallationDescription,
-  openDownloadLatest,
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
 
@@ -325,8 +324,7 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
           closable={false}
           maskClosable={false}
           title={t('common.backendStartup.packageArchitectureMismatch.title')}
-          okText={getInstallationIntegrityDownloadText(t)}
-          onOk={openDownloadLatest}
+          {...getDownloadLatestModalActionProps(t)}
         >
           <InstallationIntegrityContent description={description} />
         </Modal>

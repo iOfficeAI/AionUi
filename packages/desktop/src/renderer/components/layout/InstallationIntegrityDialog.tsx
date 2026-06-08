@@ -25,6 +25,26 @@ export function getInstallationIntegrityDownloadText(t: TFunction): string {
   return t('common.backendStartup.incompleteInstallation.downloadLatest');
 }
 
+export function getDownloadLatestModalActionProps(t: TFunction): {
+  cancelButtonProps: {
+    style: {
+      display: 'none';
+    };
+  };
+  okText: string;
+  onOk: () => void;
+} {
+  return {
+    okText: getInstallationIntegrityDownloadText(t),
+    onOk: openDownloadLatest,
+    cancelButtonProps: {
+      style: {
+        display: 'none',
+      },
+    },
+  };
+}
+
 export const InstallationIntegrityContent: React.FC<{ description: string }> = ({ description }) => (
   <div className='text-t-1'>
     <Typography.Paragraph className='mb-0 text-t-secondary'>{description}</Typography.Paragraph>
@@ -41,8 +61,7 @@ export function showInstallationIntegrityModal(
   modal.error({
     title: getInstallationIntegrityTitle(t),
     content: <InstallationIntegrityContent description={description} />,
-    okText: getInstallationIntegrityDownloadText(t),
-    onOk: openDownloadLatest,
+    ...getDownloadLatestModalActionProps(t),
     closable: false,
     maskClosable: false,
   });

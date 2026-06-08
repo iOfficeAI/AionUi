@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyBackendStartupFailure } from '@/process/startup/backendStartupFailure';
 import { detectStartupArchitectureMismatch } from '@/process/startup/architectureCompatibility';
+import { getDownloadLatestModalActionProps } from '@/renderer/components/layout/InstallationIntegrityDialog';
 
 describe('classifyBackendStartupFailure', () => {
   it('classifies missing GLIBC symbols as an incompatible backend runtime', () => {
@@ -203,5 +204,20 @@ describe('detectStartupArchitectureMismatch', () => {
     });
 
     expect(mismatch).toBeNull();
+  });
+});
+
+describe('getDownloadLatestModalActionProps', () => {
+  it('hides the cancel action for blocking download-latest dialogs', () => {
+    const t = (key: string) => key;
+
+    expect(getDownloadLatestModalActionProps(t)).toMatchObject({
+      okText: 'common.backendStartup.incompleteInstallation.downloadLatest',
+      cancelButtonProps: {
+        style: {
+          display: 'none',
+        },
+      },
+    });
   });
 });
