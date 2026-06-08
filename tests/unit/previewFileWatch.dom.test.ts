@@ -272,6 +272,32 @@ describe('PreviewContext — mtime file polling (checkFileUpdate)', () => {
     expect(mockReadFile).not.toHaveBeenCalled();
     expect(result.current.activeTab?.content).toBe('stable content');
   });
+
+  it('closes the preview tab when metadata reports the file is gone', async () => {
+    const { result } = renderHook(() => usePreviewContext(), { wrapper });
+
+    act(() => {
+      result.current.openPreview('stale content', 'excel', {
+        filePath: '/workspace/tmp.xlsx',
+        fileName: 'tmp.xlsx',
+      });
+    });
+
+    await act(async () => {
+      await tickPoll();
+    });
+
+    vi.clearAllMocks();
+    mockGetFileMetadata.mockResolvedValue({ size: -1, lastModified: 0 });
+
+    await act(async () => {
+      await tickPoll(1000);
+    });
+
+    expect(result.current.tabs).toHaveLength(0);
+    expect(result.current.activeTab).toBeNull();
+    expect(mockReadFile).not.toHaveBeenCalled();
+  });
 });
 
 describe('PreviewContext — closeTab clears fileMtimeRef', () => {

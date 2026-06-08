@@ -22,7 +22,12 @@ import { initializeProcess } from './process';
 import { createAutoUpdateStatusBroadcast } from './process/bridge/updateBridge';
 import { ProcessConfig } from './process/utils/initStorage';
 import { loadShellEnvironmentAsync, logEnvironmentDiagnostics, mergePaths } from './process/utils/shellEnv';
-import { initializeAcpDetector, registerWindowMaximizeListeners, disposeAllTeamSessions } from '@process/bridge';
+import {
+  initializeAcpDetector,
+  registerWindowMaximizeListeners,
+  disposeAllTeamSessions,
+  disposeAllSnapshots,
+} from '@process/bridge';
 import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { stopAllOfficeWatchSessions } from '@process/bridge/officeWatchBridge';
@@ -754,6 +759,9 @@ app.on('before-quit', async () => {
 
     // Stop all active team sessions (TCP servers + child processes)
     await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
+
+    // Remove workspace snapshot temp gitdirs that back non-git workspaces.
+    await disposeAllSnapshots().catch((err) => console.error('[App] Failed to dispose workspace snapshots:', err));
 
     // Shutdown Channel subsystem
     try {

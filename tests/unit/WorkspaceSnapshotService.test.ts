@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { execFile } from 'node:child_process';
 import fs from 'node:fs/promises';
 import path from 'node:path';
@@ -158,6 +158,27 @@ describe('WorkspaceSnapshotService', () => {
       const { staged, unstaged } = await service.compare(tmpDir);
       expect(staged).toEqual([]);
       expect(unstaged).toEqual([]);
+    });
+
+    it('does not leave a temp gitdir when disposed before snapshot init completes', async () => {
+      const testTmpRoot = path.join(tmpDir, 'isolated-tmp');
+      const workspacePath = path.join(tmpDir, 'dispose-race');
+      await fs.mkdir(testTmpRoot);
+      await fs.mkdir(workspacePath);
+      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
+      vi.spyOn(os, 'tmpdir').mockReturnValue(testTmpRoot);
+
+      try {
+        const initPromise = service.init(workspacePath);
+        await service.dispose(workspacePath);
+        await initPromise;
+
+        const entries = await fs.readdir(testTmpRoot);
+        const leakedSnapshots = entries.filter((name) => name.startsWith('aionui-snapshot-'));
+        expect(leakedSnapshots).toEqual([]);
+      } finally {
+        vi.restoreAllMocks();
+      }
     });
   });
 
@@ -335,6 +356,29 @@ describe('WorkspaceSnapshotService', () => {
   });
 
   describe('snapshot gitdir deleted externally (ELECTRON-G7)', () => {
+    it('does not leave a temp gitdir when snapshot creation fails', async () => {
+      const testTmpRoot = path.join(tmpDir, 'isolated-tmp');
+      const workspacePath = path.join(tmpDir, 'broken-snapshot');
+      await fs.mkdir(testTmpRoot);
+      await fs.mkdir(workspacePath);
+      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
+
+      const originalPath = process.env.PATH;
+      process.env.PATH = '';
+      vi.spyOn(os, 'tmpdir').mockReturnValue(testTmpRoot);
+      try {
+        const info = await service.init(workspacePath);
+        expect(info).toEqual({ mode: 'snapshot', branch: null });
+
+        const entries = await fs.readdir(testTmpRoot);
+        const leakedSnapshots = entries.filter((name) => name.startsWith('aionui-snapshot-'));
+        expect(leakedSnapshots).toEqual([]);
+      } finally {
+        process.env.PATH = originalPath;
+        vi.restoreAllMocks();
+      }
+    });
+
     it('init returns fallback when temp gitdir is removed before rev-parse', async () => {
       // Simulate the scenario: workspace exists but after createWorkingTreeSnapshot,
       // the temp gitdir gets cleaned up by OS/antivirus before rev-parse HEAD runs.

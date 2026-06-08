@@ -101,6 +101,18 @@ function killSession(filePath: string, sessions: Map<string, WatchSession>): voi
   }
 }
 
+function parseFatalOfficecliError(output: string): string | null {
+  if (!/CliException:|Traceback|File contains corrupted data|Cannot open/i.test(output)) return null;
+
+  const lines = output
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean);
+
+  const cliExceptionLine = lines.find((line) => line.startsWith('CliException:'));
+  return cliExceptionLine || lines[lines.length - 1] || 'officecli failed to open the document';
+}
+
 /**
  * Auto-install officecli if not found.
  */
@@ -218,7 +230,13 @@ async function startWatch(
       });
 
     child.stderr?.on('data', (data: Buffer) => {
-      console.error(`[officeWatch] officecli stderr (${docType}):`, data.toString().trim());
+      const output = data.toString().trim();
+      console.error(`[officeWatch] officecli stderr (${docType}):`, output);
+      const fatalError = parseFatalOfficecliError(output);
+      if (!fatalError) return;
+
+      settle(new Error(`officecli failed: ${fatalError}`));
+      killSession(filePath, sessions);
     });
 
     child.on('error', (err) => {

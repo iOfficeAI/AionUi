@@ -35,6 +35,7 @@ vi.mock('@/renderer/hooks/system/useAutoPreviewOfficeFilesEnabled', () => ({
 let responseHandler: ((message: { conversation_id: string; type: string }) => void) | null = null;
 let turnCompletedHandler: ((event: { sessionId: string; status: string }) => void) | null = null;
 const mockScanInvoke = vi.fn().mockResolvedValue([]);
+const mockGetFileMetadata = vi.fn().mockResolvedValue({ size: 1, lastModified: 1000 });
 const mockResponseStreamUnsub = vi.fn();
 const mockTurnCompletedUnsub = vi.fn();
 
@@ -56,6 +57,9 @@ vi.mock('@/common', () => ({
     },
     workspaceOfficeWatch: {
       scan: { invoke: (...args: unknown[]) => mockScanInvoke(...args) },
+    },
+    fs: {
+      getFileMetadata: { invoke: (...args: unknown[]) => mockGetFileMetadata(...args) },
     },
   },
 }));
@@ -79,6 +83,7 @@ describe('useAutoPreviewOfficeFiles', () => {
     mockFindPreviewTab.mockReturnValue(null);
     mockGetFileTypeInfo.mockReturnValue({ contentType: 'ppt' });
     mockScanInvoke.mockResolvedValue([]);
+    mockGetFileMetadata.mockResolvedValue({ size: 1, lastModified: 1000 });
   });
 
   afterEach(() => {
@@ -254,6 +259,30 @@ describe('useAutoPreviewOfficeFiles', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
+    expect(mockOpenPreview).not.toHaveBeenCalled();
+  });
+
+  it('does not auto-open a preview when the new Office file disappears before the open delay', async () => {
+    mockGetFileTypeInfo.mockReturnValue({ contentType: 'excel' });
+    mockScanInvoke.mockResolvedValueOnce([]).mockResolvedValueOnce(['/workspace/tmp.xlsx']);
+    mockGetFileMetadata.mockResolvedValue({ size: -1, lastModified: 0 });
+
+    renderHook(() => useAutoPreviewOfficeFiles({ conversationId: 'conv-1', workspace: '/workspace' }));
+
+    await flushEffects();
+
+    await act(async () => {
+      responseHandler?.({ conversation_id: 'conv-1', type: 'tool_call' });
+      await vi.advanceTimersByTimeAsync(1500);
+    });
+
+    await flushEffects();
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(1000);
+    });
+
+    expect(mockGetFileMetadata).toHaveBeenCalledWith({ path: '/workspace/tmp.xlsx' });
     expect(mockOpenPreview).not.toHaveBeenCalled();
   });
 });

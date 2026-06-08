@@ -70,9 +70,15 @@ export const useAutoPreviewOfficeFiles = (
             const timer = setTimeout(() => {
               openTimersRef.current.delete(filePath);
 
-              if (!findPreviewTab(contentType, '', { filePath, fileName })) {
-                openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
-              }
+              void ipcBridge.fs.getFileMetadata
+                .invoke({ path: filePath })
+                .then((metadata) => {
+                  if (!metadata || metadata.size < 0) return;
+                  if (!findPreviewTab(contentType, '', { filePath, fileName })) {
+                    openPreview('', contentType, { filePath, fileName, title: fileName, workspace, editable: false });
+                  }
+                })
+                .catch(() => {});
             }, OFFICE_OPEN_DELAY_MS);
 
             openTimersRef.current.set(filePath, timer);

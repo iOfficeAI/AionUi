@@ -302,6 +302,34 @@ describe('officeWatchBridge', () => {
       const result = await promise;
       expect(result).toEqual({ url: '', error: 'officecli exited with signal SIGKILL' });
     });
+
+    it('stops excel watch immediately when officecli reports a fatal document error', async () => {
+      vi.useFakeTimers();
+      portConnectSucceeds.value = false;
+      initOfficeWatchBridge();
+      const child = createMockChildProcess();
+      spawnMock.mockReturnValue(child);
+
+      const promise = excelStartHandler.fn!({ filePath: '/test/broken.xlsx' });
+      await vi.advanceTimersByTimeAsync(0);
+
+      child.stderr.emit(
+        'data',
+        Buffer.from(
+          'Warning: initial render failed\nCliException: Cannot open broken.xlsx: File contains corrupted data.'
+        )
+      );
+
+      await vi.advanceTimersByTimeAsync(0);
+      const result = await promise;
+
+      expect(child.kill).toHaveBeenCalled();
+      expect(result).toEqual({
+        url: '',
+        error: 'officecli failed: CliException: Cannot open broken.xlsx: File contains corrupted data.',
+      });
+      vi.useRealTimers();
+    });
   });
 
   describe('word stop', () => {

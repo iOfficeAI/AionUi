@@ -578,6 +578,11 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
         .invoke({ path: filePath })
         .then((metadata) => {
           if (!metadata) return;
+          if (metadata.size < 0) {
+            closePreviewByIdentity(tab.contentType, tab.content, tab.metadata);
+            return;
+          }
+
           const prevMtime = fileMtimeRef.current.get(filePath);
           fileMtimeRef.current.set(filePath, metadata.lastModified);
           if (prevMtime === undefined || metadata.lastModified === prevMtime) return;
@@ -606,7 +611,7 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
           console.error('[PreviewContext] Failed to get file metadata:', filePath, error);
         });
     },
-    [setTabs]
+    [closePreviewByIdentity, setTabs]
   );
 
   // Keep a ref to activeTab so the polling interval always sees the latest object
