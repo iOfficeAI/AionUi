@@ -24,6 +24,7 @@ import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
+import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -113,10 +114,6 @@ type UseGuidAgentSelectionOptions = {
   /** React Router location.key — changes on every navigation, used to detect new resets. */
   locationKey?: string;
 };
-
-export function isSupportedNewConversationAgent(agent: { agent_type: string }): boolean {
-  return agent.agent_type === 'acp' || agent.agent_type === 'aionrs';
-}
 
 /**
  * Hook that manages agent selection, availability, and preset assistant logic.

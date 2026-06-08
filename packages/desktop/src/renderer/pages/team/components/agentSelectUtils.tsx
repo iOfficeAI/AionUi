@@ -5,6 +5,10 @@ import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+import {
+  isDeprecatedRuntimeAgentType,
+  resolveSupportedConversationType,
+} from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /**
  * Team leader selector entry — unified view over CLI agents and preset
@@ -17,6 +21,8 @@ export type TeamAgentOption = {
   /** Execution backend (claude, gemini, qwen, …). For assistants this is
    *  `preset_agent_type`; for CLI agents it's `backend`. */
   backend?: string;
+  /** Top-level runtime type from detected agents. Preset assistants leave this unset. */
+  agent_type?: string;
   /** Icon / avatar token — an SVG filename, emoji, or key into
    *  `CUSTOM_AVATAR_IMAGE_MAP`. */
   icon?: string;
@@ -29,6 +35,7 @@ export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
     id: agent.id,
     name: agent.name,
     backend: agent.backend || agent.agent_type,
+    agent_type: agent.agent_type,
     icon: agent.icon,
     team_capable: agent.team_capable,
   };
@@ -58,18 +65,11 @@ export function resolveTeamAgentType(agent: TeamAgentOption | undefined, fallbac
 
 /** Filter agents to only those supported in team mode */
 export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentOption[] {
-  return agents.filter((a) => a.team_capable);
+  return agents.filter((a) => a.team_capable && !isDeprecatedRuntimeAgentType(a.agent_type));
 }
 
-export function resolveConversationType(
-  backend: string
-): 'acp' | 'aionrs' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' {
-  if (backend === 'aionrs') return 'aionrs';
-  if (backend === 'codex') return 'acp';
-  if (backend === 'openclaw-gateway') return 'openclaw-gateway';
-  if (backend === 'nanobot') return 'nanobot';
-  if (backend === 'remote') return 'remote';
-  return 'acp';
+export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
+  return resolveSupportedConversationType(backend);
 }
 
 export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
