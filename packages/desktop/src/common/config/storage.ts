@@ -189,6 +189,7 @@ export interface IEnvStorageRefer {
   'aionui.dir': {
     workDir: string;
     cacheDir: string;
+    logDir?: string;
   };
 }
 

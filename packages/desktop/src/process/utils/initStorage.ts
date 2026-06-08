@@ -431,7 +431,7 @@ export const ProcessEnv = envFile;
 
 export const getSystemDir = () => {
   // electron-log writes to the platform-standard logs directory
-  const logDir = getPlatformServices().paths.getLogsDir();
+  const logDir = dirConfig?.logDir || getPlatformServices().paths.getLogsDir();
 
   return {
     cacheDir: cacheDir,

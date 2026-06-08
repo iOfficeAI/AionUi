@@ -41,8 +41,19 @@ const DirInputItem: React.FC<{
             });
         };
 
+        const handleKeyDown = (event: React.KeyboardEvent<HTMLDivElement>) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return;
+          event.preventDefault();
+          handlePick();
+        };
+
         return (
-          <div className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)]'>
+          <div
+            className='aion-dir-input h-[32px] flex items-center rounded-8px border border-solid border-transparent pl-14px bg-[var(--fill-0)] cursor-pointer'
+            tabIndex={0}
+            onClick={handlePick}
+            onKeyDown={handleKeyDown}
+          >
             <Tooltip content={current_value || t('settings.dirNotConfigured')} position='top'>
               <div className='flex-1 min-w-0 text-13px text-t-primary truncate '>
                 {current_value || t('settings.dirNotConfigured')}

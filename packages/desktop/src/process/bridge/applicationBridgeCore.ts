@@ -19,15 +19,16 @@ export function initApplicationBridgeCore(): void {
   // application.systemInfo is served by the backend via HTTP; updateSystemInfo
   // and getPath below remain buildProvider (true IPC) because they need
   // main-process-only APIs (copyDirectoryRecursively, os.homedir()).
-  ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir }) => {
+  ipcBridge.application.updateSystemInfo.provider(async ({ cacheDir, workDir, logDir }) => {
+    const oldDir = getSystemDir();
     const safeCacheDir = resolveCliSafePath(cacheDir, getConfigPath());
     const safeWorkDir = resolveCliSafePath(workDir, getDataPath());
+    const safeLogDir = logDir ? resolveCliSafePath(logDir, oldDir.logDir) : oldDir.logDir;
 
-    const oldDir = getSystemDir();
     if (oldDir.cacheDir !== safeCacheDir) {
       await copyDirectoryRecursively(oldDir.cacheDir, safeCacheDir);
     }
-    await ProcessEnv.set('aionui.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir });
+    await ProcessEnv.set('aionui.dir', { cacheDir: safeCacheDir, workDir: safeWorkDir, logDir: safeLogDir });
   });
 
   ipcBridge.application.getPath.provider(({ name }) => {
