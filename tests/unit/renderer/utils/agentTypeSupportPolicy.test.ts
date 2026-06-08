@@ -33,6 +33,17 @@ describe('Guid agent support policy', () => {
     expect(resolveSupportedConversationType('openclaw-gateway')).toBe('acp');
   });
 
+  it('allows OpenClaw when represented as an ACP backend', () => {
+    const openclaw = { agent_type: 'acp', backend: 'openclaw' };
+
+    expect(isSupportedNewConversationAgent(openclaw)).toBe(true);
+    expect(normalizeSupportedAgentSelection('acp', 'openclaw')).toEqual({
+      agent_type: 'acp',
+      backend: 'openclaw',
+    });
+    expect(resolveSupportedConversationType('openclaw')).toBe('acp');
+  });
+
   it('normalizes saved channel selections away from retired runtimes', () => {
     expect(normalizeSupportedAgentSelection('aionrs')).toEqual({ agent_type: 'aionrs' });
     expect(normalizeSupportedAgentSelection('acp', 'claude')).toEqual({ agent_type: 'acp', backend: 'claude' });

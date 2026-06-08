@@ -32,6 +32,7 @@ describe('buildAgentConversationParams agent type policy', () => {
 
     expect(params.type).toBe('acp');
     expect(params.extra.backend).toBe('openclaw');
+    expect(params.extra.agent_name).toBe('OpenClaw');
     expect(params.extra.gateway).toBeUndefined();
   });
 
