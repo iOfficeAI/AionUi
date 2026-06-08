@@ -70,8 +70,10 @@ const CommandCenterEditorHost: React.FC<CommandCenterEditorHostProps> = ({ works
   const { splitRatio: editorWidthPx, createDragHandle } = useResizableSplit({
     unit: 'px',
     defaultWidth: 520,
-    minWidth: 360,
-    maxWidth: 960,
+    // Generous, near-unrestricted operator range — the pane also flex-shrinks
+    // (below) so it never forces its neighbors to overflow/clip.
+    minWidth: 120,
+    maxWidth: 2000,
     storageKey: 'chat-editor-width-px',
   });
 
@@ -91,10 +93,14 @@ const CommandCenterEditorHost: React.FC<CommandCenterEditorHostProps> = ({ works
       )}
       style={{
         flexGrow: 0,
-        flexShrink: 0,
+        // Expanded editor flex-shrinks so it yields space under viewport
+        // pressure instead of forcing the chat / conversation pane to clip.
+        // The blade and closed states stay rigid. `minWidth: 0` removes the
+        // hard floor so the operator can size it freely.
+        flexShrink: isExpanded ? 1 : 0,
         flexBasis: `${sizePx}px`,
         width: `${sizePx}px`,
-        minWidth: isBlade ? `${EDITOR_BLADE_WIDTH_PX}px` : isExpanded ? '360px' : '0px',
+        minWidth: isBlade ? `${EDITOR_BLADE_WIDTH_PX}px` : '0px',
         overflow: isBlade ? 'hidden' : isExpanded ? 'visible' : 'hidden',
         boxSizing: 'border-box',
       }}
@@ -113,8 +119,10 @@ const CommandCenterEditorHost: React.FC<CommandCenterEditorHostProps> = ({ works
         </button>
       ) : (
         <>
+          {/* Resize grip on the editor's RIGHT edge (the editor↔chat seam),
+              since the editor is docked to the LEFT of chat. */}
           {isExpanded &&
-            createDragHandle({ className: 'absolute left-0 top-0 bottom-0 z-30', style: {}, reverse: true })}
+            createDragHandle({ className: 'absolute right-0 top-0 bottom-0 z-30', style: {}, reverse: false })}
           <div className='h-full w-full overflow-hidden'>
             <React.Suspense
               fallback={
