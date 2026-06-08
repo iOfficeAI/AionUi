@@ -10,6 +10,14 @@ import { Dropdown } from '@arco-design/web-react';
 import { Close } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
+import { shouldShowDownload } from './previewToolbarUtils';
+
+/**
+ * 暂时隐藏快照/历史入口（保留底层逻辑，日后翻 true 即恢复）
+ * Temporarily hide the snapshot/history entry (underlying logic is kept;
+ * flip to true to restore the UI).
+ */
+const SHOW_SNAPSHOT_HISTORY = false;
 
 /**
  * PreviewToolbar 组件属性
@@ -177,9 +185,8 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
   const { t } = useTranslation();
   const isDiff = content_type === 'diff';
   const preferActionButtonsInFront = Boolean(leftExtra);
-  // 代码文件若已在磁盘上（有 file_path），下载即冗余 —— 仅 agent 生成、未落盘的内容才显示下载
-  // For on-disk code files download is redundant; only show it for agent-generated, not-yet-saved content
-  const showDownload = !(content_type === 'code' && showOpenInSystemButton);
+  // showOpenInSystemButton === Boolean(metadata.file_path) upstream — i.e. "file is on disk".
+  const showDownload = shouldShowDownload(content_type, showOpenInSystemButton);
 
   const toolbarBtn =
     'flex items-center gap-2px px-8px py-3px rd-4px cursor-pointer transition-colors duration-150 text-12px font-medium text-t-secondary hover:text-t-primary hover:bg-bg-3';
@@ -289,36 +296,58 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
         <div className='flex items-center gap-4px flex-shrink-0'>
           {rightExtra}
 
-          {((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
-            (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
-            <>
-              <div
-                className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
-                onClick={historyTarget && !snapshotSaving ? onSaveSnapshot : undefined}
-                title={historyTarget ? t('preview.saveSnapshot') : t('preview.snapshotNotSupported')}
-              >
-                <svg
-                  width={toolbarIconSize}
-                  height={toolbarIconSize}
-                  viewBox='0 0 24 24'
-                  fill='none'
-                  stroke='currentColor'
-                  strokeWidth='1.8'
-                  className='text-t-secondary'
+          {SHOW_SNAPSHOT_HISTORY &&
+            ((content_type === 'markdown' && (viewMode === 'source' || isSplitScreenEnabled)) ||
+              (content_type === 'html' && (viewMode === 'source' || isSplitScreenEnabled))) && (
+              <>
+                <div
+                  className={`${toolbarBtn} ${historyTarget ? '' : '!cursor-not-allowed opacity-50'} ${snapshotSaving ? 'opacity-60' : ''}`}
+                  onClick={historyTarget && !snapshotSaving ? onSaveSnapshot : undefined}
+                  title={historyTarget ? t('preview.saveSnapshot') : t('preview.snapshotNotSupported')}
                 >
-                  <path d='M5 7h3l1-2h6l1 2h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z' />
-                  <circle cx='12' cy='13' r='3' />
-                </svg>
-                <span>{t('preview.snapshot')}</span>
-              </div>
-              {historyTarget ? (
-                <Dropdown
-                  droplist={renderHistoryDropdown()}
-                  trigger={['hover']}
-                  position='br'
-                  onVisibleChange={(visible) => visible && onRefreshHistory()}
-                >
-                  <div className={toolbarBtn} title={t('preview.historyVersions')}>
+                  <svg
+                    width={toolbarIconSize}
+                    height={toolbarIconSize}
+                    viewBox='0 0 24 24'
+                    fill='none'
+                    stroke='currentColor'
+                    strokeWidth='1.8'
+                    className='text-t-secondary'
+                  >
+                    <path d='M5 7h3l1-2h6l1 2h3a1 1 0 0 1 1 1v9a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V8a1 1 0 0 1 1-1Z' />
+                    <circle cx='12' cy='13' r='3' />
+                  </svg>
+                  <span>{t('preview.snapshot')}</span>
+                </div>
+                {historyTarget ? (
+                  <Dropdown
+                    droplist={renderHistoryDropdown()}
+                    trigger={['hover']}
+                    position='br'
+                    onVisibleChange={(visible) => visible && onRefreshHistory()}
+                  >
+                    <div className={toolbarBtn} title={t('preview.historyVersions')}>
+                      <svg
+                        width={toolbarIconSize}
+                        height={toolbarIconSize}
+                        viewBox='0 0 24 24'
+                        fill='none'
+                        stroke='currentColor'
+                        strokeWidth='1.8'
+                        className='text-t-secondary'
+                      >
+                        <path d='M12 8v5l3 2' />
+                        <path d='M12 3a9 9 0 1 0 9 9' />
+                        <polyline points='21 3 21 9 15 9' />
+                      </svg>
+                      <span>{t('preview.history')}</span>
+                    </div>
+                  </Dropdown>
+                ) : (
+                  <div
+                    className={`${toolbarBtn} !cursor-not-allowed opacity-50`}
+                    title={t('preview.historyNotSupported')}
+                  >
                     <svg
                       width={toolbarIconSize}
                       height={toolbarIconSize}
@@ -334,30 +363,9 @@ const PreviewToolbar: React.FC<PreviewToolbarProps> = ({
                     </svg>
                     <span>{t('preview.history')}</span>
                   </div>
-                </Dropdown>
-              ) : (
-                <div
-                  className={`${toolbarBtn} !cursor-not-allowed opacity-50`}
-                  title={t('preview.historyNotSupported')}
-                >
-                  <svg
-                    width={toolbarIconSize}
-                    height={toolbarIconSize}
-                    viewBox='0 0 24 24'
-                    fill='none'
-                    stroke='currentColor'
-                    strokeWidth='1.8'
-                    className='text-t-secondary'
-                  >
-                    <path d='M12 8v5l3 2' />
-                    <path d='M12 3a9 9 0 1 0 9 9' />
-                    <polyline points='21 3 21 9 15 9' />
-                  </svg>
-                  <span>{t('preview.history')}</span>
-                </div>
-              )}
-            </>
-          )}
+                )}
+              </>
+            )}
 
           {!preferActionButtonsInFront && showOpenInSystemButton && (
             <div className={toolbarBtn} onClick={onOpenInSystem} title={t('preview.openInSystemApp')}>

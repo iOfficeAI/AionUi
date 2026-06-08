@@ -6,14 +6,14 @@
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { highlightSelectionMatches, searchKeymap } from '@codemirror/search';
-import { EditorState } from '@codemirror/state';
+import { EditorState, Prec } from '@codemirror/state';
 import type { Extension } from '@codemirror/state';
 import { EditorView, keymap } from '@codemirror/view';
 import CodeMirror from '@uiw/react-codemirror';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getCodeEditorConfig } from '../../theme/codeEditorConfig';
-import { codeEditorFontTheme, getCodeEditorBaseTheme } from '../../theme/codeEditorTheme';
+import { codeEditorFontTheme, codeEditorSurfaceTheme, getCodeEditorBaseTheme } from '../../theme/codeEditorTheme';
 import { loadLanguageSupport, shouldDisableHighlighting } from '../../theme/languageLoader';
 
 interface CodeEditorProps {
@@ -152,6 +152,9 @@ const CodeEditor: React.FC<CodeEditorProps> = ({
       ...(cfg.wrap ? [EditorView.lineWrapping] : []),
       EditorState.tabSize.of(cfg.tabSize),
       codeEditorFontTheme(),
+      // Prec.highest so our token-based surface colors beat CodeMirror's built-in
+      // light/dark theme background (registered by the `theme` prop).
+      Prec.highest(codeEditorSurfaceTheme()),
       highlightSelectionMatches(),
       keymap.of(searchKeymap),
       ...languageExt,

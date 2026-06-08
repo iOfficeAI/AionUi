@@ -32,6 +32,7 @@ import {
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
@@ -99,8 +100,6 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
 }> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState }) => {
   const {
-    running,
-    hasHydratedRunningState,
     aiProcessing,
     setAiProcessing,
     resetState,
@@ -177,10 +176,11 @@ const AcpSendBox: React.FC<{
       if (mode === currentMode) return;
       try {
         await prepareRuntimeSync();
-        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
-        setCurrentMode(mode);
-        if (backend) void savePreferredMode(backend, mode);
-        if (isLeaderInTeam) teamPermission?.propagateMode?.(mode);
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        const confirmedMode = confirmed.mode || mode;
+        setCurrentMode(confirmedMode);
+        if (backend) void savePreferredMode(backend, confirmedMode);
+        if (isLeaderInTeam) teamPermission?.propagateMode?.(confirmedMode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AcpSendBox] Failed to switch mode via sheet:', error);
@@ -220,6 +220,7 @@ const AcpSendBox: React.FC<{
 
   const addOrUpdateMessage = useAddOrUpdateMessage(); // Move this here so it's available in useEffect
   const addOrUpdateMessageRef = useLatestRef(addOrUpdateMessage);
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   // Remembers the last user turn so an auth failure can be transparently resent
   // after a token-refreshing warmup.
@@ -232,7 +233,7 @@ const AcpSendBox: React.FC<{
     setAtPath,
     setUploadFile,
   });
-  const isBusy = running || aiProcessing;
+  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -260,6 +261,10 @@ const AcpSendBox: React.FC<{
     backend,
     workspacePath,
     setAiProcessing,
+    resetState,
+    markSendStarted: runtimeView.markSendStarted,
+    markSendAccepted: runtimeView.markSendAccepted,
+    markSendFailed: runtimeView.markSendFailed,
     checkAndUpdateTitle,
     addOrUpdateMessage: addOrUpdateMessageRef.current,
   });
@@ -273,41 +278,25 @@ const AcpSendBox: React.FC<{
         beginUserTurn();
         lastTurnRef.current = { input, files };
       }
-      if (teamPermission) await teamPermission.warmupSession();
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
+      runtimeView.markSendStarted();
       setAiProcessing(true);
 
       try {
+        if (teamPermission) await teamPermission.warmupSession();
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const { msg_id } = await ipcBridge.acpConversation.sendMessage.invoke({
+        const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        // On an auth retry the original user bubble is already shown, so skip it.
-        if (!isRetry) {
-          addOrUpdateMessageRef.current({
-            id: msg_id,
-            msg_id,
-            type: 'text',
-            position: 'right',
-            conversation_id,
-            content: { content: displayMessage },
-            created_at: Date.now(),
-          });
-        }
+        runtimeView.markSendAccepted(result.msg_id);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =
           getConversationRuntimeWorkspaceErrorMessage(error, t) || parseError(error) || t('common.unknownError');
+        runtimeView.markSendFailed(errorMsg);
 
         // Archived conversation (e.g. legacy Gemini). Backend signals this
         // via HTTP 410 + code='CONVERSATION_ARCHIVED' — identified by code,
@@ -362,6 +351,7 @@ Please check your local CLI tool authentication status`,
           );
         }
 
+        resetState();
         setAiProcessing(false);
         throw error;
       }
@@ -370,7 +360,17 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, beginUserTurn, checkAndUpdateTitle, conversation_id, setAiProcessing, t, workspacePath]
+    [
+      backend,
+      beginUserTurn,
+      checkAndUpdateTitle,
+      conversation_id,
+      resetState,
+      runtimeView,
+      setAiProcessing,
+      t,
+      workspacePath,
+    ]
   );
   const executeCommandRef = useLatestRef(executeCommand);
 
@@ -425,7 +425,11 @@ Please check your local CLI tool authentication status`,
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    isHydrated: hasHydratedRunningState,
+    runtimeGate: {
+      hydrated: runtimeView.hydrated,
+      canSendMessage: runtimeView.canSendMessage,
+      isProcessing: runtimeView.isProcessing,
+    },
     onExecute: executeCommand,
   });
 
@@ -613,11 +617,13 @@ Please check your local CLI tool authentication status`,
     // Cancelling is best-effort: swallow errors (e.g. backend WS not yet
     // connected → 409) so they don't bubble up as unhandled rejections.
     // UI state is still reset via finally.
+    runtimeView.markStopRequested();
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
       console.warn('[AcpSendBox] stop request failed', error);
     } finally {
+      runtimeView.markStopAcknowledged();
       resetState();
       resetActiveExecution('stop');
     }

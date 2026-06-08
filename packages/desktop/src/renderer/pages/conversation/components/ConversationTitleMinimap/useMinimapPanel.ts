@@ -92,15 +92,12 @@ export const useMinimapPanel = (conversation_id?: string): UseMinimapPanelReturn
       setVisualStyle(readPopoverVisualStyle());
     };
     refresh();
-    const handleCssUpdated = () => refresh();
-    window.addEventListener('custom-css-updated', handleCssUpdated as EventListener);
     const observer = new MutationObserver(refresh);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-theme', 'class'],
     });
     return () => {
-      window.removeEventListener('custom-css-updated', handleCssUpdated as EventListener);
       observer.disconnect();
     };
   }, []);

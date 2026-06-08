@@ -61,6 +61,7 @@ import type {
   UpdateDownloadRequest,
   UpdateDownloadResult,
 } from '../update/updateTypes';
+import type { Theme } from '@/common/theme/types';
 import type { ProtocolDetectionRequest, ProtocolDetectionResponse } from '../utils/protocolDetector';
 import { fromApiConversation, fromApiPaginatedConversations, toApiModelOptional } from './apiModelMapper';
 import {
@@ -229,6 +230,15 @@ export const conversation = {
     (p) => ({ status: p.status })
   ),
   responseStream: wsEmitter<IResponseMessage>('message.stream'),
+  userCreated: wsEmitter<{
+    conversation_id: string;
+    msg_id: string;
+    content: string;
+    position: 'right';
+    status: 'finish';
+    hidden: boolean;
+    created_at: number;
+  }>('message.userCreated'),
   artifactStream: wsEmitter<IConversationArtifact>('conversation.artifact'),
   turnCompleted: wsMappedEmitter<IConversationTurnCompletedEvent>('turn.completed', (raw) => {
     const r = raw as Record<string, unknown>;
@@ -314,6 +324,10 @@ export const conversation = {
   },
 };
 
+export const runtime = {
+  statusChanged: wsEmitter<IRuntimeStatusEvent>('runtime.statusChanged'),
+};
+
 // ---------------------------------------------------------------------------
 // CDP status / config types (used by application, stays IPC)
 // ---------------------------------------------------------------------------
@@ -335,6 +349,35 @@ export interface ICdpStatus {
 export interface ICdpConfig {
   enabled?: boolean;
   port?: number;
+}
+
+export type RuntimeStatusScopeKind = 'conversation' | 'mcp' | 'custom_agent';
+export type RuntimeResourceKind = 'node' | 'acp_tool';
+export type RuntimeStatusPhase = 'waiting_for_lock' | 'downloading' | 'extracting' | 'validating' | 'ready' | 'failed';
+export type RuntimeFailureKind =
+  | 'timeout'
+  | 'download_failed'
+  | 'http_status'
+  | 'checksum_mismatch'
+  | 'validation_failed'
+  | 'unsupported_platform'
+  | 'bundled_resource_missing'
+  | 'bundled_resource_invalid'
+  | 'unknown';
+
+export interface IRuntimeStatusScope {
+  kind: RuntimeStatusScopeKind;
+  id: string;
+}
+
+export interface IRuntimeStatusEvent {
+  resource: RuntimeResourceKind;
+  resource_id?: string;
+  scope: IRuntimeStatusScope;
+  phase: RuntimeStatusPhase;
+  failure_kind?: RuntimeFailureKind;
+  message?: string;
+  status_code?: number;
 }
 
 export interface IStartOnBootStatus {
@@ -705,7 +748,7 @@ export const acpConversation = {
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),
   testCustomAgent: httpPost<
     { step: 'success' } | { step: 'fail_cli'; error: string } | { step: 'fail_acp'; error: string },
-    { command: string; acp_args?: string[]; env?: Record<string, string> }
+    { command: string; acp_args?: string[]; env?: Record<string, string>; runtime_scope_id?: string }
   >('/api/agents/custom/try-connect'),
   createCustomAgent: httpPost<
     AgentMetadata,
@@ -757,7 +800,7 @@ export const acpConversation = {
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<void, { conversation_id: string; mode: string }>(
+  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
     (p) => `/api/conversations/${p.conversation_id}/mode`,
     (p) => ({ mode: p.mode })
   ),
@@ -774,7 +817,7 @@ export const acpConversation = {
     (p) => `/api/conversations/${p.conversation_id}/model`,
     { silentStatuses: [404] }
   ),
-  setModel: httpPut<void, { conversation_id: string; model_id: string }>(
+  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
     (p) => `/api/conversations/${p.conversation_id}/model`,
     (p) => ({ model_id: p.model_id })
   ),
@@ -844,7 +887,7 @@ export const mcpService = {
       wwwAuthenticate?: string;
       www_authenticate?: string;
     },
-    IMcpServer
+    IMcpServer & { runtime_scope_id?: string }
   >('/api/mcp/test-connection'),
   checkOAuthStatus: httpPost<{ authenticated: boolean }, { server_url: string }>('/api/mcp/oauth/check-status'),
   loginMcpOAuth: httpPost<{ success: boolean; error?: string }, { server_url: string }>('/api/mcp/oauth/login'),
@@ -1052,6 +1095,19 @@ export const windowControls = {
 };
 
 // ---------------------------------------------------------------------------
+// Theme — stays IPC (main process owns the resolved-theme cache)
+// ---------------------------------------------------------------------------
+
+export const theme = {
+  // main → all renderers: the resolved active theme changed
+  changed: bridge.buildEmitter<Theme>('theme:changed'),
+  // renderer → main: publish a newly resolved theme (main caches + re-emits `changed`)
+  setActive: bridge.buildProvider<void, Theme>('theme:set-active'),
+  // any window → main: pull the currently cached resolved theme on load (null if none yet)
+  requestCurrent: bridge.buildProvider<Theme | null, void>('theme:request-current'),
+};
+
+// ---------------------------------------------------------------------------
 // System Settings — routed to /api/settings/* unless they need Electron-native side effects.
 // ---------------------------------------------------------------------------
 
@@ -1086,6 +1142,10 @@ export const systemSettings = {
   setPetDnd: bridge.buildProvider<void, { dnd: boolean }>('system-settings:set-pet-dnd'),
   getPetConfirmEnabled: bridge.buildProvider<boolean, void>('system-settings:get-pet-confirm-enabled'),
   setPetConfirmEnabled: bridge.buildProvider<void, { enabled: boolean }>('system-settings:set-pet-confirm-enabled'),
+  ensureNodeRuntime: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope }>('/api/system/ensure-node-runtime'),
+  ensureManagedAcpTool: httpPost<{ ready: boolean }, { scope: IRuntimeStatusScope; tool_id: string }>(
+    '/api/system/ensure-managed-acp-tool'
+  ),
 };
 
 // ---------------------------------------------------------------------------

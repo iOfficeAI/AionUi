@@ -51,6 +51,50 @@ const isTerminalTurnState = (state: string): boolean => {
   return state === 'ai_waiting_input' || state === 'error' || state === 'stopped';
 };
 
+export type SidebarStreamGuardDecision = {
+  markGenerating: boolean;
+  clearCompleted: boolean;
+  lateIgnored: boolean;
+};
+
+export const getSidebarStreamGuardDecision = ({
+  type,
+  completed,
+}: {
+  type: string;
+  completed: boolean;
+}): SidebarStreamGuardDecision => {
+  if (!isGeneratingStreamMessage(type)) {
+    return {
+      markGenerating: false,
+      clearCompleted: false,
+      lateIgnored: false,
+    };
+  }
+
+  if (type === 'start') {
+    return {
+      markGenerating: true,
+      clearCompleted: true,
+      lateIgnored: false,
+    };
+  }
+
+  if (completed) {
+    return {
+      markGenerating: false,
+      clearCompleted: false,
+      lateIgnored: true,
+    };
+  }
+
+  return {
+    markGenerating: true,
+    clearCompleted: false,
+    lateIgnored: false,
+  };
+};
+
 type ConversationListSyncSnapshot = {
   conversations: TChatConversation[];
   generatingConversationIds: Set<string>;
@@ -63,6 +107,7 @@ let isStoreInitialized = false;
 let conversationsState: TChatConversation[] = [];
 let generatingConversationIdsState = new Set<string>();
 let completionUnreadConversationIdsState = new Set<string>();
+let completedConversationIdsState = new Set<string>();
 let conversation_idsState = new Set<string>();
 let activeConversationIdState: string | null = null;
 let snapshotState: ConversationListSyncSnapshot = {
@@ -162,6 +207,34 @@ const clearCompletionUnreadState = (conversation_id: string) => {
   emitStoreChange();
 };
 
+const markCompleted = (conversation_id: string) => {
+  completedConversationIdsState = new Set(completedConversationIdsState).add(conversation_id);
+};
+
+const clearCompleted = (conversation_id: string) => {
+  if (!completedConversationIdsState.has(conversation_id)) {
+    return;
+  }
+
+  const next = new Set(completedConversationIdsState);
+  next.delete(conversation_id);
+  completedConversationIdsState = next;
+};
+
+const logLateStreamIgnored = (conversation_id: string, type: string) => {
+  void ipcBridge.application.writeRendererLog
+    .invoke({
+      level: 'warn',
+      tag: 'conversationRuntimeView',
+      message: 'late_stream_ignored_for_runtime',
+      data: {
+        conversation_id,
+        stream_type: type,
+      },
+    })
+    .catch(() => {});
+};
+
 const setActiveConversationState = (conversation_id: string | null) => {
   activeConversationIdState = conversation_id;
 };
@@ -179,6 +252,7 @@ const initializeConversationListSyncStore = () => {
     if (event.action === 'deleted') {
       clearGenerating(event.conversation_id);
       clearCompletionUnreadState(event.conversation_id);
+      clearCompleted(event.conversation_id);
     }
     refreshConversations();
   });
@@ -201,7 +275,18 @@ const initializeConversationListSyncStore = () => {
       return;
     }
 
-    if (isGeneratingStreamMessage(message.type)) {
+    const decision = getSidebarStreamGuardDecision({
+      type: message.type,
+      completed: completedConversationIdsState.has(conversation_id),
+    });
+    if (decision.clearCompleted) {
+      clearCompleted(conversation_id);
+    }
+    if (decision.lateIgnored) {
+      logLateStreamIgnored(conversation_id, message.type);
+      return;
+    }
+    if (decision.markGenerating) {
       markGenerating(conversation_id);
     }
   });
@@ -209,6 +294,7 @@ const initializeConversationListSyncStore = () => {
     if (isTerminalTurnState(event.state) && activeConversationIdState !== event.session_id) {
       markCompletionUnread(event.session_id);
     }
+    markCompleted(event.session_id);
     clearGenerating(event.session_id);
     refreshConversations();
   });

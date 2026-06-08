@@ -148,13 +148,13 @@ describe('normalizeAgentStreamError', () => {
   it('preserves workspace path metadata on structured errors', () => {
     expect(
       normalizeAgentStreamError({
-        message: 'This workspace path is no longer supported for send or warmup.',
-        code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+        message: 'The current Agent failed to run in this workspace path.',
+        code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
         workspacePath: '/tmp/Archive ',
       })
     ).toEqual({
-      message: 'This workspace path is no longer supported for send or warmup.',
-      code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+      message: 'The current Agent failed to run in this workspace path.',
+      code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
       workspacePath: '/tmp/Archive ',
     });
   });

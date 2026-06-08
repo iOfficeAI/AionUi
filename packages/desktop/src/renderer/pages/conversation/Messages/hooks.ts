@@ -431,7 +431,10 @@ const normalizePersistedWorkspaceRuntimeError = (
   parsed: Record<string, unknown>,
   message: string
 ): AgentStreamErrorInfo | undefined => {
-  if (parsed.code !== 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED') {
+  if (
+    parsed.code !== 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE' &&
+    parsed.code !== 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED'
+  ) {
     return undefined;
   }
 
@@ -446,7 +449,7 @@ const normalizePersistedWorkspaceRuntimeError = (
 
   return {
     message,
-    code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
+    code: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
     ownership: 'aionui',
     detail,
     workspacePath,
@@ -646,6 +649,39 @@ export const useMessageLstCache = (key: string) => {
       cancelled = true;
     };
   }, [key, loadMessages, setLoading]);
+
+  useEffect(() => {
+    if (!key) {
+      return;
+    }
+
+    return ipcBridge.conversation.userCreated.on((payload) => {
+      if (payload.conversation_id !== key) {
+        return;
+      }
+
+      update((list) => {
+        const index = getOrBuildIndex(list);
+        return composeMessageWithIndex(
+          {
+            id: payload.msg_id,
+            msg_id: payload.msg_id,
+            conversation_id: payload.conversation_id,
+            type: 'text',
+            position: payload.position,
+            status: payload.status,
+            hidden: payload.hidden,
+            created_at: payload.created_at,
+            content: {
+              content: payload.content,
+            },
+          },
+          list,
+          index
+        );
+      });
+    });
+  }, [key, update]);
 };
 
 export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) => {

@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { applyTheme } from '@/renderer/utils/theme/applyTheme';
+
 interface IConfirmation<Option = any> {
   title?: string;
   id: string;
@@ -155,9 +157,7 @@ document.addEventListener('keydown', (e: KeyboardEvent) => {
 });
 
 // Listen for theme changes from main process
-window.petConfirmAPI.onThemeChange((theme: string) => {
-  document.documentElement.setAttribute('data-theme', theme);
-});
+window.petConfirmAPI.onThemeChange((theme) => applyTheme(theme));
 
 // Listen for confirmation events
 window.petConfirmAPI.onConfirmationAdd((data: IConfirmation) => {

@@ -5,8 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { TMessage } from '@/common/chat/chatLib';
-import { transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import { uuid } from '@/common/utils';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import SendBox from '@/renderer/components/chat/SendBox';
@@ -20,7 +19,7 @@ import { createSetUploadFile } from '@/renderer/hooks/chat/useSendBoxFiles';
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
+import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -62,7 +61,6 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
   const { checkAndUpdateTitle } = useAutoTitle();
   const slash_commands = useSlashCommands(conversation_id);
   const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
 
   const [aiProcessing, setAiProcessing] = useState(false);
@@ -221,6 +219,18 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         return;
       }
 
+      if (isErrorTipMessage(message)) {
+        setAiProcessing(false);
+        aiProcessingRef.current = false;
+        setThought({ subject: '', description: '' });
+        hasContentInTurnRef.current = false;
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
+        return;
+      }
+
       switch (message.type) {
         case 'thought':
           // Auto-recover aiProcessing state if thought arrives after finish
@@ -296,24 +306,9 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       aiProcessingRef.current = true;
       starOfficeInstallInFlightRef.current = true;
       void checkAndUpdateTitle(conversation_id, text);
-      // Fetch the server-assigned msg_id first so the optimistic bubble uses
-      // the same id as the persisted DB row.
       ipcBridge.openclawConversation.sendMessage
         .invoke({ input: text, conversation_id, inject_skills: ['star-office-helper'] })
-        .then((res) => {
-          const { msg_id } = res;
-          const userMessage: TMessage = {
-            id: msg_id,
-            msg_id,
-            conversation_id,
-            type: 'text',
-            position: 'right',
-            content: { content: text },
-            created_at: Date.now(),
-          };
-          // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-          // by msg_id against the DB row that useMessageLstCache may insert.
-          addOrUpdateMessage(userMessage);
+        .then(() => {
           emitter.emit('chat.history.refresh');
         })
         .catch(() => {
@@ -358,38 +353,20 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
       let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
-        const res = await ipcBridge.openclawConversation.sendMessage.invoke({
+        await ipcBridge.openclawConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: displayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id against the DB row that useMessageLstCache may insert.
-        addOrUpdateMessage(userMessage);
         emitter.emit('chat.history.refresh');
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
         setAiProcessing(false);
         aiProcessingRef.current = false;
         Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
         throw error;
       }
     },
-    [addOrUpdateMessage, checkAndUpdateTitle, conversation_id, removeMessageByMsgId, t, workspacePath]
+    [checkAndUpdateTitle, conversation_id, t, workspacePath]
   );
 
   const {
@@ -485,29 +462,12 @@ const OpenClawSendBox: React.FC<{ conversation_id: string }> = ({ conversation_i
         const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
 
         void checkAndUpdateTitle(conversation_id, input);
-        // Fetch the server-assigned msg_id before rendering the optimistic
-        // bubble so the local row uses the same id as the persisted DB row.
-        const sendResult = await ipcBridge.openclawConversation.sendMessage.invoke({
+        await ipcBridge.openclawConversation.sendMessage.invoke({
           input: initialDisplayMessage,
           conversation_id,
           files,
           loading_id,
         });
-        const { msg_id } = sendResult;
-
-        const userMessage: TMessage = {
-          id: msg_id,
-          msg_id,
-          conversation_id,
-          type: 'text',
-          position: 'right',
-          content: { content: initialDisplayMessage },
-          created_at: Date.now(),
-        };
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id against the DB row that useMessageLstCache may insert.
-        addOrUpdateMessage(userMessage);
-
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch (error) {

@@ -1,0 +1,7 @@
+{
+  "mode": {
+    "autoGemini3Desc": "Deixe a CLI do Gemini decidir o melhor modelo para a tarefa: gemini-3-pro, gemini-3-flash",
+    "autoGemini25Desc": "Deixe a CLI do Gemini decidir o melhor modelo para a tarefa: gemini-2.5-pro, gemini-2.5-flash",
+    "manualDesc": "Selecione manualmente um modelo"
+  }
+}

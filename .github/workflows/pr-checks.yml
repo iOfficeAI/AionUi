@@ -296,7 +296,7 @@ jobs:
             build_args: '--win --x64'
             unpacked_dir: 'win-unpacked'
           - platform: 'windows-arm64'
-            os: 'windows-2022'
+            os: 'windows-11-arm'
             arch: 'arm64'
             target: '--win'
             build_args: '--win --arm64'
@@ -327,9 +327,6 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-
-      - name: Setup just
-        uses: extractions/setup-just@v2
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
@@ -487,12 +484,26 @@ jobs:
 
           Write-Host "Installed executable: $installedExe"
 
-      - name: Skip executable smoke for Windows arm64 cross build
+      - name: Verify Windows arm64 package contents
         if: matrix.platform == 'windows-arm64'
         shell: pwsh
         run: |
-          Write-Host "Skipping runtime install smoke for windows-arm64: runner is windows-x64, cannot reliably execute arm64 installer."
-          Get-ChildItem -Path out -Filter "AionUi-*-win-*.exe" | Format-Table Name, Length
+          Write-Host "=========================================="
+          Write-Host "SMOKE INSTALL: windows-arm64"
+          Write-Host "=========================================="
+          Write-Host "Skipping runtime install smoke for windows-arm64: NSIS silent install does not reliably install on the GitHub Windows ARM runner."
+
+          $installer = Get-ChildItem -Path out -Filter "AionUi-*-win-arm64.exe" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+          if (-not $installer) {
+            throw "No Windows ARM64 installer found in out/"
+          }
+
+          $unpackedExe = "out\win-arm64-unpacked\AionUi.exe"
+          if (-not (Test-Path $unpackedExe)) {
+            throw "Windows ARM64 unpacked executable not found: $unpackedExe"
+          }
+
+          Get-Item $installer.FullName, $unpackedExe | Format-Table FullName, Length
 
       - name: Install smoke test (macOS arm64)
         if: matrix.platform == 'macos-arm64'

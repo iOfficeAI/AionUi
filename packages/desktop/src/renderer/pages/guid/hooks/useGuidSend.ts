@@ -9,7 +9,6 @@ import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
-import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
 import { Message } from '@arco-design/web-react';
 import { useCallback, useRef } from 'react';
@@ -107,7 +106,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     guidEnabledSkills,
     availableMcpServers,
     selectedMcpServerIds,
-    currentEffectiveAgentInfo,
+    currentEffectiveAgentInfo: _currentEffectiveAgentInfo,
     isGoogleAuth,
     setMentionOpen,
     setMentionQuery,

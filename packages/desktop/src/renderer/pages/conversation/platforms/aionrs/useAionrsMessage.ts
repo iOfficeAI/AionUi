@@ -5,12 +5,13 @@
  */
 
 import { ipcBridge } from '@/common';
-import { transformMessage } from '@/common/chat/chatLib';
+import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TChatConversation, TokenUsageData } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
+import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -182,6 +183,22 @@ export const useAionrsMessage = (
         return;
       }
 
+      if (isErrorTipMessage(message)) {
+        setStreamRunning(false);
+        streamRunningRef.current = false;
+        setWaitingResponse(false);
+        waitingResponseRef.current = false;
+        setHasActiveTools(false);
+        hasActiveToolsRef.current = false;
+        setThought({ subject: '', description: '' });
+        hasContentInTurnRef.current = false;
+        const transformedMessage = transformMessage(message);
+        if (transformedMessage) {
+          addOrUpdateMessage(transformedMessage);
+        }
+        return;
+      }
+
       // Filter out events not belonging to current active request (prevents aborted events from interfering)
       // Note: only filter out thought and start messages, other messages must be rendered
       if (activeMsgIdRef.current && message.msg_id && message.msg_id !== activeMsgIdRef.current) {
@@ -224,6 +241,7 @@ export const useAionrsMessage = (
           break;
         case 'finish':
           {
+            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
             // aionrs stream_end carries usage in data field
             const usageData = message.data as TokenUsage | undefined;
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
@@ -314,6 +332,7 @@ export const useAionrsMessage = (
           break;
         default: {
           if (message.type === 'error') {
+            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
             setStreamRunning(false);
             streamRunningRef.current = false;
             setWaitingResponse(false);

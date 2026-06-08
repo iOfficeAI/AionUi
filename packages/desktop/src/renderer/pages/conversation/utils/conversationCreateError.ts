@@ -8,17 +8,17 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { parseError } from '@/common/utils';
 import type { TFunction } from 'i18next';
 
-export type WorkspacePathErrorCode =
-  | 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED'
-  | 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED';
+export type WorkspacePathErrorCode = 'WORKSPACE_PATH_UNAVAILABLE' | 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE';
 
-export type ConversationCreateErrorCode = 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED';
-export type ConversationRuntimeWorkspaceErrorCode = 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED';
+export type ConversationCreateErrorCode = 'WORKSPACE_PATH_UNAVAILABLE';
+export type ConversationRuntimeWorkspaceErrorCode = 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE';
 
 const BACKEND_ERROR_CODE_MAP: Record<string, WorkspacePathErrorCode> = {
-  WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED',
-  WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED',
-  WORKSPACE_TRAILING_WHITESPACE_UNSUPPORTED: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED',
+  WORKSPACE_PATH_UNAVAILABLE: 'WORKSPACE_PATH_UNAVAILABLE',
+  WORKSPACE_PATH_RUNTIME_UNAVAILABLE: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
+  WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED: 'WORKSPACE_PATH_UNAVAILABLE',
+  WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED: 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE',
+  WORKSPACE_TRAILING_WHITESPACE_UNSUPPORTED: 'WORKSPACE_PATH_UNAVAILABLE',
 };
 
 // Temporary fallback for older AionCore builds that still return BAD_REQUEST
@@ -29,11 +29,11 @@ const LEGACY_BACKEND_MESSAGE_PATTERNS: Array<{
   pattern: RegExp;
 }> = [
   {
-    code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED',
+    code: 'WORKSPACE_PATH_UNAVAILABLE',
     pattern: /workspace directory names ending in whitespace are not supported/i,
   },
   {
-    code: 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED',
+    code: 'WORKSPACE_PATH_UNAVAILABLE',
     pattern:
       /workspace (directory|path).*(contain|contains|containing).*(whitespace|space).*(not supported|unsupported)/i,
   },
@@ -128,14 +128,14 @@ export const normalizeWorkspacePathErrorCode = (error: unknown): WorkspacePathEr
 
 export const normalizeConversationCreateErrorCode = (error: unknown): ConversationCreateErrorCode | undefined => {
   const code = normalizeWorkspacePathErrorCode(error);
-  return code === 'WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED' ? code : undefined;
+  return code === 'WORKSPACE_PATH_UNAVAILABLE' ? code : undefined;
 };
 
 export const normalizeConversationRuntimeWorkspaceErrorCode = (
   error: unknown
 ): ConversationRuntimeWorkspaceErrorCode | undefined => {
   const code = normalizeWorkspacePathErrorCode(error);
-  return code === 'WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED' ? code : undefined;
+  return code === 'WORKSPACE_PATH_RUNTIME_UNAVAILABLE' ? code : undefined;
 };
 
 export const getConversationCreateErrorMessage = (error: unknown, t: TFunction): string => {

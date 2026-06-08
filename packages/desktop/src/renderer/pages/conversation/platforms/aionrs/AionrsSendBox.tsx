@@ -26,13 +26,13 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { useAddOrUpdateMessage, useRemoveMessageByMsgId } from '@/renderer/pages/conversation/Messages/hooks';
 import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
   type ConversationCommandQueueItem,
 } from '@/renderer/pages/conversation/platforms/useConversationCommandQueue';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
@@ -121,15 +121,15 @@ const AionrsSendBox: React.FC<{
   const teamPermission = useTeamPermission();
   const propagateMode = teamPermission?.propagateMode;
 
-  const { thought, running, hasHydratedRunningState, setActiveMsgId, setWaitingResponse, resetState } =
-    useAionrsMessage(conversation_id, {
-      onConfigChanged: (capabilities) => {
-        const modes = (capabilities as { modes?: string[] })?.modes;
-        if (modes && modes.length > 0) {
-          setDynamicModes(mergeWithCapabilities('aionrs', modes));
-        }
-      },
-    });
+  const { thought, running, setActiveMsgId, setWaitingResponse, resetState } = useAionrsMessage(conversation_id, {
+    onConfigChanged: (capabilities) => {
+      const modes = (capabilities as { modes?: string[] })?.modes;
+      if (modes && modes.length > 0) {
+        setDynamicModes(mergeWithCapabilities('aionrs', modes));
+      }
+    },
+  });
+  const runtimeView = useConversationRuntimeView(conversation_id);
 
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
 
@@ -173,10 +173,8 @@ const AionrsSendBox: React.FC<{
     agentStatus: agentWarmed ? 'active' : null,
   });
 
-  const addOrUpdateMessage = useAddOrUpdateMessage();
-  const removeMessageByMsgId = useRemoveMessageByMsgId();
   const { setSendBoxHandler } = usePreviewContext();
-  const isBusy = running;
+  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -217,54 +215,38 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
+      runtimeView.markSendStarted();
       setWaitingResponse(true);
 
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
-      let msg_id: string | null = null;
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        // Wait for the server-assigned msg_id before rendering the optimistic
-        // user bubble so the local row uses the same id as the DB row and
-        // subsequent WebSocket stream events — avoids duplicate bubbles when
-        // useMessageLstCache reloads.
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
           files,
         });
-        msg_id = res.msg_id;
-        setActiveMsgId(msg_id);
-        // Use add=false (compose mode) so composeMessageWithIndex can de-dup
-        // by msg_id — this prevents a duplicate bubble if useMessageLstCache
-        // already inserted the DB row for this same msg_id.
-        addOrUpdateMessage({
-          id: msg_id,
-          msg_id,
-          type: 'text',
-          position: 'right',
-          conversation_id,
-          content: {
-            content: displayMessage,
-          },
-          created_at: Date.now(),
-        });
+        setActiveMsgId(res.msg_id);
+        runtimeView.markSendAccepted(res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');
         }
       } catch (error) {
-        if (msg_id) removeMessageByMsgId(msg_id);
-        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
+        const errorMessage =
+          getConversationRuntimeWorkspaceErrorMessage(error, t) ||
+          (error instanceof Error ? error.message : String(error));
+        runtimeView.markSendFailed(errorMessage);
+        Message.error(errorMessage);
         throw error;
       }
     },
     [
-      addOrUpdateMessage,
       checkAndUpdateTitle,
       conversation_id,
       current_model?.use_model,
+      runtimeView,
       setActiveMsgId,
-      removeMessageByMsgId,
       setWaitingResponse,
       t,
       workspacePath,
@@ -289,7 +271,11 @@ const AionrsSendBox: React.FC<{
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    isHydrated: hasHydratedRunningState,
+    runtimeGate: {
+      hydrated: runtimeView.hydrated,
+      canSendMessage: runtimeView.canSendMessage,
+      isProcessing: runtimeView.isProcessing,
+    },
     onExecute: executeCommand,
   });
 
@@ -321,11 +307,6 @@ const AionrsSendBox: React.FC<{
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
   const onSendHandler = async (message: string) => {
-    if (isBusy) {
-      Message.warning(t('messages.conversationInProgress'));
-      return;
-    }
-
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');
@@ -378,10 +359,11 @@ const AionrsSendBox: React.FC<{
       if (mode === currentMode) return;
       try {
         await prepareRuntimeSync();
-        await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
-        setCurrentMode(mode);
-        void savePreferredMode('aionrs', mode);
-        propagateMode?.(mode);
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+        const confirmedMode = confirmed.mode || mode;
+        setCurrentMode(confirmedMode);
+        void savePreferredMode('aionrs', confirmedMode);
+        propagateMode?.(confirmedMode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AionrsSendBox] Failed to switch mode via sheet:', error);
@@ -553,11 +535,13 @@ const AionrsSendBox: React.FC<{
   const handleStop = async (): Promise<void> => {
     // Best-effort cancel: swallow rejections so they don't bubble up as
     // unhandled rejections. UI state is still reset via finally.
+    runtimeView.markStopRequested();
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {
       console.warn('[AionrsSendBox] stop request failed', error);
     } finally {
+      runtimeView.markStopAcknowledged();
       resetState();
       resetActiveExecution('stop');
     }

@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Equipes",
+    "createTeam": "Nova Equipe",
+    "pin": "Fixar",
+    "unpin": "Desafixar",
+    "rename": "Renomear",
+    "delete": "Excluir",
+    "renameTitle": "Renomear Equipe",
+    "renamePlaceholder": "Nome da equipe",
+    "deleteConfirm": "Excluir esta equipe?",
+    "deleteConfirmContent": "Esta ação não pode ser desfeita.",
+    "deleteOk": "Excluir",
+    "deleteCancel": "Cancelar",
+    "renameOk": "Salvar",
+    "renameCancel": "Cancelar",
+    "renameSuccess": "Equipe renomeada",
+    "deleteSuccess": "Equipe excluída"
+  },
+  "newAgent": "Novo Agente",
+  "noMessages": "Nenhuma mensagem ainda.",
+  "agentNotConfigured": "Agente ainda não configurado.",
+  "sendBox": {
+    "placeholder": "Despachar mensagem para o agente..."
+  },
+  "create": {
+    "title": "Criar Equipe",
+    "namePlaceholder": "Nome da equipe",
+    "dispatchAgentPlaceholder": "Selecione o líder da equipe",
+    "subAgentsPlaceholder": "Selecione sub-agentes",
+    "workspacePlaceholder": "Caminho da pasta do projeto (opcional)",
+    "confirm": "Criar Equipe",
+    "noSupportedAgents": "Nenhum agente suportado instalado",
+    "supportedAgentsHint": "Atualmente suporta Claude e Codex. Mais agentes em breve.",
+    "leaderDesc": "Entende seus objetivos e coordena agentes para concluir tarefas",
+    "step": {
+      "dispatch": "Líder da Equipe",
+      "subAgents": "Sub-Agentes",
+      "workspace": "Projeto"
+    },
+    "nameRequired": "Por favor, insira o nome da equipe",
+    "leaderRequired": "Por favor, selecione um líder para a equipe",
+    "selectFolder": "Selecionar pasta",
+    "recentLabel": "Recente",
+    "chooseDifferentFolder": "Escolher uma pasta diferente",
+    "error": "Falha ao criar equipe"
+  },
+  "removeAgent": {
+    "confirmTitle": "Remover Membro da Equipe",
+    "confirmContent": "Este membro está ativo no momento. Forçar remoção?"
+  },
+  "emptyState": {
+    "subtitle": "Descreva seu objetivo e farei a equipe trabalhar nisso",
+    "suggestions": {
+      "debate": "Organizar um debate com agentes tomando lados diferentes",
+      "interview": "Planejar uma entrevista aprofundada entre os agentes",
+      "expert_review": "Ter vários especialistas analisando o mesmo problema"
+    }
+  }
+}

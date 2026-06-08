@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICssTheme } from '@/common/config/storage.ts';
+import type { Theme } from '@/common/theme/types';
 import { ipcBridge } from '@/common';
 import { useThemeContext } from '@renderer/hooks/context/ThemeContext.tsx';
 import { iconColors } from '@renderer/styles/colors';
-import { Button, Input } from '@arco-design/web-react';
+import { Button, Input, Radio } from '@arco-design/web-react';
 import AionModal from '@renderer/components/base/AionModal.tsx';
 import { Plus, Delete } from '@icon-park/react';
 import CodeMirror from '@uiw/react-codemirror';
@@ -36,9 +36,9 @@ const CODE_MIRROR_BASIC_SETUP = {
 
 interface CssThemeModalProps {
   visible: boolean;
-  theme: ICssTheme | null;
+  theme: Theme | null;
   onClose: () => void;
-  onSave: (theme: Omit<ICssTheme, 'id' | 'created_at' | 'updated_at' | 'is_preset'>) => void;
+  onSave: (theme: Omit<Theme, 'id' | 'created_at' | 'updated_at' | 'builtin'>) => void;
   onDelete?: () => void;
 }
 
@@ -52,6 +52,7 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
   const [name, setName] = useState('');
   const [cover, setCover] = useState<string>('');
   const [css, setCss] = useState('');
+  const [appearance, setAppearance] = useState<'light' | 'dark'>('light');
 
   const applyBackgroundImageToCss = useCallback((imageDataUrl: string) => {
     if (!imageDataUrl) return;
@@ -63,11 +64,13 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
     if (theme) {
       setName(theme.name);
       setCover(theme.cover || '');
-      setCss(theme.css);
+      setCss(theme.css || '');
+      setAppearance(theme.appearance ?? 'light');
     } else {
       setName('');
       setCover('');
       setCss('');
+      setAppearance('light');
     }
   }, [theme, visible]);
 
@@ -105,8 +108,10 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
       name: name.trim(),
       cover: cover || undefined,
       css,
+      appearance,
+      tokens: undefined,
     });
-  }, [name, cover, css, onSave]);
+  }, [name, cover, css, appearance, onSave]);
 
   const isEditing = !!theme;
 
@@ -134,24 +139,34 @@ const CssThemeModal: React.FC<CssThemeModalProps> = ({ visible, theme, onClose, 
               ) : (
                 <>
                   <Plus theme='outline' size='20' fill={iconColors.secondary} />
-                  <span className='text-12px text-t-secondary mt-4px'>Upload</span>
+                  <span className='text-12px text-t-secondary mt-4px'>{t('common.upload')}</span>
                 </>
               )}
             </div>
           </div>
 
-          {/* 名称输入 / Name input */}
-          <div className='flex-1'>
-            <div className='text-13px text-t-secondary mb-8px'>
-              <span className='text-[var(--color-danger)]'>*</span>
-              {t('settings.cssTheme.name')}
+          {/* 名称和外观 / Name and appearance */}
+          <div className='flex-1 flex flex-col gap-12px'>
+            <div>
+              <div className='text-13px text-t-secondary mb-8px'>
+                <span className='text-[var(--color-danger)]'>*</span>
+                {t('settings.cssTheme.name')}
+              </div>
+              <Input
+                value={name}
+                onChange={setName}
+                placeholder={t('settings.cssTheme.namePlaceholder')}
+                className='!bg-[var(--fill-0)]'
+              />
             </div>
-            <Input
-              value={name}
-              onChange={setName}
-              placeholder={t('settings.cssTheme.namePlaceholder')}
-              className='!bg-[var(--fill-0)]'
-            />
+            {/* 外观模式选择 / Appearance mode selector */}
+            <div>
+              <div className='text-13px text-t-secondary mb-8px'>{t('settings.cssTheme.appearance')}</div>
+              <Radio.Group value={appearance} onChange={(val: 'light' | 'dark') => setAppearance(val)}>
+                <Radio value='light'>{t('settings.lightMode')}</Radio>
+                <Radio value='dark'>{t('settings.darkMode')}</Radio>
+              </Radio.Group>
+            </div>
           </div>
         </div>
 

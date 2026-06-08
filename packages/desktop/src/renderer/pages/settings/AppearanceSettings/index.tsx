@@ -5,15 +5,15 @@
  */
 
 import React from 'react';
-import DisplayModalContent from '@/renderer/components/settings/SettingsModal/contents/DisplayModalContent';
+import AppearanceModalContent from '@/renderer/components/settings/SettingsModal/contents/AppearanceModalContent';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 
-const DisplaySettings: React.FC = () => {
+const AppearanceSettings: React.FC = () => {
   return (
     <SettingsPageWrapper>
-      <DisplayModalContent />
+      <AppearanceModalContent />
     </SettingsPageWrapper>
   );
 };
 
-export default DisplaySettings;
+export default AppearanceSettings;

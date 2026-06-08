@@ -1,6 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
+import {
+  resetWarmupConversationStateForTests,
+  warmupConversation,
+} from '@/renderer/pages/conversation/utils/warmupConversation';
 
 const { warmupInvokeMock } = vi.hoisted(() => ({
   warmupInvokeMock: vi.fn(),
@@ -19,6 +22,7 @@ vi.mock('@/common', () => ({
 describe('warmupConversation', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    resetWarmupConversationStateForTests();
   });
 
   it('coalesces concurrent warmups for the same conversation', async () => {
@@ -46,5 +50,14 @@ describe('warmupConversation', () => {
     await expect(warmupConversation('conv-1')).resolves.toBeUndefined();
 
     expect(warmupInvokeMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('skips repeated warmup after a conversation is already ready', async () => {
+    warmupInvokeMock.mockResolvedValue(undefined);
+
+    await expect(warmupConversation('conv-1')).resolves.toBeUndefined();
+    await expect(warmupConversation('conv-1')).resolves.toBeUndefined();
+
+    expect(warmupInvokeMock).toHaveBeenCalledTimes(1);
   });
 });

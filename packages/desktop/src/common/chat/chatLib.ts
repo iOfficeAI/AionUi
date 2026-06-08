@@ -170,6 +170,15 @@ export type IMessageTips = IMessage<
   }
 >;
 
+export const isErrorTipMessage = (message: IResponseMessage): boolean => {
+  if (message.type !== 'tips' || !message.data || typeof message.data !== 'object') {
+    return false;
+  }
+
+  const tipData = message.data as { type?: unknown };
+  return tipData.type === 'error';
+};
+
 export type IMessageToolCall = IMessage<
   'tool_call',
   {

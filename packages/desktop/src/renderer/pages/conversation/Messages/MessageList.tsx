@@ -492,7 +492,9 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
           <div
             ref={handleScrollerRef}
             data-testid='message-list-scroller'
-            className='flex-1 h-full overflow-y-auto pb-10px box-border'
+            // Break out of the parent's 20px horizontal padding so the scrollbar hugs the
+            // window edge, while re-applying that padding inside to keep message content inset.
+            className='flex-1 h-full overflow-y-auto pb-10px box-border -mx-20px px-20px'
             style={{ overflowAnchor: 'none' }}
             onPointerDown={handlePointerDown}
             onScroll={handleScroll}

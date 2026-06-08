@@ -13,6 +13,8 @@ type ErrorWithDetails = Error & {
     causeMessage?: unknown;
     stderrTail?: unknown;
     stdoutTail?: unknown;
+    backendBoundaryCode?: unknown;
+    backendBoundaryStage?: unknown;
     runtimeKey?: unknown;
     binaryName?: unknown;
     bundledDirExists?: unknown;
@@ -87,6 +89,14 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
     missingResources.push(`bundled-aioncore/${details.runtimeKey}/`);
   }
   const runtimeDirEntries = getStringArray(details.runtimeDirEntries);
+  const missingManagedResourcesDir =
+    details.runtimeDirExists === true &&
+    typeof details.runtimeKey === 'string' &&
+    runtimeDirEntries !== undefined &&
+    !runtimeDirEntries.includes('managed-resources/');
+  if (missingManagedResourcesDir && typeof details.runtimeKey === 'string') {
+    missingResources.push(`bundled-aioncore/${details.runtimeKey}/managed-resources/`);
+  }
   const missingRuntimeBinary =
     details.runtimeDirExists === true &&
     typeof details.runtimeKey === 'string' &&
@@ -101,8 +111,11 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
 
   return {
     incompleteInstallationKind:
-      missingBundledAioncoreDir || missingRuntimeDir ? 'missing_directory_resources' : 'missing_backend_binary',
-    missingBackendBinary: missingBundledAioncoreDir || missingRuntimeDir || missingRuntimeBinary,
+      missingBundledAioncoreDir || missingRuntimeDir || missingManagedResourcesDir
+        ? 'missing_directory_resources'
+        : 'missing_backend_binary',
+    missingBackendBinary:
+      missingBundledAioncoreDir || missingRuntimeDir || missingManagedResourcesDir || missingRuntimeBinary,
     missingBundledAioncoreDir,
     missingHubDir: getMissingDirectoryFlag(resourcesDirEntries, 'hub/'),
     missingPetStatesDir: getMissingDirectoryFlag(resourcesDirEntries, 'pet-states/'),
@@ -114,7 +127,8 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
 }
 
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
-  const incompleteInstallation = classifyIncompleteInstallation(getBackendStartupDetails(error));
+  const details = getBackendStartupDetails(error);
+  const incompleteInstallation = classifyIncompleteInstallation(details);
   if (incompleteInstallation) return incompleteInstallation;
 
   const text = collectBackendStartupText(error);
@@ -127,5 +141,14 @@ export function classifyBackendStartupFailure(error: unknown): BackendStartupFai
     };
   }
 
-  return { reason: 'backend_startup_failed' };
+  const backendBoundaryCode =
+    typeof details?.backendBoundaryCode === 'string' ? details.backendBoundaryCode : undefined;
+  const backendBoundaryStage =
+    typeof details?.backendBoundaryStage === 'string' ? details.backendBoundaryStage : undefined;
+
+  return {
+    reason: 'backend_startup_failed',
+    backendBoundaryCode,
+    backendBoundaryStage,
+  };
 }

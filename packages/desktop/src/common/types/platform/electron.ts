@@ -36,6 +36,8 @@ export interface BackendStartupFailureInfo {
   missingPetStatesDir?: boolean;
   missingPwaDir?: boolean;
   reason: BackendStartupFailureReason;
+  backendBoundaryCode?: string;
+  backendBoundaryStage?: string;
   runtime?: 'glibc';
   requiredVersions?: string[];
   missingResources?: string[];
@@ -45,6 +47,7 @@ export interface BackendStartupFailureInfo {
 declare global {
   interface Window {
     electronAPI?: ElectronBridgeAPI;
+    __initialLanguage?: string | null;
     __backendStartupFailed?: boolean;
     __backendStartupFailure?: BackendStartupFailureInfo | null;
   }

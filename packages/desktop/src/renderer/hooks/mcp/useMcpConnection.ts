@@ -160,7 +160,7 @@ export const useMcpConnection = (
       await updateServerStatus('testing');
 
       try {
-        const result = await mcpService.testMcpConnection.invoke(server);
+        const result = await mcpService.testMcpConnection.invoke({ ...server, runtime_scope_id: server.id });
         const needsAuth = result.needsAuth ?? result.needs_auth;
 
         // 检查是否需要认证

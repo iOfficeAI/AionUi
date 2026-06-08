@@ -115,6 +115,8 @@ describe('buildSpawnArgs', () => {
       'info',
       '--app-version',
       '9.9.9',
+      '--managed-resources-mode',
+      'bundled',
       '--log-dir',
       '/log/dir',
       '--local',
@@ -130,8 +132,21 @@ describe('buildSpawnArgs', () => {
       isPackaged: false,
     });
     expect(args).toContain('debug');
+    expect(args).not.toContain('--managed-resources-mode');
     expect(args).not.toContain('--log-dir');
     expect(args).not.toContain('--local');
+  });
+
+  it('passes bundled managed resources mode when packaged', () => {
+    const args = buildSpawnArgs({
+      port: 1,
+      dbPath: '/d',
+      local: false,
+      appVersion: '0.0.1',
+      isPackaged: true,
+    });
+    expect(args).toContain('--managed-resources-mode');
+    expect(args).toContain('bundled');
   });
 
   it('respects AIONUI_LOG_LEVEL override', () => {
@@ -270,6 +285,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
       'info',
       '--app-version',
       '1.2.3',
+      '--managed-resources-mode',
+      'bundled',
       '--log-dir',
       '/log/dir',
       '--work-dir',
@@ -320,6 +337,8 @@ describe('BackendLifecycleManager.start (success path)', () => {
         'info',
         '--app-version',
         '1.2.3',
+        '--managed-resources-mode',
+        'bundled',
         '--log-dir',
         '/log/dir',
         '--work-dir',
@@ -344,6 +363,74 @@ describe('BackendLifecycleManager.start (success path)', () => {
 });
 
 describe('BackendLifecycleManager.start (health timeout)', () => {
+  it('captures backend boundary code and stage from early-exit stderr', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33337) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', {
+      cacheDir: '/cache',
+      workDir: '/work',
+      logDir: '/log',
+    });
+
+    await Promise.resolve();
+    child.stderr?.emit(
+      'data',
+      Buffer.from(
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.open databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+      )
+    );
+    child.emit('exit', 1, null);
+    child.emit('close', 1, null);
+
+    await expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+        backendBoundaryStage: 'database.open',
+      }),
+    });
+  });
+
+  it('captures backend boundary code when stderr drains after exit but before close', async () => {
+    vi.useFakeTimers();
+    vi.mocked(createServer).mockImplementation(
+      () => makeSyncFakeServer(33337) as unknown as ReturnType<typeof createServer>
+    );
+    const child = makeFakeChild();
+    vi.mocked(spawn).mockReturnValue(child as unknown as ChildProcess);
+
+    const mgr = new BackendLifecycleManager(APP_META_PACKAGED, () => '/abs/path/aioncore');
+    const startPromise = mgr.start('/db/path', '/log/dir', {
+      cacheDir: '/cache',
+      workDir: '/work',
+      logDir: '/log',
+    });
+
+    await Promise.resolve();
+    child.emit('exit', 1, null);
+    child.stderr?.emit(
+      'data',
+      Buffer.from(
+        'BOOTSTRAP_DATA_INIT_FAILED stage=database.migration databasePath=/db/path/aionui-backend.db: failed to initialize application data\n'
+      )
+    );
+    child.emit('close', 1, null);
+
+    await expect(startPromise).rejects.toMatchObject({
+      name: 'BackendStartupError',
+      details: expect.objectContaining({
+        backendBoundaryCode: 'BOOTSTRAP_DATA_INIT_FAILED',
+        backendBoundaryStage: 'database.migration',
+      }),
+    });
+  });
+
   it('kills child and reports listen_timeout when aioncore never reports a port', async () => {
     vi.useFakeTimers();
     const child = makeFakeChild();
@@ -716,6 +803,7 @@ describe('BackendLifecycleManager.stop', () => {
     await Promise.resolve();
     const stopPromise = mgr.stop();
     (child as unknown as EventEmitter).emit('exit', null, 'SIGTERM');
+    (child as unknown as EventEmitter).emit('close', null, 'SIGTERM');
     await stopPromise;
 
     await expect(startPromise).rejects.toMatchObject({

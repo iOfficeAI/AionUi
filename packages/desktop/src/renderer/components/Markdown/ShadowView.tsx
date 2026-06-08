@@ -8,7 +8,7 @@ import { theme } from '@office-ai/platform';
 import React, { useState } from 'react';
 import ReactDOM from 'react-dom';
 import { addImportantToAll } from '@renderer/utils/theme/customCssProcessor';
-import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 
 /**
@@ -29,7 +29,7 @@ const createInitStyle = (
     : '';
 
   const lineHeight = isMobile ? '19.6px' : '28px';
-  const fontSize = isMobile ? '14px' : '16px';
+  const fontSize = isMobile ? 'var(--chat-font-size, 14px)' : 'var(--chat-font-size, 16px)';
 
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
@@ -267,27 +267,19 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
   const isMobile = layout?.isMobile ?? false;
 
   React.useEffect(() => {
-    const css = configService.get('customCss');
-    if (css) {
-      setCustomCss(addImportantToAll(css));
-    } else {
-      setCustomCss('');
-    }
-
-    // Listen to custom CSS update events
-    const handleCustomCssUpdate = (e: CustomEvent) => {
-      if (e.detail?.customCss !== undefined) {
-        const css = e.detail.customCss || '';
-        // Use unified utility to auto-add !important
-        const processedCss = addImportantToAll(css);
-        setCustomCss(processedCss);
-      }
+    let mounted = true;
+    const applyCss = (t: { css?: string } | null) => {
+      if (!mounted) return;
+      setCustomCss(t?.css ? addImportantToAll(t.css) : '');
     };
-
-    window.addEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
-
+    ipcBridge.theme.requestCurrent
+      .invoke()
+      .then(applyCss)
+      .catch(() => {});
+    const off = ipcBridge.theme.changed.on((t) => applyCss(t));
     return () => {
-      window.removeEventListener('custom-css-updated', handleCustomCssUpdate as EventListener);
+      mounted = false;
+      off?.();
     };
   }, []);
 
@@ -305,6 +297,8 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
         '--color-text-3': computedStyle.getPropertyValue('--color-text-3'),
         '--text-primary': computedStyle.getPropertyValue('--text-primary'),
         '--text-secondary': computedStyle.getPropertyValue('--text-secondary'),
+        '--chat-font-size': computedStyle.getPropertyValue('--chat-font-size'),
+        '--code-font-size': computedStyle.getPropertyValue('--code-font-size'),
       };
 
       // Remove old style and add new style
@@ -342,7 +336,7 @@ const ShadowView = ({ children }: { children: React.ReactNode }) => {
 
     observer.observe(document.documentElement, {
       attributes: true,
-      attributeFilter: ['data-theme', 'class'],
+      attributeFilter: ['data-theme', 'class', 'style'],
     });
 
     return () => observer.disconnect();

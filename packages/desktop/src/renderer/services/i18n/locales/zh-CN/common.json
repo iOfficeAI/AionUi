@@ -80,7 +80,8 @@
       "title": "AionUi 安装不完整",
       "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionCore。",
       "downloadLatest": "下载最新版",
-      "sendDiagnostics": "发送诊断报告"
+      "sendDiagnostics": "发送诊断报告",
+      "runtimeComponentDescription": "当前安装缺少必要的内置运行组件，{{resource}} 无法启动。请重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionUi 组件。"
     }
   },
   "fileAttach.addFiles": "添加文件",
