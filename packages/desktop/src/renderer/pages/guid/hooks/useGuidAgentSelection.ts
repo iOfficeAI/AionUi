@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { IProvider } from '@/common/config/storage';
@@ -114,6 +113,10 @@ type UseGuidAgentSelectionOptions = {
   /** React Router location.key — changes on every navigation, used to detect new resets. */
   locationKey?: string;
 };
+
+export function isSupportedNewConversationAgent(agent: { agent_type: string }): boolean {
+  return agent.agent_type === 'acp' || agent.agent_type === 'aionrs';
+}
 
 /**
  * Hook that manages agent selection, availability, and preset assistant logic.
@@ -251,7 +254,6 @@ export const useGuidAgentSelection = ({
   const selectedAgent: string = ((): string => {
     if (selectedAgentKey.startsWith('custom:')) return 'custom';
     const info = availableAgents?.find((a) => a.id === selectedAgentKey);
-    if (info?.agent_type === 'remote') return 'remote';
     if (info?.agent_source === 'custom') return 'custom';
     return selectedAgentKey;
   })();
@@ -263,9 +265,6 @@ export const useGuidAgentSelection = ({
   // --- SWR: Fetch detected execution engines (shared cache) ---
   const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
-  // Fetch remote agents from DB and merge into available agents
-  const { data: remoteAgentsData } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
-
   useEffect(() => {
     if (!availableAgentsData) return;
     // Normalise backend /api/agents rows into AvailableAgent shape.
@@ -274,7 +273,7 @@ export const useGuidAgentSelection = ({
     // tokens / preset resolver). Custom-row `icon` is a user-picked emoji,
     // exposed as `avatar` so AgentPillBar renders the glyph directly
     // instead of mistaking it for a logo URL.
-    const normalisedDetected: AvailableAgent[] = availableAgentsData.map((a) => {
+    const normalisedDetected: AvailableAgent[] = availableAgentsData.filter(isSupportedNewConversationAgent).map((a) => {
       const asAgent = a as AgentMetadata;
       const isCustomRow = asAgent.agent_source === 'custom';
       return {
@@ -284,15 +283,8 @@ export const useGuidAgentSelection = ({
         avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
       };
     });
-    const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
-      agent_type: 'remote',
-      name: ra.name,
-      id: ra.id,
-      custom_agent_id: ra.id,
-      avatar: ra.avatar,
-    }));
-    setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
-  }, [availableAgentsData, remoteAgentsData]);
+    setAvailableAgents(normalisedDetected);
+  }, [availableAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
   // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
