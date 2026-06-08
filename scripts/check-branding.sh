@@ -156,6 +156,18 @@ check_not "build-with-builder.js: no AionUi" 'AionUi\.exe' "$ROOT/scripts/build-
 check "managedCliInstallerBridge.ts: npmmirror"  'npmmirror'  "$ROOT/packages/desktop/src/process/bridge/managedCliInstallerBridge.ts"
 check "managedCliInstallerBridge.ts: tsinghua"   'tsinghua'   "$ROOT/packages/desktop/src/process/bridge/managedCliInstallerBridge.ts"
 
+# ---- Managed-Resources Branding ----
+echo ""
+echo "==> Checking managed-resources branding..."
+if grep -rq "AionUi" resources/bundled-poundingcore/*/managed-resources/ 2>/dev/null; then
+  echo -e "${RED}FAIL${NC} Found 'AionUi' in managed-resources bundle"
+  FAIL=$((FAIL + 1))
+  ERRORS+=("Found 'AionUi' in managed-resources bundle")
+else
+  echo -e "${GREEN}PASS${NC} managed-resources branding: OK"
+  PASS=$((PASS + 1))
+fi
+
 echo ""
 echo "=== Results: $PASS passed, $FAIL failed ==="
 

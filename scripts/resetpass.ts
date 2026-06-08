@@ -82,7 +82,8 @@ function resolveWorkDir(): string {
 function resolveBackendBinary(): string {
   if (process.env.POUNDING_BACKEND_BIN) return process.env.POUNDING_BACKEND_BIN;
 
-  const bundledBase = process.env.POUNDING_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-poundingcore');
+  const bundledBase =
+    process.env.POUNDING_BACKEND_BUNDLED_DIR ?? path.join(repoRoot, 'resources', 'bundled-poundingcore');
   const runtimeKey = `${process.platform}-${process.arch}`;
   const bundled = path.join(bundledBase, runtimeKey, BACKEND_BINARY);
   if (fs.existsSync(bundled)) return bundled;

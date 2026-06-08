@@ -27,7 +27,7 @@ type ProviderShape = {
   name?: string;
 };
 
-const IMAGE_NAME_PATTERN = /(image|banana|imagine)/i;
+export const IMAGE_NAME_PATTERN = /(image|banana|imagine)/i;
 
 const RULES: Array<{
   id: string;

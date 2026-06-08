@@ -24,6 +24,6 @@ test.describe('POUNDING Model Selector (no backend required)', () => {
     await page.waitForTimeout(3000);
     const errors = collector.critical();
     // No crashes from ACP model info polling
-    expect(errors.filter(e => e.includes('ReferenceError') || e.includes('TypeError'))).toHaveLength(0);
+    expect(errors.filter((e) => e.includes('ReferenceError') || e.includes('TypeError'))).toHaveLength(0);
   });
 });

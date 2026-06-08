@@ -72,8 +72,33 @@ function prepareManagedResources(binaryPath, targetDir) {
     },
   });
 
+  verifyCliBundles(bundleOut);
+
   removeDirectorySafe(dataDir);
   return bundleOut;
+}
+
+// ---------------------------------------------------------------------------
+// Verification helpers
+// ---------------------------------------------------------------------------
+
+function verifyCliBundles(bundleDir) {
+  const cliDir = path.join(bundleDir, 'cli');
+  const runtimesDir = path.join(bundleDir, 'runtimes');
+
+  if (fs.existsSync(cliDir)) {
+    const clis = fs.readdirSync(cliDir);
+    console.log(`  CLI bundles: ${clis.join(', ')}`);
+  } else {
+    console.warn('  ⚠️  No CLI bundles found in managed-resources');
+  }
+
+  if (fs.existsSync(runtimesDir)) {
+    const runtimes = fs.readdirSync(runtimesDir);
+    console.log(`  Runtimes: ${runtimes.join(', ')}`);
+  } else {
+    console.warn('  ⚠️  No runtime resources found in managed-resources');
+  }
 }
 
 // ---------------------------------------------------------------------------

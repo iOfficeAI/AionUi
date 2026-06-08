@@ -317,6 +317,24 @@ jobs:
           POUNDINGCORE_GITHUB_REPO: poundingcore
           GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
+          # NOTE: When poundingcore is built from source (not pre-built release),
+          # set AIONUI_EMBED_BUN=1 to embed bun into the binary.
+          # This must be configured in halojerry/poundingcore's CI, not here.
+
+      - name: Verify managed CLI resources
+        shell: bash
+        run: |
+          echo "Checking bundled CLI resources..."
+          BUNDLE_DIR="resources/bundled-poundingcore"
+          for dir in "$BUNDLE_DIR"/*/; do
+            echo "Platform: $(basename "$dir")"
+            if [ -d "$dir/managed-resources/cli" ]; then
+              ls -la "$dir/managed-resources/cli/" 2>/dev/null || echo "  No CLI bundles"
+            fi
+            if [ -d "$dir/managed-resources/runtimes" ]; then
+              ls -la "$dir/managed-resources/runtimes/" 2>/dev/null || echo "  No runtimes"
+            fi
+          done
 
       - name: Build with electron-builder (Windows)
         if: startsWith(matrix.platform, 'windows')

@@ -7,6 +7,7 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
+import { isFirstRun, markFirstRunDone, portableChoicePending, showPortableStorageChoice } from './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
@@ -16,6 +17,7 @@ import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
 import fixPath from 'fix-path';
 import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
@@ -34,6 +36,8 @@ import './process/bridge/feedbackBridge';
 import { wasLaunchedAtLogin } from '@process/bridge/applicationBridge';
 import { onLanguageChanged } from './process/bridge/systemSettingsBridge';
 import { setInitialLanguage } from '@process/services/i18n';
+import { startupSelfCheck } from './process/services/DoctorService';
+import { ensureCodexProxyRunning, stopCodexProxy } from './process/services/CodexProxyManager';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
@@ -115,7 +119,9 @@ if (!gotTheLock) {
 }
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
+// Fix GUI app PATH to match CLI environment on all platforms.
+// Electron sandboxes the environment; without this, spawned processes (npm, bun,
+// node) may not be found even though they work fine in Terminal.
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
 
@@ -135,6 +141,66 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
       }
     } catch {
       // Ignore errors when reading nvm directory
+    }
+  }
+
+  // ~/.local/bin is used by Hermes shim, uv installer, and other Python tools.
+  // macOS GUI apps don't include it by default.
+  const localBin = path.join(os.homedir(), '.local', 'bin');
+  if (fs.existsSync(localBin) && !process.env.PATH.includes(localBin)) {
+    process.env.PATH = localBin + path.delimiter + process.env.PATH;
+    console.log('[AionUi] Added ~/.local/bin to PATH for Hermes/uv shims');
+  }
+}
+
+if (process.platform === 'win32') {
+  // On Windows, GUI apps launched from Start Menu / desktop shortcut don't
+  // inherit the user's shell PATH modifications. Manually prepend common
+  // Node.js / npm / bun install directories.
+  const home = process.env.USERPROFILE || process.env.HOME || '';
+  const extraPaths: string[] = [];
+
+  // npm global prefix (npm config get prefix)
+  const roamingNpm = path.join(home, 'AppData', 'Roaming', 'npm');
+  if (fs.existsSync(roamingNpm)) extraPaths.push(roamingNpm);
+
+  // nvm-windows
+  const nvmwHome = process.env.NVM_HOME || process.env.NVM_SYMLINK;
+  if (nvmwHome && fs.existsSync(nvmwHome)) extraPaths.push(nvmwHome);
+
+  // Volta
+  const voltaHome = process.env.VOLTA_HOME || path.join(home, 'AppData', 'Local', 'Volta');
+  if (fs.existsSync(voltaHome)) extraPaths.push(voltaHome);
+
+  // bun
+  const bunBin = path.join(home, '.bun', 'bin');
+  if (fs.existsSync(bunBin)) extraPaths.push(bunBin);
+
+  // ~/.local/bin — used by Hermes shim, uv installer, and other Python tools.
+  const localBinWin = path.join(home, '.local', 'bin');
+  if (fs.existsSync(localBinWin)) extraPaths.push(localBinWin);
+
+  // fnm (Fast Node Manager)
+  const fnmDir = process.env.FNM_DIR || path.join(home, 'AppData', 'Roaming', 'fnm');
+  if (fs.existsSync(fnmDir)) {
+    try {
+      const aliases = path.join(fnmDir, 'aliases');
+      if (fs.existsSync(aliases)) {
+        const defaultAlias = fs.readFileSync(path.join(aliases, 'default'), 'utf-8').trim();
+        if (defaultAlias) {
+          const fnmNodeBin = path.join(fnmDir, 'node-versions', defaultAlias, 'installation');
+          if (fs.existsSync(fnmNodeBin)) extraPaths.push(fnmNodeBin);
+        }
+      }
+    } catch { /* ignore */ }
+  }
+
+  if (extraPaths.length > 0) {
+    const currentPath = process.env.PATH || '';
+    const missing = extraPaths.filter((p) => !currentPath.toLowerCase().includes(p.toLowerCase()));
+    if (missing.length > 0) {
+      process.env.PATH = [...missing, currentPath].join(path.delimiter);
+      console.log('[AionUi] Windows PATH supplemented with:', missing.join(', '));
     }
   }
 }
@@ -300,6 +366,18 @@ function markBackendReady(backendPort: number, source: string): void {
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
   void ensureAdminUserOnce(backendPort);
   scheduleBackendMigrations();
+
+  // Start the codex-api-proxy so Codex CLI works out-of-the-box.
+  // Don't block startup — the proxy starts asynchronously.
+  void ensureCodexProxyRunning().then((result) => {
+    if (result) {
+      console.log(`[AionUi] Codex API proxy running on port ${result.port}`);
+    } else {
+      console.warn('[AionUi] Codex API proxy could not be started — Codex CLI will not work');
+    }
+  }).catch((err) => {
+    console.warn('[AionUi] Codex API proxy startup failed:', err.message || err);
+  });
 }
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
@@ -496,6 +574,22 @@ const handleAppReady = async (): Promise<void> => {
   const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
+  // Ask user where to store data when running from USB dealer kit for the first time.
+  // Must happen before window creation so the userData path is set correctly.
+  if (portableChoicePending) {
+    try {
+      await showPortableStorageChoice();
+    } catch (err) {
+      console.warn('[AionUi] Portable storage choice dialog failed, defaulting to USB:', err);
+    }
+  }
+
+  // Log first-run state for diagnostics
+  if (isFirstRun()) {
+    console.log('[AionUi] First launch detected — CLI auto-installation will trigger after login');
+    markFirstRunDone();
+  }
+
   if (!app.isPackaged) {
     try {
       const { default: installExtension, REACT_DEVELOPER_TOOLS } = await import('electron-devtools-installer');
@@ -601,6 +695,41 @@ const handleAppReady = async (): Promise<void> => {
   if (backendStartedOk && bootBackendPort) {
     await ensureAdminUserOnce(bootBackendPort);
   }
+
+  // Start background doctor self-check (non-blocking, silent)
+  void startupSelfCheck().catch((err) => {
+    console.error('[POUNDING] Doctor startup check failed:', err);
+  });
+
+  // Preflight: check if a JavaScript runtime is available. Without node/npm/bun,
+  // CLI installation and MCP servers won't work. Log a clear warning.
+  void (async () => {
+    const { execFile } = await import('node:child_process');
+    const whichCmd = process.platform === 'win32' ? 'where' : 'which';
+    const runtimes = ['node', 'npm', 'bun'];
+    const missing: string[] = [];
+    for (const rt of runtimes) {
+      try {
+        await new Promise<void>((resolve, reject) => {
+          execFile(whichCmd, [rt], { timeout: 3000 }, (err) => {
+            if (err) reject(err);
+            else resolve();
+          });
+        });
+      } catch {
+        missing.push(rt);
+      }
+    }
+    if (missing.length === runtimes.length) {
+      console.warn(
+        '[AionUi] ⚠️  No JavaScript runtime (node/npm/bun) found in PATH. ' +
+        'CLI installation and MCP servers will not work. ' +
+        'Please install Node.js (https://nodejs.org) or Bun (https://bun.sh).'
+      );
+    } else if (missing.length > 0) {
+      console.log(`[AionUi] Runtime check: found runtimes except: ${missing.join(', ')}`);
+    }
+  })();
 
   // One-shot backend migrations are deferred until after the renderer finishes
   // loading. Some migration steps (ConfigStorage.get, ipcBridge.listProviders)
@@ -917,6 +1046,7 @@ installQuitCleanup({
 });
 
 app.on('will-quit', () => {
+  stopCodexProxy();
   console.log('[AionUi] will-quit — all cleanup should be complete');
 });
 

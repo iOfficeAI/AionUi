@@ -19,7 +19,10 @@ async function apiGet<T = unknown>(path: string): Promise<{ status: number; data
   }
 }
 
-async function apiPost<T = unknown>(path: string, body?: unknown): Promise<{ status: number; data?: T; error?: string }> {
+async function apiPost<T = unknown>(
+  path: string,
+  body?: unknown
+): Promise<{ status: number; data?: T; error?: string }> {
   const res = await fetch(`${BACKEND}${path}`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },

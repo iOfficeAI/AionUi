@@ -153,6 +153,7 @@ halojerry/pounding (发布仓库 — 最终产物，桌面应用发布)
 **触发方式**: 在 `halojerry/pounding` 仓库手动 `workflow_dispatch` → `sync-downstream.yml`。
 
 **流程**:
+
 1. 验证目标分支（阻止直接同步到 main/dev）
 2. 运行 `check-branding.sh` 作为预检门禁
 3. Fast-forward 合并到 `feature/downstream-sync` 分支
@@ -188,6 +189,7 @@ main (stable — triggers release builds via tag)
 **Trigger**: Manual `workflow_dispatch` via GitHub Actions → `sync-upstream.yml`.
 
 **What the workflow does automatically**:
+
 1. Validates target branch is NOT `main` or `dev` (refuses direct sync)
 2. Fetches from `iOfficeAI/AionUi` upstream
 3. Fast-forward merges (`--ff-only`) into `feature/upstream-sync` (or custom target branch)
@@ -195,6 +197,7 @@ main (stable — triggers release builds via tag)
 5. On success: creates a PR from sync branch → `dev` with upstream commit summary
 
 **Manual steps after sync (MANDATORY)**:
+
 1. Check the auto-created PR diff — look for POUNDING branding overwrites
 2. Run `bash scripts/check-branding.sh` locally
 3. Restore ALL items in the Branding Checklist below that were overwritten
@@ -203,12 +206,14 @@ main (stable — triggers release builds via tag)
 6. Merge PR to `dev` only after all checks pass
 
 **Known pitfalls**:
+
 - `electron-builder.yml` `productName`/`appId` often gets overwritten to `AionUi`/`com.aionui.app`
 - Locale files in `pt-BR/`, `tr-TR/` etc. are the most likely to revert to `"brand": "AionUi"`
 - New upstream files may reference `iOfficeAI/AionUi` — grep and replace
 - The merge may introduce new dependencies or config formats — test `bun run dev` before merging
 
 **Before merging to main (release)**:
+
 - Version bump via `bump-version` skill
 - Tag: `v<version>-Pounding`
 - This triggers `build-and-release.yml` → COS upload + GitHub Release
@@ -267,6 +272,18 @@ Features unique to the POUNDING fork that must be preserved:
 ## Troubleshooting & Lessons Learned
 
 Lessons from POUNDING branding/fix sessions. When debugging similar symptoms, check these first.
+
+### Quick Index
+
+| Category | Entries |
+|----------|---------|
+| 开箱即用 (out-of-box) | [[Codex: proxy not auto-started]], [[Windows: GUI app PATH is incomplete]], [[Out-of-box runtime preflight check]] |
+| Codex CLI | [[Codex: UNKNOWN_UPSTREAM_ERROR]], [[Codex: "Model metadata not found"]], [[Codex: proxy not auto-started]] |
+| OpenClaw | [[OpenClaw: NOT_PAIRED]] |
+| MCP | [[Chrome DevTools MCP: handshake fails]] |
+| Sentry | [[Sentry: user feedback not arriving]], [[Sentry: wrong DSN in production builds]] |
+| UI/UX | [[CLI model: switch reverts to default]], [[Dealer kit: invitation link not triggered]] |
+| Branding | [[pt-BR locale]], [[Branding drift]] |
 
 ### Sentry: user feedback not arriving
 
@@ -336,3 +353,104 @@ Lessons from POUNDING branding/fix sessions. When debugging similar symptoms, ch
 
 **Key files**: `scripts/check-branding.sh`, `.github/workflows/pr-checks.yml`
 
+### Codex: UNKNOWN_UPSTREAM_ERROR — POUNDING API doesn't support /v1/responses for deepseek
+
+**Symptom**: Codex conversations fail with `UNKNOWN_UPSTREAM_ERROR`. Codex stderr shows `not implemented (request id: ...) convert_request_failed` from `POST /v1/responses`.
+
+**Root cause**: Codex CLI requires `wire_api = "responses"` (rejects `chat_completions`). The POUNDING API (`api.mxou.cn`) supports `/v1/responses` only for some models (e.g. doubao), NOT for `deepseek-v4-pro`. The Chat Completions endpoint (`/v1/chat/completions`) works for all models.
+
+**Fix (local proxy)**: A Node.js proxy (`codexApiProxy.mjs`) translates:
+- Requests: Responses API → Chat Completions API (mapping `input`→`messages`, `developer` role→`system`, `input_text`→`text`)
+- Responses: Chat Completions JSON → Responses API SSE streaming events
+- Metadata: Enriches `/v1/models` with `context_window`, `max_output_tokens`, `pricing`
+- Ports: Auto-selects available port (increment on EADDRINUSE), writes to `~/.pounding/codex-proxy-port`
+
+The proxy is **auto-started by `CodexProxyManager`** at backend-ready time. `writeCodexConfigForProviderSync()` reads the actual port from the well-known file.
+
+**Key files**: `src/process/codexApiProxy.mjs` (proxy script), `src/process/services/CodexProxyManager.ts` (lifecycle), `NewApiDesktopAccountService.ts:resolveCodexBaseUrl()`
+
+**Reference**: pumpkinai-config (npm) does NOT need a proxy — their API supports `/v1/responses` natively. CC-Switch uses a similar local proxy approach.
+
+**See also**: [[Codex: proxy not auto-started]] (the manager that launches this proxy)
+
+### Codex: "Model metadata not found" warning
+
+**Symptom**: Codex shows `Model metadata for deepseek-v4-pro not found. Defaulting to fallback metadata; this can degrade performance and cause issues.` every time.
+
+**Root cause**: POUNDING API `/v1/models` only returns `{id, object, created, owned_by, supported_endpoint_types}` — missing `context_window`, `max_output_tokens`, etc. Codex probes context length and defaults to 256K but warns. Additionally, stale `models_cache.json` (from old API calls) could override the enriched metadata.
+
+**Fix (two layers)**:
+1. **`pounding-models.json`**: Now writes model objects with `context_window` + `max_output_tokens` (was bare strings). Follows CC-Switch's `cc-switch-model-catalog.json` pattern. Also auto-deletes `models_cache.json` on every config sync to force a fresh metadata read.
+2. **`codexApiProxy.mjs`**: Enriches `/v1/models` API response with metadata for all known models (METADATA constant).
+
+**Key files**: `NewApiDesktopAccountService.ts:MODEL_META`, `src/process/codexApiProxy.mjs` (METADATA constant)
+
+**See also**: [[Codex: UNKNOWN_UPSTREAM_ERROR]], [[Codex: proxy not auto-started]]
+
+### OpenClaw: NOT_PAIRED scope-upgrade deadlock (AionCore fix, AionUi awareness)
+
+**Symptom**: OpenClaw conversations permanently fail with `NOT_PAIRED: device identity changed and must be re-approved`.
+
+**Root cause (AionCore)**: Backend and CLI shared device identity → scope upgrade → deadlock. Fixed in AionCore by using separate identity path.
+
+**AionUi relevance**: No TypeScript changes needed for this fix, but the `NewApiDesktopAccountService.ts` `writeOpenClawConfigForProviderSync()` writes the gateway config that the backend reads. When debugging OpenClaw issues, check both `~/.openclaw/openclaw.json` (CLI config) and `~/.pounding/openclaw/identity/device.json` (backend identity).
+
+**Diagnostic**: `openclaw devices list --json --url ws://127.0.0.1:18789 --token "<token>"` shows pending/paired devices and their scopes. A "scope-upgrade" kind with different `approvedScopes` vs `requestedScopes` indicates this issue.
+
+**See also**: Codex issues below all share the same config-sync infrastructure (`writeXxxConfigForProviderSync` → `syncManagedProviderRuntimeConfigs`).
+
+### Codex: proxy not auto-started (开箱即用 gap #1)
+
+**Symptom**: User installs POUNDING, logs in, creates a Codex conversation — nothing happens. Codex config points to `http://127.0.0.1:18792/v1` but proxy is not running.
+
+**Root cause**: `codex-api-proxy.mjs` was a standalone script in the project root. The Electron main process never started it. The developer had to manually run `node codex-api-proxy.mjs` in a terminal. Additionally, the proxy was not packaged in production builds (not in asar or extraResources).
+
+**Fix**: Created `CodexProxyManager.ts` that:
+- `fork()`s `codexApiProxy.mjs` as a child process when the backend is ready
+- Auto-restarts the proxy on crash (up to 3 times within 30 seconds)
+- Writes the actual port to `~/.pounding/codex-proxy-port` (handles port conflicts)
+- Stops cleanly on app quit
+- Restarts on login (to pick up new API key from `~/.pounding/config.json`)
+
+The proxy script was also:
+- Moved from project root → `src/process/codexApiProxy.mjs`
+- Modified to auto-select available ports (`tryListen` with increment on EADDRINUSE)
+- Added to `electron-builder.yml` asarUnpack list (line ~218, next to MCP scripts)
+- Added to `electron.vite.config.ts` viteStaticCopy targets (environment: 'ssr')
+
+**Key files**: `src/process/services/CodexProxyManager.ts`, `src/process/codexApiProxy.mjs`, `src/index.ts`, `electron-builder.yml`, `electron.vite.config.ts`
+
+**See also**: [[Codex: UNKNOWN_UPSTREAM_ERROR]] (why the proxy exists), [[Codex: "Model metadata not found"]] (metadata the proxy provides), [[Windows: GUI app PATH is incomplete]] (related startup gap), [[Out-of-box runtime preflight check]] (related startup gap)
+
+### Windows: GUI app PATH is incomplete (开箱即用 gap #3)
+
+**Symptom**: On Windows, the POUNDING app can't find `npm`, `bun`, or `node` even though they work in Terminal. CLI installation and MCP servers fail silently.
+
+**Root cause**: `fixPath()` in `index.ts` was gated to `platform === 'darwin' || platform === 'linux'`. On Windows, GUI apps launched from Start Menu don't inherit shell PATH modifications (nvm-windows, Volta, fnm, etc.).
+
+**Fix**: Added Windows PATH supplementation that prepends common runtime paths:
+- `%APPDATA%/npm` (npm global prefix)
+- `NVM_HOME` or `NVM_SYMLINK` (nvm-windows)
+- `%LOCALAPPDATA%/Volta` (Volta)
+- `~/.bun/bin` (bun)
+- fnm `node-versions/<default>/installation` (Fast Node Manager)
+
+Runs immediately at import time, before any `which`/`where` checks.
+
+**Key files**: `src/index.ts` (Windows PATH block, ~20 lines after fixPath)
+
+**See also**: [[Out-of-box runtime preflight check]] (verifies runtimes are found), [[Codex: proxy not auto-started]] (another startup gap)
+
+### Out-of-box runtime preflight check (开箱即用 gap #4)
+
+**Symptom**: No clear error when no JavaScript runtime is available. CLI installation silently fails, MCP servers can't start. User sees "CLI not found" errors in the UI without understanding why.
+
+**Fix**: Added preflight check in `handleAppReady()` that tests `node`, `npm`, `bun` availability via `which`/`where`. Logs clear warnings:
+- All missing: `⚠️  No JavaScript runtime (node/npm/bun) found in PATH. Please install Node.js (https://nodejs.org) or Bun (https://bun.sh).`
+- Some missing: `Runtime check: found runtimes except: npm, bun`
+
+Does NOT block startup — user can still use the app for non-CLI features. Uses `execFile` with 3s timeout per command.
+
+**Key files**: `src/index.ts` (preflight block in `handleAppReady`, after doctor check)
+
+**See also**: [[Windows: GUI app PATH is incomplete]] (PATH fix that makes runtimes discoverable), [[Codex: proxy not auto-started]] (another startup gap)

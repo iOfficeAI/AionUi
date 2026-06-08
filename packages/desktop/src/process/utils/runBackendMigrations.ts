@@ -10,11 +10,13 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import {
+  IMAGE_GEN_ENV_KEYS,
   removeImageGenerationEnvKeys,
   resolveImageGenerationMcpEnv,
   type ImageGenerationMcpEnvResolveResult,
 } from '@/common/config/imageGenerationMcpEnv';
 import { BUILTIN_IMAGE_GEN_NAME, type IMcpServer, type IProvider } from '@/common/config/storage';
+import { IMAGE_NAME_PATTERN } from '@/common/utils/imageModelAllowlist';
 import { getBuiltinMcpScriptPath, type ProcessConfig as ProcessConfigType } from './initStorage';
 import { migrateAssistantsToBackend } from './migrateAssistants';
 
@@ -281,8 +283,59 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
   const existingImageServer = existingByName.get(BUILTIN_IMAGE_GEN_NAME);
   const existingImageEnv =
     existingImageServer?.transport.type === 'stdio' ? existingImageServer.transport.env : undefined;
-  const imageEnvResolution = resolveImageGenerationMcpEnv(imageConfig, providers, existingImageEnv);
+  let imageEnvResolution = resolveImageGenerationMcpEnv(imageConfig, providers, existingImageEnv);
   logImageGenerationEnvResolution(imageEnvResolution, 'bootstrap');
+
+  // Auto-configure image generation from POUNDING API provider when resolved env is empty
+  if (!imageEnvResolution.ok && providers.length > 0) {
+    const poundingProvider = providers.find(
+      (p) => p.platform === 'new-api' || p.platform === 'pounding-api'
+    );
+    if (poundingProvider && Array.isArray(poundingProvider.models) && poundingProvider.models.length > 0) {
+      const imageModels = poundingProvider.models.filter((m) => IMAGE_NAME_PATTERN.test(m));
+      if (imageModels.length > 0) {
+        const imageModel = imageModels.find((m) => m === 'gpt-image-2') || imageModels[0];
+        const autoEnv: Record<string, string> = {
+          [IMAGE_GEN_ENV_KEYS.providerId]: poundingProvider.id,
+          [IMAGE_GEN_ENV_KEYS.platform]: poundingProvider.platform,
+          [IMAGE_GEN_ENV_KEYS.baseUrl]: poundingProvider.base_url,
+          [IMAGE_GEN_ENV_KEYS.apiKey]: poundingProvider.api_key,
+          [IMAGE_GEN_ENV_KEYS.model]: imageModel,
+        };
+        imageEnvResolution = {
+          ok: true,
+          source: 'provider-id' as const,
+          provider: poundingProvider,
+          model: imageModel,
+          env: autoEnv,
+        };
+        logImageGenerationEnvResolution(imageEnvResolution, 'bootstrap');
+
+        // Persist auto-selected model to config if not already set
+        if (!imageConfig) {
+          const autoConfig: ConfigKeyMap['tools.imageGenerationModel'] = {
+            id: poundingProvider.id,
+            name: poundingProvider.name,
+            platform: poundingProvider.platform,
+            base_url: '',
+            api_key: '',
+            use_model: imageModel,
+          };
+          configFile.set('tools.imageGenerationModel', autoConfig).catch((err: unknown) => {
+            console.warn('[Migration] Failed to persist auto-configured image generation model', err);
+          });
+        }
+      } else {
+        console.warn(
+          '[Migration] POUNDING API provider found but has no image-generation models matching allowlist. Provider id: %s, models: %s',
+          poundingProvider.id,
+          poundingProvider.models.join(',')
+        );
+      }
+    } else {
+      console.warn('[Migration] No POUNDING API provider found for image generation auto-configuration');
+    }
+  }
   const imageServer = buildBuiltinImageGenerationServer(imageEnvResolution, imageConfig);
   const defaultServers = buildDefaultMcpServers();
   const missing = [...defaultServers, imageServer].filter((server) => !existingByName.has(server.name));
