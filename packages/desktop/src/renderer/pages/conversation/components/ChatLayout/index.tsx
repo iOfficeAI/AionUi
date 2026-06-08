@@ -1,7 +1,7 @@
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
-import ErrorBoundary from '@/renderer/components/base/ErrorBoundary';
+import CommandCenterEditorHost from '@/renderer/components/layout/CommandCenterEditorHost';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
@@ -16,9 +16,6 @@ import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/useP
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { useEditorContext } from '@/renderer/pages/conversation/Editor';
-
-const EditorLazyEntry = React.lazy(() => import('@/renderer/pages/conversation/Editor/editorLazyEntry'));
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -81,27 +78,10 @@ const ChatLayout: React.FC<{
 
   // Preview panel state
   const { isOpen: isPreviewOpen } = usePreviewContext();
-  // Editor pane state (peer pane between chat-group and workspace). The editor's
-  // open/collapsed state is owned by EditorContext and driven by the titlebar's
-  // four-button layout control plus the editor's own collapse control — it is no
-  // longer coupled to the layout mode.
-  const editorCtx = useEditorContext();
-  const { isOpen: isEditorOpen, isCollapsed: isEditorCollapsed, expandEditor } = editorCtx;
 
-  // Active layout mode.
+  // Active layout mode (gates the in-place Command Center editor pane).
   const layoutMode = useLayoutModeSafe();
   const activeMode = layoutMode?.mode ?? 'chat';
-
-  // Width of the collapsed editor "blade" (drawer handle) docked on the right.
-  const EDITOR_BLADE_WIDTH_PX = 44;
-
-  // Editor pane presentation:
-  //   expanded → editor shown at its resizable width
-  //   blade    → editor open but collapsed: shrinks to a narrow vertical strip
-  //              (the click-to-expand "drawer" handle) instead of vanishing to 0px.
-  const isEditorExpanded = isEditorOpen && !isEditorCollapsed;
-  const isEditorBlade = isEditorOpen && isEditorCollapsed;
-  const isSecondaryPaneVisible = isEditorExpanded || isEditorBlade;
 
   // --- Hook A: workspace collapse ---
   const { rightSiderCollapsed, setRightSiderCollapsed } = useWorkspaceCollapse({
@@ -170,17 +150,6 @@ const ChatLayout: React.FC<{
     storageKey: 'chat-preview-split-ratio',
   });
 
-  // Editor pane width (only used when the editor is expanded; rail mode uses
-  // a fixed width). Capped against the container so chat keeps a sane minimum.
-  const editorMaxWidth = Math.max(360, Math.min(960, Math.floor(containerWidth * 0.6) || 960));
-  const { splitRatio: editorWidthPx, createDragHandle: createEditorDragHandle } = useResizableSplit({
-    unit: 'px',
-    defaultWidth: 520,
-    minWidth: 360,
-    maxWidth: editorMaxWidth,
-    storageKey: 'chat-editor-width-px',
-  });
-
   // Full metrics with real chatSplitRatio
   const { chatFlex, workspaceWidthPx, titleAreaMaxWidth, mobileWorkspaceHandleRight } = calcLayoutMetrics({
     containerWidth,
@@ -227,7 +196,7 @@ const ChatLayout: React.FC<{
   const changeCount = gitChanges.changeCount;
 
   // --- Hook G: active-pane signal ---
-  type ActivePane = 'chat' | 'editor' | 'preview' | 'workspace';
+  type ActivePane = 'chat' | 'preview' | 'workspace';
   const [activePane, setActivePane] = useState<ActivePane>('chat');
   const markActive = (pane: ActivePane) => {
     setActivePane((prev) => (prev === pane ? prev : pane));
@@ -414,83 +383,10 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
-        {/* Editor pane — standalone peer pane, toggled from the Titlebar. When the
-            editor is collapsed it shrinks to a narrow vertical "blade" (Xbox-style
-            drawer handle) docked on the right edge instead of disappearing; the
-            base `.editor-pane` width/flex-basis transition makes it slide. */}
+        {/* Command Center editor pane (Phase 1: rendered in place to prove
+            parity; later hoisted to the app shell). */}
         {!layout?.isMobile && activeMode === 'command-center' && (
-          <div
-            className={classNames(
-              'editor-pane chat-pane relative layout-sider flex flex-col',
-              paneAccent('editor'),
-              isSecondaryPaneVisible && !isEditorBlade && 'editor-pane--expanded editor-pane-enter',
-              isEditorBlade && 'editor-pane--blade overflow-hidden',
-              !isEditorBlade && 'overflow-visible'
-            )}
-            style={{
-              flexGrow: 0,
-              flexShrink: 0,
-              flexBasis: isEditorBlade
-                ? `${EDITOR_BLADE_WIDTH_PX}px`
-                : isEditorExpanded
-                  ? `${Math.round(editorWidthPx)}px`
-                  : '0px',
-              width: isEditorBlade
-                ? `${EDITOR_BLADE_WIDTH_PX}px`
-                : isEditorExpanded
-                  ? `${Math.round(editorWidthPx)}px`
-                  : '0px',
-              minWidth: isEditorBlade ? `${EDITOR_BLADE_WIDTH_PX}px` : isSecondaryPaneVisible ? '360px' : '0px',
-              overflow: isEditorBlade ? 'hidden' : isSecondaryPaneVisible ? 'visible' : 'hidden',
-              boxSizing: 'border-box',
-            }}
-            onMouseDownCapture={() => isSecondaryPaneVisible && markActive('editor')}
-            onFocusCapture={() => isSecondaryPaneVisible && markActive('editor')}
-          >
-            {isEditorBlade ? (
-              <button
-                type='button'
-                className='editor-blade'
-                onClick={expandEditor}
-                aria-label={t('conversation.editor.expandEditor', { defaultValue: 'Expand editor' })}
-                title={t('conversation.editor.expandEditor', { defaultValue: 'Expand editor' })}
-              >
-                <ExpandLeft size={16} className='editor-blade__icon' />
-                <span className='editor-blade__label'>
-                  {t('conversation.editor.bladeLabel', { defaultValue: 'Editor' })}
-                </span>
-              </button>
-            ) : (
-              <>
-                {isDesktop &&
-                  isEditorExpanded &&
-                  createEditorDragHandle({
-                    className: 'absolute left-0 top-0 bottom-0 z-30',
-                    style: {},
-                    reverse: true,
-                  })}
-                <div className='h-full w-full overflow-hidden'>
-                  <React.Suspense
-                    fallback={
-                      <div className='editor-panel editor-panel__loading h-full flex items-center justify-center gap-2'>
-                        <span>{t('common.loading')}</span>
-                      </div>
-                    }
-                  >
-                    <ErrorBoundary
-                      label={t('conversation.editor.bladeLabel', { defaultValue: 'Editor' })}
-                      onError={(err) => {
-                        // eslint-disable-next-line no-console
-                        console.error('[ChatLayout] Editor chunk crashed; rendering fallback surface.', err);
-                      }}
-                    >
-                      <EditorLazyEntry workspaceRoot={workspacePath} />
-                    </ErrorBoundary>
-                  </React.Suspense>
-                </div>
-              </>
-            )}
-          </div>
+          <CommandCenterEditorHost workspaceRoot={workspacePath} />
         )}
         {workspaceEnabled && !layout?.isMobile && !WORKSPACE_PANE_GHOSTED && (
           <div
