@@ -11,31 +11,12 @@
  */
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
-import * as monaco from 'monaco-editor';
+import * as monaco from '@aionui/editor-monaco';
 import React, { useEffect, useImperativeHandle, useRef } from 'react';
-import { ensureMonacoEnvironment } from './monacoEnvironment';
-import { ensureAionuiThemesRegistered, themeNameFor } from './monacoTheme';
+import { uriForBuffer } from './editorMonacoUri';
+import { applyTheme, ensureAionuiThemesRegistered, initialThemeFor } from './monacoTheme';
 import type { OpenBuffer } from './types';
-
-ensureMonacoEnvironment();
-
-const PATH_SEPARATOR_RE = /[\\:]/g;
-
-/**
- * Build a stable monaco URI for an OpenBuffer.
- *
- * Real files use `file:///<path>` so language clients can reason about them
- * by path. Untitled buffers use `inmemory://untitled/<key>` so the URI
- * uniquely identifies the buffer without colliding with any disk path.
- */
-function uriForBuffer(buffer: OpenBuffer): monaco.Uri {
-  if (buffer.filePath) {
-    // Normalize Windows backslashes / drive colons so the URI is well-formed.
-    const normalized = buffer.filePath.replace(/\\/g, '/').replace(/^([a-zA-Z]):/, '/$1:');
-    return monaco.Uri.parse(`file://${normalized.startsWith('/') ? '' : '/'}${normalized}`);
-  }
-  return monaco.Uri.parse(`inmemory://untitled/${buffer.key.replace(PATH_SEPARATOR_RE, '_')}`);
-}
+import type { EditorUserSettings } from './editorSettings';
 
 function getOrCreateModel(buffer: OpenBuffer): monaco.editor.ITextModel {
   const uri = uriForBuffer(buffer);
@@ -125,6 +106,8 @@ export type MonacoEditorHandle = {
   undo: () => void;
   /** Redo the last undone edit on the active model. */
   redo: () => void;
+  /** Apply (or replace) git decorations on the current model. */
+  setGitDecorations: (decorations: monaco.editor.IModelDeltaDecoration[]) => void;
 };
 
 type Props = {
@@ -138,6 +121,8 @@ type Props = {
   wordWrap: boolean;
   showMinimap: boolean;
   renderWhitespace: boolean;
+  /** User settings (fontSize, fontFamily, tabSize, insertSpaces). */
+  editorSettings: Pick<EditorUserSettings, 'fontSize' | 'fontFamily' | 'tabSize' | 'insertSpaces'>;
   /** Reported back via `EditorPanel`'s status bar. */
   onCursorChange: (line: number, column: number) => void;
   /** Reported back when the selection changes (for status-bar selection info). */
@@ -155,6 +140,7 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     wordWrap,
     showMinimap,
     renderWhitespace,
+    editorSettings,
     onCursorChange,
     onSelectionChange,
   },
@@ -163,7 +149,12 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   const containerRef = useRef<HTMLDivElement | null>(null);
   const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
   const lastBufferKeyRef = useRef<string | null>(null);
-  const fontSizeRef = useRef<number>(DEFAULT_FONT_SIZE);
+  const fontSizeRef = useRef<number>(editorSettings.fontSize);
+  const settingsRef = useRef(editorSettings);
+  settingsRef.current = editorSettings;
+  // Holds the prior batch of git decoration ids so we can swap them out
+  // atomically on the next update (deltaDecorations API).
+  const gitDecorationIdsRef = useRef<string[]>([]);
   // Suppresses the onContentChange callback for programmatic edits (model swap,
   // disk-sync). Without this, switching tabs would echo the new model's content
   // back into EditorContext as a "user edit" and clobber the originalContent.
@@ -175,16 +166,45 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   // --- Mount once, dispose on unmount -----------------------------------------
   useEffect(() => {
     if (!containerRef.current) return;
-    ensureAionuiThemesRegistered();
+    // Theme registration is normally already done by `monacoVscodeApiInit`
+    // right after `wrapper.start()`. We still call it here so the editor
+    // also works when mounted without the wrapper (e.g. a future fallback
+    // path that doesn't go through `editorLazyEntry`). The helper is
+    // defensive: if the workbench theme service is in scope and lacks
+    // `defineTheme`, it falls back to `monaco.editor.setTheme(base)` and
+    // logs a `[monacoTheme]` warning instead of throwing the
+    // "defineTheme is not a function" that used to mark the editor
+    // unavailable.
+    const initialMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
+    // Fire-and-forget: `applyTheme` synchronously sets the active base
+    // theme (so the editor mounts with a valid color scheme even if the
+    // async config write is slow or fails) and then writes the user's
+    // `workbench.colorCustomizations` to repaint the editor with the
+    // Chisl palette. In the standalone path it simply switches to the
+    // registered aionui theme.
+    void applyTheme(initialMode);
+    void ensureAionuiThemesRegistered();
+    const initialSettings = settingsRef.current;
     const editor = monaco.editor.create(containerRef.current, {
       automaticLayout: true,
-      theme: themeNameFor(theme === 'dark' ? 'dark' : 'light'),
+      // `initialThemeFor` returns the registered aionui theme name on
+      // the standalone path and the built-in base (`vs` / `vs-dark`)
+      // on the workbench path. The workbench path's aionui themes are
+      // not in the registry, so passing `aionui-light`/`aionui-dark`
+      // here would mount the editor with the default white `vs`
+      // surface — the user-visible "white background" bug. The actual
+      // palette is applied by `applyTheme` above.
+      theme: initialThemeFor(initialMode),
       // Font: ligature-capable coding fonts with conservative fallbacks. The
       // editor body inherits this; the minimap reflects it at minimum size.
+      // User settings can override `fontSize` / `fontFamily` via the
+      // `editorSettings` prop (mounted on initial paint and applied via the
+      // follow-through effects below).
       fontFamily:
+        initialSettings.fontFamily ??
         "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
       fontLigatures: true,
-      fontSize: DEFAULT_FONT_SIZE,
+      fontSize: initialSettings.fontSize,
       lineHeight: 1.55,
       letterSpacing: 0.2,
 
@@ -234,8 +254,8 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       // Whitespace / indentation
       renderWhitespace: renderWhitespace ? 'all' : 'selection',
       renderControlCharacters: true,
-      tabSize: 2,
-      insertSpaces: true,
+      tabSize: initialSettings.tabSize,
+      insertSpaces: initialSettings.insertSpaces,
       detectIndentation: true,
       trimAutoWhitespace: true,
 
@@ -255,7 +275,7 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       linkedEditing: true,
       links: true,
       colorDecorators: true,
-      hover: { enabled: true, sticky: true, above: false, delay: 150 },
+      hover: { enabled: 'on', sticky: true, above: false, delay: 150 },
       parameterHints: { enabled: true, cycle: true },
       inlineSuggest: { enabled: true },
       suggest: {
@@ -283,7 +303,7 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       padding: { top: 10, bottom: 10 },
     });
     editorRef.current = editor;
-    fontSizeRef.current = DEFAULT_FONT_SIZE;
+    fontSizeRef.current = initialSettings.fontSize;
 
     const onContent = editor.onDidChangeModelContent(() => {
       if (suppressChangeRef.current) return;
@@ -325,8 +345,13 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   }, []);
 
   // --- Theme follow-through ---------------------------------------------------
+  // `applyTheme` switches between the registered aionui themes on the
+  // standalone path and writes `workbench.colorCustomizations` +
+  // `workbench.colorTheme` on the workbench path. In both cases the
+  // active palette tracks the user's current mode without dropping
+  // back to the default white surface.
   useEffect(() => {
-    monaco.editor.setTheme(themeNameFor(theme === 'dark' ? 'dark' : 'light'));
+    void applyTheme(theme === 'dark' ? 'dark' : 'light');
   }, [theme]);
 
   // --- Word wrap follow-through ----------------------------------------------
@@ -343,6 +368,29 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   useEffect(() => {
     editorRef.current?.updateOptions({ renderWhitespace: renderWhitespace ? 'all' : 'selection' });
   }, [renderWhitespace]);
+
+  // --- Editor settings follow-through ----------------------------------------
+  // Apply user-controlled settings (fontSize / fontFamily / tabSize /
+  // insertSpaces) on mount and whenever the prop changes. These come from
+  // `editorSettings.ts` and are persisted per workspace.
+  useEffect(() => {
+    const editor = editorRef.current;
+    if (!editor) return;
+    fontSizeRef.current = editorSettings.fontSize;
+    editor.updateOptions({
+      fontSize: editorSettings.fontSize,
+      ...(editorSettings.fontFamily ? { fontFamily: editorSettings.fontFamily } : {}),
+    });
+  }, [editorSettings.fontSize, editorSettings.fontFamily]);
+
+  useEffect(() => {
+    const model = editorRef.current?.getModel();
+    if (!model) return;
+    model.updateOptions({
+      tabSize: editorSettings.tabSize,
+      insertSpaces: editorSettings.insertSpaces,
+    });
+  }, [editorSettings.tabSize, editorSettings.insertSpaces]);
 
   // --- Active buffer follow-through ------------------------------------------
   // Whenever the active buffer changes we (1) snapshot the previous model's
@@ -430,7 +478,10 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       unfoldAll: () => runAction('editor.unfoldAll'),
       zoomIn: () => setFontSize(fontSizeRef.current + 1),
       zoomOut: () => setFontSize(fontSizeRef.current - 1),
-      resetZoom: () => setFontSize(DEFAULT_FONT_SIZE),
+      // Reset to the user-configured default, falling back to the
+      // compile-time default (14px) when settings haven't been hydrated
+      // yet (e.g. the handle is invoked synchronously on mount).
+      resetZoom: () => setFontSize(settingsRef.current.fontSize || DEFAULT_FONT_SIZE),
       setLanguage: (languageId: string) => {
         const model = editorRef.current?.getModel();
         if (model) monaco.editor.setModelLanguage(model, languageId);
@@ -455,6 +506,14 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       },
       redo: () => {
         editorRef.current?.trigger('toolbar', 'redo', null);
+      },
+      // Replace the active git decoration set. Each call is idempotent —
+      // the prior batch is removed before the new one is applied via
+      // `deltaDecorations` so callers don't have to track ids themselves.
+      setGitDecorations: (decorations) => {
+        const editor = editorRef.current;
+        if (!editor) return;
+        gitDecorationIdsRef.current = editor.deltaDecorations(gitDecorationIdsRef.current, decorations);
       },
     };
   }, []);

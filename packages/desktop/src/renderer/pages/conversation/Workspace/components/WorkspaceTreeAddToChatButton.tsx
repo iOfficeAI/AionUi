@@ -22,12 +22,7 @@ export const WorkspaceTreeAddToChatButton: React.FC<WorkspaceTreeAddToChatButton
   const tooltip = t('conversation.workspace.contextMenu.addFileToChatTooltip');
 
   return (
-    <Tooltip
-      mini
-      position='top'
-      content={tooltip}
-      triggerProps={{ mouseEnterDelay: ADD_TO_CHAT_TOOLTIP_DELAY_MS }}
-    >
+    <Tooltip mini position='top' content={tooltip} triggerProps={{ mouseEnterDelay: ADD_TO_CHAT_TOOLTIP_DELAY_MS }}>
       <button type='button' className='workspace-tree-add-to-chat' aria-label={label} onClick={onClick}>
         <Plus theme='outline' size={12} strokeWidth={2} fill='currentColor' />
       </button>

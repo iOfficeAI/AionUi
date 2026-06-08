@@ -8,7 +8,8 @@ import { act, cleanup, renderHook } from '@testing-library/react';
 import React, { type ReactNode } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { ipcBridge } from '@/common';
-import { EDITOR_MAX_EDITABLE_BYTES, EditorProvider, useEditorContext } from '@/renderer/pages/conversation/Editor';
+import { EDITOR_MAX_EDITABLE_BYTES } from '@/renderer/pages/conversation/Editor/editorLanguage';
+import { EditorProvider, useEditorContext } from '@/renderer/pages/conversation/Editor/EditorContext';
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -24,6 +25,12 @@ vi.mock('@/common', () => ({
   },
 }));
 
+// Layout mode is read from a module-level in-memory ref. The default
+// mode ('chat') blocks editor open/close — tests below force the
+// 'command-center' mode so the provider's gate is open.
+import * as layoutModeStorage from '@/renderer/utils/layout/layoutModeStorage';
+import { syncActiveLayoutMode } from '@/renderer/utils/layout/layoutModeStorage';
+
 type MockedIpcBridge = {
   fs: {
     getFileMetadata: { invoke: ReturnType<typeof vi.fn> };
@@ -38,11 +45,22 @@ type MockedIpcBridge = {
 
 const mockedIpcBridge = ipcBridge as unknown as MockedIpcBridge;
 
+// Force the layout mode to 'command-center' for the entire test file
+// so the editor is accessible. The function is module-scoped, so
+// importing it gives us a stable handle to the in-memory ref.
+vi.spyOn(layoutModeStorage, 'isEditorAccessibleInLayoutMode').mockReturnValue(true);
+// `syncActiveLayoutMode` is already exported; call it directly in
+// beforeEach to reset the ref between tests.
+void syncActiveLayoutMode;
+
+const getActiveBuffer = (ctx: ReturnType<typeof useEditorContext>) => ctx.activeBuffer;
+
 describe('EditorContext', () => {
   const wrapper = ({ children }: { children: ReactNode }) => <EditorProvider>{children}</EditorProvider>;
 
   beforeEach(() => {
     vi.clearAllMocks();
+    syncActiveLayoutMode('command-center');
     mockedIpcBridge.fs.getFileMetadata.invoke.mockResolvedValue({
       name: 'file.ts',
       path: '/workspace/file.ts',
@@ -68,9 +86,9 @@ describe('EditorContext', () => {
     });
 
     expect(result.current.isOpen).toBe(true);
-    expect(result.current.fileName).toBe('file.ts');
-    expect(result.current.content).toBe('original');
-    expect(result.current.language).toBe('typescript');
+    expect(getActiveBuffer(result.current)?.fileName).toBe('file.ts');
+    expect(getActiveBuffer(result.current)?.content).toBe('original');
+    expect(getActiveBuffer(result.current)?.language).toBe('typescript');
     expect(result.current.isDirty).toBe(false);
   });
 
@@ -107,7 +125,7 @@ describe('EditorContext', () => {
       await result.current.openEditorFile({ path: '/workspace/next.ts', workspace: '/workspace' });
     });
 
-    expect(result.current.filePath).toBe('/workspace/file.ts');
+    expect(getActiveBuffer(result.current)?.filePath).toBe('/workspace/file.ts');
     expect(result.current.pendingAction).toEqual({
       type: 'open-file',
       request: { path: '/workspace/next.ts', workspace: '/workspace' },
@@ -129,7 +147,6 @@ describe('EditorContext', () => {
     });
 
     expect(mockedIpcBridge.fs.readFile.invoke).not.toHaveBeenCalled();
-    expect(result.current.isOpen).toBe(true);
-    expect(result.current.content).toBe('');
+    expect(getActiveBuffer(result.current)).toBeNull();
   });
 });

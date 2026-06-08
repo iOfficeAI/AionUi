@@ -66,9 +66,7 @@ const WorkspaceFilesFlyoutModal: React.FC<WorkspaceFilesFlyoutModalProps> = ({
       <div className='git-diff-flyout-modal__panel flex flex-col h-full min-h-0'>
         <div className='git-diff-flyout-modal__header'>
           <div className='git-diff-flyout-modal__header-main'>
-            <div className='git-diff-flyout-modal__title'>
-              {t('conversation.workspace.files.flyoutTitle')}
-            </div>
+            <div className='git-diff-flyout-modal__title'>{t('conversation.workspace.files.flyoutTitle')}</div>
             <Typography.Paragraph className='git-diff-flyout-modal__description !mb-0 text-13px text-t-secondary'>
               {t('conversation.workspace.files.flyoutDescription')}
             </Typography.Paragraph>

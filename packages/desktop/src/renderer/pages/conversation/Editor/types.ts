@@ -10,7 +10,7 @@ export type EditorOpenRequest = {
 };
 
 export type EditorPendingAction =
-  | { type: 'close-buffer'; bufferKey: string }
+  | { type: 'close-buffer'; bufferKey: string; groupId?: string }
   | { type: 'close-all' }
   | { type: 'open-file'; request: EditorOpenRequest }
   | { type: 'new-file' };
@@ -52,13 +52,50 @@ export type OpenBuffer = {
   viewState: EditorBufferViewState | null;
 };
 
+/**
+ * A single editor "group" (split pane). Groups reference buffers from the
+ * shared `EditorState.buffers` pool by key — the same file may be open in
+ * more than one group. `activeKey` is the group's focused tab.
+ */
+export type EditorGroup = {
+  id: string;
+  bufferKeys: string[];
+  activeKey: string | null;
+};
+
+export type SplitDirection = 'right' | 'down';
+
 export type EditorState = {
   isOpen: boolean;
   isCollapsed: boolean;
+  /** Shared pool of open files. Groups reference these by key. */
   buffers: OpenBuffer[];
+  /** Split panes. Always length >= 1; group 0 is the primary. */
+  groups: EditorGroup[];
+  /** Id of the focused group (drives the panel toolbar / status bar). */
+  activeGroupId: string;
+  /**
+   * Active tab of the FOCUSED group. Kept in sync with
+   * `groups[activeGroupId].activeKey` so existing single-group consumers
+   * (save/close/content/disk-poll) keep working unchanged.
+   */
   activeKey: string | null;
   pendingAction: EditorPendingAction | null;
   notice: EditorNotice | null;
+};
+
+export type EditorRevealRequest = {
+  /** Absolute workspace root the active buffer belongs to. */
+  workspace: string;
+  /** Absolute path of the file to reveal in the workspace tree. */
+  filePath: string;
+  /** Optional pre-computed workspace-relative POSIX path. */
+  relativePath?: string;
+};
+
+export type EditorSaveOptions = {
+  /** Optional pre-save formatter (e.g. `monacoRef.formatDocument`). */
+  format?: () => Promise<void> | void;
 };
 
 export type EditorContextValue = EditorState & {
@@ -68,7 +105,7 @@ export type EditorContextValue = EditorState & {
   openEditorFile: (request: EditorOpenRequest) => Promise<boolean>;
   openUntitledEditor: () => void;
   chooseAndOpenFile: () => Promise<boolean>;
-  saveEditorFile: () => Promise<boolean>;
+  saveEditorFile: (options?: EditorSaveOptions) => Promise<boolean>;
   saveEditorFileAs: () => Promise<boolean>;
   /** Close a specific tab (prompts if dirty). Defaults to the active tab. */
   requestCloseBuffer: (key?: string) => void;
@@ -78,6 +115,25 @@ export type EditorContextValue = EditorState & {
   setActiveBuffer: (key: string) => void;
   /** Reorder tabs by moving `fromKey` to the index currently held by `toKey`. */
   reorderBuffers: (fromKey: string, toKey: string) => void;
+  // ---- Split editor (Epic C) ----------------------------------------------
+  /** Split the focused group into a new group seeded with its active file. */
+  splitEditor: (direction?: SplitDirection) => void;
+  /** Close a split group. Closing the last group closes the editor. */
+  closeGroup: (groupId: string) => void;
+  /** Focus a group (drives toolbar / status bar / reveal). */
+  focusGroup: (groupId: string) => void;
+  /** Activate a tab within a specific group. */
+  setActiveBufferInGroup: (groupId: string, key: string) => void;
+  /** Reorder tabs within a specific group. */
+  reorderWithinGroup: (groupId: string, fromKey: string, toKey: string) => void;
+  /** Move a tab from one group to another (Phase 2 drag-to-move). */
+  moveBufferToGroup: (bufferKey: string, fromGroupId: string, toGroupId: string, index?: number) => void;
+  /** Close a tab within a specific group (prompts if dirty and last reference). */
+  requestCloseBufferInGroup: (groupId: string, key?: string) => void;
+  /** Write content to a specific buffer (used by per-group editors). */
+  setBufferContentByKey: (key: string, content: string) => void;
+  /** Restore a split layout on hydration (keys pruned to the live pool). */
+  setSplitLayout: (layout: Array<{ bufferKeys: string[]; activeKey: string | null }>) => void;
   collapseEditor: () => void;
   expandEditor: () => void;
   /** Hide the editor for chat mode while preserving open buffers. */
@@ -90,4 +146,10 @@ export type EditorContextValue = EditorState & {
   discardPendingAction: () => Promise<void>;
   cancelPendingAction: () => void;
   clearNotice: (id: number) => void;
+  /** Most recent reveal request, or null. Consumed by the workspace tree. */
+  revealRequest: EditorRevealRequest | null;
+  /** Dispatch a reveal request for the current active buffer (or an explicit path). */
+  requestRevealInTree: (filePath?: string, workspace?: string) => void;
+  /** Reset the reveal request after the tree has handled it. */
+  clearRevealRequest: () => void;
 };

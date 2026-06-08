@@ -46,10 +46,7 @@ const SiderFileTree: React.FC = () => {
   const [treeLoading, setTreeLoading] = useState(false);
 
   const workspaceLabel = useMemo(
-    () =>
-      workspace
-        ? getWorkspaceDisplayName(workspace, isTemporaryWorkspace ?? false, (key) => t(key))
-        : '',
+    () => (workspace ? getWorkspaceDisplayName(workspace, isTemporaryWorkspace ?? false, (key) => t(key)) : ''),
     [workspace, isTemporaryWorkspace, t]
   );
 
@@ -82,7 +79,14 @@ const SiderFileTree: React.FC = () => {
               />
               <SiderWorkspaceActionBtn
                 tooltip={t('conversation.workspace.refresh')}
-                icon={<Refresh theme='outline' size={14} fill='currentColor' className={treeLoading ? 'animate-spin' : undefined} />}
+                icon={
+                  <Refresh
+                    theme='outline'
+                    size={14}
+                    fill='currentColor'
+                    className={treeLoading ? 'animate-spin' : undefined}
+                  />
+                }
                 onClick={handleRefreshClick}
                 disabled={treeLoading || !refreshWorkspace}
               />
@@ -114,7 +118,12 @@ const SiderFileTree: React.FC = () => {
   }
 
   return (
-    <div className={`${panelStyles.section} size-full`} role='region' aria-label='File tree' data-testid='sider-file-tree'>
+    <div
+      className={`${panelStyles.section} size-full`}
+      role='region'
+      aria-label='File tree'
+      data-testid='sider-file-tree'
+    >
       <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.filesTab')} />
       <div className={`${panelStyles.body} flex-center`}>
         <Empty

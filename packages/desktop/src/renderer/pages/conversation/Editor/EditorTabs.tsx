@@ -30,17 +30,65 @@ import type { OpenBuffer } from './types';
 
 type DragState = { fromKey: string | null };
 
+/** DnD payload MIME for moving a tab across split groups. */
+const TAB_DND_MIME = 'application/x-aionui-editor-tab';
+
+type TabDragPayload = { groupId: string; key: string };
+
+const readTabDragPayload = (e: React.DragEvent): TabDragPayload | null => {
+  try {
+    const raw = e.dataTransfer.getData(TAB_DND_MIME);
+    if (!raw) return null;
+    const parsed: unknown = JSON.parse(raw);
+    if (
+      parsed &&
+      typeof parsed === 'object' &&
+      typeof (parsed as TabDragPayload).groupId === 'string' &&
+      typeof (parsed as TabDragPayload).key === 'string'
+    ) {
+      return parsed as TabDragPayload;
+    }
+  } catch {
+    /* not our payload */
+  }
+  return null;
+};
+
 const isBufferDirty = (b: OpenBuffer): boolean => b.content !== b.originalContent;
 
 const breadcrumbPathFor = (buffer: OpenBuffer): string => buffer.filePath ?? buffer.fileName;
 
 type Props = {
   expertMode: boolean;
+  /** When set, the strip is scoped to a single split group. Defaults to the focused group. */
+  groupId?: string;
+  /** Whether this strip's group is focused — gates the global keyboard shortcuts. */
+  isFocused?: boolean;
 };
 
-const EditorTabs: React.FC<Props> = ({ expertMode }) => {
+const EditorTabs: React.FC<Props> = ({ expertMode, groupId, isFocused = true }) => {
   const { t } = useTranslation();
   const editor = useEditorContext();
+  // Resolve the group this strip represents. Falls back to the focused group
+  // so legacy single-group call sites keep working unchanged.
+  const resolvedGroupId = groupId ?? editor.activeGroupId;
+  const group = editor.groups.find((g) => g.id === resolvedGroupId) ?? null;
+  const tabBuffers: OpenBuffer[] = group
+    ? group.bufferKeys.map((k) => editor.buffers.find((b) => b.key === k)).filter((b): b is OpenBuffer => Boolean(b))
+    : editor.buffers;
+  const activeKey = group ? group.activeKey : editor.activeKey;
+  const activate = useCallback(
+    (key: string) => editor.setActiveBufferInGroup(resolvedGroupId, key),
+    [editor, resolvedGroupId]
+  );
+  const closeTab = useCallback(
+    (key?: string) => editor.requestCloseBufferInGroup(resolvedGroupId, key),
+    [editor, resolvedGroupId]
+  );
+  const reorder = useCallback(
+    (fromKey: string, toKey: string) => editor.reorderWithinGroup(resolvedGroupId, fromKey, toKey),
+    [editor, resolvedGroupId]
+  );
   const stripRef = useRef<HTMLDivElement | null>(null);
   const pillScrollRef = useRef<HTMLDivElement | null>(null);
   const [drag, setDrag] = useState<DragState>({ fromKey: null });
@@ -48,9 +96,9 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
 
   const onTabClick = useCallback(
     (key: string) => {
-      editor.setActiveBuffer(key);
+      activate(key);
     },
-    [editor]
+    [activate]
   );
 
   // Middle-click closes a tab. Preserved in both calm-pill and expert modes
@@ -60,19 +108,19 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
     (e: React.MouseEvent<HTMLDivElement>, key: string) => {
       if (e.button === 1) {
         e.preventDefault();
-        editor.requestCloseBuffer(key);
+        closeTab(key);
       }
     },
-    [editor]
+    [closeTab]
   );
 
   const onCloseClick = useCallback(
     (e: React.MouseEvent<HTMLElement>, key: string) => {
       e.stopPropagation();
       e.preventDefault();
-      editor.requestCloseBuffer(key);
+      closeTab(key);
     },
-    [editor]
+    [closeTab]
   );
 
   // Horizontal scroll on wheel — vertical scroll wheels become horizontal,
@@ -92,13 +140,13 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
   }, [expertMode]);
 
   useEffect(() => {
-    if (!editor.activeKey) return;
+    if (!activeKey) return;
     const root = expertMode ? stripRef.current : pillScrollRef.current;
-    const el = root?.querySelector(`[data-tab-key="${CSS.escape(editor.activeKey)}"]`);
+    const el = root?.querySelector(`[data-tab-key="${CSS.escape(activeKey)}"]`);
     if (el instanceof HTMLElement) {
       el.scrollIntoView({ block: 'nearest', inline: 'nearest' });
     }
-  }, [editor.activeKey, expertMode]);
+  }, [activeKey, expertMode]);
 
   // Track pill overflow so the left/right arrow affordances only render when
   // the strip can actually scroll. Re-evaluated on buffer change, mode flip,
@@ -122,7 +170,7 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
       el.removeEventListener('scroll', recompute);
       observer.disconnect();
     };
-  }, [expertMode, editor.buffers.length, editor.activeKey]);
+  }, [expertMode, tabBuffers.length, activeKey]);
 
   const scrollPills = useCallback((direction: 'left' | 'right') => {
     const el = pillScrollRef.current;
@@ -134,32 +182,46 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
   // Cmd/Ctrl+W close, Cmd/Ctrl+Tab next, Cmd/Ctrl+Shift+Tab prev — same in
   // both modes.
   useEffect(() => {
+    // Only the focused group's strip handles the global tab shortcuts, so a
+    // split layout doesn't double-fire Cmd/Ctrl+W / Cmd/Ctrl+Tab.
+    if (!isFocused) return;
     const onKeyDown = (e: KeyboardEvent) => {
       const mod = e.metaKey || e.ctrlKey;
       if (!mod) return;
       if (e.key === 'w' || e.key === 'W') {
-        if (editor.buffers.length === 0) return;
+        if (tabBuffers.length === 0) return;
         e.preventDefault();
-        editor.requestCloseBuffer();
+        closeTab();
         return;
       }
       if (e.key === 'Tab') {
-        if (editor.buffers.length < 2 || !editor.activeKey) return;
+        if (tabBuffers.length < 2 || !activeKey) return;
         e.preventDefault();
-        const idx = editor.buffers.findIndex((b) => b.key === editor.activeKey);
+        const idx = tabBuffers.findIndex((b) => b.key === activeKey);
         const dir = e.shiftKey ? -1 : 1;
-        const next = editor.buffers[(idx + dir + editor.buffers.length) % editor.buffers.length];
-        editor.setActiveBuffer(next.key);
+        const next = tabBuffers[(idx + dir + tabBuffers.length) % tabBuffers.length];
+        activate(next.key);
       }
     };
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
-  }, [editor]);
+  }, [isFocused, tabBuffers, activeKey, activate, closeTab]);
 
-  const onDragStart = useCallback((e: React.DragEvent<HTMLDivElement>, key: string) => {
-    setDrag({ fromKey: key });
-    e.dataTransfer.effectAllowed = 'move';
-  }, []);
+  const onDragStart = useCallback(
+    (e: React.DragEvent<HTMLDivElement>, key: string) => {
+      setDrag({ fromKey: key });
+      e.dataTransfer.effectAllowed = 'move';
+      // Carry the source group + key so a DROP in a DIFFERENT group's strip
+      // (a separate EditorTabs instance) can move the tab across panes.
+      try {
+        e.dataTransfer.setData(TAB_DND_MIME, JSON.stringify({ groupId: resolvedGroupId, key }));
+        e.dataTransfer.setData('text/plain', key);
+      } catch {
+        /* dataTransfer unavailable (older webview) — same-group reorder still works */
+      }
+    },
+    [resolvedGroupId]
+  );
   const onDragOver = useCallback((e: React.DragEvent<HTMLDivElement>) => {
     e.preventDefault();
     e.dataTransfer.dropEffect = 'move';
@@ -167,24 +229,50 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
   const onDrop = useCallback(
     (e: React.DragEvent<HTMLDivElement>, toKey: string) => {
       e.preventDefault();
-      if (drag.fromKey && drag.fromKey !== toKey) {
-        editor.reorderBuffers(drag.fromKey, toKey);
+      e.stopPropagation();
+      const payload = readTabDragPayload(e);
+      if (payload) {
+        if (payload.groupId === resolvedGroupId) {
+          if (payload.key !== toKey) reorder(payload.key, toKey);
+        } else {
+          const idx = tabBuffers.findIndex((b) => b.key === toKey);
+          editor.moveBufferToGroup(payload.key, payload.groupId, resolvedGroupId, idx < 0 ? undefined : idx);
+        }
+      } else if (drag.fromKey && drag.fromKey !== toKey) {
+        reorder(drag.fromKey, toKey);
       }
       setDrag({ fromKey: null });
     },
-    [drag.fromKey, editor]
+    [drag.fromKey, reorder, resolvedGroupId, tabBuffers, editor]
+  );
+  // Drop on empty strip space → append the moved tab to the end of this group.
+  const onStripDrop = useCallback(
+    (e: React.DragEvent<HTMLDivElement>) => {
+      const payload = readTabDragPayload(e);
+      if (payload && payload.groupId !== resolvedGroupId) {
+        e.preventDefault();
+        editor.moveBufferToGroup(payload.key, payload.groupId, resolvedGroupId, tabBuffers.length);
+      }
+      setDrag({ fromKey: null });
+    },
+    [resolvedGroupId, tabBuffers.length, editor]
   );
   const onDragEnd = useCallback(() => setDrag({ fromKey: null }), []);
 
-  if (editor.buffers.length === 0) return null;
+  if (tabBuffers.length === 0) return null;
 
   // --- Calm mode: single file → breadcrumb; 2+ files → pill list -------------
   if (!expertMode) {
-    if (editor.buffers.length === 1) {
-      const buffer = editor.buffers[0];
+    if (tabBuffers.length === 1) {
+      const buffer = tabBuffers[0];
       const dirty = isBufferDirty(buffer);
       return (
-        <div className='editor-tabs-breadcrumb' aria-label={t('conversation.editor.tabsList')}>
+        <div
+          className='editor-tabs-breadcrumb'
+          aria-label={t('conversation.editor.tabsList')}
+          onDragOver={onDragOver}
+          onDrop={onStripDrop}
+        >
           <Tooltip content={buffer.filePath ?? buffer.fileName} position='bottom' mini>
             <span className='editor-tabs-breadcrumb__path'>{breadcrumbPathFor(buffer)}</span>
           </Tooltip>
@@ -205,9 +293,9 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
             <Left size={14} />
           </button>
         )}
-        <div ref={pillScrollRef} className='editor-tabs-pills__scroll'>
-          {editor.buffers.map((b) => {
-            const active = b.key === editor.activeKey;
+        <div ref={pillScrollRef} className='editor-tabs-pills__scroll' onDragOver={onDragOver} onDrop={onStripDrop}>
+          {tabBuffers.map((b) => {
+            const active = b.key === activeKey;
             const dirty = isBufferDirty(b);
             return (
               <Tooltip key={b.key} content={b.filePath ?? b.fileName} position='bottom' mini>
@@ -272,9 +360,11 @@ const EditorTabs: React.FC<Props> = ({ expertMode }) => {
       // so the bar visually rhymes with the preview panel above/beside it.
       className='editor-tabs flex items-stretch bg-bg-2 flex-shrink-0 overflow-x-auto overflow-y-hidden h-36px'
       style={{ borderBottom: '1px solid var(--border-base)' }}
+      onDragOver={onDragOver}
+      onDrop={onStripDrop}
     >
-      {editor.buffers.map((b) => {
-        const active = b.key === editor.activeKey;
+      {tabBuffers.map((b) => {
+        const active = b.key === activeKey;
         const dirty = isBufferDirty(b);
         // Active tab "lifts" out of the bar by taking the body bg (bg-1) —
         // matches PreviewTabs and the conversation pane's tab idiom.

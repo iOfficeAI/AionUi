@@ -9,7 +9,10 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { ExpandLeft } from '@icon-park/react';
 
-import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
+import { useEditorContext } from '@/renderer/pages/conversation/Editor';
+
+const EditorLazyEntry = React.lazy(() => import('@/renderer/pages/conversation/Editor/editorLazyEntry'));
+import ErrorBoundary from '@/renderer/components/base/ErrorBoundary';
 import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
 
@@ -91,7 +94,23 @@ const EditorPane: React.FC = () => {
         <>
           {createDragHandle({ className: 'absolute left-0 top-0 bottom-0 z-30', style: {}, reverse: true })}
           <div className='h-full w-full overflow-hidden'>
-            <EditorPanel />
+            <React.Suspense
+              fallback={
+                <div className='editor-panel editor-panel__loading h-full flex items-center justify-center'>
+                  <span>{t('common.loading')}</span>
+                </div>
+              }
+            >
+              <ErrorBoundary
+                label={t('conversation.editor.bladeLabel', { defaultValue: 'Editor' })}
+                onError={(err) => {
+                  // eslint-disable-next-line no-console
+                  console.error('[EditorPane] Editor chunk crashed; rendering fallback surface.', err);
+                }}
+              >
+                <EditorLazyEntry />
+              </ErrorBoundary>
+            </React.Suspense>
           </div>
         </>
       ) : null}

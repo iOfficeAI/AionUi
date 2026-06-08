@@ -27,7 +27,14 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   const [files, setFiles] = useState<IDirOrFile[]>([]);
   const [loading, setLoading] = useState(false);
   const [treeKey, setTreeKey] = useState(Math.random());
-  const [expandedKeys, setExpandedKeys] = useState<string[]>([]);
+  const [expandedKeys, setExpandedKeysState] = useState<string[]>([]);
+  const setExpandedKeys = useCallback((keys: string[] | ((prev: string[]) => string[])) => {
+    setExpandedKeysState((prev) => {
+      const next = typeof keys === 'function' ? keys(prev) : keys;
+      expandedKeysRef.current = next;
+      return next;
+    });
+  }, []);
 
   // Selection state / 选中状态
   const [selected, setSelected] = useState<string[]>([]);
@@ -36,6 +43,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
   // Track if this is the first load (to distinguish initialization from subsequent refreshes)
   const isFirstLoadRef = useRef(true);
   const selectedKeysRef = useRef<string[]>([]);
+  const expandedKeysRef = useRef<string[]>([]);
   const selectedNodeRef = useRef<SelectedNodeRef | null>(null);
 
   // Loading time tracker / 加载时间追踪
@@ -247,6 +255,7 @@ export function useWorkspaceTree({ workspace, conversation_id, eventPrefix }: Us
     expandedKeys,
     selected,
     selectedKeysRef,
+    expandedKeysRef,
     selectedNodeRef,
 
     // Actions / 操作

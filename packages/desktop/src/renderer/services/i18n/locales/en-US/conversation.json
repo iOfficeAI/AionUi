@@ -293,6 +293,9 @@
     "tabsList": "Open files",
     "unsavedDot": "Unsaved changes",
     "lspNotInstalled": "Install {{command}} for IntelliSense",
+    "lspInitFailed": "Editor language services failed to start. You can still edit files.",
+    "splitEditor": "Split editor",
+    "closeSplit": "Close split",
     "toolbarLabel": "Editor toolbar",
     "replace": "Find and replace",
     "goToLine": "Go to line...",
@@ -302,7 +305,12 @@
     "toggleWhitespace": "Toggle whitespace",
     "indentSpaces": "Spaces: {{count}}",
     "indentTabs": "Tabs",
-    "modified": "Modified"
+    "modified": "Modified",
+    "revealInTree": "Reveal in tree",
+    "problemsTitle": "Problems",
+    "problemError": "Error",
+    "problemWarning": "Warning",
+    "problemInfo": "Info"
   },
   "minimap": {
     "searchAria": "Search conversation",

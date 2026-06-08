@@ -177,7 +177,11 @@
 
 /* Selection state: subtle gradient + rust left accent (Chisl brand) */
 .workspace-tree .arco-tree-node-selected .arco-tree-node-title-wrapper {
-  background: linear-gradient(90deg, color-mix(in srgb, var(--brand) 12%, var(--bg-1)) 0%, var(--bg-hover) 100%) !important;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--brand) 12%, var(--bg-1)) 0%,
+    var(--bg-hover) 100%
+  ) !important;
   color: var(--text-primary) !important;
   box-shadow: inset 2px 0 0 0 var(--brand) !important;
 }

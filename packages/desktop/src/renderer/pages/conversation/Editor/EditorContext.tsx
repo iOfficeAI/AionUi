@@ -8,26 +8,41 @@ import { ipcBridge } from '@/common';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { isEditorAccessibleInLayoutMode } from '@renderer/utils/layout/layoutModeStorage';
 import { EDITOR_MAX_EDITABLE_BYTES, getEditorFileName, inferEditorLanguage } from './editorLanguage';
+import { requestEditorRevealInTree } from './editorReveal';
+import { writeEditorTabs, type PersistedEditorTabEntry } from './editorTabsPersistence';
 import type {
   EditorBufferViewState,
   EditorContextValue,
+  EditorGroup,
   EditorNotice,
   EditorOpenRequest,
   EditorPendingAction,
+  EditorRevealRequest,
+  EditorSaveOptions,
   EditorState,
   OpenBuffer,
+  SplitDirection,
 } from './types';
 
 const UNTITLED_BASE = 'Untitled';
 const UNTITLED_EXT = '.txt';
 const FILE_CHANGE_POLL_MS = 2500;
+const TABS_PERSIST_DEBOUNCE_MS = 400;
 
 const EditorContext = createContext<EditorContextValue | null>(null);
+
+const DEFAULT_GROUP_ID = 'g-primary';
+/** Phase 2 cap: a single editor row stays legible up to four panes. */
+const MAX_EDITOR_GROUPS = 4;
+let groupCounter = 0;
+const genGroupId = (): string => `g-${(groupCounter += 1)}`;
 
 const initialState: EditorState = {
   isOpen: false,
   isCollapsed: false,
   buffers: [],
+  groups: [{ id: DEFAULT_GROUP_ID, bufferKeys: [], activeKey: null }],
+  activeGroupId: DEFAULT_GROUP_ID,
   activeKey: null,
   pendingAction: null,
   notice: null,
@@ -80,14 +95,169 @@ const findBuffer = (buffers: OpenBuffer[], key: string | null): OpenBuffer | nul
 
 const isBufferDirty = (b: OpenBuffer): boolean => b.content !== b.originalContent;
 
+const findGroup = (groups: EditorGroup[], id: string | null): EditorGroup | null =>
+  id ? (groups.find((g) => g.id === id) ?? null) : null;
+
+/**
+ * Re-derive a consistent group/active view from the shared buffer pool:
+ *   - prune dead buffer keys from every group
+ *   - keep each group's `activeKey` valid (fall back to last tab, then null)
+ *   - guarantee at least one group exists
+ *   - re-home buffers referenced by no group into the primary group
+ *   - drop empty groups when more than one remains
+ *   - keep `activeGroupId` valid and mirror its `activeKey` to the top-level
+ *     `activeKey` so single-group consumers keep working unchanged
+ */
+const normalizeGroups = (state: EditorState): EditorState => {
+  const validKeys = new Set(state.buffers.map((b) => b.key));
+
+  let groups: EditorGroup[] = state.groups.map((g) => {
+    const bufferKeys = g.bufferKeys.filter((k) => validKeys.has(k));
+    const activeKey = g.activeKey && bufferKeys.includes(g.activeKey) ? g.activeKey : (bufferKeys.at(-1) ?? null);
+    return { ...g, bufferKeys, activeKey };
+  });
+
+  if (groups.length === 0) {
+    groups = [{ id: DEFAULT_GROUP_ID, bufferKeys: state.buffers.map((b) => b.key), activeKey: state.activeKey }];
+  }
+
+  // Re-home orphaned buffers (in the pool but referenced by no group) into the
+  // primary group so a file is never invisible.
+  const referenced = new Set(groups.flatMap((g) => g.bufferKeys));
+  const orphans = state.buffers.map((b) => b.key).filter((k) => !referenced.has(k));
+  if (orphans.length > 0) {
+    groups = groups.map((g, i) =>
+      i === 0
+        ? { ...g, bufferKeys: [...g.bufferKeys, ...orphans], activeKey: g.activeKey ?? orphans.at(-1) ?? null }
+        : g
+    );
+  }
+
+  // Drop empty groups when more than one remains; never drop the last group.
+  if (groups.length > 1) {
+    const nonEmpty = groups.filter((g) => g.bufferKeys.length > 0);
+    groups = nonEmpty.length > 0 ? nonEmpty : [groups[0]];
+  }
+
+  let activeGroupId = state.activeGroupId;
+  if (!groups.some((g) => g.id === activeGroupId)) activeGroupId = groups[0].id;
+
+  const focused = findGroup(groups, activeGroupId) ?? groups[0];
+  const activeKey = focused?.activeKey ?? null;
+
+  return { ...state, groups, activeGroupId, activeKey };
+};
+
+/** Remap a buffer key across the pool's groups (used by Save As key changes). */
+const remapGroupKey = (groups: EditorGroup[], fromKey: string, toKey: string): EditorGroup[] =>
+  groups.map((g) => ({
+    ...g,
+    bufferKeys: g.bufferKeys.map((k) => (k === fromKey ? toKey : k)),
+    activeKey: g.activeKey === fromKey ? toKey : g.activeKey,
+  }));
+
+/** Append `key` to a group's tab list (no dupes) and make it the active tab. */
+const addKeyToGroup = (groups: EditorGroup[], groupId: string, key: string): EditorGroup[] =>
+  groups.map((g) =>
+    g.id === groupId
+      ? { ...g, bufferKeys: g.bufferKeys.includes(key) ? g.bufferKeys : [...g.bufferKeys, key], activeKey: key }
+      : g
+  );
+
 export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [state, setState] = useState<EditorState>(initialState);
+  const [revealRequest, setRevealRequest] = useState<EditorRevealRequest | null>(null);
   const stateRef = useRef(state);
   stateRef.current = state;
 
   const activeBuffer = findBuffer(state.buffers, state.activeKey);
   const isDirty = activeBuffer ? isBufferDirty(activeBuffer) : false;
   const hasAnyDirty = state.buffers.some(isBufferDirty);
+
+  // Reset reveal request when the editor is no longer accessible (e.g. the
+  // user toggled back to chat layout mode). The request is only meaningful
+  // while the editor pane could be on screen.
+  useEffect(() => {
+    if (!isEditorAccessibleInLayoutMode() && revealRequest !== null) {
+      setRevealRequest(null);
+    }
+  }, [revealRequest]);
+
+  // Whenever the active buffer changes, dispatch a reveal request so the
+  // file tree can highlight + scroll to the file. Untitled buffers have
+  // no path to reveal, so they're skipped.
+  useEffect(() => {
+    if (!activeBuffer || !activeBuffer.filePath) return;
+    if (!isEditorAccessibleInLayoutMode()) return;
+    setRevealRequest({
+      workspace: activeBuffer.workspace ?? '',
+      filePath: activeBuffer.filePath,
+    });
+  }, [activeBuffer?.key, activeBuffer?.filePath, activeBuffer?.workspace]);
+
+  // Persist per-workspace tab sets whenever the buffer list changes. Only
+  // file-backed buffers are persisted (untitled buffers have no path to
+  // restore from). The debounce coalesces rapid edits / reorders into a
+  // single write.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const timer = window.setTimeout(() => {
+      // Group buffers by workspace root. An empty workspace string is
+      // treated as its own bucket (covers files opened without a
+      // workspace context, e.g. an OS file picker).
+      const byWorkspace = new Map<string, OpenBuffer[]>();
+      for (const b of state.buffers) {
+        if (!b.filePath) continue;
+        const wsKey = b.workspace ?? '';
+        const arr = byWorkspace.get(wsKey) ?? [];
+        arr.push(b);
+        byWorkspace.set(wsKey, arr);
+      }
+      for (const [wsKey, buffers] of byWorkspace) {
+        const entries: PersistedEditorTabEntry[] = buffers
+          .filter((b): b is OpenBuffer & { filePath: string } => Boolean(b.filePath))
+          .map((b) => {
+            const entry: PersistedEditorTabEntry = { path: b.filePath };
+            if (b.workspace) entry.workspace = b.workspace;
+            return entry;
+          });
+        const activeBuffer = state.activeKey ? buffers.find((b) => b.key === state.activeKey) : undefined;
+        // Serialize split groups (by file path) scoped to this workspace bucket.
+        const pathForKey = (key: string): string | null =>
+          state.buffers.find((b) => b.key === key && (b.workspace ?? '') === wsKey)?.filePath ?? null;
+        const groups = state.groups
+          .map((g) => {
+            const entryPaths = g.bufferKeys.map(pathForKey).filter((p): p is string => Boolean(p));
+            const activePath = g.activeKey ? pathForKey(g.activeKey) : null;
+            return { entryPaths, activePath };
+          })
+          .filter((g) => g.entryPaths.length > 0);
+        writeEditorTabs(wsKey, {
+          entries,
+          ...(activeBuffer?.filePath ? { activePath: activeBuffer.filePath } : {}),
+          ...(groups.length > 1 ? { groups } : {}),
+        });
+      }
+    }, TABS_PERSIST_DEBOUNCE_MS);
+    return () => window.clearTimeout(timer);
+  }, [state.buffers, state.activeKey, state.groups]);
+
+  // ---- Reveal request wiring ---------------------------------------------
+  const requestRevealInTree = useCallback((filePath?: string, workspace?: string) => {
+    const active = stateRef.current.buffers.find((b) => b.key === stateRef.current.activeKey);
+    const targetPath = filePath ?? active?.filePath ?? null;
+    if (!targetPath) return;
+    // Prefer the explicit argument, then the buffer that owns this path,
+    // then the active buffer's workspace, then empty string.
+    const ownerBuffer = stateRef.current.buffers.find((b) => b.filePath === targetPath);
+    const targetWorkspace = workspace ?? ownerBuffer?.workspace ?? active?.workspace ?? '';
+    setRevealRequest({ workspace: targetWorkspace, filePath: targetPath });
+    requestEditorRevealInTree({ workspace: targetWorkspace, filePath: targetPath });
+  }, []);
+
+  const clearRevealRequest = useCallback(() => {
+    setRevealRequest((prev) => (prev === null ? prev : null));
+  }, []);
 
   // ---------------------------------------------------------------------------
   // Buffer mutators
@@ -98,14 +268,14 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       const existingIndex = prev.buffers.findIndex((b) => b.key === buffer.key);
       const buffers =
         existingIndex >= 0 ? prev.buffers.map((b, i) => (i === existingIndex ? buffer : b)) : [...prev.buffers, buffer];
-      return {
+      return normalizeGroups({
         ...prev,
         isOpen: true,
         isCollapsed: false,
         buffers,
-        activeKey: buffer.key,
+        groups: addKeyToGroup(prev.groups, prev.activeGroupId, buffer.key),
         pendingAction: null,
-      };
+      });
     });
   }, []);
 
@@ -118,56 +288,68 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const key = bufferKeyFor(request);
 
-    // If already open, just activate the tab.
+    // If already open, just activate the tab in the focused group.
     if (stateRef.current.buffers.some((b) => b.key === key)) {
-      setState((prev) => ({ ...prev, isOpen: true, isCollapsed: false, activeKey: key, pendingAction: null }));
+      setState((prev) =>
+        normalizeGroups({
+          ...prev,
+          isOpen: true,
+          isCollapsed: false,
+          groups: addKeyToGroup(prev.groups, prev.activeGroupId, key),
+          pendingAction: null,
+        })
+      );
       return true;
     }
 
-    setState((prev) => ({
-      ...prev,
-      isOpen: true,
-      isCollapsed: false,
-      pendingAction: null,
-      buffers: [
-        ...prev.buffers,
-        {
-          key,
-          filePath: request.path,
-          workspace: request.workspace,
-          fileName: getEditorFileName(request.path),
-          content: '',
-          originalContent: '',
-          language: inferEditorLanguage(request.path),
-          lastModified: null,
-          diskChanged: false,
-          loading: true,
-          saving: false,
-          viewState: null,
-        },
-      ],
-      activeKey: key,
-    }));
+    setState((prev) =>
+      normalizeGroups({
+        ...prev,
+        isOpen: true,
+        isCollapsed: false,
+        pendingAction: null,
+        buffers: [
+          ...prev.buffers,
+          {
+            key,
+            filePath: request.path,
+            workspace: request.workspace,
+            fileName: getEditorFileName(request.path),
+            content: '',
+            originalContent: '',
+            language: inferEditorLanguage(request.path),
+            lastModified: null,
+            diskChanged: false,
+            loading: true,
+            saving: false,
+            viewState: null,
+          },
+        ],
+        groups: addKeyToGroup(prev.groups, prev.activeGroupId, key),
+      })
+    );
 
     try {
       const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: request.path, workspace: request.workspace });
       if (metadata?.isDirectory) {
-        setState((prev) => ({
-          ...prev,
-          buffers: prev.buffers.filter((b) => b.key !== key),
-          activeKey: prev.activeKey === key ? (prev.buffers.find((b) => b.key !== key)?.key ?? null) : prev.activeKey,
-          notice: createNotice('error', 'conversation.editor.openFailed'),
-        }));
+        setState((prev) =>
+          normalizeGroups({
+            ...prev,
+            buffers: prev.buffers.filter((b) => b.key !== key),
+            notice: createNotice('error', 'conversation.editor.openFailed'),
+          })
+        );
         return false;
       }
 
       if (metadata?.size && metadata.size > EDITOR_MAX_EDITABLE_BYTES) {
-        setState((prev) => ({
-          ...prev,
-          buffers: prev.buffers.filter((b) => b.key !== key),
-          activeKey: prev.activeKey === key ? (prev.buffers.find((b) => b.key !== key)?.key ?? null) : prev.activeKey,
-          notice: createNotice('warning', 'conversation.editor.largeFileBlocked'),
-        }));
+        setState((prev) =>
+          normalizeGroups({
+            ...prev,
+            buffers: prev.buffers.filter((b) => b.key !== key),
+            notice: createNotice('warning', 'conversation.editor.largeFileBlocked'),
+          })
+        );
         return false;
       }
 
@@ -186,18 +368,31 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }));
       return true;
     } catch {
-      setState((prev) => ({
-        ...prev,
-        buffers: prev.buffers.filter((b) => b.key !== key),
-        activeKey: prev.activeKey === key ? (prev.buffers.find((b) => b.key !== key)?.key ?? null) : prev.activeKey,
-        notice: createNotice('error', 'conversation.editor.openFailed'),
-      }));
+      setState((prev) =>
+        normalizeGroups({
+          ...prev,
+          buffers: prev.buffers.filter((b) => b.key !== key),
+          notice: createNotice('error', 'conversation.editor.openFailed'),
+        })
+      );
       return false;
     }
   }, []);
 
   const openEditorFile = useCallback(
-    async (request: EditorOpenRequest): Promise<boolean> => executeOpenFile(request),
+    async (request: EditorOpenRequest): Promise<boolean> => {
+      if (!isEditorAccessibleInLayoutMode()) return false;
+      const key = bufferKeyFor(request);
+      if (stateRef.current.buffers.some((b) => b.key === key)) {
+        return executeOpenFile(request);
+      }
+      const active = findBuffer(stateRef.current.buffers, stateRef.current.activeKey);
+      if (active && isBufferDirty(active)) {
+        setState((prev) => ({ ...prev, pendingAction: { type: 'open-file', request } }));
+        return false;
+      }
+      return executeOpenFile(request);
+    },
     [executeOpenFile]
   );
 
@@ -236,27 +431,29 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       if (!ok) throw new Error('write failed');
       const metadata = await ipcBridge.fs.getFileMetadata.invoke({ path: filePath });
       const newKey = `::${filePath}`;
-      setState((prev) => ({
-        ...prev,
-        buffers: prev.buffers.map((b) =>
-          b.key === current.key
-            ? {
-                ...b,
-                key: newKey,
-                filePath,
-                workspace: undefined,
-                fileName: getEditorFileName(filePath),
-                originalContent: b.content,
-                language: inferEditorLanguage(filePath),
-                saving: false,
-                lastModified: metadata?.lastModified ?? null,
-                diskChanged: false,
-              }
-            : b
-        ),
-        activeKey: prev.activeKey === current.key ? newKey : prev.activeKey,
-        notice: createNotice('success', 'common.saveSuccess'),
-      }));
+      setState((prev) =>
+        normalizeGroups({
+          ...prev,
+          buffers: prev.buffers.map((b) =>
+            b.key === current.key
+              ? {
+                  ...b,
+                  key: newKey,
+                  filePath,
+                  workspace: undefined,
+                  fileName: getEditorFileName(filePath),
+                  originalContent: b.content,
+                  language: inferEditorLanguage(filePath),
+                  saving: false,
+                  lastModified: metadata?.lastModified ?? null,
+                  diskChanged: false,
+                }
+              : b
+          ),
+          groups: remapGroupKey(prev.groups, current.key, newKey),
+          notice: createNotice('success', 'common.saveSuccess'),
+        })
+      );
       return true;
     } catch {
       setState((prev) => ({
@@ -268,11 +465,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     }
   }, []);
 
-  const saveEditorFile = useCallback(async (): Promise<boolean> => {
-    const current = findBuffer(stateRef.current.buffers, stateRef.current.activeKey);
-    if (!current) return false;
-    if (!current.filePath) return saveEditorFileAs();
-
+  // Inner helper: shared write path used by `saveEditorFile`. Always
+  // writes `current.content` (the latest model state) to disk and updates
+  // the buffer's `originalContent` so the dirty flag clears.
+  const writeBufferToDisk = useCallback(async (current: OpenBuffer): Promise<boolean> => {
+    if (!current.filePath) return false;
     setState((prev) => ({ ...prev, buffers: updateBuffer(prev.buffers, current.key, { saving: true }) }));
     try {
       const ok = await ipcBridge.fs.writeFile.invoke({ path: current.filePath, data: current.content });
@@ -300,46 +497,98 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }));
       return false;
     }
-  }, [saveEditorFileAs]);
+  }, []);
+
+  const saveEditorFile = useCallback(
+    async (options?: EditorSaveOptions): Promise<boolean> => {
+      const current = findBuffer(stateRef.current.buffers, stateRef.current.activeKey);
+      if (!current) return false;
+      if (!current.filePath) return saveEditorFileAs();
+
+      // Optional pre-save formatter (e.g. `monacoRef.formatDocument()`).
+      // We always run it before the write — caller decides whether to wire
+      // it to `formatOnSave` or call it explicitly.
+      if (options?.format) {
+        try {
+          await options.format();
+        } catch {
+          /* formatter failure is non-fatal — proceed to write */
+        }
+        // Pull the post-format content back into state so the write
+        // actually persists the formatted buffer (not the pre-format
+        // snapshot stored in `current`).
+        const refreshed = findBuffer(stateRef.current.buffers, current.key);
+        if (!refreshed) return false;
+        return await writeBufferToDisk(refreshed);
+      }
+
+      return await writeBufferToDisk(current);
+    },
+    [saveEditorFileAs, writeBufferToDisk]
+  );
 
   // ---------------------------------------------------------------------------
   // Close flow (per-tab + close-all)
   // ---------------------------------------------------------------------------
 
-  const removeBuffer = useCallback((key: string) => {
+  /**
+   * Remove a buffer key from one group. The buffer leaves the shared pool
+   * only when no other group still references it (VS Code "close to the
+   * side keeps the other pane" behaviour). Empty groups are dropped by
+   * `normalizeGroups` when more than one remains; the editor closes when no
+   * buffers remain anywhere.
+   */
+  const removeBufferFromGroup = useCallback((groupId: string, key: string) => {
     setState((prev) => {
-      const remaining = prev.buffers.filter((b) => b.key !== key);
-      let nextActive = prev.activeKey;
-      if (nextActive === key) {
-        const idx = prev.buffers.findIndex((b) => b.key === key);
-        nextActive = remaining[idx]?.key ?? remaining[idx - 1]?.key ?? remaining[0]?.key ?? null;
-      }
-      return {
-        ...prev,
-        buffers: remaining,
-        activeKey: nextActive,
-        isOpen: remaining.length > 0,
-      };
+      const groups = prev.groups.map((g) =>
+        g.id === groupId ? { ...g, bufferKeys: g.bufferKeys.filter((k) => k !== key) } : g
+      );
+      const stillReferenced = groups.some((g) => g.bufferKeys.includes(key));
+      const buffers = stillReferenced ? prev.buffers : prev.buffers.filter((b) => b.key !== key);
+      const next = normalizeGroups({ ...prev, buffers, groups });
+      return { ...next, isOpen: next.buffers.length > 0 };
     });
   }, []);
 
+  // Back-compat: close a buffer from the focused group.
+  const removeBuffer = useCallback(
+    (key: string) => {
+      removeBufferFromGroup(stateRef.current.activeGroupId, key);
+    },
+    [removeBufferFromGroup]
+  );
+
   const closeEditorWithoutPrompt = useCallback(() => {
-    setState(initialState);
+    setState({
+      ...initialState,
+      groups: [{ id: DEFAULT_GROUP_ID, bufferKeys: [], activeKey: null }],
+      activeGroupId: DEFAULT_GROUP_ID,
+    });
   }, []);
 
-  const requestCloseBuffer = useCallback(
-    (key?: string) => {
-      const targetKey = key ?? stateRef.current.activeKey;
+  const requestCloseBufferInGroup = useCallback(
+    (groupId: string, key?: string) => {
+      const group = findGroup(stateRef.current.groups, groupId);
+      const targetKey = key ?? group?.activeKey ?? null;
       if (!targetKey) return;
       const target = findBuffer(stateRef.current.buffers, targetKey);
       if (!target) return;
-      if (isBufferDirty(target)) {
-        setState((prev) => ({ ...prev, pendingAction: { type: 'close-buffer', bufferKey: targetKey } }));
+      // Only prompt when closing the LAST reference to a dirty buffer.
+      const refCount = stateRef.current.groups.filter((g) => g.bufferKeys.includes(targetKey)).length;
+      if (isBufferDirty(target) && refCount <= 1) {
+        setState((prev) => ({ ...prev, pendingAction: { type: 'close-buffer', bufferKey: targetKey, groupId } }));
         return;
       }
-      removeBuffer(targetKey);
+      removeBufferFromGroup(groupId, targetKey);
     },
-    [removeBuffer]
+    [removeBufferFromGroup]
+  );
+
+  const requestCloseBuffer = useCallback(
+    (key?: string) => {
+      requestCloseBufferInGroup(stateRef.current.activeGroupId, key);
+    },
+    [requestCloseBufferInGroup]
   );
 
   const requestCloseEditor = useCallback(() => {
@@ -354,23 +603,149 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Tab navigation
   // ---------------------------------------------------------------------------
 
-  const setActiveBuffer = useCallback((key: string) => {
+  const setActiveBufferInGroup = useCallback((groupId: string, key: string) => {
     if (!isEditorAccessibleInLayoutMode()) return;
-    setState((prev) =>
-      prev.buffers.some((b) => b.key === key) ? { ...prev, activeKey: key, isOpen: true, isCollapsed: false } : prev
-    );
+    setState((prev) => {
+      if (!prev.buffers.some((b) => b.key === key)) return prev;
+      const groups = prev.groups.map((g) =>
+        g.id === groupId
+          ? { ...g, activeKey: key, bufferKeys: g.bufferKeys.includes(key) ? g.bufferKeys : [...g.bufferKeys, key] }
+          : g
+      );
+      return normalizeGroups({ ...prev, groups, activeGroupId: groupId, isOpen: true, isCollapsed: false });
+    });
   }, []);
 
-  const reorderBuffers = useCallback((fromKey: string, toKey: string) => {
+  const setActiveBuffer = useCallback(
+    (key: string) => {
+      setActiveBufferInGroup(stateRef.current.activeGroupId, key);
+    },
+    [setActiveBufferInGroup]
+  );
+
+  const reorderWithinGroup = useCallback((groupId: string, fromKey: string, toKey: string) => {
     if (fromKey === toKey) return;
     setState((prev) => {
-      const fromIdx = prev.buffers.findIndex((b) => b.key === fromKey);
-      const toIdx = prev.buffers.findIndex((b) => b.key === toKey);
-      if (fromIdx < 0 || toIdx < 0) return prev;
-      const next = prev.buffers.slice();
-      const [moved] = next.splice(fromIdx, 1);
-      next.splice(toIdx, 0, moved);
-      return { ...prev, buffers: next };
+      const groups = prev.groups.map((g) => {
+        if (g.id !== groupId) return g;
+        const fromIdx = g.bufferKeys.indexOf(fromKey);
+        const toIdx = g.bufferKeys.indexOf(toKey);
+        if (fromIdx < 0 || toIdx < 0) return g;
+        const bufferKeys = g.bufferKeys.slice();
+        const [moved] = bufferKeys.splice(fromIdx, 1);
+        bufferKeys.splice(toIdx, 0, moved);
+        return { ...g, bufferKeys };
+      });
+      return { ...prev, groups };
+    });
+  }, []);
+
+  const reorderBuffers = useCallback(
+    (fromKey: string, toKey: string) => {
+      reorderWithinGroup(stateRef.current.activeGroupId, fromKey, toKey);
+    },
+    [reorderWithinGroup]
+  );
+
+  // ---------------------------------------------------------------------------
+  // Split editor (Epic C)
+  // ---------------------------------------------------------------------------
+
+  const focusGroup = useCallback((groupId: string) => {
+    setState((prev) => {
+      if (prev.activeGroupId === groupId || !prev.groups.some((g) => g.id === groupId)) return prev;
+      return normalizeGroups({ ...prev, activeGroupId: groupId });
+    });
+  }, []);
+
+  const splitEditor = useCallback((_direction: SplitDirection = 'right') => {
+    if (!isEditorAccessibleInLayoutMode()) return;
+    setState((prev) => {
+      const source = findGroup(prev.groups, prev.activeGroupId) ?? prev.groups[0];
+      if (!source) return prev;
+      // Cap the pane count; once at the cap, a split cycles focus to the next
+      // pane instead of stacking an unusable sliver.
+      if (prev.groups.length >= MAX_EDITOR_GROUPS) {
+        const idx = prev.groups.findIndex((g) => g.id === prev.activeGroupId);
+        const next = prev.groups[(idx + 1) % prev.groups.length];
+        return next ? normalizeGroups({ ...prev, activeGroupId: next.id }) : prev;
+      }
+      const seedKey = source.activeKey;
+      const newGroup: EditorGroup = {
+        id: genGroupId(),
+        bufferKeys: seedKey ? [seedKey] : [],
+        activeKey: seedKey,
+      };
+      // Insert the new pane immediately after the source pane for intuitive
+      // left-to-right placement.
+      const idx = prev.groups.findIndex((g) => g.id === source.id);
+      const groups = [...prev.groups.slice(0, idx + 1), newGroup, ...prev.groups.slice(idx + 1)];
+      return normalizeGroups({
+        ...prev,
+        isOpen: true,
+        isCollapsed: false,
+        groups,
+        activeGroupId: newGroup.id,
+      });
+    });
+  }, []);
+
+  const moveBufferToGroup = useCallback((bufferKey: string, fromGroupId: string, toGroupId: string, index?: number) => {
+    if (fromGroupId === toGroupId) {
+      // Same-group drop is a reorder, handled by `reorderWithinGroup`.
+      return;
+    }
+    setState((prev) => {
+      if (!prev.buffers.some((b) => b.key === bufferKey)) return prev;
+      if (!findGroup(prev.groups, fromGroupId) || !findGroup(prev.groups, toGroupId)) return prev;
+      const groups = prev.groups.map((g) => {
+        if (g.id === fromGroupId) {
+          return { ...g, bufferKeys: g.bufferKeys.filter((k) => k !== bufferKey) };
+        }
+        if (g.id === toGroupId) {
+          if (g.bufferKeys.includes(bufferKey)) return { ...g, activeKey: bufferKey };
+          const keys = g.bufferKeys.slice();
+          const at = typeof index === 'number' && index >= 0 && index <= keys.length ? index : keys.length;
+          keys.splice(at, 0, bufferKey);
+          return { ...g, bufferKeys: keys, activeKey: bufferKey };
+        }
+        return g;
+      });
+      // Buffer stays in the shared pool (still referenced by the target), so
+      // its dirty state / content are preserved across the move.
+      return normalizeGroups({ ...prev, groups, activeGroupId: toGroupId });
+    });
+  }, []);
+
+  const setSplitLayout = useCallback((layout: Array<{ bufferKeys: string[]; activeKey: string | null }>) => {
+    if (layout.length === 0) return;
+    setState((prev) => {
+      const groups: EditorGroup[] = layout.map((g, i) => ({
+        id: i === 0 ? DEFAULT_GROUP_ID : genGroupId(),
+        bufferKeys: g.bufferKeys.slice(),
+        activeKey: g.activeKey,
+      }));
+      return normalizeGroups({ ...prev, groups, activeGroupId: groups[0].id });
+    });
+  }, []);
+
+  const closeGroup = useCallback((groupId: string) => {
+    setState((prev) => {
+      if (prev.groups.length <= 1) {
+        // Closing the only group closes the editor entirely.
+        return {
+          ...initialState,
+          groups: [{ id: DEFAULT_GROUP_ID, bufferKeys: [], activeKey: null }],
+          activeGroupId: DEFAULT_GROUP_ID,
+        };
+      }
+      const groups = prev.groups.filter((g) => g.id !== groupId);
+      // Buffers referenced only by the closed group leave the pool.
+      const referenced = new Set(groups.flatMap((g) => g.bufferKeys));
+      const buffers = prev.buffers.filter((b) => referenced.has(b.key));
+      const activeGroupId = prev.activeGroupId === groupId ? groups[0].id : prev.activeGroupId;
+      const next = normalizeGroups({ ...prev, buffers, groups, activeGroupId });
+      return { ...next, isOpen: next.buffers.length > 0 };
     });
   }, []);
 
@@ -412,6 +787,17 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     );
   }, []);
 
+  // Per-group content write: each split pane's editor targets its own bound
+  // buffer key (not the focused group's `activeKey`), so typing in either
+  // pane updates the correct shared-pool buffer.
+  const setBufferContentByKey = useCallback((key: string, content: string) => {
+    setState((prev) =>
+      prev.buffers.some((b) => b.key === key)
+        ? { ...prev, buffers: updateBuffer(prev.buffers, key, { content }) }
+        : prev
+    );
+  }, []);
+
   const setBufferViewState = useCallback((key: string, viewState: EditorBufferViewState | null) => {
     setState((prev) => ({ ...prev, buffers: updateBuffer(prev.buffers, key, { viewState }) }));
   }, []);
@@ -437,7 +823,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     async (pendingAction: EditorPendingAction | null): Promise<void> => {
       if (!pendingAction) return;
       if (pendingAction.type === 'close-buffer') {
-        removeBuffer(pendingAction.bufferKey);
+        removeBufferFromGroup(pendingAction.groupId ?? stateRef.current.activeGroupId, pendingAction.bufferKey);
         return;
       }
       if (pendingAction.type === 'close-all') {
@@ -450,12 +836,12 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       await executeOpenFile(pendingAction.request);
     },
-    [closeEditorWithoutPrompt, executeNewFile, executeOpenFile, removeBuffer]
+    [closeEditorWithoutPrompt, executeNewFile, executeOpenFile, removeBufferFromGroup]
   );
 
   const confirmPendingActionWithSave = useCallback(async () => {
     const pendingAction = stateRef.current.pendingAction;
-    const saved = await saveEditorFile();
+    const saved = await saveEditorFile(undefined);
     if (saved) await executePendingAction(pendingAction);
   }, [executePendingAction, saveEditorFile]);
 
@@ -538,6 +924,15 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       closeEditorWithoutPrompt,
       setActiveBuffer,
       reorderBuffers,
+      splitEditor,
+      closeGroup,
+      focusGroup,
+      setActiveBufferInGroup,
+      reorderWithinGroup,
+      moveBufferToGroup,
+      requestCloseBufferInGroup,
+      setBufferContentByKey,
+      setSplitLayout,
       collapseEditor,
       expandEditor,
       hideEditor,
@@ -549,6 +944,9 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       discardPendingAction,
       cancelPendingAction,
       clearNotice,
+      revealRequest,
+      requestRevealInTree,
+      clearRevealRequest,
     }),
     [
       state,
@@ -565,6 +963,15 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       closeEditorWithoutPrompt,
       setActiveBuffer,
       reorderBuffers,
+      splitEditor,
+      closeGroup,
+      focusGroup,
+      setActiveBufferInGroup,
+      reorderWithinGroup,
+      moveBufferToGroup,
+      requestCloseBufferInGroup,
+      setBufferContentByKey,
+      setSplitLayout,
       collapseEditor,
       expandEditor,
       hideEditor,
@@ -576,6 +983,9 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       discardPendingAction,
       cancelPendingAction,
       clearNotice,
+      revealRequest,
+      requestRevealInTree,
+      clearRevealRequest,
     ]
   );
 

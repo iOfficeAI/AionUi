@@ -1,6 +1,7 @@
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
+import ErrorBoundary from '@/renderer/components/base/ErrorBoundary';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useLayoutModeSafe } from '@/renderer/hooks/context/LayoutModeContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
@@ -15,7 +16,9 @@ import { usePreviewAutoCollapse } from '@/renderer/pages/conversation/hooks/useP
 import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRename';
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
-import { EditorPanel, useEditorContext } from '@/renderer/pages/conversation/Editor';
+import { useEditorContext } from '@/renderer/pages/conversation/Editor';
+
+const EditorLazyEntry = React.lazy(() => import('@/renderer/pages/conversation/Editor/editorLazyEntry'));
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
 import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
 import classNames from 'classnames';
@@ -467,7 +470,23 @@ const ChatLayout: React.FC<{
                     reverse: true,
                   })}
                 <div className='h-full w-full overflow-hidden'>
-                  <EditorPanel />
+                  <React.Suspense
+                    fallback={
+                      <div className='editor-panel editor-panel__loading h-full flex items-center justify-center gap-2'>
+                        <span>{t('common.loading')}</span>
+                      </div>
+                    }
+                  >
+                    <ErrorBoundary
+                      label={t('conversation.editor.bladeLabel', { defaultValue: 'Editor' })}
+                      onError={(err) => {
+                        // eslint-disable-next-line no-console
+                        console.error('[ChatLayout] Editor chunk crashed; rendering fallback surface.', err);
+                      }}
+                    >
+                      <EditorLazyEntry workspaceRoot={workspacePath} />
+                    </ErrorBoundary>
+                  </React.Suspense>
                 </div>
               </>
             )}

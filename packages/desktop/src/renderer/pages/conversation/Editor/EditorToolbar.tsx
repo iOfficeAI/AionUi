@@ -22,6 +22,8 @@ type Props = {
   showMinimap: boolean;
   renderWhitespace: boolean;
   outlineVisible: boolean;
+  isSplit: boolean;
+  onToggleSplit: () => void;
   onNew: () => void;
   onOpen: () => void;
   onSave: () => void;
@@ -70,6 +72,8 @@ const EditorToolbar: React.FC<Props> = ({
   showMinimap,
   renderWhitespace,
   outlineVisible,
+  isSplit,
+  onToggleSplit,
   onNew,
   onOpen,
   onSave,
@@ -162,6 +166,9 @@ const EditorToolbar: React.FC<Props> = ({
         <Menu.Item key='whitespace' onClick={onToggleWhitespace}>
           <MenuRow label={t('conversation.editor.whitespace')} checked={renderWhitespace} />
         </Menu.Item>
+        <Menu.Item key='split' onClick={onToggleSplit}>
+          <MenuRow label={t('conversation.editor.splitEditor')} shortcut={kbd('⌘\\', 'Ctrl+\\')} checked={isSplit} />
+        </Menu.Item>
       </Menu>
     ),
     [
@@ -169,10 +176,12 @@ const EditorToolbar: React.FC<Props> = ({
       onToggleWordWrap,
       onToggleMinimap,
       onToggleWhitespace,
+      onToggleSplit,
       outlineVisible,
       wordWrap,
       showMinimap,
       renderWhitespace,
+      isSplit,
       t,
     ]
   );

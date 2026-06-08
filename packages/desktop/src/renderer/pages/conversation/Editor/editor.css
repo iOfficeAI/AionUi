@@ -131,6 +131,106 @@
   display: flex;
 }
 
+/* ───── Split editor (Epic C) ──────────────────────────────────────────── */
+
+/* Row of side-by-side editor groups (split panes). */
+.editor-panel__groups {
+  display: flex;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.editor-panel__group-slot {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
+
+/* A single split pane: its own tab strip + editor surface. */
+.editor-group {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  position: relative;
+}
+
+.editor-group--empty {
+  background: var(--bg-1);
+}
+
+/* Focused-pane affordance: a 2px brand top accent so the active split is
+   obvious without stealing layout height. */
+.editor-group--focused::after {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 2px;
+  background: var(--brand);
+  opacity: 0.9;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.editor-group__tabbar {
+  display: flex;
+  align-items: stretch;
+  min-width: 0;
+  flex-shrink: 0;
+}
+
+.editor-group__tabs {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  align-items: stretch;
+}
+
+.editor-group__close {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  border: none;
+  background: var(--bg-2);
+  color: var(--text-tertiary);
+  cursor: pointer;
+  transition:
+    color 0.15s ease,
+    background 0.15s ease;
+}
+
+.editor-group__close:hover {
+  color: var(--text-primary);
+  background: var(--bg-3);
+}
+
+.editor-group__editor {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+}
+
+/* In-flow 6px divider hosting the absolutely-positioned resize grabber. */
+.editor-split-divider {
+  position: relative;
+  flex: 0 0 6px;
+  width: 6px;
+  align-self: stretch;
+  background: var(--border-base, var(--bg-3));
+}
+
+/* 3+ pane dividers are not draggable yet (panes distribute evenly). */
+.editor-split-divider--static {
+  cursor: default;
+}
+
 .editor-panel__alert {
   flex-shrink: 0;
   border-radius: 0;
@@ -275,6 +375,36 @@
 .editor-breadcrumb__seg {
   white-space: nowrap;
   color: var(--text-secondary, #555);
+}
+
+/* Clickable parent segments — handed off to the workspace tree via
+   `onRevealSegment` (dispatched from the breadcrumb to EditorPanel which
+   forwards to `EditorContext.requestRevealInTree`). The hover/focus
+   treatment matches the rest of the editor chrome: a soft bg-3 lift +
+   primary-text colour shift. */
+.editor-breadcrumb__seg--clickable {
+  border: 0;
+  background: transparent;
+  padding: 0 4px;
+  border-radius: 3px;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition:
+    background-color 100ms ease,
+    color 100ms ease;
+}
+
+.editor-breadcrumb__seg--clickable:hover,
+.editor-breadcrumb__seg--clickable:focus-visible {
+  background: var(--bg-3, #e0e0e0);
+  color: var(--text-primary, #1f1f1f);
+  outline: none;
+}
+
+.editor-breadcrumb__seg--clickable:focus-visible {
+  outline: 1px solid var(--brand, #0078d4);
+  outline-offset: 1px;
 }
 
 .editor-breadcrumb__seg--leaf {
@@ -858,6 +988,118 @@
 
 .editor-tabs::-webkit-scrollbar-track {
   background: transparent;
+}
+
+.editor-panel__aside {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 280px;
+  border-right: 1px solid var(--color-border-2, rgba(0, 0, 0, 0.08));
+}
+
+.editor-problems {
+  flex: 0 0 auto;
+  max-height: 140px;
+  overflow: auto;
+  font-size: 12px;
+  border-top: 1px solid var(--color-border-2, rgba(0, 0, 0, 0.06));
+}
+
+.editor-problems__header {
+  padding: 6px 10px;
+  font-weight: 600;
+  color: var(--color-text-2);
+}
+
+.editor-problems__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.editor-problems__item {
+  display: flex;
+  gap: 8px;
+  width: 100%;
+  text-align: left;
+  padding: 4px 10px;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  color: var(--color-text-1);
+}
+
+.editor-problems__item:hover {
+  background: var(--color-fill-2);
+}
+
+.editor-problems__sev {
+  flex-shrink: 0;
+  font-size: 10px;
+  text-transform: uppercase;
+}
+
+.editor-problems__sev--error {
+  color: var(--color-danger-6, #f53f3f);
+}
+
+.editor-problems__sev--warning {
+  color: var(--color-warning-6, #ff7d00);
+}
+
+.editor-problems__sev--info {
+  color: var(--color-text-3);
+}
+
+.editor-problems__line {
+  flex-shrink: 0;
+  color: var(--color-text-3);
+}
+
+.editor-problems__msg {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------------
+   Git gutter decorations — line-level marks for added / modified /
+   deleted lines. Painted through Monaco's `className` and `glyphMarginClassName`
+   decoration options. Colors are token-bound (`--success-6`, `--warning-6`,
+   `--danger-6` for VSCode's familiar green / orange / red gutter bars).
+   Falls back to literal colors when tokens are missing so the editor
+   remains legible in any theme.
+   ------------------------------------------------------------------------- */
+.editor-git-line--added {
+  background-color: color-mix(in srgb, var(--success-6, #2ea043) 14%, transparent);
+}
+
+.editor-git-line--modified {
+  background-color: color-mix(in srgb, var(--warning-6, #d29922) 14%, transparent);
+}
+
+.editor-git-line--deleted {
+  background-color: color-mix(in srgb, var(--danger-6, #f85149) 14%, transparent);
+}
+
+.editor-git-glyph {
+  display: inline-block;
+  width: 4px;
+  margin-left: 4px;
+  border-radius: 2px;
+}
+
+.editor-git-glyph--added {
+  background-color: var(--success-6, #2ea043);
+}
+
+.editor-git-glyph--modified {
+  background-color: var(--warning-6, #d29922);
+}
+
+.editor-git-glyph--deleted {
+  background-color: var(--danger-6, #f85149);
 }
 
 /* -------------------------------------------------------------------------

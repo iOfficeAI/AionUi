@@ -596,14 +596,12 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
           onClick={handleCommit}
           className='w-full py-6px px-8px text-12px font-semibold rounded-control flex items-center justify-center transition-colors disabled:opacity-55 disabled:cursor-not-allowed border-0'
           style={{
-            backgroundColor: (staged.length === 0 || !commitMessage.trim()) ? 'var(--bg-3)' : 'var(--brand)',
-            color: (staged.length === 0 || !commitMessage.trim()) ? 'var(--text-secondary)' : 'var(--bg-base)',
+            backgroundColor: staged.length === 0 || !commitMessage.trim() ? 'var(--bg-3)' : 'var(--brand)',
+            color: staged.length === 0 || !commitMessage.trim() ? 'var(--text-secondary)' : 'var(--bg-base)',
             border: 'none',
           }}
         >
-          {committing ? (
-            <Spin size={12} className='mr-6px' />
-          ) : null}
+          {committing ? <Spin size={12} className='mr-6px' /> : null}
           {t('conversation.workspace.changes.commitButton', { count: staged.length })}
         </button>
       </div>

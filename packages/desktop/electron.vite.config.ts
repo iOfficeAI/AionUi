@@ -52,6 +52,31 @@ function iconParkPlugin() {
   };
 }
 
+// `monaco-languageclient`'s worker loaders use `new URL('@codingame/...',
+// import.meta.url)` with a BARE specifier. Vite's worker analysis joins that
+// onto the importing file's dir (`.../lib/worker/@codingame/...`) and then
+// fails to resolve it as an entry. This plugin rewrites such ids back to the
+// real bare `@codingame/...` module so Rollup resolves the actual worker file.
+function monacoLanguageclientWorkerResolvePlugin() {
+  const MARKER = '/lib/worker/@codingame/';
+  return {
+    name: 'mlc-worker-url-resolve',
+    enforce: 'pre' as const,
+    async resolveId(
+      this: { resolve: (s: string, i?: string, o?: Record<string, unknown>) => Promise<{ id: string } | null> },
+      source: string,
+      importer: string | undefined,
+      options: Record<string, unknown>
+    ) {
+      const idx = source.indexOf(MARKER);
+      if (idx === -1) return null;
+      const bare = '@codingame/' + source.slice(idx + MARKER.length);
+      const resolved = await this.resolve(bare, importer, { ...options, skipSelf: true });
+      return resolved ? resolved.id : null;
+    },
+  };
+}
+
 // Common path aliases for main process and workers
 const desktopSrcRoot = resolve('packages/desktop/src');
 const rendererRoot = resolve('packages/desktop/src/renderer');
@@ -201,17 +226,35 @@ export default defineConfig(({ mode }) => {
           '@renderer': resolve('packages/desktop/src/renderer'),
           '@process': resolve('packages/desktop/src/process'),
           '@worker': resolve('packages/desktop/src/process/worker'),
+          '@aionui/editor-monaco': resolve('node_modules/@aionui/editor-monaco'),
+          // `monaco-languageclient` imports the real package name; map it to the
+          // same 25.1.2 build as `@aionui/editor-monaco` so there's one copy.
+          '@codingame/monaco-vscode-editor-api': resolve('node_modules/@aionui/editor-monaco'),
+          vscode: resolve('node_modules/vscode'),
           // Force ESM version of streamdown
           streamdown: resolve('node_modules/streamdown/dist/index.js'),
         },
         extensions: ['.ts', '.tsx', '.js', '.jsx', '.css'],
-        dedupe: ['react', 'react-dom', 'react-router-dom'],
+        dedupe: [
+          'react',
+          'react-dom',
+          'react-router-dom',
+          '@codingame/monaco-vscode-api',
+          '@codingame/monaco-vscode-editor-api',
+          '@aionui/editor-monaco',
+          'vscode',
+        ],
       },
       plugins: [
+        monacoLanguageclientWorkerResolvePlugin(),
         UnoCSS(unoConfig),
         iconParkPlugin(),
         ...(enableSentrySourceMaps ? [sentryVitePlugin(sentryPluginOptions)] : []),
       ],
+      worker: {
+        // Codingame / monaco-languageclient workers use `new URL(..., import.meta.url)` with `type: 'module'`.
+        format: 'es',
+      },
       build: {
         target: 'es2022',
         sourcemap: enableSentrySourceMaps ? 'hidden' : isDevelopment,
@@ -255,6 +298,10 @@ export default defineConfig(({ mode }) => {
               if (
                 id.includes('/monaco-editor/') ||
                 id.includes('/@monaco-editor/') ||
+                id.includes('/@aionui/editor-monaco/') ||
+                id.includes('/@codingame/monaco-vscode') ||
+                id.includes('/monaco-languageclient/') ||
+                id.includes('/vscode/') ||
                 id.includes('/codemirror/') ||
                 id.includes('/@codemirror/')
               )
@@ -280,6 +327,7 @@ export default defineConfig(({ mode }) => {
       },
       optimizeDeps: {
         exclude: ['electron'],
+        esbuildOptions: {},
         include: [
           'react',
           'react-dom',
