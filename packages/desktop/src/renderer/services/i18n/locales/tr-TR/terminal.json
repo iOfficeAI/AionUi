@@ -34,6 +34,8 @@
     "actionChat": "Sohbet",
     "actionCommandCenter": "Komuta Merkezi",
     "actionTerminal": "Terminal",
-    "actionDiff": "Fark"
+    "actionDiff": "Fark",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

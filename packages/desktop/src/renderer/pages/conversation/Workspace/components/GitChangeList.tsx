@@ -7,7 +7,7 @@
 import type { GitDiffResult, GitFileChange, GitRepoInfo } from '@/common/types/git/gitTypes';
 import Diff2Html from '@/renderer/components/media/Diff2Html';
 import { Button, Empty, Input, Message, Spin, Tooltip, Modal } from '@arco-design/web-react';
-import { Down, FullScreen, Minus, Plus, PreviewOpen, Redo, Refresh, Right } from '@icon-park/react';
+import { Down, FullScreen, Minus, Plus, PreviewOpen, Redo, Refresh, Right, Robot } from '@icon-park/react';
 import type { TFunction } from 'i18next';
 import React, { useCallback, useMemo, useState } from 'react';
 import { WorkspaceToolbarActionBtn } from './WorkspaceToolbarActionBtn';
@@ -36,6 +36,13 @@ type GitChangeListProps = {
   onExpandFlyout?: () => void;
   /** Left Sider diff pane: parent renders ConversationPane-style header. */
   hideToolbar?: boolean;
+  /**
+   * Predicate returning true when the agent (this conversation's tool calls)
+   * edited a given change. When provided, the file row shows a small
+   * "Agent" badge so the user can tell agent-generated changes from their
+   * own before committing.
+   */
+  isAgentModified?: (change: GitFileChange) => boolean;
 };
 
 const STATUS_COLORS: Record<string, string> = {
@@ -86,7 +93,9 @@ const FileChangeItem: React.FC<{
   onToggle: () => void;
   actions: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ change, diffState, expanded, loading, expandable, onToggle, actions, children }) => {
+  agentModified?: boolean;
+  t: TFunction;
+}> = ({ change, diffState, expanded, loading, expandable, onToggle, actions, children, agentModified, t }) => {
   const statusColor = STATUS_COLORS[change.status] || 'text-t-primary';
   const statusLabel = STATUS_LABELS[change.status] || change.status.charAt(0).toUpperCase();
 
@@ -117,6 +126,20 @@ const FileChangeItem: React.FC<{
           <span className={`text-11px font-semibold w-14px text-center flex-shrink-0 ${statusColor}`}>
             {statusLabel}
           </span>
+          {agentModified ? (
+            <Tooltip content={t('conversation.workspace.changes.agentModifiedTooltip')} position='top'>
+              <span
+                className='flex items-center justify-center w-16px h-16px rounded-control flex-shrink-0'
+                style={{
+                  backgroundColor: 'color-mix(in srgb, var(--brand) 16%, transparent)',
+                  color: 'var(--brand)',
+                }}
+                aria-label={t('conversation.workspace.changes.agentModified')}
+              >
+                <Robot theme='outline' size={10} fill='currentColor' />
+              </span>
+            </Tooltip>
+          ) : null}
           <span
             className={`overflow-hidden text-ellipsis whitespace-nowrap text-12px ${
               change.status === 'deleted' ? 'line-through text-t-tertiary' : 'text-t-primary'
@@ -193,6 +216,7 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
   onGetDiff,
   onExpandFlyout,
   hideToolbar,
+  isAgentModified,
 }) => {
   const [expandedFilePath, setExpandedFilePath] = useState<string | null>(null);
   const [diffCache, setDiffCache] = useState<Record<string, DiffState>>({});
@@ -423,6 +447,8 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
                       />
                     </>
                   }
+                  agentModified={isAgentModified?.(change) ?? false}
+                  t={t}
                 />
               ))}
             </div>
@@ -479,6 +505,8 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
                         />
                       </>
                     }
+                    agentModified={isAgentModified?.(change) ?? false}
+                    t={t}
                   >
                     {diffState && !diffState.binary ? (
                       <div className={diffState.diff.length > 10000 ? 'max-h-[300px] overflow-y-auto' : ''}>
@@ -557,6 +585,8 @@ const GitChangeList: React.FC<GitChangeListProps> = ({
                         />
                       </>
                     }
+                    agentModified={isAgentModified?.(change) ?? false}
+                    t={t}
                   >
                     {diffState && !diffState.binary ? (
                       <div className={diffState.diff.length > 10000 ? 'max-h-[300px] overflow-y-auto' : ''}>

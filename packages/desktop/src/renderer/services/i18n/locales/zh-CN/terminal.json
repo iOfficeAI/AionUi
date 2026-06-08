@@ -34,6 +34,8 @@
     "actionChat": "对话",
     "actionCommandCenter": "指挥中心",
     "actionTerminal": "终端",
-    "actionDiff": "差异"
+    "actionDiff": "差异",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

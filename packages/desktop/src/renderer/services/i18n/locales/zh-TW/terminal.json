@@ -34,6 +34,8 @@
     "actionChat": "對話",
     "actionCommandCenter": "指揮中心",
     "actionTerminal": "終端機",
-    "actionDiff": "差異"
+    "actionDiff": "差異",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

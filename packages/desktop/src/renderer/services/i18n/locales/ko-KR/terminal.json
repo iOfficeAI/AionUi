@@ -34,6 +34,8 @@
     "actionChat": "채팅",
     "actionCommandCenter": "커맨드 센터",
     "actionTerminal": "터미널",
-    "actionDiff": "차이"
+    "actionDiff": "차이",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

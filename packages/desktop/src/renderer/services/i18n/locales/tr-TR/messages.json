@@ -112,5 +112,11 @@
   "deleteMessageTitle": "Mesaj silinsin mi?",
   "deleteMessageConfirm": "Bu, mesajı uzak oturumdan kalıcı olarak siler.",
   "deleteMessageSuccess": "Mesaj silindi",
-  "deleteMessageFailed": "Mesaj silinemedi"
+  "deleteMessageFailed": "Mesaj silinemedi",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

@@ -112,5 +112,11 @@
   "deleteMessageTitle": "メッセージを削除しますか？",
   "deleteMessageConfirm": "リモートセッションからこのメッセージを完全に削除します。",
   "deleteMessageSuccess": "メッセージを削除しました",
-  "deleteMessageFailed": "メッセージの削除に失敗しました"
+  "deleteMessageFailed": "メッセージの削除に失敗しました",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

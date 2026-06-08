@@ -6,6 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import { extractAgentEditedPaths } from '@/common/chat/normalizeToolCall';
+import type { TMessage } from '@/common/chat/chatLib';
+import type { GitFileChange } from '@/common/types/git/gitTypes';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useEditorContext } from '@/renderer/pages/conversation/Editor';
@@ -94,6 +97,72 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const approvalsHook = useWorkspaceApprovals(conversation_id);
 
   const changesCount = gitChangesHook.changeCount;
+
+  // ── Agent-edited paths: scan the current conversation's persisted messages
+  // for acp_tool_call (kind edit/write) and tool_group (confirmationDetails
+  // type edit) entries. Re-fetched on conversation change AND whenever the
+  // git status refreshes — that's how the spec wires "after agent edits land
+  // → new git status → re-extract" without subscribing to the response stream.
+  // statusVersion also bumps on non-edit git events, but the extractor is
+  // idempotent so a redundant re-run is harmless. The effect's own cleanup
+  // (`cancelled = true`) discards the result if the conversation or version
+  // has moved on by the time the IPC round-trip returns.
+  const statusVersion = gitChangesHook.statusVersion;
+  const [agentEditedPaths, setAgentEditedPaths] = useState<string[]>([]);
+  useEffect(() => {
+    if (!conversation_id) {
+      setAgentEditedPaths([]);
+      return;
+    }
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await ipcBridge.database.getConversationMessages.invoke({
+          conversation_id,
+          page: 0,
+          page_size: 10000,
+        });
+        if (cancelled) return;
+        const items: readonly TMessage[] = result?.items ?? [];
+        setAgentEditedPaths(extractAgentEditedPaths(items));
+      } catch (err) {
+        if (cancelled) return;
+        // Non-fatal: the Git changes panel just shows the list without badges.
+        console.error('[ChatWorkspace] Failed to load agent-edited paths:', err);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [conversation_id, statusVersion]);
+
+  // Build a memoized Set of repo-relative POSIX paths the agent has touched,
+  // so the row predicate is O(1). Path normalization is repeated here because
+  // the GitFileChange `path` is absolute (workdir) and the agent tool paths
+  // are repo-relative POSIX; we match both shapes for safety.
+  const agentRelSet = useMemo(() => {
+    const norm = (p: string): string => p.replace(/\\/g, '/').replace(/^\.\//, '');
+    const wsRoot = norm(workspace).replace(/\/+$/, '');
+    const toRel = (p: string): string => {
+      const n = norm(p);
+      return n.startsWith(wsRoot + '/') ? n.slice(wsRoot.length + 1) : n;
+    };
+    return new Set(agentEditedPaths.map(toRel));
+  }, [agentEditedPaths, workspace]);
+
+  const isAgentModified = useCallback(
+    (change: GitFileChange): boolean => {
+      if (agentRelSet.size === 0) return false;
+      const norm = (p: string): string => p.replace(/\\/g, '/').replace(/^\.\//, '');
+      const wsRoot = norm(workspace).replace(/\/+$/, '');
+      const toRel = (p: string): string => {
+        const n = norm(p);
+        return n.startsWith(wsRoot + '/') ? n.slice(wsRoot.length + 1) : n;
+      };
+      return agentRelSet.has(norm(change.relativePath)) || agentRelSet.has(toRel(change.path));
+    },
+    [agentRelSet, workspace]
+  );
 
   // Live meta for outer headers (SiderDiffSection etc.). We notify the parent
   // (e.g. SiderDiffSection header) so it can render "Diff (N)" / branch without
@@ -704,6 +773,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               onGetDiff={gitChangesHook.getDiff}
               onExpandFlyout={onExpandFlyout}
               hideToolbar={siderDiffChrome === 'embedded'}
+              isAgentModified={isAgentModified}
             />
           </FlexFullContainer>
         )}

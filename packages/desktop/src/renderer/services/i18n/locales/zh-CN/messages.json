@@ -117,5 +117,11 @@
   "deleteMessageTitle": "删除消息？",
   "deleteMessageConfirm": "这将从远程会话中永久删除该消息。",
   "deleteMessageSuccess": "消息已删除",
-  "deleteMessageFailed": "删除消息失败"
+  "deleteMessageFailed": "删除消息失败",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

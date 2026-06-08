@@ -112,5 +112,11 @@
   "deleteMessageTitle": "메시지를 삭제할까요?",
   "deleteMessageConfirm": "원격 세션에서 이 메시지를 영구적으로 삭제합니다.",
   "deleteMessageSuccess": "메시지가 삭제되었습니다",
-  "deleteMessageFailed": "메시지 삭제 실패"
+  "deleteMessageFailed": "메시지 삭제 실패",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

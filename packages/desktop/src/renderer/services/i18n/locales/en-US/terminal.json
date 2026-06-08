@@ -34,6 +34,8 @@
     "actionChat": "Chat",
     "actionCommandCenter": "Command Center",
     "actionTerminal": "Terminal",
-    "actionDiff": "Diff"
+    "actionDiff": "Diff",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

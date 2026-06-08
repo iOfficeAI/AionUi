@@ -112,5 +112,11 @@
   "deleteMessageTitle": "刪除訊息？",
   "deleteMessageConfirm": "這將從遠端工作階段中永久刪除此訊息。",
   "deleteMessageSuccess": "訊息已刪除",
-  "deleteMessageFailed": "刪除訊息失敗"
+  "deleteMessageFailed": "刪除訊息失敗",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

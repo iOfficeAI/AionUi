@@ -111,5 +111,11 @@
   "deleteMessageTitle": "Видалити повідомлення?",
   "deleteMessageConfirm": "Це назавжди видалить повідомлення з віддаленого сеансу.",
   "deleteMessageSuccess": "Повідомлення видалено",
-  "deleteMessageFailed": "Не вдалося видалити повідомлення"
+  "deleteMessageFailed": "Не вдалося видалити повідомлення",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

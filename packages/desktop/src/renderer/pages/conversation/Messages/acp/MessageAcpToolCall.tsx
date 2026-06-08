@@ -18,22 +18,37 @@ import { useTranslation } from 'react-i18next';
 import AionModal from '@/renderer/components/base/AionModal';
 import { iconColors } from '@/renderer/styles/colors';
 import MarkdownView from '@renderer/components/Markdown';
+import StatusPill, { type StatusPillState, STATE_LABEL_KEY, STATE_LABEL_FALLBACK } from '../components/StatusPill';
 import RestorePlanPreview from '../components/RestorePlanPreview';
 
-const StatusTag: React.FC<{ status: string }> = ({ status }) => {
-  const getTagProps = () => {
-    switch (status) {
-      case 'pending':
-        return { color: 'blue', text: 'Pending' };
-      case 'in_progress':
-        return { color: 'orange', text: 'In Progress' };
-      default:
-        return { color: 'gray', text: status };
-    }
-  };
-
-  const { color, text } = getTagProps();
-  return <Tag color={color}>{text}</Tag>;
+/**
+ * Pure helper: map an ACP tool call's (status, kind, exitCode) tuple to the
+ * `StatusPillState` vocabulary. Kept as an exported top-level function so it
+ * can be unit-tested without rendering the component.
+ *
+ * For `kind === 'execute'` the exit code is the source of truth:
+ * - exit 0 → success
+ * - any other numeric exit code → failed
+ * - missing exit code → fall back to the coarse `status` field
+ */
+export const deriveAcpPillState = (
+  status: string | undefined,
+  exitCode: number | undefined,
+  kind: string
+): StatusPillState => {
+  if (kind === 'execute' && typeof exitCode === 'number') {
+    return exitCode === 0 ? 'success' : 'failed';
+  }
+  switch (status) {
+    case 'completed':
+      return 'success';
+    case 'failed':
+      return 'failed';
+    case 'in_progress':
+      return 'running';
+    default:
+      return 'queued';
+  }
 };
 
 // Diff content display as a separate component to ensure hooks are called unconditionally
@@ -220,15 +235,23 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
   const getKindDisplayName = (kind: string) => {
     switch (kind) {
       case 'edit':
-        return 'File Edit';
+        return t('messages.acpToolCall.kindEdit', { defaultValue: 'File Edit' });
       case 'read':
-        return 'File Read';
+        return t('messages.acpToolCall.kindRead', { defaultValue: 'File Read' });
       case 'execute':
-        return 'Shell Command';
+        return t('messages.acpToolCall.kindExecute', { defaultValue: 'Shell Command' });
       default:
         return kind;
     }
   };
+
+  // Pill state for the status indicator in the header. For `execute` calls
+  // we surface the exit code as the source of truth (exit 0 = success, any
+  // other code = failed). For all other kinds we fall back to the coarse
+  // `status` field.
+  const execExitCode = progress?.kind === 'bash' ? progress.exitCode : undefined;
+  const pillState = deriveAcpPillState(status, execExitCode, kind);
+  const pillLabel = t(STATE_LABEL_KEY[pillState], { defaultValue: STATE_LABEL_FALLBACK[pillState] });
 
   const showRevert =
     tool_call_id && status === 'completed' && REVERTABLE_KINDS.has(kind) && Boolean(conversationContext);
@@ -273,12 +296,25 @@ const MessageAcpToolCall: React.FC<{ message: IMessageAcpToolCall }> = ({ messag
                 </Tag>
               )}
               <span className='font-medium text-t-primary'>{title || getKindDisplayName(kind)}</span>
-              {status ? <StatusTag status={status} /> : null}
+              {status ? <StatusPill state={pillState} label={pillLabel} /> : null}
+              {typeof execExitCode === 'number' ? (
+                <span
+                  className='font-mono text-11px'
+                  style={{ color: execExitCode === 0 ? 'var(--success)' : 'var(--danger)' }}
+                >
+                  {t('messages.acpToolCall.exit', { code: execExitCode, defaultValue: 'exit {{code}}' })}
+                </span>
+              ) : null}
             </div>
             {inputStreaming && <InputStreamingView streaming={inputStreaming} />}
             {!inputStreaming && rawInput && (
               <div className='text-sm'>
-                {typeof rawInput === 'string' ? (
+                {kind === 'execute' && typeof (rawInput as { command?: unknown }).command === 'string' ? (
+                  <pre className='bg-1 text-t-primary font-mono text-xs p-2 rounded overflow-x-auto whitespace-pre-wrap break-all'>
+                    <span className='text-t-tertiary select-none'>$ </span>
+                    {(rawInput as { command: string }).command}
+                  </pre>
+                ) : typeof rawInput === 'string' ? (
                   <MarkdownView>{`\`\`\`\n${rawInput}\n\`\`\``}</MarkdownView>
                 ) : (
                   <pre className='bg-1 p-2 rounded text-xs overflow-x-auto'>{JSON.stringify(rawInput, null, 2)}</pre>

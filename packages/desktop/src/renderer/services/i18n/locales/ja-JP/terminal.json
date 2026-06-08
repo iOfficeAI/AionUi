@@ -34,6 +34,8 @@
     "actionChat": "チャット",
     "actionCommandCenter": "コマンドセンター",
     "actionTerminal": "ターミナル",
-    "actionDiff": "差分"
+    "actionDiff": "差分",
+    "modeChat": "Chat",
+    "modeCommandCenter": "Command Center"
   }
 }

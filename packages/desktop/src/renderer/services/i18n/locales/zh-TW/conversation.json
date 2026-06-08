@@ -208,7 +208,9 @@
       "expandFlyout": "Expand diff view",
       "expandFlyoutAria": "Open source control in a larger overlay",
       "flyoutTitle": "Source control",
-      "flyoutDescription": "Review, stage, and commit changes with more room for diffs."
+      "flyoutDescription": "Review, stage, and commit changes with more room for diffs.",
+      "agentModified": "Agent",
+      "agentModifiedTooltip": "Modified by the agent in this conversation"
     },
     "files": {
       "expandFlyout": "展開檔案樹",

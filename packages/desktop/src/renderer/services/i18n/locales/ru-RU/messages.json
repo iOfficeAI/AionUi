@@ -112,5 +112,11 @@
   "deleteMessageTitle": "Удалить сообщение?",
   "deleteMessageConfirm": "Это безвозвратно удалит сообщение из удалённой сессии.",
   "deleteMessageSuccess": "Сообщение удалено",
-  "deleteMessageFailed": "Не удалось удалить сообщение"
+  "deleteMessageFailed": "Не удалось удалить сообщение",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  }
 }

@@ -114,6 +114,12 @@
   "revertToolCallConfirmMessage": "Reverting this call will undo the file changes this tool made. The OpenCode session state is NOT changed.",
   "revertToolCallSuccess": "Tool call reverted — {{files}} file(s) restored",
   "revertToolCallFailed": "Failed to revert tool call",
+  "acpToolCall": {
+    "kindEdit": "File Edit",
+    "kindRead": "File Read",
+    "kindExecute": "Shell Command",
+    "exit": "exit {{code}}"
+  },
   "restorePlan": {
     "title": "Restore Plan (read-only preview)",
     "tooltip": "Preview restore plan (read-only)",

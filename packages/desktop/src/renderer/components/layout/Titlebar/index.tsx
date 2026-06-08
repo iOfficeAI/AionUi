@@ -340,9 +340,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
               })}
               onClick={handleSelectChat}
               aria-pressed={activeLayoutMode === 'chat'}
-              title='Chat'
+              title={t('terminal.layout.modeChat', { defaultValue: 'Chat' })}
             >
-              Chat
+              {t('terminal.layout.modeChat', { defaultValue: 'Chat' })}
             </button>
             <button
               type='button'
@@ -351,9 +351,9 @@ const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
               })}
               onClick={handleSelectCommandCenter}
               aria-pressed={activeLayoutMode === 'command-center'}
-              title='Command Center'
+              title={t('terminal.layout.modeCommandCenter', { defaultValue: 'Command Center' })}
             >
-              Command Center
+              {t('terminal.layout.modeCommandCenter', { defaultValue: 'Command Center' })}
             </button>
           </div>
         )}

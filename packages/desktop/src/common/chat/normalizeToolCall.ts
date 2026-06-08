@@ -1,4 +1,4 @@
-import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup } from './chatLib';
+import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from './chatLib';
 
 export type NormalizedToolStatus = 'pending' | 'running' | 'completed' | 'error' | 'canceled';
 
@@ -221,4 +221,100 @@ export function hasRunningToolMessages(messages: ToolMessage[]): boolean {
     }
     return false;
   });
+}
+
+// ===== Agent-edited paths extraction =====
+//
+// Walks the message history of a conversation and returns the union of file
+// paths the current conversation's agent has edited/written via its tool calls.
+// Used to mark which lines in the Git changes list originated from the agent
+// (vs. the user's own edits) before committing.
+
+const pickStringField = (raw: Record<string, unknown> | undefined, keys: readonly string[]): string | undefined => {
+  if (!raw) return undefined;
+  for (const key of keys) {
+    const value = raw[key];
+    if (typeof value === 'string' && value.length > 0) return value;
+  }
+  return undefined;
+};
+
+const collectAcpToolCallPaths = (message: IMessageAcpToolCall): string[] => {
+  const out: string[] = [];
+  const update = message.content?.update;
+  if (!update) return out;
+  // `kind` is the typed discriminator from ACP/OpenCode. Today the public
+  // ToolCallUpdate type enumerates 'read' | 'edit' | 'execute', but agents in
+  // the wild also report 'write'; treat both as editing operations. Cast to
+  // string so the comparison is forward-compatible with future enum
+  // additions without a `noOverlap` typecheck error.
+  const kind = update.kind as string;
+  const isEditKind = kind === 'edit' || kind === 'write';
+  if (!isEditKind) return out;
+  const fromRaw = pickStringField(update.rawInput, ['file_path', 'path', 'file_name']);
+  if (fromRaw) out.push(fromRaw);
+  if (Array.isArray(update.locations)) {
+    for (const loc of update.locations) {
+      if (typeof loc?.path === 'string' && loc.path.length > 0) out.push(loc.path);
+    }
+  }
+  if (Array.isArray(update.content)) {
+    for (const item of update.content) {
+      if (item && item.type === 'diff' && typeof item.path === 'string' && item.path.length > 0) {
+        out.push(item.path);
+      }
+    }
+  }
+  return out;
+};
+
+const collectToolGroupPaths = (message: IMessageToolGroup): string[] => {
+  const out: string[] = [];
+  if (!Array.isArray(message.content)) return out;
+  for (const entry of message.content) {
+    if (entry.confirmationDetails?.type === 'edit') {
+      const fileName = entry.confirmationDetails.file_name;
+      if (typeof fileName === 'string' && fileName.length > 0) out.push(fileName);
+    }
+  }
+  return out;
+};
+
+/**
+ * Extract every distinct file path the current conversation's agent has
+ * edited or written, based on the persisted message history. Pure / side-
+ * effect free; safe to call from any render path.
+ *
+ * Handles two ACP-shaped message families:
+ *  - `acp_tool_call`: when `update.kind` is `edit` or `write`, collects
+ *    `rawInput.file_path | path | file_name`, every `update.locations[].path`,
+ *    and every `update.content[]` item where `type === 'diff'`.
+ *  - `tool_group`: for each entry whose `confirmationDetails.type === 'edit'`,
+ *    collects `confirmationDetails.file_name`.
+ *
+ * Returns paths verbatim (as emitted by the agent / tool). Path normalization
+ * against the workspace is the caller's responsibility — the Git changes
+ * panel matches by repo-relative POSIX path and needs the same string form on
+ * both sides.
+ */
+export function extractAgentEditedPaths(messages: readonly TMessage[]): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  const push = (path: string | undefined) => {
+    if (typeof path !== 'string' || path.length === 0) return;
+    if (seen.has(path)) return;
+    seen.add(path);
+    out.push(path);
+  };
+  for (const m of messages) {
+    if (m.type === 'acp_tool_call') {
+      for (const p of collectAcpToolCallPaths(m)) push(p);
+    } else if (m.type === 'tool_group') {
+      for (const p of collectToolGroupPaths(m)) push(p);
+    }
+    // All other message types (text, tips, tool_call, agent_status, permission,
+    // acp_permission, plan, thinking, available_commands, opencode_subtask,
+    // opencode_retry, opencode_error) intentionally ignored.
+  }
+  return out;
 }
