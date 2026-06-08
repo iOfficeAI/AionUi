@@ -12,9 +12,11 @@
  */
 
 import { Dropdown, Menu } from '@arco-design/web-react';
+import { ArrowLeft, ArrowRight } from '@icon-park/react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isMacEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
+import { useEditorDock } from '@/renderer/utils/layout/editorDock';
 
 type Props = {
   saving: boolean;
@@ -93,6 +95,11 @@ const EditorToolbar: React.FC<Props> = ({
   onClose,
 }) => {
   const { t } = useTranslation();
+  const { dock, toggleDock } = useEditorDock();
+  // Contextual single-arrow control: docked left → show "→" (move right),
+  // docked right → show "←" (move left). Arrow-only by design; the action is
+  // conveyed via the aria-label / tooltip.
+  const dockLabel = dock === 'end' ? t('conversation.editor.dockToLeft', { defaultValue: 'Move editor to the left of chat' }) : t('conversation.editor.dockToRight', { defaultValue: 'Move editor to the right of chat' });
 
   const fileMenu = useMemo(
     () => (
@@ -211,6 +218,15 @@ const EditorToolbar: React.FC<Props> = ({
 
       <div className='editor-menubar__spacer' />
 
+      <button
+        type='button'
+        className='editor-menubar__item editor-menubar__item--secondary editor-menubar__item--icon'
+        onClick={toggleDock}
+        aria-label={dockLabel}
+        title={dockLabel}
+      >
+        {dock === 'end' ? <ArrowLeft size={15} /> : <ArrowRight size={15} />}
+      </button>
       <button type='button' className='editor-menubar__item editor-menubar__item--secondary' onClick={onCollapse}>
         {t('conversation.editor.collapseEditor')}
       </button>

@@ -254,6 +254,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "编辑器",
+    "dockToRight": "将编辑器移动到聊天右侧",
+    "dockToLeft": "将编辑器移动到聊天左侧",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

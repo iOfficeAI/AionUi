@@ -254,6 +254,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "편집기",
+    "dockToRight": "편집기를 채팅 오른쪽으로 이동",
+    "dockToLeft": "편집기를 채팅 왼쪽으로 이동",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

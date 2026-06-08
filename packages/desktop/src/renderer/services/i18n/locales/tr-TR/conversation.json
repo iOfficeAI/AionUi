@@ -249,6 +249,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "Düzenleyici",
+    "dockToRight": "Düzenleyiciyi sohbetin sağına taşı",
+    "dockToLeft": "Düzenleyiciyi sohbetin soluna taşı",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

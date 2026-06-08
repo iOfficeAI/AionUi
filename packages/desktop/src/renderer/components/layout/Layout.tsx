@@ -35,6 +35,7 @@ import { useTerminalPanelSafe } from '@renderer/hooks/context/TerminalPanelConte
 import { useLayoutModeSafe } from '@renderer/hooks/context/LayoutModeContext';
 import { useEditorContextSafe } from '@renderer/pages/conversation/Editor';
 import { dispatchWorkspaceSetCollapsedEvent } from '@renderer/utils/workspace/workspaceEvents';
+import { useEditorDock } from '@renderer/utils/layout/editorDock';
 import '@renderer/styles/layout.css';
 
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
@@ -200,6 +201,9 @@ const Layout: React.FC<{
   // different id shape and have no editor today, so gate strictly on this.
   const isConversationRoute = location.pathname.startsWith('/conversation/');
   const isSettingsRoute = location.pathname.startsWith('/settings');
+  // Editor dock side drives the chat content's flex order so the editor sits
+  // left (start) or right (end) of chat without reparenting either pane.
+  const { dock: editorDock } = useEditorDock();
   // The conversation pane is available everywhere except the Settings menu.
   const conversationPaneEnabled = !isSettingsRoute;
 
@@ -659,13 +663,13 @@ const Layout: React.FC<{
                   onClick={() => {
                     if (isMobile && !collapsed) setCollapsed(true);
                   }}
-                  style={
-                    isMobile
-                      ? {
-                          width: '100%',
-                        }
-                      : undefined
-                  }
+                  style={{
+                    // Complementary order to the editor host: start → editor(1)
+                    // chat(2); end → chat(1) editor(2). Conversation pane is
+                    // pinned rightmost (order 3) in its own component.
+                    order: editorDock === 'end' ? 1 : 2,
+                    ...(isMobile ? { width: '100%' } : {}),
+                  }}
                 >
                   <div role='main' data-layout-region='content' tabIndex={-1} className='flex flex-col flex-1 min-h-0'>
                     <TerminalPanelHost isMobile={isMobile}>

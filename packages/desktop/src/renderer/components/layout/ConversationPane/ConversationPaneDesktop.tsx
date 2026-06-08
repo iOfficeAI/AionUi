@@ -89,7 +89,9 @@ const ConversationPaneDesktop: React.FC<ConversationPaneDesktopProps> = ({ colla
         [styles.paneAnimating]: !isResizing,
         [styles.paneCollapsed]: collapsed,
       })}
-      style={{ width, flexBasis: width }}
+      // `order: 3` keeps the conversation pane pinned rightmost regardless of
+      // the editor dock side (Sider 0, editor/chat 1–2, this pane 3).
+      style={{ width, flexBasis: width, order: 3 }}
       aria-hidden={collapsed}
     >
       {!collapsed && (

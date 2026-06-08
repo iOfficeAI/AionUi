@@ -254,6 +254,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "エディター",
+    "dockToRight": "エディターをチャットの右側に移動",
+    "dockToLeft": "エディターをチャットの左側に移動",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

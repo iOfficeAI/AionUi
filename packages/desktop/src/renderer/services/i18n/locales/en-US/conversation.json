@@ -272,6 +272,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "Editor",
+    "dockToRight": "Move editor to the right of chat",
+    "dockToLeft": "Move editor to the left of chat",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",

@@ -327,6 +327,8 @@ export type I18nKey =
   | 'conversation.editor.cut'
   | 'conversation.editor.disableWordWrap'
   | 'conversation.editor.discardChanges'
+  | 'conversation.editor.dockToLeft'
+  | 'conversation.editor.dockToRight'
   | 'conversation.editor.editMenu'
   | 'conversation.editor.emptyDescription'
   | 'conversation.editor.enableWordWrap'

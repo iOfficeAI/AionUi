@@ -27,24 +27,39 @@
      `--expanded` lift it to 1 (transitions on close as well as open). Duration
      bumped to `--motion-slow` (320ms) so the glide reads as deliberate.
 
-     The divider is left-only: the editor is a docked pane flush to the window
-     edges, separated from the chat by a single clean vertical rule rather than
-     an all-around floating frame. */
+     The divider sits on the editor's chat-facing edge — the RIGHT edge when
+     docked left, the LEFT edge when docked right (see the `--dock-start` /
+     `--dock-end` rules below) — a single clean vertical rule rather than an
+     all-around floating frame. */
   border: none;
   border-left: 1px solid transparent;
+  border-right: 1px solid transparent;
   opacity: 0;
   transition:
     width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     flex-basis var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     min-width var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     border-left-color var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
+    border-right-color var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease),
     opacity var(--motion-slow, 320ms) var(--motion-ease-emphasized, ease);
 }
 
 .editor-pane--expanded {
   background: var(--bg-1);
-  border-left-color: var(--bg-3);
   opacity: 1;
+}
+
+/* Seam side follows the dock side: docked LEFT → divider on the editor's RIGHT
+   edge (editor↔chat); docked RIGHT → divider on the editor's LEFT edge
+   (chat↔editor). Applied to both the expanded pane and the collapsed blade. */
+.editor-pane--dock-start.editor-pane--expanded,
+.editor-pane--dock-start.editor-pane--blade {
+  border-right-color: var(--bg-3);
+}
+
+.editor-pane--dock-end.editor-pane--expanded,
+.editor-pane--dock-end.editor-pane--blade {
+  border-left-color: var(--bg-3);
 }
 
 /* Collapsed editor "blade" (Xbox-style drawer handle). When the editor is open
@@ -53,7 +68,6 @@
    makes it slide. Opacity is forced to 1 here because the base `.editor-pane`
    rule starts at 0 and only `--expanded` otherwise lifts it. */
 .editor-pane--blade {
-  border-left-color: var(--bg-3);
   opacity: 1;
 }
 
@@ -305,6 +319,16 @@
 
 .editor-menubar__item--secondary:hover {
   color: var(--text-primary, #1f1f1f);
+}
+
+/* Icon-only menubar control (e.g. the editor dock-side toggle). Tighter
+   horizontal padding and a block-level glyph so the arrow centers cleanly. */
+.editor-menubar__item--icon {
+  padding: 0 6px;
+}
+
+.editor-menubar__item--icon svg {
+  display: block;
 }
 
 .editor-menubar__spacer {

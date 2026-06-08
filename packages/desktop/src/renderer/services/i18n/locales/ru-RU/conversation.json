@@ -254,6 +254,8 @@
     "collapseEditor": "Collapse editor",
     "expandEditor": "Expand editor",
     "bladeLabel": "Редактор",
+    "dockToRight": "Переместить редактор вправо от чата",
+    "dockToLeft": "Переместить редактор влево от чата",
     "unsavedTitle": "Unsaved changes",
     "unsavedMessage": "You have unsaved changes. Save before continuing?",
     "saveAndContinue": "Save and continue",
