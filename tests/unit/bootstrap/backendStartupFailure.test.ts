@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { classifyBackendStartupFailure } from '@/process/startup/backendStartupFailure';
+import { detectStartupArchitectureMismatch } from '@/process/startup/architectureCompatibility';
+import { getDownloadLatestModalActionProps } from '@/renderer/components/layout/InstallationIntegrityDialog';
 
 describe('classifyBackendStartupFailure', () => {
   it('classifies missing GLIBC symbols as an incompatible backend runtime', () => {
@@ -124,6 +126,98 @@ describe('classifyBackendStartupFailure', () => {
       missingPwaDir: false,
       missingResources: ['bundled-aioncore/win32-x64/managed-resources/', 'bundled-aioncore/win32-x64/aioncore.exe'],
       missingRuntimeDir: false,
+    });
+  });
+
+  it('classifies packaged macOS architecture mismatches separately from generic startup failures', () => {
+    const error = new Error('AionUi package architecture does not match this Mac') as Error & {
+      details?: Record<string, unknown>;
+    };
+    error.details = {
+      stage: 'startup_architecture_check',
+      platform: 'darwin',
+      isPackaged: true,
+      packageArch: 'x64',
+      deviceArch: 'arm64',
+      expectedDownloadArch: 'arm64',
+      isRosettaTranslated: true,
+    };
+
+    expect(classifyBackendStartupFailure(error)).toEqual({
+      reason: 'backend_package_architecture_mismatch',
+      packageArch: 'x64',
+      deviceArch: 'arm64',
+      expectedDownloadArch: 'arm64',
+      isRosettaTranslated: true,
+    });
+  });
+});
+
+describe('detectStartupArchitectureMismatch', () => {
+  it('detects packaged macOS x64 builds running on Apple Silicon', () => {
+    const mismatch = detectStartupArchitectureMismatch({
+      arch: 'x64',
+      isPackaged: true,
+      platform: 'darwin',
+      execFileSync: (command, args) => {
+        expect(command).toBe('sysctl');
+        if (args.join(' ') === '-in sysctl.proc_translated') return '1\n';
+        if (args.join(' ') === '-in hw.optional.arm64') return '1\n';
+        throw new Error(`unexpected args: ${args.join(' ')}`);
+      },
+    });
+
+    expect(mismatch).toEqual({
+      deviceArch: 'arm64',
+      expectedDownloadArch: 'arm64',
+      isPackaged: true,
+      isRosettaTranslated: true,
+      packageArch: 'x64',
+      platform: 'darwin',
+      stage: 'startup_architecture_check',
+    });
+  });
+
+  it('allows packaged macOS x64 builds on Intel Macs', () => {
+    const mismatch = detectStartupArchitectureMismatch({
+      arch: 'x64',
+      isPackaged: true,
+      platform: 'darwin',
+      execFileSync: (_command, args) => {
+        if (args.join(' ') === '-in sysctl.proc_translated') return '0\n';
+        if (args.join(' ') === '-in hw.optional.arm64') return '0\n';
+        throw new Error(`unexpected args: ${args.join(' ')}`);
+      },
+    });
+
+    expect(mismatch).toBeNull();
+  });
+
+  it('skips checks outside packaged macOS', () => {
+    const mismatch = detectStartupArchitectureMismatch({
+      arch: 'x64',
+      isPackaged: false,
+      platform: 'darwin',
+      execFileSync: () => {
+        throw new Error('sysctl should not be called');
+      },
+    });
+
+    expect(mismatch).toBeNull();
+  });
+});
+
+describe('getDownloadLatestModalActionProps', () => {
+  it('hides the cancel action for blocking download-latest dialogs', () => {
+    const t = (key: string) => key;
+
+    expect(getDownloadLatestModalActionProps(t)).toMatchObject({
+      okText: 'common.backendStartup.incompleteInstallation.downloadLatest',
+      cancelButtonProps: {
+        style: {
+          display: 'none',
+        },
+      },
     });
   });
 });

@@ -98,6 +98,7 @@ import {
   InstallationIntegrityContent,
   InstallationIntegrityModalHost,
   getBackendStartupInstallationDescription,
+  getDownloadLatestModalActionProps,
   getRuntimeComponentInstallationDescription,
   showInstallationIntegrityModal,
 } from './components/layout/InstallationIntegrityDialog';
@@ -294,16 +295,39 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   const { t } = useTranslation();
 
   const isIncompatibleRuntime = failure.reason === 'backend_incompatible_runtime';
+  const isPackageArchitectureMismatch = failure.reason === 'backend_package_architecture_mismatch';
   const title = t('common.backendStartup.incompatibleRuntime.title');
   const description = isIncompatibleRuntime
     ? t('common.backendStartup.incompatibleRuntime.description')
-    : getBackendStartupInstallationDescription(t);
+    : isPackageArchitectureMismatch
+      ? t('common.backendStartup.packageArchitectureMismatch.description', {
+          packageArch: failure.packageArch ?? 'x64',
+          deviceArch: failure.deviceArch ?? 'arm64',
+          expectedArch: failure.expectedDownloadArch ?? 'arm64',
+        })
+      : getBackendStartupInstallationDescription(t);
   const requiredVersions = failure.requiredVersions?.map((version) => `GLIBC_${version}`).join(', ');
 
-  if (!isIncompatibleRuntime) {
+  if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
     return (
       <div className='min-h-screen bg-bg-1'>
         <InstallationIntegrityModalHost description={description} />
+      </div>
+    );
+  }
+
+  if (isPackageArchitectureMismatch) {
+    return (
+      <div className='min-h-screen bg-bg-1'>
+        <Modal
+          visible
+          closable={false}
+          maskClosable={false}
+          title={t('common.backendStartup.packageArchitectureMismatch.title')}
+          {...getDownloadLatestModalActionProps(t)}
+        >
+          <InstallationIntegrityContent description={description} />
+        </Modal>
       </div>
     );
   }
@@ -331,6 +355,7 @@ const backendStartupFailure = window.__backendStartupFailure;
 const shouldShowBackendStartupFailureDialog =
   backendStartupFailure?.reason === 'backend_incompatible_runtime' ||
   backendStartupFailure?.reason === 'backend_incomplete_installation' ||
+  backendStartupFailure?.reason === 'backend_package_architecture_mismatch' ||
   backendStartupFailure?.reason === 'backend_startup_failed';
 if (backendStartupFailure && shouldShowBackendStartupFailureDialog) {
   root.render(
