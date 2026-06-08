@@ -21,6 +21,10 @@ type ErrorWithDetails = Error & {
     runtimeDirExists?: unknown;
     resourcesDirEntries?: unknown;
     runtimeDirEntries?: unknown;
+    packageArch?: unknown;
+    deviceArch?: unknown;
+    expectedDownloadArch?: unknown;
+    isRosettaTranslated?: unknown;
   };
 };
 
@@ -65,6 +69,25 @@ function getStringArray(value: unknown): string[] | undefined {
   if (!Array.isArray(value)) return undefined;
   const strings = value.filter((item): item is string => typeof item === 'string');
   return strings.length === value.length ? strings : undefined;
+}
+
+function getString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function classifyPackageArchitectureMismatch(
+  details: ErrorWithDetails['details']
+): BackendStartupFailureInfo | undefined {
+  if (!details) return undefined;
+  if (details.stage !== 'startup_architecture_check') return undefined;
+
+  return {
+    reason: 'backend_package_architecture_mismatch',
+    packageArch: getString(details.packageArch),
+    deviceArch: getString(details.deviceArch),
+    expectedDownloadArch: getString(details.expectedDownloadArch),
+    isRosettaTranslated: typeof details.isRosettaTranslated === 'boolean' ? details.isRosettaTranslated : undefined,
+  };
 }
 
 function getMissingDirectoryFlag(entries: string[], directoryName: string): boolean | undefined {
@@ -128,6 +151,9 @@ function classifyIncompleteInstallation(details: ErrorWithDetails['details']): B
 
 export function classifyBackendStartupFailure(error: unknown): BackendStartupFailureInfo {
   const details = getBackendStartupDetails(error);
+  const packageArchitectureMismatch = classifyPackageArchitectureMismatch(details);
+  if (packageArchitectureMismatch) return packageArchitectureMismatch;
+
   const incompleteInstallation = classifyIncompleteInstallation(details);
   if (incompleteInstallation) return incompleteInstallation;
 
