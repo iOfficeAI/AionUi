@@ -10,10 +10,10 @@ import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
-initSentry();
-
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
+
+initSentry();
 import fixPath from 'fix-path';
 import * as fs from 'fs';
 import * as path from 'path';

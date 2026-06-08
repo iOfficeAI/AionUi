@@ -106,6 +106,18 @@
   transform: none !important;
 }
 
+/* Side conversation trigger & reopen buttons — consistent color across themes */
+.side-btn-text,
+.side-btn-text.arco-btn-text {
+  color: var(--color-text-2) !important;
+}
+
+.side-btn-text:hover,
+.side-btn-text.arco-btn-text:hover {
+  color: var(--color-text-1) !important;
+  background: var(--color-fill-2) !important;
+}
+
 /* Conversation sendbox model/permission pills: blend into background */
 .sendbox-tools .sendbox-model-btn,
 .sendbox-tools .sendbox-model-btn:hover,
@@ -357,6 +369,31 @@
 
 .sendbox-highlight-container {
   position: relative;
+}
+
+.sendbox-root--side {
+  width: 100%;
+}
+
+.sendbox-panel--side {
+  border-radius: 16px !important;
+  border-width: 1px !important;
+  border-color: var(--bg-3) !important;
+  background: var(--bg-1) !important;
+  box-shadow: 0 8px 22px color-mix(in srgb, var(--bg-5) 8%, transparent);
+  padding: 16px !important;
+}
+
+.sendbox-panel--side .arco-textarea-wrapper,
+.sendbox-panel--side .arco-textarea {
+  width: 100% !important;
+  min-height: 28px !important;
+  padding-left: 0 !important;
+  padding-right: 0 !important;
+}
+
+.sendbox-panel--side .sendbox-actions {
+  min-height: 32px;
 }
 
 .sendbox-highlight-layer {

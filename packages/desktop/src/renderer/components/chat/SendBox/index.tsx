@@ -11,6 +11,7 @@ import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import SlashCommandMenu, { type SlashCommandMenuItem } from '@/renderer/components/chat/SlashCommandMenu';
 import { useBtwCommand } from '@/renderer/components/chat/BtwOverlay/useBtwCommand';
 import { getFuzzyMatchIndices, useSlashCommandController } from '@/renderer/hooks/chat/useSlashCommandController';
+import { useSideConversationControlSafe } from '@/renderer/pages/conversation/context/SideConversationControlContext';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
@@ -52,6 +53,12 @@ const constVoid = (): void => undefined;
 // Threshold: switch to multi-line mode directly when character count exceeds this value to avoid heavy layout work
 const MAX_SINGLE_LINE_CHARACTERS = 800;
 const BTW_COMMAND_RE = /^\/btw(?:\s+([\s\S]*))?$/i;
+const SIDE_COMMAND_RE = /^\/side(?:\s+([\s\S]*))?$/i;
+
+function extractSideSlashQuestion(input: string): string | null {
+  const match = input.match(SIDE_COMMAND_RE);
+  return match ? (match[1] ?? '') : null;
+}
 const AT_FILE_HIGHLIGHT_COLOR = theme.Color.PrimaryColor;
 
 const getSelectedItemMatchKeys = (item: FileSelectionItem): string[] => {
@@ -174,6 +181,12 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand?: (name: string) => void;
   hasPendingAttachments?: boolean;
   enableBtw?: boolean;
+  enableSide?: boolean;
+  onOpenSide?: (firstQuestion?: string) => void;
+  /** When set, only this SendBox instance handles `sendbox.fill.scoped`. */
+  conversationScopeId?: string;
+  /** Side dock composer: show rotating quick prompts above the input. */
+  isSideComposer?: boolean;
   allowSendWhileLoading?: boolean;
   compactActions?: boolean;
   selectedWorkspaceItems?: FileSelectionItem[];
@@ -206,6 +219,10 @@ const SendBox: React.FC<{
   onSlashBuiltinCommand,
   hasPendingAttachments = false,
   enableBtw = false,
+  enableSide: enableSideProp = false,
+  onOpenSide: onOpenSideProp,
+  conversationScopeId,
+  isSideComposer = false,
   allowSendWhileLoading = false,
   compactActions = false,
   selectedWorkspaceItems,
@@ -253,6 +270,16 @@ const SendBox: React.FC<{
   // Listen for reply events from message actions
   useAddEventListener('sendbox.reply', (quote) => setReplyQuote(quote), []);
   useAddEventListener('sendbox.reply.clear', () => setReplyQuote(null), []);
+  useAddEventListener(
+    'sendbox.fill.scoped',
+    ({ conversation_id, text }) => {
+      if (!conversationScopeId || conversation_id !== conversationScopeId) return;
+      setInputRef.current(text);
+      setIsSingleLine(false);
+      emitter.emit('sendbox.fill.scoped.handled', { conversation_id, text });
+    },
+    [conversationScopeId]
+  );
 
   // 集成预览面板的"添加到聊天"功能 / Integrate preview panel's "Add to chat" functionality
   const { setSendBoxHandler, domSnippets, removeDomSnippet, clearDomSnippets } = usePreviewContext();
@@ -384,8 +411,25 @@ const SendBox: React.FC<{
     t,
     messageApi: message,
   });
+  const sideControl = useSideConversationControlSafe();
+  const effectiveEnableSide = enableSideProp || sideControl?.enableSide || false;
+  const canOpenSide = effectiveEnableSide && !isSideComposer && !conversationContext?.isSideConversation;
+  const effectiveOnOpenSide = onOpenSideProp ?? sideControl?.onOpenSide;
   const btwCommand = useBtwCommand(conversationContext?.conversation_id, enableBtw);
   const btwQuestion = useMemo(() => extractBtwQuestion(input), [input]);
+  const sideSlashQuestion = useMemo(() => extractSideSlashQuestion(input), [input]);
+
+  useEffect(() => {
+    if (!canOpenSide) return;
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.metaKey || event.ctrlKey) && event.shiftKey && event.key.toLowerCase() === 's') {
+        event.preventDefault();
+        effectiveOnOpenSide?.();
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [canOpenSide, effectiveOnOpenSide]);
   const activeAtFileQuery = useMemo(() => {
     if (!conversationContext?.workspace) {
       return null;
@@ -435,6 +479,15 @@ const SendBox: React.FC<{
         selectionBehavior: 'insert',
       });
     }
+    if (canOpenSide) {
+      commands.push({
+        name: 'side',
+        description: t('conversation.sideConversation.title'),
+        kind: 'builtin',
+        source: 'builtin',
+        selectionBehavior: 'insert',
+      });
+    }
     if (onSlashBuiltinCommand) {
       commands.push({
         name: 'open',
@@ -456,7 +509,7 @@ const SendBox: React.FC<{
       // kept intact for a future per-platform re-enable.
     }
     return commands;
-  }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
+  }, [canOpenSide, conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);
 
   // Skills loaded into this conversation are also invokable via slash. We reuse
   // the global skills index (shared SWR key `skills-index`) purely to attach a
@@ -1124,6 +1177,14 @@ const SendBox: React.FC<{
 
   const sendMessageHandler = () => {
     if (isUploading) return;
+    if (canOpenSide && sideSlashQuestion !== null) {
+      historyDraftRef.current = null;
+      setHistoryNavigationIndex(null);
+      setInput('');
+      effectiveOnOpenSide?.(sideSlashQuestion.trim() || undefined);
+      return;
+    }
+
     if (enableBtw && btwQuestion !== null) {
       const normalizedQuestion = btwQuestion.trim();
       if (!normalizedQuestion) {
@@ -1299,8 +1360,26 @@ const SendBox: React.FC<{
 
   // On mobile compact mode, the parent supplies the action sheet — collapse
   // tools/rightTools into the `+` launcher and skip the inline speech button.
-  const renderedTools = isMobileCompact ? mobilePlusButton : tools;
-  const renderedRightTools = isMobileCompact ? null : rightTools;
+  const sideTriggerButton =
+    canOpenSide && !isMobileCompact ? (
+      <Button
+        size='mini'
+        type='text'
+        className='side-btn-text'
+        onClick={() => effectiveOnOpenSide?.()}
+        aria-label={t('conversation.sideConversation.title')}
+      >
+        ⑂ {t('conversation.sideConversation.title')}
+      </Button>
+    ) : null;
+
+  const renderedTools = isMobileCompact ? mobilePlusButton : <>{tools}</>;
+  const renderedRightTools = isMobileCompact ? null : (
+    <>
+      {sideTriggerButton}
+      {rightTools}
+    </>
+  );
   const renderedSpeechButton = isMobileCompact ? null : (
     <SpeechInputButton
       disabled={disabled || isLoading || loading || isUploading}
@@ -1349,11 +1428,17 @@ const SendBox: React.FC<{
     return segments;
   }, [allAtFileQueries, input]);
 
+  const panelFrameClassName = isSideComposer
+    ? 'sendbox-panel relative b bg-dialog-fill-0 b-solid flex flex-col sendbox-panel--side'
+    : 'sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col';
+
   return (
-    <div className={className}>
+    <div className={`${className ?? ''} ${isSideComposer ? 'sendbox-root--side' : ''}`.trim()}>
       <div
         ref={containerRef}
-        className={`sendbox-panel relative p-16px border-3 b bg-dialog-fill-0 b-solid rd-20px flex flex-col ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''}`}
+        className={`${panelFrameClassName} ${isOverlayOpen ? 'overflow-visible' : 'overflow-hidden'} ${
+          isFileDragging ? 'b-dashed sendbox-panel--dragging' : ''
+        }`}
         style={{
           transition: 'box-shadow 0.25s ease, border-color 0.25s ease',
           ...(isFileDragging
@@ -1549,7 +1634,7 @@ const SendBox: React.FC<{
                     (bottomHint as string | undefined) ??
                     t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
                   : placeholder
-                    ? `${placeholder}  ${bottomHint ?? t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' })}`
+                    ? placeholder
                     : ((bottomHint as string | undefined) ??
                       t('conversation.sendbox.hint', { defaultValue: 'Type / for commands, @ to reference files' }))
               }

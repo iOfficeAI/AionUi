@@ -197,11 +197,13 @@ export async function httpRequest<T>(
   if (!response.ok) {
     // Response body can only be consumed once — read as text, then try JSON
     const rawText = await response.text().catch(() => '');
-    let errorBody: unknown;
-    try {
-      errorBody = JSON.parse(rawText);
-    } catch {
-      errorBody = rawText;
+    let errorBody: unknown = rawText;
+    if (rawText.trim().length > 0) {
+      try {
+        errorBody = JSON.parse(rawText) as unknown;
+      } catch {
+        // keep plain text
+      }
     }
     if (options?.silentStatuses?.includes(response.status)) {
       console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);

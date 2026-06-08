@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isEphemeralSideConversation } from '@/common/chat/sideConversation';
 import type { TChatConversation } from '@/common/config/storage';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
@@ -110,7 +111,9 @@ const ChatHistory: React.FC<{ onSessionClick?: () => void; collapsed?: boolean }
         .then((result) => {
           const items = result?.items;
           if (items && Array.isArray(items) && items.length > 0) {
-            const sortedHistory = items.toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
+            const sortedHistory = items
+              .filter((item) => !isEphemeralSideConversation(item))
+              .toSorted((a, b) => getActivityTime(b) - getActivityTime(a));
             setChatHistory(sortedHistory);
           } else {
             setChatHistory([]);

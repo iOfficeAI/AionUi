@@ -1,0 +1,59 @@
+.container {
+  width: 100%;
+  container-type: inline-size;
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, 46px);
+  gap: 8px;
+}
+
+.chip {
+  width: 100%;
+  height: 46px !important;
+  max-width: 100%;
+  min-height: 46px !important;
+  justify-content: flex-start !important;
+  border-radius: 8px !important;
+  padding: 0 12px !important;
+  font-size: 13px !important;
+  line-height: 1.35 !important;
+  text-align: left !important;
+  white-space: normal !important;
+  border: 1px solid var(--bg-3) !important;
+  background: var(--bg-1) !important;
+  color: var(--color-text-2) !important;
+  box-shadow: none !important;
+  transition:
+    background 0.15s ease,
+    border-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.chip:hover {
+  border-color: var(--brand-light) !important;
+  background: var(--bg-2) !important;
+  color: var(--color-text-1) !important;
+}
+
+.chip :global(.arco-btn-content) {
+  display: -webkit-box;
+  width: 100%;
+  min-width: 0;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  text-align: left;
+  white-space: normal;
+  word-break: break-word;
+  line-height: 1.35;
+}
+
+@container (max-width: 440px) {
+  .row {
+    grid-template-columns: 1fr;
+    grid-template-rows: repeat(4, 46px);
+  }
+}

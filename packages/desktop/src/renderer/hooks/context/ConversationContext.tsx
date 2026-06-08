@@ -40,6 +40,9 @@ export interface ConversationContextValue {
    */
   hideSendBox?: boolean;
 
+  /** Ephemeral side-thread composer — disables nested side triggers in SendBox / selection UI. */
+  isSideConversation?: boolean;
+
   /**
    * Loaded skill names for this conversation (snapshot from conversation.extra.skills).
    * Surfaced inside the SendBox `+` menu so users can review/jump to active skills.

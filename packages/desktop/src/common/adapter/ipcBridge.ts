@@ -256,6 +256,21 @@ export const conversation = {
     (p) => `/api/conversations/${p.conversation_id}/side-question`,
     (p) => ({ question: p.question })
   ),
+  createSide: httpPost<
+    { conversation_id: string; fork_mode: 'agent_fork' | 'text_snapshot'; created: boolean },
+    { parent: TChatConversation; forked_at_msg_id?: string; initial_prompt?: string }
+  >(
+    (params) => `/api/conversations/${params.parent.id}/side`,
+    (params) => ({
+      guardrail: 'reference_readonly',
+      initial_prompt: params.initial_prompt,
+      forked_at_msg_id: params.forked_at_msg_id,
+    })
+  ),
+  listSide: withResponseMap(
+    httpGet<TChatConversation[], { parent_id: string }>((p) => `/api/conversations/${p.parent_id}/side`),
+    (list) => list.map(fromApiConversation)
+  ),
   confirmMessage: httpPost<void, IConfirmMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/confirmations/${encodeURIComponent(p.call_id)}/confirm`,
     (p) => ({ msg_id: p.msg_id, data: p.confirm_key })
@@ -1556,6 +1571,12 @@ export interface ICreateConversationParams {
     remote_agent_id?: string;
     extra_skill_paths?: string[];
     team_id?: string;
+    parent_conversation_id?: string;
+    side_mode?: boolean;
+    ephemeral?: boolean;
+    side_guardrail?: 'reference_readonly' | 'full';
+    forked_at_msg_id?: string;
+    side_conversation_id?: string;
   };
 }
 

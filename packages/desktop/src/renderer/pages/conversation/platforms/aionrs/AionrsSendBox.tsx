@@ -120,7 +120,16 @@ const AionrsSendBox: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
+  isSideMode?: boolean;
+}> = ({
+  conversation_id,
+  modelSelection,
+  session_mode,
+  agent_name,
+  teamSendMessage,
+  teamRuntime,
+  isSideMode = false,
+}) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
@@ -220,6 +229,14 @@ const AionrsSendBox: React.FC<{
   };
   const isCancelling = runtimeView.state === 'cancelling';
   const isBusy = isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
+  const sendBoxPlaceholder = isSideMode
+    ? t('conversation.sideConversation.placeholder')
+    : current_model?.use_model
+      ? t('acp.sendbox.placeholder', {
+          backend: agent_name || 'AionCLI',
+          defaultValue: `Send message to {{backend}}...`,
+        })
+      : t('conversation.chat.noModelSelected');
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -627,7 +644,13 @@ const AionrsSendBox: React.FC<{
   const sendBoxWidthClass = getChatSurfaceWidthClass(Boolean(teamPermission));
 
   return (
-    <div className={`${sendBoxWidthClass} flex flex-col mt-auto mb-16px`}>
+    <div
+      className={
+        isSideMode
+          ? 'w-full mx-auto flex flex-col mt-auto mb-12px'
+          : `${sendBoxWidthClass} flex flex-col mt-auto mb-16px`
+      }
+    >
       <CommandQueuePanel
         items={queuedCommands}
         mode={queueMode}
@@ -651,6 +674,8 @@ const AionrsSendBox: React.FC<{
 
       <SendBox
         data-testid='aionrs-sendbox'
+        conversationScopeId={conversation_id}
+        isSideComposer={isSideMode}
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
         value={content}
         onChange={handleContentChange}
@@ -661,14 +686,7 @@ const AionrsSendBox: React.FC<{
         }}
         loading={teamRuntime?.loading ?? isBusy}
         disabled={!current_model?.use_model}
-        placeholder={
-          current_model?.use_model
-            ? t('acp.sendbox.placeholder', {
-                backend: agent_name || 'AionCLI',
-                defaultValue: `Send message to {{backend}}...`,
-              })
-            : t('conversation.chat.noModelSelected')
-        }
+        placeholder={sendBoxPlaceholder}
         onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
@@ -748,6 +766,8 @@ const AionrsSendBox: React.FC<{
         slash_commands={slash_commands}
         onSlashBuiltinCommand={onSlashBuiltinCommand}
         allowSendWhileLoading
+        compactActions={isSideMode}
+        bottomHint={isSideMode ? '' : undefined}
       />
       {isMobile && (
         <>

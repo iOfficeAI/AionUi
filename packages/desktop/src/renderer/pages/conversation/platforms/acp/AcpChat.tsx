@@ -33,6 +33,8 @@ const AcpChat: React.FC<{
   agent_name?: string;
   cron_job_id?: string;
   hideSendBox?: boolean;
+  isSideMode?: boolean;
+  composerPrefix?: React.ReactNode;
   emptySlot?: React.ReactNode;
   loadedSkills?: string[];
   loadedMcpServers?: string[];
@@ -48,6 +50,8 @@ const AcpChat: React.FC<{
   agent_name,
   cron_job_id,
   hideSendBox,
+  isSideMode = false,
+  composerPrefix,
   emptySlot,
   loadedSkills,
   loadedMcpServers,
@@ -72,6 +76,7 @@ const AcpChat: React.FC<{
         type: 'acp',
         cron_job_id,
         hideSendBox,
+        isSideConversation: isSideMode,
         loadedSkills,
         loadedMcpServers,
         loadedMcpStatuses,
@@ -79,22 +84,32 @@ const AcpChat: React.FC<{
       }}
     >
       <ConversationArtifactProvider conversation_id={conversation_id}>
-        <div className={`${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col px-20px min-h-0`}>
+        <div
+          className={
+            isSideMode
+              ? 'flex-1 flex flex-col px-12px min-h-0'
+              : `${CHAT_SURFACE_CONTAINER_CLASS} flex-1 flex flex-col px-20px min-h-0`
+          }
+        >
           <FlexFullContainer>
             <MessageList className='flex-1' emptySlot={emptySlot} />
           </FlexFullContainer>
           <AcpE2EStreamInjector conversationId={conversation_id} />
           {!hideSendBox && (
-            <AcpSendBox
-              conversation_id={conversation_id}
-              backend={backend}
-              session_mode={session_mode}
-              agent_name={agent_name}
-              workspacePath={workspace}
-              messageState={messageState}
-              teamSendMessage={teamSendMessage}
-              teamRuntime={teamRuntime}
-            ></AcpSendBox>
+            <>
+              {composerPrefix}
+              <AcpSendBox
+                conversation_id={conversation_id}
+                backend={backend}
+                session_mode={session_mode}
+                agent_name={agent_name}
+                workspacePath={workspace}
+                messageState={messageState}
+                isSideMode={isSideMode}
+                teamSendMessage={teamSendMessage}
+                teamRuntime={teamRuntime}
+              ></AcpSendBox>
+            </>
           )}
         </div>
       </ConversationArtifactProvider>

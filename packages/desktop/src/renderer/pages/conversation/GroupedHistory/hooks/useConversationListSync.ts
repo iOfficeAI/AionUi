@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isEphemeralSideConversation } from '@/common/chat/sideConversation';
 import type { TChatConversation } from '@/common/config/storage';
 import { addEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useSyncExternalStore } from 'react';
@@ -141,6 +142,7 @@ const refreshConversations = () => {
       const items = result?.items;
       if (items && Array.isArray(items)) {
         const filteredData = items.filter((conv) => {
+          if (isEphemeralSideConversation(conv)) return false;
           // Legacy rows from the pre-provider-probe health check flow are hidden
           // from normal history. New health checks must not create conversations.
           const extra = conv.extra as { is_health_check?: boolean; team_id?: string; teamId?: string } | undefined;

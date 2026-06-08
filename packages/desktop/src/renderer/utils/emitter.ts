@@ -38,6 +38,10 @@ interface EventTypes {
   ];
   // 填充输入框事件 / Fill sendbox input event
   'sendbox.fill': [string]; // prompt text to fill
+  /** Fill a specific conversation's SendBox (e.g. side dock child). */
+  'sendbox.fill.scoped': [{ conversation_id: string; text: string }];
+  /** A scoped SendBox confirmed it consumed a fill event. */
+  'sendbox.fill.scoped.handled': [{ conversation_id: string; text: string }];
   'sendbox.reply': [ReplyQuote]; // reply/quote a message
   'sendbox.reply.clear': void; // clear reply quote
 }

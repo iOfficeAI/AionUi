@@ -27,6 +27,10 @@ import React, { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import './chat-layout.css';
 
+const SIDE_DOCK_MIN_WIDTH_PX = 300;
+const SIDE_DOCK_DEFAULT_WIDTH_PX = 420;
+const SIDE_DOCK_FALLBACK_CONTAINER_WIDTH_PX = 1040;
+
 // headerExtra allows injecting custom actions (e.g., model picker) into the header's right area
 const ChatLayout: React.FC<{
   children: React.ReactNode;
@@ -58,6 +62,10 @@ const ChatLayout: React.FC<{
   onRenameTitle?: (new_name: string) => Promise<boolean>;
   /** Optional override for the leading icon shown before the title (e.g. team Peoples icon) */
   headerLeading?: React.ReactNode;
+  /** Renders the side-conversation dock column; omit when no side thread or collapsed */
+  sideDock?: React.ReactNode;
+  /** Whether the side dock column is expanded */
+  sideDockOpen?: boolean;
 }> = (props) => {
   const { conversation_id, workspacePath, isTemporaryWorkspace } = props;
   const { backend, presetAssistant, agent_name, workspaceEnabled = true, workspacePreferenceKey } = props;
@@ -94,6 +102,12 @@ const ChatLayout: React.FC<{
 
   // Compute display name with fallback chain
   const display_name = presetAssistant?.name || agent_name || capitalizedBackend;
+  const sideDockVisible = Boolean(props.sideDockOpen && props.sideDock && !layout?.isMobile);
+  const workspaceCollapsedForLayout = rightSiderCollapsed;
+  const sideDockContainerWidth = containerWidth || SIDE_DOCK_FALLBACK_CONTAINER_WIDTH_PX;
+  const sideDockMaxWidthPx = Math.max(SIDE_DOCK_MIN_WIDTH_PX, Math.floor(sideDockContainerWidth / 2));
+  const sideDockMinWidthPx = Math.min(SIDE_DOCK_MIN_WIDTH_PX, sideDockMaxWidthPx);
+  const sideDockDefaultWidthPx = Math.min(SIDE_DOCK_DEFAULT_WIDTH_PX, sideDockMaxWidthPx);
 
   const {
     splitRatio: workspaceWidthPxPref,
@@ -107,6 +121,15 @@ const ChatLayout: React.FC<{
     storageKey: 'chat-workspace-width-px',
   });
 
+  const { splitRatio: sideDockWidthPx, createDragHandle: createSideDockDragHandle } = useResizableSplit({
+    unit: 'px',
+    defaultWidth: sideDockDefaultWidthPx,
+    minWidth: sideDockMinWidthPx,
+    maxWidth: sideDockMaxWidthPx,
+    storageKey: 'side-conversation-width-px-v6',
+  });
+  const effectiveSideDockWidthPx = Math.min(sideDockWidthPx, sideDockMaxWidthPx);
+
   // Pre-hook metrics: compute dynamic min/max for the chat-preview split hook
   const { dynamicChatMinRatio, dynamicChatMaxRatio } = calcLayoutMetrics({
     containerWidth,
@@ -115,7 +138,7 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isDesktop,
     isPreviewOpen,
-    rightSiderCollapsed,
+    rightSiderCollapsed: workspaceCollapsedForLayout,
     isMobile,
   });
 
@@ -138,7 +161,7 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isDesktop,
     isPreviewOpen,
-    rightSiderCollapsed,
+    rightSiderCollapsed: workspaceCollapsedForLayout,
     isMobile,
   });
 
@@ -148,7 +171,7 @@ const ChatLayout: React.FC<{
     workspaceEnabled,
     isDesktop,
     isPreviewOpen,
-    rightSiderCollapsed,
+    rightSiderCollapsed: workspaceCollapsedForLayout,
     setRightSiderCollapsed,
     workspaceWidthPx: workspaceWidthPxPref,
     setWorkspaceWidthPx: setWorkspaceWidthPxPref,
@@ -215,7 +238,7 @@ const ChatLayout: React.FC<{
             aria-label='Toggle workspace'
             onClick={() => dispatchWorkspaceToggleEvent()}
           >
-            {rightSiderCollapsed ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
+            {workspaceCollapsedForLayout ? <ExpandRight size={16} /> : <ExpandLeft size={16} />}
           </button>
         )}
       </div>
@@ -261,7 +284,7 @@ const ChatLayout: React.FC<{
                 minWidth: '240px',
               }}
               onClick={() => {
-                if (window.innerWidth < 768 && !rightSiderCollapsed) setRightSiderCollapsed(true);
+                if (window.innerWidth < 768 && !workspaceCollapsedForLayout) setRightSiderCollapsed(true);
               }}
             >
               <ArcoLayout.Content className='flex flex-col flex-1 bg-1 overflow-hidden'>
@@ -301,25 +324,42 @@ const ChatLayout: React.FC<{
             )}
           </div>
         </div>
+        {sideDockVisible && (
+          <div
+            className={classNames('!bg-1 relative chat-layout-side-dock layout-sider')}
+            style={{
+              flexGrow: 0,
+              flexShrink: 0,
+              flexBasis: `${Math.round(effectiveSideDockWidthPx)}px`,
+              width: `${Math.round(effectiveSideDockWidthPx)}px`,
+              minWidth: `${sideDockMinWidthPx}px`,
+              borderLeft: '1px solid var(--bg-3)',
+              overflow: 'hidden',
+            }}
+          >
+            {createSideDockDragHandle({ className: 'absolute left-0 top-0 bottom-0', style: {}, reverse: true })}
+            {props.sideDock}
+          </div>
+        )}
         {workspaceEnabled && !layout?.isMobile && (
           <div
             className={classNames('!bg-1 relative chat-layout-right-sider layout-sider')}
             style={{
               flexGrow: 0,
               flexShrink: 0,
-              flexBasis: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
-              width: rightSiderCollapsed ? '0px' : `${Math.round(workspaceWidthPx)}px`,
-              minWidth: rightSiderCollapsed ? '0px' : `${MIN_WORKSPACE_PANEL_PX}px`,
+              flexBasis: workspaceCollapsedForLayout ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              width: workspaceCollapsedForLayout ? '0px' : `${Math.round(workspaceWidthPx)}px`,
+              minWidth: workspaceCollapsedForLayout ? '0px' : `${MIN_WORKSPACE_PANEL_PX}px`,
               overflow: 'hidden',
-              borderLeft: rightSiderCollapsed ? 'none' : '1px solid var(--bg-3)',
+              borderLeft: workspaceCollapsedForLayout ? 'none' : '1px solid var(--bg-3)',
             }}
           >
             {isDesktop &&
-              !rightSiderCollapsed &&
+              !workspaceCollapsedForLayout &&
               createWorkspaceDragHandle({ className: 'absolute left-0 top-0 bottom-0', style: {}, reverse: true })}
             <WorkspacePanelHeader
               showToggle={!isMacRuntime && !isWindowsRuntime}
-              collapsed={rightSiderCollapsed}
+              collapsed={workspaceCollapsedForLayout}
               onToggle={() => dispatchWorkspaceToggleEvent()}
               togglePlacement={layout?.isMobile ? 'left' : 'right'}
               workspacePath={workspacePath}
@@ -348,7 +388,7 @@ const ChatLayout: React.FC<{
         )}
 
         {/* Desktop expand button when workspace is collapsed */}
-        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && rightSiderCollapsed && !layout?.isMobile && (
+        {!isMacRuntime && !isWindowsRuntime && workspaceEnabled && workspaceCollapsedForLayout && !layout?.isMobile && (
           <DesktopWorkspaceToggle />
         )}
       </div>

@@ -143,6 +143,28 @@ export type TConversationAssistantIdentity = {
   backend: string;
 };
 
+/** Side-conversation linkage fields, optional on every conversation variant's `extra`. */
+export type SideConversationExtra = {
+  /** Child → parent link (present on side conversations only). */
+  parent_conversation_id?: string;
+  /** Marks this conversation as a side/forked thread. */
+  side_mode?: boolean;
+  /** Ephemeral side threads are hidden from history and eligible for cleanup. */
+  ephemeral?: boolean;
+  /** Guardrail level for the side thread. Default 'reference_readonly'. */
+  side_guardrail?: 'reference_readonly' | 'full';
+  /** Parent message id at fork time (inherit "up to here"). */
+  forked_at_msg_id?: string;
+  /** Legacy pointer on the PARENT conversation to its last side thread. */
+  side_conversation_id?: string;
+  /** Pointer on the PARENT conversation to its active side tab. */
+  active_side_id?: string;
+  /** Whether the PARENT conversation's side dock was explicitly collapsed. */
+  side_panel_hidden?: boolean;
+  /** Child side inheritance mode. */
+  fork_mode?: 'agent_fork' | 'text_snapshot';
+};
+
 interface IChatConversation<T, Extra> {
   created_at: number;
   modified_at: number;
@@ -150,7 +172,7 @@ interface IChatConversation<T, Extra> {
   desc?: string;
   id: string;
   type: T;
-  extra: Extra;
+  extra: Extra & SideConversationExtra;
   model: TProviderWithModel;
   status?: TChatConversationStatus | undefined;
   runtime?: TConversationRuntimeSummary;

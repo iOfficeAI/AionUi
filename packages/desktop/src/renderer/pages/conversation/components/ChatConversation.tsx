@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { isSideConversationSupported } from '@/common/chat/sideConversation';
 import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
@@ -21,9 +22,11 @@ import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
 import { emitter } from '../../../utils/emitter';
-import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
+import { SideConversationControlProvider } from '@/renderer/pages/conversation/context/SideConversationControlContext';
+import { SideConversationDock, useSideConversation } from './SideConversationPanel';
+import { renderPlatformChat } from './renderPlatformChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
@@ -45,6 +48,16 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
 };
+
+const SIDE_PARENT_STUB = {
+  id: '',
+  type: 'acp',
+  name: '',
+  created_at: 0,
+  modified_at: 0,
+  extra: { backend: 'claude' },
+  model: { id: 'stub', platform: 'stub', name: 'stub', base_url: '', api_key: '', use_model: 'stub' },
+} as TChatConversation;
 
 const _AssociatedConversation: React.FC<{ conversation_id: string }> = ({ conversation_id }) => {
   const { data } = useSWR(['getAssociateConversation', conversation_id], () =>
@@ -145,6 +158,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   conversation,
   sliderTitle,
 }) => {
+  const { t } = useTranslation();
   const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
@@ -175,7 +189,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   // Mobile: model selection moved into the sendbox `+` action sheet to free up
   // header space; the dropdown stays available on desktop and tablets ≥768px.
   const isMobile = Boolean(layout?.isMobile);
-  const { t } = useTranslation();
   const runtimeConfig = useAcpConfigOptions({
     conversation_id: conversation.id,
     enabled: !isMobile,
@@ -194,6 +207,54 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
     [runtimeConfig, t]
   );
 
+  const side = useSideConversation({
+    parent: conversation,
+    initialChildId: conversation.extra?.side_conversation_id,
+  });
+  const enableSide = !isMobile && isSideConversationSupported({ type: 'aionrs' });
+  const sideDockOpen = side.state === 'empty' || side.state === 'active' || side.state === 'promoted';
+  const sideCollapsed = side.state === 'collapsed' && side.tabs.length > 0;
+  const sideControlValue = useMemo(
+    () => ({
+      enableSide,
+      onOpenSide: (firstQuestion?: string) => {
+        const trimmed = firstQuestion?.trim();
+        if (trimmed) {
+          void side.openNewTab(trimmed);
+          return;
+        }
+        if (side.tabs.length > 0) {
+          void side.openNewTab();
+          return;
+        }
+        void side.open();
+      },
+      onAskInSide: (text: string) => {
+        void side.fillComposer(text);
+      },
+      sideCollapsed,
+      onReopenSide: () => {
+        side.reopen();
+      },
+    }),
+    [enableSide, side, sideCollapsed]
+  );
+  const sideDock = side.childId ? (
+    <SideConversationDock
+      childId={side.childId}
+      tabs={side.tabs}
+      activeTabId={side.activeTabId}
+      onSelectTab={side.selectTab}
+      onCloseTab={(id) => {
+        void side.discardTab(id);
+      }}
+      onNewTab={() => {
+        void side.openNewTab();
+      }}
+      onCollapse={side.collapse}
+    />
+  ) : null;
+
   const chatLayoutProps = {
     title: conversation.name,
     siderTitle: sliderTitle,
@@ -209,6 +270,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
             onSetThoughtLevel={handleThoughtLevelSetOption}
           />
         )}
+        {sideCollapsed && enableSide && (
+          <Button size='small' type='text' className='side-btn-text' onClick={() => side.reopen()}>
+            {t('conversation.sideConversation.reopen')}
+          </Button>
+        )}
       </div>
     ),
     workspaceEnabled,
@@ -220,22 +286,29 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   };
 
   return (
-    <ChatLayout {...chatLayoutProps} conversation_id={conversation.id}>
-      <AionrsChat
+    <SideConversationControlProvider value={sideControlValue}>
+      <ChatLayout
+        {...chatLayoutProps}
         conversation_id={conversation.id}
-        workspace={conversation.extra.workspace}
-        modelSelection={modelSelection}
-        session_mode={conversation.extra?.session_mode}
-        cron_job_id={cronJobId}
-        loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-        loadedMcpStatuses={
-          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-        }
-        agent_name={presetAssistantInfo?.name}
-        assistantId={aionrsAssistantId}
-      />
-    </ChatLayout>
+        sideDockOpen={sideDockOpen}
+        sideDock={sideDock}
+      >
+        <AionrsChat
+          conversation_id={conversation.id}
+          workspace={conversation.extra.workspace}
+          modelSelection={modelSelection}
+          session_mode={conversation.extra?.session_mode}
+          cron_job_id={cronJobId}
+          loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+          loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+          loadedMcpStatuses={
+            (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+          }
+          agent_name={presetAssistantInfo?.name}
+          assistantId={aionrsAssistantId}
+        />
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 
@@ -264,34 +337,82 @@ const ChatConversation: React.FC<{
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
 
+  const initialSideChildId = conversation?.extra?.side_conversation_id;
+  const side = useSideConversation({
+    parent: conversation ?? SIDE_PARENT_STUB,
+    initialChildId: initialSideChildId,
+  });
+
+  const sideBackend =
+    conversation?.type === 'acp' ? resolvedConversationBackend : conversation?.type === 'codex' ? 'codex' : undefined;
+  const enableSide = Boolean(
+    conversation &&
+    !isMobile &&
+    isSideConversationSupported({
+      type: conversation.type,
+      backend: sideBackend,
+    })
+  );
+
+  const sideDockOpen = side.state === 'empty' || side.state === 'active' || side.state === 'promoted';
+  const sideCollapsed = side.state === 'collapsed' && side.tabs.length > 0;
+
+  const sideControlValue = useMemo(
+    () => ({
+      enableSide,
+      onOpenSide: (firstQuestion?: string) => {
+        const trimmed = firstQuestion?.trim();
+        if (trimmed) {
+          void side.openNewTab(trimmed);
+          return;
+        }
+        if (side.tabs.length > 0) {
+          void side.openNewTab();
+          return;
+        }
+        void side.open();
+      },
+      onAskInSide: (text: string) => {
+        void side.fillComposer(text);
+      },
+      sideCollapsed,
+      onReopenSide: () => {
+        side.reopen();
+      },
+    }),
+    [enableSide, side, sideCollapsed]
+  );
+
+  const sideDock =
+    side.childId && conversation ? (
+      <SideConversationDock
+        childId={side.childId}
+        tabs={side.tabs}
+        activeTabId={side.activeTabId}
+        onSelectTab={side.selectTab}
+        onCloseTab={(id) => {
+          void side.discardTab(id);
+        }}
+        onNewTab={() => {
+          void side.openNewTab();
+        }}
+        onCollapse={side.collapse}
+      />
+    ) : null;
+
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
     if (isLegacyReadOnlyConversation) {
       return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} />;
     }
-    switch (conversation.type) {
-      case 'acp':
-        return (
-          <AcpChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            backend={resolvedConversationBackend || 'claude'}
-            session_mode={conversation.extra?.session_mode}
-            agent_name={assistantDisplayName}
-            cron_job_id={cronJobId}
-            hideSendBox={resolvedHideSendBox}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-            loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
-            loadedMcpStatuses={
-              (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
-            }
-            assistantId={acpAssistantId}
-          ></AcpChat>
-        );
-      default:
-        return null;
-    }
+    return renderPlatformChat({
+      conversation,
+      assistantDisplayName,
+      hideSendBox: resolvedHideSendBox,
+      backend: resolvedConversationBackend,
+      cronJobId,
+      assistantId: acpAssistantId,
+    });
   }, [
     conversation,
     isAionrsConversation,
@@ -358,25 +479,34 @@ const ChatConversation: React.FC<{
         </div>
       )}
       {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
+      {sideCollapsed && enableSide && (
+        <Button size='mini' type='text' className='side-btn-text' onClick={() => side.reopen()}>
+          {t('conversation.sideConversation.reopen')}
+        </Button>
+      )}
     </div>
   );
 
   return (
-    <ChatLayout
-      title={conversation?.name}
-      {...chatLayoutProps}
-      headerExtra={headerExtraNode}
-      siderTitle={sliderTitle}
-      sider={<ChatSlider conversation={conversation} />}
-      workspaceEnabled={workspaceEnabled}
-      workspacePath={conversation?.extra?.workspace}
-      isTemporaryWorkspace={
-        (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
-      }
-      conversation_id={conversation?.id}
-    >
-      {conversationNode}
-    </ChatLayout>
+    <SideConversationControlProvider value={sideControlValue}>
+      <ChatLayout
+        title={conversation?.name}
+        {...chatLayoutProps}
+        headerExtra={headerExtraNode}
+        siderTitle={sliderTitle}
+        sider={<ChatSlider conversation={conversation} />}
+        workspaceEnabled={workspaceEnabled}
+        workspacePath={conversation?.extra?.workspace}
+        isTemporaryWorkspace={
+          (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)?.is_temporary_workspace
+        }
+        conversation_id={conversation?.id}
+        sideDockOpen={sideDockOpen}
+        sideDock={sideDock}
+      >
+        {conversationNode}
+      </ChatLayout>
+    </SideConversationControlProvider>
   );
 };
 
