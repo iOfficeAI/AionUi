@@ -583,7 +583,7 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
    - 操作参数
    - 三个选项：Allow / Always Allow / Reject
 3. 用户选择后，UI 层处理完成
-4. 70 秒无响应自动拒绝
+4. 60 秒无响应自动拒绝
 
 **内部机制**：
 
@@ -592,14 +592,14 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
    - 在 `pendingPermissions` Map 中创建条目
    - emit `acp_permission` 信号事件到渲染进程
    - 默认选项: `allow_once / allow_always / reject_once`
-   - 超时: 70 秒自动 reject
+   - 超时: 60 秒自动 reject
 3. `RemoteAgentManager.handleSignalEvent()`:
    - 将 `acp_permission` 转换为 `IConfirmation`
    - 调用 `this.addConfirmation(confirmation)`
 4. 用户选择后:
    - `confirmMessage({ confirmKey, callId })` 从 `pendingPermissions` 找到条目 → resolve
 
-**已知局限（重要）**：当前 `pendingPermissions` Map 中存入的 `resolve` 函数为空函数 `(_response) => {}`，`confirmMessage` 调用 resolve 不产生实际效果。源码中未找到 `exec.approval.respond` 等将审批结果实际传回 Gateway 的调用。**权限审批的用户选择可能未实际传递给 Gateway**。需确认是否有其他代码路径（如 BaseAgentManager.confirm）处理了实际的 Gateway 通信。
+**实现细节确认**：前端通过 `ipcBridge.conversation.confirmation.confirm.invoke` 传递用户的授权决策，底层的 Rust `AionCore` (在 `agent.rs:confirm` 内) 会捕获这些决策并通过 `POST /permission/{request_id}/reply` 或 `/question/{request_id}/reply` 实将审批结果回传 Gateway。因此，用户的审批选择已成功且可靠地传递到远端 Agent。
 
 **验收标准**：
 
@@ -744,7 +744,7 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 | 10,000 ms         | Bridge testConnection                  | WebSocket 连接测试超时 | 含 handshakeTimeout          |
 | 15,000 ms         | Bridge handshake                       | 握手超时               |                              |
 | 30,000 ms         | RemoteAgentCore.waitForConnection      | 等待连接建立超时       | 默认参数值                   |
-| 70,000 ms         | RemoteAgentCore.handleApprovalRequest  | 权限请求超时           | 硬编码                       |
+| 60,000 ms         | RemoteAgentCore.handleApprovalRequest  | 权限请求超时           | 硬编码                       |
 | 750 ms            | OpenClawGatewayConnection.queueConnect | connect challenge 等待 |                              |
 | 1s → 30s          | OpenClawGatewayConnection 重连退避     | 指数退避               | 每次翻倍                     |
 | 10 次             | OpenClawGatewayConnection 最大重连     | 重连上限               |                              |
@@ -767,8 +767,8 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 | 9   | F-RAGENT-08    | `waitForConnection` 使用 100ms 轮询检测状态（busy-wait），非事件驱动                                                        |
 | 10  | F-RAGENT-09    | `sendMessage` 在连接断开时自动重新 `start()`，可能导致意外重连和会话重置                                                    |
 | 11  | F-RAGENT-10    | 工具类型推断基于子串匹配而非单词边界，组合命名的工具可能误判（如 'Breadcrumb' 匹配 'read'）                                 |
-| 12  | F-RAGENT-11    | **权限审批的用户选择可能未实际传回 Gateway**：`pendingPermissions` 中 resolve 为空函数，未找到 `exec.approval.respond` 调用 |
-| 13  | F-RAGENT-11    | 权限请求超时 70 秒硬编码，超时后自动 reject 无用户可见提示                                                                  |
+| 12  | F-RAGENT-11    | (已修复/确认) 权限审批的用户选择已通过 AionCore 可靠传回 Gateway。 |
+| 13  | F-RAGENT-11    | 权限请求超时 60 秒硬编码，超时后自动 reject 无用户可见提示                                                                  |
 | 14  | F-RAGENT-12    | 事件序列 gap 仅打印 warn，不做重新同步                                                                                      |
 
 ---
