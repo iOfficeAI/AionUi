@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.1.15](https://github.com/iOfficeAI/AionUi/compare/v2.1.14...v2.1.15) (2026-06-09)
+
+### Desktop
+
+#### Features
+
+- enforce agent runtime policy and turn-aware UI state (#3253)
+- render localized ACP empty-turn info tips (#3251)
+- **conversation:** hide all conversation export UI entries
+- make log directory configurable (#3233)
+
+#### Bug Fixes
+
+- **conversation:** align header model label with selector (#3257)
+- **sendbox:** stop button glow clipped by mobile panel corner
+- **login:** move mobile language selector to its own row to avoid logo overlap
+- **desktop:** pass parent pid to bundled backend (#3250)
+
+### Core ([v0.1.26](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.26))
+
+#### Features
+
+- enforce agent runtime policy and turn-aware state ([#436](https://github.com/iOfficeAI/AionCore/issues/436))
+
+#### Bug Fixes
+
+- **app:** use process synchronize access for parent watcher ([#438](https://github.com/iOfficeAI/AionCore/issues/438))
+- **acp:** preserve confirmed model selection ([#437](https://github.com/iOfficeAI/AionCore/issues/437))
+- **app:** stop backend when desktop exits ([#433](https://github.com/iOfficeAI/AionCore/issues/433))
+
+---
+
 ## [2.1.14](https://github.com/iOfficeAI/AionUi/compare/v2.1.13...v2.1.14) (2026-06-08)
 
 ### Desktop
