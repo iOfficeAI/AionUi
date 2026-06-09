@@ -162,6 +162,14 @@ const withLogs = (
   logs,
 });
 
+const isReleasedRuntimeView = (view: ConversationRuntimeView): boolean =>
+  view.hydrated &&
+  view.hasBackendRuntime &&
+  view.state === 'idle' &&
+  !view.isProcessing &&
+  view.canSendMessage &&
+  !view.localSubmitting;
+
 export const hydrateStartedConversationRuntimeView = (
   previous: ConversationRuntimeView | undefined,
   conversation_id: string
@@ -419,10 +427,23 @@ export const localSendStarted = (conversation_id: string): ConversationRuntimeVi
 
 export const localSendAccepted = (conversation_id: string, msg_id?: string): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
+  const base = runtimeViews.get(conversation_id) ?? createDefaultConversationRuntimeView(conversation_id);
+
+  if (isReleasedRuntimeView(base)) {
+    const logs = [
+      createLog('info', 'local_send_accepted', base, {
+        ignored: true,
+        reason: 'stale_send_accept_after_release',
+        ...(msg_id ? { msg_id } : {}),
+      }),
+    ];
+    return setConversationRuntimeSnapshot(conversation_id, withLogs(base, logs));
+  }
+
   metadata.acceptedTurnSeq = metadata.activeTurnSeq;
   return setConversationRuntimeSnapshot(
     conversation_id,
-    localSendAcceptedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, msg_id)
+    localSendAcceptedConversationRuntimeView(base, conversation_id, msg_id)
   );
 };
 

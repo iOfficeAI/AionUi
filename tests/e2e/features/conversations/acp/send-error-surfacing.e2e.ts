@@ -17,6 +17,15 @@ type CreatedConversation = {
   id: string;
 };
 
+async function ensureRendererReady(page: import('@playwright/test').Page): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      window.location.href !== 'about:blank' &&
+      typeof (window as unknown as { __backendPort?: number }).__backendPort === 'number',
+    { timeout: 30_000 }
+  );
+}
+
 async function createAcpConversation(page: import('@playwright/test').Page): Promise<string> {
   const conversation = await page.evaluate(
     async ({ workspacePath }) => {
@@ -123,6 +132,7 @@ test.describe('ACP send error surfacing', () => {
     let conversationId: string | null = null;
 
     try {
+      await ensureRendererReady(page);
       await goToGuid(page);
       await installAcpFailureRoutes(page);
       conversationId = await createAcpConversation(page);
@@ -158,6 +168,7 @@ test.describe('ACP send error surfacing', () => {
     let conversationId: string | null = null;
 
     try {
+      await ensureRendererReady(page);
       await goToGuid(page);
       await installAcpFailureRoutes(page);
       conversationId = await createAcpConversation(page);

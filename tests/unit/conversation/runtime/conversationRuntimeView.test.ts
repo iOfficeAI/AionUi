@@ -163,6 +163,31 @@ describe('conversationRuntimeViewStore', () => {
     expect(logs.map((log) => log.event)).toContain('runtime_release_confirmed');
   });
 
+  it('ignores a late send acceptance after turn completion already released the runtime', () => {
+    resetConversationRuntimeViewStoreForTest();
+
+    localSendStarted(conversation_id);
+    turnCompleted(conversation_id, runtime({}));
+    const logs = localSendAccepted(conversation_id, 'message-1');
+
+    expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      event: 'local_send_accepted',
+      data: {
+        ignored: true,
+        reason: 'stale_send_accept_after_release',
+      },
+    });
+  });
+
   it('keeps a send accepted turn busy until runtime confirmation', () => {
     const accepted = localSendAcceptedConversationRuntimeView(undefined, conversation_id, 'message-1').view;
 
