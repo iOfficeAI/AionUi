@@ -2,11 +2,11 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { describe, expect, it } from 'vitest';
 
-const arcoOverridePath = path.resolve(
+const arcoOverridePath = path.resolve(process.cwd(), 'packages/desktop/src/renderer/styles/arco-override.css');
+const presetDir = path.resolve(
   process.cwd(),
-  'packages/desktop/src/renderer/styles/arco-override.css'
+  'packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets'
 );
-const presetDir = path.resolve(process.cwd(), 'packages/desktop/src/renderer/pages/settings/AppearanceSettings/presets');
 
 describe('arco tooltip and popover overlay styles', () => {
   it('defines shared light and dark overlay tokens for tooltip-like surfaces', () => {
@@ -50,12 +50,7 @@ describe('arco tooltip and popover overlay styles', () => {
   });
 
   it('keeps decorative preset css from re-skinning tooltip surfaces', () => {
-    const presetFiles = [
-      'retro-windows.css',
-      'misaka-mikoto.css',
-      'discourse-horizon.css',
-      'hello-kitty.css'
-    ];
+    const presetFiles = ['retro-windows.css', 'misaka-mikoto.css', 'discourse-horizon.css', 'hello-kitty.css'];
 
     for (const file of presetFiles) {
       const css = fs.readFileSync(path.join(presetDir, file), 'utf8');
