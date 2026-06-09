@@ -241,7 +241,7 @@ export const useAionrsMessage = (
           break;
         case 'finish':
           {
-            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
+            logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
             // aionrs stream_end carries usage in data field
             const usageData = message.data as TokenUsage | undefined;
             if (usageData && typeof usageData === 'object' && 'input_tokens' in usageData) {
@@ -332,7 +332,7 @@ export const useAionrsMessage = (
           break;
         default: {
           if (message.type === 'error') {
-            logStreamTerminalObserved(conversation_id, 'aionrs', message.type);
+            logStreamTerminalObserved(conversation_id, message.turn_id, 'aionrs', message.type);
             setStreamRunning(false);
             streamRunningRef.current = false;
             setWaitingResponse(false);

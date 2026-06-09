@@ -271,7 +271,7 @@ const AcpSendBox: React.FC<{
           conversation_id,
           files,
         });
-        runtimeView.markSendAccepted(result.msg_id);
+        runtimeView.markSendAccepted(result.turn_id, result.msg_id);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =
@@ -298,6 +298,7 @@ const AcpSendBox: React.FC<{
           const errorMessage = {
             id: uuid(),
             msg_id: uuid(),
+            turn_id: '',
             conversation_id,
             type: 'error',
             data: t('acp.auth.failed', {
@@ -553,13 +554,20 @@ Please check your local CLI tool authentication status`,
     // Cancelling is best-effort: swallow errors (e.g. backend WS not yet
     // connected → 409) so they don't bubble up as unhandled rejections.
     // UI state is still reset via finally.
-    runtimeView.markStopRequested();
+    const turnId = runtimeView.activeTurnId;
+    if (!turnId) {
+      resetState();
+      resetActiveExecution('stop');
+      return;
+    }
+    runtimeView.markStopRequested(turnId);
     try {
-      await ipcBridge.conversation.stop.invoke({ conversation_id });
+      const result = await ipcBridge.conversation.stop.invoke({ conversation_id, turn_id: turnId });
+      runtimeView.markStopAcknowledged(turnId, result.runtime);
     } catch (error) {
       console.warn('[AcpSendBox] stop request failed', error);
+      runtimeView.resetLocalGate('stop_failed');
     } finally {
-      runtimeView.markStopAcknowledged();
       resetState();
       resetActiveExecution('stop');
     }

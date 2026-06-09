@@ -31,11 +31,12 @@ type UseConversationRuntimeViewReturn = {
   hydrated: boolean;
   isProcessing: boolean;
   canSendMessage: boolean;
+  activeTurnId: string | null;
   markSendStarted: () => void;
-  markSendAccepted: (msg_id?: string) => void;
+  markSendAccepted: (turn_id: string, msg_id?: string) => void;
   markSendFailed: (reason: string) => void;
-  markStopRequested: () => void;
-  markStopAcknowledged: () => void;
+  markStopRequested: (turn_id: string) => void;
+  markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
   resetLocalGate: (reason: string) => void;
 };
 
@@ -111,7 +112,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
       if (event.session_id !== conversation_id) {
         return;
       }
-      flushRuntimeViewLogs(turnCompleted(conversation_id, event.runtime));
+      flushRuntimeViewLogs(turnCompleted(conversation_id, event.turn_id, event.runtime));
     });
 
     const disposeListChanged = listChangedEmitter.on((event) => {
@@ -132,8 +133,8 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   }, [conversation_id]);
 
   const markSendAccepted = useCallback(
-    (msg_id?: string) => {
-      flushRuntimeViewLogs(localSendAccepted(conversation_id, msg_id));
+    (turn_id: string, msg_id?: string) => {
+      flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, msg_id));
     },
     [conversation_id]
   );
@@ -145,13 +146,19 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     [conversation_id]
   );
 
-  const markStopRequested = useCallback(() => {
-    flushRuntimeViewLogs(localStopRequested(conversation_id));
-  }, [conversation_id]);
+  const markStopRequested = useCallback(
+    (turn_id: string) => {
+      flushRuntimeViewLogs(localStopRequested(conversation_id, turn_id));
+    },
+    [conversation_id]
+  );
 
-  const markStopAcknowledged = useCallback(() => {
-    flushRuntimeViewLogs(localStopAcknowledged(conversation_id));
-  }, [conversation_id]);
+  const markStopAcknowledged = useCallback(
+    (turn_id: string, runtime: TConversationRuntimeSummary) => {
+      flushRuntimeViewLogs(localStopAcknowledged(conversation_id, turn_id, runtime));
+    },
+    [conversation_id]
+  );
 
   const resetLocalRuntimeGate = useCallback(
     (reason: string) => {
@@ -165,6 +172,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
     hydrated: view.hydrated,
     isProcessing: view.isProcessing,
     canSendMessage: view.canSendMessage,
+    activeTurnId: view.activeTurnId,
     markSendStarted,
     markSendAccepted,
     markSendFailed,
@@ -176,6 +184,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
 
 export const logStreamTerminalObserved = (
   conversation_id: string,
+  turn_id: string | undefined,
   platform: 'acp' | 'aionrs',
   stream_type: string
 ): void => {
@@ -191,6 +200,7 @@ export const logStreamTerminalObserved = (
       message: 'stream_terminal_observed',
       data: {
         conversation_id,
+        turn_id,
         platform,
         stream_type,
       },

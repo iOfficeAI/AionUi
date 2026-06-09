@@ -30,6 +30,7 @@ import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
+import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
@@ -139,16 +140,23 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   conversation,
   sliderTitle,
 }) => {
+  const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       // Kill running agent on model switch — will be rebuilt with new model on next message
-      await ipcBridge.conversation.stop.invoke({ conversation_id: conversation.id });
+      if (runtimeView.activeTurnId) {
+        const result = await ipcBridge.conversation.stop.invoke({
+          conversation_id: conversation.id,
+          turn_id: runtimeView.activeTurnId,
+        });
+        runtimeView.markStopAcknowledged(runtimeView.activeTurnId, result.runtime);
+      }
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
       if (ok) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
-    [conversation.id]
+    [conversation.id, runtimeView]
   );
 
   const modelSelection = useAionrsModelSelection({

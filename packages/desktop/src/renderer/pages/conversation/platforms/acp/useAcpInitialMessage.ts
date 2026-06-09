@@ -21,7 +21,7 @@ type UseAcpInitialMessageParams = {
   setAiProcessing: (value: boolean) => void;
   resetState: () => void;
   markSendStarted?: () => void;
-  markSendAccepted?: (msg_id?: string) => void;
+  markSendAccepted?: (turn_id: string, msg_id?: string) => void;
   markSendFailed?: (reason: string) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
@@ -70,7 +70,7 @@ export const useAcpInitialMessage = ({
           conversation_id: conversation_id,
           files,
         });
-        markSendAccepted?.(result.msg_id);
+        markSendAccepted?.(result.turn_id, result.msg_id);
 
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');

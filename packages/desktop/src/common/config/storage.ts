@@ -208,6 +208,7 @@ export type TConversationRuntimeSummary = {
   task_status?: TChatConversationStatus;
   is_processing: boolean;
   pending_confirmations: number;
+  turn_id: string | null;
 };
 
 interface IChatConversation<T, Extra> {

@@ -21,6 +21,7 @@ import type {
   IProvider,
   ISessionMcpServer,
   TChatConversation,
+  TConversationRuntimeSummary,
   TProviderWithModel,
 } from '../config/storage';
 import type {
@@ -197,7 +198,10 @@ export const conversation = {
   ),
   reset: httpPost<void, IResetConversationParams>((p) => `/api/conversations/${p.id}/reset`),
   warmup: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/warmup`),
-  stop: httpPost<void, { conversation_id: string }>((p) => `/api/conversations/${p.conversation_id}/cancel`),
+  stop: httpPost<{ runtime: TConversationRuntimeSummary }, { conversation_id: string; turn_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/cancel`,
+    (p) => ({ turn_id: p.turn_id })
+  ),
   activeCount: httpGet<{ count: number }>('/api/conversations/active-count'),
   sendMessage: httpPost<ISendMessageResult, ISendMessageParams>(
     (p) => `/api/conversations/${p.conversation_id}/messages`,
@@ -264,6 +268,7 @@ export const conversation = {
         rawRuntime.taskStatus) as IConversationTurnCompletedEvent['runtime']['task_status'],
       is_processing: (rawRuntime.is_processing ?? rawRuntime.isProcessing ?? false) as boolean,
       pending_confirmations: (rawRuntime.pending_confirmations ?? rawRuntime.pendingConfirmations ?? 0) as number,
+      turn_id: (rawRuntime.turn_id ?? rawRuntime.turnId ?? null) as string | null,
     };
     const rawModel = (r.model ?? {}) as Record<string, unknown>;
     const model: IConversationTurnCompletedEvent['model'] = {
@@ -273,6 +278,7 @@ export const conversation = {
     };
     return {
       session_id: (r.session_id ?? r.sessionId ?? r.conversation_id ?? '') as string,
+      turn_id: (r.turn_id ?? r.turnId ?? runtime.turn_id ?? '') as string,
       status: (r.status ?? 'finished') as IConversationTurnCompletedEvent['status'],
       state: (r.state ??
         (r.status === 'finished' ? 'ai_waiting_input' : 'unknown')) as IConversationTurnCompletedEvent['state'],
@@ -1351,6 +1357,7 @@ interface ISendMessageParams {
 // local state aligns with DB rows and WebSocket stream events.
 export interface ISendMessageResult {
   msg_id: string;
+  turn_id: string;
 }
 
 export interface IConfirmMessageParams {
@@ -1454,6 +1461,7 @@ export interface IResponseMessage {
   type: string;
   data: unknown;
   msg_id: string;
+  turn_id: string;
   conversation_id: string;
   created_at?: number;
   hidden?: boolean;
@@ -1502,6 +1510,7 @@ export type IConversationArtifact = ICronTriggerArtifact | ISkillSuggestArtifact
 
 export interface IConversationTurnCompletedEvent {
   session_id: string;
+  turn_id: string;
   status: 'pending' | 'running' | 'finished';
   state:
     | 'ai_generating'
@@ -1520,6 +1529,7 @@ export interface IConversationTurnCompletedEvent {
     task_status?: 'pending' | 'running' | 'finished';
     is_processing: boolean;
     pending_confirmations: number;
+    turn_id: string | null;
   };
   workspace: string;
   model: {
