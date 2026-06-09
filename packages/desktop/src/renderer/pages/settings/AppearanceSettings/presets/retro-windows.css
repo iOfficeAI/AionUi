@@ -613,42 +613,11 @@ button[type='secondary']:not(.sendbox-model-btn):not([class*='model']):not([clas
 }
 
 /* ==================== Tooltip 和 Popover ==================== */
-/* Tooltip 和 Popover 样式优化 - 经典 Windows 灰色背景，黑色文字 */
+/* Tooltip 和 Popover 保持交互层级，配色由全局 overlay token 统一控制 */
 .arco-tooltip-popup,
 .arco-popover-popup {
   pointer-events: none; /* 避免遮挡鼠标事件 */
   z-index: 10000 !important; /* 确保 tooltip 在最上层 */
-}
-
-/* 内部容器样式 */
-.arco-tooltip-inner,
-.arco-popover-inner,
-.arco-popover-content {
-  background-color: #ffffe1 !important; /* 经典 Windows 米黄色 */
-  color: #000000 !important; /* 黑色文字 */
-  border: 1px solid #808080 !important;
-  border-radius: 0 !important; /* 方角 */
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3) !important;
-  backdrop-filter: none !important;
-  padding: 4px 8px !important;
-  font-size: 12px !important;
-  line-height: 1.4 !important;
-  max-width: 200px !important;
-  word-wrap: break-word !important;
-}
-
-/* 强制内部文字颜色为黑色 */
-.arco-tooltip-inner *,
-.arco-popover-inner *,
-.arco-popover-content * {
-  color: #000000 !important;
-  background-color: transparent !important;
-}
-
-/* 箭头样式 */
-.arco-tooltip-arrow,
-.arco-popover-arrow {
-  border-color: #808080 !important;
 }
 
 /* 侧边栏 tooltip - 使用系统默认配色 */
@@ -1160,27 +1129,6 @@ input[type='radio']:checked::after {
 [data-theme='dark'] .arco-tooltip-popup,
 [data-theme='dark'] .arco-popover-popup {
   z-index: 10000 !important; /* 确保 tooltip 在最上层 */
-}
-
-[data-theme='dark'] .arco-tooltip-inner,
-[data-theme='dark'] .arco-popover-inner,
-[data-theme='dark'] .arco-popover-content {
-  background: rgba(45, 45, 45, 0.98) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-base) !important;
-  box-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5) !important;
-  padding: 4px 8px !important;
-  font-size: 12px !important;
-  line-height: 1.4 !important;
-  max-width: 200px !important;
-  word-wrap: break-word !important;
-}
-
-[data-theme='dark'] .arco-tooltip-inner *,
-[data-theme='dark'] .arco-popover-inner *,
-[data-theme='dark'] .arco-popover-content * {
-  color: var(--text-primary) !important;
-  background-color: transparent !important;
 }
 
 /* 深色模式侧边栏 tooltip - 使用系统默认配色 */

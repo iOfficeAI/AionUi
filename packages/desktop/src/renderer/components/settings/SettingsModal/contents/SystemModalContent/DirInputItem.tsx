@@ -24,6 +24,7 @@ const DirInputItem: React.FC<{
     <Form.Item label={label} field={field}>
       {(value, form) => {
         const current_value = form.getFieldValue(field) || '';
+        const actionTooltip = field === 'workDir' ? t('settings.changeWorkDir') : t('settings.changeLogDir');
 
         const handlePick = () => {
           ipcBridge.dialog.showOpen
@@ -59,15 +60,18 @@ const DirInputItem: React.FC<{
                 {current_value || t('settings.dirNotConfigured')}
               </div>
             </Tooltip>
-            <Button
-              type='text'
-              style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
-              icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
-              onClick={(e) => {
-                e.stopPropagation();
-                handlePick();
-              }}
-            />
+            <Tooltip content={actionTooltip} position='top'>
+              <Button
+                type='text'
+                aria-label={actionTooltip}
+                style={{ borderLeft: '1px solid var(--color-border-2)', borderRadius: '0 8px 8px 0' }}
+                icon={<FolderOpen theme='outline' size='18' fill={iconColors.primary} />}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handlePick();
+                }}
+              />
+            </Tooltip>
           </div>
         );
       }}

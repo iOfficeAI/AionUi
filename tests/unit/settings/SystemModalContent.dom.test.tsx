@@ -11,11 +11,12 @@ import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 import { SWRConfig } from 'swr';
 
-const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock } = vi.hoisted(() => ({
+const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock, messageInfoMock } = vi.hoisted(() => ({
   systemInfoMock: vi.fn(),
   updateSystemInfoMock: vi.fn(),
   restartMock: vi.fn(),
   showOpenMock: vi.fn(),
+  messageInfoMock: vi.fn(),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -76,6 +77,10 @@ vi.mock('@arco-design/web-react', async (importOriginal) => {
   const actual = await importOriginal<typeof import('@arco-design/web-react')>();
   return {
     ...actual,
+    Message: {
+      ...actual.Message,
+      info: messageInfoMock,
+    },
     Modal: {
       ...actual.Modal,
       useModal: () => [
@@ -128,7 +133,7 @@ describe('SystemModalContent directory settings', () => {
     });
     systemInfoMock.mockResolvedValue(defaultSystemInfo);
     updateSystemInfoMock.mockResolvedValue(undefined);
-    restartMock.mockResolvedValue(undefined);
+    restartMock.mockResolvedValue({ restarted: true, manualRestartRequired: false });
     showOpenMock.mockResolvedValue(['/new-logs']);
   });
 
@@ -191,5 +196,49 @@ describe('SystemModalContent directory settings', () => {
         logDir: '/logs',
       });
     });
+  });
+
+  it('tells the user to restart manually when dev mode cannot relaunch automatically', async () => {
+    const user = userEvent.setup();
+    restartMock.mockResolvedValueOnce({ restarted: false, manualRestartRequired: true, reason: 'dev-mode' });
+    const { container } = renderContent();
+
+    await screen.findByText('/logs');
+    const logDirItem = screen.getByText('settings.logDir').closest('.arco-form-item');
+    expect(logDirItem).not.toBeNull();
+
+    await user.click(within(logDirItem as HTMLElement).getByRole('button'));
+
+    await waitFor(() => {
+      expect(updateSystemInfoMock).toHaveBeenCalledWith({
+        cacheDir: '/cache',
+        workDir: '/work',
+        logDir: '/new-logs',
+      });
+    });
+    expect(restartMock).toHaveBeenCalledTimes(1);
+    expect(messageInfoMock).toHaveBeenCalledWith('settings.restartManualRequired');
+    expect(container).toHaveTextContent('/new-logs');
+  });
+
+  it('shows field-specific tooltip text when hovering the folder action button', async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    await screen.findByText('/work');
+    const workDirItem = screen.getByText('settings.workDir').closest('.arco-form-item');
+    const logDirItem = screen.getByText('settings.logDir').closest('.arco-form-item');
+    expect(workDirItem).not.toBeNull();
+    expect(logDirItem).not.toBeNull();
+
+    const workDirButton = within(workDirItem as HTMLElement).getByRole('button');
+    const logDirButton = within(logDirItem as HTMLElement).getByRole('button');
+
+    await user.hover(workDirButton);
+    expect(await screen.findByText('settings.changeWorkDir')).toBeInTheDocument();
+
+    await user.unhover(workDirButton);
+    await user.hover(logDirButton);
+    expect(await screen.findByText('settings.changeLogDir')).toBeInTheDocument();
   });
 });

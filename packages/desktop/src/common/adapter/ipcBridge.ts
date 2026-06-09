@@ -399,6 +399,12 @@ export interface IGpuStatus {
   lastCrashAt: number | null;
 }
 
+export interface IAppRestartResult {
+  restarted: boolean;
+  manualRestartRequired: boolean;
+  reason?: 'dev-mode';
+}
+
 export type IRendererLogLevel = 'info' | 'warn' | 'error';
 
 export interface IRendererLogEntry {
@@ -413,7 +419,7 @@ export interface IRendererLogEntry {
 // ---------------------------------------------------------------------------
 
 export const application = {
-  restart: bridge.buildProvider<void, void>('restart-app'),
+  restart: bridge.buildProvider<IAppRestartResult, void>('restart-app'),
   openDevTools: bridge.buildProvider<boolean, void>('open-dev-tools'),
   isDevToolsOpened: bridge.buildProvider<boolean, void>('is-dev-tools-opened'),
   systemInfo: withResponseMap(

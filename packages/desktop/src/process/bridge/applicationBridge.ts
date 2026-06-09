@@ -13,6 +13,7 @@ import { getCdpStatus, updateCdpConfig } from '@process/utils/configureChromium'
 import { getGpuStatus, setGpuUserOverride } from '@process/utils/gpuRecovery';
 import { initApplicationBridgeCore } from './applicationBridgeCore';
 import type { IStartOnBootStatus } from '@/common/adapter/ipcBridge';
+import { restartApplication } from './restartApplication';
 
 let mainWindowRef: BrowserWindow | null = null;
 
@@ -102,8 +103,7 @@ export function initApplicationBridge(): void {
     // Backend subprocess shutdown is handled by backendManager.stop() in the
     // main window's before-quit hook; agent children are killed transitively
     // when backend exits.
-    app.relaunch();
-    app.exit(0);
+    return restartApplication(app);
   });
 
   ipcBridge.application.isDevToolsOpened.provider(() => {

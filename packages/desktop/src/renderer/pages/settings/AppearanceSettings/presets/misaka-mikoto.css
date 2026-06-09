@@ -442,27 +442,6 @@ a:hover:not([class*='button']):not([class*='btn']) {
   pointer-events: none;
 }
 
-.arco-tooltip-inner,
-.arco-popover-inner,
-.arco-popover-content {
-  background-color: var(--color-primary-base);
-  color: #ffffff;
-  border: 1px solid var(--color-primary-dark-1);
-  border-radius: 8px;
-  box-shadow: 0 4px 16px rgba(30, 58, 138, 0.4);
-}
-
-.arco-tooltip-inner *,
-.arco-popover-inner *,
-.arco-popover-content * {
-  color: #ffffff;
-}
-
-.arco-tooltip-arrow,
-.arco-popover-arrow {
-  border-color: var(--color-primary-dark-1);
-}
-
 /* ========== 对话框 ========== */
 .arco-modal-body {
   background-color: rgba(255, 255, 255, 0.8);
@@ -753,23 +732,6 @@ a:hover:not([class*='button']):not([class*='btn']) {
 [data-theme='dark'] a:hover:not([class*='button']):not([class*='btn']) {
   color: var(--color-primary-light-1);
   text-shadow: 0 0 8px rgba(147, 197, 253, 0.5);
-}
-
-/* 深色模式 Tooltip */
-[data-theme='dark'] .arco-tooltip-inner,
-[data-theme='dark'] .arco-popover-inner,
-[data-theme='dark'] .arco-popover-content {
-  background: linear-gradient(135deg, #2d4a6f 0%, #1e3a5a 100%);
-  color: var(--text-base-color);
-  border: 2px solid var(--color-primary-base);
-  box-shadow:
-    0 6px 20px rgba(96, 165, 250, 0.4),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .arco-tooltip-arrow,
-[data-theme='dark'] .arco-popover-arrow {
-  border-color: var(--color-primary-base);
 }
 
 /* 深色模式对话框 */

@@ -10,6 +10,7 @@ import { configService } from '@/common/config/configService';
 import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import LanguageSwitcher from '@/renderer/components/settings/LanguageSwitcher';
+import { notifyManualRestartRequired } from '@/renderer/utils/appRestart';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Alert, Collapse, Form, InputNumber, Message, Modal, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
@@ -135,7 +136,10 @@ const SystemModalContent: React.FC = () => {
           .then((result) => {
             if (result.success && result.data) {
               setGpuStatus(result.data);
-              ipcBridge.application.restart.invoke().catch(() => {});
+              ipcBridge.application.restart
+                .invoke()
+                .then((restartResult) => notifyManualRestartRequired(restartResult, t))
+                .catch(() => {});
             } else {
               setGpuStatus(previous);
               Message.error(t('settings.hardwareAccelerationUpdateFailed'));
@@ -351,7 +355,8 @@ const SystemModalContent: React.FC = () => {
         // (removed from UI), but the backend IPC interface still expects it.
         // Passing the current value ensures existing custom paths are preserved.
         await ipcBridge.application.updateSystemInfo.invoke({ cacheDir: systemInfo.cacheDir, workDir, logDir });
-        await ipcBridge.application.restart.invoke();
+        const restartResult = await ipcBridge.application.restart.invoke();
+        notifyManualRestartRequired(restartResult, t);
       } catch (caughtError: unknown) {
         form.setFieldsValue({ workDir: systemInfo.workDir, logDir: systemInfo.logDir });
         if (caughtError) {
@@ -361,7 +366,7 @@ const SystemModalContent: React.FC = () => {
         savingRef.current = false;
       }
     },
-    [systemInfo, form, saveDirConfigValidate]
+    [systemInfo, form, saveDirConfigValidate, t]
   );
 
   return (

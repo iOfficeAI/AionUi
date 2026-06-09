@@ -236,7 +236,6 @@ body,
 .arco-modal,
 .arco-drawer-content,
 .arco-card,
-.arco-popover-content,
 .arco-dropdown-menu,
 .arco-select-popup {
   background: linear-gradient(180deg, rgba(40, 33, 27, 0.98) 0%, rgba(31, 26, 21, 0.98) 100%) !important;
