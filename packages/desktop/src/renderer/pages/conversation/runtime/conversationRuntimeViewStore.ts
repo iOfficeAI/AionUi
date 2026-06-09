@@ -141,6 +141,15 @@ const viewFromRuntimeSummary = (
   };
 };
 
+const isStaleCompletedRuntimeSummary = (
+  runtime: TConversationRuntimeSummary | null,
+  metadata: ConversationRuntimeMetadata
+): runtime is TConversationRuntimeSummary =>
+  runtime !== null &&
+  runtime.turn_id !== null &&
+  metadata.lastCompletedTurnId === runtime.turn_id &&
+  runtime.is_processing === true;
+
 const withLogs = (
   view: ConversationRuntimeView,
   logs: ConversationRuntimeViewLogEntry[] = []
@@ -257,9 +266,11 @@ export const localSendAcceptedConversationRuntimeView = (
   ]);
 };
 
-const staleSendAcceptedConversationRuntimeView = (
+const staleRuntimeSummaryConversationRuntimeView = (
   previous: ConversationRuntimeView | undefined,
   conversation_id: string,
+  event: ConversationRuntimeViewLogEvent,
+  source: string,
   turn_id: string,
   runtime: TConversationRuntimeSummary,
   msg_id?: string
@@ -270,9 +281,10 @@ const staleSendAcceptedConversationRuntimeView = (
     hydrated: true,
   };
   return withLogs(view, [
-    createLog('info', 'local_send_accepted', view, {
+    createLog('info', event, view, {
       turn_id,
       runtime_turn_id: runtime.turn_id,
+      source,
       stale_after_completed: true,
       ...(msg_id ? { msg_id } : {}),
     }),
@@ -376,6 +388,20 @@ export const hydrateSucceeded = (
   runtime: TConversationRuntimeSummary | null
 ): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
+  if (isStaleCompletedRuntimeSummary(runtime, metadata)) {
+    return setConversationRuntimeSnapshot(
+      conversation_id,
+      staleRuntimeSummaryConversationRuntimeView(
+        runtimeViews.get(conversation_id),
+        conversation_id,
+        'runtime_hydrated',
+        'hydrate',
+        runtime.turn_id,
+        runtime
+      )
+    );
+  }
+
   return setConversationRuntimeSnapshot(
     conversation_id,
     hydrateSucceededConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, runtime, metadata, {
@@ -439,16 +465,18 @@ export const localSendAccepted = (
   msg_id?: string
 ): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
-  const staleAfterCompleted = metadata.lastCompletedTurnId === turn_id;
+  const staleAfterCompleted = isStaleCompletedRuntimeSummary(runtime, metadata);
   if (!staleAfterCompleted) {
     metadata.pendingLocalSendSeq = null;
   }
   return setConversationRuntimeSnapshot(
     conversation_id,
     staleAfterCompleted
-      ? staleSendAcceptedConversationRuntimeView(
+      ? staleRuntimeSummaryConversationRuntimeView(
           runtimeViews.get(conversation_id),
           conversation_id,
+          'local_send_accepted',
+          'send_response',
           turn_id,
           runtime,
           msg_id
@@ -490,15 +518,25 @@ export const localStopAcknowledged = (
   if (metadata.pendingStopTurnId === turn_id) {
     metadata.pendingStopTurnId = null;
   }
+  const staleAfterCompleted = isStaleCompletedRuntimeSummary(runtime, metadata);
   return setConversationRuntimeSnapshot(
     conversation_id,
-    localStopAcknowledgedConversationRuntimeView(
-      runtimeViews.get(conversation_id),
-      conversation_id,
-      turn_id,
-      runtime,
-      metadata
-    )
+    staleAfterCompleted
+      ? staleRuntimeSummaryConversationRuntimeView(
+          runtimeViews.get(conversation_id),
+          conversation_id,
+          'local_stop_acknowledged',
+          'stop_response',
+          turn_id,
+          runtime
+        )
+      : localStopAcknowledgedConversationRuntimeView(
+          runtimeViews.get(conversation_id),
+          conversation_id,
+          turn_id,
+          runtime,
+          metadata
+        )
   );
 };
 
