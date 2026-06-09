@@ -129,12 +129,7 @@ test.describe('ACP empty turn info tips', () => {
       await openConversationPage(page, conversationId);
       await waitForEmptyTurnController(page, conversationId);
 
-      await emitInfoTip(
-        page,
-        conversationId,
-        'ACP_EMPTY_TURN',
-        ''
-      );
+      await emitInfoTip(page, conversationId, 'ACP_EMPTY_TURN', '');
 
       const latestTip = page.locator('[data-testid="message-tips-center"]').last();
       await expect(latestTip).toBeVisible({ timeout: 15_000 });
@@ -157,12 +152,7 @@ test.describe('ACP empty turn info tips', () => {
       await openConversationPage(page, conversationId);
       await waitForEmptyTurnController(page, conversationId);
 
-      await emitInfoTip(
-        page,
-        conversationId,
-        'ACP_EMPTY_TURN',
-        ''
-      );
+      await emitInfoTip(page, conversationId, 'ACP_EMPTY_TURN', '');
       await emitFollowUpExchange(page, conversationId);
 
       const latestTip = page.locator('[data-testid="message-tips-center"]').last();
