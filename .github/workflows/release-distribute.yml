@@ -105,15 +105,22 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
-          shopt -s nullglob
 
-          metadata_files=(dist/latest*.yml)
-          if [ "${#metadata_files[@]}" -eq 0 ]; then
-            echo "::error::No updater metadata files found in release assets."
-            exit 1
-          fi
+          metadata_files=(
+            dist/latest.yml
+            dist/latest-win-arm64.yml
+            dist/latest-mac.yml
+            dist/latest-arm64-mac.yml
+            dist/latest-linux.yml
+            dist/latest-linux-arm64.yml
+          )
 
           for file in "${metadata_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing updater metadata file: $file."
+              exit 1
+            fi
+
             metadata_version=$(grep -E "^version:" "$file" | head -n 1 | sed -E "s/^version:[[:space:]]*['\"]?([^'\"]+).*/\1/")
             if [ "$metadata_version" != "$VERSION" ]; then
               echo "::error::$file version is $metadata_version, expected $VERSION."
@@ -123,7 +130,9 @@ jobs:
 
           {
             echo "files<<EOF"
-            find dist -type f -name "latest*.yml" -exec basename {} \; | sort
+            for file in "${metadata_files[@]}"; do
+              basename "$file"
+            done
             echo "EOF"
           } >> "$GITHUB_OUTPUT"
 
