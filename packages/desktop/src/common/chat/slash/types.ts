@@ -36,10 +36,14 @@ export type SlashCommandSource = 'acp' | 'builtin';
 export interface AcpAvailableCommand {
   name: string;
   description: string;
-  hint?: string;
-  completionBehavior?: SlashCommandCompletionBehavior;
-  emptyTurnTipCode?: string;
-  emptyTurnTipParams?: Record<string, unknown>;
+  input?: {
+    hint?: string;
+  };
+  _meta?: {
+    completion_behavior?: SlashCommandCompletionBehavior;
+    empty_turn_tip_code?: string;
+    empty_turn_tip_params?: Record<string, unknown>;
+  };
 }
 
 /**
@@ -52,6 +56,9 @@ export interface AcpSlashCommandApiItem {
   completion_behavior?: SlashCommandCompletionBehavior;
   empty_turn_tip_code?: string;
   empty_turn_tip_params?: Record<string, unknown>;
+  completionBehavior?: SlashCommandCompletionBehavior;
+  emptyTurnTipCode?: string;
+  emptyTurnTipParams?: Record<string, unknown>;
 }
 
 /**

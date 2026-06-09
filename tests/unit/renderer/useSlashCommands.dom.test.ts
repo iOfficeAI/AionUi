@@ -65,4 +65,44 @@ describe('useSlashCommands', () => {
       ]);
     });
   });
+
+  it('preserves ACP slash-command metadata from camelCase HTTP fields', async () => {
+    getSlashCommandsInvokeMock.mockResolvedValue([
+      {
+        command: 'review',
+        description: 'Review the current diff',
+        hint: '⌘R',
+        completionBehavior: 'neutral_tip_on_empty',
+        emptyTurnTipCode: 'acp.empty_turn.choose_command',
+        emptyTurnTipParams: {
+          command_count: 1,
+        },
+      },
+    ]);
+
+    const { result } = renderHook(() =>
+      useSlashCommands('conv-1', {
+        conversation_type: 'acp',
+        agentStatus: 'session_active',
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          hint: '⌘R',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
+          completionBehavior: 'neutral_tip_on_empty',
+          emptyTurnTipCode: 'acp.empty_turn.choose_command',
+          emptyTurnTipParams: {
+            command_count: 1,
+          },
+        },
+      ]);
+    });
+  });
 });

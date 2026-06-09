@@ -182,11 +182,15 @@ describe('useAcpMessage', () => {
             {
               name: 'review',
               description: 'Review the current diff',
-              hint: '⌘R',
-              completionBehavior: 'neutral_tip_on_empty',
-              emptyTurnTipCode: 'acp.empty_turn.choose_command',
-              emptyTurnTipParams: {
-                command_count: 1,
+              input: {
+                hint: '⌘R',
+              },
+              _meta: {
+                completion_behavior: 'neutral_tip_on_empty',
+                empty_turn_tip_code: 'acp.empty_turn.choose_command',
+                empty_turn_tip_params: {
+                  command_count: 1,
+                },
               },
             },
           ],
