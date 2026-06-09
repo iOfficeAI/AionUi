@@ -9,6 +9,33 @@ import { normalizeDbMessage } from '@/renderer/pages/conversation/Messages/hooks
 import type { IMessageTips } from '@/common/chat/chatLib';
 
 describe('normalizeDbMessage', () => {
+  it('keeps persisted info tip localization metadata from db content', () => {
+    const normalized = normalizeDbMessage({
+      id: 'tip-info',
+      type: 'tips',
+      conversation_id: 'conversation-1',
+      position: 'center',
+      status: 'finish',
+      content: JSON.stringify({
+        content: '',
+        type: 'info',
+        code: 'ACP_EMPTY_TURN',
+        params: {
+          provider: 'OpenCode',
+        },
+      }),
+    } as unknown as IMessageTips) as IMessageTips;
+
+    expect(normalized.content).toEqual({
+      content: '',
+      type: 'info',
+      code: 'ACP_EMPTY_TURN',
+      params: {
+        provider: 'OpenCode',
+      },
+    });
+  });
+
   it('keeps structured error metadata from persisted tips', () => {
     const normalized = normalizeDbMessage({
       id: 'tip-structured',

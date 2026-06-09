@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { renderHook, waitFor } from '@testing-library/react';
+import { act, renderHook, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { useAcpMessage } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -167,5 +167,55 @@ describe('useAcpMessage', () => {
         msg_id: 'msg-1',
       })
     );
+  });
+
+  it('preserves slash-command metadata from available_commands stream updates', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    const { result } = renderHook(() => useAcpMessage('conv-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'available_commands',
+        data: {
+          commands: [
+            {
+              name: 'review',
+              description: 'Review the current diff',
+              input: {
+                hint: '⌘R',
+              },
+              _meta: {
+                completion_behavior: 'neutral_tip_on_empty',
+                empty_turn_tip_code: 'acp.empty_turn.choose_command',
+                empty_turn_tip_params: {
+                  command_count: 1,
+                },
+              },
+            },
+          ],
+        },
+        msg_id: 'cmd-1',
+        conversation_id: 'conv-1',
+      });
+    });
+
+    await waitFor(() => {
+      expect(result.current.slashCommands).toEqual([
+        {
+          name: 'review',
+          description: 'Review the current diff',
+          hint: '⌘R',
+          kind: 'template',
+          source: 'acp',
+          selectionBehavior: 'insert',
+          completionBehavior: 'neutral_tip_on_empty',
+          emptyTurnTipCode: 'acp.empty_turn.choose_command',
+          emptyTurnTipParams: {
+            command_count: 1,
+          },
+        },
+      ]);
+    });
   });
 });

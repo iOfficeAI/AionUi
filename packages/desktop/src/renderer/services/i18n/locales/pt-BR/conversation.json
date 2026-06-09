@@ -486,5 +486,21 @@
   "sendbox": {
     "hint": "Digite / para comandos, @ para referenciar arquivos"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Esta solicitação não gerou nenhuma resposta visível."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Esta solicitação atingiu o limite de tokens de saída do modelo antes de produzir qualquer resposta visível."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Esta solicitação atingiu o limite de requisições do modelo antes de produzir qualquer resposta visível."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "O modelo recusou esta solicitação antes de produzir qualquer resposta visível."
+      }
+    }
+  },
   "notFound": "Conversa não encontrada ou foi deletada"
 }

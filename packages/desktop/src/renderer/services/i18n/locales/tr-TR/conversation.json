@@ -482,5 +482,21 @@
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Bu istek görünür bir yanıt üretmedi."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin istek sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "Model, görünür bir yanıt üretmeden önce bu isteği reddetti."
+      }
+    }
+  },
   "notFound": "Konuşma bulunamadı veya silinmiş"
 }

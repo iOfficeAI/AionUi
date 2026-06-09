@@ -19,6 +19,8 @@ type RunScenarioOptions = {
 
 type StreamController = {
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
+  emitInfoTip: (code: string, content: string) => Promise<void>;
+  emitFollowUpExchange: () => Promise<void>;
 };
 
 type StreamRegistry = {
@@ -136,6 +138,75 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
           };
 
           pushNextChunk();
+        });
+      },
+      emitInfoTip: async (code: string, content: string) => {
+        const msgId = `e2e-info-tip-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: msgId,
+            msg_id: msgId,
+            conversation_id: conversationId,
+            type: 'tips',
+            position: 'center',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              content,
+              type: 'info',
+              code,
+            },
+          },
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+      },
+      emitFollowUpExchange: async () => {
+        const userMsgId = `e2e-follow-up-user-${Date.now()}`;
+        const assistantMsgId = `e2e-follow-up-assistant-${Date.now()}`;
+
+        addOrUpdateMessage(
+          {
+            id: userMsgId,
+            msg_id: userMsgId,
+            conversation_id: conversationId,
+            type: 'text',
+            position: 'right',
+            status: 'finish',
+            created_at: Date.now(),
+            content: {
+              content: 'Please continue after the neutral info tip.',
+            },
+          },
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
+        });
+
+        addOrUpdateMessage(
+          {
+            id: assistantMsgId,
+            msg_id: assistantMsgId,
+            conversation_id: conversationId,
+            type: 'text',
+            position: 'left',
+            status: 'finish',
+            created_at: Date.now() + 1,
+            content: {
+              content: 'Follow-up reply arrived after the neutral empty-turn tip.',
+            },
+          },
+          true
+        );
+
+        await new Promise<void>((resolve) => {
+          window.setTimeout(resolve, STREAM_TICK_MS);
         });
       },
     };

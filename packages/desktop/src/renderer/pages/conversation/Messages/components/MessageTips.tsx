@@ -58,28 +58,42 @@ const ownershipColor = {
   unknown_upstream: 'gray',
 };
 
+const resolveAgentTipBody = (
+  content: string,
+  code: IMessageTips['content']['code'],
+  params: IMessageTips['content']['params'],
+  t: ReturnType<typeof useTranslation>['t']
+) => {
+  if (!code) return content;
+  return t(`conversation.agentTip.codes.${code}.body`, {
+    ...params,
+    defaultValue: content,
+  });
+};
+
 const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const { t } = useTranslation();
-  const { content, type } = message.content;
+  const { content, type, code, params } = message.content;
   const structuredError = type === 'error' ? message.content.error : undefined;
-  const { json, data } = useFormatContent(content);
+  const localizedTipBody = resolveAgentTipBody(content, code, params, t);
+  const { json, data } = useFormatContent(localizedTipBody);
 
-  const displayContent = json ? '' : content;
+  const displayContent = json ? '' : localizedTipBody;
   const shouldShowFeedback = type === 'error';
 
   if (structuredError) {
-    const code = structuredError.code;
+    const errorCode = structuredError.code;
     const ownership = structuredError.ownership;
-    const title = code
-      ? t(`conversation.agentError.codes.${code}.title`, {
+    const title = errorCode
+      ? t(`conversation.agentError.codes.${errorCode}.title`, {
           defaultValue: t('conversation.agentError.fallbackTitle'),
         })
       : t('conversation.agentError.fallbackTitle');
-    const body = code
+    const body = errorCode
       ? t(
           structuredError.workspacePath
-            ? `conversation.agentError.codes.${code}.bodyWithPath`
-            : `conversation.agentError.codes.${code}.body`,
+            ? `conversation.agentError.codes.${errorCode}.bodyWithPath`
+            : `conversation.agentError.codes.${errorCode}.body`,
           {
             workspacePath: structuredError.workspacePath,
             defaultValue: structuredError.message || content,
@@ -103,12 +117,12 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
         )}`
       : null;
     const detailParts = [
-      code ? `${t('conversation.agentError.errorCode')}: ${code}` : '',
+      errorCode ? `${t('conversation.agentError.errorCode')}: ${errorCode}` : '',
       structuredError.detail || structuredError.message,
     ].filter(Boolean);
     const feedbackTags: Record<string, string> = {};
-    if (code) {
-      feedbackTags.agent_error_code = code;
+    if (errorCode) {
+      feedbackTags.agent_error_code = errorCode;
     }
     if (ownership) {
       feedbackTags.agent_error_ownership = ownership;
@@ -121,7 +135,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     }
     const feedbackExtra = {
       agent_error: {
-        ...(code ? { code } : {}),
+        ...(errorCode ? { code: errorCode } : {}),
         ...(ownership ? { ownership } : {}),
         ...(structuredError.retryable !== undefined ? { retryable: structuredError.retryable } : {}),
         ...(structuredError.feedback_recommended !== undefined
@@ -173,6 +187,18 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
               <FeedbackButton module='conversation-session' feedbackTags={feedbackTags} feedbackExtra={feedbackExtra} />
             </div>
           )}
+        </div>
+      </div>
+    );
+  }
+
+  if (type === 'info') {
+    return (
+      <div className='w-full'>
+        <div className='p-x-12px p-y-4px'>
+          <div className='text-center text-13px text-t-secondary whitespace-break-spaces [word-break:break-word]'>
+            {localizedTipBody}
+          </div>
         </div>
       </div>
     );

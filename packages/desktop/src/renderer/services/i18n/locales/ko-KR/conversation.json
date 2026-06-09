@@ -480,5 +480,21 @@
   "sendbox": {
     "hint": "/ 로 명령, @ 로 파일 참조"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "이번 요청에서는 표시할 수 있는 응답이 없었습니다."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "이번 요청은 표시 가능한 응답이 나오기 전에 모델의 출력 토큰 한도에 도달했습니다."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "이번 요청은 표시 가능한 응답이 나오기 전에 모델의 요청 한도에 도달했습니다."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "모델이 표시 가능한 응답을 생성하기 전에 이번 요청을 거부했습니다."
+      }
+    }
+  },
   "notFound": "대화를 찾을 수 없거나 삭제되었습니다"
 }

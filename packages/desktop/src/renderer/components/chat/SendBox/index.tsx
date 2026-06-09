@@ -452,12 +452,10 @@ const SendBox: React.FC<{
         kind: 'builtin',
         source: 'builtin',
       });
-      commands.push({
-        name: 'export',
-        description: t('messages.export.commandDescription'),
-        kind: 'builtin',
-        source: 'builtin',
-      });
+      // The `/export` slash command is intentionally not registered (kanban #14)
+      // so it never appears in the command list and cannot open the export flow.
+      // The `name === 'export'` branch below and the conversationExport hook are
+      // kept intact for a future per-platform re-enable.
     }
     return commands;
   }, [conversationContext?.conversation_id, enableBtw, onSlashBuiltinCommand, t]);

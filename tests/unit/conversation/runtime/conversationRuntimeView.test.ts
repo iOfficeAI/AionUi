@@ -211,6 +211,44 @@ describe('conversationRuntimeViewStore', () => {
     });
   });
 
+  it('ignores a late running send acceptance after turn completion already released the same turn', () => {
+    resetConversationRuntimeViewStoreForTest();
+
+    localSendStarted(conversation_id);
+    turnCompleted(conversation_id, 'turn-1', runtime({}));
+    const logs = localSendAccepted(
+      conversation_id,
+      'turn-1',
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+      }),
+      'message-1'
+    );
+
+    expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
+      state: 'idle',
+      isProcessing: false,
+      canSendMessage: true,
+      localSubmitting: false,
+      hasBackendRuntime: true,
+      hydrated: true,
+    });
+    expect(logs).toHaveLength(1);
+    expect(logs[0]).toMatchObject({
+      event: 'local_send_accepted',
+      data: {
+        stale_after_completed: true,
+        turn_id: 'turn-1',
+        runtime_turn_id: 'turn-1',
+      },
+    });
+  });
+
   it('does not unlock when turn completed has no runtime', () => {
     const started = localSendStartedConversationRuntimeView(undefined, conversation_id).view;
     const { view, logs } = turnCompletedConversationRuntimeView(started, conversation_id, 'turn-1', null);

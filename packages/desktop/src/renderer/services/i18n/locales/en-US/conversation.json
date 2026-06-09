@@ -480,5 +480,21 @@
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "This request produced no visible reply."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "This request hit the model's output token limit before any visible reply was produced."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "This request hit the model's request limit before any visible reply was produced."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "The model refused this request before producing any visible reply."
+      }
+    }
+  },
   "notFound": "Conversation not found or has been deleted"
 }

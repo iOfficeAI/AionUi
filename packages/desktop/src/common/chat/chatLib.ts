@@ -5,6 +5,7 @@
  */
 
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
+import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
 
@@ -165,7 +166,9 @@ export type IMessageTips = IMessage<
   'tips',
   {
     content: string;
-    type: 'error' | 'success' | 'warning';
+    type: 'error' | 'info' | 'success' | 'warning';
+    code?: string;
+    params?: Record<string, unknown>;
     error?: AgentStreamErrorInfo;
   }
 >;
@@ -347,11 +350,7 @@ export type IMessageThinking = IMessage<
 >;
 
 // Available commands from ACP agents (Claude, etc.)
-export type AvailableCommand = {
-  name: string;
-  description: string;
-  hint?: string;
-};
+export type AvailableCommand = AcpAvailableCommand;
 
 export type IMessageAvailableCommands = IMessage<
   'available_commands',
@@ -517,10 +516,14 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
     case 'tips': {
       const data = message.data as {
         content: string;
-        type?: 'error' | 'success' | 'warning';
+        type?: 'error' | 'info' | 'success' | 'warning';
+        code?: unknown;
+        params?: unknown;
         error?: unknown;
       };
       const tipType = data.type ?? 'warning';
+      const tipCode = typeof data.code === 'string' ? data.code : undefined;
+      const tipParams = isObject(data.params) ? data.params : undefined;
       const structuredError =
         tipType === 'error'
           ? (normalizeAgentStreamError(data.error) ?? normalizeAgentStreamError({ ...data, message: data.content }))
@@ -535,6 +538,8 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         content: {
           content: data.content,
           type: tipType,
+          ...(tipCode ? { code: tipCode } : {}),
+          ...(tipParams ? { params: tipParams } : {}),
           ...(structuredError ? { error: structuredError } : {}),
         },
       };

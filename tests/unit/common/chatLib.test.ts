@@ -253,4 +253,32 @@ describe('transformMessage', () => {
       },
     });
   });
+
+  it('preserves info tip type with code and params', () => {
+    const message: IResponseMessage = {
+      type: 'tips',
+      data: {
+        content: 'Select a slash command to continue',
+        type: 'info',
+        code: 'acp.empty_turn.choose_command',
+        params: {
+          command_count: 3,
+        },
+      },
+      msg_id: 'tips-info-1',
+      conversation_id: CONVERSATION_ID,
+    };
+
+    const transformed = transformMessage(message) as IMessageTips;
+
+    expect(transformed.type).toBe('tips');
+    expect(transformed.content).toMatchObject({
+      content: 'Select a slash command to continue',
+      type: 'info',
+      code: 'acp.empty_turn.choose_command',
+      params: {
+        command_count: 3,
+      },
+    });
+  });
 });

@@ -92,13 +92,9 @@ body.login-page-active {
 }
 
 .login-page__lang-select-wrapper {
-  position: absolute;
-  top: 20px;
-  right: 20px;
   display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: 4px;
+  justify-content: flex-end;
+  margin-bottom: 16px;
   font-size: 13px;
   color: #555;
 }
@@ -108,7 +104,7 @@ body.login-page-active {
 }
 
 .login-page__lang-select {
-  min-width: 140px;
+  width: auto;
   padding: 6px 12px;
   border: 1px solid #ddd;
   border-radius: 8px;

@@ -59,19 +59,23 @@
   fill: #fff !important;
 }
 
+/* Breathe via color + a soft glow ring only — NO transform: scale(). On narrow
+   mobile the panel is single-line (~50px) with overflow:hidden + rounded corners;
+   a scaled-up button plus an 8px glow pushed the button's footprint past the
+   panel's straight edge, so the glow's top/bottom got clipped along the corner
+   arc (#13). Dropping the scale and trimming the glow to 6px keeps the whole
+   footprint inside the panel at every common width. */
 @keyframes sendbox-stop-breathe {
   0% {
     background-color: var(--aou-2) !important;
     border-color: var(--aou-2) !important;
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-6-brand) 0%, transparent);
-    transform: scale(1);
   }
 
   100% {
     background-color: var(--aou-5) !important;
     border-color: var(--aou-5) !important;
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-6-brand) 22%, transparent);
-    transform: scale(1.08);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--aou-6-brand) 22%, transparent);
   }
 }
 
@@ -80,14 +84,12 @@
     background-color: var(--aou-2) !important;
     border-color: var(--aou-2) !important;
     box-shadow: 0 0 0 0 color-mix(in srgb, var(--aou-5) 0%, transparent);
-    transform: scale(1);
   }
 
   100% {
     background-color: var(--aou-5) !important;
     border-color: var(--aou-5) !important;
-    box-shadow: 0 0 0 8px color-mix(in srgb, var(--aou-5) 28%, transparent);
-    transform: scale(1.08);
+    box-shadow: 0 0 0 6px color-mix(in srgb, var(--aou-5) 28%, transparent);
   }
 }
 
