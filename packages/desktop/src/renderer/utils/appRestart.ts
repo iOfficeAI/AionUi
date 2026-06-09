@@ -9,7 +9,7 @@ import { Message } from '@arco-design/web-react';
 import type { TFunction } from 'i18next';
 
 export function notifyManualRestartRequired(result: IAppRestartResult | void, t: TFunction): void {
-  if (result?.manualRestartRequired) {
+  if (result && result.manualRestartRequired) {
     Message.info(t('settings.restartManualRequired'));
   }
 }
