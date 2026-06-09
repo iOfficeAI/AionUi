@@ -42,8 +42,6 @@
     "format": "oxfmt",
     "format:check": "oxfmt --check",
     "i18n:types": "node scripts/generate-i18n-types.js",
-    "types:sync-opencode": "node scripts/sync-opencode-types.js",
-    "types:sync-opencode:check": "node scripts/sync-opencode-types.js --check",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
@@ -189,7 +187,6 @@
   "devDependencies": {
     "@electron/fuses": "^1.8.0",
     "@electron/notarize": "^3.1.0",
-    "@opencode-ai/sdk": "1.16.2",
     "@playwright/test": "^1.58.2",
     "@sentry/vite-plugin": "^5.1.1",
     "@testing-library/jest-dom": "^6.9.1",

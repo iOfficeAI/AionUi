@@ -60,7 +60,6 @@
         "cors": "^2.8.5",
         "croner": "^9.1.0",
         "dayjs": "^1.11.18",
-        "diff": "^8.0.3",
         "dingtalk-stream": "^2.1.4",
         "docx": "^9.5.1",
         "electron-log": "^5.4.3",
@@ -122,7 +121,6 @@
       "devDependencies": {
         "@electron/fuses": "^1.8.0",
         "@electron/notarize": "^3.1.0",
-        "@opencode-ai/sdk": "1.16.2",
         "@playwright/test": "^1.58.2",
         "@sentry/vite-plugin": "^5.1.1",
         "@testing-library/jest-dom": "^6.9.1",
@@ -936,8 +934,6 @@
     "@office-ai/aioncli-core": ["@office-ai/aioncli-core@0.30.6", "", { "dependencies": { "@a2a-js/sdk": "^0.3.8", "@anthropic-ai/sdk": "^0.52.0", "@aws-sdk/client-bedrock-runtime": "^3.981.0", "@google-cloud/logging": "^11.2.1", "@google-cloud/opentelemetry-cloud-monitoring-exporter": "^0.21.0", "@google-cloud/opentelemetry-cloud-trace-exporter": "^3.0.0", "@google/genai": "1.30.0", "@iarna/toml": "^2.2.5", "@joshua.litt/get-ripgrep": "^0.0.3", "@modelcontextprotocol/sdk": "^1.23.0", "@opentelemetry/api": "^1.9.0", "@opentelemetry/api-logs": "^0.211.0", "@opentelemetry/core": "^2.5.0", "@opentelemetry/exporter-logs-otlp-grpc": "^0.211.0", "@opentelemetry/exporter-logs-otlp-http": "^0.211.0", "@opentelemetry/exporter-metrics-otlp-grpc": "^0.211.0", "@opentelemetry/exporter-metrics-otlp-http": "^0.211.0", "@opentelemetry/exporter-trace-otlp-grpc": "^0.211.0", "@opentelemetry/exporter-trace-otlp-http": "^0.211.0", "@opentelemetry/instrumentation-http": "^0.211.0", "@opentelemetry/otlp-exporter-base": "^0.211.0", "@opentelemetry/resources": "^2.5.0", "@opentelemetry/sdk-logs": "^0.211.0", "@opentelemetry/sdk-metrics": "^2.5.0", "@opentelemetry/sdk-node": "^0.211.0", "@opentelemetry/sdk-trace-base": "^2.5.0", "@opentelemetry/sdk-trace-node": "^2.5.0", "@opentelemetry/semantic-conventions": "^1.39.0", "@types/html-to-text": "^9.0.4", "@xterm/headless": "5.5.0", "ajv": "^8.17.1", "ajv-formats": "^3.0.0", "chardet": "^2.1.0", "diff": "^8.0.3", "fast-levenshtein": "^2.0.6", "fdir": "^6.4.6", "fzf": "^0.5.2", "glob": "^12.0.0", "google-auth-library": "^9.11.0", "html-to-text": "^9.0.5", "https-proxy-agent": "^7.0.6", "ignore": "^7.0.0", "js-yaml": "^4.1.1", "jsonrepair": "^3.13.0", "marked": "^15.0.12", "mime": "4.0.7", "mnemonist": "^0.40.3", "node-fetch": "^3.3.2", "open": "^10.1.2", "openai": "^5.11.0", "picomatch": "^4.0.1", "proper-lockfile": "^4.1.2", "read-package-up": "^11.0.0", "shell-quote": "^1.8.3", "simple-git": "^3.28.0", "strip-ansi": "^7.1.0", "systeminformation": "^5.25.11", "tiktoken": "^1.0.22", "tree-sitter-bash": "^0.25.0", "undici": "^7.10.0", "uuid": "^13.0.0", "web-tree-sitter": "^0.25.10", "zod": "^3.25.76", "zod-to-json-schema": "^3.25.1" }, "optionalDependencies": { "@lydell/node-pty": "1.1.0", "@lydell/node-pty-darwin-arm64": "1.1.0", "@lydell/node-pty-darwin-x64": "1.1.0", "@lydell/node-pty-linux-x64": "1.1.0", "@lydell/node-pty-win32-arm64": "1.1.0", "@lydell/node-pty-win32-x64": "1.1.0", "keytar": "^7.9.0", "node-pty": "^1.0.0" } }, "sha512-b5N0U+Pt3lLYyG954h6xj9zHZwSOfw/2M/F54ygXLGJEf9EM+++26P7gj6iHI8o69+GjuwKPSpMvhonVo2NLCg=="],
 
     "@office-ai/platform": ["@office-ai/platform@0.3.16", "", { "dependencies": { "axios": "^1.12.2", "eventemitter3": "^5.0.1", "rxjs": "^7.8.2" }, "peerDependencies": { "react": "^19.1.0" } }, "sha512-xDoO0RO1K4FU3mvyc/CgYltfUFSZWRRGSpigTnPpeMfEqs/U8yRjrvE3OKGAUdqz9/KTDXVwUkWHx/Kc4D19Wg=="],
-
-    "@opencode-ai/sdk": ["@opencode-ai/sdk@1.16.2", "", { "dependencies": { "cross-spawn": "7.0.6" } }, "sha512-Z/xZ7q79dYeE0afqIk/yFEcRNGEQFcE+H8ssYivUiy+xGZ1mGwT72jpaQZKBwPn3JH4sRCu4KA2lcktBQfcOjg=="],
 
     "@opentelemetry/api": ["@opentelemetry/api@1.9.0", "", {}, "sha512-3giAOQvZiH5F9bMlMiv8+GSPMeqg0dbaeo58/0SlA9sxSqZhnUtxzX9/2FzyhS9sWQf5S0GJE0AKBrFqjpeYcg=="],
 
@@ -2179,7 +2175,7 @@
 
     "devlop": ["devlop@1.1.0", "", { "dependencies": { "dequal": "^2.0.0" } }, "sha512-RWmIqhcFf1lRYBvNmr7qTNuyCt/7/ns2jbpp1+PalgE/rDQcBT0fioSMUpJ93irlUhC5hrg4cYqe6U+0ImW0rA=="],
 
-    "diff": ["diff@8.0.3", "", {}, "sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ=="],
+    "diff": ["diff@4.0.4", "", {}, "sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ=="],
 
     "dingbat-to-unicode": ["dingbat-to-unicode@1.0.1", "", {}, "sha512-98l0sW87ZT58pU4i61wa2OHwxbiYSbuxsCBozaVnYX2iCnr3bLM3fIes1/ej7h1YdOKuKt/MLs706TVnALA65w=="],
 
@@ -3947,6 +3943,8 @@
 
     "@office-ai/aioncli-core/@google/genai": ["@google/genai@1.30.0", "", { "dependencies": { "google-auth-library": "^10.3.0", "ws": "^8.18.0" }, "peerDependencies": { "@modelcontextprotocol/sdk": "^1.20.1" }, "optionalPeers": ["@modelcontextprotocol/sdk"] }, "sha512-3MRcgczBFbUat1wIlZoLJ0vCCfXgm7Qxjh59cZi2X08RgWLtm9hKOspzp7TOg1TV2e26/MLxR2GR5yD5GmBV2w=="],
 
+    "@office-ai/aioncli-core/diff": ["diff@8.0.3", "", {}, "sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ=="],
+
     "@office-ai/aioncli-core/google-auth-library": ["google-auth-library@9.15.1", "", { "dependencies": { "base64-js": "^1.3.0", "ecdsa-sig-formatter": "^1.0.11", "gaxios": "^6.1.1", "gcp-metadata": "^6.1.0", "gtoken": "^7.0.0", "jws": "^4.0.0" } }, "sha512-Jb6Z0+nvECVz+2lzSMt9u98UsoakXxA2HGHMCxh+so3n90XgYWkq5dur19JAJV7ONiJY22yBTyJB1TSkvPq9Ng=="],
 
     "@office-ai/aioncli-core/marked": ["marked@15.0.12", "", { "bin": { "marked": "bin/marked.js" } }, "sha512-8dD6FusOQSrpv9Z1rdNMdlSgQOIP880DHqnohobOmYLElGEqAL/JvxvuxZO16r4HtjTlfPRDC1hbvxC9dPN2nA=="],
@@ -4048,6 +4046,8 @@
     "@opentelemetry/sdk-node/@opentelemetry/sdk-trace-node": ["@opentelemetry/sdk-trace-node@2.5.0", "", { "dependencies": { "@opentelemetry/context-async-hooks": "2.5.0", "@opentelemetry/core": "2.5.0", "@opentelemetry/sdk-trace-base": "2.5.0" }, "peerDependencies": { "@opentelemetry/api": ">=1.0.0 <1.10.0" } }, "sha512-O6N/ejzburFm2C84aKNrwJVPpt6HSTSq8T0ZUMq3xT2XmqT4cwxUItcL5UWGThYuq8RTcbH8u1sfj6dmRci0Ow=="],
 
     "@opentelemetry/sdk-trace-node/@opentelemetry/context-async-hooks": ["@opentelemetry/context-async-hooks@2.6.0", "", { "peerDependencies": { "@opentelemetry/api": ">=1.0.0 <1.10.0" } }, "sha512-L8UyDwqpTcbkIK5cgwDRDYDoEhQoj8wp8BwsO19w3LB1Z41yEQm2VJyNfAi9DrLP/YTqXqWpKHyZfR9/tFYo1Q=="],
+
+    "@pierre/diffs/diff": ["diff@8.0.3", "", {}, "sha512-qejHi7bcSD4hQAZE0tNAawRK1ZtafHDmMTMkrrIGgSLl7hTnQHmKCeB45xAcbfTqK2zowkM3j3bHt/4b/ARbYQ=="],
 
     "@playwright/test/playwright": ["playwright@1.58.2", "", { "dependencies": { "playwright-core": "1.58.2" }, "optionalDependencies": { "fsevents": "2.3.2" }, "bin": { "playwright": "cli.js" } }, "sha512-vA30H8Nvkq/cPBnNw4Q8TWz1EJyqgpuinBcHET0YVJVFldr8JDNiU9LaWAE1KqSkRYazuaBhTpB5ZzShOezQ6A=="],
 
@@ -4412,8 +4412,6 @@
     "tiny-async-pool/semver": ["semver@5.7.2", "", { "bin": { "semver": "bin/semver" } }, "sha512-cBznnQ9KjJqU67B52RMC65CMarK2600WFnbkcaiwWq3xy/5haFJlshgnpjovMVJ+Hff49d8GEn0b87C5pDQ10g=="],
 
     "tree-sitter-bash/node-addon-api": ["node-addon-api@8.6.0", "", {}, "sha512-gBVjCaqDlRUk0EwoPNKzIr9KkS9041G/q31IBShPs1Xz6UTA+EXdZADbzqAJQrpDRq71CIMnOP5VMut3SL0z5Q=="],
-
-    "ts-node/diff": ["diff@4.0.4", "", {}, "sha512-X07nttJQkwkfKfvTPG/KSnE2OMdcUCao6+eXF3wmnIQRn2aPAHH3VxDbDOdegkd6JbPsXqShpvEOHfAT+nCNwQ=="],
 
     "tsx/esbuild": ["esbuild@0.27.4", "", { "optionalDependencies": { "@esbuild/aix-ppc64": "0.27.4", "@esbuild/android-arm": "0.27.4", "@esbuild/android-arm64": "0.27.4", "@esbuild/android-x64": "0.27.4", "@esbuild/darwin-arm64": "0.27.4", "@esbuild/darwin-x64": "0.27.4", "@esbuild/freebsd-arm64": "0.27.4", "@esbuild/freebsd-x64": "0.27.4", "@esbuild/linux-arm": "0.27.4", "@esbuild/linux-arm64": "0.27.4", "@esbuild/linux-ia32": "0.27.4", "@esbuild/linux-loong64": "0.27.4", "@esbuild/linux-mips64el": "0.27.4", "@esbuild/linux-ppc64": "0.27.4", "@esbuild/linux-riscv64": "0.27.4", "@esbuild/linux-s390x": "0.27.4", "@esbuild/linux-x64": "0.27.4", "@esbuild/netbsd-arm64": "0.27.4", "@esbuild/netbsd-x64": "0.27.4", "@esbuild/openbsd-arm64": "0.27.4", "@esbuild/openbsd-x64": "0.27.4", "@esbuild/openharmony-arm64": "0.27.4", "@esbuild/sunos-x64": "0.27.4", "@esbuild/win32-arm64": "0.27.4", "@esbuild/win32-ia32": "0.27.4", "@esbuild/win32-x64": "0.27.4" }, "bin": { "esbuild": "bin/esbuild" } }, "sha512-Rq4vbHnYkK5fws5NF7MYTU68FPRE1ajX7heQ/8QXXWqNgqqJ/GkmmyxIzUnf2Sr/bakf8l54716CcMGHYhMrrQ=="],
 

@@ -377,12 +377,12 @@ const ProviderAuthCard: React.FC<{
                     {model.limit?.context ? (
                       <Tag size='small'>{formatContextTokens(model.limit.context)} ctx</Tag>
                     ) : null}
-                    {model.capabilities.toolcall ? (
+                    {(model.capabilities?.toolcall ?? model.tool_call) ? (
                       <Tag size='small' color='green'>
                         tools
                       </Tag>
                     ) : null}
-                    {model.capabilities.reasoning ? (
+                    {(model.capabilities?.reasoning ?? model.reasoning) ? (
                       <Tag size='small' color='purple'>
                         reasoning
                       </Tag>
