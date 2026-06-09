@@ -43,12 +43,27 @@ const RemoteSessionBadge: React.FC<{ conversation: TChatConversation }> = ({ con
     Message.success(t('conversation.remoteSessionBadge.copied'));
   };
 
+  const isReverted = (extra as any)?.is_reverted === true;
+
   return (
-    <Tooltip content={t('conversation.remoteSessionBadge.tooltip', { sessionId: sessionKey, directory })}>
-      <Tag size='small' color='arcoblue' className='cursor-pointer' onClick={handleCopy}>
-        {t('conversation.remoteSessionBadge.label', { sessionId: truncateSession(sessionKey) })}
-      </Tag>
-    </Tooltip>
+    <div className='flex items-center gap-2'>
+      <Tooltip content={t('conversation.remoteSessionBadge.tooltip', { sessionId: sessionKey, directory })}>
+        <Tag size='small' color='arcoblue' className='cursor-pointer' onClick={handleCopy}>
+          {t('conversation.remoteSessionBadge.label', { sessionId: truncateSession(sessionKey) })}
+        </Tag>
+      </Tooltip>
+      {isReverted && (
+        <Tooltip
+          content={t('conversation.remoteSessionBadge.revertedTooltip', {
+            defaultValue: 'This session has reverted messages. You can restore them from the menu.',
+          })}
+        >
+          <Tag size='small' color='orange'>
+            {t('conversation.remoteSessionBadge.reverted', { defaultValue: 'Reverted' })}
+          </Tag>
+        </Tooltip>
+      )}
+    </div>
   );
 };
 

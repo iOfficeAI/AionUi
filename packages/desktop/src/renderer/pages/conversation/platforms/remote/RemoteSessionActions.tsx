@@ -128,6 +128,11 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
     runExclusive(async () => {
       try {
         await ipcBridge.conversation.unrevertRemoteSession.invoke({ conversation_id });
+        await ipcBridge.conversation.update.invoke({
+          id: conversation_id,
+          updates: { extra: { is_reverted: false } as any },
+          merge_extra: true,
+        });
         Message.success(t('conversation.session.unrevertSuccess', { defaultValue: 'Restored reverted messages' }));
       } catch (error) {
         Message.error(t('conversation.session.unrevertFailed', { defaultValue: 'Failed to restore messages' }));
@@ -243,6 +248,8 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
     }
   };
 
+  const isReverted = (conversation.extra as any)?.is_reverted === true;
+
   const menu = (
     <Menu
       onClickMenuItem={(key) => {
@@ -291,12 +298,14 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
           <span>{t('conversation.session.summarize', { defaultValue: 'Summarize / compact' })}</span>
         </div>
       </Menu.Item>
-      <Menu.Item key='unrevert'>
-        <div className='flex items-center gap-8px'>
-          <Refresh theme='outline' size='14' fill={iconColors.secondary} />
-          <span>{t('conversation.session.unrevert', { defaultValue: 'Restore reverted' })}</span>
-        </div>
-      </Menu.Item>
+      {isReverted && (
+        <Menu.Item key='unrevert'>
+          <div className='flex items-center gap-8px'>
+            <Refresh theme='outline' size='14' fill={iconColors.secondary} />
+            <span>{t('conversation.session.unrevert', { defaultValue: 'Restore reverted' })}</span>
+          </div>
+        </Menu.Item>
+      )}
       <Menu.Item key='share'>
         <div className='flex items-center gap-8px'>
           <ShareTwo theme='outline' size='14' fill={iconColors.secondary} />

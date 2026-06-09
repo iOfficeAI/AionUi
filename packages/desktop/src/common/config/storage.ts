@@ -394,6 +394,8 @@ export type TChatConversation =
           archived?: boolean;
           /** Archive timestamp in milliseconds */
           archived_at?: number;
+          /** Indicates if the session is currently in a reverted state */
+          is_reverted?: boolean;
           /** Explicit marker for temporary health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */

@@ -190,6 +190,11 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     if (!msgId || !conversationId) return;
     try {
       await ipcBridge.conversation.revertRemoteSession.invoke({ conversation_id: conversationId, message_id: msgId });
+      await ipcBridge.conversation.update.invoke({
+        id: conversationId,
+        updates: { extra: { is_reverted: true } as any },
+        merge_extra: true,
+      });
       Message.success(t('messages.revertSuccess', { defaultValue: 'Reverted to this message' }));
     } catch (error) {
       Message.error(t('messages.revertFailed', { defaultValue: 'Failed to revert' }));
