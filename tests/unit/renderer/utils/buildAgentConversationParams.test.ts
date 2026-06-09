@@ -36,6 +36,19 @@ describe('buildAgentConversationParams agent type policy', () => {
     expect(params.extra.gateway).toBeUndefined();
   });
 
+  it('creates Codex conversations as ACP backend conversations', () => {
+    const params = buildAgentConversationParams({
+      backend: 'codex',
+      name: 'Codex CLI',
+      agent_name: 'Codex CLI',
+      workspace: '/tmp/aionui-codex',
+      model,
+    });
+
+    expect(params.type).toBe('acp');
+    expect(params.extra.backend).toBe('codex');
+  });
+
   it('does not produce remote or nanobot top-level conversation types', () => {
     for (const backend of ['remote', 'nanobot']) {
       const params = buildAgentConversationParams({

@@ -44,7 +44,7 @@ vi.mock('@/renderer/pages/conversation/Preview', () => ({
   usePreviewContext: () => ({ openPreview: vi.fn() }),
 }));
 
-function legacyConversation(type: 'gemini' | 'openclaw-gateway' | 'nanobot' | 'remote'): TChatConversation {
+function legacyConversation(type: 'gemini' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote'): TChatConversation {
   return {
     id: `conv-${type}`,
     user_id: 'user-1',
@@ -61,7 +61,7 @@ function legacyConversation(type: 'gemini' | 'openclaw-gateway' | 'nanobot' | 'r
 }
 
 describe('ChatConversation legacy runtime rendering', () => {
-  it.each(['gemini', 'openclaw-gateway', 'nanobot', 'remote'] as const)(
+  it.each(['gemini', 'codex', 'openclaw-gateway', 'nanobot', 'remote'] as const)(
     'renders %s history without the old runtime chat',
     (type) => {
       render(<ChatConversation conversation={legacyConversation(type)} />);
