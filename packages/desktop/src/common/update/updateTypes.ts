@@ -40,6 +40,8 @@ export interface UpdateCheckRequest {
 }
 
 export interface UpdateDownloadRequest {
+  /** Optional caller-provided id so renderer can match progress events immediately. */
+  downloadId?: string;
   url: string;
   /** Fallback URL tried when the primary URL fails (e.g. CDN down). */
   fallbackUrl?: string;

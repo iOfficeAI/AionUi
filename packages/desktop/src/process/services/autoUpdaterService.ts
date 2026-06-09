@@ -10,6 +10,7 @@ import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
+import { buildCdnFeedOptions } from './updateFeed';
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -77,11 +78,12 @@ class AutoUpdaterService extends EventEmitter {
     super();
     // Configure logging
     autoUpdater.logger = log;
-    (autoUpdater.logger as typeof log).transports.file.level = 'info';
+    (autoUpdater.logger as typeof log).transports.file.level = 'debug';
 
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+    const cdnFeedOptions = buildCdnFeedOptions();
 
     // Set the correct update channel based on platform and architecture before
     // any update checks are performed
@@ -90,6 +92,15 @@ class AutoUpdaterService extends EventEmitter {
       autoUpdater.channel = channel;
       log.info(`Update channel set to: ${channel}`);
     }
+    autoUpdater.setFeedURL(cdnFeedOptions);
+    log.info('Update feed set to CDN provider');
+    log.debug('[auto-update] CDN feed configured', {
+      provider: cdnFeedOptions.provider,
+      url: cdnFeedOptions.url,
+      channel: channel ?? 'latest',
+      platform: process.platform,
+      arch: process.arch,
+    });
   }
 
   /**
@@ -222,7 +233,7 @@ class AutoUpdaterService extends EventEmitter {
     });
 
     register('download-progress', (progress: ProgressInfo) => {
-      log.info(`Download progress: ${progress.percent.toFixed(2)}%`);
+      log.debug(`Download progress: ${progress.percent.toFixed(2)}%`);
       this.broadcastStatus({
         status: 'downloading',
         progress: {
@@ -275,17 +286,38 @@ class AutoUpdaterService extends EventEmitter {
         throw new Error('AutoUpdaterService not initialized');
       }
 
+      log.debug('[auto-update] checkForUpdates requested', {
+        allowPrerelease: this._allowPrerelease,
+        channel: autoUpdater.channel ?? 'latest',
+        currentVersion: app.getVersion(),
+        appIsPackaged: app.isPackaged,
+      });
+
+      if (this._allowPrerelease) {
+        log.info('Skipping electron-updater check for prerelease manual mode');
+        log.debug('[auto-update] CDN stable feed skipped because prerelease mode is handled by GitHub API');
+        return { success: true };
+      }
+
       const result = await autoUpdater.checkForUpdates();
       if (!result) {
         const { default: i18n } = await import('./i18n');
+        log.debug('[auto-update] checkForUpdates returned null');
         return { success: false, error: i18n.t('update.errors.checkReturnedNull') };
       }
       // Only report updateInfo when electron-updater internally confirms the update is available.
       // When isUpdateAvailable is false, updateInfoAndProvider is NOT set internally,
       // so a subsequent downloadUpdate() call would fail with "Please check update first".
       if (!result.isUpdateAvailable) {
+        log.debug('[auto-update] no update available from CDN feed', {
+          version: result.updateInfo.version,
+        });
         return { success: true };
       }
+      log.debug('[auto-update] update available from CDN feed', {
+        version: result.updateInfo.version,
+        releaseDate: result.updateInfo.releaseDate,
+      });
       return {
         success: true,
         updateInfo: result.updateInfo,
@@ -306,7 +338,9 @@ class AutoUpdaterService extends EventEmitter {
         throw new Error('AutoUpdaterService not initialized');
       }
 
+      log.debug('[auto-update] downloadUpdate requested');
       await autoUpdater.downloadUpdate();
+      log.debug('[auto-update] downloadUpdate started');
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

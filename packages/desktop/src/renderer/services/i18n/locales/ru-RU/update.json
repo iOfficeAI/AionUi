@@ -9,6 +9,7 @@
   "downloadingTitle": "Загрузка обновления...",
   "downloadButton": "Скачать",
   "downloadAndInstall": "Скачать и установить",
+  "manualInstall": "Установить вручную",
   "downloadStartFailed": "Не удалось начать загрузку",
   "downloadFailed": "Ошибка загрузки",
   "noCompatibleAsset": "Совместимая загрузка для этой платформы не найдена",
