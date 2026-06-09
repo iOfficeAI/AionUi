@@ -1,5 +1,31 @@
 # Changelog
 
+## [2.1.14](https://github.com/iOfficeAI/AionUi/compare/v2.1.13...v2.1.14) (2026-06-08)
+
+### Desktop
+
+#### Bug Fixes
+
+- **bootstrap:** block wrong macOS package architecture at startup (#3232)
+
+### Core ([v0.1.24](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.24))
+
+#### Bug Fixes
+
+- **acp:** prefer config options catalogs ([#425](https://github.com/iOfficeAI/AionCore/issues/425))
+- expose managed resource preparation failure details ([#430](https://github.com/iOfficeAI/AionCore/issues/430))
+- handle Hermes yolo fallback correctly ([#428](https://github.com/iOfficeAI/AionCore/issues/428))
+- harden managed ACP bundle preparation and builtin CLI availability ([#426](https://github.com/iOfficeAI/AionCore/issues/426))
+- scope bundled ACP output under tool directories ([#431](https://github.com/iOfficeAI/AionCore/issues/431))
+- **shell:** support UNC paths in Windows terminal ([#411](https://github.com/iOfficeAI/AionCore/issues/411))
+- validate managed ACP packages via real entrypoints ([#429](https://github.com/iOfficeAI/AionCore/issues/429))
+
+#### Refactoring
+
+- **app:** organize CLI command boundaries ([#423](https://github.com/iOfficeAI/AionCore/issues/423))
+
+---
+
 ## [2.1.13](https://github.com/iOfficeAI/AionUi/compare/v2.1.12...v2.1.13) (2026-06-07)
 
 ### Desktop

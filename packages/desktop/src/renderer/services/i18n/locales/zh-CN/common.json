@@ -82,6 +82,10 @@
       "downloadLatest": "下载最新版",
       "sendDiagnostics": "发送诊断报告",
       "runtimeComponentDescription": "当前安装缺少必要的内置运行组件，{{resource}} 无法启动。请重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionUi 组件。"
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi 安装包架构不匹配",
+      "description": "当前 AionUi 安装包是 {{packageArch}}，但这台 Mac 是 {{deviceArch}}。你可能下载了错误的安装包，请重新下载并安装 {{expectedArch}} 版本。"
     }
   },
   "fileAttach.addFiles": "添加文件",
