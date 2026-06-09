@@ -6,6 +6,19 @@
 
 import type { ProtocolConverter, ConverterConfig } from './ProtocolConverter';
 
+/**
+ * OpenAI ChatCompletion-style params accepted by all rotating clients.
+ *
+ * Fields explicitly handled by the converters: `model`, `messages`, `tools`,
+ * `tool_choice`. Any other OpenAI SDK field (e.g. `service_tier`,
+ * `temperature`, `top_p`, `frequency_penalty`, `seed`, `logit_bias`,
+ * `parallel_tool_calls`, etc.) is accepted via the index signature and
+ * forwarded as-is to the OpenAI SDK. Non-OpenAI providers (Gemini,
+ * Anthropic) silently drop these fields — pass-through is a no-op for them.
+ *
+ * The index signature is typed `unknown` (not `any`) per project lint
+ * rules; callers can still spread a typed OpenAI object safely.
+ */
 export interface OpenAIChatCompletionParams {
   model: string;
   messages: Array<{
@@ -27,6 +40,12 @@ export interface OpenAIChatCompletionParams {
     };
   }>;
   tool_choice?: 'auto' | 'none' | { type: 'function'; function: { name: string } };
+  /**
+   * Pass-through for any additional OpenAI SDK parameters not enumerated
+   * above. Forwarded to the OpenAI SDK by `OpenAIRotatingClient`; ignored
+   * by Gemini/Anthropic converters.
+   */
+  [key: string]: unknown;
 }
 
 export interface OpenAIChatCompletionResponse {
