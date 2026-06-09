@@ -13,4 +13,9 @@ describe('conversation read-only policy', () => {
     expect(isLegacyReadOnlyConversationType('remote')).toBe(true);
     expect(isLegacyReadOnlyConversationType('gemini')).toBe(true);
   });
+
+  it('does not mark missing type as read-only', () => {
+    expect(isLegacyReadOnlyConversationType(undefined)).toBe(false);
+    expect(isLegacyReadOnlyConversationType(null)).toBe(false);
+  });
 });

@@ -74,10 +74,8 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
           return;
         }
 
-        // Determine conversation type based on agent
-        // Codex uses 'codex' type, others use 'acp' type
-        const isCodex = agent.backend === 'codex';
-        const conversation_type = isCodex ? 'codex' : 'acp';
+        // New agent conversations use ACP; the concrete provider stays in extra.backend.
+        const conversation_type = 'acp';
         const defaultConversationName = t('conversation.welcome.newConversation');
 
         const createParams: ICreateConversationParams = {
@@ -128,11 +126,7 @@ const AgentSetupCard: React.FC<AgentSetupCardProps> = ({
         // 存储初始消息，让新会话自动发送
         if (initialMessage) {
           const messageData = { input: initialMessage, files: [] as string[] };
-          if (isCodex) {
-            sessionStorage.setItem(`codex_initial_message_${newConversation.id}`, JSON.stringify(messageData));
-          } else {
-            sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(messageData));
-          }
+          sessionStorage.setItem(`acp_initial_message_${newConversation.id}`, JSON.stringify(messageData));
         }
 
         // Show success notification and navigate

@@ -1361,7 +1361,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;

@@ -2,7 +2,6 @@ import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
-import type { DetectedAgentKind } from '@/common/types/agent/detectedAgent';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
@@ -10,14 +9,6 @@ import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistant
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
-const useOpenClawDraft = getSendBoxDraftHook('openclaw-gateway', {
-  _type: 'openclaw-gateway',
-  atPath: [],
-  content: '',
-  uploadFile: [],
-});
-const useNanobotDraft = getSendBoxDraftHook('nanobot', { _type: 'nanobot', atPath: [], content: '', uploadFile: [] });
-const useRemoteDraft = getSendBoxDraftHook('remote', { _type: 'remote', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
 
 type Props = {
@@ -38,14 +29,11 @@ const SUGGESTION_DEFAULTS: Record<string, string> = {
   expert_review: 'Have multiple experts analyze the same problem',
 };
 
-/** Map a conversation.type onto a DetectedAgentKind so draft hooks stay exhaustive. */
-const toDetectedKind = (type: TChatConversation['type']): DetectedAgentKind => {
-  // Codex conversations are rendered via the ACP pipeline and share the acp draft store.
-  if (type === 'codex') return 'acp';
-  // Legacy Gemini conversations are read-only; route their drafts through the acp
-  // store to keep existing draft hooks exhaustive. Sending is blocked server-side.
-  if (type === 'gemini') return 'acp';
-  return type;
+type TeamDraftKind = 'acp' | 'aionrs';
+
+/** Map a conversation.type onto the runnable draft store. */
+const toDraftKind = (type: TChatConversation['type']): TeamDraftKind => {
+  return type === 'aionrs' ? 'aionrs' : 'acp';
 };
 
 const resolveAgentTypeFromConversation = (conversation: TChatConversation): string => {
@@ -79,25 +67,17 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
 
   // Hooks must run unconditionally; the lookup below picks the right draft at call time.
-  // `satisfies Record<DetectedAgentKind, ...>` keeps the map exhaustive — adding a new
-  // DetectedAgentKind without wiring up a draft setter here becomes a typecheck error.
   const acpDraft = useAcpDraft(conversation_id);
   const aionrsDraft = useAionrsDraft(conversation_id);
-  const nanobotDraft = useNanobotDraft(conversation_id);
-  const remoteDraft = useRemoteDraft(conversation_id);
-  const openClawDraft = useOpenClawDraft(conversation_id);
   const setContentByKind = {
     acp: (text: string) => acpDraft.mutate((prev) => ({ ...prev, content: text })),
     aionrs: (text: string) => aionrsDraft.mutate((prev) => ({ ...prev, content: text })),
-    nanobot: (text: string) => nanobotDraft.mutate((prev) => ({ ...prev, content: text })),
-    remote: (text: string) => remoteDraft.mutate((prev) => ({ ...prev, content: text })),
-    'openclaw-gateway': (text: string) => openClawDraft.mutate((prev) => ({ ...prev, content: text })),
-  } satisfies Record<DetectedAgentKind, (text: string) => void>;
+  } satisfies Record<TeamDraftKind, (text: string) => void>;
 
   const fillDraft = useCallback(
     (text: string) => {
       if (!conversation) return;
-      setContentByKind[toDetectedKind(conversation.type)](text);
+      setContentByKind[toDraftKind(conversation.type)](text);
     },
     [conversation, setContentByKind]
   );

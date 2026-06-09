@@ -9,9 +9,9 @@ import TeamChatEmptyState from './TeamChatEmptyState';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
-const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
-const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
-const RemoteChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/remote/RemoteChat'));
+const LegacyReadOnlyConversation = React.lazy(
+  () => import('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation')
+);
 
 // Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
@@ -75,6 +75,10 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
   ) : undefined;
   const content = (() => {
+    if (isLegacyReadOnlyConversationType(conversation.type)) {
+      return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;
+    }
+
     switch (conversation.type) {
       case 'acp':
         return (
@@ -108,36 +112,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
             agent_name={agent_name}
-          />
-        );
-      case 'openclaw-gateway':
-        return (
-          <OpenClawChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={resolvedHideSendBox}
-            emptySlot={emptySlot}
-          />
-        );
-      case 'nanobot':
-        return (
-          <NanobotChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={resolvedHideSendBox}
-            emptySlot={emptySlot}
-          />
-        );
-      case 'remote':
-        return (
-          <RemoteChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={resolvedHideSendBox}
-            emptySlot={emptySlot}
           />
         );
       default:
