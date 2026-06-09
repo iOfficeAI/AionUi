@@ -36,6 +36,10 @@ export type EditorUserSettings = {
   renderWhitespace: boolean;
   /** Format document on save. Default false. */
   formatOnSave: boolean;
+  /** Auto-save on a delay. Default false. */
+  autoSave: boolean;
+  /** Auto-save delay in milliseconds. Default 1000. */
+  autoSaveDelay: number;
   /** Default zoom level (alias of `fontSize`; same numeric scale). */
   defaultZoom: number;
 };
@@ -49,6 +53,8 @@ export const DEFAULT_EDITOR_SETTINGS: EditorUserSettings = {
   showMinimap: false,
   renderWhitespace: false,
   formatOnSave: false,
+  autoSave: true,
+  autoSaveDelay: 1000,
   defaultZoom: 14,
 };
 
@@ -140,6 +146,10 @@ const mergeSettings = (raw: Record<string, unknown>): EditorUserSettings => {
   if (typeof raw.showMinimap === 'boolean') next.showMinimap = raw.showMinimap;
   if (typeof raw.renderWhitespace === 'boolean') next.renderWhitespace = raw.renderWhitespace;
   if (typeof raw.formatOnSave === 'boolean') next.formatOnSave = raw.formatOnSave;
+  if (typeof raw.autoSave === 'boolean') next.autoSave = raw.autoSave;
+  if (typeof raw.autoSaveDelay === 'number') {
+    next.autoSaveDelay = Math.max(100, Math.min(10000, Math.round(raw.autoSaveDelay)));
+  }
   if (typeof raw.defaultZoom === 'number') next.defaultZoom = clampFontSize(raw.defaultZoom);
   // defaultZoom mirrors fontSize so callers can store either; default to fontSize.
   next.defaultZoom = next.fontSize;
@@ -156,6 +166,11 @@ const sanitizeSettings = (settings: EditorUserSettings): EditorUserSettings => {
     showMinimap: Boolean(settings.showMinimap),
     renderWhitespace: Boolean(settings.renderWhitespace),
     formatOnSave: Boolean(settings.formatOnSave),
+    autoSave: Boolean(settings.autoSave),
+    autoSaveDelay:
+      typeof settings.autoSaveDelay === 'number'
+        ? Math.max(100, Math.min(10000, Math.round(settings.autoSaveDelay)))
+        : 1000,
     defaultZoom: clampFontSize(settings.defaultZoom),
   };
   // Keep defaultZoom in lock-step with fontSize — they represent the same

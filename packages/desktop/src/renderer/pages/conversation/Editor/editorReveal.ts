@@ -21,6 +21,53 @@
 /** Event name dispatched on `window` when the editor wants to reveal a path in the tree. */
 export const EDITOR_REVEAL_PATH_EVENT = 'editor.reveal.path';
 
+/**
+ * Event name dispatched on `window` when an external panel (e.g. the Sider
+ * Outline section) wants the editor to reveal + center a specific line.
+ *
+ * Mirror of {@link EDITOR_REVEAL_PATH_EVENT} but in the opposite direction
+ * (sider → editor). The editor lives in `EditorPanel`, which holds the
+ * imperative Monaco handle; the Outline now lives in the Sider, a sibling
+ * subtree. A `window` CustomEvent decouples them without threading the Monaco
+ * ref through React context.
+ */
+export const EDITOR_REVEAL_LINE_EVENT = 'editor.reveal.line';
+
+export type EditorRevealLineDetail = {
+  /** 1-based line number to reveal and center in the focused editor group. */
+  line: number;
+  /** Optional 1-based column to place the cursor at. */
+  column?: number;
+};
+
+/**
+ * Dispatch a `reveal line` request to the editor. The Sider Outline calls this
+ * when the user clicks a symbol. Returns true when the event was dispatched,
+ * false in SSR or when `line` is not a positive integer.
+ */
+export const requestEditorRevealLine = (detail: EditorRevealLineDetail): boolean => {
+  if (typeof window === 'undefined') return false;
+  if (typeof detail?.line !== 'number' || !Number.isFinite(detail.line) || detail.line < 1) return false;
+  const payload: EditorRevealLineDetail = { line: Math.floor(detail.line) };
+  if (typeof detail.column === 'number' && Number.isFinite(detail.column) && detail.column >= 1) {
+    payload.column = Math.floor(detail.column);
+  }
+  const event = new CustomEvent<EditorRevealLineDetail>(EDITOR_REVEAL_LINE_EVENT, { detail: payload });
+  window.dispatchEvent(event);
+  return true;
+};
+
+/** Type guard: narrows an arbitrary event to a reveal-line request. */
+export const isEditorRevealLineEvent = (event: Event): event is CustomEvent<EditorRevealLineDetail> => {
+  if (!(event instanceof CustomEvent)) return false;
+  const detail = (event as CustomEvent).detail;
+  return (
+    isPlainObject(detail) &&
+    typeof (detail as Record<string, unknown>).line === 'number' &&
+    Number.isFinite((detail as Record<string, unknown>).line as number)
+  );
+};
+
 export type EditorRevealPathDetail = {
   /** Absolute workspace root the tree is rooted at. */
   workspace: string;

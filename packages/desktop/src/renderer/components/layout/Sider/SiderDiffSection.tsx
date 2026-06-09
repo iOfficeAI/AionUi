@@ -35,7 +35,17 @@ type ChangesMeta = {
   isRemote: boolean;
 };
 
-const SiderDiffSection: React.FC = () => {
+type SiderDiffSectionProps = {
+  /**
+   * When true, the internal `SiderWorkspaceSectionHeader` (title + action
+   * buttons) is omitted so the component can sit inside a parent accordion
+   * section that provides its own header. Default false — preserves the
+   * standalone behavior for any other caller.
+   */
+  headerless?: boolean;
+};
+
+const SiderDiffSection: React.FC<SiderDiffSectionProps> = ({ headerless = false }) => {
   const { t } = useTranslation();
   const { id: conversationId } = useParams<{ id: string }>();
   const { data: conversation } = useSWR<TChatConversation | undefined>(
@@ -75,24 +85,26 @@ const SiderDiffSection: React.FC = () => {
         aria-label={t('conversation.workspace.changes.diff')}
         data-testid='sider-diff-section'
       >
-        <SiderWorkspaceSectionHeader
-          title={diffTitle}
-          actions={
-            <>
-              <SiderWorkspaceActionBtn
-                tooltip={t('conversation.workspace.changes.expandFlyout')}
-                icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
-                onClick={() => setFlyoutVisible(true)}
-              />
-              <SiderWorkspaceActionBtn
-                tooltip={t('conversation.workspace.changes.refresh')}
-                icon={<Refresh theme='outline' size={14} fill='currentColor' />}
-                onClick={() => refreshGit?.()}
-                disabled={!refreshGit}
-              />
-            </>
-          }
-        />
+        {headerless ? null : (
+          <SiderWorkspaceSectionHeader
+            title={diffTitle}
+            actions={
+              <>
+                <SiderWorkspaceActionBtn
+                  tooltip={t('conversation.workspace.changes.expandFlyout')}
+                  icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
+                  onClick={() => setFlyoutVisible(true)}
+                />
+                <SiderWorkspaceActionBtn
+                  tooltip={t('conversation.workspace.changes.refresh')}
+                  icon={<Refresh theme='outline' size={14} fill='currentColor' />}
+                  onClick={() => refreshGit?.()}
+                  disabled={!refreshGit}
+                />
+              </>
+            }
+          />
+        )}
         <div className={panelStyles.body}>
           <ChatWorkspace
             conversation_id={conversationId}
@@ -125,7 +137,7 @@ const SiderDiffSection: React.FC = () => {
       aria-label={t('conversation.workspace.changes.diff')}
       data-testid='sider-diff-section'
     >
-      <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.diff')} />
+      {headerless ? null : <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.diff')} />}
       <div className={`${panelStyles.body} flex-center`}>
         <Empty
           icon={<Code theme='outline' size={48} fill='var(--text-tertiary)' />}

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { mutate } from 'swr';
 import { isEditorAccessibleInLayoutMode } from '@renderer/utils/layout/layoutModeStorage';
 import { EDITOR_MAX_EDITABLE_BYTES, getEditorFileName, inferEditorLanguage } from './editorLanguage';
 import { requestEditorRevealInTree } from './editorReveal';
@@ -60,12 +61,45 @@ const createNotice = (kind: EditorNotice['kind'], key: string, values?: EditorNo
 
 const bufferKeyFor = (request: EditorOpenRequest): string => `${request.workspace ?? ''}::${request.path}`;
 
+// ---- Untitled Backup Debouncer -------------------------------------------
+const backupTimers = new Map<string, number>();
+
+export const scheduleUntitledBackup = (
+  backupId: string,
+  content: string,
+  meta: { fileName: string; language: string }
+): void => {
+  if (typeof window === 'undefined') return;
+  const existing = backupTimers.get(backupId);
+  if (existing) window.clearTimeout(existing);
+  const timer = window.setTimeout(() => {
+    backupTimers.delete(backupId);
+    // The IPC meta payload requires `backupId`; the local signature only
+    // carries the user-visible fields, so splice the id in at fire time.
+    ipcBridge.untitledBackup.write.invoke({ backupId, content, meta: { ...meta, backupId } }).catch((err) => {
+      console.error('[UntitledBackup] write failed:', err);
+    });
+  }, 1000);
+  backupTimers.set(backupId, timer);
+};
+
+export const cancelUntitledBackup = (backupId: string): void => {
+  const existing = backupTimers.get(backupId);
+  if (existing) {
+    window.clearTimeout(existing);
+    backupTimers.delete(backupId);
+  }
+};
+// --------------------------------------------------------------------------
+
 const newUntitledBuffer = (): OpenBuffer => {
   untitledCounter += 1;
   const suffix = untitledCounter === 1 ? '' : `-${untitledCounter}`;
+  const backupId = `b-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
   return {
     key: `untitled:${untitledCounter}`,
     filePath: null,
+    backupId,
     workspace: undefined,
     fileName: `${UNTITLED_BASE}${suffix}${UNTITLED_EXT}`,
     content: '',
@@ -195,19 +229,22 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     });
   }, [activeBuffer?.key, activeBuffer?.filePath, activeBuffer?.workspace]);
 
-  // Persist per-workspace tab sets whenever the buffer list changes. Only
-  // file-backed buffers are persisted (untitled buffers have no path to
-  // restore from). The debounce coalesces rapid edits / reorders into a
-  // single write.
+  // Persist per-workspace tab sets whenever the buffer list changes.
+  // File-backed buffers persist by path; untitled buffers with a
+  // `backupId` persist by `backupId` + `untitledMeta` so they can be
+  // rehydrated from the main-process untitled-backup store. Untitled
+  // buffers without a `backupId` (never edited) are still dropped.
+  // The debounce coalesces rapid edits / reorders into a single write.
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const timer = window.setTimeout(() => {
       // Group buffers by workspace root. An empty workspace string is
       // treated as its own bucket (covers files opened without a
-      // workspace context, e.g. an OS file picker).
+      // workspace context, e.g. an OS file picker). Untitled buffers
+      // (no workspace) naturally land in the `''` bucket.
       const byWorkspace = new Map<string, OpenBuffer[]>();
       for (const b of state.buffers) {
-        if (!b.filePath) continue;
+        if (!b.filePath && !b.backupId) continue;
         const wsKey = b.workspace ?? '';
         const arr = byWorkspace.get(wsKey) ?? [];
         arr.push(b);
@@ -215,14 +252,25 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       }
       for (const [wsKey, buffers] of byWorkspace) {
         const entries: PersistedEditorTabEntry[] = buffers
-          .filter((b): b is OpenBuffer & { filePath: string } => Boolean(b.filePath))
+          .filter((b) => Boolean(b.filePath) || Boolean(b.backupId))
           .map((b) => {
-            const entry: PersistedEditorTabEntry = { path: b.filePath };
-            if (b.workspace) entry.workspace = b.workspace;
+            if (b.filePath) {
+              const entry: PersistedEditorTabEntry = { path: b.filePath };
+              if (b.workspace) entry.workspace = b.workspace;
+              return entry;
+            }
+            // Untitled hot-exit entry. `backupId` and `b` are guaranteed
+            // non-null by the surrounding filter.
+            const entry: PersistedEditorTabEntry = {
+              backupId: b.backupId as string,
+              untitledMeta: { fileName: b.fileName, language: b.language },
+            };
             return entry;
           });
         const activeBuffer = state.activeKey ? buffers.find((b) => b.key === state.activeKey) : undefined;
         // Serialize split groups (by file path) scoped to this workspace bucket.
+        // Untitled buffers have no path, so they're naturally excluded from
+        // the persisted group layout — they rehydrate into the focused group.
         const pathForKey = (key: string): string | null =>
           state.buffers.find((b) => b.key === key && (b.workspace ?? '') === wsKey)?.filePath ?? null;
         const groups = state.groups
@@ -313,6 +361,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
           {
             key,
             filePath: request.path,
+            backupId: null,
             workspace: request.workspace,
             fileName: getEditorFileName(request.path),
             content: '',
@@ -406,6 +455,40 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     executeNewFile();
   }, [executeNewFile]);
 
+  /**
+   * Restore a hot-exit untitled buffer from the main-process backup
+   * store. Allocates a fresh `untitled:<counter>` key (mirroring
+   * {@link newUntitledBuffer}) so it never collides with an existing
+   * buffer, then hands the buffer to {@link upsertBuffer} which adds
+   * it to the currently-focused group and makes it active.
+   *
+   * `originalContent` is intentionally empty (not the backup content)
+   * so the dirty flag is true — the user can see their unsaved work
+   * and `Save` writes it to a real path on disk.
+   */
+  const restoreUntitledBuffer = useCallback(
+    (backupId: string, content: string, meta: { fileName: string; language: string }): void => {
+      untitledCounter += 1;
+      const buffer: OpenBuffer = {
+        key: `untitled:${untitledCounter}`,
+        filePath: null,
+        backupId,
+        workspace: undefined,
+        fileName: meta.fileName,
+        content,
+        originalContent: '',
+        language: meta.language,
+        lastModified: null,
+        diskChanged: false,
+        loading: false,
+        saving: false,
+        viewState: null,
+      };
+      upsertBuffer(buffer);
+    },
+    [upsertBuffer]
+  );
+
   const chooseAndOpenFile = useCallback(async (): Promise<boolean> => {
     if (!isEditorAccessibleInLayoutMode()) return false;
     const files = await ipcBridge.dialog.showOpen.invoke({ properties: ['openFile'] });
@@ -425,6 +508,13 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     const filePath = await ipcBridge.dialog.showSave.invoke({ defaultPath: current.filePath ?? current.fileName });
     if (!filePath) return false;
 
+    // Race mitigation: cancel pending backup, delete the backup, and do not
+    // start tracking Local History until AFTER the file has its real path.
+    if (current.filePath === null && current.backupId) {
+      cancelUntitledBackup(current.backupId);
+      ipcBridge.untitledBackup.delete.invoke({ backupId: current.backupId }).catch(() => {});
+    }
+
     setState((prev) => ({ ...prev, buffers: updateBuffer(prev.buffers, current.key, { saving: true }) }));
     try {
       const ok = await ipcBridge.fs.writeFile.invoke({ path: filePath, data: current.content });
@@ -440,6 +530,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
                   ...b,
                   key: newKey,
                   filePath,
+                  backupId: null,
                   workspace: undefined,
                   fileName: getEditorFileName(filePath),
                   originalContent: b.content,
@@ -468,7 +559,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Inner helper: shared write path used by `saveEditorFile`. Always
   // writes `current.content` (the latest model state) to disk and updates
   // the buffer's `originalContent` so the dirty flag clears.
-  const writeBufferToDisk = useCallback(async (current: OpenBuffer): Promise<boolean> => {
+  const writeBufferToDisk = useCallback(async (current: OpenBuffer, isAutoSave = false): Promise<boolean> => {
     if (!current.filePath) return false;
     setState((prev) => ({ ...prev, buffers: updateBuffer(prev.buffers, current.key, { saving: true }) }));
     try {
@@ -478,6 +569,22 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         path: current.filePath,
         workspace: current.workspace,
       });
+
+      // VS Code Local History semantics: snapshot the new content AFTER a successful save.
+      // (Deduping handles back-to-back saves with no changes).
+      ipcBridge.localHistory.addSnapshot
+        .invoke({
+          file_path: current.filePath,
+          content: current.content,
+          source: isAutoSave ? 'autosave' : 'save',
+        })
+        .then(() => {
+          // Invalidate timeline cache so the UI updates instantly
+          const wsKey = current.workspace ?? '';
+          mutate(`sider.timeline.${wsKey}.${current.filePath}`).catch(() => {});
+        })
+        .catch((err) => console.error('[LocalHistory] save snapshot failed:', err));
+
       setState((prev) => ({
         ...prev,
         buffers: updateBuffer(prev.buffers, current.key, (b) => ({
@@ -503,7 +610,11 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
     async (options?: EditorSaveOptions): Promise<boolean> => {
       const current = findBuffer(stateRef.current.buffers, stateRef.current.activeKey);
       if (!current) return false;
-      if (!current.filePath) return saveEditorFileAs();
+      if (!current.filePath) {
+        // Auto-save strictly skips untitled files (no prompt).
+        if (options?.isAutoSave) return false;
+        return saveEditorFileAs();
+      }
 
       // Optional pre-save formatter (e.g. `monacoRef.formatDocument()`).
       // We always run it before the write — caller decides whether to wire
@@ -519,10 +630,10 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
         // snapshot stored in `current`).
         const refreshed = findBuffer(stateRef.current.buffers, current.key);
         if (!refreshed) return false;
-        return await writeBufferToDisk(refreshed);
+        return await writeBufferToDisk(refreshed, options.isAutoSave);
       }
 
-      return await writeBufferToDisk(current);
+      return await writeBufferToDisk(current, options?.isAutoSave);
     },
     [saveEditorFileAs, writeBufferToDisk]
   );
@@ -540,10 +651,15 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
    */
   const removeBufferFromGroup = useCallback((groupId: string, key: string) => {
     setState((prev) => {
+      const buffer = prev.buffers.find((b) => b.key === key);
       const groups = prev.groups.map((g) =>
         g.id === groupId ? { ...g, bufferKeys: g.bufferKeys.filter((k) => k !== key) } : g
       );
       const stillReferenced = groups.some((g) => g.bufferKeys.includes(key));
+      if (!stillReferenced && buffer?.filePath === null && buffer.backupId) {
+        cancelUntitledBackup(buffer.backupId);
+        ipcBridge.untitledBackup.delete.invoke({ backupId: buffer.backupId }).catch(() => {});
+      }
       const buffers = stillReferenced ? prev.buffers : prev.buffers.filter((b) => b.key !== key);
       const next = normalizeGroups({ ...prev, buffers, groups });
       return { ...next, isOpen: next.buffers.length > 0 };
@@ -559,6 +675,12 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   );
 
   const closeEditorWithoutPrompt = useCallback(() => {
+    stateRef.current.buffers.forEach((b) => {
+      if (b.filePath === null && b.backupId) {
+        cancelUntitledBackup(b.backupId);
+        ipcBridge.untitledBackup.delete.invoke({ backupId: b.backupId }).catch(() => {});
+      }
+    });
     setState({
       ...initialState,
       groups: [{ id: DEFAULT_GROUP_ID, bufferKeys: [], activeKey: null }],
@@ -791,16 +913,62 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // buffer key (not the focused group's `activeKey`), so typing in either
   // pane updates the correct shared-pool buffer.
   const setBufferContentByKey = useCallback((key: string, content: string) => {
-    setState((prev) =>
-      prev.buffers.some((b) => b.key === key)
-        ? { ...prev, buffers: updateBuffer(prev.buffers, key, { content }) }
-        : prev
-    );
+    setState((prev) => {
+      const buffer = prev.buffers.find((b) => b.key === key);
+      if (buffer?.filePath === null && buffer.backupId) {
+        scheduleUntitledBackup(buffer.backupId, content, {
+          fileName: buffer.fileName,
+          language: buffer.language,
+        });
+      }
+      return buffer ? { ...prev, buffers: updateBuffer(prev.buffers, key, { content }) } : prev;
+    });
   }, []);
 
   const setBufferViewState = useCallback((key: string, viewState: EditorBufferViewState | null) => {
     setState((prev) => ({ ...prev, buffers: updateBuffer(prev.buffers, key, { viewState }) }));
   }, []);
+
+  /**
+   * Apply externally-written content to a buffer (e.g. the agent's live
+   * `fileStream.contentUpdate` push). Updates both `content` and
+   * `originalContent` so the dirty flag clears — the file on disk now
+   * matches the buffer. No-op if the buffer key isn't open.
+   *
+   * The caller is responsible for pushing the new text into the underlying
+   * Monaco model with `suppressChangeRef` set; this helper only reconciles
+   * the EditorContext state. Splitting the two concerns keeps the model
+   * push co-located with the editor ref (in `MonacoEditor.tsx`).
+   */
+  const applyExternalContent = useCallback(
+    (key: string, content: string, source: 'agent' | 'restore' = 'agent'): void => {
+      setState((prev) => {
+        const buffer = prev.buffers.find((b) => b.key === key);
+        if (!buffer) return prev;
+
+        // Agent/external write (or Timeline Restore). Snapshot the NEW content that was just written to disk.
+        if (buffer.filePath) {
+          ipcBridge.localHistory.addSnapshot
+            .invoke({
+              file_path: buffer.filePath,
+              content,
+              source,
+            })
+            .then(() => {
+              const wsKey = buffer.workspace ?? '';
+              mutate(`sider.timeline.${wsKey}.${buffer.filePath}`).catch(() => {});
+            })
+            .catch((err) => console.error('[LocalHistory] agent snapshot failed:', err));
+        }
+
+        return {
+          ...prev,
+          buffers: updateBuffer(prev.buffers, key, { content, originalContent: content, diskChanged: false }),
+        };
+      });
+    },
+    []
+  );
 
   const revertEditorFile = useCallback(() => {
     setState((prev) => {
@@ -916,6 +1084,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       hasAnyDirty,
       openEditorFile,
       openUntitledEditor,
+      restoreUntitledBuffer,
       chooseAndOpenFile,
       saveEditorFile,
       saveEditorFileAs,
@@ -939,6 +1108,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleEditor,
       setEditorContent,
       setBufferViewState,
+      applyExternalContent,
       revertEditorFile,
       confirmPendingActionWithSave,
       discardPendingAction,
@@ -955,6 +1125,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       hasAnyDirty,
       openEditorFile,
       openUntitledEditor,
+      restoreUntitledBuffer,
       chooseAndOpenFile,
       saveEditorFile,
       saveEditorFileAs,
@@ -978,6 +1149,7 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       toggleEditor,
       setEditorContent,
       setBufferViewState,
+      applyExternalContent,
       revertEditorFile,
       confirmPendingActionWithSave,
       discardPendingAction,

@@ -118,3 +118,190 @@
 .tabStrip :global(.arco-tabs-header-ink) {
   background-color: var(--brand) !important;
 }
+
+/* -------------------------------------------------------------------------
+   Accordion section — VS Code-style collapsible stack used by
+   SiderWorkspacePanel. Multiple expanded sections share remaining
+   vertical space (flex: 1) so the user can drag-resize their relative
+   weights later. A collapsed section is flex: 0 0 auto so it shrinks
+   to its header height.
+   ------------------------------------------------------------------------- */
+
+.accordionSection {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background-color: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+}
+
+.accordionSection:last-child {
+  border-bottom: none;
+}
+
+.accordionSectionOpen {
+  flex: 1 1 0;
+}
+
+.accordionSectionCollapsed {
+  flex: 0 0 auto;
+}
+
+/* The header row reuses the existing .header (44px) but the inner
+   <button> needs its own reset so it lays out like the panel
+   header (chevron + title only) while .actions sits beside it. */
+.toggle {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  user-select: none;
+}
+
+.toggle:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+.toggle:hover .title {
+  color: var(--text-primary);
+}
+
+.chevron {
+  flex-shrink: 0;
+  color: var(--text-secondary);
+  transform: rotate(-90deg);
+  transition: transform 0.16s ease;
+}
+
+.chevronOpen {
+  transform: rotate(0deg);
+}
+
+.accordionBody {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
+  display: flex;
+  flex-direction: column;
+  background-color: var(--bg-2);
+}
+
+/* -------------------------------------------------------------------------
+   Timeline list — VS Code-style commit rows. Uses semantic tokens; the
+   short hash is monospace tabular numerals so the column lines up
+   across rows.
+   ------------------------------------------------------------------------- */
+
+.timelineList {
+  list-style: none;
+  margin: 0;
+  padding: 4px 0;
+}
+
+.timelineRow {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 6px 12px;
+  border-bottom: 1px solid var(--bg-3);
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+
+.timelineRow:hover {
+  background-color: var(--bg-2);
+}
+
+.timelineRow:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+  border-radius: 2px;
+}
+
+.timelineRow:last-child {
+  border-bottom: none;
+}
+
+.timelineSubject {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timelineMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text-secondary);
+}
+
+.timelineHash {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 10px;
+  color: var(--brand);
+  font-variant-numeric: tabular-nums;
+  flex-shrink: 0;
+}
+
+.timelineAuthor {
+  flex: 1 1 auto;
+  min-width: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timelineDate {
+  flex-shrink: 0;
+  font-variant-numeric: tabular-nums;
+}
+
+/* Source badge that decorates Local History rows (e.g. "Save",
+ * "Agent"). Sits inline with the subject; small so the row stays
+ * single-line even on long filenames. */
+.timelineBadge {
+  margin-left: 6px;
+  flex-shrink: 0;
+}
+
+/* "Local" prefix on local-history rows — sits in the meta row where
+ * the author/shortHash would be on a git row. */
+.timelineLocalLabel {
+  flex: 1 1 auto;
+  min-width: 0;
+  color: var(--brand);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.timelineEmpty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px 12px;
+  font-size: 12px;
+  color: var(--text-tertiary);
+  font-style: italic;
+}
+
+.timelineLoadingText {
+  font-style: italic;
+}

@@ -304,6 +304,25 @@
     "outlineToggle": "Show outline panel",
     "lineCount": "{{count}} lines"
   },
+  "sider": {
+    "outline": "Outline",
+    "timeline": "Timeline",
+    "explorer": "Explorer",
+    "outlineNoFile": "Open a file to see its outline",
+    "timelineNoFile": "Open a file to see its history",
+    "timelineEmpty": "No history for this file",
+    "timelineLoading": "Loading history…",
+    "timelineLocalSubject": "Yerel Geçmiş",
+    "timelineLocalMeta": "Yerel",
+    "timelineLocalSave": "Manuel Kayıt",
+    "timelineLocalAgent": "Aracı Düzenleme",
+    "timelineLocalRestore": "Geri Yükleme Noktası",
+    "timelineLocalOpen": "İlk Açılış",
+    "timelineLocalAutosave": "Otomatik Kayıt",
+    "timelineRestoreBtn": "Bu sürümü geri yükle",
+    "timelineGitTitle": "Git Commit",
+    "timelineGitUnsupported": "Git commit diff'i henüz desteklenmiyor. Yerel geçmiş girdileri aşağıdan geri yüklenebilir."
+  },
   "minimap": {
     "searchAria": "Sohbeti ara",
     "searchHint": "Anahtar kelime aramak için buraya tıkla",

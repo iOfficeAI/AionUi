@@ -5,19 +5,18 @@
  */
 
 import { Alert, Button, Message, Modal, Spin } from '@arco-design/web-react';
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
 import { useEditorContext } from './EditorContext';
 import EditorBreadcrumb from './EditorBreadcrumb';
 import EditorGroupView from './EditorGroupView';
-import EditorOutline from './EditorOutline';
 import EditorStatusBar from './EditorStatusBar';
 import EditorToolbar from './EditorToolbar';
 import EditorProblems from './EditorProblems';
 import { type MonacoEditorHandle, type MonacoSelectionInfo } from './MonacoEditorGate';
 import type { LspBridgeStatus } from './useLspBridge';
-import { requestEditorRevealInTree } from './editorReveal';
+import { EDITOR_REVEAL_LINE_EVENT, isEditorRevealLineEvent, requestEditorRevealInTree } from './editorReveal';
 import { readEditorSettings, writeEditorSettings, type EditorUserSettings } from './editorSettings';
 import { useEditorTabsHydration } from './useEditorTabsHydration';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
@@ -51,21 +50,20 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
   const { id: workspaceId } = useParams<{ id: string }>();
   useEditorTabsHydration({ workspaceRoot });
   const [messageApi, messageContextHolder] = Message.useMessage();
-  // Phase 9: calm defaults. Word-wrap, minimap, and outline all start off; the
+  // Phase 9: calm defaults. Word-wrap and minimap start off; the
   // user can toggle each individually via the existing toolbar controls, or
   // flip Expert mode to restore the prior IDE-chrome posture wholesale.
   const [expertMode, setExpertMode] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
   const [wordWrap, setWordWrap] = useState(false);
   const [showMinimap, setShowMinimap] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
   const [renderWhitespace, setRenderWhitespace] = useState(false);
-  const [outlineVisible, setOutlineVisible] = useState<boolean>(() => readPersistedExpertMode(workspaceId));
   const [cursor, setCursor] = useState(INITIAL_CURSOR);
   const [selectionInfo, setSelectionInfo] = useState<MonacoSelectionInfo>(INITIAL_SELECTION);
   const [indent, setIndent] = useState<{ useSpaces: boolean; size: number }>({ useSpaces: true, size: 2 });
   const [eol, setEol] = useState<'LF' | 'CRLF'>('LF');
   // Editor user-settings (persisted per workspace). Seeded from localStorage
   // on mount and on workspace change. `formatOnSave` and the chrome flags
-  // (minimap / word-wrap / whitespace / outline) share the same Expert-mode
+  // (minimap / word-wrap / whitespace) share the same Expert-mode
   // posture so toggling Expert flips them all to the persisted state.
   const [editorSettings, setEditorSettings] = useState<EditorUserSettings>(() => ({
     ...readEditorSettings(workspaceId),
@@ -76,7 +74,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
   }));
   const editor = useEditorContext();
   // Registry of each split group's imperative Monaco handle. Toolbar / status
-  // bar / outline / problems act on the FOCUSED group's handle.
+  // bar / problems act on the FOCUSED group's handle.
   const groupHandles = useRef<Map<string, MonacoEditorHandle>>(new Map());
   const registerHandle = useCallback((groupId: string, handle: MonacoEditorHandle | null) => {
     if (handle) groupHandles.current.set(groupId, handle);
@@ -97,12 +95,11 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
 
   // Re-read persistence on workspace change. Switching conversations (or
   // entering a team) should pick up that workspace's Expert preference without
-  // a reload. Each derived chrome flag (minimap, outline) tracks the toggle.
+  // a reload. Each derived chrome flag (minimap) tracks the toggle.
   useEffect(() => {
     const persisted = readPersistedExpertMode(workspaceId);
     setExpertMode(persisted);
     setShowMinimap(persisted);
-    setOutlineVisible(persisted);
   }, [workspaceId]);
 
   // Hydrate persisted editor settings (font size / family / tab / etc.) on
@@ -127,12 +124,24 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
         // ignore storage errors
       }
       setShowMinimap(next);
-      setOutlineVisible(next);
       return next;
     });
   }, [workspaceId]);
 
-  // Persist toolbar-driven flags into the same settings blob so the editor
+  // ---------------------------------------------------------------------------
+  // Auto-Save
+  // ---------------------------------------------------------------------------
+  useEffect(() => {
+    if (!editorSettings.autoSave || !editor.isDirty) return;
+    const active = editor.activeBuffer;
+    if (!active || active.filePath === null) return; // skip untitled
+    const timer = window.setTimeout(() => {
+      editor.saveEditorFile({ isAutoSave: true }).catch(() => {
+        /* ignore */
+      });
+    }, editorSettings.autoSaveDelay);
+    return () => window.clearTimeout(timer);
+  }, [editor.isDirty, editorSettings.autoSave, editorSettings.autoSaveDelay, editor, editor.activeBuffer]);
   // shell picks them up next session. Each handler updates the local state
   // AND writes the persistent copy. We don't bump the Expert-mode storage
   // key — Expert mode is a coarse posture, not a per-flag persistence.
@@ -170,6 +179,19 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
     window.addEventListener('keydown', onKeyDown);
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [editor]);
+
+  // Listen for external "reveal a line" requests (e.g. the Sider Outline
+  // section). The Outline has been moved out of the editor body into the
+  // left Sider, so it dispatches a `window` CustomEvent instead of calling
+  // into the Monaco ref directly.
+  useEffect(() => {
+    const handler = (event: Event) => {
+      if (!isEditorRevealLineEvent(event)) return;
+      focusedHandle()?.revealLine(event.detail.line);
+    };
+    window.addEventListener(EDITOR_REVEAL_LINE_EVENT, handler);
+    return () => window.removeEventListener(EDITOR_REVEAL_LINE_EVENT, handler);
+  }, [focusedHandle]);
 
   const handleSelectionChange = useCallback((info: MonacoSelectionInfo) => {
     setSelectionInfo(info);
@@ -247,7 +269,7 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
         wordWrap={wordWrap}
         showMinimap={showMinimap}
         renderWhitespace={renderWhitespace}
-        outlineVisible={outlineVisible}
+        autoSave={editorSettings.autoSave}
         isSplit={editor.groups.length > 1}
         onToggleSplit={() => editor.splitEditor('right')}
         onNew={editor.openUntitledEditor}
@@ -276,13 +298,19 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
           });
         }}
         onToggleWhitespace={() => {
-          setRenderWhitespace((prev) => {
-            const next = !prev;
+          setEditorSettings((prev) => {
+            const next = !prev.renderWhitespace;
             persistSetting({ renderWhitespace: next });
-            return next;
+            return { ...prev, renderWhitespace: next };
           });
         }}
-        onToggleOutline={() => setOutlineVisible((prev) => !prev)}
+        onToggleAutoSave={() => {
+          setEditorSettings((prev) => {
+            const next = !prev.autoSave;
+            persistSetting({ autoSave: next });
+            return { ...prev, autoSave: next };
+          });
+        }}
         onCollapse={editor.collapseEditor}
         onClose={editor.requestCloseEditor}
       />
@@ -304,12 +332,9 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
           </div>
         ) : (
           <div className='editor-panel__split'>
-            {outlineVisible && (
-              <div className='editor-panel__aside'>
-                <EditorOutline activeBuffer={active} onSelectSymbol={(s) => focusedHandle()?.revealLine(s.line)} />
-                <EditorProblems activeBuffer={active} onSelectProblem={(line) => focusedHandle()?.revealLine(line)} />
-              </div>
-            )}
+            <div className='editor-panel__aside'>
+              <EditorProblems activeBuffer={active} onSelectProblem={(line) => focusedHandle()?.revealLine(line)} />
+            </div>
             <div className='editor-panel__groups'>
               {editor.groups.map((g, i) => {
                 const isSplit = editor.groups.length > 1;

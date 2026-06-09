@@ -11,8 +11,11 @@
  */
 
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
+import { ipcBridge } from '@/common';
 import * as monaco from '@aionui/editor-monaco';
-import React, { useEffect, useImperativeHandle, useRef } from 'react';
+import React, { useEffect, useImperativeHandle, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { emitter } from '@/renderer/utils/emitter';
 import { uriForBuffer } from './editorMonacoUri';
 import { applyTheme, ensureAionuiThemesRegistered, initialThemeFor } from './monacoTheme';
 import type { OpenBuffer } from './types';
@@ -65,6 +68,99 @@ export type MonacoSelectionInfo = {
   selectedLines: number;
 };
 
+/**
+ * Phase 2 (agent-editor integration): the duration the agent-change
+ * highlight stays on screen after an `fileStream.contentUpdate` lands.
+ * Long enough to read, short enough not to clutter the editor.
+ */
+const AGENT_HIGHLIGHT_DURATION_MS = 1500;
+
+/**
+ * Mirrors `isBufferDirty` from EditorContext locally — duplicated here to
+ * avoid importing the helper into a view component. The two checks must
+ * stay in lock-step: a buffer is dirty iff `content !== originalContent`.
+ */
+const isBufferDirtyExternal = (buffer: { content: string; originalContent: string }): boolean =>
+  buffer.content !== buffer.originalContent;
+
+/**
+ * Compute the 1-based start and end line of the region that differs between
+ * `oldText` and `newText`, using a longest-common-prefix + longest-common-suffix
+ * of LINES. This is intentionally a simple O(n) scan (no LCS / Myers diff) —
+ * fast, dependency-free, and accurate for typical agent edits where most of
+ * the file is untouched. Returns `{ start, end }` covering the full document
+ * when there is no overlap, or the empty file on full rewrites.
+ */
+const computeChangedLineRange = (oldText: string, newText: string): { start: number; end: number } => {
+  const oldLines = oldText.split('\n');
+  const newLines = newText.split('\n');
+
+  // Common prefix length (in lines).
+  let prefix = 0;
+  const minLen = Math.min(oldLines.length, newLines.length);
+  while (prefix < minLen && oldLines[prefix] === newLines[prefix]) {
+    prefix += 1;
+  }
+
+  // Common suffix length (in lines), bounded by the remaining unmatched
+  // tail so the prefix and suffix don't overlap.
+  let suffix = 0;
+  const oldTail = oldLines.length - prefix;
+  const newTail = newLines.length - prefix;
+  const tailMin = Math.min(oldTail, newTail);
+  while (suffix < tailMin && oldLines[oldLines.length - 1 - suffix] === newLines[newLines.length - 1 - suffix]) {
+    suffix += 1;
+  }
+
+  const start = prefix + 1; // Monaco is 1-based.
+  const end = newLines.length - suffix; // 1-based inclusive.
+  return { start, end };
+};
+
+/**
+ * Apply (or replace) the agent-change highlight on `editor` for the given
+ * `changedRange` line span. Uses a single `IDecorationsCollection` cached on
+ * `collectionRef` so each update atomically replaces the prior batch. The
+ * previous timer (if any) is cleared so a burst of agent writes leaves
+ * exactly one highlight on the latest region.
+ */
+const applyAgentHighlight = (
+  editor: monaco.editor.IStandaloneCodeEditor,
+  collectionRef: React.MutableRefObject<monaco.editor.IEditorDecorationsCollection | null>,
+  timerRef: React.MutableRefObject<ReturnType<typeof setTimeout> | null>,
+  changedRange: { start: number; end: number },
+  model: monaco.editor.ITextModel
+): void => {
+  if (changedRange.end < changedRange.start) {
+    // Pure deletion of a region (no replacement lines) — nothing to paint.
+    if (collectionRef.current) collectionRef.current.clear();
+    return;
+  }
+  if (!collectionRef.current) {
+    collectionRef.current = editor.createDecorationsCollection([]);
+  }
+  const endCol = model.getLineMaxColumn(changedRange.end);
+  collectionRef.current.set([
+    {
+      range: new monaco.Range(changedRange.start, 1, changedRange.end, endCol),
+      options: {
+        isWholeLine: true,
+        className: 'editor-agent-change-line',
+        glyphMarginClassName: 'editor-agent-change-glyph',
+        // NeverGrowsWhenTypingAtEdges keeps the decoration anchored to the
+        // visual region as the user types after the agent's edit; it
+        // disappears if the user types inside the region itself.
+        stickiness: monaco.editor.TrackedRangeStickiness.NeverGrowsWhenTypingAtEdges,
+      },
+    },
+  ]);
+  if (timerRef.current) clearTimeout(timerRef.current);
+  timerRef.current = setTimeout(() => {
+    if (collectionRef.current) collectionRef.current.clear();
+    timerRef.current = null;
+  }, AGENT_HIGHLIGHT_DURATION_MS);
+};
+
 export type MonacoEditorHandle = {
   /** Underlying Monaco editor instance, or null before mount. */
   getEditor: () => monaco.editor.IStandaloneCodeEditor | null;
@@ -108,6 +204,19 @@ export type MonacoEditorHandle = {
   redo: () => void;
   /** Apply (or replace) git decorations on the current model. */
   setGitDecorations: (decorations: monaco.editor.IModelDeltaDecoration[]) => void;
+  /**
+   * Phase 3: if there's a pending conflict from the agent (the user has
+   * unsaved changes and the agent wrote the same file), accept the
+   * agent's version and replace the user's current model content with
+   * it. No-op when no conflict is pending.
+   */
+  acceptAgentConflict: () => void;
+  /**
+   * Phase 3: if there's a pending conflict, dismiss it and exit any
+   * open diff review without modifying the user's content. No-op when
+   * no conflict is pending.
+   */
+  keepUserConflict: () => void;
 };
 
 type Props = {
@@ -127,6 +236,15 @@ type Props = {
   onCursorChange: (line: number, column: number) => void;
   /** Reported back when the selection changes (for status-bar selection info). */
   onSelectionChange?: (info: MonacoSelectionInfo) => void;
+  /**
+   * Reconcile a buffer's content with an external writer (e.g. the agent's
+   * `fileStream.contentUpdate`). Called AFTER the model has been updated
+   * inside `suppressChangeRef`, so the editor doesn't echo the change back
+   * out as a user edit. The receiver should update `content` AND
+   * `originalContent` (so the dirty flag clears) — the on-disk file is now
+   * the source of truth.
+   */
+  onApplyExternalContent?: (key: string, content: string) => void;
 };
 
 const DEFAULT_FONT_SIZE = 14;
@@ -143,6 +261,7 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     editorSettings,
     onCursorChange,
     onSelectionChange,
+    onApplyExternalContent,
   },
   ref
 ) {
@@ -152,6 +271,11 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   const fontSizeRef = useRef<number>(editorSettings.fontSize);
   const settingsRef = useRef(editorSettings);
   settingsRef.current = editorSettings;
+  // Mirror of the active buffer used by the Phase 2 file-stream subscription
+  // (declared with an empty dep array so the subscription survives tab
+  // switches; the ref always reflects the current pane's active buffer).
+  const activeBufferRef = useRef<OpenBuffer | null>(activeBuffer);
+  activeBufferRef.current = activeBuffer;
   // Holds the prior batch of git decoration ids so we can swap them out
   // atomically on the next update (deltaDecorations API).
   const gitDecorationIdsRef = useRef<string[]>([]);
@@ -159,8 +283,48 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
   // disk-sync). Without this, switching tabs would echo the new model's content
   // back into EditorContext as a "user edit" and clobber the originalContent.
   const suppressChangeRef = useRef(false);
-  const callbacksRef = useRef({ onContentChange, onViewStateChange, onSave, onCursorChange, onSelectionChange });
-  callbacksRef.current = { onContentChange, onViewStateChange, onSave, onCursorChange, onSelectionChange };
+  // Phase 2 (agent-editor integration): decoration collection for the
+  // brief highlight that paints the lines the agent just modified when a
+  // `fileStream.contentUpdate` lands. Auto-cleared on a timer so the user
+  // sees what changed without leaving residual marks on every edit.
+  const agentHighlightCollectionRef = useRef<monaco.editor.IEditorDecorationsCollection | null>(null);
+  const agentHighlightTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Phase 3 (agent-editor integration): conflict UI state. When the agent
+  // writes to a file the user has unsaved changes on, we stash the
+  // incoming content here instead of clobbering the user's edits. The
+  // banner surfaces it; clicking "Review Diff" mounts a DiffEditor that
+  // compares the user's current model (Original) against this content
+  // (Modified). Accept/Keep both clear this state and dispose the diff
+  // editor.
+  const [pendingConflictContent, setPendingConflictContent] = useState<string | null>(null);
+  const [isReviewingDiff, setIsReviewingDiff] = useState<boolean>(false);
+  // Refs mirror the React state so the file-stream subscription (which
+  // lives behind an empty-deps effect) can read the latest values without
+  // re-subscribing on every state change. They are also the cleanup
+  // source of truth for the diff editor on unmount.
+  const pendingConflictContentRef = useRef<string | null>(null);
+  pendingConflictContentRef.current = pendingConflictContent;
+  const isReviewingDiffRef = useRef<boolean>(false);
+  isReviewingDiffRef.current = isReviewingDiff;
+  const diffContainerRef = useRef<HTMLDivElement | null>(null);
+  const diffEditorRef = useRef<monaco.editor.IStandaloneDiffEditor | null>(null);
+  const diffModifiedModelRef = useRef<monaco.editor.ITextModel | null>(null);
+  const callbacksRef = useRef({
+    onContentChange,
+    onViewStateChange,
+    onSave,
+    onCursorChange,
+    onSelectionChange,
+    onApplyExternalContent,
+  });
+  callbacksRef.current = {
+    onContentChange,
+    onViewStateChange,
+    onSave,
+    onCursorChange,
+    onSelectionChange,
+    onApplyExternalContent,
+  };
   const { theme } = useThemeContext();
 
   // --- Mount once, dispose on unmount -----------------------------------------
@@ -334,6 +498,33 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       callbacksRef.current.onSave();
     });
 
+    // Right-click context menu → "Send Selection to Chat" wires the active
+    // editor selection into the conversation's chat composer (`sendbox.fill`).
+    // Guarded on a non-empty selection so a bare right-click on a collapsed
+    // cursor doesn't emit a stray empty message. The payload is a fenced
+    // code block carrying the file path + line range so the model has
+    // enough context to act on the snippet.
+    editor.addAction({
+      id: 'aionui.sendSelectionToChat',
+      label: 'Send Selection to Chat',
+      contextMenuGroupId: '1_modification',
+      contextMenuOrder: 1,
+      run: (ed) => {
+        const selection = ed.getSelection();
+        const model = ed.getModel();
+        if (!selection || !model || selection.isEmpty()) return;
+        const text = model.getValueInRange(selection);
+        if (!text) return;
+        const filePath = model.uri.path;
+        const startLine = selection.startLineNumber;
+        const endLine = selection.endLineNumber;
+        const header = filePath ? `// ${filePath}:${startLine}-${endLine}` : `// lines ${startLine}-${endLine}`;
+        const language = model.getLanguageId() || '';
+        const payload = ['```' + language, header, text, '```'].join('\n');
+        emitter.emit('sendbox.fill', payload);
+      },
+    });
+
     return () => {
       onContent.dispose();
       onCursor.dispose();
@@ -426,6 +617,19 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     lastBufferKeyRef.current = activeBuffer.key;
   }, [activeBuffer]);
 
+  // --- Phase 3: reset conflict state on file change --------------------------
+  // A conflict (pending agent content + optional diff review) is bound to
+  // the active buffer. When the user switches tabs we drop it cleanly: a
+  // conflict that was stashed for file A has no meaning once the editor
+  // is showing file B. Both the pending content and the review flag are
+  // cleared; the diff-editor effect below tears down the diff widget on
+  // the `isReviewingDiff` flip from true → false.
+  useEffect(() => {
+    if (pendingConflictContent === null && !isReviewingDiff) return;
+    setPendingConflictContent(null);
+    setIsReviewingDiff(false);
+  }, [activeBuffer?.key]);
+
   // --- Sync external content updates into the active model -------------------
   // When the EditorContext disk-poller refreshes a buffer's content (e.g. an
   // external save was detected), the new content lands in `activeBuffer.content`
@@ -447,6 +651,183 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
     }
   }, [activeBuffer?.key, activeBuffer?.content]);
 
+  // --- Phase 3: diff review editor lifecycle ---------------------------------
+  // When `isReviewingDiff` flips to true we mount a fresh DiffEditor
+  // inside `diffContainerRef` and feed it two models:
+  //   - original: the user's CURRENT model (live, so user edits in the
+  //     background tab stay reflected if they make any — though the
+  //     editor is hidden at this point).
+  //   - modified: a dedicated scratch model seeded from
+  //     `pendingConflictContent`. We can't reuse the user's model on the
+  //     modified side (a model can only live in one editor at a time),
+  //     so the temporary model is created and disposed alongside the
+  //     diff editor itself.
+  //
+  // The diff editor mirrors the active pane's language + theme so syntax
+  // highlighting and the Chisl palette are consistent. Disposal runs on
+  // exit, on file change, and on unmount (the cleanup function in the
+  // effect).
+  useEffect(() => {
+    if (!isReviewingDiff) return;
+    const container = diffContainerRef.current;
+    if (!container) return;
+    const mainEditor = editorRef.current;
+    const mainModel = mainEditor?.getModel();
+    if (!mainModel) return;
+    if (pendingConflictContent === null) return;
+
+    const initialMode: 'light' | 'dark' = theme === 'dark' ? 'dark' : 'light';
+    // Build a unique URI for the scratch model so it doesn't collide with
+    // the user's real model. Monaco requires a URI for `createModel`.
+    const scratchUri = monaco.Uri.parse(`aionui-conflict://${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
+    const scratchModel = monaco.editor.createModel(pendingConflictContent, mainModel.getLanguageId(), scratchUri);
+    diffModifiedModelRef.current = scratchModel;
+
+    const diffEditor = monaco.editor.createDiffEditor(container, {
+      automaticLayout: true,
+      theme: initialThemeFor(initialMode),
+      renderSideBySide: true,
+      // Match the main editor's font so the diff doesn't look "smaller".
+      fontSize: fontSizeRef.current,
+      fontFamily:
+        settingsRef.current.fontFamily ??
+        "'JetBrains Mono', 'Cascadia Code', 'Fira Code', 'SF Mono', Menlo, Consolas, 'Liberation Mono', monospace",
+      fontLigatures: true,
+      readOnly: true,
+      renderIndicators: true,
+      originalEditable: false,
+    });
+    diffEditor.setModel({ original: mainModel, modified: scratchModel });
+    diffEditorRef.current = diffEditor;
+
+    return () => {
+      // Detach the models BEFORE disposing them so Monaco doesn't trip
+      // an assertion about orphaned listeners.
+      try {
+        diffEditor.setModel(null);
+      } catch {
+        // Diff editor was already disposed (e.g. unmount racing with a
+        // state update). Swallow — the dispose below is still safe.
+      }
+      diffEditor.dispose();
+      diffEditorRef.current = null;
+      scratchModel.dispose();
+      diffModifiedModelRef.current = null;
+    };
+    // We intentionally re-run when `pendingConflictContent` changes so an
+    // arriving agent write during a review swaps the Modified side
+    // in-place. The diff editor is rebuilt; the Original (user's) model
+    // is preserved because it's the live active model — only the
+    // scratch modified model is recreated.
+  }, [isReviewingDiff, pendingConflictContent, theme]);
+
+  // --- Phase 2: agent live content stream ------------------------------------
+  // Subscribe to `ipcBridge.fileStream.contentUpdate` so that when the agent
+  // writes a file the user already has open, the editor's model updates in
+  // place (preserving undo) and a brief highlight paints the changed region.
+  //
+  // Suppress-pattern: wrap the model push in `suppressChangeRef` so the editor
+  // does NOT echo the agent's edit back out as a user edit (which would
+  // clobber the user's `originalContent` and mark the buffer dirty).
+  //
+  // User-typing guard: if the buffer is dirty (`content !== originalContent`),
+  // the user has unsaved changes — don't clobber them with the agent's write.
+  // The user can reload the file from disk explicitly when they want to.
+  //
+  // Phase 3 conflict path: instead of silently dropping the agent's write
+  // when the buffer is dirty, we stash the incoming text in
+  // `pendingConflictContent` and surface a banner so the user can review
+  // the agent's changes via a DiffEditor (compare Original=user model vs
+  // Modified=agent text) and pick Accept (overwrite) or Keep (dismiss).
+  // A subsequent agent write while a conflict is still pending replaces
+  // the stashed text with the latest — newest agent content wins.
+  //
+  // Highlight: a single `IDecorationsCollection` is reused per pane; the
+  // previous batch is cleared on each new update so a burst of agent writes
+  // leaves exactly one highlight on the latest region. Auto-cleared after a
+  // short timeout so the editor returns to its normal chrome.
+  useEffect(() => {
+    const unsubscribe = ipcBridge.fileStream.contentUpdate.on(
+      ({ file_path, content, workspace: eventWorkspace, operation }) => {
+        const editor = editorRef.current;
+        if (!editor) return;
+        const buffer = activeBufferRef.current;
+        if (!buffer || !buffer.filePath) return;
+        // Only react when the stream event targets the file the user is
+        // currently looking at. Other open tabs update through their own
+        // pane subscriptions; we still update their `originalContent` via
+        // the EditorContext so the dirty flag clears correctly.
+        if (operation === 'delete') return; // close paths are handled by the editor
+        // Match both path AND workspace — two workspaces with the same file
+        // name (e.g. nested git worktrees) would otherwise collide.
+        const bufferWorkspace = buffer.workspace ?? '';
+        const eventWs = eventWorkspace ?? '';
+        const pathMatches = file_path === buffer.filePath && bufferWorkspace === eventWs;
+        if (!pathMatches) {
+          // Even if not active, if a buffer for this path exists, clear its
+          // dirty flag so the model on disk becomes the new truth.
+          const key = `${eventWs}::${file_path}`;
+          callbacksRef.current.onApplyExternalContent?.(key, content);
+          return;
+        }
+        // Phase 3: dirty buffer → stash the agent's content for the user to
+        // review. If a conflict is already pending, replace it with the
+        // newest write (newest agent content wins). If a diff review is
+        // already open, the diff editor's modified model is rebuilt from
+        // the new content via the isReviewingDiff effect below.
+        if (isBufferDirtyExternal(buffer)) {
+          if (pendingConflictContentRef.current !== content) {
+            pendingConflictContentRef.current = content;
+            setPendingConflictContent(content);
+          }
+          return;
+        }
+
+        const model = editor.getModel();
+        if (!model) return;
+        const oldContent = model.getValue();
+        if (oldContent === content) return;
+
+        const changedRange = computeChangedLineRange(oldContent, content);
+
+        suppressChangeRef.current = true;
+        try {
+          const fullRange = model.getFullModelRange();
+          model.pushEditOperations([], [{ range: fullRange, text: content }], (): null => null);
+        } finally {
+          suppressChangeRef.current = false;
+        }
+
+        // Reconcile EditorContext state (clears dirty flag by setting
+        // `originalContent` = `content`).
+        callbacksRef.current.onApplyExternalContent?.(buffer.key, content);
+
+        // Paint the changed region with a brief highlight so the user sees
+        // *what* the agent just modified.
+        applyAgentHighlight(editor, agentHighlightCollectionRef, agentHighlightTimerRef, changedRange, model);
+      }
+    );
+
+    return () => {
+      unsubscribe();
+      // Clear any pending highlight on unmount / re-subscribe.
+      if (agentHighlightTimerRef.current) {
+        clearTimeout(agentHighlightTimerRef.current);
+        agentHighlightTimerRef.current = null;
+      }
+      const editor = editorRef.current;
+      const collection = agentHighlightCollectionRef.current;
+      if (editor && collection) {
+        collection.clear();
+      }
+      agentHighlightCollectionRef.current = null;
+    };
+    // We deliberately don't include activeBuffer in deps — we read it via
+    // a ref so the subscription survives buffer switches. Re-subscribing on
+    // every active change would miss updates in flight during the swap.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   // --- Imperative handle ------------------------------------------------------
   // Most actions are looked up by id via `getAction`; this is the supported
   // Monaco mechanism for invoking the same commands the command palette uses.
@@ -463,6 +844,39 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
       const clamped = Math.max(8, Math.min(40, px));
       fontSizeRef.current = clamped;
       editorRef.current?.updateOptions({ fontSize: clamped });
+    };
+    // Phase 3: accept the agent's pending changes. Pushes the stashed
+    // content into the user's current model via pushEditOperations (so
+    // undo history is preserved) and reconciles EditorContext so the
+    // dirty flag clears. No-op when no conflict is pending.
+    const acceptAgentConflict = (): void => {
+      const content = pendingConflictContentRef.current;
+      if (content === null) return;
+      const editor = editorRef.current;
+      const model = editor?.getModel();
+      if (!editor || !model) return;
+      const buffer = activeBufferRef.current;
+      suppressChangeRef.current = true;
+      try {
+        const fullRange = model.getFullModelRange();
+        model.pushEditOperations([], [{ range: fullRange, text: content }], (): null => null);
+      } finally {
+        suppressChangeRef.current = false;
+      }
+      if (buffer) {
+        callbacksRef.current.onApplyExternalContent?.(buffer.key, content);
+      }
+      pendingConflictContentRef.current = null;
+      setPendingConflictContent(null);
+      setIsReviewingDiff(false);
+    };
+    // Phase 3: keep the user's version. Drops the stashed content and
+    // exits any open diff review without touching the user's model.
+    const keepUserConflict = (): void => {
+      if (pendingConflictContentRef.current === null && !isReviewingDiffRef.current) return;
+      pendingConflictContentRef.current = null;
+      setPendingConflictContent(null);
+      setIsReviewingDiff(false);
     };
     return {
       getEditor: () => editorRef.current,
@@ -515,10 +929,171 @@ const MonacoEditor = React.forwardRef<MonacoEditorHandle, Props>(function Monaco
         if (!editor) return;
         gitDecorationIdsRef.current = editor.deltaDecorations(gitDecorationIdsRef.current, decorations);
       },
+      acceptAgentConflict,
+      keepUserConflict,
     };
   }, []);
 
-  return <div ref={containerRef} style={{ width: '100%', height: '100%' }} />;
+  return (
+    <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+      {/*
+        Main Monaco host. Stays mounted across diff-review transitions so
+        the user's model and undo stack are preserved (the diff editor
+        is "above" it visually but the underlying editor isn't
+        unmounted). When reviewing the diff, the host is visually hidden
+        but kept in the DOM so re-entry is instant and the user's edit
+        position isn't lost.
+      */}
+      <div
+        ref={containerRef}
+        className={isReviewingDiff ? 'editor-monaco-host--hidden' : undefined}
+        style={{ width: '100%', height: '100%' }}
+      />
+      {/*
+        Conflict banner — Phase 3. Sits above the editor when the agent
+        has written a file the user has unsaved changes on. Hidden while
+        a diff review is open (the diff review header takes over).
+      */}
+      {pendingConflictContent !== null && !isReviewingDiff ? (
+        <ConflictBanner
+          theme={theme}
+          onReviewDiff={() => setIsReviewingDiff(true)}
+          onIgnore={() => {
+            pendingConflictContentRef.current = null;
+            setPendingConflictContent(null);
+          }}
+        />
+      ) : null}
+      {/*
+        Diff review surface. Renders on top of the main editor when the
+        user clicks "Review Diff". The DiffEditor itself is mounted in
+        an effect (above) so it picks up the live main model + the
+        stashed agent text. The sticky header carries the resolution
+        buttons (Accept / Keep).
+      */}
+      {isReviewingDiff ? (
+        <>
+          <DiffReviewHeader
+            onAccept={() => {
+              const content = pendingConflictContentRef.current;
+              if (content === null) {
+                setIsReviewingDiff(false);
+                return;
+              }
+              const editor = editorRef.current;
+              const model = editor?.getModel();
+              if (!editor || !model) {
+                setIsReviewingDiff(false);
+                return;
+              }
+              const buffer = activeBufferRef.current;
+              suppressChangeRef.current = true;
+              try {
+                const fullRange = model.getFullModelRange();
+                model.pushEditOperations([], [{ range: fullRange, text: content }], (): null => null);
+              } finally {
+                suppressChangeRef.current = false;
+              }
+              if (buffer) {
+                callbacksRef.current.onApplyExternalContent?.(buffer.key, content);
+              }
+              pendingConflictContentRef.current = null;
+              setPendingConflictContent(null);
+              setIsReviewingDiff(false);
+            }}
+            onKeep={() => {
+              pendingConflictContentRef.current = null;
+              setPendingConflictContent(null);
+              setIsReviewingDiff(false);
+            }}
+          />
+          <div ref={diffContainerRef} className='editor-diff-review-host' />
+        </>
+      ) : null}
+    </div>
+  );
 });
+
+/**
+ * Phase 3 conflict banner — the small "Agent modified this file but you
+ * have unsaved changes" strip that appears at the top of the editor when
+ * the file-stream handler stashes incoming agent content. Two actions:
+ *   - Review Diff: flip the parent into diff review mode (mounts a
+ *     DiffEditor over the live model).
+ *   - Ignore: drop the stashed content without applying it.
+ *
+ * Theme-aware: the warn-tone palette gets a darker background in dark
+ * mode for contrast. Strings come from i18n with hard-coded fallbacks
+ * so a missing translation never produces a blank banner.
+ */
+type ConflictBannerProps = {
+  theme: 'light' | 'dark';
+  onReviewDiff: () => void;
+  onIgnore: () => void;
+};
+const ConflictBanner: React.FC<ConflictBannerProps> = ({ theme, onReviewDiff, onIgnore }) => {
+  const { t } = useTranslation();
+  const className = `editor-conflict-banner${theme === 'dark' ? ' editor-conflict-banner--dark' : ''}`;
+  return (
+    <div className={className} role='status' aria-live='polite'>
+      <span className='editor-conflict-banner__message'>
+        {t('conversation.editor.agentConflictMessage', {
+          defaultValue: 'Agent modified this file but you have unsaved changes.',
+        })}
+      </span>
+      <button
+        type='button'
+        className='editor-conflict-banner__button editor-conflict-banner__button--primary'
+        onClick={onReviewDiff}
+      >
+        {t('conversation.editor.agentConflictReviewDiff', { defaultValue: 'Review Diff' })}
+      </button>
+      <button
+        type='button'
+        className='editor-conflict-banner__button editor-conflict-banner__button--ghost'
+        onClick={onIgnore}
+      >
+        {t('conversation.editor.agentConflictIgnore', { defaultValue: 'Ignore' })}
+      </button>
+    </div>
+  );
+};
+
+/**
+ * Phase 3 diff review header — sticky bar above the DiffEditor carrying
+ * the resolution actions. Sits over the editor chrome (not inside the
+ * diff widget) so the diff itself stays clean of UI chrome.
+ *
+ * Accept: replaces the user's model content with the stashed agent
+ * content (via the parent's `pushEditOperations` path) and exits
+ * review mode. Keep: drops the stashed content and exits review mode
+ * without touching the user's model.
+ */
+type DiffReviewHeaderProps = {
+  onAccept: () => void;
+  onKeep: () => void;
+};
+const DiffReviewHeader: React.FC<DiffReviewHeaderProps> = ({ onAccept, onKeep }) => {
+  const { t } = useTranslation();
+  return (
+    <div className='editor-diff-review-header' role='toolbar' aria-label='Diff review actions'>
+      <span className='editor-diff-review-header__label'>
+        {t('conversation.editor.agentConflictOriginalLabel', { defaultValue: 'Your version' })}
+        {' / '}
+        {t('conversation.editor.agentConflictModifiedLabel', { defaultValue: "Agent's version" })}
+      </span>
+      <button
+        type='button'
+        className='editor-conflict-banner__button editor-conflict-banner__button--primary'
+        onClick={onAccept}
+      >
+        {t('conversation.editor.agentConflictAccept', { defaultValue: 'Accept Agent Changes' })}
+      </button>
+      <button type='button' className='editor-conflict-banner__button' onClick={onKeep}>
+        {t('conversation.editor.agentConflictKeepMine', { defaultValue: 'Keep My Version' })}
+      </button>
+    </div>
+  );
+};
 
 export default MonacoEditor;

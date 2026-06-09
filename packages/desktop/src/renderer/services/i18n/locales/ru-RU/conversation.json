@@ -309,6 +309,25 @@
     "outlineToggle": "Show outline panel",
     "lineCount": "{{count}} lines"
   },
+  "sider": {
+    "outline": "Outline",
+    "timeline": "Timeline",
+    "explorer": "Explorer",
+    "outlineNoFile": "Open a file to see its outline",
+    "timelineNoFile": "Open a file to see its history",
+    "timelineEmpty": "No history for this file",
+    "timelineLoading": "Loading history…",
+    "timelineLocalSubject": "Локальная история",
+    "timelineLocalMeta": "Локальная",
+    "timelineLocalSave": "Ручное сохранение",
+    "timelineLocalAgent": "Изменение агентом",
+    "timelineLocalRestore": "Точка восстановления",
+    "timelineLocalOpen": "Начальное открытие",
+    "timelineLocalAutosave": "Авто-сохранение",
+    "timelineRestoreBtn": "Восстановить эту версию",
+    "timelineGitTitle": "Git-коммит",
+    "timelineGitUnsupported": "Diff для Git-коммитов пока не поддерживается. Записи локальной истории можно восстановить ниже."
+  },
   "minimap": {
     "searchAria": "Поиск по диалогу",
     "searchHint": "Нажмите здесь для поиска по ключевым словам",

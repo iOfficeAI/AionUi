@@ -1127,6 +1127,143 @@
 }
 
 /* -------------------------------------------------------------------------
+   Agent-change highlight — Phase 2 live content stream. Painted by
+   MonacoEditor on a `fileStream.contentUpdate` so the user can see *what*
+   the agent just modified. Different color (arcoblue / primary) than the
+   git gutter so agent-driven changes are visually distinct from the
+   file's git history. Auto-clears on a short timer (see
+   AGENT_HIGHLIGHT_DURATION_MS in MonacoEditor.tsx).
+   ------------------------------------------------------------------------- */
+.editor-agent-change-line {
+  background-color: color-mix(in srgb, var(--primary-6, #165dff) 18%, transparent);
+  transition: background-color 600ms ease-out;
+}
+
+.editor-agent-change-glyph {
+  display: inline-block;
+  width: 4px;
+  margin-left: 4px;
+  border-radius: 2px;
+  background-color: var(--primary-6, #165dff);
+}
+
+/* -------------------------------------------------------------------------
+   Phase 3 conflict resolution chrome — overlays positioned inside the
+   MonacoEditor container. The outer wrapper is `position: relative` (set
+   inline by MonacoEditor) so the absolute children anchor to it. Colors
+   come from semantic tokens; the warn-tone palette keeps it visually
+   distinct from the (info-tone) Phase 2 agent-change highlight.
+   ------------------------------------------------------------------------- */
+.editor-conflict-banner {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: var(--warning-1, #fff7e8);
+  border-bottom: 1px solid var(--warning-3, #ffd591);
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.editor-conflict-banner--dark {
+  background-color: var(--warning-2, #4a3a14);
+  border-bottom-color: var(--warning-4, #ad6800);
+  color: var(--text-primary, #f5f5f5);
+}
+
+.editor-conflict-banner__message {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-conflict-banner__button {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: var(--radius-small, 4px);
+  border: 1px solid var(--border-color, #c9cdd4);
+  background-color: var(--bg-1, #ffffff);
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 120ms ease;
+}
+
+.editor-conflict-banner__button:hover {
+  background-color: var(--bg-2, #f2f3f5);
+}
+
+.editor-conflict-banner__button--primary {
+  background-color: var(--primary-6, #165dff);
+  border-color: var(--primary-6, #165dff);
+  color: #fff;
+}
+
+.editor-conflict-banner__button--primary:hover {
+  background-color: var(--primary-7, #0e47d1);
+}
+
+.editor-conflict-banner__button--ghost {
+  background-color: transparent;
+  border-color: transparent;
+  color: var(--text-secondary, #4e5969);
+}
+
+.editor-conflict-banner__button--ghost:hover {
+  background-color: var(--bg-2, rgba(0, 0, 0, 0.04));
+}
+
+.editor-diff-review-header {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: var(--bg-2, #f7f8fa);
+  border-bottom: 1px solid var(--border-color, #e5e6eb);
+  color: var(--text-primary, #1d2129);
+  font-size: 12px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.06);
+}
+
+.editor-diff-review-header__label {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text-secondary, #4e5969);
+}
+
+.editor-diff-review-host {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+
+/* Hide the main editor host visually while in diff review mode without
+   unmounting it — keeping the model in place means accepting the agent
+   changes can reattach the same `IStandaloneCodeEditor` instantly. */
+.editor-monaco-host--hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+/* -------------------------------------------------------------------------
    Monaco widget polish — find, suggest, hover popups get the same
    elevation shadow vocabulary as the surrounding Arco shell. Colors come
    from monacoTheme.ts which is already token-bound.

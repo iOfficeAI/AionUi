@@ -16,9 +16,22 @@ import type {
   GitChangedEvent,
   GitCommitRequest,
   GitDiffRequest,
+  GitFileLogRequest,
   GitFilePathRequest,
   GitWorkspaceRequest,
 } from '../types/git/gitTypes';
+import type {
+  LocalHistoryAddRequest,
+  LocalHistoryClearRequest,
+  LocalHistoryContentRequest,
+  LocalHistoryDeleteRequest,
+  LocalHistoryListRequest,
+} from '../types/localHistory/localHistoryTypes';
+import type {
+  UntitledBackupDeleteRequest,
+  UntitledBackupReadRequest,
+  UntitledBackupWriteRequest,
+} from '../types/untitledBackup/untitledBackupTypes';
 import type {
   TerminalExitEvent,
   TerminalKillRequest,
@@ -56,6 +69,7 @@ export type AdapterEventMap = {
   'git.status': GitWorkspaceRequest;
   'git.init': GitWorkspaceRequest;
   'git.diff': GitDiffRequest;
+  'git.file-log': GitFileLogRequest;
   'git.stage': GitFilePathRequest;
   'git.stage-all': GitWorkspaceRequest;
   'git.unstage': GitFilePathRequest;
@@ -64,6 +78,15 @@ export type AdapterEventMap = {
   'git.branches': GitWorkspaceRequest;
   'git.commit': GitCommitRequest;
   'git.unwatch': GitWorkspaceRequest;
+  'local-history.add': LocalHistoryAddRequest;
+  'local-history.list': LocalHistoryListRequest;
+  'local-history.content': LocalHistoryContentRequest;
+  'local-history.delete': LocalHistoryDeleteRequest;
+  'local-history.clear': LocalHistoryClearRequest;
+  'untitled-backup.write': UntitledBackupWriteRequest;
+  'untitled-backup.read': UntitledBackupReadRequest;
+  'untitled-backup.delete': UntitledBackupDeleteRequest;
+  'untitled-backup.list': void;
   'update.check': UpdateCheckRequest;
   'update.download': UpdateDownloadRequest;
   'auto-update.check': { includePrerelease?: boolean };
@@ -118,6 +141,7 @@ export type AdapterEventResponseMap = {
   'git.status': BridgeResponse;
   'git.init': BridgeResponse;
   'git.diff': BridgeResponse;
+  'git.file-log': BridgeResponse;
   'git.stage': BridgeResponse;
   'git.stage-all': BridgeResponse;
   'git.unstage': BridgeResponse;
@@ -126,6 +150,15 @@ export type AdapterEventResponseMap = {
   'git.branches': BridgeResponse;
   'git.commit': BridgeResponse;
   'git.unwatch': BridgeResponse;
+  'local-history.add': BridgeResponse;
+  'local-history.list': BridgeResponse;
+  'local-history.content': BridgeResponse;
+  'local-history.delete': BridgeResponse;
+  'local-history.clear': BridgeResponse;
+  'untitled-backup.write': BridgeResponse;
+  'untitled-backup.read': BridgeResponse;
+  'untitled-backup.delete': BridgeResponse;
+  'untitled-backup.list': BridgeResponse;
   'update.check': BridgeResponse;
   'update.download': BridgeResponse;
   'auto-update.check': BridgeResponse;
@@ -181,6 +214,7 @@ export const ADAPTER_EVENT_NAMES = [
   'git.status',
   'git.init',
   'git.diff',
+  'git.file-log',
   'git.stage',
   'git.stage-all',
   'git.unstage',
@@ -189,6 +223,15 @@ export const ADAPTER_EVENT_NAMES = [
   'git.branches',
   'git.commit',
   'git.unwatch',
+  'local-history.add',
+  'local-history.list',
+  'local-history.content',
+  'local-history.delete',
+  'local-history.clear',
+  'untitled-backup.write',
+  'untitled-backup.read',
+  'untitled-backup.delete',
+  'untitled-backup.list',
   'update.check',
   'update.download',
   'auto-update.check',

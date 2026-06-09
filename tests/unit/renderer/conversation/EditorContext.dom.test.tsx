@@ -22,6 +22,12 @@ vi.mock('@/common', () => ({
       showOpen: { invoke: vi.fn() },
       showSave: { invoke: vi.fn() },
     },
+    // Save flow snapshots to Local History after the disk write succeeds.
+    // The test's IPC mock predates that wiring — stub it so the save
+    // `try` block doesn't throw and `originalContent` still updates.
+    localHistory: {
+      addSnapshot: { invoke: vi.fn().mockResolvedValue({ success: true }) },
+    },
   },
 }));
 

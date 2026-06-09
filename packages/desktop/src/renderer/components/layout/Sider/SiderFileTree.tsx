@@ -28,7 +28,17 @@ import useSWR from 'swr';
 import SiderWorkspaceSectionHeader from './SiderWorkspaceSectionHeader';
 import WorkspaceFilesFlyoutModal from './WorkspaceFilesFlyoutModal';
 
-const SiderFileTree: React.FC = () => {
+type SiderFileTreeProps = {
+  /**
+   * When true, the internal `SiderWorkspaceSectionHeader` (title + action
+   * buttons) is omitted so the component can sit inside a parent accordion
+   * section that provides its own header. Default false — preserves the
+   * standalone behavior for any other caller.
+   */
+  headerless?: boolean;
+};
+
+const SiderFileTree: React.FC<SiderFileTreeProps> = ({ headerless = false }) => {
   const { t } = useTranslation();
   const { id: conversationId } = useParams<{ id: string }>();
   const { data: conversation } = useSWR<TChatConversation | undefined>(
@@ -68,31 +78,33 @@ const SiderFileTree: React.FC = () => {
         aria-label={t('conversation.workspace.changes.filesTab')}
         data-testid='sider-file-tree'
       >
-        <SiderWorkspaceSectionHeader
-          title={workspaceLabel}
-          actions={
-            <>
-              <SiderWorkspaceActionBtn
-                tooltip={t('conversation.workspace.files.expandFlyout')}
-                icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
-                onClick={() => setFlyoutVisible(true)}
-              />
-              <SiderWorkspaceActionBtn
-                tooltip={t('conversation.workspace.refresh')}
-                icon={
-                  <Refresh
-                    theme='outline'
-                    size={14}
-                    fill='currentColor'
-                    className={treeLoading ? 'animate-spin' : undefined}
-                  />
-                }
-                onClick={handleRefreshClick}
-                disabled={treeLoading || !refreshWorkspace}
-              />
-            </>
-          }
-        />
+        {headerless ? null : (
+          <SiderWorkspaceSectionHeader
+            title={workspaceLabel}
+            actions={
+              <>
+                <SiderWorkspaceActionBtn
+                  tooltip={t('conversation.workspace.files.expandFlyout')}
+                  icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
+                  onClick={() => setFlyoutVisible(true)}
+                />
+                <SiderWorkspaceActionBtn
+                  tooltip={t('conversation.workspace.refresh')}
+                  icon={
+                    <Refresh
+                      theme='outline'
+                      size={14}
+                      fill='currentColor'
+                      className={treeLoading ? 'animate-spin' : undefined}
+                    />
+                  }
+                  onClick={handleRefreshClick}
+                  disabled={treeLoading || !refreshWorkspace}
+                />
+              </>
+            }
+          />
+        )}
         <div className={panelStyles.body}>
           <ChatWorkspace
             conversation_id={conversationId}
@@ -124,7 +136,7 @@ const SiderFileTree: React.FC = () => {
       aria-label='File tree'
       data-testid='sider-file-tree'
     >
-      <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.filesTab')} />
+      {headerless ? null : <SiderWorkspaceSectionHeader title={t('conversation.workspace.changes.filesTab')} />}
       <div className={`${panelStyles.body} flex-center`}>
         <Empty
           icon={<Code theme='outline' size={48} fill='var(--text-tertiary)' />}

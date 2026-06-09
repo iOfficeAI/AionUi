@@ -309,6 +309,25 @@
     "outlineToggle": "Show outline panel",
     "lineCount": "{{count}} lines"
   },
+  "sider": {
+    "outline": "Outline",
+    "timeline": "Timeline",
+    "explorer": "Explorer",
+    "outlineNoFile": "Open a file to see its outline",
+    "timelineNoFile": "Open a file to see its history",
+    "timelineEmpty": "No history for this file",
+    "timelineLoading": "Loading history…",
+    "timelineLocalSubject": "로컬 기록",
+    "timelineLocalMeta": "로컬",
+    "timelineLocalSave": "수동 저장",
+    "timelineLocalAgent": "에이전트 편집",
+    "timelineLocalRestore": "복원 지점",
+    "timelineLocalOpen": "초기 열기",
+    "timelineLocalAutosave": "자동 저장",
+    "timelineRestoreBtn": "이 버전 복원",
+    "timelineGitTitle": "Git 커밋",
+    "timelineGitUnsupported": "Git 커밋에 대한 diff는 아직 지원되지 않습니다. 로컬 기록 항목은 아래에서 복원할 수 있습니다."
+  },
   "minimap": {
     "searchAria": "대화 검색",
     "searchHint": "여기를 클릭해 키워드를 검색하세요",

@@ -89,6 +89,16 @@ const EditorGroupView: React.FC<Props> = ({
     [editor, activeKey]
   );
 
+  // Phase 2: invoked by MonacoEditor when an `fileStream.contentUpdate`
+  // lands for this pane's active buffer. Reconciles EditorContext state so
+  // the dirty flag clears and the buffer reflects what's on disk.
+  const handleApplyExternalContent = useCallback(
+    (key: string, content: string) => {
+      editor.applyExternalContent(key, content);
+    },
+    [editor]
+  );
+
   const handleViewStateChange = useCallback(
     (key: string, viewState: monaco.editor.ICodeEditorViewState | null) => {
       editor.setBufferViewState(key, viewState);
@@ -153,6 +163,7 @@ const EditorGroupView: React.FC<Props> = ({
           editorSettings={editorSettings}
           onCursorChange={handleCursorChange}
           onSelectionChange={handleSelectionChange}
+          onApplyExternalContent={handleApplyExternalContent}
         />
       </div>
     </div>

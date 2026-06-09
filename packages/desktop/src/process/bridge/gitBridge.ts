@@ -84,6 +84,15 @@ export function initGitBridge(): void {
     }
   });
 
+  ipcBridge.git.getFileLog.provider(async (req) => {
+    try {
+      const data = await service.getFileLog(req);
+      return { success: true, data };
+    } catch (error) {
+      return { success: false, msg: errorMessage(error) };
+    }
+  });
+
   ipcBridge.git.stageFile.provider(async (req) => {
     try {
       await service.stageFile(req);

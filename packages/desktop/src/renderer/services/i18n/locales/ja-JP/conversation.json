@@ -309,6 +309,25 @@
     "outlineToggle": "Show outline panel",
     "lineCount": "{{count}} lines"
   },
+  "sider": {
+    "outline": "Outline",
+    "timeline": "Timeline",
+    "explorer": "Explorer",
+    "outlineNoFile": "Open a file to see its outline",
+    "timelineNoFile": "Open a file to see its history",
+    "timelineEmpty": "No history for this file",
+    "timelineLoading": "Loading history…",
+    "timelineLocalSubject": "ローカル履歴",
+    "timelineLocalMeta": "ローカル",
+    "timelineLocalSave": "手動保存",
+    "timelineLocalAgent": "エージェント編集",
+    "timelineLocalRestore": "復元ポイント",
+    "timelineLocalOpen": "初回オープン",
+    "timelineLocalAutosave": "自動保存",
+    "timelineRestoreBtn": "このバージョンを復元",
+    "timelineGitTitle": "Gitコミット",
+    "timelineGitUnsupported": "Gitコミットの差分表示には未対応です。ローカル履歴は以下から復元できます。"
+  },
   "minimap": {
     "searchAria": "会話を検索",
     "searchHint": "ここをクリックしてキーワードを検索",

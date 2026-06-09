@@ -40,6 +40,8 @@ export type EditorBufferViewState = unknown;
 export type OpenBuffer = {
   key: string;
   filePath: string | null;
+  /** Unique ID for transparent hot-exit backups (only set when `filePath` is null). */
+  backupId: string | null;
   workspace?: string;
   fileName: string;
   content: string;
@@ -96,6 +98,8 @@ export type EditorRevealRequest = {
 export type EditorSaveOptions = {
   /** Optional pre-save formatter (e.g. `monacoRef.formatDocument`). */
   format?: () => Promise<void> | void;
+  /** True when triggered by auto-save (Local History source = 'autosave'). */
+  isAutoSave?: boolean;
 };
 
 export type EditorContextValue = EditorState & {
@@ -105,6 +109,15 @@ export type EditorContextValue = EditorState & {
   openEditorFile: (request: EditorOpenRequest) => Promise<boolean>;
   openUntitledEditor: () => void;
   chooseAndOpenFile: () => Promise<boolean>;
+  /**
+   * Rehydrate a hot-exit untitled buffer from the main-process backup
+   * store during tab restore. Creates a new `untitled:<n>` buffer with
+   * `filePath === null`, the supplied `backupId`, and `content` set to
+   * the persisted text (so the dirty flag is true vs. the empty
+   * `originalContent`). The buffer is added to the currently-focused
+   * group. Pairs with {@link writeEditorTabs} / `useEditorTabsHydration`.
+   */
+  restoreUntitledBuffer: (backupId: string, content: string, meta: { fileName: string; language: string }) => void;
   saveEditorFile: (options?: EditorSaveOptions) => Promise<boolean>;
   saveEditorFileAs: () => Promise<boolean>;
   /** Close a specific tab (prompts if dirty). Defaults to the active tab. */
@@ -141,6 +154,14 @@ export type EditorContextValue = EditorState & {
   toggleEditor: () => void;
   setEditorContent: (content: string) => void;
   setBufferViewState: (key: string, viewState: EditorBufferViewState | null) => void;
+  /**
+   * Reconcile a buffer's content with an external writer (e.g. the agent's
+   * `fileStream.contentUpdate`). Updates both `content` and `originalContent`
+   * so the dirty flag clears. The caller is expected to push the new text
+   * into the Monaco model with `suppressChangeRef` set so the model state
+   * stays in sync with this state update.
+   */
+  applyExternalContent: (key: string, content: string, source?: 'agent' | 'restore') => void;
   revertEditorFile: () => void;
   confirmPendingActionWithSave: () => Promise<void>;
   discardPendingAction: () => Promise<void>;

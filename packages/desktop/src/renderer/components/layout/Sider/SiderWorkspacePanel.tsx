@@ -7,57 +7,82 @@
 /**
  * Workspace panel for the Sider in conversations mode.
  *
- * Splits the Sider body vertically into a top file-tree scaffold and a
- * bottom diff scaffold with a draggable resize handle the operator can
- * drag top-to-bottom to adjust each section's size. This is
- * framework/visual scaffolding only — no data wiring, no fs access, no
- * IPC, no real file-tree or diff content.
+ * Stacks four VS Code-style collapsible sections in a single column:
+ *   1. Explorer  (file tree)
+ *   2. Diff      (uncommitted changes)
+ *   3. Outline   (active buffer symbol list)
+ *   4. Timeline  (active buffer file history)
  *
- * The handle renders an always-visible grip bar so the divider is
- * discoverable at rest (the shared `terminal-resize-handle*` classes
- * used by the terminal/nav/editor handles are transparent at rest, so
- * we deliberately do not use them here). The 50/50 default split is
- * persisted via `autoSaveId`.
+ * Each section is a `SiderAccordionSection` — the explorer and diff
+ * panes wrap their existing implementations in `headerless` mode so
+ * the accordion's header is the single source of chrome. Outline and
+ * Timeline are new lightweight sections that read `useEditorContext`
+ * directly so re-renders stay scoped to the affected section (typing
+ * in the editor only re-renders Outline + Timeline, never the file
+ * tree or diff).
+ *
+ * Expand/collapse state persists to `localStorage` per section so
+ * the user's preferred layout survives reloads. Default expansions
+ * match VS Code: explorer + diff open, outline + timeline collapsed.
  */
 
 import React from 'react';
-import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { useTranslation } from 'react-i18next';
 import SiderFileTree from './SiderFileTree';
 import SiderDiffSection from './SiderDiffSection';
+import SiderAccordionSection from './sections/SiderAccordionSection';
+import SiderOutlineSection from './sections/SiderOutlineSection';
+import SiderTimelineSection from './sections/SiderTimelineSection';
 
-interface SiderWorkspacePanelProps {
+type SiderWorkspacePanelProps = {
   collapsed?: boolean;
-}
+};
 
 const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) => {
+  const { t } = useTranslation();
+
   if (collapsed) {
     return null;
   }
 
   return (
-    <PanelGroup
-      direction='vertical'
-      autoSaveId='sider-workspace-split'
-      className='size-full min-h-0 bg-[var(--bg-2)]'
-      data-testid='sider-workspace-panel'
-    >
-      <Panel defaultSize={50} minSize={15} className='min-h-0'>
-        <SiderFileTree />
-      </Panel>
-      <PanelResizeHandle
-        className='group relative h-8px shrink-0 flex items-center justify-center cursor-row-resize'
-        aria-label='Resize file tree and diff sections'
-        aria-orientation='vertical'
+    <div className='size-full min-h-0 flex flex-col bg-[var(--bg-2)]' data-testid='sider-workspace-panel'>
+      <SiderAccordionSection
+        title={t('conversation.sider.explorer')}
+        defaultExpanded
+        storageKey='sider.section.explorer'
+        data-testid='sider-accordion-explorer'
       >
-        <span
-          aria-hidden='true'
-          className='h-3px w-32px rounded-full bg-[var(--color-border-2)] transition-colors group-hover:bg-[var(--brand)] group-data-[resize-handle-state=drag]:bg-[var(--brand)]'
-        />
-      </PanelResizeHandle>
-      <Panel defaultSize={50} minSize={15} className='min-h-0'>
-        <SiderDiffSection />
-      </Panel>
-    </PanelGroup>
+        <SiderFileTree headerless />
+      </SiderAccordionSection>
+
+      <SiderAccordionSection
+        title={t('conversation.workspace.changes.diff')}
+        defaultExpanded
+        storageKey='sider.section.diff'
+        data-testid='sider-accordion-diff'
+      >
+        <SiderDiffSection headerless />
+      </SiderAccordionSection>
+
+      <SiderAccordionSection
+        title={t('conversation.sider.outline')}
+        defaultExpanded={false}
+        storageKey='sider.section.outline'
+        data-testid='sider-accordion-outline'
+      >
+        <SiderOutlineSection />
+      </SiderAccordionSection>
+
+      <SiderAccordionSection
+        title={t('conversation.sider.timeline')}
+        defaultExpanded={false}
+        storageKey='sider.section.timeline'
+        data-testid='sider-accordion-timeline'
+      >
+        <SiderTimelineSection />
+      </SiderAccordionSection>
+    </div>
   );
 };
 

@@ -23,7 +23,7 @@ type Props = {
   wordWrap: boolean;
   showMinimap: boolean;
   renderWhitespace: boolean;
-  outlineVisible: boolean;
+  autoSave: boolean;
   isSplit: boolean;
   onToggleSplit: () => void;
   onNew: () => void;
@@ -40,7 +40,7 @@ type Props = {
   onToggleWordWrap: () => void;
   onToggleMinimap: () => void;
   onToggleWhitespace: () => void;
-  onToggleOutline: () => void;
+  onToggleAutoSave: () => void;
   onCollapse: () => void;
   onClose: () => void;
 };
@@ -73,7 +73,7 @@ const EditorToolbar: React.FC<Props> = ({
   wordWrap,
   showMinimap,
   renderWhitespace,
-  outlineVisible,
+  autoSave,
   isSplit,
   onToggleSplit,
   onNew,
@@ -90,7 +90,7 @@ const EditorToolbar: React.FC<Props> = ({
   onToggleWordWrap,
   onToggleMinimap,
   onToggleWhitespace,
-  onToggleOutline,
+  onToggleAutoSave,
   onCollapse,
   onClose,
 }) => {
@@ -99,7 +99,10 @@ const EditorToolbar: React.FC<Props> = ({
   // Contextual single-arrow control: docked left → show "→" (move right),
   // docked right → show "←" (move left). Arrow-only by design; the action is
   // conveyed via the aria-label / tooltip.
-  const dockLabel = dock === 'end' ? t('conversation.editor.dockToLeft', { defaultValue: 'Move editor to the left of chat' }) : t('conversation.editor.dockToRight', { defaultValue: 'Move editor to the right of chat' });
+  const dockLabel =
+    dock === 'end'
+      ? t('conversation.editor.dockToLeft', { defaultValue: 'Move editor to the left of chat' })
+      : t('conversation.editor.dockToRight', { defaultValue: 'Move editor to the right of chat' });
 
   const fileMenu = useMemo(
     () => (
@@ -161,9 +164,6 @@ const EditorToolbar: React.FC<Props> = ({
   const viewMenu = useMemo(
     () => (
       <Menu>
-        <Menu.Item key='outline' onClick={onToggleOutline}>
-          <MenuRow label={t('conversation.editor.outlineToggle')} checked={outlineVisible} />
-        </Menu.Item>
         <Menu.Item key='wrap' onClick={onToggleWordWrap}>
           <MenuRow label={t('conversation.editor.wordWrap')} shortcut={kbd('⌥Z', 'Alt+Z')} checked={wordWrap} />
         </Menu.Item>
@@ -173,21 +173,24 @@ const EditorToolbar: React.FC<Props> = ({
         <Menu.Item key='whitespace' onClick={onToggleWhitespace}>
           <MenuRow label={t('conversation.editor.whitespace')} checked={renderWhitespace} />
         </Menu.Item>
+        <Menu.Item key='autosave' onClick={onToggleAutoSave}>
+          <MenuRow label={t('conversation.editor.autoSave', { defaultValue: 'Auto Save' })} checked={autoSave} />
+        </Menu.Item>
         <Menu.Item key='split' onClick={onToggleSplit}>
           <MenuRow label={t('conversation.editor.splitEditor')} shortcut={kbd('⌘\\', 'Ctrl+\\')} checked={isSplit} />
         </Menu.Item>
       </Menu>
     ),
     [
-      onToggleOutline,
       onToggleWordWrap,
       onToggleMinimap,
       onToggleWhitespace,
+      onToggleAutoSave,
       onToggleSplit,
-      outlineVisible,
       wordWrap,
       showMinimap,
       renderWhitespace,
+      autoSave,
       isSplit,
       t,
     ]

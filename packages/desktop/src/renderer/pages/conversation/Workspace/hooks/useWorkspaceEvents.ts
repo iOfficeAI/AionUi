@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import type { EditorOpenRequest } from '@/renderer/pages/conversation/Editor/types';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { useCallback, useEffect, useRef } from 'react';
 import type { ContextMenuState, WorkspaceEventPrefix } from '../types';
@@ -32,6 +33,16 @@ interface UseWorkspaceEventsOptions {
   setContextMenu: React.Dispatch<React.SetStateAction<ContextMenuState>>;
   closeRenameModal: () => void;
   closeDeleteModal: () => void;
+
+  // Phase 2 (agent-editor integration): follow-mode. When the agent
+  // starts reading or editing a file we want the editor to bring that
+  // file into view (open + expand) so the user can see what the agent is
+  // doing. The EditorContext handles the heavy lifting (dedup, dirty
+  // buffer prompts, layout-mode guard); we just need to dispatch the
+  // request when a `kind === 'read' | 'edit'` tool call begins.
+  openEditorFile?: (request: EditorOpenRequest) => Promise<boolean>;
+  expandEditor?: () => void;
+  workspaceRoot?: string;
 }
 
 /**
@@ -54,6 +65,9 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     setContextMenu,
     closeRenameModal,
     closeDeleteModal,
+    openEditorFile,
+    expandEditor,
+    workspaceRoot,
   } = options;
 
   /**
@@ -116,6 +130,76 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
   }, []);
 
   /**
+   * Phase 2: extract a file path from an `acp_tool_call` update payload.
+   * Mirrors the priority list used by `buildParamSummary` in
+   * `common/chat/normalizeToolCall.ts` (file_path → path → locations[0].path)
+   * so we follow the same convention the rest of the app uses for matching
+   * tool arguments to disk files.
+   */
+  const extractToolCallPath = useCallback(
+    (
+      update: { rawInput?: Record<string, unknown>; locations?: Array<{ path?: string }> } | undefined
+    ): string | null => {
+      if (!update) return null;
+      const raw = update.rawInput;
+      if (raw) {
+        const candidate = raw.file_path ?? raw.path;
+        if (typeof candidate === 'string' && candidate.length > 0) return candidate;
+      }
+      const locPath = update.locations?.[0]?.path;
+      if (typeof locPath === 'string' && locPath.length > 0) return locPath;
+      return null;
+    },
+    []
+  );
+
+  /**
+   * Phase 2 (follow mode): keep a per-file-path debounce timer so a single
+   * agent run that touches the same file repeatedly (e.g. several read
+   * + edit cycles) doesn't spam the editor with open requests. The window
+   * is short enough that a real "switch to a different file" call still
+   * fires immediately.
+   */
+  const followModeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const followModePendingRef = useRef<string | null>(null);
+  const requestFollowMode = useCallback(
+    (filePath: string) => {
+      if (!openEditorFile) return;
+      if (typeof filePath !== 'string' || filePath.length === 0) return;
+      // If the same file was just requested, debounce a trailing fire.
+      if (followModePendingRef.current === filePath && followModeTimerRef.current) {
+        return;
+      }
+      followModePendingRef.current = filePath;
+      if (followModeTimerRef.current) {
+        clearTimeout(followModeTimerRef.current);
+      }
+      followModeTimerRef.current = setTimeout(() => {
+        followModeTimerRef.current = null;
+        const pending = followModePendingRef.current;
+        followModePendingRef.current = null;
+        if (!pending) return;
+        // Bring the editor to the foreground so the user can see what
+        // the agent is doing. `openEditorFile` is idempotent and
+        // short-circuits if the file is already open in any group.
+        expandEditor?.();
+        void openEditorFile({ path: pending, workspace: workspaceRoot });
+      }, 80);
+    },
+    [openEditorFile, expandEditor, workspaceRoot]
+  );
+
+  // Cleanup follow-mode timer on unmount.
+  useEffect(() => {
+    return () => {
+      if (followModeTimerRef.current) {
+        clearTimeout(followModeTimerRef.current);
+        followModeTimerRef.current = null;
+      }
+    };
+  }, []);
+
+  /**
    * 监听 Agent 响应流 - 自动刷新工作空间（节流）
    * Listen to agent response stream - auto refresh workspace (throttled)
    */
@@ -126,14 +210,37 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
       if (data.conversation_id && data.conversation_id !== conversation_id) return;
 
       if (data.type === 'acp_tool_call') {
-        const acpData = data.data as { update?: { kind?: string; status?: string; title?: string } } | undefined;
-        const kind = acpData?.update?.kind;
-        const status = acpData?.update?.status;
-        const title = acpData?.update?.title;
+        const acpData = data.data as
+          | {
+              update?: {
+                kind?: string;
+                status?: string;
+                title?: string;
+                rawInput?: Record<string, unknown>;
+                locations?: Array<{ path?: string }>;
+              };
+            }
+          | undefined;
+        const update = acpData?.update;
+        const kind = update?.kind;
+        const status = update?.status;
+        const title = update?.title;
         const shouldRefresh = kind === 'edit' || kind === 'execute' || (status === 'completed' && kind !== 'read');
         if (shouldRefresh) {
           if (title && isNonFileSystemTool(title)) return;
           throttledRefresh();
+        }
+        // Phase 2 (follow mode): on the FIRST update of a read or edit
+        // tool call, bring the file into the editor. We gate on
+        // `status === 'pending' | 'in_progress'` (the leading edge) so
+        // the editor lights up as soon as the agent announces the call,
+        // not only after the call finishes. `pending` fires for queued
+        // calls; `in_progress` fires for live ones. We deliberately skip
+        // `completed` and `failed` to avoid reopening after the user
+        // already moved on.
+        if ((kind === 'read' || kind === 'edit') && (status === 'pending' || status === 'in_progress')) {
+          const filePath = extractToolCallPath(update);
+          if (filePath) requestFollowMode(filePath);
         }
       }
       if (data.type === 'tool_call') {
@@ -149,7 +256,7 @@ export function useWorkspaceEvents(options: UseWorkspaceEventsOptions) {
     return () => {
       unsubscribe();
     };
-  }, [conversation_id, eventPrefix, throttledRefresh]);
+  }, [conversation_id, eventPrefix, throttledRefresh, extractToolCallPath, requestFollowMode]);
 
   /**
    * 监听手动刷新工作空间事件

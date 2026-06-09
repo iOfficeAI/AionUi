@@ -38,6 +38,8 @@ import type {
   GitCommitResult,
   GitDiffRequest,
   GitDiffResult,
+  GitFileLogEntry,
+  GitFileLogRequest,
   GitFilePathRequest,
   GitInitResult,
   GitRepoInfo,
@@ -284,6 +286,62 @@ export class GitService extends EventEmitter {
       return { patch: '', binary: true };
     }
     return { patch: raw, binary: false };
+  }
+
+  /**
+   * Return the commit history for a single file (VS Code-style Timeline),
+   * newest-first. Path-limited (`git log -- <file>`) so it stays cheap even
+   * on large repos, and capped by `max_count` (default 50).
+   *
+   * Returns an empty array when the workspace is not a repo, the repo has no
+   * commits yet, or the file has no history (e.g. untracked).
+   *
+   * Fields are parsed from a `--pretty` format using ASCII unit/record
+   * separators so commit subjects containing arbitrary characters (including
+   * newlines and the usual delimiters) parse unambiguously.
+   */
+  async getFileLog({ workspace, file_path, max_count }: GitFileLogRequest): Promise<GitFileLogEntry[]> {
+    const info = await this.getRepoInfo({ workspace });
+    if (!info.isRepo || !info.root) {
+      return [];
+    }
+    const git = this.simpleGitFactory(info.root);
+    const hasCommits = await this.repoHasCommits(git, info.root);
+    if (!hasCommits) {
+      return [];
+    }
+    const relPosix = this.toRepoPosix(file_path, info.root);
+    const limit = Math.max(1, Math.min(max_count ?? 50, 200));
+
+    // %x1f = unit separator (between fields), %x1e = record separator (between
+    // commits). Both are control bytes that cannot appear in commit metadata.
+    const FIELD_SEP = '\x1f';
+    const RECORD_SEP = '\x1e';
+    const format = ['%H', '%h', '%an', '%aI', '%s'].join(FIELD_SEP) + RECORD_SEP;
+
+    let raw = '';
+    try {
+      raw = (await git.raw(['log', `--max-count=${limit}`, `--pretty=format:${format}`, '--', relPosix])) ?? '';
+    } catch {
+      // Unknown path / never-tracked file / other log failure → empty timeline.
+      return [];
+    }
+
+    return raw
+      .split(RECORD_SEP)
+      .map((record) => record.replace(/^\r?\n/, '').trim())
+      .filter((record) => record.length > 0)
+      .map((record) => {
+        const [hash = '', shortHash = '', author = '', date = '', ...subjectParts] = record.split(FIELD_SEP);
+        return {
+          hash,
+          shortHash,
+          author,
+          date,
+          subject: subjectParts.join(FIELD_SEP),
+        } satisfies GitFileLogEntry;
+      })
+      .filter((entry) => entry.hash.length > 0);
   }
 
   // -------------------------------------------------------------------------

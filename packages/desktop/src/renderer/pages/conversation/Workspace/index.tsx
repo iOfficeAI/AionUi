@@ -74,7 +74,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
-  const { openEditorFile } = useEditorContext();
+  const { openEditorFile, expandEditor } = useEditorContext();
 
   // Message API setup
   const [internalMessageApi, messageContext] = Message.useMessage();
@@ -274,6 +274,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
     setContextMenu: modalsHook.setContextMenu,
     closeRenameModal: modalsHook.closeRenameModal,
     closeDeleteModal: modalsHook.closeDeleteModal,
+    // Phase 2 (follow mode): bring the agent's current file into the editor
+    // when it starts a read or edit call. `expandEditor` is best-effort —
+    // it's a no-op when the editor is already visible.
+    openEditorFile,
+    expandEditor,
+    workspaceRoot: workspace,
   });
 
   // Context menu calculations

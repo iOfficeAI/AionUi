@@ -13,8 +13,12 @@
  * make it responsible for I/O. This module owns that I/O boundary: read
  * once on hydration, write on debounced changes.
  *
- * Untitled buffers (no `filePath`) are never persisted — there's nothing
- * meaningful to restore for a file that never reached disk.
+ * Untitled buffers (no `filePath`) ARE persisted when they have a
+ * `backupId` — the content lives in the main-process untitled-backup
+ * store (see `UntitledBackupService`) and the entry here just carries
+ * the `backupId` plus the `untitledMeta` needed to rebuild the tab
+ * header on the next launch. Untitled buffers without a `backupId`
+ * (e.g. a brand-new buffer that was never edited) are still dropped.
  */
 
 const STORAGE_KEY_PREFIX = 'chisl.editor.tabs.';
@@ -42,10 +46,14 @@ const getStorage = (): Storage | null => {
 
 /** Minimal projection of an open buffer that we persist. */
 export type PersistedEditorTabEntry = {
-  /** Absolute path on disk. */
-  path: string;
+  /** Present for saved files. Absolute path on disk. */
+  path?: string;
   /** Workspace root the path was opened from, if any. */
   workspace?: string;
+  /** Present for untitled (hot-exit) files. Identifies the main-process backup. */
+  backupId?: string;
+  /** Required when `backupId` is set. Restores the tab header on rehydration. */
+  untitledMeta?: { fileName: string; language: string };
 };
 
 /** A persisted split group (Epic C). Serialized by file path, not buffer key. */
@@ -83,9 +91,20 @@ const isString = (value: unknown): value is string => typeof value === 'string' 
 
 const normalizeEntry = (raw: unknown): PersistedEditorTabEntry | null => {
   if (!isPlainObject(raw)) return null;
-  if (!isString(raw.path)) return null;
-  const entry: PersistedEditorTabEntry = { path: raw.path };
+  const entry: PersistedEditorTabEntry = {};
+  if (isString(raw.path)) entry.path = raw.path;
   if (isString(raw.workspace)) entry.workspace = raw.workspace;
+  if (isString(raw.backupId)) entry.backupId = raw.backupId;
+  if (isPlainObject(raw.untitledMeta)) {
+    const meta = raw.untitledMeta as Record<string, unknown>;
+    if (isString(meta.fileName) && isString(meta.language)) {
+      entry.untitledMeta = { fileName: meta.fileName, language: meta.language };
+    }
+  }
+  // A valid entry must identify EITHER a saved file OR an untitled backup,
+  // and an untitled entry must carry its meta to be rehydratable.
+  if (!entry.path && !entry.backupId) return null;
+  if (entry.backupId && !entry.untitledMeta) return null;
   return entry;
 };
 
@@ -108,7 +127,10 @@ export const readEditorTabs = (workspaceId: string): PersistedEditorTabs | null 
     for (const e of entriesRaw) {
       const norm = normalizeEntry(e);
       if (!norm) continue;
-      const dedupKey = `${norm.workspace ?? ''}::${norm.path}`;
+      // Dedup key spans (workspace, path) for saved files and `backup:<id>`
+      // for untitled buffers. The two namespaces can't collide (one uses
+      // `path`, the other `backupId`) so they're combined in a single Set.
+      const dedupKey = norm.path ? `${norm.workspace ?? ''}::${norm.path}` : `backup:${norm.backupId ?? ''}`;
       if (seen.has(dedupKey)) continue;
       seen.add(dedupKey);
       entries.push(norm);
@@ -135,24 +157,40 @@ export const readEditorTabs = (workspaceId: string): PersistedEditorTabs | null 
 };
 
 /**
- * Persist the tab set for a workspace. Untitled buffers must be filtered
- * out by the caller; we defensively drop entries that lack a `path` field
- * as well, but we never derive `path` from any other field.
+ * Persist the tab set for a workspace. Entries that identify neither a
+ * path nor a `backupId` are defensively dropped. The split `groups`
+ * layout and `activePath` are still path-only — untitled buffers are
+ * restored into the focused group and don't carry their own group
+ * position in V1.
  */
 export const writeEditorTabs = (workspaceId: string, value: PersistedEditorTabs): void => {
   if (typeof window === 'undefined' || typeof window.localStorage === 'undefined') return;
-  // Filter to file-backed entries only — never persist untitled buffers.
+  // Filter to entries we can rehydrate: saved files by `path`, untitled
+  // hot-exit buffers by `backupId` (with their meta).
   const entries = value.entries
-    .filter((e): e is PersistedEditorTabEntry => isString(e?.path))
+    .filter(
+      (e): e is PersistedEditorTabEntry =>
+        isString(e?.path) || (isString(e?.backupId) && isPlainObject(e?.untitledMeta))
+    )
     .map((e) => {
-      const entry: PersistedEditorTabEntry = { path: e.path };
+      const entry: PersistedEditorTabEntry = {};
+      if (isString(e.path)) entry.path = e.path;
       if (isString(e.workspace)) entry.workspace = e.workspace;
+      if (isString(e.backupId)) entry.backupId = e.backupId;
+      if (e.untitledMeta) {
+        entry.untitledMeta = {
+          fileName: e.untitledMeta.fileName,
+          language: e.untitledMeta.language,
+        };
+      }
       return entry;
     });
-  // Dedupe by (workspace,path) so re-hydration can't double-open a file.
+  // Dedupe so re-hydration can't double-open a file or restore the same
+  // untitled backup twice. Saved files and untitled backups live in
+  // disjoint namespaces (`path` vs `backup:<id>`).
   const seen = new Set<string>();
   const deduped = entries.filter((e) => {
-    const k = `${e.workspace ?? ''}::${e.path}`;
+    const k = e.path ? `${e.workspace ?? ''}::${e.path}` : `backup:${e.backupId ?? ''}`;
     if (seen.has(k)) return false;
     seen.add(k);
     return true;
@@ -162,7 +200,7 @@ export const writeEditorTabs = (workspaceId: string, value: PersistedEditorTabs)
   // Persist split layout when present. Drop paths that aren't in the deduped
   // entry set and empty groups, so hydration can't reference a missing file.
   if (Array.isArray(value.groups) && value.groups.length > 0) {
-    const validPaths = new Set(deduped.map((e) => e.path));
+    const validPaths = new Set(deduped.flatMap((e) => (e.path ? [e.path] : [])));
     const groups = value.groups
       .map((g) => {
         const entryPaths = g.entryPaths.filter((p) => isString(p) && validPaths.has(p));

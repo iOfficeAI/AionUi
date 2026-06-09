@@ -309,6 +309,25 @@
     "outlineToggle": "Show outline panel",
     "lineCount": "{{count}} lines"
   },
+  "sider": {
+    "outline": "Outline",
+    "timeline": "Timeline",
+    "explorer": "Explorer",
+    "outlineNoFile": "Open a file to see its outline",
+    "timelineNoFile": "Open a file to see its history",
+    "timelineEmpty": "No history for this file",
+    "timelineLoading": "Loading history…",
+    "timelineLocalSubject": "本地历史",
+    "timelineLocalMeta": "本地",
+    "timelineLocalSave": "手动保存",
+    "timelineLocalAgent": "智能体编辑",
+    "timelineLocalRestore": "恢复点",
+    "timelineLocalOpen": "初始打开",
+    "timelineLocalAutosave": "自动保存",
+    "timelineRestoreBtn": "恢复此版本",
+    "timelineGitTitle": "Git 提交",
+    "timelineGitUnsupported": "暂不支持 Git 提交差异。本地历史条目可在下方恢复。"
+  },
   "minimap": {
     "searchAria": "搜索会话",
     "searchHint": "点击这里搜索关键词",

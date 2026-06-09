@@ -7,9 +7,11 @@
 import { initApplicationBridge } from './applicationBridge';
 import { initDialogBridge } from './dialogBridge';
 import { initGitBridge } from './gitBridge';
+import { initLocalHistoryBridge } from './localHistoryBridge';
 import { initTerminalBridge } from './terminalBridge';
 import { initUpdateBridge } from './updateBridge';
 import { initSystemSettingsBridge } from './systemSettingsBridge';
+import { initUntitledBackupBridge } from './untitledBackupBridge';
 import { initWindowControlsBridge } from './windowControlsBridge';
 import { initNotificationBridge } from './notificationBridge';
 import { initWebuiBridge } from './webuiBridge';
@@ -21,21 +23,25 @@ export function initAllBridges(_deps: BridgeDependencies = {}): void {
   initApplicationBridge();
   initTerminalBridge();
   initGitBridge();
+  initLocalHistoryBridge();
   initWindowControlsBridge();
   initUpdateBridge();
   initSystemSettingsBridge();
   initNotificationBridge();
   initWebuiBridge();
+  initUntitledBackupBridge();
 }
 
 export {
   initApplicationBridge,
   initDialogBridge,
   initGitBridge,
+  initLocalHistoryBridge,
   initNotificationBridge,
   initSystemSettingsBridge,
   initTerminalBridge,
   initUpdateBridge,
+  initUntitledBackupBridge,
   initWindowControlsBridge,
   initWebuiBridge,
 };

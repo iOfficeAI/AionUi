@@ -82,6 +82,23 @@ export type GitCommitResult = {
   committed: number;
 };
 
+/**
+ * A single commit that touched a given file, for the VS Code-style Timeline
+ * view. Ordered newest-first as returned by `git log <file>`.
+ */
+export type GitFileLogEntry = {
+  /** Full commit SHA. */
+  hash: string;
+  /** Abbreviated SHA (first 7 chars) for compact display. */
+  shortHash: string;
+  /** Commit subject line. */
+  subject: string;
+  /** Author name. */
+  author: string;
+  /** Author date as an ISO-8601 string. */
+  date: string;
+};
+
 // --- IPC request payloads -------------------------------------------------
 
 export type GitWorkspaceRequest = { workspace: string };
@@ -105,6 +122,18 @@ export type GitDiffRequest = {
 export type GitCommitRequest = {
   workspace: string;
   message: string;
+};
+
+/**
+ * Request the commit history for a single file (VS Code-style Timeline).
+ * `max_count` caps the traversal so large histories stay responsive.
+ */
+export type GitFileLogRequest = {
+  workspace: string;
+  /** Repo-relative or absolute path of the target file. */
+  file_path: string;
+  /** Maximum number of commits to return (default 50). */
+  max_count?: number;
 };
 
 // --- IPC events -----------------------------------------------------------

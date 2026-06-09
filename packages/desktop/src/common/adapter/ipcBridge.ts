@@ -48,12 +48,31 @@ import type {
   GitCommitResult,
   GitDiffRequest,
   GitDiffResult,
+  GitFileLogEntry,
+  GitFileLogRequest,
   GitFilePathRequest,
   GitInitResult,
   GitRepoInfo,
   GitStatus,
   GitWorkspaceRequest,
 } from '../types/git/gitTypes';
+import type {
+  LocalHistoryAddRequest,
+  LocalHistoryAddResult,
+  LocalHistoryClearRequest,
+  LocalHistoryContentRequest,
+  LocalHistoryContentResult,
+  LocalHistoryDeleteRequest,
+  LocalHistoryEntry,
+  LocalHistoryListRequest,
+} from '../types/localHistory/localHistoryTypes';
+import type {
+  UntitledBackupDeleteRequest,
+  UntitledBackupMeta,
+  UntitledBackupReadRequest,
+  UntitledBackupReadResult,
+  UntitledBackupWriteRequest,
+} from '../types/untitledBackup/untitledBackupTypes';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -658,6 +677,8 @@ export const git = {
   init: bridge.buildProvider<IBridgeResponse<GitInitResult>, GitWorkspaceRequest>('git.init'),
   /** Unified diff for a single file (staged or unstaged side). */
   getDiff: bridge.buildProvider<IBridgeResponse<GitDiffResult>, GitDiffRequest>('git.diff'),
+  /** Commit history for a single file (VS Code-style Timeline). */
+  getFileLog: bridge.buildProvider<IBridgeResponse<GitFileLogEntry[]>, GitFileLogRequest>('git.file-log'),
   /** Stage a single file (`git add`). */
   stageFile: bridge.buildProvider<IBridgeResponse, GitFilePathRequest>('git.stage'),
   /** Stage all changes. */
@@ -676,6 +697,52 @@ export const git = {
   unwatch: bridge.buildProvider<IBridgeResponse, GitWorkspaceRequest>('git.unwatch'),
   /** Debounced working-tree change notification for the watched repo root. */
   changed: bridge.buildEmitter<GitChangedEvent>('git.changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Local History — VS Code-style Timeline that works WITHOUT git. Owned by the
+// Electron main process (`LocalHistoryService`, content-addressed snapshots
+// under userData). Restore write-back is done by the renderer via fs.writeFile
+// (the main process has no workspace filesystem access).
+// ---------------------------------------------------------------------------
+
+export const localHistory = {
+  /** Snapshot a file's prior content (de-duplicated, capped, GC'd). */
+  addSnapshot: bridge.buildProvider<IBridgeResponse<LocalHistoryAddResult>, LocalHistoryAddRequest>(
+    'local-history.add'
+  ),
+  /** List a file's snapshots, newest-first. */
+  listEntries: bridge.buildProvider<IBridgeResponse<LocalHistoryEntry[]>, LocalHistoryListRequest>('local-history.list'),
+  /** Fetch the full content of a single snapshot. */
+  getEntryContent: bridge.buildProvider<IBridgeResponse<LocalHistoryContentResult>, LocalHistoryContentRequest>(
+    'local-history.content'
+  ),
+  /** Delete a single snapshot. */
+  deleteEntry: bridge.buildProvider<IBridgeResponse<LocalHistoryEntry[]>, LocalHistoryDeleteRequest>(
+    'local-history.delete'
+  ),
+  /** Delete the entire history for a file. */
+  clear: bridge.buildProvider<IBridgeResponse, LocalHistoryClearRequest>('local-history.clear'),
+};
+
+// ---------------------------------------------------------------------------
+// Untitled Backup — VS Code-style transparent hot-exit backups for unsaved
+// files. Owned by the Electron main process (`UntitledBackupService` under
+// `userData/untitled-backups/`, one `<id>.content` + `<id>.meta.json` pair
+// per backup).
+// ---------------------------------------------------------------------------
+
+export const untitledBackup = {
+  /** Persist (or overwrite) a backup for `backupId`. */
+  write: bridge.buildProvider<IBridgeResponse<UntitledBackupMeta>, UntitledBackupWriteRequest>('untitled-backup.write'),
+  /** Fetch the content + meta for a single backup, or null when missing. */
+  read: bridge.buildProvider<IBridgeResponse<UntitledBackupReadResult | null>, UntitledBackupReadRequest>(
+    'untitled-backup.read'
+  ),
+  /** Remove a single backup. */
+  delete: bridge.buildProvider<IBridgeResponse, UntitledBackupDeleteRequest>('untitled-backup.delete'),
+  /** Enumerate all backups, newest-first. */
+  list: bridge.buildProvider<IBridgeResponse<UntitledBackupMeta[]>, void>('untitled-backup.list'),
 };
 
 // ---------------------------------------------------------------------------
