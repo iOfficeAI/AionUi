@@ -17,7 +17,7 @@ describe('normalizeDbMessage', () => {
       position: 'center',
       status: 'finish',
       content: JSON.stringify({
-        content: 'Agent completed the turn without producing visible output.',
+        content: '',
         type: 'info',
         code: 'ACP_EMPTY_TURN',
         params: {
@@ -27,7 +27,7 @@ describe('normalizeDbMessage', () => {
     } as unknown as IMessageTips) as IMessageTips;
 
     expect(normalized.content).toEqual({
-      content: 'Agent completed the turn without producing visible output.',
+      content: '',
       type: 'info',
       code: 'ACP_EMPTY_TURN',
       params: {

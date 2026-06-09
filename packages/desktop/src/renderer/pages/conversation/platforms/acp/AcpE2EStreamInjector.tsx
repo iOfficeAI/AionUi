@@ -19,7 +19,7 @@ type RunScenarioOptions = {
 
 type StreamController = {
   runScenario: (options?: RunScenarioOptions) => Promise<void>;
-  emitInfoTip: (code: string, fallbackContent: string) => Promise<void>;
+  emitInfoTip: (code: string, content: string) => Promise<void>;
   emitFollowUpExchange: () => Promise<void>;
 };
 
@@ -140,7 +140,7 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
           pushNextChunk();
         });
       },
-      emitInfoTip: async (code: string, fallbackContent: string) => {
+      emitInfoTip: async (code: string, content: string) => {
         const msgId = `e2e-info-tip-${Date.now()}`;
 
         addOrUpdateMessage(
@@ -153,7 +153,7 @@ const AcpE2EStreamInjector: React.FC<{ conversationId: string }> = ({ conversati
             status: 'finish',
             created_at: Date.now(),
             content: {
-              content: fallbackContent,
+              content,
               type: 'info',
               code,
             },

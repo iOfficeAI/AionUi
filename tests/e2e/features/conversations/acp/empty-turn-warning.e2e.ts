@@ -133,7 +133,7 @@ test.describe('ACP empty turn info tips', () => {
         page,
         conversationId,
         'ACP_EMPTY_TURN',
-        'Agent completed the turn without producing visible output.'
+        ''
       );
 
       const latestTip = page.locator('[data-testid="message-tips-center"]').last();
@@ -161,7 +161,7 @@ test.describe('ACP empty turn info tips', () => {
         page,
         conversationId,
         'ACP_EMPTY_TURN',
-        'Agent completed the turn without producing visible output.'
+        ''
       );
       await emitFollowUpExchange(page, conversationId);
 

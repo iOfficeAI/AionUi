@@ -484,6 +484,15 @@
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "本轮已结束，但没有产生任何可见回复。"
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "本轮在产生任何可见回复前已达到模型输出 token 上限。"
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "本轮在产生任何可见回复前已达到模型单轮请求上限。"
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "模型在产生任何可见回复前拒绝了本轮请求。"
       }
     }
   },

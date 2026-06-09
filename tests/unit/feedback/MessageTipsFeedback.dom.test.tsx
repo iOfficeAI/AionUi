@@ -81,7 +81,12 @@ const requiredAgentErrorCodes = [
   'USER_LLM_PROVIDER_EMPTY_RESPONSE',
 ] as const;
 
-const requiredAgentTipCodes = ['ACP_EMPTY_TURN'] as const;
+const requiredAgentTipCodes = [
+  'ACP_EMPTY_TURN',
+  'ACP_EMPTY_TURN_MAX_TOKENS',
+  'ACP_EMPTY_TURN_MAX_TURN_REQUESTS',
+  'ACP_EMPTY_TURN_REFUSAL',
+] as const;
 
 const buildTips = (
   type: IMessageTips['content']['type'],
@@ -201,7 +206,7 @@ describe('MessageTips — FeedbackButton wiring', () => {
   it('renders localized info tips as plain text without icon or feedback', () => {
     const { container } = render(
       <MessageTips
-        message={buildTips('info', 'backend empty turn fallback', undefined, {
+        message={buildTips('info', '', undefined, {
           code: 'ACP_EMPTY_TURN',
           params: { provider: 'OpenCode' },
         })}
@@ -209,7 +214,6 @@ describe('MessageTips — FeedbackButton wiring', () => {
     );
 
     expect(screen.getByText('This turn finished without producing any visible reply.')).toBeInTheDocument();
-    expect(screen.queryByText('backend empty turn fallback')).not.toBeInTheDocument();
     expect(screen.queryByText('settings.oneClickFeedback')).not.toBeInTheDocument();
     expect(container.querySelector('svg')).not.toBeInTheDocument();
   });
@@ -217,14 +221,27 @@ describe('MessageTips — FeedbackButton wiring', () => {
   it('renders the same localized copy for command empty turns', () => {
     render(
       <MessageTips
-        message={buildTips('info', 'backend ctx flush fallback', undefined, {
+        message={buildTips('info', '', undefined, {
           code: 'ACP_EMPTY_TURN',
         })}
       />
     );
 
     expect(screen.getByText('This turn finished without producing any visible reply.')).toBeInTheDocument();
-    expect(screen.queryByText('backend ctx flush fallback')).not.toBeInTheDocument();
+  });
+
+  it('renders localized warning tips from code-only payloads', () => {
+    render(
+      <MessageTips
+        message={buildTips('warning', '', undefined, {
+          code: 'ACP_EMPTY_TURN_MAX_TOKENS',
+        })}
+      />
+    );
+
+    expect(
+      screen.getByText("This turn hit the model's output token limit before any visible reply was produced.")
+    ).toBeInTheDocument();
   });
 
   it('renders classified provider errors with friendly copy and feedback', () => {

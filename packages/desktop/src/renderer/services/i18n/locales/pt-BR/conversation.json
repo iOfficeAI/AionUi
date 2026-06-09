@@ -490,6 +490,15 @@
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "Este turno foi concluído sem produzir nenhuma resposta visível."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Este turno atingiu o limite de tokens de saída do modelo antes de produzir qualquer resposta visível."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Este turno atingiu o limite de requisições por turno do modelo antes de produzir qualquer resposta visível."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "O modelo recusou este turno antes de produzir qualquer resposta visível."
       }
     }
   },

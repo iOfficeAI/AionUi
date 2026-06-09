@@ -486,6 +486,15 @@
     "codes": {
       "ACP_EMPTY_TURN": {
         "body": "Bu tur, görünür bir yanıt üretmeden tamamlandı."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Bu tur, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Bu tur, görünür bir yanıt üretilmeden önce modelin tur başına istek sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "Model, görünür bir yanıt üretmeden önce bu turu reddetti."
       }
     }
   },
