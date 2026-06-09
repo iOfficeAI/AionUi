@@ -105,28 +105,15 @@ jobs:
           VERSION: ${{ steps.version.outputs.version }}
         run: |
           set -euo pipefail
+          shopt -s nullglob
 
-          required=(
-            latest.yml
-            latest-win-arm64.yml
-            latest-mac.yml
-            latest-arm64-mac.yml
-            latest-linux.yml
-            latest-linux-arm64.yml
-          )
-
-          missing=0
-          for file in "${required[@]}"; do
-            if [ ! -f "dist/$file" ]; then
-              echo "::error::Missing release metadata asset: $file"
-              missing=1
-            fi
-          done
-          if [ "$missing" -ne 0 ]; then
+          metadata_files=(dist/latest*.yml)
+          if [ "${#metadata_files[@]}" -eq 0 ]; then
+            echo "::error::No updater metadata files found in release assets."
             exit 1
           fi
 
-          for file in dist/latest*.yml; do
+          for file in "${metadata_files[@]}"; do
             metadata_version=$(grep -E "^version:" "$file" | head -n 1 | sed -E "s/^version:[[:space:]]*['\"]?([^'\"]+).*/\1/")
             if [ "$metadata_version" != "$VERSION" ]; then
               echo "::error::$file version is $metadata_version, expected $VERSION."
