@@ -6,7 +6,7 @@
 
 import { describe, it, expect } from 'vitest';
 import { OpenAI2AnthropicConverter } from '@/common/api/OpenAI2AnthropicConverter';
-import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from '@/common/api/OpenAI2AnthropicConverter';
+import type { OpenAIChatCompletionParams, OpenAIChatCompletionResponse } from '@/common/api/openaiTypes';
 
 describe('OpenAI2AnthropicConverter', () => {
   describe('convertRequest', () => {

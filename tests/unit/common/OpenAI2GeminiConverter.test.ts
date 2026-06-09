@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
-import { OpenAI2GeminiConverter, type OpenAIChatCompletionParams } from '@/common/api/OpenAI2GeminiConverter';
+import { OpenAI2GeminiConverter } from '@/common/api/OpenAI2GeminiConverter';
+import type { OpenAIChatCompletionParams } from '@/common/api/openaiTypes';
 
 describe('OpenAI2GeminiConverter', () => {
   it('requests image and text modalities for image generation prompts', () => {
