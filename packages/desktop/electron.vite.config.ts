@@ -205,7 +205,8 @@ export default defineConfig(({ mode }) => {
       // instead of leaking source-relative ../../ paths into HTML asset names.
       root: rendererRoot,
       base: './',
-      publicDir: resolve('public'),
+      // Repo-root `public/` (manifest, pet assets, third-party notices).
+      publicDir: resolve(__dirname, '../../public'),
       appType: 'mpa',
       server: {
         // Default to 5173; when occupied (e.g. another AionUi clone is running),
@@ -308,7 +309,7 @@ export default defineConfig(({ mode }) => {
                 return 'vendor-editor';
               if (id.includes('/katex/')) return 'vendor-katex';
               if (id.includes('/@icon-park/')) return 'vendor-icons';
-              if (id.includes('/diff2html/')) return 'vendor-diff';
+              if (id.includes('/@pierre/')) return 'vendor-pierre';
               return undefined;
             },
           },
@@ -343,12 +344,13 @@ export default defineConfig(({ mode }) => {
           'swr',
           'eventemitter3',
           'katex',
-          'diff2html',
           'remark-gfm',
           'remark-math',
           'remark-breaks',
           'rehype-raw',
           'rehype-katex',
+          '@pierre/diffs',
+          '@pierre/diffs/react',
         ],
       },
     },

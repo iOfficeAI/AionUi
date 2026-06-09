@@ -72,7 +72,8 @@ const formatEpoch = (timestamp: number): string => {
  * `conversation.sider.timelineLocal*`. Falls back to the raw source
  * string if the key is missing (it never should be in en-US, but be
  * defensive in case a locale is out of date). */
-const localSourceKey = (source: LocalHistorySource): string => `conversation.sider.timelineLocal${source.charAt(0).toUpperCase()}${source.slice(1)}`;
+const localSourceKey = (source: LocalHistorySource): string =>
+  `conversation.sider.timelineLocal${source.charAt(0).toUpperCase()}${source.slice(1)}`;
 
 const SiderTimelineSection: React.FC = () => {
   const { t } = useTranslation();
@@ -111,9 +112,7 @@ const SiderTimelineSection: React.FC = () => {
           max_count: TIMELINE_MAX_COUNT,
         })
         .catch((): null => null),
-      ipcBridge.localHistory.listEntries
-        .invoke({ file_path: debounced.filePath })
-        .catch((): null => null),
+      ipcBridge.localHistory.listEntries.invoke({ file_path: debounced.filePath }).catch((): null => null),
     ]);
 
     const gitEntries: GitFileLogEntry[] = gitRes?.success ? (gitRes.data ?? []) : [];
@@ -252,7 +251,9 @@ const SiderTimelineSection: React.FC = () => {
                 </Tag>
               </div>
               <div className={panelStyles.timelineMeta}>
-                <span className={panelStyles.timelineLocalLabel}>{t('conversation.sider.timelineLocalMeta', { defaultValue: 'Local' })}</span>
+                <span className={panelStyles.timelineLocalLabel}>
+                  {t('conversation.sider.timelineLocalMeta', { defaultValue: 'Local' })}
+                </span>
                 <span className={panelStyles.timelineDate}>{formatEpoch(entry.timestamp)}</span>
               </div>
             </li>

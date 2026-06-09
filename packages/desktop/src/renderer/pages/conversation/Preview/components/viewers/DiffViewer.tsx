@@ -2,20 +2,25 @@
  * @license
  * Copyright 2025 AionUi (aionui.com)
  * SPDX-License-Identifier: Apache-2.0
+ *
+ * Full-bleed diff preview used by the conversation Preview panel.
+ *
+ * Replaces the previous diff2html-based renderer with a Pierre Diffs
+ * implementation (see `DiffView`). Adds the panel's own toolbar (source /
+ * preview toggle + download) on top of the shared viewer, which exposes
+ * the stacked / side-by-side toggle and click-to-open navigation.
  */
 
 import type { PreviewMetadata } from '../../context/PreviewContext';
 import { useTextSelection } from '@/renderer/hooks/ui/useTextSelection';
+import { ipcBridge } from '@/common';
 import { Checkbox } from '@arco-design/web-react';
-import classNames from 'classnames';
-import { html } from 'diff2html';
-import 'diff2html/bundles/css/diff2html.min.css';
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import ReactDOM from 'react-dom';
+import React, { useState } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { forgeDark, forgeLight } from '@/renderer/components/Markdown/codeThemes';
 import SelectionToolbar from '../renderers/SelectionToolbar';
 import { useTranslation } from 'react-i18next';
+import DiffView from '@/renderer/components/media/DiffView';
 
 interface DiffPreviewProps {
   content: string; // Diff content
@@ -27,18 +32,19 @@ interface DiffPreviewProps {
 }
 
 /**
- * Diff preview component with rich diff2html rendering
+ * Diff preview component built on top of the shared Pierre Diffs viewer.
  */
 const DiffPreview: React.FC<DiffPreviewProps> = ({
   content,
   hideToolbar = false,
   viewMode: externalViewMode,
   onViewModeChange,
+  metadata,
 }) => {
   const { t } = useTranslation();
-  const containerRef = useRef<HTMLDivElement>(null);
-  const diffContainerRef = useRef<HTMLDivElement>(null);
+  const containerRef = React.useRef<HTMLDivElement>(null);
   const [currentTheme, setCurrentTheme] = useState<'light' | 'dark'>(() => {
+    if (typeof document === 'undefined') return 'light';
     return (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
   });
   const [internalViewMode, setInternalViewMode] = useState<'source' | 'preview'>('preview');
@@ -46,59 +52,23 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
 
   const viewMode = externalViewMode !== undefined ? externalViewMode : internalViewMode;
 
-  useEffect(() => {
-    const updateTheme = () => {
+  React.useEffect(() => {
+    if (typeof document === 'undefined') return;
+    const updateTheme = (): void => {
       const theme = (document.documentElement.getAttribute('data-theme') as 'light' | 'dark') || 'light';
       setCurrentTheme(theme);
     };
-
     const observer = new MutationObserver(updateTheme);
     observer.observe(document.documentElement, {
       attributes: true,
       attributeFilter: ['data-theme'],
     });
-
     return () => observer.disconnect();
   }, []);
 
   const { selectedText, selectionPosition, clearSelection } = useTextSelection(containerRef);
 
-  const diffHtmlContent = useMemo(() => {
-    return html(content, {
-      outputFormat: sideBySide ? 'side-by-side' : 'line-by-line',
-      drawFileList: false,
-      matching: 'lines',
-      matchWordsThreshold: 0,
-      maxLineLengthHighlight: 20,
-      matchingMaxComparisons: 3,
-      diffStyle: 'word',
-      renderNothingWhenEmpty: false,
-    });
-  }, [content, sideBySide]);
-
-  // Portal container for injecting side-by-side toggle into d2h-file-header
-  const operatorRef = useRef<HTMLDivElement | null>(null);
-  if (!operatorRef.current) {
-    operatorRef.current = document.createElement('div');
-  }
-
-  // Inject operator into d2h-file-header after diff content changes
-  useLayoutEffect(() => {
-    const el = diffContainerRef.current;
-    if (!el || viewMode !== 'preview') return;
-
-    const header = el.querySelector('.d2h-file-header') as HTMLDivElement;
-    if (header && operatorRef.current) {
-      header.style.alignItems = 'center';
-      operatorRef.current.className = 'flex items-center justify-center gap-10px';
-
-      if (!header.contains(operatorRef.current)) {
-        header.appendChild(operatorRef.current);
-      }
-    }
-  }, [diffHtmlContent, viewMode]);
-
-  const handleDownload = () => {
+  const handleDownload = (): void => {
     const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -110,13 +80,24 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
     URL.revokeObjectURL(url);
   };
 
-  const handleViewModeChange = (mode: 'source' | 'preview') => {
+  const handleViewModeChange = (mode: 'source' | 'preview'): void => {
     if (onViewModeChange) {
       onViewModeChange(mode);
     } else {
       setInternalViewMode(mode);
     }
   };
+
+  // Resolve the file path for click-to-open. Prefer the metadata's
+  // file_path (set when the preview was launched from a workspace file)
+  // and fall back to the diff header parsing done inside DiffView.
+  const resolvedFilePath = metadata?.file_path;
+
+  // Touch the ipcBridge import so it isn't tree-shaken on builds that
+  // don't render a line click. The actual line jump is dispatched from
+  // DiffView itself; we keep the import for the file-download action and
+  // future actions that may live here.
+  void ipcBridge;
 
   return (
     <div className='flex flex-col w-full h-full overflow-hidden'>
@@ -142,7 +123,7 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
               <Checkbox
                 className='whitespace-nowrap text-12px'
                 checked={sideBySide}
-                onChange={(value) => setSideBySide(value)}
+                onChange={(value) => setSideBySide(Boolean(value))}
               >
                 <span className='text-12px text-t-secondary'>side-by-side</span>
               </Checkbox>
@@ -183,32 +164,16 @@ const DiffPreview: React.FC<DiffPreviewProps> = ({
             {content}
           </SyntaxHighlighter>
         ) : (
-          <div
-            ref={diffContainerRef}
-            className={classNames(
-              'w-full max-w-full min-w-0',
-              '![&_.line-num1]:hidden ![&_.line-num2]:w-30px',
-              '[&_td:first-child]:w-40px ![&_td:nth-child(2)>div]:pl-45px',
-              '[&_div.d2h-file-wrapper]:rd-[0.3rem_0.3rem_0px_0px]',
-              '[&_div.d2h-file-header]:items-center [&_div.d2h-file-header]:bg-bg-3',
-              {
-                'd2h-dark-color-scheme': currentTheme === 'dark',
-              }
-            )}
-            dangerouslySetInnerHTML={{ __html: diffHtmlContent }}
+          <DiffView
+            diff={content}
+            file_path={resolvedFilePath}
+            initialSplit={sideBySide}
+            onSplitChange={setSideBySide}
+            hideToolbar
+            className='w-full h-full'
           />
         )}
       </div>
-
-      {/* Portal: inject side-by-side toggle into d2h-file-header */}
-      {viewMode === 'preview' &&
-        operatorRef.current &&
-        ReactDOM.createPortal(
-          <Checkbox className='whitespace-nowrap' checked={sideBySide} onChange={(value) => setSideBySide(value)}>
-            <span className='whitespace-nowrap'>side-by-side</span>
-          </Checkbox>,
-          operatorRef.current
-        )}
 
       {selectedText && (
         <SelectionToolbar selectedText={selectedText} position={selectionPosition} onClear={clearSelection} />

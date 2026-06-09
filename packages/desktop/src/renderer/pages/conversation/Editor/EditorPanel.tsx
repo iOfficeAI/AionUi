@@ -312,7 +312,6 @@ const EditorPanel: React.FC<EditorPanelProps> = ({ workspaceRoot }) => {
           });
         }}
         onCollapse={editor.collapseEditor}
-        onClose={editor.requestCloseEditor}
       />
       {showDiskAlert && (
         <Alert className='editor-panel__alert' type='warning' content={t('conversation.editor.fileChangedOnDisk')} />

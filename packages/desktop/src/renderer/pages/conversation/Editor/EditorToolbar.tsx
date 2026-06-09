@@ -12,7 +12,7 @@
  */
 
 import { Dropdown, Menu } from '@arco-design/web-react';
-import { ArrowLeft, ArrowRight } from '@icon-park/react';
+import { ArrowLeft, ArrowRight, Minus } from '@icon-park/react';
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { isMacEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
@@ -42,7 +42,6 @@ type Props = {
   onToggleWhitespace: () => void;
   onToggleAutoSave: () => void;
   onCollapse: () => void;
-  onClose: () => void;
 };
 
 /** Render the keyboard accelerator hint string. */
@@ -92,7 +91,6 @@ const EditorToolbar: React.FC<Props> = ({
   onToggleWhitespace,
   onToggleAutoSave,
   onCollapse,
-  onClose,
 }) => {
   const { t } = useTranslation();
   const { dock, toggleDock } = useEditorDock();
@@ -230,11 +228,14 @@ const EditorToolbar: React.FC<Props> = ({
       >
         {dock === 'end' ? <ArrowLeft size={15} /> : <ArrowRight size={15} />}
       </button>
-      <button type='button' className='editor-menubar__item editor-menubar__item--secondary' onClick={onCollapse}>
-        {t('conversation.editor.collapseEditor')}
-      </button>
-      <button type='button' className='editor-menubar__item editor-menubar__item--secondary' onClick={onClose}>
-        {t('common.close')}
+      <button
+        type='button'
+        className='editor-menubar__item editor-menubar__item--secondary editor-menubar__item--icon'
+        onClick={onCollapse}
+        aria-label={t('conversation.editor.collapseEditor')}
+        title={t('conversation.editor.collapseEditor')}
+      >
+        <Minus size={15} />
       </button>
     </div>
   );

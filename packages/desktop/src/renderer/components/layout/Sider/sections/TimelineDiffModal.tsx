@@ -291,17 +291,14 @@ const TimelineDiffModal: React.FC<TimelineDiffModalProps> = ({ visible, onClose,
       <div className={styles.panel}>
         <div className={styles.header}>
           <div className={styles.title}>
-            {isLocal ? t('conversation.sider.timelineLocalSubject', { defaultValue: 'Local History' }) : t('conversation.sider.timelineGitTitle', { defaultValue: 'Git Commit' })}
+            {isLocal
+              ? t('conversation.sider.timelineLocalSubject', { defaultValue: 'Local History' })
+              : t('conversation.sider.timelineGitTitle', { defaultValue: 'Git Commit' })}
             <span className={styles.subtitle}>
               {isLocal ? new Date(item.timestamp).toLocaleString() : item.entry.subject}
             </span>
           </div>
-          <button
-            type='button'
-            className={styles.closeBtn}
-            onClick={onClose}
-            aria-label='Close'
-          >
+          <button type='button' className={styles.closeBtn} onClick={onClose} aria-label='Close'>
             ×
           </button>
         </div>
@@ -310,7 +307,8 @@ const TimelineDiffModal: React.FC<TimelineDiffModalProps> = ({ visible, onClose,
             <div className={styles.empty}>
               <Empty
                 description={t('conversation.sider.timelineGitUnsupported', {
-                  defaultValue: 'Diff for git commits is not supported yet. Local history entries are restorable below.',
+                  defaultValue:
+                    'Diff for git commits is not supported yet. Local history entries are restorable below.',
                 })}
               />
             </div>
@@ -332,12 +330,7 @@ const TimelineDiffModal: React.FC<TimelineDiffModalProps> = ({ visible, onClose,
           </Button>
           {isLocal && (
             <>
-              <Button
-                status='danger'
-                onClick={handleDelete}
-                loading={deleting}
-                disabled={restoring}
-              >
+              <Button status='danger' onClick={handleDelete} loading={deleting} disabled={restoring}>
                 {t('common.delete', { defaultValue: 'Delete' })}
               </Button>
               <Button

@@ -23,6 +23,9 @@ files:
   - out/renderer/**/*
   # Static resources — use explicit directory inclusion to prevent resource loss
   - public/**/*
+  - THIRD_PARTY_NOTICES.md
+  - LICENSE
+  - NOTICE
   - package.json
   # Native modules and their runtime dependencies
   - node_modules/better-sqlite3/**/*

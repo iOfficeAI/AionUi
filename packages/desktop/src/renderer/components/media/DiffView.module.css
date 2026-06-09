@@ -1,0 +1,69 @@
+/* DiffView — Pierre Diffs themed surface.
+ *
+ * Pierre renders inside a shadow DOM and applies its own theme CSS variables
+ * (`--diffs-…` per the package's themeStyles). We layer Chisl-specific
+ * overrides on top through `unsafeCSS` in the JSX (passed via `theme`),
+ * and we set the host page background / borders to match via these classes
+ * so the toolbar + outer wrapper look at home in Chisl.
+ *
+ * Keep variable names in sync with `chisl-color-scheme.css`.
+ */
+
+.root {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  min-width: 0;
+  border-radius: 6px;
+  background-color: var(--bg-1);
+  color: var(--text-primary);
+  overflow: hidden;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding: 6px 12px;
+  background-color: var(--bg-2);
+  border-bottom: 1px solid var(--bg-3);
+  flex-shrink: 0;
+  min-height: 32px;
+}
+
+.toggle {
+  white-space: nowrap;
+}
+
+.toggleLabel {
+  white-space: nowrap;
+  color: var(--text-secondary);
+}
+
+.viewer {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  background-color: var(--bg-1);
+  /* Pierre virtualizes internal scroll containers, but our outer page may
+   * still want to scroll; cap height so the toolbar stays sticky-ish. */
+  overflow: auto;
+  font-size: 13px;
+}
+
+.empty,
+.error {
+  padding: 16px;
+  color: var(--text-secondary);
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.error {
+  color: var(--danger);
+}
+
+.error strong {
+  color: var(--danger);
+  margin-right: 6px;
+}

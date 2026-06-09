@@ -51,7 +51,6 @@ const SiderFileTree: React.FC<SiderFileTreeProps> = ({ headerless = false }) => 
   const isTemporaryWorkspace = (conversation?.extra as { is_temporary_workspace?: boolean } | undefined)
     ?.is_temporary_workspace;
   const eventPrefix = conversation?.type;
-  const [flyoutVisible, setFlyoutVisible] = useState(false);
   const [refreshWorkspace, setRefreshWorkspace] = useState<(() => void) | null>(null);
   const [treeLoading, setTreeLoading] = useState(false);
 
@@ -84,11 +83,6 @@ const SiderFileTree: React.FC<SiderFileTreeProps> = ({ headerless = false }) => 
             actions={
               <>
                 <SiderWorkspaceActionBtn
-                  tooltip={t('conversation.workspace.files.expandFlyout')}
-                  icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
-                  onClick={() => setFlyoutVisible(true)}
-                />
-                <SiderWorkspaceActionBtn
                   tooltip={t('conversation.workspace.refresh')}
                   icon={
                     <Refresh
@@ -113,18 +107,9 @@ const SiderFileTree: React.FC<SiderFileTreeProps> = ({ headerless = false }) => 
             eventPrefix={eventPrefix}
             panelMode='files'
             siderFilesChrome='embedded'
-            onExpandFilesFlyout={() => setFlyoutVisible(true)}
             onSiderFilesRefreshReady={handleSiderRefreshReady}
           />
         </div>
-        <WorkspaceFilesFlyoutModal
-          visible={flyoutVisible}
-          onClose={() => setFlyoutVisible(false)}
-          conversationId={conversationId}
-          workspace={workspace}
-          isTemporaryWorkspace={isTemporaryWorkspace}
-          eventPrefix={eventPrefix}
-        />
       </div>
     );
   }

@@ -16,7 +16,12 @@ import { existsSync, mkdirSync, readdirSync, realpathSync, rmSync, statSync } fr
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-import { MAX_ENTRIES_PER_FILE, MAX_SNAPSHOT_BYTES, LocalHistoryService, type LocalHistoryServiceDeps } from '@/process/services/localHistory/LocalHistoryService';
+import {
+  MAX_ENTRIES_PER_FILE,
+  MAX_SNAPSHOT_BYTES,
+  LocalHistoryService,
+  type LocalHistoryServiceDeps,
+} from '@/process/services/localHistory/LocalHistoryService';
 
 let rootDir: string;
 let service: LocalHistoryService;
@@ -377,8 +382,12 @@ describe('LocalHistoryService — concurrency', () => {
     expect(bEntries).toHaveLength(NB);
 
     // Cross-check: A's contents never leak into B and vice versa.
-    const aContents = await Promise.all(aEntries.map((e) => service.getEntryContent({ file_path: fpA, entry_id: e.id })));
-    const bContents = await Promise.all(bEntries.map((e) => service.getEntryContent({ file_path: fpB, entry_id: e.id })));
+    const aContents = await Promise.all(
+      aEntries.map((e) => service.getEntryContent({ file_path: fpA, entry_id: e.id }))
+    );
+    const bContents = await Promise.all(
+      bEntries.map((e) => service.getEntryContent({ file_path: fpB, entry_id: e.id }))
+    );
     for (const c of aContents) expect(c.content?.startsWith('A')).toBe(true);
     for (const c of bContents) expect(c.content?.startsWith('B')).toBe(true);
 
@@ -442,6 +451,6 @@ describe('LocalHistoryService — on-disk layout', () => {
 
     // The blobs dir should contain exactly this one hash.
     const blobsDir = path.dirname(expectedBlob);
-    expect(readdirSync(blobsDir).sort()).toEqual([sha256(content)]);
+    expect(readdirSync(blobsDir).toSorted()).toEqual([sha256(content)]);
   });
 });

@@ -140,8 +140,26 @@ const validateExternalUrl = (url: string): void => {
 
 const openExternalViaHttp = httpPost<void, string>('/api/shell/open-external', (url) => ({ url }));
 
+/**
+ * Parameters accepted by {@link shell.openFile}. `line_number` is honored
+ * on the renderer side: when provided, the in-app Monaco editor opens the
+ * file and reveals the line. The backend `/api/shell/open-file` endpoint
+ * itself does not understand the line; the renderer-level wrapper in
+ * `useDiffLineNavigation` interprets it before/after the network call.
+ */
+export type OpenFileRequest = {
+  file_path: string;
+  line_number?: number;
+};
+
 export const shell = {
-  openFile: httpPost<void, string>('/api/shell/open-file', (file_path) => ({ file_path })),
+  openFile: httpPost<void, OpenFileRequest>('/api/shell/open-file', (request) => ({
+    file_path: request.file_path,
+    // The backend currently ignores line_number; we still ship it for
+    // forward-compat and for any backend that may want to position the
+    // OS-default app at a line (e.g. `code -g`).
+    line_number: request.line_number,
+  })),
   showItemInFolder: httpPost<void, string>('/api/shell/show-item-in-folder', (file_path) => ({ file_path })),
   openExternal: {
     provider: openExternalViaHttp.provider,
@@ -712,7 +730,9 @@ export const localHistory = {
     'local-history.add'
   ),
   /** List a file's snapshots, newest-first. */
-  listEntries: bridge.buildProvider<IBridgeResponse<LocalHistoryEntry[]>, LocalHistoryListRequest>('local-history.list'),
+  listEntries: bridge.buildProvider<IBridgeResponse<LocalHistoryEntry[]>, LocalHistoryListRequest>(
+    'local-history.list'
+  ),
   /** Fetch the full content of a single snapshot. */
   getEntryContent: bridge.buildProvider<IBridgeResponse<LocalHistoryContentResult>, LocalHistoryContentRequest>(
     'local-history.content'

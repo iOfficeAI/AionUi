@@ -41,6 +41,8 @@ import SiderDiffSection from './SiderDiffSection';
 import SiderAccordionSection from './sections/SiderAccordionSection';
 import SiderOutlineSection from './sections/SiderOutlineSection';
 import SiderTimelineSection from './sections/SiderTimelineSection';
+import SiderDiffFlyoutTrigger from './SiderDiffFlyoutTrigger';
+import SiderFilesFlyoutTrigger from './SiderFilesFlyoutTrigger';
 
 type SiderWorkspacePanelProps = {
   collapsed?: boolean;
@@ -201,6 +203,7 @@ const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) 
         storageKey='sider.section.explorer'
         height={heights['explorer']}
         data-testid='sider-accordion-explorer'
+        actions={<SiderFilesFlyoutTrigger />}
       >
         <SiderFileTree headerless />
       </SiderAccordionSection>
@@ -214,6 +217,7 @@ const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) 
         storageKey='sider.section.diff'
         height={heights['diff']}
         data-testid='sider-accordion-diff'
+        actions={<SiderDiffFlyoutTrigger />}
       >
         <SiderDiffSection headerless />
       </SiderAccordionSection>

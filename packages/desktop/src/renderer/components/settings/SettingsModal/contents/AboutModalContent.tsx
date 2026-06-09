@@ -12,6 +12,7 @@ import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
+import ThirdPartyNoticesModal from './ThirdPartyNoticesModal';
 
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
@@ -31,6 +32,7 @@ const AboutModalContent: React.FC = () => {
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [showThirdPartyNotices, setShowThirdPartyNotices] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
@@ -85,6 +87,11 @@ const AboutModalContent: React.FC = () => {
     {
       title: t('settings.officialWebsite'),
       url: 'https://www.aionui.com',
+      icon: <Right theme='outline' size='16' />,
+    },
+    {
+      title: t('settings.thirdPartyNotices'),
+      onClick: () => setShowThirdPartyNotices(true),
       icon: <Right theme='outline' size='16' />,
     },
   ];
@@ -166,6 +173,7 @@ const AboutModalContent: React.FC = () => {
         </div>
       </div>
       <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
+      <ThirdPartyNoticesModal visible={showThirdPartyNotices} onCancel={() => setShowThirdPartyNotices(false)} />
     </div>
   );
 };

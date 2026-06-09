@@ -190,3 +190,5 @@ Licensed under [Apache-2.0](LICENSE).
 Chisl is derived from an Apache-2.0 licensed project. Substantial modifications have been made, including changes to branding, UI, workflows, agent integrations, and application behavior.
 
 Original copyright and license notices are preserved in accordance with the Apache License 2.0.
+
+Bundled third-party components (including Monaco Editor, Pierre Diffs, React, and others) are listed in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). The desktop app also exposes this file from **Settings → About → Third-party notices**.

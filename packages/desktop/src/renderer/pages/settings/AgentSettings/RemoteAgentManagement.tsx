@@ -75,7 +75,6 @@ const RemoteAgentFormModal: React.FC<{
 }> = ({ visible, editAgent, onClose, onSaved }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm<RemoteAgentInput>();
-  const [testing, setTesting] = useState(false);
   const [saving, setSaving] = useState(false);
   const [activeProtocol, setActiveProtocol] = useState<RemoteAgentProtocol>('openclaw');
   const [avatar, setAvatar] = useState<string>('\u{1F916}');
@@ -135,44 +134,27 @@ const RemoteAgentFormModal: React.FC<{
     [stopPolling, onSaved, onClose, t]
   );
 
-  const handleTestConnection = useCallback(async () => {
-    const values = form.getFieldsValue(['url', 'auth_type', 'auth_token', 'allow_insecure']) as {
-      url?: string;
-      auth_type?: string;
-      auth_token?: string;
-      allow_insecure?: boolean;
-    };
-    if (!values.url) {
-      Message.warning(t('settings.remoteAgent.urlRequired'));
-      return;
-    }
-    setTesting(true);
+  const handleSave = useCallback(async () => {
     try {
-      const result = await ipcBridge.remoteAgent.testConnection.invoke({
+      const values = await form.validate();
+      setSaving(true);
+
+      // 1. Test connection BEFORE saving
+      const testResult = await ipcBridge.remoteAgent.testConnection.invoke({
         url: values.url,
         protocol: activeProtocol,
         auth_type: values.auth_type || 'none',
         auth_token: values.auth_token,
         allow_insecure: values.allow_insecure,
       });
-      if (result.success) {
-        Message.success(t('settings.remoteAgent.testSuccess'));
-      } else {
-        Message.error(t('settings.remoteAgent.testFailed', { error: result.error }));
-      }
-    } catch (error) {
-      Message.error(t('settings.remoteAgent.testError', { error: String(error) }));
-    } finally {
-      setTesting(false);
-    }
-  }, [form, t, activeProtocol]);
 
-  const handleSave = useCallback(async () => {
-    try {
-      const values = await form.validate();
-      setSaving(true);
-      // tool_host only applies to opencode; default to 'local'. For other
-      // protocols send 'local' so the backend column has a stable value.
+      if (!testResult.success) {
+        Message.error(t('settings.remoteAgent.testFailed', { error: testResult.error }));
+        setSaving(false);
+        return;
+      }
+
+      // tool_host only applies to opencode; default to 'local'.
       const toolHost: 'local' | 'server' =
         activeProtocol === 'opencode' ? ((values as { tool_host?: 'local' | 'server' }).tool_host ?? 'local') : 'local';
       const payload: RemoteAgentInput = { ...values, protocol: activeProtocol, avatar, tool_host: toolHost };
@@ -187,17 +169,29 @@ const RemoteAgentFormModal: React.FC<{
       }
       savedAgentIdRef.current = agentId;
 
+      // 2. Run handshake (since we just tested, this should succeed or just update the status to connected)
       if (activeProtocol === 'openclaw' || activeProtocol === 'opencode') {
         setPairingState('handshaking');
         const result = await ipcBridge.remoteAgent.handshake.invoke({ id: agentId });
 
         if (result.status === 'ok') {
           Message.success(editAgent ? t('settings.remoteAgent.updated') : t('settings.remoteAgent.created'));
+
+          // Refresh model cache in the background for this agent
+          if (activeProtocol === 'opencode') {
+            ipcBridge.remoteAgent.refreshModels.invoke({ id: agentId }).catch(() => {});
+          }
+
+          // Automatically set as default if none exists, to streamline A5 wizard
+          if (!getDefaultRemoteAgentId()) {
+            setDefaultRemoteAgentId(agentId);
+          }
+
           onSaved();
           onClose();
         } else if (activeProtocol === 'openclaw' && result.status === 'pending_approval') {
           startPairingPoll(agentId);
-          onSaved(); // refresh list to show 'pending' status
+          onSaved();
         } else {
           Message.warning(
             t('settings.remoteAgent.handshakeWarning', {
@@ -459,16 +453,6 @@ const RemoteAgentFormModal: React.FC<{
               </Select>
             </FormItem>
           ) : null}
-
-          <Button
-            long
-            type='outline'
-            icon={<Speed theme='outline' size='14' />}
-            loading={testing}
-            onClick={handleTestConnection}
-          >
-            {t('settings.remoteAgent.testConnection')}
-          </Button>
         </Form>
       </div>
     </AionModal>

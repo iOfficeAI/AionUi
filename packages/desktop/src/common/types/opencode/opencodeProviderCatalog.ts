@@ -27,14 +27,16 @@ function parseProvider(raw: unknown): OpenCodeProvider | null {
   if (modelsRaw && typeof modelsRaw === 'object' && !Array.isArray(modelsRaw)) {
     models = modelsRaw as Record<string, OpenCodeProviderModel>;
   }
+  // The SDK v2 `Provider` shape carries only `id / name / source / env / key /
+  // options / models`. Older AionUi hand-mirrored types also tracked `api`
+  // and `npm` on the provider object; we drop those at the parser boundary
+  // because no consumer reads them downstream.
   return {
     id: o.id,
     name: typeof o.name === 'string' ? o.name : o.id,
     source: o.source as OpenCodeProvider['source'],
     env: Array.isArray(o.env) ? o.env.filter((e): e is string => typeof e === 'string') : undefined,
     key: typeof o.key === 'string' ? o.key : undefined,
-    api: typeof o.api === 'string' ? o.api : undefined,
-    npm: typeof o.npm === 'string' ? o.npm : undefined,
     options: asRecord(o.options) ?? undefined,
     models,
   };

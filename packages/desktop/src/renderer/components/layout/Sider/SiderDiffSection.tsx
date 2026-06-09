@@ -60,7 +60,6 @@ const SiderDiffSection: React.FC<SiderDiffSectionProps> = ({ headerless = false 
   const eventPrefix = conversation?.type;
 
   const [meta, setMeta] = useState<ChangesMeta>({ count: 0, branch: null, isRemote: false });
-  const [flyoutVisible, setFlyoutVisible] = useState(false);
   const [refreshGit, setRefreshGit] = useState<(() => void) | null>(null);
 
   const diffTitle = useMemo(() => {
@@ -91,11 +90,6 @@ const SiderDiffSection: React.FC<SiderDiffSectionProps> = ({ headerless = false 
             actions={
               <>
                 <SiderWorkspaceActionBtn
-                  tooltip={t('conversation.workspace.changes.expandFlyout')}
-                  icon={<FullScreen theme='outline' size={14} fill='currentColor' />}
-                  onClick={() => setFlyoutVisible(true)}
-                />
-                <SiderWorkspaceActionBtn
                   tooltip={t('conversation.workspace.changes.refresh')}
                   icon={<Refresh theme='outline' size={14} fill='currentColor' />}
                   onClick={() => refreshGit?.()}
@@ -114,18 +108,9 @@ const SiderDiffSection: React.FC<SiderDiffSectionProps> = ({ headerless = false 
             panelMode='changes'
             siderDiffChrome='embedded'
             onChangesMeta={setMeta}
-            onExpandFlyout={() => setFlyoutVisible(true)}
             onSiderDiffRefreshReady={handleDiffRefreshReady}
           />
         </div>
-        <GitDiffFlyoutModal
-          visible={flyoutVisible}
-          onClose={() => setFlyoutVisible(false)}
-          conversationId={conversationId}
-          workspace={workspace}
-          isTemporaryWorkspace={isTemporaryWorkspace}
-          eventPrefix={eventPrefix}
-        />
       </div>
     );
   }

@@ -127,22 +127,22 @@ export class LocalHistoryService {
       }
 
       const timestamp = Date.now();
-      
+
       // Merge window: if the newest entry has the same source and was created
       // within MERGE_WINDOW_MS, replace it instead of appending.
       if (newest && newest.source === source && timestamp - newest.timestamp < MERGE_WINDOW_MS) {
         this.writeBlob(file_path, contentHash, content);
-        
+
         // Save the old hash before we overwrite it, so we can GC it if it becomes orphaned
         const oldHash = newest.contentHash;
-        
+
         newest.contentHash = contentHash;
         newest.timestamp = timestamp;
         newest.size = size;
-        
+
         this.gcBlobIfUnreferenced(file_path, oldHash, meta);
         this.writeMeta(file_path, meta);
-        
+
         return { entry: newest, created: true };
       }
 

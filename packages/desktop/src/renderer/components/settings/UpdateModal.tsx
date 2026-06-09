@@ -275,7 +275,7 @@ const UpdateModal: React.FC = () => {
 
   const openFile = () => {
     if (!downloadPath) return;
-    void ipcBridge.shell.openFile.invoke(downloadPath).catch((error) => {
+    void ipcBridge.shell.openFile.invoke({ file_path: downloadPath }).catch((error) => {
       console.error('Failed to open file:', error);
     });
   };

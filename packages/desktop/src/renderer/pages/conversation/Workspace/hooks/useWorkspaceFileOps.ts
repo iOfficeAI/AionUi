@@ -85,7 +85,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
     async (nodeData: IDirOrFile | null) => {
       if (!nodeData) return;
       try {
-        await ipcBridge.shell.openFile.invoke(nodeData.fullPath);
+        await ipcBridge.shell.openFile.invoke({ file_path: nodeData.fullPath });
       } catch (error) {
         messageApi.error(t('conversation.workspace.contextMenu.openFailed') || 'Failed to open');
       }
@@ -316,7 +316,7 @@ export function useWorkspaceFileOps(options: UseWorkspaceFileOpsOptions) {
       if (opensExternally) {
         // Visual/binary file — hand off to the OS default application.
         try {
-          await ipcBridge.shell.openFile.invoke(nodeData.fullPath);
+          await ipcBridge.shell.openFile.invoke({ file_path: nodeData.fullPath });
         } catch (error) {
           console.error('Failed to open file externally:', error);
           messageApi.error(t('conversation.workspace.contextMenu.openFailed') || 'Failed to open');
