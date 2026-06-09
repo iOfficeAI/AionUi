@@ -82,7 +82,7 @@ const ResizeHandle = ({ onDrag }: { onDrag: (deltaY: number) => void }) => {
       onPointerMove={handlePointerMove}
       onPointerUp={handlePointerUp}
       onPointerCancel={handlePointerUp}
-      className="h-[4px] -my-[2px] z-10 cursor-row-resize bg-transparent hover:bg-[var(--brand)] transition-colors duration-150 delay-100 shrink-0"
+      className='h-[4px] -my-[2px] z-10 cursor-row-resize bg-transparent hover:bg-[var(--brand)] transition-colors duration-150 delay-100 shrink-0'
     />
   );
 };
@@ -194,52 +194,52 @@ const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) 
   const sections: Record<string, React.ReactNode> = {
     explorer: (
       <SiderAccordionSection
-        key="explorer"
-        id="explorer"
+        key='explorer'
+        id='explorer'
         title={t('conversation.sider.explorer')}
         defaultExpanded
-        storageKey="sider.section.explorer"
+        storageKey='sider.section.explorer'
         height={heights['explorer']}
-        data-testid="sider-accordion-explorer"
+        data-testid='sider-accordion-explorer'
       >
         <SiderFileTree headerless />
       </SiderAccordionSection>
     ),
     diff: (
       <SiderAccordionSection
-        key="diff"
-        id="diff"
+        key='diff'
+        id='diff'
         title={t('conversation.workspace.changes.diff')}
         defaultExpanded
-        storageKey="sider.section.diff"
+        storageKey='sider.section.diff'
         height={heights['diff']}
-        data-testid="sider-accordion-diff"
+        data-testid='sider-accordion-diff'
       >
         <SiderDiffSection headerless />
       </SiderAccordionSection>
     ),
     outline: (
       <SiderAccordionSection
-        key="outline"
-        id="outline"
+        key='outline'
+        id='outline'
         title={t('conversation.sider.outline')}
         defaultExpanded={false}
-        storageKey="sider.section.outline"
+        storageKey='sider.section.outline'
         height={heights['outline']}
-        data-testid="sider-accordion-outline"
+        data-testid='sider-accordion-outline'
       >
         <SiderOutlineSection />
       </SiderAccordionSection>
     ),
     timeline: (
       <SiderAccordionSection
-        key="timeline"
-        id="timeline"
+        key='timeline'
+        id='timeline'
         title={t('conversation.sider.timeline')}
         defaultExpanded={false}
-        storageKey="sider.section.timeline"
+        storageKey='sider.section.timeline'
         height={heights['timeline']}
-        data-testid="sider-accordion-timeline"
+        data-testid='sider-accordion-timeline'
       >
         <SiderTimelineSection />
       </SiderAccordionSection>
@@ -247,7 +247,11 @@ const SiderWorkspacePanel: React.FC<SiderWorkspacePanelProps> = ({ collapsed }) 
   };
 
   return (
-    <div ref={containerRef} className="size-full min-h-0 flex flex-col bg-[var(--bg-2)]" data-testid="sider-workspace-panel">
+    <div
+      ref={containerRef}
+      className='size-full min-h-0 flex flex-col bg-[var(--bg-2)]'
+      data-testid='sider-workspace-panel'
+    >
       <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
         <SortableContext items={order} strategy={verticalListSortingStrategy}>
           {order.map((id, index) => (
