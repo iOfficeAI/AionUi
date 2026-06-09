@@ -31,6 +31,30 @@ export type SlashCommandCompletionBehavior = 'normal' | 'neutral_tip_on_empty';
 export type SlashCommandSource = 'acp' | 'builtin';
 
 /**
+ * Live ACP available_commands payload as it appears on the websocket stream.
+ */
+export interface AcpAvailableCommand {
+  name: string;
+  description: string;
+  hint?: string;
+  completionBehavior?: SlashCommandCompletionBehavior;
+  emptyTurnTipCode?: string;
+  emptyTurnTipParams?: Record<string, unknown>;
+}
+
+/**
+ * ACP slash command item returned by the HTTP slash-commands endpoint.
+ */
+export interface AcpSlashCommandApiItem {
+  command: string;
+  description: string;
+  hint?: string;
+  completion_behavior?: SlashCommandCompletionBehavior;
+  empty_turn_tip_code?: string;
+  empty_turn_tip_params?: Record<string, unknown>;
+}
+
+/**
  * Represents a single slash command item in the autocomplete list.
  */
 export interface SlashCommandItem {

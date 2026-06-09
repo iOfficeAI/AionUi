@@ -1,3 +1,4 @@
+import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import { isSlashCommandListEnabled } from '@/common/chat/slash/availability';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { ipcBridge } from '@/common';
@@ -87,13 +88,7 @@ export function useSlashCommands(conversation_id: string, options: UseSlashComma
           setCommands([]);
           return;
         }
-        const mapped: SlashCommandItem[] = result.map((item) => ({
-          name: item.command,
-          description: item.description,
-          kind: 'template' as const,
-          source: 'acp' as const,
-          selectionBehavior: 'insert' as const,
-        }));
+        const mapped: SlashCommandItem[] = mapAcpCommandsToSlashCommands(result);
         setCachedCommands(conversation_id, mapped);
         setCommands(mapped);
       })

@@ -5,6 +5,7 @@
  */
 
 import type { AcpPermissionRequest, PlanUpdate, ToolCallUpdate } from '@/common/types/platform/acpTypes';
+import type { AcpAvailableCommand } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '../adapter/ipcBridge';
 import { uuid } from '../utils';
 
@@ -349,11 +350,7 @@ export type IMessageThinking = IMessage<
 >;
 
 // Available commands from ACP agents (Claude, etc.)
-export type AvailableCommand = {
-  name: string;
-  description: string;
-  hint?: string;
-};
+export type AvailableCommand = AcpAvailableCommand;
 
 export type IMessageAvailableCommands = IMessage<
   'available_commands',
