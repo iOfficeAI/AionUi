@@ -36,6 +36,7 @@ export type SlashCommandSource = 'acp' | 'builtin';
 export interface AcpAvailableCommand {
   name: string;
   description: string;
+  hint?: string;
   input?: {
     hint?: string;
   };

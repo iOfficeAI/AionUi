@@ -87,12 +87,7 @@ async function waitForEmptyTurnController(page: Page, conversationId: string): P
   );
 }
 
-async function emitInfoTip(
-  page: Page,
-  conversationId: string,
-  tipCode: string,
-  tipContent: string
-): Promise<void> {
+async function emitInfoTip(page: Page, conversationId: string, tipCode: string, tipContent: string): Promise<void> {
   await page.evaluate(
     async ({ id, tipCode: injectedCode, tipContent: injectedContent }) => {
       const registry = (

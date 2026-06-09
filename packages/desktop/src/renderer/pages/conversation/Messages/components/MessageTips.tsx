@@ -91,7 +91,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
       : t('conversation.agentError.fallbackTitle');
     const body = errorCode
       ? t(
-        structuredError.workspacePath
+          structuredError.workspacePath
             ? `conversation.agentError.codes.${errorCode}.bodyWithPath`
             : `conversation.agentError.codes.${errorCode}.body`,
           {
