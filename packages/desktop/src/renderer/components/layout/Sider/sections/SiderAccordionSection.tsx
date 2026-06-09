@@ -23,29 +23,46 @@
 
 import React, { useCallback, useEffect, useId, useState } from 'react';
 import { Down } from '@icon-park/react';
+import { useSortable } from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 import panelStyles from '../SiderWorkspacePanel.module.css';
 
 type Props = {
+  id: string;
   title: React.ReactNode;
   defaultExpanded?: boolean;
   storageKey?: string;
   actions?: React.ReactNode;
   children: React.ReactNode;
+  height?: number;
+  onHeightChange?: (height: number) => void;
   'data-testid'?: string;
 };
 
 const SiderAccordionSection: React.FC<Props> = ({
+  id,
   title,
   defaultExpanded = true,
   storageKey,
   actions,
   children,
+  height,
+  onHeightChange,
   'data-testid': testId,
 }) => {
   const [expanded, setExpanded] = useState<boolean>(defaultExpanded);
   const [hydrated, setHydrated] = useState<boolean>(false);
   const reactId = useId();
   const bodyId = `sider-accordion-body-${reactId}`;
+
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    ...(expanded && height !== undefined ? { height: `${height}px`, flex: '0 0 auto' } : {}),
+    ...(isDragging ? { zIndex: 1, position: 'relative' as const } : {}),
+  };
 
   // Hydrate the persisted state on mount only — writes happen in the toggle
   // effect below. Wrapped in try/catch so a Storage quota / SecurityError
@@ -81,10 +98,12 @@ const SiderAccordionSection: React.FC<Props> = ({
 
   return (
     <section
-      className={`${panelStyles.accordionSection} ${expanded ? panelStyles.accordionSectionOpen : panelStyles.accordionSectionCollapsed}`}
+      ref={setNodeRef}
+      style={style}
+      className={`${panelStyles.accordionSection} ${expanded ? panelStyles.accordionSectionOpen : panelStyles.accordionSectionCollapsed} ${isDragging ? 'opacity-50 shadow-lg !z-50 ring-1 ring-[var(--border-focus)]' : ''}`}
       data-testid={testId}
     >
-      <div className={panelStyles.header}>
+      <div className={`${panelStyles.header} cursor-grab active:cursor-grabbing`} {...attributes} {...listeners}>
         <button
           type='button'
           className={panelStyles.toggle}
