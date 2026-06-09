@@ -352,6 +352,8 @@ export type I18nKey =
   | 'conversation.agentError.resolution.wait_for_current_response'
   | 'conversation.agentError.resolutionPrefix'
   | 'conversation.agentError.retryable'
+  | 'conversation.agentTip.codes.ACP_CTX_FLUSH_COMPLETED.body'
+  | 'conversation.agentTip.codes.ACP_EMPTY_TURN.body'
   | 'conversation.chat.apiErrorNoCli'
   | 'conversation.chat.apiErrorSwitchFailed'
   | 'conversation.chat.apiErrorSwitched'

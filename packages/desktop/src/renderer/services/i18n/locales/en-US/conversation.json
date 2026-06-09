@@ -480,5 +480,15 @@
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "The model finished without producing any reply."
+      },
+      "ACP_CTX_FLUSH_COMPLETED": {
+        "body": "Context was cleared for this conversation."
+      }
+    }
+  },
   "notFound": "Conversation not found or has been deleted"
 }

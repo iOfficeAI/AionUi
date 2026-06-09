@@ -480,5 +480,15 @@
   "sendbox": {
     "hint": "输入 / 唤起命令，@ 引用文件"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "模型已结束本轮，但没有产生任何回复。"
+      },
+      "ACP_CTX_FLUSH_COMPLETED": {
+        "body": "当前会话的上下文已清空。"
+      }
+    }
+  },
   "notFound": "会话不存在或已被删除"
 }
