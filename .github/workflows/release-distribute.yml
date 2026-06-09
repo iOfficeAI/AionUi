@@ -135,8 +135,7 @@ jobs:
           set -euo pipefail
 
           aws s3 cp dist/ "s3://${S3_BUCKET}/${S3_RELEASE_PREFIX}/${VERSION}/" \
-            --recursive \
-            --exclude "latest*.yml"
+            --recursive
           echo "Uploaded release ${VERSION}"
 
       - name: Upload updater metadata
