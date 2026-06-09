@@ -90,11 +90,11 @@ async function waitForEmptyTurnController(page: Page, conversationId: string): P
 async function emitInfoTip(
   page: Page,
   conversationId: string,
-  code: string,
-  fallbackContent: string
+  tipCode: string,
+  tipContent: string
 ): Promise<void> {
   await page.evaluate(
-    async ({ id, code, fallbackContent }) => {
+    async ({ id, tipCode: injectedCode, tipContent: injectedContent }) => {
       const registry = (
         window as typeof window & {
           __AIONUI_E2E_MESSAGE_STREAM__?: StreamRegistry;
@@ -104,9 +104,9 @@ async function emitInfoTip(
       if (!controller) {
         throw new Error(`No E2E stream controller registered for conversation ${id}`);
       }
-      await controller.emitInfoTip(code, fallbackContent);
+      await controller.emitInfoTip(injectedCode, injectedContent);
     },
-    { id: conversationId, code, fallbackContent }
+    { id: conversationId, tipCode, tipContent }
   );
 }
 

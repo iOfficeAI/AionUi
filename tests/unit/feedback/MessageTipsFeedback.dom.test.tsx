@@ -92,7 +92,7 @@ const buildTips = (
   ({
     id: 'tip-1',
     type: 'tips',
-    content: { type, content, ...(error ? { error } : {}), ...(extra ?? {}) },
+    content: { type, content, ...(error ? { error } : {}), ...extra },
   }) as IMessageTips;
 
 describe('MessageTips — FeedbackButton wiring', () => {

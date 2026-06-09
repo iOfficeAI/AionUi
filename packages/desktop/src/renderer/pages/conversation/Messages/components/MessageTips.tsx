@@ -66,7 +66,7 @@ const resolveAgentTipBody = (
 ) => {
   if (!code) return content;
   return t(`conversation.agentTip.codes.${code}.body`, {
-    ...(params ?? {}),
+    ...params,
     defaultValue: content,
   });
 };
@@ -82,18 +82,18 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
   const shouldShowFeedback = type === 'error';
 
   if (structuredError) {
-    const code = structuredError.code;
+    const errorCode = structuredError.code;
     const ownership = structuredError.ownership;
-    const title = code
-      ? t(`conversation.agentError.codes.${code}.title`, {
+    const title = errorCode
+      ? t(`conversation.agentError.codes.${errorCode}.title`, {
           defaultValue: t('conversation.agentError.fallbackTitle'),
         })
       : t('conversation.agentError.fallbackTitle');
-    const body = code
+    const body = errorCode
       ? t(
-          structuredError.workspacePath
-            ? `conversation.agentError.codes.${code}.bodyWithPath`
-            : `conversation.agentError.codes.${code}.body`,
+        structuredError.workspacePath
+            ? `conversation.agentError.codes.${errorCode}.bodyWithPath`
+            : `conversation.agentError.codes.${errorCode}.body`,
           {
             workspacePath: structuredError.workspacePath,
             defaultValue: structuredError.message || content,
@@ -117,12 +117,12 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
         )}`
       : null;
     const detailParts = [
-      code ? `${t('conversation.agentError.errorCode')}: ${code}` : '',
+      errorCode ? `${t('conversation.agentError.errorCode')}: ${errorCode}` : '',
       structuredError.detail || structuredError.message,
     ].filter(Boolean);
     const feedbackTags: Record<string, string> = {};
-    if (code) {
-      feedbackTags.agent_error_code = code;
+    if (errorCode) {
+      feedbackTags.agent_error_code = errorCode;
     }
     if (ownership) {
       feedbackTags.agent_error_ownership = ownership;
@@ -135,7 +135,7 @@ const MessageTips: React.FC<{ message: IMessageTips }> = ({ message }) => {
     }
     const feedbackExtra = {
       agent_error: {
-        ...(code ? { code } : {}),
+        ...(errorCode ? { code: errorCode } : {}),
         ...(ownership ? { ownership } : {}),
         ...(structuredError.retryable !== undefined ? { retryable: structuredError.retryable } : {}),
         ...(structuredError.feedback_recommended !== undefined
