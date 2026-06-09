@@ -213,7 +213,7 @@ describe('MessageTips — FeedbackButton wiring', () => {
       />
     );
 
-    expect(screen.getByText('This turn finished without producing any visible reply.')).toBeInTheDocument();
+    expect(screen.getByText('This request produced no visible reply.')).toBeInTheDocument();
     expect(screen.queryByText('settings.oneClickFeedback')).not.toBeInTheDocument();
     expect(container.querySelector('svg')).not.toBeInTheDocument();
   });
@@ -227,7 +227,7 @@ describe('MessageTips — FeedbackButton wiring', () => {
       />
     );
 
-    expect(screen.getByText('This turn finished without producing any visible reply.')).toBeInTheDocument();
+    expect(screen.getByText('This request produced no visible reply.')).toBeInTheDocument();
   });
 
   it('renders localized warning tips from code-only payloads', () => {
@@ -240,7 +240,7 @@ describe('MessageTips — FeedbackButton wiring', () => {
     );
 
     expect(
-      screen.getByText("This turn hit the model's output token limit before any visible reply was produced.")
+      screen.getByText("This request hit the model's output token limit before any visible reply was produced.")
     ).toBeInTheDocument();
   });
 
