@@ -480,5 +480,12 @@
   "sendbox": {
     "hint": "輸入 / 喚起命令，@ 引用檔案"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "本輪已結束，但沒有產生任何可見回覆。"
+      }
+    }
+  },
   "notFound": "會話不存在或已被刪除"
 }

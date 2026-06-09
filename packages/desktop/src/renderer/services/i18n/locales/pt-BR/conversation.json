@@ -486,5 +486,12 @@
   "sendbox": {
     "hint": "Digite / para comandos, @ para referenciar arquivos"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Este turno foi concluído sem produzir nenhuma resposta visível."
+      }
+    }
+  },
   "notFound": "Conversa não encontrada ou foi deletada"
 }

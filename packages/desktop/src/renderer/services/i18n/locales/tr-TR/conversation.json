@@ -482,5 +482,12 @@
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
   },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Bu tur, görünür bir yanıt üretmeden tamamlandı."
+      }
+    }
+  },
   "notFound": "Konuşma bulunamadı veya silinmiş"
 }

@@ -483,10 +483,7 @@
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
-        "body": "The model finished without producing any reply."
-      },
-      "ACP_CTX_FLUSH_COMPLETED": {
-        "body": "Context was cleared for this conversation."
+        "body": "This turn finished without producing any visible reply."
       }
     }
   },

@@ -8,7 +8,7 @@
 import os from 'os';
 import { test, expect } from '../../../fixtures';
 import { CHAT_INPUT, goToGuid } from '../../../helpers';
-import { httpDelete } from '../../../helpers/httpBridge';
+import { httpDelete, httpPost } from '../../../helpers/httpBridge';
 
 const RAW_BACKEND_ERROR =
   'Error: error loading config: C:\\Users\\tester\\.codex\\config.toml:12:12: `wire_api = "chat"` is no longer supported.';
@@ -27,49 +27,25 @@ async function ensureRendererReady(page: import('@playwright/test').Page): Promi
 }
 
 async function createAcpConversation(page: import('@playwright/test').Page): Promise<string> {
-  const conversation = await page.evaluate(
-    async ({ workspacePath }) => {
-      const port = (window as unknown as { __backendPort?: number }).__backendPort;
-      if (!port) {
-        throw new Error('window.__backendPort is not available in renderer context');
-      }
+  await goToGuid(page);
+  await ensureRendererReady(page);
 
-      const response = await fetch(`http://127.0.0.1:${port}/api/conversations`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          type: 'acp',
-          name: `E2E ACP send error ${Date.now()}`,
-          extra: {
-            workspace: workspacePath,
-            custom_workspace: true,
-            backend: 'codex',
-            session_mode: 'full-access',
-          },
-        }),
-      });
-
-      if (!response.ok) {
-        const body = await response.text();
-        throw new Error(`POST /api/conversations failed (${response.status}): ${body}`);
-      }
-
-      const json = (await response.json()) as { data?: CreatedConversation };
-      const id = json?.data?.id;
-      if (!id) {
-        throw new Error('POST /api/conversations succeeded but did not return a conversation id');
-      }
-
-      return id;
+  const conversation = await httpPost<CreatedConversation>(page, '/api/conversations', {
+    type: 'acp',
+    name: `E2E ACP send error ${Date.now()}`,
+    extra: {
+      workspace: os.tmpdir(),
+      custom_workspace: true,
+      backend: 'codex',
+      session_mode: 'full-access',
     },
-    {
-      workspacePath: os.tmpdir(),
-    }
-  );
+  });
 
-  return conversation;
+  if (!conversation?.id) {
+    throw new Error('POST /api/conversations succeeded but did not return a conversation id');
+  }
+
+  return conversation.id;
 }
 
 async function goToConversation(page: import('@playwright/test').Page, conversationId: string): Promise<void> {

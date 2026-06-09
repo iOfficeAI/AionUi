@@ -483,10 +483,7 @@
   "agentTip": {
     "codes": {
       "ACP_EMPTY_TURN": {
-        "body": "模型已结束本轮，但没有产生任何回复。"
-      },
-      "ACP_CTX_FLUSH_COMPLETED": {
-        "body": "当前会话的上下文已清空。"
+        "body": "本轮已结束，但没有产生任何可见回复。"
       }
     }
   },
