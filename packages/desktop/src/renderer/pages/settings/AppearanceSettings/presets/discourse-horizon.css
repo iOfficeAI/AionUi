@@ -1286,31 +1286,6 @@ body {
   border-radius: 16px !important;
 }
 
-.arco-tooltip-inner,
-.arco-popover-inner,
-.arco-popover-content {
-  background: linear-gradient(
-    180deg,
-    color-mix(in srgb, var(--horizon-surface) 94%, var(--aou-1)) 0%,
-    var(--horizon-surface-soft) 100%
-  ) !important;
-  color: var(--text-primary) !important;
-  border: 1px solid var(--border-base) !important;
-  border-radius: 12px !important;
-  box-shadow: var(--horizon-shadow-soft) !important;
-}
-
-.arco-tooltip-inner *,
-.arco-popover-inner *,
-.arco-popover-content * {
-  color: var(--text-primary) !important;
-}
-
-.arco-tooltip-arrow,
-.arco-popover-arrow {
-  border-color: var(--border-base) !important;
-}
-
 .arco-modal-header {
   background: linear-gradient(
     180deg,

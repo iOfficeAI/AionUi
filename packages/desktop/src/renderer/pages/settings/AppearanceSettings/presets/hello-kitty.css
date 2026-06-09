@@ -390,21 +390,6 @@ a:hover {
 }
 
 /* Tooltip */
-.arco-tooltip-inner,
-.arco-popover-inner {
-  background-color: var(--hk-primary-dark);
-  color: var(--hk-text-inverse);
-  border: 1px solid var(--hk-primary-darker);
-  border-radius: 8px;
-  box-shadow: var(--hk-shadow-md);
-  font-weight: 500;
-}
-
-.arco-tooltip-arrow,
-.arco-popover-arrow {
-  border-color: var(--hk-primary-dark);
-}
-
 /* Modal 对话框 */
 .arco-modal-header {
   background: var(--hk-gradient-light);
@@ -698,21 +683,6 @@ a:hover {
 [data-theme='dark'] ::selection {
   background-color: var(--hk-primary);
   color: var(--hk-text-inverse);
-}
-
-[data-theme='dark'] .arco-tooltip-inner,
-[data-theme='dark'] .arco-popover-inner {
-  background: linear-gradient(135deg, #7a4d5f 0%, #5d3b4a 100%);
-  color: var(--hk-text-primary);
-  border: 2px solid var(--hk-primary);
-  box-shadow:
-    var(--hk-shadow-md),
-    inset 0 1px 0 rgba(255, 255, 255, 0.1);
-}
-
-[data-theme='dark'] .arco-tooltip-arrow,
-[data-theme='dark'] .arco-popover-arrow {
-  border-color: var(--hk-primary);
 }
 
 [data-theme='dark'] .arco-modal-header {

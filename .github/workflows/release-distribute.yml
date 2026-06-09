@@ -32,6 +32,9 @@ permissions:
   id-token: write # required for OIDC token
   contents: read
 
+env:
+  S3_RELEASE_PREFIX: releases
+
 jobs:
   distribute:
     name: Distribute release assets
@@ -66,7 +69,9 @@ jobs:
           S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          DEST="s3://${S3_BUCKET}/releases/${VERSION}/"
+          set -euo pipefail
+
+          DEST="s3://${S3_BUCKET}/${S3_RELEASE_PREFIX}/${VERSION}/"
           COUNT=$(aws s3 ls "$DEST" 2>/dev/null | wc -l | tr -d ' ')
           if [ "$COUNT" -gt 0 ]; then
             echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
@@ -79,6 +84,8 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
+          set -euo pipefail
+
           mkdir -p dist
           gh release download "${{ steps.version.outputs.tag }}" \
             --repo "${{ github.repository }}" \
@@ -87,26 +94,89 @@ jobs:
             --pattern "*.exe" \
             --pattern "*.msi" \
             --pattern "*.deb" \
-            --pattern "*.zip"
+            --pattern "*.zip" \
+            --pattern "latest*.yml"
           echo "Downloaded files:"
           ls -la dist
+
+      - name: Validate updater metadata
+        id: metadata
+        env:
+          VERSION: ${{ steps.version.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          metadata_files=(
+            dist/latest.yml
+            dist/latest-win-arm64.yml
+            dist/latest-mac.yml
+            dist/latest-arm64-mac.yml
+            dist/latest-linux.yml
+            dist/latest-linux-arm64.yml
+          )
+
+          for file in "${metadata_files[@]}"; do
+            if [ ! -f "$file" ]; then
+              echo "::error::Missing updater metadata file: $file."
+              exit 1
+            fi
+
+            metadata_version=$(grep -E "^version:" "$file" | head -n 1 | sed -E "s/^version:[[:space:]]*['\"]?([^'\"]+).*/\1/")
+            if [ "$metadata_version" != "$VERSION" ]; then
+              echo "::error::$file version is $metadata_version, expected $VERSION."
+              exit 1
+            fi
+          done
+
+          {
+            echo "files<<EOF"
+            for file in "${metadata_files[@]}"; do
+              basename "$file"
+            done
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Upload assets
         env:
           S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
           VERSION: ${{ steps.version.outputs.version }}
         run: |
-          aws s3 cp dist/ "s3://${S3_BUCKET}/releases/${VERSION}/" --recursive
+          set -euo pipefail
+
+          aws s3 cp dist/ "s3://${S3_BUCKET}/${S3_RELEASE_PREFIX}/${VERSION}/" \
+            --recursive
           echo "Uploaded release ${VERSION}"
+
+      - name: Upload updater metadata
+        env:
+          S3_BUCKET: ${{ secrets.AWS_S3_BUCKET }}
+        run: |
+          set -euo pipefail
+
+          aws s3 cp dist/ "s3://${S3_BUCKET}/${S3_RELEASE_PREFIX}/" \
+            --recursive \
+            --exclude "*" \
+            --include "latest*.yml" \
+            --content-type "text/yaml" \
+            --cache-control "public, max-age=60"
+          echo "Uploaded updater metadata"
 
       - name: Summary
         env:
           VERSION: ${{ steps.version.outputs.version }}
           TAG: ${{ steps.version.outputs.tag }}
+          FILES: ${{ steps.metadata.outputs.files }}
         run: |
           {
             echo "### Release assets distributed"
             echo ""
             echo "- Tag: \`${TAG}\`"
             echo "- Version: \`${VERSION}\`"
+            echo "- Asset prefix: \`${S3_RELEASE_PREFIX}/${VERSION}/\`"
+            echo "- Metadata prefix: \`${S3_RELEASE_PREFIX}/\`"
+            echo ""
+            echo "Uploaded metadata:"
+            while IFS= read -r file; do
+              [ -n "$file" ] && echo "- \`${S3_RELEASE_PREFIX}/$file\`"
+            done <<< "$FILES"
           } >> $GITHUB_STEP_SUMMARY

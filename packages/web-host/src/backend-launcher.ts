@@ -64,6 +64,7 @@ type SpawnConfig = {
   port: number;
   dbPath: string;
   local: boolean;
+  parentPid?: number;
   logDir?: string;
   workDir?: string;
   appVersion: string;
@@ -185,6 +186,7 @@ export function buildSpawnArgs(config: SpawnConfig): string[] {
     String(config.port),
     '--data-dir',
     config.dbPath,
+    ...(typeof config.parentPid === 'number' ? ['--parent-pid', String(config.parentPid)] : []),
     '--log-level',
     logLevel,
     '--app-version',
@@ -536,6 +538,7 @@ export class BackendLifecycleManager {
       port: this._port,
       dbPath,
       local: true,
+      parentPid: process.pid,
       logDir,
       workDir: dirs?.workDir,
       appVersion,

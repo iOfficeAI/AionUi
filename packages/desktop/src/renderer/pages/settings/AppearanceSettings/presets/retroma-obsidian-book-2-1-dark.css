@@ -91,7 +91,6 @@
 [data-theme='dark'] .arco-modal,
 [data-theme='dark'] .arco-drawer-content,
 [data-theme='dark'] .arco-card,
-[data-theme='dark'] .arco-popover-content,
 [data-theme='dark'] .arco-dropdown-menu,
 [data-theme='dark'] .arco-select-popup {
   background: linear-gradient(180deg, rgba(31, 29, 23, 0.98) 0%, rgba(24, 23, 18, 0.98) 100%) !important;
