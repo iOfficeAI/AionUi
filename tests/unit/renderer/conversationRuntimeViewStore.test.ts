@@ -39,7 +39,7 @@ describe('conversationRuntimeViewStore turn id contract', () => {
   it('keeps idle when turn.completed arrives before local send accepted', () => {
     localSendStarted('conv-1');
     turnCompleted('conv-1', 'turn-1', idleRuntime());
-    localSendAccepted('conv-1', 'turn-1', 'msg-1');
+    localSendAccepted('conv-1', 'turn-1', runningRuntime('turn-1'), 'msg-1');
 
     const view = getConversationRuntimeViewSnapshot('conv-1');
     expect(view.state).toBe('idle');
@@ -47,6 +47,18 @@ describe('conversationRuntimeViewStore turn id contract', () => {
     expect(view.canSendMessage).toBe(true);
     expect(view.localSubmitting).toBe(false);
     expect(view.activeTurnId).toBeNull();
+  });
+
+  it('uses send response runtime summary as authoritative active turn', () => {
+    localSendStarted('conv-1');
+    localSendAccepted('conv-1', 'turn-1', runningRuntime('turn-1'), 'msg-1');
+
+    const view = getConversationRuntimeViewSnapshot('conv-1');
+    expect(view.state).toBe('running');
+    expect(view.isProcessing).toBe(true);
+    expect(view.canSendMessage).toBe(false);
+    expect(view.localSubmitting).toBe(false);
+    expect(view.activeTurnId).toBe('turn-1');
   });
 
   it('ignores stale stop ack for an older turn', () => {

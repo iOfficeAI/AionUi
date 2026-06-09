@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { TMessage } from '@/common/chat/chatLib';
+import type { TConversationRuntimeSummary } from '@/common/config/storage';
 import { parseError, uuid } from '@/common/utils';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -21,7 +22,7 @@ type UseAcpInitialMessageParams = {
   setAiProcessing: (value: boolean) => void;
   resetState: () => void;
   markSendStarted?: () => void;
-  markSendAccepted?: (turn_id: string, msg_id?: string) => void;
+  markSendAccepted?: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
   markSendFailed?: (reason: string) => void;
   checkAndUpdateTitle: (conversation_id: string, input: string) => void;
   addOrUpdateMessage: (message: TMessage, prepend?: boolean) => void;
@@ -70,7 +71,7 @@ export const useAcpInitialMessage = ({
           conversation_id: conversation_id,
           files,
         });
-        markSendAccepted?.(result.turn_id, result.msg_id);
+        markSendAccepted?.(result.turn_id, result.runtime, result.msg_id);
 
         // Initial message sent successfully
         emitter.emit('chat.history.refresh');

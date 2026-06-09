@@ -243,17 +243,37 @@ export const localSendAcceptedConversationRuntimeView = (
   previous: ConversationRuntimeView | undefined,
   conversation_id: string,
   turn_id: string,
+  runtime: TConversationRuntimeSummary,
+  msg_id?: string
+): ConversationRuntimeSnapshot => {
+  const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
+  const view = viewFromRuntimeSummary(base, runtime, createRuntimeMetadata(), { preservePendingLocalSend: false });
+  return withLogs(view, [
+    createLog('info', 'local_send_accepted', view, {
+      turn_id,
+      runtime_turn_id: runtime.turn_id,
+      ...(msg_id ? { msg_id } : {}),
+    }),
+  ]);
+};
+
+const staleSendAcceptedConversationRuntimeView = (
+  previous: ConversationRuntimeView | undefined,
+  conversation_id: string,
+  turn_id: string,
+  runtime: TConversationRuntimeSummary,
   msg_id?: string
 ): ConversationRuntimeSnapshot => {
   const base = previous ?? createDefaultConversationRuntimeView(conversation_id);
   const view: ConversationRuntimeView = {
     ...base,
-    localSubmitting: false,
     hydrated: true,
   };
   return withLogs(view, [
     createLog('info', 'local_send_accepted', view, {
       turn_id,
+      runtime_turn_id: runtime.turn_id,
+      stale_after_completed: true,
       ...(msg_id ? { msg_id } : {}),
     }),
   ]);
@@ -415,13 +435,31 @@ export const localSendStarted = (conversation_id: string): ConversationRuntimeVi
 export const localSendAccepted = (
   conversation_id: string,
   turn_id: string,
+  runtime: TConversationRuntimeSummary,
   msg_id?: string
 ): ConversationRuntimeViewLogEntry[] => {
   const metadata = getRuntimeMetadata(conversation_id);
-  metadata.pendingLocalSendSeq = null;
+  const staleAfterCompleted = metadata.lastCompletedTurnId === turn_id;
+  if (!staleAfterCompleted) {
+    metadata.pendingLocalSendSeq = null;
+  }
   return setConversationRuntimeSnapshot(
     conversation_id,
-    localSendAcceptedConversationRuntimeView(runtimeViews.get(conversation_id), conversation_id, turn_id, msg_id)
+    staleAfterCompleted
+      ? staleSendAcceptedConversationRuntimeView(
+          runtimeViews.get(conversation_id),
+          conversation_id,
+          turn_id,
+          runtime,
+          msg_id
+        )
+      : localSendAcceptedConversationRuntimeView(
+          runtimeViews.get(conversation_id),
+          conversation_id,
+          turn_id,
+          runtime,
+          msg_id
+        )
   );
 };
 

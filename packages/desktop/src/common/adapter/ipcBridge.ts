@@ -1358,6 +1358,7 @@ interface ISendMessageParams {
 export interface ISendMessageResult {
   msg_id: string;
   turn_id: string;
+  runtime: TConversationRuntimeSummary;
 }
 
 export interface IConfirmMessageParams {

@@ -227,7 +227,7 @@ const AionrsSendBox: React.FC<{
           files,
         });
         setActiveMsgId(res.msg_id);
-        runtimeView.markSendAccepted(res.turn_id, res.msg_id);
+        runtimeView.markSendAccepted(res.turn_id, res.runtime, res.msg_id);
         emitter.emit('chat.history.refresh');
         if (files.length > 0) {
           emitter.emit('aionrs.workspace.refresh');

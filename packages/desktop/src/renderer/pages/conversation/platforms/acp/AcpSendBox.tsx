@@ -271,7 +271,7 @@ const AcpSendBox: React.FC<{
           conversation_id,
           files,
         });
-        runtimeView.markSendAccepted(result.turn_id, result.msg_id);
+        runtimeView.markSendAccepted(result.turn_id, result.runtime, result.msg_id);
         emitter.emit('chat.history.refresh');
       } catch (error: unknown) {
         const errorMsg =

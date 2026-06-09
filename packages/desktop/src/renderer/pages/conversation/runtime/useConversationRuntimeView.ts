@@ -33,7 +33,7 @@ type UseConversationRuntimeViewReturn = {
   canSendMessage: boolean;
   activeTurnId: string | null;
   markSendStarted: () => void;
-  markSendAccepted: (turn_id: string, msg_id?: string) => void;
+  markSendAccepted: (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => void;
   markSendFailed: (reason: string) => void;
   markStopRequested: (turn_id: string) => void;
   markStopAcknowledged: (turn_id: string, runtime: TConversationRuntimeSummary) => void;
@@ -133,8 +133,8 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   }, [conversation_id]);
 
   const markSendAccepted = useCallback(
-    (turn_id: string, msg_id?: string) => {
-      flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, msg_id));
+    (turn_id: string, runtime: TConversationRuntimeSummary, msg_id?: string) => {
+      flushRuntimeViewLogs(localSendAccepted(conversation_id, turn_id, runtime, msg_id));
     },
     [conversation_id]
   );

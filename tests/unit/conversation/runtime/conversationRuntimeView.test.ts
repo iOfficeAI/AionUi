@@ -150,7 +150,19 @@ describe('conversationRuntimeViewStore', () => {
     resetConversationRuntimeViewStoreForTest();
 
     localSendStarted(conversation_id);
-    localSendAccepted(conversation_id, 'turn-1', 'message-1');
+    localSendAccepted(
+      conversation_id,
+      'turn-1',
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+      }),
+      'message-1'
+    );
     const logs = hydrateSucceeded(conversation_id, runtime({}));
 
     expect(getConversationRuntimeViewSnapshot(conversation_id)).toMatchObject({
@@ -164,15 +176,29 @@ describe('conversationRuntimeViewStore', () => {
     expect(logs.map((log) => log.event)).toContain('runtime_release_confirmed');
   });
 
-  it('does not let send accepted create processing without backend runtime', () => {
+  it('uses send accepted runtime as authoritative processing state', () => {
     const started = localSendStartedConversationRuntimeView(undefined, conversation_id).view;
-    const accepted = localSendAcceptedConversationRuntimeView(started, conversation_id, 'turn-1', 'message-1').view;
+    const accepted = localSendAcceptedConversationRuntimeView(
+      started,
+      conversation_id,
+      'turn-1',
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+      }),
+      'message-1'
+    ).view;
 
     expect(accepted).toMatchObject({
-      state: 'starting',
+      state: 'running',
       isProcessing: true,
       canSendMessage: false,
       localSubmitting: false,
+      activeTurnId: 'turn-1',
     });
 
     const { view } = turnCompletedConversationRuntimeView(accepted, conversation_id, 'turn-1', runtime({}));
@@ -259,7 +285,19 @@ describe('conversationRuntimeViewStore', () => {
     resetConversationRuntimeViewStoreForTest();
 
     localSendStarted(conversation_id);
-    localSendAccepted(conversation_id, 'turn-1', 'message-1');
+    localSendAccepted(
+      conversation_id,
+      'turn-1',
+      runtime({
+        state: 'running',
+        can_send_message: false,
+        has_task: true,
+        task_status: 'running',
+        is_processing: true,
+        turn_id: 'turn-1',
+      }),
+      'message-1'
+    );
     hydrateSucceeded(
       conversation_id,
       runtime({
