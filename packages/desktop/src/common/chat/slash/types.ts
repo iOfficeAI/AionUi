@@ -19,6 +19,11 @@ export type SlashCommandKind = 'template' | 'builtin';
 export type SlashCommandSelectionBehavior = 'execute' | 'insert';
 
 /**
+ * Defines what follow-up UX to use after a slash command is selected and the turn ends empty.
+ */
+export type SlashCommandCompletionBehavior = 'normal' | 'neutral_tip_on_empty';
+
+/**
  * Indicates where the slash command originates from.
  * - `acp`: Provided by the ACP agent (e.g., Claude)
  * - `builtin`: Built into the application
@@ -41,4 +46,10 @@ export interface SlashCommandItem {
   hint?: string;
   /** Optional override for how selection behaves in the slash menu */
   selectionBehavior?: SlashCommandSelectionBehavior;
+  /** Optional override for empty-turn completion behavior */
+  completionBehavior?: SlashCommandCompletionBehavior;
+  /** Optional localization code for the empty-turn neutral tip */
+  emptyTurnTipCode?: string;
+  /** Optional interpolation params for the empty-turn neutral tip */
+  emptyTurnTipParams?: Record<string, unknown>;
 }

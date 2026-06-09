@@ -165,7 +165,9 @@ export type IMessageTips = IMessage<
   'tips',
   {
     content: string;
-    type: 'error' | 'success' | 'warning';
+    type: 'error' | 'info' | 'success' | 'warning';
+    code?: string;
+    params?: Record<string, unknown>;
     error?: AgentStreamErrorInfo;
   }
 >;
@@ -517,10 +519,14 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
     case 'tips': {
       const data = message.data as {
         content: string;
-        type?: 'error' | 'success' | 'warning';
+        type?: 'error' | 'info' | 'success' | 'warning';
+        code?: unknown;
+        params?: unknown;
         error?: unknown;
       };
       const tipType = data.type ?? 'warning';
+      const tipCode = typeof data.code === 'string' ? data.code : undefined;
+      const tipParams = isObject(data.params) ? data.params : undefined;
       const structuredError =
         tipType === 'error'
           ? (normalizeAgentStreamError(data.error) ?? normalizeAgentStreamError({ ...data, message: data.content }))
@@ -535,6 +541,8 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
         content: {
           content: data.content,
           type: tipType,
+          ...(tipCode ? { code: tipCode } : {}),
+          ...(tipParams ? { params: tipParams } : {}),
           ...(structuredError ? { error: structuredError } : {}),
         },
       };
