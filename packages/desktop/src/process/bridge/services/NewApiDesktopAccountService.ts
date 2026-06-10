@@ -1400,7 +1400,7 @@ function resolveCodexBaseUrl(profile: ProviderSyncProfile): string {
   return `http://127.0.0.1:${proxyPort}/v1`;
 }
 
-function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
+function writeCodexConfigForProviderSync(provider: TProviderWithModel, modelList: string[]): void {
   const profile = buildProviderSyncProfile(provider);
   if (!profile) return;
 
@@ -1527,7 +1527,7 @@ function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
     };
   }
 
-  const allModels: string[] = (profile.provider.models || []).filter(
+  const allModels: string[] = (modelList || []).filter(
     (m): m is string => typeof m === 'string' && m.trim().length > 0
   );
   const modelObjects = allModels.map((name) => buildModelCatalogEntry(name));
@@ -1788,7 +1788,7 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
     },
     {
       cliTarget: 'codex',
-      run: (providerWithModel) => writeCodexConfigForProviderSync(providerWithModel),
+      run: (providerWithModel) => writeCodexConfigForProviderSync(providerWithModel, provider.models),
     },
     {
       cliTarget: 'hermes',
