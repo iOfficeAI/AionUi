@@ -157,7 +157,14 @@ export const usePreviewLauncher = () => {
 
       try {
         // 2. 尝试读取实际文件内容（覆盖乐观预览） / Try to read actual file content (override optimistic preview)
-        if (absolutePath || originalPath) {
+        // Diffs are synthetic comparisons rather than files on disk — the
+        // diff branch below is the source of truth. Skipping the disk read
+        // also keeps `metadata.file_path` pointing at the real on-disk path
+        // (resolved above from `originalPath`/`absolutePath`) so Pierre's
+        // click-to-jump can land on the file even when the tool message
+        // supplies an absolute path.
+        const isDiffPreview = contentType === 'diff' && Boolean(diffContent);
+        if (!isDiffPreview && (absolutePath || originalPath)) {
           try {
             const pathToRead = absolutePath || originalPath;
 

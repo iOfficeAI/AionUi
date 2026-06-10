@@ -19,6 +19,7 @@
   "source": "Source",
   "code": "Code",
   "preview": "Preview",
+  "viewDiff": "View diff",
   "editor": "Editor",
   "previewEffect": "Preview",
   "snapshot": "Snapshot",

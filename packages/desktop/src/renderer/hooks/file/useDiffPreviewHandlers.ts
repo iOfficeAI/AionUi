@@ -50,6 +50,13 @@ export const useDiffPreviewHandlers = ({ diffText, display_name, file_path, titl
   const handleDiffClick = useCallback(
     (_file: FileChangeItem) => {
       void launchPreview({
+        // Pass the source path through so the preview's metadata.file_path
+        // resolves (and Pierre's click-to-jump handler can land on the
+        // real file). `usePreviewLauncher` joins `relativePath` with the
+        // workspace into an absolute path when a workspace is known, and
+        // it short-circuits the disk-read branch for diff content, so the
+        // path is metadata-only.
+        relativePath: file_path || display_name,
         file_name: display_name,
         title,
         contentType: 'diff',
@@ -58,7 +65,7 @@ export const useDiffPreviewHandlers = ({ diffText, display_name, file_path, titl
         diffContent: diffText,
       });
     },
-    [diffText, display_name, title, launchPreview]
+    [diffText, display_name, file_path, title, launchPreview]
   );
 
   return { handleFileClick, handleDiffClick };

@@ -19,6 +19,7 @@
   "source": "Kaynak",
   "code": "Kod",
   "preview": "Önizleme",
+  "viewDiff": "Farkı Görüntüle",
   "editor": "Editör",
   "previewEffect": "Önizleme",
   "snapshot": "Anlık Görüntü",

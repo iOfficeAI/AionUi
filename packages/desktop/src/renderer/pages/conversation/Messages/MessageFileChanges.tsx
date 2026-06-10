@@ -65,6 +65,10 @@ const MessageFileChanges: React.FC<MessageFileChangesProps> = ({
       if (!fileInfo) return;
 
       void launchPreview({
+        // Propagate the source path so the preview's metadata.file_path
+        // resolves; usePreviewLauncher joins relativePath with the
+        // workspace and skips the disk-read branch for diff content.
+        relativePath: fileInfo.fullPath,
         file_name: fileInfo.file_name,
         contentType: 'diff',
         editable: false,

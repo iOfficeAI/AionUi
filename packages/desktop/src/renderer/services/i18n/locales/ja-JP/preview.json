@@ -19,6 +19,7 @@
   "source": "ソース",
   "code": "Code",
   "preview": "プレビュー",
+  "viewDiff": "差分を表示",
   "editor": "エディタ",
   "previewEffect": "プレビュー",
   "snapshot": "スナップショット",

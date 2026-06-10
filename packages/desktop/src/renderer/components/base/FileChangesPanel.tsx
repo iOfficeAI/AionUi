@@ -6,7 +6,7 @@
 
 import classNames from 'classnames';
 import React from 'react';
-import { PreviewOpen } from '@icon-park/react';
+import { Change, PreviewOpen } from '@icon-park/react';
 import { diffColors, iconColors } from '@/renderer/styles/colors';
 import { useTranslation } from 'react-i18next';
 import ToolShell from '@/renderer/pages/conversation/Messages/components/ToolShell';
@@ -103,7 +103,7 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
             <div className='flex items-center min-w-0'>
               <span className='text-14px text-t-primary truncate'>{file.file_name}</span>
             </div>
-            {/* Change stats + Preview button */}
+            {/* Change stats + action buttons */}
             <div className='flex items-center gap-8px shrink-0'>
               {(file.insertions > 0 || file.deletions > 0) && (
                 <span
@@ -127,6 +127,21 @@ const FileChangesPanel: React.FC<FileChangesPanelProps> = ({
                     </span>
                   )}
                 </span>
+              )}
+              {onDiffClick && (
+                <button
+                  type='button'
+                  aria-label={t('preview.viewDiff')}
+                  title={t('preview.viewDiff')}
+                  className='group-hover:opacity-100 transition-opacity shrink-0 flex items-center gap-4px text-12px text-t-secondary cursor-pointer rounded-control px-4px py-2px hover:bg-3 focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-primary'
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onDiffClick?.(file);
+                  }}
+                >
+                  <Change className='line-height-8px' theme='outline' size='14' fill={iconColors.secondary} />
+                  {t('preview.viewDiff')}
+                </button>
               )}
               <span
                 className='group-hover:opacity-100 transition-opacity shrink-0 ml-4px flex items-center gap-4px text-12px text-t-secondary cursor-pointer rounded-control px-4px py-2px hover:bg-3'
