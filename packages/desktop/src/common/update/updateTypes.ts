@@ -85,7 +85,10 @@ export interface AutoUpdateProgress {
 
 export interface AutoUpdateStatus {
   status: AutoUpdateStatusType;
+  /** New version available for download. */
   version?: string;
+  /** Current installed version — reflects the dev debug override when set. */
+  currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
   progress?: AutoUpdateProgress;

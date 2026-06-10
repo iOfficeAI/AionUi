@@ -4,26 +4,31 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Button, Progress, Message } from '@arco-design/web-react';
-import { CheckOne, Download, FolderOpen, Refresh, CloseOne, Install } from '@icon-park/react';
 import { ipcBridge } from '@/common';
+import type { AutoUpdateStatus, UpdateDownloadProgressEvent, UpdateReleaseInfo } from '@/common/update/updateTypes';
 import { uuid } from '@/common/utils';
 import AionModal from '@/renderer/components/base/AionModal';
 import MarkdownView from '@/renderer/components/Markdown';
-import type { UpdateDownloadProgressEvent, UpdateReleaseInfo, AutoUpdateStatus } from '@/common/update/updateTypes';
+import { Button, Message, Progress } from '@arco-design/web-react';
+import { CheckOne, CloseOne, Download, FolderOpen, Install, Refresh } from '@icon-park/react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type UpdateStatus = 'checking' | 'upToDate' | 'available' | 'downloading' | 'downloaded' | 'success' | 'error';
 
 type UpdateInfo = UpdateReleaseInfo;
 
+// Build-time injected app version, used as the fallback current version so the
+// "current → new" display is never empty when neither the IPC check nor the
+// auto-update status event provides one.
+declare const __APP_VERSION__: string;
+
 const UpdateModal: React.FC = () => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState<UpdateStatus>('checking');
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [currentVersion, setCurrentVersion] = useState<string>('');
+  const [currentVersion, setCurrentVersion] = useState<string>(__APP_VERSION__);
   const downloadIdRef = useRef<string | null>(null);
   const [progress, setProgress] = useState({ percent: 0, speed: '', total: 0, transferred: 0 });
   const [errorMsg, setErrorMsg] = useState('');
@@ -36,7 +41,7 @@ const UpdateModal: React.FC = () => {
   const resetState = () => {
     setStatus('checking');
     setUpdateInfo(null);
-    setCurrentVersion('');
+    setCurrentVersion(__APP_VERSION__);
     downloadIdRef.current = null;
     setProgress({ percent: 0, speed: '', total: 0, transferred: 0 });
     setErrorMsg('');
@@ -55,6 +60,24 @@ const UpdateModal: React.FC = () => {
     void ipcBridge.shell.openExternal.invoke(releasePageUrl).catch((error) => {
       console.error('Failed to open release page:', error);
     });
+  };
+
+  const loadManualReleaseInfoForDisplay = async () => {
+    try {
+      const res = await ipcBridge.update.check.invoke({
+        includePrerelease: localStorage.getItem('update.includePrerelease') === 'true',
+      });
+      if (!res?.success) {
+        console.warn('Manual release info check failed:', res?.msg);
+        return;
+      }
+      if (res.data?.latest) {
+        setUpdateInfo(res.data.latest);
+        setReleasePageUrl(res.data.latest.htmlUrl || '');
+      }
+    } catch (err) {
+      console.warn('Manual release info check error:', err);
+    }
   };
 
   const checkForUpdates = async () => {
@@ -83,7 +106,7 @@ const UpdateModal: React.FC = () => {
       if (!res?.success) {
         throw new Error(res?.msg || t('update.checkFailed'));
       }
-      setCurrentVersion(res.data?.currentVersion || '');
+      setCurrentVersion(res.data?.currentVersion || __APP_VERSION__);
 
       if (autoUpdateOk) {
         // Auto-update available — use manual check data for display only
@@ -222,6 +245,12 @@ const UpdateModal: React.FC = () => {
             version: evt.version || '',
             releaseNotes: evt.releaseNotes,
           });
+          // Prefer the event's current version (reflects the dev debug override);
+          // fall back to the build-time version so the display is never empty.
+          if (evt.currentVersion) {
+            setCurrentVersion(evt.currentVersion);
+          }
+          void loadManualReleaseInfoForDisplay();
           setStatus('available');
           setVisible(true);
           break;

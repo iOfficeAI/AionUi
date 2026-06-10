@@ -380,6 +380,8 @@ const attemptDownload = async (
 
   emitThrottled('starting');
 
+  log.info('[update-download] Downloading from URL:', url);
+
   let stream: fs.WriteStream | null = null;
   try {
     const res = await fetchWithAllowlistedRedirects(url, abortController.signal);

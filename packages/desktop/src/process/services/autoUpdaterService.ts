@@ -9,6 +9,8 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import fs from 'fs';
+import path from 'path';
 import { parse } from 'semver';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 import { buildCdnFeedOptions } from './updateFeed';
@@ -49,6 +51,8 @@ export function getUpdateChannel(): string | undefined {
 export interface AutoUpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
   version?: string;
+  /** Current installed version — reflects the dev debug override when set. */
+  currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
   progress?: {
@@ -116,6 +120,14 @@ class AutoUpdaterService extends EventEmitter {
     autoUpdater.forceDevUpdateConfig = true;
     log.warn(`[auto-update] Forced dev auto-update checks enabled by ${FORCE_DEV_AUTO_UPDATE_ENV}`);
 
+    // In dev mode electron-updater reads "dev-app-update.yml" from the app path to
+    // resolve `updaterCacheDirName` during download. It does not exist in the repo,
+    // so the download step fails with ENOENT. The feed itself is provided via
+    // setFeedURL(), so this file only needs to satisfy the cache-dir lookup. Write a
+    // minimal config to a temp path and point the updater at it. Must run before
+    // setFeedURL() — the updateConfigPath setter clears the injected provider.
+    this.ensureDevUpdateConfig();
+
     const debugCurrentVersion = process.env[DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV];
     if (!debugCurrentVersion) {
       return;
@@ -132,6 +144,31 @@ class AutoUpdaterService extends EventEmitter {
       value: parsedVersion,
     });
     log.warn(`[auto-update] Debug current version override enabled: ${parsedVersion.version}`);
+  }
+
+  /**
+   * Write a minimal dev-app-update.yml and point the updater at it, so the
+   * download step's `updaterCacheDirName` lookup succeeds in dev mode. The
+   * `provider`/`url` here are placeholders — the real feed comes from
+   * setFeedURL() — but `updaterCacheDirName` must match the packaged value
+   * (electron-builder defaults it to the appId) to reuse the same cache dir.
+   */
+  private ensureDevUpdateConfig(): void {
+    try {
+      const cdnFeedOptions = buildCdnFeedOptions();
+      const devConfig = [
+        'provider: generic',
+        `url: ${cdnFeedOptions.url}`,
+        'updaterCacheDirName: com.aionui.app',
+        '',
+      ].join('\n');
+      const configPath = path.join(app.getPath('userData'), 'dev-app-update.yml');
+      fs.writeFileSync(configPath, devConfig, 'utf-8');
+      autoUpdater.updateConfigPath = configPath;
+      log.warn(`[auto-update] Dev update config written to: ${configPath}`);
+    } catch (err) {
+      log.error('[auto-update] Failed to write dev update config:', err);
+    }
   }
 
   /**
@@ -253,6 +290,9 @@ class AutoUpdaterService extends EventEmitter {
       this.broadcastStatus({
         status: 'available',
         version: info.version,
+        // Reflects the dev debug override (autoUpdater.currentVersion) when set,
+        // so the "current → new" display matches the version used for comparison.
+        currentVersion: autoUpdater.currentVersion?.version,
         releaseDate: info.releaseDate,
         releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined,
       });
@@ -288,9 +328,24 @@ class AutoUpdaterService extends EventEmitter {
       log.error('Auto-updater error:', error);
       this.broadcastStatus({
         status: 'error',
-        error: error.message,
+        error: this.describeAutoUpdateError(error),
       });
     });
+  }
+
+  /**
+   * In dev mode the running shell is the stock Electron bundle (com.github.Electron),
+   * while the downloaded archive contains the packaged app (com.aionui.app). Squirrel.Mac
+   * looks for a bundle matching the *running* id, fails to find it, and reports
+   * "Could not locate update bundle". This is expected in dev and cannot be reproduced
+   * without a packaged build, so surface a clearer message instead of the raw error.
+   */
+  private describeAutoUpdateError(error: Error): string {
+    const message = error.message;
+    if (!app.isPackaged && /Could not locate update bundle/i.test(message)) {
+      return `[dev] Download succeeded; install cannot complete in dev mode (the install step requires a packaged build). Original error: ${message}`;
+    }
+    return message;
   }
 
   /**

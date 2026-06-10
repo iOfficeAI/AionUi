@@ -132,4 +132,39 @@ describe('AutoUpdaterService', () => {
     expect(autoUpdaterMock.forceDevUpdateConfig).toBe(false);
     expect(autoUpdaterMock.currentVersion.version).toBe('2.1.13');
   });
+
+  const getErrorHandler = (): ((error: Error) => void) => {
+    const entry = autoUpdaterMock.on.mock.calls.find(([event]) => event === 'error');
+    if (!entry) throw new Error('error handler not registered');
+    return entry[1] as (error: Error) => void;
+  };
+
+  it('clarifies the Squirrel bundle error in dev mode', async () => {
+    appMock.isPackaged = false;
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const statuses: Array<{ status: string; error?: string }> = [];
+    autoUpdaterService.on('update-status', (s: { status: string; error?: string }) => statuses.push(s));
+
+    getErrorHandler()(new Error('Could not locate update bundle for com.github.Electron within file:///tmp/x'));
+
+    const errorStatus = statuses.find((s) => s.status === 'error');
+    expect(errorStatus?.error).toContain('[dev]');
+    expect(errorStatus?.error).toContain('Could not locate update bundle');
+  });
+
+  it('passes through unrelated auto-updater errors verbatim', async () => {
+    appMock.isPackaged = false;
+    const { autoUpdaterService } = await import('@/process/services/autoUpdaterService');
+    autoUpdaterService.initialize();
+
+    const statuses: Array<{ status: string; error?: string }> = [];
+    autoUpdaterService.on('update-status', (s: { status: string; error?: string }) => statuses.push(s));
+
+    getErrorHandler()(new Error('network timeout'));
+
+    const errorStatus = statuses.find((s) => s.status === 'error');
+    expect(errorStatus?.error).toBe('network timeout');
+  });
 });

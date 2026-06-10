@@ -8,10 +8,11 @@ import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import type { UpdateDownloadProgressEvent, UpdateDownloadRequest } from '@/common/update/updateTypes';
+import type { AutoUpdateStatus, UpdateDownloadProgressEvent, UpdateDownloadRequest } from '@/common/update/updateTypes';
 
 const mocks = vi.hoisted(() => ({
   manualProgressHandler: null as ((evt: UpdateDownloadProgressEvent) => void) | null,
+  autoStatusHandler: null as ((evt: AutoUpdateStatus) => void) | null,
   autoUpdateCheckMock: vi.fn(),
   updateCheckMock: vi.fn(),
   updateDownloadMock: vi.fn(),
@@ -36,7 +37,12 @@ vi.mock('@/common', () => ({
       check: { invoke: mocks.autoUpdateCheckMock },
       download: { invoke: vi.fn() },
       quitAndInstall: { invoke: vi.fn() },
-      status: { on: vi.fn(() => vi.fn()) },
+      status: {
+        on: vi.fn((handler: (evt: AutoUpdateStatus) => void) => {
+          mocks.autoStatusHandler = handler;
+          return vi.fn();
+        }),
+      },
     },
     update: {
       check: { invoke: mocks.updateCheckMock },
@@ -61,7 +67,9 @@ import UpdateModal from '@/renderer/components/settings/UpdateModal';
 
 describe('UpdateModal manual install fallback', () => {
   beforeEach(() => {
+    vi.stubGlobal('__APP_VERSION__', '2.1.15');
     mocks.manualProgressHandler = null;
+    mocks.autoStatusHandler = null;
     mocks.autoUpdateCheckMock.mockResolvedValue({
       success: true,
       data: {
@@ -117,6 +125,7 @@ describe('UpdateModal manual install fallback', () => {
   afterEach(() => {
     cleanup();
     vi.clearAllMocks();
+    vi.unstubAllGlobals();
   });
 
   it('keeps fast manual download completion matched to the caller-provided download id', async () => {
@@ -141,5 +150,24 @@ describe('UpdateModal manual install fallback', () => {
       file_name: 'AionUi-2.1.14-mac-arm64.dmg',
     });
     expect(screen.queryByText('update.downloadingTitle')).not.toBeInTheDocument();
+  });
+
+  it('loads release notes when auto-update status opens the modal', async () => {
+    render(<UpdateModal />);
+
+    act(() => {
+      mocks.autoStatusHandler?.({
+        status: 'available',
+        version: '2.1.14',
+        currentVersion: '2.1.13',
+      });
+    });
+
+    await waitFor(() => {
+      expect(mocks.updateCheckMock).toHaveBeenCalled();
+    });
+
+    expect(await screen.findByText('notes')).toBeInTheDocument();
+    expect(screen.getByText(/2\.1\.13/)).toBeInTheDocument();
   });
 });
