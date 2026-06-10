@@ -1469,11 +1469,13 @@ function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
   try {
     if (fs.existsSync(ccSwitchCatalogPath)) {
       const raw = JSON.parse(fs.readFileSync(ccSwitchCatalogPath, 'utf8'));
-      for (const m of (raw.models || [])) {
+      for (const m of raw.models || []) {
         if (m.slug) ccSwitchTemplates[m.slug] = m;
       }
     }
-  } catch { /* use empty templates */ }
+  } catch {
+    /* use empty templates */
+  }
 
   function buildModelCatalogEntry(name: string): Record<string, unknown> {
     const meta = MODEL_META[name] ?? { context_window: 256000, max_output_tokens: 16384 };
