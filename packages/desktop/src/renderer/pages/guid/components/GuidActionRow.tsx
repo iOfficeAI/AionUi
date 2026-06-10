@@ -128,8 +128,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
     [onFilesUploaded, t]
   );
 
-  const getModeDisplayLabel = (mode: AgentModeOption): string =>
-    formatAgentModeLabel(t, mode);
+  const getModeDisplayLabel = (mode: AgentModeOption): string => formatAgentModeLabel(t, mode);
 
   const isWebUI = !isElectronDesktop();
 

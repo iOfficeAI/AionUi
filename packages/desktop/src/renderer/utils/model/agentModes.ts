@@ -161,7 +161,7 @@ export function supportsModeSwitch(backend: string | undefined): boolean {
  */
 export function formatAgentModeLabel(
   t: (key: string, options?: { defaultValue?: string }) => string,
-  mode: AgentModeOption,
+  mode: AgentModeOption
 ): string {
   return t(`agentMode.${mode.labelKey ?? mode.value}`, { defaultValue: mode.label });
 }
