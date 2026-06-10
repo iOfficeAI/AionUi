@@ -130,6 +130,6 @@
     "loading": "Запуск перегляду PPT...",
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
-    "installHint": "Переконайтеся, що officecli встановлено: npm run postinstall"
+    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCli"
   }
 }

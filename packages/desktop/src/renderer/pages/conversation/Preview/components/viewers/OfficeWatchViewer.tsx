@@ -69,7 +69,7 @@ const OFFICE_ERROR_I18N_KEYS: Record<OfficeWatchErrorCode, string> = {
   PATH_OUTSIDE_SANDBOX: 'preview.office.errors.outsideSandbox',
 };
 
-const OFFICECLI_INSTALL_URL = 'https://www.npmjs.com/package/officecli';
+export const OFFICECLI_INSTALL_URL = 'https://github.com/iOfficeAI/OfficeCli/releases';
 
 interface OfficeWatchViewerProps {
   docType: DocType;

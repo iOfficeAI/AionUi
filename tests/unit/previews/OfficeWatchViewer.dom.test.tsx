@@ -38,4 +38,9 @@ describe('OfficeWatchViewer module shape', () => {
     // Component functions in React typically have at most one required argument (props).
     expect((mod.default as { length: number }).length).toBeLessThanOrEqual(2);
   });
+
+  it('uses official iOfficeAI OfficeCLI releases page', async () => {
+    const mod = await import('@/renderer/pages/conversation/Preview/components/viewers/OfficeWatchViewer');
+    expect(mod.OFFICECLI_INSTALL_URL).toBe('https://github.com/iOfficeAI/OfficeCli/releases');
+  });
 });
