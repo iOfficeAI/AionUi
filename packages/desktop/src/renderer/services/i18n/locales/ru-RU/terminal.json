@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — завершён (код {{code}})",
   "exitedUnknown": "{{title}} — завершён",
   "shellNotFound": "В системе не найдено подходящей оболочки.",
+  "split": {
+    "open": "Разделить терминал",
+    "close": "Закрыть разделенную панель",
+    "resizeHandle": "Изменить размер разделения терминала"
+  },
   "layout": {
     "modeDefault": "По умолчанию",
     "modeSplitPane": "Раздельное окно",

@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — exited (code {{code}})",
   "exitedUnknown": "{{title}} — exited",
   "shellNotFound": "Could not find a usable shell on this system.",
+  "split": {
+    "open": "Split terminal",
+    "close": "Close split pane",
+    "resizeHandle": "Resize terminal split"
+  },
   "layout": {
     "modeDefault": "Default",
     "modeSplitPane": "Split Pane",

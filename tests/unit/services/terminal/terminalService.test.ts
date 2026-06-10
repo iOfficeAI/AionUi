@@ -96,12 +96,19 @@ describe('TerminalService.spawn', () => {
   });
 
   it('emits output events tagged with the session_id', () => {
-    const { service, ptys } = makeService();
-    const events: TerminalOutputEvent[] = [];
-    service.on('output', (e) => events.push(e));
-    const { session_id } = service.spawn();
-    ptys[0]._emitData('hello\r\n');
-    expect(events).toEqual([{ session_id, data: 'hello\r\n' }]);
+    vi.useFakeTimers();
+    try {
+      const { service, ptys } = makeService();
+      const events: TerminalOutputEvent[] = [];
+      service.on('output', (e) => events.push(e));
+      const { session_id } = service.spawn();
+      ptys[0]._emitData('hello\r\n');
+      // Coalescing: chunk sits in the pending buffer until the 8ms flush timer fires.
+      vi.advanceTimersByTime(8);
+      expect(events).toEqual([{ session_id, data: 'hello\r\n' }]);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 

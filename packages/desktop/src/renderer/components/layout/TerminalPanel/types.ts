@@ -28,6 +28,13 @@ export type TerminalSession = {
   exited: boolean;
   /** Optional exit code surfaced in the tab tooltip after termination. */
   exit_code: number | null;
+  /**
+   * True when this session was recovered from the main process's live
+   * session list (renderer re-attach after reload). Triggers the
+   * `TerminalInstance` to fetch a snapshot before subscribing to live output
+   * so the user sees the tail of their scrollback instead of a blank screen.
+   */
+  restored: boolean;
 };
 
 export type SpawnSuccess = {

@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — 已退出 (代码 {{code}})",
   "exitedUnknown": "{{title}} — 已退出",
   "shellNotFound": "在此系统上未找到可用的 shell。",
+  "split": {
+    "open": "拆分终端",
+    "close": "关闭拆分窗格",
+    "resizeHandle": "调整终端拆分大小"
+  },
   "layout": {
     "modeDefault": "默认",
     "modeSplitPane": "分屏",

@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — 已結束 (代碼 {{code}})",
   "exitedUnknown": "{{title}} — 已結束",
   "shellNotFound": "在此系統上找不到可用的 shell。",
+  "split": {
+    "open": "分割終端機",
+    "close": "關閉分割窗格",
+    "resizeHandle": "調整終端機分割大小"
+  },
   "layout": {
     "modeDefault": "預設",
     "modeSplitPane": "分割視窗",

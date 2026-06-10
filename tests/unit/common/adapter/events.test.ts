@@ -12,6 +12,8 @@ describe('adapter bridge event allowlist', () => {
   it('allows provider request envelopes for known IPC provider events', () => {
     expect(isAllowedAdapterBridgeEventName('subscribe-terminal.spawn')).toBe(true);
     expect(isAllowedAdapterBridgeEventName('subscribe-terminal.resize')).toBe(true);
+    expect(isAllowedAdapterBridgeEventName('subscribe-terminal.list')).toBe(true);
+    expect(isAllowedAdapterBridgeEventName('subscribe-terminal.snapshot')).toBe(true);
     expect(isAllowedAdapterBridgeEventName('subscribe-git.repo-info')).toBe(true);
     expect(isAllowedAdapterBridgeEventName('subscribe-git.status')).toBe(true);
   });

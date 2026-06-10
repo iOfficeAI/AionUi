@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — завершено (код {{code}})",
   "exitedUnknown": "{{title}} — завершено",
   "shellNotFound": "У системі не знайдено придатної оболонки.",
+  "split": {
+    "open": "Розділити термінал",
+    "close": "Закрити розділену панель",
+    "resizeHandle": "Змінити розмір розділення термінала"
+  },
   "layout": {
     "modeDefault": "За замовчуванням",
     "modeSplitPane": "Розділене вікно",

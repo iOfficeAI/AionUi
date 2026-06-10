@@ -12,11 +12,19 @@
  * The component is always mounted (visibility is controlled by the parent
  * `react-resizable-panels` Panel) so sessions, output buffers, and tab focus
  * survive collapse/expand and navigation between pages.
+ *
+ * Bet A2 split: a single optional right-pane split. The left pane is
+ * governed by the tab strip as usual; the right pane is a separate PTY
+ * spawned with the active session's cwd and tracked by `splitSessionId`.
+ * The split session is NOT in the tab strip — see `useTerminalSessions` for
+ * the rationale (minimal A2 scope; per-pane tab groups deferred).
  */
 
 import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useParams } from 'react-router-dom';
+import { Panel, PanelGroup, PanelResizeHandle } from 'react-resizable-panels';
+import { Close } from '@icon-park/react';
 
 import { ipcBridge } from '@/common';
 import { useTerminalPanel } from '@renderer/hooks/context/TerminalPanelContext';
@@ -32,8 +40,18 @@ const TerminalPanel: React.FC = () => {
   const { open, close, pinned, togglePinned } = useTerminalPanel();
   const { fontScale } = useThemeContext();
   const theme = useTerminalTheme();
-  const { sessions, activeId, setActive, openSession, closeSession, renameSession, cycleSession } =
-    useTerminalSessions();
+  const {
+    sessions,
+    activeId,
+    setActive,
+    openSession,
+    closeSession,
+    renameSession,
+    cycleSession,
+    splitSessionId,
+    splitActive,
+    closeSplit,
+  } = useTerminalSessions();
   const params = useParams();
 
   const handleAdd = useCallback(() => {
@@ -63,6 +81,42 @@ const TerminalPanel: React.FC = () => {
   );
 
   const activeSession = sessions.find((session) => session.client_id === activeId) ?? sessions[0];
+  const splitSession = splitSessionId ? (sessions.find((s) => s.client_id === splitSessionId) ?? null) : null;
+
+  /**
+   * Body for a single session: the xterm instance when it has a session_id,
+   * or a placeholder for the optimistic/exited states. `visible` toggles
+   * xterm's `display` so non-active instances stay mounted in the
+   * background and preserve scrollback.
+   */
+  const renderBody = (session: (typeof sessions)[number] | null | undefined, visible: boolean) => {
+    if (!session) return null;
+    if (!session.session_id) {
+      return (
+        <div className='size-full flex-center text-t-tertiary text-12px'>
+          {session.exited ? t('terminal.exitedUnknown', { title: session.title }) : t('terminal.startingShell')}
+        </div>
+      );
+    }
+    return (
+      <TerminalInstance
+        session_id={session.session_id}
+        visible={visible}
+        theme={theme}
+        fontScale={fontScale}
+        disabled={session.exited}
+        restored={session.restored}
+      />
+    );
+  };
+
+  // The tab strip governs the LEFT pane only; everything else is the right
+  // pane + inactive background tabs. The split session is real and
+  // fully-fledged, but it is NOT in the tab strip.
+  const foregroundIds = splitSession ? new Set([activeId, splitSessionId]) : null;
+  const backgroundSessions = foregroundIds
+    ? sessions.filter((s) => !foregroundIds.has(s.client_id))
+    : sessions.filter((s) => s.client_id !== activeId);
 
   return (
     <div
@@ -81,31 +135,56 @@ const TerminalPanel: React.FC = () => {
         onCollapsePanel={close}
         pinned={pinned}
         onTogglePinned={togglePinned}
+        onSplit={splitSession ? undefined : () => void splitActive()}
+        splitActive={Boolean(splitSession)}
       />
       <div className='flex-1 min-h-0 relative'>
         {sessions.length === 0 ? (
           <div className='size-full flex-center text-t-tertiary text-12px'>
             {open ? t('terminal.startingShell') : t('terminal.empty')}
           </div>
-        ) : activeSession && !activeSession.session_id ? (
-          <div className='size-full flex-center text-t-tertiary text-12px'>
-            {activeSession.exited
-              ? t('terminal.exitedUnknown', { title: activeSession.title })
-              : t('terminal.startingShell')}
-          </div>
+        ) : splitSession ? (
+          <PanelGroup direction='horizontal' autoSaveId='terminal-split' className='size-full min-h-0'>
+            <Panel defaultSize={50} minSize={20} className='min-h-0 overflow-hidden'>
+              {renderBody(activeSession, true)}
+            </Panel>
+            <PanelResizeHandle
+              className='group relative w-6px shrink-0 flex items-center justify-center cursor-col-resize'
+              aria-label={t('terminal.split.resizeHandle', { defaultValue: 'Resize terminal split' })}
+            >
+              <span className='w-2px h-32px rounded-full bg-[var(--color-border-2)] group-hover:bg-[var(--color-primary)] transition-colors' />
+            </PanelResizeHandle>
+            <Panel defaultSize={50} minSize={20} className='min-h-0 overflow-hidden relative'>
+              {renderBody(splitSession, true)}
+              <button
+                type='button'
+                onClick={() => void closeSplit()}
+                className='absolute top-4px right-4px z-10 flex-center size-22px bg-2 border border-solid border-base rd-4px cursor-pointer text-t-secondary hover:bg-fill-3 hover:text-t-primary transition-colors'
+                aria-label={t('terminal.split.close', { defaultValue: 'Close split pane' })}
+                title={t('terminal.split.close', { defaultValue: 'Close split pane' })}
+              >
+                <Close theme='outline' size='12' fill='currentColor' style={{ lineHeight: 0 }} />
+              </button>
+            </Panel>
+          </PanelGroup>
         ) : (
-          sessions.map((session) =>
-            session.session_id ? (
-              <TerminalInstance
-                key={session.client_id}
-                session_id={session.session_id}
-                visible={session.client_id === activeId}
-                theme={theme}
-                fontScale={fontScale}
-                disabled={session.exited}
-              />
-            ) : null
-          )
+          renderBody(activeSession, true)
+        )}
+        {/* Background tabs: mounted but hidden so scrollback survives tab
+            switches. CSS `display: none` in TerminalInstance handles the
+            visibility toggle. */}
+        {backgroundSessions.map((session) =>
+          session.session_id ? (
+            <TerminalInstance
+              key={session.client_id}
+              session_id={session.session_id}
+              visible={false}
+              theme={theme}
+              fontScale={fontScale}
+              disabled={session.exited}
+              restored={session.restored}
+            />
+          ) : null
         )}
       </div>
     </div>

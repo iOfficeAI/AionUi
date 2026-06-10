@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — çıkıldı (kod {{code}})",
   "exitedUnknown": "{{title}} — çıkıldı",
   "shellNotFound": "Bu sistemde kullanılabilir bir kabuk bulunamadı.",
+  "split": {
+    "open": "Terminali böl",
+    "close": "Bölünmüş bölmeyi kapat",
+    "resizeHandle": "Terminal bölme boyutunu değiştir"
+  },
   "layout": {
     "modeDefault": "Varsayılan",
     "modeSplitPane": "Bölünmüş Pencere",

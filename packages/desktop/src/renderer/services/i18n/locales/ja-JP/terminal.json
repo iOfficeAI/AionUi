@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — 終了 (コード {{code}})",
   "exitedUnknown": "{{title}} — 終了",
   "shellNotFound": "このシステムで使用可能なシェルが見つかりませんでした。",
+  "split": {
+    "open": "ターミナルを分割",
+    "close": "分割ペインを閉じる",
+    "resizeHandle": "ターミナル分割のサイズ変更"
+  },
   "layout": {
     "modeDefault": "デフォルト",
     "modeSplitPane": "分割ビュー",

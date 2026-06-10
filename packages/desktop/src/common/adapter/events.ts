@@ -37,6 +37,9 @@ import type {
   TerminalKillRequest,
   TerminalOutputEvent,
   TerminalResizeRequest,
+  TerminalSessionInfo,
+  TerminalSnapshotRequest,
+  TerminalSnapshotResult,
   TerminalSpawnOptions,
   TerminalWriteRequest,
 } from '../types/terminal/terminalTypes';
@@ -65,6 +68,8 @@ export type AdapterEventMap = {
   'terminal.write': TerminalWriteRequest;
   'terminal.resize': TerminalResizeRequest;
   'terminal.kill': TerminalKillRequest;
+  'terminal.list': void;
+  'terminal.snapshot': TerminalSnapshotRequest;
   'git.repo-info': GitWorkspaceRequest;
   'git.status': GitWorkspaceRequest;
   'git.init': GitWorkspaceRequest;
@@ -137,6 +142,8 @@ export type AdapterEventResponseMap = {
   'terminal.write': BridgeResponse;
   'terminal.resize': BridgeResponse;
   'terminal.kill': BridgeResponse;
+  'terminal.list': BridgeResponse<TerminalSessionInfo[]>;
+  'terminal.snapshot': BridgeResponse<TerminalSnapshotResult>;
   'git.repo-info': BridgeResponse;
   'git.status': BridgeResponse;
   'git.init': BridgeResponse;
@@ -210,6 +217,8 @@ export const ADAPTER_EVENT_NAMES = [
   'terminal.write',
   'terminal.resize',
   'terminal.kill',
+  'terminal.list',
+  'terminal.snapshot',
   'git.repo-info',
   'git.status',
   'git.init',

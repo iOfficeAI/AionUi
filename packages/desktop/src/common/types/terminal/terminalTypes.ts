@@ -69,3 +69,25 @@ export type TerminalResizeRequest = {
 export type TerminalKillRequest = {
   session_id: string;
 };
+
+/**
+ * Public metadata for a live terminal session. Returned by `terminal.list`
+ * so the renderer can re-attach to surviving sessions after a reload.
+ */
+export type TerminalSessionInfo = {
+  session_id: string;
+  /** Absolute path to the shell that was spawned. */
+  shell: string;
+  /** Resolved working directory of the spawned session. */
+  cwd: string;
+  /** Process ID of the spawned shell. */
+  pid: number;
+};
+
+/** Request payload for fetching a session's recent output (renderer re-attach). */
+export type TerminalSnapshotRequest = {
+  session_id: string;
+};
+
+/** Result of a snapshot request: full ring buffer contents, or null for unknown sessions. */
+export type TerminalSnapshotResult = string | null;

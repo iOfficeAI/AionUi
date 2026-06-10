@@ -38,6 +38,9 @@ import type {
   TerminalKillRequest,
   TerminalOutputEvent,
   TerminalResizeRequest,
+  TerminalSessionInfo,
+  TerminalSnapshotRequest,
+  TerminalSnapshotResult,
   TerminalSpawnOptions,
   TerminalSpawnResult,
   TerminalWriteRequest,
@@ -676,6 +679,10 @@ export const terminal = {
   write: bridge.buildProvider<IBridgeResponse, TerminalWriteRequest>('terminal.write'),
   resize: bridge.buildProvider<IBridgeResponse, TerminalResizeRequest>('terminal.resize'),
   kill: bridge.buildProvider<IBridgeResponse, TerminalKillRequest>('terminal.kill'),
+  /** List live sessions (re-attach after renderer reload). */
+  list: bridge.buildProvider<IBridgeResponse<TerminalSessionInfo[]>, void>('terminal.list'),
+  /** Return recent output ring buffer for a single session. */
+  snapshot: bridge.buildProvider<IBridgeResponse<TerminalSnapshotResult>, TerminalSnapshotRequest>('terminal.snapshot'),
   output: bridge.buildEmitter<TerminalOutputEvent>('terminal.output'),
   exit: bridge.buildEmitter<TerminalExitEvent>('terminal.exit'),
 };

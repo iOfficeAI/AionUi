@@ -10,6 +10,11 @@
   "exitedWithCode": "{{title}} — 종료됨 (코드 {{code}})",
   "exitedUnknown": "{{title}} — 종료됨",
   "shellNotFound": "이 시스템에서 사용 가능한 셸을 찾을 수 없습니다.",
+  "split": {
+    "open": "터미널 분할",
+    "close": "분할 창 닫기",
+    "resizeHandle": "터미널 분할 크기 조정"
+  },
   "layout": {
     "modeDefault": "기본",
     "modeSplitPane": "분할 창",

@@ -90,6 +90,7 @@ const pendingSession = (overrides: Partial<TerminalSession> = {}): TerminalSessi
   shell: null,
   exited: false,
   exit_code: null,
+  restored: false,
   ...overrides,
 });
 

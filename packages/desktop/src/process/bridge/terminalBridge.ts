@@ -63,6 +63,30 @@ export function initTerminalBridge(): void {
     const ok = service.kill(session_id);
     return ok ? { success: true } : { success: false, msg: `Unknown session ${session_id}` };
   });
+
+  // List live sessions so the renderer can re-attach after a reload — PTYs
+  // keep running in main, this is how the renderer learns about them.
+  ipcBridge.terminal.list.provider(async () => {
+    try {
+      return { success: true, data: service.list() };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[TerminalBridge] list failed:', error);
+      return { success: false, msg: message };
+    }
+  });
+
+  // Return the bounded ring buffer of recent output for a single session.
+  ipcBridge.terminal.snapshot.provider(async ({ session_id }) => {
+    try {
+      const data = service.snapshot(session_id);
+      return { success: true, data };
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      console.error('[TerminalBridge] snapshot failed:', error);
+      return { success: false, msg: message };
+    }
+  });
 }
 
 /**

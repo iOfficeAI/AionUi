@@ -10,6 +10,12 @@
  * The component keeps the underlying `Terminal` alive across visibility
  * changes — we toggle CSS `display` rather than unmounting so scrollback and
  * output buffers survive tab switches (matching VSCode/Cursor behavior).
+ *
+ * On mount, if the session was recovered from the main process's live list
+ * (`restored: true`) we fetch a snapshot of recent output BEFORE subscribing
+ * to live events. Any PTY output that arrives in the window between
+ * subscribing and writing the snapshot is queued and drained after the
+ * snapshot, so no data is lost or duplicated. See `attachReattach` below.
  */
 
 import React, { useEffect, useRef } from 'react';
@@ -22,24 +28,33 @@ import '@xterm/xterm/css/xterm.css';
 import { ipcBridge } from '@/common';
 import type { TerminalOutputEvent } from '@/common/types/terminal/terminalTypes';
 
+import { createWriteQueue, type WriteQueue } from './writeQueue';
+
 type Props = {
   session_id: string;
   visible: boolean;
   theme: ITheme;
   fontScale: number;
   disabled: boolean;
+  /**
+   * When true, fetch a snapshot of recent output from the main process and
+   * write it before consuming any live events. Set to true for sessions
+   * recovered via `terminal.list` on renderer re-attach.
+   */
+  restored: boolean;
 };
 
 const BASE_FONT_SIZE = 13;
 const FONT_FAMILY = "'JetBrains Mono', Menlo, Monaco, Consolas, 'Liberation Mono', monospace";
 
-const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontScale, disabled }) => {
+const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontScale, disabled, restored }) => {
   const hostRef = useRef<HTMLDivElement | null>(null);
   const termRef = useRef<Terminal | null>(null);
   const fitRef = useRef<FitAddon | null>(null);
   const resizeObsRef = useRef<ResizeObserver | null>(null);
   const lastSizeRef = useRef<{ cols: number; rows: number } | null>(null);
   const fitDebounceRef = useRef<number | null>(null);
+  const queueRef = useRef<WriteQueue | null>(null);
 
   // Mount the terminal once. We re-fit on visibility changes and resizes.
   useEffect(() => {
@@ -73,11 +88,47 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
       void ipcBridge.terminal.write.invoke({ session_id, data });
     });
 
-    // Listen for PTY output and write it into the terminal.
+    // Serialize all writes through a single-flight queue so a flood of PTY
+    // events can never accumulate unbounded chunks in xterm's parser. The
+    // queue chains writes via xterm's write callback and caps the
+    // concatenation buffer at 1MB per write.
+    const queue = createWriteQueue((data, cb) => {
+      term.write(data, cb);
+    });
+    queueRef.current = queue;
+
+    // Re-attach ordering: subscribe to live output FIRST so no event is
+    // dropped, but route every event into a local reattach buffer instead
+    // of straight into xterm while we fetch the snapshot. Once the
+    // snapshot lands we drain `reattachBuf` into the main write queue in
+    // order, then flip the listener to forward directly. This guarantees:
+    //   1. The snapshot's contents are written before any new event the
+    //      main process emitted after the snapshot was taken.
+    //   2. No event is lost: anything that arrived between subscribe and
+    //      snapshot land is appended to the snapshot before drain.
+    // For non-restored sessions this is a no-op (no snapshot, events go
+    // straight to the queue).
+    const reattachBuf: string[] = [];
+    let reattachDone = !restored;
     const offOutput = ipcBridge.terminal.output.on((event: TerminalOutputEvent) => {
       if (event.session_id !== session_id) return;
-      term.write(event.data);
+      if (reattachDone) {
+        queue.enqueue(event.data);
+        return;
+      }
+      reattachBuf.push(event.data);
     });
+
+    if (restored) {
+      void attachReattach({
+        session_id,
+        reattachBuf,
+        onComplete: () => {
+          reattachDone = true;
+        },
+        flush: (chunk) => queue.enqueue(chunk),
+      });
+    }
 
     // Watch container size to re-fit + push the new dimensions to the PTY.
     //
@@ -121,6 +172,8 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
         window.clearTimeout(fitDebounceRef.current);
         fitDebounceRef.current = null;
       }
+      queue.dispose();
+      queueRef.current = null;
       term.dispose();
       termRef.current = null;
       fitRef.current = null;
@@ -185,3 +238,61 @@ const TerminalInstance: React.FC<Props> = ({ session_id, visible, theme, fontSca
 };
 
 export default React.memo(TerminalInstance);
+
+type ReattachArgs = {
+  session_id: string;
+  reattachBuf: string[];
+  flush: (chunk: string) => void;
+  onComplete: () => void;
+};
+
+/**
+ * Re-attach ordering helper.
+ *
+ * Race-free sequence for restoring a session's scrollback:
+ *   1. Caller has already subscribed to live output; events land in
+ *      `reattachBuf`.
+ *   2. We fetch the snapshot from main. The snapshot represents the
+ *      main-side view of the ring buffer AT FETCH TIME — anything main
+ *      emitted after that point will arrive via the live subscription.
+ *   3. We concatenate `snapshot + reattachBuf` and write the combined
+ *      blob into xterm. This guarantees chronological order: the snapshot
+ *      covers the pre-fetch history, the reattachBuf covers the
+ *      subscribe-to-fetch window. No duplicate output (snapshot is from
+ *      before our subscription) and no gap (reattachBuf fills the window).
+ *   4. After the combined blob is enqueued, the live subscription switches
+ *      to forwarding directly to the queue (the next event handler
+ *      invocation in the closure no longer pushes to reattachBuf because
+ *      we null it out after step 3).
+ *
+ * If the snapshot RPC fails we log, drop the reattach buffer, and resume
+ * live forwarding — the user will see a blank screen until live events
+ * catch up, but no event is lost.
+ */
+async function attachReattach({ session_id, reattachBuf, flush, onComplete }: ReattachArgs): Promise<void> {
+  let snapshot: string | null = null;
+  try {
+    const res = await ipcBridge.terminal.snapshot.invoke({ session_id });
+    if (res?.success) {
+      snapshot = res.data ?? null;
+    } else {
+      console.warn('[TerminalInstance] snapshot failed:', res?.msg ?? 'unknown');
+    }
+  } catch (error) {
+    console.warn('[TerminalInstance] snapshot threw:', error);
+  }
+
+  // Drain everything we captured between subscribe and snapshot completion.
+  const buffered = reattachBuf.join('');
+  reattachBuf.length = 0;
+
+  if (snapshot && snapshot.length > 0) {
+    flush(snapshot);
+  }
+  if (buffered.length > 0) {
+    flush(buffered);
+  }
+  // Flip the live listener into direct-queue mode. Anything that arrives
+  // after this point bypasses reattachBuf and goes straight to the queue.
+  onComplete();
+}

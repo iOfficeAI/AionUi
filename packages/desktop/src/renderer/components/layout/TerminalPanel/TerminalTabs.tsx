@@ -13,7 +13,7 @@
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Input, Tooltip } from '@arco-design/web-react';
-import { Close, Down, Pin, Plus } from '@icon-park/react';
+import { Close, Down, Pin, Plus, Sort } from '@icon-park/react';
 import classNames from 'classnames';
 
 import type { TerminalSession } from './types';
@@ -28,6 +28,10 @@ type Props = {
   onCollapsePanel: () => void;
   pinned: boolean;
   onTogglePinned: () => void;
+  /** Optional: open a right-pane split rooted at the active session's cwd. */
+  onSplit?: () => void;
+  /** True when a split is already open (used to disable / repurpose the button). */
+  splitActive?: boolean;
 };
 
 const TerminalTabs: React.FC<Props> = ({
@@ -40,6 +44,8 @@ const TerminalTabs: React.FC<Props> = ({
   onCollapsePanel,
   pinned,
   onTogglePinned,
+  onSplit,
+  splitActive = false,
 }) => {
   const { t } = useTranslation();
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -143,6 +149,25 @@ const TerminalTabs: React.FC<Props> = ({
             <Plus theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
           </button>
         </Tooltip>
+        {onSplit ? (
+          <Tooltip content={t('terminal.split.open', { defaultValue: 'Split terminal' })} position='top' mini>
+            <button
+              type='button'
+              className={classNames(
+                'flex-center size-22px bg-transparent border-none p-0 m-0 rd-4px transition-colors',
+                splitActive
+                  ? 'cursor-not-allowed opacity-40 text-t-tertiary'
+                  : 'cursor-pointer text-t-secondary hover:bg-fill-3 hover:text-t-primary'
+              )}
+              aria-label={t('terminal.split.open', { defaultValue: 'Split terminal' })}
+              aria-pressed={splitActive}
+              disabled={splitActive}
+              onClick={onSplit}
+            >
+              <Sort theme='outline' size='14' fill='currentColor' style={{ lineHeight: 0 }} />
+            </button>
+          </Tooltip>
+        ) : null}
         <Tooltip
           content={t('terminal.pin', { defaultValue: pinned ? 'Unpin terminal' : 'Pin terminal open' })}
           position='top'
