@@ -173,10 +173,7 @@ const AboutModalContent: React.FC = () => {
         </div>
       </div>
       <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
-      <ThirdPartyNoticesModal
-        visible={showThirdPartyNotices}
-        onCancel={() => setShowThirdPartyNotices(false)}
-      />
+      <ThirdPartyNoticesModal visible={showThirdPartyNotices} onCancel={() => setShowThirdPartyNotices(false)} />
     </div>
   );
 };
