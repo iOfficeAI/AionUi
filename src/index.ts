@@ -760,7 +760,7 @@ app.on('before-quit', async () => {
     // Stop all active team sessions (TCP servers + child processes)
     await disposeAllTeamSessions().catch((err) => console.error('[App] Failed to dispose team sessions:', err));
 
-    // Remove workspace snapshot temp gitdirs that back non-git workspaces.
+    // Clear workspace snapshot state before shutdown.
     await disposeAllSnapshots().catch((err) => console.error('[App] Failed to dispose workspace snapshots:', err));
 
     // Shutdown Channel subsystem

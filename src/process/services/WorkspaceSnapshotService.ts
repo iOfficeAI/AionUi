@@ -15,31 +15,10 @@ const execFileAsync = promisify(execFile);
 const SNAPSHOT_TEMP_PREFIX = 'aionui-snapshot-';
 
 type SnapshotState = {
-  mode: 'git-repo' | 'snapshot';
+  mode: 'git-repo';
   workspacePath: string;
-  gitdir: string;
-  baselineRef: string;
   branch: string | null;
 };
-
-const DEFAULT_GITIGNORE = `node_modules/
-.git/
-*.lock
-dist/
-build/
-out/
-target/
-.next/
-.nuxt/
-.output/
-.cache/
-.parcel-cache/
-.tsbuildinfo
-__pycache__/
-.venv/
-venv/
-*.pyc
-`;
 
 export class WorkspaceSnapshotService {
   private snapshots = new Map<string, SnapshotState>();
@@ -52,7 +31,7 @@ export class WorkspaceSnapshotService {
       await this.removeSnapshot(workspacePath);
     }
 
-    // Verify workspace directory exists before attempting snapshot.
+    // Verify workspace directory exists before attempting git detection.
     // Temp directories (claude-temp-*, .gemini, etc.) may be deleted before init runs.
     try {
       const stat = await fs.stat(workspacePath);
@@ -68,7 +47,8 @@ export class WorkspaceSnapshotService {
     if (mode === 'git-repo') {
       return this.initGitRepo(workspacePath, version);
     }
-    return this.initSnapshot(workspacePath, version);
+
+    return { mode: 'snapshot', branch: null };
   }
 
   async compare(workspacePath: string): Promise<CompareResult> {
@@ -77,10 +57,7 @@ export class WorkspaceSnapshotService {
       return { staged: [], unstaged: [] };
     }
 
-    if (state.mode === 'git-repo') {
-      return this.compareGitRepo(workspacePath);
-    }
-    return this.compareSnapshot(state);
+    return this.compareGitRepo(workspacePath);
   }
 
   async getBaselineContent(workspacePath: string, filePath: string): Promise<string | null> {
@@ -90,8 +67,7 @@ export class WorkspaceSnapshotService {
     }
 
     try {
-      const gitArgs = state.mode === 'git-repo' ? [] : this.gitArgs(state);
-      const { stdout } = await execFileAsync('git', [...gitArgs, 'show', `HEAD:${filePath}`], {
+      const { stdout } = await execFileAsync('git', ['show', `HEAD:${filePath}`], {
         cwd: workspacePath,
         maxBuffer: 50 * 1024 * 1024,
         encoding: 'utf-8',
@@ -114,7 +90,7 @@ export class WorkspaceSnapshotService {
 
   async getBranches(workspacePath: string): Promise<string[]> {
     const state = this.snapshots.get(workspacePath);
-    if (!state || state.mode !== 'git-repo') {
+    if (!state) {
       return [];
     }
     const { stdout } = await execFileAsync('git', ['branch', '--format=%(refname:short)'], { cwd: workspacePath });
@@ -161,21 +137,8 @@ export class WorkspaceSnapshotService {
 
   // --- Snapshot mode reset ---
 
-  async resetFile(workspacePath: string, filePath: string, operation: FileChangeInfo['operation']): Promise<void> {
-    const state = this.snapshots.get(workspacePath);
-    if (!state || state.mode !== 'snapshot') return;
-
-    const fullPath = path.join(workspacePath, filePath);
-
-    if (operation === 'create') {
-      await fs.unlink(fullPath).catch(() => {});
-    } else {
-      const content = await this.getBaselineContent(workspacePath, filePath);
-      if (content !== null) {
-        await fs.mkdir(path.dirname(fullPath), { recursive: true }).catch(() => {});
-        await fs.writeFile(fullPath, content, 'utf-8');
-      }
-    }
+  async resetFile(_workspacePath: string, _filePath: string, _operation: FileChangeInfo['operation']): Promise<void> {
+    // Non-git snapshot baselines are disabled to avoid creating aionui-snapshot-* temp directories.
   }
 
   // --- Lifecycle ---
@@ -186,16 +149,6 @@ export class WorkspaceSnapshotService {
   }
 
   private async removeSnapshot(workspacePath: string): Promise<void> {
-    const state = this.snapshots.get(workspacePath);
-    if (!state) {
-      return;
-    }
-
-    // Only snapshot mode uses a temp gitdir that needs cleanup
-    if (state.mode === 'snapshot') {
-      await fs.rm(state.gitdir, { recursive: true, force: true }).catch(() => {});
-    }
-
     this.snapshots.delete(workspacePath);
   }
 
@@ -224,13 +177,9 @@ export class WorkspaceSnapshotService {
 
   // --- Private ---
 
-  private gitArgs(state: SnapshotState): string[] {
-    return [`--git-dir=${state.gitdir}`, `--work-tree=${state.workspacePath}`];
-  }
-
   private ensureGitRepo(workspacePath: string): void {
     const state = this.snapshots.get(workspacePath);
-    if (!state || state.mode !== 'git-repo') {
+    if (!state) {
       throw new Error('Git operations are only available in git-repo mode');
     }
   }
@@ -245,22 +194,12 @@ export class WorkspaceSnapshotService {
   }
 
   private async initGitRepo(workspacePath: string, version: number): Promise<SnapshotInfo> {
-    const gitdir = path.join(workspacePath, '.git');
-
     let branch: string | null = null;
     try {
       const { stdout } = await execFileAsync('git', ['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: workspacePath });
       branch = stdout.trim() || null;
     } catch {
       // Detached HEAD or empty repo
-    }
-
-    let baselineRef = 'HEAD';
-    try {
-      const { stdout } = await execFileAsync('git', ['rev-parse', 'HEAD'], { cwd: workspacePath });
-      baselineRef = stdout.trim();
-    } catch {
-      // Empty repo with no commits
     }
 
     if (!this.isCurrentLifecycleVersion(workspacePath, version)) {
@@ -270,51 +209,10 @@ export class WorkspaceSnapshotService {
     this.snapshots.set(workspacePath, {
       mode: 'git-repo',
       workspacePath,
-      gitdir,
-      baselineRef,
       branch,
     });
 
     return { mode: 'git-repo', branch };
-  }
-
-  private async initSnapshot(workspacePath: string, version: number): Promise<SnapshotInfo> {
-    let gitdir: string | undefined;
-    try {
-      gitdir = await this.createWorkingTreeSnapshot(workspacePath);
-    } catch {
-      // Workspace may have been removed during snapshot creation — clean up and bail
-      return { mode: 'snapshot', branch: null };
-    }
-
-    let baselineRef: string;
-    try {
-      const { stdout: oidOut } = await execFileAsync(
-        'git',
-        [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`, 'rev-parse', 'HEAD'],
-        { cwd: workspacePath }
-      );
-      baselineRef = oidOut.trim();
-    } catch {
-      // Temp gitdir may have been cleaned up by OS or anti-virus — bail gracefully
-      await fs.rm(gitdir, { recursive: true, force: true }).catch(() => {});
-      return { mode: 'snapshot', branch: null };
-    }
-
-    if (!this.isCurrentLifecycleVersion(workspacePath, version)) {
-      await fs.rm(gitdir, { recursive: true, force: true }).catch(() => {});
-      return { mode: 'snapshot', branch: null };
-    }
-
-    this.snapshots.set(workspacePath, {
-      mode: 'snapshot',
-      workspacePath,
-      gitdir,
-      baselineRef,
-      branch: null,
-    });
-
-    return { mode: 'snapshot', branch: null };
   }
 
   private bumpLifecycleVersion(workspacePath: string): number {
@@ -365,101 +263,5 @@ export class WorkspaceSnapshotService {
     }
 
     return { staged, unstaged };
-  }
-
-  /** Compare snapshot mode — all changes go to unstaged (no staging concept) */
-  private async compareSnapshot(state: SnapshotState): Promise<CompareResult> {
-    const gitArgs = this.gitArgs(state);
-    const changes: FileChangeInfo[] = [];
-
-    const { stdout: diffOut } = await execFileAsync('git', [...gitArgs, 'diff', '--name-status', state.baselineRef], {
-      cwd: state.workspacePath,
-      maxBuffer: 10 * 1024 * 1024,
-    });
-
-    for (const line of diffOut.split('\n')) {
-      if (!line) continue;
-      const status = line[0];
-      const filepath = line.slice(2);
-      if (status === 'M') {
-        changes.push({
-          relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
-          operation: 'modify',
-        });
-      } else if (status === 'D') {
-        changes.push({
-          relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
-          operation: 'delete',
-        });
-      } else if (status === 'A') {
-        changes.push({
-          relativePath: filepath,
-          filePath: path.join(state.workspacePath, filepath),
-          operation: 'create',
-        });
-      }
-    }
-
-    const { stdout: untrackedOut } = await execFileAsync(
-      'git',
-      [...gitArgs, 'ls-files', '--others', '--exclude-standard'],
-      { cwd: state.workspacePath, maxBuffer: 10 * 1024 * 1024 }
-    );
-
-    for (const filepath of untrackedOut.split('\n')) {
-      if (!filepath) continue;
-      changes.push({ relativePath: filepath, filePath: path.join(state.workspacePath, filepath), operation: 'create' });
-    }
-
-    return { staged: [], unstaged: changes };
-  }
-
-  private async createWorkingTreeSnapshot(workspacePath: string): Promise<string> {
-    const gitdir = path.join(
-      os.tmpdir(),
-      `${SNAPSHOT_TEMP_PREFIX}${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
-    );
-    const gitArgs = [`--git-dir=${gitdir}`, `--work-tree=${workspacePath}`];
-
-    try {
-      await execFileAsync('git', ['init', '--bare', gitdir]);
-      await fs.writeFile(path.join(gitdir, 'info', 'exclude'), DEFAULT_GITIGNORE, 'utf-8');
-      // Use --ignore-errors so locked/permission-denied files don't abort the entire snapshot.
-      // The command still exits non-zero when some files fail, so catch and verify the commit succeeds.
-      try {
-        await execFileAsync('git', [...gitArgs, 'add', '--ignore-errors', '.'], {
-          cwd: workspacePath,
-          maxBuffer: 10 * 1024 * 1024,
-        });
-      } catch (error) {
-        const stderr = (error as { stderr?: string }).stderr ?? '';
-        // Re-throw if the error is NOT a partial indexing failure (e.g. git not found)
-        if (!stderr.includes('Permission denied') && !stderr.includes('unable to index file')) {
-          throw error;
-        }
-      }
-      await execFileAsync(
-        'git',
-        [
-          ...gitArgs,
-          '-c',
-          'user.name=AionUI',
-          '-c',
-          'user.email=snapshot@aionui.local',
-          'commit',
-          '--allow-empty',
-          '-m',
-          'baseline',
-        ],
-        { cwd: workspacePath, maxBuffer: 10 * 1024 * 1024 }
-      );
-    } catch (error) {
-      await fs.rm(gitdir, { recursive: true, force: true }).catch(() => {});
-      throw error;
-    }
-
-    return gitdir;
   }
 }

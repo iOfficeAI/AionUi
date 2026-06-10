@@ -7,6 +7,12 @@ import { promisify } from 'node:util';
 import { WorkspaceSnapshotService } from '../../src/process/services/WorkspaceSnapshotService';
 
 const exec = promisify(execFile);
+const SNAPSHOT_TEMP_PREFIX = 'aionui-snapshot-';
+
+async function listSnapshotEntries(tmpRoot: string): Promise<string[]> {
+  const entries = await fs.readdir(tmpRoot);
+  return entries.filter((name) => name.startsWith(SNAPSHOT_TEMP_PREFIX));
+}
 
 describe('WorkspaceSnapshotService', () => {
   let service: WorkspaceSnapshotService;
@@ -18,167 +24,125 @@ describe('WorkspaceSnapshotService', () => {
   });
 
   afterEach(async () => {
+    vi.restoreAllMocks();
     await service.disposeAll().catch(() => {});
     await fs.rm(tmpDir, { recursive: true, force: true });
   });
 
   describe('snapshot mode (no .git)', () => {
-    it('init returns snapshot mode with null branch', async () => {
+    it('init returns snapshot mode without creating a temp snapshot directory', async () => {
+      const testTmpRoot = path.join(tmpDir, 'isolated-tmp');
+      await fs.mkdir(testTmpRoot);
+      vi.spyOn(os, 'tmpdir').mockReturnValue(testTmpRoot);
       await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'hello');
+
       const info = await service.init(tmpDir);
-      expect(info.mode).toBe('snapshot');
-      expect(info.branch).toBeNull();
+      const leakedSnapshots = await listSnapshotEntries(testTmpRoot);
+
+      expect(info).toEqual({ mode: 'snapshot', branch: null });
+      expect(leakedSnapshots).toEqual([]);
     });
 
-    it('init succeeds when a file is not readable (permission denied)', async () => {
+    it('init succeeds when a file is not readable', async () => {
       await fs.writeFile(path.join(tmpDir, 'readable.txt'), 'ok');
       const unreadablePath = path.join(tmpDir, 'locked.txt');
       await fs.writeFile(unreadablePath, 'locked content');
-      // Remove all permissions so git cannot read the file
       await fs.chmod(unreadablePath, 0o000);
 
       try {
         const info = await service.init(tmpDir);
-        expect(info.mode).toBe('snapshot');
-
-        // The readable file should still be tracked
-        const content = await service.getBaselineContent(tmpDir, 'readable.txt');
-        expect(content).toBe('ok');
+        expect(info).toEqual({ mode: 'snapshot', branch: null });
       } finally {
-        // Restore permissions for cleanup
         await fs.chmod(unreadablePath, 0o644);
       }
     });
 
-    it('compare detects new file as create', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+    it('compare stays empty after files are created, modified, and deleted', async () => {
+      const deletedPath = path.join(tmpDir, 'deleted.txt');
+      await fs.writeFile(path.join(tmpDir, 'modified.txt'), 'original');
+      await fs.writeFile(deletedPath, 'remove me');
       await service.init(tmpDir);
 
-      await fs.writeFile(path.join(tmpDir, 'b.txt'), 'new file');
-      const { unstaged } = await service.compare(tmpDir);
+      await fs.writeFile(path.join(tmpDir, 'created.txt'), 'new file');
+      await fs.writeFile(path.join(tmpDir, 'modified.txt'), 'modified content');
+      await fs.unlink(deletedPath);
+      const changes = await service.compare(tmpDir);
 
-      const created = unstaged.find((c) => c.relativePath === 'b.txt');
-      expect(created).toBeDefined();
-      expect(created!.operation).toBe('create');
+      expect(changes).toEqual({ staged: [], unstaged: [] });
     });
 
-    it('compare detects modified file', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
-      await service.init(tmpDir);
-
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
-      const { unstaged } = await service.compare(tmpDir);
-
-      const modified = unstaged.find((c) => c.relativePath === 'a.txt');
-      expect(modified).toBeDefined();
-      expect(modified!.operation).toBe('modify');
-    });
-
-    it('compare detects deleted file', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
-      await service.init(tmpDir);
-
-      await fs.unlink(path.join(tmpDir, 'a.txt'));
-      const { unstaged } = await service.compare(tmpDir);
-
-      const deleted = unstaged.find((c) => c.relativePath === 'a.txt');
-      expect(deleted).toBeDefined();
-      expect(deleted!.operation).toBe('delete');
-    });
-
-    it('compare returns empty when nothing changed', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
-      await service.init(tmpDir);
-
-      const { staged, unstaged } = await service.compare(tmpDir);
-      expect(staged).toEqual([]);
-      expect(unstaged).toEqual([]);
-    });
-
-    it('snapshot mode has no staged files', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
-      await service.init(tmpDir);
-
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
-      const { staged } = await service.compare(tmpDir);
-      expect(staged).toEqual([]);
-    });
-
-    it('getBaselineContent returns original content', async () => {
+    it('getBaselineContent returns null for non-git workspaces', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original content');
       await service.init(tmpDir);
 
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
       const content = await service.getBaselineContent(tmpDir, 'a.txt');
-      expect(content).toBe('original content');
+
+      expect(content).toBeNull();
     });
 
     it('getBranches returns empty array in snapshot mode', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'content');
       await service.init(tmpDir);
+
       const branches = await service.getBranches(tmpDir);
+
       expect(branches).toEqual([]);
     });
 
-    it('getBaselineContent returns null for non-existent file', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+    it('resetFile leaves modified files unchanged', async () => {
+      const filePath = path.join(tmpDir, 'a.txt');
+      await fs.writeFile(filePath, 'original');
       await service.init(tmpDir);
 
-      const content = await service.getBaselineContent(tmpDir, 'nonexistent.txt');
-      expect(content).toBeNull();
-    });
-
-    it('resetFile restores modified file', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
-      await service.init(tmpDir);
-
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'modified content');
+      await fs.writeFile(filePath, 'modified content');
       await service.resetFile(tmpDir, 'a.txt', 'modify');
+      const content = await fs.readFile(filePath, 'utf-8');
 
-      const content = await fs.readFile(path.join(tmpDir, 'a.txt'), 'utf-8');
-      expect(content).toBe('original');
+      expect(content).toBe('modified content');
     });
 
-    it('resetFile deletes created file', async () => {
-      await fs.writeFile(path.join(tmpDir, 'a.txt'), 'original');
+    it('resetFile leaves created files in place', async () => {
       await service.init(tmpDir);
+      const filePath = path.join(tmpDir, 'new.txt');
+      await fs.writeFile(filePath, 'new file');
 
-      await fs.writeFile(path.join(tmpDir, 'new.txt'), 'new file');
       await service.resetFile(tmpDir, 'new.txt', 'create');
+      const content = await fs.readFile(filePath, 'utf-8');
 
-      await expect(fs.access(path.join(tmpDir, 'new.txt'))).rejects.toThrow();
+      expect(content).toBe('new file');
     });
 
-    it('dispose cleans up temp gitdir', async () => {
+    it('dispose keeps compare safe for non-git workspaces', async () => {
       await fs.writeFile(path.join(tmpDir, 'a.txt'), 'content');
       await service.init(tmpDir);
 
       await service.dispose(tmpDir);
+      const changes = await service.compare(tmpDir);
 
-      const { staged, unstaged } = await service.compare(tmpDir);
-      expect(staged).toEqual([]);
-      expect(unstaged).toEqual([]);
+      expect(changes).toEqual({ staged: [], unstaged: [] });
     });
+  });
 
-    it('does not leave a temp gitdir when disposed before snapshot init completes', async () => {
+  describe('stale snapshot cleanup', () => {
+    it('removes old aionui-snapshot directories without deleting unrelated temp entries', async () => {
       const testTmpRoot = path.join(tmpDir, 'isolated-tmp');
-      const workspacePath = path.join(tmpDir, 'dispose-race');
-      await fs.mkdir(testTmpRoot);
-      await fs.mkdir(workspacePath);
-      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
+      const staleSnapshot = path.join(testTmpRoot, `${SNAPSHOT_TEMP_PREFIX}old`);
+      const unrelatedDir = path.join(testTmpRoot, 'aionui-other');
+      await fs.mkdir(staleSnapshot, { recursive: true });
+      await fs.mkdir(unrelatedDir);
       vi.spyOn(os, 'tmpdir').mockReturnValue(testTmpRoot);
 
-      try {
-        const initPromise = service.init(workspacePath);
-        await service.dispose(workspacePath);
-        await initPromise;
+      await WorkspaceSnapshotService.cleanupStaleSnapshots();
 
-        const entries = await fs.readdir(testTmpRoot);
-        const leakedSnapshots = entries.filter((name) => name.startsWith('aionui-snapshot-'));
-        expect(leakedSnapshots).toEqual([]);
-      } finally {
-        vi.restoreAllMocks();
-      }
+      await expect(fs.access(staleSnapshot)).rejects.toThrow();
+      await expect(fs.access(unrelatedDir)).resolves.toBeUndefined();
+    });
+
+    it('returns safely when the temp directory cannot be read', async () => {
+      vi.spyOn(os, 'tmpdir').mockReturnValue(path.join(tmpDir, 'missing-tmp'));
+
+      await expect(WorkspaceSnapshotService.cleanupStaleSnapshots()).resolves.toBeUndefined();
     });
   });
 
@@ -332,108 +296,7 @@ describe('WorkspaceSnapshotService', () => {
     });
   });
 
-  describe('DEFAULT_GITIGNORE excludes common heavy directories (#2159)', () => {
-    it('keeps snapshot ignore rules out of the workspace root', async () => {
-      await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'hello');
-      await service.init(tmpDir);
-
-      await expect(fs.access(path.join(tmpDir, '.gitignore'))).rejects.toThrow();
-    });
-
-    it('excludes dist/ files from snapshot baseline', async () => {
-      // Create a workspace with build output that should be excluded
-      await fs.mkdir(path.join(tmpDir, 'dist'), { recursive: true });
-      await fs.writeFile(path.join(tmpDir, 'dist', 'bundle.js'), 'large bundle');
-      await fs.writeFile(path.join(tmpDir, 'src.txt'), 'source');
-      await service.init(tmpDir);
-
-      // Modify a file in dist — should not appear in compare since dist is gitignored
-      await fs.writeFile(path.join(tmpDir, 'dist', 'bundle.js'), 'changed bundle');
-      const { unstaged } = await service.compare(tmpDir);
-      const distChange = unstaged.find((c) => c.relativePath.startsWith('dist/'));
-      expect(distChange).toBeUndefined();
-    });
-  });
-
-  describe('snapshot gitdir deleted externally (ELECTRON-G7)', () => {
-    it('does not leave a temp gitdir when snapshot creation fails', async () => {
-      const testTmpRoot = path.join(tmpDir, 'isolated-tmp');
-      const workspacePath = path.join(tmpDir, 'broken-snapshot');
-      await fs.mkdir(testTmpRoot);
-      await fs.mkdir(workspacePath);
-      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
-
-      const originalPath = process.env.PATH;
-      process.env.PATH = '';
-      vi.spyOn(os, 'tmpdir').mockReturnValue(testTmpRoot);
-      try {
-        const info = await service.init(workspacePath);
-        expect(info).toEqual({ mode: 'snapshot', branch: null });
-
-        const entries = await fs.readdir(testTmpRoot);
-        const leakedSnapshots = entries.filter((name) => name.startsWith('aionui-snapshot-'));
-        expect(leakedSnapshots).toEqual([]);
-      } finally {
-        process.env.PATH = originalPath;
-        vi.restoreAllMocks();
-      }
-    });
-
-    it('init returns fallback when temp gitdir is removed before rev-parse', async () => {
-      // Simulate the scenario: workspace exists but after createWorkingTreeSnapshot,
-      // the temp gitdir gets cleaned up by OS/antivirus before rev-parse HEAD runs.
-      // We do this by creating a snapshot, noting the gitdir path, deleting it,
-      // then re-init — which exercises the same code path via a stale temp directory.
-      await fs.writeFile(path.join(tmpDir, 'hello.txt'), 'content');
-
-      // First init should work
-      const info = await service.init(tmpDir);
-      expect(info.mode).toBe('snapshot');
-
-      // Get baseline content to confirm snapshot is functional
-      const content = await service.getBaselineContent(tmpDir, 'hello.txt');
-      expect(content).toBe('content');
-
-      // Dispose to clear internal state, then immediately init again
-      // This should succeed even if previous temp dirs were cleaned up
-      await service.dispose(tmpDir);
-      const info2 = await service.init(tmpDir);
-      expect(info2.mode).toBe('snapshot');
-    });
-
-    it('init does not leave unhandled rejection when workspace is deleted during snapshot', async () => {
-      await fs.writeFile(path.join(tmpDir, 'temp.txt'), 'data');
-      const workspacePath = path.join(tmpDir, 'ephemeral');
-      await fs.mkdir(workspacePath);
-      await fs.writeFile(path.join(workspacePath, 'file.txt'), 'data');
-
-      // Delete workspace just before init completes — should return gracefully
-      const initPromise = service.init(workspacePath);
-      // Even if workspace is available during init, the result should not throw
-      const info = await initPromise;
-      expect(info.mode).toBeDefined();
-    });
-  });
-
   describe('maxBuffer handling (ELECTRON-G4)', () => {
-    it('snapshot init handles workspace with many files without maxBuffer error', async () => {
-      // Create many files to exercise the git add . path with substantial output
-      const subdir = path.join(tmpDir, 'deep', 'nested', 'dir');
-      await fs.mkdir(subdir, { recursive: true });
-      const writePromises = [];
-      for (let i = 0; i < 200; i++) {
-        writePromises.push(fs.writeFile(path.join(subdir, `file-${i}.txt`), `content-${i}`));
-      }
-      await Promise.all(writePromises);
-
-      // This should not throw "stderr maxBuffer length exceeded"
-      const info = await service.init(tmpDir);
-      expect(info.mode).toBe('snapshot');
-
-      const { unstaged } = await service.compare(tmpDir);
-      expect(unstaged).toEqual([]);
-    });
-
     it('stageAll handles many files without maxBuffer error', async () => {
       await exec('git', ['init'], { cwd: tmpDir });
       await exec(

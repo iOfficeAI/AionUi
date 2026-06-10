@@ -914,6 +914,7 @@ ${collectedResponses.join('\n')}`;
       if (!isModelAvailable) {
         mainWarn('[AcpAgentManager]', `Persisted model ${this.persistedModelId} is not in available models, clearing`);
         this.persistedModelId = null;
+        void this.clearSavedModelId();
       } else if (currentInfo?.currentModelId !== this.persistedModelId) {
         try {
           await this.agent.setModelByConfigOption(this.persistedModelId);
@@ -931,6 +932,7 @@ ${collectedResponses.join('\n')}`;
             });
           }
           this.persistedModelId = null;
+          void this.clearSavedModelId();
         }
       }
     }
@@ -1552,6 +1554,23 @@ ${collectedResponses.join('\n')}`;
       }
     } catch (error) {
       mainWarn('[AcpAgentManager]', 'Failed to save model ID', error);
+    }
+  }
+
+  private async clearSavedModelId(): Promise<void> {
+    try {
+      const db = await getDatabase();
+      const result = db.getConversation(this.conversation_id);
+      if (result.success && result.data && result.data.type === 'acp') {
+        const conversation = result.data;
+        const updatedExtra: Record<string, unknown> = { ...conversation.extra };
+        delete updatedExtra.currentModelId;
+        db.updateConversation(this.conversation_id, {
+          extra: updatedExtra,
+        } as Partial<typeof conversation>);
+      }
+    } catch (error) {
+      mainWarn('[AcpAgentManager]', 'Failed to clear model ID', error);
     }
   }
 

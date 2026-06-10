@@ -46,6 +46,46 @@ describe('ConfigTracker', () => {
     expect(ct.getPendingChanges().model).toBe('gpt-4');
   });
 
+  it('drops desired model when it is absent from session model list', () => {
+    const ct = new ConfigTracker({ model: 'claude-sonnet-4-6' });
+    ct.syncFromSessionResult({
+      currentModelId: 'default',
+      availableModels: [
+        { modelId: 'default', name: 'Claude Default' },
+        { modelId: 'opus', name: 'Claude Opus' },
+      ],
+      cwd: '/tmp',
+    });
+
+    expect(ct.discardUnavailableDesiredModel()).toBe('claude-sonnet-4-6');
+    expect(ct.getPendingChanges().model).toBeNull();
+    expect(ct.modelSnapshot().currentModelId).toBe('default');
+  });
+
+  it('keeps desired model when it exists in a model config option', () => {
+    const ct = new ConfigTracker({ model: 'opus' });
+    ct.syncFromSessionResult({
+      currentModelId: 'default',
+      configOptions: [
+        {
+          id: 'model',
+          name: 'Model',
+          type: 'select',
+          category: 'model',
+          currentValue: 'default',
+          options: [
+            { id: 'default', name: 'Claude Default' },
+            { id: 'opus', name: 'Claude Opus' },
+          ],
+        },
+      ],
+      cwd: '/tmp',
+    });
+
+    expect(ct.discardUnavailableDesiredModel()).toBeNull();
+    expect(ct.getPendingChanges().model).toBe('opus');
+  });
+
   it('setDesiredMode caches intent', () => {
     const ct = new ConfigTracker();
     ct.setDesiredMode('architect');

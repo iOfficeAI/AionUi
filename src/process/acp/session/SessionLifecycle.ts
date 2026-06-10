@@ -314,6 +314,12 @@ export class SessionLifecycle {
       cwd: this.host.agentConfig.cwd,
       additionalDirectories: this.host.agentConfig.additionalDirectories,
     });
+    const droppedModel = this.host.configTracker.discardUnavailableDesiredModel();
+    if (droppedModel) {
+      console.warn(
+        `[SessionLifecycle] Dropping unavailable persisted model "${droppedModel}" for backend ${this.host.agentConfig.agentBackend}`
+      );
+    }
 
     this.host.callbacks.onConfigUpdate(this.host.configTracker.configSnapshot());
     this.host.callbacks.onModelUpdate(this.host.configTracker.modelSnapshot());

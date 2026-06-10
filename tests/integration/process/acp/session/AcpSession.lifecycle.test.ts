@@ -102,6 +102,29 @@ describe('AcpSession lifecycle', () => {
     expect(client.createSession).toHaveBeenCalledOnce();
   });
 
+  it('does not reassert an initial model that is absent from available models', async () => {
+    (client.createSession as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
+      sessionId: 'sess-123',
+      models: {
+        currentModelId: 'default',
+        availableModels: [{ modelId: 'default', name: 'Claude Default' }],
+      },
+      configOptions: [],
+    });
+    const session = new AcpSession(baseConfig, clientFactory, callbacks, {
+      initialDesired: { model: 'claude-sonnet-4-6' },
+    });
+
+    session.start();
+    await vi.waitFor(() => expect(session.status).toBe('active'));
+
+    expect(client.setModel).not.toHaveBeenCalled();
+    expect(callbacks.onModelUpdate).toHaveBeenCalledWith({
+      currentModelId: 'default',
+      availableModels: [{ modelId: 'default', name: 'Claude Default' }],
+    });
+  });
+
   it('start() notifies sessionId via callback', async () => {
     const session = new AcpSession(baseConfig, clientFactory, callbacks);
     session.start();

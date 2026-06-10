@@ -126,6 +126,25 @@ export class ConfigTracker {
     };
   }
 
+  discardUnavailableDesiredModel(): string | null {
+    if (!this.desiredModelId) return null;
+    const desired = this.desiredModelId;
+    if (this.isModelAvailable(desired)) return null;
+    this.desiredModelId = null;
+    return desired;
+  }
+
+  private isModelAvailable(modelId: string): boolean {
+    if (this.availableModels.some((model) => model.modelId === modelId)) {
+      return true;
+    }
+
+    return this.currentConfigOptions.some((option) => {
+      if (option.category !== 'model' || option.type !== 'select') return false;
+      return option.options?.some((item) => item.id === modelId) ?? false;
+    });
+  }
+
   clearPending(): void {
     this.desiredModelId = null;
     this.desiredModeId = null;
