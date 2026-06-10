@@ -7,7 +7,12 @@
 // configureChromium sets app name (dev isolation) and Chromium flags — must run before
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
-import { isFirstRun, markFirstRunDone, portableChoicePending, showPortableStorageChoice } from './process/utils/configureChromium';
+import {
+  isFirstRun,
+  markFirstRunDone,
+  portableChoicePending,
+  showPortableStorageChoice,
+} from './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
@@ -192,7 +197,9 @@ if (process.platform === 'win32') {
           if (fs.existsSync(fnmNodeBin)) extraPaths.push(fnmNodeBin);
         }
       }
-    } catch { /* ignore */ }
+    } catch {
+      /* ignore */
+    }
   }
 
   if (extraPaths.length > 0) {
@@ -369,15 +376,17 @@ function markBackendReady(backendPort: number, source: string): void {
 
   // Start the codex-api-proxy so Codex CLI works out-of-the-box.
   // Don't block startup — the proxy starts asynchronously.
-  void ensureCodexProxyRunning().then((result) => {
-    if (result) {
-      console.log(`[AionUi] Codex API proxy running on port ${result.port}`);
-    } else {
-      console.warn('[AionUi] Codex API proxy could not be started — Codex CLI will not work');
-    }
-  }).catch((err) => {
-    console.warn('[AionUi] Codex API proxy startup failed:', err.message || err);
-  });
+  void ensureCodexProxyRunning()
+    .then((result) => {
+      if (result) {
+        console.log(`[AionUi] Codex API proxy running on port ${result.port}`);
+      } else {
+        console.warn('[AionUi] Codex API proxy could not be started — Codex CLI will not work');
+      }
+    })
+    .catch((err) => {
+      console.warn('[AionUi] Codex API proxy startup failed:', err.message || err);
+    });
 }
 
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
@@ -723,8 +732,8 @@ const handleAppReady = async (): Promise<void> => {
     if (missing.length === runtimes.length) {
       console.warn(
         '[AionUi] ⚠️  No JavaScript runtime (node/npm/bun) found in PATH. ' +
-        'CLI installation and MCP servers will not work. ' +
-        'Please install Node.js (https://nodejs.org) or Bun (https://bun.sh).'
+          'CLI installation and MCP servers will not work. ' +
+          'Please install Node.js (https://nodejs.org) or Bun (https://bun.sh).'
       );
     } else if (missing.length > 0) {
       console.log(`[AionUi] Runtime check: found runtimes except: ${missing.join(', ')}`);

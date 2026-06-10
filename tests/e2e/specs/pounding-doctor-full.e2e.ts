@@ -44,13 +44,11 @@ const ALL_CLIS = [
  */
 function findAgent(
   report: AgentDiagnosticReport,
-  backend: string,
+  backend: string
 ): AgentDiagnosticReport['agents'][number] | undefined {
   const lowerBackend = backend.toLowerCase();
   return report.agents.find(
-    (a) =>
-      (a.backend ?? '').toLowerCase() === lowerBackend ||
-      a.name.toLowerCase().includes(lowerBackend),
+    (a) => (a.backend ?? '').toLowerCase() === lowerBackend || a.name.toLowerCase().includes(lowerBackend)
   );
 }
 
@@ -62,9 +60,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
 
     for (const cli of ALL_CLIS) {
       const agent = findAgent(report, cli.backend);
-      const status = agent
-        ? `available=${agent.available}, reason=${agent.reason ?? 'none'}`
-        : 'NOT FOUND';
+      const status = agent ? `available=${agent.available}, reason=${agent.reason ?? 'none'}` : 'NOT FOUND';
       console.log(`[Doctor Full] ${cli.name} (${cli.backend}): ${status}`);
       expect(agent).toBeDefined();
     }
@@ -100,12 +96,11 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
       if (agent) {
         console.log(
           `[Doctor Full] ${cli.name}: available=${agent.available}, ` +
-            `reason=${agent.reason ?? 'none'}, bundledSource=${agent.bundledSource}`,
+            `reason=${agent.reason ?? 'none'}, bundledSource=${agent.bundledSource}`
         );
       } else {
         console.warn(
-          `[Doctor Full] ${cli.name}: not found in diagnostic report ` +
-            `(looked for backend='${cli.backend}')`,
+          `[Doctor Full] ${cli.name}: not found in diagnostic report ` + `(looked for backend='${cli.backend}')`
         );
       }
 
@@ -139,7 +134,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
 
     console.log(
       `[Doctor Full] Target for repair: ${targetCli.name} (${targetCli.backend}) — ` +
-        `available=${targetAgent?.available}, reason=${targetAgent?.reason ?? 'none'}`,
+        `available=${targetAgent?.available}, reason=${targetAgent?.reason ?? 'none'}`
     );
 
     // Trigger repair
@@ -148,7 +143,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
     });
     console.log(
       `[Doctor Full] Repair response: success=${repairResult?.success}, ` +
-        `source=${repairResult?.source}, error=${repairResult?.error}`,
+        `source=${repairResult?.source}, error=${repairResult?.error}`
     );
 
     // Poll until the repaired CLI becomes available (up to 90 seconds)
@@ -162,9 +157,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
       const pollReport = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
       const agent = findAgent(pollReport, targetCli.backend);
 
-      console.log(
-        `[Doctor Full] Check ${i}: ${targetCli.name} available=${agent?.available ?? false}`,
-      );
+      console.log(`[Doctor Full] Check ${i}: ${targetCli.name} available=${agent?.available ?? false}`);
 
       if (agent?.available) {
         installed = true;
@@ -176,7 +169,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
     if (!installed) {
       console.warn(
         `[Doctor Full] ${targetCli.name} not available after 90s — ` +
-          'dev mode may lack bundled resources; this is not a hard failure',
+          'dev mode may lack bundled resources; this is not a hard failure'
       );
     }
   });
@@ -196,9 +189,7 @@ test.describe('POUNDING Doctor — Full CLI Coverage', () => {
     for (const expectedKey of ['uv', 'python', 'hermes']) {
       const runtime = report.runtimes[expectedKey];
       expect(runtime).toBeDefined();
-      console.log(
-        `[Doctor Full] Runtime '${expectedKey}': available=${runtime.available}, path=${runtime.path}`,
-      );
+      console.log(`[Doctor Full] Runtime '${expectedKey}': available=${runtime.available}, path=${runtime.path}`);
     }
   });
 });

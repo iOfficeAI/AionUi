@@ -20,9 +20,7 @@ test.describe('POUNDING Dealer Kit', () => {
     await page.waitForTimeout(5000);
 
     const errors = collector.critical();
-    const dealerErrors = errors.filter(
-      (e) => e.includes('dealer') || e.includes('aff') || e.includes('affiliate')
-    );
+    const dealerErrors = errors.filter((e) => e.includes('dealer') || e.includes('aff') || e.includes('affiliate'));
 
     console.log(`[Dealer] Total errors: ${errors.length}, dealer-related: ${dealerErrors.length}`);
     for (const err of dealerErrors) {

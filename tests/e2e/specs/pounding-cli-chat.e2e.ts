@@ -72,7 +72,7 @@ test.describe('POUNDING CLI Chat — Smoke Test', () => {
       '/api/conversations'
     );
     // API may return an array directly, or an object with { conversations: [...] }
-    const conversations = Array.isArray(result) ? result : result?.conversations ?? [];
+    const conversations = Array.isArray(result) ? result : (result?.conversations ?? []);
     expect(Array.isArray(conversations)).toBe(true);
     console.log(`[Chat] Existing conversations: ${conversations.length}`);
   });
@@ -112,9 +112,7 @@ test.describe('POUNDING CLI Chat — Agent Diagnostics', () => {
       }>(page, '/api/doctor/diagnose');
 
       const agent = report.agents.find(
-        (a) =>
-          (a.backend ?? '').toLowerCase().includes(backend) ||
-          a.name.toLowerCase().includes(backend)
+        (a) => (a.backend ?? '').toLowerCase().includes(backend) || a.name.toLowerCase().includes(backend)
       );
 
       if (!agent) {
@@ -122,9 +120,7 @@ test.describe('POUNDING CLI Chat — Agent Diagnostics', () => {
         return;
       }
 
-      console.log(
-        `[Chat] ${backend}: available=${agent.available}, reason=${agent.reason ?? 'none'}`
-      );
+      console.log(`[Chat] ${backend}: available=${agent.available}, reason=${agent.reason ?? 'none'}`);
 
       if (!agent.available && agent.reason) {
         console.warn(`[Chat] ${backend}: unavailable — ${agent.reason}`);

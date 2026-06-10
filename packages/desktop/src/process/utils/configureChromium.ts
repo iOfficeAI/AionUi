@@ -88,7 +88,9 @@ export function markFirstRunDone(): void {
     const userData = app.getPath('userData');
     const marker = path.join(userData, '.first-run-done');
     fs.writeFileSync(marker, new Date().toISOString(), 'utf8');
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
 }
 
 export async function showPortableStorageChoice(): Promise<void> {

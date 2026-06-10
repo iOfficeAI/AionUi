@@ -312,7 +312,15 @@ const builderArgs = args
   .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
-    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force' || arg === '--skip-prepare' || arg === '--skip-hub') return false;
+    if (
+      arg === '--skip-vite' ||
+      arg === '--skip-native' ||
+      arg === '--pack-only' ||
+      arg === '--force' ||
+      arg === '--skip-prepare' ||
+      arg === '--skip-hub'
+    )
+      return false;
     if (archList.includes(arg)) return false;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
     return true;

@@ -51,7 +51,9 @@ function getAionUiDevDir(): string {
     if (app && app.isReady()) {
       return path.join(app.getPath('userData'), 'pounding');
     }
-  } catch { /* not in Electron context */ }
+  } catch {
+    /* not in Electron context */
+  }
   return path.join(os.homedir(), getEnvAwareName('.pounding'));
 }
 
@@ -281,7 +283,13 @@ function resolveBundledCliDir(target: string): string | null {
     // macOS-only cache path
     const cacheBase = path.join(
       process.env.HOME || os.homedir(),
-      'Library', 'Application Support', 'POUNDING', 'pounding', 'runtime', 'cli', target
+      'Library',
+      'Application Support',
+      'POUNDING',
+      'pounding',
+      'runtime',
+      'cli',
+      target
     );
     candidates.push(cacheBase);
   } else if (process.platform === 'win32' && process.env.APPDATA) {
@@ -358,9 +366,7 @@ function materializeFromBundled(descriptor: ManagedCliDescriptor, bundledDir: st
     const scopeIdx = pkgParts.indexOf('node_modules');
     if (scopeIdx >= 0 && pkgParts.length > scopeIdx + 2) {
       const isScoped = pkgParts[scopeIdx + 2]?.startsWith('@');
-      const pkgDirName = isScoped
-        ? pkgParts[scopeIdx + 2]!
-        : pkgParts[scopeIdx + 1]!;
+      const pkgDirName = isScoped ? pkgParts[scopeIdx + 2]! : pkgParts[scopeIdx + 1]!;
       const srcPkg = path.join(bundledNodeModules, pkgParts[scopeIdx + 1]!);
       const destPkg = path.join(targetNodeModules, pkgParts[scopeIdx + 1]!);
       copyDirContents(srcPkg, destPkg);
@@ -597,7 +603,11 @@ exec "${hermesExe}" "$@"
   fs.writeFileSync(shimPath, shim, writeOpts);
   if (!isWin) {
     // On Windows .cmd files are inherently executable
-    try { fs.chmodSync(shimPath, 0o755); } catch { /* best-effort */ }
+    try {
+      fs.chmodSync(shimPath, 0o755);
+    } catch {
+      /* best-effort */
+    }
   }
 }
 
@@ -663,9 +673,9 @@ export async function preinstallHermesFromBundle(bundledResourcesDir: string): P
       process.platform === 'win32' ? 'python.exe' : 'python'
     );
     await runCommand(uvCmd, ['pip', 'install', '--python', venvPython, wheelPath]);
-      // Hermes ACP mode requires agent-client-protocol (the [acp] extra).
-      // Local wheels do not resolve extras metadata, so install explicitly.
-      await runCommand(uvCmd, ['pip', 'install', '--python', venvPython, 'agent-client-protocol']);
+    // Hermes ACP mode requires agent-client-protocol (the [acp] extra).
+    // Local wheels do not resolve extras metadata, so install explicitly.
+    await runCommand(uvCmd, ['pip', 'install', '--python', venvPython, 'agent-client-protocol']);
 
     writeHermesShim();
     console.log('[POUNDING] Hermes installed from bundled resources');

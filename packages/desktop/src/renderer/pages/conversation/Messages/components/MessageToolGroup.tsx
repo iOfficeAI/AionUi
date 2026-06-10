@@ -460,7 +460,35 @@ const ToolResultDisplay: React.FC<{
 
   // 图片生成特殊处理 Special handling for image generation
   if (IMAGE_GEN_TOOL_NAMES.has(name)) {
-    // Structured result_display object
+    // Handle MCP tool call result objects: extract text from content array
+    if (typeof result_display === 'object' && !(result_display as ImageGenerationResult).img_url) {
+      const obj = result_display as Record<string, unknown>;
+      // MCP protocol: { content: [{ type: 'text', text: '...' }] }
+      if (Array.isArray(obj.content)) {
+        const textContent = (obj.content as Array<{ type?: string; text?: string }>)
+          .filter((c) => c.type === 'text')
+          .map((c) => c.text || '')
+          .join('\n');
+        if (textContent) {
+          const imagePath = parseImagePathFromText(textContent);
+          if (imagePath) {
+            const displayName = imagePath.split(/[\\/]/).pop() || imagePath;
+            return (
+              <div className='flex flex-col gap-4px'>
+                <LocalImageView src={imagePath} alt={displayName} className='max-w-100% max-h-100%' />
+                <span
+                  className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+                  onClick={(e) => handlePreviewClick(e, imagePath)}
+                >
+                  {displayName}
+                </span>
+              </div>
+            );
+          }
+        }
+      }
+    }
+    // Structured result_display object with img_url
     if (typeof result_display === 'object') {
       const result = result_display as ImageGenerationResult;
       if (result.img_url) {

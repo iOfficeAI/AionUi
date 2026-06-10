@@ -13,18 +13,39 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { z } from 'zod';
+import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from './constants';
 import { executeImageGeneration } from '@/common/chat/imageGenCore';
 import type { TProviderWithModel } from '@/common/config/storage';
 
-// Read provider config from environment variables
+// Read provider config from environment variables, with fallback to
+// ~/.pounding/config.json (written by the desktop app on login/sync).
+// Some ACP agents (Claude Code) may not pass the transport env vars
+// to the stdio MCP server, so we also read from the config file.
 function getProviderFromEnv(): TProviderWithModel | null {
-  const platform = process.env.POUNDING_IMG_PLATFORM;
-  const base_url = process.env.POUNDING_IMG_BASE_URL;
-  const api_key = process.env.POUNDING_IMG_API_KEY;
-  const model = process.env.POUNDING_IMG_MODEL;
+  let platform = process.env.POUNDING_IMG_PLATFORM;
+  let base_url = process.env.POUNDING_IMG_BASE_URL;
+  let api_key = process.env.POUNDING_IMG_API_KEY;
+  let model = process.env.POUNDING_IMG_MODEL;
+
+  // Fallback: read from ~/.pounding/config.json
+  if (!api_key || !model) {
+    try {
+      const configPath = path.join(os.homedir(), '.pounding', 'config.json');
+      if (fs.existsSync(configPath)) {
+        const config = JSON.parse(fs.readFileSync(configPath, 'utf8'));
+        if (config.api_key && !api_key) {
+          api_key = config.api_key;
+          platform = platform || config.platform || 'new-api';
+          base_url = base_url || config.base_url || '';
+        }
+      }
+    } catch {
+      // ignore config file errors
+    }
+  }
 
   if (!platform || !model) {
     return null;

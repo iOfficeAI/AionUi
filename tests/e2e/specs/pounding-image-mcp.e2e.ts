@@ -33,10 +33,8 @@ test.describe('POUNDING Image MCP — Server Configuration', () => {
     const servers = await httpGet<McpServer[] | { servers: McpServer[] }>(page, '/api/mcp/servers');
     expect(servers).toBeDefined();
 
-    const serverList = Array.isArray(servers) ? servers : servers?.servers ?? [];
-    const imageServer = serverList.find(
-      (s) => s.name === 'pounding-image-generation'
-    );
+    const serverList = Array.isArray(servers) ? servers : (servers?.servers ?? []);
+    const imageServer = serverList.find((s) => s.name === 'pounding-image-generation');
 
     console.log(`[ImageMCP] Found pounding-image-generation: ${!!imageServer}`);
     if (imageServer) {
@@ -52,10 +50,8 @@ test.describe('POUNDING Image MCP — Server Configuration', () => {
     await page.waitForTimeout(3000);
 
     const servers = await httpGet<McpServer[] | { servers: McpServer[] }>(page, '/api/mcp/servers');
-    const serverList = Array.isArray(servers) ? servers : servers?.servers ?? [];
-    const imageServer = serverList.find(
-      (s) => s.name === 'pounding-image-generation'
-    );
+    const serverList = Array.isArray(servers) ? servers : (servers?.servers ?? []);
+    const imageServer = serverList.find((s) => s.name === 'pounding-image-generation');
 
     console.log(`[ImageMCP] Server found: ${!!imageServer}`);
     if (imageServer) {
@@ -65,7 +61,9 @@ test.describe('POUNDING Image MCP — Server Configuration', () => {
     expect(imageServer).toBeDefined();
     // resolution may or may not be present depending on binary availability
     if (imageServer!.resolution) {
-      console.log(`[ImageMCP] Binary resolution: ok=${imageServer!.resolution.ok}, path=${imageServer!.resolution.path}`);
+      console.log(
+        `[ImageMCP] Binary resolution: ok=${imageServer!.resolution.ok}, path=${imageServer!.resolution.path}`
+      );
     } else {
       console.log(`[ImageMCP] No resolution info (binary may not be bundled in dev mode)`);
     }

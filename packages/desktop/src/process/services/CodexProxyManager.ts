@@ -34,7 +34,9 @@ function resolveProxyPortFile(): string {
     if (app && app.isReady()) {
       return path.join(app.getPath('userData'), 'pounding', 'codex-proxy-port');
     }
-  } catch { /* not in Electron context */ }
+  } catch {
+    /* not in Electron context */
+  }
   return path.join(os.homedir(), '.pounding', 'codex-proxy-port');
 }
 
@@ -68,7 +70,9 @@ function resolveBundledNode(): string {
         if (fs.existsSync(candidate2)) return candidate2;
       }
     }
-  } catch { /* best-effort */ }
+  } catch {
+    /* best-effort */
+  }
   return 'node'; // fallback to system node
 }
 
@@ -109,9 +113,7 @@ function resolveProxyScriptPath(): string {
     }
   }
 
-  throw new Error(
-    `Cannot find ${PROXY_SCRIPT_NAME}. Checked: ${candidates.join(', ')}`
-  );
+  throw new Error(`Cannot find ${PROXY_SCRIPT_NAME}. Checked: ${candidates.join(', ')}`);
 }
 
 function parsePortFromLine(line: string): number | null {
@@ -167,7 +169,11 @@ function startProxy(apiKey: string, upstream: string): Promise<number> {
             const dir = path.dirname(portFile);
             fs.mkdirSync(dir, { recursive: true });
             fs.writeFileSync(portFile, String(port), 'utf-8');
-          } catch { /* best-effort */ }
+          } catch (err: unknown) {
+            console.error(
+              `[CodexProxyManager] Failed to write port file: ${err instanceof Error ? err.message : String(err)}`
+            );
+          }
           console.log(`[CodexProxyManager] Proxy ready on port ${port}`);
           resolve(port);
         }
@@ -212,7 +218,7 @@ function handleProxyExit(code: number | null, signal: string | null): void {
 
   console.warn(
     `[CodexProxyManager] Proxy exited (code=${code}, signal=${signal}). ` +
-    `Restart attempt ${state.restartCount}/${MAX_RESTART_ATTEMPTS}`
+      `Restart attempt ${state.restartCount}/${MAX_RESTART_ATTEMPTS}`
   );
 
   if (state.restartCount > MAX_RESTART_ATTEMPTS) {
@@ -245,11 +251,7 @@ function handleProxyExit(code: number | null, signal: string | null): void {
 
 function readApiKeyFromConfig(): string | undefined {
   try {
-    const configPath = path.join(
-      process.env.HOME || process.env.USERPROFILE || '',
-      '.pounding',
-      'config.json'
-    );
+    const configPath = path.join(process.env.HOME || process.env.USERPROFILE || '', '.pounding', 'config.json');
     if (!fs.existsSync(configPath)) return undefined;
     const config = JSON.parse(fs.readFileSync(configPath, 'utf-8'));
     return config.api?.key || config.api_key || config.token || undefined;
@@ -290,7 +292,11 @@ export async function ensureCodexProxyRunning(): Promise<{ port: number } | null
 
   // Stop any failed/stale process
   if (state.process) {
-    try { state.process.kill(); } catch { /* ignore */ }
+    try {
+      state.process.kill();
+    } catch {
+      /* ignore */
+    }
     state.process = null;
     state.port = null;
   }
@@ -319,13 +325,21 @@ export async function ensureCodexProxyRunning(): Promise<{ port: number } | null
 export function stopCodexProxy(): void {
   if (state.process) {
     console.log('[CodexProxyManager] Stopping proxy...');
-    try { state.process.kill(); } catch { /* ignore */ }
+    try {
+      state.process.kill();
+    } catch {
+      /* ignore */
+    }
     state.process = null;
     state.port = null;
     state.status = 'stopped';
   }
   // Remove port file on clean shutdown
-  try { fs.rmSync(resolveProxyPortFile(), { force: true }); } catch { /* ignore */ }
+  try {
+    fs.rmSync(resolveProxyPortFile(), { force: true });
+  } catch {
+    /* ignore */
+  }
 }
 
 /**
@@ -351,4 +365,3 @@ export function readCodexProxyPort(): number | null {
     return null;
   }
 }
-

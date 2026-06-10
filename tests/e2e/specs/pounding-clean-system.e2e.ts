@@ -67,9 +67,7 @@ test.describe('POUNDING Clean System — Bundled Runtime Verification', () => {
     const REQUIRED = ['claude', 'codex', 'hermes', 'opencode', 'openclaw'];
     for (const name of REQUIRED) {
       const agent = report.agents.find(
-        (a) =>
-          (a.backend ?? '').toLowerCase() === name ||
-          a.name.toLowerCase().includes(name)
+        (a) => (a.backend ?? '').toLowerCase() === name || a.name.toLowerCase().includes(name)
       );
       console.log(`[CleanSystem] ${name}: found=${!!agent}, available=${agent?.available ?? 'N/A'}`);
     }

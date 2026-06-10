@@ -339,7 +339,10 @@ export const useAcpModelInfo = ({
   }, [backend, enabled, handshakeModelInfo, isModelInfoLoading, model_info, loadFallbackModelInfo]);
 
   // Managed runtime CLI fallback: use managed provider model info when
-  // neither the backend nor ACP handshake provide models (e.g. OpenClaw).
+  // neither the backend nor ACP handshake provide models (e.g. OpenClaw),
+  // or when the handshake only returns a single model but the managed
+  // provider has more (e.g. Hermes — its ACP handshake only returns the
+  // currently selected model, not the full list).
   const managedModelInfoRef = useRef(managedModelInfo);
   managedModelInfoRef.current = managedModelInfo;
   useEffect(() => {
@@ -348,7 +351,13 @@ export const useAcpModelInfo = ({
     if (model_info && model_info.available_models.length > 0) return;
     if (isModelInfoLoading) return;
     if (hasUserChangedModel.current) return;
-    if (handshakeModelInfo && handshakeModelInfo.available_models && handshakeModelInfo.available_models.length > 0) return; // prefer non-empty handshake over managed
+    // When the handshake has models but the managed provider has MORE,
+    // prefer the managed list (e.g. Hermes only returns 1 model in handshake).
+    const handshakeHasMoreModels =
+      handshakeModelInfo &&
+      handshakeModelInfo.available_models &&
+      handshakeModelInfo.available_models.length >= managedModelInfo.available_models.length;
+    if (handshakeHasMoreModels) return;
     logAcpModelInfo('fallback_from_managed_provider', {
       conversation_id,
       backend,
@@ -498,7 +507,7 @@ export const useAcpModelInfo = ({
         // When ACP succeeded, use its confirmed value (which may be slot-normalized
         // for Claude). When ACP was skipped or failed, use the raw user-selected ID.
         const confirmedModelId = acpSucceeded
-          ? (confirmedModelInfo?.current_model_id || modelInfoRef.current?.current_model_id || model_id)
+          ? confirmedModelInfo?.current_model_id || modelInfoRef.current?.current_model_id || model_id
           : model_id;
 
         onSelectModelSuccess?.(confirmedModelId);

@@ -37,7 +37,9 @@ test.describe('POUNDING Conversation E2E', () => {
         )
     );
 
-    console.log(`[ConvE2E] Available managed agents: ${managedAgents.map((a) => a.backend ?? a.agent_type).join(', ')}`);
+    console.log(
+      `[ConvE2E] Available managed agents: ${managedAgents.map((a) => a.backend ?? a.agent_type).join(', ')}`
+    );
     expect(managedAgents.length).toBeGreaterThanOrEqual(5);
 
     for (const agent of managedAgents) {
@@ -73,9 +75,7 @@ test.describe('POUNDING Conversation E2E', () => {
       newApi?: { desktop?: { cliModelPrefs?: Record<string, string> } };
     }>(page, '/api/settings');
 
-    console.log(
-      `[ConvE2E] Current model prefs: ${JSON.stringify(settings?.newApi?.desktop?.cliModelPrefs ?? {})}`
-    );
+    console.log(`[ConvE2E] Current model prefs: ${JSON.stringify(settings?.newApi?.desktop?.cliModelPrefs ?? {})}`);
 
     // The model prefs should exist and have entries for each CLI
     const cliModelPrefs = settings?.newApi?.desktop?.cliModelPrefs ?? {};

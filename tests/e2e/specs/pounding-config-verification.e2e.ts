@@ -59,9 +59,7 @@ test.describe('POUNDING Config — Disk Verification', () => {
 
     const REQUIRED = ['claude', 'codex', 'hermes', 'opencode', 'openclaw'];
     for (const backend of REQUIRED) {
-      const found = backends.some(
-        (b) => b === backend || b === `${backend}-gateway`
-      );
+      const found = backends.some((b) => b === backend || b === `${backend}-gateway`);
       console.log(`[Config] ${backend}: ${found ? '✅' : '❌'}`);
     }
   });
@@ -91,7 +89,9 @@ test.describe('POUNDING Config — Disk Verification', () => {
     expect(Array.isArray(servers)).toBe(true);
 
     const imageGen = servers.find((s) => s.name === 'pounding-image-generation');
-    console.log(`[Config] Image gen MCP: ${imageGen ? `enabled=${imageGen.enabled}, builtin=${imageGen.builtin}` : 'NOT FOUND'}`);
+    console.log(
+      `[Config] Image gen MCP: ${imageGen ? `enabled=${imageGen.enabled}, builtin=${imageGen.builtin}` : 'NOT FOUND'}`
+    );
 
     expect(imageGen).toBeDefined();
     expect(imageGen!.enabled).toBe(true);

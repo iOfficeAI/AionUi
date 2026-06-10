@@ -288,9 +288,7 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
 
   // Auto-configure image generation from POUNDING API provider when resolved env is empty
   if (!imageEnvResolution.ok && providers.length > 0) {
-    const poundingProvider = providers.find(
-      (p) => p.platform === 'new-api' || p.platform === 'pounding-api'
-    );
+    const poundingProvider = providers.find((p) => p.platform === 'new-api' || p.platform === 'pounding-api');
     if (poundingProvider && Array.isArray(poundingProvider.models) && poundingProvider.models.length > 0) {
       const imageModels = poundingProvider.models.filter((m) => IMAGE_NAME_PATTERN.test(m));
       if (imageModels.length > 0) {

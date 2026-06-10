@@ -49,9 +49,7 @@ test.describe('POUNDING CLI Health — Diagnostics', () => {
 
     for (const cli of REQUIRED_CLIS) {
       const found = report.agents.some(
-        (a) =>
-          a.name.toLowerCase().includes(cli.backend) ||
-          (a.backend ?? '').toLowerCase().includes(cli.backend)
+        (a) => a.name.toLowerCase().includes(cli.backend) || (a.backend ?? '').toLowerCase().includes(cli.backend)
       );
       console.log(`[CLI Health] ${cli.name}: found=${found}`);
     }

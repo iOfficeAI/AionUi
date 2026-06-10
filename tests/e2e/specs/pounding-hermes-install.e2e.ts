@@ -38,13 +38,13 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     const report = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
 
     const hermes = report.agents.find(
-      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes'),
+      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes')
     );
 
     expect(hermes).toBeDefined();
     console.log(
       `[Hermes] Doctor diagnostic — name=${hermes!.name}, backend=${hermes!.backend}, ` +
-        `available=${hermes!.available}, reason=${hermes!.reason}, bundledSource=${hermes!.bundledSource}`,
+        `available=${hermes!.available}, reason=${hermes!.reason}, bundledSource=${hermes!.bundledSource}`
     );
   });
 
@@ -57,12 +57,10 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     // Check current state before triggering repair
     const beforeReport = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
     const hermesBefore = beforeReport.agents.find(
-      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes'),
+      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes')
     );
 
-    console.log(
-      `[Hermes] Pre-repair: available=${hermesBefore?.available}, reason=${hermesBefore?.reason}`,
-    );
+    console.log(`[Hermes] Pre-repair: available=${hermesBefore?.available}, reason=${hermesBefore?.reason}`);
 
     if (hermesBefore?.available) {
       console.log('[Hermes] Already installed — verifying bundled source flag');
@@ -79,7 +77,7 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     });
     console.log(
       `[Hermes] Repair response: success=${repairResult?.success}, ` +
-        `source=${repairResult?.source}, error=${repairResult?.error}`,
+        `source=${repairResult?.source}, error=${repairResult?.error}`
     );
 
     // Poll until hermes is available or timeout is reached.
@@ -94,8 +92,7 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
 
       const report = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
       const hermes = report.agents.find(
-        (a) =>
-          (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes'),
+        (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes')
       );
 
       console.log(`[Hermes] Check ${i}: available=${hermes?.available ?? false}`);
@@ -110,7 +107,7 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     if (!installed) {
       console.warn(
         '[Hermes] Hermes not installed after 90s timeout — ' +
-          'dev mode may lack bundled resources; this is not a hard failure',
+          'dev mode may lack bundled resources; this is not a hard failure'
       );
     }
     // In dev mode bundled resources may not be present, so we log rather than hard-fail.
@@ -119,13 +116,10 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
   test('hermes is available after install', async ({ page }) => {
     await page.waitForTimeout(5000);
 
-    const agents = await httpGet<Array<{ name: string; backend: string; available: boolean }>>(
-      page,
-      '/api/agents',
-    );
+    const agents = await httpGet<Array<{ name: string; backend: string; available: boolean }>>(page, '/api/agents');
 
     const hermes = agents.find(
-      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes'),
+      (a) => (a.backend ?? '').toLowerCase() === 'hermes' || a.name.toLowerCase().includes('hermes')
     );
 
     console.log(`[Hermes] /api/agents — found=${!!hermes}, available=${hermes?.available}`);
@@ -143,9 +137,7 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     const report = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
     const uvRuntime = report.runtimes?.uv;
 
-    console.log(
-      `[Hermes] Runtime uv — available=${uvRuntime?.available}, path=${uvRuntime?.path}`,
-    );
+    console.log(`[Hermes] Runtime uv — available=${uvRuntime?.available}, path=${uvRuntime?.path}`);
 
     if (uvRuntime?.available) {
       console.log('[Hermes] ✅ UV runtime available (bundled or system)');
@@ -161,9 +153,7 @@ test.describe('POUNDING Hermes — Bundled Installation', () => {
     const report = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
     const pythonRuntime = report.runtimes?.python;
 
-    console.log(
-      `[Hermes] Runtime python — available=${pythonRuntime?.available}, path=${pythonRuntime?.path}`,
-    );
+    console.log(`[Hermes] Runtime python — available=${pythonRuntime?.available}, path=${pythonRuntime?.path}`);
 
     if (pythonRuntime) {
       expect(pythonRuntime.available).toBe(true);

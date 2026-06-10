@@ -7,6 +7,12 @@ const ANSI_ESCAPE_PATTERN = new RegExp(`${String.fromCharCode(27)}\\[[0-9;]*[A-Z
 const ORPHAN_SGR_SUFFIX_PATTERN = /\[(?:\d{1,3}(?:;\d{1,3})*)m\]?$/i;
 const SET_MODEL_PREFIX_PATTERN = /^set model to\s+/i;
 
+// Image generation models should never appear in CLI agent model selectors.
+// CLIs (Claude, Codex, OpenCode, etc.) are text-only coding agents that cannot
+// use image/video generation models. Matches the same pattern used by
+// imageModelAllowlist.ts for the built-in image generation tool.
+const IMAGE_GEN_MODEL_PATTERN = /(image|banana|imagine|video)/i;
+
 export const MANAGED_RUNTIME_CLI_TARGETS = ['claude', 'codex', 'hermes', 'opencode', 'openclaw'] as const;
 export const MANAGED_NEWAPI_PROVIDER_ID = 'desktop-newapi-managed-provider';
 export const MANAGED_NEWAPI_PROVIDER_NAME = 'New API';
@@ -218,6 +224,8 @@ export function getManagedCliSelectableModels(
 
   const candidateModels = allModels.filter((modelId) => {
     if (provider.model_enabled?.[modelId] === false) return false;
+    // Exclude image/video generation models — CLIs are text-only coding agents
+    if (IMAGE_GEN_MODEL_PATTERN.test(modelId)) return false;
     if (!isManagedCliModelCompatible(provider, modelId, cliTarget)) return false;
     const excluded = hasSpecificModelCapability(provider, modelId, 'excludeFromPrimary');
     if (excluded === true) return false;

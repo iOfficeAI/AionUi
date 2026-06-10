@@ -1346,8 +1346,19 @@ function writeOpenClawManagedProviderModel(provider: TProviderWithModel, _source
   const configPath = resolveOpenClawConfigPath();
   const current = readOpenClawConfigFromPath(configPath);
   const next = buildManagedOpenClawConfig(profile, current);
+  const nextJson = `${JSON.stringify(next, null, 2)}\n`;
+
+  // Skip write if the content hasn't changed.  The OpenClaw gateway watches
+  // openclaw.json and any inode change triggers a config reload which can
+  // cause ConfigMutationConflictError → gateway crash.  Hash-dedup prevents
+  // unnecessary writes on every model-switch / status-refresh cycle.
+  if (fs.existsSync(configPath)) {
+    const onDisk = fs.readFileSync(configPath, 'utf8');
+    if (onDisk === nextJson) return;
+  }
+
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
-  fs.writeFileSync(configPath, `${JSON.stringify(next, null, 2)}\n`, { encoding: 'utf8', mode: 0o600 });
+  fs.writeFileSync(configPath, nextJson, { encoding: 'utf8', mode: 0o600 });
 }
 
 // ── Codex managed runtime ──────────────────────────────────────────
@@ -1432,31 +1443,96 @@ function writeCodexConfigForProviderSync(provider: TProviderWithModel): void {
 
   fs.writeFileSync(resolveCodexConfigPath(), toml, { encoding: 'utf8', mode: 0o600 });
 
-  // Write pounding-models.json — with model metadata so Codex doesn't show
-  // "Model metadata for X not found. Defaulting to fallback metadata" warnings.
-  // CC-Switch writes cc-switch-model-catalog.json; we follow the same pattern
-  // with context_window and max_output_tokens for every known model.
+  // Write pounding-models.json with COMPLETE model catalog entries.
+  // Codex requires all 30 fields per model entry (shell_type, supported_reasoning_levels,
+  // input_modalities, truncation_policy, etc.). Incomplete entries cause Codex to crash
+  // with parse errors at startup.
+  //
+  // Strategy: use cc-switch-model-catalog.json entries as authoritative templates
+  // for models that exist there (deepseek-v4-pro, deepseek-v4-flash). For other
+  // models, build a minimal valid entry.
   const MODEL_META: Record<string, { context_window: number; max_output_tokens: number }> = {
-    'deepseek-v4-pro':    { context_window: 256000, max_output_tokens: 32000 },
-    'deepseek-v4-flash':  { context_window: 256000, max_output_tokens: 32000 },
-    'mimo-v2.5':          { context_window: 256000, max_output_tokens: 16384 },
-    'mimo-v2.5-pro':      { context_window: 256000, max_output_tokens: 16384 },
+    'deepseek-v4-pro': { context_window: 256000, max_output_tokens: 32000 },
+    'deepseek-v4-flash': { context_window: 256000, max_output_tokens: 32000 },
+    'mimo-v2.5': { context_window: 256000, max_output_tokens: 16384 },
+    'mimo-v2.5-pro': { context_window: 256000, max_output_tokens: 16384 },
     'MiniMax-M2.7-highspeed': { context_window: 256000, max_output_tokens: 16384 },
     'doubao-seed-1-8-251228': { context_window: 128000, max_output_tokens: 16384 },
-    'agnes-2.0-flash':    { context_window: 128000, max_output_tokens: 16384 },
-    'nano-banana-fast':   { context_window: 128000, max_output_tokens: 16384 },
+    'agnes-2.0-flash': { context_window: 128000, max_output_tokens: 16384 },
   };
+  // Note: image generation models (nano-banana-fast, gpt-image-2, image-01, agnes-video-*)
+  // are excluded — Codex is a text-only coding agent and cannot use image models.
 
-  const allModels: string[] = (profile.provider.models || [])
-    .filter((m): m is string => typeof m === 'string' && m.trim().length > 0);
-  const modelObjects = allModels.map((name) => {
+  // Load cc-switch-model-catalog.json as template source for complete entries
+  let ccSwitchTemplates: Record<string, Record<string, unknown>> = {};
+  const ccSwitchCatalogPath = path.join(codexDir, 'cc-switch-model-catalog.json');
+  try {
+    if (fs.existsSync(ccSwitchCatalogPath)) {
+      const raw = JSON.parse(fs.readFileSync(ccSwitchCatalogPath, 'utf8'));
+      for (const m of (raw.models || [])) {
+        if (m.slug) ccSwitchTemplates[m.slug] = m;
+      }
+    }
+  } catch { /* use empty templates */ }
+
+  function buildModelCatalogEntry(name: string): Record<string, unknown> {
     const meta = MODEL_META[name] ?? { context_window: 256000, max_output_tokens: 16384 };
-    return { model: name, ...meta };
-  });
+    const template = ccSwitchTemplates[name];
+    if (template) {
+      // Clone the full template, override metadata fields from MODEL_META
+      return { ...template, ...meta };
+    }
+    // Build a minimal valid entry for models not in cc-switch catalog
+    return {
+      slug: name,
+      display_name: name,
+      description: name,
+      context_window: meta.context_window,
+      max_context_window: meta.context_window,
+      max_output_tokens: meta.max_output_tokens,
+      default_reasoning_level: 'medium',
+      default_reasoning_summary: 'none',
+      default_verbosity: 'low',
+      effective_context_window_percent: 95,
+      priority: 500,
+      service_tiers: [],
+      additional_speed_tiers: [],
+      apply_patch_tool_type: 'freeform',
+      availability_nux: null,
+      shell_type: 'shell_command',
+      supported_in_api: true,
+      support_verbosity: true,
+      supports_image_detail_original: false,
+      supports_parallel_tool_calls: true,
+      supports_reasoning_summaries: false,
+      supports_search_tool: false,
+      experimental_supported_tools: [],
+      input_modalities: ['text'],
+      supported_reasoning_levels: [
+        { description: 'Fast', effort: 'low' },
+        { description: 'Balanced', effort: 'medium' },
+        { description: 'Deep', effort: 'high' },
+      ],
+      model_messages: {
+        instructions_template: 'You are a helpful assistant.',
+        instructions_variables: {},
+      },
+      truncation_policy: { limit: meta.context_window, mode: 'tokens' },
+      upgrade: null,
+      visibility: 'list',
+      web_search_tool_type: 'text_and_image',
+      base_instructions: 'You are a helpful assistant.',
+    };
+  }
+
+  const allModels: string[] = (profile.provider.models || []).filter(
+    (m): m is string => typeof m === 'string' && m.trim().length > 0
+  );
+  const modelObjects = allModels.map((name) => buildModelCatalogEntry(name));
   fs.writeFileSync(
     path.join(codexDir, 'pounding-models.json'),
     JSON.stringify({ models: modelObjects }, null, 2) + '\n',
-    { encoding: 'utf8', mode: 0o600 },
+    { encoding: 'utf8', mode: 0o600 }
   );
 
   // Delete stale models_cache.json so Codex re-reads metadata from
@@ -1747,9 +1823,15 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
   // After syncing configs (e.g. after login), restart the Codex API proxy
   // so it picks up the new API key from config.json. The proxy may have
   // started before login without a valid key.
-  import('@process/services/CodexProxyManager').then((m) => {
-    void m.ensureCodexProxyRunning().catch(() => { /* best-effort */ });
-  }).catch(() => { /* proxy manager may not be available */ });
+  import('@process/services/CodexProxyManager')
+    .then((m) => {
+      void m.ensureCodexProxyRunning().catch(() => {
+        /* best-effort */
+      });
+    })
+    .catch(() => {
+      /* proxy manager may not be available */
+    });
 }
 
 async function getStoredStatus(): Promise<NewApiAccountStatus> {

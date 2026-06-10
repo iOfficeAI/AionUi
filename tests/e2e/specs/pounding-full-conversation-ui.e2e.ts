@@ -8,22 +8,16 @@
  * not just API calls.
  */
 import { test, expect } from '../fixtures';
-import {
-  selectAgent,
-  sendMessageFromGuid,
-  waitForAiReply,
-  deleteConversation,
-  goToNewChat,
-} from '../helpers';
+import { selectAgent, sendMessageFromGuid, waitForAiReply, deleteConversation, goToNewChat } from '../helpers';
 import { createErrorCollector } from '../helpers';
 
 // Test each CLI backend with a simple message
 const CLI_BACKENDS = [
-  { backend: 'claude', model: undefined, message: 'Say hello in one word' },  // Use default model (mimo-v2.5-pro)
-  { backend: 'codex', model: undefined, message: 'Say hello in one word' },  // Use default model
+  { backend: 'claude', model: undefined, message: 'Say hello in one word' }, // Use default model (mimo-v2.5-pro)
+  { backend: 'codex', model: undefined, message: 'Say hello in one word' }, // Use default model
   { backend: 'hermes', model: 'deepseek-v4-pro', message: 'Say hello in one word' },
   { backend: 'opencode', model: 'deepseek-v4-pro', message: 'Say hello in one word' },
-  { backend: 'openclaw-gateway', model: 'deepseek-v4-pro', message: 'Say hello in one word' },  // UI key is openclaw-gateway
+  { backend: 'openclaw-gateway', model: 'deepseek-v4-pro', message: 'Say hello in one word' }, // UI key is openclaw-gateway
 ];
 
 test.describe('POUNDING Full Conversation — UI Flow', () => {

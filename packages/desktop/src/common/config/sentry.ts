@@ -20,7 +20,8 @@ export type DesktopSentryConfig = {
 
 // POUNDING Sentry DSN — set via environment variable or CI secret.
 // Get the DSN from https://sentry.io -> Settings -> Projects -> pound
-const POUNDING_SENTRY_DSN = 'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368'; // POUNDING project DSN (halo-fx org)
+const POUNDING_SENTRY_DSN =
+  'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368'; // POUNDING project DSN (halo-fx org)
 
 export function resolveDesktopSentryConfig(env: Record<string, string | undefined>): DesktopSentryConfig {
   const dsn = trimEnv(env.POUNDING_SENTRY_DSN) || trimEnv(env.SENTRY_DSN) || trimEnv(POUNDING_SENTRY_DSN);

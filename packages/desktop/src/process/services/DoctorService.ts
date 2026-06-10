@@ -16,7 +16,13 @@ type RepairAttempt = {
 };
 
 type AgentDiagnosticReport = {
-  agents: Array<{ name: string; backend: string | null; available: boolean; reason: string | null; bundledSource: boolean }>;
+  agents: Array<{
+    name: string;
+    backend: string | null;
+    available: boolean;
+    reason: string | null;
+    bundledSource: boolean;
+  }>;
   runtimes: Record<string, { available: boolean; path: string | null }>;
   acpBridges: Record<string, { available: boolean; path: string | null }>;
   summary: { healthy: boolean; issues: string[] };
@@ -40,12 +46,14 @@ function markIssueReported(issueKey: string): void {
 async function diagnose(): Promise<AgentDiagnosticReport> {
   try {
     const report = await httpRequest<AgentDiagnosticReport>('GET', '/api/doctor/diagnose');
-    return report ?? {
-      agents: [],
-      runtimes: {},
-      acpBridges: {},
-      summary: { healthy: false, issues: ['Backend health check failed'] },
-    };
+    return (
+      report ?? {
+        agents: [],
+        runtimes: {},
+        acpBridges: {},
+        summary: { healthy: false, issues: ['Backend health check failed'] },
+      }
+    );
   } catch {
     // Backend not ready or doctor API not available
     return {
@@ -141,7 +149,11 @@ export async function startupSelfCheck(): Promise<void> {
       // Try backend repair (re-materialize from cached resources)
       console.log(`[DoctorService] Repairing ${agent.name}: bundled failed, trying backend mirror...`);
       const backendResult = await repairViaBackend(agent.name);
-      repairAttempts.push({ source: 'mirror', success: backendResult.success, error: backendResult.error ?? undefined });
+      repairAttempts.push({
+        source: 'mirror',
+        success: backendResult.success,
+        error: backendResult.error ?? undefined,
+      });
     }
 
     // If all repair attempts failed, report to Sentry silently

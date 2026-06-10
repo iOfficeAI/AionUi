@@ -12,7 +12,13 @@ import { createErrorCollector } from '../helpers';
 import { httpGet } from '../helpers';
 
 type AgentDiagnosticReport = {
-  agents: Array<{ name: string; backend: string | null; available: boolean; reason: string | null; bundledSource: boolean }>;
+  agents: Array<{
+    name: string;
+    backend: string | null;
+    available: boolean;
+    reason: string | null;
+    bundledSource: boolean;
+  }>;
   runtimes: Record<string, { available: boolean; path: string | null }>;
   acpBridges: Record<string, { available: boolean; path: string | null }>;
   summary: { healthy: boolean; issues: string[] };
@@ -52,7 +58,9 @@ test.describe('POUNDING OOBE — Backend Health', () => {
 
     // Log each agent's status for debugging
     for (const agent of report.agents) {
-      console.log(`[OOBE] Agent: ${agent.name} (${agent.backend}) available=${agent.available} reason=${agent.reason} bundled=${agent.bundledSource}`);
+      console.log(
+        `[OOBE] Agent: ${agent.name} (${agent.backend}) available=${agent.available} reason=${agent.reason} bundled=${agent.bundledSource}`
+      );
     }
     for (const [runtime, status] of Object.entries(report.runtimes)) {
       console.log(`[OOBE] Runtime: ${runtime} available=${status.available} path=${status.path}`);
@@ -93,9 +101,7 @@ test.describe('POUNDING OOBE — CLI Health', () => {
 
       const agents = await httpGet<AgentMetadata[]>(page, '/api/agents');
       const agent = agents.find(
-        (a) =>
-          (a.backend ?? a.agent_type) === backend ||
-          (a.backend ?? a.agent_type) === `${backend}-gateway`
+        (a) => (a.backend ?? a.agent_type) === backend || (a.backend ?? a.agent_type) === `${backend}-gateway`
       );
 
       if (!agent) {
@@ -105,14 +111,18 @@ test.describe('POUNDING OOBE — CLI Health', () => {
       }
 
       expect(agent.available).toBeTruthy();
-      console.log(`[OOBE] ${backend}: available=${agent.available}, handshake_models=${agent.handshake?.available_models?.length ?? 0}`);
+      console.log(
+        `[OOBE] ${backend}: available=${agent.available}, handshake_models=${agent.handshake?.available_models?.length ?? 0}`
+      );
 
       // Handshake data may not be available until first conversation starts
       const handshakeModels = agent.handshake?.available_models;
       if (Array.isArray(handshakeModels)) {
         expect(handshakeModels.length).toBeGreaterThan(0);
       } else {
-        console.log(`[OOBE] ${backend}: no handshake model data yet (available_models type: ${typeof handshakeModels})`);
+        console.log(
+          `[OOBE] ${backend}: no handshake model data yet (available_models type: ${typeof handshakeModels})`
+        );
       }
     });
   }

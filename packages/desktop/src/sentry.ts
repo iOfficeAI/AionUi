@@ -310,7 +310,7 @@ const AGENT_DIAGNOSTIC_FLUSH_TIMEOUT_MS = 3000;
 
 export async function captureAgentDiagnosticFailure(
   agentInfo: { name: string; backend: string | null; available: boolean; reason: string | null },
-  repairAttempts: Array<{ source: string; success: boolean; error?: string }>,
+  repairAttempts: Array<{ source: string; success: boolean; error?: string }>
 ): Promise<void> {
   Sentry.withScope((scope) => {
     scope.setTag('pounding.failure', 'agent_diagnostic');

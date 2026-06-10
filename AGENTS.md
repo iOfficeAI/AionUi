@@ -275,15 +275,15 @@ Lessons from POUNDING branding/fix sessions. When debugging similar symptoms, ch
 
 ### Quick Index
 
-| Category | Entries |
-|----------|---------|
+| Category              | Entries                                                                                                            |
+| --------------------- | ------------------------------------------------------------------------------------------------------------------ |
 | 开箱即用 (out-of-box) | [[Codex: proxy not auto-started]], [[Windows: GUI app PATH is incomplete]], [[Out-of-box runtime preflight check]] |
-| Codex CLI | [[Codex: UNKNOWN_UPSTREAM_ERROR]], [[Codex: "Model metadata not found"]], [[Codex: proxy not auto-started]] |
-| OpenClaw | [[OpenClaw: NOT_PAIRED]] |
-| MCP | [[Chrome DevTools MCP: handshake fails]] |
-| Sentry | [[Sentry: user feedback not arriving]], [[Sentry: wrong DSN in production builds]] |
-| UI/UX | [[CLI model: switch reverts to default]], [[Dealer kit: invitation link not triggered]] |
-| Branding | [[pt-BR locale]], [[Branding drift]] |
+| Codex CLI             | [[Codex: UNKNOWN_UPSTREAM_ERROR]], [[Codex: "Model metadata not found"]], [[Codex: proxy not auto-started]]        |
+| OpenClaw              | [[OpenClaw: NOT_PAIRED]]                                                                                           |
+| MCP                   | [[Chrome DevTools MCP: handshake fails]]                                                                           |
+| Sentry                | [[Sentry: user feedback not arriving]], [[Sentry: wrong DSN in production builds]]                                 |
+| UI/UX                 | [[CLI model: switch reverts to default]], [[Dealer kit: invitation link not triggered]]                            |
+| Branding              | [[pt-BR locale]], [[Branding drift]]                                                                               |
 
 ### Sentry: user feedback not arriving
 
@@ -360,6 +360,7 @@ Lessons from POUNDING branding/fix sessions. When debugging similar symptoms, ch
 **Root cause**: Codex CLI requires `wire_api = "responses"` (rejects `chat_completions`). The POUNDING API (`api.mxou.cn`) supports `/v1/responses` only for some models (e.g. doubao), NOT for `deepseek-v4-pro`. The Chat Completions endpoint (`/v1/chat/completions`) works for all models.
 
 **Fix (local proxy)**: A Node.js proxy (`codexApiProxy.mjs`) translates:
+
 - Requests: Responses API → Chat Completions API (mapping `input`→`messages`, `developer` role→`system`, `input_text`→`text`)
 - Responses: Chat Completions JSON → Responses API SSE streaming events
 - Metadata: Enriches `/v1/models` with `context_window`, `max_output_tokens`, `pricing`
@@ -380,6 +381,7 @@ The proxy is **auto-started by `CodexProxyManager`** at backend-ready time. `wri
 **Root cause**: POUNDING API `/v1/models` only returns `{id, object, created, owned_by, supported_endpoint_types}` — missing `context_window`, `max_output_tokens`, etc. Codex probes context length and defaults to 256K but warns. Additionally, stale `models_cache.json` (from old API calls) could override the enriched metadata.
 
 **Fix (two layers)**:
+
 1. **`pounding-models.json`**: Now writes model objects with `context_window` + `max_output_tokens` (was bare strings). Follows CC-Switch's `cc-switch-model-catalog.json` pattern. Also auto-deletes `models_cache.json` on every config sync to force a fresh metadata read.
 2. **`codexApiProxy.mjs`**: Enriches `/v1/models` API response with metadata for all known models (METADATA constant).
 
@@ -406,6 +408,7 @@ The proxy is **auto-started by `CodexProxyManager`** at backend-ready time. `wri
 **Root cause**: `codex-api-proxy.mjs` was a standalone script in the project root. The Electron main process never started it. The developer had to manually run `node codex-api-proxy.mjs` in a terminal. Additionally, the proxy was not packaged in production builds (not in asar or extraResources).
 
 **Fix**: Created `CodexProxyManager.ts` that:
+
 - `fork()`s `codexApiProxy.mjs` as a child process when the backend is ready
 - Auto-restarts the proxy on crash (up to 3 times within 30 seconds)
 - Writes the actual port to `~/.pounding/codex-proxy-port` (handles port conflicts)
@@ -413,6 +416,7 @@ The proxy is **auto-started by `CodexProxyManager`** at backend-ready time. `wri
 - Restarts on login (to pick up new API key from `~/.pounding/config.json`)
 
 The proxy script was also:
+
 - Moved from project root → `src/process/codexApiProxy.mjs`
 - Modified to auto-select available ports (`tryListen` with increment on EADDRINUSE)
 - Added to `electron-builder.yml` asarUnpack list (line ~218, next to MCP scripts)
@@ -429,6 +433,7 @@ The proxy script was also:
 **Root cause**: `fixPath()` in `index.ts` was gated to `platform === 'darwin' || platform === 'linux'`. On Windows, GUI apps launched from Start Menu don't inherit shell PATH modifications (nvm-windows, Volta, fnm, etc.).
 
 **Fix**: Added Windows PATH supplementation that prepends common runtime paths:
+
 - `%APPDATA%/npm` (npm global prefix)
 - `NVM_HOME` or `NVM_SYMLINK` (nvm-windows)
 - `%LOCALAPPDATA%/Volta` (Volta)
@@ -446,6 +451,7 @@ Runs immediately at import time, before any `which`/`where` checks.
 **Symptom**: No clear error when no JavaScript runtime is available. CLI installation silently fails, MCP servers can't start. User sees "CLI not found" errors in the UI without understanding why.
 
 **Fix**: Added preflight check in `handleAppReady()` that tests `node`, `npm`, `bun` availability via `which`/`where`. Logs clear warnings:
+
 - All missing: `⚠️  No JavaScript runtime (node/npm/bun) found in PATH. Please install Node.js (https://nodejs.org) or Bun (https://bun.sh).`
 - Some missing: `Runtime check: found runtimes except: npm, bun`
 

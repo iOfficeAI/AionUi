@@ -32,10 +32,10 @@ test.describe('POUNDING Doctor — Self-Healing', () => {
 
     // Step 1: Diagnose — check if OpenCode is missing
     const beforeReport = await httpGet<AgentDiagnosticReport>(page, '/api/doctor/diagnose');
-    const opencodeBefore = beforeReport.agents.find(
-      (a) => a.name.toLowerCase().includes('opencode')
+    const opencodeBefore = beforeReport.agents.find((a) => a.name.toLowerCase().includes('opencode'));
+    console.log(
+      `[Doctor Repair] OpenCode before: available=${opencodeBefore?.available}, reason=${opencodeBefore?.reason}`
     );
-    console.log(`[Doctor Repair] OpenCode before: available=${opencodeBefore?.available}, reason=${opencodeBefore?.reason}`);
 
     if (opencodeBefore?.available) {
       console.log('[Doctor Repair] OpenCode already installed, nothing to repair');
@@ -45,7 +45,9 @@ test.describe('POUNDING Doctor — Self-Healing', () => {
     // Step 2: Trigger repair
     console.log('[Doctor Repair] Triggering repair for OpenCode...');
     const repairResult = await httpPost<RepairResult>(page, '/api/doctor/repair', { target: 'opencode' });
-    console.log(`[Doctor Repair] Repair result: success=${repairResult?.success}, source=${repairResult?.source}, error=${repairResult?.error}`);
+    console.log(
+      `[Doctor Repair] Repair result: success=${repairResult?.success}, source=${repairResult?.source}, error=${repairResult?.error}`
+    );
 
     // Step 3: Wait for repair to take effect (network install can be slow)
     // The repair triggers managedCliInstaller.install which spawns `bun add -g opencode-ai@latest`

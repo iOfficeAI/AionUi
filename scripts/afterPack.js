@@ -51,12 +51,7 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
   console.log(`   ✓ Bundled resources verified for ${runtimeKey}`);
 
   // Check for CLI bundles in managed-resources
-  const managedResourcesDir = path.join(
-    resourcesDir,
-    'bundled-poundingcore',
-    runtimeKey,
-    'managed-resources'
-  );
+  const managedResourcesDir = path.join(resourcesDir, 'bundled-poundingcore', runtimeKey, 'managed-resources');
 
   // Verify CLI bundles (optional — will fallback to network install if missing)
   const cliTargets = ['claude', 'codex', 'opencode', 'openclaw'];
