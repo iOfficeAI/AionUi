@@ -1,5 +1,6 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
+import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -78,7 +79,14 @@ export function useTeamSession(team: TTeam) {
 
   const removeAgent = useCallback(
     async (slot_id: string) => {
-      await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
+      try {
+        await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
+      } catch (error) {
+        // UI/backend roster 可能失同步（runtime spawn / 缓存陈旧 / 并发操作）。
+        // 幂等删除：把 404 当作"已删除"，让下面的 mutateTeam 把 ghost slot 刷掉。
+        if (!isBackendHttpError(error) || error.status !== 404) throw error;
+        console.warn(`[useTeamSession] agent slot ${slot_id} not in backend roster; treating as already removed`);
+      }
       await mutateTeam();
     },
     [team.id, mutateTeam]
