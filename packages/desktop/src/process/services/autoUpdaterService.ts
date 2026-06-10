@@ -57,6 +57,7 @@ export interface AutoUpdateStatus {
 
 /** Callback type for broadcasting update status */
 export type StatusBroadcastCallback = (status: AutoUpdateStatus) => void;
+export type BeforeQuitAndInstallCallback = () => void | Promise<void>;
 
 /** Events emitted by AutoUpdaterService */
 export interface AutoUpdaterEvents {
@@ -68,6 +69,7 @@ class AutoUpdaterService extends EventEmitter {
   private _eventHandlersSetup = false;
   private _allowPrerelease = false;
   private _statusBroadcastCallback: StatusBroadcastCallback | null = null;
+  private _beforeQuitAndInstallCallback: BeforeQuitAndInstallCallback | null = null;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
 
@@ -112,6 +114,10 @@ class AutoUpdaterService extends EventEmitter {
     this._statusBroadcastCallback = callback;
   }
 
+  setBeforeQuitAndInstall(callback: BeforeQuitAndInstallCallback | null): void {
+    this._beforeQuitAndInstallCallback = callback;
+  }
+
   /**
    * Check if the service has been initialized
    */
@@ -127,6 +133,7 @@ class AutoUpdaterService extends EventEmitter {
     // Note: _eventHandlersSetup is NOT reset to avoid duplicate handler registration
     this._allowPrerelease = false;
     this._statusBroadcastCallback = null;
+    this._beforeQuitAndInstallCallback = null;
   }
 
   /**
@@ -138,6 +145,7 @@ class AutoUpdaterService extends EventEmitter {
     this._eventHandlersSetup = false;
     this._allowPrerelease = false;
     this._statusBroadcastCallback = null;
+    this._beforeQuitAndInstallCallback = null;
     // Remove listeners from this EventEmitter instance
     this.removeAllListeners();
     // Remove each registered handler from autoUpdater to prevent
@@ -310,7 +318,12 @@ class AutoUpdaterService extends EventEmitter {
     }
   }
 
-  quitAndInstall(): void {
+  async quitAndInstall(): Promise<void> {
+    if (this._beforeQuitAndInstallCallback) {
+      log.info('Running pre-install cleanup before quitAndInstall...');
+      await this._beforeQuitAndInstallCallback();
+    }
+
     log.info('Quitting and installing update...');
     recordAutoUpdateQuitAndInstall({
       currentAppVersion: app.getVersion(),

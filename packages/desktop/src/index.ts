@@ -407,6 +407,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         // Create status broadcast callback that emits via ipcBridge (pure emitter, no window binding)
         const statusBroadcast = createAutoUpdateStatusBroadcast();
         autoUpdaterService.initialize(statusBroadcast);
+        autoUpdaterService.setBeforeQuitAndInstall(async () => {
+          await backendManager.stop();
+        });
         // Check for updates after 3 seconds delay
         // 3秒后检查更新
         setTimeout(() => {
