@@ -309,20 +309,38 @@ jobs:
           MSVS_VERSION: 2022
           GYP_MSVS_VERSION: 2022
 
+      - name: Verify vendored managed resources (offline build gate)
+        shell: bash
+        run: |
+          VENDOR_DIR="vendor/managed-resources"
+          echo "Checking vendored managed resources..."
+          if [ ! -d "$VENDOR_DIR" ]; then
+            echo "::warning::vendor/managed-resources/ is MISSING — will fall back to CDN download."
+            echo ""
+            echo "  For fully offline builds, run once:"
+            echo "    bash scripts/vendor-managed-resources.sh"
+            echo "  Then commit the vendor/ directory with Git LFS."
+            echo ""
+          else
+            echo "  vendor/managed-resources/ found (offline build)"
+            echo "  Contents:"
+            find "$VENDOR_DIR" -maxdepth 3 -type d | sort | while read d; do
+              local_size=$(du -sh "$d" 2>/dev/null | cut -f1)
+            echo "    ${d#vendor/} ($local_size)"
+          done
+          fi
+
       - name: Prepare packaged backend binary
         shell: bash
         run: node scripts/preparePoundingcore.js
         env:
           # Version is pinned in repo-root package.json (prefer aioncoreVersion, fallback aionuiBackendVersion).
-          # Override POUNDINGCORE_VERSION for ad-hoc builds.
-          # POUNDINGCORE_GITHUB_OWNER/REPO point to our private backend fork.
           POUNDINGCORE_GITHUB_OWNER: halojerry
           POUNDINGCORE_GITHUB_REPO: poundingcore
-          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN }}
-          # NOTE: When poundingcore is built from source (not pre-built release),
-          # set AIONUI_EMBED_BUN=1 to embed bun into the binary.
-          # This must be configured in halojerry/poundingcore's CI, not here.
+          # GH_TOKEN is only needed as fallback if vendor/ is missing.
+          # With vendor/ present, the entire prepare step is offline.
+          GH_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN || '' }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN || secrets.GITHUB_TOKEN || '' }}
 
       - name: Verify managed CLI resources
         shell: bash

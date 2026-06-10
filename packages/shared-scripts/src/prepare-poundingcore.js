@@ -54,16 +54,64 @@ function getBinaryName(platform) {
   return platform === 'win32' ? 'poundingcore.exe' : 'poundingcore';
 }
 
-function prepareManagedResources(binaryPath, targetDir) {
+function findVendorManagedResources(projectRoot) {
+  const vendorDir = path.join(projectRoot, 'vendor', 'managed-resources');
+  if (fs.existsSync(vendorDir) && fs.readdirSync(vendorDir).length > 0) {
+    return vendorDir;
+  }
+  // Also check poundingcore repo-relative path for monorepo setups
+  const altVendorDir = path.join(projectRoot, '..', 'poundingcore', 'vendor', 'managed-resources');
+  if (fs.existsSync(altVendorDir) && fs.readdirSync(altVendorDir).length > 0) {
+    return altVendorDir;
+  }
+  return null;
+}
+
+function copyDirectoryRecursive(src, dest) {
+  ensureDirectory(dest);
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirectoryRecursive(srcPath, destPath);
+    } else if (entry.isSymbolicLink()) {
+      const linkTarget = fs.readlinkSync(srcPath);
+      fs.symlinkSync(linkTarget, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+      // Preserve executable bits on Unix
+      if (process.platform !== 'win32') {
+        try {
+          const mode = fs.statSync(srcPath).mode;
+          fs.chmodSync(destPath, mode);
+        } catch {}
+      }
+    }
+  }
+}
+
+function prepareManagedResources(binaryPath, targetDir, projectRoot) {
   const bundleOut = path.join(targetDir, 'managed-resources');
-  const dataDir = path.join(targetDir, '.prepare-data');
 
   removeDirectorySafe(bundleOut);
-  removeDirectorySafe(dataDir);
   ensureDirectory(bundleOut);
+
+  // 1. Prefer vendored resources (offline, deterministic)
+  const vendorDir = findVendorManagedResources(projectRoot);
+  if (vendorDir) {
+    console.log(`  Using vendored managed resources from ${path.relative(process.cwd(), vendorDir)}`);
+    copyDirectoryRecursive(vendorDir, bundleOut);
+    verifyCliBundles(bundleOut);
+    return bundleOut;
+  }
+
+  // 2. Fallback: run poundingcore to prepare from CDN (requires network)
+  const dataDir = path.join(targetDir, '.prepare-data');
+  removeDirectorySafe(dataDir);
   ensureDirectory(dataDir);
 
-  console.log(`  Preparing managed resources under ${path.relative(process.cwd(), bundleOut)}`);
+  console.log(`  Preparing managed resources under ${path.relative(process.cwd(), bundleOut)} (network required)`);
   execFileSync(binaryPath, ['--data-dir', dataDir, 'prepare-managed-resources', '--bundle-out', bundleOut], {
     stdio: 'inherit',
     env: {
@@ -73,7 +121,6 @@ function prepareManagedResources(binaryPath, targetDir) {
   });
 
   verifyCliBundles(bundleOut);
-
   removeDirectorySafe(dataDir);
   return bundleOut;
 }
@@ -448,7 +495,7 @@ function preparePoundingcore(options) {
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
-    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
+    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir, projectRoot);
 
     // The release tag is the authoritative version — the poundingcore
     // binary does not expose a --version flag (it has --app-version which

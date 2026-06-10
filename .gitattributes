@@ -23,3 +23,6 @@
 *.woff binary
 *.woff2 binary
 *.ttf binary
+
+# Vendor managed resources — large binaries tracked with Git LFS
+vendor/managed-resources/** filter=lfs diff=lfs merge=lfs -text
