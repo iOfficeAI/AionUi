@@ -150,6 +150,18 @@ const Main = () => {
   const { ready } = useAuth();
   const [configReady, setConfigReady] = useState(false);
 
+  // DEBUG: log startup state
+  useEffect(() => {
+    console.log('[Main] startup state:', {
+      ready,
+      configReady,
+      backendPort: (window as { __backendPort?: number }).__backendPort,
+      backendStartupFailed: (window as { __backendStartupFailed?: boolean }).__backendStartupFailed,
+      backendStartupFailure: (window as { __backendStartupFailure?: unknown }).__backendStartupFailure,
+      electronAPI: !!(window as { electronAPI?: unknown }).electronAPI,
+    });
+  }, [ready, configReady]);
+
   useEffect(() => {
     if (!ready) return;
     // Prefetch `/api/agents` in parallel with configService.initialize() and
@@ -268,6 +280,14 @@ const BackendStartupFailureScreen: React.FC<{ failure: BackendStartupFailureInfo
 };
 
 void registerPwa();
+
+console.log('[renderer] startup:', {
+  backendPort: window.__backendPort,
+  backendStartupFailed: window.__backendStartupFailed,
+  backendStartupFailure: window.__backendStartupFailure,
+  electronAPI: !!(window as { electronAPI?: unknown }).electronAPI,
+  href: window.location.href,
+});
 
 const root = createRoot(document.getElementById('root')!);
 const backendStartupFailure = window.__backendStartupFailure;

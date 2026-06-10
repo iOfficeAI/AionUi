@@ -60,6 +60,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
+console.log('[preload] IPC results:', { backendPort, backendStartupFailed, backendStartupFailure });
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
 contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
