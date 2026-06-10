@@ -33,6 +33,7 @@ const AionrsChat: React.FC<{
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
   agent_name?: string;
+  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
 }> = ({
   conversation_id,
   workspace,
@@ -44,6 +45,7 @@ const AionrsChat: React.FC<{
   loadedMcpServers,
   loadedMcpStatuses,
   agent_name,
+  teamSendMessage,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -75,6 +77,7 @@ const AionrsChat: React.FC<{
             modelSelection={modelSelection}
             session_mode={session_mode}
             agent_name={agent_name}
+            teamSendMessage={teamSendMessage}
           />
         </div>
       </ConversationArtifactProvider>

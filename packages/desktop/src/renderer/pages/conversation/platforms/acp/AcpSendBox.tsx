@@ -98,7 +98,8 @@ const AcpSendBox: React.FC<{
   agent_name?: string;
   workspacePath?: string;
   messageState: UseAcpMessageReturn;
-}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState }) => {
+  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState, teamSendMessage }) => {
   const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands, fetchSlashCommands } =
     messageState;
   const { t } = useTranslation();
@@ -260,12 +261,20 @@ const AcpSendBox: React.FC<{
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       const displayMessage = buildDisplayMessage(input, files, workspacePath || '');
 
-      runtimeView.markSendStarted();
-      setAiProcessing(true);
-
       try {
         if (teamPermission) await teamPermission.warmupSession();
         void checkAndUpdateTitle(conversation_id, input);
+        if (teamSendMessage) {
+          await teamSendMessage({ input: displayMessage, files });
+          emitter.emit('chat.history.refresh');
+          if (files.length > 0) {
+            emitter.emit('acp.workspace.refresh');
+          }
+          return;
+        }
+
+        runtimeView.markSendStarted();
+        setAiProcessing(true);
         const result = await ipcBridge.acpConversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
@@ -341,7 +350,18 @@ Please check your local CLI tool authentication status`,
         emitter.emit('acp.workspace.refresh');
       }
     },
-    [backend, checkAndUpdateTitle, conversation_id, resetState, runtimeView, setAiProcessing, t, workspacePath]
+    [
+      backend,
+      checkAndUpdateTitle,
+      conversation_id,
+      resetState,
+      runtimeView,
+      setAiProcessing,
+      t,
+      teamPermission,
+      teamSendMessage,
+      workspacePath,
+    ]
   );
 
   const {

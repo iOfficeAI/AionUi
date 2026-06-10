@@ -51,6 +51,8 @@ import type {
   ITeamAgentStatusEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
+  ISendTeamAgentMessageParams,
+  ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
   TTeam,
   TeamAgent,
@@ -1829,7 +1831,21 @@ export const team = {
   ),
   setSessionMode: httpPost<void, { team_id: string; session_mode: string }>(
     (p) => `/api/teams/${p.team_id}/session-mode`,
-    (p) => ({ session_mode: p.session_mode })
+    (p) => ({ mode: p.session_mode })
+  ),
+  sendMessage: httpPost<void, ISendTeamMessageParams>(
+    (p) => `/api/teams/${p.team_id}/messages`,
+    (p) => ({
+      content: p.input,
+      files: p.files,
+    })
+  ),
+  sendMessageToAgent: httpPost<void, ISendTeamAgentMessageParams>(
+    (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
+    (p) => ({
+      content: p.input,
+      files: p.files,
+    })
   ),
   agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agent.status'),
   agentSpawned: wsEmitter<ITeamAgentSpawnedEvent>('team.agent.spawned'),

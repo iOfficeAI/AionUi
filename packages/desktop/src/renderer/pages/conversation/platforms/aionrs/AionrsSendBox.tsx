@@ -99,7 +99,8 @@ const AionrsSendBox: React.FC<{
   modelSelection: AionrsModelSelection;
   session_mode?: string;
   agent_name?: string;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name }) => {
+  teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
@@ -215,12 +216,20 @@ const AionrsSendBox: React.FC<{
         throw new Error('No model selected');
       }
 
-      runtimeView.markSendStarted();
-      setWaitingResponse(true);
-
       const displayMessage = buildDisplayMessage(input, files, workspacePath);
       try {
         void checkAndUpdateTitle(conversation_id, input);
+        if (teamSendMessage) {
+          await teamSendMessage({ input: displayMessage, files });
+          emitter.emit('chat.history.refresh');
+          if (files.length > 0) {
+            emitter.emit('aionrs.workspace.refresh');
+          }
+          return;
+        }
+
+        runtimeView.markSendStarted();
+        setWaitingResponse(true);
         const res = await ipcBridge.conversation.sendMessage.invoke({
           input: displayMessage,
           conversation_id,
@@ -249,6 +258,8 @@ const AionrsSendBox: React.FC<{
       setActiveMsgId,
       setWaitingResponse,
       t,
+      teamPermission,
+      teamSendMessage,
       workspacePath,
     ]
   );

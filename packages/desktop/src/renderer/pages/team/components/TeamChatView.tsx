@@ -15,13 +15,15 @@ const LegacyReadOnlyConversation = React.lazy(
 
 // Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
+type TeamSendOverride = (payload: { input: string; files: string[] }) => Promise<void>;
 
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
   emptySlot?: React.ReactNode;
   agent_name?: string;
-}> = ({ conversation, emptySlot, agent_name }) => {
+  teamSendMessage?: TeamSendOverride;
+}> = ({ conversation, emptySlot, agent_name, teamSendMessage }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -41,6 +43,7 @@ const AionrsTeamChat: React.FC<{
       modelSelection={modelSelection}
       emptySlot={emptySlot}
       agent_name={agent_name}
+      teamSendMessage={teamSendMessage}
     />
   );
 };
@@ -50,6 +53,7 @@ type TeamChatViewProps = {
   hideSendBox?: boolean;
   /** When set, shows the team greeting empty state */
   team_id?: string;
+  slot_id?: string;
   agent_name?: string;
   agent_icon?: string;
   isLeader?: boolean;
@@ -63,6 +67,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   conversation,
   hideSendBox,
   team_id,
+  slot_id,
   agent_name,
   agent_icon,
   isLeader,
@@ -74,6 +79,19 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   const emptySlot = team_id ? (
     <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
   ) : undefined;
+  const teamSendMessage = useCallback<TeamSendOverride>(
+    async ({ input, files }) => {
+      if (!team_id) throw new Error('Missing team id for team send');
+      if (isLeader) {
+        await ipcBridge.team.sendMessage.invoke({ team_id, input, files });
+        return;
+      }
+      if (!slot_id) throw new Error('Missing slot id for team agent send');
+      await ipcBridge.team.sendMessageToAgent.invoke({ team_id, slot_id, input, files });
+    },
+    [isLeader, slot_id, team_id]
+  );
+  const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
   const content = (() => {
     if (isLegacyReadOnlyConversationType(conversation.type)) {
       return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;
@@ -91,6 +109,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
+            teamSendMessage={teamSendMessageOverride}
           />
         );
       case 'aionrs':
@@ -100,6 +119,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
             agent_name={agent_name}
+            teamSendMessage={teamSendMessageOverride}
           />
         );
       default:

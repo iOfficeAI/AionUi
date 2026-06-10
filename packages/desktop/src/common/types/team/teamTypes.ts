@@ -43,6 +43,16 @@ export type TTeam = {
   updated_at: number;
 };
 
+export type ISendTeamMessageParams = {
+  team_id: string;
+  input: string;
+  files?: string[];
+};
+
+export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
+  slot_id: string;
+};
+
 /** IPC event pushed to renderer when agent status changes */
 export type ITeamAgentStatusEvent = {
   team_id: string;

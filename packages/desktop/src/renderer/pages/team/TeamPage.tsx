@@ -141,6 +141,7 @@ const AgentChatSlot: React.FC<{
           <TeamChatView
             conversation={conversation as TChatConversation}
             team_id={team_id}
+            slot_id={agent.slot_id}
             agent_name={agent.agent_name}
             agent_icon={agent.icon}
             isLeader={isLeader}
