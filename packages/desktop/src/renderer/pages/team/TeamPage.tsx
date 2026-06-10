@@ -30,6 +30,7 @@ type Props = {
 type TeamPageContentProps = {
   team: TTeam;
   onRenameTeam: (new_name: string) => Promise<boolean>;
+  removeAgent: (slot_id: string) => Promise<void>;
 };
 
 /** Compact aionrs model selector for the agent header */
@@ -156,7 +157,7 @@ const AgentChatSlot: React.FC<{
 };
 
 /** Inner component that reads active tab from context and renders the chat layout */
-const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam }) => {
+const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam, removeAgent }) => {
   const { t } = useTranslation();
   const { agents, activeSlotId, statusMap, switchTab } = useTeamTabs();
   const [, messageContext] = Message.useMessage({ maxCount: 1 });
@@ -173,7 +174,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   const doRemoveAgent = useCallback(
     async (slot_id: string) => {
       try {
-        await ipcBridge.team.removeAgent.invoke({ team_id: team.id, slot_id });
+        await removeAgent(slot_id);
         Message.success(t('common.deleteSuccess'));
         // Only switch tab when removing the currently active tab
         if (slot_id === activeSlotId && leadAgent?.slot_id) switchTab(leadAgent.slot_id);
@@ -183,7 +184,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         Message.error(String(error));
       }
     },
-    [team.id, activeSlotId, leadAgent?.slot_id, switchTab, fullscreenSlotId, t]
+    [removeAgent, activeSlotId, leadAgent?.slot_id, switchTab, fullscreenSlotId, t]
   );
 
   const handleRemoveAgent = useCallback(
@@ -515,7 +516,7 @@ const TeamPage: React.FC<Props> = ({ team }) => {
       renameAgent={renameAgent}
       removeAgent={handleRemoveAgentWithConfirm}
     >
-      <TeamPageContent team={team} onRenameTeam={handleRenameTeam} />
+      <TeamPageContent team={team} onRenameTeam={handleRenameTeam} removeAgent={removeAgent} />
     </TeamTabsProvider>
   );
 };
