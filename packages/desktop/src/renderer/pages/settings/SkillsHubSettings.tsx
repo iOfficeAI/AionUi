@@ -5,6 +5,7 @@ import React, { useCallback, useEffect, useRef, useState, useMemo } from 'react'
 import { useTranslation } from 'react-i18next';
 import { useSearchParams } from 'react-router-dom';
 import SettingsPageWrapper from './components/SettingsPageWrapper';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 
 // Skill 信息类型 / Skill info type
 interface SkillInfo {
@@ -48,6 +49,18 @@ interface SkillsHubSettingsProps {
   withWrapper?: boolean;
 }
 
+type CommandEveCapability = {
+  id: string;
+  name?: string;
+  tier?: string;
+  default_state?: string;
+};
+
+type CommandEveCapabilityPack = {
+  skills?: CommandEveCapability[];
+  connectors?: CommandEveCapability[];
+};
+
 const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = true }) => {
   const { t } = useTranslation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -59,9 +72,18 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const [skillPaths, setSkillPaths] = useState<{ user_skills_dir: string; builtin_skills_dir: string } | null>(null);
   const [search_query, setSearchQuery] = useState('');
   const [builtinAutoSkills, setBuiltinAutoSkills] = useState<Array<{ name: string; description: string }>>([]);
+  const [commandEveCapabilityPack, setCommandEveCapabilityPack] = useState<CommandEveCapabilityPack | null>(null);
 
-  const mySkills = useMemo(() => availableSkills.filter((s) => s.source !== 'extension'), [availableSkills]);
-  const extensionSkills = useMemo(() => availableSkills.filter((s) => s.source === 'extension'), [availableSkills]);
+  const mySkills = useMemo(
+    () =>
+      availableSkills.filter((s) => s.source !== 'extension' && (!COMMAND_EVE_SHELL_ENABLED || s.source === 'custom')),
+    [availableSkills]
+  );
+  const extensionSkills = useMemo(
+    () => (COMMAND_EVE_SHELL_ENABLED ? [] : availableSkills.filter((s) => s.source === 'extension')),
+    [availableSkills]
+  );
+  const visibleBuiltinAutoSkills = COMMAND_EVE_SHELL_ENABLED ? [] : builtinAutoSkills;
 
   const filteredSkills = useMemo(() => {
     if (!search_query.trim()) return mySkills;
@@ -83,6 +105,17 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
 
       const autoSkills = await ipcBridge.fs.listBuiltinAutoSkills.invoke();
       setBuiltinAutoSkills(autoSkills);
+
+      if (COMMAND_EVE_SHELL_ENABLED) {
+        try {
+          const response = await fetch('command-eve-capabilities.json', { cache: 'no-store' });
+          if (response.ok) {
+            setCommandEveCapabilityPack((await response.json()) as CommandEveCapabilityPack);
+          }
+        } catch (capabilityError) {
+          console.warn('Failed to load Command EVE capability pack:', capabilityError);
+        }
+      }
     } catch (error) {
       console.error('Failed to fetch skills:', error);
       Message.error(t('settings.skillsHub.fetchError', { defaultValue: 'Failed to fetch skills' }));
@@ -151,6 +184,57 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
   const mainContent = (
     <div className='flex flex-col h-full w-full'>
       <div className='space-y-16px pb-24px'>
+        {COMMAND_EVE_SHELL_ENABLED && commandEveCapabilityPack && (
+          <div
+            data-testid='command-eve-capability-section'
+            className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
+          >
+            <div className='flex flex-col gap-6px mb-20px'>
+              <span className='text-16px md:text-18px text-t-primary font-bold tracking-tight'>
+                {t('settings.skillsHub.commandEveCapabilitiesTitle')}
+              </span>
+              <span className='text-13px text-t-secondary leading-relaxed'>
+                {t('settings.skillsHub.commandEveCapabilitiesDesc')}
+              </span>
+            </div>
+
+            <div className='grid grid-cols-1 lg:grid-cols-2 gap-10px'>
+              {(commandEveCapabilityPack.skills || []).map((skill) => (
+                <div
+                  key={skill.id}
+                  className='rd-12px bg-fill-1 border border-solid border-border-1 p-14px flex flex-col gap-6px'
+                >
+                  <div className='flex items-center justify-between gap-8px'>
+                    <span className='text-14px font-semibold text-t-primary truncate'>{skill.name || skill.id}</span>
+                    <span className='text-10px uppercase text-primary-6 bg-[rgba(var(--primary-6),0.08)] px-8px py-2px rd-999px'>
+                      {skill.default_state || t('settings.skillsHub.commandEveCapabilityAvailable')}
+                    </span>
+                  </div>
+                  <span className='text-12px text-t-secondary'>
+                    {skill.tier || t('settings.skillsHub.commandEveCapabilityTier')}
+                  </span>
+                </div>
+              ))}
+            </div>
+
+            <div className='mt-18px pt-18px border-t border-solid border-border-1'>
+              <div className='text-13px font-semibold text-t-primary mb-10px'>
+                {t('settings.skillsHub.commandEveConnectorsTitle')}
+              </div>
+              <div className='flex flex-wrap gap-8px'>
+                {(commandEveCapabilityPack.connectors || []).map((connector) => (
+                  <span
+                    key={connector.id}
+                    className='text-12px text-t-secondary bg-fill-1 border border-solid border-border-1 px-10px py-5px rd-999px'
+                  >
+                    {connector.name || connector.id}
+                  </span>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* ======== 我的技能 / My Skills ======== */}
         <div
           data-testid='my-skills-section'
@@ -343,7 +427,7 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
         )}
 
         {/* ======== Builtin Auto-injected Skills ======== */}
-        {builtinAutoSkills.length > 0 && (
+        {visibleBuiltinAutoSkills.length > 0 && (
           <div
             data-testid='auto-skills-section'
             className='px-[16px] md:px-[32px] py-32px bg-base rd-16px md:rd-24px shadow-sm border border-b-base relative overflow-hidden transition-all'
@@ -354,11 +438,11 @@ const SkillsHubSettings: React.FC<SkillsHubSettingsProps> = ({ withWrapper = tru
                 {t('settings.autoInjectedSkills')}
               </span>
               <span className='bg-[rgba(var(--success-6),0.08)] text-[rgb(var(--success-6))] text-12px px-10px py-2px rd-[100px] font-medium ml-4px'>
-                {builtinAutoSkills.length}
+                {visibleBuiltinAutoSkills.length}
               </span>
             </div>
             <div className='w-full flex flex-col gap-6px'>
-              {builtinAutoSkills.map((skill) => (
+              {visibleBuiltinAutoSkills.map((skill) => (
                 <div
                   key={skill.name}
                   ref={(el) => {

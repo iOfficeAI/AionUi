@@ -47,6 +47,15 @@ function writeJson(filePath, payload) {
   fs.writeFileSync(filePath, JSON.stringify(payload, null, 2) + '\n', 'utf-8');
 }
 
+function readJsonSafe(filePath) {
+  try {
+    if (!fs.existsSync(filePath)) return null;
+    return JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+  } catch {
+    return null;
+  }
+}
+
 function getBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
 }
@@ -215,8 +224,16 @@ function prepareAioncore(options) {
   const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncore', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
+  const targetManifestPath = path.join(targetDir, 'manifest.json');
 
   console.log(`Preparing aioncore for ${runtimeKey} (version: ${tag})`);
+
+  const existingManifest = readJsonSafe(targetManifestPath);
+  if (fs.existsSync(targetBinaryPath) && existingManifest?.version === tag) {
+    ensureExecutableMode(targetBinaryPath);
+    console.log(`  Reusing bundled aioncore: resources/bundled-aioncore/${runtimeKey}/${binaryName}`);
+    return { prepared: true, dir: targetDir, sourceType: existingManifest.sourceType || 'existing' };
+  }
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -258,7 +275,7 @@ function prepareAioncore(options) {
       files: [binaryName],
     };
 
-    writeJson(path.join(targetDir, 'manifest.json'), manifest);
+    writeJson(targetManifestPath, manifest);
     console.log(
       `  Bundled aioncore prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );

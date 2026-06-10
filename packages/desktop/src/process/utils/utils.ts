@@ -5,6 +5,14 @@
  */
 
 import type { IDirOrFile } from '@/common/adapter/ipcBridge';
+import {
+  COMMAND_EVE_CLI_CONFIG_SYMLINK,
+  COMMAND_EVE_CLI_DATA_SYMLINK,
+  COMMAND_EVE_CONFIG_DIR_NAME,
+  COMMAND_EVE_DATA_DIR_NAME,
+  COMMAND_EVE_SHELL_ENABLED,
+  COMMAND_EVE_TEMP_DIR_NAME,
+} from '@/common/config/commandEveShell';
 import { getPlatformServices } from '@/common/platform';
 import { getEnvAwareName } from '@/common/config/appEnv';
 import { existsSync, lstatSync, mkdirSync, readlinkSync, realpathSync, symlinkSync, unlinkSync } from 'fs';
@@ -29,7 +37,7 @@ const getElectronPathOrFallback = (name: 'temp' | 'home' | 'userData'): string =
 
 export const getTempPath = () => {
   const rootPath = getElectronPathOrFallback('temp');
-  return path.join(rootPath, 'aionui');
+  return path.join(rootPath, COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_TEMP_DIR_NAME : 'aionui');
 };
 
 /**
@@ -97,8 +105,9 @@ const ensureCliSafeSymlink = (targetPath: string, symlinkName: string): string =
  */
 export const getDataPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
-  const dataPath = path.join(rootPath, 'aionui');
-  return ensureCliSafeSymlink(dataPath, getEnvAwareName('.aionui'));
+  const dataPath = path.join(rootPath, COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_DATA_DIR_NAME : 'aionui');
+  const symlinkName = COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_CLI_DATA_SYMLINK : '.aionui';
+  return ensureCliSafeSymlink(dataPath, getEnvAwareName(symlinkName));
 };
 
 /**
@@ -109,8 +118,9 @@ export const getDataPath = (): string => {
  */
 export const getConfigPath = (): string => {
   const rootPath = getElectronPathOrFallback('userData');
-  const configPath = path.join(rootPath, 'config');
-  return ensureCliSafeSymlink(configPath, getEnvAwareName('.aionui-config'));
+  const configPath = path.join(rootPath, COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_CONFIG_DIR_NAME : 'config');
+  const symlinkName = COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_CLI_CONFIG_SYMLINK : '.aionui-config';
+  return ensureCliSafeSymlink(configPath, getEnvAwareName(symlinkName));
 };
 
 /**
@@ -362,7 +372,7 @@ export async function verifyDirectoryFiles(dir1: string, dir2: string): Promise<
 
     return true;
   } catch (error) {
-    console.warn('[AionUi] Error verifying directory files:', error);
+    console.warn('[CommandEVE] Error verifying directory files:', error);
     return false;
   }
 }
@@ -387,8 +397,8 @@ export const copyFilesToDirectory = async (
     try {
       await fs.access(absoluteFilePath);
     } catch (error) {
-      console.warn(`[AionUi] Source file does not exist, skipping: ${absoluteFilePath}`);
-      console.warn(`[AionUi] Original path: ${file}`);
+      console.warn(`[CommandEVE] Source file does not exist, skipping: ${absoluteFilePath}`);
+      console.warn(`[CommandEVE] Original path: ${file}`);
       // 跳过不存在的文件，而不是抛出错误
       continue;
     }
@@ -419,7 +429,7 @@ export const copyFilesToDirectory = async (
       await fs.copyFile(absoluteFilePath, destPath);
       copiedFiles.push(destPath);
     } catch (error) {
-      console.error(`[AionUi] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
+      console.error(`[CommandEVE] Failed to copy file from ${absoluteFilePath} to ${destPath}:`, error);
       // 继续处理其他文件，而不是完全失败
     }
 

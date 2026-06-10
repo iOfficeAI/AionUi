@@ -21,6 +21,14 @@ import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
 import { classifyHealthCheckMessage } from './healthCheckUtils';
+import { configService } from '@/common/config/configService';
+import {
+  COMMAND_EVE_DEFAULT_ACP_BACKEND,
+  COMMAND_EVE_LOCAL_MODEL_TIERS,
+  COMMAND_EVE_SHELL_ENABLED,
+  getCommandEveAcpModelIdForTier,
+  normalizeCommandEveLocalModelTierId,
+} from '@/common/config/commandEveShell';
 import '../model-provider.css';
 
 /**
@@ -103,8 +111,118 @@ const ModelModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
+  const [commandEveLocalTierId, setCommandEveLocalTierId] = useState(() =>
+    normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'))
+  );
+  const [ensuringCommandEveTierId, setEnsuringCommandEveTierId] = useState<string | null>(null);
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
+  const commandEveSupportNote = COMMAND_EVE_SHELL_ENABLED
+    ? t('settings.commandEveModelSupportNote')
+    : t('settings.customModelSupportNote');
+  const commandEveTierColor = (state: string): string => {
+    if (state === 'default') return 'green';
+    if (state === 'opt_in') return 'orange';
+    return 'purple';
+  };
+  const selectCommandEveLocalTier = async (tierId: string) => {
+    const nextTierId = normalizeCommandEveLocalModelTierId(tierId);
+    const nextModelId = getCommandEveAcpModelIdForTier(nextTierId);
+    setCommandEveLocalTierId(nextTierId);
+    try {
+      const config = configService.get('acp.config') || {};
+      const backendConfig = config[COMMAND_EVE_DEFAULT_ACP_BACKEND] || {};
+      setEnsuringCommandEveTierId(nextTierId);
+      await configService.setBatch({
+        'commandEve.localModelTierId': nextTierId,
+        'acp.config': {
+          ...config,
+          [COMMAND_EVE_DEFAULT_ACP_BACKEND]: {
+            ...backendConfig,
+            preferredModelId: nextModelId,
+          },
+        },
+      });
+      const ensureResult = await ipcBridge.commandEve.ensureLocalModelTier.invoke({ tierId: nextTierId });
+      if (!ensureResult.success || ensureResult.data?.status !== 'ready') {
+        message.warning(
+          t('settings.commandEveLocalRuntimeEnsureBlocked', {
+            reason: ensureResult.msg || ensureResult.data?.next_action || 'runtime not ready',
+          })
+        );
+        return;
+      }
+      message.success(t('settings.commandEveLocalRuntimeSelected'));
+    } catch (error) {
+      setCommandEveLocalTierId(normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId')));
+      console.error('Failed to save Command EVE local model tier:', error);
+      message.error(t('settings.saveModelConfigFailed'));
+    } finally {
+      setEnsuringCommandEveTierId(null);
+    }
+  };
+
+  const renderCommandEveLocalRuntime = () => {
+    if (!COMMAND_EVE_SHELL_ENABLED) return null;
+
+    return (
+      <div className='mb-14px rd-12px border border-solid border-[var(--color-border-2)] bg-[var(--fill-0)] px-14px py-12px'>
+        <div className='flex items-start justify-between gap-12px flex-wrap'>
+          <div>
+            <div className='text-15px font-600 text-t-primary'>{t('settings.commandEveLocalRuntime')}</div>
+            <div className='text-12px leading-5 text-t-secondary mt-4px max-w-760px'>
+              {t('settings.commandEveLocalRuntimeDesc')}
+            </div>
+          </div>
+          <Tag color='arcoblue' size='small'>
+            {t('settings.commandEveLocalRuntimeBackend')}
+          </Tag>
+        </div>
+        <div className='grid grid-cols-1 lg:grid-cols-3 gap-10px mt-12px'>
+          {COMMAND_EVE_LOCAL_MODEL_TIERS.map((tier) => (
+            <div
+              key={tier.id}
+              className={`rd-10px bg-[var(--color-bg-2)] border border-solid p-12px ${
+                commandEveLocalTierId === tier.id
+                  ? 'border-[color:var(--color-primary-6)]'
+                  : 'border-[var(--color-border-2)]'
+              }`}
+            >
+              <div className='flex items-center justify-between gap-8px'>
+                <span className='text-14px font-600 text-t-primary'>{tier.label}</span>
+                <Tag color={commandEveTierColor(tier.state)} size='small'>
+                  {t(`settings.commandEveModelTier.${tier.state}`)}
+                </Tag>
+              </div>
+              <div className='font-mono text-12px text-t-secondary mt-8px truncate'>{tier.modelId}</div>
+              <div className='text-12px text-t-secondary mt-6px'>
+                {t('settings.commandEveLocalRuntimeMeta', {
+                  context: tier.contextLength.toLocaleString(),
+                  memory: tier.memoryGb,
+                  disk: tier.diskGb,
+                })}
+              </div>
+              <Button
+                size='mini'
+                type={commandEveLocalTierId === tier.id ? 'primary' : 'outline'}
+                className='mt-10px'
+                disabled={commandEveLocalTierId === tier.id || Boolean(ensuringCommandEveTierId)}
+                loading={ensuringCommandEveTierId === tier.id}
+                onClick={() => void selectCommandEveLocalTier(tier.id)}
+              >
+                {commandEveLocalTierId === tier.id
+                  ? t('settings.commandEveLocalRuntimeCurrent')
+                  : t('settings.commandEveLocalRuntimeSelect')}
+              </Button>
+            </div>
+          ))}
+        </div>
+        <div className='text-12px leading-5 text-t-secondary mt-10px'>
+          {t('settings.commandEveLocalRuntimeRestartNote')}
+        </div>
+      </div>
+    );
+  };
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -500,12 +618,13 @@ const ModelModalContent: React.FC = () => {
             color: 'rgb(var(--primary-6))',
           }}
         >
-          {t('settings.customModelSupportNote')}
+          {commandEveSupportNote}
         </div>
       </div>
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
+        {renderCommandEveLocalRuntime()}
         {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
@@ -513,7 +632,11 @@ const ModelModalContent: React.FC = () => {
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
               <a
-                href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
+                href={
+                  COMMAND_EVE_SHELL_ENABLED
+                    ? 'https://command-eve.com'
+                    : 'https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
+                }
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'

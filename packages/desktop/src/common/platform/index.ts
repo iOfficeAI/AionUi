@@ -1,6 +1,7 @@
 import path from 'path';
 import type { IPlatformServices } from './IPlatformServices';
 import { NodePlatformServices } from './NodePlatformServices';
+import { COMMAND_EVE_SHELL_ENABLED, getCommandEveAppName } from '@/common/config/commandEveShell';
 
 let _services: IPlatformServices | null = null;
 
@@ -9,6 +10,7 @@ let _services: IPlatformServices | null = null;
  * Centralised so that every call-site stays in sync.
  */
 export function getDevAppName(): string {
+  if (COMMAND_EVE_SHELL_ENABLED) return getCommandEveAppName(false);
   const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
   return isMultiInstance ? 'AionUi-Dev-2' : 'AionUi-Dev';
 }
@@ -39,10 +41,10 @@ export function getPlatformServices(): IPlatformServices {
         // Dev isolation: set app name before any getPath('userData') call.
         // Rollup may load this chunk before configureChromium.ts runs, so we
         // must apply the dev name here as a safety net.
-        if (!app.isPackaged) {
-          const devAppName = getDevAppName();
-          app.setName(devAppName);
-          app.setPath('userData', path.join(path.dirname(app.getPath('userData')), devAppName));
+        if (COMMAND_EVE_SHELL_ENABLED || !app.isPackaged) {
+          const appName = COMMAND_EVE_SHELL_ENABLED ? getCommandEveAppName(app.isPackaged) : getDevAppName();
+          app.setName(appName);
+          app.setPath('userData', path.join(path.dirname(app.getPath('userData')), appName));
         }
         // Typed as IPlatformPaths so tsc enforces completeness: any new method
         // added to the interface will cause a compile error here if omitted below.

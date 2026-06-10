@@ -5,10 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_ASSISTANT_ID, COMMAND_EVE_ASSISTANT_KEY } from '@/common/config/commandEveShell';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
-import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
+import { openExternalUrl, resolveExtensionAssetUrl, resolvePublicAssetUrl } from '@/renderer/utils/platform';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -36,7 +37,6 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
 
 const COMMAND_EVE_GUID_ENABLED = true;
-const COMMAND_EVE_AGENT_BACKEND = 'hermes';
 const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 const COMMAND_EVE_WAIT_VIDEO_OPTIONS = [
   {
@@ -76,6 +76,8 @@ const GuidPage: React.FC = () => {
     Math.floor(Math.random() * COMMAND_EVE_WAIT_VIDEO_OPTIONS.length)
   );
   const commandEveWaitVideo = COMMAND_EVE_WAIT_VIDEO_OPTIONS[commandEveWaitVideoIndex];
+  const commandEveWaitVideoSrc = resolvePublicAssetUrl(commandEveWaitVideo.src) || commandEveWaitVideo.src;
+  const commandEveWaitVideoPoster = resolvePublicAssetUrl(commandEveWaitVideo.poster) || commandEveWaitVideo.poster;
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -142,14 +144,11 @@ const GuidPage: React.FC = () => {
   });
 
   const commandEveAgentKey = useMemo(() => {
-    if (!COMMAND_EVE_GUID_ENABLED || !agentSelection.availableAgents) return undefined;
-    const hermesAgent = agentSelection.availableAgents.find(
-      (agent) =>
-        !agent.is_preset &&
-        (agent.backend === COMMAND_EVE_AGENT_BACKEND || agent.agent_type === COMMAND_EVE_AGENT_BACKEND)
-    );
-    return hermesAgent ? agentSelection.getAgentKey(hermesAgent) : undefined;
-  }, [agentSelection.availableAgents, agentSelection.getAgentKey]);
+    if (!COMMAND_EVE_GUID_ENABLED) return undefined;
+    return agentSelection.assistants.some((assistant) => assistant.id === COMMAND_EVE_ASSISTANT_ID)
+      ? COMMAND_EVE_ASSISTANT_KEY
+      : undefined;
+  }, [agentSelection.assistants]);
 
   useEffect(() => {
     if (!COMMAND_EVE_GUID_ENABLED || !commandEveAgentKey) return;
@@ -609,14 +608,11 @@ const GuidPage: React.FC = () => {
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
       enabledSkills={guidEnabledSkills ?? []}
       onToggleSkill={handleToggleSkill}
+      hideModeSwitch={COMMAND_EVE_GUID_ENABLED}
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
-      onSend={() => {
-        send.handleSend().catch((error) => {
-          console.error('Failed to send message:', error);
-        });
-      }}
+      onSend={send.sendMessageHandler}
     />
   );
 
@@ -628,9 +624,9 @@ const GuidPage: React.FC = () => {
             {COMMAND_EVE_GUID_ENABLED ? (
               <div className={styles.commandEveHero} data-testid='command-eve-hero'>
                 <video
-                  key={commandEveWaitVideo.src}
-                  src={commandEveWaitVideo.src}
-                  poster={commandEveWaitVideo.poster}
+                  key={commandEveWaitVideoSrc}
+                  src={commandEveWaitVideoSrc}
+                  poster={commandEveWaitVideoPoster}
                   className={styles.commandEveWaitVideo}
                   aria-hidden='true'
                   autoPlay

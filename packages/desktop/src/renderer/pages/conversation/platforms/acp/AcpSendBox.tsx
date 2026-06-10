@@ -33,6 +33,7 @@ import React, { useCallback, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAcpInitialMessage } from './useAcpInitialMessage';
 import type { UseAcpMessageReturn } from './useAcpMessage';
+import AcpRuntimeStatus from './AcpRuntimeStatus';
 
 const useAcpSendBoxDraft = getSendBoxDraftHook('acp', {
   _type: 'acp',
@@ -96,6 +97,7 @@ const AcpSendBox: React.FC<{
     slashCommands,
     fetchSlashCommands,
   } = messageState;
+  const displayBackendName = backend === COMMAND_EVE_AGENT_BACKEND ? COMMAND_EVE_DISPLAY_NAME : agent_name || backend;
   const { t } = useTranslation();
   const teamPermission = useTeamPermission();
   // In team mode, all agents show the permission mode selector (members don't propagate)
@@ -103,7 +105,6 @@ const AcpSendBox: React.FC<{
   const isLeaderInTeam = teamPermission && conversation_id === teamPermission.leaderConversationId;
   const { checkAndUpdateTitle } = useAutoTitle();
   const { atPath, uploadFile, setAtPath, setUploadFile, content, setContent } = useSendBoxDraft(conversation_id);
-  const displayBackendName = backend === COMMAND_EVE_AGENT_BACKEND ? COMMAND_EVE_DISPLAY_NAME : agent_name || backend;
 
   // In team mode, warmup the agent then fetch slash commands
   useEffect(() => {
@@ -357,6 +358,7 @@ Please check your local CLI tool authentication status`,
         onClear={clear}
       />
       <ThoughtDisplay running={aiProcessing && !hasThinkingMessage} onStop={handleStop} />
+      <AcpRuntimeStatus activity={messageState.runtimeActivity} running={running} aiProcessing={aiProcessing} />
 
       <SendBox
         value={content}

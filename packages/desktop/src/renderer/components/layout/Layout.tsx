@@ -23,7 +23,7 @@ import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelectio
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
-import { isElectronDesktop } from '@renderer/utils/platform';
+import { isElectronDesktop, resolvePublicAssetUrl } from '@renderer/utils/platform';
 import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
 import '@renderer/styles/layout.css';
 
@@ -457,7 +457,10 @@ const Layout: React.FC<{
                   onClick={onClick}
                 >
                   <img
-                    src='/command-eve-logo.svg?v=command-eve-20260526'
+                    src={
+                      resolvePublicAssetUrl('/command-eve-logo.svg?v=command-eve-20260526') ||
+                      '/command-eve-logo.svg?v=command-eve-20260526'
+                    }
                     alt='Command EVE'
                     className='absolute inset-0 size-full object-cover'
                   />

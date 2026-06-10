@@ -1,12 +1,12 @@
 {
-  "name": "AionUi",
-  "version": "2.1.1",
-  "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
+  "name": "command-eve",
+  "version": "1.0.0-alpha.4",
+  "description": "Command EVE local operator shell for Company.OS.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
-    "email": "service@aionui.com"
+    "name": "FYN Labs LLC",
+    "email": "admin@fyn-labs.com"
   },
   "workspaces": [
     "packages/*"
@@ -49,6 +49,7 @@
     "test:packaged:i18n": "vitest run tests/integration/i18n-packaged.test.ts",
     "bench": "vitest bench",
     "bench:db": "bun test ./tests/bench/database.bench.bun.ts",
+    "command-eve:bench:models": "tsx scripts/command-eve-model-latency-benchmark.ts",
     "bench:report": "bunx tsx scripts/run-benchmarks.ts",
     "bench:startup": "bunx tsx scripts/benchmark-startup.ts",
     "bench:full": "bunx tsx scripts/run-benchmarks.ts --startup",
@@ -259,5 +260,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "Command EVE"
 }

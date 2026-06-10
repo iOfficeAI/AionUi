@@ -8,6 +8,7 @@ import { mkdirSync as _mkdirSync, existsSync, readdirSync, readFileSync } from '
 import fs from 'fs/promises';
 import path from 'path';
 import { getPlatformServices } from '@/common/platform';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { application } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type {
@@ -15,8 +16,6 @@ import type {
   IConfigStorageRefer,
   IEnvStorageRefer,
   IMcpServer,
-  TChatConversation,
-  TProviderWithModel,
 } from '@/common/config/storage';
 import { ConfigStorage, EnvStorage } from '@/common/config/storage';
 import {
@@ -41,14 +40,15 @@ type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
 const nodePath = path;
 
 const STORAGE_PATH = {
-  config: 'aionui-config.txt',
-  chatMessage: 'aionui-chat-message.txt',
-  chat: 'aionui-chat.txt',
-  env: '.aionui-env',
+  config: COMMAND_EVE_SHELL_ENABLED ? 'command-eve-config.txt' : 'aionui-config.txt',
+  chatMessage: COMMAND_EVE_SHELL_ENABLED ? 'command-eve-chat-message.txt' : 'aionui-chat-message.txt',
+  chat: COMMAND_EVE_SHELL_ENABLED ? 'command-eve-chat.txt' : 'aionui-chat.txt',
+  env: COMMAND_EVE_SHELL_ENABLED ? '.command-eve-env' : '.aionui-env',
   assistants: 'assistants',
   skills: 'skills',
   cronSkills: 'cron-skills',
 };
+const CHAT_HISTORY_DIR = COMMAND_EVE_SHELL_ENABLED ? 'command-eve-chat-history' : 'aionui-chat-history';
 
 /** Legacy builtin-skills cache directory, cleaned up at startup after the
  * backend took ownership of the corpus. */
@@ -56,8 +56,8 @@ const LEGACY_BUILTIN_SKILLS_DIR = 'builtin-skills';
 
 const getHomePage = getConfigPath;
 
-const mkdirSync = (path: string) => {
-  return _mkdirSync(path, { recursive: true });
+const mkdirSync = (targetPath: string) => {
+  return _mkdirSync(targetPath, { recursive: true });
 };
 
 /**
@@ -75,7 +75,7 @@ const migrateLegacyData = async () => {
         try {
           return existsSync(newDir) && readdirSync(newDir).length === 0;
         } catch (error) {
-          console.warn('[AionUi] Warning: Could not read new directory during migration check:', error);
+          console.warn('[CommandEVE] Warning: Could not read new directory during migration check:', error);
           return false; // 假设非空以避免迁移覆盖
         }
       })();
@@ -96,7 +96,7 @@ const migrateLegacyData = async () => {
           try {
             await fs.rm(oldDir, { recursive: true });
           } catch (cleanupError) {
-            console.warn('[AionUi] 原目录清理失败，请手动删除:', oldDir, cleanupError);
+            console.warn('[CommandEVE] 原目录清理失败，请手动删除:', oldDir, cleanupError);
           }
         }
       }
@@ -104,7 +104,7 @@ const migrateLegacyData = async () => {
       return true;
     }
   } catch (error) {
-    console.error('[AionUi] 数据迁移失败:', error);
+    console.error('[CommandEVE] 数据迁移失败:', error);
   }
 
   return false;
@@ -254,11 +254,11 @@ const _chatFile = JsonFileBuilder<IChatConversationRefer>(path.join(cacheDir, ST
 const chatFile = _chatFile;
 
 const buildMessageListStorage = (conversation_id: string, dir: string) => {
-  const fullName = path.join(dir, 'aionui-chat-history', conversation_id + '.txt');
+  const fullName = path.join(dir, CHAT_HISTORY_DIR, conversation_id + '.txt');
   if (!existsSync(fullName)) {
-    mkdirSync(path.join(dir, 'aionui-chat-history'));
+    mkdirSync(path.join(dir, CHAT_HISTORY_DIR));
   }
-  return JsonFileBuilder<TMessage[]>(path.join(dir, 'aionui-chat-history', conversation_id + '.txt'));
+  return JsonFileBuilder<TMessage[]>(path.join(dir, CHAT_HISTORY_DIR, conversation_id + '.txt'));
 };
 
 const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string) => {
@@ -278,9 +278,7 @@ const conversationHistoryProxy = (options: typeof _chatMessageFile, dir: string)
     },
     backup(conversation_id: string) {
       const storage = buildMessageListStorage(conversation_id, dir);
-      return storage.backup(
-        path.join(dir, 'aionui-chat-history', 'backup', conversation_id + '_' + Date.now() + '.txt')
-      );
+      return storage.backup(path.join(dir, CHAT_HISTORY_DIR, 'backup', conversation_id + '_' + Date.now() + '.txt'));
     },
   };
 };
@@ -320,7 +318,7 @@ const cleanupLegacyBuiltinSkillsDir = () => {
   const legacyDir = path.join(cacheDir, LEGACY_BUILTIN_SKILLS_DIR);
   if (!existsSync(legacyDir)) return;
   fs.rm(legacyDir, { recursive: true, force: true })
-    .then(() => console.log('[AionUi] Cleaned up legacy builtin-skills cache'))
+    .then(() => console.log('[CommandEVE] Cleaned up legacy builtin-skills cache'))
     .catch(() => {
       /* swallow — cleanup is not critical */
     });
@@ -514,7 +512,7 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 
     if (changed) {
       await configFile.set('mcp.config', mcpServers);
-      console.log('[AionUi] Built-in MCP servers ensured');
+      console.log('[CommandEVE] Built-in MCP servers ensured');
     }
 
     // Clear old switch flag after migration
@@ -523,13 +521,13 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
     }
   } catch (error) {
-    console.error('[AionUi] Failed to ensure built-in MCP servers:', error);
+    console.error('[CommandEVE] Failed to ensure built-in MCP servers:', error);
   }
 };
 
 const initStorage = async () => {
   const t0 = performance.now();
-  const mark = (label: string) => console.log(`[AionUi:init] ${label} +${Math.round(performance.now() - t0)}ms`);
+  const mark = (label: string) => console.log(`[CommandEVE:init] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
   // 1. 先执行数据迁移（在任何目录创建之前）
@@ -556,7 +554,7 @@ const initStorage = async () => {
       await configFile.set('mcp.config', defaultServers);
     }
   } catch (error) {
-    console.error('[AionUi] Failed to initialize default MCP servers:', error);
+    console.error('[CommandEVE] Failed to initialize default MCP servers:', error);
   }
   mark('4.1 MCP defaults');
 
@@ -573,7 +571,7 @@ const initStorage = async () => {
     await ensureAssistantDirs();
     mark('5. ensureAssistantDirs');
   } catch (error) {
-    console.error('[AionUi] Failed to ensure assistant dirs:', error);
+    console.error('[CommandEVE] Failed to ensure assistant dirs:', error);
   }
 
   // 5b. Best-effort cleanup of the legacy builtin-skills cache left behind

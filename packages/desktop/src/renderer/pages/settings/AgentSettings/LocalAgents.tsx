@@ -17,6 +17,16 @@ import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
+
+const commandEveAgentPriority = (agent: AgentMetadata): number => {
+  const key = (agent.backend || agent.agent_type || '').toLowerCase();
+  if (key === 'hermes') return 0;
+  if (key === 'codex') return 1;
+  if (key === 'claude') return 2;
+  if (key === 'gemini') return 3;
+  return 10;
+};
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
@@ -84,9 +94,17 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // Aion CLI first among detected agents
-  const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
+  const visibleDetectedAgents = COMMAND_EVE_SHELL_ENABLED
+    ? detectedAgents
+        .filter((agent) => agent.agent_type !== 'aionrs' && agent.backend !== 'aionrs')
+        .sort((left, right) => commandEveAgentPriority(left) - commandEveAgentPriority(right))
+    : detectedAgents;
+
+  // Aion CLI first among detected agents when the upstream shell is enabled.
+  const aionrsAgent = COMMAND_EVE_SHELL_ENABLED
+    ? undefined
+    : visibleDetectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
+  const otherDetected = visibleDetectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
@@ -103,7 +121,11 @@ const LocalAgents: React.FC = () => {
   return (
     <div className='flex flex-col gap-8px py-16px'>
       <div className='px-16px text-12px text-t-secondary'>
-        <span>{t('settings.agentManagement.localAgentsDescription')} </span>
+        <span>
+          {COMMAND_EVE_SHELL_ENABLED
+            ? t('settings.agentManagement.commandEveLocalAgentsDescription')
+            : t('settings.agentManagement.localAgentsDescription')}{' '}
+        </span>
         <Button
           type='text'
           size='mini'
@@ -113,6 +135,19 @@ const LocalAgents: React.FC = () => {
           {t('settings.agentManagement.detectCustomAgent')}
         </Button>
       </div>
+
+      {COMMAND_EVE_SHELL_ENABLED && (
+        <div className='px-16px mt-8px'>
+          <div className='rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px'>
+            <Typography.Text className='mb-4px block text-14px font-medium text-t-primary'>
+              {t('settings.agentManagement.commandEveRuntimeTitle')}
+            </Typography.Text>
+            <Typography.Text className='block text-12px leading-18px text-t-secondary'>
+              {t('settings.agentManagement.commandEveRuntimeDesc')}
+            </Typography.Text>
+          </div>
+        </div>
+      )}
 
       {process.env.NODE_ENV === 'development' && (
         <div className='px-16px mt-8px'>
@@ -163,7 +198,7 @@ const LocalAgents: React.FC = () => {
           />
         ))}
       </div>
-      {(!detectedAgents || detectedAgents.length === 0) && (
+      {(!visibleDetectedAgents || visibleDetectedAgents.length === 0) && (
         <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
           {t('settings.agentManagement.localAgentsEmpty')}
         </Typography.Text>

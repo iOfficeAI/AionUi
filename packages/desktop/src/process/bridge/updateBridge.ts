@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_APP_NAME, COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import type {
   UpdateCheckResult,
   UpdateDownloadProgressEvent,
@@ -54,10 +55,10 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
-const DEFAULT_USER_AGENT = 'AionUi';
+const DEFAULT_REPO = COMMAND_EVE_SHELL_ENABLED ? 'MathiasHeinke/company-os' : 'iOfficeAI/AionUi';
+const DEFAULT_USER_AGENT = COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_APP_NAME : 'AionUi';
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
-const CDN_HOST = 'static.aionui.com';
+const CDN_HOST = COMMAND_EVE_SHELL_ENABLED ? 'static.command-eve.com' : 'static.aionui.com';
 const CDN_BASE_URL = `https://${CDN_HOST}/releases`;
 const ALLOWED_DOWNLOAD_HOSTS = new Set<string>([
   CDN_HOST,
@@ -312,7 +313,7 @@ const sanitizeFileName = (name: string): string => {
   // Keep only base name and trim weird whitespace.
   const base = path.basename(name).trim();
   // Avoid empty names.
-  return base || `AionUi-update-${Date.now()}`;
+  return base || `${COMMAND_EVE_SHELL_ENABLED ? 'Command-EVE' : 'AionUi'}-update-${Date.now()}`;
 };
 
 const ensureUniquePath = (target: string): string => {

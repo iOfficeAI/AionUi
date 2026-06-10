@@ -342,6 +342,66 @@ export interface IGpuStatus {
   lastCrashAt: number | null;
 }
 
+export interface ICommandEveRuntimeStage {
+  id: string;
+  status: 'pass' | 'skip' | 'blocked' | 'failed' | string;
+  code?: string;
+  detail?: string;
+  duration_ms?: number;
+}
+
+export interface ICommandEvePromptProof {
+  ok: boolean;
+  observed_at?: string;
+  model?: string;
+  message_count?: number;
+  system_message_count?: number;
+  marker?: string;
+  prompt_sha256?: string;
+  receipt_path?: string;
+}
+
+export interface ICommandEveRuntimeStatus {
+  status: 'ready' | 'blocked' | 'failed' | 'skipped' | 'missing' | string;
+  default_model?: string;
+  base_model?: string;
+  provider?: string;
+  execution_mode?: 'observed' | 'delegated' | 'autonomous' | string;
+  next_action?: string;
+  receipt_path?: string;
+  gate_audit_path?: string;
+  prompt_proof?: ICommandEvePromptProof;
+  egress_boundary?: {
+    receipt_path?: string;
+    decision?: 'allow' | 'block' | 'redact' | string;
+    observed_at?: string;
+    finding_count?: number;
+    policy_action?: string;
+  };
+  stages?: ICommandEveRuntimeStage[];
+}
+
+export type ICommandEveGateAction =
+  | 'edit_code'
+  | 'prepare_pr'
+  | 'run_local_tests'
+  | 'merge_main'
+  | 'prod_write'
+  | 'money'
+  | 'external_send'
+  | 'schema_auth_secret'
+  | 'truth_gate';
+
+export interface ICommandEveGateDecision {
+  version: 'command-eve-gate-decision/v0';
+  decided_at: string;
+  mode: 'observed' | 'delegated' | 'autonomous' | string;
+  action: ICommandEveGateAction;
+  allowed: boolean;
+  gate: 'auto' | 'founder_stop' | 'founder_click' | 'hg_2_5' | 'hg_4' | 'cao_required' | string;
+  reason: string;
+}
+
 // ---------------------------------------------------------------------------
 // Application — stays IPC (Electron-native)
 // ---------------------------------------------------------------------------
@@ -382,6 +442,22 @@ export const application = {
     'app.log-stream'
   ),
   devToolsStateChanged: bridge.buildEmitter<{ isOpen: boolean }>('app.devtools-state-changed'),
+};
+
+// ---------------------------------------------------------------------------
+// Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
+// ---------------------------------------------------------------------------
+
+export const commandEve = {
+  runtimeStatus: bridge.buildProvider<IBridgeResponse<ICommandEveRuntimeStatus>, void>('command-eve.runtime-status'),
+  ensureLocalModelTier: bridge.buildProvider<
+    IBridgeResponse<ICommandEveRuntimeStatus>,
+    { tierId?: string } | undefined
+  >('command-eve.ensure-local-model-tier'),
+  evaluateGateDecision: bridge.buildProvider<
+    IBridgeResponse<ICommandEveGateDecision>,
+    { action: ICommandEveGateAction }
+  >('command-eve.evaluate-gate-decision'),
 };
 
 // ---------------------------------------------------------------------------

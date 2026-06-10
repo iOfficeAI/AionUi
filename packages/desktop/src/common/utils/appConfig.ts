@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { COMMAND_EVE_APP_NAME, COMMAND_EVE_SHELL_ENABLED } from '../config/commandEveShell';
+
 // Configuration for app info - to be set by the caller in main process
 let appConfig: { name: string; version: string; protocolVersion: string } | null = null;
 
@@ -23,7 +25,7 @@ export function setAppConfig(config: { name: string; version: string; protocolVe
  * Gets the application client name from the app config if available
  */
 export const getConfiguredAppClientName = (): string => {
-  return appConfig?.name || 'AionUi';
+  return appConfig?.name || (COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_APP_NAME : 'AionUi');
 };
 
 /**

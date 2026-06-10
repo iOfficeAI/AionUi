@@ -52,10 +52,10 @@
   },
   "page": {
     "newTask": "Neue Aufgabe",
-    "description": "Führe Aufgaben nach einem Zeitplan aus. Du kannst AionUi auch in jeder Unterhaltung bitten, eine für dich zu erstellen.",
+    "description": "Führe Aufgaben nach einem Zeitplan aus. Du kannst KI-Shell auch in jeder Unterhaltung bitten, eine für dich zu erstellen.",
     "awakeBanner": "Geplante Aufgaben laufen nur, während dein Computer eingeschaltet ist.",
     "keepAwake": "Wach halten",
-    "keepAwakeTooltip": "Wenn aktiviert, verhindert AionUi, dass dein Computer in den Ruhezustand wechselt",
+    "keepAwakeTooltip": "Wenn aktiviert, verhindert KI-Shell, dass dein Computer in den Ruhezustand wechselt",
     "createTask": "Geplante Aufgabe erstellen",
     "editTask": "Geplante Aufgabe bearbeiten",
     "createSuccess": "Aufgabe erfolgreich erstellt",

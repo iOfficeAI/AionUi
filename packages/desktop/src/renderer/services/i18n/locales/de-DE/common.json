@@ -59,10 +59,10 @@
   "historyBack": "Zurück",
   "more": "Mehr",
   "refresh": "Aktualisieren",
-  "tray.showWindow": "AionUi anzeigen",
+  "tray.showWindow": "Command EVE anzeigen",
   "tray.newChat": "Neuer Chat",
   "tray.closeToTray": "In Tray minimieren",
-  "tray.about": "Über AionUi",
+  "tray.about": "Über Command EVE",
   "tray.restart": "App neu starten",
   "tray.quit": "Beenden",
   "tray.runningTasks": "Laufende Aufgaben",
@@ -73,12 +73,12 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Dieses System wird vom mitgelieferten Backend nicht unterstützt",
-      "description": "AionUi wurde geöffnet, aber das lokale AionCore-Backend kann auf dieser Linux-Version nicht ausgeführt werden. Bitte aktualisieren Sie auf eine unterstützte Linux-Distribution und starten Sie AionUi neu.",
+      "description": "Command EVE wurde geöffnet, aber das lokale AionCore-Backend kann auf dieser Linux-Version nicht ausgeführt werden. Bitte aktualisieren Sie auf eine unterstützte Linux-Distribution und starten Sie KI-Shell neu.",
       "requiredVersions": "Erforderliche Runtime-Symbole: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "Die AionUi-Installation ist unvollständig",
-      "description": "Dieser Installation fehlen erforderliche lokale Ressourcen, daher kann AionCore nicht starten. Bitte laden Sie die neueste Version von AionUi herunter und installieren Sie sie neu. Falls das Problem nach der Neuinstallation erneut auftritt, prüfen Sie, ob eine Sicherheits- oder Antivirensoftware AionCore in Quarantäne verschoben hat.",
+      "title": "Die Command-EVE-Installation ist unvollständig",
+      "description": "Dieser Installation fehlen erforderliche lokale Ressourcen, daher kann AionCore nicht starten. Bitte laden Sie die neueste Version von Command EVE herunter und installieren Sie sie neu. Falls das Problem nach der Neuinstallation erneut auftritt, prüfen Sie, ob eine Sicherheits- oder Antivirensoftware AionCore in Quarantäne verschoben hat.",
       "downloadLatest": "Neueste Version herunterladen",
       "sendDiagnostics": "Diagnose senden"
     }

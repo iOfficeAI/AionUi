@@ -12,10 +12,10 @@
     "clearWorkspace": "Projekt entfernen",
     "openFolder": "Ordner öffnen",
     "none": "Keine",
-    "quickActionsTitle": "Was kann AionUi?",
+    "quickActionsTitle": "Was kann Command EVE?",
     "quickActionFeedback": "Problem melden",
     "quickActionStar": "Gefällt es dir? Gib uns einen Stern!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "Command EVE Skills",
     "skillsMarketDesc": "Community-Skills bei Bedarf suchen und aktivieren. Einmal konfigurieren, für alle Agenten verfügbar.",
     "skillsMarketDetails": "Mehr anzeigen >>"
   },
@@ -90,6 +90,8 @@
   },
   "noAgentsAvailable": "Keine Agenten verfügbar",
   "noModelConfigured": "Kein Modell konfiguriert. Bitte konfiguriere es in den Einstellungen.",
+  "commandEveRuntimePreparing": "EVE bereitet die lokale Runtime vor. Das kann beim ersten Start oder nach Modellwechsel etwas dauern.",
+  "commandEveRuntimeNotReady": "EVE kann noch nicht senden: {{reason}}",
   "createFailed": "Gespräch konnte nicht erstellt werden",
   "createError": {
     "pathVariants": {
@@ -263,8 +265,8 @@
       },
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
         "title": "Dieser Workspace-Pfad wird für die Ausführung nicht mehr unterstützt",
-        "body": "Dieses bestehende Gespräch bzw. diese Aufgabe verwendet einen Workspace-Pfad, dessen Verzeichnisnamen Leerzeichen oder andere Leerraumzeichen enthalten. AionUi unterstützt das Senden von Nachrichten über solche Pfade nicht mehr. Erstelle ein neues Gespräch oder eine neue Aufgabe mit einem Workspace-Pfad ohne Leerraumzeichen.",
-        "bodyWithPath": "Der bestehende Workspace-Pfad „{{workspacePath}}“ enthält Leerzeichen oder andere Leerraumzeichen. AionUi unterstützt das Senden von Nachrichten in Gesprächen oder Aufgaben, die diesen Pfad verwenden, nicht mehr. Erstelle ein neues Gespräch oder eine neue Aufgabe mit einem Workspace-Pfad ohne Leerraumzeichen."
+        "body": "Dieses bestehende Gespräch bzw. diese Aufgabe verwendet einen Workspace-Pfad, dessen Verzeichnisnamen Leerzeichen oder andere Leerraumzeichen enthalten. Command EVE unterstützt das Senden von Nachrichten über solche Pfade nicht mehr. Erstelle ein neues Gespräch oder eine neue Aufgabe mit einem Workspace-Pfad ohne Leerraumzeichen.",
+        "bodyWithPath": "Der bestehende Workspace-Pfad „{{workspacePath}}“ enthält Leerzeichen oder andere Leerraumzeichen. Command EVE unterstützt das Senden von Nachrichten in Gesprächen oder Aufgaben, die diesen Pfad verwenden, nicht mehr. Erstelle ein neues Gespräch oder eine neue Aufgabe mit einem Workspace-Pfad ohne Leerraumzeichen."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "Der vorgelagerte Agent oder Anbieter ist fehlgeschlagen",
@@ -472,6 +474,33 @@
       "loaded": "Geladen",
       "failed": "Fehlgeschlagen",
       "unsupported": "Nicht unterstützt"
+    }
+  },
+  "runtimeStatus": {
+    "phase": {
+      "idle": "EVE bereit",
+      "connecting": "Hermes verbindet",
+      "ready": "EVE bereit",
+      "submitting": "Anfrage wird gesendet",
+      "thinking": "Gemma denkt",
+      "streaming": "Antwort streamt",
+      "done": "Antwort fertig",
+      "error": "Runtime-Fehler"
+    },
+    "logs": "Logs",
+    "logsTooltip": "Command-EVE-Log-Ordner öffnen",
+    "logsUnavailable": "Log-Ordner nicht verfügbar",
+    "logsOpenFailed": "Logs konnten nicht geöffnet werden",
+    "modelUnknown": "Modell unbekannt",
+    "context": "Kontext {{used}}/{{size}}",
+    "notice": {
+      "localModel": "Lokales 64k-Modell: erste Antworten können 30–90 Sekunden dauern.",
+      "longRunning": "EVE arbeitet weiter. Öffne bei Bedarf die Logs oder stoppe die Anfrage."
+    },
+    "egress": {
+      "blocked": "EVE hat sensible Daten vor dem Modell blockiert ({{count}} Treffer).",
+      "redacted": "EVE hat sensible Daten vor dem Modell bereinigt ({{count}} Treffer).",
+      "clear": "Letzter Modellaufruf ohne sensible Treffer."
     }
   },
   "sendbox": {

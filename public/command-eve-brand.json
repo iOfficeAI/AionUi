@@ -1,7 +1,7 @@
 {
   "schema_version": "command-eve-brand-config/v0",
-  "version": "v1.0.0-alpha.0",
-  "generated_at": "2026-06-04T13:19:36.665Z",
+  "version": "v1.0.0-alpha.4",
+  "generated_at": "2026-06-07T15:46:22.185Z",
   "brand": {
     "product": "Command EVE",
     "display_name": "⌘ EVE",
@@ -47,5 +47,22 @@
     "aspect_ratio": "1 / 1",
     "framing": "face-focus",
     "autoplay_fallback": "animated-gif-until-video-playing"
+  },
+  "live_prompt_boundary": {
+    "version": "command-eve-live-prompt-boundary/v0",
+    "surface": "command-eve/operator-shell/live-chat",
+    "runtime_policy_env": "COMMAND_EVE_RUNTIME_POLICY_PATH",
+    "default_lane": "eu_resident",
+    "fallback_lane": "local_only",
+    "pre_send_hook_required": true,
+    "provider_execution_without_gate": "blocked",
+    "approved_lanes": [
+      "eu_resident",
+      "self-host",
+      "local_only"
+    ],
+    "blocked_lanes_for_s2_plus": [
+      "us_cli"
+    ]
   }
 }

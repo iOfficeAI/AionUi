@@ -1,4 +1,5 @@
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_ASSISTANT_ID, COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { resolveLocaleKey } from '@/common/utils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { sortAssistants as sortAssistantsUtil } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
@@ -25,7 +26,10 @@ export const useAssistantList = () => {
   const loadAssistants = useCallback(async () => {
     try {
       const list = await ipcBridge.assistants.list.invoke();
-      const sorted = sortAssistantsUtil(list);
+      const shellScopedList = COMMAND_EVE_SHELL_ENABLED
+        ? list.filter((assistant) => assistant.id === COMMAND_EVE_ASSISTANT_ID || assistant.source === 'user')
+        : list;
+      const sorted = sortAssistantsUtil(shellScopedList);
       setAssistants(sorted);
       setActiveAssistantId((prev) => {
         if (prev && sorted.some((a) => a.id === prev)) return prev;

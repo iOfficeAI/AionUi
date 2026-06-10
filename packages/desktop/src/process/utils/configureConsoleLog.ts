@@ -10,9 +10,9 @@
  * daily log files on disk.
  *
  * Log file location (managed by electron-log):
- *   - macOS:   ~/Library/Logs/AionUi/YYYY-MM-DD.log
- *   - Windows: %USERPROFILE%\AppData\Roaming\AionUi\logs\YYYY-MM-DD.log
- *   - Linux:   ~/.config/AionUi/logs/YYYY-MM-DD.log
+ *   - macOS:   ~/Library/Logs/Command EVE/YYYY-MM-DD.log
+ *   - Windows: %USERPROFILE%\AppData\Roaming\Command EVE\logs\YYYY-MM-DD.log
+ *   - Linux:   ~/.config/Command EVE/logs/YYYY-MM-DD.log
  *
  * Users can share the relevant date's file for debugging (#1157).
  *
@@ -35,7 +35,8 @@ log.transports.file.level = FILE_LOG_LEVEL;
 log.transports.file.maxSize = FILE_SIZE_LIMIT;
 log.transports.console.level = CONSOLE_LOG_LEVEL;
 
-const BACKEND_PREFIX = '[aioncore]';
+const BACKEND_INPUT_PREFIX = '[aioncore]';
+const BACKEND_OUTPUT_PREFIX = '[command-eve-core]';
 
 // Strip ANSI escape sequences from a string.
 const ANSI_RE = new RegExp(String.raw`\u001B\[[0-9;]*m`, 'g');
@@ -63,13 +64,13 @@ function parseTracingLine(raw: string): { level: string; body: string } {
 // resolve the log level, and keep them in the shared log file.
 log.hooks.push((message, _transport, transportName) => {
   const first = message.data[0];
-  if (typeof first !== 'string' || !first.startsWith(BACKEND_PREFIX)) return message;
+  if (typeof first !== 'string' || !first.startsWith(BACKEND_INPUT_PREFIX)) return message;
 
-  const raw = first.slice(BACKEND_PREFIX.length + 1);
+  const raw = first.slice(BACKEND_INPUT_PREFIX.length + 1);
   const { level, body } = parseTracingLine(raw);
   const resolved = level as typeof message.level;
 
-  return { ...message, level: resolved, data: [`${BACKEND_PREFIX} ${body}`, ...message.data.slice(1)] };
+  return { ...message, level: resolved, data: [`${BACKEND_OUTPUT_PREFIX} ${body}`, ...message.data.slice(1)] };
 });
 
 // Patch global console so every console.log/warn/error from any module

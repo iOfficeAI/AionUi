@@ -6,7 +6,17 @@
 
 import { ipcBridge } from '@/common';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
+import {
+  CODEX_MODE_NATIVE_DEFAULT,
+  CODEX_MODE_NATIVE_FULL_ACCESS,
+  normalizeCodexMode,
+} from '@/common/types/codex/codexModes';
+import {
+  COMMAND_EVE_ASSISTANT_ID,
+  COMMAND_EVE_ASSISTANT_KEY,
+  COMMAND_EVE_SHELL_ENABLED,
+  getCommandEveDefaultAcpModelIdForTier,
+} from '@/common/config/commandEveShell';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -126,7 +136,9 @@ export const useGuidAgentSelection = ({
   preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>('aionrs');
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(
+    COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_ASSISTANT_KEY : 'aionrs'
+  );
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -194,6 +206,13 @@ export const useGuidAgentSelection = ({
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
   } = usePresetAssistantResolver({ assistants, localeKey });
+
+  const commandEveDefaultAgentKey = useMemo(() => {
+    if (!COMMAND_EVE_SHELL_ENABLED) return undefined;
+    return assistants.some((assistant) => assistant.id === COMMAND_EVE_ASSISTANT_ID)
+      ? COMMAND_EVE_ASSISTANT_KEY
+      : undefined;
+  }, [assistants]);
 
   const { isMainAgentAvailable, getEffectiveAgentType } = useAgentAvailability({
     modelList,
@@ -323,13 +342,13 @@ export const useGuidAgentSelection = ({
     if (resetAssistant) {
       resetHandledRef.current = true;
       const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-      const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
+      const fallbackKey = commandEveDefaultAgentKey || (firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs');
       _setSelectedAgentKey(fallbackKey);
       configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
         console.error('Failed to save reset agent key:', error);
       });
     }
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey, commandEveDefaultAgentKey]);
 
   // Load last selected agent when no explicit reset was requested.
   useEffect(() => {
@@ -345,6 +364,14 @@ export const useGuidAgentSelection = ({
 
     const restoreSavedSelection = async () => {
       try {
+        if (commandEveDefaultAgentKey) {
+          _setSelectedAgentKey(commandEveDefaultAgentKey);
+          configService.set('guid.lastSelectedAgent', commandEveDefaultAgentKey).catch((error) => {
+            console.error('Failed to save Command EVE agent key:', error);
+          });
+          return;
+        }
+
         const savedKey = configService.get('guid.lastSelectedAgent');
         if (cancelled) return;
 
@@ -376,7 +403,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey, commandEveDefaultAgentKey]);
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {
@@ -395,6 +422,15 @@ export const useGuidAgentSelection = ({
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
+
+    const commandEveDefaultModelId = getCommandEveDefaultAcpModelIdForTier(
+      backend as string,
+      configService.get('commandEve.localModelTierId')
+    );
+    if (commandEveDefaultModelId) {
+      _setSelectedAcpModel(commandEveDefaultModelId);
+      return;
+    }
 
     const config = configService.get('acp.config');
     const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
@@ -416,7 +452,10 @@ export const useGuidAgentSelection = ({
     selectedAgentRef.current = configKey;
     // Reset to the backend's actual default (from handshake.available_modes),
     // not the literal 'default' — codex/opencode/cursor don't have that value.
-    const fallbackMode = resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
+    const fallbackMode =
+      COMMAND_EVE_SHELL_ENABLED && configKey === 'codex'
+        ? CODEX_MODE_NATIVE_DEFAULT
+        : resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
     _setSelectedMode(fallbackMode);
     if (!configKey) return;
 
@@ -439,6 +478,12 @@ export const useGuidAgentSelection = ({
         }
 
         if (cancelled) return;
+
+        if (COMMAND_EVE_SHELL_ENABLED && configKey === 'codex') {
+          _setSelectedMode(CODEX_MODE_NATIVE_DEFAULT);
+          void savePreferredMode(configKey, CODEX_MODE_NATIVE_DEFAULT);
+          return;
+        }
 
         // 1. Use preferredMode if valid
         const normalizedPreferred = configKey === 'codex' ? normalizeCodexMode(preferred) : preferred;
@@ -507,9 +552,10 @@ export const useGuidAgentSelection = ({
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
+    if (commandEveDefaultAgentKey) return commandEveDefaultAgentKey;
     const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
     return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-  }, [availableAgents]);
+  }, [availableAgents, commandEveDefaultAgentKey]);
 
   return {
     selectedAgentKey,

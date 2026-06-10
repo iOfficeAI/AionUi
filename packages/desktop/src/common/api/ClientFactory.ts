@@ -11,6 +11,7 @@ import { AnthropicRotatingClient, type AnthropicClientConfig } from './Anthropic
 import type { RotatingApiClientOptions } from './RotatingApiClient';
 import { getProviderAuthType } from '../utils/platformAuthType';
 import { isNewApiPlatform } from '../utils/platformConstants';
+import { COMMAND_EVE_APP_NAME, COMMAND_EVE_SHELL_ENABLED } from '../config/commandEveShell';
 
 export interface ClientOptions {
   timeout?: number;
@@ -20,6 +21,11 @@ export interface ClientOptions {
 }
 
 export type RotatingClient = OpenAIRotatingClient | AnthropicRotatingClient;
+
+const commandEveOpenAiHeaders = () => ({
+  'HTTP-Referer': COMMAND_EVE_SHELL_ENABLED ? 'https://command-eve.com' : 'https://aionui.com',
+  'X-Title': COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_APP_NAME : 'AionUi',
+});
 
 /**
  * 为 new-api 网关规范化 base URL
@@ -74,10 +80,13 @@ export class ClientFactory {
         const clientConfig: OpenAIClientConfig = {
           baseURL: base_url,
           timeout: options.timeout,
-          defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
-          },
+          defaultHeaders: commandEveOpenAiHeaders(),
+          ...(COMMAND_EVE_SHELL_ENABLED
+            ? {
+                commandEveEgressPolicyAction: 'block',
+                commandEveEgressProviderName: provider.platform || 'openai-compatible',
+              }
+            : {}),
           ...(options.baseConfig as OpenAIClientConfig),
         };
 
@@ -95,6 +104,12 @@ export class ClientFactory {
           model: provider.use_model,
           baseURL: base_url,
           timeout: options.timeout,
+          ...(COMMAND_EVE_SHELL_ENABLED
+            ? {
+                commandEveEgressPolicyAction: 'block',
+                commandEveEgressProviderName: provider.platform || 'anthropic',
+              }
+            : {}),
           ...(options.baseConfig as AnthropicClientConfig),
         };
 
@@ -106,10 +121,13 @@ export class ClientFactory {
         const clientConfig: OpenAIClientConfig = {
           baseURL: base_url,
           timeout: options.timeout,
-          defaultHeaders: {
-            'HTTP-Referer': 'https://aionui.com',
-            'X-Title': 'AionUi',
-          },
+          defaultHeaders: commandEveOpenAiHeaders(),
+          ...(COMMAND_EVE_SHELL_ENABLED
+            ? {
+                commandEveEgressPolicyAction: 'block',
+                commandEveEgressProviderName: provider.platform || 'openai-compatible',
+              }
+            : {}),
           ...(options.baseConfig as OpenAIClientConfig),
         };
 

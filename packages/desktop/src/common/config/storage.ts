@@ -92,6 +92,14 @@ export interface IConfigStorageRefer {
   'system.keepAwake'?: boolean;
   // Automatically preview newly created Office files in the current workspace
   'system.autoPreviewOfficeFiles'?: boolean;
+  // Show Command EVE runtime activity in conversations
+  'commandEve.runtimeStatusVisible'?: boolean;
+  // Pre-warm the local Command EVE model after runtime bootstrap
+  'commandEve.modelWarmupEnabled'?: boolean;
+  // Selected local model tier for Command EVE's Hermes/Ollama runtime
+  'commandEve.localModelTierId'?: string;
+  // Explicit Command EVE execution mode. Default runtime interpretation is delegated.
+  'commandEve.executionMode'?: 'observed' | 'delegated' | 'autonomous';
   // Telegram assistant default model / Telegram 助手默认模型
   'assistant.telegram.defaultModel'?: {
     id: string;

@@ -28,6 +28,29 @@ export type UseAcpMessageReturn = {
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
+  runtimeActivity: AcpRuntimeActivity;
+};
+
+export type AcpRuntimeActivityPhase =
+  | 'idle'
+  | 'connecting'
+  | 'ready'
+  | 'submitting'
+  | 'thinking'
+  | 'streaming'
+  | 'done'
+  | 'error';
+
+export type AcpRuntimeActivity = {
+  phase: AcpRuntimeActivityPhase;
+  backend?: string;
+  modelId?: string;
+  contextUsed?: number;
+  contextSize?: number;
+  startedAt?: number;
+  updatedAt: number;
+  elapsedMs?: number;
+  detail?: string;
 };
 
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
@@ -45,6 +68,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
+  const [runtimeActivity, setRuntimeActivity] = useState<AcpRuntimeActivity>({
+    phase: 'idle',
+    updatedAt: Date.now(),
+  });
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -155,6 +182,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           hasContentInTurnRef.current = false;
           setRunning(true);
           runningRef.current = true;
+          setRuntimeActivity((prev) => ({
+            phase: 'submitting',
+            backend: requestTraceRef.current?.backend ?? prev.backend,
+            modelId: requestTraceRef.current?.model_id ?? prev.modelId,
+            startedAt: requestTraceRef.current?.startTime ?? Date.now(),
+            updatedAt: Date.now(),
+          }));
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
@@ -173,6 +207,14 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
+              setRuntimeActivity({
+                phase: 'done',
+                backend: requestTraceRef.current.backend,
+                modelId: requestTraceRef.current.model_id,
+                startedAt: requestTraceRef.current.startTime,
+                updatedAt: Date.now(),
+                elapsedMs: duration,
+              });
               console.log(
                 `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #52c41a; font-weight: bold',
@@ -190,6 +232,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setAiProcessing(false);
             aiProcessingRef.current = false;
           }
+          setRuntimeActivity((prev) => ({
+            phase: 'streaming',
+            backend: requestTraceRef.current?.backend ?? prev.backend,
+            modelId: requestTraceRef.current?.model_id ?? prev.modelId,
+            startedAt: requestTraceRef.current?.startTime ?? prev.startedAt ?? Date.now(),
+            updatedAt: Date.now(),
+          }));
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
@@ -213,6 +262,22 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           };
           if (agentData?.status) {
             setAcpStatus(agentData.status);
+            setRuntimeActivity((prev) => ({
+              phase:
+                agentData.status === 'connecting'
+                  ? 'connecting'
+                  : agentData.status === 'connected' ||
+                      agentData.status === 'authenticated' ||
+                      agentData.status === 'session_active'
+                    ? 'ready'
+                    : agentData.status === 'error'
+                      ? 'error'
+                      : 'idle',
+              backend: agentData.backend ?? prev.backend,
+              modelId: prev.modelId,
+              startedAt: prev.startedAt,
+              updatedAt: Date.now(),
+            }));
             // Reset running state when authentication is complete
             if (['authenticated', 'session_active'].includes(agentData.status)) {
               setRunning(false);
@@ -312,6 +377,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
+            setRuntimeActivity((prev) => ({
+              ...prev,
+              contextUsed: usageData.used,
+              contextSize: usageData.size,
+              updatedAt: Date.now(),
+            }));
           }
           break;
         }
@@ -324,6 +395,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
               model_id: String(trace.model_id || 'unknown'),
               session_mode: trace.session_mode as string | undefined,
             };
+            setRuntimeActivity({
+              phase: 'thinking',
+              backend: requestTraceRef.current.backend,
+              modelId: requestTraceRef.current.model_id,
+              startedAt: requestTraceRef.current.startTime,
+              updatedAt: Date.now(),
+            });
             console.log(
               `%c[RequestTrace]%c START | ${trace.backend} → ${trace.model_id} | ${new Date().toISOString()}`,
               'color: #1890ff; font-weight: bold',
@@ -343,6 +421,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           // Log request error
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
+            setRuntimeActivity({
+              phase: 'error',
+              backend: requestTraceRef.current.backend,
+              modelId: requestTraceRef.current.model_id,
+              startedAt: requestTraceRef.current.startTime,
+              updatedAt: Date.now(),
+              elapsedMs: duration,
+              detail: typeof message.data === 'string' ? message.data : undefined,
+            });
             console.log(
               `%c[RequestTrace]%c ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
               'color: #ff4d4f; font-weight: bold',
@@ -378,6 +465,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setTokenUsage(null);
     setContextLimit(0);
     setSlashCommands([]);
+    setRuntimeActivity({ phase: 'idle', updatedAt: Date.now() });
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
@@ -412,6 +500,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       if (isRunning) {
         setAiProcessing(true);
         aiProcessingRef.current = true;
+        setRuntimeActivity((prev) => ({
+          phase: 'thinking',
+          backend: prev.backend,
+          modelId: prev.modelId,
+          startedAt: Date.now(),
+          updatedAt: Date.now(),
+        }));
       }
       setHasHydratedRunningState(true);
 
@@ -472,6 +567,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setAiProcessing(false);
     aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
+    setRuntimeActivity((prev) => ({
+      phase: 'idle',
+      backend: prev.backend,
+      modelId: prev.modelId,
+      updatedAt: Date.now(),
+    }));
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
     setHasThinkingMessage(false);
@@ -509,5 +610,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
+    runtimeActivity,
   };
 };

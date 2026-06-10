@@ -52,6 +52,8 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const [runtimeStatusVisible, setRuntimeStatusVisible] = useState(true);
+  const [modelWarmupEnabled, setModelWarmupEnabled] = useState(true);
 
   useEffect(() => {
     if (!isDesktop) {
@@ -83,6 +85,8 @@ const SystemModalContent: React.FC = () => {
     setCronNotificationEnabled(configService.get('system.cronNotificationEnabled') ?? false);
     setSaveUploadToWorkspace(configService.get('upload.saveToWorkspace') ?? false);
     setAutoPreviewOfficeFiles(configService.get('system.autoPreviewOfficeFiles') ?? true);
+    setRuntimeStatusVisible(configService.get('commandEve.runtimeStatusVisible') ?? true);
+    setModelWarmupEnabled(configService.get('commandEve.modelWarmupEnabled') ?? true);
     const pt = configService.get('acp.promptTimeout');
     if (pt && pt > 0) setPromptTimeout(pt);
     const ait = configService.get('acp.agentIdleTimeout');
@@ -213,6 +217,22 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleRuntimeStatusVisibleChange = useCallback((checked: boolean) => {
+    setRuntimeStatusVisible(checked);
+    configService.set('commandEve.runtimeStatusVisible', checked).catch(() => {
+      setRuntimeStatusVisible(!checked);
+      configService.setLocal('commandEve.runtimeStatusVisible', !checked);
+    });
+  }, []);
+
+  const handleModelWarmupEnabledChange = useCallback((checked: boolean) => {
+    setModelWarmupEnabled(checked);
+    configService.set('commandEve.modelWarmupEnabled', checked).catch(() => {
+      setModelWarmupEnabled(!checked);
+      configService.setLocal('commandEve.modelWarmupEnabled', !checked);
+    });
+  }, []);
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -250,6 +270,18 @@ const SystemModalContent: React.FC = () => {
       key: 'closeToTray',
       label: t('settings.closeToTray'),
       component: <Switch checked={closeToTray} onChange={handleCloseToTrayChange} />,
+    },
+    {
+      key: 'commandEveRuntimeStatus',
+      label: t('settings.commandEveRuntimeStatus'),
+      description: t('settings.commandEveRuntimeStatusDesc'),
+      component: <Switch checked={runtimeStatusVisible} onChange={handleRuntimeStatusVisibleChange} />,
+    },
+    {
+      key: 'commandEveModelWarmup',
+      label: t('settings.commandEveModelWarmup'),
+      description: t('settings.commandEveModelWarmupDesc'),
+      component: <Switch checked={modelWarmupEnabled} onChange={handleModelWarmupEnabledChange} />,
     },
     ...(isDesktop && gpuStatus
       ? [

@@ -5,6 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
+import {
+  COMMAND_EVE_ASSISTANT_ID,
+  COMMAND_EVE_ASSISTANT_KEY,
+  COMMAND_EVE_SHELL_ENABLED,
+  getCommandEveAcpModelIdForTier,
+  normalizeCommandEveLocalModelTierId,
+} from '@/common/config/commandEveShell';
+import { configService } from '@/common/config/configService';
 import type { TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
@@ -113,6 +121,38 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
+    const isCommandEveAssistant =
+      COMMAND_EVE_SHELL_ENABLED &&
+      is_presetAgent &&
+      (selectedAgentKey === COMMAND_EVE_ASSISTANT_KEY ||
+        selectedAgentInfo?.custom_agent_id?.replace(/^builtin-/, '') === COMMAND_EVE_ASSISTANT_ID);
+
+    if (isCommandEveAssistant) {
+      await ipcBridge.commandEve.evaluateGateDecision.invoke({ action: 'truth_gate' }).catch((error) => {
+        console.warn('[Command EVE] Failed to log truth-gate decision:', error);
+      });
+      await configService.whenReady().catch((): undefined => undefined);
+      const tierId = normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'));
+      const expectedModel = getCommandEveAcpModelIdForTier(tierId);
+      const currentStatus = await ipcBridge.commandEve.runtimeStatus.invoke().catch((): undefined => undefined);
+      const isRuntimeReady =
+        currentStatus?.success &&
+        currentStatus.data?.status === 'ready' &&
+        currentStatus.data.default_model === expectedModel;
+      if (!isRuntimeReady) {
+        Message.info(t('conversation.commandEveRuntimePreparing'));
+        const ensureResult = await ipcBridge.commandEve.ensureLocalModelTier.invoke({ tierId });
+        if (!ensureResult.success || ensureResult.data?.status !== 'ready') {
+          Message.error(
+            t('conversation.commandEveRuntimeNotReady', {
+              reason: ensureResult?.msg || ensureResult.data?.next_action || 'runtime not ready',
+            })
+          );
+          return;
+        }
+      }
+    }
+
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
@@ -122,7 +162,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
-    const { rules: preset_rules } = await resolvePresetRulesAndSkills(agentInfo);
+    const { rules: preset_rules, skills: preset_skills } = await resolvePresetRulesAndSkills(agentInfo);
+    const preset_context = [preset_rules, preset_skills]
+      .filter((part): part is string => Boolean(part && part.trim()))
+      .join('\n\n');
     // Guid page's per-conversation skill overrides take precedence over the
     // assistant's saved defaults. The combined skills menu lets the user pick
     // any custom skill — not just preset-declared ones — so for non-preset
@@ -259,7 +302,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             default_files: files,
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
-            preset_rules: is_preset ? preset_rules : undefined,
+            preset_rules: is_preset ? preset_context : undefined,
             preset_enabled_skills: enabled_skills_to_send,
             exclude_auto_inject_skills: excludeBuiltinSkills,
             preset_assistant_id,
@@ -332,7 +375,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         preset_agent_type: finalEffectiveAgentType,
         preset_resources: is_preset
           ? {
-              rules: preset_rules,
+              rules: preset_context,
               enabled_skills,
               exclude_auto_inject_skills: excludeBuiltinSkills,
             }
@@ -392,6 +435,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     resolveEnabledSkills,
     resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
+    guidEnabledSkills,
     navigate,
     t,
   ]);

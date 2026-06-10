@@ -13,10 +13,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can AionUi do?",
+    "quickActionsTitle": "What can Command EVE do?",
     "quickActionFeedback": "Got feedback or suggestions?",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "Command EVE Skills",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
@@ -91,6 +91,8 @@
   },
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
+  "commandEveRuntimePreparing": "EVE is preparing the local runtime. First start or model switches can take a moment.",
+  "commandEveRuntimeNotReady": "EVE cannot send yet: {{reason}}",
   "createFailed": "Failed to create conversation",
   "workspace": {
     "title": "Project",
@@ -283,6 +285,33 @@
   },
   "skills": {
     "loaded": "Loaded Skills"
+  },
+  "runtimeStatus": {
+    "phase": {
+      "idle": "EVE ready",
+      "connecting": "Hermes connecting",
+      "ready": "EVE ready",
+      "submitting": "Sending request",
+      "thinking": "Gemma thinking",
+      "streaming": "Response streaming",
+      "done": "Response complete",
+      "error": "Runtime error"
+    },
+    "logs": "Logs",
+    "logsTooltip": "Open the Command EVE log folder",
+    "logsUnavailable": "Log folder is unavailable",
+    "logsOpenFailed": "Could not open logs",
+    "modelUnknown": "Unknown model",
+    "context": "Context {{used}}/{{size}}",
+    "notice": {
+      "localModel": "Local 64k model: first answers can take 30–90 seconds.",
+      "longRunning": "EVE is still working. Open logs if needed or stop the request."
+    },
+    "egress": {
+      "blocked": "EVE blocked sensitive data before model egress ({{count}} finding(s)).",
+      "redacted": "EVE redacted sensitive data before model egress ({{count}} finding(s)).",
+      "clear": "Last model call had no sensitive findings."
+    }
   },
   "sendbox": {
     "hint": "Type / for commands, @ to reference files"

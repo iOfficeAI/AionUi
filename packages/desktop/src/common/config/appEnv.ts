@@ -5,6 +5,7 @@
  */
 
 import { getPlatformServices } from '@/common/platform';
+import { COMMAND_EVE_SHELL_ENABLED, getCommandEveCliSafeName } from './commandEveShell';
 
 /**
  * Returns baseName unchanged in release builds, or baseName + '-dev' in dev builds.
@@ -17,7 +18,9 @@ import { getPlatformServices } from '@/common/platform';
  * // with AIONUI_MULTI_INSTANCE=1:  dev → '.aionui-dev-2'
  */
 export function getEnvAwareName(baseName: string): string {
-  if (getPlatformServices().paths.isPackaged() === true) return baseName;
+  const isPackaged = getPlatformServices().paths.isPackaged() === true;
+  if (COMMAND_EVE_SHELL_ENABLED) return getCommandEveCliSafeName(baseName, isPackaged);
+  if (isPackaged) return baseName;
   const suffix = process.env.AIONUI_MULTI_INSTANCE === '1' ? '-dev-2' : '-dev';
   return `${baseName}${suffix}`;
 }
