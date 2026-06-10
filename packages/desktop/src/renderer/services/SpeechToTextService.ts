@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
+import { getBaseUrl } from '@/common/adapter/httpBridge';
 import type { SpeechToTextResult } from '@/common/types/provider/speech';
-import { isElectronDesktop } from '@/renderer/utils/platform';
 
 const MAX_AUDIO_FILE_SIZE_MB = 30;
 const MAX_AUDIO_FILE_SIZE_BYTES = MAX_AUDIO_FILE_SIZE_MB * 1024 * 1024;
@@ -39,7 +38,7 @@ const ensureAudioSize = (blob: Blob) => {
   }
 };
 
-const parseWebResponse = async (response: XMLHttpRequest): Promise<SpeechToTextResult> => {
+const parseSuccessResponse = (response: XMLHttpRequest): SpeechToTextResult => {
   const payload = JSON.parse(response.responseText) as {
     data?: SpeechToTextResult;
     msg?: string;
@@ -53,24 +52,37 @@ const parseWebResponse = async (response: XMLHttpRequest): Promise<SpeechToTextR
   return payload.data;
 };
 
+// Surface the backend error code (STT_DISABLED, STT_OPENAI_NOT_CONFIGURED, ...)
+// so useSpeechInput can map it to a localized error state.
+const parseErrorResponse = (response: XMLHttpRequest): Error => {
+  if (response.status === 413) {
+    return new Error('STT_FILE_TOO_LARGE');
+  }
+
+  try {
+    const payload = JSON.parse(response.responseText) as { code?: string; error?: string; msg?: string };
+    const code = payload.code;
+    const detail = payload.error || payload.msg;
+    if (code || detail) {
+      return new Error([code, detail].filter(Boolean).join(': '));
+    }
+  } catch {
+    // Non-JSON error body — fall back to the status line below.
+  }
+
+  return new Error(`STT_REQUEST_FAILED:${response.status} ${response.statusText}`);
+};
+
 export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Promise<SpeechToTextResult> {
   ensureAudioSize(blob);
 
   const mimeType = blob.type || 'audio/webm';
   const file_name = createAudioFileName(mimeType);
 
-  if (isElectronDesktop()) {
-    const audioBuffer = new Uint8Array(await blob.arrayBuffer());
-    return ipcBridge.speechToText.transcribe.invoke({
-      audioBuffer: Array.from(audioBuffer),
-      file_name,
-      languageHint,
-      mimeType,
-    });
-  }
-
+  // Backend /api/stt only accepts multipart with these exact field names.
   const formData = new FormData();
-  formData.append('audio', blob, file_name);
+  formData.append('file', blob, file_name);
+  formData.append('fileName', file_name);
   formData.append('mimeType', mimeType);
   if (languageHint) {
     formData.append('languageHint', languageHint);
@@ -78,20 +90,21 @@ export async function transcribeAudioBlob(blob: Blob, languageHint?: string): Pr
 
   return new Promise<SpeechToTextResult>((resolve, reject) => {
     const xhr = new XMLHttpRequest();
-    xhr.open('POST', '/api/stt');
-    xhr.withCredentials = true;
+    xhr.open('POST', `${getBaseUrl()}/api/stt`);
+    // No withCredentials: the desktop backend allows origin `*`, which the
+    // browser rejects for credentialed requests; WebUI is same-origin anyway.
 
     xhr.addEventListener('load', () => {
-      if (xhr.status === 413) {
-        reject(new Error('STT_FILE_TOO_LARGE'));
-        return;
-      }
       if (xhr.status < 200 || xhr.status >= 300) {
-        reject(new Error(`STT_REQUEST_FAILED:${xhr.status} ${xhr.statusText}`));
+        reject(parseErrorResponse(xhr));
         return;
       }
 
-      parseWebResponse(xhr).then(resolve).catch(reject);
+      try {
+        resolve(parseSuccessResponse(xhr));
+      } catch (error) {
+        reject(error instanceof Error ? error : new Error(String(error)));
+      }
     });
 
     xhr.addEventListener('error', () => {
