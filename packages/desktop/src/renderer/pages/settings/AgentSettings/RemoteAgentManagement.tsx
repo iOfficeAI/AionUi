@@ -8,8 +8,15 @@ import { ipcBridge } from '@/common';
 import type { RemoteAgentConfig, RemoteAgentInput, RemoteAgentProtocol } from '@/common/types/agent/remoteAgentTypes';
 import { getDefaultRemoteAgentId, setDefaultRemoteAgentId } from '@/common/utils/defaultRemoteAgent';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
+import ConnectWizard from '@/renderer/components/settings/ConnectWizard';
+import { clearConnectWizardDismissal } from '@/renderer/components/settings/ConnectWizard/connectWizardState';
 import { useRemoteAgentHealth } from '@/renderer/hooks/agent/useRemoteAgentHealth';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import {
+  connectErrorI18nKey,
+  parseConnectErrorCode,
+  stripConnectErrorCode,
+} from '@/renderer/utils/remote/connectError';
 import {
   Avatar,
   Button,
@@ -26,7 +33,7 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Attention, Edit, Key, Like, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
+import { Attention, Edit, Key, Like, Magic, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
@@ -149,7 +156,12 @@ const RemoteAgentFormModal: React.FC<{
       });
 
       if (!testResult.success) {
-        Message.error(t('settings.remoteAgent.testFailed', { error: testResult.error }));
+        const code = parseConnectErrorCode(testResult.error);
+        if (code) {
+          Message.error(t(connectErrorI18nKey(code)));
+        } else {
+          Message.error(t('settings.remoteAgent.testFailed', { error: testResult.error }));
+        }
         setSaving(false);
         return;
       }
@@ -193,10 +205,14 @@ const RemoteAgentFormModal: React.FC<{
           startPairingPoll(agentId);
           onSaved();
         } else {
+          const handshakeCode = parseConnectErrorCode(result.error);
+          const handshakeError = handshakeCode
+            ? t(connectErrorI18nKey(handshakeCode))
+            : stripConnectErrorCode(result.error || '') || t('settings.remoteAgent.handshakeFailed');
           Message.warning(
             t('settings.remoteAgent.handshakeWarning', {
               action: editAgent ? t('settings.remoteAgent.updated') : t('settings.remoteAgent.created'),
-              error: result.error || t('settings.remoteAgent.handshakeFailed'),
+              error: handshakeError,
             })
           );
           onSaved();
@@ -467,6 +483,7 @@ const RemoteAgentManagement: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editAgent, setEditAgent] = useState<RemoteAgentConfig>();
   const [providerAgent, setProviderAgent] = useState<RemoteAgentConfig>();
+  const [wizardVisible, setWizardVisible] = useState(false);
   const remoteActionButtonClassName = '!rounded-10px !px-10px';
 
   const handleSetDefault = useCallback((id: string | null) => {
@@ -537,6 +554,16 @@ const RemoteAgentManagement: React.FC = () => {
               className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-10px text-t-secondary hover:text-t-primary'
             />
           </Tooltip>
+          <Button
+            type='outline'
+            shape='round'
+            size='small'
+            icon={<Magic size='16' />}
+            onClick={() => setWizardVisible(true)}
+            className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+          >
+            {t('settings.connectWizard.launchWizard')}
+          </Button>
           <Button
             type='outline'
             shape='round'
@@ -697,6 +724,14 @@ const RemoteAgentManagement: React.FC = () => {
         visible={Boolean(providerAgent)}
         agent={providerAgent}
         onClose={() => setProviderAgent(undefined)}
+      />
+      <ConnectWizard
+        visible={wizardVisible}
+        onClose={() => setWizardVisible(false)}
+        onCompleted={() => {
+          clearConnectWizardDismissal();
+          void mutate();
+        }}
       />
     </div>
   );

@@ -939,5 +939,41 @@
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩余时间：{{time}}"
   },
-  "noExternalSources": "未发现外部技能源"
+  "connectWizard": {
+    "title": "连接 OpenCode 服务器",
+    "intro": "连接远程 OpenCode 服务器，随时随地开始对话。你需要服务器 URL 和所需的凭据。",
+    "urlLabel": "服务器 URL",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "请输入服务器 URL",
+    "nameLabel": "显示名称",
+    "namePlaceholder": "可选——默认为「OpenCode 服务器」",
+    "defaultAgentName": "OpenCode 服务器",
+    "connect": "连接",
+    "skip": "暂时跳过",
+    "back": "返回",
+    "retry": "重试",
+    "retryInsecure": "允许不安全连接并重试",
+    "stepTest": "测试连接",
+    "stepSave": "保存 Agent",
+    "stepHandshake": "握手",
+    "stepModels": "获取模型",
+    "successTitle": "一切就绪！",
+    "successSummary": "{{name}}（{{url}}）已准备就绪。",
+    "modelCount": "{{count}} 个模型可用",
+    "startChatting": "开始对话",
+    "close": "关闭",
+    "launchWizard": "设置向导"
+  },
+  "noExternalSources": "未发现外部技能源",
+  "connectError": {
+    "dns_failure": "无法解析服务器地址。请检查主机名是否拼写正确，并确认当前网络或 VPN 是否可用。",
+    "tls_failure": "安全连接失败——无法验证服务器的 TLS 证书。对于自签名证书，请开启「允许不安全连接」或安装受信证书。",
+    "auth_failure": "服务器拒绝了凭据。请检查认证方式以及令牌或密码是否正确。",
+    "not_opencode": "已连接到该主机，但它似乎不是 OpenCode 服务器。请检查 URL 和端口，应指向正在运行的 `opencode serve`（默认端口 4096）。",
+    "connection_refused": "主机拒绝了连接。请确认 OpenCode 正在运行（`opencode serve`），并检查端口是否正确。",
+    "timeout": "连接超时。请检查本机能否访问该主机（防火墙/VPN）后重试。",
+    "server_error": "OpenCode 服务器返回了错误。请查看服务器日志后重试。",
+    "workspace_not_on_server": "工作区文件夹在 OpenCode 服务器上不存在。请选择一个服务器上存在的目录，或将该 Agent 的工具主机切换为本地。",
+    "unreachable": "无法连接服务器。请检查 URL、网络连接，并确认服务器是否正在运行。"
+  }
 }

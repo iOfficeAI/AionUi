@@ -940,5 +940,41 @@
     "pendingCancel": "취소",
     "pendingTimeRemaining": "남은 시간: {{time}}"
   },
-  "noExternalSources": "외부 스킬 소스를 찾을 수 없습니다"
+  "connectWizard": {
+    "title": "OpenCode 서버 연결",
+    "intro": "원격 OpenCode 서버에 연결하여 어디서든 대화를 시작하세요. 서버 URL과 필요한 자격 증명이 필요합니다.",
+    "urlLabel": "서버 URL",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "서버 URL을 입력해 주세요",
+    "nameLabel": "표시 이름",
+    "namePlaceholder": "선택 사항 — 기본값: \"OpenCode 서버\"",
+    "defaultAgentName": "OpenCode 서버",
+    "connect": "연결",
+    "skip": "나중에 하기",
+    "back": "뒤로",
+    "retry": "다시 시도",
+    "retryInsecure": "안전하지 않은 연결 허용 후 다시 시도",
+    "stepTest": "연결 테스트",
+    "stepSave": "Agent 저장",
+    "stepHandshake": "핸드셰이크",
+    "stepModels": "모델 가져오기",
+    "successTitle": "모든 준비가 완료되었습니다!",
+    "successSummary": "{{name}} ({{url}}) 사용 준비 완료.",
+    "modelCount": "{{count}}개 모델 사용 가능",
+    "startChatting": "대화 시작",
+    "close": "닫기",
+    "launchWizard": "설정 마법사"
+  },
+  "noExternalSources": "외부 스킬 소스를 찾을 수 없습니다",
+  "connectError": {
+    "dns_failure": "서버 주소를 확인할 수 없습니다. 호스트 이름의 오타와 현재 네트워크/VPN 연결 상태를 확인해 주세요.",
+    "tls_failure": "보안 연결에 실패했습니다 — 서버의 TLS 인증서를 검증할 수 없습니다. 자체 서명 인증서인 경우 \"안전하지 않은 연결 허용\"을 켜거나 신뢰할 수 있는 인증서를 설치해 주세요.",
+    "auth_failure": "서버가 자격 증명을 거부했습니다. 인증 방식과 토큰 또는 비밀번호를 확인해 주세요.",
+    "not_opencode": "호스트에는 도달했지만 OpenCode 서버가 아닌 것 같습니다. URL과 포트(기본 4096)가 실행 중인 `opencode serve`를 가리키는지 확인해 주세요.",
+    "connection_refused": "호스트가 연결을 거부했습니다. OpenCode(`opencode serve`)가 실행 중인지, 포트가 올바른지 확인해 주세요.",
+    "timeout": "연결 시간이 초과되었습니다. 이 기기에서 호스트에 도달할 수 있는지(방화벽/VPN) 확인한 뒤 다시 시도해 주세요.",
+    "server_error": "OpenCode 서버가 오류를 반환했습니다. 서버 로그를 확인한 뒤 다시 시도해 주세요.",
+    "workspace_not_on_server": "작업 폴더가 OpenCode 서버에 존재하지 않습니다. 서버에 존재하는 디렉터리를 선택하거나, 이 에이전트의 도구 호스트를 로컬로 전환해 주세요.",
+    "unreachable": "서버에 연결할 수 없습니다. URL, 네트워크 연결, 서버 실행 여부를 확인해 주세요."
+  }
 }

@@ -18,6 +18,8 @@ import { useRemoteSkills } from '@/renderer/hooks/chat/useRemoteSkills';
 import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import MentionDropdown, { MentionSelectorBadge } from './components/MentionDropdown';
+import ConnectWizard from '@/renderer/components/settings/ConnectWizard';
+import { isConnectWizardDismissed } from '@/renderer/components/settings/ConnectWizard/connectWizardState';
 import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidMention } from './hooks/useGuidMention';
@@ -132,6 +134,30 @@ const GuidPage: React.FC = () => {
     preselectAgentKey,
     locationKey: location.key,
   });
+
+  // --- Connect wizard (first-run) ---
+  const [wizardVisible, setWizardVisible] = useState(false);
+  const [wizardDismissed, setWizardDismissed] = useState(() => isConnectWizardDismissed());
+  const shouldShowWizard =
+    agentSelection.remoteAgentCount !== undefined && agentSelection.remoteAgentCount === 0 && !wizardDismissed;
+
+  useEffect(() => {
+    if (shouldShowWizard && !wizardVisible) {
+      setWizardVisible(true);
+    }
+  }, [shouldShowWizard, wizardVisible]);
+
+  const handleWizardClose = useCallback(() => {
+    setWizardVisible(false);
+    setWizardDismissed(isConnectWizardDismissed());
+  }, []);
+
+  const handleWizardCompleted = useCallback(
+    (agentId: string) => {
+      agentSelection.setSelectedAgentKey(agentId);
+    },
+    [agentSelection.setSelectedAgentKey]
+  );
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -806,6 +832,13 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
         </div>
+
+        <ConnectWizard
+          visible={wizardVisible}
+          onClose={handleWizardClose}
+          onCompleted={handleWizardCompleted}
+          firstRun
+        />
       </div>
     </ConfigProvider>
   );

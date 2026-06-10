@@ -81,6 +81,8 @@ export type GuidAgentSelectionResult = {
    * Reorder MUST NOT clobber the currently-selected agent.
    */
   reorderAgents: (orderedKeys: string[]) => void;
+  /** Number of remote agents loaded (undefined while fetching). */
+  remoteAgentCount: number | undefined;
 };
 
 /**
@@ -607,5 +609,6 @@ export const useGuidAgentSelection = ({
     refreshCustomAgents,
     customAgentAvatarMap,
     reorderAgents,
+    remoteAgentCount: remoteAgentsData === undefined ? undefined : remoteAgentsData.length,
   };
 };

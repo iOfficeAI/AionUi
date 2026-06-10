@@ -938,5 +938,41 @@
     "pendingCancel": "İptal",
     "pendingTimeRemaining": "Kalan süre: {{time}}"
   },
-  "noExternalSources": "Harici beceri kaynağı bulunamadı"
+  "connectWizard": {
+    "title": "OpenCode Sunucusuna Bağlan",
+    "intro": "Her yerden sohbet etmeye başlamak için uzak bir OpenCode sunucusuna bağlanın. Sunucu URL'si ve gerekli kimlik bilgilerine ihtiyacınız olacak.",
+    "urlLabel": "Sunucu URL'si",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "Lütfen sunucu URL'sini girin",
+    "nameLabel": "Görünen Ad",
+    "namePlaceholder": "İsteğe bağlı — varsayılan: \"OpenCode Sunucusu\"",
+    "defaultAgentName": "OpenCode Sunucusu",
+    "connect": "Bağlan",
+    "skip": "Şimdilik atla",
+    "back": "Geri",
+    "retry": "Tekrar dene",
+    "retryInsecure": "Güvensiz bağlantıya izin verip tekrar dene",
+    "stepTest": "Bağlantıyı test et",
+    "stepSave": "Ajanı kaydet",
+    "stepHandshake": "El sıkışma",
+    "stepModels": "Modelleri getir",
+    "successTitle": "Her şey hazır!",
+    "successSummary": "{{name}} ({{url}}) kullanıma hazır.",
+    "modelCount": "{{count}} model mevcut",
+    "startChatting": "Sohbete başla",
+    "close": "Kapat",
+    "launchWizard": "Kurulum sihirbazı"
+  },
+  "noExternalSources": "Harici beceri kaynağı bulunamadı",
+  "connectError": {
+    "dns_failure": "Sunucu adresi çözümlenemedi. Ana bilgisayar adında yazım hatası olup olmadığını ve doğru ağda veya VPN'de olup olmadığınızı kontrol edin.",
+    "tls_failure": "Güvenli bağlantı başarısız oldu — sunucunun TLS sertifikası doğrulanamadı. Kendinden imzalı sertifikalar için \"Güvensiz bağlantıya izin ver\" seçeneğini açın veya güvenilir bir sertifika yükleyin.",
+    "auth_failure": "Sunucu kimlik bilgilerini reddetti. Kimlik doğrulama türünü ve token'ı veya parolayı kontrol edin.",
+    "not_opencode": "Ana bilgisayara ulaşıldı, ancak OpenCode sunucusu gibi görünmüyor. URL ve portun çalışan bir `opencode serve` örneğini (varsayılan port 4096) gösterdiğinden emin olun.",
+    "connection_refused": "Ana bilgisayar bağlantıyı reddetti. OpenCode'un çalıştığından (`opencode serve`) ve portun doğru olduğundan emin olun.",
+    "timeout": "Bağlantı zaman aşımına uğradı. Ana bilgisayara bu makineden erişilebildiğini (güvenlik duvarı/VPN) kontrol edip tekrar deneyin.",
+    "server_error": "OpenCode sunucusu bir hata döndürdü. Sunucu günlüklerini kontrol edip tekrar deneyin.",
+    "workspace_not_on_server": "Çalışma alanı klasörü OpenCode sunucusunda mevcut değil. Sunucuda var olan bir dizini seçin ya da bu ajanın araç ana bilgisayarını Yerel olarak değiştirin.",
+    "unreachable": "Sunucuya ulaşılamadı. URL'yi, ağ bağlantınızı ve sunucunun çalışıp çalışmadığını kontrol edin."
+  }
 }

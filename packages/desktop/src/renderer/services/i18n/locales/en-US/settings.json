@@ -999,5 +999,41 @@
       }
     }
   },
-  "noExternalSources": "No external skill sources discovered"
+  "connectWizard": {
+    "title": "Connect OpenCode Server",
+    "intro": "Connect to a remote OpenCode server to start chatting from anywhere. You'll need the server URL and any required credentials.",
+    "urlLabel": "Server URL",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "Please enter the server URL",
+    "nameLabel": "Display Name",
+    "namePlaceholder": "Optional — defaults to \"OpenCode Server\"",
+    "defaultAgentName": "OpenCode Server",
+    "connect": "Connect",
+    "skip": "Skip for now",
+    "back": "Back",
+    "retry": "Retry",
+    "retryInsecure": "Retry with insecure connection",
+    "stepTest": "Test connection",
+    "stepSave": "Save agent",
+    "stepHandshake": "Handshake",
+    "stepModels": "Fetch models",
+    "successTitle": "You're all set!",
+    "successSummary": "{{name}} ({{url}}) is ready to use.",
+    "modelCount": "{{count}} models available",
+    "startChatting": "Start chatting",
+    "close": "Close",
+    "launchWizard": "Setup wizard"
+  },
+  "noExternalSources": "No external skill sources discovered",
+  "connectError": {
+    "dns_failure": "Could not resolve the server address. Check the hostname for typos and make sure you're on the right network or VPN.",
+    "tls_failure": "Secure connection failed — the server's TLS certificate could not be verified. For self-signed certificates, enable \"Allow insecure connection\" or install a trusted certificate.",
+    "auth_failure": "The server rejected the credentials. Check the authentication type and the token or password.",
+    "not_opencode": "Reached the host, but it doesn't look like an OpenCode server. Check the URL and port — it should point at a running `opencode serve` (default port 4096).",
+    "connection_refused": "The host refused the connection. Make sure OpenCode is running (`opencode serve`) and the port is correct.",
+    "timeout": "The connection timed out. Check that the host is reachable from this machine (firewall/VPN) and try again.",
+    "server_error": "The OpenCode server responded with an error. Check the server's logs and try again.",
+    "workspace_not_on_server": "The workspace folder doesn't exist on the OpenCode server. Choose a directory that exists on the server, or switch the agent's tool host to Local.",
+    "unreachable": "Could not reach the server. Check the URL, your network connection, and that the server is running."
+  }
 }

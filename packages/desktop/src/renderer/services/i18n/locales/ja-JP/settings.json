@@ -940,5 +940,41 @@
     "pendingCancel": "キャンセル",
     "pendingTimeRemaining": "残り時間：{{time}}"
   },
-  "noExternalSources": "外部スキルソースが見つかりません"
+  "connectWizard": {
+    "title": "OpenCode サーバーに接続",
+    "intro": "リモート OpenCode サーバーに接続して、どこからでもチャットを始めましょう。サーバー URL と必要な認証情報が必要です。",
+    "urlLabel": "サーバー URL",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "サーバー URL を入力してください",
+    "nameLabel": "表示名",
+    "namePlaceholder": "省略可——デフォルトは「OpenCode サーバー」",
+    "defaultAgentName": "OpenCode サーバー",
+    "connect": "接続",
+    "skip": "とりあえずスキップ",
+    "back": "戻る",
+    "retry": "再試行",
+    "retryInsecure": "安全でない接続を許可して再試行",
+    "stepTest": "接続テスト",
+    "stepSave": "Agent を保存",
+    "stepHandshake": "ハンドシェイク",
+    "stepModels": "モデルを取得",
+    "successTitle": "準備完了です！",
+    "successSummary": "{{name}}（{{url}}）が使用可能です。",
+    "modelCount": "{{count}} 個のモデルが利用可能",
+    "startChatting": "チャットを始める",
+    "close": "閉じる",
+    "launchWizard": "セットアップウィザード"
+  },
+  "noExternalSources": "外部スキルソースが見つかりません",
+  "connectError": {
+    "dns_failure": "サーバーアドレスを解決できませんでした。ホスト名のスペルミスや、現在のネットワーク/VPN 接続を確認してください。",
+    "tls_failure": "セキュア接続に失敗しました——サーバーの TLS 証明書を検証できません。自己署名証明書の場合は「安全でない接続を許可」を有効化するか、信頼された証明書をインストールしてください。",
+    "auth_failure": "サーバーが認証情報を拒否しました。認証方式とトークンまたはパスワードを確認してください。",
+    "not_opencode": "ホストには到達しましたが、OpenCode サーバーではないようです。URL とポート（既定 4096）を見直して、稼働中の `opencode serve` を指しているか確認してください。",
+    "connection_refused": "ホストに接続を拒否されました。OpenCode が動作している（`opencode serve`）ことと、ポートが正しいことを確認してください。",
+    "timeout": "接続がタイムアウトしました。このマシンからホストへ到達できるか（ファイアウォール/VPN）を確認し、もう一度お試しください。",
+    "server_error": "OpenCode サーバーがエラーを返しました。サーバーのログを確認して、もう一度お試しください。",
+    "workspace_not_on_server": "指定したワークスペースフォルダが OpenCode サーバーに存在しません。サーバー上に存在するディレクトリを選ぶか、この Agent のツールホストを「ローカル」に切り替えてください。",
+    "unreachable": "サーバーに到達できません。URL、ネットワーク接続、サーバーが稼働しているかを順に確認してください。"
+  }
 }

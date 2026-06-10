@@ -940,5 +940,41 @@
     "pendingCancel": "取消",
     "pendingTimeRemaining": "剩餘時間：{{time}}"
   },
-  "noExternalSources": "未發現外部技能來源"
+  "connectWizard": {
+    "title": "連接 OpenCode 伺服器",
+    "intro": "連接遠端 OpenCode 伺服器，隨時隨地開始對話。你需要伺服器 URL 和所需的憑證。",
+    "urlLabel": "伺服器 URL",
+    "urlPlaceholder": "http://192.168.0.5:4096",
+    "urlRequired": "請輸入伺服器 URL",
+    "nameLabel": "顯示名稱",
+    "namePlaceholder": "可選——預設為「OpenCode 伺服器」",
+    "defaultAgentName": "OpenCode 伺服器",
+    "connect": "連接",
+    "skip": "暫時跳過",
+    "back": "返回",
+    "retry": "重試",
+    "retryInsecure": "允許不安全連線並重試",
+    "stepTest": "測試連線",
+    "stepSave": "儲存 Agent",
+    "stepHandshake": "握手",
+    "stepModels": "取得模型",
+    "successTitle": "一切就緒！",
+    "successSummary": "{{name}}（{{url}}）已準備就緒。",
+    "modelCount": "{{count}} 個模型可用",
+    "startChatting": "開始對話",
+    "close": "關閉",
+    "launchWizard": "設定精靈"
+  },
+  "noExternalSources": "未發現外部技能來源",
+  "connectError": {
+    "dns_failure": "無法解析伺服器位址。請檢查主機名稱是否拼字正確，並確認目前網路或 VPN 是否可用。",
+    "tls_failure": "安全連線失敗——無法驗證伺服器的 TLS 憑證。若使用自簽憑證，請開啟「允許不安全的連線」或安裝受信任的憑證。",
+    "auth_failure": "伺服器拒絕了憑證。請檢查認證方式以及權杖或密碼是否正確。",
+    "not_opencode": "已連線到該主機，但看起來不是 OpenCode 伺服器。請檢查 URL 與通訊埠，應指向正在執行的 `opencode serve`（預設通訊埠 4096）。",
+    "connection_refused": "主機拒絕連線。請確認 OpenCode 正在執行（`opencode serve`），並檢查通訊埠是否正確。",
+    "timeout": "連線逾時。請檢查本機是否能連到該主機（防火牆/VPN）後再試一次。",
+    "server_error": "OpenCode 伺服器傳回錯誤。請查看伺服器記錄後再試一次。",
+    "workspace_not_on_server": "工作區資料夾在 OpenCode 伺服器上不存在。請選擇伺服器上存在的目錄，或將該 Agent 的工具主機切換為本機。",
+    "unreachable": "無法連線到伺服器。請檢查 URL、網路連線，並確認伺服器是否正在執行。"
+  }
 }
