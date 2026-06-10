@@ -49,6 +49,31 @@ function verifyBundledResources(resourcesDir, electronPlatformName, targetArch) 
   }
 
   console.log(`   ✓ Bundled resources verified for ${runtimeKey}`);
+
+  // Check for CLI bundles in managed-resources
+  const managedResourcesDir = path.join(resourcesDir, 'bundled-poundingcore', runtimeKey, 'managed-resources');
+
+  // Verify CLI bundles (optional — will fallback to network install if missing)
+  const cliTargets = ['claude', 'codex', 'opencode', 'openclaw'];
+  for (const cli of cliTargets) {
+    const cliDir = path.join(managedResourcesDir, 'cli', cli);
+    if (fs.existsSync(cliDir)) {
+      console.log(`   ✓ CLI bundle present: ${cli}`);
+    } else {
+      console.warn(`   ⚠️  CLI bundle missing: ${cli} (will fallback to network install)`);
+    }
+  }
+
+  // Verify runtime resources
+  const runtimeTargets = ['uv', 'python', 'hermes'];
+  for (const runtime of runtimeTargets) {
+    const runtimeDir = path.join(managedResourcesDir, 'runtimes', runtime);
+    if (fs.existsSync(runtimeDir)) {
+      console.log(`   ✓ Runtime bundle present: ${runtime}`);
+    } else {
+      console.warn(`   ⚠️  Runtime bundle missing: ${runtime}`);
+    }
+  }
 }
 
 module.exports = async function afterPack(context) {

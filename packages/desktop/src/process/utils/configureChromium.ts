@@ -20,7 +20,7 @@ import { applyGpuRecoveryFlags } from './gpuRecovery';
 //   - USB  drive → ./data/   (portable, takes data anywhere)
 //   - This computer → system default AppData
 // Choice is persisted in data-location next to PORTABLE.
-let portableChoicePending: { exeDir: string; choiceFile: string } | null = null;
+export let portableChoicePending: { exeDir: string; choiceFile: string } | null = null;
 
 if (!app.isPackaged) {
   const devAppName = getDevAppName();
@@ -65,6 +65,31 @@ if (!app.isPackaged) {
     if (!fs.existsSync(choiceFile)) {
       portableChoicePending = { exeDir, choiceFile };
     }
+  }
+}
+
+/**
+ * Whether this is the first time the app has been launched in this data directory.
+ * Used to trigger the CLI auto-installation on first login instead of waiting for
+ * manual intervention.
+ */
+export function isFirstRun(): boolean {
+  try {
+    const userData = app.getPath('userData');
+    const marker = path.join(userData, '.first-run-done');
+    return !fs.existsSync(marker);
+  } catch {
+    return false;
+  }
+}
+
+export function markFirstRunDone(): void {
+  try {
+    const userData = app.getPath('userData');
+    const marker = path.join(userData, '.first-run-done');
+    fs.writeFileSync(marker, new Date().toISOString(), 'utf8');
+  } catch {
+    /* best-effort */
   }
 }
 

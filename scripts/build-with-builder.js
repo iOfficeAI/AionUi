@@ -305,12 +305,22 @@ const skipVite = args.includes('--skip-vite');
 const skipNative = args.includes('--skip-native');
 const packOnly = args.includes('--pack-only');
 const forceBuild = args.includes('--force');
+const skipPrepare = args.includes('--skip-prepare');
+const skipHub = args.includes('--skip-hub');
 
 const builderArgs = args
   .filter((arg) => {
     // Filter out 'auto', architecture flags, and special flags
     if (arg === 'auto') return false;
-    if (arg === '--skip-vite' || arg === '--skip-native' || arg === '--pack-only' || arg === '--force') return false;
+    if (
+      arg === '--skip-vite' ||
+      arg === '--skip-native' ||
+      arg === '--pack-only' ||
+      arg === '--force' ||
+      arg === '--skip-prepare' ||
+      arg === '--skip-hub'
+    )
+      return false;
     if (archList.includes(arg)) return false;
     if (arg.startsWith('--') && archList.includes(arg.slice(2))) return false;
     return true;
@@ -387,6 +397,8 @@ if (skipVite) console.log('⚡ --skip-vite: Will skip Vite compilation if output
 if (skipNative) console.log('⚡ --skip-native: Will skip native module rebuilding');
 if (packOnly) console.log('⚡ --pack-only: Will skip electron-builder distributable creation');
 if (forceBuild) console.log('⚡ --force: Force full rebuild');
+if (skipPrepare) console.log('⚡ --skip-prepare: Will skip poundingcore & managed-resources preparation');
+if (skipHub) console.log('⚡ --skip-hub: Will skip hub resources preparation');
 
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
@@ -456,18 +468,26 @@ try {
   }
 
   // 5. Prepare poundingcore binary (for packaged runtime usage)
-  const { preparePoundingcore } = require('../packages/shared-scripts/src/prepare-poundingcore.js');
-  const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
-  const projectRoot = path.resolve(__dirname, '..');
-  preparePoundingcore({
-    projectRoot,
-    platform: process.platform,
-    arch: targetArch,
-    version: resolveAioncoreVersion(projectRoot),
-  });
+  if (!skipPrepare) {
+    const { preparePoundingcore } = require('../packages/shared-scripts/src/prepare-poundingcore.js');
+    const { resolveAioncoreVersion } = require('./resolveAioncoreVersion.js');
+    const projectRoot = path.resolve(__dirname, '..');
+    preparePoundingcore({
+      projectRoot,
+      platform: process.platform,
+      arch: targetArch,
+      version: resolveAioncoreVersion(projectRoot),
+    });
+  } else {
+    console.log('⚡ --skip-prepare: Skipping poundingcore & managed-resources preparation');
+  }
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
-  execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  if (!skipHub) {
+    execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+  } else {
+    console.log('⚡ --skip-hub: Skipping hub resources preparation');
+  }
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)

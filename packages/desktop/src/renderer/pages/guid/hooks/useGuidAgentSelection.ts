@@ -25,6 +25,13 @@ import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
+import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
+import {
+  getManagedCliSelectableModels,
+  MANAGED_NEWAPI_PROVIDER_ID,
+  resolveManagedRuntimeCliTarget,
+} from '@/common/types/agent/managedRuntimeCli';
+import type { ManagedRuntimeCliTarget } from '@/common/types/newApiAccount';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -265,6 +272,9 @@ export const useGuidAgentSelection = ({
 
   // Fetch remote agents from DB and merge into available agents
   const { data: remoteAgentsData } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
+
+  // Fetch provider configs for managed model fallback
+  const { data: providers } = useProvidersQuery();
 
   useEffect(() => {
     if (!availableAgentsData) return;
@@ -514,8 +524,29 @@ export const useGuidAgentSelection = ({
       } satisfies AcpModelInfo;
     }
 
+    // Fallback: for managed CLI agents (claude, codex, hermes, opencode, openclaw),
+    // use the managed POUNDING API provider models when the handshake is empty.
+    if (providers) {
+      const cliTarget = resolveManagedRuntimeCliTarget(backend);
+      if (cliTarget) {
+        const managedProvider = providers.find((p) => p.id === MANAGED_NEWAPI_PROVIDER_ID);
+        if (managedProvider) {
+          const models = getManagedCliSelectableModels(managedProvider, cliTarget);
+          if (models.length > 0) {
+            const prefs = (configService.get('newApi.desktop.cliModelPrefs') ?? {}) as Record<string, string>;
+            const currentModelId = prefs[cliTarget as ManagedRuntimeCliTarget] ?? models[0];
+            return {
+              current_model_id: currentModelId,
+              current_model_label: currentModelId,
+              available_models: models.map((id) => ({ id, label: id })),
+            } satisfies AcpModelInfo;
+          }
+        }
+      }
+    }
+
     return null;
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData, providers]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {

@@ -1249,6 +1249,7 @@ export const newApiAccount = {
 export const managedCliInstaller = {
   install: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallOptions>('managed-cli-installer.install'),
   uninstall: bridge.buildProvider<ManagedCliInstallResult, ManagedCliInstallTarget>('managed-cli-installer.uninstall'),
+  isInstalled: bridge.buildProvider<boolean, { target: ManagedCliInstallTarget }>('managed-cli-installer.isInstalled'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1845,4 +1846,28 @@ export const team = {
   listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
   created: wsEmitter<ITeamCreatedEvent>('team.created'),
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammate.message'),
+};
+
+// ---------------------------------------------------------------------------
+// Doctor — agent diagnostic & repair
+// ---------------------------------------------------------------------------
+
+type AgentDiagnosticReport = {
+  agents: Array<{
+    name: string;
+    backend: string | null;
+    available: boolean;
+    reason: string | null;
+    bundledSource: boolean;
+  }>;
+  runtimes: Record<string, { available: boolean; path: string | null }>;
+  acpBridges: Record<string, { available: boolean; path: string | null }>;
+  summary: { healthy: boolean; issues: string[] };
+};
+
+type RepairResult = { success: boolean; source: string | null; error: string | null };
+
+export const doctor = {
+  diagnose: httpGet<AgentDiagnosticReport, void>('/api/doctor/diagnose'),
+  repair: httpPost<RepairResult, { target: string }>('/api/doctor/repair'),
 };

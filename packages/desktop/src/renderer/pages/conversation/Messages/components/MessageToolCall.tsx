@@ -10,12 +10,30 @@ import type { NormalizedToolStatus } from '@/common/chat/normalizeToolCall';
 import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
+import LocalImageView from '@/renderer/components/media/LocalImageView';
+import { usePreviewLauncher } from '@/renderer/hooks/file/usePreviewLauncher';
+import { getFileTypeInfo } from '@/renderer/utils/file/fileType';
 import { Badge } from '@arco-design/web-react';
 import { IconDown, IconRight } from '@arco-design/web-react/icon';
 import { createTwoFilesPatch } from 'diff';
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState } from 'react';
 import type { BadgeProps } from '@arco-design/web-react';
 import './MessageToolGroupSummary.css';
+
+const IMAGE_GEN_TOOL_NAMES = new Set([
+  'pounding_image_generation',
+  'image_generation',
+  'generate_image',
+]);
+
+/** Parse image path from image generation tool result text */
+function parseImagePathFromText(text: string): string | null {
+  const markerMatch = text.match(/<!--\s*POUNDING_IMG:(.+?)\s*-->/);
+  if (markerMatch) return markerMatch[1].trim();
+  const savedMatch = text.match(/Generated image saved to:\s*(.+)$/m);
+  if (savedMatch) return savedMatch[1].trim();
+  return null;
+}
 
 const statusToBadge = (status: NormalizedToolStatus): BadgeProps['status'] => {
   switch (status) {
@@ -63,9 +81,31 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
   }
 
   const normalized = normalizeToolCall(message);
+  const { launchPreview } = usePreviewLauncher();
+
+  const handlePreviewClick = useCallback(
+    (e: React.MouseEvent, filePath: string) => {
+      e.stopPropagation();
+      const fileName = filePath.split(/[\\/]/).pop() || filePath;
+      const { contentType, editable, language } = getFileTypeInfo(fileName);
+      void launchPreview({
+        originalPath: filePath,
+        file_name: fileName,
+        contentType,
+        editable,
+        language,
+      });
+    },
+    [launchPreview]
+  );
+
   if (!normalized) {
     return <div className='text-t-primary'>{name}</div>;
   }
+
+  // Check for image generation tool output and show inline image
+  const isImageGenTool = IMAGE_GEN_TOOL_NAMES.has(normalized.name);
+  const imagePath = isImageGenTool && normalized.output ? parseImagePathFromText(normalized.output) : null;
 
   const hasDetail = normalized.input || normalized.output;
 
@@ -96,6 +136,17 @@ const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) =
           </span>
         )}
       </div>
+      {imagePath && expanded && (
+        <div className='flex flex-col gap-4px m-l-20px m-t-8px'>
+          <LocalImageView src={imagePath} alt={imagePath} className='max-w-100% max-h-300px object-contain' />
+          <span
+            className='text-12px text-t-secondary cursor-pointer hover:text-[rgb(var(--arcoblue-6))] hover:underline self-start'
+            onClick={(e) => handlePreviewClick(e, imagePath)}
+          >
+            {imagePath.split(/[\\/]/).pop() || imagePath}
+          </span>
+        </div>
+      )}
       {expanded && hasDetail && (
         <div className='tool-detail-panel m-l-20px m-t-4px'>
           {normalized.input && (

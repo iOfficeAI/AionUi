@@ -100,10 +100,12 @@ function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> 
 }
 
 export function initSentry(): void {
+  // POUNDING Sentry DSN — set via environment variable or CI secret.
+  // Get the DSN from https://sentry.io -> Settings -> Projects -> pound
   const DSN =
     process.env.SENTRY_DSN ||
     process.env.POUNDING_SENTRY_DSN ||
-    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
+    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368'; // POUNDING project DSN (halo-fx org)
   Sentry.init({
     dsn: DSN,
     environment: app.isPackaged ? 'production' : 'development',
@@ -304,6 +306,40 @@ export async function captureBackendStartupFailure(error: unknown): Promise<void
   }
 }
 
+const AGENT_DIAGNOSTIC_FLUSH_TIMEOUT_MS = 3000;
+
+export async function captureAgentDiagnosticFailure(
+  agentInfo: { name: string; backend: string | null; available: boolean; reason: string | null },
+  repairAttempts: Array<{ source: string; success: boolean; error?: string }>
+): Promise<void> {
+  Sentry.withScope((scope) => {
+    scope.setTag('pounding.failure', 'agent_diagnostic');
+    scope.setTag('pounding.agent', agentInfo.name);
+    scope.setTag('pounding.backend', agentInfo.backend ?? 'unknown');
+    scope.setTag('pounding.reason', agentInfo.reason ?? 'unknown');
+    scope.setTag('pounding.repair_attempts', String(repairAttempts.length));
+
+    scope.setContext('agent_diagnostic', {
+      agent_name: agentInfo.name,
+      backend: agentInfo.backend,
+      unavailable_reason: agentInfo.reason,
+      repair_attempts: repairAttempts.map((r) => ({
+        source: r.source,
+        success: r.success,
+        error: r.error ?? '',
+      })),
+    });
+
+    Sentry.captureMessage('agent_diagnostic_failure', 'warning');
+  });
+
+  try {
+    await Sentry.flush(AGENT_DIAGNOSTIC_FLUSH_TIMEOUT_MS);
+  } catch {
+    // Don't block on Sentry
+  }
+}
+
 /**
  * How many recent days of logs the next startup report packs. Aligned with
  * the 24h throttle: the previous report covers everything older, so each
@@ -438,10 +474,12 @@ async function runStartupLogReport(): Promise<void> {
 
   // DSN gate goes first so we don't read the disk for nothing.
   // Don't write state — the next launch with a DSN should still fire.
+  // POUNDING Sentry DSN — set via environment variable or CI secret.
+  // Get the DSN from https://sentry.io -> Settings -> Projects -> pound
   const DSN =
     process.env.SENTRY_DSN ||
     process.env.POUNDING_SENTRY_DSN ||
-    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368';
+    'https://50b2642878dae7371cff3a85e61a3a13@o4511410803441664.ingest.us.sentry.io/4511410809274368'; // POUNDING project DSN (halo-fx org)
   if (!DSN) {
     console.info('[sentry] startup log report skipped (SENTRY_DSN not set)');
     throw new UnretryableError('no DSN');

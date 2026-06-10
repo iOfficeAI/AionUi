@@ -130,6 +130,18 @@ export const NewApiAccountProvider: React.FC<React.PropsWithChildren> = ({ child
     const completedTargets: ManagedRuntimeCliTarget[] = [];
     try {
       for (const target of AUTO_INSTALL_TARGETS) {
+        // Check if already installed (from bundle preinstall)
+        if (isDesktopRuntime) {
+          try {
+            const alreadyInstalled = await ipcBridge.managedCliInstaller.isInstalled.invoke({ target });
+            if (alreadyInstalled) {
+              completedTargets.push(target);
+              continue;
+            }
+          } catch {
+            // IPC call failed (bridge may not be ready), fall through to install
+          }
+        }
         const stage = target === 'hermes' ? 'installing_hermes' : 'installing_openclaw';
         setPrepStatus(
           buildPrepStatus({
@@ -170,10 +182,7 @@ export const NewApiAccountProvider: React.FC<React.PropsWithChildren> = ({ child
           error: error instanceof Error ? error.message : String(error),
         })
       );
-      Message.warning({
-        content: 'POUNDING CLI is ready, but Hermes/OpenClaw auto-install needs a retry later.',
-        duration: 3000,
-      });
+      console.warn('Auto-install partially failed; will retry on next launch.');
     } finally {
       autoInstallInFlightRef.current = false;
     }

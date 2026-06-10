@@ -671,29 +671,41 @@ const ToolsModalContent: React.FC = () => {
   }, [data, imageGenerationModel, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
-    (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
-      setImageGenerationModel((prev) => {
-        const newImageGenerationModel = {
-          ...prev,
-          id: value.id,
-          name: value.name,
-          platform: value.platform,
-          base_url: '',
-          api_key: '',
-          use_model: value.use_model,
-        } as ConfigKeyMap['tools.imageGenerationModel'];
-        configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
-          console.error('Failed to update image generation model config:', error);
-        });
-        // Sync env vars to the built-in MCP server
-        void syncMcpServerEnv(newImageGenerationModel).catch((error) => {
-          console.error('Failed to sync image generation MCP env:', error);
-          mcpMessage.error(error instanceof Error ? error.message : t('settings.mcpSyncError'));
-        });
-        return newImageGenerationModel;
+    async (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
+      const newImageGenerationModel = {
+        ...imageGenerationModel,
+        id: value.id,
+        name: value.name,
+        platform: value.platform,
+        base_url: '',
+        api_key: '',
+        use_model: value.use_model,
+      } as ConfigKeyMap['tools.imageGenerationModel'];
+
+      setImageGenerationModel(newImageGenerationModel);
+      configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        console.error('Failed to update image generation model config:', error);
       });
+
+      try {
+        await syncMcpServerEnv(newImageGenerationModel);
+
+        // Restart the MCP server to pick up new env vars
+        const currentBuiltin = mcpServers.find(isBuiltinImageGenServer);
+        if (currentBuiltin?.enabled) {
+          await mcpService.toggleServer.invoke({ id: currentBuiltin.id });
+          await mcpService.toggleServer.invoke({ id: currentBuiltin.id });
+          const refreshed = await mcpService.listServers.invoke();
+          if (refreshed) {
+            await saveMcpServers(() => refreshed);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to sync image generation MCP env:', error);
+        mcpMessage.error(error instanceof Error ? error.message : t('settings.mcpSyncError'));
+      }
     },
-    [mcpMessage, syncMcpServerEnv, t]
+    [imageGenerationModel, mcpServers, mcpMessage, saveMcpServers, syncMcpServerEnv, t]
   );
 
   const handleImageGenerationToggle = useCallback(

@@ -3,18 +3,7 @@ import { isElectronDesktop, resolveExtensionAssetUrl } from '@/renderer/utils/pl
 import { type IExtensionSettingsTab } from '@/common/adapter/ipcBridge';
 import { useExtI18n } from '@/renderer/hooks/system/useExtI18n';
 import { useExtensionSettingsTabs } from '@/renderer/hooks/system/useExtensionSettingsTabs';
-import {
-  Cat,
-  Communication,
-  Earth,
-  Info,
-  Lightning,
-  LinkCloud,
-  Puzzle,
-  Robot,
-  Speed,
-  System,
-} from '@icon-park/react';
+import { Cat, Communication, Earth, Info, Lightning, LinkCloud, Puzzle, Robot, Speed, System } from '@icon-park/react';
 import ozonPng from '@renderer/assets/logos/brand/ozon.png';
 import classNames from 'classnames';
 import React, { useMemo } from 'react';
@@ -100,7 +89,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         icon: <Lightning />,
         path: 'capabilities',
       },
-      display: { id: 'display', label: t('settings.display'), icon: <img src={ozonPng} alt='Display' style={{ width: 20, height: 20 }} />, path: 'display' },
+      display: {
+        id: 'display',
+        label: t('settings.display'),
+        icon: <img src={ozonPng} alt='Display' style={{ width: 20, height: 20 }} />,
+        path: 'display',
+      },
       webui: {
         id: 'webui',
         label: t('settings.webui'),

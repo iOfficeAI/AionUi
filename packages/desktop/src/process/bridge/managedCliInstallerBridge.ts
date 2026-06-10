@@ -39,18 +39,37 @@ const PYPI_DEFAULT_INDEX_URL = 'https://pypi.org/simple';
 const HERMES_HOME_DIR = path.join(os.homedir(), '.hermes');
 const HERMES_VENV_DIR = path.join(HERMES_HOME_DIR, 'hermes-agent', 'venv');
 const HERMES_BIN_DIR = path.join(os.homedir(), '.local', 'bin');
-const HERMES_SHIM_PATH = path.join(HERMES_BIN_DIR, 'hermes');
+const HERMES_SHIM_PATH = path.join(HERMES_BIN_DIR, process.platform === 'win32' ? 'hermes.cmd' : 'hermes');
 const UV_BIN_PATH = path.join(os.homedir(), '.local', 'bin', process.platform === 'win32' ? 'uv.exe' : 'uv');
 const OPENCODE_CONFIG_ENV_NAME = 'OPENCODE_CONFIG';
 const XDG_CONFIG_HOME_ENV_NAME = 'XDG_CONFIG_HOME';
-const AIONUI_DEV_DIR = path.join(os.homedir(), getEnvAwareName('.pounding'));
-const MANAGED_OPENCODE_CONFIG_PATH = path.join(AIONUI_DEV_DIR, 'managed-opencode', 'opencode.json');
-const MANAGED_OPENCODE_XDG_HOME = path.join(AIONUI_DEV_DIR, 'xdg-config');
 const BUN_HOME_DIR = process.env.BUN_INSTALL?.trim() || path.join(os.homedir(), '.bun');
+
+function getAionUiDevDir(): string {
+  try {
+    const { app } = require('electron');
+    if (app && app.isReady()) {
+      return path.join(app.getPath('userData'), 'pounding');
+    }
+  } catch {
+    /* not in Electron context */
+  }
+  return path.join(os.homedir(), getEnvAwareName('.pounding'));
+}
+
+function getManagedOpencodeConfigPath(): string {
+  return path.join(getAionUiDevDir(), 'managed-opencode', 'opencode.json');
+}
+
+function getManagedOpencodeXdgHome(): string {
+  return path.join(getAionUiDevDir(), 'xdg-config');
+}
+
 const BUN_BIN_DIR = path.join(BUN_HOME_DIR, 'bin');
 const BUN_GLOBAL_NODE_MODULES_DIR = path.join(BUN_HOME_DIR, 'install', 'global', 'node_modules');
 const BUN_BIN_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.exe' : 'bun');
 const BUN_SHIM_PATH = path.join(BUN_BIN_DIR, process.platform === 'win32' ? 'bun.cmd' : 'bun');
+
 const LEGACY_OPENCODE_XDG_HOME = path.join(os.homedir(), getEnvAwareName('.pounding'), 'xdg-config');
 const LEGACY_OPENCODE_CONFIG_PATH = path.join(
   os.homedir(),
@@ -175,15 +194,15 @@ function writeOpencodeShim(): void {
     throw new Error(`OpenCode platform binary not found at ${targetBinary}`);
   }
   ensureDir(BUN_BIN_DIR);
-  ensureDir(path.dirname(MANAGED_OPENCODE_CONFIG_PATH));
-  ensureDir(MANAGED_OPENCODE_XDG_HOME);
+  ensureDir(path.dirname(getManagedOpencodeConfigPath()));
+  ensureDir(getManagedOpencodeXdgHome());
   const shimPath = getOpencodeBinaryTargetPath();
   safeRm(shimPath);
   if (process.platform === 'win32') {
     const shim = [
       '@echo off',
-      `set "${XDG_CONFIG_HOME_ENV_NAME}=${MANAGED_OPENCODE_XDG_HOME}"`,
-      `set "${OPENCODE_CONFIG_ENV_NAME}=${MANAGED_OPENCODE_CONFIG_PATH}"`,
+      `set "${XDG_CONFIG_HOME_ENV_NAME}=${getManagedOpencodeXdgHome()}"`,
+      `set "${OPENCODE_CONFIG_ENV_NAME}=${getManagedOpencodeConfigPath()}"`,
       `"${targetBinary}" %*`,
       '',
     ].join('\r\n');
@@ -192,8 +211,8 @@ function writeOpencodeShim(): void {
   }
   const shim = [
     '#!/usr/bin/env bash',
-    `export ${XDG_CONFIG_HOME_ENV_NAME}=${JSON.stringify(MANAGED_OPENCODE_XDG_HOME)}`,
-    `export ${OPENCODE_CONFIG_ENV_NAME}=${JSON.stringify(MANAGED_OPENCODE_CONFIG_PATH)}`,
+    `export ${XDG_CONFIG_HOME_ENV_NAME}=${JSON.stringify(getManagedOpencodeXdgHome())}`,
+    `export ${OPENCODE_CONFIG_ENV_NAME}=${JSON.stringify(getManagedOpencodeConfigPath())}`,
     `exec ${JSON.stringify(targetBinary)} "$@"`,
     '',
   ].join('\n');
@@ -209,7 +228,7 @@ function ensureManagedOpencodeShim(): void {
 
   const currentShim = fs.existsSync(shimPath) ? fs.readFileSync(shimPath, 'utf8') : '';
   const isOwnedManagedShim =
-    currentShim.includes(MANAGED_OPENCODE_CONFIG_PATH) || currentShim.includes(MANAGED_OPENCODE_XDG_HOME);
+    currentShim.includes(getManagedOpencodeConfigPath()) || currentShim.includes(getManagedOpencodeXdgHome());
   const isOwnedLegacyShim =
     currentShim.includes(LEGACY_OPENCODE_CONFIG_PATH) || currentShim.includes(LEGACY_OPENCODE_XDG_HOME);
   if (!isOwnedManagedShim && !isOwnedLegacyShim) {
@@ -217,13 +236,163 @@ function ensureManagedOpencodeShim(): void {
   }
 
   const needsRewrite =
-    !currentShim.includes(MANAGED_OPENCODE_CONFIG_PATH) ||
-    !currentShim.includes(MANAGED_OPENCODE_XDG_HOME) ||
+    !currentShim.includes(getManagedOpencodeConfigPath()) ||
+    !currentShim.includes(getManagedOpencodeXdgHome()) ||
     currentShim.includes(LEGACY_OPENCODE_CONFIG_PATH) ||
     currentShim.includes(LEGACY_OPENCODE_XDG_HOME);
 
   if (needsRewrite) {
     writeOpencodeShim();
+  }
+}
+
+export function resolveBundledResourcesDir(): string | null {
+  const platformKey = `${process.platform}-${process.arch}`;
+  const candidate = path.join(process.resourcesPath, 'bundled-poundingcore', platformKey, 'managed-resources');
+  return fs.existsSync(candidate) ? candidate : null;
+}
+
+export function resolveNodeForShim(): string {
+  // 1. Try bundled node in managed-resources
+  const bundledResourcesDir = resolveBundledResourcesDir();
+  if (bundledResourcesDir) {
+    const nodeDir = path.join(bundledResourcesDir, 'node');
+    if (fs.existsSync(nodeDir)) {
+      const entries = fs.readdirSync(nodeDir, { withFileTypes: true });
+      for (const entry of entries) {
+        if (!entry.isDirectory()) continue;
+        const binName = process.platform === 'win32' ? 'node.exe' : 'node';
+        // macOS/Linux: node-v24.x.x-darwin-arm64/bin/node
+        const candidate = path.join(nodeDir, entry.name, 'bin', binName);
+        if (fs.existsSync(candidate)) return candidate;
+        // Windows: node-v24.x.x-win32-x64/node.exe (no bin/ subdirectory)
+        const candidateFlat = path.join(nodeDir, entry.name, binName);
+        if (fs.existsSync(candidateFlat)) return candidateFlat;
+      }
+    }
+  }
+  // 2. Fallback: system PATH
+  return 'node';
+}
+
+function resolveBundledCliDir(target: string): string | null {
+  const resourcesDir = resolveBundledResourcesDir();
+  if (!resourcesDir) return null;
+  const candidates = [path.join(resourcesDir, 'cli', target)];
+  if (process.platform === 'darwin' && (process.env.HOME || os.homedir())) {
+    // macOS-only cache path
+    const cacheBase = path.join(
+      process.env.HOME || os.homedir(),
+      'Library',
+      'Application Support',
+      'POUNDING',
+      'pounding',
+      'runtime',
+      'cli',
+      target
+    );
+    candidates.push(cacheBase);
+  } else if (process.platform === 'win32' && process.env.APPDATA) {
+    // Windows cache path
+    const cacheBase = path.join(process.env.APPDATA, 'POUNDING', 'pounding', 'runtime', 'cli', target);
+    candidates.push(cacheBase);
+  }
+  for (const candidate of candidates) {
+    if (!fs.existsSync(candidate)) continue;
+    // The bundle is versioned: cli/<target>/<version>/<platform>/
+    // Return the innermost directory that contains manifest.json.
+    const entries = fs.readdirSync(candidate, { withFileTypes: true });
+    for (const versionEntry of entries) {
+      if (!versionEntry.isDirectory()) continue;
+      const versionDir = path.join(candidate, versionEntry.name);
+      const platforms = fs.readdirSync(versionDir, { withFileTypes: true });
+      for (const platformEntry of platforms) {
+        if (!platformEntry.isDirectory()) continue;
+        const platformDir = path.join(versionDir, platformEntry.name);
+        if (fs.existsSync(path.join(platformDir, 'manifest.json'))) {
+          return platformDir;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+function copyDirContents(src: string, dest: string): void {
+  if (!fs.existsSync(src)) return;
+  ensureDir(dest);
+  for (const entry of fs.readdirSync(src, { withFileTypes: true })) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+    if (entry.isDirectory()) {
+      copyDirContents(srcPath, destPath);
+    } else {
+      try {
+        fs.linkSync(srcPath, destPath);
+      } catch {
+        fs.copyFileSync(srcPath, destPath);
+      }
+    }
+  }
+}
+
+function materializeFromBundled(descriptor: ManagedCliDescriptor, bundledDir: string): void {
+  const manifestPath = path.join(bundledDir, 'manifest.json');
+  if (!fs.existsSync(manifestPath)) {
+    throw new Error(`Bundle manifest missing at ${manifestPath}`);
+  }
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf-8'));
+  const entrypointRel: string | undefined = manifest.entrypoint;
+  if (!entrypointRel) {
+    throw new Error(`Bundle manifest missing entrypoint at ${manifestPath}`);
+  }
+
+  const entrypointAbs = path.join(bundledDir, entrypointRel);
+  if (!fs.existsSync(entrypointAbs)) {
+    throw new Error(`Bundle entrypoint not found: ${entrypointAbs}`);
+  }
+
+  // 1. Copy node_modules from bundle to global bun directory so the
+  //    CLI can resolve its dependencies at runtime.
+  const bundledNodeModules = path.join(bundledDir, 'node_modules');
+  if (fs.existsSync(bundledNodeModules)) {
+    const targetNodeModules = path.join(BUN_HOME_DIR, 'install', 'global', 'node_modules');
+    ensureDir(targetNodeModules);
+
+    // Infer the npm package directory from the entrypoint path.
+    // Example entrypoint: node_modules/@openai/codex/bin/codex.js
+    // → package dir: node_modules/@openai/codex → target: @openai/codex
+    const pkgParts = entrypointRel.split(path.sep);
+    const scopeIdx = pkgParts.indexOf('node_modules');
+    if (scopeIdx >= 0 && pkgParts.length > scopeIdx + 2) {
+      const isScoped = pkgParts[scopeIdx + 2]?.startsWith('@');
+      const pkgDirName = isScoped ? pkgParts[scopeIdx + 2]! : pkgParts[scopeIdx + 1]!;
+      const srcPkg = path.join(bundledNodeModules, pkgParts[scopeIdx + 1]!);
+      const destPkg = path.join(targetNodeModules, pkgParts[scopeIdx + 1]!);
+      copyDirContents(srcPkg, destPkg);
+
+      // Also materialise .bin/ shim entries (e.g. codex → codex.js)
+      const srcBin = path.join(bundledNodeModules, '.bin');
+      const destBin = path.join(targetNodeModules, '.bin');
+      if (fs.existsSync(srcBin)) copyDirContents(srcBin, destBin);
+    }
+  }
+
+  // 2. Write a shim at each detectPath that execs the entrypoint via node.
+  for (const detectPath of descriptor.detectPaths ?? []) {
+    ensureDir(path.dirname(detectPath));
+    if (fs.existsSync(detectPath)) {
+      // Don't overwrite a CLI that was already installed by the user.
+      continue;
+    }
+    const nodeCmd = resolveNodeForShim();
+    if (process.platform === 'win32') {
+      const shim = `@echo off\r\n"${nodeCmd}" "${entrypointAbs}" %*\r\n`;
+      fs.writeFileSync(detectPath, shim, { encoding: 'utf8' });
+    } else {
+      const shim = `#!/usr/bin/env bash\nexec ${JSON.stringify(nodeCmd)} ${JSON.stringify(entrypointAbs)} "$@"\n`;
+      fs.writeFileSync(detectPath, shim, { encoding: 'utf8', mode: 0o755 });
+    }
   }
 }
 
@@ -416,17 +585,35 @@ async function uninstallGlobalPackage(packageName: string): Promise<void> {
 
 function writeHermesShim(): void {
   ensureDir(HERMES_BIN_DIR);
-  const shim = `#!/usr/bin/env bash
+  const isWin = process.platform === 'win32';
+  const shimName = isWin ? 'hermes.cmd' : 'hermes';
+  const shimPath = path.join(HERMES_BIN_DIR, shimName);
+  const hermesExe = isWin
+    ? path.join(HERMES_VENV_DIR, 'Scripts', 'hermes.exe')
+    : path.join(HERMES_VENV_DIR, 'bin', 'hermes');
+
+  const shim = isWin
+    ? `@echo off\r\n"${hermesExe}" %*\r\n`
+    : `#!/usr/bin/env bash
 unset PYTHONPATH
 unset PYTHONHOME
-exec "${path.join(HERMES_VENV_DIR, 'bin', 'hermes')}" "$@"
+exec "${hermesExe}" "$@"
 `;
-  fs.writeFileSync(HERMES_SHIM_PATH, shim, { encoding: 'utf8', mode: 0o755 });
+  const writeOpts = isWin ? { encoding: 'utf8' as const } : { encoding: 'utf8' as const, mode: 0o755 };
+  fs.writeFileSync(shimPath, shim, writeOpts);
+  if (!isWin) {
+    // On Windows .cmd files are inherently executable
+    try {
+      fs.chmodSync(shimPath, 0o755);
+    } catch {
+      /* best-effort */
+    }
+  }
 }
 
 async function installHermes(): Promise<void> {
   const uvBinary = await ensureUvInstalled();
-  const packageName = 'hermes-agent';
+  const packageName = 'hermes-agent[acp]';
   const indexUrls = ['https://pypi.tuna.tsinghua.edu.cn/simple', 'https://pypi.org/simple'];
 
   ensureDir(path.dirname(HERMES_VENV_DIR));
@@ -458,6 +645,47 @@ async function uninstallHermes(): Promise<void> {
   safeRm(HERMES_SHIM_PATH);
 }
 
+export async function preinstallHermesFromBundle(bundledResourcesDir: string): Promise<boolean> {
+  const hermesDescriptor = DESCRIPTORS.hermes;
+  if (await isManagedCliInstalled(hermesDescriptor)) return true;
+
+  const pythonDir = path.join(bundledResourcesDir, 'runtimes', 'python');
+  const uvBinary = path.join(bundledResourcesDir, 'runtimes', 'uv', process.platform === 'win32' ? 'uv.exe' : 'uv');
+  const hermesWheelDir = path.join(bundledResourcesDir, 'runtimes', 'hermes');
+
+  if (!fs.existsSync(hermesWheelDir)) return false;
+  const wheelFiles = fs.readdirSync(hermesWheelDir).filter((f) => f.endsWith('.whl'));
+  if (wheelFiles.length === 0) return false;
+  const wheelPath = path.join(hermesWheelDir, wheelFiles[0]);
+
+  if (!fs.existsSync(pythonDir)) return false;
+  const pythonBinDir = path.join(pythonDir, 'python', 'bin');
+  const pythonBinary = path.join(pythonBinDir, process.platform === 'win32' ? 'python3.exe' : 'python3');
+  if (!fs.existsSync(pythonBinary)) return false;
+
+  try {
+    await runCommand(pythonBinary, ['-m', 'venv', HERMES_VENV_DIR]);
+
+    const uvCmd = fs.existsSync(uvBinary) ? uvBinary : 'uv';
+    const venvPython = path.join(
+      HERMES_VENV_DIR,
+      process.platform === 'win32' ? 'Scripts' : 'bin',
+      process.platform === 'win32' ? 'python.exe' : 'python'
+    );
+    await runCommand(uvCmd, ['pip', 'install', '--python', venvPython, wheelPath]);
+    // Hermes ACP mode requires agent-client-protocol (the [acp] extra).
+    // Local wheels do not resolve extras metadata, so install explicitly.
+    await runCommand(uvCmd, ['pip', 'install', '--python', venvPython, 'agent-client-protocol']);
+
+    writeHermesShim();
+    console.log('[POUNDING] Hermes installed from bundled resources');
+    return true;
+  } catch (err) {
+    console.error('[POUNDING] Failed to install Hermes from bundle:', err);
+    return false;
+  }
+}
+
 async function installOpenCode(): Promise<void> {
   ensureDir(BUN_HOME_DIR);
   ensureDir(BUN_GLOBAL_NODE_MODULES_DIR);
@@ -484,7 +712,7 @@ async function uninstallOpenCode(): Promise<void> {
   safeRm(getOpencodeBinaryTargetPath());
   safeRm(path.join(BUN_GLOBAL_NODE_MODULES_DIR, 'opencode-ai'));
   safeRm(path.join(BUN_GLOBAL_NODE_MODULES_DIR, getOpencodePlatformPackage()));
-  safeRm(MANAGED_OPENCODE_XDG_HOME);
+  safeRm(getManagedOpencodeXdgHome());
 }
 
 async function commandExists(command: string): Promise<boolean> {
@@ -535,13 +763,13 @@ const DESCRIPTORS: Record<ManagedCliInstallTarget, ManagedCliDescriptor> = {
     install: async () => {
       const command = await getGlobalJsCommand();
       if (command === getNpmCommand()) {
-        await installNpmPackage('@openai/codex-cli');
+        await installNpmPackage('@openai/codex');
         return;
       }
-      await installBunPackage('@openai/codex-cli');
+      await installBunPackage('@openai/codex');
     },
     uninstall: async () => {
-      await uninstallGlobalPackage('@openai/codex-cli');
+      await uninstallGlobalPackage('@openai/codex');
     },
   },
   hermes: {
@@ -610,11 +838,27 @@ async function installManagedCli(input: ManagedCliInstallOptions): Promise<Manag
     const alreadyInstalled = await isManagedCliInstalled(descriptor);
     if (alreadyInstalled) {
       await syncAfterInstall(descriptor.target);
+      return { success: true, status: 'installed' };
+    }
+
+    // Try bundled resources first (zero network!)
+    const bundledDir = resolveBundledCliDir(descriptor.target);
+    if (bundledDir) {
+      console.log(`[POUNDING] Installing ${descriptor.target} from bundled resources...`);
+      materializeFromBundled(descriptor, bundledDir);
+      if (descriptor.target === 'opencode') {
+        writeOpencodeShim();
+      }
+      await syncAfterInstall(descriptor.target);
+      const installed = await isManagedCliInstalled(descriptor);
       return {
-        success: true,
-        status: 'installed',
+        success: installed,
+        status: installed ? 'installed' : 'failed',
+        message: installed ? undefined : `${descriptor.detectCommand} still not available`,
       };
     }
+
+    // Fallback: network install
     await descriptor.install();
     await syncAfterInstall(descriptor.target);
     const installed = await isManagedCliInstalled(descriptor);
@@ -676,10 +920,39 @@ export async function uninstallManagedCliBatch(targets: ManagedCliInstallTarget[
   return results;
 }
 
+export type CliAvailabilityReport = {
+  all: boolean;
+  missing: string[];
+  details: Record<string, { installed: boolean; reason: string }>;
+};
+
+export async function verifyAllClisAvailable(): Promise<CliAvailabilityReport> {
+  const targets: ManagedCliInstallTarget[] = ['hermes', 'openclaw', 'claude', 'codex', 'opencode'];
+  const missing: string[] = [];
+  const details: CliAvailabilityReport['details'] = {};
+
+  for (const target of targets) {
+    const descriptor = DESCRIPTORS[target];
+    const installed = await isManagedCliInstalled(descriptor);
+    details[target] = {
+      installed,
+      reason: installed ? 'OK' : 'CLI not found on PATH',
+    };
+    if (!installed) missing.push(target);
+  }
+
+  return { all: missing.length === 0, missing, details };
+}
+
 export function initManagedCliInstallerBridge(): void {
   ensureManagedOpencodeShim();
   ipcBridge.managedCliInstaller.install.provider(async (input) => installManagedCli(input));
   ipcBridge.managedCliInstaller.uninstall.provider(async (target: ManagedCliInstallTarget) =>
     uninstallManagedCli(target)
   );
+  ipcBridge.managedCliInstaller.isInstalled.provider(async ({ target }) => {
+    const descriptor = DESCRIPTORS[target];
+    if (!descriptor) return false;
+    return isManagedCliInstalled(descriptor);
+  });
 }

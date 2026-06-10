@@ -215,6 +215,8 @@ asarUnpack:
   - 'out/main/builtin-mcp-image-gen.js'
   - 'out/main/team-mcp-stdio.js'
   - 'out/main/team-guide-mcp-stdio.js'
+  # Codex API proxy script must be unpacked so CodexProxyManager can fork() it
+  - 'out/main/codexApiProxy.mjs'
 
 # Compression level: normal for faster builds, maximum for smallest size
 # Note: electron-builder doesn't support YAML template syntax for env vars
