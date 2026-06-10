@@ -195,6 +195,47 @@ describe('httpBridge', () => {
         });
       }
     });
+
+    it('non-JSON error response captures raw text without double body consumption (#3249)', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue(
+        new Response('Unauthorized', {
+          status: 401,
+          statusText: 'Unauthorized',
+          headers: { 'Content-Type': 'text/plain' },
+        })
+      );
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        await httpGet('/api/x').invoke();
+        expect.fail('Should have thrown');
+      } catch (e) {
+        // Before the fix this threw TypeError "body stream already read" instead
+        expect(e).toBeInstanceOf(BackendHttpError);
+        const err = e as BackendHttpError;
+        expect(err.status).toBe(401);
+        expect(err.body).toBe('Unauthorized');
+      }
+    });
+
+    it('empty error body falls back to empty string', async () => {
+      const fetchSpy = vi.fn().mockResolvedValue(new Response('', { status: 502 }));
+      vi.stubGlobal('fetch', fetchSpy);
+      vi.spyOn(console, 'debug').mockImplementation(() => {});
+      vi.spyOn(console, 'error').mockImplementation(() => {});
+
+      try {
+        await httpGet('/api/x').invoke();
+        expect.fail('Should have thrown');
+      } catch (e) {
+        expect(e).toBeInstanceOf(BackendHttpError);
+        const err = e as BackendHttpError;
+        expect(err.status).toBe(502);
+        expect(err.body).toBe('');
+      }
+    });
   });
 
   describe('non-JSON response', () => {

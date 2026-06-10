@@ -71,8 +71,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          DEST="s3://${S3_BUCKET}/${S3_RELEASE_PREFIX}/${VERSION}/"
-          COUNT=$(aws s3 ls "$DEST" 2>/dev/null | wc -l | tr -d ' ')
+          PREFIX="${S3_RELEASE_PREFIX}/${VERSION}/"
+          DEST="s3://${S3_BUCKET}/${PREFIX}"
+          COUNT=$(aws s3api list-objects-v2 \
+            --bucket "$S3_BUCKET" \
+            --prefix "$PREFIX" \
+            --no-paginate \
+            --query 'KeyCount' \
+            --output text)
           if [ "$COUNT" -gt 0 ]; then
             echo "::error::Version directory already contains $COUNT file(s). Refusing to overwrite."
             echo "::error::Same-version re-publish is not allowed (downstream caches would serve stale files). Release a new version instead."
