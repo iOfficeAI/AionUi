@@ -997,6 +997,35 @@
         "custom": "Custom",
         "api": "API-defined"
       }
+    },
+    "plugin": {
+      "installButton": "Install Plugin",
+      "modalTitle": "Install Chisl Plugin",
+      "description": "Connect this OpenCode server to Chisl with the first-party plugin. It enables context injection, tool auditing, and streaming shell output. Paste the snippet below into your remote server’s OpenCode configuration.",
+      "statusChecking": "Checking plugin status…",
+      "statusConnected": "Plugin connected",
+      "statusWaiting": "Waiting for plugin",
+      "statusHint": "The indicator updates automatically once the plugin connects from your server.",
+      "pluginVersion": "Plugin v{{version}}",
+      "serverVersion": "OpenCode {{version}}",
+      "hooksDetected": "{{count}} hooks active",
+      "step1Title": "1. Add the plugin entry to your OpenCode config",
+      "step2Title": "2. Provide the connection environment variables",
+      "step3Title": "3. Restart the server and verify",
+      "step3Body": "Restart the OpenCode server process. The status banner above turns green as soon as the plugin connects back to this machine.",
+      "tabBare": "Bare server",
+      "tabDocker": "Docker",
+      "tabSystemd": "systemd",
+      "bareInstructions": "Add the snippet from step 1 to ~/.config/opencode/opencode.json (or the project’s opencode.json) on the server, export the variables below in the shell that runs `opencode serve`, then restart it.",
+      "dockerInstructions": "Add the plugin entry to the mounted OpenCode config, pass the variables below to the container, then restart the container.",
+      "systemdInstructions": "Add the lines below to the service unit (e.g. via `systemctl edit`), then run `systemctl daemon-reload` and restart the service.",
+      "showToken": "Show token",
+      "hideToken": "Hide token",
+      "rotateToken": "Rotate token",
+      "rotateConfirmTitle": "Rotate plugin token?",
+      "rotateConfirmContent": "Existing installations using the current token will stop working until you update them with the new token.",
+      "rotated": "Token rotated",
+      "loadFailed": "Failed to load plugin info"
     }
   },
   "connectWizard": {

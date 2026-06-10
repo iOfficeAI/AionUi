@@ -76,3 +76,33 @@ export type RemoteSession = {
    *  builds that don't emit `time.updated`. */
   updated_at?: number;
 };
+
+/**
+ * Live connectivity status for the AionCore plugin installed on a remote
+ * OpenCode agent. Returned as part of {@link RemoteAgentPluginInfo} from
+ * `GET /api/remote-agents/{id}/plugin` and the rotate-token endpoint.
+ */
+export type RemoteAgentPluginStatus = {
+  connected: boolean;
+  last_hello_at: number | null;
+  plugin_version: string | null;
+  opencode_version: string | null;
+  hooks: string[];
+  events_connected: boolean;
+  audit_count: number;
+};
+
+/**
+ * Full plugin installation bundle for a remote OpenCode agent. Includes the
+ * config snippet, env vars, bearer token, and live status. Returned by
+ * `GET /api/remote-agents/{id}/plugin` and
+ * `POST /api/remote-agents/{id}/plugin/rotate-token`.
+ */
+export type RemoteAgentPluginInfo = {
+  endpoint_url: string;
+  candidates: string[];
+  token: string;
+  config_snippet: string;
+  env_snippet: string;
+  status: RemoteAgentPluginStatus;
+};

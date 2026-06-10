@@ -33,10 +33,11 @@ import {
   Typography,
 } from '@arco-design/web-react';
 import AionModal from '@/renderer/components/base/AionModal';
-import { Attention, Edit, Key, Like, Magic, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
+import { Attention, Edit, Key, Like, Magic, Plug, Plus, ReduceOne, Refresh, Robot, Speed } from '@icon-park/react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR from 'swr';
+import PluginInstallModal from './PluginInstall';
 import { getRemoteProtocolOption, REMOTE_PROTOCOL_OPTIONS } from './remoteAgentProtocolOptions';
 import RemoteProviderAuthModal from './RemoteProviderAuthModal';
 
@@ -483,6 +484,7 @@ const RemoteAgentManagement: React.FC = () => {
   const [modalVisible, setModalVisible] = useState(false);
   const [editAgent, setEditAgent] = useState<RemoteAgentConfig>();
   const [providerAgent, setProviderAgent] = useState<RemoteAgentConfig>();
+  const [pluginAgent, setPluginAgent] = useState<RemoteAgentConfig>();
   const [wizardVisible, setWizardVisible] = useState(false);
   const remoteActionButtonClassName = '!rounded-10px !px-10px';
 
@@ -666,15 +668,26 @@ const RemoteAgentManagement: React.FC = () => {
 
               <div className='mt-auto flex flex-col gap-8px'>
                 {agent.protocol === 'opencode' ? (
-                  <Button
-                    size='small'
-                    type='secondary'
-                    icon={<Key theme='outline' size='14' />}
-                    className={remoteActionButtonClassName}
-                    onClick={() => handleManageProviders(agent)}
-                  >
-                    {t('settings.remoteAgent.providers.manage')}
-                  </Button>
+                  <>
+                    <Button
+                      size='small'
+                      type='secondary'
+                      icon={<Key theme='outline' size='14' />}
+                      className={remoteActionButtonClassName}
+                      onClick={() => handleManageProviders(agent)}
+                    >
+                      {t('settings.remoteAgent.providers.manage')}
+                    </Button>
+                    <Button
+                      size='small'
+                      type='secondary'
+                      icon={<Plug theme='outline' size='14' />}
+                      className={remoteActionButtonClassName}
+                      onClick={() => setPluginAgent(agent)}
+                    >
+                      {t('settings.remoteAgent.plugin.installButton')}
+                    </Button>
+                  </>
                 ) : null}
                 <div className='grid grid-cols-2 gap-8px'>
                   <Button
@@ -724,6 +737,11 @@ const RemoteAgentManagement: React.FC = () => {
         visible={Boolean(providerAgent)}
         agent={providerAgent}
         onClose={() => setProviderAgent(undefined)}
+      />
+      <PluginInstallModal
+        visible={Boolean(pluginAgent)}
+        agent={pluginAgent}
+        onClose={() => setPluginAgent(undefined)}
       />
       <ConnectWizard
         visible={wizardVisible}

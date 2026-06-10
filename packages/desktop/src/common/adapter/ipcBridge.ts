@@ -1351,6 +1351,22 @@ export const remoteAgent = {
     (p) => `/api/conversations/${p.conversation_id}/backfill-remote-history`,
     () => ({})
   ),
+  /**
+   * Fetch the plugin installation bundle for a remote OpenCode agent.
+   * Returns the config snippet, env vars, bearer token, candidate URLs,
+   * and live connectivity status. Used by the Install Plugin modal.
+   */
+  getPluginInfo: httpGet<import('@/common/types/agent/remoteAgentTypes').RemoteAgentPluginInfo, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/plugin`
+  ),
+  /**
+   * Rotate the plugin bearer token for a remote OpenCode agent. Returns
+   * the updated plugin info with the new token and refreshed snippets.
+   * Existing installations using the old token will stop working.
+   */
+  rotatePluginToken: httpPost<import('@/common/types/agent/remoteAgentTypes').RemoteAgentPluginInfo, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/plugin/rotate-token`
+  ),
 };
 
 // ---------------------------------------------------------------------------

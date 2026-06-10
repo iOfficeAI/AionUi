@@ -1,0 +1,35 @@
+{
+  "name": "@chisl/chisl-opencode-plugin",
+  "version": "0.1.0",
+  "description": "Chisl OpenCode control-plane plugin: forwards events to AionCore, exposes a streaming shell tool, and injects system context.",
+  "license": "Apache-2.0",
+  "author": "Chisl",
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "tsc"
+  },
+  "dependencies": {
+    "@opencode-ai/plugin": "1.16.2"
+  },
+  "devDependencies": {
+    "@types/node": "^24.3.1",
+    "typescript": "^5.8.3"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}
