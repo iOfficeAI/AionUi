@@ -20,11 +20,7 @@ import React, { useCallback, useMemo, useState } from 'react';
 import type { BadgeProps } from '@arco-design/web-react';
 import './MessageToolGroupSummary.css';
 
-const IMAGE_GEN_TOOL_NAMES = new Set([
-  'pounding_image_generation',
-  'image_generation',
-  'generate_image',
-]);
+const IMAGE_GEN_TOOL_NAMES = new Set(['pounding_image_generation', 'image_generation', 'generate_image']);
 
 /** Parse image path from image generation tool result text */
 function parseImagePathFromText(text: string): string | null {
