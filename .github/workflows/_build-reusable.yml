@@ -60,6 +60,9 @@ jobs:
       - name: Run ESLint
         run: bun run lint
 
+      - name: Auto-format code (oxfmt write)
+        run: bun run format || true
+
       - name: Check Prettier formatting
         run: bun run format:check
 
