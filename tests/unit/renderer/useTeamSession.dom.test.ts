@@ -47,8 +47,24 @@ const team = {
   created_at: 1,
   updated_at: 1,
   agents: [
-    { slot_id: 'slot-1', conversation_id: 'conv-1', role: 'leader', agent_type: 'acp', agent_name: 'Lead', conversation_type: 'acp', status: 'idle' },
-    { slot_id: 'slot-2', conversation_id: 'conv-2', role: 'teammate', agent_type: 'acp', agent_name: 'Worker', conversation_type: 'acp', status: 'idle' },
+    {
+      slot_id: 'slot-1',
+      conversation_id: 'conv-1',
+      role: 'leader',
+      agent_type: 'acp',
+      agent_name: 'Lead',
+      conversation_type: 'acp',
+      status: 'idle',
+    },
+    {
+      slot_id: 'slot-2',
+      conversation_id: 'conv-2',
+      role: 'teammate',
+      agent_type: 'acp',
+      agent_name: 'Worker',
+      conversation_type: 'acp',
+      status: 'idle',
+    },
   ],
 } as TTeam;
 
