@@ -182,6 +182,7 @@ const ModelModalContent: React.FC = () => {
           {COMMAND_EVE_LOCAL_MODEL_TIERS.map((tier) => (
             <div
               key={tier.id}
+              data-testid={`command-eve-model-tier-${tier.id}`}
               className={`rd-10px bg-[var(--color-bg-2)] border border-solid p-12px ${
                 commandEveLocalTierId === tier.id
                   ? 'border-[color:var(--color-primary-6)]'
@@ -203,6 +204,7 @@ const ModelModalContent: React.FC = () => {
                 })}
               </div>
               <Button
+                data-testid={`command-eve-model-tier-select-${tier.id}`}
                 size='mini'
                 type={commandEveLocalTierId === tier.id ? 'primary' : 'outline'}
                 className='mt-10px'
