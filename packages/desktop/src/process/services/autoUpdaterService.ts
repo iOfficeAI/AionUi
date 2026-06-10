@@ -9,8 +9,12 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import { parse } from 'semver';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 import { buildCdnFeedOptions } from './updateFeed';
+
+const FORCE_DEV_AUTO_UPDATE_ENV = 'AIONUI_FORCE_DEV_AUTO_UPDATE';
+const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -83,6 +87,7 @@ class AutoUpdaterService extends EventEmitter {
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+    this.configureDevAutoUpdateDebug();
     const cdnFeedOptions = buildCdnFeedOptions();
 
     // Set the correct update channel based on platform and architecture before
@@ -101,6 +106,32 @@ class AutoUpdaterService extends EventEmitter {
       platform: process.platform,
       arch: process.arch,
     });
+  }
+
+  private configureDevAutoUpdateDebug(): void {
+    if (app.isPackaged || process.env[FORCE_DEV_AUTO_UPDATE_ENV] !== '1') {
+      return;
+    }
+
+    autoUpdater.forceDevUpdateConfig = true;
+    log.warn(`[auto-update] Forced dev auto-update checks enabled by ${FORCE_DEV_AUTO_UPDATE_ENV}`);
+
+    const debugCurrentVersion = process.env[DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV];
+    if (!debugCurrentVersion) {
+      return;
+    }
+
+    const parsedVersion = parse(debugCurrentVersion);
+    if (!parsedVersion) {
+      log.warn(`[auto-update] Ignoring invalid ${DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV}: ${debugCurrentVersion}`);
+      return;
+    }
+
+    Object.defineProperty(autoUpdater, 'currentVersion', {
+      configurable: true,
+      value: parsedVersion,
+    });
+    log.warn(`[auto-update] Debug current version override enabled: ${parsedVersion.version}`);
   }
 
   /**

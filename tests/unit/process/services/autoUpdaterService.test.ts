@@ -10,6 +10,7 @@ const autoUpdaterMock = vi.hoisted(() => ({
   logger: null as unknown,
   autoDownload: true,
   autoInstallOnAppQuit: false,
+  forceDevUpdateConfig: false,
   allowPrerelease: false,
   allowDowngrade: false,
   channel: undefined as string | undefined,
@@ -23,16 +24,19 @@ const autoUpdaterMock = vi.hoisted(() => ({
   checkForUpdatesAndNotify: vi.fn(),
 }));
 
+const appMock = vi.hoisted(() => ({
+  isPackaged: false,
+  getVersion: vi.fn(() => '2.1.13'),
+  getPath: vi.fn(() => '/tmp/aionui-test'),
+  exit: vi.fn(),
+}));
+
 vi.mock('electron-updater', () => ({
   autoUpdater: autoUpdaterMock,
 }));
 
 vi.mock('electron', () => ({
-  app: {
-    getVersion: vi.fn(() => '2.1.13'),
-    getPath: vi.fn(() => '/tmp/aionui-test'),
-    exit: vi.fn(),
-  },
+  app: appMock,
 }));
 
 vi.mock('electron-log', () => ({
@@ -52,9 +56,13 @@ describe('AutoUpdaterService', () => {
     autoUpdaterMock.logger = null;
     autoUpdaterMock.autoDownload = true;
     autoUpdaterMock.autoInstallOnAppQuit = false;
+    autoUpdaterMock.forceDevUpdateConfig = false;
     autoUpdaterMock.allowPrerelease = false;
     autoUpdaterMock.allowDowngrade = false;
     autoUpdaterMock.channel = undefined;
+    appMock.isPackaged = false;
+    delete process.env.AIONUI_FORCE_DEV_AUTO_UPDATE;
+    delete process.env.AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION;
     Object.defineProperty(autoUpdaterMock, 'currentVersion', {
       configurable: true,
       value: { version: '2.1.13' },
@@ -95,5 +103,33 @@ describe('AutoUpdaterService', () => {
       url: 'https://static.aionui.com/releases',
       updateProvider: CdnGenericProvider,
     });
+  });
+
+  it('enables forced updater checks in unpacked dev builds when requested', async () => {
+    process.env.AIONUI_FORCE_DEV_AUTO_UPDATE = '1';
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.forceDevUpdateConfig).toBe(true);
+  });
+
+  it('overrides the updater current version only for forced unpacked dev checks', async () => {
+    process.env.AIONUI_FORCE_DEV_AUTO_UPDATE = '1';
+    process.env.AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION = '2.1.12';
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.currentVersion.version).toBe('2.1.12');
+  });
+
+  it('ignores forced updater debug env in packaged builds', async () => {
+    appMock.isPackaged = true;
+    process.env.AIONUI_FORCE_DEV_AUTO_UPDATE = '1';
+    process.env.AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION = '2.1.12';
+
+    await import('@/process/services/autoUpdaterService');
+
+    expect(autoUpdaterMock.forceDevUpdateConfig).toBe(false);
+    expect(autoUpdaterMock.currentVersion.version).toBe('2.1.13');
   });
 });
