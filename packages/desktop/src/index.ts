@@ -177,9 +177,13 @@ if (process.platform === 'win32') {
   const voltaHome = process.env.VOLTA_HOME || path.join(home, 'AppData', 'Local', 'Volta');
   if (fs.existsSync(voltaHome)) extraPaths.push(voltaHome);
 
-  // bun
+  // bun — always add ~/.bun/bin to PATH so spawned subprocesses (claude, codex)
+  // can find the `bun` runtime even if bun was installed after app startup.
   const bunBin = path.join(home, '.bun', 'bin');
-  if (fs.existsSync(bunBin)) extraPaths.push(bunBin);
+  extraPaths.push(bunBin);
+  // Also check the local bun directory used by managed CLI installer
+  const bunLocalBin = path.join(home, '.local', 'bin');
+  if (fs.existsSync(bunLocalBin)) extraPaths.push(bunLocalBin);
 
   // ~/.local/bin — used by Hermes shim, uv installer, and other Python tools.
   const localBinWin = path.join(home, '.local', 'bin');
