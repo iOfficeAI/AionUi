@@ -277,13 +277,14 @@ export async function ensureCodexProxyRunning(): Promise<{ port: number } | null
 
   // Currently starting — wait for it
   if (state.status === 'starting') {
-    // Simple polling wait
+    // Simple polling wait (status may change via async callbacks)
     for (let i = 0; i < 50; i++) {
       await new Promise((r) => setTimeout(r, 100));
-      if (state.status === 'running' && state.port) {
+      const s = state.status as ProxyStatus;
+      if (s === 'running' && state.port) {
         return { port: state.port };
       }
-      if (state.status === 'failed') {
+      if (s === 'failed') {
         return null;
       }
     }

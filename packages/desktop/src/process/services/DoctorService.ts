@@ -131,7 +131,7 @@ export async function startupSelfCheck(): Promise<void> {
   for (const agent of report.agents) {
     console.log(
       `[DoctorService]   ${agent.name} (backend=${agent.backend ?? 'none'}): available=${agent.available}` +
-        (agent.error ? ` error=${agent.error}` : '')
+        (agent.reason ? ` error=${agent.reason}` : '')
     );
   }
 

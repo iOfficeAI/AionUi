@@ -546,7 +546,7 @@ export const useAcpModelInfo = ({
         // kill the current session so the next message rebuilds with new config.
         if (needsProcessRestart) {
           try {
-            await ipcBridge.acpConversation.stop.invoke({ conversation_id });
+            await ipcBridge.conversation.stop.invoke({ conversation_id });
             logAcpModelInfo('select_model_session_killed_for_restart', {
               conversation_id,
               backend,
