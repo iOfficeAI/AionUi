@@ -59,8 +59,8 @@ export async function runLegacyDatabaseMigrations(
 
   ensureDirectory(path.dirname(dbPath));
 
-  const { BetterSqlite3Driver } = await import('@process/services/database/drivers/BetterSqlite3Driver');
-  const driver = new BetterSqlite3Driver(dbPath);
+  const { NodeSqliteDriver } = await import('@process/services/database/drivers/NodeSqliteDriver');
+  const driver = new NodeSqliteDriver(dbPath);
 
   try {
     initSchema(driver);

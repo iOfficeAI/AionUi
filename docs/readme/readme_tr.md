@@ -544,7 +544,7 @@ C: Tüm veriler yerel olarak bir SQLite veritabanında saklanır. Hiçbir şey h
 
 ### Sistem Gereksinimleri
 
-- **macOS**: 10.15 veya üzeri
+- **macOS**: 12 (Monterey) veya üzeri
 - **Windows**: Windows 10 veya üzeri
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **Bellek**: 4GB+ önerilir

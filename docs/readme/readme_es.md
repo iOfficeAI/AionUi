@@ -544,7 +544,7 @@ R: Todos los datos se almacenan localmente en una base de datos SQLite. No se su
 
 ### Requisitos del sistema
 
-- **macOS**: 10.15 o superior
+- **macOS**: 12 (Monterey) o superior
 - **Windows**: Windows 10 o superior
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **Memoria**: 4GB+ recomendado

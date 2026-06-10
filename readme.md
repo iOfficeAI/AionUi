@@ -605,7 +605,7 @@ A: All data is stored locally in a SQLite database. Nothing is uploaded to any s
 
 ### System Requirements
 
-- **macOS**: 10.15 or higher
+- **macOS**: 12 (Monterey) or higher
 - **Windows**: Windows 10 or higher
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **Memory**: 4GB+ recommended

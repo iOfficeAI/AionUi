@@ -72,10 +72,10 @@ preflight:
         if (Test-Path "node_modules") { Write-Host "  OK  node_modules installed" }
         else { Write-Host "  FAIL  Failed to install dependencies"; $failed = $true }
     }
-    Write-Host "[5/6] Native modules (better-sqlite3)..."
-    $nativeOk = (Test-Path "node_modules/better-sqlite3/build/Release/better_sqlite3.node") -or (Test-Path "node_modules/better-sqlite3/prebuilds")
-    if ($nativeOk) { Write-Host "  OK  better-sqlite3 native module found" }
-    else { Write-Host "  WARN  better-sqlite3 native binary missing - run: just rebuild-native" }
+    Write-Host "[5/6] SQLite backend (node:sqlite)..."
+    node -e "require('node:sqlite')" 2>$null
+    if ($LASTEXITCODE -eq 0) { Write-Host "  OK  node:sqlite available (built-in)" }
+    else { Write-Host "  WARN  node:sqlite unavailable - ensure Node >= 22.5 (24+ recommended)" }
     Write-Host "[6/6] Electron version..."
     try {
         $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim()
@@ -113,60 +113,19 @@ install:
 install-update:
     bun install
 
-# Full setup: install deps + rebuild native modules
-setup: install rebuild-native
+# Full setup: install deps (no native rebuild needed)
+# SQLite uses Node's built-in node:sqlite; node-pty ships prebuilt binaries.
+setup: install
 
-# Rebuild native modules for Electron (critical step!)
-# On Windows, ensure MSVC build tools are installed via:
-#   choco install visualstudio2022buildtools --package-parameters "--add Microsoft.VisualStudio.Workload.VCTools"
-# or install Visual Studio 2022 with "Desktop development with C++" workload.
-[no-exit-message]
+# No source-compiled native modules remain (kept as a no-op so existing docs/workflows
+# that call `just rebuild-native` still succeed).
 rebuild-native:
-    #!/usr/bin/env pwsh
-    $ErrorActionPreference = 'Stop'
-    $electronVer = (node -p "require('./package.json').devDependencies.electron.replace(/[\^~]/g, '')" 2>&1).Trim()
-    Write-Host "=========================================="
-    Write-Host "Rebuilding native modules for Electron $electronVer"
-    Write-Host "=========================================="
-    Write-Host ""
-    Write-Host "[Step 1] electron-rebuild..."
-    bunx electron-rebuild -f -w better-sqlite3
-    Write-Host "  OK  electron-rebuild completed"
-    Write-Host ""
-    Write-Host "[Verify] Checking native modules..."
-    $verified = $true
-    $sqliteNode = "node_modules/better-sqlite3/build/Release/better_sqlite3.node"
-    if (Test-Path $sqliteNode) {
-        $size = [math]::Round((Get-Item $sqliteNode).Length / 1MB, 1)
-        Write-Host "  OK  better-sqlite3 ($size MB)"
-    } elseif (Test-Path "node_modules/better-sqlite3/prebuilds") {
-        Write-Host "  OK  better-sqlite3 (prebuilds)"
-    } else {
-        Write-Host "  FAIL  better-sqlite3 native module not found"
-        $verified = $false
-    }
-    Write-Host ""
-    if ($verified) {
-        Write-Host "  All native modules verified"
-    } else {
-        Write-Host "  NATIVE MODULE VERIFICATION FAILED"
-        exit 1
-    }
+    @echo "No native modules to rebuild: node:sqlite is built-in and node-pty uses prebuilt binaries."
 
-# Verify native modules can actually be loaded by Node.js
+# Verify the runtime SQLite backend (Node's built-in node:sqlite) is available.
 [no-exit-message]
 verify-native:
-    #!/usr/bin/env pwsh
-    Write-Host "Verifying native modules can be loaded..."
-    $result = node -e "try { require('better-sqlite3'); console.log('OK'); } catch(e) { console.log('FAIL: ' + e.message); process.exit(1); }" 2>&1
-    if ($result -match "OK") {
-        Write-Host "  OK  better-sqlite3 loads correctly"
-    } else {
-        Write-Host "  FAIL  better-sqlite3: $result"
-        Write-Host "  Run: just rebuild-native"
-        exit 1
-    }
-    Write-Host "All native modules verified and loadable."
+    node -e "require('node:sqlite'); console.log('OK  node:sqlite available (built-in)')"
 
 # ============================================================
 # Build (mirrors CI workflow environment setup)
