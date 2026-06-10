@@ -89,12 +89,30 @@ This is the core module that handles all native module rebuilding. It provides:
 # Build for macOS
 npm run dist:mac
 
+# Build notarized macOS artifacts with a local notarytool Keychain profile
+npm run build-mac:arm64:notarized
+
 # Build for Windows
 npm run dist:win
 
 # Build for Linux
 npm run dist:linux
 ```
+
+### macOS notarization credentials
+
+`scripts/afterSign.js` supports three credential modes, without writing secrets to the repo:
+
+1. `NOTARYTOOL_KEYCHAIN_PROFILE` / `APPLE_NOTARY_KEYCHAIN_PROFILE` / `COMMAND_EVE_NOTARY_PROFILE`
+2. App Store Connect API key env vars: `APPLE_API_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`
+3. Apple ID env vars: `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`
+
+For local Command EVE builds, store credentials once with `xcrun notarytool store-credentials`
+and use the `command-eve-notary` profile.
+
+DMG artifacts are signed and notarized by `scripts/afterAllArtifactBuild.js` after electron-builder
+creates them. DMG notarization intentionally accepts only a notarytool Keychain profile or App Store
+Connect API key, so app-specific passwords are not exposed as process arguments.
 
 ### Manual native module rebuild
 
