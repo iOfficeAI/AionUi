@@ -587,26 +587,48 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 **内部机制**：
 
-1. Gateway 发送 `exec.approval.request` 事件
-2. `handleApprovalRequest()`:
-   - 在 `pendingPermissions` Map 中创建条目
-   - emit `acp_permission` 信号事件到渲染进程
-   - 默认选项: `allow_once / allow_always / reject_once`
-   - 超时: 60 秒自动 reject
-3. `RemoteAgentManager.handleSignalEvent()`:
-   - 将 `acp_permission` 转换为 `IConfirmation`
-   - 调用 `this.addConfirmation(confirmation)`
-4. 用户选择后:
-   - `confirmMessage({ confirmKey, callId })` 从 `pendingPermissions` 找到条目 → resolve
+> ⚠️ **协议区分（A1 审计修正）**：本节早期版本描述的是已弃用的 **OpenClaw**
+> WebSocket 路径（`exec.approval.request` / `pendingPermissions` Map /
+> `handleApprovalRequest` / 无操作 `resolve`）。这些符号在当前 AionUi 与
+> AionCore 源码中**已不存在**（全仓库搜索结果为零），仅残留于本文档。
+> 远端 **OpenCode** 的真实审批中继路径如下，逐跳证据见
+> `docs/qa/A1-permission-question-relay.md`。
 
-**实现细节确认**：前端通过 `ipcBridge.conversation.confirmation.confirm.invoke` 传递用户的授权决策，底层的 Rust `AionCore` (在 `agent.rs:confirm` 内) 会捕获这些决策并通过 `POST /permission/{request_id}/reply` 或 `/question/{request_id}/reply` 实将审批结果回传 Gateway。因此，用户的审批选择已成功且可靠地传递到远端 Agent。
+1. 远端 OpenCode 通过 SSE 发出 `permission.asked`（问题为 `question.asked`）。
+2. AionCore 的 SSE reader (`run_event_reader`) → `handle_opencode_sse_event`
+   （`crates/aionui-ai-agent/src/manager/remote/agent.rs`）解析事件，构造
+   `Confirmation`，登记 `prompt_expiries`（超时预算
+   `DEFAULT_PROMPT_TIMEOUT_MS = 60_000`），并 emit
+   `AgentStreamEvent::AcpPermission(Confirmation)`（untagged，wire `type` 仍为
+   `acp_permission`）。
+3. 渲染进程经 `responseStream.on` 收到，由 `useWorkspaceApprovals` /
+   `MessagePermission` / `PendingApprovalsBanner` 呈现卡片。
+4. 用户选择后：`ipcBridge.conversation.confirmation.confirm.invoke` 是一个
+   **`httpPost`**（非 Electron IPC），命中
+   `POST /api/conversations/{id}/confirmations/{call_id}/confirm`。
+5. AionCore 路由 (`aionui-conversation/src/routes.rs`) →
+   `service.confirm` → `AgentInstance::confirm` →
+   `RemoteAgentManager::confirm`（`agent.rs`）。
+
+**实现细节确认（已通过测试证明）**：`RemoteAgentManager::confirm` 会真实地发出
+出站确认请求 `POST /permission/{request_id}/reply`（body `{ "reply": "once" |
+"always" | "reject" }`，构造器 `build_permission_reply_request`），问题则为
+`POST /question/{request_id}/reply`（body `{ "answers": [[label, ...]] }`）。
+2xx 后记录日志 `"OpenCode permission reply sent"`。因此用户的审批选择确实可靠地
+回传远端 OpenCode。该“服务器确认（server acknowledgment）”由
+`crates/aionui-ai-agent/src/manager/remote/agent.rs` 测试模块中的
+`permission_allow_once_posts_acknowledgment_to_opencode`、
+`permission_reject_posts_reject_acknowledgment`、
+`question_reply_posts_answers_acknowledgment`、
+`timeout_sweep_posts_reject_acknowledgment` 等针对 `wiremock` OpenCode 服务器
+断言出站 POST 的测试覆盖。**不存在无操作 `resolve` 缺陷。**
 
 **验收标准**：
 
 - [ ] 权限请求正确展示工具信息和选项
-- [ ] 用户选择后 UI 层正确响应
-- [ ] 70 秒超时自动拒绝
-- [ ] 多个并发权限请求互不干扰
+- [ ] 用户选择后 UI 层正确响应，并经 AionCore 回传 OpenCode（server acknowledgment）
+- [ ] 60 秒超时自动拒绝（`DEFAULT_PROMPT_TIMEOUT_MS = 60_000`；早期文档误记为 70 秒）
+- [ ] 多个并发权限请求互不干扰（各自独立回传 OpenCode）
 
 ---
 
@@ -737,39 +759,39 @@ Gateway 通过 `agent` / `agent.event` 事件推送工具调用信息：
 
 ## 附录 C：超时常量汇总
 
-| 超时              | 位置                                   | 用途                   | 备注                         |
-| ----------------- | -------------------------------------- | ---------------------- | ---------------------------- |
-| 5,000 ms          | UI 配对轮询间隔                        | handshake 轮询         | 常量 `PAIRING_POLL_INTERVAL` |
-| 300,000 ms (5min) | UI 配对总超时                          | 配对等待上限           | 常量 `PAIRING_TIMEOUT`       |
-| 10,000 ms         | Bridge testConnection                  | WebSocket 连接测试超时 | 含 handshakeTimeout          |
-| 15,000 ms         | Bridge handshake                       | 握手超时               |                              |
-| 30,000 ms         | RemoteAgentCore.waitForConnection      | 等待连接建立超时       | 默认参数值                   |
-| 60,000 ms         | RemoteAgentCore.handleApprovalRequest  | 权限请求超时           | 硬编码                       |
-| 750 ms            | OpenClawGatewayConnection.queueConnect | connect challenge 等待 |                              |
-| 1s → 30s          | OpenClawGatewayConnection 重连退避     | 指数退避               | 每次翻倍                     |
-| 10 次             | OpenClawGatewayConnection 最大重连     | 重连上限               |                              |
-| 30,000 ms         | OpenClawGatewayConnection tick         | 默认心跳间隔           | 可由 HelloOk.policy 覆盖     |
+| 超时              | 位置                                   | 用途                   | 备注                           |
+| ----------------- | -------------------------------------- | ---------------------- | ------------------------------ |
+| 5,000 ms          | UI 配对轮询间隔                        | handshake 轮询         | 常量 `PAIRING_POLL_INTERVAL`   |
+| 300,000 ms (5min) | UI 配对总超时                          | 配对等待上限           | 常量 `PAIRING_TIMEOUT`         |
+| 10,000 ms         | Bridge testConnection                  | WebSocket 连接测试超时 | 含 handshakeTimeout            |
+| 15,000 ms         | Bridge handshake                       | 握手超时               |                                |
+| 30,000 ms         | RemoteAgentCore.waitForConnection      | 等待连接建立超时       | 默认参数值                     |
+| 60,000 ms         | AionCore `DEFAULT_PROMPT_TIMEOUT_MS`   | 权限/问题请求超时      | `agent.rs:553`；80% 发 warning |
+| 750 ms            | OpenClawGatewayConnection.queueConnect | connect challenge 等待 |                                |
+| 1s → 30s          | OpenClawGatewayConnection 重连退避     | 指数退避               | 每次翻倍                       |
+| 10 次             | OpenClawGatewayConnection 最大重连     | 重连上限               |                                |
+| 30,000 ms         | OpenClawGatewayConnection tick         | 默认心跳间隔           | 可由 HelloOk.policy 覆盖       |
 
 ---
 
 ## 附录 D：已知局限汇总
 
-| #   | 功能点         | 局限描述                                                                                                                    |
-| --- | -------------- | --------------------------------------------------------------------------------------------------------------------------- |
-| 1   | F-RAGENT-02    | 协议默认硬编码 `'openclaw'`，UI 无协议选择器。类型支持三种协议但用户无法选择                                                |
-| 2   | F-RAGENT-02    | 认证方式仅 none/bearer 两个选项，缺少 password（Bridge/Connection 层已实现 password 路径，但 UI 不暴露）                    |
-| 3   | F-RAGENT-02/03 | 保存时 catch 块为空（无用户提示），finally 块恢复 saving 状态                                                               |
-| 4   | F-RAGENT-05    | `allowInsecure` 开关仅在 URL 以 `wss://` 开头时显示                                                                         |
-| 5   | F-RAGENT-05    | 测试连接按钮 loading 状态待验证：源码传了 `loading` prop 但动态分析未观察到 spinner 效果                                    |
-| 6   | F-RAGENT-07    | 配对轮询中 handshake 异常完全忽略 (`catch {}`)，用户无错误反馈                                                              |
-| 7   | F-RAGENT-07    | 取消配对后无"重试配对"独立入口，需通过编辑再保存触发                                                                        |
-| 8   | F-RAGENT-07    | 配对成功 toast 固定使用 `settings.remoteAgent.created` key（不区分创建/编辑场景）                                           |
-| 9   | F-RAGENT-08    | `waitForConnection` 使用 100ms 轮询检测状态（busy-wait），非事件驱动                                                        |
-| 10  | F-RAGENT-09    | `sendMessage` 在连接断开时自动重新 `start()`，可能导致意外重连和会话重置                                                    |
-| 11  | F-RAGENT-10    | 工具类型推断基于子串匹配而非单词边界，组合命名的工具可能误判（如 'Breadcrumb' 匹配 'read'）                                 |
-| 12  | F-RAGENT-11    | (已修复/确认) 权限审批的用户选择已通过 AionCore 可靠传回 Gateway。 |
-| 13  | F-RAGENT-11    | 权限请求超时 60 秒硬编码，超时后自动 reject 无用户可见提示                                                                  |
-| 14  | F-RAGENT-12    | 事件序列 gap 仅打印 warn，不做重新同步                                                                                      |
+| #   | 功能点         | 局限描述                                                                                                                                                                                                                    |
+| --- | -------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | F-RAGENT-02    | 协议默认硬编码 `'openclaw'`，UI 无协议选择器。类型支持三种协议但用户无法选择                                                                                                                                                |
+| 2   | F-RAGENT-02    | 认证方式仅 none/bearer 两个选项，缺少 password（Bridge/Connection 层已实现 password 路径，但 UI 不暴露）                                                                                                                    |
+| 3   | F-RAGENT-02/03 | 保存时 catch 块为空（无用户提示），finally 块恢复 saving 状态                                                                                                                                                               |
+| 4   | F-RAGENT-05    | `allowInsecure` 开关仅在 URL 以 `wss://` 开头时显示                                                                                                                                                                         |
+| 5   | F-RAGENT-05    | 测试连接按钮 loading 状态待验证：源码传了 `loading` prop 但动态分析未观察到 spinner 效果                                                                                                                                    |
+| 6   | F-RAGENT-07    | 配对轮询中 handshake 异常完全忽略 (`catch {}`)，用户无错误反馈                                                                                                                                                              |
+| 7   | F-RAGENT-07    | 取消配对后无"重试配对"独立入口，需通过编辑再保存触发                                                                                                                                                                        |
+| 8   | F-RAGENT-07    | 配对成功 toast 固定使用 `settings.remoteAgent.created` key（不区分创建/编辑场景）                                                                                                                                           |
+| 9   | F-RAGENT-08    | `waitForConnection` 使用 100ms 轮询检测状态（busy-wait），非事件驱动                                                                                                                                                        |
+| 10  | F-RAGENT-09    | `sendMessage` 在连接断开时自动重新 `start()`，可能导致意外重连和会话重置                                                                                                                                                    |
+| 11  | F-RAGENT-10    | 工具类型推断基于子串匹配而非单词边界，组合命名的工具可能误判（如 'Breadcrumb' 匹配 'read'）                                                                                                                                 |
+| 12  | F-RAGENT-11    | (已验证) 远端 OpenCode 审批选择经 AionCore `RemoteAgentManager::confirm` 通过 `POST /permission/\{id\}/reply` 可靠回传，详见 `docs/qa/A1-permission-question-relay.md`；旧 OpenClaw 无操作 `resolve` 缺陷在当前代码中不存在 |
+| 13  | F-RAGENT-11    | 权限请求超时 **60 秒**（`DEFAULT_PROMPT_TIMEOUT_MS`，AionCore 侧；早期文档误记为 70 秒），80% 时发出 warning，100% 自动 reject 并回传 OpenCode                                                                              |
+| 14  | F-RAGENT-12    | 事件序列 gap 仅打印 warn，不做重新同步                                                                                                                                                                                      |
 
 ---
 
