@@ -312,6 +312,7 @@ const ChatConversation: React.FC<{
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
             session_mode={(conversation.extra as { session_mode?: string } | undefined)?.session_mode}
             history_loaded={(conversation.extra as { history_loaded?: boolean } | undefined)?.history_loaded}
+            extra={conversation.extra}
             emptySlot={<ConversationEmptyState />}
             modelSelector={modelSelector}
           />

@@ -28,6 +28,11 @@ const RemoteChat: React.FC<{
    *  mirrored into the local messages table. When false on mount, we
    *  trigger `backfillHistory` once and re-load the message list. */
   history_loaded?: boolean;
+  /** Raw conversation `extra` bag — passed through to the
+   *  ConversationProvider so the message list can read `is_reverted` /
+   *  `revert_message_id` for the inactive-region dim. Optional so older
+   *  callers / tests can omit it. */
+  extra?: Record<string, unknown>;
 }> = ({
   conversation_id,
   workspace,
@@ -38,6 +43,7 @@ const RemoteChat: React.FC<{
   session_mode,
   modelSelector,
   history_loaded,
+  extra,
 }) => {
   const loadMessages = useMessageLstCache(conversation_id);
   const updateLocalImage = LocalImageView.useUpdateLocalImage();
@@ -80,7 +86,15 @@ const RemoteChat: React.FC<{
 
   return (
     <ConversationProvider
-      value={{ conversation_id: conversation_id, workspace, type: 'remote', cron_job_id, hideSendBox, loadedSkills }}
+      value={{
+        conversation_id: conversation_id,
+        workspace,
+        type: 'remote',
+        cron_job_id,
+        hideSendBox,
+        loadedSkills,
+        extra,
+      }}
     >
       <div className='flex-1 flex flex-col px-20px min-h-0'>
         <FlexFullContainer>

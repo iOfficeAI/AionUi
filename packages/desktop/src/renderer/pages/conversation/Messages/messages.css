@@ -183,6 +183,80 @@
   margin: 4px 0;
 }
 
+/* ─────────────────────── M02: Inactive (reverted) region ─────────────────────── */
+
+/* When a remote OpenCode session has been reverted, every message at or
+ * after the revert point is dimmed so the user can see at a glance which
+ * messages are no longer part of the live session. `pointer-events` is
+ * left intact so the user can still select text and copy from reverted
+ * messages. Color/opacity come from semantic tokens only — no hardcoded
+ * values, so the dim tracks the active theme. */
+.message-item--inactive {
+  opacity: 0.5;
+  transition: opacity var(--motion-fast, 120ms) var(--motion-ease-standard, ease);
+}
+
+/* The horizontal divider + pill rendered immediately before the first
+ * inactive message. Uses a semantic separator (role + aria-label) so it's
+ * announced to assistive tech. The pill is centered between two hairlines
+ * that span the available width; on narrow screens the hairlines collapse
+ * (see media query below). */
+.reverted-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px 4px;
+  color: var(--text-secondary);
+  user-select: none;
+}
+
+.reverted-divider__line {
+  flex: 1;
+  height: 1px;
+  background: var(--border-light, var(--bg-3));
+}
+
+.reverted-divider__pill {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  line-height: 1.4;
+  font-weight: 500;
+  color: var(--text-secondary);
+  background: var(--bg-2);
+  border: 1px solid var(--border-light, var(--bg-3));
+  white-space: nowrap;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.reverted-divider__hint {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.4;
+  color: var(--text-tertiary, var(--text-secondary));
+  opacity: 0.85;
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  /* On narrow screens the pill + hint are the priority; the trailing
+   * hint drops to a second line and both hairlines collapse to flex:auto
+   * so the layout still works in a single-column viewport. */
+  .reverted-divider {
+    flex-wrap: wrap;
+  }
+  .reverted-divider__hint {
+    flex-basis: 100%;
+    text-align: center;
+    margin-top: 2px;
+  }
+}
+
 /* Mobile typography tuning: conversation readability */
 @media (max-width: 767px) {
   /* Message body — keep body type compact so messages don't dominate the screen */

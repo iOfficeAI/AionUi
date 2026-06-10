@@ -183,7 +183,10 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   const canDeleteRemote = conversationContext?.type === 'remote' && isUserMessage && Boolean(message.msg_id);
 
   // M02: revert the remote session to this message (reversible via the header
-  // "Restore reverted" action).
+  // "Restore reverted" action). We also record `revert_message_id` in the
+  // conversation's `extra` so the message list can dim every message at or
+  // after this one (OpenCode's revert semantics un-do the target message and
+  // everything after) without re-deriving it from session state.
   const handleRevertToHere = async () => {
     const msgId = message.msg_id;
     const conversationId = conversationContext?.conversation_id;
@@ -192,7 +195,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
       await ipcBridge.conversation.revertRemoteSession.invoke({ conversation_id: conversationId, message_id: msgId });
       await ipcBridge.conversation.update.invoke({
         id: conversationId,
-        updates: { extra: { is_reverted: true } as any },
+        updates: { extra: { is_reverted: true, revert_message_id: msgId } as any },
         merge_extra: true,
       });
       Message.success(t('messages.revertSuccess', { defaultValue: 'Reverted to this message' }));

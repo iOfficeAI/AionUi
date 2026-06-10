@@ -135,6 +135,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             hideSendBox={hideSendBox}
             emptySlot={emptySlot}
             session_mode={conversation.extra?.session_mode}
+            extra={conversation.extra}
           />
         );
       default:

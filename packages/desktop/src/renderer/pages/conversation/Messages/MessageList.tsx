@@ -8,6 +8,7 @@ import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
 import { iconColors } from '@/renderer/styles/colors';
+import { computeRevertedRegion, isItemInactive } from './hooks';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
@@ -104,15 +105,20 @@ const getUnhandledMessageType = (_message: never): string => 'unknown';
 // Image preview context
 export const ImagePreviewContext = createContext<{ inPreviewGroup: boolean }>({ inPreviewGroup: false });
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; inactive?: boolean }> = React.memo(
   HOC((props) => {
-    const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
+    const { message, highlighted, inactive } = props as {
+      message: TMessage;
+      highlighted?: boolean;
+      inactive?: boolean;
+    };
     return (
       <div
         id={`message-${message.id}`}
         data-testid={`message-${message.type}-${message.position}`}
         data-message-type={message.type}
         data-message-position={message.position}
+        data-message-inactive={inactive ? 'true' : undefined}
         className={classNames(
           'min-w-0 flex items-start message-item [&>div]:max-w-full px-6px m-t-4px max-w-full w-full',
           message.type,
@@ -120,6 +126,7 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
             'justify-center': message.position === 'center',
             'justify-end': message.position === 'right',
             'justify-start': message.position === 'left',
+            'message-item--inactive': inactive,
           }
         )}
         style={highlighted ? highlightStyle : undefined}
@@ -173,7 +180,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
-    prev.highlighted === next.highlighted
+    prev.highlighted === next.highlighted &&
+    prev.inactive === next.inactive
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -187,6 +195,19 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const targetMessageId = locationState.targetMessageId;
   const [highlightedMessageId, setHighlightedMessageId] = useState<string | undefined>();
   const handledTargetKeyRef = useRef<string>('');
+
+  // M02 — inactive-region state. When the conversation's `extra` is marked
+  // `is_reverted: true` with a known `revert_message_id`, every message at
+  // or after that index (per OpenCode's "revert un-does the target message
+  // AND everything after" semantics) is dimmed and a single labeled divider
+  // is rendered immediately before the first inactive message. When
+  // `is_reverted` is false / missing / the target id no longer exists in
+  // the list, this falls back to no dim + no divider (badge alone, current
+  // behaviour).
+  const revertedRegion = useMemo(
+    () => computeRevertedRegion(list, conversationContext?.extra),
+    [list, conversationContext?.extra]
+  );
 
   // Pre-process message list to group tool outputs into summary cards
   const processedList = useMemo(() => {
@@ -382,39 +403,100 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
     scrollToBottom('smooth');
   };
 
-  const renderItem = (_index: number, item: (typeof processedList)[0]) => {
+  // M02 — the divider is rendered inline immediately before the first
+  // inactive message. We find the first item in the processed list whose
+  // helper says is inactive, then prepend the divider to exactly that
+  // slot. This works for raw TMessage items, file/tool summaries, and
+  // artifacts (the helper covers all three branches), so the divider
+  // appears at the start of the inactive region regardless of message
+  // kind. O(N) over the processed list per recompute, but the list is
+  // small enough (and recompute is gated on conversation.extra) that this
+  // is well below any perceptible cost.
+  const findFirstInactiveProcessedIndex = (): number | null => {
+    if (revertedRegion === null) return null;
+    for (let i = 0; i < processedList.length; i++) {
+      const item = processedList[i];
+      if (isItemInactive(item, list, revertedRegion)) return i;
+    }
+    return null;
+  };
+  const firstInactiveProcessedIndex = useMemo(findFirstInactiveProcessedIndex, [revertedRegion, processedList, list]);
+
+  const renderItem = (index: number, item: (typeof processedList)[0]) => {
     const highlighted = matchesTargetMessage(item, highlightedMessageId);
+    const inactive = revertedRegion !== null && isItemInactive(item, list, revertedRegion);
+    // Prepend the divider only on the first inactive item so it appears
+    // exactly once, immediately before the first inactive message.
+    const showDivider = inactive && index === firstInactiveProcessedIndex;
+    const divider = showDivider ? (
+      <div
+        data-testid='reverted-divider'
+        role='separator'
+        aria-label={t('messages.revertedDividerLabel', {
+          defaultValue: 'Reverted — messages below are no longer part of the session',
+        })}
+        className='reverted-divider'
+      >
+        <span className='reverted-divider__line' aria-hidden='true' />
+        <span className='reverted-divider__pill'>
+          {t('messages.revertedDividerLabel', {
+            defaultValue: 'Reverted — messages below are no longer part of the session',
+          })}
+        </span>
+        <span className='reverted-divider__hint'>
+          {t('messages.revertedDividerHint', {
+            defaultValue: 'Restore them from the session actions menu',
+          })}
+        </span>
+        <span className='reverted-divider__line' aria-hidden='true' />
+      </div>
+    ) : null;
     if ('type' in item && item.type === 'artifact') {
       if (item.artifact.kind === 'cron_trigger') {
         return null;
       }
       return (
-        <div
-          key={item.id}
-          id={`message-${getProcessedItemAnchorId(item)}`}
-          data-conversation-artifact-kind={item.artifact.kind}
-          data-testid={`conversation-artifact-${item.artifact.kind}`}
-          className='min-w-0 message-item px-6px m-t-4px max-w-full w-full'
-          style={highlighted ? highlightStyle : undefined}
-        >
-          <MessageSkillSuggest artifact={item.artifact} />
+        <div key={item.id}>
+          {divider}
+          <div
+            id={`message-${getProcessedItemAnchorId(item)}`}
+            data-conversation-artifact-kind={item.artifact.kind}
+            data-testid={`conversation-artifact-${item.artifact.kind}`}
+            className={classNames('min-w-0 message-item px-6px m-t-4px max-w-full w-full', {
+              'message-item--inactive': inactive,
+            })}
+            style={highlighted ? highlightStyle : undefined}
+          >
+            <MessageSkillSuggest artifact={item.artifact} />
+          </div>
         </div>
       );
     }
     if ('type' in item && ['file_summary', 'tool_summary'].includes(item.type)) {
       return (
-        <div
-          key={item.id}
-          id={`message-${getProcessedItemAnchorId(item)}`}
-          className={'min-w-0 message-item px-6px m-t-4px max-w-full w-full ' + item.type}
-          style={highlighted ? highlightStyle : undefined}
-        >
-          {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
-          {item.type === 'tool_summary' && <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>}
+        <div key={item.id}>
+          {divider}
+          <div
+            id={`message-${getProcessedItemAnchorId(item)}`}
+            className={classNames('min-w-0 message-item px-6px m-t-4px max-w-full w-full', item.type, {
+              'message-item--inactive': inactive,
+            })}
+            style={highlighted ? highlightStyle : undefined}
+          >
+            {item.type === 'file_summary' && <MessageFileChanges diffsChanges={item.diffs} />}
+            {item.type === 'tool_summary' && (
+              <MessageToolGroupSummary messages={item.messages}></MessageToolGroupSummary>
+            )}
+          </div>
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
+    return (
+      <div key={(item as TMessage).id}>
+        {divider}
+        <MessageItem message={item as TMessage} highlighted={highlighted} inactive={inactive} />
+      </div>
+    );
   };
 
   if (processedList.length === 0 && emptySlot) {

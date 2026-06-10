@@ -44,6 +44,17 @@ export interface ConversationContextValue {
    * Surfaced inside the SendBox `+` menu so users can review/jump to active skills.
    */
   loadedSkills?: string[];
+
+  /**
+   * The full `extra` bag from the conversation record. Typed loosely here
+   * (the storage type uses `Record<string, any>` and the call sites cast to
+   * `as any`) so platform code that doesn't care about a given field can
+   * ignore it. Today only the `is_reverted` / `revert_message_id` fields
+   * are read by the message list (to dim the inactive region of a remote
+   * OpenCode session that has been reverted) — see
+   * `computeRevertedRegion` in Messages/hooks.ts.
+   */
+  extra?: Record<string, unknown>;
 }
 
 /**

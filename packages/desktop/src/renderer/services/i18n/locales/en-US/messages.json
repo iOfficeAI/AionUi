@@ -153,6 +153,14 @@
   "deleteMessageConfirm": "This permanently deletes the message from the remote session.",
   "deleteMessageSuccess": "Message deleted",
   "deleteMessageFailed": "Failed to delete message",
+  "revertToHere": "Revert to here",
+  "forkFromHere": "Fork from here",
+  "revertSuccess": "Reverted to this message",
+  "revertFailed": "Failed to revert",
+  "forkSuccess": "Forked session",
+  "forkFailed": "Failed to fork",
+  "revertedDividerLabel": "Reverted — messages below are no longer part of the session",
+  "revertedDividerHint": "Restore them from the session actions menu",
   "author": {
     "you": "You",
     "agent": "Agent"

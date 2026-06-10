@@ -123,14 +123,17 @@ const RemoteSessionActions: React.FC<{ conversation: TChatConversation }> = ({ c
       }
     });
 
-  // M02: restore all reverted messages.
+  // M02: restore all reverted messages. Clear `revert_message_id` so the
+  // inactive-region dim/divider in the message list collapses back to the
+  // normal state (the dim is gated on both `is_reverted` and a known
+  // `revert_message_id`).
   const handleUnrevert = () =>
     runExclusive(async () => {
       try {
         await ipcBridge.conversation.unrevertRemoteSession.invoke({ conversation_id });
         await ipcBridge.conversation.update.invoke({
           id: conversation_id,
-          updates: { extra: { is_reverted: false } as any },
+          updates: { extra: { is_reverted: false, revert_message_id: null } as any },
           merge_extra: true,
         });
         Message.success(t('conversation.session.unrevertSuccess', { defaultValue: 'Restored reverted messages' }));

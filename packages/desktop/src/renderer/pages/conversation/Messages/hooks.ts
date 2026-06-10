@@ -535,6 +535,93 @@ export const beforeUpdateMessageList = (fn: (list: TMessage[]) => TMessage[]) =>
 };
 export { ChatKeyProvider, MessageListProvider, useChatKey, useMessageList, useUpdateMessageList };
 
+/**
+ * A remote conversation's `extra` bag. Only the fields the renderer actually
+ * inspects are named here; the rest stays loosely typed (the storage type
+ * declares this with `as any` casts in the call sites).
+ */
+export type RemoteConversationExtra = {
+  is_reverted?: boolean;
+  revert_message_id?: string | null;
+  sessionKey?: string;
+  workspace?: string;
+  remote_workspace?: string;
+  remoteAgentId?: string;
+  remote_agent_id?: string;
+  [key: string]: unknown;
+};
+
+/**
+ * Pure helper: given the raw message list and a conversation's `extra`,
+ * decide which messages should render in the inactive (dimmed) "reverted"
+ * state. Returns the first inactive index in the raw list, or `null` if no
+ * dimming should apply.
+ *
+ * Rules (matching OpenCode's revert semantics — revert un-does the target
+ * message AND everything after it):
+ *   - `is_reverted` must be exactly `true`. If it's missing or `false`, the
+ *     session is in its normal state — no dim, no divider.
+ *   - `revert_message_id` must resolve to a known message in the list. If
+ *     it's missing or the message no longer exists (e.g. older sessions
+ *     predating this feature, or a hard refresh after the source message
+ *     was removed), we fall back to NO dimming. The header badge is the
+ *     only signal in that case — same as the previous behaviour.
+ */
+export const computeRevertedRegion = (
+  list: TMessage[],
+  extra: RemoteConversationExtra | null | undefined
+): number | null => {
+  if (!extra || extra.is_reverted !== true) return null;
+  const target = extra.revert_message_id;
+  if (!target || typeof target !== 'string') return null;
+  const { msgIdIndex } = getOrBuildIndex(list);
+  const idx = msgIdIndex.get(target);
+  // `msgIdIndex.set(...)` for `thinking:*` keys is namespaced — a hit on a
+  // bare `revert_message_id` means the original (non-thinking) message.
+  if (idx === undefined) return null;
+  return idx;
+};
+
+/**
+ * Given a processed-list item (the Virtuoso rendering slot) and the raw
+ * list's first inactive index, decide whether to apply the dim class. For
+ * raw `TMessage` items we compare to the index directly. For composite
+ * items (file_summary, tool_summary, artifact) we treat them as inactive
+ * when their first source id is at or after the boundary — a summary that
+ * straddles the boundary stays at full opacity (the boundary case is rare
+ * and ugly either way, and keeping summaries un-dimmed preserves their
+ * own visual rhythm).
+ */
+export const isItemInactive = (
+  item: TMessage | { type: string; sourceMessageIds?: string[]; id?: string },
+  rawList: TMessage[],
+  firstInactiveIndex: number | null
+): boolean => {
+  if (firstInactiveIndex === null) return false;
+  // Processed/synthetic items: use their source msg_ids to look up the
+  // boundary index via the same map the rest of the code uses.
+  if ('type' in item && (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')) {
+    const sourceIds = (item as { sourceMessageIds?: string[] }).sourceMessageIds;
+    if (!sourceIds || sourceIds.length === 0) return false;
+    const { msgIdIndex } = getOrBuildIndex(rawList);
+    // Inactive iff EVERY source message sits at or after the boundary.
+    // A summary that straddles (e.g. a tool summary with two tool calls,
+    // one before and one after the revert point) stays undimmed.
+    return sourceIds.every((id) => {
+      const idx = msgIdIndex.get(id);
+      return idx !== undefined && idx >= firstInactiveIndex;
+    });
+  }
+  // Raw TMessage: index in the raw list determines activity.
+  const msg = item as TMessage;
+  if (msg.id) {
+    const rawIndex = rawList.findIndex((m) => m.id === msg.id);
+    if (rawIndex === -1) return false;
+    return rawIndex >= firstInactiveIndex;
+  }
+  return false;
+};
+
 // Test-only exports. These let unit tests exercise the message-merging logic
 // without spinning up React + the provider context; the logic itself is the
 // single source of truth for how parallel events collapse into the chat list
@@ -544,4 +631,6 @@ export const __test__ = {
   buildMessageIndex,
   composeMessageWithIndex,
   permissionCallId,
+  computeRevertedRegion,
+  isItemInactive,
 };
