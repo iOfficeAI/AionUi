@@ -1,5 +1,26 @@
 # Changelog
 
+## [2.1.16](https://github.com/iOfficeAI/AionUi/compare/v2.1.15...v2.1.16) (2026-06-10)
+
+### Desktop
+
+#### Bug Fixes
+
+- **preview:** point OfficeCLI install help to official releases (#3264)
+- **http:** read error response body once to avoid double consumption (#3262)
+- **ci:** handle empty release prefix check (#3263)
+
+### Core ([v0.1.27](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.27))
+
+#### Bug Fixes
+
+- **ai-agent:** auto approve team mcp permissions ([#447](https://github.com/iOfficeAI/AionCore/issues/447))
+- **ai-agent:** trim stderr buffer at UTF-8 char boundary ([#443](https://github.com/iOfficeAI/AionCore/issues/443))
+- **office:** resolve officecli shim from node_modules/.bin after npm prefix install ([#440](https://github.com/iOfficeAI/AionCore/issues/440))
+- **office:** restore OfficeCLI installer resolution ([#444](https://github.com/iOfficeAI/AionCore/issues/444))
+
+---
+
 ## [2.1.15](https://github.com/iOfficeAI/AionUi/compare/v2.1.14...v2.1.15) (2026-06-09)
 
 ### Desktop
