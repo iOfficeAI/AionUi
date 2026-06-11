@@ -1,0 +1,43 @@
+{
+  "sider": "Skills",
+  "title": "Skill Library",
+  "subtitle": "Read-only view of EVE's local runtime truth. Executable skills have real SKILL.md bindings; prompt labels stay visible but are not marked executable.",
+  "readOnly": "Read-only",
+  "refresh": "Refresh",
+  "blocked": {
+    "title": "Skill Library unavailable",
+    "description": "EVE needs the local runtime reconciliation before it can show reliable skill state.",
+    "electronBridgeRequired": "Skill Library reads local runtime files through the Electron app process. This local bridge path is not available in browser WebUI mode."
+  },
+  "errors": {
+    "loadFailed": "Skill Library could not be loaded."
+  },
+  "sections": {
+    "runtimeTruth": "Runtime truth",
+    "skills": "Skills",
+    "warnings": "Warnings"
+  },
+  "labels": {
+    "autoDecompose": "Auto-decompose",
+    "blockedTransports": "Blocked MCP transports",
+    "capabilityPack": "Capability pack",
+    "dispatch": "Dispatch",
+    "executable": "Executable",
+    "kanban": "Kanban",
+    "managedSkillDir": "Managed skill dir",
+    "no": "No",
+    "reconciliation": "Reconciliation",
+    "source": "Source",
+    "yes": "Yes"
+  },
+  "states": {
+    "executable": "Executable",
+    "prompt_label": "Prompt label",
+    "gated": "Gated",
+    "disabled": "Disabled"
+  },
+  "empty": {
+    "noModel": "No skill library data available.",
+    "noSkills": "No skills in the local runtime reconciliation."
+  }
+}

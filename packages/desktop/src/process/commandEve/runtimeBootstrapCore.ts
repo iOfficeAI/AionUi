@@ -24,6 +24,8 @@ const DEFAULT_HERMES_MAX_TOKENS = 512;
 const COMMAND_EVE_OLLAMA_MODEL_PREFIX = 'command-eve';
 const BUNDLED_HERMES_DIR = 'bundled-hermes';
 const COMMAND_EVE_CAPABILITIES_FILE = 'command-eve-capabilities.json';
+const COMMAND_EVE_MANAGED_SKILLS_DIR = 'skills-command-eve';
+const COMMAND_EVE_RUNTIME_RECONCILIATION_FILE = 'command-eve-runtime-reconciliation.json';
 const DEFAULT_STAGE_TIMEOUT_MS = 120_000;
 const DEFAULT_LONG_STAGE_TIMEOUT_MS = 2_700_000;
 const PYTHON_BINARY_CANDIDATES = ['python3.13', 'python3.12', 'python3.11', 'python3'];
@@ -33,6 +35,17 @@ const LOCAL_OLLAMA_BINARY_CANDIDATES =
     : process.platform === 'win32'
       ? []
       : ['/usr/local/bin/ollama', '/usr/bin/ollama', '/snap/bin/ollama'];
+const COMMAND_EVE_HERMES_DISABLED_SKILLS = [
+  'red-teaming/godmode',
+  'blockchain',
+  'gaming',
+  'health/neuroskill-bci',
+  'mlops',
+  'wecom',
+  'weixin',
+  'feishu',
+  'dingtalk',
+];
 
 export type RuntimeBootstrapMode = 'auto' | 'check' | 'off';
 
@@ -120,6 +133,24 @@ export type CommandEveCapabilityPack = {
   }>;
 };
 
+export type CommandEveRuntimeReconciliation = {
+  version: 'command-eve-runtime-reconciliation/v0';
+  managed_skill_dir: string;
+  executable_skill_ids: string[];
+  prompt_label_skill_ids: string[];
+  gated_skill_ids: string[];
+  connector_ids: string[];
+  hermes_config: {
+    mcp_servers: string[];
+    skills_external_dirs: string[];
+    disabled_skills: string[];
+    kanban_dispatch_in_gateway: false;
+    kanban_auto_decompose: false;
+  };
+  blocked_external_mcp_transports: Array<'http' | 'sse'>;
+  warnings: string[];
+};
+
 export type RuntimeBootstrapManifest = {
   version: string;
   release: string;
@@ -147,6 +178,7 @@ export type RuntimeBootstrapPaths = {
   userDataPath: string;
   runtimeRoot: string;
   receiptPath: string;
+  modelWarmupReceiptPath: string;
   capabilitiesRoot: string;
   capabilityPack: string;
   hermesRoot: string;
@@ -154,6 +186,8 @@ export type RuntimeBootstrapPaths = {
   hermesVenv: string;
   hermesWrapper: string;
   hermesShim: string;
+  managedSkillsRoot: string;
+  runtimeReconciliation: string;
   firstRunProfile: string;
 };
 
@@ -216,7 +250,7 @@ export type RuntimeBootstrapOptions = {
 
 export const DEFAULT_COMMAND_EVE_CAPABILITY_PACK: CommandEveCapabilityPack = {
   version: 'command-eve-capability-pack/v0',
-  release: '1.0.0-alpha.4',
+  release: '1.0.0-alpha.5',
   policy: {
     default_mode: 'proposal_only',
     secret_rule: 'Never ask for passwords, cookies, recovery codes, raw tokens or .env contents in chat.',
@@ -482,7 +516,7 @@ type PythonLookup = CommandLookup & {
 
 export const DEFAULT_RUNTIME_BOOTSTRAP_MANIFEST: RuntimeBootstrapManifest = {
   version: 'command-eve-runtime-bootstrap-manifest/v0',
-  release: '1.0.0-alpha.4',
+  release: '1.0.0-alpha.5',
   hermes: {
     package: DEFAULT_HERMES_PACKAGE,
     version: DEFAULT_HERMES_VERSION,
@@ -620,6 +654,12 @@ function ollamaOpenAiCompatibleBaseUrl(baseUrl: string): string {
   }
 }
 
+const yamlScalar = (value: string): string => JSON.stringify(value);
+
+function yamlStringList(values: string[], indent: string): string[] {
+  return values.length ? values.map((value) => `${indent}- ${yamlScalar(value)}`) : [`${indent}[]`];
+}
+
 const makeStage = (
   id: RuntimeBootstrapStageId,
   status: RuntimeBootstrapStageStatus,
@@ -710,6 +750,7 @@ export function resolveCommandEveRuntimeBootstrapPaths(userDataPath: string): Ru
     userDataPath: root,
     runtimeRoot,
     receiptPath: path.join(runtimeRoot, 'runtime-bootstrap-receipt.json'),
+    modelWarmupReceiptPath: path.join(runtimeRoot, 'model-warmup-receipt.json'),
     capabilitiesRoot,
     capabilityPack: path.join(capabilitiesRoot, COMMAND_EVE_CAPABILITIES_FILE),
     hermesRoot,
@@ -717,6 +758,8 @@ export function resolveCommandEveRuntimeBootstrapPaths(userDataPath: string): Ru
     hermesVenv: path.join(hermesRoot, 'venv'),
     hermesWrapper: path.join(hermesRoot, 'hermes-command-eve'),
     hermesShim: path.join(hermesRoot, 'hermes'),
+    managedSkillsRoot: path.join(hermesRoot, 'home', COMMAND_EVE_MANAGED_SKILLS_DIR),
+    runtimeReconciliation: path.join(capabilitiesRoot, COMMAND_EVE_RUNTIME_RECONCILIATION_FILE),
     firstRunProfile: path.join(runtimeRoot, 'first-run-profile.json'),
   };
 }
@@ -831,6 +874,91 @@ export function validateCommandEveCapabilityPack(capabilityPack: CommandEveCapab
 function writeCommandEveCapabilityPack(paths: RuntimeBootstrapPaths, capabilityPack: CommandEveCapabilityPack): void {
   writeJsonAtomic(paths.capabilityPack, capabilityPack);
   writeJsonAtomic(path.join(paths.hermesHome, COMMAND_EVE_CAPABILITIES_FILE), capabilityPack);
+}
+
+function commandEveManagedSkillMarkdown(skill: CommandEveCapabilityPack['skills'][number]): string {
+  return [
+    `---`,
+    `name: ${skill.id}`,
+    `description: ${skill.name}. Command EVE managed core skill for local-first founder onboarding and governed work routing.`,
+    `---`,
+    ``,
+    `# ${skill.name}`,
+    ``,
+    `Use this Command EVE managed skill only inside the local Command EVE runtime.`,
+    ``,
+    `## Scope`,
+    ``,
+    `- Keep execution local-first and proposal-only unless a HumanGate explicitly allows a write.`,
+    `- Route durable work through Company.OS worker-contract doctrine.`,
+    `- Never ask for raw secrets, passwords, cookies, recovery codes, or .env contents in chat.`,
+    `- Surface uncertainty instead of claiming a capability is connected when evidence is missing.`,
+    ``,
+    `## Source`,
+    ``,
+    `Capability source: ${skill.source}`,
+    ``,
+  ].join('\n');
+}
+
+function writeCommandEveManagedSkills(
+  paths: RuntimeBootstrapPaths,
+  capabilityPack: CommandEveCapabilityPack
+): string[] {
+  ensureDir(paths.managedSkillsRoot);
+  const executableSkillIds = capabilityPack.skills
+    .filter((skill) => skill.default_state === 'active' && safeCapabilityId(skill.id))
+    .map((skill) => skill.id);
+  for (const skill of capabilityPack.skills) {
+    if (!executableSkillIds.includes(skill.id)) continue;
+    const skillDir = path.join(paths.managedSkillsRoot, skill.id);
+    ensureDir(skillDir);
+    fs.writeFileSync(path.join(skillDir, 'SKILL.md'), commandEveManagedSkillMarkdown(skill), { mode: 0o600 });
+  }
+  return executableSkillIds;
+}
+
+function buildCommandEveRuntimeReconciliation(
+  paths: RuntimeBootstrapPaths,
+  capabilityPack: CommandEveCapabilityPack,
+  executableSkillIds: string[]
+): CommandEveRuntimeReconciliation {
+  const executable = new Set(executableSkillIds);
+  return {
+    version: 'command-eve-runtime-reconciliation/v0',
+    managed_skill_dir: paths.managedSkillsRoot,
+    executable_skill_ids: executableSkillIds,
+    prompt_label_skill_ids: capabilityPack.skills
+      .filter((skill) => !executable.has(skill.id) && skill.default_state === 'available')
+      .map((skill) => skill.id),
+    gated_skill_ids: capabilityPack.skills
+      .filter((skill) => !executable.has(skill.id) && skill.default_state === 'gated')
+      .map((skill) => skill.id),
+    connector_ids: capabilityPack.connectors.map((connector) => connector.id),
+    hermes_config: {
+      mcp_servers: [],
+      skills_external_dirs: [`\${HERMES_HOME}/${COMMAND_EVE_MANAGED_SKILLS_DIR}`],
+      disabled_skills: COMMAND_EVE_HERMES_DISABLED_SKILLS,
+      kanban_dispatch_in_gateway: false,
+      kanban_auto_decompose: false,
+    },
+    blocked_external_mcp_transports: ['http', 'sse'],
+    warnings: [
+      'Department capabilities with default_state=available are prompt labels until a real SKILL.md binding exists.',
+      'HTTP/SSE MCP transports are blocked by default for the local_only lane because they can egress outside the model proxy.',
+      'Hermes Kanban is read-first in Command EVE v1.1; dispatcher, auto-decompose, cron and worker auto-spawn remain off.',
+    ],
+  };
+}
+
+function writeCommandEveRuntimeReconciliation(
+  paths: RuntimeBootstrapPaths,
+  capabilityPack: CommandEveCapabilityPack,
+  executableSkillIds: string[]
+): void {
+  const reconciliation = buildCommandEveRuntimeReconciliation(paths, capabilityPack, executableSkillIds);
+  writeJsonAtomic(paths.runtimeReconciliation, reconciliation);
+  writeJsonAtomic(path.join(paths.hermesHome, COMMAND_EVE_RUNTIME_RECONCILIATION_FILE), reconciliation);
 }
 
 function resolveCommandEveFirstRunProfile(options: {
@@ -1130,13 +1258,17 @@ function writeHermesRuntimeFiles(
   paths: RuntimeBootstrapPaths,
   manifest: RuntimeBootstrapManifest,
   tier: RuntimeBootstrapTier,
+  capabilityPack: CommandEveCapabilityPack,
   runtimeModelRef = commandEveOllamaContextModelRef(tier.model_ref, tierOllamaNumCtx(tier))
 ): void {
   ensureDir(paths.hermesHome);
+  const executableSkillIds = writeCommandEveManagedSkills(paths, capabilityPack);
+  writeCommandEveRuntimeReconciliation(paths, capabilityPack, executableSkillIds);
   const hermesBaseUrl = ollamaOpenAiCompatibleBaseUrl(manifest.local_runtime.egress_proxy_url);
   const contextLength = tierContextLength(tier);
   const ollamaNumCtx = tierOllamaNumCtx(tier);
   const maxTokens = tierMaxTokens(tier);
+  const commandEveSkillDir = `\${HERMES_HOME}/${COMMAND_EVE_MANAGED_SKILLS_DIR}`;
   const config = [
     '# Command EVE managed Hermes config.',
     '# Generated by the first-run runtime bootstrapper; keep secrets out of this file.',
@@ -1149,9 +1281,19 @@ function writeHermesRuntimeFiles(
     `  max_tokens: ${maxTokens}`,
     'agent:',
     '  reasoning_effort: none',
+    'skills:',
+    '  creation_nudge_interval: 0',
+    '  external_dirs:',
+    ...yamlStringList([commandEveSkillDir], '    '),
+    '  disabled:',
+    ...yamlStringList(COMMAND_EVE_HERMES_DISABLED_SKILLS, '    '),
     'platform_toolsets:',
     '  cli: []',
     '  acp: []',
+    'mcp_servers: {}',
+    'kanban:',
+    '  dispatch_in_gateway: false',
+    '  auto_decompose: false',
     'inference:',
     '  provider: ollama',
     `  default: ${runtimeModelRef}`,
@@ -1551,7 +1693,7 @@ export async function ensureCommandEveRuntimeBootstrap(
   } else {
     pushStage(makeStage('hermes', 'pass', { detail: `Hermes ${installedHermesVersion} already installed.` }));
   }
-  writeHermesRuntimeFiles(paths, manifest, tier, runtimeModelRef);
+  writeHermesRuntimeFiles(paths, manifest, tier, capabilityPack, runtimeModelRef);
 
   let ollama = await resolveOllamaCommand(runner, env, options.ollamaBinaryCandidates);
   if (!ollama.ok && mode === 'auto' && manifest.installer_policy.allow_homebrew_install) {

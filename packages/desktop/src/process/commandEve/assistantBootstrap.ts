@@ -15,24 +15,64 @@ import {
 } from './assistantBootstrapCore';
 import { COMMAND_EVE_ASSISTANT_ID } from '@/common/config/commandEveShell';
 import fs from 'fs';
+import path from 'path';
 import { resolveCommandEveRuntimeBootstrapPaths } from './runtimeBootstrapCore';
 
 export type EnsureCommandEveAssistantOptions = {
   userDataPath?: string;
 };
 
-async function requestJson<T>(backendPort: number, path: string, init?: RequestInit): Promise<T> {
+export type CommandEveAssistantEnsureResult = {
+  status: 'ready';
+  assistant_id: string;
+  preset_agent_type: string;
+  enabled_skills: string[];
+  custom_skill_names: string[];
+  skill_count: number;
+};
+
+type CommandEveRuntimeReconciliationForSkillImport = {
+  managed_skill_dir?: string;
+  executable_skill_ids?: unknown;
+};
+
+type ImportedSkillResponse = {
+  skill_name?: string;
+};
+
+type CommandEveAssistantRecord = {
+  id: string;
+  preset_agent_type?: string;
+  enabled_skills?: string[];
+  custom_skill_names?: string[];
+};
+
+const SAFE_COMMAND_EVE_SKILL_ID = /^[a-z0-9][a-z0-9-]{0,80}$/;
+
+async function requestJson<T>(backendPort: number, path: string, init?: RequestInit, timeoutMs = 30_000): Promise<T> {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
   const headers = new Headers(init?.headers);
   headers.set('content-type', 'application/json');
-  const response = await fetch(`http://127.0.0.1:${backendPort}${path}`, {
-    ...init,
-    headers,
-  });
-  if (!response.ok) {
-    const body = await response.text().catch(() => '');
-    throw new Error(`Command EVE assistant bootstrap failed: ${response.status} ${path} ${body.slice(0, 240)}`);
+  try {
+    const response = await fetch(`http://127.0.0.1:${backendPort}${path}`, {
+      ...init,
+      headers,
+      signal: init?.signal || controller.signal,
+    });
+    if (!response.ok) {
+      const body = await response.text().catch(() => '');
+      throw new Error(`Command EVE assistant bootstrap failed: ${response.status} ${path} ${body.slice(0, 240)}`);
+    }
+    return unwrapCommandEveApiData<T>((await response.json()) as CommandEveApiEnvelope<T> | T);
+  } catch (error) {
+    if (controller.signal.aborted) {
+      throw new Error(`Command EVE assistant bootstrap timed out after ${timeoutMs}ms: ${path}`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeout);
   }
-  return unwrapCommandEveApiData<T>((await response.json()) as CommandEveApiEnvelope<T> | T);
 }
 
 async function writeAssistantResource(
@@ -58,6 +98,50 @@ function readJsonFile<T>(file: string): T | undefined {
   } catch {
     return undefined;
   }
+}
+
+function asStringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.map((entry) => String(entry || '').trim()).filter(Boolean) : [];
+}
+
+export function resolveCommandEveManagedSkillImportPaths(userDataPath?: string): Array<{ id: string; path: string }> {
+  if (!userDataPath) return [];
+  const paths = resolveCommandEveRuntimeBootstrapPaths(userDataPath);
+  const reconciliation = readJsonFile<CommandEveRuntimeReconciliationForSkillImport>(paths.runtimeReconciliation);
+  const managedSkillDir = String(reconciliation?.managed_skill_dir || '').trim();
+  if (!managedSkillDir) return [];
+  return asStringArray(reconciliation?.executable_skill_ids)
+    .filter((id) => SAFE_COMMAND_EVE_SKILL_ID.test(id))
+    .map((id) => ({ id, path: path.join(managedSkillDir, id) }))
+    .filter((skill) => fs.existsSync(path.join(skill.path, 'SKILL.md')));
+}
+
+async function importCommandEveManagedSkills(backendPort: number, userDataPath?: string): Promise<string[]> {
+  const skillImports = resolveCommandEveManagedSkillImportPaths(userDataPath);
+  const skillNames: string[] = [];
+  for (const skill of skillImports) {
+    let skillName = skill.id;
+    try {
+      const imported = await requestJson<ImportedSkillResponse>(
+        backendPort,
+        '/api/skills/import-symlink',
+        {
+          method: 'POST',
+          body: JSON.stringify({ skill_path: skill.path }),
+        },
+        5_000
+      );
+      skillName = imported.skill_name || skill.id;
+    } catch (error) {
+      console.warn(
+        `[CommandEVE] Could not import managed skill "${skill.id}" into AionUI custom skills: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+    }
+    skillNames.push(skillName);
+  }
+  return Array.from(new Set(skillNames));
 }
 
 function loadCommandEveFirstRunContext(
@@ -99,31 +183,104 @@ async function loadCommandEveDetectedAgents(backendPort: number): Promise<Comman
   return agents;
 }
 
+function buildCommandEveAssistantPayload(
+  presetAgentType: string,
+  customSkillNames: string[],
+  appVersion: string
+): ReturnType<typeof buildCommandEveAssistant> & { description: string } {
+  const assistant = buildCommandEveAssistant(presetAgentType, customSkillNames);
+  return {
+    ...assistant,
+    description: `${assistant.description}\n\n${buildCommandEveAssistantContext(appVersion)}`,
+  };
+}
+
+function findCommandEveAssistant(assistants: CommandEveAssistantRecord[]): CommandEveAssistantRecord | undefined {
+  return assistants.find((item) => item.id === COMMAND_EVE_ASSISTANT_ID);
+}
+
+function includesAll(values: string[] | undefined, expected: string[]): boolean {
+  if (expected.length === 0) return true;
+  const actual = new Set((values || []).map((value) => String(value || '').trim()).filter(Boolean));
+  return expected.every((value) => actual.has(value));
+}
+
+function commandEveAssistantIsReconciled(
+  assistant: CommandEveAssistantRecord | undefined,
+  presetAgentType: string,
+  customSkillNames: string[]
+): boolean {
+  if (!assistant) return false;
+  return (
+    assistant.preset_agent_type === presetAgentType &&
+    includesAll(assistant.enabled_skills, customSkillNames) &&
+    includesAll(assistant.custom_skill_names, customSkillNames)
+  );
+}
+
+async function loadCommandEveAssistant(backendPort: number): Promise<CommandEveAssistantRecord | undefined> {
+  return findCommandEveAssistant(await requestJson<CommandEveAssistantRecord[]>(backendPort, '/api/assistants'));
+}
+
+function commandEveAssistantReconciliationError(
+  assistant: CommandEveAssistantRecord | undefined,
+  presetAgentType: string,
+  customSkillNames: string[]
+): string {
+  const enabledMissing = customSkillNames.filter((skill) => !(assistant?.enabled_skills || []).includes(skill));
+  const customMissing = customSkillNames.filter((skill) => !(assistant?.custom_skill_names || []).includes(skill));
+  return [
+    `expected preset_agent_type=${presetAgentType}`,
+    `actual preset_agent_type=${assistant?.preset_agent_type || 'missing'}`,
+    enabledMissing.length > 0 ? `missing enabled_skills=${enabledMissing.join(',')}` : '',
+    customMissing.length > 0 ? `missing custom_skill_names=${customMissing.join(',')}` : '',
+  ]
+    .filter(Boolean)
+    .join('; ');
+}
+
 export async function ensureCommandEveAssistant(
   backendPort: number,
   appVersion: string,
   options: EnsureCommandEveAssistantOptions = {}
-): Promise<void> {
+): Promise<CommandEveAssistantEnsureResult> {
   const agents = await loadCommandEveDetectedAgents(backendPort);
   const presetAgentType = selectCommandEvePresetAgentType(agents);
-  const assistant = buildCommandEveAssistant(presetAgentType);
+  const customSkillNames = await importCommandEveManagedSkills(backendPort, options.userDataPath);
+  const assistant = buildCommandEveAssistantPayload(presetAgentType, customSkillNames, appVersion);
   const firstRunContext = loadCommandEveFirstRunContext(appVersion, options.userDataPath);
-  const assistants = await requestJson<Array<{ id: string }>>(backendPort, '/api/assistants');
-  const method = assistants.some((item) => item.id === COMMAND_EVE_ASSISTANT_ID) ? 'PUT' : 'POST';
+  const existingAssistant = await loadCommandEveAssistant(backendPort);
+  const method = existingAssistant ? 'PUT' : 'POST';
   const path = method === 'PUT' ? `/api/assistants/${COMMAND_EVE_ASSISTANT_ID}` : '/api/assistants';
   const body =
-    method === 'PUT'
-      ? JSON.stringify({
-          ...assistant,
-          id: COMMAND_EVE_ASSISTANT_ID,
-          description: `${assistant.description}\n\n${buildCommandEveAssistantContext(appVersion)}`,
-        })
-      : JSON.stringify({
-          ...assistant,
-          description: `${assistant.description}\n\n${buildCommandEveAssistantContext(appVersion)}`,
-        });
+    method === 'PUT' ? JSON.stringify({ ...assistant, id: COMMAND_EVE_ASSISTANT_ID }) : JSON.stringify(assistant);
 
   await requestJson(backendPort, path, { method, body });
+
+  let reconciledAssistant = await loadCommandEveAssistant(backendPort);
+  if (!commandEveAssistantIsReconciled(reconciledAssistant, presetAgentType, customSkillNames) && existingAssistant) {
+    console.warn(
+      `[CommandEVE] Existing EVE assistant did not reconcile via PUT (${commandEveAssistantReconciliationError(
+        reconciledAssistant,
+        presetAgentType,
+        customSkillNames
+      )}); recreating managed EVE assistant.`
+    );
+    await requestJson(backendPort, `/api/assistants/${COMMAND_EVE_ASSISTANT_ID}`, { method: 'DELETE' });
+    await requestJson(backendPort, '/api/assistants', { method: 'POST', body: JSON.stringify(assistant) });
+    reconciledAssistant = await loadCommandEveAssistant(backendPort);
+  }
+
+  if (!commandEveAssistantIsReconciled(reconciledAssistant, presetAgentType, customSkillNames)) {
+    throw new Error(
+      `Command EVE assistant reconciliation failed: ${commandEveAssistantReconciliationError(
+        reconciledAssistant,
+        presetAgentType,
+        customSkillNames
+      )}`
+    );
+  }
+
   await requestJson(backendPort, `/api/assistants/${COMMAND_EVE_ASSISTANT_ID}/state`, {
     method: 'PATCH',
     body: JSON.stringify({
@@ -148,4 +305,24 @@ export async function ensureCommandEveAssistant(
       buildCommandEveAssistantSkill('en-US', firstRunContext)
     ),
   ]);
+
+  const readyAssistant = await loadCommandEveAssistant(backendPort);
+  if (!commandEveAssistantIsReconciled(readyAssistant, presetAgentType, customSkillNames)) {
+    throw new Error(
+      `Command EVE assistant final readiness failed: ${commandEveAssistantReconciliationError(
+        readyAssistant,
+        presetAgentType,
+        customSkillNames
+      )}`
+    );
+  }
+
+  return {
+    status: 'ready',
+    assistant_id: COMMAND_EVE_ASSISTANT_ID,
+    preset_agent_type: presetAgentType,
+    enabled_skills: readyAssistant?.enabled_skills || [],
+    custom_skill_names: readyAssistant?.custom_skill_names || [],
+    skill_count: customSkillNames.length,
+  };
 }

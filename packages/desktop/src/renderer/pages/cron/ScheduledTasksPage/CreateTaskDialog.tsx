@@ -18,6 +18,7 @@ import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
+import { getCommandEveLocalAcpModelInfo } from '@/common/config/commandEveShell';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
@@ -277,10 +278,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   // ACP model info derived from the backend `/api/agents` handshake.
   const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
+    const commandEveModelInfo = getCommandEveLocalAcpModelInfo(resolvedBackend, model_id);
+    if (commandEveModelInfo) return commandEveModelInfo;
+
     const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     return info?.available_models?.length ? info : null;
-  }, [resolvedBackend, detectedAgents]);
+  }, [resolvedBackend, model_id, detectedAgents]);
 
   // Auto-pick the first available model from /api/providers when aionrs is
   // selected but none is set yet. Source of truth is the backend provider

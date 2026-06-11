@@ -51,6 +51,12 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__aionBackend', {
+  getPort: () => {
+    const port = ipcRenderer.sendSync('get-backend-port') as number;
+    return port > 0 ? port : 0;
+  },
+});
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events

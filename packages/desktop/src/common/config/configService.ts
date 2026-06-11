@@ -5,16 +5,36 @@ type Subscriber = (value: unknown) => void;
 declare global {
   interface Window {
     __backendPort?: number;
+    __aionBackend?: {
+      getPort?: () => number;
+    };
   }
+}
+
+function resolveRendererBackendPort(): number | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const exposedPort = (window as Window).__backendPort;
+  if (typeof exposedPort === 'number' && exposedPort > 0) return exposedPort;
+  const dynamicPort = (window as Window).__aionBackend?.getPort?.();
+  if (typeof dynamicPort === 'number' && dynamicPort > 0) {
+    (window as Window).__backendPort = dynamicPort;
+    return dynamicPort;
+  }
+  return undefined;
 }
 
 function getBaseUrl(): string {
   // WebUI browser mode: no preload, fetch same-origin so web-host's
   // static-server reverse-proxies /api/* to the backend.
-  if (typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort) {
+  if (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    typeof (window as Window).__aionBackend?.getPort !== 'function' &&
+    !resolveRendererBackendPort()
+  ) {
     return '';
   }
-  const port = typeof window !== 'undefined' ? (window as Window).__backendPort || 13400 : 13400;
+  const port = resolveRendererBackendPort() ?? 13400;
   return `http://127.0.0.1:${port}`;
 }
 

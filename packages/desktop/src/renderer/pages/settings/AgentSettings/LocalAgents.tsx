@@ -138,13 +138,31 @@ const LocalAgents: React.FC = () => {
 
       {COMMAND_EVE_SHELL_ENABLED && (
         <div className='px-16px mt-8px'>
-          <div className='rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px'>
-            <Typography.Text className='mb-4px block text-14px font-medium text-t-primary'>
-              {t('settings.agentManagement.commandEveRuntimeTitle')}
-            </Typography.Text>
-            <Typography.Text className='block text-12px leading-18px text-t-secondary'>
-              {t('settings.agentManagement.commandEveRuntimeDesc')}
-            </Typography.Text>
+          <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
+            <div className='min-w-0'>
+              <Typography.Text className='mb-4px block text-14px font-medium text-t-primary'>
+                {t('settings.agentManagement.commandEveRuntimeTitle')}
+              </Typography.Text>
+              <Typography.Text className='block text-12px leading-18px text-t-secondary'>
+                {t('settings.agentManagement.commandEveRuntimeDesc')}
+              </Typography.Text>
+            </div>
+            <div
+              data-testid='command-eve-hermes-runtime-card'
+              className='flex min-w-[220px] items-center gap-12px rounded-14px border border-solid border-[rgba(255,122,31,0.28)] bg-[rgba(255,122,31,0.08)] px-14px py-12px shadow-[inset_0_1px_0_rgba(255,255,255,0.20)]'
+            >
+              <div className='flex h-36px w-36px shrink-0 items-center justify-center rounded-10px bg-[rgba(255,122,31,0.14)] text-18px font-700 text-[#ff7a1f]'>
+                ⌘
+              </div>
+              <div className='min-w-0'>
+                <Typography.Text className='block text-14px font-semibold leading-18px text-t-primary'>
+                  Hermes
+                </Typography.Text>
+                <Typography.Text className='block text-11px leading-16px text-t-secondary'>
+                  {t('settings.agentManagement.commandEveRuntimeBackendDesc')}
+                </Typography.Text>
+              </div>
+            </div>
           </div>
         </div>
       )}

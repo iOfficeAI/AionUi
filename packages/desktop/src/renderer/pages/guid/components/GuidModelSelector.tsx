@@ -217,7 +217,12 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
             </Menu>
           }
         >
-          <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small'>
+          <Button
+            className={'sendbox-model-btn guid-config-btn'}
+            shape='round'
+            size='small'
+            data-testid='guid-model-selector'
+          >
             <span className='flex items-center gap-6px min-w-0'>
               <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
               <span>{acpButtonLabel}</span>
@@ -235,6 +240,7 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
           shape='round'
           size='small'
           style={{ cursor: 'default' }}
+          data-testid='guid-model-selector'
         >
           <span className='flex items-center gap-6px min-w-0'>
             <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
@@ -248,7 +254,13 @@ const GuidModelSelector: React.FC<GuidModelSelectorProps> = ({
   // Fallback: no model switching
   return (
     <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-      <Button className={'sendbox-model-btn guid-config-btn'} shape='round' size='small' style={{ cursor: 'default' }}>
+      <Button
+        className={'sendbox-model-btn guid-config-btn'}
+        shape='round'
+        size='small'
+        style={{ cursor: 'default' }}
+        data-testid='guid-model-selector'
+      >
         <span className='flex items-center gap-6px min-w-0'>
           <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
           <span>{defaultModelLabel}</span>

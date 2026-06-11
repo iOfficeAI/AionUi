@@ -378,7 +378,26 @@ export interface ICommandEveRuntimeStatus {
     finding_count?: number;
     policy_action?: string;
   };
+  model_warmup?: {
+    receipt_path?: string;
+    status?: 'running' | 'ready' | 'failed' | 'skipped' | string;
+    model?: string;
+    base_url?: string;
+    started_at?: string;
+    completed_at?: string;
+    elapsed_ms?: number;
+    error?: string;
+  };
   stages?: ICommandEveRuntimeStage[];
+}
+
+export interface ICommandEveAssistantReadiness {
+  status: 'ready';
+  assistant_id: string;
+  preset_agent_type: string;
+  enabled_skills: string[];
+  custom_skill_names: string[];
+  skill_count: number;
 }
 
 export type ICommandEveGateAction =
@@ -400,6 +419,162 @@ export interface ICommandEveGateDecision {
   allowed: boolean;
   gate: 'auto' | 'founder_stop' | 'founder_click' | 'hg_2_5' | 'hg_4' | 'cao_required' | string;
   reason: string;
+}
+
+export interface ICommandEveCommandCenterTraceCard {
+  run_id: string;
+  issue_id: string;
+  agent: string;
+  mode: string;
+  source_event_id: string;
+  redaction_level: string;
+  trace_json: string | null;
+  trace_markdown: string | null;
+  prompt_result: string | null;
+}
+
+export interface ICommandEveCommandCenterDecisionGate {
+  level: string;
+  state: string;
+  source_event_id: string;
+  source_event_type: string;
+  release_authority: string;
+  released_by: string;
+  founder_prediction_confidence: number | null;
+  decision_mode: string;
+  decision: string;
+  next_action: string;
+  reason: string;
+  routes_to_hg35: boolean;
+  simulated: boolean;
+  artifact_paths: string[];
+}
+
+export interface ICommandEveCommandCenterRunCard {
+  run_id: string;
+  issue_id: string;
+  parent_issue_id: string;
+  agent: string;
+  mode: string;
+  role_owner: string;
+  department: string;
+  worker_state: string;
+  controller_state: string;
+  issue_state_recommendation: string;
+  human_gate_state: string;
+  human_gate_level: string;
+  decision_gate: ICommandEveCommandCenterDecisionGate | null;
+  merge_state: string;
+  next_action: string;
+  blocking_reasons: string[];
+  event_count: number;
+  first_event_at: string | null;
+  last_event_at: string | null;
+  last_event_id: string;
+  source_event_ids: string[];
+  artifact_paths: string[];
+  trace_cards: ICommandEveCommandCenterTraceCard[];
+}
+
+export interface ICommandEveCommandCenterReadModel {
+  schema_version: string;
+  generated_at: string;
+  read_only: boolean;
+  sources: {
+    event_ledger: string;
+    reducer: string;
+  };
+  morning_brief: {
+    headline: string;
+    totals: Record<string, number>;
+    warnings: string[];
+  };
+  worker_runs: ICommandEveCommandCenterRunCard[];
+  human_gate_queue: ICommandEveCommandCenterRunCard[];
+  ceo_critical_releases: ICommandEveCommandCenterRunCard[];
+  eve_hg35_packets: ICommandEveCommandCenterRunCard[];
+  trace_summary_cards: ICommandEveCommandCenterTraceCard[];
+  blocked_actions: string[];
+}
+
+export interface ICommandEveCommandCenterReadModelResult {
+  version: 'command-eve-command-center-read-model/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveCommandCenterReadModel;
+  source: {
+    company_os_root?: string;
+    event_ledger?: string;
+    reducer?: string;
+    generated_by: 'company-os-read-model-cli';
+  };
+}
+
+export type ICommandEveConnectorEvidenceState =
+  | 'installed'
+  | 'available'
+  | 'needs_auth'
+  | 'unverified'
+  | 'gated'
+  | 'connected'
+  | 'blocked';
+
+export interface ICommandEveConnectorCatalogCard {
+  id: string;
+  name: string;
+  tier: string;
+  purpose: string;
+  required_for: string[];
+  auth_method: string;
+  auth_surface: string;
+  setup_mode: string;
+  safe_preflight: string[];
+  verify_command: string;
+  allowed_actions: string[];
+  blocked_actions: string[];
+  human_gate: string;
+  memory_policy: string;
+  preflight_result_file: string;
+  evidence_state: ICommandEveConnectorEvidenceState;
+  latest_preflight: {
+    ok: boolean | null;
+    checked_at?: string;
+    error?: string;
+    reason_code?: string;
+    evidence_path?: string;
+    source_path?: string;
+  } | null;
+}
+
+export interface ICommandEveConnectorCatalogModel {
+  schema_version: 'command-eve-connector-catalog/v0';
+  generated_at: string;
+  read_only: true;
+  policy: Record<string, unknown>;
+  source: {
+    company_os_root?: string;
+    manifest_path: string;
+    preflight_base?: string;
+  };
+  summary: Record<ICommandEveConnectorEvidenceState, number>;
+  connectors: ICommandEveConnectorCatalogCard[];
+  blocked_actions: string[];
+}
+
+export interface ICommandEveConnectorCatalogResult {
+  version: 'command-eve-connector-catalog/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveConnectorCatalogModel;
+  source: {
+    company_os_root?: string;
+    manifest_path?: string;
+    generated_by: 'command-eve-connector-catalog-core';
+  };
 }
 
 // ---------------------------------------------------------------------------
@@ -450,14 +625,28 @@ export const application = {
 
 export const commandEve = {
   runtimeStatus: bridge.buildProvider<IBridgeResponse<ICommandEveRuntimeStatus>, void>('command-eve.runtime-status'),
+  ensureAssistant: bridge.buildProvider<IBridgeResponse<ICommandEveAssistantReadiness>, void>(
+    'command-eve.ensure-assistant'
+  ),
   ensureLocalModelTier: bridge.buildProvider<
     IBridgeResponse<ICommandEveRuntimeStatus>,
     { tierId?: string } | undefined
   >('command-eve.ensure-local-model-tier'),
+  warmLocalModel: bridge.buildProvider<IBridgeResponse<ICommandEveRuntimeStatus>, { tierId?: string } | undefined>(
+    'command-eve.warm-local-model'
+  ),
   evaluateGateDecision: bridge.buildProvider<
     IBridgeResponse<ICommandEveGateDecision>,
     { action: ICommandEveGateAction }
   >('command-eve.evaluate-gate-decision'),
+  commandCenterReadModel: bridge.buildProvider<
+    IBridgeResponse<ICommandEveCommandCenterReadModelResult>,
+    { maxRuns?: number } | undefined
+  >('command-eve.command-center-read-model'),
+  connectorCatalog: bridge.buildProvider<
+    IBridgeResponse<ICommandEveConnectorCatalogResult>,
+    { manifestPath?: string } | undefined
+  >('command-eve.connector-catalog'),
 };
 
 // ---------------------------------------------------------------------------

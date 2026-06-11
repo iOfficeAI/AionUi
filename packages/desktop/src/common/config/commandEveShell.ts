@@ -1,10 +1,13 @@
+import type { TProviderWithModel } from './storage';
+import type { AcpModelInfo } from '../types/platform/acpTypes';
+
 export const COMMAND_EVE_SHELL_ENABLED =
   typeof process === 'undefined' ? true : process.env.AIONUI_UPSTREAM_MODE !== '1';
 
 export const COMMAND_EVE_APP_NAME = 'Command EVE';
 export const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 export const COMMAND_EVE_TITLE = '⌘ EVE';
-export const COMMAND_EVE_VERSION = '1.0.0-alpha.4';
+export const COMMAND_EVE_VERSION = '1.0.0-alpha.5';
 export const COMMAND_EVE_APP_ID = 'com.fynlabs.commandeve';
 export const COMMAND_EVE_PROTOCOL_SCHEME = 'command-eve';
 export const COMMAND_EVE_ASSISTANT_ID = 'command-eve-chief-of-staff';
@@ -12,6 +15,9 @@ export const COMMAND_EVE_ASSISTANT_KEY = `custom:${COMMAND_EVE_ASSISTANT_ID}`;
 export const COMMAND_EVE_ASSISTANT_AVATAR = 'command-eve-logo.svg';
 export const COMMAND_EVE_DEFAULT_ACP_BACKEND = 'hermes';
 export const COMMAND_EVE_DEFAULT_ACP_MODEL_ID = 'custom:command-eve-gemma4-e4b-64k:latest';
+export const COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_ID = 'command-eve-local-runtime';
+export const COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_NAME = 'Command EVE Local Runtime';
+export const COMMAND_EVE_EGRESS_PROXY_OPENAI_BASE_URL = 'http://127.0.0.1:25811/v1';
 export const COMMAND_EVE_LOCAL_MODEL_TIERS = [
   {
     id: 'gemma-4-e4b-local-default',
@@ -85,11 +91,58 @@ export function getCommandEveAcpModelIdForTier(tierId?: string | null): string {
   return getCommandEveLocalModelTier(tierId).modelId;
 }
 
+export function getCommandEveLocalAcpModelInfo(
+  backend?: string | null,
+  currentModelId?: string | null
+): AcpModelInfo | undefined {
+  if (!COMMAND_EVE_SHELL_ENABLED || backend !== COMMAND_EVE_DEFAULT_ACP_BACKEND) {
+    return undefined;
+  }
+
+  const available_models = COMMAND_EVE_LOCAL_MODEL_TIERS.map((tier) => ({
+    id: tier.modelId,
+    label: tier.label,
+  }));
+  const resolvedModelId =
+    currentModelId && available_models.some((model) => model.id === currentModelId)
+      ? currentModelId
+      : COMMAND_EVE_DEFAULT_ACP_MODEL_ID;
+  const selected = available_models.find((model) => model.id === resolvedModelId) ?? available_models[0];
+
+  return {
+    current_model_id: selected?.id ?? null,
+    current_model_label: selected?.label ?? null,
+    available_models,
+  };
+}
+
+export function getCommandEveLocalAcpModelInfoForTier(
+  backend: string | undefined,
+  tierId?: string | null
+): AcpModelInfo | undefined {
+  const modelId = backend ? getCommandEveDefaultAcpModelIdForTier(backend, tierId) : undefined;
+  return getCommandEveLocalAcpModelInfo(backend, modelId);
+}
+
 export function getCommandEveDefaultAcpModelIdForTier(backend: string, tierId?: string | null): string | undefined {
   if (!COMMAND_EVE_SHELL_ENABLED || backend !== COMMAND_EVE_DEFAULT_ACP_BACKEND) {
     return undefined;
   }
   return getCommandEveAcpModelIdForTier(tierId);
+}
+
+export function getCommandEveLocalRuntimeProvider(tierId?: string | null): TProviderWithModel {
+  const tier = getCommandEveLocalModelTier(tierId);
+  return {
+    id: COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_ID,
+    platform: 'custom',
+    name: COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_NAME,
+    base_url: COMMAND_EVE_EGRESS_PROXY_OPENAI_BASE_URL,
+    api_key: 'command-eve-local-loopback',
+    use_model: tier.modelId,
+    context_limit: tier.contextLength,
+    capabilities: [{ type: 'text' }, { type: 'function_calling' }],
+  };
 }
 
 export function getCommandEveCliSafeName(baseName: string, isPackaged: boolean): string {

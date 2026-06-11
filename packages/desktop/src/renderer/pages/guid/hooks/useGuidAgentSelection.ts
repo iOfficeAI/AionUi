@@ -16,6 +16,7 @@ import {
   COMMAND_EVE_ASSISTANT_KEY,
   COMMAND_EVE_SHELL_ENABLED,
   getCommandEveDefaultAcpModelIdForTier,
+  getCommandEveLocalAcpModelInfo,
 } from '@/common/config/commandEveShell';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
@@ -528,6 +529,11 @@ export const useGuidAgentSelection = ({
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    const commandEveModelInfo = getCommandEveLocalAcpModelInfo(backend as string, selectedAcpModel);
+    if (commandEveModelInfo) {
+      return commandEveModelInfo;
+    }
+
     if (
       handshakeModels &&
       Array.isArray(handshakeModels.available_models) &&
@@ -548,7 +554,7 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, selectedAcpModel, availableAgentsData]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {

@@ -33,10 +33,17 @@ export async function invokeBridge<T = unknown>(
 
     const raw = await page.evaluate(
       async ({ method, path, requestBody, requestTimeoutMs }) => {
-        const port = (window as unknown as { __backendPort?: number }).__backendPort;
+        const win = window as unknown as {
+          __backendPort?: number;
+          __aionBackend?: { getPort?: () => number };
+        };
+        const rawPort = win.__backendPort;
+        const dynamicPort = typeof rawPort === 'number' && rawPort > 0 ? rawPort : win.__aionBackend?.getPort?.();
+        const port = typeof dynamicPort === 'number' && dynamicPort > 0 ? dynamicPort : undefined;
         if (!port) {
           throw new Error('window.__backendPort is not available in renderer context');
         }
+        win.__backendPort = port;
 
         const controller = new AbortController();
         const timer = setTimeout(() => controller.abort(), requestTimeoutMs);

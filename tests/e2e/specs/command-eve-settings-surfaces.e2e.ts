@@ -18,6 +18,12 @@ test.describe('Command EVE settings surfaces', () => {
     await goToSettings(page, 'model');
     await expect(page.getByText('Command EVE Local Runtime')).toBeVisible();
     await expect(page.getByText('Hermes + Ollama')).toBeVisible();
+    await expect(page.getByTestId('command-eve-model-support-note')).toContainText(
+      /Command EVE nutzt Hermes lokal|Command EVE uses Hermes locally/
+    );
+    await expect(
+      page.getByText(/Derzeit unterstützt nur Aion CLI|Only Aion CLI currently supports custom models/)
+    ).toHaveCount(0);
 
     const e4b = page.getByTestId('command-eve-model-tier-gemma-4-e4b-local-default');
     await expect(e4b).toContainText('E4B');
@@ -74,5 +80,25 @@ test.describe('Command EVE settings surfaces', () => {
     await expect(page.getByTestId('auto-skills-section')).toHaveCount(0);
     await expect(page.getByText('xiaohongshu-recruiter')).toHaveCount(0);
     await expect(page.getByText('weixin-file-send')).toHaveCount(0);
+  });
+
+  test('scopes the EVE assistant editor to Command EVE managed skills', async ({ page }) => {
+    await page.waitForSelector('body', { state: 'visible' });
+
+    await goToSettings(page, 'assistants');
+    const eveCard = page.getByTestId('assistant-card-command-eve-chief-of-staff');
+    await expect(eveCard).toBeVisible({ timeout: 30_000 });
+    await eveCard.click();
+
+    const drawer = page.getByTestId('assistant-edit-drawer');
+    await expect(drawer).toBeVisible({ timeout: 10_000 });
+    await expect(drawer.getByTestId('command-eve-managed-skills-note')).toBeVisible();
+    await expect(drawer).toContainText('first-run-company-discovery', { timeout: 30_000 });
+    await expect(drawer).toContainText('goal-materialization');
+    await expect(drawer.getByText(/Integrierte Skills|Builtin Skills/)).toHaveCount(0);
+    await expect(drawer.getByText(/Automatisch eingefügte Skills|Auto-injected Skills/)).toHaveCount(0);
+    await expect(drawer.getByText('xiaohongshu-recruiter')).toHaveCount(0);
+    await expect(drawer.getByText('weixin-file-send')).toHaveCount(0);
+    await expect(drawer.getByText('aionui-skills')).toHaveCount(0);
   });
 });

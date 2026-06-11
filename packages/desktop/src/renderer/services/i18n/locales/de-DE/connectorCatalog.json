@@ -1,0 +1,95 @@
+{
+  "sider": "Connectoren",
+  "title": "Connector Catalog",
+  "subtitle": "Geführte Sicht auf EVEs geprüfte Connectoren und MCP-Fähigkeiten. Keine rohen Tokens, kein raw MCP-add, keine verdeckten Write-Pfade.",
+  "readOnly": "Read-only",
+  "refresh": "Aktualisieren",
+  "blocked": {
+    "title": "Connector Catalog nicht verfügbar",
+    "description": "Setze den Company.OS Root oder den Connector-Manifest-Pfad, damit EVE die lokale Connector-Wahrheit lesen kann.",
+    "electronBridgeRequired": "Der Connector Catalog liest lokale Company.OS-Dateien über den Electron-App-Prozess. Im Browser-WebUI-Modus ist dieser lokale Bridge-Pfad nicht verfügbar."
+  },
+  "errors": {
+    "loadFailed": "Connector Catalog konnte nicht geladen werden.",
+    "preflightFailed": "Connector-Preflight konnte nicht ausgeführt werden."
+  },
+  "actions": {
+    "guidedSetup": "Geführtes Setup folgt",
+    "guidedSetupDisabled": "Noch read-only. EVE führt keine Connector- oder MCP-Änderung ohne Preflight und HumanGate aus.",
+    "runPreflightTitle": "Read-only Preflight ausführen und Receipt schreiben."
+  },
+  "preflight": {
+    "successTitle": "Preflight-Receipt geschrieben",
+    "blockedTitle": "Preflight blockiert"
+  },
+  "sections": {
+    "allowed": "Erlaubt",
+    "blocked": "Blockiert",
+    "connectors": "Connectoren",
+    "globalBlocked": "Global blockierte Rohaktionen",
+    "guidedSetup": "Geführter Setup-Pfad",
+    "latestPreflight": "Letzter Preflight"
+  },
+  "labels": {
+    "auth": "Auth",
+    "auditEvent": "Audit-Event",
+    "authority": "State Authority",
+    "checkedAt": "Geprüft",
+    "companyRoot": "Company.OS Root",
+    "error": "Fehler",
+    "generatedAt": "Generiert",
+    "manifest": "Manifest",
+    "mcpEnable": "MCP Enable",
+    "nextAction": "Nächster Schritt",
+    "noHumanGate": "kein HumanGate",
+    "ok": "OK",
+    "preflight": "Preflight-Datei",
+    "reason": "Reason",
+    "requiredHumanGate": "Benötigtes HumanGate",
+    "secrets": "Secrets",
+    "setupUnknown": "setup unbekannt",
+    "surface": "Surface",
+    "tierUnknown": "tier unbekannt"
+  },
+  "values": {
+    "allowed": "Erlaubt",
+    "blocked": "Blockiert"
+  },
+  "setupStates": {
+    "connected": "Verbunden",
+    "preflight_required": "Preflight nötig",
+    "auth_required": "Auth nötig",
+    "humangate_required": "HumanGate nötig",
+    "blocked": "Blockiert"
+  },
+  "setupActions": {
+    "view_receipt": "Receipt ansehen",
+    "run_read_only_preflight": "Read-only Preflight ausführen",
+    "guided_auth_setup": "Geführte Auth vorbereiten",
+    "request_humangate": "HumanGate anfordern",
+    "inspect_blocker": "Blocker prüfen"
+  },
+  "secretHandling": {
+    "never_in_chat": "Nie im Chat; nur Keychain, Env-Datei oder Provider-OAuth"
+  },
+  "states": {
+    "installed": "Installiert",
+    "available": "Verfügbar",
+    "needs_auth": "Auth nötig",
+    "unverified": "Unverifiziert",
+    "gated": "Gated",
+    "connected": "Verbunden",
+    "blocked": "Blockiert"
+  },
+  "empty": {
+    "noConnectors": "Keine Connectoren im lokalen Manifest.",
+    "preflightMissing": "Noch kein Preflight-Receipt. EVE behandelt diesen Connector nicht als verbunden."
+  },
+  "blockedActions": {
+    "raw_mcp_add": "Rohes MCP-Setup",
+    "raw_api_key_edit": "Rohe API-Key-Bearbeitung",
+    "raw_pairing": "Rohes Pairing",
+    "connector_write_without_human_gate": "Connector-Write ohne HumanGate",
+    "cron_or_dispatcher_auto_enable": "Cron/Dispatcher automatisch aktivieren"
+  }
+}

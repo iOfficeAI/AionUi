@@ -176,6 +176,9 @@ desdoc/
 tests/e2e/screenshots/
 tests/e2e/results/
 tests/e2e/report/
+.playwright-cli/
+test-results/
+tmp/
 
 # PowerShell accidentally creates a literal file named '$null' when a command
 # redirects output to $null (e.g. `cmd > $null`) on Windows runners.

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
+import { getCommandEveLocalAcpModelInfo } from '@/common/config/commandEveShell';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
@@ -70,12 +71,19 @@ const AcpModelSelector: React.FC<{
   // restarts and lets us render the model list before warmup finishes.
   const { data: agentsData } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
   const handshakeModelInfo = useMemo<AcpModelInfo | null>(() => {
-    if (!backend || !agentsData?.length) return null;
+    if (!backend) return null;
+
+    const commandEveModelInfo = getCommandEveLocalAcpModelInfo(backend, initialModelId);
+    if (commandEveModelInfo) {
+      return commandEveModelInfo;
+    }
+
+    if (!agentsData?.length) return null;
     const matched = agentsData.find((a) => (a.backend ?? a.agent_type) === backend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (!info || !Array.isArray(info.available_models) || info.available_models.length === 0) return null;
     return info;
-  }, [agentsData, backend]);
+  }, [agentsData, backend, initialModelId]);
 
   const loadFallbackModelInfo = useCallback(
     (backendKey: string, options?: { preserveInitialModel?: boolean }) => {

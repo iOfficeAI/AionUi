@@ -3,7 +3,8 @@
  *
  * Search order:
  *  1. Bundled with app (production)
- *  2. System PATH
+ *  2. Project resources (development / E2E)
+ *  3. System PATH
  */
 
 import { existsSync } from 'node:fs';
@@ -35,13 +36,14 @@ export function resolveBinaryPath(): string {
  * Layout: bundled-aioncore/{platform}-{arch}/aioncore[.exe]
  */
 function bundledPath(): string | null {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-  if (!resourcesPath) return null;
-
   const runtimeKey = `${process.platform}-${process.arch}`;
-  const candidate = join(resourcesPath, 'bundled-aioncore', runtimeKey, getBinaryName());
+  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const roots = [resourcesPath, join(process.cwd(), 'resources')].filter((root): root is string => Boolean(root));
 
-  if (existsSync(candidate)) return candidate;
+  for (const root of roots) {
+    const candidate = join(root, 'bundled-aioncore', runtimeKey, getBinaryName());
+    if (existsSync(candidate)) return candidate;
+  }
   return null;
 }
 

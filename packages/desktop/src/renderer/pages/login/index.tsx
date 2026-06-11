@@ -20,11 +20,11 @@ type CommandEveLanguage = {
 
 const REMEMBER_ME_KEY = 'rememberMe';
 const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
-const REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
+const LEGACY_REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 const COMMAND_EVE_DEFAULT_LANGUAGE = 'de-DE';
 const COMMAND_EVE_LANGUAGE_BOOTSTRAPPED_KEY = 'commandEveLanguageBootstrapped';
 const COMMAND_EVE_DEFAULT_VERSION = 'v1.x';
-const COMMAND_EVE_BRAND_CONFIG_URL = '/command-eve-brand.json?v=command-eve-brand-20260604';
+const COMMAND_EVE_BRAND_CONFIG_URL = '/command-eve-brand.json?v=command-eve-brand-20260610';
 const COMMAND_EVE_LOGIN_VIDEO = '/eve-wait-focus.mp4?v=command-eve-login-20260604';
 const COMMAND_EVE_LOGIN_ANIMATION = '/eve-wait-focus-loop.gif?v=command-eve-login-20260604';
 const COMMAND_EVE_LOGIN_POSTER = '/eve-wait-focus-anchor.png?v=command-eve-login-20260604';
@@ -32,7 +32,7 @@ const COMMAND_EVE_HERO_FIELD_GAP = 32;
 const COMMAND_EVE_HERO_FIELD_RADIUS = 175;
 const COMMAND_EVE_HERO_FIELD_AMPLITUDE = 9;
 
-// Simple obfuscation for stored credentials (not cryptographically secure, but prevents plain text storage)
+// Simple obfuscation for non-secret local preferences.
 const obfuscate = (text: string): string => {
   const encoded = btoa(encodeURIComponent(text));
   return encoded.split('').toReversed().join('');
@@ -387,11 +387,10 @@ const LoginPage: React.FC = () => {
 
   useEffect(() => {
     const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
+    localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
     if (isRememberMe) {
       const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
-      const storedPassword = localStorage.getItem(REMEMBERED_PASSWORD_KEY);
       if (storedUsername) setUsername(deobfuscate(storedUsername));
-      if (storedPassword) setPassword(deobfuscate(storedPassword));
       setRememberMe(true);
     }
     window.setTimeout(() => {
@@ -469,11 +468,11 @@ const LoginPage: React.FC = () => {
         if (rememberMe) {
           localStorage.setItem(REMEMBER_ME_KEY, 'true');
           localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
-          localStorage.setItem(REMEMBERED_PASSWORD_KEY, obfuscate(password));
+          localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
         } else {
           localStorage.removeItem(REMEMBER_ME_KEY);
           localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-          localStorage.removeItem(REMEMBERED_PASSWORD_KEY);
+          localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
         }
 
         const successText = t('login.success');

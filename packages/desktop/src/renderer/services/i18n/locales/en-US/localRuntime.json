@@ -1,0 +1,100 @@
+{
+  "sider": "Runtime",
+  "title": "Local Runtime",
+  "readOnly": "Read-only",
+  "subtitle": "Local truth for Hermes, Ollama, Gemma tiers, and the latest bootstrap receipt. No model switching or warm-up action is exposed on this screen.",
+  "refresh": "Refresh",
+  "sections": {
+    "runtimeTruth": "Runtime Truth",
+    "receipt": "Bootstrap Receipt",
+    "warmup": "Model warm-up",
+    "kanban": "Hermes Kanban"
+  },
+  "labels": {
+    "release": "Release",
+    "hermes": "Hermes",
+    "provider": "Provider",
+    "ollamaUrl": "Ollama URL",
+    "egressProxy": "Egress proxy",
+    "selectedModel": "Selected model",
+    "runtimeModel": "Runtime model",
+    "context": "Context",
+    "requirements": "Requirements",
+    "status": "Status",
+    "model": "Model",
+    "baseUrl": "Base URL",
+    "elapsed": "Elapsed",
+    "startedAt": "Started",
+    "completedAt": "Completed",
+    "error": "Error",
+    "baseModel": "Base model",
+    "nextAction": "Next action",
+    "receiptPath": "Receipt file"
+  },
+  "requirements": "{{memory}} GB RAM · {{disk}} GB disk",
+  "elapsedMs": "{{elapsed}} ms",
+  "warmupStatus": {
+    "running": "Running",
+    "ready": "Ready",
+    "failed": "Failed",
+    "skipped": "Skipped"
+  },
+  "kanban": {
+    "ready": "Ready",
+    "notReady": "Not ready",
+    "moduleCount": "{{ready}}/{{total}} modules ready",
+    "governanceLocked": "Dispatcher, auto-decompose, and external MCP servers are off",
+    "governanceOpen": "Governance lock incomplete",
+    "labels": {
+      "board": "Board",
+      "db": "Kanban DB",
+      "dbState": "DB state",
+      "tasks": "Tasks",
+      "modules": "Modules",
+      "governance": "Governance",
+      "reconciliation": "Reconciliation"
+    },
+    "dbPresent": {
+      "yes": "Present, opened read-only",
+      "no": "Not present yet, no mutation executed"
+    }
+  },
+  "tierStatus": {
+    "selected": "Selected",
+    "available": "Available",
+    "opt_in": "Optional",
+    "pro": "Pro"
+  },
+  "warnings": {
+    "title": "Status note",
+    "runtime_receipt_missing": "No runtime receipt has been written yet",
+    "runtime_receipt_schema_mismatch": "Runtime receipt has an unexpected schema",
+    "runtime_receipt_json_invalid": "Runtime receipt is not valid JSON",
+    "model_warmup_receipt_missing": "No model warm-up receipt has been written yet",
+    "model_warmup_receipt_schema_mismatch": "Model warm-up receipt has an unexpected schema",
+    "model_warmup_receipt_json_invalid": "Model warm-up receipt is not valid JSON",
+    "runtime_reconciliation_missing": "Runtime reconciliation is missing",
+    "runtime_reconciliation_schema_mismatch": "Runtime reconciliation has an unexpected schema",
+    "runtime_reconciliation_json_invalid": "Runtime reconciliation is not valid JSON",
+    "hermes_version_lookup_failed": "Hermes version could not be read",
+    "kanban_board_read_failed": "Kanban board could not be read read-only",
+    "kanban_optional_dashboard_api_unavailable": "Optional Hermes dashboard API is not importable; core Kanban remains usable",
+    "kanban_board_db_missing_read_only_no_mutation": "Kanban DB is not present yet; the preflight intentionally did not create it",
+    "kanban_python_probe_nonzero_exit": "Kanban Python probe exited non-zero"
+  },
+  "errors": {
+    "loadFailed": "Runtime status could not be loaded.",
+    "kanbanLoadFailed": "Kanban preflight could not be loaded."
+  },
+  "blocked": {
+    "title": "Runtime status blocked",
+    "description": "Local runtime truth is unavailable.",
+    "electronBridgeRequired": "Runtime status requires the Electron bridge."
+  },
+  "empty": {
+    "noReceipt": "No bootstrap receipt yet.",
+    "noWarmup": "No model warm-up receipt yet.",
+    "noKanban": "No Kanban preflight yet.",
+    "noRuntime": "No runtime data found."
+  }
+}

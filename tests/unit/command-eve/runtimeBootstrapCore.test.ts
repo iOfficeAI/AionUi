@@ -253,8 +253,37 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('ollama_num_ctx: 65536');
       expect(configYaml).toContain('max_tokens: 512');
       expect(configYaml).toContain('reasoning_effort: none');
+      expect(configYaml).toContain('skills:');
+      expect(configYaml).toContain('external_dirs:');
+      expect(configYaml).toContain('"${HERMES_HOME}/skills-command-eve"');
+      expect(configYaml).toContain('disabled:');
+      expect(configYaml).toContain('"red-teaming/godmode"');
       expect(configYaml).toContain('platform_toolsets:');
+      expect(configYaml).toContain('mcp_servers: {}');
+      expect(configYaml).toContain('kanban:');
+      expect(configYaml).toContain('dispatch_in_gateway: false');
+      expect(configYaml).toContain('auto_decompose: false');
       expect(configYaml).toContain(`model_url: ${baseUrl}`);
+      expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'first-run-company-discovery', 'SKILL.md'))).toBe(true);
+      expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'content-machine', 'SKILL.md'))).toBe(false);
+      const reconciliation = JSON.parse(fs.readFileSync(paths.runtimeReconciliation, 'utf8')) as {
+        executable_skill_ids: string[];
+        prompt_label_skill_ids: string[];
+        hermes_config: {
+          mcp_servers: string[];
+          skills_external_dirs: string[];
+          kanban_dispatch_in_gateway: boolean;
+          kanban_auto_decompose: boolean;
+        };
+        blocked_external_mcp_transports: string[];
+      };
+      expect(reconciliation.executable_skill_ids).toContain('first-run-company-discovery');
+      expect(reconciliation.prompt_label_skill_ids).toContain('content-machine');
+      expect(reconciliation.hermes_config.skills_external_dirs).toEqual(['${HERMES_HOME}/skills-command-eve']);
+      expect(reconciliation.hermes_config.mcp_servers).toEqual([]);
+      expect(reconciliation.hermes_config.kanban_dispatch_in_gateway).toBe(false);
+      expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(false);
+      expect(reconciliation.blocked_external_mcp_transports).toEqual(['http', 'sse']);
       expect(fs.readFileSync(path.join(paths.hermesHome, 'context_length_cache.yaml'), 'utf8')).toContain(
         `${runtimeModelRef}@${baseUrl}/v1: 65536`
       );

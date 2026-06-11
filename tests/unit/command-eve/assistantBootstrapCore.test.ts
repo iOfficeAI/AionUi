@@ -51,11 +51,37 @@ describe('Command EVE assistant bootstrap core', () => {
     expect(assistant.avatar).toBe('command-eve-logo.svg');
     expect(assistant.description).toContain('Chief-of-Staff-Schicht');
     expect(assistant.description_i18n?.['de-DE']).toContain('Chief-of-Staff');
-    expect(assistant.disabled_builtin_skills).toEqual(['aionui-skills', 'cron', 'officecli', 'skill-creator']);
+    expect(assistant.disabled_builtin_skills).toEqual([
+      'aionui-skills',
+      'cron',
+      'skill-creator',
+      'moltbook',
+      'story-roleplay',
+      'openclaw-setup',
+      'star-office-helper',
+      'xiaohongshu-recruiter',
+      'weixin-file-send',
+      'x-recruiter',
+      'aionui-webui-setup',
+    ]);
+    expect(assistant.disabled_builtin_skills).not.toContain('officecli');
+    expect(assistant.disabled_builtin_skills).not.toContain('pdf');
+  });
+
+  it('attaches imported Command EVE managed custom skills to EVE', () => {
+    const assistant = buildCommandEveAssistant('hermes', [
+      'first-run-company-discovery',
+      'goal-materialization',
+      'first-run-company-discovery',
+      '',
+    ]);
+
+    expect(assistant.enabled_skills).toEqual(['first-run-company-discovery', 'goal-materialization']);
+    expect(assistant.custom_skill_names).toEqual(['first-run-company-discovery', 'goal-materialization']);
   });
 
   it('keeps execution backends separate from EVE identity', () => {
-    expect(buildCommandEveAssistantContext('1.0.0-alpha.4')).toContain('Execution backends are tools, not identity');
+    expect(buildCommandEveAssistantContext('1.0.0-alpha.5')).toContain('Execution backends are tools, not identity');
   });
 
   it('codifies authority and secret boundaries in both supported languages', () => {
@@ -79,7 +105,7 @@ describe('Command EVE assistant bootstrap core', () => {
   it('renders local runtime, identity, skill and connector status into EVE first-run context', () => {
     const context = buildCommandEveAssistantFirstRunContext(
       {
-        appVersion: '1.0.0-alpha.4',
+        appVersion: '1.0.0-alpha.5',
         profile: {
           founder_name: 'Mathias Heinke',
           company_name: 'FYN Labs',
@@ -121,7 +147,7 @@ describe('Command EVE assistant bootstrap core', () => {
 
   it('appends first-run context to the persisted EVE skill', () => {
     const skill = buildCommandEveAssistantSkill('en-US', {
-      appVersion: '1.0.0-alpha.4',
+      appVersion: '1.0.0-alpha.5',
       receipt: {
         status: 'blocked',
         default_model: 'gemma4:12b',

@@ -72,7 +72,19 @@ export type CommandEveAssistantFirstRunContext = {
   capabilityPack?: CommandEveAssistantCapabilityPackContext;
 };
 
-export const COMMAND_EVE_DISABLED_BUILTIN_SKILLS = ['aionui-skills', 'cron', 'officecli', 'skill-creator'];
+export const COMMAND_EVE_DISABLED_BUILTIN_SKILLS = [
+  'aionui-skills',
+  'cron',
+  'skill-creator',
+  'moltbook',
+  'story-roleplay',
+  'openclaw-setup',
+  'star-office-helper',
+  'xiaohongshu-recruiter',
+  'weixin-file-send',
+  'x-recruiter',
+  'aionui-webui-setup',
+];
 
 export function unwrapCommandEveApiData<T>(payload: CommandEveApiEnvelope<T> | T): T {
   if (payload && typeof payload === 'object' && 'data' in payload) {
@@ -424,15 +436,21 @@ export function selectCommandEvePresetAgentType(agents: CommandEveDetectedAgent[
   return 'aionrs';
 }
 
-export function buildCommandEveAssistant(presetAgentType: string): CreateAssistantRequest {
+export function buildCommandEveAssistant(
+  presetAgentType: string,
+  customSkillNames: string[] = []
+): CreateAssistantRequest {
+  const uniqueCustomSkillNames = Array.from(
+    new Set(customSkillNames.map((skill) => String(skill || '').trim()).filter(Boolean))
+  );
   return {
     id: COMMAND_EVE_ASSISTANT_ID,
     name: 'EVE',
     description: 'Chief-of-Staff-Schicht fuer Founder Intent, CEO-Delegation und Company.OS Worker Contracts.',
     avatar: COMMAND_EVE_ASSISTANT_AVATAR,
     preset_agent_type: presetAgentType,
-    enabled_skills: [],
-    custom_skill_names: [],
+    enabled_skills: uniqueCustomSkillNames,
+    custom_skill_names: uniqueCustomSkillNames,
     disabled_builtin_skills: COMMAND_EVE_DISABLED_BUILTIN_SKILLS,
     prompts: [
       'Moin EVE, was weisst du schon ueber mich und diese Firma?',

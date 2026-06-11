@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import {
   COMMAND_EVE_DEFAULT_ACP_BACKEND,
   COMMAND_EVE_DEFAULT_ACP_MODEL_ID,
+  COMMAND_EVE_EGRESS_PROXY_OPENAI_BASE_URL,
+  COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_ID,
   COMMAND_EVE_LOCAL_MODEL_TIERS,
   getCommandEveAcpModelIdForTier,
   getCommandEveDefaultAcpModelId,
   getCommandEveDefaultAcpModelIdForTier,
+  getCommandEveLocalAcpModelInfo,
+  getCommandEveLocalAcpModelInfoForTier,
+  getCommandEveLocalRuntimeProvider,
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 
@@ -41,5 +46,33 @@ describe('commandEveShell', () => {
     );
     expect(getCommandEveDefaultAcpModelIdForTier('codex', planningTier)).toBeUndefined();
     expect(normalizeCommandEveLocalModelTierId('missing')).toBe(COMMAND_EVE_LOCAL_MODEL_TIERS[0].id);
+  });
+
+  it('exposes Command EVE local model tiers as Hermes ACP model metadata before handshake', () => {
+    const modelInfo = getCommandEveLocalAcpModelInfo('hermes');
+    expect(modelInfo?.current_model_id).toBe(COMMAND_EVE_DEFAULT_ACP_MODEL_ID);
+    expect(modelInfo?.current_model_label).toBe('Gemma 4 E4B');
+    expect(modelInfo?.available_models).toEqual([
+      { id: 'custom:command-eve-gemma4-e4b-64k:latest', label: 'Gemma 4 E4B' },
+      { id: 'custom:command-eve-gemma4-12b-64k:latest', label: 'Gemma 4 12B' },
+      { id: 'custom:command-eve-gemma4-31b-64k:latest', label: 'Gemma 4 31B' },
+    ]);
+    expect(getCommandEveLocalAcpModelInfo('codex')).toBeUndefined();
+  });
+
+  it('can expose a non-default Command EVE tier as the selected ACP model', () => {
+    const modelInfo = getCommandEveLocalAcpModelInfoForTier('hermes', 'gemma-4-12b-local-planning');
+    expect(modelInfo?.current_model_id).toBe('custom:command-eve-gemma4-12b-64k:latest');
+    expect(modelInfo?.current_model_label).toBe('Gemma 4 12B');
+  });
+
+  it('creates a loopback provider identity for the selected local EVE tier', () => {
+    const provider = getCommandEveLocalRuntimeProvider('gemma-4-12b-local-planning');
+    expect(provider.id).toBe(COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_ID);
+    expect(provider.name).toBe('Command EVE Local Runtime');
+    expect(provider.base_url).toBe(COMMAND_EVE_EGRESS_PROXY_OPENAI_BASE_URL);
+    expect(provider.api_key).toBe('command-eve-local-loopback');
+    expect(provider.use_model).toBe('custom:command-eve-gemma4-12b-64k:latest');
+    expect(provider.context_limit).toBe(65_536);
   });
 });

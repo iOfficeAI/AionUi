@@ -5,11 +5,15 @@
  */
 
 import { ipcBridge } from '@/common';
+import type { ICommandEveRuntimeStatus } from '@/common/adapter/ipcBridge';
 import {
   COMMAND_EVE_ASSISTANT_ID,
   COMMAND_EVE_ASSISTANT_KEY,
+  COMMAND_EVE_DEFAULT_ACP_BACKEND,
+  COMMAND_EVE_DISPLAY_NAME,
   COMMAND_EVE_SHELL_ENABLED,
   getCommandEveAcpModelIdForTier,
+  getCommandEveLocalRuntimeProvider,
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 import { configService } from '@/common/config/configService';
@@ -81,6 +85,13 @@ export type GuidSendResult = {
   isButtonDisabled: boolean;
 };
 
+const toCommandEveRuntimeModelId = (acpModelId: string): string => acpModelId.replace(/^custom:/, '');
+
+const commandEveWarmupReadyForModel = (
+  warmup: ICommandEveRuntimeStatus['model_warmup'] | undefined,
+  runtimeModelId: string
+): boolean => Boolean(warmup && warmup.model === runtimeModelId && ['ready', 'skipped'].includes(warmup.status || ''));
+
 /**
  * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).
  */
@@ -121,11 +132,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
+    let commandEveRuntimeModel: TProviderWithModel | undefined;
+    let commandEveRuntimeModelId: string | undefined;
+    const selectedCustomAgentId = selectedAgentInfo?.custom_agent_id?.replace(/^builtin-/, '');
     const isCommandEveAssistant =
       COMMAND_EVE_SHELL_ENABLED &&
-      is_presetAgent &&
-      (selectedAgentKey === COMMAND_EVE_ASSISTANT_KEY ||
-        selectedAgentInfo?.custom_agent_id?.replace(/^builtin-/, '') === COMMAND_EVE_ASSISTANT_ID);
+      (selectedAgentKey === COMMAND_EVE_ASSISTANT_KEY || selectedCustomAgentId === COMMAND_EVE_ASSISTANT_ID);
 
     if (isCommandEveAssistant) {
       await ipcBridge.commandEve.evaluateGateDecision.invoke({ action: 'truth_gate' }).catch((error) => {
@@ -134,30 +146,60 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       await configService.whenReady().catch((): undefined => undefined);
       const tierId = normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'));
       const expectedModel = getCommandEveAcpModelIdForTier(tierId);
+      const expectedRuntimeModel = toCommandEveRuntimeModelId(expectedModel);
+      commandEveRuntimeModel = getCommandEveLocalRuntimeProvider(tierId);
+      commandEveRuntimeModelId = expectedModel;
       const currentStatus = await ipcBridge.commandEve.runtimeStatus.invoke().catch((): undefined => undefined);
       const isRuntimeReady =
         currentStatus?.success &&
         currentStatus.data?.status === 'ready' &&
-        currentStatus.data.default_model === expectedModel;
-      if (!isRuntimeReady) {
+        currentStatus.data.default_model === expectedRuntimeModel;
+      const isWarm = commandEveWarmupReadyForModel(currentStatus?.data?.model_warmup, expectedRuntimeModel);
+      if (!isRuntimeReady || !isWarm) {
         Message.info(t('conversation.commandEveRuntimePreparing'));
-        const ensureResult = await ipcBridge.commandEve.ensureLocalModelTier.invoke({ tierId });
-        if (!ensureResult.success || ensureResult.data?.status !== 'ready') {
+        const ensureResult = await ipcBridge.commandEve.warmLocalModel.invoke({ tierId });
+        const warmedStatus = ensureResult.data;
+        const warmedReady =
+          ensureResult.success &&
+          warmedStatus?.status === 'ready' &&
+          warmedStatus.default_model === expectedRuntimeModel &&
+          commandEveWarmupReadyForModel(warmedStatus.model_warmup, expectedRuntimeModel);
+        if (!warmedReady) {
           Message.error(
             t('conversation.commandEveRuntimeNotReady', {
-              reason: ensureResult?.msg || ensureResult.data?.next_action || 'runtime not ready',
+              reason:
+                ensureResult?.msg ||
+                warmedStatus?.model_warmup?.error ||
+                warmedStatus?.next_action ||
+                'runtime not ready',
             })
           );
           return;
         }
       }
     }
+    const effectiveCurrentModel = commandEveRuntimeModel ?? current_model;
+    const effectiveAcpModelId =
+      commandEveRuntimeModelId || selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined;
 
     const isCustomWorkspace = !!dir;
     const finalWorkspace = dir || '';
 
-    const agentInfo = selectedAgentInfo;
-    const is_preset = is_presetAgent;
+    const commandEveFallbackAgentInfo: AvailableAgent | undefined =
+      isCommandEveAssistant && !selectedAgentInfo
+        ? {
+            agent_type: COMMAND_EVE_DEFAULT_ACP_BACKEND,
+            backend: COMMAND_EVE_DEFAULT_ACP_BACKEND,
+            name: COMMAND_EVE_DISPLAY_NAME,
+            id: COMMAND_EVE_ASSISTANT_ID,
+            custom_agent_id: COMMAND_EVE_ASSISTANT_ID,
+            is_preset: true,
+            context: '',
+            presetAgentType: COMMAND_EVE_DEFAULT_ACP_BACKEND,
+          }
+        : undefined;
+    const agentInfo = selectedAgentInfo ?? commandEveFallbackAgentInfo;
+    const is_preset = isCommandEveAssistant || is_presetAgent;
     const preset_assistant_id = is_preset ? agentInfo?.custom_agent_id : undefined;
 
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
@@ -180,7 +222,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         : undefined;
     const excludeBuiltinSkills = guidDisabledBuiltinSkills ?? resolveDisabledBuiltinSkills(agentInfo);
 
-    const finalEffectiveAgentType = effectiveAgentType;
+    const finalEffectiveAgentType = isCommandEveAssistant ? COMMAND_EVE_DEFAULT_ACP_BACKEND : effectiveAgentType;
 
     // OpenClaw Gateway path
     if (selectedAgent === 'openclaw-gateway') {
@@ -191,7 +233,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         agent_name: openclawAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,
-        model: current_model!,
+        model: effectiveCurrentModel!,
         cli_path: openclawAgentInfo?.cli_path,
         custom_agent_id: openclawAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
@@ -202,7 +244,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             expected_backend: openclawAgentInfo?.backend,
             expected_agent_name: openclawAgentInfo?.name,
             expected_cli_path: openclawAgentInfo?.cli_path,
-            expected_model: current_model?.use_model,
+            expected_model: effectiveCurrentModel?.use_model,
             switched_at: Date.now(),
           },
           preset_enabled_skills: enabled_skills_to_send,
@@ -248,7 +290,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         agent_name: nanobotAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,
-        model: current_model!,
+        model: effectiveCurrentModel!,
         custom_agent_id: nanobotAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
         extra: {
@@ -289,7 +331,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     // Aionrs path (direct selection or preset assistant with aionrs as main agent)
     if (selectedAgent === 'aionrs' || (is_preset && finalEffectiveAgentType === 'aionrs')) {
-      if (!current_model) {
+      if (!effectiveCurrentModel) {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
@@ -297,7 +339,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         const conversation = await ipcBridge.conversation.create.invoke({
           type: 'aionrs',
           name: input,
-          model: current_model,
+          model: effectiveCurrentModel,
           extra: {
             default_files: files,
             workspace: finalWorkspace,
@@ -311,7 +353,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         });
 
         if (!conversation || !conversation.id) {
-          alert('Failed to create Aion CLI conversation. Please ensure aionrs is installed.');
+          const runtimeLabel = COMMAND_EVE_SHELL_ENABLED ? 'EVE/Hermes' : 'Aion CLI';
+          const installLabel = COMMAND_EVE_SHELL_ENABLED ? 'the local EVE runtime is ready' : 'aionrs is installed';
+          alert(`Failed to create ${runtimeLabel} conversation. Please ensure ${installLabel}.`);
           return;
         }
 
@@ -330,7 +374,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         const errorMessage = error instanceof Error ? error.message : String(error);
-        alert(`Failed to create Aion CLI conversation: ${errorMessage}`);
+        const runtimeLabel = COMMAND_EVE_SHELL_ENABLED ? 'EVE/Hermes' : 'Aion CLI';
+        alert(`Failed to create ${runtimeLabel} conversation: ${errorMessage}`);
         throw error;
       }
       return;
@@ -367,7 +412,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         agent_name: acpAgentInfo?.name,
         preset_assistant_id,
         workspace: finalWorkspace,
-        model: current_model!,
+        model: effectiveCurrentModel!,
         cli_path: acpAgentInfo?.cli_path,
         custom_agent_id: acpAgentInfo?.custom_agent_id,
         custom_workspace: isCustomWorkspace,
@@ -381,7 +426,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             }
           : undefined,
         session_mode: selectedMode,
-        current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+        current_model_id: effectiveAcpModelId,
         extra: {
           default_files: files,
           exclude_auto_inject_skills: excludeBuiltinSkills,

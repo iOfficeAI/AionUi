@@ -22,6 +22,10 @@
     "guid",
     "agent",
     "team",
-    "pet"
+    "pet",
+    "commandCenter",
+    "connectorCatalog",
+    "skillLibrary",
+    "localRuntime"
   ]
 }

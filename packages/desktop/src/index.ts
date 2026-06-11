@@ -73,6 +73,10 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // to the first instance via second-instance event, then quits.
 const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
+const shouldBlockStartupForCommandEveRuntimeBootstrap =
+  process.env.COMMAND_EVE_RUNTIME_BOOTSTRAP_WAIT === '1' &&
+  process.env.COMMAND_EVE_ALLOW_STARTUP_BLOCKING === '1' &&
+  !isE2ETestMode;
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
@@ -200,12 +204,14 @@ let backendStartedOk = false;
 let backendMigrationsScheduled = false;
 
 ipcMain.on('get-backend-port', (event) => {
-  event.returnValue = backendManager.port;
+  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+  event.returnValue = backendManager.port > 0 ? backendManager.port : (bootBackendPort ?? 0);
 });
 
 type CommandEveWarmupReceipt = {
   status?: string;
   default_model?: string;
+  runtime_root?: string;
 };
 
 type CommandEveRuntimeStatusPayload = {
@@ -234,6 +240,9 @@ type CommandEveRuntimeStatusPayload = {
     finding_count?: number;
     policy_action?: string;
   };
+  model_warmup?: CommandEveModelWarmupReceipt & {
+    receipt_path: string;
+  };
   stages?: Array<{
     id: string;
     status: string;
@@ -241,6 +250,17 @@ type CommandEveRuntimeStatusPayload = {
     detail?: string;
     duration_ms?: number;
   }>;
+};
+
+type CommandEveModelWarmupReceipt = {
+  version: 'command-eve-model-warmup/v0';
+  status: 'running' | 'ready' | 'failed' | 'skipped';
+  model: string;
+  base_url: string;
+  started_at: string;
+  completed_at?: string;
+  elapsed_ms: number;
+  error?: string;
 };
 
 type CommandEveGateAction =
@@ -253,6 +273,15 @@ type CommandEveGateAction =
   | 'external_send'
   | 'schema_auth_secret'
   | 'truth_gate';
+
+type CommandEveAssistantEnsureResult = {
+  status: 'ready';
+  assistant_id: string;
+  preset_agent_type: string;
+  enabled_skills: string[];
+  custom_skill_names: string[];
+  skill_count: number;
+};
 
 const COMMAND_EVE_GATE_ACTIONS = new Set<CommandEveGateAction>([
   'edit_code',
@@ -274,6 +303,9 @@ type CommandEveWarmup = (options: {
 }) => Promise<{ ok: boolean; elapsedMs: number; model: string; error?: string }>;
 
 let commandEveRuntimeBridgeRegistered = false;
+let commandEveOllamaShimUrl = '';
+let commandEveWarmupInFlight: Promise<CommandEveModelWarmupReceipt> | undefined;
+let commandEveAssistantBootstrapInFlight: Promise<CommandEveAssistantEnsureResult> | undefined;
 
 function readJsonFile<T>(filePath: string): T | undefined {
   try {
@@ -297,6 +329,156 @@ function commandEveGateAuditPath(runtimeRoot: string): string {
   return path.join(runtimeRoot, 'audit', 'gate-decisions.jsonl');
 }
 
+function writeCommandEveModelWarmupReceipt(runtimeRoot: string, receipt: CommandEveModelWarmupReceipt): void {
+  try {
+    if (!runtimeRoot) return;
+    const receiptPath = path.join(runtimeRoot, 'model-warmup-receipt.json');
+    fs.mkdirSync(path.dirname(receiptPath), { recursive: true });
+    const tempFile = `${receiptPath}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempFile, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
+    fs.renameSync(tempFile, receiptPath);
+  } catch (error) {
+    console.warn('[Command EVE] Failed to write model warm-up receipt:', error);
+  }
+}
+
+function commandEveWarmupReceiptReadyForModel(
+  receipt: CommandEveModelWarmupReceipt | undefined,
+  model: string
+): boolean {
+  return Boolean(receipt?.status === 'ready' && receipt.model === model);
+}
+
+async function runCommandEveLocalModelWarmup(
+  receipt: CommandEveWarmupReceipt,
+  shimUrl: string,
+  warmup: CommandEveWarmup,
+  mark?: (label: string) => void
+): Promise<CommandEveModelWarmupReceipt> {
+  const model = receipt.default_model || '';
+  const runtimeRoot = receipt.runtime_root || '';
+  const disabledNow = new Date().toISOString();
+
+  if (receipt.status !== 'ready' || !model) {
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'runtime not ready',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  if (process.env.COMMAND_EVE_DISABLE_MODEL_WARMUP === '1') {
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'disabled by COMMAND_EVE_DISABLE_MODEL_WARMUP',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  const enabled = (await ProcessConfig.get('commandEve.modelWarmupEnabled').catch((): undefined => undefined)) ?? true;
+  if (!enabled) {
+    console.info('[Command EVE] Local model warm-up skipped by user preference.');
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'disabled by user preference',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  const startedAt = new Date().toISOString();
+  writeCommandEveModelWarmupReceipt(runtimeRoot, {
+    version: 'command-eve-model-warmup/v0',
+    status: 'running',
+    model,
+    base_url: shimUrl,
+    started_at: startedAt,
+    elapsed_ms: 0,
+  });
+
+  const result = await warmup({
+    baseUrl: shimUrl,
+    model,
+    timeoutMs: 90_000,
+    maxTokens: 1,
+  });
+  const completed: CommandEveModelWarmupReceipt = {
+    version: 'command-eve-model-warmup/v0',
+    status: result.ok ? 'ready' : 'failed',
+    model: result.model,
+    base_url: shimUrl,
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    elapsed_ms: result.elapsedMs,
+    ...(result.error ? { error: result.error } : {}),
+  };
+  writeCommandEveModelWarmupReceipt(runtimeRoot, completed);
+  if (result.ok) {
+    console.info(`[Command EVE] Local model warm-up ready: ${result.model} (${result.elapsedMs}ms)`);
+    mark?.(`commandEveModelWarmup (${result.elapsedMs}ms)`);
+  } else {
+    console.warn(`[Command EVE] Local model warm-up failed: ${result.error || 'unknown error'}`);
+  }
+  return completed;
+}
+
+function ensureCommandEveLocalModelWarmup(
+  receipt: CommandEveWarmupReceipt,
+  shimUrl: string,
+  warmup: CommandEveWarmup,
+  mark?: (label: string) => void
+): Promise<CommandEveModelWarmupReceipt> {
+  if (commandEveWarmupInFlight) return commandEveWarmupInFlight;
+  commandEveWarmupInFlight = runCommandEveLocalModelWarmup(receipt, shimUrl, warmup, mark).finally(() => {
+    commandEveWarmupInFlight = undefined;
+  });
+  return commandEveWarmupInFlight;
+}
+
+async function waitForCommandEveBackendPort(timeoutMs = 90_000): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+    const port = backendManager.port > 0 ? backendManager.port : (bootBackendPort ?? 0);
+    if (port > 0) return port;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Command EVE assistant readiness blocked: backend port not available after ${timeoutMs}ms.`);
+}
+
+function ensureCommandEveAssistantReadiness(): Promise<CommandEveAssistantEnsureResult> {
+  if (commandEveAssistantBootstrapInFlight) return commandEveAssistantBootstrapInFlight;
+  commandEveAssistantBootstrapInFlight = (async () => {
+    const bootBackendPort = await waitForCommandEveBackendPort();
+    const { getDataPath } = await import('./process/utils/utils');
+    const { ensureCommandEveAssistant } = await import('./process/commandEve/assistantBootstrap');
+    return ensureCommandEveAssistant(bootBackendPort, app.getVersion(), { userDataPath: getDataPath() });
+  })().finally(() => {
+    commandEveAssistantBootstrapInFlight = undefined;
+  });
+  return commandEveAssistantBootstrapInFlight;
+}
+
 async function getCommandEveRuntimeStatusPayload(): Promise<CommandEveRuntimeStatusPayload> {
   const { getDataPath } = await import('./process/utils/utils');
   const { resolveCommandEveRuntimeBootstrapPaths } = await import('./process/commandEve/runtimeBootstrapCore');
@@ -307,6 +489,7 @@ async function getCommandEveRuntimeStatusPayload(): Promise<CommandEveRuntimeSta
   const promptProof = readJsonFile<CommandEveRuntimeStatusPayload['prompt_proof']>(promptProofFile);
   const egressBoundaryFile = commandEveEgressBoundaryReceiptPath(paths.runtimeRoot);
   const egressBoundary = readJsonFile<Record<string, unknown>>(egressBoundaryFile);
+  const modelWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
   const executionMode = normalizeCommandEveExecutionMode(
     await ProcessConfig.get('commandEve.executionMode').catch((): undefined => undefined)
   );
@@ -318,6 +501,7 @@ async function getCommandEveRuntimeStatusPayload(): Promise<CommandEveRuntimeSta
       receipt_path: paths.receiptPath,
       gate_audit_path: gateAuditPath,
       next_action: 'Command EVE runtime receipt has not been written yet.',
+      ...(modelWarmup ? { model_warmup: { ...modelWarmup, receipt_path: paths.modelWarmupReceiptPath } } : {}),
       ...(promptProof ? { prompt_proof: { ...promptProof, receipt_path: promptProofFile } } : {}),
       ...(egressBoundary
         ? {
@@ -344,6 +528,7 @@ async function getCommandEveRuntimeStatusPayload(): Promise<CommandEveRuntimeSta
     receipt_path: paths.receiptPath,
     gate_audit_path: gateAuditPath,
     prompt_proof: promptProof ? { ...promptProof, receipt_path: promptProofFile } : undefined,
+    model_warmup: modelWarmup ? { ...modelWarmup, receipt_path: paths.modelWarmupReceiptPath } : undefined,
     egress_boundary: egressBoundary
       ? {
           receipt_path: egressBoundaryFile,
@@ -369,10 +554,21 @@ function registerCommandEveRuntimeBridge(): void {
     }
   });
 
+  ipcBridge.commandEve.ensureAssistant.provider(async () => {
+    try {
+      return { success: true, data: await ensureCommandEveAssistantReadiness() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
   ipcBridge.commandEve.ensureLocalModelTier.provider(async (request) => {
     try {
       const { getDataPath } = await import('./process/utils/utils');
-      const { ensureCommandEveRuntimeBootstrap } = await import('./process/commandEve/runtimeBootstrapCore');
+      const { ensureCommandEveRuntimeBootstrap, resolveCommandEveRuntimeBootstrapPaths } =
+        await import('./process/commandEve/runtimeBootstrapCore');
+      const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+        await import('./process/commandEve/ollamaOpenAiShim');
       const tierId = typeof request?.tierId === 'string' ? request.tierId : '';
       const receipt = await ensureCommandEveRuntimeBootstrap({
         userDataPath: getDataPath(),
@@ -381,11 +577,78 @@ function registerCommandEveRuntimeBridge(): void {
         mode: 'auto',
         env: tierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: tierId } : undefined,
       });
+      const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+      const existingWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
+      const shouldWarm = !commandEveWarmupReceiptReadyForModel(existingWarmup, receipt.default_model || '');
+      const shimUrl =
+        commandEveOllamaShimUrl ||
+        (await startCommandEveOllamaOpenAiShim({
+          promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
+          egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+        }));
+      commandEveOllamaShimUrl = shimUrl;
+      const warmupReceipt = shouldWarm
+        ? await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel)
+        : existingWarmup;
       const status = await getCommandEveRuntimeStatusPayload();
+      const warmupOk = ['ready', 'skipped'].includes(warmupReceipt?.status || '');
       return {
-        success: receipt.status === 'ready',
+        success: receipt.status === 'ready' && warmupOk,
         data: status,
-        msg: receipt.status === 'ready' ? undefined : receipt.next_action,
+        msg:
+          receipt.status !== 'ready'
+            ? receipt.next_action
+            : warmupOk
+              ? undefined
+              : warmupReceipt?.error || 'local model warm-up failed',
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.commandEve.warmLocalModel.provider(async (request) => {
+    try {
+      const { getDataPath } = await import('./process/utils/utils');
+      const { ensureCommandEveRuntimeBootstrap, resolveCommandEveRuntimeBootstrapPaths } =
+        await import('./process/commandEve/runtimeBootstrapCore');
+      const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+        await import('./process/commandEve/ollamaOpenAiShim');
+      const tierId = typeof request?.tierId === 'string' ? request.tierId : '';
+      const receipt = await ensureCommandEveRuntimeBootstrap({
+        userDataPath: getDataPath(),
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        mode: 'auto',
+        env: tierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: tierId } : undefined,
+      });
+      const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+      const existingWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
+      if (commandEveWarmupReceiptReadyForModel(existingWarmup, receipt.default_model || '')) {
+        return {
+          success: true,
+          data: await getCommandEveRuntimeStatusPayload(),
+        };
+      }
+
+      const shimUrl =
+        commandEveOllamaShimUrl ||
+        (await startCommandEveOllamaOpenAiShim({
+          promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
+          egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+        }));
+      commandEveOllamaShimUrl = shimUrl;
+      const warmupReceipt = await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel);
+      const warmupOk = ['ready', 'skipped'].includes(warmupReceipt.status);
+      return {
+        success: receipt.status === 'ready' && warmupOk,
+        data: await getCommandEveRuntimeStatusPayload(),
+        msg:
+          receipt.status !== 'ready'
+            ? receipt.next_action
+            : warmupOk
+              ? undefined
+              : warmupReceipt.error || 'local model warm-up failed',
       };
     } catch (error) {
       return { success: false, msg: error instanceof Error ? error.message : String(error) };
@@ -420,29 +683,7 @@ function scheduleCommandEveLocalModelWarmup(
   mark?: (label: string) => void
 ): void {
   if (receipt.status !== 'ready' || !receipt.default_model) return;
-  if (process.env.COMMAND_EVE_DISABLE_MODEL_WARMUP === '1') return;
-
-  void (async () => {
-    const enabled =
-      (await ProcessConfig.get('commandEve.modelWarmupEnabled').catch((): undefined => undefined)) ?? true;
-    if (!enabled) {
-      console.info('[Command EVE] Local model warm-up skipped by user preference.');
-      return;
-    }
-
-    const result = await warmup({
-      baseUrl: shimUrl,
-      model: receipt.default_model || '',
-      timeoutMs: 90_000,
-      maxTokens: 1,
-    });
-    if (result.ok) {
-      console.info(`[Command EVE] Local model warm-up ready: ${result.model} (${result.elapsedMs}ms)`);
-      mark?.(`commandEveModelWarmup (${result.elapsedMs}ms)`);
-      return;
-    }
-    console.warn(`[Command EVE] Local model warm-up failed: ${result.error || 'unknown error'}`);
-  })();
+  void ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmup, mark);
 }
 
 function registerCronResumeBridge(backendPort: number): void {
@@ -738,6 +979,7 @@ const handleAppReady = async (): Promise<void> => {
       promptProofPath: commandEvePromptProofPath(runtimePaths.runtimeRoot),
       egressReceiptPath: commandEveEgressBoundaryReceiptPath(runtimePaths.runtimeRoot),
     });
+    commandEveOllamaShimUrl = shimUrl;
     mark(`commandEveOllamaShim (${shimUrl})`);
     prepareCommandEveRuntimeProcessEnv(getDataPath());
     const localModelTierId = await ProcessConfig.get('commandEve.localModelTierId').catch((): undefined => undefined);
@@ -748,7 +990,7 @@ const handleAppReady = async (): Promise<void> => {
       mode: 'auto',
       env: localModelTierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: localModelTierId } : undefined,
     });
-    if (process.env.COMMAND_EVE_RUNTIME_BOOTSTRAP_WAIT === '1') {
+    if (shouldBlockStartupForCommandEveRuntimeBootstrap) {
       const receipt = await bootstrap;
       mark(`commandEveRuntimeBootstrap (${receipt.status})`);
       scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark);
@@ -804,9 +1046,7 @@ const handleAppReady = async (): Promise<void> => {
     }
 
     try {
-      const { getDataPath } = await import('./process/utils/utils');
-      const { ensureCommandEveAssistant } = await import('./process/commandEve/assistantBootstrap');
-      await ensureCommandEveAssistant(bootBackendPort, app.getVersion(), { userDataPath: getDataPath() });
+      await ensureCommandEveAssistantReadiness();
       mark('commandEveAssistantBootstrap');
     } catch (err) {
       console.error('[Command EVE] Assistant bootstrap failed:', err);

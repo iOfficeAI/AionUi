@@ -58,6 +58,16 @@ test.describe('Command EVE egress boundary', () => {
   test.setTimeout(240_000);
 
   test('blocks sensitive data from the real EVE GUI chat path and writes a fresh receipt', async ({ page }) => {
+    const rendererLogs: string[] = [];
+    page.on('console', (message) => {
+      rendererLogs.push(`[${message.type()}] ${message.text()}`);
+      if (rendererLogs.length > 100) rendererLogs.shift();
+    });
+    page.on('pageerror', (error) => {
+      rendererLogs.push(`[pageerror] ${error.message}`);
+      if (rendererLogs.length > 100) rendererLogs.shift();
+    });
+
     await page.waitForSelector('body', { state: 'visible' });
     const readyStatus = await ensureCommandEveRuntimeReady(page);
     const previousObservedAt = readyStatus.egress_boundary?.observed_at ?? '';
@@ -66,7 +76,13 @@ test.describe('Command EVE egress boundary', () => {
 
     const syntheticSecret =
       'E2E boundary proof: api_key=sk-e2etestboundary1234567890 and address Musterstraße 12, phone +49 30 12345678.';
-    const conversationId = await sendMessageFromGuid(page, syntheticSecret);
+    let conversationId: string;
+    try {
+      conversationId = await sendMessageFromGuid(page, syntheticSecret);
+    } catch (error) {
+      console.log(`[Command EVE E2E renderer logs]\n${rendererLogs.join('\n')}`);
+      throw error;
+    }
     expect(conversationId).toBeTruthy();
 
     await expect

@@ -613,6 +613,7 @@ const ModelModalContent: React.FC = () => {
           </div>
         </div>
         <div
+          data-testid='command-eve-model-support-note'
           className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
           style={{
             borderColor: 'rgba(var(--primary-6),0.32)',
