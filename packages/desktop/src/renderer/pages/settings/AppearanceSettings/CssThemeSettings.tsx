@@ -17,7 +17,7 @@ import CssThemeModal from './CssThemeModal.tsx';
 import { BUILTIN_THEMES, DEFAULT_THEME_ID } from './presets.ts';
 import { BACKGROUND_BLOCK_START, injectBackgroundCssBlock } from './backgroundUtils.ts';
 import { resolveExtensionAssetUrl } from '@renderer/utils/platform.ts';
-import { LIGHT_THEME_ID } from '@/common/theme/constants';
+import { LIGHT_THEME_ID, SYSTEM_THEME_ID } from '@/common/theme/constants';
 
 interface ThemePreviewPalette {
   appBg: string;
@@ -211,6 +211,16 @@ const ThemeLayoutPreview: React.FC<{ palette: ThemePreviewPalette }> = ({ palett
   );
 };
 
+/** Diagonal split preview for the "Follow System" card: light top-left, dark bottom-right. */
+const SystemThemePreview: React.FC = () => (
+  <div className='absolute inset-0 pointer-events-none'>
+    <ThemeLayoutPreview palette={fallbackThemePreviewPaletteByMode.light} />
+    <div className='absolute inset-0' style={{ clipPath: 'polygon(100% 0, 100% 100%, 0 100%)' }}>
+      <ThemeLayoutPreview palette={fallbackThemePreviewPaletteByMode.dark} />
+    </div>
+  </div>
+);
+
 const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: string; builtin?: boolean }>(
   theme: T
 ): T => {
@@ -230,13 +240,13 @@ const ensureBackgroundCss = <T extends { id?: string; cover?: string; css?: stri
  */
 const CssThemeSettings: React.FC = () => {
   const { t } = useTranslation();
-  const { theme: currentTheme, activeTheme, selectTheme } = useThemeContext();
+  const { theme: currentTheme, activeTheme, activeId, selectTheme } = useThemeContext();
   const [themes, setThemes] = useState<Theme[]>([]);
   const [modalVisible, setModalVisible] = useState(false);
   const [editingTheme, setEditingTheme] = useState<Theme | null>(null);
   const [hoveredThemeId, setHoveredThemeId] = useState<string | null>(null);
 
-  const activeThemeId = activeTheme?.id ?? DEFAULT_THEME_ID;
+  const activeThemeId = activeId ?? activeTheme?.id ?? DEFAULT_THEME_ID;
 
   const themePreviewPalettes = useMemo(() => {
     const map = new Map<string, ThemePreviewPalette>();
@@ -245,6 +255,23 @@ const CssThemeSettings: React.FC = () => {
     });
     return map;
   }, [themes, currentTheme]);
+
+  // Virtual "Follow System" card, third in the gallery (after Light and Dark).
+  // Not part of BUILTIN_THEMES — it must never enter resolution/dedup/persistence.
+  const displayThemes = useMemo(() => {
+    if (themes.length === 0) return themes;
+    const systemCard: Theme = {
+      id: SYSTEM_THEME_ID,
+      name: t('settings.cssTheme.followSystem'),
+      appearance: 'light',
+      builtin: true,
+      created_at: 0,
+      updated_at: 0,
+    };
+    const arr = [...themes];
+    arr.splice(Math.min(2, arr.length), 0, systemCard);
+    return arr;
+  }, [themes, t]);
 
   // 加载主题列表 / Load theme list
   useEffect(() => {
@@ -431,7 +458,7 @@ const CssThemeSettings: React.FC = () => {
           gridTemplateColumns: 'repeat(auto-fit, minmax(180px, 1fr))',
         }}
       >
-        {themes.map((theme) => {
+        {displayThemes.map((theme) => {
           const previewPalette =
             themePreviewPalettes.get(theme.id) ||
             fallbackThemePreviewPaletteByMode[currentTheme === 'dark' ? 'dark' : 'light'];
@@ -453,7 +480,11 @@ const CssThemeSettings: React.FC = () => {
               onMouseEnter={() => setHoveredThemeId(theme.id)}
               onMouseLeave={() => setHoveredThemeId(null)}
             >
-              {!theme.cover && <ThemeLayoutPreview palette={previewPalette} />}
+              {theme.id === SYSTEM_THEME_ID ? (
+                <SystemThemePreview />
+              ) : (
+                !theme.cover && <ThemeLayoutPreview palette={previewPalette} />
+              )}
 
               {/* 底部渐变遮罩与名称、编辑按钮 / Bottom gradient overlay with name and edit button */}
               <div className='absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/60 to-transparent flex items-end justify-between p-8px'>
