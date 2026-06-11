@@ -1,0 +1,30 @@
+{
+  "agentFallbackNotice": "{{original}} در دسترس نیست، در عوض از {{fallback}} استفاده می‌شود.",
+  "noAgentAvailable": "هیچ عامل اصلی در دسترس نیست. لطفاً به Google وارد شوید یا Claude/Codex CLI را نصب کنید. به تنظیمات بروید؟",
+  "noAgentAvailableShort": "عامل اصلی در دسترس نیست. کلیک کنید برای پیکربندی.",
+  "agentTabAutoSwitch": "مدل با Gemini سازگار نیست، به‌صورت خودکار به {{fallback}} سوئیچ شد",
+  "autoSwitchToAgent": "Gemini پیکربندی نشده است، جابه‌جایی خودکار به {{agent}}",
+  "autoSwitchedAgent": "{{from}} در دسترس نیست، به {{to}} جابه‌جا شد",
+  "promptExamplesHint": "نمونه پرامپت‌ها را امتحان کنید:",
+  "selectAssistantHint": "یک دستیار برای شروع کار انتخاب کنید",
+  "agentSwitcherLabel": "عامل",
+  "switchedToAgent": "به {{agent}} جابه‌جا شد",
+  "workspace": {
+    "workInProject": "کار در پروژه",
+    "optional": "اختیاری",
+    "clearWorkspace": "پاک کردن",
+    "specifyWorkspace": "انتخاب پوشه پروژه",
+    "searchPlaceholder": "جستجوی پروژه‌ها…",
+    "noProject": "بدون پروژه"
+  },
+  "scanning": {
+    "initialMessage": "عامل فعلی در دسترس نیست، در حال شناسایی عامل‌های موجود دیگر...",
+    "scanningMessage": "در حال اسکن عامل‌های موجود محلی...",
+    "connectingMessage": "اتصال موفقیت‌آمیز بود، لطفاً صبر کنید...",
+    "establishingConnection": "در حال برقراری اتصال...",
+    "statusQueued": "در صف",
+    "statusTesting": "در حال آزمایش تأخیر...",
+    "statusUnreachable": "غیرقابل دسترس",
+    "statusAvailable": "در دسترس"
+  }
+}

@@ -1,0 +1,69 @@
+{
+  "unknownFile": "فایل ناشناخته",
+  "newFile": "فایل جدید",
+  "deletedFile": "فایل حذف‌شده",
+  "modified": "تغییر یافته",
+  "fileChanges": "تغییرات فایل",
+  "shell": {
+    "displayName": "دستور شل",
+    "description": "اجرای دستورات شل"
+  },
+  "fileOps": {
+    "displayName": "عملیات فایل",
+    "description": "خواندن، نوشتن و تغییر فایل"
+  },
+  "webSearch": {
+    "displayName": "جستجوی وب",
+    "description": "جستجوی محتوای وب"
+  },
+  "mcp": {
+    "generic": {
+      "displayName": "ابزار MCP: {{toolName}}",
+      "description": "فراخوانی ابزار MCP: {{toolName}}"
+    }
+  },
+  "unknown": {
+    "displayName": "ابزار ناشناخته",
+    "description": "نوع ابزار ناشناخته"
+  },
+  "status": {
+    "pending": "در انتظار",
+    "executing": "در حال اجرا",
+    "success": "موفقیت",
+    "error": "خطا",
+    "canceled": "لغو شده"
+  },
+  "titles": {
+    "web_search_started": "جستجوی وب شروع شد",
+    "web_search_completed": "جستجوی وب تکمیل شد",
+    "web_search": "جستجوی وب",
+    "applying_patch": "در حال اعمال پچ",
+    "patch_applied": "پچ اعمال شد",
+    "file_patch": "پچ فایل",
+    "mcp_tool_starting": "ابزار MCP: {{toolName}} (در حال شروع)",
+    "mcp_tool": "ابزار MCP: {{toolName}}",
+    "execute_command": "اجرا: {{command}}",
+    "command_output": "خروجی دستور",
+    "command_completed": "دستور تکمیل شد",
+    "shell_command": "دستور شل"
+  },
+  "labels": {
+    "search_query": "عبارت جستجو:",
+    "file_changes": "تغییرات فایل:",
+    "tool_details": "جزئیات ابزار:",
+    "tool": "ابزار",
+    "arguments": "آرگومان‌ها:",
+    "result": "نتیجه:",
+    "command": "دستور:",
+    "working_directory": "پوشه کاری:",
+    "exit_code": "خروج: {{code}}",
+    "duration": "مدت زمان: {{seconds}}",
+    "auto_approved": "تأیید خودکار",
+    "manual_approval": "تأیید دستی"
+  },
+  "actions": {
+    "create": "ایجاد",
+    "modify": "تغییر",
+    "delete": "حذف"
+  }
+}

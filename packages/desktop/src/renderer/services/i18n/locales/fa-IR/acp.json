@@ -1,0 +1,25 @@
+{
+  "auth": {
+    "failed": "احراز هویت {{backend}} ناموفق بود:\n\n{{error}}\n\nلطفاً وضعیت احراز هویت ابزار CLI محلی خود را بررسی کنید",
+    "console_error": "جزئیات خطای احراز هویت ACP:",
+    "failed_confirm": "احراز هویت ACP {{backend}} ناموفق بود:\n\n{{error}}\n\nآیا می‌خواهید به صفحه تنظیمات بروید و پیکربندی کنید؟"
+  },
+  "send": {
+    "failed": "ارسال پیام ناموفق بود: {{error}}"
+  },
+  "sendbox": {
+    "placeholder": "ارسال پیام به {{backend}}..."
+  },
+  "status": {
+    "connecting": "در حال اتصال به {{agent}}...",
+    "connected": "متصل به {{agent}}",
+    "authenticated": "احراز هویت شده با {{agent}}",
+    "session_active": "جلسه فعال با {{agent}}",
+    "error": "خطای اتصال",
+    "unknown": "وضعیت نامشخص"
+  },
+  "config": {
+    "reasoning_effort": "تلاش استدلال",
+    "default": "پیش‌فرض"
+  }
+}

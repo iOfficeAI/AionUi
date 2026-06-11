@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "تیم‌ها",
+    "createTeam": "تیم جدید",
+    "pin": "سنجاق کردن",
+    "unpin": "برداشتن سنجاق",
+    "rename": "تغییر نام",
+    "delete": "حذف",
+    "renameTitle": "تغییر نام تیم",
+    "renamePlaceholder": "نام تیم",
+    "deleteConfirm": "این تیم حذف شود؟",
+    "deleteConfirmContent": "این عمل غیرقابل بازگشت است.",
+    "deleteOk": "حذف",
+    "deleteCancel": "لغو",
+    "renameOk": "ذخیره",
+    "renameCancel": "لغو",
+    "renameSuccess": "نام تیم تغییر کرد",
+    "deleteSuccess": "تیم حذف شد"
+  },
+  "newAgent": "عامل جدید",
+  "noMessages": "هنوز پیامی وجود ندارد.",
+  "agentNotConfigured": "عامل هنوز پیکربندی نشده است.",
+  "sendBox": {
+    "placeholder": "ارسال پیام به عامل ارسال..."
+  },
+  "create": {
+    "title": "ایجاد تیم",
+    "namePlaceholder": "نام تیم",
+    "dispatchAgentPlaceholder": "انتخاب سرتیم",
+    "subAgentsPlaceholder": "انتخاب عامل‌های فرعی",
+    "workspacePlaceholder": "مسیر پوشه پروژه (اختیاری)",
+    "confirm": "ایجاد تیم",
+    "noSupportedAgents": "عامل پشتیبانی‌شده‌ای نصب نشده است",
+    "supportedAgentsHint": "در حال حاضر از Claude و Codex پشتیبانی می‌شود. عامل‌های بیشتر به‌زودی اضافه خواهند شد.",
+    "leaderDesc": "اهداف شما را درک می‌کند و عامل‌ها را برای تکمیل وظایف هماهنگ می‌کند",
+    "step": {
+      "dispatch": "سرتیم",
+      "subAgents": "عامل‌های فرعی",
+      "workspace": "پروژه"
+    },
+    "nameRequired": "لطفاً نام تیم را وارد کنید",
+    "leaderRequired": "لطفاً یک سرتیم انتخاب کنید",
+    "selectFolder": "انتخاب پوشه",
+    "recentLabel": "اخیر",
+    "chooseDifferentFolder": "انتخاب پوشه دیگر",
+    "error": "ایجاد تیم ناموفق بود"
+  },
+  "removeAgent": {
+    "confirmTitle": "حذف عضو تیم",
+    "confirmContent": "این عضو در حال حاضر فعال است. حذف اجباری انجام شود؟"
+  },
+  "emptyState": {
+    "subtitle": "هدف خود را شرح دهید و من تیم را برای کار روی آن آماده می‌کنم",
+    "suggestions": {
+      "debate": "برگزاری یک مناظره با عامل‌هایی که طرف‌های مختلف را می‌گیرند",
+      "interview": "برنامه‌ریزی یک مصاحبه عمیق بین عامل‌ها",
+      "expert_review": "تحلیل یک مسئله واحد توسط چندین متخصص"
+    }
+  }
+}

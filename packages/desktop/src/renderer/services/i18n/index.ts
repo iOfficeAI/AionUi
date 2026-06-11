@@ -25,6 +25,7 @@ import ukUA from './locales/uk-UA/index';
 import ptBR from './locales/pt-BR/index';
 import deDE from './locales/de-DE/index';
 import esES from './locales/es-ES/index';
+import faIR from './locales/fa-IR/index';
 export type { I18nKey, I18nModule } from './i18n-keys';
 
 // Re-exports
@@ -45,6 +46,7 @@ const localeData: LocaleData = {
   'pt-BR': ptBR,
   'de-DE': deDE,
   'es-ES': esES,
+  'fa-IR': faIR,
 };
 
 const fallbackLocale = localeData[DEFAULT_LANGUAGE] ?? {};

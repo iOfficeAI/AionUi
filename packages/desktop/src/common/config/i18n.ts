@@ -45,6 +45,8 @@ export function normalizeLanguageCode(language: string): SupportedLanguage {
       return 'de-DE';
     case 'es':
       return 'es-ES';
+    case 'fa':
+      return 'fa-IR';
     default:
       return DEFAULT_LANGUAGE;
   }

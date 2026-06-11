@@ -12,7 +12,8 @@
     "uk-UA",
     "pt-BR",
     "de-DE",
-    "es-ES"
+    "es-ES",
+    "fa-IR"
   ],
   "modules": [
     "common",
