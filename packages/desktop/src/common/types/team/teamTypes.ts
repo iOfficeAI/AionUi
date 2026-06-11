@@ -5,8 +5,10 @@
 /** Role of a teammate within a team */
 export type TeammateRole = 'leader' | 'teammate';
 
-// Backend statuses: idle|working|thinking|tool_use|completed|error → mapped via teamMapper.toStatus()
-/** Lifecycle status of a teammate agent */
+/** Backend runtime status value as delivered by Team WebSocket events */
+export type BackendTeammateStatus = string;
+
+/** Lifecycle status of a teammate agent after frontend normalization */
 export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'failed';
 
 /** Workspace sharing strategy for the team */
@@ -57,7 +59,7 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
 export type ITeamAgentStatusEvent = {
   team_id: string;
   slot_id: string;
-  status: TeammateStatus;
+  status: BackendTeammateStatus;
   last_message?: string;
 };
 

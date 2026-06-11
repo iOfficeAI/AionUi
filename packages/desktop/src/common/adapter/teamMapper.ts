@@ -4,7 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { TeamAgent, TeammateRole, TeammateStatus, TTeam, WorkspaceMode } from '../types/team/teamTypes';
+import type {
+  BackendTeammateStatus,
+  TeamAgent,
+  TeammateRole,
+  TeammateStatus,
+  TTeam,
+  WorkspaceMode,
+} from '../types/team/teamTypes';
 
 // ── Parameter types for team API calls ─────────────────────────────────
 
@@ -31,7 +38,7 @@ function toRole(raw: string | undefined): TeammateRole {
   return VALID_ROLES.has(raw as TeammateRole) ? (raw as TeammateRole) : 'teammate';
 }
 
-function toStatus(raw: string | undefined): TeammateStatus {
+export function normalizeTeamStatus(raw: BackendTeammateStatus | undefined): TeammateStatus {
   const statusMap: Record<string, TeammateStatus> = {
     pending: 'pending',
     idle: 'idle',
@@ -67,7 +74,7 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
     icon: r.icon as string | undefined,
     agent_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
     conversation_type: conversationType,
-    status: toStatus(r.status as string | undefined),
+    status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,
     custom_agent_id: r.custom_agent_id as string | undefined,
     model: r.model as string | undefined,

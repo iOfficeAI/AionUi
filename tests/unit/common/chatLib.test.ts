@@ -10,6 +10,7 @@ import {
   composeMessage,
   normalizeAgentStreamError,
   transformMessage,
+  type IMessageText,
   type IMessageTips,
   type IMessageAcpToolCall,
   type IMessageThinking,
@@ -171,6 +172,47 @@ describe('transformMessage', () => {
     };
 
     expect(transformMessage(message)).toBeUndefined();
+  });
+
+  it('uses explicit stream position for team projected user text messages', () => {
+    const message: IResponseMessage = {
+      type: 'text',
+      data: {
+        content: '你好',
+      },
+      msg_id: 'team-user-message-1',
+      conversation_id: CONVERSATION_ID,
+      position: 'right',
+      status: 'finish',
+      replace: true,
+    };
+
+    const transformed = transformMessage(message) as IMessageText;
+
+    expect(transformed.type).toBe('text');
+    expect(transformed.position).toBe('right');
+    expect(transformed.status).toBe('finish');
+    expect(transformed.content).toEqual({
+      content: '你好',
+      replace: true,
+    });
+  });
+
+  it('keeps plain text stream messages left when no explicit position is present', () => {
+    const message: IResponseMessage = {
+      type: 'text',
+      data: {
+        content: 'agent response',
+      },
+      msg_id: 'agent-message-1',
+      conversation_id: CONVERSATION_ID,
+    };
+
+    const transformed = transformMessage(message) as IMessageText;
+
+    expect(transformed.type).toBe('text');
+    expect(transformed.position).toBe('left');
+    expect(transformed.content.content).toBe('agent response');
   });
 
   it('preserves structured agent stream error metadata', () => {

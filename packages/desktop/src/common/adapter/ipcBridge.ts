@@ -1478,10 +1478,12 @@ export interface IResponseMessage {
   type: string;
   data: unknown;
   msg_id: string;
-  turn_id: string;
+  turn_id?: string;
   conversation_id: string;
   created_at?: number;
   hidden?: boolean;
+  position?: 'left' | 'right' | 'center' | 'pop';
+  status?: 'finish' | 'pending' | 'error' | 'work';
   /** Replace accumulated text for the same msg_id instead of appending. */
   replace?: boolean;
 }

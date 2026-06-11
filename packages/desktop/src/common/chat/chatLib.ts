@@ -489,6 +489,12 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
+const isChatMessagePosition = (value: unknown): value is NonNullable<TMessage['position']> =>
+  value === 'left' || value === 'right' || value === 'center' || value === 'pop';
+
+const isChatMessageStatus = (value: unknown): value is NonNullable<TMessage['status']> =>
+  value === 'finish' || value === 'pending' || value === 'error' || value === 'work';
+
 export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
@@ -550,11 +556,18 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
       const data = message.data;
       const isRichData = isResponseTextData(data);
       const shouldReplace = message.replace === true || (isRichData && data.replace === true);
+      const position = isChatMessagePosition(message.position)
+        ? message.position
+        : message.type === 'user_content'
+          ? 'right'
+          : 'left';
+      const status = isChatMessageStatus(message.status) ? message.status : undefined;
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: message.type === 'user_content' ? 'right' : 'left',
+        position,
+        ...(status ? { status } : {}),
         conversation_id: message.conversation_id,
         created_at,
         content: isRichData

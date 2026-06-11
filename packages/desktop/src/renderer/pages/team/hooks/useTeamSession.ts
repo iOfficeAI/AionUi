@@ -1,5 +1,6 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
+import { normalizeTeamStatus } from '@/common/adapter/teamMapper';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -35,7 +36,11 @@ export function useTeamSession(team: TTeam) {
       if (event.team_id !== team.id) return;
       setStatusMap((prev) => {
         const next = new Map(prev);
-        next.set(event.slot_id, { slot_id: event.slot_id, status: event.status, last_message: event.last_message });
+        next.set(event.slot_id, {
+          slot_id: event.slot_id,
+          status: normalizeTeamStatus(event.status),
+          last_message: event.last_message,
+        });
         return next;
       });
     });
