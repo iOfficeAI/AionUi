@@ -9,7 +9,10 @@ export {
   BackendLifecycleManager,
   buildSpawnArgs,
   buildSpawnEnv,
+  DEFAULT_BACKEND_PORT,
+  DEFAULT_PLUGIN_PORT,
   findAvailablePort,
+  resolveBackendPort,
   startBackend,
   stopBackend,
 } from './backend-launcher.js';

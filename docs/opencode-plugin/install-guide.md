@@ -49,6 +49,12 @@ side, behind the `ShellApprover` and audit ring buffer.
   plugin webserver on the first reachability candidate of the host's
   local IP discovery (loopback for the `AIONUI_LOCAL_FS_MCP_PUBLIC_URL`
   override path).
+- **Stable plugin port.** The dial-back port must not change when you
+  restart Chisl. Set `AIONUI_PLUGIN_PORT` on the **Chisl / AionCore**
+  process to the port already in your remote `AIONCORE_URL` (Docker,
+  systemd) — you do **not** reconfigure the remote server. After the
+  first successful bind, AionCore also persists the port under
+  `{data_dir}/plugin-listen-port` and reuses it automatically.
 - **`AIONUI_LOCAL_FS_MCP_PUBLIC_URL` override** (only when the auto-
   discovered URL is wrong): set this env var on the AionCore process to
   pin the advertised URL — typical when running AionCore behind a tunnel

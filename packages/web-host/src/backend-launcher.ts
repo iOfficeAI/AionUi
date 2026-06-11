@@ -110,7 +110,24 @@ export function buildSpawnEnv(dirs: BackendDirConfig): NodeJS.ProcessEnv {
     AIONUI_WORK_DIR: dirs.workDir,
     AIONUI_LOG_DIR: dirs.logDir,
     AIONUI_DISABLE_TOOL_SNAPSHOT: disableToolSnapshot,
+    AIONUI_PLUGIN_PORT: String(DEFAULT_PLUGIN_PORT),
   };
+}
+
+/** Default AionCore HTTP port — stable across Chisl restarts. */
+export const DEFAULT_BACKEND_PORT = 25808;
+
+/** Fixed plugin dial-back port forwarded to the aioncore child. */
+export const DEFAULT_PLUGIN_PORT = 64921;
+
+function tryListenOnPort(port: number): Promise<number> {
+  return new Promise((resolve, reject) => {
+    const server = createServer();
+    server.once('error', reject);
+    server.listen(port, '127.0.0.1', () => {
+      server.close(() => resolve(port));
+    });
+  });
 }
 
 export function findAvailablePort(): Promise<number> {
@@ -127,6 +144,26 @@ export function findAvailablePort(): Promise<number> {
     });
     server.on('error', reject);
   });
+}
+
+/**
+ * Prefer a stable backend port so remote plugin installs (Docker, LAN)
+ * do not need reconfiguration on every Chisl restart. Falls back to an
+ * ephemeral port only when the preferred port is already taken.
+ */
+export async function resolveBackendPort(): Promise<number> {
+  const fromEnv = process.env.AIONUI_BACKEND_PORT;
+  if (fromEnv) {
+    const parsed = Number(fromEnv);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return tryListenOnPort(parsed);
+    }
+  }
+  try {
+    return await tryListenOnPort(DEFAULT_BACKEND_PORT);
+  } catch {
+    return findAvailablePort();
+  }
 }
 
 function appendOutputTail(current: string, chunk: Buffer, maxLength = 4000): string {
@@ -184,7 +221,7 @@ export class BackendLifecycleManager {
       );
     }
     try {
-      this._port = await findAvailablePort();
+      this._port = await resolveBackendPort();
     } catch (error) {
       throw new BackendStartupError(
         'aioncore startup failed while finding an available port',
