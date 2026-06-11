@@ -202,10 +202,7 @@ const VoiceInputSection: React.FC = () => {
 
             <Form.Item
               label={
-                <FieldLabel
-                  labelKey='settings.speechToTextApiKey'
-                  requirement={isCustom ? 'optional' : 'required'}
-                />
+                <FieldLabel labelKey='settings.speechToTextApiKey' requirement={isCustom ? 'optional' : 'required'} />
               }
             >
               <Input.Password value={activeApiKey} visibilityToggle onChange={handleApiKeyChange} />

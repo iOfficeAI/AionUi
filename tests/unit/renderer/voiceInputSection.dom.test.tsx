@@ -97,7 +97,14 @@ describe('VoiceInputSection', () => {
     configStore.value = {
       enabled: true,
       provider: 'deepgram',
-      deepgram: { api_key: 'k', model: 'nova-3', language: '', detectLanguage: true, punctuate: true, smartFormat: true },
+      deepgram: {
+        api_key: 'k',
+        model: 'nova-3',
+        language: '',
+        detectLanguage: true,
+        punctuate: true,
+        smartFormat: true,
+      },
     };
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextPunctuate')).toBeTruthy());
