@@ -219,7 +219,7 @@
   "customModelSupportNote": "Hinweis: Derzeit unterstützt nur Aion CLI benutzerdefinierte Modelle.",
   "commandEveModelSupportNote": "Command EVE nutzt Hermes lokal über den EVE-Proxy. E4B ist der schnelle Standard; 12B und 31B sind Opt-in-Lanes für schwerere Planung.",
   "commandEveLocalRuntime": "Command EVE Local Runtime",
-  "commandEveLocalRuntimeDesc": "Diese Modelle laufen über Ollama/Gemma und werden von Hermes als lokale EVE-Inferenz genutzt. Die App liefert keine Modellgewichte im Bundle aus; der First-Run lädt oder prüft sie lokal.",
+  "commandEveLocalRuntimeDesc": "Command EVE nutzt Hermes lokal über Ollama/Gemma. Die App liefert keine Modellgewichte im Bundle aus; der First-Run lädt oder prüft sie lokal.",
   "commandEveLocalRuntimeBackend": "Hermes + Ollama",
   "commandEveLocalRuntimeMeta": "{{context}} Kontext · min. {{memory}} GB RAM · {{disk}} GB Speicher",
   "commandEveLocalRuntimeCurrent": "Aktiv",

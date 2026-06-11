@@ -140,12 +140,8 @@ process.env.COMMAND_EVE_CONNECTOR_MANIFEST_PATH = path.join(
   'eve',
   'connector-manifests.json'
 );
-if (!process.env.COMMAND_EVE_COMPANY_OS_ROOT) {
-  process.env.COMMAND_EVE_COMPANY_OS_ROOT = connectorCatalogE2ERoot;
-}
-if (!process.env.COMMAND_EVE_AGENT_EVENTS_PATH) {
-  process.env.COMMAND_EVE_AGENT_EVENTS_PATH = path.join(connectorCatalogE2ERoot, 'metrics', 'agent-events.jsonl');
-}
+process.env.COMMAND_EVE_COMPANY_OS_ROOT = connectorCatalogE2ERoot;
+process.env.COMMAND_EVE_AGENT_EVENTS_PATH = path.join(connectorCatalogE2ERoot, 'metrics', 'agent-events.jsonl');
 
 test.describe('Command EVE Connector Catalog', () => {
   test.setTimeout(120_000);
@@ -179,10 +175,8 @@ test.describe('Command EVE Connector Catalog', () => {
       page.getByRole('button', { name: /Read-only Preflight ausführen|Run read-only preflight/ })
     ).toHaveCount(3);
 
-    await page
-      .getByRole('button', { name: /Read-only Preflight ausführen|Run read-only preflight/ })
-      .first()
-      .click();
+    await expect(page.getByTestId('connector-card-local-company-os-workspace')).toBeVisible({ timeout: 30_000 });
+    await page.getByTestId('connector-preflight-button-local-company-os-workspace').click();
     await expect(page.getByText(/Preflight-Receipt geschrieben|Preflight receipt written/).first()).toBeVisible({
       timeout: 30_000,
     });

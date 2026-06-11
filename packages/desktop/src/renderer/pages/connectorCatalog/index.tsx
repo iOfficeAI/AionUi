@@ -196,7 +196,10 @@ const ConnectorCard: React.FC<{
   const stateLabel = t(`connectorCatalog.states.${connector.evidence_state}`);
   const canRunPreflight = connector.guided_setup.primary_action === 'run_read_only_preflight';
   return (
-    <article className='flex flex-col gap-12px rounded-14px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'>
+    <article
+      data-testid={`connector-card-${connector.id}`}
+      className='flex flex-col gap-12px rounded-14px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'
+    >
       <div className='flex items-start justify-between gap-12px'>
         <div className='min-w-0'>
           <div className='truncate text-15px font-700 leading-22px text-t-primary'>{connector.name}</div>
@@ -302,6 +305,7 @@ const ConnectorCard: React.FC<{
       </div>
 
       <Button
+        data-testid={`connector-preflight-button-${connector.id}`}
         disabled={!canRunPreflight || running}
         loading={running}
         long

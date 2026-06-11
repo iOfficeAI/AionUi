@@ -468,8 +468,8 @@
   },
   "mcp": {
     "loaded": "Geladenes MCP",
-    "managementHint": "Wenn ein MCP ungewöhnlich aussieht, liegt das meist an der MCP-JSON-Konfiguration. Gehe zu den Tool-Einstellungen und teste es dort.",
-    "openSettings": "Tool-Einstellungen öffnen",
+    "managementHint": "Connector-Status wird im Connector Catalog geprüft. Starte dort Read-only-Preflights; rohes MCP-Setup bleibt gegatet.",
+    "openSettings": "Connector Catalog öffnen",
     "status": {
       "loaded": "Geladen",
       "failed": "Fehlgeschlagen",

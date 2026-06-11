@@ -1014,7 +1014,7 @@
   "commandEveModelWarmupDesc": "Loads the local Gemma model in the background after startup so the first chat response does not start cold. Local loopback models only; cloud providers are not pinged.",
   "commandEveModelSupportNote": "Command EVE uses Hermes locally through the EVE proxy. E4B is the fast default; 12B and 31B are opt-in lanes for heavier planning.",
   "commandEveLocalRuntime": "Command EVE Local Runtime",
-  "commandEveLocalRuntimeDesc": "These models run through Ollama/Gemma and are used by Hermes as EVE's local inference path. The app does not bundle model weights; first-run downloads or verifies them locally.",
+  "commandEveLocalRuntimeDesc": "Command EVE uses Hermes locally through Ollama/Gemma. The app does not bundle model weights; first-run downloads or verifies them locally.",
   "commandEveLocalRuntimeBackend": "Hermes + Ollama",
   "commandEveLocalRuntimeMeta": "{{context}} context · min. {{memory}} GB RAM · {{disk}} GB disk",
   "commandEveLocalRuntimeCurrent": "Active",

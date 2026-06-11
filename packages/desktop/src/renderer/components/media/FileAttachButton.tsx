@@ -18,6 +18,7 @@ import React, { useCallback, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import useSWR from 'swr';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 
 interface FileAttachButtonProps {
   openFileSelector: () => void;
@@ -106,7 +107,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
     setOpen(false);
     setSkillsOpen(false);
     setMcpOpen(false);
-    void navigate('/settings/capabilities?tab=tools');
+    void navigate(COMMAND_EVE_SHELL_ENABLED ? '/connectors' : '/settings/capabilities?tab=tools');
   }, [navigate]);
 
   const handleLocalFileChange = useCallback(
@@ -199,7 +200,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
         <div className='text-12px leading-16px text-t-secondary whitespace-normal break-words'>
           {t('conversation.mcp.managementHint', {
             defaultValue:
-              'If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.',
+              'Connector health is checked in the Connector Catalog. Run read-only preflights there; raw MCP setup stays gated.',
           })}
         </div>
         <Button
@@ -210,7 +211,7 @@ const FileAttachButton: React.FC<FileAttachButtonProps> = ({
         >
           <span className='leading-none'>
             {t('conversation.mcp.openSettings', {
-              defaultValue: 'Open Tools settings',
+              defaultValue: 'Open Connector Catalog',
             })}
           </span>
           <span className='inline-flex h-12px w-12px flex-shrink-0 items-center justify-center'>

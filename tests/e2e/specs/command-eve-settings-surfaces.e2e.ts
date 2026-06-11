@@ -7,10 +7,21 @@
  * must replace the legacy/global skill-market surface.
  */
 import { test, expect } from '../fixtures';
-import { goToSettings } from '../helpers';
+import { goToGuid, goToSettings } from '../helpers';
 
 test.describe('Command EVE settings surfaces', () => {
   test.setTimeout(120_000);
+
+  test('brands the shell sidebar and exposes governed Command EVE surfaces', async ({ page }) => {
+    await goToGuid(page);
+
+    await expect(page.getByTestId('layout-sider-brand-label')).toHaveText('EVE', { timeout: 30_000 });
+    await expect(page.getByText(/^AionUi$/)).toHaveCount(0);
+    await expect(page.getByText(/Command Center/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Connectoren|Connectors/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Skills/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Runtime/).first()).toBeVisible({ timeout: 30_000 });
+  });
 
   test('shows local Gemma tiers plus EVE runtime status and warmup controls', async ({ page }) => {
     await page.waitForSelector('body', { state: 'visible' });

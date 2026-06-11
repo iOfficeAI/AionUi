@@ -467,8 +467,8 @@
   },
   "mcp": {
     "loaded": "Loaded MCP",
-    "managementHint": "If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.",
-    "openSettings": "Open Tools settings",
+    "managementHint": "Connector health is checked in the Connector Catalog. Run read-only preflights there; raw MCP setup stays gated.",
+    "openSettings": "Open Connector Catalog",
     "status": {
       "loaded": "Loaded",
       "failed": "Failed",

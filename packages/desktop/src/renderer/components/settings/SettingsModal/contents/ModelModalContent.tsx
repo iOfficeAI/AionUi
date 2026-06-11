@@ -5,6 +5,13 @@
  */
 
 import { ipcBridge } from '@/common';
+import { configService } from '@/common/config/configService';
+import {
+  COMMAND_EVE_DEFAULT_LOCAL_MODEL_TIER_ID,
+  COMMAND_EVE_LOCAL_MODEL_TIERS,
+  COMMAND_EVE_SHELL_ENABLED,
+  normalizeCommandEveLocalModelTierId,
+} from '@/common/config/commandEveShell';
 import type { IProvider } from '@/common/config/storage';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
@@ -98,6 +105,11 @@ const ModelModalContent: React.FC = () => {
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
+  const [selectedLocalModelTierId, setSelectedLocalModelTierId] = useState(() =>
+    normalizeCommandEveLocalModelTierId(
+      configService.get('commandEve.localModelTierId') ?? COMMAND_EVE_DEFAULT_LOCAL_MODEL_TIER_ID
+    )
+  );
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
 
@@ -153,6 +165,25 @@ const ModelModalContent: React.FC = () => {
       .catch((error) => {
         void mutate();
         console.error('Failed to delete provider:', error);
+        message.error(t('settings.saveModelConfigFailed'));
+      });
+  };
+
+  const selectCommandEveLocalModelTier = (tierId: string) => {
+    const normalizedTierId = normalizeCommandEveLocalModelTierId(tierId);
+    setSelectedLocalModelTierId(normalizedTierId);
+    configService
+      .set('commandEve.localModelTierId', normalizedTierId)
+      .then(() => {
+        message.success(t('settings.commandEveLocalRuntimeSelected'));
+      })
+      .catch((error) => {
+        console.error('Failed to save Command EVE local model tier:', error);
+        setSelectedLocalModelTierId(
+          normalizeCommandEveLocalModelTierId(
+            configService.get('commandEve.localModelTierId') ?? COMMAND_EVE_DEFAULT_LOCAL_MODEL_TIER_ID
+          )
+        );
         message.error(t('settings.saveModelConfigFailed'));
       });
   };
@@ -355,20 +386,91 @@ const ModelModalContent: React.FC = () => {
             </Button>
           </div>
         </div>
-        <div
-          className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
-          style={{
-            borderColor: 'rgba(var(--primary-6),0.32)',
-            backgroundColor: 'rgba(var(--primary-6),0.08)',
-            color: 'rgb(var(--primary-6))',
-          }}
-        >
-          {t('settings.customModelSupportNote')}
-        </div>
+        {COMMAND_EVE_SHELL_ENABLED ? (
+          <div
+            data-testid='command-eve-model-support-note'
+            className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
+            style={{
+              borderColor: 'rgba(var(--primary-6),0.32)',
+              backgroundColor: 'rgba(var(--primary-6),0.08)',
+              color: 'rgb(var(--primary-6))',
+            }}
+          >
+            {t('settings.commandEveLocalRuntimeDesc')}
+          </div>
+        ) : (
+          <div
+            className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
+            style={{
+              borderColor: 'rgba(var(--primary-6),0.32)',
+              backgroundColor: 'rgba(var(--primary-6),0.08)',
+              color: 'rgb(var(--primary-6))',
+            }}
+          >
+            {t('settings.customModelSupportNote')}
+          </div>
+        )}
       </div>
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
+        {COMMAND_EVE_SHELL_ENABLED && (
+          <section
+            data-testid='command-eve-local-runtime-section'
+            className='mb-18px rounded-14px border border-solid border-[var(--color-border-2)] bg-fill-1 px-14px py-14px'
+          >
+            <div className='flex flex-wrap items-start justify-between gap-10px'>
+              <div className='min-w-0 flex-1'>
+                <h2 className='m-0 text-16px font-700 leading-24px text-t-primary'>
+                  {t('settings.commandEveLocalRuntime')}
+                </h2>
+                <p className='m-0 mt-6px text-13px leading-20px text-t-secondary'>
+                  {t('settings.commandEveLocalRuntimeRestartNote')}
+                </p>
+              </div>
+              <Tag color='orange'>{t('settings.commandEveLocalRuntimeBackend')}</Tag>
+            </div>
+            <div className='mt-14px grid gap-10px lg:grid-cols-3'>
+              {COMMAND_EVE_LOCAL_MODEL_TIERS.map((tier) => {
+                const selected = selectedLocalModelTierId === tier.id;
+                return (
+                  <div
+                    key={tier.id}
+                    data-testid={`command-eve-model-tier-${tier.id}`}
+                    className='rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] px-12px py-12px'
+                  >
+                    <div className='flex items-start justify-between gap-8px'>
+                      <div className='min-w-0'>
+                        <div className='text-15px font-700 leading-22px text-t-primary'>{tier.label}</div>
+                        <div className='mt-4px break-all text-12px leading-18px text-t-secondary'>{tier.modelId}</div>
+                      </div>
+                      {selected && <Tag color='green'>{t('settings.commandEveLocalRuntimeCurrent')}</Tag>}
+                    </div>
+                    <div className='mt-10px text-12px leading-18px text-t-secondary'>
+                      {t('settings.commandEveLocalRuntimeMeta', {
+                        context: `${Math.round(tier.contextLength / 1024)}k`,
+                        memory: tier.memoryGb,
+                        disk: tier.diskGb,
+                      })}
+                    </div>
+                    <Button
+                      data-testid={`command-eve-model-tier-select-${tier.id}`}
+                      className='mt-12px'
+                      type={selected ? 'primary' : 'outline'}
+                      size='small'
+                      shape='round'
+                      onClick={() => selectCommandEveLocalModelTier(tier.id)}
+                    >
+                      {selected
+                        ? t('settings.commandEveLocalRuntimeCurrent')
+                        : t('settings.commandEveLocalRuntimeSelect')}
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        )}
         {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
