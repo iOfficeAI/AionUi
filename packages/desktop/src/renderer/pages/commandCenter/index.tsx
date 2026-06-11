@@ -111,6 +111,54 @@ interface ICommandEveCommandCenterReadModelResult {
   };
 }
 
+interface ICommandEveStatusSurface {
+  schema_version: 'command-eve-status-surface/v0';
+  generated_at: string;
+  read_only: boolean;
+  source_policy: string;
+  status: 'READY' | 'CHECK' | 'BLOCK';
+  status_label: string;
+  empty_states: string[];
+  sources: {
+    read_model: string | null;
+    event_ledger: string | null;
+    readiness: string | null;
+  };
+  morning_brief: {
+    headline: string;
+    totals: Record<string, number>;
+  };
+  event_type_counts: Record<string, number>;
+  hermes_status: {
+    available: boolean;
+    reason?: string;
+  };
+  readiness: {
+    available: boolean;
+    status: string;
+    mode?: string;
+    blocker_count: number | null;
+    warning_count: number | null;
+    warnings: string[];
+  };
+  blocked_actions: string[];
+}
+
+interface ICommandEveStatusSurfaceResult {
+  version: 'command-eve-status-surface-bridge/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  surface?: ICommandEveStatusSurface;
+  source: {
+    company_os_root?: string;
+    event_ledger?: string;
+    status_surface_cli?: string;
+    generated_by: 'company-os-status-surface-cli';
+  };
+}
+
 type IMarketingLaneKey = 'research' | 'draft' | 'assetGeneration' | 'review' | 'readyToApprove';
 
 interface ICommandEveMarketingCard {
@@ -190,6 +238,11 @@ const commandCenterReadModel = bridge.buildProvider<
   { maxRuns?: number } | undefined
 >('command-eve.command-center-read-model');
 
+const commandEveStatusSurface = bridge.buildProvider<
+  IBridgeResponse<ICommandEveStatusSurfaceResult>,
+  { maxRuns?: number } | undefined
+>('command-eve.status-surface');
+
 const kanbanMarketingBoard = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingBoardResult>,
   { boardSlug?: string } | undefined
@@ -212,6 +265,13 @@ const stateColor = (state: string): 'blue' | 'green' | 'orange' | 'red' | 'gray'
   if (['blocked', 'failed', 'rejected', 'timed_out', 'cancelled'].includes(state)) return 'red';
   if (['required', 'needs_audit', 'waiting_for_human'].includes(state)) return 'orange';
   if (['running', 'in_progress'].includes(state)) return 'blue';
+  return 'gray';
+};
+
+const statusSurfaceColor = (status?: string): 'green' | 'orange' | 'red' | 'gray' => {
+  if (status === 'READY') return 'green';
+  if (status === 'CHECK') return 'orange';
+  if (status === 'BLOCK') return 'red';
   return 'gray';
 };
 
@@ -434,6 +494,90 @@ const MarketingBoardSection: React.FC<{
   );
 };
 
+const StatusSurfaceSection: React.FC<{ result: ICommandEveStatusSurfaceResult | null }> = ({ result }) => {
+  const { t } = useTranslation();
+  const surface = result?.surface;
+  const status = surface?.status ?? (result?.status === 'failed' ? 'BLOCK' : undefined);
+  const blockedActions = surface?.blocked_actions ?? [];
+  const emptyStates = surface?.empty_states ?? [];
+  const readiness = surface?.readiness;
+  const hermesReason = surface?.hermes_status?.available
+    ? t('commandCenter.statusSurface.hermesAvailable')
+    : surface?.hermes_status?.reason || t('commandCenter.statusSurface.hermesUnavailable');
+  return (
+    <Section title={t('commandCenter.sections.statusSurface')}>
+      <div className='grid gap-12px lg:grid-cols-[1.2fr_1fr]'>
+        <div className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+          <div className='flex flex-wrap items-center justify-between gap-10px'>
+            <div>
+              <div className='text-12px leading-18px text-t-tertiary'>{t('commandCenter.statusSurface.label')}</div>
+              <div className='mt-4px text-22px font-700 leading-28px text-t-primary'>
+                {surface?.status_label || result?.reason_code || t('commandCenter.statusSurface.unavailable')}
+              </div>
+            </div>
+            <Tag color={statusSurfaceColor(status)}>{status || t('commandCenter.statusSurface.unknown')}</Tag>
+          </div>
+          <p className='m-0 mt-10px text-13px leading-20px text-t-secondary'>
+            {surface?.morning_brief?.headline || result?.message || t('commandCenter.statusSurface.description')}
+          </p>
+          {result && !result.ok ? (
+            <Alert
+              className='mt-12px'
+              type={result.status === 'failed' ? 'error' : 'warning'}
+              title={result.reason_code || t('commandCenter.statusSurface.checkRequired')}
+              content={result.message || t('commandCenter.statusSurface.checkRequiredDescription')}
+            />
+          ) : null}
+        </div>
+
+        <div className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'>
+          <dl className='grid grid-cols-2 gap-x-12px gap-y-8px text-12px leading-18px'>
+            <dt className='text-t-tertiary'>{t('commandCenter.statusSurface.readiness')}</dt>
+            <dd className='m-0 truncate text-t-secondary'>
+              {readiness?.available
+                ? `${readiness.status} · ${formatCount(readiness.blocker_count ?? 0)} / ${formatCount(
+                    readiness.warning_count ?? 0
+                  )}`
+                : t('commandCenter.statusSurface.unavailable')}
+            </dd>
+            <dt className='text-t-tertiary'>{t('commandCenter.statusSurface.hermes')}</dt>
+            <dd className='m-0 truncate text-t-secondary'>{hermesReason}</dd>
+            <dt className='text-t-tertiary'>{t('commandCenter.labels.generatedAt')}</dt>
+            <dd className='m-0 truncate text-t-secondary'>{textOrDash(surface?.generated_at)}</dd>
+            <dt className='text-t-tertiary'>{t('commandCenter.labels.ledger')}</dt>
+            <dd className='m-0 truncate text-t-secondary'>{textOrDash(surface?.sources?.event_ledger)}</dd>
+          </dl>
+        </div>
+      </div>
+
+      {emptyStates.length > 0 ? (
+        <div className='flex flex-wrap gap-6px'>
+          {emptyStates.map((state) => (
+            <Tag key={state} color='orange'>
+              {state}
+            </Tag>
+          ))}
+        </div>
+      ) : null}
+
+      {blockedActions.length > 0 ? (
+        <div className='flex flex-col gap-6px'>
+          <div className='text-12px leading-18px text-t-tertiary'>
+            {t('commandCenter.statusSurface.blockedActions')}
+          </div>
+          <div className='flex flex-wrap gap-6px'>
+            {blockedActions.map((action) => (
+              <Tag key={action} color='gray'>
+                {action}
+              </Tag>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </Section>
+  );
+};
+
 const RunCard: React.FC<{ run: ICommandEveCommandCenterRunCard }> = ({ run }) => {
   const { t } = useTranslation();
   const state = textOrDash(run.worker_state);
@@ -496,6 +640,7 @@ const CommandCenterPage: React.FC = () => {
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [loading, setLoading] = useState(true);
+  const [statusSurface, setStatusSurface] = useState<ICommandEveStatusSurfaceResult | null>(null);
   const [result, setResult] = useState<ICommandEveCommandCenterReadModelResult | null>(null);
   const [marketingResult, setMarketingResult] = useState<ICommandEveMarketingBoardResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
@@ -506,6 +651,16 @@ const CommandCenterPage: React.FC = () => {
     setLoading(true);
     setError(null);
     if (!isElectronDesktop()) {
+      setStatusSurface({
+        version: 'command-eve-status-surface-bridge/v0',
+        ok: false,
+        status: 'blocked',
+        reason_code: 'COMMAND_CENTER_ELECTRON_BRIDGE_REQUIRED',
+        message: t('commandCenter.blocked.electronBridgeRequired'),
+        source: {
+          generated_by: 'company-os-status-surface-cli',
+        },
+      });
       setResult({
         version: 'command-eve-command-center-read-model/v0',
         ok: false,
@@ -521,10 +676,12 @@ const CommandCenterPage: React.FC = () => {
       return;
     }
     try {
-      const [readModelResponse, marketingBoardResponse] = await Promise.all([
+      const [statusSurfaceResponse, readModelResponse, marketingBoardResponse] = await Promise.all([
+        commandEveStatusSurface.invoke({ maxRuns: MAX_RUNS }),
         commandCenterReadModel.invoke({ maxRuns: MAX_RUNS }),
         kanbanMarketingBoard.invoke({ boardSlug: 'marketing' }),
       ]);
+      setStatusSurface(statusSurfaceResponse.data ?? null);
       setResult(readModelResponse.data ?? null);
       setMarketingResult(marketingBoardResponse.data ?? null);
       if (!readModelResponse.success && !readModelResponse.data) {
@@ -613,6 +770,8 @@ const CommandCenterPage: React.FC = () => {
             {t('commandCenter.refresh')}
           </Button>
         </header>
+
+        {!loading ? <StatusSurfaceSection result={statusSurface} /> : null}
 
         {loading ? (
           <div className='flex min-h-260px items-center justify-center rounded-16px border border-dashed border-border-2 bg-fill-1'>

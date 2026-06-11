@@ -15,6 +15,7 @@ import {
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
 import { buildSkillLibrary } from '@process/commandEve/skillLibraryCore';
+import { buildCommandEveStatusSurface } from '@process/commandEve/statusSurfaceCore';
 import { getDataPath } from '@process/utils/utils';
 
 export function initCommandEveBridge(): void {
@@ -38,6 +39,32 @@ export function initCommandEveBridge(): void {
           message: error instanceof Error ? error.message : 'Command EVE read-model bridge failed.',
           source: {
             generated_by: 'company-os-read-model-cli',
+          },
+        },
+      };
+    }
+  });
+
+  bridge.buildProvider('command-eve.status-surface').provider(async (request?: { maxRuns?: number }) => {
+    try {
+      const result = await buildCommandEveStatusSurface({ maxRuns: request?.maxRuns });
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : result.reason_code || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE status surface bridge failed.',
+        data: {
+          version: 'command-eve-status-surface-bridge/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'STATUS_SURFACE_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE status surface bridge failed.',
+          source: {
+            generated_by: 'company-os-status-surface-cli',
           },
         },
       };

@@ -13,6 +13,7 @@
     "loadFailed": "Command Center konnte nicht geladen werden."
   },
   "sections": {
+    "statusSurface": "Status / Health",
     "source": "Quelle",
     "board": "Lokales Board",
     "marketingBoard": "Marketing Board",
@@ -21,6 +22,19 @@
     "ceoCriticalReleases": "CEO-kritische Releases",
     "eveHg35Packets": "EVE-HG-3.5-Packets",
     "traces": "Live-Trace"
+  },
+  "statusSurface": {
+    "label": "Systemzustand",
+    "description": "Liest den öffentlichen Command-EVE-Status-Contract. Keine Mutation, keine Plane-Writes.",
+    "unavailable": "Nicht verfügbar",
+    "unknown": "Unbekannt",
+    "checkRequired": "Prüfung nötig",
+    "checkRequiredDescription": "EVE konnte den lokalen Status nicht vollständig beweisen.",
+    "readiness": "Readiness",
+    "hermes": "Hermes",
+    "hermesAvailable": "verfügbar",
+    "hermesUnavailable": "nicht verfügbar",
+    "blockedActions": "Gesperrte Aktionen"
   },
   "board": {
     "description": "Board-Sicht aus demselben lokalen Read-Model. Keine Mutation, kein Dispatcher, kein Auto-Decompose.",

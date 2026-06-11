@@ -13,6 +13,7 @@
     "loadFailed": "Command Center could not be loaded."
   },
   "sections": {
+    "statusSurface": "Status / Health",
     "source": "Source",
     "board": "Local Board",
     "marketingBoard": "Marketing Board",
@@ -21,6 +22,19 @@
     "ceoCriticalReleases": "CEO-critical releases",
     "eveHg35Packets": "EVE HG-3.5 packets",
     "traces": "Live trace"
+  },
+  "statusSurface": {
+    "label": "System state",
+    "description": "Reads the public Command EVE status contract. No mutation, no Plane writes.",
+    "unavailable": "Unavailable",
+    "unknown": "Unknown",
+    "checkRequired": "Check required",
+    "checkRequiredDescription": "EVE could not fully prove the local status.",
+    "readiness": "Readiness",
+    "hermes": "Hermes",
+    "hermesAvailable": "available",
+    "hermesUnavailable": "unavailable",
+    "blockedActions": "Blocked actions"
   },
   "board": {
     "description": "Board view from the same local read model. No mutation, no dispatcher, no auto-decompose.",
