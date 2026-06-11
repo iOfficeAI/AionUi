@@ -65,7 +65,7 @@ const CapabilitiesSettings: React.FC = () => {
         <Tabs.TabPane key='skills' title={t('settings.capabilitiesTab.skills', { defaultValue: 'Skills' })}>
           <SkillsHubSettings withWrapper={false} />
         </Tabs.TabPane>
-        <Tabs.TabPane key='tools' title={t('settings.capabilitiesTab.tools', { defaultValue: 'MCP & Voice' })}>
+        <Tabs.TabPane key='tools' title={t('settings.capabilitiesTab.tools', { defaultValue: 'Tools' })}>
           <ToolsModalContent />
         </Tabs.TabPane>
       </Tabs>
