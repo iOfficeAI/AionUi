@@ -10,12 +10,14 @@ import { getSpeechInputErrorMessageKey, useSpeechInput } from '@/renderer/hooks/
 import { Alert, Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { deriveSpeechSource, isValidHttpUrl } from './speechSettingsUtils';
+import { isValidHttpUrl, type SpeechSource } from './speechSettingsUtils';
 
 const MAX_TEST_RECORDING_MS = 5000;
 
 type SpeechTestPanelProps = {
   config: SpeechToTextConfig;
+  /** UI-selected service source; may differ from what the stored config derives to (e.g. custom with empty base_url). */
+  source: SpeechSource;
 };
 
 type TestResult = {
@@ -23,7 +25,7 @@ type TestResult = {
   elapsedSeconds: string;
 };
 
-const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config }) => {
+const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config, source }) => {
   const { t, i18n } = useTranslation();
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const startedAtRef = useRef(0);
@@ -61,7 +63,6 @@ const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config }) => {
   }, [isRecording, recordingDurationMs, stopRecording]);
 
   const validate = useCallback((): string | null => {
-    const source = deriveSpeechSource(config);
     if (source === 'custom') {
       if (!isValidHttpUrl(config.openai?.base_url ?? '')) {
         return t('settings.speechToTextBaseUrlInvalid');
@@ -73,7 +74,7 @@ const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config }) => {
       return t('settings.speechToTextTestMissingKey');
     }
     return null;
-  }, [config, t]);
+  }, [config, source, t]);
 
   const handleTestClick = useCallback(async () => {
     if (isRecording) {

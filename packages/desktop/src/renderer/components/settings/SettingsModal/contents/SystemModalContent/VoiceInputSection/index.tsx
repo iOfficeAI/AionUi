@@ -46,6 +46,10 @@ const FieldLabel: React.FC<{ labelKey: string; requirement: 'required' | 'option
 const VoiceInputSection: React.FC = () => {
   const { t } = useTranslation();
   const [config, setConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
+  // Source is UI state, only initialized from the stored config. A purely
+  // derived source would snap "custom" back to "openai" while base_url is
+  // still empty, making custom mode unreachable for fresh users.
+  const [source, setSource] = useState<SpeechSource>('openai');
   const lastCustomBaseUrlRef = useRef('');
 
   useEffect(() => {
@@ -53,6 +57,7 @@ const VoiceInputSection: React.FC = () => {
       const stored = configService.get('tools.speechToText');
       const normalized = normalizeSpeechToTextConfig(stored);
       setConfig(normalized);
+      setSource(deriveSpeechSource(normalized));
       if (deriveSpeechSource(normalized) === 'custom') {
         lastCustomBaseUrlRef.current = normalized.openai?.base_url ?? '';
       }
@@ -74,10 +79,9 @@ const VoiceInputSection: React.FC = () => {
     });
   }, []);
 
-  const source = deriveSpeechSource(config);
-
   const handleSourceChange = useCallback(
     (value: string) => {
+      setSource(value as SpeechSource);
       updateConfig((current) => {
         if (deriveSpeechSource(current) === 'custom') {
           lastCustomBaseUrlRef.current = current.openai?.base_url ?? '';
@@ -256,7 +260,7 @@ const VoiceInputSection: React.FC = () => {
               </>
             )}
           </Form>
-          <SpeechTestPanel config={config} />
+          <SpeechTestPanel config={config} source={source} />
         </>
       )}
     </div>

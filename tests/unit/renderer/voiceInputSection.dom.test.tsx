@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
@@ -68,6 +68,28 @@ describe('VoiceInputSection', () => {
       openai: { api_key: 'k', base_url: 'https://my-host/v1', model: 'my-model', language: '' },
     };
     render(<VoiceInputSection />);
+    await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrl')).toBeTruthy());
+  });
+
+  it('selecting custom keeps the base_url field visible before a url is entered', async () => {
+    configStore.value = {
+      enabled: true,
+      provider: 'openai',
+      openai: { api_key: '', base_url: '', model: 'gpt-4o-transcribe', language: '' },
+    };
+    render(<VoiceInputSection />);
+    await waitFor(() => expect(screen.getByText('settings.speechToTextSource')).toBeTruthy());
+
+    // Open the source select (first Arco select in the form) and pick "Custom".
+    const trigger = document.querySelector('.arco-select');
+    expect(trigger).toBeTruthy();
+    fireEvent.click(trigger as Element);
+    const customOption = await screen.findByText('settings.speechToTextSourceCustom');
+    fireEvent.click(customOption);
+
+    // The base_url field must appear...
+    await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrl')).toBeTruthy());
+    // ...and stay, even though the stored config (empty base_url) derives to official openai.
     await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrl')).toBeTruthy());
   });
 

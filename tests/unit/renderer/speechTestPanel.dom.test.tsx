@@ -28,7 +28,7 @@ const makeConfig = (overrides?: Partial<SpeechToTextConfig>): SpeechToTextConfig
 
 describe('SpeechTestPanel', () => {
   it('shows validation error when api key is missing in official mode', async () => {
-    render(<SpeechTestPanel config={makeConfig()} />);
+    render(<SpeechTestPanel config={makeConfig()} source='openai' />);
     fireEvent.click(screen.getByText('settings.speechToTextTest'));
     await waitFor(() => expect(screen.getByText('settings.speechToTextTestMissingKey')).toBeTruthy());
   });
@@ -37,7 +37,16 @@ describe('SpeechTestPanel', () => {
     const config = makeConfig({
       openai: { api_key: '', base_url: 'not-a-url', model: 'm', language: '' },
     });
-    render(<SpeechTestPanel config={config} />);
+    render(<SpeechTestPanel config={config} source='custom' />);
+    fireEvent.click(screen.getByText('settings.speechToTextTest'));
+    await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrlInvalid')).toBeTruthy());
+  });
+
+  it('shows validation error in custom mode when base_url is empty', async () => {
+    const config = makeConfig({
+      openai: { api_key: '', base_url: '', model: 'm', language: '' },
+    });
+    render(<SpeechTestPanel config={config} source='custom' />);
     fireEvent.click(screen.getByText('settings.speechToTextTest'));
     await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrlInvalid')).toBeTruthy());
   });
@@ -47,7 +56,7 @@ describe('SpeechTestPanel', () => {
     const config = makeConfig({
       openai: { api_key: 'sk-test', base_url: '', model: 'gpt-4o-transcribe', language: '' },
     });
-    render(<SpeechTestPanel config={config} />);
+    render(<SpeechTestPanel config={config} source='openai' />);
     fireEvent.click(screen.getByText('settings.speechToTextTest'));
     await waitFor(() => expect(configService.set).toHaveBeenCalledWith('tools.speechToText', config));
   });
