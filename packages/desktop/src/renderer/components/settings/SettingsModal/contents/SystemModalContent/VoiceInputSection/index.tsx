@@ -11,6 +11,7 @@ import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechT
 import { Divider, Form, Input, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import SpeechTestPanel from './SpeechTestPanel';
 import {
   DEEPGRAM_SPEECH_MODEL_PRESETS,
   DEFAULT_SPEECH_TO_TEXT_CONFIG,
@@ -255,6 +256,7 @@ const VoiceInputSection: React.FC = () => {
               </>
             )}
           </Form>
+          <SpeechTestPanel config={config} />
         </>
       )}
     </div>
