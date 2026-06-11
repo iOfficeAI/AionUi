@@ -2,7 +2,6 @@
   "welcome": {
     "title": "Merhaba, bugünkü planın nedir?",
     "placeholder": "Mesaj gönder, dosya yükle veya klasör aç...",
-    "uploadFile": "Dosya Yükle",
     "linkFolder": "Klasör Aç",
     "newConversation": "Yeni Sohbet",
     "selectModel": "Model Seç",
@@ -14,7 +13,7 @@
     "openFolder": "Klasör Aç",
     "none": "Hiçbiri",
     "quickActionsTitle": "AionUi neler yapabilir?",
-    "quickActionFeedback": "Geri bildirim veya öneriniz mi var?",
+    "quickActionFeedback": "Sorun Bildir",
     "quickActionStar": "Bizi beğendiniz mi? Yıldız verin!",
     "skillsMarket": "AionUi Skills Market",
     "skillsMarketDesc": "Topluluk Skills'lerini ihtiyaç duyduğunuzda arayın ve etkinleştirin. Bir kez yapılandırın, tüm Agent'larda kullanılabilir.",
@@ -84,6 +83,182 @@
     "empty": "Eşleşen mesaj bulunamadı",
     "loadingMore": "Daha fazla yükleniyor...",
     "untitled": "Adsız sohbet"
+  },
+  "agentError": {
+    "fallbackTitle": "Ajan yanıt veremedi",
+    "errorCode": "Hata kodu",
+    "retryable": "Yeniden denenebilir",
+    "notRetryable": "Yapılandırma gerekiyor",
+    "resolutionPrefix": "Öneri: ",
+    "resolution": {
+      "retry": "Daha sonra yeniden deneyin veya bu mesajı tekrar gönderin.",
+      "wait_for_current_response": "Yeni bir mesaj göndermeden önce mevcut yanıtın bitmesini bekleyin.",
+      "start_new_session": "Devam etmeden önce yeni bir konuşma başlatın.",
+      "reconnect_agent": "Seçili ajanı yeniden başlatın veya yeniden bağlayın, ardından tekrar deneyin.",
+      "check_agent_login": "Seçili ajanda oturum açın veya kimlik bilgilerini yenileyin.",
+      "check_agent_installation": "Ajan kurulumunu ve yerel komut yapılandırmasını kontrol edin.",
+      "check_agent_version": "Ajanı güncelleyin veya protokol sürümü uyumsuzluğunu düzeltin.",
+      "check_local_command": "Eksik komutu yükleyin veya PATH içinde olduğundan emin olun.",
+      "check_provider_credentials": "Ayarlar bölümünde model sağlayıcının API anahtarını veya hesap kimlik bilgilerini kontrol edin.",
+      "check_provider_billing": "Model sağlayıcının bakiyesini, kredilerini veya kotasını kontrol edin.",
+      "check_provider_base_url": "Model sağlayıcının Base URL, API yolu, proxy ve API uyumluluğunu kontrol edin.",
+      "change_model": "Geçerli hesapta kullanılabilen ve bu isteği destekleyen bir model seçin.",
+      "reduce_context": "Mesaj içeriğini, başvurulan dosyaları veya bağlam boyutunu azaltıp yeniden deneyin.",
+      "send_feedback": "Ekibin inceleyebilmesi için günlüklerle birlikte geri bildirim gönderin."
+    },
+    "ownership": {
+      "aionui": "Uygulama",
+      "user_agent": "Ajan",
+      "user_llm_provider": "Model sağlayıcı",
+      "unknown_upstream": "Üst hizmet"
+    },
+    "codes": {
+      "AIONUI_STREAM_BROKEN": {
+        "title": "Yanıt akışı kesildi",
+        "body": "Uygulama mesajınızı aldı ancak yanıt akışı beklenmedik şekilde sona erdi. Yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
+      },
+      "AIONUI_STATE_INCONSISTENT": {
+        "title": "Konuşma durumu eşitlenmemiş",
+        "body": "Konuşma durumu eşitlenmemiş. Yeniden denemeden önce bu sohbeti yeniden başlatın veya uygulamayı yenileyin."
+      },
+      "AIONUI_PERMISSION_ERROR": {
+        "title": "İstenen kaynağa erişilemedi",
+        "body": "Yerel izin veya dosya sistemi denetimi başarısız oldu. Proje yolunu ve uygulama izinlerini kontrol edip yeniden deneyin."
+      },
+      "AIONUI_INTERNAL_ERROR": {
+        "title": "İstek uygulamada başarısız oldu",
+        "body": "Uygulama isteği işlerken hata oluştu. Bir kez yeniden deneyin; tekrarlanırsa geri bildirim gönderin."
+      },
+      "AIONUI_CONVERSATION_BUSY": {
+        "title": "Konuşma meşgul",
+        "body": "Başka bir yanıt hâlâ çalışıyor. Yeni mesaj göndermeden önce bitmesini bekleyin."
+      },
+      "USER_AGENT_NOT_INSTALLED": {
+        "title": "Seçili ajan yüklü değil",
+        "body": "Bu ajanın gerektirdiği CLI veya uygulamayı yükleyin, ardından ayarlarda yeniden bağlayın."
+      },
+      "USER_AGENT_STARTUP_FAILED": {
+        "title": "Seçili ajan başlatılamadı",
+        "body": "Ajan işlemi hazır olmadan çıktı. Kurulumu, oturum durumunu ve yerel komut yapılandırmasını kontrol edin."
+      },
+      "USER_AGENT_DISCONNECTED": {
+        "title": "Seçili ajan bağlantısı kesildi",
+        "body": "Bu mesaj işlenirken ajan bağlantısı kapandı. Ajanı yeniden başlatın veya yeniden bağlayın, ardından tekrar deneyin."
+      },
+      "USER_AGENT_AUTH_REQUIRED": {
+        "title": "Seçili ajan kimlik doğrulaması istiyor",
+        "body": "Seçili ajanda oturum açın veya kimlik bilgilerini yenileyin, ardından mesajı tekrar gönderin."
+      },
+      "USER_AGENT_SESSION_NOT_FOUND": {
+        "title": "Ajan oturumu kayboldu",
+        "body": "Ajan artık bu oturumu tanımıyor. Yeni bir sohbet başlatın veya ajanı yeniden bağlayın."
+      },
+      "USER_AGENT_UNSUPPORTED_METHOD": {
+        "title": "Seçili ajan bu işlemi desteklemiyor",
+        "body": "Bu ajan istenen işlemi gerçekleştiremiyor. Başka bir ajan deneyin veya mevcut ajanı güncelleyin."
+      },
+      "USER_AGENT_INVALID_PARAMS": {
+        "title": "Seçili ajan isteği reddetti",
+        "body": "Ajan istek biçiminin geçersiz olduğunu bildirdi. Mesajı sadeleştirin veya başka bir ajana geçin."
+      },
+      "USER_AGENT_HANDSHAKE_FAILED": {
+        "title": "Ajan el sıkışması başarısız oldu",
+        "body": "Seçili ajan başlangıç el sıkışmasını tamamlayamadı. Ajanı yeniden başlatın veya yeniden bağlayın, ardından tekrar deneyin."
+      },
+      "USER_AGENT_HANDSHAKE_TIMEOUT": {
+        "title": "Ajan el sıkışması zaman aşımına uğradı",
+        "body": "Seçili ajan başlangıç el sıkışmasını zamanında tamamlamadı. Hâlâ başlıyor mu veya engellenmiş mi kontrol edip yeniden deneyin."
+      },
+      "USER_AGENT_ACP_INIT_FAILED": {
+        "title": "Ajan protokolü başlatılamadı",
+        "body": "Uygulama bu ajan ile Agent Client Protocol oturumunu başlatamadı. Ajan sürümünü kontrol edip yeniden bağlayın."
+      },
+      "USER_AGENT_PROTOCOL_MISMATCH": {
+        "title": "Ajan protokol sürümleri uyumsuz",
+        "body": "Seçili ajan uyumsuz bir protokol sürümü kullanıyor. Ajanı güncelleyin veya uyumlu bir ajana geçin."
+      },
+      "USER_AGENT_NO_PREVIOUS_SESSION": {
+        "title": "Önceki ajan oturumu kullanılamıyor",
+        "body": "Ajan önceki oturumu sürdüremiyor. Devam etmek için yeni bir konuşma başlatın."
+      },
+      "USER_AGENT_COMMAND_NOT_FOUND": {
+        "title": "Ajan komutu bulunamadı",
+        "body": "Yapılandırılmış ajan komutu bulunamadı. Komutu yükleyin veya ayarlarda komut yolunu güncelleyin."
+      },
+      "USER_AGENT_MISSING_ENV": {
+        "title": "Ajan için gerekli ortam değişkenleri eksik",
+        "body": "Ajanın ihtiyaç duyduğu ortam değişkenleri yapılandırılmamış. Ayarlara veya shell ortamına ekleyip yeniden bağlayın."
+      },
+      "USER_LLM_PROVIDER_AUTH_FAILED": {
+        "title": "Model sağlayıcı kimlik doğrulaması başarısız oldu",
+        "body": "Seçili sağlayıcı API anahtarını veya hesap kimlik bilgilerini reddetti. Sağlayıcı ayarlarını kontrol edip tekrar deneyin."
+      },
+      "USER_LLM_PROVIDER_CONFIG_ERROR": {
+        "title": "Model sağlayıcı yapılandırması geçersiz",
+        "body": "Geçerli ayarlardan sağlayıcı isteği oluşturulamadı. Kimlik bilgilerini, bölgeyi, Base URL ve sağlayıcıya özel ayarları kontrol edip yeniden deneyin."
+      },
+      "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
+        "title": "Seçili model bulunamadı",
+        "body": "Sağlayıcı bu model adını tanımıyor. Ayarlardan kullanılabilir bir model seçip yeniden deneyin."
+      },
+      "USER_LLM_PROVIDER_RATE_LIMITED": {
+        "title": "Model sağlayıcı hız sınırına ulaşıldı",
+        "body": "Sağlayıcı geçici olarak istekleri sınırlıyor. Bir süre bekleyin, istek sıklığını azaltın veya model değiştirin."
+      },
+      "USER_LLM_PROVIDER_TIMEOUT": {
+        "title": "Model sağlayıcı isteği zaman aşımına uğradı",
+        "body": "Sağlayıcı zamanında yanıt vermedi. Daha sonra tekrar deneyin veya daha kararlı bir sağlayıcıya geçin."
+      },
+      "USER_LLM_PROVIDER_NETWORK_ERROR": {
+        "title": "Model sağlayıcıya ulaşılamadı",
+        "body": "Ağ veya DNS hatası sağlayıcıya erişimi engelledi. Ağınızı, proxy ve Base URL ayarlarını kontrol edin."
+      },
+      "USER_LLM_PROVIDER_GATEWAY_ERROR": {
+        "title": "Model sağlayıcı hizmeti kullanılamıyor",
+        "body": "Sağlayıcı ağ geçidi veya hizmet hatası döndürdü. Daha sonra tekrar deneyin veya başka bir sağlayıcı kullanın."
+      },
+      "USER_LLM_PROVIDER_PERMISSION_DENIED": {
+        "title": "Model sağlayıcı izni reddetti",
+        "body": "Sağlayıcı hesabının bu model veya işlem için izni yok. Hesap izinlerini kontrol edin veya başka bir model seçin."
+      },
+      "USER_LLM_PROVIDER_BILLING_REQUIRED": {
+        "title": "Model sağlayıcı için faturalandırma gerekiyor",
+        "body": "Seçili sağlayıcının bu isteği tamamlamak için etkin faturalandırma, kredi veya kotaya ihtiyacı var."
+      },
+      "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
+        "title": "Model bu isteği desteklemiyor",
+        "body": "Seçili model kullanılamıyor veya istenen yeteneği desteklemiyor. Desteklenen bir model seçip yeniden deneyin."
+      },
+      "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
+        "title": "Model sağlayıcı uç noktası bulunamadı",
+        "body": "Sağlayıcı uç noktası veya API yolu bulunamadı. Base URL, dağıtım adı ve API uyumluluğunu kontrol edin."
+      },
+      "USER_LLM_PROVIDER_INVALID_REQUEST": {
+        "title": "Model sağlayıcı isteği reddetti",
+        "body": "Sağlayıcı isteğin geçersiz olduğunu bildirdi. Mesajı sadeleştirin veya model/sağlayıcı ayarlarını kontrol edin."
+      },
+      "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
+        "title": "Araç şeması sağlayıcı tarafından reddedildi",
+        "body": "Sağlayıcı bu istekteki araç tanımını reddetti. Ajanı güncelleyin veya uyumsuz aracı devre dışı bırakıp yeniden deneyin."
+      },
+      "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
+        "title": "Bağlam model sınırını aşıyor",
+        "body": "İstek modelin bağlam sınırını aşıyor. Mesaj içeriğini, başvurulan dosyaları veya konuşma geçmişini azaltıp yeniden deneyin."
+      },
+      "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
+        "title": "Model sağlayıcı boş yanıt döndürdü",
+        "body": "Sağlayıcı isteği tamamladı ancak kullanılabilir içerik döndürmedi. Bir kez yeniden deneyin; tekrarlanırsa sağlayıcı değiştirin."
+      },
+      "WORKSPACE_PATH_RUNTIME_UNAVAILABLE": {
+        "title": "Geçerli Agent bu çalışma alanı yolunda çalıştırılamadı",
+        "body": "Geçerli çalışma alanı yolunun gerçekten var olduğundan emin olun.",
+        "bodyWithPath": "Geçerli Agent çalışma alanı yolu \"{{workspacePath}}\" içinde çalıştırılamadı. Çalışma alanı yolunun gerçekten var olduğundan emin olun."
+      },
+      "UNKNOWN_UPSTREAM_ERROR": {
+        "title": "Üst ajan veya sağlayıcı başarısız oldu",
+        "body": "Uygulama bir üst hata aldı ancak güvenle sınıflandıramadı. Aşağıdaki ayrıntıları inceleyin veya geri bildirim gönderin."
+      }
+    }
   },
   "workspace": {
     "title": "Proje",
@@ -279,6 +454,11 @@
   "noAgentsAvailable": "No agents available",
   "noModelConfigured": "No model configured. Please configure in settings.",
   "createFailed": "Failed to create conversation",
+  "createError": {
+    "pathVariants": {
+      "WORKSPACE_PATH_UNAVAILABLE": "Seçilen çalışma alanı yolu kullanılamıyor. Çalışma alanı yolu \"{{workspacePath}}\" gerçekten var ve erişilebilir olduğundan emin olun."
+    }
+  },
   "thinking": {
     "complete": "Düşünme tamamlandı",
     "label": "Düşünüyor..."
@@ -286,8 +466,37 @@
   "skills": {
     "loaded": "Yüklenen Beceriler"
   },
+  "mcp": {
+    "loaded": "Yüklü MCP",
+    "managementHint": "Bir MCP anormal görünüyorsa, bunun nedeni genellikle MCP JSON yapılandırmasıdır. Araç ayarlarına gidip manuel olarak test edin.",
+    "openSettings": "Araç ayarlarını aç",
+    "status": {
+      "loaded": "Yüklendi",
+      "failed": "Başarısız",
+      "unsupported": "Desteklenmiyor"
+    }
+  },
+  "runtimePreparing": {
+    "sendboxHint": "Çalışma ortamı hazırlanıyor. İlk başlatma biraz daha uzun sürebilir."
+  },
   "sendbox": {
     "hint": "Komutlar için /, dosya için @ yazın"
+  },
+  "agentTip": {
+    "codes": {
+      "ACP_EMPTY_TURN": {
+        "body": "Bu istek görünür bir yanıt üretmedi."
+      },
+      "ACP_EMPTY_TURN_MAX_TOKENS": {
+        "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin çıktı token sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_MAX_TURN_REQUESTS": {
+        "body": "Bu istek, görünür bir yanıt üretilmeden önce modelin istek sınırına ulaştı."
+      },
+      "ACP_EMPTY_TURN_REFUSAL": {
+        "body": "Model, görünür bir yanıt üretmeden önce bu isteği reddetti."
+      }
+    }
   },
   "notFound": "Konuşma bulunamadı veya silinmiş"
 }

@@ -17,97 +17,127 @@ export const useMcpOAuth = () => {
   const [oauthStatus, setOAuthStatus] = useState<Record<string, McpOAuthStatus>>({});
   const [loggingIn, setLoggingIn] = useState<Record<string, boolean>>({});
 
-  // 检查 OAuth 状态
-  const checkOAuthStatus = useCallback(async (server: IMcpServer) => {
-    // 只检查 HTTP/SSE 类型的服务器
-    if (server.transport.type !== 'http' && server.transport.type !== 'sse') {
-      return;
+  const getOAuthServerUrl = useCallback((server: IMcpServer): string | null => {
+    if (
+      server.transport.type === 'http' ||
+      server.transport.type === 'sse' ||
+      server.transport.type === 'streamable_http'
+    ) {
+      return server.transport.url;
     }
-
-    setOAuthStatus((prev) => ({
-      ...prev,
-      [server.id]: {
-        isAuthenticated: false,
-        needsLogin: false,
-        isChecking: true,
-      },
-    }));
-
-    try {
-      const result = await mcpService.checkOAuthStatus.invoke(server);
-
-      setOAuthStatus((prev) => ({
-        ...prev,
-        [server.id]: {
-          isAuthenticated: result.isAuthenticated,
-          needsLogin: result.needsLogin,
-          isChecking: false,
-          error: result.error,
-        },
-      }));
-    } catch (error) {
-      console.error('Failed to check OAuth status:', error);
-      setOAuthStatus((prev) => ({
-        ...prev,
-        [server.id]: {
-          isAuthenticated: false,
-          needsLogin: false,
-          isChecking: false,
-          error: error instanceof Error ? error.message : 'Unknown error',
-        },
-      }));
-    }
+    return null;
   }, []);
 
-  // 执行 OAuth 登录
-  const login = useCallback(async (server: IMcpServer): Promise<{ success: boolean; error?: string }> => {
-    setLoggingIn((prev) => ({ ...prev, [server.id]: true }));
+  // 检查 OAuth 状态
+  const checkOAuthStatus = useCallback(
+    async (server: IMcpServer) => {
+      const serverUrl = getOAuthServerUrl(server);
+      if (!serverUrl) {
+        return;
+      }
 
-    try {
-      const result = await mcpService.loginMcpOAuth.invoke({
-        server,
-        config: undefined, // 使用自动发现
-      });
+      setOAuthStatus((prev) => ({
+        ...prev,
+        [server.id]: {
+          isAuthenticated: prev[server.id]?.isAuthenticated ?? false,
+          needsLogin: prev[server.id]?.needsLogin ?? false,
+          isChecking: true,
+        },
+      }));
 
-      if (result.success) {
-        // 登录成功，更新状态
+      try {
+        const result = await mcpService.checkOAuthStatus.invoke({ server_url: serverUrl });
+        const isAuthenticated = result.authenticated === true;
+
         setOAuthStatus((prev) => ({
           ...prev,
           [server.id]: {
-            isAuthenticated: true,
-            needsLogin: false,
+            isAuthenticated,
+            needsLogin: isAuthenticated ? false : (prev[server.id]?.needsLogin ?? false),
             isChecking: false,
           },
         }));
-        return { success: true };
-      } else {
+      } catch (error) {
+        console.error('Failed to check OAuth status:', error);
+        setOAuthStatus((prev) => ({
+          ...prev,
+          [server.id]: {
+            isAuthenticated: false,
+            needsLogin: false,
+            isChecking: false,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          },
+        }));
+      }
+    },
+    [getOAuthServerUrl]
+  );
+
+  // 执行 OAuth 登录
+  const login = useCallback(
+    async (server: IMcpServer): Promise<{ success: boolean; error?: string }> => {
+      const serverUrl = getOAuthServerUrl(server);
+      if (!serverUrl) {
         return {
           success: false,
-          error: result.error || 'Login failed',
+          error: 'OAuth is only supported for URL-based MCP transports',
         };
       }
-    } catch (error) {
-      return {
-        success: false,
-        error: error instanceof Error ? error.message : 'Unknown error',
-      };
-    } finally {
-      setLoggingIn((prev) => ({ ...prev, [server.id]: false }));
-    }
-  }, []);
+
+      setLoggingIn((prev) => ({ ...prev, [server.id]: true }));
+
+      try {
+        const result = await mcpService.loginMcpOAuth.invoke({ server_url: serverUrl });
+
+        if (result.success) {
+          // 登录成功，更新状态
+          setOAuthStatus((prev) => ({
+            ...prev,
+            [server.id]: {
+              isAuthenticated: true,
+              needsLogin: false,
+              isChecking: false,
+            },
+          }));
+          return { success: true };
+        } else {
+          return {
+            success: false,
+            error: result.error || 'Login failed',
+          };
+        }
+      } catch (error) {
+        return {
+          success: false,
+          error: error instanceof Error ? error.message : 'Unknown error',
+        };
+      } finally {
+        setLoggingIn((prev) => ({ ...prev, [server.id]: false }));
+      }
+    },
+    [getOAuthServerUrl]
+  );
 
   // 登出
   const logout = useCallback(
-    async (server_name: string, serverId: string): Promise<{ success: boolean; error?: string }> => {
+    async (server: IMcpServer): Promise<{ success: boolean; error?: string }> => {
+      const serverUrl = getOAuthServerUrl(server);
+      if (!serverUrl) {
+        return {
+          success: false,
+          error: 'OAuth is only supported for URL-based MCP transports',
+        };
+      }
+
       try {
-        await mcpService.logoutMcpOAuth.invoke(server_name);
+        await mcpService.logoutMcpOAuth.invoke({ server_url: serverUrl });
 
         // 登出成功，更新状态
         setOAuthStatus((prev) => ({
           ...prev,
-          [serverId]: {
+          [server.id]: {
             isAuthenticated: false,
-            needsLogin: true,
+            needsLogin: false,
             isChecking: false,
           },
         }));
@@ -119,17 +149,17 @@ export const useMcpOAuth = () => {
         };
       }
     },
-    []
+    [getOAuthServerUrl]
   );
 
   // 批量检查多个服务器的 OAuth 状态
   const checkMultipleServers = useCallback(
     async (servers: IMcpServer[]) => {
-      const httpServers = servers.filter((s) => s.transport.type === 'http' || s.transport.type === 'sse');
+      const httpServers = servers.filter((s) => getOAuthServerUrl(s));
 
       await Promise.all(httpServers.map((server) => checkOAuthStatus(server)));
     },
-    [checkOAuthStatus]
+    [checkOAuthStatus, getOAuthServerUrl]
   );
 
   return {
@@ -137,6 +167,26 @@ export const useMcpOAuth = () => {
     loggingIn,
     checkOAuthStatus,
     checkMultipleServers,
+    markLoginRequired: useCallback((serverId: string) => {
+      setOAuthStatus((prev) => ({
+        ...prev,
+        [serverId]: {
+          isAuthenticated: prev[serverId]?.isAuthenticated ?? false,
+          needsLogin: true,
+          isChecking: false,
+        },
+      }));
+    }, []),
+    clearLoginRequired: useCallback((serverId: string) => {
+      setOAuthStatus((prev) => ({
+        ...prev,
+        [serverId]: {
+          isAuthenticated: prev[serverId]?.isAuthenticated ?? false,
+          needsLogin: false,
+          isChecking: false,
+        },
+      }));
+    }, []),
     login,
     logout,
   };

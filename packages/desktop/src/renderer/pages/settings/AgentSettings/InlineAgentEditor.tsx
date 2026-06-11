@@ -10,12 +10,11 @@ import { acpConversation } from '@/common/adapter/ipcBridge';
 import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
 import { Plus, Delete, CheckOne, CloseOne } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
-import FeedbackButton from '@/renderer/components/base/FeedbackButton';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
 import { uuid } from '@/common/utils';
-import React, { useState, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
@@ -138,6 +137,8 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const [jsonError, setJsonError] = useState('');
   const isJsonEditingRef = useRef(false);
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
+  const [testErrorDetail, setTestErrorDetail] = useState('');
+  const runtimeScopeId = useMemo(() => agent?.id || uuid(), [agent?.id]);
 
   // Canonical empty shape shown when the user has not filled anything yet.
   // Keep keys in sync with CustomAgentAdvancedOverrides.
@@ -159,6 +160,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
 
   useEffect(() => {
     setTestStatus('idle');
+    setTestErrorDetail('');
     setJsonError('');
     isJsonEditingRef.current = false;
     if (agent) {
@@ -242,6 +244,7 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
 
   const handleTestConnection = useCallback(async () => {
     setTestStatus('testing');
+    setTestErrorDetail('');
     try {
       const parsedArgs = parseArgsString(argsString);
       const envObj = envVarsToObject(envVars);
@@ -249,22 +252,27 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
         command: command.trim(),
         acp_args: parsedArgs.length > 0 ? parsedArgs : undefined,
         env: Object.keys(envObj).length > 0 ? envObj : undefined,
+        runtime_scope_id: runtimeScopeId,
       });
       switch (result.step) {
         case 'success':
           setTestStatus('success');
+          setTestErrorDetail('');
           break;
         case 'fail_cli':
           setTestStatus('fail_cli');
+          setTestErrorDetail(result.error || '');
           break;
         case 'fail_acp':
           setTestStatus('fail_acp');
+          setTestErrorDetail(result.error || '');
           break;
       }
-    } catch {
+    } catch (error) {
       setTestStatus('fail_cli');
+      setTestErrorDetail(error instanceof Error ? error.message : String(error));
     }
-  }, [command, argsString, envVars]);
+  }, [command, argsString, envVars, runtimeScopeId]);
 
   const handleSubmit = useCallback(() => {
     const parsedArgs = parseArgsString(argsString);
@@ -415,9 +423,9 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             type='error'
             icon={<CloseOne theme='filled' size={16} />}
             content={
-              <div className='flex items-center justify-between gap-8px'>
-                <span className='flex-1 min-w-0'>{t('settings.testConnectionFailCli')}</span>
-                <FeedbackButton module='agent-detection' />
+              <div className='flex flex-col gap-4px'>
+                <span>{t('settings.testConnectionFailCli')}</span>
+                {testErrorDetail ? <span className='text-12px break-all opacity-80'>{testErrorDetail}</span> : null}
               </div>
             }
           />
@@ -428,9 +436,9 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
             type='warning'
             icon={<CloseOne theme='filled' size={16} />}
             content={
-              <div className='flex items-center justify-between gap-8px'>
-                <span className='flex-1 min-w-0'>{t('settings.testConnectionFailAcp')}</span>
-                <FeedbackButton module='agent-detection' />
+              <div className='flex flex-col gap-4px'>
+                <span>{t('settings.testConnectionFailAcp')}</span>
+                {testErrorDetail ? <span className='text-12px break-all opacity-80'>{testErrorDetail}</span> : null}
               </div>
             }
           />

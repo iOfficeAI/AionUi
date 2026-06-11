@@ -43,11 +43,16 @@ export type PrefilledScreenshot = {
   type: string;
 };
 
+export type FeedbackEventTags = Record<string, string>;
+export type FeedbackEventExtra = Record<string, unknown>;
+
 type FeedbackReportModalProps = {
   visible: boolean;
   onCancel: () => void;
   defaultModule?: string;
   prefilledScreenshots?: PrefilledScreenshot[];
+  feedbackTags?: FeedbackEventTags;
+  feedbackExtra?: FeedbackEventExtra;
 };
 
 const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
@@ -55,6 +60,8 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
   onCancel,
   defaultModule,
   prefilledScreenshots,
+  feedbackTags,
+  feedbackExtra,
 }) => {
   const { t } = useTranslation();
 
@@ -186,6 +193,11 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
       Sentry.withScope((scope) => {
         scope.setTag('type', 'user-feedback');
         scope.setTag('module', module);
+        Object.entries(feedbackTags ?? {}).forEach(([key, value]) => {
+          if (value.trim()) {
+            scope.setTag(key, value);
+          }
+        });
 
         Sentry.captureEvent(
           {
@@ -193,6 +205,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
             message: eventSummary,
             extra: {
               description: normalizedDescription,
+              ...feedbackExtra,
             },
           },
           { attachments }
@@ -207,7 +220,7 @@ const FeedbackReportModal: React.FC<FeedbackReportModalProps> = ({
     } finally {
       setSubmitting(false);
     }
-  }, [module, description, screenshots, t, onCancel, resetForm, selectedModule]);
+  }, [module, description, screenshots, t, onCancel, resetForm, selectedModule, feedbackExtra, feedbackTags]);
 
   const isFormValid = module !== undefined && description.trim().length > 0;
 

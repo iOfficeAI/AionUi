@@ -4,7 +4,10 @@
  * Resolution order:
  *  1. GitHub release download (requires version or defaults to "latest")
  *
- * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/aioncore[.exe]
+ * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
+ *   - aioncore[.exe]
+ *   - manifest.json
+ *   - managed-resources/...
  *
  * @module prepare-aioncore
  */
@@ -58,6 +61,28 @@ function readJsonSafe(filePath) {
 
 function getBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+}
+
+function prepareManagedResources(binaryPath, targetDir) {
+  const bundleOut = path.join(targetDir, 'managed-resources');
+  const dataDir = path.join(targetDir, '.prepare-data');
+
+  removeDirectorySafe(bundleOut);
+  removeDirectorySafe(dataDir);
+  ensureDirectory(bundleOut);
+  ensureDirectory(dataDir);
+
+  console.log(`  Preparing managed resources under ${path.relative(process.cwd(), bundleOut)}`);
+  execFileSync(binaryPath, ['--data-dir', dataDir, 'prepare-managed-resources', '--bundle-out', bundleOut], {
+    stdio: 'inherit',
+    env: {
+      ...process.env,
+      AIONUI_BUNDLED_MANAGED_RESOURCES: '',
+    },
+  });
+
+  removeDirectorySafe(dataDir);
+  return bundleOut;
 }
 
 // ---------------------------------------------------------------------------
@@ -261,6 +286,7 @@ function prepareAioncore(options) {
   if (sourcePath) {
     copyFileSafe(sourcePath, targetBinaryPath);
     ensureExecutableMode(targetBinaryPath);
+    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
 
     // The release tag is the authoritative version — the aioncore
     // binary does not expose a --version flag (it has --app-version which
@@ -272,13 +298,14 @@ function prepareAioncore(options) {
       generatedAt: new Date().toISOString(),
       sourceType,
       source: sourceDetail,
-      files: [binaryName],
+      files: [binaryName, 'managed-resources/'],
     };
 
     writeJson(targetManifestPath, manifest);
     console.log(
       `  Bundled aioncore prepared: resources/bundled-aioncore/${runtimeKey}/${binaryName} [source=${sourceType}]`
     );
+    console.log(`  Bundled managed resources prepared: ${bundledManagedResourcesDir}`);
 
     if (tempDir) removeDirectorySafe(tempDir);
     return { prepared: true, dir: targetDir, sourceType };

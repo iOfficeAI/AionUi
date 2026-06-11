@@ -10,8 +10,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { PreviewToolbarExtrasProvider, type PreviewToolbarExtras } from '../../context/PreviewToolbarExtrasContext';
 import { usePreviewContext } from '../../context/PreviewContext';
 import { useResizableSplit } from '@/renderer/hooks/ui/useResizableSplit';
-import React, { useCallback, useMemo, useRef, useState } from 'react';
-import CodePreview from '../viewers/CodeViewer';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import DiffPreview from '../viewers/DiffViewer';
 import ExcelPreview from '../viewers/ExcelViewer';
 import HTMLEditor from '../editors/HTMLEditor';
@@ -22,7 +21,7 @@ import MarkdownPreview from '../viewers/MarkdownViewer';
 import PDFPreview from '../viewers/PDFViewer';
 import OfficeDocPreview from '../viewers/OfficeDocViewer';
 import PptViewer from '../viewers/PptViewer';
-import TextEditor from '../editors/TextEditor';
+import CodeEditor from '../editors/CodeEditor';
 import URLViewer from '../viewers/URLViewer';
 import {
   PreviewTabs,
@@ -71,12 +70,20 @@ const PreviewPanel: React.FC = () => {
   // 视图状态 / View states
   const [viewMode, setViewMode] = useState<'source' | 'preview'>('preview');
   const [isSplitScreenEnabled, setIsSplitScreenEnabled] = useState(false);
-  const [isEditMode, setIsEditMode] = useState(false);
   const [inspectMode, setInspectMode] = useState(false);
   const [toolbarExtras, setToolbarExtras] = useState<PreviewToolbarExtras | null>(null);
 
+  // 切换文件时把视图模式复位为预览，避免上一个文件的 source 模式串到下一个文件（如代码文件丢失语法高亮）。
+  // 注意：单预览浏览模式下打开新文件会复用当前 tab 的 id，所以这里要监听实际显示的文件标识（路径 + 类型），
+  // 而不是 activeTabId（它不会变）。
+  // Reset view mode to preview when the displayed file changes so a previous file's source mode does not
+  // leak into the next one (e.g. a code file losing syntax highlighting). In single-preview browse mode a
+  // new file reuses the active tab's id, so we key on the file identity (path + type), not activeTabId.
+  useEffect(() => {
+    setViewMode('preview');
+  }, [activeTabId, activeTab?.metadata?.file_path, activeTab?.content_type]);
+
   // 确认对话框状态 / Confirmation dialog states
-  const [showExitConfirm, setShowExitConfirm] = useState(false);
   const [closeTabConfirm, setCloseTabConfirm] = useState<CloseTabConfirmState>({ show: false, tabId: null });
 
   // 右键菜单状态 / Context menu state
@@ -160,28 +167,6 @@ const PreviewPanel: React.FC = () => {
     },
     [updateContent]
   );
-
-  // 处理退出编辑模式 / Handle exit edit mode
-  const handleExitEdit = useCallback(() => {
-    // 如果有未保存的修改，弹出确认对话框 / If there are unsaved changes, show confirmation dialog
-    if (activeTab?.isDirty) {
-      setShowExitConfirm(true);
-    } else {
-      // 没有未保存的修改，直接退出 / No unsaved changes, exit directly
-      setIsEditMode(false);
-    }
-  }, [activeTab?.isDirty]);
-
-  // 确认退出编辑 / Confirm exit edit
-  const handleConfirmExit = useCallback(() => {
-    setIsEditMode(false);
-    setShowExitConfirm(false);
-  }, []);
-
-  // 取消退出编辑 / Cancel exit edit
-  const handleCancelExit = useCallback(() => {
-    setShowExitConfirm(false);
-  }, []);
 
   // 处理关闭tab / Handle close tab
   const handleCloseTab = useCallback(
@@ -422,12 +407,7 @@ const PreviewPanel: React.FC = () => {
         if (layout?.isMobile) {
           return (
             <div className='flex-1 overflow-hidden'>
-              <MarkdownPreview
-                content={content}
-                hideToolbar
-                file_path={metadata?.file_path}
-                workspace={metadata?.workspace}
-              />
+              <MarkdownPreview content={content} file_path={metadata?.file_path} workspace={metadata?.workspace} />
             </div>
           );
         }
@@ -461,7 +441,6 @@ const PreviewPanel: React.FC = () => {
               <div className='flex flex-col flex-1 overflow-hidden'>
                 <MarkdownPreview
                   content={content}
-                  hideToolbar
                   containerRef={previewContainerRef}
                   onScroll={handlePreviewScroll}
                   file_path={metadata?.file_path}
@@ -477,7 +456,6 @@ const PreviewPanel: React.FC = () => {
       return (
         <MarkdownPreview
           content={content}
-          hideToolbar
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           onContentChange={updateContent}
@@ -594,52 +572,18 @@ const PreviewPanel: React.FC = () => {
         />
       );
     } else if (content_type === 'code') {
-      // 分屏模式：左右分割（编辑器 + 预览）/ Split-screen mode: Editor + Preview
-      if (isSplitScreenEnabled && isEditMode && isEditable) {
-        return (
-          <div className='flex flex-1 relative overflow-hidden'>
-            {/* 左侧：编辑器 / Left: Editor */}
-            <div className='flex flex-col relative' style={{ width: `${splitRatio}%` }}>
-              <div className='h-40px flex items-center px-12px bg-bg-2'>
-                <span className='text-12px text-t-secondary'>{t('preview.editor')}</span>
-              </div>
-              <div className='flex-1 overflow-hidden'>
-                <TextEditor key={activeTabId ?? undefined} value={content} onChange={updateContent} />
-              </div>
-              {/* 拖动分割线 / Drag handle */}
-              {createDragHandle({ className: 'absolute right-0 top-0 bottom-0' })}
-            </div>
-
-            {/* 右侧：预览 / Right: Preview */}
-            <div className='flex flex-col' style={{ width: `${100 - splitRatio}%`, minWidth: 0 }}>
-              <div className='h-40px flex items-center px-12px bg-bg-2'>
-                <span className='text-12px text-t-secondary'>{t('preview.preview')}</span>
-              </div>
-              <div className='flex flex-col flex-1 overflow-hidden'>
-                <CodePreview content={content} language={metadata?.language} hideToolbar />
-              </div>
-            </div>
-          </div>
-        );
-      }
-
-      // 非分屏模式：如果处于编辑模式且可编辑，显示文本编辑器 / Non-split mode: If in edit mode and editable, show text editor
-      if (isEditMode && isEditable) {
-        return (
-          <div className='flex-1 overflow-hidden'>
-            <TextEditor key={activeTabId ?? undefined} value={content} onChange={handleContentChange} />
-          </div>
-        );
-      }
-      // 否则显示代码预览 / Otherwise show code preview
+      // 统一：始终可编辑的 CodeEditor（看=改）/ Unified: always-editable CodeEditor (view = edit)
       return (
-        <CodePreview
-          content={content}
-          language={metadata?.language}
-          hideToolbar
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-        />
+        <div className='flex-1 overflow-hidden'>
+          <CodeEditor
+            key={activeTabId ?? undefined}
+            value={content}
+            onChange={handleContentChange}
+            language={metadata?.language}
+            fileName={metadata?.file_name}
+            readOnly={isEditable === false}
+          />
+        </div>
       );
     } else if (content_type === 'pdf') {
       return <PDFPreview file_path={metadata?.file_path} content={content} />;
@@ -681,10 +625,7 @@ const PreviewPanel: React.FC = () => {
         {/* 确认对话框 / Confirmation modals */}
         {/* eslint-disable-next-line max-len */}
         <PreviewConfirmModals
-          showExitConfirm={showExitConfirm}
           closeTabConfirm={closeTabConfirm}
-          onConfirmExit={handleConfirmExit}
-          onCancelExit={handleCancelExit}
           onSaveAndCloseTab={handleSaveAndCloseTab}
           onCloseWithoutSave={handleCloseWithoutSave}
           onCancelCloseTab={handleCancelCloseTab}
@@ -709,8 +650,6 @@ const PreviewPanel: React.FC = () => {
             content_type={content_type}
             isMarkdown={isMarkdown}
             isHTML={isHTML}
-            isEditable={isEditable}
-            isEditMode={isEditMode}
             viewMode={viewMode}
             isSplitScreenEnabled={isSplitScreenEnabled}
             file_name={metadata?.file_name || activeTab.title}
@@ -722,14 +661,6 @@ const PreviewPanel: React.FC = () => {
               setIsSplitScreenEnabled(false); // 切换视图模式时关闭分屏 / Disable split when switching view mode
             }}
             onSplitScreenToggle={() => setIsSplitScreenEnabled(!isSplitScreenEnabled)}
-            onEditClick={() => {
-              setIsEditMode(true);
-              // Code/TXT 类型进入编辑模式时自动开启分屏 / Auto enable split screen for Code/TXT when entering edit mode
-              if (content_type === 'code') {
-                setIsSplitScreenEnabled(true);
-              }
-            }}
-            onExitEdit={handleExitEdit}
             onSaveSnapshot={handleSaveSnapshot}
             onRefreshHistory={refreshHistory}
             renderHistoryDropdown={renderHistoryDropdown}

@@ -1,9 +1,10 @@
 import { Message, Modal, Spin } from '@arco-design/web-react';
-import { CloseSmall, FullScreen, Left, OffScreen, Right } from '@icon-park/react';
+import { CloseSmall, FullScreen, Left, OffScreen, Peoples, Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import useSWR, { useSWRConfig } from 'swr';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { ipcBridge } from '@/common';
 import type { TeamAgent, TTeam } from '@/common/types/team/teamTypes';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
@@ -13,12 +14,14 @@ import { useTeamPendingPermissions } from './hooks/useTeamPendingPermissions';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
 import AionrsModelSelector from '@/renderer/pages/conversation/platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
   team: TTeam;
@@ -38,6 +41,7 @@ const AionrsHeaderModelSelector: React.FC<{ conversation_id: string; initialMode
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation_id, updates: { model: selected } });
+      if (ok) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
     [conversation_id]
@@ -55,9 +59,11 @@ const AgentChatSlot: React.FC<{
   onToggleFullscreen?: () => void;
   onRemove?: () => void;
 }> = ({ agent, team_id, isLeader, isFullscreen = false, onToggleFullscreen, onRemove }) => {
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { data: conversation } = useSWR(
     agent.conversation_id ? ['team-conversation', agent.conversation_id] : null,
-    () => ipcBridge.conversation.get.invoke({ id: agent.conversation_id })
+    () => getConversationOrNull(agent.conversation_id)
   );
 
   const isAionrs = conversation?.type === 'aionrs';
@@ -95,7 +101,7 @@ const AgentChatSlot: React.FC<{
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
         <div className='flex items-center gap-8px shrink-0'>
-          {agent.conversation_id && !isAionrs && isAcpLike && (
+          {!isMobile && agent.conversation_id && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector
                 key={agent.conversation_id}
@@ -105,7 +111,7 @@ const AgentChatSlot: React.FC<{
               />
             </div>
           )}
-          {isAionrs && agent.conversation_id && (
+          {!isMobile && isAionrs && agent.conversation_id && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AionrsHeaderModelSelector
                 key={agent.conversation_id}
@@ -202,7 +208,7 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   // Fetch leader agent's conversation for the workspace sider
   const { data: dispatchConversation } = useSWR(
     leadAgent?.conversation_id ? ['team-conversation', leadAgent.conversation_id] : null,
-    () => ipcBridge.conversation.get.invoke({ id: leadAgent!.conversation_id })
+    () => getConversationOrNull(leadAgent!.conversation_id)
   );
 
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)
@@ -351,6 +357,11 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
         isTemporaryWorkspace={isTeamWorkspaceTemporary}
         workspacePreferenceKey={team.id}
         onRenameTitle={onRenameTeam}
+        headerLeading={
+          <span className='inline-flex w-16px h-16px items-center justify-center shrink-0 leading-none text-t-primary'>
+            <Peoples theme='outline' size='16' fill='currentColor' style={{ lineHeight: 0 }} />
+          </span>
+        }
       >
         <div className='relative flex h-full'>
           {fullscreenSlotId ? (

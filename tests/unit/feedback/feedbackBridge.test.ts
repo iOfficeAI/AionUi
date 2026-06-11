@@ -8,6 +8,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import * as path from 'node:path';
+import { gunzipSync } from 'node:zlib';
+import { collectFeedbackLogAttachment } from '@/process/feedback/logs';
 
 // Table of handlers registered via ipcMain.handle during module import.
 const handlers = new Map<string, (event: unknown, ...args: unknown[]) => unknown>();
@@ -121,5 +126,34 @@ describe('feedbackBridge — capture-screenshot', () => {
     expect(result).toBeNull();
     expect(consoleError).toHaveBeenCalled();
     consoleError.mockRestore();
+  });
+});
+
+describe('feedback logs', () => {
+  it('collects the same recent three log days used by user feedback reports', () => {
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-feedback-logs-'));
+    try {
+      writeFileSync(path.join(logsDir, '2026-05-25.log'), 'today frontend\n');
+      writeFileSync(path.join(logsDir, '2026-05-25.aioncore.log'), 'today backend\n');
+      writeFileSync(path.join(logsDir, '2026-05-24.aionrs.log'), 'yesterday rust\n');
+      writeFileSync(path.join(logsDir, '2026-05-23.log'), 'third day frontend\n');
+      writeFileSync(path.join(logsDir, '2026-05-22.log'), 'too old frontend\n');
+      writeFileSync(path.join(logsDir, '2026-05-25.txt'), 'not a log\n');
+
+      const attachment = collectFeedbackLogAttachment(logsDir);
+
+      expect(attachment).not.toBeNull();
+      expect(attachment!.filename).toBe('logs.gz');
+      expect(attachment!.contentType).toBe('application/gzip');
+      const content = gunzipSync(attachment!.data).toString('utf8');
+      expect(content).toContain('today frontend');
+      expect(content).toContain('today backend');
+      expect(content).toContain('yesterday rust');
+      expect(content).toContain('third day frontend');
+      expect(content).not.toContain('too old frontend');
+      expect(content).not.toContain('not a log');
+    } finally {
+      rmSync(logsDir, { recursive: true, force: true });
+    }
   });
 });

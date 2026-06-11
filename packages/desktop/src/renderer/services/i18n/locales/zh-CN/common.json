@@ -7,7 +7,8 @@
   "file": "文件",
   "folder": "文件夹",
   "upload": "上传",
-  "attach": "附件",
+  "model": "模型",
+  "skills": "技能",
   "workspace": "项目",
   "settings": "设置",
   "system": "系统",
@@ -69,11 +70,30 @@
   "tray.checkUpdate": "检查更新",
   "tray.recentChats": "最近对话",
   "tray.untitled": "未命名",
-  "fileAttach.hostFiles": "添加文件",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "当前系统不支持内置后端",
+      "description": "AionUi 已打开，但本地 AionCore 后端无法在当前 Linux 版本上运行。请升级到受支持的 Linux 发行版后重启 AionUi。",
+      "requiredVersions": "需要的运行时符号：{{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi 安装不完整",
+      "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionCore。",
+      "downloadLatest": "下载最新版",
+      "sendDiagnostics": "发送诊断报告",
+      "runtimeComponentDescription": "当前安装缺少必要的内置运行组件，{{resource}} 无法启动。请重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionUi 组件。"
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi 安装包架构不匹配",
+      "description": "当前 AionUi 安装包是 {{packageArch}}，但这台 Mac 是 {{deviceArch}}。你可能下载了错误的安装包，请重新下载并安装 {{expectedArch}} 版本。"
+    }
+  },
+  "fileAttach.addFiles": "添加文件",
   "fileAttach.myDevice": "从设备上传",
   "fileAttach.failed": "上传失败",
   "fileAttach.uploading": "上传中...",
   "fileAttach.uploadSuccess": "上传成功",
+  "fileAttach.cancelUpload": "取消上传",
   "expand": "展开",
   "name": "名称",
   "added": "已添加",

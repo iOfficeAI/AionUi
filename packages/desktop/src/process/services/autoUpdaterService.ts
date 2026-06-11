@@ -9,6 +9,7 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -246,6 +247,11 @@ class AutoUpdaterService extends EventEmitter {
    * Broadcast status to both EventEmitter listeners and the registered callback
    */
   private broadcastStatus(status: AutoUpdateStatus): void {
+    recordAutoUpdateStatus(status, {
+      currentAppVersion: app.getVersion(),
+      userDataPath: app.getPath('userData'),
+    });
+
     // Emit to internal listeners (for testing and extensibility)
     this.emit('update-status', status);
 
@@ -306,6 +312,10 @@ class AutoUpdaterService extends EventEmitter {
 
   quitAndInstall(): void {
     log.info('Quitting and installing update...');
+    recordAutoUpdateQuitAndInstall({
+      currentAppVersion: app.getVersion(),
+      userDataPath: app.getPath('userData'),
+    });
     // On macOS, autoUpdater.quitAndInstall() closes all windows but the
     // 'window-all-closed' handler does NOT call app.quit() (standard macOS
     // behavior + close-to-tray). This leaves the process alive and Squirrel

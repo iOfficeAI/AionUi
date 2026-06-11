@@ -6,53 +6,51 @@
 
 // context/ThemeContext.tsx - Unified Theme Management Context 统一主题管理上下文
 import type { PropsWithChildren } from 'react';
-import React, { createContext, useContext } from 'react';
-import type { Theme } from '@renderer/hooks/system/useTheme';
+import React, { createContext, useCallback, useContext } from 'react';
+import type { Theme, ThemeAppearance } from '@/common/theme/types';
 import useTheme from '@renderer/hooks/system/useTheme';
-import type { ColorScheme } from '@renderer/hooks/ui/useColorScheme';
-import useColorScheme from '@renderer/hooks/ui/useColorScheme';
+import { LIGHT_THEME_ID, DARK_THEME_ID } from '@/common/theme/constants';
 import useFontScale from '@renderer/hooks/ui/useFontScale';
+import useFontSizes from '@renderer/hooks/ui/useFontSizes';
+import type { FontSizeKey, FontSizes } from '@/common/config/fontSizes';
 
-/**
- * Theme context value interface 主题上下文值接口
- * Separates light/dark mode from color schemes 分离明暗模式和配色方案
- */
 interface ThemeContextValue {
-  // Light/Dark mode 明暗模式
-  theme: Theme;
-  setTheme: (theme: Theme) => Promise<void>;
-
-  // Color scheme 配色方案
-  colorScheme: ColorScheme;
-  setColorScheme: (scheme: ColorScheme) => Promise<void>;
-
-  // Font scaling 字体缩放
+  // Light/Dark appearance of the active theme (back-compat for existing consumers)
+  theme: ThemeAppearance;
+  // Back-compat light/dark toggle → selects the Light or Dark built-in theme
+  setTheme: (appearance: ThemeAppearance) => Promise<void>;
+  // The full unified active theme + selector by id (used by the new gallery)
+  activeTheme: Theme | null;
+  selectTheme: (id: string) => Promise<void>;
+  // Font scaling (unchanged)
   fontScale: number;
   setFontScale: (scale: number) => Promise<void>;
+  // Per-region font sizes (px)
+  fontSizes: FontSizes;
+  setFontSize: (key: FontSizeKey, px: number) => Promise<void>;
 }
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-/**
- * Theme provider component 主题提供者组件
- * Manages both light/dark mode and color schemes 同时管理明暗模式和配色方案
- */
 export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const [theme, setTheme] = useTheme();
-  const [colorScheme, setColorScheme] = useColorScheme();
+  const [activeTheme, selectTheme] = useTheme();
   const [fontScale, setFontScale] = useFontScale();
+  const { fontSizes, setFontSize } = useFontSizes();
+  const theme: ThemeAppearance = activeTheme?.appearance ?? 'light';
+  const setTheme = useCallback(
+    (appearance: ThemeAppearance) => selectTheme(appearance === 'dark' ? DARK_THEME_ID : LIGHT_THEME_ID),
+    [selectTheme]
+  );
 
   return (
-    <ThemeContext.Provider value={{ theme, setTheme, colorScheme, setColorScheme, fontScale, setFontScale }}>
+    <ThemeContext.Provider
+      value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}
+    >
       {children}
     </ThemeContext.Provider>
   );
 };
 
-/**
- * Hook to access theme context 访问主题上下文的 Hook
- * @throws {Error} If used outside of ThemeProvider 如果在 ThemeProvider 外使用会抛出错误
- */
 export const useThemeContext = () => {
   const context = useContext(ThemeContext);
   if (!context) {

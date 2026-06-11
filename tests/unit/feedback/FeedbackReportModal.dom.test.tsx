@@ -10,13 +10,37 @@
 
 import React from 'react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { cleanup, render, screen } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
+
+vi.mock('@arco-design/web-react', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@arco-design/web-react')>();
+  return {
+    ...actual,
+    Message: {
+      ...actual.Message,
+      success: vi.fn(),
+    },
+  };
+});
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({ t: (k: string) => k, i18n: { language: 'en' } }),
 }));
+
+const sentryMocks = vi.hoisted(() => {
+  const setTag = vi.fn();
+  return {
+    setTag,
+    captureEvent: vi.fn(),
+    withScope: vi.fn((callback: (scope: { setTag: typeof setTag }) => void) => {
+      callback({ setTag });
+    }),
+  };
+});
+
+vi.mock('@sentry/electron/renderer', () => sentryMocks);
 
 import FeedbackReportModal, {
   type PrefilledScreenshot,
@@ -34,6 +58,9 @@ describe('FeedbackReportModal — prefill', () => {
   beforeEach(() => {
     // Ensure no leftover global electronAPI from other tests interferes.
     (window as unknown as { electronAPI?: unknown }).electronAPI = undefined;
+    sentryMocks.setTag.mockClear();
+    sentryMocks.captureEvent.mockClear();
+    sentryMocks.withScope.mockClear();
   });
 
   afterEach(() => {
@@ -118,6 +145,53 @@ describe('FeedbackReportModal — prefill', () => {
     expect(closeBtn).not.toBeNull();
     await user.click(closeBtn!);
 
+    expect(onCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it('submits feedback tags and extra context to Sentry', async () => {
+    const user = userEvent.setup();
+    const onCancel = vi.fn();
+    renderModal(
+      <FeedbackReportModal
+        visible={true}
+        onCancel={onCancel}
+        defaultModule='conversation-session'
+        feedbackTags={{
+          agent_error_code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+          agent_error_ownership: 'user_llm_provider',
+        }}
+        feedbackExtra={{
+          agent_error: {
+            code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+            ownership: 'user_llm_provider',
+          },
+        }}
+      />
+    );
+
+    await user.type(screen.getByPlaceholderText('settings.bugReportDescriptionPlaceholder'), 'provider failed');
+    await user.click(screen.getByText('settings.bugReportSubmit'));
+
+    await waitFor(() => {
+      expect(sentryMocks.captureEvent).toHaveBeenCalledTimes(1);
+    });
+
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('type', 'user-feedback');
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('module', 'conversation-session');
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('agent_error_code', 'USER_LLM_PROVIDER_AUTH_FAILED');
+    expect(sentryMocks.setTag).toHaveBeenCalledWith('agent_error_ownership', 'user_llm_provider');
+    expect(sentryMocks.captureEvent).toHaveBeenCalledWith(
+      expect.objectContaining({
+        extra: {
+          description: 'provider failed',
+          agent_error: {
+            code: 'USER_LLM_PROVIDER_AUTH_FAILED',
+            ownership: 'user_llm_provider',
+          },
+        },
+      }),
+      expect.objectContaining({ attachments: [] })
+    );
     expect(onCancel).toHaveBeenCalledTimes(1);
   });
 });

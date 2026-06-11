@@ -18,8 +18,10 @@ import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
+import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
 import { getActivityTime } from '@/renderer/utils/chat/timeline';
 import { mutate } from 'swr';
+import { getConversationRuntimeWorkspaceErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 
 const TaskDetailPage: React.FC = () => {
   const { t } = useTranslation();
@@ -40,7 +42,7 @@ const TaskDetailPage: React.FC = () => {
     setLoading(true);
     try {
       const found = await ipcBridge.cron.getJob.invoke({ job_id });
-      setJob(found ?? null);
+      setJob(found ? await repairCronJobTimeZone(found) : null);
     } catch (err) {
       console.error('[TaskDetailPage] Failed to fetch job:', err);
     } finally {
@@ -136,7 +138,7 @@ const TaskDetailPage: React.FC = () => {
         navigate(`/conversation/${result.conversation_id}`);
       }
     } catch (err) {
-      Message.error(String(err));
+      Message.error(getConversationRuntimeWorkspaceErrorMessage(err, t));
     } finally {
       setRunningNow(false);
     }

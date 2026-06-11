@@ -7,7 +7,8 @@
   "file": "ファイル",
   "folder": "フォルダ",
   "upload": "アップロード",
-  "attach": "添付",
+  "model": "モデル",
+  "skills": "スキル",
   "workspace": "プロジェクト",
   "settings": "設定",
   "system": "システム",
@@ -69,11 +70,30 @@
   "tray.checkUpdate": "更新を確認",
   "tray.recentChats": "最近のチャット",
   "tray.untitled": "無題",
-  "fileAttach.hostFiles": "ホストマシンファイル",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "このシステムは同梱バックエンドに対応していません",
+      "description": "AionUi は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AionUi を再起動してください。",
+      "requiredVersions": "必要なランタイムシンボル: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi のインストールが不完全です",
+      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AionUi をダウンロードして再インストールしてください。再インストール後も問題が再発する場合は、セキュリティソフトまたはウイルス対策ソフトが AionCore を隔離していないか確認してください。",
+      "downloadLatest": "最新版をダウンロード",
+      "sendDiagnostics": "診断レポートを送信",
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi package architecture mismatch",
+      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+    }
+  },
+  "fileAttach.addFiles": "ファイルを追加",
   "fileAttach.myDevice": "マイデバイス",
   "fileAttach.failed": "アップロードに失敗しました",
   "fileAttach.uploading": "アップロード中...",
   "fileAttach.uploadSuccess": "アップロード成功",
+  "fileAttach.cancelUpload": "アップロードをキャンセル",
   "expand": "展開",
   "name": "名前",
   "added": "追加済み",

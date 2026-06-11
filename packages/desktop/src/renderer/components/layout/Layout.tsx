@@ -6,12 +6,9 @@
 
 import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
-import { configService } from '@/common/config/configService';
-import type { ICssTheme } from '@/common/config/storage';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
-import { MenuFold, MenuUnfold } from '@icon-park/react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
@@ -20,12 +17,29 @@ import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHis
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
-import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
-import { isElectronDesktop, resolvePublicAssetUrl } from '@renderer/utils/platform';
-import { computeCssSyncDecision, resolveCssByActiveTheme } from '@renderer/utils/theme/themeCssSync';
+import { isElectronDesktop } from '@renderer/utils/platform';
 import '@renderer/styles/layout.css';
+
+const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
+  <svg
+    width={size}
+    height={size}
+    viewBox='0 0 48 48'
+    fill='none'
+    stroke='currentColor'
+    strokeWidth={strokeWidth}
+    strokeLinecap='round'
+    strokeLinejoin='round'
+    aria-hidden='true'
+    focusable='false'
+    style={{ display: 'inline-block', verticalAlign: 'middle' }}
+  >
+    <rect x='6' y='10' width='36' height='28' rx='5' />
+    <line x1='18' y1='10' x2='18' y2='38' />
+  </svg>
+);
 
 const useDebug = () => {
   const [count, setCount] = useState(0);
@@ -91,7 +105,6 @@ const Layout: React.FC<{
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
-  const [customCss, setCustomCss] = useState<string>('');
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
@@ -103,148 +116,11 @@ const Layout: React.FC<{
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const collapsedRef = useRef(collapsed);
-  const lastCssRef = useRef('');
-  const lastUiCssUpdateAtRef = useRef(0);
   const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
     active: false,
     startX: 0,
     startWidth: DEFAULT_SIDER_WIDTH,
   });
-
-  useEffect(() => {
-    document.title = 'EVE';
-  }, []);
-
-  const loadAndHealCustomCss = useCallback(async () => {
-    try {
-      const [savedCssRaw, activeThemeId, savedThemes] = await Promise.all([
-        configService.get('customCss'),
-        configService.get('css.activeThemeId'),
-        configService.get('css.themes'),
-      ]);
-
-      const decision = computeCssSyncDecision({
-        savedCss: savedCssRaw || '',
-        activeThemeId: activeThemeId || '',
-        savedThemes: (savedThemes || []) as ICssTheme[],
-        currentUiCss: customCss,
-        lastUiCssUpdateAt: lastUiCssUpdateAtRef.current,
-      });
-
-      if (decision.shouldSkipApply) {
-        return;
-      }
-
-      let effectiveCss = decision.effectiveCss;
-
-      // If the active theme resolved to empty CSS and there IS a saved activeThemeId
-      // (but it no longer matches any known theme), fall back to default and persist.
-      if (!effectiveCss && activeThemeId && activeThemeId !== 'default-theme') {
-        const defaultCss = resolveCssByActiveTheme('default-theme', (savedThemes || []) as ICssTheme[]);
-        effectiveCss = defaultCss;
-        // Persist the fallback so Layout doesn't keep retrying
-        await Promise.all([
-          configService.set('css.activeThemeId', 'default-theme'),
-          configService.set('customCss', effectiveCss),
-        ]).catch((error) => {
-          console.warn('Failed to persist theme fallback:', error);
-        });
-      } else if (decision.shouldHealStorage) {
-        await configService.set('customCss', effectiveCss).catch((error) => {
-          console.warn('Failed to heal custom CSS from active theme:', error);
-        });
-      }
-
-      setCustomCss(effectiveCss);
-      if (lastCssRef.current !== effectiveCss) {
-        lastCssRef.current = effectiveCss;
-        window.dispatchEvent(new CustomEvent('custom-css-updated', { detail: { customCss: effectiveCss } }));
-      }
-    } catch (error) {
-      console.error('Failed to load or heal custom CSS:', error);
-    }
-  }, [customCss]);
-
-  // 加载并监听自定义 CSS 配置 / Load & watch custom CSS configuration
-  useEffect(() => {
-    void loadAndHealCustomCss();
-
-    const handleCssUpdate = (event: CustomEvent) => {
-      if (event.detail?.customCss !== undefined) {
-        const css = event.detail.customCss || '';
-        lastCssRef.current = css;
-        lastUiCssUpdateAtRef.current = Date.now();
-        setCustomCss(css);
-      }
-    };
-    const handleStorageChange = (event: StorageEvent) => {
-      if (event.key && (event.key.includes('customCss') || event.key.includes('css.activeThemeId'))) {
-        void loadAndHealCustomCss();
-      }
-    };
-
-    window.addEventListener('custom-css-updated', handleCssUpdate as EventListener);
-    window.addEventListener('storage', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('custom-css-updated', handleCssUpdate as EventListener);
-      window.removeEventListener('storage', handleStorageChange);
-    };
-  }, [loadAndHealCustomCss]);
-
-  // Re-sync theme css on route changes, because some settings pages do not mount CssThemeSettings.
-  useEffect(() => {
-    void loadAndHealCustomCss();
-  }, [location.pathname, location.search, location.hash, loadAndHealCustomCss]);
-
-  // 注入自定义 CSS / Inject custom CSS into document head
-  useEffect(() => {
-    const styleId = 'user-defined-custom-css';
-
-    if (!customCss) {
-      document.getElementById(styleId)?.remove();
-      return;
-    }
-
-    const wrappedCss = processCustomCss(customCss);
-
-    const ensureStyleAtEnd = () => {
-      let styleEl = document.getElementById(styleId) as HTMLStyleElement | null;
-
-      if (styleEl && styleEl.textContent === wrappedCss && styleEl === document.head.lastElementChild) {
-        return;
-      }
-
-      styleEl?.remove();
-      styleEl = document.createElement('style');
-      styleEl.id = styleId;
-      styleEl.type = 'text/css';
-      styleEl.textContent = wrappedCss;
-      document.head.appendChild(styleEl);
-    };
-
-    ensureStyleAtEnd();
-
-    const observer = new MutationObserver((mutations) => {
-      const hasNewStyle = mutations.some((mutation) =>
-        Array.from(mutation.addedNodes).some((node) => node.nodeName === 'STYLE' || node.nodeName === 'LINK')
-      );
-
-      if (hasNewStyle) {
-        const element = document.getElementById(styleId);
-        if (element && element !== document.head.lastElementChild) {
-          ensureStyleAtEnd();
-        }
-      }
-    });
-
-    observer.observe(document.head, { childList: true });
-
-    return () => {
-      observer.disconnect();
-      document.getElementById(styleId)?.remove();
-    };
-  }, [customCss]);
 
   // 检测移动端并响应窗口大小变化
   useEffect(() => {
@@ -451,33 +327,44 @@ const Layout: React.FC<{
                 )}
               >
                 <div
-                  className={classNames('shrink-0 size-32px relative rd-0.5rem overflow-hidden', {
+                  className={classNames('bg-black shrink-0 size-32px relative rd-0.5rem', {
                     '!size-24px': collapsed,
                   })}
                   onClick={onClick}
                 >
-                  <img
-                    src={
-                      resolvePublicAssetUrl('/command-eve-logo.svg?v=command-eve-20260526') ||
-                      '/command-eve-logo.svg?v=command-eve-20260526'
-                    }
-                    alt='Command EVE'
-                    className='absolute inset-0 size-full object-cover'
-                  />
+                  <svg
+                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
+                      'scale-140': !collapsed,
+                    })}
+                    viewBox='0 0 80 80'
+                    fill='none'
+                  >
+                    <path
+                      key='logo-path-1'
+                      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
+                      fill='white'
+                    ></path>
+                    <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
+                    <path
+                      key='logo-path-2'
+                      d='M18 50 Q40 70 62 50'
+                      stroke='white'
+                      strokeWidth='3.5'
+                      fill='none'
+                      strokeLinecap='round'
+                    ></path>
+                  </svg>
                 </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>EVE</div>
+                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
                 {isMobile && !collapsed && (
                   <button
                     type='button'
-                    className='app-titlebar__button'
+                    className='app-titlebar__button app-titlebar__button--mobile'
                     onClick={() => setCollapsed(true)}
+                    title='Collapse sidebar'
                     aria-label='Collapse sidebar'
                   >
-                    {collapsed ? (
-                      <MenuUnfold theme='outline' size='18' fill='currentColor' />
-                    ) : (
-                      <MenuFold theme='outline' size='18' fill='currentColor' />
-                    )}
+                    <SidebarIcon size={18} strokeWidth={2.5} />
                   </button>
                 )}
                 {/* 侧栏折叠改由标题栏统一控制 / Sidebar folding handled by Titlebar toggle */}

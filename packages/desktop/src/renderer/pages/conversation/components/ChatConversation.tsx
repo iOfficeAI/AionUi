@@ -5,13 +5,14 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
+import type { IConversationMcpStatus, IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
 import { uuid } from '@/common/utils';
 import addChatIcon from '@/renderer/assets/icons/add-chat.svg';
 import { CronJobManager } from '@/renderer/pages/cron';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePresetAssistantInfo, resolveAssistantConfigId } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Tooltip, Typography } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message, Tooltip, Typography } from '@arco-design/web-react';
 import { History } from '@icon-park/react';
 import React, { useCallback, useMemo, useRef } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -21,20 +22,18 @@ import { emitter } from '../../../utils/emitter';
 import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
-import NanobotChat from '../platforms/nanobot/NanobotChat';
-import OpenClawChat from '../platforms/openclaw/OpenClawChat';
-import RemoteChat from '../platforms/remote/RemoteChat';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
 import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
-import { usePreviewContext } from '../Preview';
-import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
+import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
+import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
+import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
-
-const COMMAND_EVE_AGENT_BACKEND = 'hermes';
-const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 
 /** Check whether a specific skill is mounted on the conversation. */
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
@@ -106,7 +105,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
           try {
             const id = uuid();
             // Fetch latest conversation from DB to ensure session_mode is current
-            const latest = await ipcBridge.conversation.get.invoke({ id: conversation.id }).catch((): null => null);
+            const latest = await getConversationOrNull(conversation.id);
             const source = latest || conversation;
             await ipcBridge.conversation.createWithConversation.invoke({
               conversation: {
@@ -125,6 +124,7 @@ const _AddNewConversation: React.FC<{ conversation: TChatConversation }> = ({ co
             emitter.emit('chat.history.refresh');
           } catch (error) {
             console.error('Failed to create conversation:', error);
+            Message.error(getConversationCreateErrorMessage(error, t));
           } finally {
             isCreatingRef.current = false;
           }
@@ -140,15 +140,23 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   conversation,
   sliderTitle,
 }) => {
+  const runtimeView = useConversationRuntimeView(conversation.id);
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       // Kill running agent on model switch — will be rebuilt with new model on next message
-      await ipcBridge.conversation.stop.invoke({ conversation_id: conversation.id });
+      if (runtimeView.activeTurnId) {
+        const result = await ipcBridge.conversation.stop.invoke({
+          conversation_id: conversation.id,
+          turn_id: runtimeView.activeTurnId,
+        });
+        runtimeView.markStopAcknowledged(runtimeView.activeTurnId, result.runtime);
+      }
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      if (ok) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
-    [conversation.id]
+    [conversation.id, runtimeView]
   );
 
   const modelSelection = useAionrsModelSelection({
@@ -158,12 +166,15 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
   const workspaceEnabled = Boolean(conversation.extra?.workspace);
   const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
+  const layout = useLayoutContext();
+  // Mobile: model selection moved into the sendbox `+` action sheet to free up
+  // header space; the dropdown stays available on desktop and tablets ≥768px.
+  const isMobile = Boolean(layout?.isMobile);
 
   const chatLayoutProps = {
     title: conversation.name,
     siderTitle: sliderTitle,
     sider: <ChatSlider conversation={conversation} />,
-    headerLeft: <AionrsModelSelector selection={modelSelection} />,
     headerExtra: (
       <div className='flex items-center gap-8px'>
         <CronJobManager
@@ -171,6 +182,7 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
           cron_job_id={conversation.extra?.cron_job_id as string | undefined}
           hasCronSkill={hasLoadedSkill(conversation, 'cron')}
         />
+        {!isMobile && <AionrsModelSelector selection={modelSelection} />}
       </div>
     ),
     workspaceEnabled,
@@ -190,6 +202,11 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         session_mode={conversation.extra?.session_mode}
         cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
         loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+        loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+        loadedMcpStatuses={
+          (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+        }
+        agent_name={presetAssistantInfo?.name}
       />
     </ChatLayout>
   );
@@ -200,12 +217,13 @@ const ChatConversation: React.FC<{
   hideSendBox?: boolean;
 }> = ({ conversation, hideSendBox }) => {
   const { t } = useTranslation();
-  const { openPreview } = usePreviewContext();
   const workspaceEnabled = Boolean(conversation?.extra?.workspace);
+  const layout = useLayoutContext();
+  const isMobile = Boolean(layout?.isMobile);
 
   const isAionrsConversation = conversation?.type === 'aionrs';
-  const isCommandEveConversation =
-    conversation?.type === 'acp' && conversation.extra?.backend === COMMAND_EVE_AGENT_BACKEND;
+  const isLegacyReadOnlyConversation = isLegacyReadOnlyConversationType(conversation?.type);
+  const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation?.type);
 
   // 使用统一的 Hook 获取预设助手信息（ACP/Codex 会话）
   // Use unified hook for preset assistant info (ACP/Codex conversations)
@@ -214,12 +232,13 @@ const ChatConversation: React.FC<{
   const acpAssistantId = acpConversation ? (resolveAssistantConfigId(acpConversation) ?? undefined) : undefined;
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
-  const assistantDisplayName = isCommandEveConversation
-    ? COMMAND_EVE_DISPLAY_NAME
-    : presetAssistantInfo?.name || conversationAgentName;
+  const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
 
   const conversationNode = useMemo(() => {
     if (!conversation || isAionrsConversation) return null;
+    if (isLegacyReadOnlyConversation) {
+      return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} />;
+    }
     switch (conversation.type) {
       case 'acp':
         return (
@@ -231,75 +250,18 @@ const ChatConversation: React.FC<{
             session_mode={conversation.extra?.session_mode}
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+            loadedMcpServers={(conversation.extra as { mcp_servers?: string[] } | undefined)?.mcp_servers}
+            loadedMcpStatuses={
+              (conversation.extra as { mcp_statuses?: IConversationMcpStatus[] } | undefined)?.mcp_statuses
+            }
           ></AcpChat>
-        );
-      case 'gemini':
-        // Legacy Gemini conversation: the dedicated Gemini runtime has been
-        // removed. The message history is still served by the shared messages
-        // table, so AcpChat renders it fine. The composer is left enabled —
-        // any send attempt will get a BadRequest from the factory branch in
-        // aionui-common/src/enums.rs → factory.rs, surfacing a clear error
-        // to the user.
-        return (
-          <AcpChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            backend='gemini'
-            agent_name={assistantDisplayName}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            hideSendBox={hideSendBox}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-          />
-        );
-      case 'codex': // Legacy: codex now uses ACP protocol
-        return (
-          <AcpChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            backend='codex'
-            agent_name={assistantDisplayName}
-            hideSendBox={hideSendBox}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-          />
-        );
-      case 'openclaw-gateway':
-        return (
-          <OpenClawChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-          />
-        );
-      case 'nanobot':
-        return (
-          <NanobotChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-          />
-        );
-      case 'remote':
-        return (
-          <RemoteChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
-            loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
-          />
         );
       default:
         return null;
     }
-  }, [conversation, isAionrsConversation, assistantDisplayName, hideSendBox]);
+  }, [conversation, isAionrsConversation, isLegacyReadOnlyConversation, assistantDisplayName, resolvedHideSendBox]);
 
   const sliderTitle = useMemo(() => {
     return (
@@ -311,21 +273,25 @@ const ChatConversation: React.FC<{
 
   // For ACP/Codex conversations, use AcpModelSelector that can show/switch models.
   // For other conversations, show disabled model selector.
+  // Mobile: model selection moves into the sendbox `+` action sheet, so the
+  // header selector is suppressed to free up vertical space.
   const modelSelector = useMemo(() => {
     if (!conversation || isAionrsConversation) return undefined;
+    if (isMobile) return undefined;
+    if (isLegacyReadOnlyConversation) return undefined;
     if (conversation.type === 'acp') {
       const extra = conversation.extra as { backend?: string; current_model_id?: string };
-      if (extra.backend === COMMAND_EVE_AGENT_BACKEND) return undefined;
       return (
         <AcpModelSelector
           conversation_id={conversation.id}
           backend={extra.backend}
           initialModelId={extra.current_model_id}
+          waitForWarmup
         />
       );
     }
     return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation]);
+  }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
@@ -354,21 +320,11 @@ const ChatConversation: React.FC<{
                       : conversation?.type === 'remote'
                         ? 'remote'
                         : undefined,
-          agent_name: isCommandEveConversation ? COMMAND_EVE_DISPLAY_NAME : conversationAgentName,
+          agent_name: conversationAgentName,
         };
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
-      {conversation?.type === 'openclaw-gateway' && (
-        <div className='shrink-0'>
-          <StarOfficeMonitorCard
-            conversation_id={conversation.id}
-            onOpenUrl={(url, metadata) => {
-              openPreview(url, 'url', metadata);
-            }}
-          />
-        </div>
-      )}
       {conversation && (
         <div className='shrink-0'>
           <CronJobManager
@@ -378,6 +334,7 @@ const ChatConversation: React.FC<{
           />
         </div>
       )}
+      {modelSelector && <div className='shrink-0'>{modelSelector}</div>}
     </div>
   );
 
@@ -385,7 +342,6 @@ const ChatConversation: React.FC<{
     <ChatLayout
       title={conversation?.name}
       {...chatLayoutProps}
-      headerLeft={modelSelector}
       headerExtra={headerExtraNode}
       siderTitle={sliderTitle}
       sider={<ChatSlider conversation={conversation} />}

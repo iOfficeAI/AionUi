@@ -50,6 +50,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
 // Synchronously fetch the aioncore port and expose it to the renderer
 // via contextBridge (direct window assignment is invisible under contextIsolation).
 const backendPort = ipcRenderer.sendSync('get-backend-port') as number;
+const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string | null;
+const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
+const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
 contextBridge.exposeInMainWorld('__aionBackend', {
   getPort: () => {
@@ -57,6 +60,9 @@ contextBridge.exposeInMainWorld('__aionBackend', {
     return port > 0 ? port : 0;
   },
 });
+contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
+contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
+contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);
 
 // 托盘事件监听 - 将 IPC 事件转换为 DOM 事件
 // Tray event listeners - convert IPC events to DOM events

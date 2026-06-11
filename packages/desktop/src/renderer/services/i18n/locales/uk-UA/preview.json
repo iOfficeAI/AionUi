@@ -58,6 +58,7 @@
   "mermaidTitle": "Діаграма Mermaid",
   "largeTextTruncatedHint": "Режим перегляду великих файлів: показано перші {{count}} символів для продуктивності.",
   "truncatedBanner": "Вміст попереднього перегляду обрізано. Завантажте файл, щоб побачити його повністю.",
+  "aiWriting": "ШІ пише…",
   "errors": {
     "missingFilePath": "Шлях до файлу відсутній",
     "openWithoutPath": "Неможливо відкрити: шлях до файлу не надано",
@@ -129,6 +130,6 @@
     "loading": "Запуск перегляду PPT...",
     "installing": "Встановлення компонента перегляду...",
     "startFailed": "Не вдалося запустити перегляд PPT",
-    "installHint": "Переконайтеся, що officecli встановлено: npm run postinstall"
+    "installHint": "Встановіть OfficeCLI зі сторінки офіційних релізів iOfficeAI/OfficeCli"
   }
 }

@@ -228,6 +228,7 @@ export class NavigationInterceptor {
       type: 'preview_open',
       conversation_id: conversation_id,
       msg_id: uuid(),
+      turn_id: '',
       data: {
         content: url,
         contentType: 'url' as PreviewContentType,

@@ -5,14 +5,7 @@
  */
 
 import coworkSvg from '@/renderer/assets/icons/cowork.svg';
-import {
-  useDetectedAgents,
-  useAssistantEditor,
-  useAssistantList,
-  useAssistantSkills,
-} from '@/renderer/hooks/assistant';
-import AddCustomPathModal from '@/renderer/pages/settings/AssistantSettings/AddCustomPathModal';
-import AddSkillsModal from '@/renderer/pages/settings/AssistantSettings/AddSkillsModal';
+import { useDetectedAgents, useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
 import AssistantEditDrawer from '@/renderer/pages/settings/AssistantSettings/AssistantEditDrawer';
 import DeleteAssistantModal from '@/renderer/pages/settings/AssistantSettings/DeleteAssistantModal';
 import SkillConfirmModals from '@/renderer/pages/settings/AssistantSettings/SkillConfirmModals';
@@ -94,18 +87,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     message: agentMessage,
   });
 
-  const skills = useAssistantSkills({
-    skillsModalVisible: editor.skillsModalVisible,
-    customSkills: editor.customSkills,
-    selectedSkills: editor.selectedSkills,
-    pendingSkills: editor.pendingSkills,
-    availableSkills: editor.availableSkills,
-    setPendingSkills: editor.setPendingSkills,
-    setCustomSkills: editor.setCustomSkills,
-    setSelectedSkills: editor.setSelectedSkills,
-    message: agentMessage,
-  });
-
   const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
 
   const modalTree = (
@@ -135,7 +116,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         customSkills={editor.customSkills}
         setDeletePendingSkillName={editor.setDeletePendingSkillName}
         setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-        setSkillsModalVisible={editor.setSkillsModalVisible}
         builtinAutoSkills={editor.builtinAutoSkills}
         disabledBuiltinSkills={editor.disabledBuiltinSkills}
         setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
@@ -145,6 +125,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         availableBackends={availableBackends}
         handleSave={editor.handleSave}
         handleDeleteClick={editor.handleDeleteClick}
+        handleDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
       />
       <DeleteAssistantModal
         visible={editor.deleteConfirmVisible}
@@ -152,26 +133,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         onConfirm={editor.handleDeleteConfirm}
         activeAssistant={activeAssistant}
         avatarImageMap={avatarImageMap}
-      />
-      <AddSkillsModal
-        visible={editor.skillsModalVisible}
-        onCancel={() => {
-          editor.setSkillsModalVisible(false);
-          skills.setSearchExternalQuery('');
-        }}
-        externalSources={skills.externalSources}
-        activeSourceTab={skills.activeSourceTab}
-        setActiveSourceTab={skills.setActiveSourceTab}
-        activeSource={skills.activeSource}
-        filteredExternalSkills={skills.filteredExternalSkills}
-        externalSkillsLoading={skills.externalSkillsLoading}
-        searchExternalQuery={skills.searchExternalQuery}
-        setSearchExternalQuery={skills.setSearchExternalQuery}
-        refreshing={skills.refreshing}
-        handleRefreshExternal={skills.handleRefreshExternal}
-        setShowAddPathModal={skills.setShowAddPathModal}
-        customSkills={editor.customSkills}
-        handleAddFoundSkills={skills.handleAddFoundSkills}
       />
       <SkillConfirmModals
         deletePendingSkillName={editor.deletePendingSkillName}
@@ -185,19 +146,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         selectedSkills={editor.selectedSkills}
         setSelectedSkills={editor.setSelectedSkills}
         message={agentMessage}
-      />
-      <AddCustomPathModal
-        visible={skills.showAddPathModal}
-        onCancel={() => {
-          skills.setShowAddPathModal(false);
-          skills.setCustomPathName('');
-          skills.setCustomPathValue('');
-        }}
-        onOk={() => void skills.handleAddCustomPath()}
-        customPathName={skills.customPathName}
-        setCustomPathName={skills.setCustomPathName}
-        customPathValue={skills.customPathValue}
-        setCustomPathValue={skills.setCustomPathValue}
       />
     </>
   );

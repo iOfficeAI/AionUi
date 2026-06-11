@@ -53,6 +53,8 @@ const AcpModelSelector: React.FC<{
   backend?: string;
   /** Pre-selected model ID from Guid page */
   initialModelId?: string;
+  /** Keep Command EVE local-model warmup active before first send. */
+  waitForWarmup?: boolean;
 }> = ({ conversation_id, backend, initialModelId }) => {
   const { t } = useTranslation();
   const [model_info, setModelInfo] = useState<AcpModelInfo | null>(null);

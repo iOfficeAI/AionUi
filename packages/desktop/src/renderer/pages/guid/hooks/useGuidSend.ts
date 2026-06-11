@@ -17,7 +17,7 @@ import {
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 import { configService } from '@/common/config/configService';
-import type { TProviderWithModel } from '@/common/config/storage';
+import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
 import { buildDisplayMessage } from '@/renderer/utils/file/messageFiles';
@@ -65,6 +65,8 @@ export type GuidSendDeps = {
   ) => string[] | undefined;
   guidDisabledBuiltinSkills: string[] | undefined;
   guidEnabledSkills: string[] | undefined;
+  availableMcpServers?: IMcpServer[];
+  selectedMcpServerIds?: string[];
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
 

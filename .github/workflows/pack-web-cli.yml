@@ -80,7 +80,7 @@ jobs:
           - { platform: darwin, arch: arm64, os: macos-14 }
           - { platform: darwin, arch: x64, os: macos-14 }
           - { platform: linux, arch: x64, os: ubuntu-latest }
-          - { platform: linux, arch: arm64, os: ubuntu-latest }
+          - { platform: linux, arch: arm64, os: ubuntu-24.04-arm }
           - { platform: win32, arch: x64, os: windows-2022 }
 
     steps:
@@ -111,12 +111,6 @@ jobs:
 
       - name: Build desktop renderer (for static files)
         run: bunx electron-vite build --config packages/desktop/electron.vite.config.ts
-
-      - name: Set up QEMU (Linux ARM64 only)
-        if: matrix.platform == 'linux' && matrix.arch == 'arm64'
-        uses: docker/setup-qemu-action@v3
-        with:
-          platforms: arm64
 
       - name: Pack web-cli tarball
         shell: bash

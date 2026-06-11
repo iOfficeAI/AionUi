@@ -57,7 +57,6 @@ export const useAssistantEditor = ({
   const [pendingSkills, setPendingSkills] = useState<PendingSkill[]>([]);
   const [deletePendingSkillName, setDeletePendingSkillName] = useState<string | null>(null);
   const [deleteCustomSkillName, setDeleteCustomSkillName] = useState<string | null>(null);
-  const [skillsModalVisible, setSkillsModalVisible] = useState(false);
 
   // Builtin auto-injected skills state
   const [builtinAutoSkills, setBuiltinAutoSkills] = useState<BuiltinAutoSkill[]>([]);
@@ -426,8 +425,6 @@ export const useAssistantEditor = ({
     setDeletePendingSkillName,
     deleteCustomSkillName,
     setDeleteCustomSkillName,
-    skillsModalVisible,
-    setSkillsModalVisible,
 
     // Builtin auto-injected skills state
     builtinAutoSkills,

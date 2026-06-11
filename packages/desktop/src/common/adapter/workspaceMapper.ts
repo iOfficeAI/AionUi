@@ -4,9 +4,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { IDirOrFile } from './ipcBridge';
+import type { IDirOrFile, IWorkspaceFlatFile } from './ipcBridge';
 
 type RawFsEntry = { name: string; type: string };
+export type RawWorkspaceFlatFile = { name: string; full_path: string; relative_path: string };
 
 // ── Path helpers ───────────────────────────────────────────────────────
 
@@ -77,4 +78,12 @@ export function fromBackendWorkspaceList(raw: RawFsEntry[], workspace: string, r
       children,
     },
   ];
+}
+
+export function fromBackendWorkspaceFlatFiles(raw: RawWorkspaceFlatFile[]): IWorkspaceFlatFile[] {
+  return raw.map((item) => ({
+    name: item.name,
+    fullPath: item.full_path,
+    relativePath: item.relative_path,
+  }));
 }

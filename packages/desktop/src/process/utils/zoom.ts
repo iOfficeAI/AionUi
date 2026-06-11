@@ -8,10 +8,11 @@ import { BrowserWindow } from 'electron';
 import type { Input } from 'electron';
 import { trackPersistedWrite } from './persistOnQuit';
 
-// Default to 95% so the app feels slightly roomier on stock DPI displays
-// without looking cramped for fine text. Users can still reset/zoom with
-// Cmd/Ctrl +/-/0 and their choice is persisted to ui.zoomFactor.
-const UI_SCALE_DEFAULT = 0.95;
+// Default to 100% so the app matches stock DPI displays out of the box and
+// stays consistent with the renderer fallback and the Cmd/Ctrl+0 reset.
+// Users can still zoom with Cmd/Ctrl +/-/0 and their choice is persisted to
+// ui.zoomFactor.
+const UI_SCALE_DEFAULT = 1.0;
 const UI_SCALE_MIN = 0.8;
 const UI_SCALE_MAX = 1.3;
 export const UI_SCALE_STEP = 0.05;

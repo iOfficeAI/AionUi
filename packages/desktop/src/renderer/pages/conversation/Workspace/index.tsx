@@ -11,6 +11,7 @@ import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { getWorkspaceDisplayName as getDisplayName } from '@/renderer/utils/workspace/workspace';
 import { Empty, Message, Tree } from '@arco-design/web-react';
+import { Right } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import FileChangeList from './components/FileChangeList';
@@ -19,6 +20,7 @@ import WorkspaceContextMenu from './components/WorkspaceContextMenu';
 import WorkspaceDialogs from './components/WorkspaceDialogs';
 import WorkspaceTabBar from './components/WorkspaceTabBar';
 import WorkspaceToolbar from './components/WorkspaceToolbar';
+import FileTypeIcon from './components/FileTypeIcon';
 import { useFileChanges } from './hooks/useFileChanges';
 import { useWorkspaceCollapse } from './hooks/useWorkspaceCollapse';
 import { useWorkspaceDragImport } from './hooks/useWorkspaceDragImport';
@@ -26,6 +28,7 @@ import { useWorkspaceEvents } from './hooks/useWorkspaceEvents';
 import { useWorkspaceFileOps } from './hooks/useWorkspaceFileOps';
 import { useWorkspaceModals } from './hooks/useWorkspaceModals';
 import { useWorkspacePaste } from './hooks/useWorkspacePaste';
+import { useAbortUploadsOnConversationChange } from '@/renderer/hooks/file/useAbortUploadsOnConversationChange';
 import { useWorkspaceSearch } from './hooks/useWorkspaceSearch';
 import { useWorkspaceTree } from './hooks/useWorkspaceTree';
 import type { WorkspaceProps, WorkspaceTab } from './types';
@@ -58,6 +61,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
   // Tab state and file changes
   const [activeTab, setActiveTab] = useState<WorkspaceTab>('files');
   const fileChangesHook = useFileChanges({ workspace });
+
+  // Bind workspace uploads to the conversation lifecycle: switching the
+  // workspace conversation or unmounting the panel cancels in-flight uploads.
+  useAbortUploadsOnConversationChange(conversation_id, 'workspace');
 
   // Initialize all hooks
   const { isWorkspaceCollapsed, setIsWorkspaceCollapsed } = useWorkspaceCollapse();
@@ -334,17 +341,24 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
               </div>
             ) : (
               <Tree
-                className={`${isMobile ? '!pl-20px !pr-10px chat-workspace-tree--mobile' : '!pl-32px !pr-16px'} workspace-tree`}
-                showLine
+                className={`${isMobile ? '!pl-12px !pr-8px chat-workspace-tree--mobile' : '!pl-16px !pr-16px'} workspace-tree`}
                 key={treeHook.treeKey}
                 selectedKeys={treeHook.selected}
                 expandedKeys={treeHook.expandedKeys}
                 actionOnClick={['select', 'expand']}
-                // Reuse the +/- glyph during lazy-load so the switcher doesn't
+                // VSCode-style explorer: no connector lines, a chevron switcher
+                // for folders (none for files), and per-type icons via FileTypeIcon.
+                // Reuse the chevron as the lazy-load icon so the switcher doesn't
                 // flash a spinner on first expand of each folder.
-                icons={(nodeProps) => ({
-                  loadingIcon: <span className={`arco-tree-node-${nodeProps.expanded ? 'minus' : 'plus'}-icon`} />,
-                })}
+                icons={(nodeProps) => {
+                  if (nodeProps.dataRef?.isFile) return { switcherIcon: null };
+                  // Rotation is owned by CSS (.workspace-tree-chevron): right when
+                  // collapsed, down when expanded — overriding Arco's default.
+                  const chevron = (
+                    <Right theme='outline' size={14} fill='currentColor' className='workspace-tree-chevron' />
+                  );
+                  return { switcherIcon: chevron, loadingIcon: chevron };
+                }}
                 treeData={treeData}
                 fieldNames={{
                   children: 'children',
@@ -375,6 +389,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       }}
                     >
                       <span className='flex items-center gap-4px min-w-0'>
+                        <FileTypeIcon node={nodeData} expanded={treeHook.expandedKeys.includes(relativePath)} />
                         <span className='overflow-hidden text-ellipsis whitespace-nowrap'>{node.title}</span>
                         {isPasteTarget && (
                           <span className='ml-1 text-xs text-blue-700 font-bold bg-blue-500 text-white px-1.5 py-0.5 rounded'>
@@ -385,7 +400,7 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                       {isMobile && (
                         <button
                           type='button'
-                          className='workspace-header__toggle workspace-node-more-btn h-28px w-28px rd-8px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
+                          className='workspace-header__toggle workspace-node-more-btn h-24px w-24px rd-6px flex items-center justify-center text-t-secondary hover:text-t-primary active:text-t-primary flex-shrink-0'
                           aria-label={t('common.more')}
                           onMouseDown={(event) => {
                             event.stopPropagation();
@@ -409,12 +424,12 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                           }}
                         >
                           <div
-                            className='flex flex-col gap-2px items-center justify-center'
-                            style={{ width: '12px', height: '12px' }}
+                            className='flex flex-col gap-1.5px items-center justify-center'
+                            style={{ width: '10px', height: '10px' }}
                           >
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
-                            <div className='w-2px h-2px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
+                            <div className='w-1.5px h-1.5px rounded-full bg-current'></div>
                           </div>
                         </button>
                       )}
@@ -428,13 +443,10 @@ const ChatWorkspace: React.FC<WorkspaceProps> = ({
                   const wasSelected = clickedKey ? treeHook.selectedKeysRef.current.includes(clickedKey) : false;
 
                   if (isFileNode) {
-                    // Single-click file only opens preview without changing selection state
-                    if (clickedKey) {
-                      const filteredKeys = treeHook.selectedKeysRef.current.filter((key) => key !== clickedKey);
-                      treeHook.selectedKeysRef.current = filteredKeys;
-                      treeHook.setSelected(filteredKeys);
+                    // Single-click a file: highlight it as the sole selection and open its preview.
+                    if (nodeData) {
+                      treeHook.ensureNodeSelected(nodeData);
                     }
-                    treeHook.selectedNodeRef.current = null;
                     if (nodeData && clickedKey && !wasSelected) {
                       void fileOpsHook.handlePreviewFile(nodeData);
                     }

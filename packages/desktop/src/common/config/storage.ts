@@ -5,6 +5,7 @@
  */
 
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { Theme } from '@/common/theme/types';
 import { storage } from '@office-ai/platform';
 
 // 系统配置存储
@@ -48,13 +49,16 @@ export interface IConfigStorageRefer {
   'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
   // Cached modes per ACP backend for Guid page / AgentModeSelector
   'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
-  'mcp.config': IMcpServer[];
-  'mcp.agentInstallStatus': Record<string, string[]>;
+  'mcp.config'?: IMcpServer[];
   language: string;
-  theme: string;
-  colorScheme: string;
+  theme: string; // @deprecated migrated to theme.activeId/theme.userThemes
+  colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
+  /** Per-region configurable font sizes (px), set in Appearance settings */
+  'ui.fontSize.chat'?: number;
+  'ui.fontSize.markdown'?: number;
+  'ui.fontSize.code'?: number;
   /** Last-known main window size and position, restored on next launch */
   'window.bounds'?: { x?: number; y?: number; width: number; height: number };
   /** 桌面模式下是否自动启用 WebUI / Auto-enable WebUI in desktop mode */
@@ -63,9 +67,13 @@ export interface IConfigStorageRefer {
   'webui.desktop.allowRemote'?: boolean;
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
   'webui.desktop.port'?: number;
-  customCss: string; // 自定义 CSS 样式
-  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list
-  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID
+  customCss: string; // 自定义 CSS 样式 // @deprecated migrated to theme.activeId/theme.userThemes
+  'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list // @deprecated migrated to theme.activeId/theme.userThemes
+  'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID // @deprecated migrated to theme.activeId/theme.userThemes
+  /** Active unified theme ID */
+  'theme.activeId': string;
+  /** User-created themes */
+  'theme.userThemes': Theme[];
   'aionrs.config'?: {
     /** Preferred session mode for new conversations / 新会话的默认模式 */
     preferredMode?: string;
@@ -157,6 +165,23 @@ export interface IConfigStorageRefer {
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `model.config` → backend providers
+   * migration in {@link migrateProviders}. Once `true`, the migration is
+   * short-circuited on subsequent launches so user-deleted providers don't
+   * resurface from the still-on-disk legacy `model.config` (ELECTRON-1KT).
+   * Stored in the local config file (not the backend) so a downgrade to the
+   * pre-flag build still re-reads the legacy data unchanged.
+   */
+  'migration.providersMigrated_v1'?: boolean;
+  /**
+   * One-shot completion flag for the legacy `assistants` → backend assistants
+   * migration in {@link migrateAssistantsToBackend}. Same rationale as
+   * `migration.providersMigrated_v1` — without it, an assistant the user
+   * deletes after migration would be re-imported on the next launch from the
+   * still-on-disk legacy field.
+   */
+  'migration.assistantsMigrated_v1'?: boolean;
   // Desktop Pet: whether the desktop pet feature is enabled
   'pet.enabled'?: boolean;
   // Desktop Pet: size in pixels (200, 280, or 360)
@@ -172,6 +197,7 @@ export interface IEnvStorageRefer {
   'aionui.dir': {
     workDir: string;
     cacheDir: string;
+    logDir?: string;
   };
 }
 
@@ -180,6 +206,19 @@ export interface IEnvStorageRefer {
  * 会话来源类型 - 标识会话创建的来源
  */
 export type ConversationSource = 'aionui' | 'telegram' | 'lark' | 'dingtalk' | 'weixin' | 'wecom' | (string & {});
+
+export type TChatConversationStatus = 'pending' | 'running' | 'finished';
+export type TConversationRuntimeStateKind = 'idle' | 'starting' | 'running' | 'waiting_confirmation';
+
+export type TConversationRuntimeSummary = {
+  state: TConversationRuntimeStateKind;
+  can_send_message: boolean;
+  has_task: boolean;
+  task_status?: TChatConversationStatus;
+  is_processing: boolean;
+  pending_confirmations: number;
+  turn_id: string | null;
+};
 
 interface IChatConversation<T, Extra> {
   created_at: number;
@@ -190,7 +229,8 @@ interface IChatConversation<T, Extra> {
   type: T;
   extra: Extra;
   model: TProviderWithModel;
-  status?: 'pending' | 'running' | 'finished' | undefined;
+  status?: TChatConversationStatus | undefined;
+  runtime?: TConversationRuntimeSummary;
   /** 会话来源，默认为 aionui / Conversation source, defaults to aionui */
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
@@ -217,6 +257,14 @@ export type TChatConversation =
           /** Skills snapshot for this conversation — authoritative list, written
            * once at creation. Join with `GET /api/skills` for descriptions. */
           skills?: string[];
+          /** MCP server id snapshot chosen when the conversation was created. */
+          mcp_server_ids?: string[];
+          /** MCP server name snapshot chosen when the conversation was created. */
+          mcp_servers?: string[];
+          /** Conversation-scoped MCP status snapshot shown in the sendbox menu. */
+          mcp_statuses?: IConversationMcpStatus[];
+          /** Session-only MCP server snapshot persisted at creation time. */
+          session_mcp_servers?: ISessionMcpServer[];
           /** 预设助手 ID，用于在会话面板显示助手名称和头像 / Preset assistant ID for displaying name and avatar in conversation panel */
           preset_assistant_id?: string;
           /** 是否置顶会话 / Whether this conversation is pinned */
@@ -241,7 +289,7 @@ export type TChatConversation =
           cached_config_options?: import('@/common/types/platform/acpTypes').AcpSessionConfigOption[];
           /** Pending config option selections from Guid page / Guid 页面待应用的配置选项 */
           pending_config_options?: Record<string, string>;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -271,7 +319,7 @@ export type TChatConversation =
           session_mode?: string;
           /** User-selected Codex model from Guid page / 用户在引导页选择的 Codex 模型 */
           codexModel?: string;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -317,7 +365,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -342,6 +390,7 @@ export type TChatConversation =
           preset_assistant_id?: string;
           pinned?: boolean;
           pinned_at?: number;
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           cron_job_id?: string;
           // Other legacy-only keys (session_mode, preset_rules, etc.)
@@ -365,7 +414,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** 置顶时间戳（毫秒）/ Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -392,7 +441,7 @@ export type TChatConversation =
           pinned?: boolean;
           /** Pin timestamp in milliseconds */
           pinned_at?: number;
-          /** Explicit marker for temporary health-check conversations */
+          /** Legacy marker for pre-provider-probe health-check conversations */
           is_health_check?: boolean;
           /** Cron job ID that spawned this conversation */
           cron_job_id?: string;
@@ -411,6 +460,14 @@ export type TChatConversation =
         /** Skills snapshot for this conversation — authoritative list, written
          * once at creation. Join with `GET /api/skills` for descriptions. */
         skills?: string[];
+        /** MCP server id snapshot chosen when the conversation was created. */
+        mcp_server_ids?: string[];
+        /** MCP server name snapshot chosen when the conversation was created. */
+        mcp_servers?: string[];
+        /** Conversation-scoped MCP status snapshot shown in the sendbox menu. */
+        mcp_statuses?: IConversationMcpStatus[];
+        /** Session-only MCP server snapshot persisted at creation time. */
+        session_mcp_servers?: ISessionMcpServer[];
         /** Preset assistant ID */
         preset_assistant_id?: string;
         /** Whether this conversation is pinned */
@@ -423,7 +480,7 @@ export type TChatConversation =
         maxTurns?: number;
         /** Persisted session mode for resume support */
         session_mode?: string;
-        /** Explicit marker for temporary health-check conversations */
+        /** Legacy marker for pre-provider-probe health-check conversations */
         is_health_check?: boolean;
         /** Last token usage stats */
         last_token_usage?: TokenUsageData;
@@ -559,10 +616,10 @@ export interface IMcpServer {
   id: string;
   name: string;
   description?: string;
-  enabled: boolean; // 是否已安装到 CLI agents（控制 Switch 状态）
+  enabled: boolean; // 是否默认启用（新会话默认勾选）
   transport: IMcpServerTransport;
   tools?: IMcpTool[];
-  status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 连接状态（同时表示服务可用性）
+  last_test_status?: 'connected' | 'disconnected' | 'error' | 'testing'; // 最近一次检测结果
   last_connected?: number;
   created_at: number;
   updated_at: number;
@@ -571,8 +628,21 @@ export interface IMcpServer {
   builtin?: boolean;
 }
 
+export type ISessionMcpServer = Pick<IMcpServer, 'id' | 'name' | 'transport'>;
+
+export type IConversationMcpStatusKind = 'loaded' | 'failed' | 'unsupported';
+
+export interface IConversationMcpStatus {
+  id: string;
+  name: string;
+  status: IConversationMcpStatusKind;
+  reason?: string;
+}
+
 /** Stable ID for the built-in image generation MCP server */
 export const BUILTIN_IMAGE_GEN_ID = 'builtin-image-gen';
+export const BUILTIN_IMAGE_GEN_NAME = 'aionui-image-generation';
+export const BUILTIN_IMAGE_GEN_LEGACY_NAMES = ['AionUi Image Generation', BUILTIN_IMAGE_GEN_ID] as const;
 
 export interface IMcpTool {
   name: string;

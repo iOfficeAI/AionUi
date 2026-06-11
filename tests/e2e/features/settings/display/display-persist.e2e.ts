@@ -43,6 +43,13 @@ async function reloadAndGoToDisplay(page: import('@playwright/test').Page): Prom
   await waitForSettle(page);
 }
 
+async function activeThemeCardIndex(page: import('@playwright/test').Page): Promise<number> {
+  return page.evaluate(() => {
+    const cards = Array.from(document.querySelectorAll<HTMLDivElement>('.grid > div.cursor-pointer'));
+    return cards.findIndex((card) => card.className.includes('border-[var(--color-primary)]'));
+  });
+}
+
 test.describe('Display settings persistence across reload', () => {
   test.setTimeout(60_000);
 
@@ -127,14 +134,7 @@ test.describe('Display settings persistence across reload', () => {
     }
 
     // Find current active card index
-    let activeIndex = -1;
-    for (let i = 0; i < cardCount; i++) {
-      const cls = await cards.nth(i).getAttribute('class');
-      if (cls?.includes('border-[var(--color-primary)]')) {
-        activeIndex = i;
-        break;
-      }
-    }
+    const activeIndex = await activeThemeCardIndex(page);
 
     const targetIndex = activeIndex <= 0 ? 1 : 0;
     const targetCard = cards.nth(targetIndex);

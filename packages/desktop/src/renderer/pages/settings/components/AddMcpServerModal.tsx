@@ -7,15 +7,19 @@ import OneClickImportModal from './OneClickImportModal';
 interface AddMcpServerModalProps {
   visible: boolean;
   server?: IMcpServer;
+  existingServerNames?: string[];
   onCancel: () => void;
-  onSubmit: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => void;
-  onBatchImport?: (servers: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]) => void;
+  onSubmit: (server: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>) => Promise<void> | void;
+  onBatchImport?: (
+    servers: Omit<IMcpServer, 'id' | 'created_at' | 'updated_at'>[]
+  ) => Promise<IMcpServer[] | void> | IMcpServer[] | void;
   importMode?: 'json' | 'oneclick';
 }
 
 const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
   visible,
   server,
+  existingServerNames = [],
   onCancel,
   onSubmit,
   onBatchImport,
@@ -74,7 +78,12 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
         onSubmit={onSubmit}
         onBatchImport={onBatchImport}
       />
-      <OneClickImportModal visible={showOneClickModal} onCancel={handleModalCancel} onBatchImport={onBatchImport} />
+      <OneClickImportModal
+        visible={showOneClickModal}
+        existingServerNames={existingServerNames}
+        onCancel={handleModalCancel}
+        onBatchImport={onBatchImport}
+      />
     </>
   );
 };

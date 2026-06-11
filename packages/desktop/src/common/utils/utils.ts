@@ -30,14 +30,15 @@ export const uuid = (length = 8) => {
 };
 
 export const parseError = (error: unknown): string => {
-  if (typeof error === 'string') return error;
-  if (error instanceof Error) return error.message;
-
   if (typeof error === 'object' && error !== null) {
-    const err = error as { msg?: unknown; message?: unknown };
+    const err = error as { backendMessage?: unknown; msg?: unknown; message?: unknown };
     if (typeof err.msg === 'string') return err.msg;
+    if (typeof err.backendMessage === 'string' && err.backendMessage.trim()) return err.backendMessage;
     if (typeof err.message === 'string') return err.message;
   }
+
+  if (typeof error === 'string') return error;
+  if (error instanceof Error) return error.message;
 
   try {
     return JSON.stringify(error);

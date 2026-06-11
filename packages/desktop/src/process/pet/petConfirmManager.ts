@@ -8,8 +8,8 @@ import path from 'node:path';
 import { app, BrowserWindow, ipcMain, screen } from 'electron';
 import type { IConfirmation } from '@/common/chat/chatLib';
 import { ipcBridge } from '@/common';
-import { ProcessConfig } from '@process/utils/initStorage';
 import i18n from '@process/services/i18n';
+import { getCachedTheme, onThemeChanged } from '@process/bridge/themeBridge';
 
 // petConfirmManager is dynamically imported → rollup places it in out/main/chunks/,
 // so __dirname is out/main/chunks/ and we need '../..' to reach out/.
@@ -168,17 +168,19 @@ function createConfirmWindow(): void {
   windowReady = false;
   loadContent();
 
-  confirmWindow.webContents.on('did-finish-load', async () => {
+  const offTheme = onThemeChanged((theme) => {
+    if (confirmWindow && !confirmWindow.isDestroyed()) {
+      confirmWindow.webContents.send('pet:confirm-theme', theme);
+    }
+  });
+
+  confirmWindow.webContents.on('did-finish-load', () => {
     windowReady = true;
 
     // Send current theme to confirm window
-    try {
-      const theme = ((await ProcessConfig.get('theme')) as string) || 'light';
-      if (confirmWindow && !confirmWindow.isDestroyed()) {
-        confirmWindow.webContents.send('pet:confirm-theme', theme);
-      }
-    } catch (_e) {
-      /* noop — default light theme via CSS */
+    const currentTheme = getCachedTheme();
+    if (currentTheme && confirmWindow && !confirmWindow.isDestroyed()) {
+      confirmWindow.webContents.send('pet:confirm-theme', currentTheme);
     }
 
     // Flush any confirmations queued before the page finished loading
@@ -191,6 +193,7 @@ function createConfirmWindow(): void {
   });
 
   confirmWindow.on('closed', () => {
+    offTheme();
     confirmWindow = null;
     windowReady = false;
   });

@@ -4,6 +4,9 @@
     "console_error": "ACP authentication error details:",
     "failed_confirm": "ACP {{backend}} 身份驗證失敗：\n\n{{error}}\n\n是否立即前往設定頁面進行配置？"
   },
+  "send": {
+    "failed": "發送訊息失敗：{{error}}"
+  },
   "sendbox": {
     "placeholder": "發送訊息到 {{backend}}..."
   },

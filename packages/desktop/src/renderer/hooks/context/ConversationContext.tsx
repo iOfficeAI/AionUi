@@ -4,6 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import type { IConversationMcpStatus } from '@/common/config/storage';
 import React, { createContext, useContext } from 'react';
 
 /**
@@ -27,7 +28,7 @@ export interface ConversationContextValue {
    * Conversation type
    * 会话类型
    */
-  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'codex' | 'aionrs';
 
   /**
    * Cron job ID (if this conversation was created by a scheduled task)
@@ -44,6 +45,18 @@ export interface ConversationContextValue {
    * Surfaced inside the SendBox `+` menu so users can review/jump to active skills.
    */
   loadedSkills?: string[];
+
+  /**
+   * Loaded MCP server names for this conversation (snapshot from
+   * conversation.extra.mcp_servers).
+   */
+  loadedMcpServers?: string[];
+
+  /**
+   * Structured MCP status snapshot for this conversation (from
+   * conversation.extra.mcp_statuses).
+   */
+  loadedMcpStatuses?: IConversationMcpStatus[];
 }
 
 /**

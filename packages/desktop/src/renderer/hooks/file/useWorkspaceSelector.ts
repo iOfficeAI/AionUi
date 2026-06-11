@@ -10,7 +10,7 @@ import { emitter } from '@/renderer/utils/emitter';
 import { useTranslation } from 'react-i18next';
 import { useCallback } from 'react';
 import { useSWRConfig } from 'swr';
-import type { TChatConversation } from '@/common/config/storage';
+import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 export type WorkspaceEventPrefix = 'acp' | 'codex';
 
@@ -32,9 +32,7 @@ export const useWorkspaceSelector = (conversation_id: string, eventPrefix: Works
       }
 
       // 获取最新的会话数据 / Fetch latest conversation data
-      const conversation = (await ipcBridge.conversation.get.invoke({
-        id: conversation_id,
-      })) as TChatConversation | null;
+      const conversation = await getConversationOrNull(conversation_id);
       if (!conversation) {
         Message.error(t('common.saveFailed'));
         return;

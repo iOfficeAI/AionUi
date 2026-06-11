@@ -18,6 +18,7 @@
   "readyToInstall": "インストール準備完了",
   "readyToInstallDesc": "更新のダウンロードが完了しました。下のボタンをクリックして再起動し、更新をインストールしてください。",
   "installNow": "今すぐインストール",
+  "installWarning": "インストール中はアプリを手動で開かないでください。自動的に再起動されます。",
   "autoUpdateMode": "自動更新モード",
   "showInFolder": "フォルダーで表示",
   "openFile": "ファイルを開く",

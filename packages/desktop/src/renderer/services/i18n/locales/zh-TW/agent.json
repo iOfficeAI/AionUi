@@ -26,5 +26,9 @@
     "noAlternatives": "未找到可用的 Agent",
     "configureFirst": "請先在設定中配置一個 Agent。",
     "switching": "正在切換 Agent..."
+  },
+  "model": {
+    "switchSuccess": "模型切換成功",
+    "switchFailed": "模型切換失敗"
   }
 }

@@ -1,6 +1,7 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import type { Theme } from '@/common/theme/types';
 
 export type ConfigKeyMap = {
   'google.config': {
@@ -27,11 +28,13 @@ export type ConfigKeyMap = {
   'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
   'acp.cachedModes': Record<string, AcpSessionModes> | undefined;
   'mcp.config': IMcpServer[];
-  'mcp.agentInstallStatus': Record<string, string[]>;
   language: string;
   theme: string;
   colorScheme: string;
   'ui.zoomFactor': number | undefined;
+  'ui.fontSize.chat': number | undefined;
+  'ui.fontSize.markdown': number | undefined;
+  'ui.fontSize.code': number | undefined;
   'window.bounds': { x?: number; y?: number; width: number; height: number } | undefined;
   'webui.desktop.enabled': boolean | undefined;
   'webui.desktop.allowRemote': boolean | undefined;
@@ -39,6 +42,8 @@ export type ConfigKeyMap = {
   customCss: string;
   'css.themes': ICssTheme[];
   'css.activeThemeId': string;
+  'theme.activeId': string;
+  'theme.userThemes': Theme[];
   'aionrs.config': { preferredMode?: string } | undefined;
   'aionrs.defaultModel': { id: string; use_model: string } | undefined;
   'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };
@@ -80,6 +85,12 @@ export type ConfigKeyMap = {
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;
   'pet.confirmEnabled': boolean | undefined;
+  // One-shot completion flags for legacy → backend migrations. Kept in the
+  // local config file (not the backend client-preferences bag) so a downgrade
+  // to a pre-flag build still re-reads the legacy data unchanged. See
+  // `migrateProviders` / `migrateAssistantsToBackend` (ELECTRON-1KT).
+  'migration.providersMigrated_v1': boolean | undefined;
+  'migration.assistantsMigrated_v1': boolean | undefined;
 };
 
 export type ConfigKey = keyof ConfigKeyMap;

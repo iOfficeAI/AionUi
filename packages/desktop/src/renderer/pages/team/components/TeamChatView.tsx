@@ -3,13 +3,15 @@ import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/
 import { Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
+import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
-const OpenClawChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/openclaw/OpenClawChat'));
-const NanobotChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/nanobot/NanobotChat'));
-const RemoteChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/remote/RemoteChat'));
+const LegacyReadOnlyConversation = React.lazy(
+  () => import('@/renderer/pages/conversation/platforms/legacy/LegacyReadOnlyConversation')
+);
 
 // Narrow to Aionrs conversations so model field is always available
 type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
@@ -18,11 +20,13 @@ type AionrsConversation = Extract<TChatConversation, { type: 'aionrs' }>;
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
   emptySlot?: React.ReactNode;
-}> = ({ conversation, emptySlot }) => {
+  agent_name?: string;
+}> = ({ conversation, emptySlot, agent_name }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
+      if (ok) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
     [conversation.id]
@@ -36,6 +40,7 @@ const AionrsTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       emptySlot={emptySlot}
+      agent_name={agent_name}
     />
   );
 };
@@ -65,10 +70,15 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
   // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
+  const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation.type);
   const emptySlot = team_id ? (
     <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
   ) : undefined;
   const content = (() => {
+    if (isLegacyReadOnlyConversationType(conversation.type)) {
+      return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;
+    }
+
     switch (conversation.type) {
       case 'acp':
         return (
@@ -79,19 +89,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             backend={conversation.extra?.backend || 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
-            hideSendBox={hideSendBox}
-            emptySlot={emptySlot}
-          />
-        );
-      case 'codex': // Legacy: codex now uses ACP protocol
-        return (
-          <AcpChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            backend='codex'
-            agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
-            hideSendBox={hideSendBox}
+            hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
           />
         );
@@ -101,36 +99,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
-          />
-        );
-      case 'openclaw-gateway':
-        return (
-          <OpenClawChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
-            emptySlot={emptySlot}
-          />
-        );
-      case 'nanobot':
-        return (
-          <NanobotChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
-            emptySlot={emptySlot}
-          />
-        );
-      case 'remote':
-        return (
-          <RemoteChat
-            key={conversation.id}
-            conversation_id={conversation.id}
-            workspace={conversation.extra?.workspace}
-            hideSendBox={hideSendBox}
-            emptySlot={emptySlot}
+            agent_name={agent_name}
           />
         );
       default:

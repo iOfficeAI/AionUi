@@ -5,11 +5,11 @@
  */
 
 import { ipcBridge } from '@/common';
-import { COMMAND_EVE_ASSISTANT_ID, COMMAND_EVE_ASSISTANT_KEY } from '@/common/config/commandEveShell';
+import type { IMcpServer } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
-import { openExternalUrl, resolveExtensionAssetUrl, resolvePublicAssetUrl } from '@/renderer/utils/platform';
+import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
@@ -26,6 +26,7 @@ import { useGuidMention } from './hooks/useGuidMention';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
+import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
@@ -35,31 +36,6 @@ import { useLocation, useNavigate } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import styles from './index.module.css';
-
-const COMMAND_EVE_GUID_ENABLED = true;
-const COMMAND_EVE_DISPLAY_NAME = 'EVE';
-const COMMAND_EVE_WAIT_VIDEO_OPTIONS = [
-  {
-    src: '/eve-intent-wait.mp4?v=command-eve-wait-20260526b',
-    poster: '/eve-intent-wait-anchor.png?v=command-eve-wait-20260526b',
-  },
-  {
-    src: '/eve-wait-focus.mp4?v=command-eve-wait-20260526b',
-    poster: '/eve-wait-focus-anchor.png?v=command-eve-wait-20260526b',
-  },
-  {
-    src: '/eve-wait-companion.mp4?v=command-eve-wait-20260526b',
-    poster: '/eve-wait-companion-anchor.png?v=command-eve-wait-20260526b',
-  },
-  {
-    src: '/eve-wait-review.mp4?v=command-eve-wait-20260526b',
-    poster: '/eve-wait-review-anchor.png?v=command-eve-wait-20260526b',
-  },
-  {
-    src: '/eve-wait-call.mp4?v=command-eve-wait-20260526b',
-    poster: '/eve-wait-call-anchor.png?v=command-eve-wait-20260526b',
-  },
-] as const;
 
 const GuidPage: React.FC = () => {
   const { t, i18n } = useTranslation();
@@ -72,12 +48,6 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
-  const [commandEveWaitVideoIndex, setCommandEveWaitVideoIndex] = useState(() =>
-    Math.floor(Math.random() * COMMAND_EVE_WAIT_VIDEO_OPTIONS.length)
-  );
-  const commandEveWaitVideo = COMMAND_EVE_WAIT_VIDEO_OPTIONS[commandEveWaitVideoIndex];
-  const commandEveWaitVideoSrc = resolvePublicAssetUrl(commandEveWaitVideo.src) || commandEveWaitVideo.src;
-  const commandEveWaitVideoPoster = resolvePublicAssetUrl(commandEveWaitVideo.poster) || commandEveWaitVideo.poster;
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -96,6 +66,8 @@ const GuidPage: React.FC = () => {
   const [allSkills, setAllSkills] = useState<Array<{ name: string; description: string; isAuto: boolean }>>([]);
   const [guidDisabledBuiltinSkills, setGuidDisabledBuiltinSkills] = useState<string[] | undefined>(undefined);
   const [guidEnabledSkills, setGuidEnabledSkills] = useState<string[] | undefined>(undefined);
+  const [availableMcpServers, setAvailableMcpServers] = useState<IMcpServer[]>([]);
+  const [guidSelectedMcpServerIds, setGuidSelectedMcpServerIds] = useState<string[] | undefined>(undefined);
 
   useEffect(() => {
     Promise.all([ipcBridge.fs.listBuiltinAutoSkills.invoke(), ipcBridge.fs.listAvailableSkills.invoke()])
@@ -112,6 +84,19 @@ const GuidPage: React.FC = () => {
       .catch(() => setAllSkills([]));
   }, []);
 
+  useEffect(() => {
+    void ensureBackendMcpCatalog()
+      .then(({ allServers }) => {
+        setAvailableMcpServers(allServers);
+        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+      })
+      .catch((error) => {
+        console.error('[GuidPage] Failed to load MCP catalog:', error);
+        setAvailableMcpServers([]);
+        setGuidSelectedMcpServerIds((prev) => prev ?? []);
+      });
+  }, []);
+
   const handleToggleSkill = useCallback((skillName: string, isAuto: boolean) => {
     if (isAuto) {
       setGuidDisabledBuiltinSkills((prev) => {
@@ -124,6 +109,13 @@ const GuidPage: React.FC = () => {
         return list.includes(skillName) ? list.filter((s) => s !== skillName) : [...list, skillName];
       });
     }
+  }, []);
+
+  const handleToggleMcpServer = useCallback((serverId: string) => {
+    setGuidSelectedMcpServerIds((prev) => {
+      const current = prev ?? [];
+      return current.includes(serverId) ? current.filter((id) => id !== serverId) : [...current, serverId];
+    });
   }, []);
 
   // --- Hooks ---
@@ -142,19 +134,6 @@ const GuidPage: React.FC = () => {
     preselectAgentKey,
     locationKey: location.key,
   });
-
-  const commandEveAgentKey = useMemo(() => {
-    if (!COMMAND_EVE_GUID_ENABLED) return undefined;
-    return agentSelection.assistants.some((assistant) => assistant.id === COMMAND_EVE_ASSISTANT_ID)
-      ? COMMAND_EVE_ASSISTANT_KEY
-      : undefined;
-  }, [agentSelection.assistants]);
-
-  useEffect(() => {
-    if (!COMMAND_EVE_GUID_ENABLED || !commandEveAgentKey) return;
-    if (agentSelection.selectedAgentKey === commandEveAgentKey) return;
-    agentSelection.setSelectedAgentKey(commandEveAgentKey);
-  }, [agentSelection, commandEveAgentKey]);
 
   const guidInput = useGuidInput({
     locationState: location.state as { workspace?: string } | null,
@@ -198,6 +177,8 @@ const GuidPage: React.FC = () => {
     resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
+    availableMcpServers,
+    selectedMcpServerIds: guidSelectedMcpServerIds,
     currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
@@ -340,7 +321,6 @@ const GuidPage: React.FC = () => {
 
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
-  const commandEvePrompt = t('guid.commandEve.prompt');
   const selectedAssistantRecord = useMemo(() => {
     if (!agentSelection.is_presetAgent || !agentSelection.selectedAgentInfo?.custom_agent_id) return undefined;
     const selectedId = agentSelection.selectedAgentInfo.custom_agent_id;
@@ -608,7 +588,9 @@ const GuidPage: React.FC = () => {
       disabledBuiltinSkills={guidDisabledBuiltinSkills ?? []}
       enabledSkills={guidEnabledSkills ?? []}
       onToggleSkill={handleToggleSkill}
-      hideModeSwitch={COMMAND_EVE_GUID_ENABLED}
+      mcpServers={availableMcpServers}
+      selectedMcpServerIds={guidSelectedMcpServerIds ?? []}
+      onToggleMcpServer={handleToggleMcpServer}
       hidePresetTag
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
@@ -621,24 +603,7 @@ const GuidPage: React.FC = () => {
       <div ref={guidContainerRef} className={styles.guidContainer}>
         <div className={styles.guidLayout}>
           <div className={styles.heroHeader}>
-            {COMMAND_EVE_GUID_ENABLED ? (
-              <div className={styles.commandEveHero} data-testid='command-eve-hero'>
-                <video
-                  key={commandEveWaitVideoSrc}
-                  src={commandEveWaitVideoSrc}
-                  poster={commandEveWaitVideoPoster}
-                  className={styles.commandEveWaitVideo}
-                  aria-hidden='true'
-                  autoPlay
-                  muted
-                  playsInline
-                  onEnded={() => {
-                    setCommandEveWaitVideoIndex((index) => (index + 1) % COMMAND_EVE_WAIT_VIDEO_OPTIONS.length);
-                  }}
-                />
-                <p className={styles.commandEvePrompt}>{commandEvePrompt}</p>
-              </div>
-            ) : agentSelection.is_presetAgent ? (
+            {agentSelection.is_presetAgent ? (
               <div className={styles.heroHeaderControls}>
                 <div className={styles.heroHeaderLeft}>
                   <Button
@@ -746,7 +711,7 @@ const GuidPage: React.FC = () => {
             )}
           </div>
 
-          {COMMAND_EVE_GUID_ENABLED ? null : agentSelection.is_presetAgent && selectedAssistantDescription ? (
+          {agentSelection.is_presetAgent && selectedAssistantDescription ? (
             <div
               className={`${styles.heroSubtitle} ${isDescriptionExpanded ? styles.heroSubtitleExpanded : ''}`}
               onClick={() => {
@@ -798,9 +763,7 @@ const GuidPage: React.FC = () => {
             onPaste={guidInput.onPaste}
             onFocus={guidInput.handleTextareaFocus}
             onBlur={guidInput.handleTextareaBlur}
-            placeholder={`${
-              COMMAND_EVE_GUID_ENABLED ? COMMAND_EVE_DISPLAY_NAME : mention.selectedAgentLabel
-            }, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
+            placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
             isInputActive={guidInput.isInputFocused}
             isFileDragging={guidInput.isFileDragging}
             activeBorderColor={activeBorderColor}
@@ -827,31 +790,27 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
 
-          {!COMMAND_EVE_GUID_ENABLED && (
-            <AssistantSelectionArea
-              is_presetAgent={agentSelection.is_presetAgent}
-              selectedAgentInfo={agentSelection.selectedAgentInfo}
-              assistants={agentSelection.assistants}
-              localeKey={localeKey}
-              currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
-              onSelectAssistant={handleSelectAssistant}
-              onSetInput={guidInput.setInput}
-              onFocusInput={guidInput.handleTextareaFocus}
-              onRegisterOpenDetails={(openDetails) => {
-                openAssistantDetailsRef.current = openDetails;
-              }}
-            />
-          )}
+          <AssistantSelectionArea
+            is_presetAgent={agentSelection.is_presetAgent}
+            selectedAgentInfo={agentSelection.selectedAgentInfo}
+            assistants={agentSelection.assistants}
+            localeKey={localeKey}
+            currentEffectiveAgentInfo={agentSelection.currentEffectiveAgentInfo}
+            onSelectAssistant={handleSelectAssistant}
+            onSetInput={guidInput.setInput}
+            onFocusInput={guidInput.handleTextareaFocus}
+            onRegisterOpenDetails={(openDetails) => {
+              openAssistantDetailsRef.current = openDetails;
+            }}
+          />
         </div>
 
-        {!COMMAND_EVE_GUID_ENABLED && (
-          <QuickActionButtons
-            onOpenLink={openLink}
-            onOpenBugReport={() => setShowFeedbackModal(true)}
-            inactiveBorderColor={inactiveBorderColor}
-            activeShadow={activeShadow}
-          />
-        )}
+        <QuickActionButtons
+          onOpenLink={openLink}
+          onOpenBugReport={() => setShowFeedbackModal(true)}
+          inactiveBorderColor={inactiveBorderColor}
+          activeShadow={activeShadow}
+        />
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
       </div>
     </ConfigProvider>

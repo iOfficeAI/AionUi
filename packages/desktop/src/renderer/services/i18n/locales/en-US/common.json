@@ -7,7 +7,8 @@
   "file": "File",
   "folder": "Folder",
   "upload": "Upload",
-  "attach": "Attach",
+  "model": "Model",
+  "skills": "Skills",
   "workspace": "Project",
   "settings": "Settings",
   "system": "System",
@@ -69,11 +70,30 @@
   "tray.checkUpdate": "Check Update",
   "tray.recentChats": "Recent Chats",
   "tray.untitled": "Untitled",
-  "fileAttach.hostFiles": "Add files or photos",
+  "backendStartup": {
+    "incompatibleRuntime": {
+      "title": "This system is not supported by the bundled backend",
+      "description": "AionUi opened, but the local AionCore backend cannot run on this Linux version. Please upgrade to a supported Linux distribution and restart AionUi.",
+      "requiredVersions": "Required runtime symbols: {{versions}}"
+    },
+    "incompleteInstallation": {
+      "title": "AionUi installation is incomplete",
+      "description": "This installation is missing required local resources, so AionCore cannot start. Please download and reinstall the latest AionUi. If the issue returns after reinstalling, check whether security or antivirus software quarantined AionCore.",
+      "downloadLatest": "Download latest",
+      "sendDiagnostics": "Send diagnostics",
+      "runtimeComponentDescription": "This installation is missing required bundled runtime components, so {{resource}} cannot start. Reinstall the latest AionUi package. If it still happens after reinstalling, check whether security or antivirus software quarantined AionUi components."
+    },
+    "packageArchitectureMismatch": {
+      "title": "AionUi package architecture mismatch",
+      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+    }
+  },
+  "fileAttach.addFiles": "Add files",
   "fileAttach.myDevice": "Upload from device",
   "fileAttach.failed": "Upload failed",
   "fileAttach.uploading": "Uploading...",
   "fileAttach.uploadSuccess": "Upload successful",
+  "fileAttach.cancelUpload": "Cancel upload",
   "expand": "Expand",
   "name": "Name",
   "added": "Added",

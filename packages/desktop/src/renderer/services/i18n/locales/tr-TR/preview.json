@@ -58,6 +58,7 @@
   "mermaidTitle": "Mermaid Diyagramı",
   "largeTextTruncatedHint": "Büyük dosya önizleme modu: performans için yalnızca ilk {{count}} karakter gösteriliyor.",
   "truncatedBanner": "Önizleme içeriği kısaltıldı. Tam dosyayı görmek için indir seçeneğini kullanın.",
+  "aiWriting": "Yapay zeka yazıyor…",
   "errors": {
     "missingFilePath": "Dosya yolu eksik",
     "openWithoutPath": "Açılamadı: dosya yolu sağlanmadı",
@@ -129,6 +130,6 @@
     "loading": "PPT önizlemesi başlatılıyor...",
     "installing": "Önizleme bileşeni yükleniyor...",
     "startFailed": "PPT önizlemesi başlatılamadı",
-    "installHint": "officecli'nin yüklü olduğundan emin olun: npm run postinstall"
+    "installHint": "OfficeCLI'yi resmi iOfficeAI/OfficeCli releases sayfasından yükleyin"
   }
 }

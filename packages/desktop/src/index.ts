@@ -201,11 +201,26 @@ let disposeCronResumeListener: (() => void) | null = null;
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
+let rendererInitialLanguage: string | null = null;
+let backendStartupFailed = false;
+let backendStartupFailureInfo: unknown = null;
 let backendMigrationsScheduled = false;
 
 ipcMain.on('get-backend-port', (event) => {
   const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
   event.returnValue = backendManager.port > 0 ? backendManager.port : (bootBackendPort ?? 0);
+});
+
+ipcMain.on('get-initial-language', (event) => {
+  event.returnValue = rendererInitialLanguage;
+});
+
+ipcMain.on('get-backend-startup-failed', (event) => {
+  event.returnValue = backendStartupFailed;
+});
+
+ipcMain.on('get-backend-startup-failure', (event) => {
+  event.returnValue = backendStartupFailureInfo;
 });
 
 type CommandEveWarmupReceipt = {
@@ -1031,6 +1046,11 @@ const handleAppReady = async (): Promise<void> => {
     backendStartedOk = true;
   } catch (error) {
     console.error('[CommandEVE] Failed to start aioncore:', error);
+    backendStartupFailed = true;
+    backendStartupFailureInfo = {
+      reason: 'backend_startup_failed',
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is
@@ -1202,6 +1222,7 @@ const handleAppReady = async (): Promise<void> => {
     // Read language setting and initialize main process i18n, then refresh tray menu
     try {
       const savedLanguage = await ProcessConfig.get('language');
+      rendererInitialLanguage = typeof savedLanguage === 'string' ? savedLanguage : null;
       await setInitialLanguage(savedLanguage);
       // After language is set, refresh tray menu if it exists
       await refreshTrayMenu();

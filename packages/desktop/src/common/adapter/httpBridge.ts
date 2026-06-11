@@ -112,6 +112,8 @@ export class BackendHttpError extends Error {
   readonly code: string;
   /** Backend-provided human message from `ErrorResponse.error`, or the raw body when parse failed. */
   readonly backendMessage: string;
+  /** Structured backend metadata from `ErrorResponse.details`, when present. */
+  readonly details: unknown;
   /** Raw parsed body (object on JSON response, string on text/non-JSON). */
   readonly body: unknown;
 
@@ -119,10 +121,12 @@ export class BackendHttpError extends Error {
     const { method, path, status, body } = params;
     let code = '';
     let backendMessage = '';
+    let details: unknown;
     if (body && typeof body === 'object') {
-      const b = body as { code?: unknown; error?: unknown };
+      const b = body as { code?: unknown; error?: unknown; details?: unknown };
       if (typeof b.code === 'string') code = b.code;
       if (typeof b.error === 'string') backendMessage = b.error;
+      details = b.details;
     } else if (typeof body === 'string') {
       backendMessage = body;
     }
@@ -131,6 +135,7 @@ export class BackendHttpError extends Error {
     this.status = status;
     this.code = code;
     this.backendMessage = backendMessage;
+    this.details = details;
     this.body = body;
   }
 }
@@ -172,6 +177,24 @@ export type HttpRequestOptions = {
   silentStatuses?: number[];
 };
 
+const SENSITIVE_LOG_KEY_PATTERN = /api[_-]?key|authorization|auth[_-]?token|access[_-]?token|refresh[_-]?token|secret/i;
+
+function redactForLog(value: unknown, depth = 0): unknown {
+  if (depth > 8 || value === null || typeof value !== 'object') {
+    return value;
+  }
+  if (Array.isArray(value)) {
+    return value.map((item) => redactForLog(item, depth + 1));
+  }
+
+  return Object.fromEntries(
+    Object.entries(value as Record<string, unknown>).map(([key, entry]) => [
+      key,
+      SENSITIVE_LOG_KEY_PATTERN.test(key) ? '[REDACTED]' : redactForLog(entry, depth + 1),
+    ])
+  );
+}
+
 export async function httpRequest<T>(
   method: string,
   path: string,
@@ -187,7 +210,7 @@ export async function httpRequest<T>(
 
   console.debug(
     `[httpBridge] ${method} ${path}`,
-    body !== undefined ? JSON.stringify(body).slice(0, 500) : '(no body)'
+    body !== undefined ? JSON.stringify(redactForLog(body)).slice(0, 500) : '(no body)'
   );
 
   const response = await fetch(url, {
@@ -197,11 +220,13 @@ export async function httpRequest<T>(
   });
 
   if (!response.ok) {
+    // Response body can only be consumed once — read as text, then try JSON
+    const rawText = await response.text().catch(() => '');
     let errorBody: unknown;
     try {
-      errorBody = await response.json();
+      errorBody = JSON.parse(rawText);
     } catch {
-      errorBody = await response.text();
+      errorBody = rawText;
     }
     if (options?.silentStatuses?.includes(response.status)) {
       console.debug(`[httpBridge] ${method} ${path} → ${response.status} (silenced)`, errorBody);

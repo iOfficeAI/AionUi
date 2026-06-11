@@ -5,9 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { IProvider } from '@/common/config/storage';
-import { uuid } from '@/common/utils';
 import { Button, Divider, Message, Popconfirm, Collapse, Tag, Switch, Tooltip } from '@arco-design/web-react';
 import { DeleteFour, Info, Minus, Plus, Write, Heartbeat } from '@icon-park/react';
 import React, { useEffect, useState } from 'react';
@@ -20,15 +18,6 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
-import { classifyHealthCheckMessage } from './healthCheckUtils';
-import { configService } from '@/common/config/configService';
-import {
-  COMMAND_EVE_DEFAULT_ACP_BACKEND,
-  COMMAND_EVE_LOCAL_MODEL_TIERS,
-  COMMAND_EVE_SHELL_ENABLED,
-  getCommandEveAcpModelIdForTier,
-  normalizeCommandEveLocalModelTierId,
-} from '@/common/config/commandEveShell';
 import '../model-provider.css';
 
 /**
@@ -103,128 +92,14 @@ const isModelEnabled = (platform: IProvider, model: string): boolean => {
   return platform.model_enabled[model] !== false;
 };
 
-const HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS = 30000;
-
 const ModelModalContent: React.FC = () => {
   const { t } = useTranslation();
   const viewMode = useSettingsViewMode();
   const isPageMode = viewMode === 'page';
   const [collapseKey, setCollapseKey] = useState<Record<string, boolean>>({});
   const [healthCheckLoading, setHealthCheckLoading] = useState<Record<string, boolean>>({});
-  const [commandEveLocalTierId, setCommandEveLocalTierId] = useState(() =>
-    normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'))
-  );
-  const [ensuringCommandEveTierId, setEnsuringCommandEveTierId] = useState<string | null>(null);
   const { data, mutate } = useProvidersQuery();
   const [message, messageContext] = Message.useMessage();
-  const commandEveSupportNote = COMMAND_EVE_SHELL_ENABLED
-    ? t('settings.commandEveModelSupportNote')
-    : t('settings.customModelSupportNote');
-  const commandEveTierColor = (state: string): string => {
-    if (state === 'default') return 'green';
-    if (state === 'opt_in') return 'orange';
-    return 'purple';
-  };
-  const selectCommandEveLocalTier = async (tierId: string) => {
-    const nextTierId = normalizeCommandEveLocalModelTierId(tierId);
-    const nextModelId = getCommandEveAcpModelIdForTier(nextTierId);
-    setCommandEveLocalTierId(nextTierId);
-    try {
-      const config = configService.get('acp.config') || {};
-      const backendConfig = config[COMMAND_EVE_DEFAULT_ACP_BACKEND] || {};
-      setEnsuringCommandEveTierId(nextTierId);
-      await configService.setBatch({
-        'commandEve.localModelTierId': nextTierId,
-        'acp.config': {
-          ...config,
-          [COMMAND_EVE_DEFAULT_ACP_BACKEND]: {
-            ...backendConfig,
-            preferredModelId: nextModelId,
-          },
-        },
-      });
-      const ensureResult = await ipcBridge.commandEve.ensureLocalModelTier.invoke({ tierId: nextTierId });
-      if (!ensureResult.success || ensureResult.data?.status !== 'ready') {
-        message.warning(
-          t('settings.commandEveLocalRuntimeEnsureBlocked', {
-            reason: ensureResult.msg || ensureResult.data?.next_action || 'runtime not ready',
-          })
-        );
-        return;
-      }
-      message.success(t('settings.commandEveLocalRuntimeSelected'));
-    } catch (error) {
-      setCommandEveLocalTierId(normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId')));
-      console.error('Failed to save Command EVE local model tier:', error);
-      message.error(t('settings.saveModelConfigFailed'));
-    } finally {
-      setEnsuringCommandEveTierId(null);
-    }
-  };
-
-  const renderCommandEveLocalRuntime = () => {
-    if (!COMMAND_EVE_SHELL_ENABLED) return null;
-
-    return (
-      <div className='mb-14px rd-12px border border-solid border-[var(--color-border-2)] bg-[var(--fill-0)] px-14px py-12px'>
-        <div className='flex items-start justify-between gap-12px flex-wrap'>
-          <div>
-            <div className='text-15px font-600 text-t-primary'>{t('settings.commandEveLocalRuntime')}</div>
-            <div className='text-12px leading-5 text-t-secondary mt-4px max-w-760px'>
-              {t('settings.commandEveLocalRuntimeDesc')}
-            </div>
-          </div>
-          <Tag color='arcoblue' size='small'>
-            {t('settings.commandEveLocalRuntimeBackend')}
-          </Tag>
-        </div>
-        <div className='grid grid-cols-1 lg:grid-cols-3 gap-10px mt-12px'>
-          {COMMAND_EVE_LOCAL_MODEL_TIERS.map((tier) => (
-            <div
-              key={tier.id}
-              data-testid={`command-eve-model-tier-${tier.id}`}
-              className={`rd-10px bg-[var(--color-bg-2)] border border-solid p-12px ${
-                commandEveLocalTierId === tier.id
-                  ? 'border-[color:var(--color-primary-6)]'
-                  : 'border-[var(--color-border-2)]'
-              }`}
-            >
-              <div className='flex items-center justify-between gap-8px'>
-                <span className='text-14px font-600 text-t-primary'>{tier.label}</span>
-                <Tag color={commandEveTierColor(tier.state)} size='small'>
-                  {t(`settings.commandEveModelTier.${tier.state}`)}
-                </Tag>
-              </div>
-              <div className='font-mono text-12px text-t-secondary mt-8px truncate'>{tier.modelId}</div>
-              <div className='text-12px text-t-secondary mt-6px'>
-                {t('settings.commandEveLocalRuntimeMeta', {
-                  context: tier.contextLength.toLocaleString(),
-                  memory: tier.memoryGb,
-                  disk: tier.diskGb,
-                })}
-              </div>
-              <Button
-                data-testid={`command-eve-model-tier-select-${tier.id}`}
-                size='mini'
-                type={commandEveLocalTierId === tier.id ? 'primary' : 'outline'}
-                className='mt-10px'
-                disabled={commandEveLocalTierId === tier.id || Boolean(ensuringCommandEveTierId)}
-                loading={ensuringCommandEveTierId === tier.id}
-                onClick={() => void selectCommandEveLocalTier(tier.id)}
-              >
-                {commandEveLocalTierId === tier.id
-                  ? t('settings.commandEveLocalRuntimeCurrent')
-                  : t('settings.commandEveLocalRuntimeSelect')}
-              </Button>
-            </div>
-          ))}
-        </div>
-        <div className='text-12px leading-5 text-t-secondary mt-10px'>
-          {t('settings.commandEveLocalRuntimeRestartNote')}
-        </div>
-      </div>
-    );
-  };
 
   /**
    * Create when the provider id is new, update otherwise.
@@ -313,144 +188,21 @@ const ModelModalContent: React.FC = () => {
     updatePlatform(updated, () => {});
   };
 
-  // 执行健康检测（复用现有对话请求逻辑）
+  // Execute provider/model health check without creating a conversation.
   const performHealthCheck = async (platform: IProvider, modelName: string) => {
     const loadingKey = `${platform.id}-${modelName}`;
     setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: true }));
 
     const startTime = Date.now();
-    let tempConversationId: string | null = null;
-    let timeoutId: NodeJS.Timeout | null = null;
-    let unsubscribe: (() => void) | null = null;
 
     try {
-      // 测活走统一对话链路，与常规请求路径保持一致
-      const responseStream = ipcBridge.conversation.responseStream;
-
-      // 1. 创建临时对话
-      const conversation = await ipcBridge.conversation.create.invoke({
-        type: 'acp',
-        name: `[Health Check] ${platform.name} - ${modelName}`,
-        model: {
-          ...platform,
-          use_model: modelName,
-        },
-        extra: {
-          workspace: '',
-          is_health_check: true,
-          backend: 'gemini',
-        },
+      const result = await ipcBridge.acpConversation.checkProviderHealth.invoke({
+        provider_id: platform.id,
+        model: modelName,
       });
-
-      tempConversationId = conversation.id;
-
-      // 2. 设置响应监听器
-      const responsePromise = new Promise<{ success: boolean; error?: string; latency: number }>((resolve, reject) => {
-        let hasResolved = false;
-        let requestTraceData: { backend?: string; model_id?: string; provider?: string } | null = null;
-
-        const resolveOnce = (result: { success: boolean; error?: string; latency: number }) => {
-          if (hasResolved) return;
-          hasResolved = true;
-          resolve(result);
-        };
-
-        const responseListener = (msg: IResponseMessage) => {
-          if (msg.conversation_id !== tempConversationId) return;
-
-          // 输出 request_trace 到 console（使用与对话相同的格式）
-          if (msg.type === 'request_trace') {
-            const trace = msg.data as Record<string, unknown>;
-            requestTraceData = {
-              backend: String(trace.backend || ''),
-              model_id: String(trace.model_id || ''),
-              provider: String(trace.platform || trace.provider || ''),
-            };
-            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-            console.log(
-              `%c[Health Check]%c ➡️ START | ${display_name} → ${trace.model_id} | ${new Date().toISOString()}`,
-              'color: #1890ff; font-weight: bold',
-              'color: inherit',
-              trace
-            );
-          }
-
-          const action = classifyHealthCheckMessage(msg.type);
-
-          if (action === 'skip') {
-            return;
-          }
-
-          if (action === 'error') {
-            const duration = Date.now() - startTime;
-            // 输出错误链路到 console
-            if (requestTraceData) {
-              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-              console.log(
-                `%c[Health Check]%c ❌ ERROR | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #ff4d4f; font-weight: bold',
-                'color: inherit',
-                msg.data
-              );
-            }
-            resolveOnce({
-              success: false,
-              error: (msg.data as { error?: string } | undefined)?.error || 'Unknown error',
-              latency: duration,
-            });
-            return;
-          }
-
-          // 以”首个响应包到达时间”作为健康判定，避免流式完成时间过长影响检测
-          const duration = Date.now() - startTime;
-          if (requestTraceData) {
-            const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-            console.log(
-              `%c[Health Check]%c ✅ FIRST_RESPONSE | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-              'color: #52c41a; font-weight: bold',
-              'color: inherit'
-            );
-          }
-          resolveOnce({ success: true, latency: duration });
-        };
-
-        unsubscribe = responseStream.on(responseListener);
-
-        // 首个响应超时（默认 30s）
-        timeoutId = setTimeout(() => {
-          if (!hasResolved) {
-            hasResolved = true;
-            if (requestTraceData) {
-              const duration = Date.now() - startTime;
-              const display_name = requestTraceData.backend || requestTraceData.provider || 'unknown';
-              console.log(
-                `%c[Health Check]%c ⏱️ FIRST_RESPONSE_TIMEOUT | ${display_name} → ${requestTraceData.model_id} | ${duration}ms | ${new Date().toISOString()}`,
-                'color: #faad14; font-weight: bold',
-                'color: inherit'
-              );
-            }
-            reject(
-              new Error(`Health check timeout (${HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS / 1000}s to first response)`)
-            );
-          }
-        }, HEALTH_CHECK_FIRST_RESPONSE_TIMEOUT_MS);
-      });
-
-      // Prevent unhandled rejection if timeout fires while sendMessage is still pending.
-      // The actual error is still caught by `await responsePromise` below.
-      responsePromise.catch(() => {});
-
-      // 3. 发送测试消息
-      await ipcBridge.conversation.sendMessage.invoke({
-        conversation_id: tempConversationId,
-        input: 'ping',
-      });
-
-      // 4. 等待响应
-      const result = await responsePromise;
-
-      // 5. 更新健康状态 — 只 PATCH model_health，不要重发整个 provider
-      const latency = result.latency;
+      const latency = result.elapsed_ms || Date.now() - startTime;
+      const success = result.status === 'healthy';
+      const errorMessage = result.message || t('common.unknownError');
 
       try {
         // 先获取最新的数据，确保不会覆盖其他并发的更新
@@ -458,22 +210,22 @@ const ModelModalContent: React.FC = () => {
         const latestPlatform = (latestData || []).find((item) => item.id === platform.id);
         const model_health = { ...latestPlatform?.model_health };
         model_health[modelName] = {
-          status: result.success ? 'healthy' : 'unhealthy',
+          status: success ? 'healthy' : 'unhealthy',
           last_check: Date.now(),
           latency,
-          error: result.error,
+          error: success ? undefined : errorMessage,
         };
 
         await ipcBridge.mode.updateProvider.invoke({ id: platform.id, model_health });
         await mutate();
-        if (result.success) {
+        if (success) {
           Message.success({
             content: `${platform.name} - ${modelName}: ${t('common.success')} (${latency}ms)`,
             duration: 3000,
           });
         } else {
           Message.error({
-            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${result.error}`,
+            content: `${platform.name} - ${modelName}: ${t('common.failed')} - ${errorMessage}`,
             duration: 5000,
           });
         }
@@ -510,15 +262,6 @@ const ModelModalContent: React.FC = () => {
         console.error('Failed to save health check result:', saveError);
       }
     } finally {
-      // 清理
-      if (timeoutId) clearTimeout(timeoutId);
-      if (unsubscribe) {
-        unsubscribe();
-      }
-      if (tempConversationId) {
-        // 删除临时对话
-        ipcBridge.conversation.remove.invoke({ id: tempConversationId }).catch(() => {});
-      }
       setHealthCheckLoading((prev) => ({ ...prev, [loadingKey]: false }));
     }
   };
@@ -613,7 +356,6 @@ const ModelModalContent: React.FC = () => {
           </div>
         </div>
         <div
-          data-testid='command-eve-model-support-note'
           className='rd-8px px-12px py-8px text-12px leading-5 border border-solid'
           style={{
             borderColor: 'rgba(var(--primary-6),0.32)',
@@ -621,13 +363,12 @@ const ModelModalContent: React.FC = () => {
             color: 'rgb(var(--primary-6))',
           }}
         >
-          {commandEveSupportNote}
+          {t('settings.customModelSupportNote')}
         </div>
       </div>
 
       {/* Content Area */}
       <AionScrollArea className='flex-1 min-h-0' disableOverflow={isPageMode}>
-        {renderCommandEveLocalRuntime()}
         {!data || data.length === 0 ? (
           <div className='flex flex-col items-center justify-center py-40px'>
             <Info theme='outline' size='48' className='text-t-secondary mb-16px' />
@@ -635,11 +376,7 @@ const ModelModalContent: React.FC = () => {
             <p className='text-14px text-t-secondary text-center max-w-400px'>
               {t('settings.needHelpConfigGuide')}
               <a
-                href={
-                  COMMAND_EVE_SHELL_ENABLED
-                    ? 'https://command-eve.com'
-                    : 'https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
-                }
+                href='https://github.com/iOfficeAI/AionUi/wiki/LLM-Configuration'
                 target='_blank'
                 rel='noopener noreferrer'
                 className='text-[rgb(var(--primary-6))] hover:text-[rgb(var(--primary-5))] underline ml-4px'

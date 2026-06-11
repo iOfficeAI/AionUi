@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
+import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
@@ -65,6 +66,8 @@ export interface AgentModeSelectorProps {
   onModeChanged?: (mode: string) => void;
   /** Dynamic modes from capabilities (overrides static list when non-empty) */
   dynamicModes?: AgentModeOption[];
+  /** Optional runtime preparation before reading active-session mode. */
+  beforeRuntimeSync?: () => Promise<void>;
 }
 
 /**
@@ -92,6 +95,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   hideCompactLabelPrefixOnMobile = false,
   onModeChanged,
   dynamicModes,
+  beforeRuntimeSync,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -162,8 +166,10 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     if (!conversation_id || !can_switchMode) return;
     let cancelled = false;
 
-    ipcBridge.acpConversation.getMode
-      .invoke({ conversation_id })
+    void (async () => {
+      await beforeRuntimeSync?.();
+      return ipcBridge.acpConversation.getMode.invoke({ conversation_id });
+    })()
       .then((result) => {
         if (!cancelled && result) {
           // Only sync from backend when manager is initialized;
@@ -181,7 +187,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [conversation_id, can_switchMode]);
+  }, [conversation_id, can_switchMode, beforeRuntimeSync]);
 
   const handleModeChange = useCallback(
     async (mode: string) => {
@@ -202,23 +208,29 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
       setIsLoading(true);
       try {
-        // setMode returns void; success if no throw
-        await ipcBridge.acpConversation.setMode.invoke({
+        await beforeRuntimeSync?.();
+        const confirmed = await ipcBridge.acpConversation.setMode.invoke({
           conversation_id,
           mode,
         });
+        const confirmedMode = confirmed.mode || mode;
 
-        setCurrentMode(mode);
-        onModeChanged?.(mode);
-        Message.success('Mode switched');
+        setCurrentMode(confirmedMode);
+        onModeChanged?.(confirmedMode);
+        if (backend) {
+          // Mirror Guid page behaviour so a switch made inside the
+          // conversation also becomes the next-session default.
+          void savePreferredMode(backend, confirmedMode);
+        }
+        Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
-        Message.error('Switch failed');
+        Message.error(t('agentMode.switchFailed'));
       } finally {
         setIsLoading(false);
       }
     },
-    [conversation_id, current_mode, onModeSelect]
+    [backend, beforeRuntimeSync, conversation_id, current_mode, onModeChanged, onModeSelect, t]
   );
 
   const renderLogo = () => (

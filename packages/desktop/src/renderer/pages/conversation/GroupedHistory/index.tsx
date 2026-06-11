@@ -7,7 +7,8 @@
 import type { TChatConversation } from '@/common/config/storage';
 import AionModal from '@/renderer/components/base/AionModal';
 import DirectorySelectionModal from '@/renderer/components/settings/DirectorySelectionModal';
-import { CronJobIndicator, useCronJobsMap } from '@/renderer/pages/cron';
+import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
+import { useCronJobsMap } from '@/renderer/pages/cron';
 import { DndContext, DragOverlay, closestCenter } from '@dnd-kit/core';
 import { SortableContext, verticalListSortingStrategy } from '@dnd-kit/sortable';
 import { Button, Dropdown, Empty, Input, Menu, Modal, Tooltip } from '@arco-design/web-react';
@@ -39,6 +40,8 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
   const { id } = useParams();
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const layout = useLayoutContext();
+  const isMobile = layout?.isMobile ?? false;
   const { getJobStatus, markAsRead, setActiveConversation } = useCronJobsMap();
 
   // Persist section collapsed state across reloads.
@@ -163,8 +166,9 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
     closeExportModal,
     handleSelectExportDirectoryFromModal,
     handleSelectExportFolder,
-    handleExportConversation,
-    handleBatchExport,
+    // handleExportConversation / handleBatchExport are intentionally not
+    // destructured: their UI entries are disabled (kanban #14). The useExport
+    // hook and its underlying logic stay intact for a future re-enable.
     handleConfirmExport,
   } = useExport({
     conversations,
@@ -197,7 +201,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       onMenuVisibleChange: handleMenuVisibleChange,
       onEditStart: handleEditStart,
       onDelete: handleDeleteClick,
-      onExport: handleExportConversation,
+      // Export UI entry intentionally disabled (kanban #14): omit onExport so
+      // ConversationRow's `{onExport && ...}` guard hides the menu item. The
+      // underlying handleExportConversation logic from useExport is kept for a
+      // future per-platform re-enable.
       onTogglePin: handleTogglePin,
       getJobStatus,
     }),
@@ -216,7 +223,6 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
       handleMenuVisibleChange,
       handleEditStart,
       handleDeleteClick,
-      handleExportConversation,
       handleTogglePin,
       getJobStatus,
     ]
@@ -403,22 +409,17 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
             <div className='text-12px leading-18px text-t-secondary'>
               {t('conversation.history.selectedCount', { count: selectedCount })}
             </div>
+            {/* Batch export UI entry intentionally disabled (kanban #14): the
+                button is removed so select-all + delete share the two columns.
+                handleBatchExport from useExport is kept for a future re-enable. */}
             <div className='grid grid-cols-2 gap-6px'>
               <Button
-                className='!col-span-2 !w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
+                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
                 size='mini'
                 type='secondary'
                 onClick={handleToggleSelectAll}
               >
                 {allSelected ? t('common.cancel') : t('conversation.history.selectAll')}
-              </Button>
-              <Button
-                className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
-                size='mini'
-                type='secondary'
-                onClick={handleBatchExport}
-              >
-                {t('conversation.history.batchExport')}
               </Button>
               <Button
                 className='!w-full !justify-center !min-w-0 !h-30px !px-8px !text-12px whitespace-nowrap'
@@ -577,7 +578,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                               role='button'
                               tabIndex={0}
                               aria-label={t('conversation.history.newConversationInProject')}
-                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
+                              className={classNames(
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                              )}
                               onClick={(e) => {
                                 e.stopPropagation();
                                 void navigate('/guid', { state: { workspace: group.workspace } });
@@ -602,7 +606,10 @@ const WorkspaceGroupedHistory: React.FC<WorkspaceGroupedHistoryProps> = ({
                           >
                             <span
                               aria-label='Project actions'
-                              className='hidden group-hover:flex flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn'
+                              className={classNames(
+                                'flex-center cursor-pointer transition-colors text-t-secondary hover:text-t-primary size-20px rd-4px sider-action-btn',
+                                isMobile ? 'flex' : 'hidden group-hover:flex'
+                              )}
                               onClick={(e) => e.stopPropagation()}
                             >
                               <MoreOne theme='outline' size='14' fill='currentColor' className='block leading-none' />

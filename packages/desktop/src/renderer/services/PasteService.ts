@@ -5,7 +5,7 @@
  */
 
 import type { FileMetadata } from './FileService';
-import { getFileExtension, uploadFileViaHttp } from './FileService';
+import { getFileExtension, UPLOAD_ABORTED_ERROR, uploadFileViaHttp } from './FileService';
 import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadState';
 
 /**
@@ -13,6 +13,9 @@ import { trackUpload, type UploadSource } from '@/renderer/hooks/file/useUploadS
  * file path stored on disk. Works the same in Electron and WebUI — the backend
  * is always reached over HTTP (the Electron preload injects `window.__backendPort`
  * so requests land on `http://127.0.0.1:<port>`; WebUI hits same-origin).
+ *
+ * Returns `null` when the upload is cancelled by the user (via the per-file
+ * cancel button or a conversation switch); other errors propagate.
  */
 async function createTempFile(
   file_name: string,
@@ -24,9 +27,22 @@ async function createTempFile(
   const arrayBuf = data.buffer.slice(data.byteOffset, data.byteOffset + data.byteLength) as ArrayBuffer;
   const blob = new Blob([arrayBuf], { type: contentType });
   const file = new File([blob], file_name, { type: contentType });
-  const tracker = trackUpload(file.size, source);
+  const controller = new AbortController();
+  const tracker = trackUpload(file.size, {
+    source,
+    name: file_name,
+    conversationId: conversation_id || undefined,
+    onAbort: () => controller.abort(),
+  });
   try {
-    return await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress);
+    return await uploadFileViaHttp(file, conversation_id || '', tracker.onProgress, undefined, {
+      signal: controller.signal,
+    });
+  } catch (error) {
+    if (error instanceof Error && error.message === UPLOAD_ABORTED_ERROR) {
+      return null;
+    }
+    throw error;
   } finally {
     tracker.finish();
   }
