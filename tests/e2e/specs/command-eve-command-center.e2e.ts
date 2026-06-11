@@ -3,14 +3,34 @@
  *
  * Verifies the desktop app can render real Company.OS read-model data through
  * the Electron bridge. This is the GUI↔local-ledger evidence for COMPA-590.
+ *
+ * Path configuration (env-driven, release-machine fallback):
+ *   COMMAND_EVE_COMPANY_OS_ROOT  – absolute path to the Company.OS repo root.
+ *                                   Defaults to /Users/mathiasheinke/Developer/Company.OS
+ *                                   (byte-for-byte release-machine behaviour when unset).
+ *   COMMAND_EVE_E2E_EVENTS_LEDGER – absolute path to the clean ledger fixture.
+ *                                   Defaults to <companyOsRoot>/reports/command-eve/e2e/2026-06-10/agent-events.clean.jsonl.
+ * If neither env nor fallback path exists on disk the test fails loudly (no silent skip).
  */
 import { test, expect } from '../fixtures';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
 
-const companyOsRoot = '/Users/mathiasheinke/Developer/Company.OS';
-const cleanLedgerSource = path.join(companyOsRoot, 'reports/command-eve/e2e/2026-06-10/agent-events.clean.jsonl');
+const COMPANY_OS_ROOT_DEFAULT = '/Users/mathiasheinke/Developer/Company.OS';
+const LEDGER_FIXTURE_RELATIVE = 'reports/command-eve/e2e/2026-06-10/agent-events.clean.jsonl';
+
+const companyOsRoot: string = process.env.COMMAND_EVE_COMPANY_OS_ROOT ?? COMPANY_OS_ROOT_DEFAULT;
+const cleanLedgerSource: string =
+  process.env.COMMAND_EVE_E2E_EVENTS_LEDGER ?? path.join(companyOsRoot, LEDGER_FIXTURE_RELATIVE);
+
+if (!fs.existsSync(cleanLedgerSource)) {
+  throw new Error(
+    `[command-eve-command-center e2e] Ledger fixture not found: ${cleanLedgerSource}\n` +
+      `Set COMMAND_EVE_COMPANY_OS_ROOT or COMMAND_EVE_E2E_EVENTS_LEDGER to a valid path.`
+  );
+}
+
 const e2eLedgerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-command-center-e2e-'));
 const e2eLedgerPath = path.join(e2eLedgerRoot, 'agent-events.clean.jsonl');
 fs.copyFileSync(cleanLedgerSource, e2eLedgerPath);
