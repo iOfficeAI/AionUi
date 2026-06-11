@@ -2,7 +2,8 @@
  * Prepare aioncore binary for packaging.
  *
  * Resolution order:
- *  1. GitHub release download (requires version or defaults to "latest")
+ *  1. GitHub Actions artifact download when AIONUI_BACKEND_RUN_ID is set
+ *  2. GitHub release download (requires version or defaults to "latest")
  *
  * Output: {projectRoot}/resources/bundled-aioncore/{platform}-{arch}/
  *   - aioncore[.exe]
@@ -19,6 +20,33 @@ const path = require('path');
 
 const GITHUB_OWNER = 'iOfficeAI';
 const GITHUB_REPO = 'AionCore';
+
+const ACTIONS_ARTIFACT_TARGETS = {
+  'darwin-arm64': {
+    artifactName: 'aioncore-manual-macos-arm64',
+    manualPlatform: 'macos-arm64',
+  },
+  'darwin-x64': {
+    artifactName: 'aioncore-manual-macos-x64',
+    manualPlatform: 'macos-x64',
+  },
+  'linux-arm64': {
+    artifactName: 'aioncore-manual-linux-arm64',
+    manualPlatform: 'linux-arm64',
+  },
+  'linux-x64': {
+    artifactName: 'aioncore-manual-linux-x64',
+    manualPlatform: 'linux-x64',
+  },
+  'win32-arm64': {
+    artifactName: 'aioncore-manual-windows-arm64',
+    manualPlatform: 'windows-arm64',
+  },
+  'win32-x64': {
+    artifactName: 'aioncore-manual-windows-x64',
+    manualPlatform: 'windows-x64',
+  },
+};
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -52,6 +80,30 @@ function writeJson(filePath, payload) {
 
 function getBinaryName(platform) {
   return platform === 'win32' ? 'aioncore.exe' : 'aioncore';
+}
+
+function getActionsTarget(platform, arch) {
+  return ACTIONS_ARTIFACT_TARGETS[`${platform}-${arch}`] || null;
+}
+
+function getActionsArtifactName(platform, arch) {
+  return getActionsTarget(platform, arch)?.artifactName || null;
+}
+
+function getActionsManualPlatform(platform, arch) {
+  return getActionsTarget(platform, arch)?.manualPlatform || `${platform}-${arch}`;
+}
+
+function getActionsArtifactMissingMessage({ runId, platform, arch, expectedArtifactName, availableArtifactNames }) {
+  const available =
+    Array.isArray(availableArtifactNames) && availableArtifactNames.length > 0
+      ? availableArtifactNames.join(', ')
+      : '(none)';
+  return [
+    `AionCore run ${runId} does not contain artifact [ ${expectedArtifactName} ] required for [ ${platform}-${arch} ].`,
+    `Available artifacts: ${available}.`,
+    `Re-run AionCore Manual Build with platform [ ${getActionsManualPlatform(platform, arch)} ] or all.`,
+  ].join(' ');
 }
 
 function prepareManagedResources(binaryPath, targetDir) {
@@ -180,6 +232,153 @@ function findBinaryInDir(dir, binaryName) {
   return null;
 }
 
+function findAioncoreArchiveInDir(dir) {
+  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (
+      entry.isFile() &&
+      entry.name.startsWith('aioncore-') &&
+      (entry.name.endsWith('.zip') || entry.name.endsWith('.tar.gz'))
+    ) {
+      return fullPath;
+    }
+    if (entry.isDirectory()) {
+      const found = findAioncoreArchiveInDir(fullPath);
+      if (found) return found;
+    }
+  }
+  return null;
+}
+
+function getGitHubToken() {
+  return process.env.GH_TOKEN || process.env.GITHUB_TOKEN || '';
+}
+
+function githubApiGetJson(apiPath) {
+  const token = getGitHubToken();
+
+  try {
+    return JSON.parse(
+      execFileSync('gh', ['api', apiPath], {
+        encoding: 'utf-8',
+        timeout: 15000,
+        env: {
+          ...process.env,
+          GH_TOKEN: token || process.env.GH_TOKEN,
+        },
+      })
+    );
+  } catch {
+    // gh CLI not available or failed — fall back to curl.
+  }
+
+  const headers = ['-H', 'Accept: application/vnd.github+json'];
+  if (token) {
+    headers.push('-H', `Authorization: Bearer ${token}`);
+  }
+
+  const url = `https://api.github.com/${apiPath}`;
+  const out = execFileSync('curl', ['-fsSL', ...headers, url], {
+    encoding: 'utf-8',
+    timeout: 15000,
+  });
+  return JSON.parse(out);
+}
+
+function downloadFileWithAuth(url, outputPath) {
+  const token = getGitHubToken();
+  const headers = ['-H', 'Accept: application/vnd.github+json'];
+  if (token) {
+    headers.push('-H', `Authorization: Bearer ${token}`);
+  }
+
+  try {
+    execFileSync('curl', ['-L', '--fail', '--silent', '--show-error', ...headers, '-o', outputPath, url], {
+      timeout: 120000,
+    });
+    return;
+  } catch {
+    // curl may be unavailable in some local environments; try gh before failing.
+  }
+
+  execFileSync('gh', ['api', url, '--output', outputPath], {
+    timeout: 120000,
+    env: {
+      ...process.env,
+      GH_TOKEN: token || process.env.GH_TOKEN,
+    },
+  });
+}
+
+function listActionsArtifacts(runId) {
+  const response = githubApiGetJson(
+    `repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/runs/${runId}/artifacts?per_page=100`
+  );
+  return Array.isArray(response?.artifacts) ? response.artifacts : [];
+}
+
+function downloadAndExtractActionsArtifact(platform, arch, runId) {
+  const expectedArtifactName = getActionsArtifactName(platform, arch);
+  if (!expectedArtifactName) {
+    throw new Error(`Unsupported AionCore Actions artifact target: ${platform}-${arch}`);
+  }
+
+  const artifacts = listActionsArtifacts(runId);
+  const availableArtifactNames = artifacts
+    .map((artifact) => artifact.name)
+    .filter(Boolean)
+    .toSorted();
+  const artifact = artifacts.find((candidate) => candidate.name === expectedArtifactName);
+  if (!artifact) {
+    throw new Error(
+      getActionsArtifactMissingMessage({
+        runId,
+        platform,
+        arch,
+        expectedArtifactName,
+        availableArtifactNames,
+      })
+    );
+  }
+
+  const tempDir = path.join(os.tmpdir(), 'aioncore-prepare-actions', runId, `${platform}-${arch}`);
+  const artifactZipPath = path.join(tempDir, `${expectedArtifactName}.zip`);
+  const artifactExtractDir = path.join(tempDir, 'artifact');
+  const binaryExtractDir = path.join(tempDir, 'binary');
+
+  removeDirectorySafe(tempDir);
+  ensureDirectory(tempDir);
+
+  const downloadUrl =
+    artifact.archive_download_url ||
+    `https://api.github.com/repos/${GITHUB_OWNER}/${GITHUB_REPO}/actions/artifacts/${artifact.id}/zip`;
+  console.log(`  Downloading aioncore from AionCore run ${runId} artifact ${expectedArtifactName}`);
+  downloadFileWithAuth(downloadUrl, artifactZipPath);
+  extractArchive(artifactZipPath, artifactExtractDir, platform);
+
+  const archivePath = findAioncoreArchiveInDir(artifactExtractDir);
+  if (!archivePath) {
+    throw new Error(`AionCore artifact ${expectedArtifactName} from run ${runId} does not contain an aioncore archive`);
+  }
+
+  extractArchive(archivePath, binaryExtractDir, platform);
+
+  const binaryName = getBinaryName(platform);
+  const binaryPath = findBinaryInDir(binaryExtractDir, binaryName);
+  if (!binaryPath) {
+    throw new Error(`Binary ${binaryName} not found in AionCore artifact ${expectedArtifactName} from run ${runId}`);
+  }
+
+  return {
+    binaryPath,
+    tempDir,
+    artifactName: expectedArtifactName,
+    archivePath,
+    url: downloadUrl,
+  };
+}
+
 function downloadAndExtract(platform, arch, tag) {
   const assetName = getAssetName(platform, arch, tag);
   if (!assetName) {
@@ -223,25 +422,30 @@ function downloadAndExtract(platform, arch, tag) {
 function prepareAioncore(options) {
   const { projectRoot, platform, arch, version = 'latest' } = options;
   const runtimeKey = `${platform}-${arch}`;
+  const actionsRunId = (process.env.AIONUI_BACKEND_RUN_ID || '').trim();
 
-  // Resolve the actual version tag — asset filenames include the tag
-  let tag;
-  if (version === 'latest') {
-    const resolved = resolveLatestTag();
-    if (!resolved) {
-      throw new Error('Failed to resolve latest aioncore release tag from GitHub API');
+  let tag = null;
+  if (!actionsRunId) {
+    // Resolve the actual version tag — release asset filenames include the tag.
+    if (version === 'latest') {
+      const resolved = resolveLatestTag();
+      if (!resolved) {
+        throw new Error('Failed to resolve latest aioncore release tag from GitHub API');
+      }
+      tag = resolved;
+      console.log(`Resolved aioncore "latest" → ${tag}`);
+    } else {
+      tag = version.startsWith('v') ? version : `v${version}`;
     }
-    tag = resolved;
-    console.log(`Resolved aioncore "latest" → ${tag}`);
-  } else {
-    tag = version.startsWith('v') ? version : `v${version}`;
   }
 
   const targetDir = path.join(projectRoot, 'resources', 'bundled-aioncore', runtimeKey);
   const binaryName = getBinaryName(platform);
   const targetBinaryPath = path.join(targetDir, binaryName);
 
-  console.log(`Preparing aioncore for ${runtimeKey} (version: ${tag})`);
+  console.log(
+    `Preparing aioncore for ${runtimeKey} (${actionsRunId ? `actions run: ${actionsRunId}` : `version: ${tag}`})`
+  );
 
   removeDirectorySafe(targetDir);
   ensureDirectory(targetDir);
@@ -251,8 +455,22 @@ function prepareAioncore(options) {
   let sourceDetail = {};
   let tempDir = null;
 
-  // 1. Download from GitHub releases
-  if (!sourcePath) {
+  // 1. Download from GitHub Actions artifacts when manual build run id is provided.
+  if (actionsRunId) {
+    const result = downloadAndExtractActionsArtifact(platform, arch, actionsRunId);
+    sourcePath = result.binaryPath;
+    tempDir = result.tempDir;
+    sourceType = 'actions-artifact';
+    sourceDetail = {
+      runId: actionsRunId,
+      artifactName: result.artifactName,
+      url: result.url,
+    };
+    console.log(`  Downloaded from GitHub Actions artifact`);
+  }
+
+  // 2. Download from GitHub releases.
+  if (!sourcePath && tag) {
     try {
       const result = downloadAndExtract(platform, arch, tag);
       sourcePath = result.binaryPath;
@@ -277,7 +495,7 @@ function prepareAioncore(options) {
     const manifest = {
       platform,
       arch,
-      version: tag,
+      version: tag || `actions-run-${actionsRunId}`,
       generatedAt: new Date().toISOString(),
       sourceType,
       source: sourceDetail,
@@ -297,4 +515,8 @@ function prepareAioncore(options) {
   throw new Error(`aioncore binary not found for ${runtimeKey} (tag: ${tag})`);
 }
 
-module.exports = { prepareAioncore };
+module.exports = {
+  getActionsArtifactMissingMessage,
+  getActionsArtifactName,
+  prepareAioncore,
+};
