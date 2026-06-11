@@ -72,7 +72,29 @@
       "description": "Hermes Kanban is ready, but the local marketing board database has not been created yet."
     },
     "actions": {
-      "createProofCard": "Create proof card"
+      "createCard": "New post",
+      "createProofCard": "Create proof card",
+      "moveNext": "Move",
+      "finalLane": "Final lane"
+    },
+    "create": {
+      "note": "Creates exactly one local marketing card and one append-only audit event. No dispatcher, no auto-decompose, no workers.",
+      "title": "New post",
+      "titleLabel": "Title",
+      "titlePlaceholder": "e.g. LinkedIn post about Command EVE",
+      "titleRequired": "A title is required.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Optional card body",
+      "laneLabel": "Lane",
+      "submit": "Create card",
+      "resultTitle": "Card receipt",
+      "success": "Marketing card created.",
+      "failed": "Marketing card could not be created."
+    },
+    "move": {
+      "resultTitle": "Move receipt",
+      "success": "Card moved.",
+      "failed": "Card could not be moved."
     },
     "proof": {
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",

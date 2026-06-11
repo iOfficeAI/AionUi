@@ -72,7 +72,29 @@
       "description": "Hermes Kanban ist bereit, aber die lokale Marketing-Board-Datenbank wurde noch nicht angelegt."
     },
     "actions": {
-      "createProofCard": "Proof-Karte anlegen"
+      "createCard": "Post anlegen",
+      "createProofCard": "Proof-Karte anlegen",
+      "moveNext": "Weiter",
+      "finalLane": "Letzte Lane"
+    },
+    "create": {
+      "note": "Legt genau eine lokale Marketing-Karte und ein append-only Audit-Event an. Kein Dispatcher, kein Auto-Decompose, keine Worker.",
+      "title": "Post anlegen",
+      "titleLabel": "Titel",
+      "titlePlaceholder": "z. B. LinkedIn-Post zu Command EVE",
+      "titleRequired": "Ein Titel ist erforderlich.",
+      "descriptionLabel": "Beschreibung",
+      "descriptionPlaceholder": "Optionaler Inhalt der Karte",
+      "laneLabel": "Lane",
+      "submit": "Karte anlegen",
+      "resultTitle": "Karten-Receipt",
+      "success": "Marketing-Karte angelegt.",
+      "failed": "Marketing-Karte konnte nicht angelegt werden."
+    },
+    "move": {
+      "resultTitle": "Move-Receipt",
+      "success": "Karte verschoben.",
+      "failed": "Karte konnte nicht verschoben werden."
     },
     "proof": {
       "note": "Legt genau eine lokale Proof-Karte und ein append-only Audit-Event an. Keine Worker werden gestartet.",

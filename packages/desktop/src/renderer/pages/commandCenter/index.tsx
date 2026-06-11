@@ -7,7 +7,7 @@
 import classNames from 'classnames';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { Alert, Button, Empty, Spin, Tag } from '@arco-design/web-react';
+import { Alert, Button, Empty, Input, Message, Modal, Select, Spin, Tag } from '@arco-design/web-react';
 import { bridge } from '@office-ai/platform';
 import { useLayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { isElectronDesktop } from '@renderer/utils/platform';
@@ -233,6 +233,72 @@ interface ICommandEveMarketingProofCardResult {
   };
 }
 
+interface ICommandEveMarketingCardCreateRequest {
+  title: string;
+  description?: string;
+  lane_key: IMarketingLaneKey;
+  client_token: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+interface ICommandEveMarketingCardCreateResult {
+  version: 'command-eve-kanban-marketing-card-create/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  lane_key?: IMarketingLaneKey;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+interface ICommandEveMarketingCardMoveRequest {
+  task_id: string;
+  to_lane_key: IMarketingLaneKey;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+interface ICommandEveMarketingCardMoveResult {
+  version: 'command-eve-kanban-marketing-card-move/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  from_lane_key?: IMarketingLaneKey;
+  to_lane_key?: IMarketingLaneKey;
+  moved?: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+// Shared board-carrying shape between the create and move mutation results, used
+// to re-render the read-only board projection after a successful mutation.
+interface IMarketingMutationBoardCarrier {
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
 const commandCenterReadModel = bridge.buildProvider<
   IBridgeResponse<ICommandEveCommandCenterReadModelResult>,
   { maxRuns?: number } | undefined
@@ -252,6 +318,35 @@ const kanbanMarketingProofCard = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingProofCardResult>,
   { boardSlug?: string } | undefined
 >('command-eve.kanban-marketing-proof-card');
+
+const kanbanMarketingCardCreate = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingCardCreateResult>,
+  ICommandEveMarketingCardCreateRequest
+>('command-eve.kanban-marketing-card-create');
+
+const kanbanMarketingCardMove = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingCardMoveResult>,
+  ICommandEveMarketingCardMoveRequest
+>('command-eve.kanban-marketing-card-move');
+
+const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
+
+const MARKETING_BOARD_SLUG = 'marketing';
+
+// Stable per-intent idempotency token so a card create dedupes on retry.
+const generateClientToken = (): string => {
+  const cryptoApi = typeof globalThis !== 'undefined' ? globalThis.crypto : undefined;
+  if (cryptoApi && typeof cryptoApi.randomUUID === 'function') {
+    return `cmd-eve-card-${cryptoApi.randomUUID()}`;
+  }
+  return `cmd-eve-card-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 10)}`;
+};
+
+const nextMarketingLane = (lane: IMarketingLaneKey): IMarketingLaneKey | null => {
+  const index = MARKETING_LANE_ORDER.indexOf(lane);
+  if (index < 0 || index >= MARKETING_LANE_ORDER.length - 1) return null;
+  return MARKETING_LANE_ORDER[index + 1];
+};
 
 const textOrDash = (value?: string | null): string => {
   const text = String(value || '').trim();
@@ -387,10 +482,19 @@ const BoardColumnView: React.FC<{ column: BoardColumn }> = ({ column }) => {
   );
 };
 
-const MarketingCardView: React.FC<{ card: ICommandEveMarketingCard }> = ({ card }) => {
+const MarketingCardView: React.FC<{
+  card: ICommandEveMarketingCard;
+  movingCardId: string | null;
+  onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
+}> = ({ card, movingCardId, onMoveNext }) => {
   const { t } = useTranslation();
+  const nextLane = nextMarketingLane(card.lane_key);
+  const moving = movingCardId === card.card_id;
   return (
-    <article className='rounded-10px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'>
+    <article
+      data-testid={`marketing-card-${card.card_id}`}
+      className='rounded-10px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'
+    >
       <div className='flex items-start justify-between gap-8px'>
         <div className='min-w-0'>
           <div className='truncate text-13px font-600 leading-20px text-t-primary'>{textOrDash(card.card_title)}</div>
@@ -404,14 +508,41 @@ const MarketingCardView: React.FC<{ card: ICommandEveMarketingCard }> = ({ card 
         <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.labels.audit')}</dt>
         <dd className='m-0 truncate text-t-secondary'>{textOrDash(card.linked_audit_event_id)}</dd>
       </dl>
+      <div className='mt-8px flex items-center justify-end'>
+        {nextLane ? (
+          <Button
+            size='mini'
+            shape='round'
+            loading={moving}
+            disabled={moving}
+            data-testid={`marketing-card-move-${card.card_id}`}
+            onClick={() => onMoveNext(card, nextLane)}
+          >
+            {`${t('commandCenter.marketingBoard.actions.moveNext')} → ${t(
+              `commandCenter.marketingBoard.columns.${nextLane}`
+            )}`}
+          </Button>
+        ) : (
+          <span className='text-11px leading-16px text-t-tertiary' data-testid={`marketing-card-final-${card.card_id}`}>
+            {t('commandCenter.marketingBoard.actions.finalLane')}
+          </span>
+        )}
+      </div>
     </article>
   );
 };
 
-const MarketingColumnView: React.FC<{ column: ICommandEveMarketingColumn }> = ({ column }) => {
+const MarketingColumnView: React.FC<{
+  column: ICommandEveMarketingColumn;
+  movingCardId: string | null;
+  onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
+}> = ({ column, movingCardId, onMoveNext }) => {
   const { t } = useTranslation();
   return (
-    <div className='flex min-h-180px flex-col gap-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-12px py-12px'>
+    <div
+      data-testid={`marketing-lane-${column.key}`}
+      className='flex min-h-180px flex-col gap-10px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-12px py-12px'
+    >
       <div className='flex items-center justify-between gap-8px'>
         <h3 className='m-0 text-13px font-600 leading-20px text-t-primary'>
           {t(`commandCenter.marketingBoard.columns.${column.key}`)}
@@ -421,7 +552,12 @@ const MarketingColumnView: React.FC<{ column: ICommandEveMarketingColumn }> = ({
       {column.cards.length > 0 ? (
         <div className='flex flex-col gap-8px'>
           {column.cards.map((card) => (
-            <MarketingCardView key={`${column.key}-${card.card_id}`} card={card} />
+            <MarketingCardView
+              key={`${column.key}-${card.card_id}`}
+              card={card}
+              movingCardId={movingCardId}
+              onMoveNext={onMoveNext}
+            />
           ))}
         </div>
       ) : (
@@ -433,12 +569,150 @@ const MarketingColumnView: React.FC<{ column: ICommandEveMarketingColumn }> = ({
   );
 };
 
+const MarketingCardCreateModal: React.FC<{
+  visible: boolean;
+  submitting: boolean;
+  onCancel: () => void;
+  onSubmit: (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => void;
+}> = ({ visible, submitting, onCancel, onSubmit }) => {
+  const { t } = useTranslation();
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [laneKey, setLaneKey] = useState<IMarketingLaneKey>(MARKETING_LANE_ORDER[0]);
+  const [titleError, setTitleError] = useState(false);
+
+  // Reset the form whenever the modal is (re)opened so a new card starts clean.
+  useEffect(() => {
+    if (visible) {
+      setTitle('');
+      setDescription('');
+      setLaneKey(MARKETING_LANE_ORDER[0]);
+      setTitleError(false);
+    }
+  }, [visible]);
+
+  const handleSubmit = (): void => {
+    const trimmed = title.trim();
+    if (!trimmed) {
+      setTitleError(true);
+      return;
+    }
+    onSubmit({ title: trimmed, description: description.trim(), lane_key: laneKey });
+  };
+
+  return (
+    <Modal
+      title={t('commandCenter.marketingBoard.create.title')}
+      visible={visible}
+      onCancel={onCancel}
+      footer={null}
+      maskClosable={!submitting}
+      escToExit={!submitting}
+      unmountOnExit
+    >
+      <div className='flex flex-col gap-14px' data-testid='marketing-card-create-modal'>
+        <div className='flex flex-col gap-6px'>
+          <span className='text-12px leading-18px text-t-secondary'>
+            {t('commandCenter.marketingBoard.create.titleLabel')}
+          </span>
+          <Input
+            value={title}
+            onChange={(value) => {
+              setTitle(value);
+              if (value.trim()) setTitleError(false);
+            }}
+            placeholder={t('commandCenter.marketingBoard.create.titlePlaceholder')}
+            data-testid='marketing-card-create-title'
+            status={titleError ? 'error' : undefined}
+            disabled={submitting}
+          />
+          {titleError ? (
+            <span className='text-11px leading-16px text-danger-6' data-testid='marketing-card-create-title-error'>
+              {t('commandCenter.marketingBoard.create.titleRequired')}
+            </span>
+          ) : null}
+        </div>
+
+        <div className='flex flex-col gap-6px'>
+          <span className='text-12px leading-18px text-t-secondary'>
+            {t('commandCenter.marketingBoard.create.descriptionLabel')}
+          </span>
+          <Input.TextArea
+            value={description}
+            onChange={(value) => setDescription(value)}
+            placeholder={t('commandCenter.marketingBoard.create.descriptionPlaceholder')}
+            autoSize={{ minRows: 3, maxRows: 6 }}
+            data-testid='marketing-card-create-description'
+            disabled={submitting}
+          />
+        </div>
+
+        <div className='flex flex-col gap-6px'>
+          <span className='text-12px leading-18px text-t-secondary'>
+            {t('commandCenter.marketingBoard.create.laneLabel')}
+          </span>
+          <Select
+            value={laneKey}
+            onChange={(value) => setLaneKey(value as IMarketingLaneKey)}
+            data-testid='marketing-card-create-lane'
+            disabled={submitting}
+          >
+            {MARKETING_LANE_ORDER.map((lane) => (
+              <Select.Option key={lane} value={lane}>
+                {t(`commandCenter.marketingBoard.columns.${lane}`)}
+              </Select.Option>
+            ))}
+          </Select>
+        </div>
+
+        <div className='flex items-center justify-end gap-8px'>
+          <Button shape='round' onClick={onCancel} disabled={submitting} data-testid='marketing-card-create-cancel'>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            shape='round'
+            type='primary'
+            loading={submitting}
+            onClick={handleSubmit}
+            data-testid='marketing-card-create-submit'
+          >
+            {t('commandCenter.marketingBoard.create.submit')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
+  );
+};
+
 const MarketingBoardSection: React.FC<{
   result: ICommandEveMarketingBoardResult | null;
   proofResult: ICommandEveMarketingProofCardResult | null;
   proofRunning: boolean;
+  createResult: ICommandEveMarketingCardCreateResult | null;
+  moveResult: ICommandEveMarketingCardMoveResult | null;
+  createModalVisible: boolean;
+  createSubmitting: boolean;
+  movingCardId: string | null;
   onCreateProofCard: () => void;
-}> = ({ result, proofResult, proofRunning, onCreateProofCard }) => {
+  onOpenCreateModal: () => void;
+  onCloseCreateModal: () => void;
+  onSubmitCreateCard: (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => void;
+  onMoveCardNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
+}> = ({
+  result,
+  proofResult,
+  proofRunning,
+  createResult,
+  moveResult,
+  createModalVisible,
+  createSubmitting,
+  movingCardId,
+  onCreateProofCard,
+  onOpenCreateModal,
+  onCloseCreateModal,
+  onSubmitCreateCard,
+  onMoveCardNext,
+}) => {
   const { t } = useTranslation();
   const model = result?.model;
   const cardCount = model?.summary.total_cards ?? 0;
@@ -453,6 +727,43 @@ const MarketingBoardSection: React.FC<{
           <Tag color='gray'>{t('commandCenter.marketingBoard.policy.noDispatcher')}</Tag>
         </div>
       </div>
+
+      <div className='flex flex-wrap items-center justify-between gap-10px'>
+        <span className='text-12px leading-18px text-t-tertiary'>{t('commandCenter.marketingBoard.create.note')}</span>
+        <Button
+          shape='round'
+          type='primary'
+          disabled={blocked}
+          onClick={onOpenCreateModal}
+          data-testid='marketing-card-create-open'
+        >
+          {t('commandCenter.marketingBoard.actions.createCard')}
+        </Button>
+      </div>
+
+      {createResult ? (
+        <Alert
+          type={createResult.ok ? 'success' : 'warning'}
+          title={createResult.reason_code || t('commandCenter.marketingBoard.create.resultTitle')}
+          content={
+            createResult.ok
+              ? createResult.card_id || createResult.audit_event_path || '-'
+              : createResult.message || createResult.reason_code || '-'
+          }
+        />
+      ) : null}
+
+      {moveResult ? (
+        <Alert
+          type={moveResult.ok ? 'success' : 'warning'}
+          title={moveResult.reason_code || t('commandCenter.marketingBoard.move.resultTitle')}
+          content={
+            moveResult.ok
+              ? `${textOrDash(moveResult.from_lane_key)} → ${textOrDash(moveResult.to_lane_key)}`
+              : moveResult.message || moveResult.reason_code || '-'
+          }
+        />
+      ) : null}
 
       {blocked ? (
         <Alert
@@ -470,7 +781,12 @@ const MarketingBoardSection: React.FC<{
           </div>
           <div className='grid gap-12px md:grid-cols-2 xl:grid-cols-5'>
             {model.columns.map((column) => (
-              <MarketingColumnView key={column.key} column={column} />
+              <MarketingColumnView
+                key={column.key}
+                column={column}
+                movingCardId={movingCardId}
+                onMoveNext={onMoveCardNext}
+              />
             ))}
           </div>
         </>
@@ -486,10 +802,17 @@ const MarketingBoardSection: React.FC<{
 
       <div className='flex flex-wrap items-center justify-between gap-10px'>
         <span className='text-12px leading-18px text-t-tertiary'>{t('commandCenter.marketingBoard.proof.note')}</span>
-        <Button shape='round' type='primary' loading={proofRunning} onClick={onCreateProofCard}>
+        <Button shape='round' loading={proofRunning} onClick={onCreateProofCard}>
           {t('commandCenter.marketingBoard.actions.createProofCard')}
         </Button>
       </div>
+
+      <MarketingCardCreateModal
+        visible={createModalVisible}
+        submitting={createSubmitting}
+        onCancel={onCloseCreateModal}
+        onSubmit={onSubmitCreateCard}
+      />
     </Section>
   );
 };
@@ -645,6 +968,11 @@ const CommandCenterPage: React.FC = () => {
   const [marketingResult, setMarketingResult] = useState<ICommandEveMarketingBoardResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
   const [proofRunning, setProofRunning] = useState(false);
+  const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
+  const [moveResult, setMoveResult] = useState<ICommandEveMarketingCardMoveResult | null>(null);
+  const [createModalVisible, setCreateModalVisible] = useState(false);
+  const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [movingCardId, setMovingCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -748,6 +1076,118 @@ const CommandCenterPage: React.FC = () => {
     }
   }, [t]);
 
+  const openCreateModal = useCallback(() => {
+    setCreateResult(null);
+    setCreateModalVisible(true);
+  }, []);
+
+  const closeCreateModal = useCallback(() => {
+    if (createSubmitting) return;
+    setCreateModalVisible(false);
+  }, [createSubmitting]);
+
+  // Refresh the local board projection from a mutation result's model, falling
+  // back to a fresh read if the mutation did not return one.
+  const applyBoardModel = useCallback(async (data: IMarketingMutationBoardCarrier | null) => {
+    if (data?.model) {
+      setMarketingResult({
+        version: 'command-eve-kanban-marketing-board/v0',
+        ok: data.ok,
+        status: data.status,
+        reason_code: data.reason_code,
+        message: data.message,
+        model: data.model,
+        source: data.source,
+      });
+      return;
+    }
+    const nextBoard = await kanbanMarketingBoard.invoke({ boardSlug: MARKETING_BOARD_SLUG });
+    setMarketingResult(nextBoard.data ?? null);
+  }, []);
+
+  const submitCreateCard = useCallback(
+    async (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => {
+      if (!isElectronDesktop()) return;
+      setCreateSubmitting(true);
+      setMoveResult(null);
+      try {
+        const response = await kanbanMarketingCardCreate.invoke({
+          title: input.title,
+          description: input.description || undefined,
+          lane_key: input.lane_key,
+          client_token: generateClientToken(),
+          boardSlug: MARKETING_BOARD_SLUG,
+        });
+        const data = response.data ?? null;
+        setCreateResult(data);
+        await applyBoardModel(data);
+        if (data?.ok) {
+          setCreateModalVisible(false);
+          Message.success(t('commandCenter.marketingBoard.create.success'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.marketingBoard.create.failed'));
+        }
+      } catch (createError) {
+        const failure: ICommandEveMarketingCardCreateResult = {
+          version: 'command-eve-kanban-marketing-card-create/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'KANBAN_MARKETING_CARD_CREATE_UI_FAILED',
+          message: createError instanceof Error ? createError.message : t('commandCenter.marketingBoard.create.failed'),
+          source: {
+            generated_by: 'command-eve-kanban-marketing-board-core',
+            hermes_home: '',
+          },
+        };
+        setCreateResult(failure);
+        Message.error(failure.message || t('commandCenter.marketingBoard.create.failed'));
+      } finally {
+        setCreateSubmitting(false);
+      }
+    },
+    [applyBoardModel, t]
+  );
+
+  const moveCardNext = useCallback(
+    async (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => {
+      if (!isElectronDesktop()) return;
+      setMovingCardId(card.card_id);
+      setCreateResult(null);
+      try {
+        const response = await kanbanMarketingCardMove.invoke({
+          task_id: card.card_id,
+          to_lane_key: toLane,
+          boardSlug: MARKETING_BOARD_SLUG,
+        });
+        const data = response.data ?? null;
+        setMoveResult(data);
+        await applyBoardModel(data);
+        if (data?.ok) {
+          Message.success(t('commandCenter.marketingBoard.move.success'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.marketingBoard.move.failed'));
+        }
+      } catch (moveError) {
+        const failure: ICommandEveMarketingCardMoveResult = {
+          version: 'command-eve-kanban-marketing-card-move/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'KANBAN_MARKETING_CARD_MOVE_UI_FAILED',
+          message: moveError instanceof Error ? moveError.message : t('commandCenter.marketingBoard.move.failed'),
+          source: {
+            generated_by: 'command-eve-kanban-marketing-board-core',
+            hermes_home: '',
+          },
+        };
+        setMoveResult(failure);
+        Message.error(failure.message || t('commandCenter.marketingBoard.move.failed'));
+      } finally {
+        setMovingCardId(null);
+      }
+    },
+    [applyBoardModel, t]
+  );
+
   return (
     <div
       className={classNames(
@@ -827,7 +1267,16 @@ const CommandCenterPage: React.FC = () => {
               result={marketingResult}
               proofResult={proofResult}
               proofRunning={proofRunning}
+              createResult={createResult}
+              moveResult={moveResult}
+              createModalVisible={createModalVisible}
+              createSubmitting={createSubmitting}
+              movingCardId={movingCardId}
               onCreateProofCard={createProofCard}
+              onOpenCreateModal={openCreateModal}
+              onCloseCreateModal={closeCreateModal}
+              onSubmitCreateCard={submitCreateCard}
+              onMoveCardNext={moveCardNext}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>
