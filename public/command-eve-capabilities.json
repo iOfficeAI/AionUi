@@ -132,6 +132,14 @@
       "human_gate": "HG-2 before durable state migration"
     },
     {
+      "id": "command-eve-command-center",
+      "name": "Command EVE Command Center (read-model panel)",
+      "tier": "core",
+      "setup_mode": "bootstrap",
+      "default_state": "installed",
+      "human_gate": "HG-2.5 before promoting from read-only to any mutation action"
+    },
+    {
       "id": "codex-cli",
       "name": "Codex CLI",
       "tier": "autonomy_core",
