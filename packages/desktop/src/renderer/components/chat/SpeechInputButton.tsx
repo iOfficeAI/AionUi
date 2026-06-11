@@ -8,10 +8,11 @@ import { configService } from '@/common/config/configService';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
 import {
+  getSpeechInputErrorMessageKey,
   useSpeechInput,
   type SpeechInputAvailability,
-  type SpeechInputErrorCode,
 } from '@/renderer/hooks/system/useSpeechInput';
 
 type SpeechInputButtonProps = {
@@ -36,8 +37,6 @@ const SpeechStopIcon = () => (
 
 const SpeechLoaderIcon = () => <span className='speech-loader-spinner' aria-hidden='true' />;
 
-const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
-
 const getAvailabilityMessageKey = (availability: SpeechInputAvailability) => {
   switch (availability) {
     case 'file':
@@ -46,31 +45,6 @@ const getAvailabilityMessageKey = (availability: SpeechInputAvailability) => {
       return 'conversation.chat.speech.unsupported';
     default:
       return 'conversation.chat.speech.recordTooltip';
-  }
-};
-
-const getErrorMessageKey = (errorCode: SpeechInputErrorCode) => {
-  switch (errorCode) {
-    case 'audio-capture':
-      return 'conversation.chat.speech.audioCaptureError';
-    case 'empty-transcript':
-      return 'conversation.chat.speech.emptyTranscript';
-    case 'file-too-large':
-      return 'conversation.chat.speech.fileTooLarge';
-    case 'network':
-      return 'conversation.chat.speech.networkError';
-    case 'not-configured':
-      return 'conversation.chat.speech.notConfigured';
-    case 'permission-denied':
-      return 'conversation.chat.speech.permissionDenied';
-    case 'recording-unsupported':
-      return 'conversation.chat.speech.recordingUnsupported';
-    case 'transcription-failed':
-      return 'conversation.chat.speech.transcriptionFailed';
-    case 'aborted':
-    case 'unknown':
-    default:
-      return 'conversation.chat.speech.genericError';
   }
 };
 
@@ -166,7 +140,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, locale,
       return;
     }
 
-    const baseMessage = t(getErrorMessageKey(errorCode));
+    const baseMessage = t(getSpeechInputErrorMessageKey(errorCode));
     const detail = errorMessage?.trim();
     if (errorCode === 'empty-transcript') {
       Message.warning(baseMessage);

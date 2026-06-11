@@ -69,6 +69,31 @@ export const appendSpeechTranscript = (base: string, transcript: string): string
   return `${normalizedBase}\n${normalizedTranscript}`;
 };
 
+export const getSpeechInputErrorMessageKey = (errorCode: SpeechInputErrorCode): string => {
+  switch (errorCode) {
+    case 'audio-capture':
+      return 'conversation.chat.speech.audioCaptureError';
+    case 'empty-transcript':
+      return 'conversation.chat.speech.emptyTranscript';
+    case 'file-too-large':
+      return 'conversation.chat.speech.fileTooLarge';
+    case 'network':
+      return 'conversation.chat.speech.networkError';
+    case 'not-configured':
+      return 'conversation.chat.speech.notConfigured';
+    case 'permission-denied':
+      return 'conversation.chat.speech.permissionDenied';
+    case 'recording-unsupported':
+      return 'conversation.chat.speech.recordingUnsupported';
+    case 'transcription-failed':
+      return 'conversation.chat.speech.transcriptionFailed';
+    case 'aborted':
+    case 'unknown':
+    default:
+      return 'conversation.chat.speech.genericError';
+  }
+};
+
 const getSpeechInputEnvironment = (): SpeechInputEnvironment => {
   if (typeof window === 'undefined' || typeof document === 'undefined') {
     return {
