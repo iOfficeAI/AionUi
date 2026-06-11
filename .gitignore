@@ -212,3 +212,6 @@ graphify-out/
 .graphify_python
 
 .snow/
+
+# OpenCode config backups may contain auth tokens — never commit
+opencode-backup.json
