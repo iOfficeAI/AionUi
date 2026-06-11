@@ -5,7 +5,7 @@
  */
 
 /**
- * Listens for the `team.list-changed` WebSocket event with action `created`
+ * Listens for Team creation WebSocket events
  * and automatically:
  * 1. Refreshes the conversation list (so the converted conversation disappears)
  * 2. Navigates to the newly created team page

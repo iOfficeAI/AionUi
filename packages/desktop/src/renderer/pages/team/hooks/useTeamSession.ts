@@ -5,6 +5,9 @@ import type {
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamMcpStatusEvent,
+  ITeamSessionChangedEvent,
+  ITeamTaskChangedEvent,
   TeamAgent,
   TeammateStatus,
   TTeam,
@@ -52,11 +55,28 @@ export function useTeamSession(team: TTeam) {
       void mutateTeam();
     });
 
+    const unsubMcpStatus = ipcBridge.team.mcpStatus.on((event: ITeamMcpStatusEvent) => {
+      if (event.team_id !== team.id) return;
+    });
+
+    const unsubTaskChanged = ipcBridge.team.taskChanged.on((event: ITeamTaskChangedEvent) => {
+      if (event.team_id !== team.id) return;
+      void mutateTeam();
+    });
+
+    const unsubSessionChanged = ipcBridge.team.sessionChanged.on((event: ITeamSessionChangedEvent) => {
+      if (event.team_id !== team.id) return;
+      void mutateTeam();
+    });
+
     return () => {
       unsubStatus();
       unsubSpawned();
       unsubRemoved();
       unsubRenamed();
+      unsubMcpStatus();
+      unsubTaskChanged();
+      unsubSessionChanged();
     };
   }, [team.id, mutateTeam]);
 

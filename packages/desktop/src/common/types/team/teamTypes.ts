@@ -77,14 +77,13 @@ export type ITeamAgentRemovedEvent = {
 export type ITeamAgentRenamedEvent = {
   team_id: string;
   slot_id: string;
-  old_name: string;
-  new_name: string;
+  name: string;
 };
 
 /** IPC event pushed to renderer when the team list changes (created/removed/agent changes) */
 export type ITeamListChangedEvent = {
   team_id: string;
-  action: 'created' | 'removed' | 'agent_added' | 'agent_removed';
+  action: 'created' | 'removed' | 'renamed' | 'agent_added' | 'agent_removed';
 };
 
 /** IPC event pushed when a new team is created (backend `team.created` WS event) */
@@ -93,7 +92,18 @@ export type ITeamCreatedEvent = {
   team_name: string;
 };
 
-/** IPC event for real-time teammate-to-teammate messages (`team.teammate.message` WS event) */
+/** IPC event pushed when a team is removed */
+export type ITeamRemovedEvent = {
+  team_id: string;
+};
+
+/** IPC event pushed when a team is renamed */
+export type ITeamRenamedEvent = {
+  team_id: string;
+  team_name: string;
+};
+
+/** IPC event for real-time teammate-to-teammate messages */
 export type ITeamTeammateMessageEvent = {
   conversation_id: string;
   content: string;
@@ -131,5 +141,19 @@ export type ITeamMcpStatusEvent = {
   phase: TeamMcpPhase;
   server_count?: number;
   port?: number;
+  error?: string;
+};
+
+/** IPC event pushed when a Team task board item changes */
+export type ITeamTaskChangedEvent = {
+  team_id: string;
+  task_id?: string;
+  action?: string;
+};
+
+/** IPC event pushed when Team session lifecycle changes */
+export type ITeamSessionChangedEvent = {
+  team_id: string;
+  status?: string;
   error?: string;
 };
