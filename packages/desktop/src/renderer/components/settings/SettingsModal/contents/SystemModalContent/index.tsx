@@ -20,6 +20,7 @@ import { useSettingsViewMode } from '../../settingsViewContext';
 import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
+import VoiceInputSection from './VoiceInputSection';
 
 /**
  * System settings content component
@@ -439,6 +440,9 @@ const SystemModalContent: React.FC = () => {
               )}
             </Form>
           </div>
+
+          {/* Voice input (speech-to-text) settings */}
+          <VoiceInputSection />
 
           {/* Developer settings: DevTools + CDP (only visible in dev mode) */}
           <DevSettings />
