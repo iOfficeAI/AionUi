@@ -1,7 +1,10 @@
 node_modules
 out
-dist-server
+dist
+dist-web-cli
+resources/bundled-aioncore
 .git
 .github
+.claude
 data
 *.log
