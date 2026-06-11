@@ -24,6 +24,8 @@ import type { RunShellStreamingRequest, RunShellStreamEvent } from './types.js';
 
 const META_THROTTLE_MS = 100;
 
+const SHELL_DEBUG = typeof process !== 'undefined' && process.env?.CHISL_SHELL_DEBUG === '1';
+
 /** Get-client thunk: returns the live client, or `null` when disabled. */
 export type GetAionCoreClient = () => AionCoreClient | null;
 
@@ -73,6 +75,9 @@ export const createRunShellStreamingTool = (getClient: GetAionCoreClient): ToolD
       let lastMetaEmit = 0;
       let pendingMeta: ReturnType<typeof setTimeout> | null = null;
       const emitMeta = (): void => {
+        if (SHELL_DEBUG) {
+          console.log(`[shell:meta_emit] ts=${Date.now()} stdoutLen=${stdout.length} stderrLen=${stderr.length}`);
+        }
         ctx.metadata({
           title: 'run_shell_streaming',
           metadata: { output: stdout + stderr, stdoutLen: stdout.length, stderrLen: stderr.length },
@@ -129,6 +134,11 @@ export const createRunShellStreamingTool = (getClient: GetAionCoreClient): ToolD
                 return;
               }
               if (parsed && parsed.type === 'chunk') {
+                if (SHELL_DEBUG) {
+                  console.log(
+                    `[shell:chunk_recv] ts=${Date.now()} stream=${parsed.data.stream} bytes=${parsed.data.data.length}`
+                  );
+                }
                 if (parsed.data.stream === 'stdout') stdout += parsed.data.data;
                 else if (parsed.data.stream === 'stderr') stderr += parsed.data.data;
                 throttledMeta();

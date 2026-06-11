@@ -10,7 +10,7 @@ import FileChangesPanel from '@/renderer/components/base/FileChangesPanel';
 import { useDiffPreviewHandlers } from '@/renderer/hooks/file/useDiffPreviewHandlers';
 import { parseDiff } from '@/renderer/utils/file/diffUtils';
 import { createTwoFilesPatch } from 'diff';
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import ToolShell from './ToolShell';
 import { STATE_LABEL_FALLBACK, STATE_LABEL_KEY, statusPillFromNormalized } from './StatusPill';
@@ -43,6 +43,17 @@ const ReplacePreview: React.FC<{ message: IMessageToolCall }> = ({ message }) =>
 const MessageToolCall: React.FC<{ message: IMessageToolCall }> = ({ message }) => {
   const { name } = message.content;
   const { t } = useTranslation();
+
+  // Dev-only streaming latency marker
+  if (import.meta.env.DEV) {
+    useEffect(() => {
+      if (message.content.output) {
+        console.log(
+          `[ui:tool_render] ts=${Date.now()} tool=${message.content.name} outputLen=${message.content.output.length}`
+        );
+      }
+    }, [message.content.output, message.content.name]);
+  }
 
   if (name === 'replace' || name === 'Edit') {
     return <ReplacePreview message={message} />;
