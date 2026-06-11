@@ -544,7 +544,7 @@ A: 모든 데이터는 로컬 SQLite 데이터베이스에 저장됩니다. 어�
 
 ### 시스템 요구사항
 
-- **macOS**: 10.15 이상
+- **macOS**: 12 (Monterey) 이상
 - **Windows**: Windows 10 이상
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **메모리**: 4GB 이상 권장

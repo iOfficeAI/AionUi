@@ -5,7 +5,7 @@
  */
 
 // src/process/database/IConversationRepository.ts
-// All methods are synchronous (better-sqlite3 driver).
+// All methods are synchronous (node:sqlite driver).
 // The service layer is async to allow future migration.
 
 import type { TChatConversation } from '@/common/config/storage';

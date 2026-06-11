@@ -557,7 +557,7 @@ A: すべてのデータはローカルの SQLite データベースに保存さ
 
 ### システム要件
 
-- **macOS**: 10.15 以上
+- **macOS**: 12 (Monterey) 以上
 - **Windows**: Windows 10 以上
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **メモリ**: 4GB 以上推奨

@@ -25,7 +25,6 @@ files:
   - public/**/*
   - package.json
   # Native modules and their runtime dependencies
-  - node_modules/better-sqlite3/**/*
   - node_modules/bcrypt/**/*
   - node_modules/node-pty/**/*
   - node_modules/@mapbox/**/*
@@ -89,7 +88,6 @@ files:
   - '!**/node_modules/*/vendor/**'
   - '!**/node_modules/@*/*/vendor/**'
   # Re-include vendor dirs for native modules that need them (if any)
-  - 'node_modules/better-sqlite3/vendor/**'
   - 'node_modules/bcrypt/vendor/**'
   - 'node_modules/node-pty/vendor/**'
   # Exclude vite source maps
@@ -143,6 +141,8 @@ mac:
   gatekeeperAssess: false
   entitlements: entitlements.plist
   entitlementsInherit: entitlements.plist
+  # Electron 42 (Chromium 148) dropped macOS 11; minimum supported is macOS 12 (Monterey)
+  minimumSystemVersion: '12.0'
 
 dmg:
   # Use UDZO format which is more reliable on CI
@@ -189,7 +189,6 @@ buildDependenciesFromSource: false
 nodeGypRebuild: false
 
 asarUnpack:
-  - '**/node_modules/better-sqlite3/**/*'
   - '**/node_modules/bcrypt/**/*'
   - '**/node_modules/node-pty/**/*'
   - '**/node_modules/@mapbox/**/*'

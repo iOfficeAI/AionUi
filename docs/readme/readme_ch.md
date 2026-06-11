@@ -598,7 +598,7 @@ AionUi 是一个**免费开源的 Multi-AI Agent 桌面应用**。相比只能�
 
 ### 系统要求
 
-- **macOS**: 10.15 或更高版本
+- **macOS**: 12 (Monterey) 或更高版本
 - **Windows**: Windows 10 或更高版本
 - **Linux**: Ubuntu 18.04+ / Debian 10+ / Fedora 32+
 - **内存**: 建议 4GB 以上

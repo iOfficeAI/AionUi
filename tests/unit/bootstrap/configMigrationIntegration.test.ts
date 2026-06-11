@@ -16,8 +16,8 @@ const mockDriver = {
   exec: vi.fn(),
 };
 
-vi.mock('@process/services/database/drivers/BetterSqlite3Driver', () => ({
-  BetterSqlite3Driver: class {
+vi.mock('@process/services/database/drivers/NodeSqliteDriver', () => ({
+  NodeSqliteDriver: class {
     constructor() {
       return mockDriver;
     }

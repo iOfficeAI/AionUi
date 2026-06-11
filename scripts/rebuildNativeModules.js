@@ -68,17 +68,13 @@ function normalizeArch(arch) {
 /**
  * Get modules to rebuild based on platform
  */
-function getModulesToRebuild(platform) {
-  // Windows: Skip node-pty (cross-compilation fails with missing conpty API types)
-  // Linux: Skip node-pty (no ARM64 prebuilds available, cross-compilation requires ARM64 toolchain)
-  // macOS: Skip node-pty (cross-compilation from ARM64→x64 fails, use @lydell/node-pty-* prebuilts)
-  if (platform === 'win32' || platform === 'windows') {
-    return ['better-sqlite3'];
-  } else if (platform === 'linux') {
-    return ['better-sqlite3'];
-  }
-  // macOS: only rebuild better-sqlite3, skip node-pty
-  return ['better-sqlite3'];
+function getModulesToRebuild(_platform) {
+  // No source-compiled native modules remain:
+  // - SQLite now uses Node's built-in `node:sqlite` (no native dependency).
+  // - node-pty ships per-platform prebuilt binaries (@lydell/node-pty-*), so it is
+  //   never rebuilt from source on any platform.
+  // The beforeBuild/afterPack hooks iterate this list, so returning [] makes them no-ops.
+  return [];
 }
 
 /**
