@@ -16,6 +16,7 @@ const { execSync, execFileSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
+const { verifyBundledAioncoreResources } = require('./verify-bundled-aioncore-resources');
 
 const GITHUB_OWNER = 'iOfficeAI';
 const GITHUB_REPO = 'AionCore';
@@ -83,6 +84,14 @@ function prepareManagedResources(binaryPath, targetDir) {
 
   removeDirectorySafe(dataDir);
   return bundleOut;
+}
+
+function verifyPreparedBundle(projectRoot, platform, arch) {
+  return verifyBundledAioncoreResources({
+    resourcesDir: path.join(projectRoot, 'resources'),
+    electronPlatformName: platform,
+    targetArch: arch,
+  });
 }
 
 // ---------------------------------------------------------------------------
@@ -256,7 +265,27 @@ function prepareAioncore(options) {
   const existingManifest = readJsonSafe(targetManifestPath);
   if (fs.existsSync(targetBinaryPath) && existingManifest?.version === tag) {
     ensureExecutableMode(targetBinaryPath);
-    console.log(`  Reusing bundled aioncore: resources/bundled-aioncore/${runtimeKey}/${binaryName}`);
+    const verification = verifyPreparedBundle(projectRoot, platform, arch);
+    if (verification.missing.length === 0) {
+      console.log(`  Reusing bundled aioncore: resources/bundled-aioncore/${runtimeKey}/${binaryName}`);
+      return { prepared: true, dir: targetDir, sourceType: existingManifest.sourceType || 'existing' };
+    }
+
+    console.warn(
+      `  Existing bundled aioncore is incomplete; regenerating managed resources: ${verification.missing.join(', ')}`
+    );
+    const bundledManagedResourcesDir = prepareManagedResources(targetBinaryPath, targetDir);
+    const manifest = {
+      ...existingManifest,
+      platform,
+      arch,
+      version: tag,
+      generatedAt: new Date().toISOString(),
+      sourceType: existingManifest.sourceType || 'existing',
+      files: Array.from(new Set([binaryName, 'managed-resources/'])),
+    };
+    writeJson(targetManifestPath, manifest);
+    console.log(`  Repaired bundled managed resources: ${bundledManagedResourcesDir}`);
     return { prepared: true, dir: targetDir, sourceType: existingManifest.sourceType || 'existing' };
   }
 
