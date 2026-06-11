@@ -1043,6 +1043,29 @@
       "loadFailed": "Failed to load plugin info"
     }
   },
+  "localOpenCode": {
+    "title": "Local OpenCode",
+    "start": "Start Local OpenCode",
+    "startTitle": "Start Local OpenCode Instance",
+    "empty": "No local OpenCode instances running. Click \"Start\" to launch one with auto-injected plugin configuration.",
+    "nameLabel": "Instance Name (optional)",
+    "namePlaceholder": "e.g. My Local OpenCode",
+    "startSuccess": "Local OpenCode instance started successfully",
+    "startError": "Failed to start local OpenCode instance",
+    "stopSuccess": "Local OpenCode instance stopped",
+    "stopError": "Failed to stop local OpenCode instance",
+    "restartSuccess": "Local OpenCode instance restarted",
+    "restartError": "Failed to restart local OpenCode instance",
+    "stopTooltip": "Stop instance",
+    "restartTooltip": "Restart instance",
+    "agentId": "Remote agent {{id}} — use Install Plugin on this agent to verify connection",
+    "status": {
+      "starting": "Starting",
+      "running": "Running",
+      "stopped": "Stopped",
+      "crashed": "Crashed"
+    }
+  },
   "connectWizard": {
     "title": "Connect OpenCode Server",
     "intro": "Connect to a remote OpenCode server to start chatting from anywhere. You'll need the server URL and any required credentials.",

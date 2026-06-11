@@ -984,6 +984,29 @@
       "loadFailed": "載入外掛資訊失敗"
     }
   },
+  "localOpenCode": {
+    "title": "本地 OpenCode",
+    "start": "啟動本地 OpenCode",
+    "startTitle": "啟動本地 OpenCode 實例",
+    "empty": "沒有執行中的本地 OpenCode 實例。點擊「啟動」來建立一個自動注入外掛設定的實例。",
+    "nameLabel": "實例名稱（選填）",
+    "namePlaceholder": "例如：我的本地 OpenCode",
+    "startSuccess": "本地 OpenCode 實例啟動成功",
+    "startError": "本地 OpenCode 實例啟動失敗",
+    "stopSuccess": "本地 OpenCode 實例已停止",
+    "stopError": "停止本地 OpenCode 實例失敗",
+    "restartSuccess": "本地 OpenCode 實例重啟成功",
+    "restartError": "本地 OpenCode 實例重啟失敗",
+    "stopTooltip": "停止實例",
+    "restartTooltip": "重啟實例",
+    "agentId": "遠端代理 {{id}} — 在該代理上使用「安裝外掛」以驗證連線",
+    "status": {
+      "starting": "啟動中",
+      "running": "執行中",
+      "stopped": "已停止",
+      "crashed": "已崩潰"
+    }
+  },
   "connectWizard": {
     "title": "連接 OpenCode 伺服器",
     "intro": "連接遠端 OpenCode 伺服器，隨時隨地開始對話。你需要伺服器 URL 和所需的憑證。",

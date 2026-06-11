@@ -1415,6 +1415,24 @@ export const remoteAgent = {
 };
 
 // ---------------------------------------------------------------------------
+// Local OpenCode — routed to /api/local-opencode/*
+// ---------------------------------------------------------------------------
+
+export const localOpenCode = {
+  list: httpGet<import('@/common/types/agent/localOpenCodeTypes').LocalOpenCodeListResponse, void>(
+    '/api/local-opencode'
+  ),
+  start: httpPost<
+    import('@/common/types/agent/localOpenCodeTypes').LocalOpenCodeInstance,
+    import('@/common/types/agent/localOpenCodeTypes').StartLocalOpenCodeRequest
+  >('/api/local-opencode/start'),
+  stop: httpPost<boolean, { id: string }>((p) => `/api/local-opencode/${p.id}/stop`),
+  restart: httpPost<import('@/common/types/agent/localOpenCodeTypes').LocalOpenCodeInstance, { id: string }>(
+    (p) => `/api/local-opencode/${p.id}/restart`
+  ),
+};
+
+// ---------------------------------------------------------------------------
 // Database — routed to conversation/message endpoints
 // ---------------------------------------------------------------------------
 

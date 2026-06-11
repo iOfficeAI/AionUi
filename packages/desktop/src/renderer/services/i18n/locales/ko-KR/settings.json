@@ -984,6 +984,29 @@
       "loadFailed": "플러그인 정보를 불러오지 못했습니다"
     }
   },
+  "localOpenCode": {
+    "title": "로컬 OpenCode",
+    "start": "로컬 OpenCode 시작",
+    "startTitle": "로컬 OpenCode 인스턴스 시작",
+    "empty": "실행 중인 로컬 OpenCode 인스턴스가 없습니다. \"시작\"을 클릭하여 플러그인 설정이 자동 주입된 인스턴스를 생성하세요.",
+    "nameLabel": "인스턴스 이름 (선택)",
+    "namePlaceholder": "예: 내 로컬 OpenCode",
+    "startSuccess": "로컬 OpenCode 인스턴스가 성공적으로 시작되었습니다",
+    "startError": "로컬 OpenCode 인스턴스 시작에 실패했습니다",
+    "stopSuccess": "로컬 OpenCode 인스턴스가 중지되었습니다",
+    "stopError": "로컬 OpenCode 인스턴스 중지에 실패했습니다",
+    "restartSuccess": "로컬 OpenCode 인스턴스가 성공적으로 재시작되었습니다",
+    "restartError": "로컬 OpenCode 인스턴스 재시작에 실패했습니다",
+    "stopTooltip": "인스턴스 중지",
+    "restartTooltip": "인스턴스 재시작",
+    "agentId": "원격 에이전트 {{id}} — 이 에이전트의 '플러그인 설치'로 연결 확인",
+    "status": {
+      "starting": "시작 중",
+      "running": "실행 중",
+      "stopped": "중지됨",
+      "crashed": "충돌"
+    }
+  },
   "connectWizard": {
     "title": "OpenCode 서버 연결",
     "intro": "원격 OpenCode 서버에 연결하여 어디서든 대화를 시작하세요. 서버 URL과 필요한 자격 증명이 필요합니다.",

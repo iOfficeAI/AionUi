@@ -983,6 +983,29 @@
       "loadFailed": "加载插件信息失败"
     }
   },
+  "localOpenCode": {
+    "title": "本地 OpenCode",
+    "start": "启动本地 OpenCode",
+    "startTitle": "启动本地 OpenCode 实例",
+    "empty": "没有运行中的本地 OpenCode 实例。点击\"启动\"来创建一个自动注入插件配置的实例。",
+    "nameLabel": "实例名称（可选）",
+    "namePlaceholder": "例如：我的本地 OpenCode",
+    "startSuccess": "本地 OpenCode 实例启动成功",
+    "startError": "本地 OpenCode 实例启动失败",
+    "stopSuccess": "本地 OpenCode 实例已停止",
+    "stopError": "停止本地 OpenCode 实例失败",
+    "restartSuccess": "本地 OpenCode 实例重启成功",
+    "restartError": "本地 OpenCode 实例重启失败",
+    "stopTooltip": "停止实例",
+    "restartTooltip": "重启实例",
+    "agentId": "远程代理 {{id}} — 在该代理上使用“安装插件”以验证连接",
+    "status": {
+      "starting": "启动中",
+      "running": "运行中",
+      "stopped": "已停止",
+      "crashed": "已崩溃"
+    }
+  },
   "connectWizard": {
     "title": "连接 OpenCode 服务器",
     "intro": "连接远程 OpenCode 服务器，随时随地开始对话。你需要服务器 URL 和所需的凭据。",

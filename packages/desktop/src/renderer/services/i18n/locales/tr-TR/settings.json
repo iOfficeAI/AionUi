@@ -982,6 +982,29 @@
       "loadFailed": "Eklenti bilgileri yüklenemedi"
     }
   },
+  "localOpenCode": {
+    "title": "Yerel OpenCode",
+    "start": "Yerel OpenCode Başlat",
+    "startTitle": "Yerel OpenCode Örneği Başlat",
+    "empty": "Çalışan yerel OpenCode örneği yok. Eklenti yapılandırması otomatik olarak enjekte edilen bir örnek başlatmak için \"Başlat\"a tıklayın.",
+    "nameLabel": "Örnek Adı (isteğe bağlı)",
+    "namePlaceholder": "örn. Benim Yerel OpenCode'um",
+    "startSuccess": "Yerel OpenCode örneği başarıyla başlatıldı",
+    "startError": "Yerel OpenCode örneği başlatılamadı",
+    "stopSuccess": "Yerel OpenCode örneği durduruldu",
+    "stopError": "Yerel OpenCode örneği durdurulamadı",
+    "restartSuccess": "Yerel OpenCode örneği başarıyla yeniden başlatıldı",
+    "restartError": "Yerel OpenCode örneği yeniden başlatılamadı",
+    "stopTooltip": "Örneği durdur",
+    "restartTooltip": "Örneği yeniden başlat",
+    "agentId": "Uzak aracı {{id}} — bağlantıyı doğrulamak için bu aracıda Eklenti Yükle'yi kullanın",
+    "status": {
+      "starting": "Başlatılıyor",
+      "running": "Çalışıyor",
+      "stopped": "Durduruldu",
+      "crashed": "Çöktü"
+    }
+  },
   "connectWizard": {
     "title": "OpenCode Sunucusuna Bağlan",
     "intro": "Her yerden sohbet etmeye başlamak için uzak bir OpenCode sunucusuna bağlanın. Sunucu URL'si ve gerekli kimlik bilgilerine ihtiyacınız olacak.",

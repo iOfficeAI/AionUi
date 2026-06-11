@@ -40,6 +40,7 @@ import useSWR from 'swr';
 import PluginInstallModal from './PluginInstall';
 import { getRemoteProtocolOption, REMOTE_PROTOCOL_OPTIONS } from './remoteAgentProtocolOptions';
 import RemoteProviderAuthModal from './RemoteProviderAuthModal';
+import LocalOpenCodePanel from './LocalOpenCodePanel';
 
 const FormItem = Form.Item;
 
@@ -536,6 +537,9 @@ const RemoteAgentManagement: React.FC = () => {
 
   return (
     <div className='flex flex-col gap-16px py-16px'>
+      <div className='px-16px'>
+        <LocalOpenCodePanel />
+      </div>
       <div className='flex flex-wrap items-start justify-between gap-12px'>
         <div className='flex flex-1 flex-wrap items-center gap-x-6px gap-y-2px px-16px'>
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>

@@ -984,6 +984,29 @@
       "loadFailed": "プラグイン情報の読み込みに失敗しました"
     }
   },
+  "localOpenCode": {
+    "title": "ローカル OpenCode",
+    "start": "ローカル OpenCode を起動",
+    "startTitle": "ローカル OpenCode インスタンスを起動",
+    "empty": "実行中のローカル OpenCode インスタンスがありません。「起動」をクリックして、プラグイン設定が自動注入されたインスタンスを作成します。",
+    "nameLabel": "インスタンス名（任意）",
+    "namePlaceholder": "例：マイローカル OpenCode",
+    "startSuccess": "ローカル OpenCode インスタンスが正常に起動しました",
+    "startError": "ローカル OpenCode インスタンスの起動に失敗しました",
+    "stopSuccess": "ローカル OpenCode インスタンスが停止しました",
+    "stopError": "ローカル OpenCode インスタンスの停止に失敗しました",
+    "restartSuccess": "ローカル OpenCode インスタンスが正常に再起動しました",
+    "restartError": "ローカル OpenCode インスタンスの再起動に失敗しました",
+    "stopTooltip": "インスタンスを停止",
+    "restartTooltip": "インスタンスを再起動",
+    "agentId": "リモートエージェント {{id}} — このエージェントの「プラグインをインストール」で接続を確認",
+    "status": {
+      "starting": "起動中",
+      "running": "実行中",
+      "stopped": "停止",
+      "crashed": "クラッシュ"
+    }
+  },
   "connectWizard": {
     "title": "OpenCode サーバーに接続",
     "intro": "リモート OpenCode サーバーに接続して、どこからでもチャットを始めましょう。サーバー URL と必要な認証情報が必要です。",
