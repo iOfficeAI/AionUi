@@ -28,6 +28,8 @@ import { useGuidSend } from './hooks/useGuidSend';
 import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
+import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { Button, ConfigProvider, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down, Left, Robot, Write } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -564,6 +566,13 @@ const GuidPage: React.FC = () => {
     />
   );
 
+  const handleSpeechTranscript = useCallback(
+    (transcript: string) => {
+      guidInput.setInput((prev) => appendSpeechTranscript(prev, transcript));
+    },
+    [guidInput.setInput]
+  );
+
   // Build the action row
   const actionRowNode = (
     <GuidActionRow
@@ -592,6 +601,9 @@ const GuidPage: React.FC = () => {
       selectedMcpServerIds={guidSelectedMcpServerIds ?? []}
       onToggleMcpServer={handleToggleMcpServer}
       hidePresetTag
+      speechInputNode={
+        <SpeechInputButton disabled={guidInput.loading} locale={i18n.language} onTranscript={handleSpeechTranscript} />
+      }
       loading={guidInput.loading}
       isButtonDisabled={send.isButtonDisabled}
       onSend={send.sendMessageHandler}
