@@ -1352,6 +1352,7 @@ export type I18nKey =
   | 'settings.cssTheme.default'
   | 'settings.cssTheme.deleteConfirm'
   | 'settings.cssTheme.editTheme'
+  | 'settings.cssTheme.followSystem'
   | 'settings.cssTheme.name'
   | 'settings.cssTheme.namePlaceholder'
   | 'settings.cssTheme.previewCover'

@@ -126,6 +126,7 @@
   "delete_preset_confirm": "Are you sure you want to delete this preset?",
   "cssTheme": {
     "selectOrCustomize": "テーマを選択またはカスタマイズ",
+    "followSystem": "システムに従う",
     "addManually": "手動で追加",
     "default": "デフォルト",
     "addToPreset": "プリセットに追加",

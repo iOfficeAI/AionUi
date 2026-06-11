@@ -126,6 +126,7 @@
   "delete_preset_confirm": "Bu hazır ayarı silmek istediğinizden emin misiniz?",
   "cssTheme": {
     "selectOrCustomize": "Bir tema seçin veya özelleştirin",
+    "followSystem": "Sistemi Takip Et",
     "addManually": "Manuel Ekle",
     "default": "Varsayılan",
     "addToPreset": "Tema Ekle",

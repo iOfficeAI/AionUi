@@ -126,6 +126,7 @@
   "delete_preset_confirm": "Вы уверены, что хотите удалить этот пресет?",
   "cssTheme": {
     "selectOrCustomize": "Выберите или настройте тему",
+    "followSystem": "Как в системе",
     "addManually": "Добавить вручную",
     "default": "По умолчанию",
     "addToPreset": "Добавить тему",

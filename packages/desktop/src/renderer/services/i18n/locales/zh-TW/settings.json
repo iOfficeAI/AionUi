@@ -126,6 +126,7 @@
   "delete_preset_confirm": "Are you sure you want to delete this preset?",
   "cssTheme": {
     "selectOrCustomize": "選擇或自訂主題",
+    "followSystem": "跟隨系統",
     "addManually": "手動新增",
     "default": "預設",
     "addToPreset": "新增主題",

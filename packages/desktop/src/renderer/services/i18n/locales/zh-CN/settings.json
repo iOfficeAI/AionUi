@@ -126,6 +126,7 @@
   "delete_preset_confirm": "确定要删除该预设吗？",
   "cssTheme": {
     "selectOrCustomize": "选择或自定义主题",
+    "followSystem": "跟随系统",
     "addManually": "手动添加",
     "default": "默认",
     "addToPreset": "添加主题",
