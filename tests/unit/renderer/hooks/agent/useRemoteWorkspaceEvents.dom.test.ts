@@ -83,11 +83,11 @@ afterEach(() => {
 
 const fireWorkspace = (event: RemoteWorkspaceChangedEvent): void => {
   // Snapshot to defend against mutation during dispatch.
-  for (const listener of [...mockState.workspaceListeners]) listener(event);
+  for (const listener of mockState.workspaceListeners) listener(event);
 };
 
 const fireSessionHealth = (event: RemoteSessionHealthEvent): void => {
-  for (const listener of [...mockState.sessionHealthListeners]) listener(event);
+  for (const listener of mockState.sessionHealthListeners) listener(event);
 };
 
 describe('useRemoteWorkspaceChanged — agent filter', () => {

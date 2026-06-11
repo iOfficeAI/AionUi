@@ -79,7 +79,7 @@ const fireSessionHealth = (event: {
   kind: 'idle' | 'error';
   message?: string;
 }): void => {
-  for (const listener of [...mockState.sessionHealthListeners]) listener(event);
+  for (const listener of mockState.sessionHealthListeners) listener(event);
 };
 
 beforeEach(() => {
