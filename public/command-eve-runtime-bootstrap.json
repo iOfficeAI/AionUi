@@ -1,0 +1,54 @@
+{
+  "version": "command-eve-runtime-bootstrap-manifest/v0",
+  "release": "1.0.0-alpha.5",
+  "hermes": {
+    "package": "hermes-agent",
+    "version": "0.16.0",
+    "extras": ["acp"]
+  },
+  "local_runtime": {
+    "provider": "ollama",
+    "base_url": "http://127.0.0.1:11434",
+    "egress_proxy_url": "http://127.0.0.1:25811",
+    "default_tier_id": "gemma-4-e4b-local-default",
+    "tiers": [
+      {
+        "id": "gemma-4-e4b-local-default",
+        "label": "Gemma 4 E4B local default",
+        "model_ref": "gemma4:e4b",
+        "default": true,
+        "context_length": 65536,
+        "ollama_num_ctx": 65536,
+        "max_tokens": 512,
+        "min_unified_memory_gb": 16,
+        "min_free_disk_gb": 10
+      },
+      {
+        "id": "gemma-4-12b-local-planning",
+        "label": "Gemma 4 12B local planning opt-in",
+        "model_ref": "gemma4:12b",
+        "context_length": 65536,
+        "ollama_num_ctx": 65536,
+        "max_tokens": 512,
+        "min_unified_memory_gb": 16,
+        "min_free_disk_gb": 20
+      },
+      {
+        "id": "gemma-4-31b-local-pro",
+        "label": "Gemma 4 31B local pro opt-in",
+        "model_ref": "gemma4:31b",
+        "context_length": 65536,
+        "ollama_num_ctx": 65536,
+        "max_tokens": 512,
+        "min_unified_memory_gb": 64,
+        "min_free_disk_gb": 45
+      }
+    ]
+  },
+  "installer_policy": {
+    "allow_homebrew_install": true,
+    "allow_model_pull": true,
+    "model_weights_in_app_bundle": false,
+    "fail_closed_reason_codes": ["BLOCKED_RAM", "BLOCKED_DISK", "OLLAMA_MISSING", "MODEL_NOT_FETCHED"]
+  }
+}

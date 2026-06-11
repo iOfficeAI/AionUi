@@ -1,0 +1,43 @@
+{
+  "sider": "Skills",
+  "title": "Skill Library",
+  "subtitle": "Read-only Sicht auf EVEs lokale Runtime-Wahrheit. Ausführbare Skills sind echte SKILL.md-Bindungen; Prompt-Labels bleiben sichtbar, aber nicht als ausführbar markiert.",
+  "readOnly": "Read-only",
+  "refresh": "Aktualisieren",
+  "blocked": {
+    "title": "Skill Library nicht verfügbar",
+    "description": "EVE braucht die lokale Runtime-Reconciliation, bevor sie Skills zuverlässig anzeigen kann.",
+    "electronBridgeRequired": "Die Skill Library liest lokale Runtime-Dateien über den Electron-App-Prozess. Im Browser-WebUI-Modus ist dieser lokale Bridge-Pfad nicht verfügbar."
+  },
+  "errors": {
+    "loadFailed": "Skill Library konnte nicht geladen werden."
+  },
+  "sections": {
+    "runtimeTruth": "Runtime-Wahrheit",
+    "skills": "Skills",
+    "warnings": "Hinweise"
+  },
+  "labels": {
+    "autoDecompose": "Auto-Decompose",
+    "blockedTransports": "Blockierte MCP-Transporte",
+    "capabilityPack": "Capability Pack",
+    "dispatch": "Dispatch",
+    "executable": "Ausführbar",
+    "kanban": "Kanban",
+    "managedSkillDir": "Managed Skill Dir",
+    "no": "Nein",
+    "reconciliation": "Reconciliation",
+    "source": "Quelle",
+    "yes": "Ja"
+  },
+  "states": {
+    "executable": "Ausführbar",
+    "prompt_label": "Prompt-Label",
+    "gated": "Gated",
+    "disabled": "Disabled"
+  },
+  "empty": {
+    "noModel": "Keine Skill-Library-Daten verfügbar.",
+    "noSkills": "Keine Skills in der lokalen Runtime-Reconciliation."
+  }
+}

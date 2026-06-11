@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.fynlabs.commandeve
+productName: Command EVE
+executableName: Command EVE
+copyright: Copyright © 2026 FYN Labs LLC
 
 protocols:
-  - name: AionUi Protocol
+  - name: Command EVE Protocol
     schemes:
-      - aionui
+      - command-eve
 
 asar:
   smartUnpack: true
@@ -112,6 +112,10 @@ extraResources:
   # aioncore binary (pre-compiled per platform/arch, ships its own bun runtime)
   - from: resources/bundled-aioncore
     to: bundled-aioncore
+  # Hermes wheel is bundled so first-run setup does not depend on hermes-agent
+  # being published to the public Python package index.
+  - from: resources/bundled-hermes
+    to: bundled-hermes
   - from: resources/hub
     to: hub
 win:
@@ -165,6 +169,7 @@ dmg:
 
 afterPack: scripts/afterPack.js
 afterSign: scripts/afterSign.js
+afterAllArtifactBuild: scripts/afterAllArtifactBuild.js
 
 linux:
   target:
@@ -172,17 +177,17 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: FYN Labs LLC
+  vendor: FYN Labs LLC
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: Command EVE
       Comment: ${description}
-      Icon: aionui
+      Icon: command-eve
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/command-eve;
 
 npmRebuild: false
 buildDependenciesFromSource: false
@@ -221,7 +226,7 @@ electronDownload:
 
 publish:
   provider: github
-  owner: iOfficeAI
-  repo: AionUi
+  owner: MathiasHeinke
+  repo: company-os
   publishAutoUpdate: true
   releaseType: release

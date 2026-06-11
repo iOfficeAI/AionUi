@@ -1,0 +1,60 @@
+{
+  "sider": {
+    "title": "Teams",
+    "createTeam": "Neues Team",
+    "pin": "Anpinnen",
+    "unpin": "Abpinnen",
+    "rename": "Umbenennen",
+    "delete": "Löschen",
+    "renameTitle": "Team umbenennen",
+    "renamePlaceholder": "Teamname",
+    "deleteConfirm": "Dieses Team löschen?",
+    "deleteConfirmContent": "Diese Aktion kann nicht rückgängig gemacht werden.",
+    "deleteOk": "Löschen",
+    "deleteCancel": "Abbrechen",
+    "renameOk": "Speichern",
+    "renameCancel": "Abbrechen",
+    "renameSuccess": "Team umbenannt",
+    "deleteSuccess": "Team gelöscht"
+  },
+  "newAgent": "Neuer Agent",
+  "noMessages": "Noch keine Nachrichten.",
+  "agentNotConfigured": "Agent noch nicht konfiguriert.",
+  "sendBox": {
+    "placeholder": "Nachricht an Team-Leiter …"
+  },
+  "create": {
+    "title": "Team erstellen",
+    "namePlaceholder": "Teamname",
+    "dispatchAgentPlaceholder": "Team-Leiter auswählen",
+    "subAgentsPlaceholder": "Sub-Agenten auswählen",
+    "workspacePlaceholder": "Projektordner-Pfad (optional)",
+    "confirm": "Team erstellen",
+    "noSupportedAgents": "Keine unterstützten Agenten installiert",
+    "supportedAgentsHint": "Unterstützt derzeit Claude und Codex. Weitere Agenten folgen bald.",
+    "leaderDesc": "Versteht deine Ziele und koordiniert Agenten, um Aufgaben zu erledigen",
+    "step": {
+      "dispatch": "Team-Leiter",
+      "subAgents": "Sub-Agenten",
+      "workspace": "Projekt"
+    },
+    "nameRequired": "Bitte gib einen Teamnamen ein",
+    "leaderRequired": "Bitte wähle einen Team-Leiter aus",
+    "selectFolder": "Ordner auswählen",
+    "recentLabel": "Zuletzt verwendet",
+    "chooseDifferentFolder": "Anderen Ordner auswählen",
+    "error": "Team konnte nicht erstellt werden"
+  },
+  "removeAgent": {
+    "confirmTitle": "Teammitglied entfernen",
+    "confirmContent": "Dieses Mitglied ist gerade aktiv. Trotzdem entfernen?"
+  },
+  "emptyState": {
+    "subtitle": "Beschreibe dein Ziel und ich setze das Team darauf an",
+    "suggestions": {
+      "debate": "Eine Debatte organisieren, in der Agenten unterschiedliche Positionen vertreten",
+      "interview": "Ein ausführliches Interview zwischen Agenten planen",
+      "expert_review": "Mehrere Experten dasselbe Problem analysieren lassen"
+    }
+  }
+}

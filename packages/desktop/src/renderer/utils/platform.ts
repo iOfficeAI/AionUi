@@ -62,6 +62,23 @@ export const resolveBackendAssetUrl = (url: string | undefined): string | undefi
 };
 
 /**
+ * Resolve Vite public-directory assets for the current renderer origin.
+ *
+ * These files are copied next to `index.html` in packaged Electron builds.
+ * Absolute `/asset.ext` URLs resolve to the filesystem root under `file://`,
+ * so they must become document-relative there. Backend assets still use
+ * `resolveBackendAssetUrl`.
+ */
+export const resolvePublicAssetUrl = (url: string | undefined): string | undefined => {
+  if (!url) return url;
+  if (isAbsoluteAssetUrl(url) || /^data:/i.test(url)) return url;
+  if (url.startsWith('/')) {
+    return isElectronDesktop() ? url.slice(1) : url;
+  }
+  return url;
+};
+
+/**
  * Resolve an extension asset URL for the current environment.
  * Backend-managed extension assets are already emitted as HTTP URLs, so this
  * helper resolves app-relative backend paths into absolute backend URLs when

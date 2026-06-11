@@ -15,6 +15,7 @@ import {
   MESSAGE_TEXT_CONTENT,
   MODEL_SELECTOR_BTN,
   NEW_CHAT_TRIGGER,
+  GUID_SEND_BTN,
   agentPillByBackend,
 } from './selectors';
 
@@ -76,15 +77,42 @@ export async function sendMessageFromGuid(page: Page, message: string): Promise<
   const previousHash = await page.evaluate(() => window.location.hash);
   const textarea = page.locator(GUID_INPUT);
   await textarea.fill(message);
-  await textarea.press('Enter');
+  await expect(textarea).toHaveValue(message, { timeout: 5_000 });
+  const sendButton = page.locator(GUID_SEND_BTN);
+  await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+  await sendButton.click();
   // Wait for navigation to a new conversation route instead of reusing a stale hash.
-  await page.waitForFunction(
-    (prevHash) => window.location.hash.includes('/conversation/') && window.location.hash !== prevHash,
-    previousHash,
-    {
-      timeout: 15_000,
-    }
-  );
+  try {
+    await page.waitForFunction(
+      (prevHash) => window.location.hash.includes('/conversation/') && window.location.hash !== prevHash,
+      previousHash,
+      {
+        timeout: 15_000,
+      }
+    );
+  } catch (error) {
+    const diagnostics = await page.evaluate(() => {
+      const win = window as unknown as {
+        __backendPort?: number;
+        __aionBackend?: { getPort?: () => number };
+      };
+      const rawPort = win.__backendPort;
+      const dynamicPort = typeof rawPort === 'number' && rawPort > 0 ? rawPort : win.__aionBackend?.getPort?.();
+      const backendPort = typeof dynamicPort === 'number' && dynamicPort > 0 ? dynamicPort : rawPort;
+      const input = document.querySelector('[data-testid="guid-input"]') as HTMLTextAreaElement | null;
+      const button = document.querySelector('[data-testid="guid-send-btn"]') as HTMLButtonElement | null;
+      return {
+        hash: window.location.hash,
+        backendPort,
+        inputValue: input?.value,
+        sendButtonDisabled: button?.disabled,
+        bodyText: document.body.innerText.slice(0, 2000),
+      };
+    });
+    throw new Error(`Guid send did not navigate to a conversation. Diagnostics: ${JSON.stringify(diagnostics)}`, {
+      cause: error,
+    });
+  }
 
   let persistedConversationId: string | null = null;
   await expect
@@ -95,8 +123,15 @@ export async function sendMessageFromGuid(page: Page, message: string): Promise<
         if (!id) return null;
 
         const exists = await page.evaluate(async (conversationId) => {
-          const port = (window as unknown as { __backendPort?: number }).__backendPort;
+          const win = window as unknown as {
+            __backendPort?: number;
+            __aionBackend?: { getPort?: () => number };
+          };
+          const rawPort = win.__backendPort;
+          const dynamicPort = typeof rawPort === 'number' && rawPort > 0 ? rawPort : win.__aionBackend?.getPort?.();
+          const port = typeof dynamicPort === 'number' && dynamicPort > 0 ? dynamicPort : undefined;
           if (!port) return false;
+          win.__backendPort = port;
           const res = await fetch(`http://127.0.0.1:${port}/api/conversations/${encodeURIComponent(conversationId)}`);
           return res.ok;
         }, id);

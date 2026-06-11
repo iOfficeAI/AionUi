@@ -12,7 +12,37 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-bottom: 16px;
+  margin-bottom: 24px;
+}
+
+.commandEveHero {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  text-align: center;
+}
+
+.commandEveWaitVideo {
+  width: clamp(132px, 12vw, 164px);
+  aspect-ratio: 1 / 1;
+  flex: 0 0 auto;
+  border-radius: 30px;
+  object-fit: cover;
+  object-position: center center;
+  display: block;
+  background: var(--color-fill-2);
+  box-shadow: 0 14px 34px color-mix(in srgb, var(--color-text-1) 16%, transparent);
+}
+
+.commandEvePrompt {
+  margin: 0;
+  color: var(--color-text-1);
+  font-size: 28px;
+  line-height: 34px;
+  font-weight: 700;
+  letter-spacing: 0;
 }
 
 .heroHeaderControls {
@@ -644,7 +674,9 @@
 /* 移动端优化 */
 @media (max-width: 768px) {
   .guidLayout {
-    width: clamp(var(--app-min-width, 360px), calc(100% - 24px), 100%);
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
     padding: 0 12px;
     padding-bottom: 100px; /* 为底部快捷按钮留出空间 */
     box-sizing: border-box;
@@ -652,6 +684,24 @@
 
   .guidInputCard {
     width: 100%;
+  }
+
+  .heroHeader {
+    margin-bottom: 18px;
+  }
+
+  .commandEveHero {
+    gap: 12px;
+  }
+
+  .commandEveWaitVideo {
+    width: 112px;
+    border-radius: 24px;
+  }
+
+  .commandEvePrompt {
+    font-size: 23px;
+    line-height: 30px;
   }
 
   .actionRow {

@@ -54,6 +54,12 @@ const initialLanguage = ipcRenderer.sendSync('get-initial-language') as string |
 const backendStartupFailed = ipcRenderer.sendSync('get-backend-startup-failed') as boolean;
 const backendStartupFailure = ipcRenderer.sendSync('get-backend-startup-failure') as unknown;
 contextBridge.exposeInMainWorld('__backendPort', backendPort > 0 ? backendPort : 0);
+contextBridge.exposeInMainWorld('__aionBackend', {
+  getPort: () => {
+    const port = ipcRenderer.sendSync('get-backend-port') as number;
+    return port > 0 ? port : 0;
+  },
+});
 contextBridge.exposeInMainWorld('__initialLanguage', initialLanguage ?? null);
 contextBridge.exposeInMainWorld('__backendStartupFailed', backendStartupFailed === true);
 contextBridge.exposeInMainWorld('__backendStartupFailure', backendStartupFailure ?? null);

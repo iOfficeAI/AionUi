@@ -7,6 +7,7 @@ import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 
 interface AgentHubModalProps {
   visible: boolean;
@@ -14,13 +15,14 @@ interface AgentHubModalProps {
 }
 
 const AION_HUB_REPO_URL = 'https://github.com/iOfficeAI/AionHub';
+const COMMAND_EVE_MODULES_URL = 'https://command-eve.com';
 
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
   const { agents, loading, error, install, retryInstall, update } = useHubAgents();
   const actionButtonClassName = '!min-w-80px !rounded-9px !px-10px';
   const openAionHubRepo = () => {
-    void openExternalUrl(AION_HUB_REPO_URL).catch(console.error);
+    void openExternalUrl(COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_MODULES_URL : AION_HUB_REPO_URL).catch(console.error);
   };
 
   const renderActionBtn = (agent: IHubAgentItem) => {
@@ -95,12 +97,14 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
         <div className='mb-12px flex flex-wrap items-center justify-start gap-x-6px gap-y-2px text-left'>
           <Typography.Text type='secondary' className='text-12px leading-18px text-t-secondary'>
             {t('settings.agentManagement.marketContributionHint', {
-              defaultValue: 'Want a new Agent listed here?',
+              defaultValue: COMMAND_EVE_SHELL_ENABLED
+                ? 'Need a Command EVE module or worker capability?'
+                : 'Want a new Agent listed here?',
             })}
           </Typography.Text>
           <Link className='text-12px leading-18px' onClick={openAionHubRepo}>
             {t('settings.agentManagement.marketContributionAction', {
-              defaultValue: 'Open a PR on AionHub',
+              defaultValue: COMMAND_EVE_SHELL_ENABLED ? 'Request a module' : 'Open a PR on AionHub',
             })}
           </Link>
         </div>

@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" role="img" aria-labelledby="title desc">
+  <title id="title">Command EVE</title>
+  <desc id="desc">Orange command mark on a dark rounded square.</desc>
+  <rect width="32" height="32" rx="7" fill="#0b1220"/>
+  <text x="16" y="22.5" font-family="ui-sans-serif, system-ui, sans-serif" font-size="19" font-weight="700" fill="#f97316" text-anchor="middle">⌘</text>
+</svg>

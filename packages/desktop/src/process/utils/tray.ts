@@ -13,6 +13,7 @@ import {
 } from '@/common/electronSafe';
 import * as path from 'path';
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_APP_NAME, COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import i18n from '@process/services/i18n';
 
 let tray: TrayInstance | null = null;
@@ -20,6 +21,12 @@ let closeToTrayEnabled = false;
 let isQuitting = false;
 let mainWindowRef: BrowserWindow | null = null;
 let cachedActiveCount = 0;
+
+const isSecondaryTrayClick = (event: unknown): boolean => {
+  if (!event || typeof event !== 'object') return false;
+  const maybeNativeEvent = (event as { event?: { button?: number } }).event;
+  return maybeNativeEvent?.button === 2;
+};
 
 export const setTrayMainWindow = (win: BrowserWindow): void => {
   mainWindowRef = win;
@@ -243,7 +250,7 @@ export const createOrUpdateTray = (): void => {
   try {
     const icon = getTrayIcon();
     tray = new Tray(icon);
-    tray.setToolTip('AionUi');
+    tray.setToolTip(COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_APP_NAME : 'AionUi');
     void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
     tray.on('double-click', () => {
@@ -259,8 +266,8 @@ export const createOrUpdateTray = (): void => {
       }
     });
 
-    tray.on('click', (event: any) => {
-      if (event.event?.button === 2) {
+    tray.on('click', (event: unknown) => {
+      if (isSecondaryTrayClick(event)) {
         void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
       }
     });

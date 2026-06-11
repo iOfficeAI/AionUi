@@ -10,6 +10,11 @@ import * as fs from 'fs';
 import * as path from 'path';
 import os from 'os';
 import { getDevAppName } from '@/common/platform';
+import {
+  COMMAND_EVE_CDP_REGISTRY_FILE,
+  COMMAND_EVE_SHELL_ENABLED,
+  getCommandEveAppName,
+} from '@/common/config/commandEveShell';
 import { applyGpuRecoveryFlags } from './gpuRecovery';
 
 // ============ Environment Separation ============
@@ -17,13 +22,13 @@ import { applyGpuRecoveryFlags } from './gpuRecovery';
 // Note: getPlatformServices() auto-registration also applies this as a safety net
 // in case Rollup loads initStorage's chunk before this module runs.
 // 开发模式下设置独立 app 名称，userData 目录将与正式版隔离，允许同时运行
-if (!app.isPackaged) {
-  const devAppName = getDevAppName();
-  app.setName(devAppName);
+if (COMMAND_EVE_SHELL_ENABLED || !app.isPackaged) {
+  const appName = COMMAND_EVE_SHELL_ENABLED ? getCommandEveAppName(app.isPackaged) : getDevAppName();
+  app.setName(appName);
   // In Electron 28+, setName alone no longer updates userData path on macOS.
-  // Explicitly override userData to the dev directory.
+  // Explicitly override userData to the product-specific directory.
   const appSupportDir = path.dirname(app.getPath('userData'));
-  app.setPath('userData', path.join(appSupportDir, devAppName));
+  app.setPath('userData', path.join(appSupportDir, appName));
 }
 
 // app.disableHardwareAcceleration() must run before app is ready.
@@ -71,13 +76,16 @@ if (isWebUI || isResetPassword) {
 //
 // Multi-instance support: a file-based registry tracks all active instances
 // so each one gets a unique port and MCP tools can discover them all.
-// Registry file: ~/.aionui-cdp-registry.json
+// Registry file: ~/.command-eve-cdp-registry.json in Command EVE builds.
 // ---------------------------------------------------------------------------
 
 export const DEFAULT_CDP_PORT = 9230;
 export const CDP_PORT_RANGE_START = 9230;
 export const CDP_PORT_RANGE_END = 9250;
-const CDP_REGISTRY_FILE = path.join(os.homedir(), '.aionui-cdp-registry.json');
+const CDP_REGISTRY_FILE = path.join(
+  os.homedir(),
+  COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_CDP_REGISTRY_FILE : '.aionui-cdp-registry.json'
+);
 const CDP_CONFIG_FILE = 'cdp.config.json';
 
 /** CDP configuration stored in userData directory */

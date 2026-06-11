@@ -5,6 +5,7 @@
  */
 
 import { webui } from '@/common/adapter/ipcBridge';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { Earth } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -146,7 +147,9 @@ const QuickActionButtons: React.FC<QuickActionButtonsProps> = ({
           style={quickActionStyle(hoveredQuickAction === 'repo')}
           onMouseEnter={() => setHoveredQuickAction('repo')}
           onMouseLeave={() => setHoveredQuickAction(null)}
-          onClick={() => onOpenLink('https://github.com/iOfficeAI/AionUi')}
+          onClick={() =>
+            onOpenLink(COMMAND_EVE_SHELL_ENABLED ? 'https://command-eve.com' : 'https://github.com/iOfficeAI/AionUi')
+          }
         >
           <svg
             className='flex-shrink-0 text-[var(--color-text-3)] group-hover:text-[#FE9900] transition-colors duration-300'

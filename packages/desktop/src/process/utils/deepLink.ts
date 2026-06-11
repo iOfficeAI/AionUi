@@ -6,14 +6,15 @@
 
 import type { BrowserWindow } from 'electron';
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_PROTOCOL_SCHEME, COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 
-export const PROTOCOL_SCHEME = 'aionui';
+export const PROTOCOL_SCHEME = COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_PROTOCOL_SCHEME : 'aionui';
 
 /**
- * Parse an aionui:// URL into action and params.
+ * Parse a product deep-link URL into action and params.
  * Supports two formats:
- *   1. aionui://add-provider?base_url=xxx&api_key=xxx
- *   2. aionui://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
+ *   1. command-eve://add-provider?base_url=xxx&api_key=xxx
+ *   2. command-eve://provider/add?v=1&data=<base64 JSON>  (one-api / new-api style)
  */
 export const parseDeepLinkUrl = (url: string): { action: string; params: Record<string, string> } | null => {
   try {

@@ -9,6 +9,9 @@
   "selectAssistantHint": "選擇一位助手開始任務",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "已切換到 {{agent}}",
+  "commandEve": {
+    "prompt": "今天你想推進什麼？"
+  },
   "workspace": {
     "workInProject": "在專案中工作",
     "optional": "可選",

@@ -40,6 +40,7 @@ export const ARCO_MESSAGE_SUCCESS = '.arco-message-success';
 
 /** Guid page chat input textarea. */
 export const GUID_INPUT = '.guid-input-card-shell textarea';
+export const GUID_SEND_BTN = '[data-testid="guid-send-btn"]';
 
 // ── Mode selector ──────────────────────────────────────────────────────────
 

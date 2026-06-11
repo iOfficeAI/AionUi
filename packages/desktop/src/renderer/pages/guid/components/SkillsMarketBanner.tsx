@@ -5,9 +5,10 @@
  */
 
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
-import { Message, Switch, Tooltip } from '@arco-design/web-react';
+import { Message, Switch } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
@@ -64,7 +65,7 @@ const SkillsMarketBanner: React.FC = () => {
 
   const [hovered, setHovered] = useState(false);
 
-  if (!initialized) return null;
+  if (COMMAND_EVE_SHELL_ENABLED || !initialized) return null;
 
   return (
     <div

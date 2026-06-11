@@ -3,6 +3,7 @@
  * Contains name/avatar fields, agent selector, rules editor, and skills section.
  */
 import type { AssistantListItem, BuiltinAutoSkill, SkillInfo } from './types';
+import { COMMAND_EVE_ASSISTANT_ID, COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import type { AvailableBackend } from '@/renderer/hooks/assistant';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import MarkdownView from '@/renderer/components/Markdown';
@@ -93,7 +94,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   disabledBuiltinSkills,
   setDisabledBuiltinSkills,
   activeAssistant,
-  activeAssistantId: _activeAssistantId,
+  activeAssistantId,
   isExtensionAssistant,
   availableBackends,
   handleSave,
@@ -135,12 +136,19 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   // builtins show a read-only toggle list. The backend has already filtered
   // extension assistants into their own source class.
   const showSkills = isCreating || (activeAssistant !== null && activeAssistant.source !== 'extension');
+  const isCommandEveAssistant =
+    COMMAND_EVE_SHELL_ENABLED &&
+    !isCreating &&
+    (activeAssistant?.id === COMMAND_EVE_ASSISTANT_ID || activeAssistantId === COMMAND_EVE_ASSISTANT_ID);
 
   const agentOptions = availableBackends;
 
   const customSkillItems = availableSkills.filter((skill) => skill.source === 'custom');
-  const builtinSkillItems = availableSkills.filter((skill) => skill.source === 'builtin');
-  const extensionSkillItems = availableSkills.filter((skill) => skill.source === 'extension');
+  const builtinSkillItems = isCommandEveAssistant ? [] : availableSkills.filter((skill) => skill.source === 'builtin');
+  const extensionSkillItems = isCommandEveAssistant
+    ? []
+    : availableSkills.filter((skill) => skill.source === 'extension');
+  const visibleBuiltinAutoSkills = isCommandEveAssistant ? [] : builtinAutoSkills;
   const customActiveCount = selectedSkills.filter(
     (name) =>
       pendingSkills.some((skill) => skill.name === name) || customSkillItems.some((skill) => skill.name === name)
@@ -151,7 +159,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
   const extensionActiveCount = selectedSkills.filter((name) =>
     extensionSkillItems.some((skill) => skill.name === name)
   ).length;
-  const autoInjectedActiveCount = builtinAutoSkills.filter(
+  const autoInjectedActiveCount = visibleBuiltinAutoSkills.filter(
     (skill) => !disabledBuiltinSkills.includes(skill.name)
   ).length;
   const customStatusDotColor = customActiveCount > 0 ? 'rgb(var(--success-6))' : 'var(--color-text-4)';
@@ -163,11 +171,14 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
     customSkillItems.length +
     builtinSkillItems.length +
     extensionSkillItems.length +
-    builtinAutoSkills.length;
+    visibleBuiltinAutoSkills.length;
   const totalActiveSkillsCount =
     selectedSkills.filter(
       (name) =>
-        pendingSkills.some((skill) => skill.name === name) || availableSkills.some((skill) => skill.name === name)
+        pendingSkills.some((skill) => skill.name === name) ||
+        customSkillItems.some((skill) => skill.name === name) ||
+        builtinSkillItems.some((skill) => skill.name === name) ||
+        extensionSkillItems.some((skill) => skill.name === name)
     ).length + autoInjectedActiveCount;
   const isBuiltin = activeAssistant?.source === 'builtin';
   const isRuleEditable = !isBuiltin;
@@ -471,6 +482,18 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 )}
               </div>
 
+              {isCommandEveAssistant && (
+                <div
+                  className='mb-12px rounded-8px border border-[rgba(242,156,27,0.28)] bg-[rgba(242,156,27,0.08)] px-12px py-10px text-12px leading-5 text-t-secondary'
+                  data-testid='command-eve-managed-skills-note'
+                >
+                  {t('settings.commandEveManagedSkillsNote', {
+                    defaultValue:
+                      'EVE uses Command-EVE-managed skills. Generic AionUI built-in and auto-injected skills stay hidden here and are not activated automatically.',
+                  })}
+                </div>
+              )}
+
               <Collapse defaultActiveKey={['custom-skills']} data-testid='skills-collapse'>
                 {/* Custom Skills (Pending + Imported) */}
                 <Collapse.Item
@@ -588,58 +611,62 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 </Collapse.Item>
 
                 {/* Builtin Skills */}
-                <Collapse.Item
-                  header={
-                    <span className='text-13px font-medium'>
-                      {t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}
-                    </span>
-                  }
-                  name='builtin-skills'
-                  extra={
-                    <div className='flex items-center gap-8px'>
-                      <span
-                        className='inline-block w-8px h-8px rd-50%'
-                        style={{ background: builtinStatusDotColor }}
-                        aria-hidden='true'
-                      />
-                      <span className='text-12px text-t-secondary'>
-                        {builtinActiveCount > 0
-                          ? `${builtinActiveCount}/${builtinSkillItems.length}`
-                          : builtinSkillItems.length}
+                {!isCommandEveAssistant && (
+                  <Collapse.Item
+                    header={
+                      <span className='text-13px font-medium'>
+                        {t('settings.builtinSkills', { defaultValue: 'Builtin Skills' })}
                       </span>
-                    </div>
-                  }
-                >
-                  {builtinSkillItems.length > 0 ? (
-                    <div className='space-y-4px'>
-                      {builtinSkillItems.map((skill) => (
-                        <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
-                          <Checkbox
-                            checked={selectedSkills.includes(skill.name)}
-                            className='mt-2px cursor-pointer'
-                            onChange={() => {
-                              if (selectedSkills.includes(skill.name)) {
-                                setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
-                              } else {
-                                setSelectedSkills([...selectedSkills, skill.name]);
-                              }
-                            }}
-                          />
-                          <div className='flex-1 min-w-0'>
-                            <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
-                            {skill.description && (
-                              <div className='text-12px text-t-secondary mt-2px line-clamp-2'>{skill.description}</div>
-                            )}
+                    }
+                    name='builtin-skills'
+                    extra={
+                      <div className='flex items-center gap-8px'>
+                        <span
+                          className='inline-block w-8px h-8px rd-50%'
+                          style={{ background: builtinStatusDotColor }}
+                          aria-hidden='true'
+                        />
+                        <span className='text-12px text-t-secondary'>
+                          {builtinActiveCount > 0
+                            ? `${builtinActiveCount}/${builtinSkillItems.length}`
+                            : builtinSkillItems.length}
+                        </span>
+                      </div>
+                    }
+                  >
+                    {builtinSkillItems.length > 0 ? (
+                      <div className='space-y-4px'>
+                        {builtinSkillItems.map((skill) => (
+                          <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
+                            <Checkbox
+                              checked={selectedSkills.includes(skill.name)}
+                              className='mt-2px cursor-pointer'
+                              onChange={() => {
+                                if (selectedSkills.includes(skill.name)) {
+                                  setSelectedSkills(selectedSkills.filter((s) => s !== skill.name));
+                                } else {
+                                  setSelectedSkills([...selectedSkills, skill.name]);
+                                }
+                              }}
+                            />
+                            <div className='flex-1 min-w-0'>
+                              <div className='text-13px font-medium text-t-primary'>{skill.name}</div>
+                              {skill.description && (
+                                <div className='text-12px text-t-secondary mt-2px line-clamp-2'>
+                                  {skill.description}
+                                </div>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
-                    </div>
-                  ) : (
-                    <div className='text-center text-t-secondary text-12px py-16px'>
-                      {t('settings.noBuiltinSkills', { defaultValue: 'No builtin skills available' })}
-                    </div>
-                  )}
-                </Collapse.Item>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className='text-center text-t-secondary text-12px py-16px'>
+                        {t('settings.noBuiltinSkills', { defaultValue: 'No builtin skills available' })}
+                      </div>
+                    )}
+                  </Collapse.Item>
+                )}
 
                 {/* Extension Skills */}
                 {extensionSkillItems.length > 0 && (
@@ -697,7 +724,7 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                 )}
 
                 {/* Auto-injected Builtin Skills */}
-                {builtinAutoSkills.length > 0 && (
+                {visibleBuiltinAutoSkills.length > 0 && (
                   <Collapse.Item
                     header={
                       <span className='text-13px font-medium'>
@@ -713,13 +740,13 @@ const AssistantEditDrawer: React.FC<AssistantEditDrawerProps> = ({
                           aria-hidden='true'
                         />
                         <span className='text-12px text-t-secondary'>
-                          {`${autoInjectedActiveCount}/${builtinAutoSkills.length}`}
+                          {`${autoInjectedActiveCount}/${visibleBuiltinAutoSkills.length}`}
                         </span>
                       </div>
                     }
                   >
                     <div className='space-y-4px'>
-                      {builtinAutoSkills.map((skill) => (
+                      {visibleBuiltinAutoSkills.map((skill) => (
                         <div key={skill.name} className='flex items-start gap-8px p-8px hover:bg-fill-1 rounded-4px'>
                           <Checkbox
                             checked={!disabledBuiltinSkills.includes(skill.name)}

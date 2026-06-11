@@ -5,6 +5,7 @@
  */
 
 import { configService } from '@/common/config/configService';
+import { getCommandEveLocalAcpModelInfo } from '@/common/config/commandEveShell';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 
@@ -43,6 +44,11 @@ export async function resolveDefaultTeamAgentModel(params: {
 }
 
 async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
+  const commandEveModelInfo = getCommandEveLocalAcpModelInfo(agent_type);
+  if (commandEveModelInfo?.current_model_id) {
+    return commandEveModelInfo.current_model_id;
+  }
+
   // 1. Try handshake data from /api/agents
   try {
     const agents = await getAgents();

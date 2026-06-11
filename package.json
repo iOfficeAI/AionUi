@@ -1,12 +1,12 @@
 {
-  "name": "AionUi",
-  "version": "2.1.16",
-  "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
+  "name": "command-eve",
+  "version": "1.0.0-alpha.5",
+  "description": "Command EVE local operator shell for Company.OS.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
-    "email": "service@aionui.com"
+    "name": "FYN Labs LLC",
+    "email": "admin@fyn-labs.com"
   },
   "workspaces": [
     "packages/*"
@@ -66,7 +66,10 @@
     "test:e2e:team:comm": "playwright test --config playwright.config.ts tests/e2e/cases/teams/team-communication.e2e.ts --reporter=list",
     "prepare": "husky",
     "postinstall": "node scripts/postinstall.js",
-    "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts"
+    "test:bun": "bun test packages/desktop/src/process/services/database/drivers/*.bun.test.ts",
+    "build-mac:notarized": "cross-env NOTARYTOOL_KEYCHAIN_PROFILE=command-eve-notary APPLE_DMG_SIGN_IDENTITY=\"Developer ID Application: FYN Labs LLC (NHNQ7Q5H28)\" node scripts/build-with-builder.js auto --mac --arm64 --x64",
+    "build-mac:arm64:notarized": "cross-env NOTARYTOOL_KEYCHAIN_PROFILE=command-eve-notary APPLE_DMG_SIGN_IDENTITY=\"Developer ID Application: FYN Labs LLC (NHNQ7Q5H28)\" node scripts/build-with-builder.js arm64 --mac --arm64",
+    "command-eve:bench:models": "tsx scripts/command-eve-model-latency-benchmark.ts"
   },
   "dependencies": {
     "@agentclientprotocol/sdk": "^0.18.2",
@@ -261,12 +264,12 @@
   "engines": {
     "node": ">=22 <25"
   },
-  "aioncoreVersion": "v0.1.27",
+  "aioncoreVersion": "v0.1.10",
   "electronRebuild": {
     "electronVersion": "^37.3.1"
   },
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "Command EVE"
 }

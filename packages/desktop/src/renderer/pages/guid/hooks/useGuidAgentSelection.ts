@@ -4,8 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
+import {
+  CODEX_MODE_NATIVE_DEFAULT,
+  CODEX_MODE_NATIVE_FULL_ACCESS,
+  normalizeCodexMode,
+} from '@/common/types/codex/codexModes';
+import {
+  COMMAND_EVE_ASSISTANT_ID,
+  COMMAND_EVE_ASSISTANT_KEY,
+  COMMAND_EVE_SHELL_ENABLED,
+  getCommandEveDefaultAcpModelIdForTier,
+  getCommandEveLocalAcpModelInfo,
+} from '@/common/config/commandEveShell';
 import type { IProvider } from '@/common/config/storage';
 import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -24,7 +36,6 @@ import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
-import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -126,13 +137,9 @@ export const useGuidAgentSelection = ({
   preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(() => {
-    try {
-      return configService.get('guid.lastSelectedAgent') || 'aionrs';
-    } catch {
-      return 'aionrs';
-    }
-  });
+  const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(
+    COMMAND_EVE_SHELL_ENABLED ? COMMAND_EVE_ASSISTANT_KEY : 'aionrs'
+  );
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
@@ -201,6 +208,13 @@ export const useGuidAgentSelection = ({
     resolveDisabledBuiltinSkills,
   } = usePresetAssistantResolver({ assistants, localeKey });
 
+  const commandEveDefaultAgentKey = useMemo(() => {
+    if (!COMMAND_EVE_SHELL_ENABLED) return undefined;
+    return assistants.some((assistant) => assistant.id === COMMAND_EVE_ASSISTANT_ID)
+      ? COMMAND_EVE_ASSISTANT_KEY
+      : undefined;
+  }, [assistants]);
+
   const { isMainAgentAvailable, getEffectiveAgentType } = useAgentAvailability({
     modelList,
     isGoogleAuth,
@@ -251,6 +265,7 @@ export const useGuidAgentSelection = ({
   const selectedAgent: string = ((): string => {
     if (selectedAgentKey.startsWith('custom:')) return 'custom';
     const info = availableAgents?.find((a) => a.id === selectedAgentKey);
+    if (info?.agent_type === 'remote') return 'remote';
     if (info?.agent_source === 'custom') return 'custom';
     return selectedAgentKey;
   })();
@@ -262,6 +277,9 @@ export const useGuidAgentSelection = ({
   // --- SWR: Fetch detected execution engines (shared cache) ---
   const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
+  // Fetch remote agents from DB and merge into available agents
+  const { data: remoteAgentsData } = useSWR('remote-agents.list', () => ipcBridge.remoteAgent.list.invoke());
+
   useEffect(() => {
     if (!availableAgentsData) return;
     // Normalise backend /api/agents rows into AvailableAgent shape.
@@ -270,19 +288,25 @@ export const useGuidAgentSelection = ({
     // tokens / preset resolver). Custom-row `icon` is a user-picked emoji,
     // exposed as `avatar` so AgentPillBar renders the glyph directly
     // instead of mistaking it for a logo URL.
-    const normalisedDetected: AvailableAgent[] = availableAgentsData
-      .filter(isSupportedNewConversationAgent)
-      .map((a) => {
-        const asAgent = a as AgentMetadata;
-        const isCustomRow = asAgent.agent_source === 'custom';
-        return Object.assign({}, a, {
-          id: asAgent.id,
-          custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
-          avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
-        });
-      });
-    setAvailableAgents(normalisedDetected);
-  }, [availableAgentsData]);
+    const normalisedDetected: AvailableAgent[] = availableAgentsData.map((a) => {
+      const asAgent = a as AgentMetadata;
+      const isCustomRow = asAgent.agent_source === 'custom';
+      return {
+        ...a,
+        id: asAgent.id,
+        custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
+        avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
+      };
+    });
+    const remoteAsAvailable: AvailableAgent[] = (remoteAgentsData || []).map((ra) => ({
+      agent_type: 'remote',
+      name: ra.name,
+      id: ra.id,
+      custom_agent_id: ra.id,
+      avatar: ra.avatar,
+    }));
+    setAvailableAgents([...normalisedDetected, ...remoteAsAvailable]);
+  }, [availableAgentsData, remoteAgentsData]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
   // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
@@ -318,20 +342,14 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      // Only reset when the current selection is a preset assistant.
-      // CLI agent selections (Claude Code, Gemini CLI, etc.) are preserved so
-      // New Chat keeps the last-used CLI agent.
-      const currentIsPreset = selectedAgentKey.startsWith('custom:');
-      if (currentIsPreset) {
-        const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-        _setSelectedAgentKey(fallbackKey);
-        configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-          console.error('Failed to save reset agent key:', error);
-        });
-      }
+      const firstCliAgent = availableAgents.find((a) => !a.is_preset);
+      const fallbackKey = commandEveDefaultAgentKey || (firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs');
+      _setSelectedAgentKey(fallbackKey);
+      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+        console.error('Failed to save reset agent key:', error);
+      });
     }
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey, commandEveDefaultAgentKey]);
 
   // Load last selected agent when no explicit reset was requested.
   useEffect(() => {
@@ -347,6 +365,14 @@ export const useGuidAgentSelection = ({
 
     const restoreSavedSelection = async () => {
       try {
+        if (commandEveDefaultAgentKey) {
+          _setSelectedAgentKey(commandEveDefaultAgentKey);
+          configService.set('guid.lastSelectedAgent', commandEveDefaultAgentKey).catch((error) => {
+            console.error('Failed to save Command EVE agent key:', error);
+          });
+          return;
+        }
+
         const savedKey = configService.get('guid.lastSelectedAgent');
         if (cancelled) return;
 
@@ -378,7 +404,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey, commandEveDefaultAgentKey]);
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {
@@ -397,6 +423,15 @@ export const useGuidAgentSelection = ({
   useEffect(() => {
     // For preset agents, resolve to the actual backend type for config lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
+
+    const commandEveDefaultModelId = getCommandEveDefaultAcpModelIdForTier(
+      backend as string,
+      configService.get('commandEve.localModelTierId')
+    );
+    if (commandEveDefaultModelId) {
+      _setSelectedAcpModel(commandEveDefaultModelId);
+      return;
+    }
 
     const config = configService.get('acp.config');
     const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
@@ -418,7 +453,10 @@ export const useGuidAgentSelection = ({
     selectedAgentRef.current = configKey;
     // Reset to the backend's actual default (from handshake.available_modes),
     // not the literal 'default' — codex/opencode/cursor don't have that value.
-    const fallbackMode = resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
+    const fallbackMode =
+      COMMAND_EVE_SHELL_ENABLED && configKey === 'codex'
+        ? CODEX_MODE_NATIVE_DEFAULT
+        : resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
     _setSelectedMode(fallbackMode);
     if (!configKey) return;
 
@@ -441,6 +479,12 @@ export const useGuidAgentSelection = ({
         }
 
         if (cancelled) return;
+
+        if (COMMAND_EVE_SHELL_ENABLED && configKey === 'codex') {
+          _setSelectedMode(CODEX_MODE_NATIVE_DEFAULT);
+          void savePreferredMode(configKey, CODEX_MODE_NATIVE_DEFAULT);
+          return;
+        }
 
         // 1. Use preferredMode if valid
         const normalizedPreferred = configKey === 'codex' ? normalizeCodexMode(preferred) : preferred;
@@ -485,6 +529,11 @@ export const useGuidAgentSelection = ({
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
+    const commandEveModelInfo = getCommandEveLocalAcpModelInfo(backend as string, selectedAcpModel);
+    if (commandEveModelInfo) {
+      return commandEveModelInfo;
+    }
+
     if (
       handshakeModels &&
       Array.isArray(handshakeModels.available_models) &&
@@ -505,13 +554,14 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, selectedAcpModel, availableAgentsData]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
+    if (commandEveDefaultAgentKey) return commandEveDefaultAgentKey;
     const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
     return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-  }, [availableAgents]);
+  }, [availableAgents, commandEveDefaultAgentKey]);
 
   return {
     selectedAgentKey,

@@ -1,0 +1,84 @@
+{
+  "sider": "Command Center",
+  "title": "Command Center",
+  "subtitle": "Read-only Sicht auf EVEs lokales Company.OS Read-Model. Keine Fake-Daten, kein direkter Write-Pfad.",
+  "readOnly": "Read-only",
+  "refresh": "Aktualisieren",
+  "blocked": {
+    "title": "Read-Model nicht verfügbar",
+    "description": "Starte EVE über start_eve oder setze den Company.OS Root, damit die App den lokalen Agent-Event-Ledger lesen kann.",
+    "electronBridgeRequired": "Das Command Center liest lokale Company.OS-Dateien über den Electron-App-Prozess. Im Browser-WebUI-Modus ist dieser lokale Bridge-Pfad nicht verfügbar."
+  },
+  "errors": {
+    "loadFailed": "Command Center konnte nicht geladen werden."
+  },
+  "sections": {
+    "source": "Quelle",
+    "board": "Lokales Board",
+    "marketingBoard": "Marketing Board",
+    "workerRuns": "Worker-Runs",
+    "humanGates": "Human-Gates",
+    "ceoCriticalReleases": "CEO-kritische Releases",
+    "eveHg35Packets": "EVE-HG-3.5-Packets",
+    "traces": "Live-Trace"
+  },
+  "board": {
+    "description": "Board-Sicht aus demselben lokalen Read-Model. Keine Mutation, kein Dispatcher, kein Auto-Decompose.",
+    "empty": "Keine Items in dieser Spalte.",
+    "columns": {
+      "active": "Aktiv",
+      "humanGate": "HumanGate",
+      "blocked": "Blockiert",
+      "review": "Review"
+    }
+  },
+  "marketingBoard": {
+    "description": "Hermes-native Kanban-Sicht fuer Command EVE Marketing. Die App liest die lokale kanban.db und erlaubt nur eine idempotente Proof-Karte mit Audit-Receipt.",
+    "emptyColumn": "Keine Marketing-Karten in dieser Lane.",
+    "columns": {
+      "research": "Recherche",
+      "draft": "Draft",
+      "assetGeneration": "Assets",
+      "review": "Review",
+      "readyToApprove": "Freigabe"
+    },
+    "policy": {
+      "readFirst": "Read-first",
+      "humanGate": "HG-2.5",
+      "noDispatcher": "Dispatcher aus"
+    },
+    "labels": {
+      "audit": "Audit",
+      "board": "Board",
+      "database": "Datenbank",
+      "owner": "Owner"
+    },
+    "blocked": {
+      "title": "Marketing Board noch nicht initialisiert",
+      "description": "Hermes Kanban ist bereit, aber die lokale Marketing-Board-Datenbank wurde noch nicht angelegt."
+    },
+    "actions": {
+      "createProofCard": "Proof-Karte anlegen"
+    },
+    "proof": {
+      "note": "Legt genau eine lokale Proof-Karte und ein append-only Audit-Event an. Keine Worker werden gestartet.",
+      "resultTitle": "Proof-Card-Receipt",
+      "failed": "Proof-Karte konnte nicht angelegt werden."
+    }
+  },
+  "labels": {
+    "agent": "Agent",
+    "events": "Events",
+    "generatedAt": "Generiert",
+    "humanGate": "HumanGate",
+    "lastEvent": "Letztes Event",
+    "ledger": "Ledger"
+  },
+  "empty": {
+    "workerRuns": "Noch keine Worker-Runs im lokalen Ledger.",
+    "humanGates": "Keine offenen Human-Gates im lokalen Ledger.",
+    "ceoCriticalReleases": "Keine CEO-kritischen Releases im lokalen Ledger.",
+    "eveHg35Packets": "Keine offenen EVE-HG-3.5-Packets im lokalen Ledger.",
+    "traces": "Noch keine Trace-Cards im lokalen Ledger."
+  }
+}

@@ -3,6 +3,7 @@
  * with avatar, name, enabled switch, and edit/duplicate actions.
  */
 import { filterAssistants, groupAssistantsByEnabled, type AssistantListFilter } from './assistantUtils';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import type { AssistantListItem } from './types';
 import AssistantAvatar from './AssistantAvatar';
@@ -84,11 +85,20 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
     [filteredAssistants]
   );
 
-  const filterOptions: Array<{ key: AssistantListFilter; label: string }> = [
-    { key: 'all', label: t('settings.assistantFilterAll', { defaultValue: 'All' }) },
-    { key: 'builtin', label: t('settings.assistantFilterBuiltin', { defaultValue: 'System' }) },
-    { key: 'user', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
-  ];
+  const filterOptions: Array<{ key: AssistantListFilter; label: string }> = COMMAND_EVE_SHELL_ENABLED
+    ? [
+        { key: 'all', label: t('settings.assistantFilterAll', { defaultValue: 'All' }) },
+        { key: 'user', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
+      ]
+    : [
+        { key: 'all', label: t('settings.assistantFilterAll', { defaultValue: 'All' }) },
+        { key: 'builtin', label: t('settings.assistantFilterBuiltin', { defaultValue: 'System' }) },
+        { key: 'user', label: t('settings.assistantFilterCustom', { defaultValue: 'Custom' }) },
+      ];
+  useEffect(() => {
+    if (!COMMAND_EVE_SHELL_ENABLED) return;
+    if (activeFilter !== 'all' && activeFilter !== 'user') setActiveFilter('all');
+  }, [activeFilter]);
 
   const renderSourceTag = (assistant: AssistantListItem) => {
     if (assistant.source === 'builtin' || assistant.source === 'extension') {

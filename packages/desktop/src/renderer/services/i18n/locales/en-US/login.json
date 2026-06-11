@@ -1,7 +1,7 @@
 {
-  "pageTitle": "AionUi - Sign In",
-  "brand": "AionUi",
-  "subtitle": "Welcome back, please sign in to your account",
+  "pageTitle": "⌘ EVE - Sign In",
+  "brand": "⌘ EVE",
+  "subtitle": "Welcome back. Sign in to start Command EVE.",
   "username": "Username",
   "usernamePlaceholder": "Enter your username",
   "password": "Password",
@@ -13,8 +13,8 @@
   "showPassword": "Show password",
   "hidePassword": "Hide password",
   "languageToggle": "Change language",
-  "footerPrimary": "Transform your command-line AI",
-  "footerSecondary": "Modern & Efficient",
+  "footerPrimary": "Command EVE Operator Shell",
+  "footerSecondary": "Company.OS with Human-Gates",
   "errors": {
     "empty": "Please enter username and password",
     "invalidCredentials": "Invalid username or password",

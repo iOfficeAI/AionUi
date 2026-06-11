@@ -3,6 +3,7 @@ import { readFileSync } from 'fs';
 import os from 'os';
 import path from 'path';
 import type { IPlatformServices, IWorkerProcess } from './IPlatformServices';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 
 class NodeWorkerProcess implements IWorkerProcess {
   constructor(private readonly cp: ChildProcess) {}
@@ -35,14 +36,18 @@ const _pkg = (() => {
 
 export class NodePlatformServices implements IPlatformServices {
   paths = {
-    getDataDir: () => process.env.DATA_DIR ?? path.join(os.homedir(), '.aionui-server'),
+    getDataDir: () =>
+      process.env.DATA_DIR ??
+      path.join(os.homedir(), COMMAND_EVE_SHELL_ENABLED ? '.command-eve-server' : '.aionui-server'),
     getTempDir: () => os.tmpdir(),
     getHomeDir: () => os.homedir(),
-    getLogsDir: () => process.env.LOGS_DIR ?? path.join(os.homedir(), '.aionui-server', 'logs'),
+    getLogsDir: () =>
+      process.env.LOGS_DIR ??
+      path.join(os.homedir(), COMMAND_EVE_SHELL_ENABLED ? '.command-eve-server' : '.aionui-server', 'logs'),
     getAppPath: (): string | null => process.cwd(),
     isPackaged: () => process.env.IS_PACKAGED === 'true',
     getSystemPath: (_name: 'desktop' | 'home' | 'downloads'): string | null => null,
-    getName: () => _pkg.name ?? 'aionui',
+    getName: () => _pkg.name ?? (COMMAND_EVE_SHELL_ENABLED ? 'command-eve' : 'aionui'),
     getVersion: () => _pkg.version ?? '0.0.0',
     needsCliSafeSymlinks: () => false,
   };

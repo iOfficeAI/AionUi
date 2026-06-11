@@ -5,17 +5,12 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
+import { transformMessage } from '@/common/chat/chatLib';
 import type { AvailableCommand } from '@/common/chat/chatLib';
-import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { TokenUsageData } from '@/common/config/storage';
 import { useAddOrUpdateMessage } from '@/renderer/pages/conversation/Messages/hooks';
-import { logStreamTerminalObserved } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
-import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
-import { isConversationProcessing } from '@/renderer/pages/conversation/utils/conversationRuntime';
-import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import type { ThoughtData } from '@/renderer/components/chat/ThoughtDisplay';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -33,6 +28,29 @@ export type UseAcpMessageReturn = {
   hasThinkingMessage: boolean;
   slashCommands: SlashCommandItem[];
   fetchSlashCommands: () => void;
+  runtimeActivity: AcpRuntimeActivity;
+};
+
+export type AcpRuntimeActivityPhase =
+  | 'idle'
+  | 'connecting'
+  | 'ready'
+  | 'submitting'
+  | 'thinking'
+  | 'streaming'
+  | 'done'
+  | 'error';
+
+export type AcpRuntimeActivity = {
+  phase: AcpRuntimeActivityPhase;
+  backend?: string;
+  modelId?: string;
+  contextUsed?: number;
+  contextSize?: number;
+  startedAt?: number;
+  updatedAt: number;
+  elapsedMs?: number;
+  detail?: string;
 };
 
 export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: boolean }): UseAcpMessageReturn => {
@@ -50,6 +68,10 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   const [tokenUsage, setTokenUsage] = useState<TokenUsageData | null>(null);
   const [context_limit, setContextLimit] = useState<number>(0);
   const [slashCommands, setSlashCommands] = useState<SlashCommandItem[]>([]);
+  const [runtimeActivity, setRuntimeActivity] = useState<AcpRuntimeActivity>({
+    phase: 'idle',
+    updatedAt: Date.now(),
+  });
 
   // Use refs to sync state for immediate access in event handlers
   const runningRef = useRef(running);
@@ -65,7 +87,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
-  const activeThinkingRef = useRef<{ msgId: string; startedAt: number } | null>(null);
 
   // Track request trace state for displaying complete request lifecycle
   const requestTraceRef = useRef<{
@@ -123,38 +144,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     };
   }, []);
 
-  const completeActiveThinking = useCallback(
-    (
-      boundaryMessage: Pick<IResponseMessage, 'conversation_id' | 'created_at'>,
-      completeOptions?: {
-        duration?: number;
-      }
-    ) => {
-      const activeThinking = activeThinkingRef.current;
-      if (!activeThinking) return;
-
-      const endTime = boundaryMessage.created_at ?? Date.now();
-      const duration = completeOptions?.duration ?? Math.max(0, endTime - activeThinking.startedAt);
-
-      addOrUpdateMessage({
-        id: `${activeThinking.msgId}-thinking-done`,
-        type: 'thinking',
-        msg_id: activeThinking.msgId,
-        conversation_id: boundaryMessage.conversation_id,
-        position: 'left',
-        created_at: endTime,
-        content: {
-          content: '',
-          duration,
-          status: 'done',
-        },
-      });
-
-      activeThinkingRef.current = null;
-    },
-    [addOrUpdateMessage]
-  );
-
   const handleResponseMessage = useCallback(
     (message: IResponseMessage) => {
       if (conversation_id !== message.conversation_id) {
@@ -163,45 +152,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
 
       if (message.type === 'skill_suggest' || message.type === 'cron_trigger') {
         return;
-      }
-
-      if (isErrorTipMessage(message)) {
-        turnFinishedRef.current = true;
-        setRunning(false);
-        runningRef.current = false;
-        setAiProcessing(false);
-        aiProcessingRef.current = false;
-        setThought({ subject: '', description: '' });
-        hasContentInTurnRef.current = false;
-        hasThinkingMessageRef.current = false;
-        activeThinkingRef.current = null;
-        setHasThinkingMessage(false);
-        const transformedMessage = transformMessage(message);
-        if (transformedMessage) {
-          addOrUpdateMessage(transformedMessage);
-        }
-        return;
-      }
-
-      const shouldCompleteThinking =
-        activeThinkingRef.current &&
-        ![
-          'thought',
-          'thinking',
-          'start',
-          'request_trace',
-          'acp_context_usage',
-          'acp_model_info',
-          'codex_model_info',
-          'available_commands',
-          'slash_commands_updated',
-          'agent_status',
-          'user_content',
-          'teammate_message',
-        ].includes(message.type);
-
-      if (shouldCompleteThinking) {
-        completeActiveThinking(message);
       }
 
       const transformedMessage = transformMessage(message);
@@ -215,31 +165,11 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           break;
         case 'thinking': {
-          const thinkingData = message.data as { status?: string; duration?: number; duration_ms?: number };
-          if (thinkingData?.status === 'done') {
-            if (activeThinkingRef.current?.msgId === message.msg_id) {
-              completeActiveThinking(message, {
-                duration: thinkingData.duration ?? thinkingData.duration_ms,
-              });
-            }
-            break;
-          }
-
+          const thinkingData = message.data as { status?: string };
           // Only set running for active thinking, not for done signal
-          if (!runningRef.current && !turnFinishedRef.current) {
+          if (thinkingData?.status !== 'done' && !runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
             runningRef.current = true;
-          }
-          if (!activeThinkingRef.current) {
-            activeThinkingRef.current = {
-              msgId: message.msg_id,
-              startedAt: message.created_at ?? Date.now(),
-            };
-          } else if (activeThinkingRef.current.msgId !== message.msg_id) {
-            activeThinkingRef.current = {
-              msgId: message.msg_id,
-              startedAt: message.created_at ?? Date.now(),
-            };
           }
           hasThinkingMessageRef.current = true;
           setHasThinkingMessage(true);
@@ -252,11 +182,17 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           hasContentInTurnRef.current = false;
           setRunning(true);
           runningRef.current = true;
+          setRuntimeActivity((prev) => ({
+            phase: 'submitting',
+            backend: requestTraceRef.current?.backend ?? prev.backend,
+            modelId: requestTraceRef.current?.model_id ?? prev.modelId,
+            startedAt: requestTraceRef.current?.startTime ?? Date.now(),
+            updatedAt: Date.now(),
+          }));
           // Don't reset aiProcessing here - let content arrival handle it
           break;
         case 'finish':
           {
-            logStreamTerminalObserved(conversation_id, message.turn_id, 'acp', message.type);
             // Mark turn as finished to prevent auto-recover from late messages
             turnFinishedRef.current = true;
             // Immediate state reset (notification is handled by centralized hook)
@@ -267,11 +203,18 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setThought({ subject: '', description: '' });
             hasContentInTurnRef.current = false;
             hasThinkingMessageRef.current = false;
-            activeThinkingRef.current = null;
             setHasThinkingMessage(false);
             // Log request completion
             if (requestTraceRef.current) {
               const duration = Date.now() - requestTraceRef.current.startTime;
+              setRuntimeActivity({
+                phase: 'done',
+                backend: requestTraceRef.current.backend,
+                modelId: requestTraceRef.current.model_id,
+                startedAt: requestTraceRef.current.startTime,
+                updatedAt: Date.now(),
+                elapsedMs: duration,
+              });
               console.log(
                 `%c[RequestTrace]%c FINISH | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
                 'color: #52c41a; font-weight: bold',
@@ -289,6 +232,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             setAiProcessing(false);
             aiProcessingRef.current = false;
           }
+          setRuntimeActivity((prev) => ({
+            phase: 'streaming',
+            backend: requestTraceRef.current?.backend ?? prev.backend,
+            modelId: requestTraceRef.current?.model_id ?? prev.modelId,
+            startedAt: requestTraceRef.current?.startTime ?? prev.startedAt ?? Date.now(),
+            updatedAt: Date.now(),
+          }));
           // Auto-recover running state only if turn hasn't finished
           if (!runningRef.current && !turnFinishedRef.current) {
             setRunning(true);
@@ -312,6 +262,22 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           };
           if (agentData?.status) {
             setAcpStatus(agentData.status);
+            setRuntimeActivity((prev) => ({
+              phase:
+                agentData.status === 'connecting'
+                  ? 'connecting'
+                  : agentData.status === 'connected' ||
+                      agentData.status === 'authenticated' ||
+                      agentData.status === 'session_active'
+                    ? 'ready'
+                    : agentData.status === 'error'
+                      ? 'error'
+                      : 'idle',
+              backend: agentData.backend ?? prev.backend,
+              modelId: prev.modelId,
+              startedAt: prev.startedAt,
+              updatedAt: Date.now(),
+            }));
             // Reset running state when authentication is complete
             if (['authenticated', 'session_active'].includes(agentData.status)) {
               setRunning(false);
@@ -392,7 +358,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
         case 'available_commands': {
           const cmdData = message.data as { commands?: AvailableCommand[] };
           if (cmdData?.commands && Array.isArray(cmdData.commands)) {
-            setSlashCommands(mapAcpCommandsToSlashCommands(cmdData.commands));
+            setSlashCommands(
+              cmdData.commands.map((c) => ({
+                name: c.name,
+                description: c.description,
+                kind: 'template' as const,
+                source: 'acp' as const,
+                selectionBehavior: 'insert' as const,
+              }))
+            );
           }
           break;
         }
@@ -403,6 +377,12 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
             if (usageData.size > 0) {
               setContextLimit(usageData.size);
             }
+            setRuntimeActivity((prev) => ({
+              ...prev,
+              contextUsed: usageData.used,
+              contextSize: usageData.size,
+              updatedAt: Date.now(),
+            }));
           }
           break;
         }
@@ -415,6 +395,13 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
               model_id: String(trace.model_id || 'unknown'),
               session_mode: trace.session_mode as string | undefined,
             };
+            setRuntimeActivity({
+              phase: 'thinking',
+              backend: requestTraceRef.current.backend,
+              modelId: requestTraceRef.current.model_id,
+              startedAt: requestTraceRef.current.startTime,
+              updatedAt: Date.now(),
+            });
             console.log(
               `%c[RequestTrace]%c START | ${trace.backend} → ${trace.model_id} | ${new Date().toISOString()}`,
               'color: #1890ff; font-weight: bold',
@@ -424,18 +411,25 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           }
           break;
         case 'error':
-          logStreamTerminalObserved(conversation_id, message.turn_id, 'acp', message.type);
           // Stop all loading states when error occurs
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
           setAiProcessing(false);
           aiProcessingRef.current = false;
-          activeThinkingRef.current = null;
           addOrUpdateMessage(transformedMessage);
           // Log request error
           if (requestTraceRef.current) {
             const duration = Date.now() - requestTraceRef.current.startTime;
+            setRuntimeActivity({
+              phase: 'error',
+              backend: requestTraceRef.current.backend,
+              modelId: requestTraceRef.current.model_id,
+              startedAt: requestTraceRef.current.startTime,
+              updatedAt: Date.now(),
+              elapsedMs: duration,
+              detail: typeof message.data === 'string' ? message.data : undefined,
+            });
             console.log(
               `%c[RequestTrace]%c ERROR | ${requestTraceRef.current.backend} → ${requestTraceRef.current.model_id} | ${duration}ms | ${new Date().toISOString()}`,
               'color: #ff4d4f; font-weight: bold',
@@ -455,16 +449,7 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           break;
       }
     },
-    [
-      conversation_id,
-      addOrUpdateMessage,
-      completeActiveThinking,
-      throttledSetThought,
-      setThought,
-      setRunning,
-      setAiProcessing,
-      setAcpStatus,
-    ]
+    [conversation_id, addOrUpdateMessage, throttledSetThought, setThought, setRunning, setAiProcessing, setAcpStatus]
   );
 
   useEffect(() => {
@@ -480,15 +465,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setTokenUsage(null);
     setContextLimit(0);
     setSlashCommands([]);
+    setRuntimeActivity({ phase: 'idle', updatedAt: Date.now() });
     hasContentInTurnRef.current = false;
     turnFinishedRef.current = false;
     hasThinkingMessageRef.current = false;
-    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
     setHasHydratedRunningState(false);
 
     // Clear running/processing immediately for the new conversation. Hydration only
-    // turns these back on when the backend reports runtime processing state. Otherwise
+    // turns these back on when the backend reports status === 'running'. Otherwise
     // conversation.get's idle branch raced with useAcpInitialMessage's
     // setAiProcessing(true) and hid ThoughtDisplay until the first stream event.
     setRunning(false);
@@ -496,55 +481,46 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setAiProcessing(false);
     aiProcessingRef.current = false;
 
-    void getConversationOrNull(conversation_id)
-      .then((res) => {
-        if (cancelled) {
-          return;
-        }
+    void ipcBridge.conversation.get.invoke({ id: conversation_id }).then((res) => {
+      if (cancelled) {
+        return;
+      }
 
-        if (!res) {
-          setRunning(false);
-          runningRef.current = false;
-          setAiProcessing(false);
-          aiProcessingRef.current = false;
-          setHasHydratedRunningState(true);
-          return;
-        }
-        const isRunning = isConversationProcessing(res);
-        setRunning(isRunning);
-        runningRef.current = isRunning;
-        if (isRunning) {
-          setAiProcessing(true);
-          aiProcessingRef.current = true;
-        }
-        setHasHydratedRunningState(true);
-
-        // Restore persisted context usage data
-        if (res.type === 'acp' && res.extra?.last_token_usage) {
-          const { last_token_usage, last_context_limit } = res.extra;
-          if (last_token_usage.total_tokens > 0) {
-            setTokenUsage(last_token_usage);
-          }
-          if (last_context_limit && last_context_limit > 0) {
-            setContextLimit(last_context_limit);
-          }
-        }
-      })
-      .catch((error: unknown) => {
-        if (cancelled) return;
+      if (!res) {
         setRunning(false);
         runningRef.current = false;
         setAiProcessing(false);
         aiProcessingRef.current = false;
         setHasHydratedRunningState(true);
+        return;
+      }
+      const isRunning = res.status === 'running';
+      setRunning(isRunning);
+      runningRef.current = isRunning;
+      if (isRunning) {
+        setAiProcessing(true);
+        aiProcessingRef.current = true;
+        setRuntimeActivity((prev) => ({
+          phase: 'thinking',
+          backend: prev.backend,
+          modelId: prev.modelId,
+          startedAt: Date.now(),
+          updatedAt: Date.now(),
+        }));
+      }
+      setHasHydratedRunningState(true);
 
-        if (error instanceof TypeError && error.message.includes('Failed to fetch')) {
-          console.warn('[useAcpMessage] Failed to hydrate conversation state:', error);
-          return;
+      // Restore persisted context usage data
+      if (res.type === 'acp' && res.extra?.last_token_usage) {
+        const { last_token_usage, last_context_limit } = res.extra;
+        if (last_token_usage.total_tokens > 0) {
+          setTokenUsage(last_token_usage);
         }
-
-        throw error;
-      });
+        if (last_context_limit && last_context_limit > 0) {
+          setContextLimit(last_context_limit);
+        }
+      }
+    });
 
     return () => {
       cancelled = true;
@@ -559,7 +535,8 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
   useEffect(() => {
     if (options?.skipWarmup) return;
     let cancelled = false;
-    void warmupConversation(conversation_id)
+    void ipcBridge.conversation.warmup
+      .invoke({ conversation_id })
       .then(() => {
         if (cancelled) return;
         return ipcBridge.conversation.getSlashCommands.invoke({ conversation_id });
@@ -567,7 +544,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       .then((result) => {
         if (cancelled) return;
         if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+        setSlashCommands(
+          result.map((c) => ({
+            name: c.command,
+            description: c.description,
+            kind: 'template' as const,
+            source: 'acp' as const,
+            selectionBehavior: 'insert' as const,
+          }))
+        );
       })
       .catch(() => {});
     return () => {
@@ -582,9 +567,14 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     setAiProcessing(false);
     aiProcessingRef.current = false;
     setThought({ subject: '', description: '' });
+    setRuntimeActivity((prev) => ({
+      phase: 'idle',
+      backend: prev.backend,
+      modelId: prev.modelId,
+      updatedAt: Date.now(),
+    }));
     hasContentInTurnRef.current = false;
     hasThinkingMessageRef.current = false;
-    activeThinkingRef.current = null;
     setHasThinkingMessage(false);
   }, []);
 
@@ -593,7 +583,15 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
       .invoke({ conversation_id })
       .then((result) => {
         if (!result || !Array.isArray(result) || result.length === 0) return;
-        setSlashCommands(mapAcpCommandsToSlashCommands(result));
+        setSlashCommands(
+          result.map((c) => ({
+            name: c.command,
+            description: c.description,
+            kind: 'template' as const,
+            source: 'acp' as const,
+            selectionBehavior: 'insert' as const,
+          }))
+        );
       })
       .catch(() => {});
   }, [conversation_id]);
@@ -612,5 +610,6 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
     hasThinkingMessage,
     slashCommands,
     fetchSlashCommands,
+    runtimeActivity,
   };
 };

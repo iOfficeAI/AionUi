@@ -9,6 +9,9 @@
   "selectAssistantHint": "Выберите ассистента, чтобы начать задачу",
   "agentSwitcherLabel": "Агент",
   "switchedToAgent": "Переключено на {{agent}}",
+  "commandEve": {
+    "prompt": "Что планируем сегодня?"
+  },
   "workspace": {
     "workInProject": "Работать в проекте",
     "optional": "Необязательно",

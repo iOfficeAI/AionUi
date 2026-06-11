@@ -87,7 +87,9 @@ describe('AssistantEditDrawer', () => {
   });
 
   it('passes editName prop correctly (props branch)', () => {
-    renderWithProviders(<AssistantEditDrawer {...defaultProps} editVisible={true} editName='TestName' />);
+    const { container } = renderWithProviders(
+      <AssistantEditDrawer {...defaultProps} editVisible={true} editName='TestName' />
+    );
     const nameInput = screen.queryByDisplayValue('TestName');
     expect(nameInput || container).toBeTruthy(); // Shallow: just verify no crash
   });
@@ -111,5 +113,56 @@ describe('AssistantEditDrawer', () => {
       <AssistantEditDrawer {...defaultProps} editVisible={true} isCreating={true} />
     );
     expect(container).toBeTruthy();
+  });
+
+  it('hides generic AionUI skill groups for the Command EVE assistant', () => {
+    renderWithProviders(
+      <AssistantEditDrawer
+        {...defaultProps}
+        editVisible={true}
+        activeAssistant={
+          {
+            id: 'command-eve-chief-of-staff',
+            name: 'EVE',
+            source: 'user',
+            preset_agent_type: 'hermes',
+          } as any
+        }
+        activeAssistantId='command-eve-chief-of-staff'
+        availableSkills={[
+          {
+            name: 'first-run-company-discovery',
+            description: 'Company discovery',
+            location: '/tmp/first-run-company-discovery',
+            is_custom: true,
+            source: 'custom',
+          },
+          {
+            name: 'xiaohongshu-recruiter',
+            description: 'Legacy recruiting skill',
+            location: '/tmp/xiaohongshu-recruiter',
+            is_custom: false,
+            source: 'builtin',
+          },
+          {
+            name: 'aionui-skills',
+            description: 'Legacy global skill hub',
+            location: '/tmp/aionui-skills',
+            is_custom: false,
+            source: 'extension',
+          },
+        ]}
+        selectedSkills={['first-run-company-discovery', 'xiaohongshu-recruiter', 'aionui-skills']}
+        builtinAutoSkills={[{ name: 'weixin-file-send', description: 'Legacy file sender' }]}
+      />
+    );
+
+    expect(screen.getByTestId('command-eve-managed-skills-note')).toBeInTheDocument();
+    expect(screen.getByText('first-run-company-discovery')).toBeInTheDocument();
+    expect(screen.queryByText('settings.builtinSkills')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.autoInjectedSkills')).not.toBeInTheDocument();
+    expect(screen.queryByText('xiaohongshu-recruiter')).not.toBeInTheDocument();
+    expect(screen.queryByText('aionui-skills')).not.toBeInTheDocument();
+    expect(screen.queryByText('weixin-file-send')).not.toBeInTheDocument();
   });
 });

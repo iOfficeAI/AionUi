@@ -1,0 +1,17 @@
+{
+  "desktopPet": "Desktop-Pet",
+  "enable": "Desktop-Pet aktivieren",
+  "size": "Pet-Größe",
+  "sizeSmall": "Klein ({{px}}px)",
+  "sizeMedium": "Mittel ({{px}}px)",
+  "sizeLarge": "Groß ({{px}}px)",
+  "dnd": "Nicht stören",
+  "dndDescription": "Pet bleibt inaktiv und ignoriert KI-Ereignisse",
+  "confirmBubble": "Autorisierungen am Pet anzeigen",
+  "confirmBubbleDescription": "Wenn deaktiviert, bleiben KI-Tool-Autorisierungen im Hauptchatfenster",
+  "pat": "Streicheln",
+  "resetPosition": "Position zurücksetzen",
+  "hide": "Ausblenden",
+  "showHide": "Anzeigen/Ausblenden",
+  "desktopOnly": "Das Desktop-Pet ist nur in der Desktop-Anwendung verfügbar. Es kann nicht im WebUI-Browsermodus genutzt werden."
+}

@@ -27,6 +27,8 @@ export function normalizeLanguageCode(language: string): SupportedLanguage {
 
   const langOnly = normalized.toLowerCase().split('-')[0];
   switch (langOnly) {
+    case 'de':
+      return 'de-DE';
     case 'zh':
       return 'zh-CN';
     case 'ja':

@@ -7,6 +7,7 @@
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
+import { COMMAND_EVE_SHELL_ENABLED, getCommandEveDefaultAcpModelIdForTier } from '@/common/config/commandEveShell';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
@@ -64,6 +65,14 @@ async function resolvePreferredMode(backend: string): Promise<string | undefined
 }
 
 async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
+  const commandEveDefaultModelId = getCommandEveDefaultAcpModelIdForTier(
+    backend,
+    configService.get('commandEve.localModelTierId')
+  );
+  if (commandEveDefaultModelId) {
+    return commandEveDefaultModelId;
+  }
+
   const acpConfig = configService.get('acp.config');
   const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
@@ -121,7 +130,11 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 
   const compatibleProviders = providers.filter(isAionrsCompatibleProvider);
   if (compatibleProviders.length === 0) {
-    throw new Error('No enabled model provider for Aion CLI');
+    throw new Error(
+      COMMAND_EVE_SHELL_ENABLED
+        ? 'No enabled local EVE/Hermes model provider'
+        : 'No enabled model provider for Aion CLI'
+    );
   }
 
   const savedDefault = configService.get('aionrs.defaultModel');

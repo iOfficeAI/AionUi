@@ -1,0 +1,255 @@
+{
+  "version": "command-eve-capability-pack/v0",
+  "release": "1.0.0-alpha.5",
+  "policy": {
+    "default_mode": "proposal_only",
+    "secret_rule": "Never ask for passwords, cookies, recovery codes, raw tokens or .env contents in chat.",
+    "write_rule": "Write-capable connectors require CEO/Codex review and the matching HumanGate before use."
+  },
+  "skills": [
+    {
+      "id": "first-run-company-discovery",
+      "name": "First-run company discovery",
+      "tier": "core",
+      "source": "Command EVE first-run skill pack",
+      "default_state": "active"
+    },
+    {
+      "id": "system-inventory",
+      "name": "Existing system inventory",
+      "tier": "core",
+      "source": "Command EVE first-run skill pack",
+      "default_state": "active"
+    },
+    {
+      "id": "connector-setup",
+      "name": "Connector setup and verification",
+      "tier": "core",
+      "source": "Command EVE connector manifest",
+      "default_state": "active"
+    },
+    {
+      "id": "memory-ledger-setup",
+      "name": "Memory and local ledger setup",
+      "tier": "autonomy_core",
+      "source": "Command EVE runtime policy",
+      "default_state": "active"
+    },
+    {
+      "id": "goal-materialization",
+      "name": "Founder intent to CEO delegation and worker contracts",
+      "tier": "autonomy_core",
+      "source": "Company.OS worker contract doctrine",
+      "default_state": "active"
+    },
+    {
+      "id": "content-machine",
+      "name": "Content Machine",
+      "tier": "department",
+      "source": "aionui-hermes-content-machine-skill",
+      "default_state": "available"
+    },
+    {
+      "id": "blog-department",
+      "name": "Blog Department",
+      "tier": "department",
+      "source": "aionui-hermes-blog-department-skill",
+      "default_state": "available"
+    },
+    {
+      "id": "video-first-content-engine",
+      "name": "Video-first Content Engine",
+      "tier": "department",
+      "source": "aionui-hermes-video-first-content-engine-skill",
+      "default_state": "available"
+    },
+    {
+      "id": "department-pack-creator",
+      "name": "Department Capability Pack Creator",
+      "tier": "department",
+      "source": "aionui-hermes-department-pack-creator-skill",
+      "default_state": "available"
+    },
+    {
+      "id": "security-fortress-review",
+      "name": "Security and Fortress review routing",
+      "tier": "gated_department",
+      "source": "Company.OS security productization gates",
+      "default_state": "gated"
+    },
+    {
+      "id": "local-kanban-ledger",
+      "name": "Local Kanban and work-item ledger",
+      "tier": "autonomy_core",
+      "source": "Command EVE local ledger doctrine",
+      "default_state": "available"
+    },
+    {
+      "id": "voice-first-run",
+      "name": "Voice first-run and speech IO",
+      "tier": "autonomy_core",
+      "source": "Command EVE L1 voice control plane",
+      "default_state": "available"
+    },
+    {
+      "id": "desktop-observation",
+      "name": "Desktop observation and short command mode",
+      "tier": "gated_department",
+      "source": "Command EVE L1 screen/desktop policy",
+      "default_state": "gated"
+    },
+    {
+      "id": "crm-department",
+      "name": "CRM and relationship operating layer",
+      "tier": "department",
+      "source": "Company.OS revenue department roadmap",
+      "default_state": "available"
+    }
+  ],
+  "connectors": [
+    {
+      "id": "local-command-eve-runtime",
+      "name": "Local Command EVE runtime",
+      "tier": "core",
+      "setup_mode": "bootstrap",
+      "default_state": "installed",
+      "human_gate": "HG-1 before persisting corrected company facts"
+    },
+    {
+      "id": "hermes-gemma-ollama",
+      "name": "Hermes + Gemma via Ollama",
+      "tier": "core",
+      "setup_mode": "bootstrap",
+      "default_state": "installed",
+      "human_gate": "HG-2 before changing runtime auth/model defaults"
+    },
+    {
+      "id": "local-work-item-ledger",
+      "name": "Local work-item ledger",
+      "tier": "core",
+      "setup_mode": "bootstrap",
+      "default_state": "unverified",
+      "human_gate": "HG-2 before durable state migration"
+    },
+    {
+      "id": "codex-cli",
+      "name": "Codex CLI",
+      "tier": "autonomy_core",
+      "setup_mode": "guided_connector",
+      "default_state": "unverified",
+      "human_gate": "HG-2.5 before worker dispatch"
+    },
+    {
+      "id": "claude-code-cli",
+      "name": "Claude Code CLI",
+      "tier": "autonomy_core",
+      "setup_mode": "guided_connector",
+      "default_state": "unverified",
+      "human_gate": "HG-2.5 before worker dispatch"
+    },
+    {
+      "id": "github-gitnexus",
+      "name": "GitHub + GitNexus",
+      "tier": "autonomy_core",
+      "setup_mode": "guided_connector",
+      "default_state": "needs_auth",
+      "human_gate": "HG-3 before write-capable GitHub actions"
+    },
+    {
+      "id": "honcho-memory",
+      "name": "Honcho Memory",
+      "tier": "autonomy_core",
+      "setup_mode": "guided_connector",
+      "default_state": "needs_auth",
+      "human_gate": "HG-2 before first durable memory write"
+    },
+    {
+      "id": "plane-sync",
+      "name": "Plane sync surface",
+      "tier": "recommended",
+      "setup_mode": "optional_sync_connector",
+      "default_state": "needs_auth",
+      "human_gate": "HG-3 before write-capable ledger changes"
+    },
+    {
+      "id": "google-workspace",
+      "name": "Google Calendar + Drive",
+      "tier": "recommended",
+      "setup_mode": "guided_connector",
+      "default_state": "needs_auth",
+      "human_gate": "HG-2 for read scopes; HG-3 for write/share actions"
+    },
+    {
+      "id": "local-filesystem-workspaces",
+      "name": "Local filesystem workspaces",
+      "tier": "autonomy_core",
+      "setup_mode": "permissioned_local_connector",
+      "default_state": "unverified",
+      "human_gate": "HG-2 before reading selected workspaces; HG-3 before file writes"
+    },
+    {
+      "id": "macos-desktop-observation",
+      "name": "macOS screen and app context",
+      "tier": "gated",
+      "setup_mode": "permissioned_local_connector",
+      "default_state": "gated",
+      "human_gate": "HG-3 before screen observation; HG-4 before unattended desktop actions"
+    },
+    {
+      "id": "local-voice-io",
+      "name": "Local voice input and speech output",
+      "tier": "recommended",
+      "setup_mode": "permissioned_local_connector",
+      "default_state": "unverified",
+      "human_gate": "HG-2 before microphone/speaker access"
+    },
+    {
+      "id": "mcp-connectors",
+      "name": "MCP connector registry",
+      "tier": "recommended",
+      "setup_mode": "guided_connector",
+      "default_state": "unverified",
+      "human_gate": "HG-2.5 before enabling tool access; HG-3 for write-capable MCPs"
+    },
+    {
+      "id": "product-backend-stack",
+      "name": "Supabase + Vercel + Stripe",
+      "tier": "gated",
+      "setup_mode": "deferred_gated_connector",
+      "default_state": "gated",
+      "human_gate": "HG-3/HG-4 for production/customer-impacting actions"
+    },
+    {
+      "id": "marketing-publishing-stack",
+      "name": "Upload-Post + Social + Analytics",
+      "tier": "optional_gated",
+      "setup_mode": "deferred_gated_connector",
+      "default_state": "gated",
+      "human_gate": "HG-4 before public publishing or brand voice changes"
+    },
+    {
+      "id": "crm-revenue-stack",
+      "name": "CRM + sales/revenue data",
+      "tier": "optional_gated",
+      "setup_mode": "deferred_gated_connector",
+      "default_state": "gated",
+      "human_gate": "HG-4 before customer-impacting CRM writes or outreach"
+    },
+    {
+      "id": "command-eve-update-channel",
+      "name": "Command EVE update channel",
+      "tier": "core",
+      "setup_mode": "bootstrap",
+      "default_state": "unverified",
+      "human_gate": "HG-2 before applying updates; HG-3 before changing release channel"
+    },
+    {
+      "id": "license-entitlements",
+      "name": "Account licensing and entitlements",
+      "tier": "gated",
+      "setup_mode": "deferred_gated_connector",
+      "default_state": "gated",
+      "human_gate": "HG-4 before billing, seat or entitlement changes"
+    }
+  ]
+}

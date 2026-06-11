@@ -8,7 +8,7 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
 
 initSentry();
 
@@ -20,12 +20,7 @@ import * as path from 'path';
 import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
-import { startBackendOrExit } from './process/startup/backendStartup';
-import { assertStartupArchitectureCompatible } from './process/startup/architectureCompatibility';
-import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
-import { installQuitCleanup } from './process/startup/quitCleanup';
 import { ProcessConfig } from './process/utils/initStorage';
-import type { BackendStartupFailureInfo } from './common/types/platform/electron';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
@@ -69,7 +64,6 @@ import {
   setCloseToTrayEnabled,
   setIsQuitting,
 } from './process/utils/tray';
-import { readCloseToTraySetting } from './process/utils/closeToTraySetting';
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
@@ -79,10 +73,14 @@ import electronSquirrelStartup from 'electron-squirrel-startup';
 // to the first instance via second-instance event, then quits.
 const isE2ETestMode = process.env.AIONUI_E2E_TEST === '1';
 const skipSingleInstanceLock = isE2ETestMode || process.env.AIONUI_MULTI_INSTANCE === '1';
+const shouldBlockStartupForCommandEveRuntimeBootstrap =
+  process.env.COMMAND_EVE_RUNTIME_BOOTSTRAP_WAIT === '1' &&
+  process.env.COMMAND_EVE_ALLOW_STARTUP_BLOCKING === '1' &&
+  !isE2ETestMode;
 const deepLinkFromArgv = process.argv.find((arg) => arg.startsWith(`${PROTOCOL_SCHEME}://`));
 const gotTheLock = skipSingleInstanceLock ? true : app.requestSingleInstanceLock({ deepLinkUrl: deepLinkFromArgv });
 if (!gotTheLock) {
-  console.warn('[AionUi] Another instance is already running; current process will exit.');
+  console.warn('[CommandEVE] Another instance is already running; current process will exit.');
   app.quit();
 } else {
   app.on('second-instance', (_event, argv, _workingDirectory, additionalData) => {
@@ -105,7 +103,7 @@ if (!gotTheLock) {
       showOrCreateMainWindow({
         mainWindow,
         createWindow: () => {
-          console.log('[AionUi] second-instance received with no active main window, recreating main window');
+          console.log('[CommandEVE] second-instance received with no active main window, recreating main window');
           createWindow();
         },
       });
@@ -203,14 +201,14 @@ let disposeCronResumeListener: (() => void) | null = null;
 // Flag tracking whether the backend subprocess started successfully. Read by
 // the deferred runBackendMigrations trigger in createWindow().
 let backendStartedOk = false;
-let backendStartupFailed = false;
-let backendStartupFailureInfo: BackendStartupFailureInfo | null = null;
 let rendererInitialLanguage: string | null = null;
+let backendStartupFailed = false;
+let backendStartupFailureInfo: unknown = null;
 let backendMigrationsScheduled = false;
-let ensureAdminUserPromise: Promise<void> | null = null;
 
 ipcMain.on('get-backend-port', (event) => {
-  event.returnValue = backendManager.port;
+  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+  event.returnValue = backendManager.port > 0 ? backendManager.port : (bootBackendPort ?? 0);
 });
 
 ipcMain.on('get-initial-language', (event) => {
@@ -225,10 +223,482 @@ ipcMain.on('get-backend-startup-failure', (event) => {
   event.returnValue = backendStartupFailureInfo;
 });
 
-function markBackendStartupFailed(error: unknown): void {
-  backendStartupFailed = true;
-  backendStartupFailureInfo = classifyBackendStartupFailure(error);
-  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+type CommandEveWarmupReceipt = {
+  status?: string;
+  default_model?: string;
+  runtime_root?: string;
+};
+
+type CommandEveRuntimeStatusPayload = {
+  status: string;
+  default_model?: string;
+  base_model?: string;
+  provider?: string;
+  execution_mode?: string;
+  next_action?: string;
+  receipt_path?: string;
+  gate_audit_path?: string;
+  prompt_proof?: {
+    ok: boolean;
+    observed_at?: string;
+    model?: string;
+    message_count?: number;
+    system_message_count?: number;
+    marker?: string;
+    prompt_sha256?: string;
+    receipt_path?: string;
+  };
+  egress_boundary?: {
+    receipt_path: string;
+    decision?: string;
+    observed_at?: string;
+    finding_count?: number;
+    policy_action?: string;
+  };
+  model_warmup?: CommandEveModelWarmupReceipt & {
+    receipt_path: string;
+  };
+  stages?: Array<{
+    id: string;
+    status: string;
+    code?: string;
+    detail?: string;
+    duration_ms?: number;
+  }>;
+};
+
+type CommandEveModelWarmupReceipt = {
+  version: 'command-eve-model-warmup/v0';
+  status: 'running' | 'ready' | 'failed' | 'skipped';
+  model: string;
+  base_url: string;
+  started_at: string;
+  completed_at?: string;
+  elapsed_ms: number;
+  error?: string;
+};
+
+type CommandEveGateAction =
+  | 'edit_code'
+  | 'prepare_pr'
+  | 'run_local_tests'
+  | 'merge_main'
+  | 'prod_write'
+  | 'money'
+  | 'external_send'
+  | 'schema_auth_secret'
+  | 'truth_gate';
+
+type CommandEveAssistantEnsureResult = {
+  status: 'ready';
+  assistant_id: string;
+  preset_agent_type: string;
+  enabled_skills: string[];
+  custom_skill_names: string[];
+  skill_count: number;
+};
+
+const COMMAND_EVE_GATE_ACTIONS = new Set<CommandEveGateAction>([
+  'edit_code',
+  'prepare_pr',
+  'run_local_tests',
+  'merge_main',
+  'prod_write',
+  'money',
+  'external_send',
+  'schema_auth_secret',
+  'truth_gate',
+]);
+
+type CommandEveWarmup = (options: {
+  baseUrl?: string;
+  model: string;
+  timeoutMs?: number;
+  maxTokens?: number;
+}) => Promise<{ ok: boolean; elapsedMs: number; model: string; error?: string }>;
+
+let commandEveRuntimeBridgeRegistered = false;
+let commandEveOllamaShimUrl = '';
+let commandEveWarmupInFlight: Promise<CommandEveModelWarmupReceipt> | undefined;
+let commandEveAssistantBootstrapInFlight: Promise<CommandEveAssistantEnsureResult> | undefined;
+
+function readJsonFile<T>(filePath: string): T | undefined {
+  try {
+    if (!fs.existsSync(filePath)) return undefined;
+    return JSON.parse(fs.readFileSync(filePath, 'utf8')) as T;
+  } catch (error) {
+    console.warn(`[Command EVE] Failed to read ${filePath}:`, error);
+    return undefined;
+  }
+}
+
+function commandEvePromptProofPath(runtimeRoot: string): string {
+  return path.join(runtimeRoot, 'last-prompt-proof.json');
+}
+
+function commandEveEgressBoundaryReceiptPath(runtimeRoot: string): string {
+  return path.join(runtimeRoot, 'last-egress-boundary-receipt.json');
+}
+
+function commandEveGateAuditPath(runtimeRoot: string): string {
+  return path.join(runtimeRoot, 'audit', 'gate-decisions.jsonl');
+}
+
+function writeCommandEveModelWarmupReceipt(runtimeRoot: string, receipt: CommandEveModelWarmupReceipt): void {
+  try {
+    if (!runtimeRoot) return;
+    const receiptPath = path.join(runtimeRoot, 'model-warmup-receipt.json');
+    fs.mkdirSync(path.dirname(receiptPath), { recursive: true });
+    const tempFile = `${receiptPath}.${process.pid}.${Date.now()}.tmp`;
+    fs.writeFileSync(tempFile, `${JSON.stringify(receipt, null, 2)}\n`, { mode: 0o600 });
+    fs.renameSync(tempFile, receiptPath);
+  } catch (error) {
+    console.warn('[Command EVE] Failed to write model warm-up receipt:', error);
+  }
+}
+
+function commandEveWarmupReceiptReadyForModel(
+  receipt: CommandEveModelWarmupReceipt | undefined,
+  model: string
+): boolean {
+  return Boolean(receipt?.status === 'ready' && receipt.model === model);
+}
+
+async function runCommandEveLocalModelWarmup(
+  receipt: CommandEveWarmupReceipt,
+  shimUrl: string,
+  warmup: CommandEveWarmup,
+  mark?: (label: string) => void
+): Promise<CommandEveModelWarmupReceipt> {
+  const model = receipt.default_model || '';
+  const runtimeRoot = receipt.runtime_root || '';
+  const disabledNow = new Date().toISOString();
+
+  if (receipt.status !== 'ready' || !model) {
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'runtime not ready',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  if (process.env.COMMAND_EVE_DISABLE_MODEL_WARMUP === '1') {
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'disabled by COMMAND_EVE_DISABLE_MODEL_WARMUP',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  const enabled = (await ProcessConfig.get('commandEve.modelWarmupEnabled').catch((): undefined => undefined)) ?? true;
+  if (!enabled) {
+    console.info('[Command EVE] Local model warm-up skipped by user preference.');
+    const skipped: CommandEveModelWarmupReceipt = {
+      version: 'command-eve-model-warmup/v0',
+      status: 'skipped',
+      model,
+      base_url: shimUrl,
+      started_at: disabledNow,
+      completed_at: disabledNow,
+      elapsed_ms: 0,
+      error: 'disabled by user preference',
+    };
+    writeCommandEveModelWarmupReceipt(runtimeRoot, skipped);
+    return skipped;
+  }
+
+  const startedAt = new Date().toISOString();
+  writeCommandEveModelWarmupReceipt(runtimeRoot, {
+    version: 'command-eve-model-warmup/v0',
+    status: 'running',
+    model,
+    base_url: shimUrl,
+    started_at: startedAt,
+    elapsed_ms: 0,
+  });
+
+  const result = await warmup({
+    baseUrl: shimUrl,
+    model,
+    timeoutMs: 90_000,
+    maxTokens: 1,
+  });
+  const completed: CommandEveModelWarmupReceipt = {
+    version: 'command-eve-model-warmup/v0',
+    status: result.ok ? 'ready' : 'failed',
+    model: result.model,
+    base_url: shimUrl,
+    started_at: startedAt,
+    completed_at: new Date().toISOString(),
+    elapsed_ms: result.elapsedMs,
+    ...(result.error ? { error: result.error } : {}),
+  };
+  writeCommandEveModelWarmupReceipt(runtimeRoot, completed);
+  if (result.ok) {
+    console.info(`[Command EVE] Local model warm-up ready: ${result.model} (${result.elapsedMs}ms)`);
+    mark?.(`commandEveModelWarmup (${result.elapsedMs}ms)`);
+  } else {
+    console.warn(`[Command EVE] Local model warm-up failed: ${result.error || 'unknown error'}`);
+  }
+  return completed;
+}
+
+function ensureCommandEveLocalModelWarmup(
+  receipt: CommandEveWarmupReceipt,
+  shimUrl: string,
+  warmup: CommandEveWarmup,
+  mark?: (label: string) => void
+): Promise<CommandEveModelWarmupReceipt> {
+  if (commandEveWarmupInFlight) return commandEveWarmupInFlight;
+  commandEveWarmupInFlight = runCommandEveLocalModelWarmup(receipt, shimUrl, warmup, mark).finally(() => {
+    commandEveWarmupInFlight = undefined;
+  });
+  return commandEveWarmupInFlight;
+}
+
+async function waitForCommandEveBackendPort(timeoutMs = 90_000): Promise<number> {
+  const deadline = Date.now() + timeoutMs;
+  while (Date.now() < deadline) {
+    const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+    const port = backendManager.port > 0 ? backendManager.port : (bootBackendPort ?? 0);
+    if (port > 0) return port;
+    await new Promise((resolve) => setTimeout(resolve, 250));
+  }
+  throw new Error(`Command EVE assistant readiness blocked: backend port not available after ${timeoutMs}ms.`);
+}
+
+function ensureCommandEveAssistantReadiness(): Promise<CommandEveAssistantEnsureResult> {
+  if (commandEveAssistantBootstrapInFlight) return commandEveAssistantBootstrapInFlight;
+  commandEveAssistantBootstrapInFlight = (async () => {
+    const bootBackendPort = await waitForCommandEveBackendPort();
+    const { getDataPath } = await import('./process/utils/utils');
+    const { ensureCommandEveAssistant } = await import('./process/commandEve/assistantBootstrap');
+    return ensureCommandEveAssistant(bootBackendPort, app.getVersion(), { userDataPath: getDataPath() });
+  })().finally(() => {
+    commandEveAssistantBootstrapInFlight = undefined;
+  });
+  return commandEveAssistantBootstrapInFlight;
+}
+
+async function getCommandEveRuntimeStatusPayload(): Promise<CommandEveRuntimeStatusPayload> {
+  const { getDataPath } = await import('./process/utils/utils');
+  const { resolveCommandEveRuntimeBootstrapPaths } = await import('./process/commandEve/runtimeBootstrapCore');
+  const { normalizeCommandEveExecutionMode } = await import('./process/commandEve/executionModeCore');
+  const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+  const receipt = readJsonFile<Record<string, unknown>>(paths.receiptPath);
+  const promptProofFile = commandEvePromptProofPath(paths.runtimeRoot);
+  const promptProof = readJsonFile<CommandEveRuntimeStatusPayload['prompt_proof']>(promptProofFile);
+  const egressBoundaryFile = commandEveEgressBoundaryReceiptPath(paths.runtimeRoot);
+  const egressBoundary = readJsonFile<Record<string, unknown>>(egressBoundaryFile);
+  const modelWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
+  const executionMode = normalizeCommandEveExecutionMode(
+    await ProcessConfig.get('commandEve.executionMode').catch((): undefined => undefined)
+  );
+  const gateAuditPath = commandEveGateAuditPath(paths.runtimeRoot);
+  if (!receipt) {
+    return {
+      status: 'missing',
+      execution_mode: executionMode,
+      receipt_path: paths.receiptPath,
+      gate_audit_path: gateAuditPath,
+      next_action: 'Command EVE runtime receipt has not been written yet.',
+      ...(modelWarmup ? { model_warmup: { ...modelWarmup, receipt_path: paths.modelWarmupReceiptPath } } : {}),
+      ...(promptProof ? { prompt_proof: { ...promptProof, receipt_path: promptProofFile } } : {}),
+      ...(egressBoundary
+        ? {
+            egress_boundary: {
+              receipt_path: egressBoundaryFile,
+              decision: typeof egressBoundary.decision === 'string' ? egressBoundary.decision : undefined,
+              observed_at: typeof egressBoundary.observed_at === 'string' ? egressBoundary.observed_at : undefined,
+              finding_count:
+                typeof egressBoundary.finding_count === 'number' ? egressBoundary.finding_count : undefined,
+              policy_action:
+                typeof egressBoundary.policy_action === 'string' ? egressBoundary.policy_action : undefined,
+            },
+          }
+        : {}),
+    };
+  }
+  return {
+    status: String(receipt.status || 'unknown'),
+    default_model: typeof receipt.default_model === 'string' ? receipt.default_model : undefined,
+    base_model: typeof receipt.base_model === 'string' ? receipt.base_model : undefined,
+    provider: typeof receipt.provider === 'string' ? receipt.provider : undefined,
+    execution_mode: executionMode,
+    next_action: typeof receipt.next_action === 'string' ? receipt.next_action : undefined,
+    receipt_path: paths.receiptPath,
+    gate_audit_path: gateAuditPath,
+    prompt_proof: promptProof ? { ...promptProof, receipt_path: promptProofFile } : undefined,
+    model_warmup: modelWarmup ? { ...modelWarmup, receipt_path: paths.modelWarmupReceiptPath } : undefined,
+    egress_boundary: egressBoundary
+      ? {
+          receipt_path: egressBoundaryFile,
+          decision: typeof egressBoundary.decision === 'string' ? egressBoundary.decision : undefined,
+          observed_at: typeof egressBoundary.observed_at === 'string' ? egressBoundary.observed_at : undefined,
+          finding_count: typeof egressBoundary.finding_count === 'number' ? egressBoundary.finding_count : undefined,
+          policy_action: typeof egressBoundary.policy_action === 'string' ? egressBoundary.policy_action : undefined,
+        }
+      : undefined,
+    stages: Array.isArray(receipt.stages) ? (receipt.stages as CommandEveRuntimeStatusPayload['stages']) : undefined,
+  };
+}
+
+function registerCommandEveRuntimeBridge(): void {
+  if (commandEveRuntimeBridgeRegistered) return;
+  commandEveRuntimeBridgeRegistered = true;
+
+  ipcBridge.commandEve.runtimeStatus.provider(async () => {
+    try {
+      return { success: true, data: await getCommandEveRuntimeStatusPayload() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.commandEve.ensureAssistant.provider(async () => {
+    try {
+      return { success: true, data: await ensureCommandEveAssistantReadiness() };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.commandEve.ensureLocalModelTier.provider(async (request) => {
+    try {
+      const { getDataPath } = await import('./process/utils/utils');
+      const { ensureCommandEveRuntimeBootstrap, resolveCommandEveRuntimeBootstrapPaths } =
+        await import('./process/commandEve/runtimeBootstrapCore');
+      const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+        await import('./process/commandEve/ollamaOpenAiShim');
+      const tierId = typeof request?.tierId === 'string' ? request.tierId : '';
+      const receipt = await ensureCommandEveRuntimeBootstrap({
+        userDataPath: getDataPath(),
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        mode: 'auto',
+        env: tierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: tierId } : undefined,
+      });
+      const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+      const existingWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
+      const shouldWarm = !commandEveWarmupReceiptReadyForModel(existingWarmup, receipt.default_model || '');
+      const shimUrl =
+        commandEveOllamaShimUrl ||
+        (await startCommandEveOllamaOpenAiShim({
+          promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
+          egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+        }));
+      commandEveOllamaShimUrl = shimUrl;
+      const warmupReceipt = shouldWarm
+        ? await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel)
+        : existingWarmup;
+      const status = await getCommandEveRuntimeStatusPayload();
+      const warmupOk = ['ready', 'skipped'].includes(warmupReceipt?.status || '');
+      return {
+        success: receipt.status === 'ready' && warmupOk,
+        data: status,
+        msg:
+          receipt.status !== 'ready'
+            ? receipt.next_action
+            : warmupOk
+              ? undefined
+              : warmupReceipt?.error || 'local model warm-up failed',
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.commandEve.warmLocalModel.provider(async (request) => {
+    try {
+      const { getDataPath } = await import('./process/utils/utils');
+      const { ensureCommandEveRuntimeBootstrap, resolveCommandEveRuntimeBootstrapPaths } =
+        await import('./process/commandEve/runtimeBootstrapCore');
+      const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+        await import('./process/commandEve/ollamaOpenAiShim');
+      const tierId = typeof request?.tierId === 'string' ? request.tierId : '';
+      const receipt = await ensureCommandEveRuntimeBootstrap({
+        userDataPath: getDataPath(),
+        appPath: app.getAppPath(),
+        resourcesPath: process.resourcesPath,
+        mode: 'auto',
+        env: tierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: tierId } : undefined,
+      });
+      const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+      const existingWarmup = readJsonFile<CommandEveModelWarmupReceipt>(paths.modelWarmupReceiptPath);
+      if (commandEveWarmupReceiptReadyForModel(existingWarmup, receipt.default_model || '')) {
+        return {
+          success: true,
+          data: await getCommandEveRuntimeStatusPayload(),
+        };
+      }
+
+      const shimUrl =
+        commandEveOllamaShimUrl ||
+        (await startCommandEveOllamaOpenAiShim({
+          promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
+          egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+        }));
+      commandEveOllamaShimUrl = shimUrl;
+      const warmupReceipt = await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel);
+      const warmupOk = ['ready', 'skipped'].includes(warmupReceipt.status);
+      return {
+        success: receipt.status === 'ready' && warmupOk,
+        data: await getCommandEveRuntimeStatusPayload(),
+        msg:
+          receipt.status !== 'ready'
+            ? receipt.next_action
+            : warmupOk
+              ? undefined
+              : warmupReceipt.error || 'local model warm-up failed',
+      };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+
+  ipcBridge.commandEve.evaluateGateDecision.provider(async (request) => {
+    try {
+      const { getDataPath } = await import('./process/utils/utils');
+      const { resolveCommandEveRuntimeBootstrapPaths } = await import('./process/commandEve/runtimeBootstrapCore');
+      const { appendCommandEveGateDecision, evaluateCommandEveGateDecision } =
+        await import('./process/commandEve/executionModeCore');
+      const action = request?.action;
+      if (typeof action !== 'string' || !COMMAND_EVE_GATE_ACTIONS.has(action as CommandEveGateAction)) {
+        return { success: false, msg: 'Invalid or missing Command EVE gate action.' };
+      }
+      const paths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+      const mode = await ProcessConfig.get('commandEve.executionMode').catch((): undefined => undefined);
+      const decision = evaluateCommandEveGateDecision({ mode, action: action as CommandEveGateAction });
+      appendCommandEveGateDecision(commandEveGateAuditPath(paths.runtimeRoot), decision);
+      return { success: true, data: decision };
+    } catch (error) {
+      return { success: false, msg: error instanceof Error ? error.message : String(error) };
+    }
+  });
+}
+
+function scheduleCommandEveLocalModelWarmup(
+  receipt: CommandEveWarmupReceipt,
+  shimUrl: string,
+  warmup: CommandEveWarmup,
+  mark?: (label: string) => void
+): void {
+  if (receipt.status !== 'ready' || !receipt.default_model) return;
+  void ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmup, mark);
 }
 
 function registerCronResumeBridge(backendPort: number): void {
@@ -241,7 +711,7 @@ function registerCronResumeBridge(backendPort: number): void {
         'x-aionui-internal': '1',
       },
     }).catch((error) => {
-      console.error('[AionUi] Failed to notify backend about system resume:', error);
+      console.error('[CommandEVE] Failed to notify backend about system resume:', error);
     });
   };
 
@@ -264,50 +734,15 @@ const scheduleBackendMigrations = (): void => {
     try {
       const { runBackendMigrations } = await import('./process/utils/runBackendMigrations');
       await runBackendMigrations(ProcessConfig);
-      console.info('[AionUi] runBackendMigrations completed');
+      console.info('[CommandEVE] runBackendMigrations completed');
     } catch (error) {
-      console.error('[AionUi] Backend migration hook threw:', error);
+      console.error('[CommandEVE] Backend migration hook threw:', error);
     }
   })();
 };
 
-function exposeBackendPort(backendPort: number): void {
-  // Expose the backend port to main-process callers of httpBridge (e.g. the
-  // one-shot assistant migration hook below). Must land BEFORE any
-  // ipcBridge.* invoke from the main process — the renderer side reads
-  // window.__backendPort via preload, but main has no `window`.
-  (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
-}
-
-function ensureAdminUserOnce(backendPort: number): Promise<void> {
-  if (!ensureAdminUserPromise) {
-    ensureAdminUserPromise = (async () => {
-      try {
-        const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
-        await ensureAdminUser(backendPort);
-      } catch (err) {
-        console.error('[WebUI] ensureAdminUser failed:', err);
-      }
-    })();
-  }
-  return ensureAdminUserPromise;
-}
-
-function markBackendReady(backendPort: number, source: string): void {
-  if (backendStartedOk) return;
-  console.log(`[AionUi] ${source} ready (port=${backendPort})`);
-  exposeBackendPort(backendPort);
-  registerCronResumeBridge(backendPort);
-  backendStartedOk = true;
-  backendStartupFailed = false;
-  backendStartupFailureInfo = null;
-  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = false;
-  void ensureAdminUserOnce(backendPort);
-  scheduleBackendMigrations();
-}
-
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
-  console.log('[AionUi] Creating main window...');
+  console.log('[CommandEVE] Creating main window...');
   const { x: windowX, y: windowY, width: windowWidth, height: windowHeight } = resolveInitialBounds();
 
   // Get app icon for development mode (Windows/Linux need icon in BrowserWindow)
@@ -356,7 +791,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
       webviewTag: true, // 启用 webview 标签用于 HTML 预览 / Enable webview tag for HTML preview
     },
   });
-  console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
+  console.log(`[CommandEVE] Main window created (id=${mainWindow.id})`);
 
   scheduleStartupLogReport(mainWindow);
 
@@ -366,18 +801,18 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   if (showOnReady) {
     const showWindow = () => {
       if (!mainWindow.isDestroyed() && !mainWindow.isVisible()) {
-        console.log('[AionUi] Showing main window');
+        console.log('[CommandEVE] Showing main window');
         mainWindow.show();
         mainWindow.focus();
       }
     };
     mainWindow.once('ready-to-show', () => {
-      console.log('[AionUi] Window ready-to-show');
+      console.log('[CommandEVE] Window ready-to-show');
       showWindow();
     });
     // Belt-and-suspenders: also show on did-finish-load in case ready-to-show already fired
     mainWindow.webContents.once('did-finish-load', () => {
-      console.log('[AionUi] Renderer did-finish-load');
+      console.log('[CommandEVE] Renderer did-finish-load');
       showWindow();
       scheduleBackendMigrations();
     });
@@ -417,7 +852,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
         console.error('[App] Failed to initialize autoUpdaterService:', error);
       });
   } else {
-    console.log('[AionUi] Auto-updater disabled via env/CI guard');
+    console.log('[CommandEVE] Auto-updater disabled via env/CI guard');
   }
 
   // Load the renderer: dev server URL in development, built HTML file in production
@@ -425,51 +860,51 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   const fallbackFile = path.join(__dirname, '../renderer/index.html');
 
   if (!app.isPackaged && rendererUrl) {
-    console.log(`[AionUi] Loading renderer URL: ${rendererUrl}`);
+    console.log(`[CommandEVE] Loading renderer URL: ${rendererUrl}`);
     mainWindow.loadURL(rendererUrl).catch((error) => {
-      console.error('[AionUi] loadURL failed, falling back to file:', error.message || error);
+      console.error('[CommandEVE] loadURL failed, falling back to file:', error.message || error);
       mainWindow.loadFile(fallbackFile).catch((e2) => {
-        console.error('[AionUi] loadFile fallback also failed:', e2.message || e2);
+        console.error('[CommandEVE] loadFile fallback also failed:', e2.message || e2);
       });
     });
   } else {
-    console.log(`[AionUi] Loading renderer file: ${fallbackFile}`);
+    console.log(`[CommandEVE] Loading renderer file: ${fallbackFile}`);
     mainWindow.loadFile(fallbackFile).catch((error) => {
-      console.error('[AionUi] loadFile failed:', error.message || error);
+      console.error('[CommandEVE] loadFile failed:', error.message || error);
     });
   }
 
   mainWindow.webContents.on('did-fail-load', (_event, errorCode, errorDescription, validatedURL, isMainFrame) => {
-    console.error('[AionUi] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
+    console.error('[CommandEVE] did-fail-load:', { errorCode, errorDescription, validatedURL, isMainFrame });
   });
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
-    console.error('[AionUi] render-process-gone:', details);
+    console.error('[CommandEVE] render-process-gone:', details);
 
     // Reload the renderer to recover from the crash.
     // The isDestroyed() guard in adapter/main.ts prevents further sends
     // to the dead webContents while the reload is in progress.
     if (!mainWindow.isDestroyed()) {
-      console.log('[AionUi] Attempting to recover from renderer crash by reloading...');
+      console.log('[CommandEVE] Attempting to recover from renderer crash by reloading...');
 
       if (!app.isPackaged && rendererUrl) {
         mainWindow.loadURL(rendererUrl).catch((error) => {
-          console.error('[AionUi] Recovery loadURL failed:', error.message || error);
+          console.error('[CommandEVE] Recovery loadURL failed:', error.message || error);
         });
       } else {
         mainWindow.loadFile(fallbackFile).catch((error) => {
-          console.error('[AionUi] Recovery loadFile failed:', error.message || error);
+          console.error('[CommandEVE] Recovery loadFile failed:', error.message || error);
         });
       }
     }
   });
 
   mainWindow.webContents.on('unresponsive', () => {
-    console.warn('[AionUi] Renderer became unresponsive');
+    console.warn('[CommandEVE] Renderer became unresponsive');
   });
 
   mainWindow.on('closed', () => {
-    console.log('[AionUi] Main window closed');
+    console.log('[CommandEVE] Main window closed');
   });
 
   // DevTools is no longer auto-opened at startup.
@@ -497,7 +932,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
 
 const handleAppReady = async (): Promise<void> => {
   const t0 = performance.now();
-  const mark = (label: string) => console.log(`[AionUi:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
+  const mark = (label: string) => console.log(`[CommandEVE:ready] ${label} +${Math.round(performance.now() - t0)}ms`);
   mark('start');
 
   if (!app.isPackaged) {
@@ -537,79 +972,105 @@ const handleAppReady = async (): Promise<void> => {
 
   try {
     await initializeProcess();
-    rendererInitialLanguage = ProcessConfig.getSync('language') ?? null;
     mark('initializeProcess');
+    registerCommandEveRuntimeBridge();
   } catch (error) {
     console.error('Failed to initialize process:', error);
     app.exit(1);
     return;
   }
 
+  try {
+    const { getDataPath } = await import('./process/utils/utils');
+    const { startCommandEveOllamaOpenAiShim, warmCommandEveLocalModel } =
+      await import('./process/commandEve/ollamaOpenAiShim');
+    const {
+      ensureCommandEveRuntimeBootstrap,
+      prepareCommandEveRuntimeProcessEnv,
+      resolveCommandEveRuntimeBootstrapPaths,
+    } = await import('./process/commandEve/runtimeBootstrapCore');
+    const runtimePaths = resolveCommandEveRuntimeBootstrapPaths(getDataPath());
+    const shimUrl = await startCommandEveOllamaOpenAiShim({
+      promptProofPath: commandEvePromptProofPath(runtimePaths.runtimeRoot),
+      egressReceiptPath: commandEveEgressBoundaryReceiptPath(runtimePaths.runtimeRoot),
+    });
+    commandEveOllamaShimUrl = shimUrl;
+    mark(`commandEveOllamaShim (${shimUrl})`);
+    prepareCommandEveRuntimeProcessEnv(getDataPath());
+    const localModelTierId = await ProcessConfig.get('commandEve.localModelTierId').catch((): undefined => undefined);
+    const bootstrap = ensureCommandEveRuntimeBootstrap({
+      userDataPath: getDataPath(),
+      appPath: app.getAppPath(),
+      resourcesPath: process.resourcesPath,
+      mode: 'auto',
+      env: localModelTierId ? { COMMAND_EVE_LOCAL_MODEL_TIER: localModelTierId } : undefined,
+    });
+    if (shouldBlockStartupForCommandEveRuntimeBootstrap) {
+      const receipt = await bootstrap;
+      mark(`commandEveRuntimeBootstrap (${receipt.status})`);
+      scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark);
+    } else {
+      void bootstrap
+        .then((receipt) => {
+          console.info(`[Command EVE] Runtime bootstrap ${receipt.status}: ${receipt.next_action}`);
+          scheduleCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel, mark);
+        })
+        .catch((error) => {
+          console.error('[Command EVE] Runtime bootstrap failed:', error);
+        });
+      mark('commandEveRuntimeBootstrap scheduled');
+    }
+  } catch (error) {
+    console.error('[Command EVE] Runtime bootstrap could not be scheduled:', error);
+  }
+
   // Start aioncore only after initializeProcess(). initStorage may open
   // the legacy Electron SQLite catalog for a one-shot v26 migration and must
   // close it before the backend touches the same file.
-  const backendStartup = await startBackendOrExit({
-    startBackend: async () => {
-      assertStartupArchitectureCompatible({
-        arch: process.arch,
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-      });
-      const { getDataPath } = await import('./process/utils/utils');
-      const { getSystemDir } = await import('./process/utils/initStorage');
-      const sysDir = getSystemDir();
-      return backendManager.start(
-        getDataPath(),
-        sysDir.logDir,
-        {
-          cacheDir: sysDir.cacheDir,
-          workDir: sysDir.workDir,
-          logDir: sysDir.logDir,
-        },
-        {
-          allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
-          onHealthTimeout: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
-          },
-          onPendingExit: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
-          },
-          onReady: (backendPort) => {
-            markBackendReady(backendPort, 'backendManager.lateReady');
-          },
-        }
-      );
-    },
-    onStarted: (backendPort) => {
-      exposeBackendPort(backendPort);
-      if (backendManager.status === 'running') {
-        markBackendReady(backendPort, 'backendManager.start');
-        return;
-      }
-      mark(`backendManager.start pending health (port=${backendPort})`);
-    },
-    captureFailure: async (error) => {
-      markBackendStartupFailed(error);
-      await captureBackendStartupFailure(error);
-    },
-    exitApp: (code) => app.exit(code),
-    exitOnFailure: isWebUIMode || isResetPasswordMode,
-    logError: console.error,
-  });
-  if (!backendStartup.ok) {
-    if (isWebUIMode || isResetPasswordMode) {
-      return;
-    }
+  try {
+    const { getDataPath } = await import('./process/utils/utils');
+    const { getSystemDir } = await import('./process/utils/initStorage');
+    const sysDir = getSystemDir();
+    const backendPort = await backendManager.start(getDataPath(), sysDir.logDir, {
+      cacheDir: sysDir.cacheDir,
+      workDir: sysDir.workDir,
+      logDir: sysDir.logDir,
+    });
+    mark(`backendManager.start (port=${backendPort})`);
+    // Expose the backend port to main-process callers of httpBridge (e.g. the
+    // one-shot assistant migration hook below). Must land BEFORE any
+    // ipcBridge.* invoke from the main process — the renderer side reads
+    // window.__backendPort via preload, but main has no `window`.
+    (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort = backendPort;
+    registerCronResumeBridge(backendPort);
+    backendStartedOk = true;
+  } catch (error) {
+    console.error('[CommandEVE] Failed to start aioncore:', error);
+    backendStartupFailed = true;
+    backendStartupFailureInfo = {
+      reason: 'backend_startup_failed',
+      message: error instanceof Error ? error.message : String(error),
+    };
   }
 
   // One-shot WebUI admin credential migration. Must run after the backend is
   // up (__backendPort set) and before any mode branch below that might log the
   // user in. Swallows its own errors; the next boot retries.
   const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (backendStartedOk && bootBackendPort) {
-    await ensureAdminUserOnce(bootBackendPort);
+  if (bootBackendPort) {
+    try {
+      const { ensureAdminUser } = await import('./process/utils/ensureAdminUser');
+      await ensureAdminUser(bootBackendPort);
+    } catch (err) {
+      console.error('[WebUI] ensureAdminUser failed:', err);
+    }
+
+    try {
+      await ensureCommandEveAssistantReadiness();
+      mark('commandEveAssistantBootstrap');
+    } catch (err) {
+      console.error('[Command EVE] Assistant bootstrap failed:', err);
+    }
   }
 
   // One-shot backend migrations are deferred until after the renderer finishes
@@ -621,7 +1082,7 @@ const handleAppReady = async (): Promise<void> => {
     initializeZoomFactor(await ProcessConfig.get('ui.zoomFactor'));
     mark('initializeZoomFactor');
   } catch (error) {
-    console.error('[AionUi] Failed to restore zoom factor:', error);
+    console.error('[CommandEVE] Failed to restore zoom factor:', error);
     initializeZoomFactor(undefined);
   }
 
@@ -629,7 +1090,7 @@ const handleAppReady = async (): Promise<void> => {
     loadSavedWindowBounds(await ProcessConfig.get('window.bounds'));
     mark('restoreWindowBounds');
   } catch (error) {
-    console.error('[AionUi] Failed to restore window bounds:', error);
+    console.error('[CommandEVE] Failed to restore window bounds:', error);
     loadSavedWindowBounds(undefined);
   }
 
@@ -722,8 +1183,8 @@ const handleAppReady = async (): Promise<void> => {
       destroyTray();
     } else {
       try {
-        const savedCloseToTray = await readCloseToTraySetting();
-        setCloseToTrayEnabled(savedCloseToTray);
+        const savedCloseToTray = await ProcessConfig.get('system.closeToTray');
+        setCloseToTrayEnabled(savedCloseToTray ?? false);
         if (getCloseToTrayEnabled()) {
           createOrUpdateTray();
         }
@@ -761,6 +1222,7 @@ const handleAppReady = async (): Promise<void> => {
     // Read language setting and initialize main process i18n, then refresh tray menu
     try {
       const savedLanguage = await ProcessConfig.get('language');
+      rendererInitialLanguage = typeof savedLanguage === 'string' ? savedLanguage : null;
       await setInitialLanguage(savedLanguage);
       // After language is set, refresh tray menu if it exists
       await refreshTrayMenu();
@@ -834,7 +1296,7 @@ void app
   .then(handleAppReady)
   .catch((error) => {
     // App initialization failed
-    console.error('[AionUi] App initialization failed:', error);
+    console.error('[CommandEVE] App initialization failed:', error);
     app.quit();
   });
 
@@ -870,36 +1332,49 @@ app.on('activate', () => {
   }
 });
 
-installQuitCleanup({
-  onBeforeQuit: (handler) => app.on('before-quit', (event) => handler(event)),
-  quitApp: () => app.quit(),
-  setIsQuitting,
-  markExplicitQuit: () => {
-    isExplicitQuit = true;
-  },
-  destroyTray,
-  disposeCronResumeListener: () => {
+app.on('before-quit', async () => {
+  console.log('[CommandEVE] before-quit');
+  setIsQuitting(true);
+  isExplicitQuit = true;
+  destroyTray();
+
+  const cleanup = async () => {
     disposeCronResumeListener?.();
     disposeCronResumeListener = null;
-  },
-  // Stop aioncore subprocess — backend shutdown kills all agent children
-  // transitively (no separate frontend workerTaskManager remains).
-  stopBackend: () => backendManager.stop(),
-  destroyPetWindow: async () => {
-    const { destroyPetWindow } = await import('./process/pet/petManager');
-    destroyPetWindow();
-  },
-  logInfo: console.log,
-  logWarn: console.warn,
-  logError: console.error,
+
+    // Stop aioncore subprocess — backend shutdown kills all agent
+    // children transitively (no separate frontend workerTaskManager remains)
+    await backendManager.stop().catch((err) => console.error('[App] Failed to stop backend:', err));
+
+    // Destroy desktop pet windows
+    try {
+      const { destroyPetWindow } = await import('./process/pet/petManager');
+      destroyPetWindow();
+    } catch {
+      /* pet not initialized */
+    }
+
+    // Web Server lifecycle is managed by aioncore subprocess
+    // Office/PPT preview spawns also live in the backend; frontend no longer owns those sessions.
+  };
+
+  // Master timeout: force quit if cleanup hangs
+  const timeout = new Promise<void>((resolve) => {
+    setTimeout(() => {
+      console.warn('[CommandEVE] Cleanup timed out after 10s, forcing quit');
+      resolve();
+    }, 10000);
+  });
+
+  await Promise.race([cleanup(), timeout]);
 });
 
 app.on('will-quit', () => {
-  console.log('[AionUi] will-quit — all cleanup should be complete');
+  console.log('[CommandEVE] will-quit — all cleanup should be complete');
 });
 
 app.on('quit', (_event, exitCode) => {
-  console.log(`[AionUi] quit (exitCode=${exitCode})`);
+  console.log(`[CommandEVE] quit (exitCode=${exitCode})`);
 });
 
 // In this file you can include the rest of your app's specific main process

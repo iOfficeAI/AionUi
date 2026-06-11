@@ -34,6 +34,7 @@ const AcpChat: React.FC<{
   loadedSkills?: string[];
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
+  waitForWarmup?: boolean;
 }> = ({
   conversation_id,
   workspace,
@@ -46,11 +47,14 @@ const AcpChat: React.FC<{
   loadedSkills,
   loadedMcpServers,
   loadedMcpStatuses,
+  waitForWarmup,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
   const teamPermission = useTeamPermission();
-  const messageState = useAcpMessage(conversation_id, { skipWarmup: Boolean(teamPermission) });
+  const messageState = useAcpMessage(conversation_id, {
+    skipWarmup: Boolean(teamPermission) || waitForWarmup === false,
+  });
 
   return (
     <ConversationProvider

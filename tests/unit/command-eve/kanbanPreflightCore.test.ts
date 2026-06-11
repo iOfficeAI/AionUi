@@ -1,0 +1,441 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import { afterEach, describe, expect, it } from 'vitest';
+import { execFileSync } from 'child_process';
+import fs from 'fs';
+import os from 'os';
+import path from 'path';
+import {
+  buildKanbanMarketingBoard,
+  createKanbanMarketingProofCard,
+  runKanbanPreflight,
+  type CommandEveKanbanPreflightCommandRunner,
+} from '@/process/commandEve/kanbanPreflightCore';
+
+const tempRoots: string[] = [];
+
+const makeRoot = (): string => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-kanban-preflight-test-'));
+  tempRoots.push(root);
+  return root;
+};
+
+const writeJson = (filePath: string, value: unknown): void => {
+  fs.mkdirSync(path.dirname(filePath), { recursive: true });
+  fs.writeFileSync(filePath, `${JSON.stringify(value, null, 2)}\n`);
+};
+
+const makePython = (root: string): string => {
+  const pythonPath = path.join(root, 'command-eve-runtime', 'hermes', 'venv', 'bin', 'python');
+  fs.mkdirSync(path.dirname(pythonPath), { recursive: true });
+  fs.writeFileSync(pythonPath, '#!/usr/bin/env python3\n', { mode: 0o700 });
+  return pythonPath;
+};
+
+const writeLockedReconciliation = (root: string, overrides: Record<string, unknown> = {}): string => {
+  const filePath = path.join(root, 'command-eve-runtime', 'capabilities', 'command-eve-runtime-reconciliation.json');
+  writeJson(filePath, {
+    version: 'command-eve-runtime-reconciliation/v0',
+    hermes_config: {
+      mcp_servers: [],
+      kanban_dispatch_in_gateway: false,
+      kanban_auto_decompose: false,
+      ...overrides,
+    },
+  });
+  return filePath;
+};
+
+const marketingBoardPath = (root: string): string =>
+  path.join(root, 'command-eve-runtime', 'hermes', 'home', 'kanban', 'boards', 'marketing', 'kanban.db');
+
+const createNativeKanbanDb = (dbPath: string): void => {
+  fs.mkdirSync(path.dirname(dbPath), { recursive: true });
+  execFileSync(
+    'python3',
+    [
+      '-c',
+      `
+import sqlite3
+import sys
+conn = sqlite3.connect(sys.argv[1])
+try:
+    conn.executescript("""
+      CREATE TABLE tasks (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        body TEXT,
+        assignee TEXT,
+        status TEXT NOT NULL,
+        priority INTEGER DEFAULT 0,
+        created_by TEXT,
+        created_at INTEGER NOT NULL,
+        started_at INTEGER,
+        completed_at INTEGER,
+        workspace_kind TEXT NOT NULL DEFAULT 'scratch',
+        workspace_path TEXT,
+        branch_name TEXT,
+        claim_lock TEXT,
+        claim_expires INTEGER,
+        tenant TEXT,
+        result TEXT,
+        idempotency_key TEXT,
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        worker_pid INTEGER,
+        last_failure_error TEXT,
+        max_runtime_seconds INTEGER,
+        last_heartbeat_at INTEGER,
+        current_run_id INTEGER,
+        workflow_template_id TEXT,
+        current_step_key TEXT,
+        skills TEXT,
+        model_override TEXT,
+        max_retries INTEGER,
+        goal_mode INTEGER NOT NULL DEFAULT 0,
+        goal_max_turns INTEGER,
+        session_id TEXT
+      );
+      CREATE TABLE task_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        run_id INTEGER,
+        kind TEXT NOT NULL,
+        payload TEXT,
+        created_at INTEGER NOT NULL
+      );
+      CREATE TABLE task_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        author TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+      );
+      CREATE TABLE task_links (
+        parent_id TEXT NOT NULL,
+        child_id TEXT NOT NULL,
+        PRIMARY KEY (parent_id, child_id)
+      );
+    """)
+    conn.commit()
+finally:
+    conn.close()
+`,
+      dbPath,
+    ],
+    { encoding: 'utf8' }
+  );
+};
+
+const readRows = (dbPath: string, sql: string): unknown[] => {
+  const stdout = execFileSync(
+    'python3',
+    [
+      '-c',
+      `
+import json
+import sqlite3
+import sys
+conn = sqlite3.connect(f"file:{sys.argv[1]}?mode=ro", uri=True)
+conn.row_factory = sqlite3.Row
+try:
+    rows = [dict(row) for row in conn.execute(sys.argv[2]).fetchall()]
+    print(json.dumps(rows))
+finally:
+    conn.close()
+`,
+      dbPath,
+      sql,
+    ],
+    { encoding: 'utf8' }
+  );
+  return JSON.parse(stdout) as unknown[];
+};
+
+const readAuditEvents = (eventLedgerPath: string): Array<Record<string, unknown>> =>
+  fs
+    .readFileSync(eventLedgerPath, 'utf8')
+    .trim()
+    .split('\n')
+    .filter(Boolean)
+    .map((line) => JSON.parse(line) as Record<string, unknown>);
+
+const probePayload = (version = '0.16.0') => ({
+  installed_version: version,
+  modules: [
+    { name: 'hermes_cli.kanban_db', required: true, ok: true },
+    { name: 'hermes_cli.kanban', required: true, ok: true },
+    { name: 'tools.kanban_tools', required: true, ok: true },
+    { name: 'plugins.kanban.dashboard.plugin_api', required: false, ok: true },
+  ],
+  board: {
+    slug: 'default',
+    db_path: '/tmp/kanban.db',
+    db_exists: false,
+    table_count: 0,
+    read_only_opened: false,
+  },
+});
+
+const runnerWithPayload =
+  (payload: unknown): CommandEveKanbanPreflightCommandRunner =>
+  (_request) => ({
+    ok: true,
+    exitCode: 0,
+    stdout: `${JSON.stringify(payload)}\n`,
+    stderr: '',
+  });
+
+afterEach(() => {
+  for (const root of tempRoots.splice(0)) {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
+describe('Command EVE Kanban preflight core', () => {
+  it('passes read-only with Hermes 0.16 modules and locked governance', () => {
+    const root = makeRoot();
+    makePython(root);
+    const reconciliationPath = writeLockedReconciliation(root);
+
+    const result = runKanbanPreflight({
+      userDataPath: root,
+      now: () => new Date('2026-06-11T08:00:00.000Z'),
+      commandRunner: runnerWithPayload(probePayload()),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('KANBAN_PREFLIGHT_READY_EMPTY_BOARD');
+    expect(result.model?.hermes.installed_version).toBe('0.16.0');
+    expect(result.model?.hermes.version_ok).toBe(true);
+    expect(result.model?.modules.every((module) => module.ok)).toBe(true);
+    expect(result.model?.board.db_exists).toBe(false);
+    expect(result.model?.governance.runtime_reconciliation_path).toBe(reconciliationPath);
+    expect(result.model?.governance.dispatcher_disabled).toBe(true);
+    expect(result.model?.warnings).toContain('kanban_board_db_missing_read_only_no_mutation');
+  });
+
+  it('keeps optional Hermes dashboard API failures as visible warnings', () => {
+    const root = makeRoot();
+    makePython(root);
+    writeLockedReconciliation(root);
+    const payload = probePayload();
+    payload.modules[3] = {
+      name: 'plugins.kanban.dashboard.plugin_api',
+      required: false,
+      ok: false,
+      error: 'python-multipart missing',
+    };
+
+    const result = runKanbanPreflight({
+      userDataPath: root,
+      commandRunner: runnerWithPayload(payload),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.model?.modules[3].required).toBe(false);
+    expect(result.model?.warnings).toContain('kanban_optional_dashboard_api_unavailable');
+  });
+
+  it('blocks Hermes versions before the Kanban adoption floor', () => {
+    const root = makeRoot();
+    makePython(root);
+    writeLockedReconciliation(root);
+
+    const result = runKanbanPreflight({
+      userDataPath: root,
+      commandRunner: runnerWithPayload(probePayload('0.15.2')),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_HERMES_VERSION_TOO_OLD');
+    expect(result.model?.hermes.version_ok).toBe(false);
+  });
+
+  it('blocks when Kanban governance is not locked read-first', () => {
+    const root = makeRoot();
+    makePython(root);
+    writeLockedReconciliation(root, {
+      kanban_auto_decompose: true,
+    });
+
+    const result = runKanbanPreflight({
+      userDataPath: root,
+      commandRunner: runnerWithPayload(probePayload()),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+    expect(result.model?.governance.auto_decompose_disabled).toBe(false);
+  });
+
+  it('blocks when the Hermes Python runtime is not installed', () => {
+    const root = makeRoot();
+
+    const result = runKanbanPreflight({
+      userDataPath: root,
+      commandRunner: runnerWithPayload(probePayload()),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_PREFLIGHT_PYTHON_MISSING');
+    expect(result.source.python_path).toContain('command-eve-runtime/hermes/venv/bin/python');
+  });
+
+  it('blocks the marketing board read model when the Hermes board DB is missing', () => {
+    const root = makeRoot();
+
+    const result = buildKanbanMarketingBoard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_MARKETING_BOARD_MISSING');
+    expect(result.model?.board.db_exists).toBe(false);
+    expect(result.model?.policy.dispatcher_enabled).toBe(false);
+  });
+
+  it('projects native Hermes tasks into Command EVE marketing lanes', () => {
+    const root = makeRoot();
+    const dbPath = marketingBoardPath(root);
+    createNativeKanbanDb(dbPath);
+    execFileSync(
+      'python3',
+      [
+        '-c',
+        `
+import sqlite3
+import sys
+conn = sqlite3.connect(sys.argv[1])
+try:
+    conn.executemany(
+        "INSERT INTO tasks (id, title, body, assignee, status, priority, created_by, created_at, workspace_kind, tenant, workflow_template_id, current_step_key) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scratch', ?, ?, ?)",
+        [
+            ('t_research', 'Research offer wedge', 'Gather proof points.', 'cmo', 'triage', 4, 'command-eve', 1812345600, 'command-eve-marketing', 'command-eve-marketing', 'research'),
+            ('t_review', 'Review LinkedIn post', 'Needs founder pass.', 'cmo', 'review', 9, 'command-eve', 1812345700, 'command-eve-marketing', 'command-eve-marketing', 'review'),
+        ],
+    )
+    conn.commit()
+finally:
+    conn.close()
+`,
+        dbPath,
+      ],
+      { encoding: 'utf8' }
+    );
+
+    const result = buildKanbanMarketingBoard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.model?.columns.find((column) => column.key === 'research')?.cards[0].card_id).toBe('t_research');
+    expect(result.model?.columns.find((column) => column.key === 'review')?.cards[0].card_id).toBe('t_review');
+    expect(result.model?.summary.total_cards).toBe(2);
+    expect(result.model?.policy.dispatcher_enabled).toBe(false);
+    expect(result.model?.policy.auto_decompose_enabled).toBe(false);
+  });
+
+  it('creates one governed proof card and one linked append-only audit event', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const result = createKanbanMarketingProofCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      now: () => new Date('2026-06-11T10:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('KANBAN_MARKETING_PROOF_CARD_CREATED');
+    expect(result.audit_event_path).toBe(eventLedgerPath);
+    expect(result.audit_event_id).toContain(result.card_id || 'missing-card');
+
+    const dbPath = marketingBoardPath(root);
+    const tasks = readRows(dbPath, 'SELECT id, title, tenant, status, idempotency_key FROM tasks');
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      id: result.card_id,
+      title: 'Command EVE Marketing Board proof card',
+      tenant: 'command-eve-marketing',
+      status: 'triage',
+      idempotency_key: 'command-eve-marketing-board-proof-v0',
+    });
+
+    const taskEvents = readRows(dbPath, 'SELECT task_id, kind, payload FROM task_events');
+    expect(taskEvents).toHaveLength(1);
+    expect(taskEvents[0]).toMatchObject({
+      task_id: result.card_id,
+      kind: 'command_eve_proof_card_created',
+    });
+    expect(String((taskEvents[0] as { payload: string }).payload)).toContain(String(result.audit_event_id));
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0]).toMatchObject({
+      event_type: 'kanban.marketing_board_proof_card_created',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-proof',
+    });
+  });
+
+  it('keeps the proof card action idempotent', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const first = createKanbanMarketingProofCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      now: () => new Date('2026-06-11T10:00:00.000Z'),
+    });
+    const second = createKanbanMarketingProofCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      now: () => new Date('2026-06-11T10:05:00.000Z'),
+    });
+
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(second.reason_code).toBe('KANBAN_MARKETING_PROOF_CARD_EXISTS');
+    expect(second.card_id).toBe(first.card_id);
+    expect(readRows(marketingBoardPath(root), 'SELECT id FROM tasks')).toHaveLength(1);
+    expect(readAuditEvents(eventLedgerPath)).toHaveLength(1);
+  });
+
+  it('blocks proof card writes unless Kanban governance stays locked', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root, {
+      kanban_auto_decompose: true,
+    });
+
+    const result = createKanbanMarketingProofCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath: path.join(root, 'agent-events.jsonl'),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+    expect(fs.existsSync(marketingBoardPath(root))).toBe(false);
+  });
+});

@@ -1,0 +1,84 @@
+{
+  "sider": "Command Center",
+  "title": "Command Center",
+  "subtitle": "Read-only view into EVE's local Company.OS read model. No fake data, no direct write path.",
+  "readOnly": "Read-only",
+  "refresh": "Refresh",
+  "blocked": {
+    "title": "Read model unavailable",
+    "description": "Start EVE through start_eve or set the Company.OS root so the app can read the local agent event ledger.",
+    "electronBridgeRequired": "Command Center reads local Company.OS files through the Electron app process. This local bridge path is not available in browser WebUI mode."
+  },
+  "errors": {
+    "loadFailed": "Command Center could not be loaded."
+  },
+  "sections": {
+    "source": "Source",
+    "board": "Local Board",
+    "marketingBoard": "Marketing Board",
+    "workerRuns": "Worker runs",
+    "humanGates": "Human gates",
+    "ceoCriticalReleases": "CEO-critical releases",
+    "eveHg35Packets": "EVE HG-3.5 packets",
+    "traces": "Live trace"
+  },
+  "board": {
+    "description": "Board view from the same local read model. No mutation, no dispatcher, no auto-decompose.",
+    "empty": "No items in this column.",
+    "columns": {
+      "active": "Active",
+      "humanGate": "HumanGate",
+      "blocked": "Blocked",
+      "review": "Review"
+    }
+  },
+  "marketingBoard": {
+    "description": "Hermes-native Kanban view for Command EVE Marketing. The app reads the local kanban.db and only allows one idempotent proof card with an audit receipt.",
+    "emptyColumn": "No marketing cards in this lane.",
+    "columns": {
+      "research": "Research",
+      "draft": "Draft",
+      "assetGeneration": "Assets",
+      "review": "Review",
+      "readyToApprove": "Approval"
+    },
+    "policy": {
+      "readFirst": "Read-first",
+      "humanGate": "HG-2.5",
+      "noDispatcher": "Dispatcher off"
+    },
+    "labels": {
+      "audit": "Audit",
+      "board": "Board",
+      "database": "Database",
+      "owner": "Owner"
+    },
+    "blocked": {
+      "title": "Marketing Board not initialized yet",
+      "description": "Hermes Kanban is ready, but the local marketing board database has not been created yet."
+    },
+    "actions": {
+      "createProofCard": "Create proof card"
+    },
+    "proof": {
+      "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",
+      "resultTitle": "Proof-card receipt",
+      "failed": "Proof card could not be created."
+    }
+  },
+  "labels": {
+    "agent": "Agent",
+    "events": "Events",
+    "generatedAt": "Generated",
+    "humanGate": "HumanGate",
+    "lastEvent": "Last event",
+    "ledger": "Ledger"
+  },
+  "empty": {
+    "workerRuns": "No worker runs in the local ledger yet.",
+    "humanGates": "No open HumanGates in the local ledger.",
+    "ceoCriticalReleases": "No CEO-critical releases in the local ledger.",
+    "eveHg35Packets": "No open EVE HG-3.5 packets in the local ledger.",
+    "traces": "No trace cards in the local ledger yet."
+  }
+}

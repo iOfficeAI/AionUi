@@ -26,8 +26,10 @@ export async function httpInvoke<T = unknown>(
 ): Promise<T> {
   return page.evaluate(
     async ({ method: m, path: p, body: b }) => {
-      const port = (window as unknown as { __backendPort?: number }).__backendPort ?? 13400;
-      const url = `http://127.0.0.1:${port}${p}`;
+      const win = window as unknown as {
+        __backendPort?: number;
+        __aionBackend?: { getPort?: () => number };
+      };
       // DELETE routes require Content-Type: application/json AND a JSON-parseable
       // body even when the operation takes no body (e.g. DELETE /api/skills/external-paths
       // where the path is in the query string). Send `{}` as default body for DELETE.
@@ -43,7 +45,29 @@ export async function httpInvoke<T = unknown>(
         requestInit.body = JSON.stringify(effectiveBody);
       }
 
-      const res = await fetch(url, requestInit);
+      const deadline = Date.now() + 30_000;
+      let lastError = 'backend port unavailable';
+      let res: Response | undefined;
+
+      while (Date.now() < deadline) {
+        const rawPort = win.__backendPort;
+        const dynamicPort = typeof rawPort === 'number' && rawPort > 0 ? rawPort : win.__aionBackend?.getPort?.();
+        const port = typeof dynamicPort === 'number' && dynamicPort > 0 ? dynamicPort : 13400;
+        win.__backendPort = port;
+        const url = `http://127.0.0.1:${port}${p}`;
+
+        try {
+          res = await fetch(url, requestInit);
+          break;
+        } catch (error) {
+          lastError = error instanceof Error ? error.message : String(error);
+          await new Promise((resolve) => setTimeout(resolve, 250));
+        }
+      }
+
+      if (!res) {
+        throw new Error(`Backend ${m} ${p} unavailable after 30000ms: ${lastError}`);
+      }
 
       if (!res.ok) {
         let errText: string;

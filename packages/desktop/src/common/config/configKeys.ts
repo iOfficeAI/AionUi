@@ -56,6 +56,10 @@ export type ConfigKeyMap = {
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
   'system.autoPreviewOfficeFiles': boolean | undefined;
+  'commandEve.runtimeStatusVisible': boolean | undefined;
+  'commandEve.modelWarmupEnabled': boolean | undefined;
+  'commandEve.localModelTierId': string | undefined;
+  'commandEve.executionMode': 'observed' | 'delegated' | 'autonomous' | undefined;
   'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
   'assistant.telegram.agent':
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }

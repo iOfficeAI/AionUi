@@ -13,7 +13,26 @@
 declare global {
   interface Window {
     __backendPort?: number;
+    __aionBackend?: {
+      getPort?: () => number;
+    };
   }
+}
+
+function resolveRendererBackendPort(): number | undefined {
+  if (typeof window === 'undefined') return undefined;
+  const exposedPort = (window as Window).__backendPort;
+  if (typeof exposedPort === 'number' && exposedPort > 0) return exposedPort;
+  const dynamicPort = (window as Window).__aionBackend?.getPort?.();
+  if (typeof dynamicPort === 'number' && dynamicPort > 0) {
+    (window as Window).__backendPort = dynamicPort;
+    return dynamicPort;
+  }
+  return undefined;
+}
+
+function hasElectronBackendBridge(): boolean {
+  return typeof window !== 'undefined' && typeof (window as Window).__aionBackend?.getPort === 'function';
 }
 
 /**
@@ -33,11 +52,12 @@ declare global {
  *   will still fail cleanly with ECONNREFUSED rather than masking the bug.
  */
 function getBackendPort(): number {
-  if (typeof window !== 'undefined' && (window as Window).__backendPort) {
-    return (window as Window).__backendPort as number;
+  const rendererPort = resolveRendererBackendPort();
+  if (rendererPort) {
+    return rendererPort;
   }
   const g = globalThis as typeof globalThis & { __backendPort?: number };
-  return g.__backendPort ?? 13400;
+  return typeof g.__backendPort === 'number' && g.__backendPort > 0 ? g.__backendPort : 13400;
 }
 
 /**
@@ -46,7 +66,12 @@ function getBackendPort(): number {
  * proxy / WS upgrade to the backend.
  */
 function isWebUiBrowserMode(): boolean {
-  return typeof window !== 'undefined' && typeof document !== 'undefined' && !(window as Window).__backendPort;
+  return (
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    !hasElectronBackendBridge() &&
+    !resolveRendererBackendPort()
+  );
 }
 
 export function getBaseUrl(): string {
