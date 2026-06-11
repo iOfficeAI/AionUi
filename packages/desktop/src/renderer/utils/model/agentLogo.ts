@@ -39,7 +39,7 @@ const AGENT_LOGO_PATH_MAP = {
   'openclaw-gateway': 'tools/openclaw.svg',
   vibe: 'ai-major/mistral.svg',
   nanobot: 'tools/nanobot.svg',
-  remote: 'tools/openclaw.svg',
+  remote: 'tools/server.svg',
   qoder: 'tools/coding/qoder.png',
   cursor: 'tools/coding/cursor.png',
 } as const satisfies Record<string, string>;
