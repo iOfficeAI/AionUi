@@ -10,6 +10,7 @@ import { ipcBridge } from '@/common';
 import { resolveActiveTheme } from '@/common/theme/resolveTheme';
 import { BUILTIN_THEMES } from '@renderer/theme/builtinThemes';
 import { processCustomCss } from './customCssProcessor';
+import { getSystemPrefersDark } from './systemAppearance';
 
 const TOKENS_STYLE_ID = 'theme-tokens';
 const DECORATION_STYLE_ID = 'theme-decoration';
@@ -45,7 +46,7 @@ export function applyTheme(theme: Theme, root: Document = document): void {
 /** Resolve `activeId` locally, apply, persist, and publish to main for cross-window broadcast. */
 export async function setActiveTheme(activeId: string): Promise<void> {
   const userThemes = (configService.get('theme.userThemes') as Theme[] | undefined) ?? [];
-  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes]);
+  const resolved = resolveActiveTheme(activeId, [...BUILTIN_THEMES, ...userThemes], getSystemPrefersDark());
   applyTheme(resolved);
   await configService.set('theme.activeId', activeId);
   await ipcBridge.theme.setActive.invoke(resolved);

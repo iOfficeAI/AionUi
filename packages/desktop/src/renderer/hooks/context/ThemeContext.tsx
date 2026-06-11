@@ -21,6 +21,8 @@ interface ThemeContextValue {
   setTheme: (appearance: ThemeAppearance) => Promise<void>;
   // The full unified active theme + selector by id (used by the new gallery)
   activeTheme: Theme | null;
+  // Raw selected id from config — may be the `system` sentinel (gallery check mark uses this)
+  activeId: string | null;
   selectTheme: (id: string) => Promise<void>;
   // Font scaling (unchanged)
   fontScale: number;
@@ -33,7 +35,7 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
-  const [activeTheme, selectTheme] = useTheme();
+  const [activeTheme, selectTheme, activeId] = useTheme();
   const [fontScale, setFontScale] = useFontScale();
   const { fontSizes, setFontSize } = useFontSizes();
   const theme: ThemeAppearance = activeTheme?.appearance ?? 'light';
@@ -44,7 +46,7 @@ export const ThemeProvider: React.FC<PropsWithChildren> = ({ children }) => {
 
   return (
     <ThemeContext.Provider
-      value={{ theme, setTheme, activeTheme, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}
+      value={{ theme, setTheme, activeTheme, activeId, selectTheme, fontScale, setFontScale, fontSizes, setFontSize }}
     >
       {children}
     </ThemeContext.Provider>
