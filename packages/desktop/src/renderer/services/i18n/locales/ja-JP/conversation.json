@@ -368,6 +368,17 @@
       "recordingUnsupported": "この環境では直接録音できません。音声ファイルをアップロードしてください",
       "transcriptionFailed": "音声の文字起こしに失敗しました",
       "genericError": "音声入力に失敗しました。もう一度お試しください"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "この会話の音声モードをオフにする",
+      "toggleOffTooltip": "この会話の音声モードをオンにする",
+      "playAria": "音声要約を再生",
+      "pauseAria": "音声要約を一時停止",
+      "resumeAria": "音声要約を再開",
+      "skipAria": "音声要約をスキップ",
+      "spokenLabel": "音声要約",
+      "pushFailed": "エージェントへの音声モード通知に失敗しました",
+      "persistFailed": "音声モード設定の保存に失敗しました"
     }
   },
   "sideQuestion": {

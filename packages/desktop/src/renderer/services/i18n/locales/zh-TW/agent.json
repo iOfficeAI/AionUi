@@ -12,7 +12,10 @@
     "highLatency": "高延遲",
     "bestMatch": "最佳匹配",
     "noAvailable": "當前環境沒有可用 agent",
-    "checkConfig": "請檢查配置或稍後重試"
+    "checkConfig": "請檢查配置或稍後重試",
+    "sessionError": "工作階段異常",
+    "sessionErrorTooltip": "遠端工作階段回報錯誤：{{message}}",
+    "sessionErrorTooltipFallback": "遠端工作階段回報錯誤"
   },
   "setup": {
     "connectionError": "連接錯誤",
@@ -26,5 +29,33 @@
     "noAlternatives": "未找到可用的 Agent",
     "configureFirst": "請先在設定中配置一個 Agent。",
     "switching": "正在切換 Agent..."
+  },
+  "bgProcess": {
+    "indicator": {
+      "one": "1 個背景進程",
+      "other": "{{count}} 個背景進程"
+    },
+    "panel": {
+      "title": "背景進程",
+      "empty": "目前沒有執行中的背景進程",
+      "column": {
+        "name": "名稱",
+        "status": "狀態",
+        "uptime": "執行時長",
+        "exitCode": "退出碼",
+        "actions": "操作"
+      },
+      "status": {
+        "running": "執行中",
+        "exited": "已退出",
+        "killed": "已停止"
+      },
+      "stop": "停止",
+      "stopConfirm": "確定要停止該背景進程嗎？",
+      "viewOutput": "檢視輸出",
+      "outputTitle": "輸出：{{name}}",
+      "outputTruncated": "輸出已截斷，僅顯示最近的緩衝內容。",
+      "outputEmpty": "暫無輸出"
+    }
   }
 }

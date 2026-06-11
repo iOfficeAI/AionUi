@@ -382,6 +382,17 @@
       "recordingUnsupported": "Live recording is not supported here. Please upload an audio file instead",
       "transcriptionFailed": "Audio transcription failed",
       "genericError": "Voice input failed. Please try again"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "Turn voice mode off for this conversation",
+      "toggleOffTooltip": "Turn voice mode on for this conversation",
+      "playAria": "Play spoken summary",
+      "pauseAria": "Pause spoken summary",
+      "resumeAria": "Resume spoken summary",
+      "skipAria": "Skip spoken summary",
+      "spokenLabel": "Spoken summary",
+      "pushFailed": "Failed to notify the agent about voice mode",
+      "persistFailed": "Failed to save voice mode preference"
     }
   },
   "sideQuestion": {

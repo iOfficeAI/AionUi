@@ -12,7 +12,10 @@
     "highLatency": "High Latency",
     "bestMatch": "Best Match",
     "noAvailable": "No available agents in current environment",
-    "checkConfig": "Please check configuration or try again later"
+    "checkConfig": "Please check configuration or try again later",
+    "sessionError": "Session error",
+    "sessionErrorTooltip": "Remote session reported an error: {{message}}",
+    "sessionErrorTooltipFallback": "Remote session reported an error"
   },
   "setup": {
     "connectionError": "Connection Error",
@@ -26,5 +29,33 @@
     "noAlternatives": "No available agents found",
     "configureFirst": "Please configure an agent in Settings first.",
     "switching": "Switching agent..."
+  },
+  "bgProcess": {
+    "indicator": {
+      "one": "1 background process",
+      "other": "{{count}} background processes"
+    },
+    "panel": {
+      "title": "Background Processes",
+      "empty": "No background processes running",
+      "column": {
+        "name": "Name",
+        "status": "Status",
+        "uptime": "Uptime",
+        "exitCode": "Exit Code",
+        "actions": "Actions"
+      },
+      "status": {
+        "running": "Running",
+        "exited": "Exited",
+        "killed": "Killed"
+      },
+      "stop": "Stop",
+      "stopConfirm": "Stop this background process?",
+      "viewOutput": "View output",
+      "outputTitle": "Output: {{name}}",
+      "outputTruncated": "Output truncated. Showing the most recent buffered output.",
+      "outputEmpty": "No output yet"
+    }
   }
 }

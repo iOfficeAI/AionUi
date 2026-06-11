@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { useRemoteWorkspaceChanged } from '@/renderer/hooks/agent/useRemoteWorkspaceEvents';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { mutate } from 'swr';
 import { isEditorAccessibleInLayoutMode } from '@renderer/utils/layout/layoutModeStorage';
@@ -1030,51 +1031,71 @@ export const EditorProvider: React.FC<{ children: React.ReactNode }> = ({ childr
   // Disk-change polling (iterates all open buffers)
   // ---------------------------------------------------------------------------
 
+  // Pulled out into a ref so the WS subscription below can fire the same
+  // path on remote file-watch events. The body still re-reads buffers
+  // from `stateRef.current` so it always sees the latest snapshot.
+  const pollAllBuffersRef = useRef<() => void>(() => undefined);
+  pollAllBuffersRef.current = (): void => {
+    const current = stateRef.current;
+    if (!current.isOpen || current.isCollapsed) return;
+    for (const buffer of current.buffers) {
+      if (!buffer.filePath || buffer.loading || buffer.saving) continue;
+      const { key, filePath, workspace, lastModified } = buffer;
+      void ipcBridge.fs.getFileMetadata
+        .invoke({ path: filePath, workspace })
+        .then((metadata) => {
+          if (!metadata || metadata.lastModified === lastModified) return;
+          const latest = findBuffer(stateRef.current.buffers, key);
+          if (!latest) return;
+          if (isBufferDirty(latest)) {
+            setState((prev) => ({
+              ...prev,
+              buffers: updateBuffer(prev.buffers, key, {
+                lastModified: metadata.lastModified,
+                diskChanged: true,
+              }),
+              notice:
+                prev.activeKey === key ? createNotice('warning', 'conversation.editor.fileChangedOnDisk') : prev.notice,
+            }));
+            return;
+          }
+          void ipcBridge.fs.readFile.invoke({ path: filePath, workspace }).then((content) => {
+            if (content == null) return;
+            setState((prev) => ({
+              ...prev,
+              buffers: updateBuffer(prev.buffers, key, {
+                content,
+                originalContent: content,
+                lastModified: metadata.lastModified,
+                diskChanged: false,
+              }),
+            }));
+          });
+        })
+        .catch((): void => undefined);
+    }
+  };
+
   useEffect(() => {
     const interval = window.setInterval(() => {
-      const current = stateRef.current;
-      if (!current.isOpen || current.isCollapsed) return;
-      for (const buffer of current.buffers) {
-        if (!buffer.filePath || buffer.loading || buffer.saving) continue;
-        const { key, filePath, workspace, lastModified } = buffer;
-        void ipcBridge.fs.getFileMetadata
-          .invoke({ path: filePath, workspace })
-          .then((metadata) => {
-            if (!metadata || metadata.lastModified === lastModified) return;
-            const latest = findBuffer(stateRef.current.buffers, key);
-            if (!latest) return;
-            if (isBufferDirty(latest)) {
-              setState((prev) => ({
-                ...prev,
-                buffers: updateBuffer(prev.buffers, key, {
-                  lastModified: metadata.lastModified,
-                  diskChanged: true,
-                }),
-                notice:
-                  prev.activeKey === key
-                    ? createNotice('warning', 'conversation.editor.fileChangedOnDisk')
-                    : prev.notice,
-              }));
-              return;
-            }
-            void ipcBridge.fs.readFile.invoke({ path: filePath, workspace }).then((content) => {
-              if (content == null) return;
-              setState((prev) => ({
-                ...prev,
-                buffers: updateBuffer(prev.buffers, key, {
-                  content,
-                  originalContent: content,
-                  lastModified: metadata.lastModified,
-                  diskChanged: false,
-                }),
-              }));
-            });
-          })
-          .catch((): void => undefined);
-      }
+      pollAllBuffersRef.current();
     }, FILE_CHANGE_POLL_MS);
     return () => window.clearInterval(interval);
   }, []);
+
+  // Push-driven refresh for remote conversations: AionCore broadcasts
+  // `remote.workspaceChanged` on file-watch updates. The provider sits
+  // above the conversation tree so it cannot know the active agentId, so
+  // it listens to all agents and lets the existing mtime comparison
+  // short-circuit when the buffer is local or belongs to a different
+  // agent's workspace. 200 ms client-side debounce coalesces bursts.
+  useRemoteWorkspaceChanged(
+    null,
+    () => {
+      pollAllBuffersRef.current();
+    },
+    { debounceMs: 200 }
+  );
 
   const value = useMemo<EditorContextValue>(
     () => ({

@@ -12,7 +12,10 @@
     "highLatency": "高遅延",
     "bestMatch": "最適一致",
     "noAvailable": "現在の環境で利用可能なエージェントがありません",
-    "checkConfig": "設定を確認するか、後でもう一度お試しください"
+    "checkConfig": "設定を確認するか、後でもう一度お試しください",
+    "sessionError": "セッション異常",
+    "sessionErrorTooltip": "リモートセッションがエラーを報告しました：{{message}}",
+    "sessionErrorTooltipFallback": "リモートセッションがエラーを報告しました"
   },
   "setup": {
     "connectionError": "接続エラー",
@@ -26,5 +29,33 @@
     "noAlternatives": "利用可能なエージェントが見つかりません",
     "configureFirst": "まず設定でエージェントを設定してください。",
     "switching": "エージェントを切り替え中..."
+  },
+  "bgProcess": {
+    "indicator": {
+      "one": "バックグラウンドプロセス 1 件",
+      "other": "バックグラウンドプロセス {{count}} 件"
+    },
+    "panel": {
+      "title": "バックグラウンドプロセス",
+      "empty": "実行中のバックグラウンドプロセスはありません",
+      "column": {
+        "name": "名前",
+        "status": "ステータス",
+        "uptime": "実行時間",
+        "exitCode": "終了コード",
+        "actions": "操作"
+      },
+      "status": {
+        "running": "実行中",
+        "exited": "終了",
+        "killed": "停止"
+      },
+      "stop": "停止",
+      "stopConfirm": "このバックグラウンドプロセスを停止しますか？",
+      "viewOutput": "出力を表示",
+      "outputTitle": "出力: {{name}}",
+      "outputTruncated": "出力は切り詰められています。最近のバッファ内容のみを表示しています。",
+      "outputEmpty": "出力はまだありません"
+    }
   }
 }

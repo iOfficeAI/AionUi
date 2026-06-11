@@ -12,7 +12,10 @@
     "highLatency": "높은 지연",
     "bestMatch": "최적 일치",
     "noAvailable": "현재 환경에서 사용 가능한 에이전트 없음",
-    "checkConfig": "설정을 확인하거나 나중에 다시 시도하세요"
+    "checkConfig": "설정을 확인하거나 나중에 다시 시도하세요",
+    "sessionError": "세션 오류",
+    "sessionErrorTooltip": "원격 세션이 오류를 보고했습니다: {{message}}",
+    "sessionErrorTooltipFallback": "원격 세션이 오류를 보고했습니다"
   },
   "setup": {
     "connectionError": "연결 오류",
@@ -26,5 +29,33 @@
     "noAlternatives": "사용 가능한 에이전트가 없습니다",
     "configureFirst": "먼저 설정에서 에이전트를 구성하세요.",
     "switching": "에이전트 전환 중..."
+  },
+  "bgProcess": {
+    "indicator": {
+      "one": "백그라운드 프로세스 1개",
+      "other": "백그라운드 프로세스 {{count}}개"
+    },
+    "panel": {
+      "title": "백그라운드 프로세스",
+      "empty": "실행 중인 백그라운드 프로세스가 없습니다",
+      "column": {
+        "name": "이름",
+        "status": "상태",
+        "uptime": "실행 시간",
+        "exitCode": "종료 코드",
+        "actions": "작업"
+      },
+      "status": {
+        "running": "실행 중",
+        "exited": "종료됨",
+        "killed": "중지됨"
+      },
+      "stop": "중지",
+      "stopConfirm": "이 백그라운드 프로세스를 중지하시겠습니까?",
+      "viewOutput": "출력 보기",
+      "outputTitle": "출력: {{name}}",
+      "outputTruncated": "출력이 잘렸습니다. 가장 최근 버퍼 내용만 표시됩니다.",
+      "outputEmpty": "출력이 아직 없습니다"
+    }
   }
 }

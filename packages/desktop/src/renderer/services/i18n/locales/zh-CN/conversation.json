@@ -368,6 +368,17 @@
       "recordingUnsupported": "当前环境不支持直接录音，请改为上传音频文件",
       "transcriptionFailed": "音频转写失败",
       "genericError": "语音输入失败，请重试"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "关闭当前会话的语音模式",
+      "toggleOffTooltip": "开启当前会话的语音模式",
+      "playAria": "播放语音摘要",
+      "pauseAria": "暂停语音摘要",
+      "resumeAria": "继续播放语音摘要",
+      "skipAria": "跳过语音摘要",
+      "spokenLabel": "语音摘要",
+      "pushFailed": "通知 Agent 语音模式状态失败",
+      "persistFailed": "保存语音模式偏好失败"
     }
   },
   "sideQuestion": {

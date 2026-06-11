@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { SpeechToTextConfig, TextToSpeechConfig } from '@/common/types/provider/speech';
 import type { HttpServerRegistrySnapshot } from '@/common/registry';
 import { storage } from '@office-ai/platform';
 
@@ -79,6 +79,7 @@ export interface IConfigStorageRefer {
     switch?: boolean;
   };
   'tools.speechToText'?: SpeechToTextConfig;
+  'tools.textToSpeech'?: TextToSpeechConfig;
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）
@@ -152,6 +153,11 @@ export interface IConfigStorageRefer {
   };
   // Skills Market: whether the aionui-skills builtin skill is enabled
   'skillsMarket.enabled'?: boolean;
+  // Sidecars (Phase 3 WS3): user-configured reverse-proxied localhost services.
+  // The token returned by `POST /api/sidecars` is single-use and intentionally
+  // NOT persisted here — it lives in memory inside `useSidecars` until the
+  // next registration. Only `name` and `port` round-trip through config.
+  'sidecars.items'?: import('@/common/types/sidecarTypes').SidecarConfig[];
   // Desktop Pet: whether the desktop pet feature is enabled
   'pet.enabled'?: boolean;
   // Desktop Pet: size in pixels (200, 280, or 360)
@@ -404,6 +410,10 @@ export type TChatConversation =
            * `'build'` | `'plan'`. Lets the AgentModeSelector show the chosen
            * mode immediately on conversation load. */
           session_mode?: string;
+          /** Per-conversation voice-mode override. When unset, falls back to
+           * `tools.textToSpeech.voiceModeDefault`. Only meaningful for remote
+           * OpenCode conversations when TTS is enabled. */
+          voice_mode?: boolean;
         }
       >,
       'model'

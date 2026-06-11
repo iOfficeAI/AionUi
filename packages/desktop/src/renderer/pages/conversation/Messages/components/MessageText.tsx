@@ -29,6 +29,9 @@ import HorizontalFileList from '@renderer/components/media/HorizontalFileList';
 import MarkdownView from '@renderer/components/Markdown';
 import { stripThinkTags, hasThinkTags } from '@renderer/utils/chat/thinkTagFilter';
 import { stripSkillSuggest, hasSkillSuggest } from '@renderer/utils/chat/skillSuggestParser';
+import { extractSpokenBlock } from '@renderer/utils/chat/spokenBlocks';
+import { useVoiceModeState } from '@renderer/hooks/chat/useVoiceMode';
+import SpokenRow from './SpokenRow';
 
 /**
  * Format a timestamp for message display.
@@ -120,7 +123,19 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     return content;
   }, [message.content.content]);
 
-  const { text, files } = parseFileMarker(contentToRender);
+  // Voice-mode spoken block: extract the TTS-friendly summary AND the
+  // user-visible body. Spoken blocks are removed from `text` so the
+  // markdown renderer never shows the raw ```spoken fence to the user.
+  const spoken = useMemo(() => {
+    if (typeof contentToRender !== 'string') return null;
+    return extractSpokenBlock(contentToRender);
+  }, [contentToRender]);
+
+  // `text` is the user-visible body (spoken blocks stripped).
+  // `displayText` may equal `text` after parseFileMarker, but we use
+  // spoken.displayText to be explicit about the pipeline.
+  const displayBody = spoken?.displayText ?? (typeof contentToRender === 'string' ? contentToRender : '');
+  const { text, files } = parseFileMarker(displayBody);
   const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
@@ -134,6 +149,10 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
     () => files.map((file_path) => resolveMessageFilePath(file_path, conversationContext?.workspace)),
     [conversationContext?.workspace, files]
   );
+  // Read voice-mode state for the conversation. We only auto-enqueue
+  // when TTS is enabled AND the global config has autoPlay !== false.
+  const voiceMode = useVoiceModeState();
+  const shouldAutoEnqueue = !isUserMessage && voiceMode.effective && voiceMode.config?.autoPlay !== false;
 
   // Rules of Hooks: every hook must run unconditionally before any early
   // return. A streaming assistant message transitions empty → non-empty
@@ -409,6 +428,17 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </div>
           )}
         </div>
+        {/* Spoken-block playback row. Only renders for assistant
+            messages with a complete spoken block. The raw ```spoken
+            fence is already stripped from `data` above. */}
+        {spoken?.spoken && !isUserMessage && (
+          <SpokenRow
+            messageId={message.id}
+            text={spoken.spoken}
+            enabled={voiceMode.ttsEnabled}
+            autoEnqueue={shouldAutoEnqueue}
+          />
+        )}
         {/* Hover-revealed action row. Mobile has no hover affordance,
             so we drop the row entirely — system-level long-press still copies. */}
         {!isMobile && (

@@ -16,6 +16,9 @@ import type { ContextStore } from './context.js';
 import { formatSystemInjection } from './context.js';
 import { PLUGIN_VERSION } from './types.js';
 import { createRunShellStreamingTool } from './shell.js';
+import { createBgTools } from './bg.js';
+import type { VoiceModeStore } from './voice.js';
+import { SPOKEN_INSTRUCTION } from './voice.js';
 
 /** Hook names that the plugin declares in the hello payload. */
 export const DECLARED_HOOKS: readonly string[] = [
@@ -31,6 +34,7 @@ const FORWARDED_EVENT_TYPES: ReadonlySet<string> = new Set([
   'file.watcher.updated',
   'session.idle',
   'message.part.updated',
+  'session.error',
 ]);
 
 /**
@@ -75,6 +79,14 @@ export type BuildHooksInput = {
   store: ContextStore;
   opencodeVersion: string | undefined;
   project: { directory: string; worktree: string };
+  /**
+   * Optional voice-mode store. When provided and voice mode is enabled
+   * for the session, `SPOKEN_INSTRUCTION` is appended to the system
+   * prompt (and to the `chat.message` synthetic fallback). When
+   * omitted, voice mode is effectively disabled and the hooks behave
+   * exactly as in v0.1.0.
+   */
+  voiceStore?: VoiceModeStore;
 };
 
 export type BuildHooksResult = {
@@ -85,7 +97,7 @@ export type BuildHooksResult = {
 
 /** Build the hook bag for the OpenCode plugin runtime. */
 export const buildHooks = (input: BuildHooksInput): BuildHooksResult => {
-  const { client, store, opencodeVersion, project } = input;
+  const { client, store, opencodeVersion, project, voiceStore } = input;
 
   // Once `experimental.chat.system.transform` fires at least once, the
   // system prompt already carries our context, so the chat.message
@@ -100,6 +112,9 @@ export const buildHooks = (input: BuildHooksInput): BuildHooksResult => {
         /* swallow — plugin must never crash the host */
       });
   };
+
+  const voiceEnabledFor = (sessionID: string | undefined): boolean =>
+    voiceStore ? voiceStore.isEnabled(sessionID) : false;
 
   const hooks: Hooks = {
     event: async ({ event }) => {
@@ -169,9 +184,14 @@ export const buildHooks = (input: BuildHooksInput): BuildHooksResult => {
     'experimental.chat.system.transform': async (input2, output) => {
       try {
         const additions = store.getSystem(input2.sessionID);
+        const voiceOn = voiceEnabledFor(input2.sessionID);
         if (additions.length > 0) {
           const block = formatSystemInjection(additions);
           if (block) output.system.push(block);
+          systemTransformFired = true;
+        }
+        if (voiceOn) {
+          output.system.push(SPOKEN_INSTRUCTION);
           systemTransformFired = true;
         }
       } catch {
@@ -183,17 +203,20 @@ export const buildHooks = (input: BuildHooksInput): BuildHooksResult => {
       try {
         if (systemTransformFired) return;
         const additions = store.getSystem(input2.sessionID);
-        if (additions.length === 0) return;
-        const text = formatSystemInjection(additions);
-        if (!text) return;
+        const voiceOn = voiceEnabledFor(input2.sessionID);
+        const text = additions.length > 0 ? formatSystemInjection(additions) : '';
+        if (!text && !voiceOn) return;
         const sessionID = input2.sessionID;
         const messageID = output.message.id;
+        const blocks: string[] = [];
+        if (text) blocks.push(`[AionCore context]\n${text}`);
+        if (voiceOn) blocks.push(SPOKEN_INSTRUCTION);
         output.parts.push({
           id: `chisl-ctx-${messageID}`,
           sessionID,
           messageID,
           type: 'text',
-          text: `[AionCore context]\n${text}`,
+          text: blocks.join('\n\n'),
           synthetic: true,
         });
       } catch {
@@ -241,7 +264,9 @@ export const createPlugin = async (input: PluginInput, options?: PluginOptions):
   const opencodeVersion = await detectServerVersion(input);
   const client = new AionCoreClient({ url: mode.config.url, token: mode.config.token });
   const project = { directory: input.directory, worktree: input.worktree };
-  const store = (await import('./context.js')).ContextStore;
+  const { ContextStore: ContextStoreClass } = await import('./context.js');
+  const { VoiceModeStore: VoiceModeStoreClass } = await import('./voice.js');
+  const { connectEvents } = await import('./connection.js');
 
   // Hello body is built per reconnect from the declared hooks + project.
   const buildHello = (): import('./types.js').HelloRequest => {
@@ -256,9 +281,8 @@ export const createPlugin = async (input: PluginInput, options?: PluginOptions):
   };
 
   // Fire-and-forget background loop for the SSE stream.
-  const { ContextStore: ContextStoreClass } = await import('./context.js');
   const storeInstance = new ContextStoreClass();
-  const { connectEvents } = await import('./connection.js');
+  const voiceStoreInstance = new VoiceModeStoreClass();
   const controller = new AbortController();
   void connectEvents({
     client,
@@ -271,6 +295,13 @@ export const createPlugin = async (input: PluginInput, options?: PluginOptions):
         }
         return;
       }
+      if (event.type === 'voice_mode') {
+        const data = event.data as { sessionID?: string | null; enabled?: boolean } | undefined;
+        if (data && typeof data.enabled === 'boolean') {
+          voiceStoreInstance.apply({ sessionID: data.sessionID ?? undefined, enabled: data.enabled });
+        }
+        return;
+      }
       if (event.type === 'ping' || event.type === 'raw') return;
     },
     signal: controller.signal,
@@ -278,7 +309,13 @@ export const createPlugin = async (input: PluginInput, options?: PluginOptions):
     /* swallow */
   });
 
-  const { hooks } = buildHooks({ client, store: storeInstance, opencodeVersion, project });
+  const { hooks } = buildHooks({
+    client,
+    store: storeInstance,
+    opencodeVersion,
+    project,
+    voiceStore: voiceStoreInstance,
+  });
 
   // The streaming shell tool closes over the live client. A boxed
   // reference lets dispose() drop the reference and the factory read
@@ -286,13 +323,14 @@ export const createPlugin = async (input: PluginInput, options?: PluginOptions):
   // into disabled mode.
   const clientRef: { current: AionCoreClient | null } = { current: client };
   const runShellStreamingTool = createRunShellStreamingTool(() => clientRef.current);
+  const bgTools = createBgTools(() => clientRef.current);
 
   // Annotate the returned object so dispose() can stop the SSE loop
-  // and drop the client reference held by the shell tool.
+  // and drop the client reference held by the shell + bg tools.
   (hooks as { dispose?: () => Promise<void> }).dispose = async () => {
     controller.abort();
     clientRef.current = null;
   };
 
-  return { ...hooks, tool: { run_shell_streaming: runShellStreamingTool } };
+  return { ...hooks, tool: { run_shell_streaming: runShellStreamingTool, ...bgTools } };
 };

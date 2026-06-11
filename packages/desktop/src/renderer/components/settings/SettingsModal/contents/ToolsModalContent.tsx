@@ -7,9 +7,26 @@
 import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID } from '@/common/config/storage';
-import type { SpeechToTextConfig, SpeechToTextProvider } from '@/common/types/provider/speech';
+import type {
+  SpeechToTextConfig,
+  SpeechToTextProvider,
+  TextToSpeechConfig,
+  TextToSpeechProvider,
+} from '@/common/types/provider/speech';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
-import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch, Input } from '@arco-design/web-react';
+import {
+  Divider,
+  Form,
+  Tooltip,
+  Message,
+  Button,
+  Dropdown,
+  Menu,
+  Modal,
+  Switch,
+  Input,
+  InputNumber,
+} from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -35,6 +52,7 @@ type MessageInstance = ReturnType<typeof Message.useMessage>[0];
 
 const isBuiltinImageGenServer = (server: IMcpServer) => server.builtin === true && server.id === BUILTIN_IMAGE_GEN_ID;
 const SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT = 'aionui:speech-to-text-config-changed';
+const TEXT_TO_SPEECH_CONFIG_CHANGED_EVENT = 'aionui:text-to-speech-config-changed';
 const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   enabled: false,
   provider: 'openai',
@@ -55,6 +73,23 @@ const DEFAULT_SPEECH_TO_TEXT_CONFIG: SpeechToTextConfig = {
   },
 };
 
+const DEFAULT_TEXT_TO_SPEECH_CONFIG: TextToSpeechConfig = {
+  enabled: false,
+  provider: 'system',
+  voiceModeDefault: false,
+  autoPlay: true,
+  system: {
+    voice: '',
+    rate: 1,
+  },
+  openai: {
+    apiKey: '',
+    baseUrl: '',
+    model: 'tts-1',
+    voice: 'alloy',
+  },
+};
+
 const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextConfig => ({
   ...DEFAULT_SPEECH_TO_TEXT_CONFIG,
   ...config,
@@ -65,6 +100,19 @@ const normalizeSpeechToTextConfig = (config?: SpeechToTextConfig): SpeechToTextC
   deepgram: {
     ...DEFAULT_SPEECH_TO_TEXT_CONFIG.deepgram,
     ...config?.deepgram,
+  },
+});
+
+const normalizeTextToSpeechConfig = (config?: TextToSpeechConfig | null): TextToSpeechConfig => ({
+  ...DEFAULT_TEXT_TO_SPEECH_CONFIG,
+  ...config,
+  system: {
+    ...DEFAULT_TEXT_TO_SPEECH_CONFIG.system,
+    ...config?.system,
+  },
+  openai: {
+    ...DEFAULT_TEXT_TO_SPEECH_CONFIG.openai,
+    ...config?.openai,
   },
 });
 
@@ -203,6 +251,150 @@ const SpeechToTextSettingsSection: React.FC<{
                 checked={config.deepgram?.smartFormat !== false}
                 onChange={(checked) => handleDeepgramChange('smartFormat', checked)}
               />
+            </Form.Item>
+          </>
+        )}
+      </Form>
+    </div>
+  );
+};
+
+const TextToSpeechSettingsSection: React.FC<{
+  config: TextToSpeechConfig;
+  onChange: (updater: (current: TextToSpeechConfig) => TextToSpeechConfig) => void;
+}> = ({ config, onChange }) => {
+  const { t } = useTranslation();
+  const renderTtsFieldLabel = useCallback(
+    (labelKey: string, requirement: 'required' | 'optional') => (
+      <span className='inline-flex items-center gap-6px'>
+        <span>{t(labelKey)}</span>
+        <span aria-hidden='true' className='text-12px text-t-tertiary'>
+          ({t(requirement === 'required' ? 'settings.textToSpeechRequired' : 'settings.textToSpeechOptional')})
+        </span>
+      </span>
+    ),
+    [t]
+  );
+
+  const handleProviderChange = useCallback(
+    (value: string) => {
+      onChange((current) => ({
+        ...current,
+        provider: value as TextToSpeechProvider,
+      }));
+    },
+    [onChange]
+  );
+
+  const handleSystemChange = useCallback(
+    (field: keyof NonNullable<TextToSpeechConfig['system']>, value: string | number | undefined) => {
+      onChange((current) => ({
+        ...current,
+        system: {
+          ...current.system,
+          [field]: value,
+        },
+      }));
+    },
+    [onChange]
+  );
+
+  const handleOpenAITtsChange = useCallback(
+    (field: keyof NonNullable<TextToSpeechConfig['openai']>, value: string) => {
+      onChange((current) => ({
+        ...current,
+        openai: {
+          ...current.openai,
+          [field]: value,
+        },
+      }));
+    },
+    [onChange]
+  );
+
+  return (
+    <div className='px-[12px] md:px-[32px] py-[24px] bg-2 rd-12px md:rd-16px border border-border-2'>
+      <div className='flex items-center justify-between gap-12px mb-8px'>
+        <div className='flex flex-col gap-4px'>
+          <span className='text-14px text-t-primary'>{t('settings.textToSpeech')}</span>
+          <span className='text-13px text-t-secondary'>{t('settings.textToSpeechDescription')}</span>
+        </div>
+        <Switch
+          checked={config.enabled}
+          onChange={(checked) => {
+            onChange((current) => ({
+              ...current,
+              enabled: checked,
+            }));
+          }}
+        />
+      </div>
+
+      <Divider className='mt-0px mb-20px' />
+
+      <Form layout='horizontal' labelAlign='left' className='space-y-12px'>
+        <Form.Item label={t('settings.textToSpeechVoiceModeDefault')}>
+          <Switch
+            checked={Boolean(config.voiceModeDefault)}
+            onChange={(checked) => {
+              onChange((current) => ({
+                ...current,
+                voiceModeDefault: checked,
+              }));
+            }}
+          />
+        </Form.Item>
+        <Form.Item label={t('settings.textToSpeechAutoPlay')}>
+          <Switch
+            checked={config.autoPlay !== false}
+            onChange={(checked) => {
+              onChange((current) => ({
+                ...current,
+                autoPlay: checked,
+              }));
+            }}
+          />
+        </Form.Item>
+
+        <Form.Item label={t('settings.textToSpeechProvider')}>
+          <AionSelect value={config.provider} onChange={handleProviderChange}>
+            <AionSelect.Option value='system'>{t('settings.textToSpeechProviderSystem')}</AionSelect.Option>
+            <AionSelect.Option value='openai'>{t('settings.textToSpeechProviderOpenAI')}</AionSelect.Option>
+          </AionSelect>
+        </Form.Item>
+
+        {config.provider === 'system' ? (
+          <>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechSystemVoice', 'optional')}>
+              <Input value={config.system?.voice} onChange={(value) => handleSystemChange('voice', value)} />
+            </Form.Item>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechSystemRate', 'optional')}>
+              <InputNumber
+                min={0.1}
+                max={10}
+                step={0.1}
+                value={config.system?.rate ?? 1}
+                onChange={(value) => handleSystemChange('rate', typeof value === 'number' ? value : Number(value) || 1)}
+              />
+            </Form.Item>
+          </>
+        ) : (
+          <>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechApiKey', 'required')}>
+              <Input.Password
+                value={config.openai?.apiKey}
+                visibilityToggle
+                onChange={(value) => handleOpenAITtsChange('apiKey', value)}
+              />
+            </Form.Item>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechBaseUrl', 'optional')}>
+              <Input value={config.openai?.baseUrl} onChange={(value) => handleOpenAITtsChange('baseUrl', value)} />
+            </Form.Item>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechModel', 'optional')}>
+              <Input value={config.openai?.model} onChange={(value) => handleOpenAITtsChange('model', value)} />
+            </Form.Item>
+            <Form.Item label={renderTtsFieldLabel('settings.textToSpeechOpenAIVoice', 'optional')}>
+              <Input value={config.openai?.voice} onChange={(value) => handleOpenAITtsChange('voice', value)} />
             </Form.Item>
           </>
         )}
@@ -512,6 +704,7 @@ const ToolsModalContent: React.FC = () => {
     ConfigKeyMap['tools.imageGenerationModel'] | undefined
   >();
   const [speechToTextConfig, setSpeechToTextConfig] = useState<SpeechToTextConfig>(DEFAULT_SPEECH_TO_TEXT_CONFIG);
+  const [textToSpeechConfig, setTextToSpeechConfig] = useState<TextToSpeechConfig>(DEFAULT_TEXT_TO_SPEECH_CONFIG);
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, extensionMcpServers, saveMcpServers } = useMcpServers();
@@ -547,10 +740,12 @@ const ToolsModalContent: React.FC = () => {
       try {
         const storedModel = configService.get('tools.imageGenerationModel');
         const storedSpeechToTextConfig = configService.get('tools.speechToText');
+        const storedTextToSpeechConfig = configService.get('tools.textToSpeech');
         if (storedModel) {
           setImageGenerationModel(storedModel);
         }
         setSpeechToTextConfig(normalizeSpeechToTextConfig(storedSpeechToTextConfig));
+        setTextToSpeechConfig(normalizeTextToSpeechConfig(storedTextToSpeechConfig));
       } catch (error) {
         console.error('Failed to load tools config:', error);
       }
@@ -567,6 +762,19 @@ const ToolsModalContent: React.FC = () => {
       });
       if (typeof window !== 'undefined') {
         window.dispatchEvent(new CustomEvent(SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT));
+      }
+      return next;
+    });
+  }, []);
+
+  const updateTextToSpeechConfig = useCallback((updater: (current: TextToSpeechConfig) => TextToSpeechConfig) => {
+    setTextToSpeechConfig((current) => {
+      const next = normalizeTextToSpeechConfig(updater(current));
+      configService.set('tools.textToSpeech', next).catch((error) => {
+        console.error('Failed to save text-to-speech config:', error);
+      });
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent(TEXT_TO_SPEECH_CONFIG_CHANGED_EVENT));
       }
       return next;
     });
@@ -853,6 +1061,7 @@ const ToolsModalContent: React.FC = () => {
             </Form>
           </div>
           <SpeechToTextSettingsSection config={speechToTextConfig} onChange={updateSpeechToTextConfig} />
+          <TextToSpeechSettingsSection config={textToSpeechConfig} onChange={updateTextToSpeechConfig} />
         </div>
       </AionScrollArea>
     </div>

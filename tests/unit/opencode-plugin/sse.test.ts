@@ -81,9 +81,9 @@ describe('capPreview', () => {
 describe('event forwarding filter (event hook)', () => {
   /**
    * Spin up the full plugin via a fake `PluginInput` and check that
-   * `event` hook only forwards the three declared event types.
+   * `event` hook only forwards the declared event types.
    */
-  it('forwards only file.watcher.updated, session.idle, message.part.updated', async () => {
+  it('forwards file.watcher.updated, session.idle, message.part.updated, session.error', async () => {
     vi.useRealTimers();
     const emptySse = (): Response =>
       new Response(
@@ -100,6 +100,7 @@ describe('event forwarding filter (event hook)', () => {
     const { calls } = installFetchMock([
       okHello(), // hello
       emptySse(), // SSE connect (immediately closed)
+      okResult(),
       okResult(),
       okResult(),
       okResult(),
@@ -135,8 +136,10 @@ describe('event forwarding filter (event hook)', () => {
     await eventHook({ event: { type: 'file.watcher.updated' } as never });
     await eventHook({ event: { type: 'session.idle' } as never });
     await eventHook({ event: { type: 'message.part.updated' } as never });
+    await eventHook({ event: { type: 'session.error', message: 'boom' } as never });
     await eventHook({ event: { type: 'session.created' } as never });
     await eventHook({ event: { type: 'message.updated' } as never });
+    await eventHook({ event: { type: 'message.part.delta' } as never });
 
     // Allow the fire-and-forget microtasks to flush
     await new Promise((r) => setTimeout(r, 50));
@@ -146,12 +149,13 @@ describe('event forwarding filter (event hook)', () => {
       .filter((c) => c.url.endsWith('/plugin/result'))
       .map((c) => JSON.parse(c.init.body as string) as { kind: string; event?: { type: string } });
 
-    // Only the 3 allowed types should have produced POSTs
-    expect(resultCalls.map((r) => r.kind)).toEqual(['event', 'event', 'event']);
+    // Only the 4 allowed types should have produced POSTs
+    expect(resultCalls.map((r) => r.kind)).toEqual(['event', 'event', 'event', 'event']);
     expect(resultCalls.map((r) => r.event?.type)).toEqual([
       'file.watcher.updated',
       'session.idle',
       'message.part.updated',
+      'session.error',
     ]);
 
     // Cleanup: stop the SSE loop

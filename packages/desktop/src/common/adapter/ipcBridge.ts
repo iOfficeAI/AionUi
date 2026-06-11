@@ -25,6 +25,7 @@ import type {
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
+import type { SidecarBackendRow, SidecarRegistration } from '../types/sidecarTypes';
 import type { AcpModelInfo } from '../types/platform/acpTypes';
 import type {
   CreateProviderRequest,
@@ -32,7 +33,12 @@ import type {
   FetchModelsResponse,
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
-import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
+import type {
+  SpeechToTextRequest,
+  SpeechToTextResult,
+  TextToSpeechRequest,
+  TextToSpeechResult,
+} from '../types/provider/speech';
 import type {
   TerminalExitEvent,
   TerminalKillRequest,
@@ -949,6 +955,14 @@ export const speechToText = {
 };
 
 // ---------------------------------------------------------------------------
+// Text to Speech — routed to backend
+// ---------------------------------------------------------------------------
+
+export const tts = {
+  synthesize: httpPost<TextToSpeechResult, TextToSpeechRequest>('/api/tts'),
+};
+
+// ---------------------------------------------------------------------------
 // File Watch — routed to /api/fs/watch/*
 // ---------------------------------------------------------------------------
 
@@ -1367,6 +1381,37 @@ export const remoteAgent = {
   rotatePluginToken: httpPost<import('@/common/types/agent/remoteAgentTypes').RemoteAgentPluginInfo, { id: string }>(
     (p) => `/api/remote-agents/${p.id}/plugin/rotate-token`
   ),
+  /**
+   * Phase 3 (voice mode): push the per-session (or agent-global when
+   * `session_id` is omitted) voice-mode state down the plugin channel so
+   * the OpenCode plugin starts/stops requesting spoken blocks.
+   */
+  setVoiceMode: httpPost<void, { id: string; enabled: boolean; session_id?: string }>(
+    (p) => `/api/remote-agents/${p.id}/plugin/voice-mode`,
+    (p) => ({ enabled: p.enabled, ...(p.session_id ? { session_id: p.session_id } : {}) })
+  ),
+  /** Phase 3 (bg processes): list background processes owned by a remote agent. */
+  listBgProcesses: httpGet<import('@/common/types/agent/bgProcessTypes').BgProcessListResponse, { id: string }>(
+    (p) => `/api/remote-agents/${p.id}/bg-processes`
+  ),
+  /** Phase 3 (bg processes): stop one background process. Returns the final snapshot. */
+  stopBgProcess: httpPost<import('@/common/types/agent/bgProcessTypes').BgProcessUiInfo, { id: string; pid: string }>(
+    (p) => `/api/remote-agents/${p.id}/bg-processes/${encodeURIComponent(p.pid)}/stop`
+  ),
+  /** Phase 3 (bg processes): read ring-buffer output from an absolute byte offset. */
+  readBgProcessOutput: httpGet<
+    import('@/common/types/agent/bgProcessTypes').BgProcessOutputResponse,
+    { id: string; pid: string; offset?: number }
+  >((p) => `/api/remote-agents/${p.id}/bg-processes/${encodeURIComponent(p.pid)}/output?offset=${p.offset ?? 0}`),
+  /** Phase 3 (WS4): pushed when a bg process starts/exits/stops — drives the live indicator. */
+  bgProcessChanged:
+    wsEmitter<import('@/common/types/agent/bgProcessTypes').BgProcessChangedEvent>('remote.bgProcessChanged'),
+  /** Phase 3 (WS4): pushed on remote `file.watcher.updated` — refresh workspace views without polling. */
+  workspaceChanged:
+    wsEmitter<import('@/common/types/agent/bgProcessTypes').RemoteWorkspaceChangedEvent>('remote.workspaceChanged'),
+  /** Phase 3 (WS4): pushed on remote `session.idle` / `session.error` — health indicators. */
+  sessionHealth:
+    wsEmitter<import('@/common/types/agent/bgProcessTypes').RemoteSessionHealthEvent>('remote.sessionHealth'),
 };
 
 // ---------------------------------------------------------------------------
@@ -2211,4 +2256,44 @@ export const team = {
   listChanged: wsEmitter<ITeamListChangedEvent>('team.list-changed'),
   created: wsEmitter<ITeamCreatedEvent>('team.created'),
   teammateMessage: wsEmitter<ITeamTeammateMessageEvent>('team.teammate.message'),
+};
+
+// ---------------------------------------------------------------------------
+// Sidecars — routed to /api/sidecars/* (Phase 3 WS3).
+//
+// Each entry is a reverse-proxied localhost service (OpenVSCode, ttyd, etc.).
+// `register` is idempotent for the same `(name, port)` and the response
+// carries a single-use `token` that the renderer hands to the webview on
+// first navigation; the token is exchanged for a session cookie by the proxy.
+// ---------------------------------------------------------------------------
+
+/**
+ * Map a `GET /api/sidecars` row to the renderer-facing {@link SidecarBackendRow}
+ * shape. The backend does not return `token` on list (it would be
+ * single-use), so we leave it implicit and only `register` produces one.
+ */
+function mapSidecarRow(raw: Record<string, unknown>): SidecarBackendRow {
+  return {
+    id: raw.id as string,
+    name: raw.name as string,
+    port: Number(raw.port),
+    url: raw.url as string,
+  };
+}
+
+export const sidecar = {
+  /** List currently registered sidecars from the backend. */
+  list: withResponseMap(httpGet<Array<Record<string, unknown>>, void>('/api/sidecars'), (rows) =>
+    Array.isArray(rows) ? rows.map(mapSidecarRow) : []
+  ),
+  /**
+   * Register (or look up) a sidecar. Idempotent for the same `(name, port)`.
+   * The returned `token` is single-use and only safe to keep in memory.
+   */
+  register: httpPost<SidecarRegistration, { name: string; port: number }>('/api/sidecars', (p) => ({
+    name: p.name,
+    port: p.port,
+  })),
+  /** Remove a sidecar registration. */
+  remove: httpDelete<void, { id: string }>((p) => `/api/sidecars/${p.id}`),
 };

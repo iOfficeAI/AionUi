@@ -368,6 +368,17 @@
       "recordingUnsupported": "目前環境不支援直接錄音，請改為上傳音訊檔案",
       "transcriptionFailed": "音訊轉寫失敗",
       "genericError": "語音輸入失敗，請再試一次"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "關閉目前對話的語音模式",
+      "toggleOffTooltip": "開啟目前對話的語音模式",
+      "playAria": "播放語音摘要",
+      "pauseAria": "暫停語音摘要",
+      "resumeAria": "繼續播放語音摘要",
+      "skipAria": "略過語音摘要",
+      "spokenLabel": "語音摘要",
+      "pushFailed": "通知 Agent 語音模式狀態失敗",
+      "persistFailed": "儲存語音模式偏好失敗"
     }
   },
   "sideQuestion": {

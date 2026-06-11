@@ -12,7 +12,10 @@
     "highLatency": "高延迟",
     "bestMatch": "最佳匹配",
     "noAvailable": "当前环境没有可用 agent",
-    "checkConfig": "请检查配置或稍后重试"
+    "checkConfig": "请检查配置或稍后重试",
+    "sessionError": "会话异常",
+    "sessionErrorTooltip": "远端会话报告错误：{{message}}",
+    "sessionErrorTooltipFallback": "远端会话报告错误"
   },
   "setup": {
     "connectionError": "连接错误",
@@ -26,5 +29,33 @@
     "noAlternatives": "未找到可用的 Agent",
     "configureFirst": "请先在设置中配置一个 Agent。",
     "switching": "正在切换 Agent..."
+  },
+  "bgProcess": {
+    "indicator": {
+      "one": "1 个后台进程",
+      "other": "{{count}} 个后台进程"
+    },
+    "panel": {
+      "title": "后台进程",
+      "empty": "当前没有运行中的后台进程",
+      "column": {
+        "name": "名称",
+        "status": "状态",
+        "uptime": "运行时长",
+        "exitCode": "退出码",
+        "actions": "操作"
+      },
+      "status": {
+        "running": "运行中",
+        "exited": "已退出",
+        "killed": "已停止"
+      },
+      "stop": "停止",
+      "stopConfirm": "确定要停止该后台进程吗？",
+      "viewOutput": "查看输出",
+      "outputTitle": "输出：{{name}}",
+      "outputTruncated": "输出已截断，仅显示最近的缓冲内容。",
+      "outputEmpty": "暂无输出"
+    }
   }
 }

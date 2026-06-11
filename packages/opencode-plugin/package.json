@@ -1,6 +1,6 @@
 {
   "name": "@chisl/chisl-opencode-plugin",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Chisl OpenCode control-plane plugin: forwards events to AionCore, exposes a streaming shell tool, and injects system context.",
   "license": "Apache-2.0",
   "author": "Chisl",

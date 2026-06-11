@@ -30,6 +30,7 @@ import RemoteSessionActions from '../platforms/remote/RemoteSessionActions';
 import RemoteSessionBadge from '../platforms/remote/RemoteSessionBadge';
 import RemoteServerBadge from '../platforms/remote/RemoteServerBadge';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
+import BgProcesses from '../components/BgProcesses';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
 import AionrsChat from '../platforms/aionrs/AionrsChat';
@@ -362,6 +363,18 @@ const ChatConversation: React.FC<{
 
   const headerExtraNode = (
     <div className='flex items-center gap-8px'>
+      {conversation?.type === 'remote' && conversation && (
+        <div className='shrink-0'>
+          <BgProcesses
+            remoteAgentId={
+              (conversation.extra as { remoteAgentId?: string; remote_agent_id?: string } | undefined)?.remoteAgentId ||
+              (conversation.extra as { remoteAgentId?: string; remote_agent_id?: string } | undefined)
+                ?.remote_agent_id ||
+              null
+            }
+          />
+        </div>
+      )}
       {conversation?.type === 'remote' && conversation && (
         <div className='shrink-0'>
           <RemoteSessionBadge conversation={conversation} />

@@ -1,7 +1,8 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
-import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { SpeechToTextConfig, TextToSpeechConfig } from '@/common/types/provider/speech';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import type { HttpServerRegistrySnapshot } from '@/common/registry';
+import type { SidecarConfig } from '@/common/types/sidecarTypes';
 
 export type ConfigKeyMap = {
   /** Chisl HTTP server connection registry (t2-registry-01). Metadata only; passwords are deferred to t2-registry-03. */
@@ -47,6 +48,7 @@ export type ConfigKeyMap = {
   'aionrs.defaultModel': { id: string; use_model: string } | undefined;
   'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };
   'tools.speechToText': SpeechToTextConfig | undefined;
+  'tools.textToSpeech': TextToSpeechConfig | undefined;
   'workspace.pasteConfirm': boolean | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'guid.lastSelectedAgent': string | undefined;
@@ -77,6 +79,7 @@ export type ConfigKeyMap = {
     | { agent_type: string; backend?: string; id?: string; custom_agent_id?: string; name?: string }
     | undefined;
   'skillsMarket.enabled': boolean | undefined;
+  'sidecars.items': SidecarConfig[] | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;
   'pet.dnd': boolean | undefined;

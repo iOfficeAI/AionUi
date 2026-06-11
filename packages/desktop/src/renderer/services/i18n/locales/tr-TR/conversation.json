@@ -363,6 +363,17 @@
       "recordingUnsupported": "Bu ortamda doğrudan kayıt desteklenmiyor. Lütfen bir ses dosyası yükleyin",
       "transcriptionFailed": "Ses yazıya dönüştürülemedi",
       "genericError": "Sesli giriş başarısız oldu. Lütfen tekrar deneyin"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "Bu sohbet için sesli modu kapat",
+      "toggleOffTooltip": "Bu sohbet için sesli modu aç",
+      "playAria": "Sesli özeti oynat",
+      "pauseAria": "Sesli özeti duraklat",
+      "resumeAria": "Sesli özete devam et",
+      "skipAria": "Sesli özeti atla",
+      "spokenLabel": "Sesli özet",
+      "pushFailed": "Sesli mod durumu agente iletilemedi",
+      "persistFailed": "Sesli mod tercihi kaydedilemedi"
     }
   },
   "sideQuestion": {

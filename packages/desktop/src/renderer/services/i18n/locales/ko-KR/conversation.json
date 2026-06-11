@@ -368,6 +368,17 @@
       "recordingUnsupported": "현재 환경에서는 직접 녹음할 수 없습니다. 오디오 파일을 업로드해 주세요",
       "transcriptionFailed": "오디오 전사에 실패했습니다",
       "genericError": "음성 입력에 실패했습니다. 다시 시도해 주세요"
+    },
+    "voiceMode": {
+      "toggleOnTooltip": "이 대화의 음성 모드 끄기",
+      "toggleOffTooltip": "이 대화의 음성 모드 켜기",
+      "playAria": "음성 요약 재생",
+      "pauseAria": "음성 요약 일시 정지",
+      "resumeAria": "음성 요약 다시 재생",
+      "skipAria": "음성 요약 건너뛰기",
+      "spokenLabel": "음성 요약",
+      "pushFailed": "에이전트에 음성 모드 알림을 보내지 못했습니다",
+      "persistFailed": "음성 모드 설정을 저장하지 못했습니다"
     }
   },
   "sideQuestion": {

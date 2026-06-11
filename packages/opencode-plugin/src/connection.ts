@@ -10,7 +10,15 @@
  * crash the host because AionCore is unreachable.
  */
 
-import type { HelloResponse, ResultRequest, ResultResponse, RunShellStreamingRequest } from './types.js';
+import type {
+  BgRequest,
+  BgResponse,
+  BgTailRequest,
+  HelloResponse,
+  ResultRequest,
+  ResultResponse,
+  RunShellStreamingRequest,
+} from './types.js';
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 const PERMISSION_TIMEOUT_MS = 3_000;
@@ -25,6 +33,7 @@ export const TIMEOUTS = {
 export type SseDispatchEvent =
   | { type: 'ping' }
   | { type: 'context.update'; data: unknown }
+  | { type: 'voice_mode'; data: unknown }
   | { type: 'raw'; event: string; data: string };
 
 export type SseDispatcher = (event: SseDispatchEvent) => void;
@@ -163,6 +172,33 @@ export class AionCoreClient {
     });
     return response;
   }
+
+  /**
+   * POST to /tools/bg. Convenience wrapper for the background-process
+   * admin endpoint. Returns the parsed `BgResponse` envelope.
+   */
+  async postBg(body: BgRequest, opts: { timeoutMs?: number; signal?: AbortSignal } = {}): Promise<BgResponse> {
+    return this.postJson<BgResponse>('/tools/bg', body, opts);
+  }
+
+  /**
+   * Open the streaming /tools/bg_tail POST. The caller is responsible
+   * for reading the SSE body and for aborting via `signal`. The raw
+   * `Response` is returned so the caller owns its lifecycle.
+   */
+  async openBgTailStream(body: BgTailRequest, signal: AbortSignal): Promise<Response> {
+    const url = `${this.url}/tools/bg_tail`;
+    const response = await this.fetchImpl(url, {
+      method: 'POST',
+      headers: this.buildHeaders({
+        'Content-Type': 'application/json',
+        Accept: 'text/event-stream',
+      }),
+      body: JSON.stringify(body),
+      signal,
+    });
+    return response;
+  }
 }
 
 export class AionCoreHttpError extends Error {
@@ -263,12 +299,19 @@ const dispatchEvent = (event: string | null, dataParts: string[], dispatch: SseD
     dispatch({ type: 'ping' });
     return;
   }
-  if (event === 'context.update' || (!event && data.trimStart().startsWith('{'))) {
+  if (event === 'context.update' || event === 'voice_mode' || (!event && data.trimStart().startsWith('{'))) {
     try {
       const parsed = JSON.parse(data) as { type?: string; data?: unknown };
-      if (parsed && typeof parsed === 'object' && (parsed as { type?: string }).type === 'context.update') {
-        dispatch({ type: 'context.update', data: (parsed as { data: unknown }).data });
-        return;
+      if (parsed && typeof parsed === 'object') {
+        const t = (parsed as { type?: string }).type;
+        if (t === 'context.update') {
+          dispatch({ type: 'context.update', data: (parsed as { data: unknown }).data });
+          return;
+        }
+        if (t === 'voice_mode') {
+          dispatch({ type: 'voice_mode', data: (parsed as { data: unknown }).data });
+          return;
+        }
       }
     } catch {
       // fall through to raw

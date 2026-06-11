@@ -24,7 +24,7 @@ import { filterWorkspaceMentionItems } from '@/renderer/utils/file/workspaceMent
 import { copyText } from '@/renderer/utils/ui/clipboard';
 import { blurActiveElement, shouldBlockMobileInputFocus } from '@/renderer/utils/ui/focus';
 import { Button, Input, Message, Tag, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, CloseSmall, Command, Quote } from '@icon-park/react';
+import { ArrowUp, CloseSmall, Command, Quote, VoiceOne } from '@icon-park/react';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import { theme } from '@office-ai/platform';
 import React, { useCallback, useDeferredValue, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -43,6 +43,7 @@ import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
+import { useVoiceModeToggle } from '@/renderer/hooks/chat/useVoiceMode';
 import './sendbox.css';
 
 const constVoid = (): void => undefined;
@@ -1304,6 +1305,21 @@ const SendBox: React.FC<{
   );
   const speechLocale = i18n?.language || 'en-US';
 
+  // Voice mode is a per-conversation toggle for remote OpenCode
+  // conversations. Only meaningful when TTS is enabled in settings; we
+  // hide the button entirely otherwise. The hook itself persists the
+  // override and pushes the state to the plugin on toggle.
+  const isRemoteConversation = conversationContext?.type === 'remote';
+  const voiceExtra = isRemoteConversation ? (conversationContext?.extra ?? {}) : {};
+  const voiceRemoteAgentId =
+    isRemoteConversation && typeof voiceExtra.remoteAgentId === 'string' ? voiceExtra.remoteAgentId : undefined;
+  const voiceSessionKey =
+    isRemoteConversation && typeof voiceExtra.sessionKey === 'string' ? voiceExtra.sessionKey : undefined;
+  const voiceMode = useVoiceModeToggle({
+    remoteAgentId: voiceRemoteAgentId,
+    sessionKey: voiceSessionKey,
+  });
+
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
   // Calculate button disabled state
@@ -1656,6 +1672,50 @@ const SendBox: React.FC<{
                 locale={speechLocale}
                 onTranscript={handleSpeechTranscript}
               />
+              {isRemoteConversation && voiceMode.ttsEnabled && (
+                <Tooltip
+                  content={t(
+                    voiceMode.effective
+                      ? 'conversation.chat.voiceMode.toggleOnTooltip'
+                      : 'conversation.chat.voiceMode.toggleOffTooltip',
+                    { defaultValue: voiceMode.effective ? 'Turn voice mode off' : 'Turn voice mode on' }
+                  )}
+                  position='top'
+                >
+                  <Button
+                    type='secondary'
+                    shape='circle'
+                    className='sendbox-rail__icon-btn'
+                    aria-label={t(
+                      voiceMode.effective
+                        ? 'conversation.chat.voiceMode.toggleOnTooltip'
+                        : 'conversation.chat.voiceMode.toggleOffTooltip',
+                      { defaultValue: voiceMode.effective ? 'Turn voice mode off' : 'Turn voice mode on' }
+                    )}
+                    aria-pressed={voiceMode.effective}
+                    onClick={() => void voiceMode.toggle()}
+                    disabled={voiceMode.isToggling}
+                    data-testid='sendbox-voice-mode-btn'
+                    data-voice-mode-active={voiceMode.effective ? 'true' : 'false'}
+                    icon={
+                      <VoiceOne
+                        theme='outline'
+                        size='14'
+                        fill={voiceMode.effective ? 'var(--brand)' : 'currentColor'}
+                      />
+                    }
+                    style={
+                      voiceMode.effective
+                        ? {
+                            color: 'var(--brand) !important',
+                            backgroundColor: 'color-mix(in srgb, var(--brand) 6%, var(--bg-1)) !important',
+                            borderColor: 'color-mix(in srgb, var(--brand) 58%, transparent) !important',
+                          }
+                        : undefined
+                    }
+                  />
+                </Tooltip>
+              )}
               {sendButtonPrefix}
               {renderActionButtons()}
             </RailGroup>

@@ -6,6 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { PreviewContentType } from '@/common/types/office/preview';
+import { useRemoteWorkspaceChanged } from '@/renderer/hooks/agent/useRemoteWorkspaceEvents';
 import { emitter } from '@/renderer/utils/emitter';
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -634,6 +635,22 @@ export const PreviewProvider: React.FC<{ children: React.ReactNode }> = ({ child
       clearInterval(pollId);
     };
   }, [activeFilePath, checkFileUpdate]);
+
+  // Push-driven refresh for remote conversations: AionCore broadcasts
+  // `remote.workspaceChanged` on file-watch updates. The provider sits
+  // above the conversation tree so it cannot know the active agentId, so
+  // it listens to all agents and lets the existing `checkFileUpdate`
+  // mtime comparison short-circuit when the active tab is local or for
+  // a different agent's workspace. The 200 ms client-side debounce
+  // coalesces bursts so a long file-write storm cannot thrash React.
+  useRemoteWorkspaceChanged(
+    null,
+    () => {
+      const current = activeTabRef.current;
+      if (current) checkFileUpdate(current);
+    },
+    { debounceMs: 200 }
+  );
 
   // 监听 preview.open 事件（用于 agent 打开网页预览）/ Listen to preview.open event (for agent to open web preview)
   // 同时监听 IPC 和 renderer emitter 两种方式 / Listen to both IPC and renderer emitter
