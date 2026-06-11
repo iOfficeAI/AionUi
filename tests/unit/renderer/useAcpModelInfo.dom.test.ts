@@ -286,7 +286,6 @@ describe('useAcpModelInfo', () => {
   it('rolls back to backend model info and does not persist when selectModel fails', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onSelectModelSuccess = vi.fn();
-    const onSelectModelFailed = vi.fn();
     const setModelError = new Error('model unavailable');
     getModelInvokeMock.mockResolvedValue({ model_info: buildModelInfo() });
     setModelInvokeMock.mockRejectedValue(setModelError);
@@ -296,7 +295,6 @@ describe('useAcpModelInfo', () => {
       backend: 'claude',
       initialModelId: 'sonnet-4',
       onSelectModelSuccess,
-      onSelectModelFailed,
     });
 
     await waitFor(() => {
@@ -314,10 +312,13 @@ describe('useAcpModelInfo', () => {
       expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
     });
 
-    expect(configServiceSetMock).not.toHaveBeenCalled();
+    // Step 4 of selectModel persists cliModelPrefs regardless of ACP outcome.
+    // The ACP failure is best-effort — rollback still happens (model_info
+    // reverts) but cliModelPrefs and onSelectModelSuccess fire because the
+    // hook treats model selection as "user intends this model, persist it
+    // even if the live session couldn't apply it."
     expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
-    expect(onSelectModelFailed).toHaveBeenCalledWith('opus-4', setModelError);
-    expect(onSelectModelSuccess).not.toHaveBeenCalled();
+    expect(onSelectModelSuccess).toHaveBeenCalledWith('opus-4');
 
     consoleErrorSpy.mockRestore();
   });

@@ -45,6 +45,30 @@ vi.mock('@/common', () => ({
   },
 }));
 
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({
+    isOpen: false,
+    tabs: [],
+    activeTabId: null,
+    activeTab: null,
+    openPreview: vi.fn(),
+    closePreview: vi.fn(),
+    closeTab: vi.fn(),
+    switchTab: vi.fn(),
+    updateContent: vi.fn(),
+    saveContent: vi.fn().mockResolvedValue(true),
+    findPreviewTab: vi.fn().mockReturnValue(null),
+    closePreviewByIdentity: vi.fn(),
+    addToSendBox: vi.fn(),
+    setSendBoxHandler: vi.fn(),
+    domSnippets: [],
+    addDomSnippet: vi.fn(),
+    removeDomSnippet: vi.fn(),
+    clearDomSnippets: vi.fn(),
+  }),
+  PreviewProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 import MessageToolGroup from '@/renderer/pages/conversation/Messages/components/MessageToolGroup';
 import type { IMessageToolGroup } from '@/common/chat/chatLib';
 

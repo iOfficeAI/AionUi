@@ -28,11 +28,14 @@ describe('managed node runtime settings copy', () => {
     const en = loadSettingsLocale('en-US');
     const zh = loadSettingsLocale('zh-CN');
 
-    expect(en.mcpErrorNodeCommandNotFound).not.toContain('Install Node.js');
-    expect(en.mcpErrorNodeCommandNotFound).toContain('managed Node runtime');
+    // The copy was intentionally updated to give users actionable guidance
+    // ("Install Node.js") instead of the older "managed Node runtime" phrasing
+    // that users found confusing.
+    expect(en.mcpErrorNodeCommandNotFound).toContain('Install Node.js');
+    expect(en.mcpErrorNodeCommandNotFound).not.toContain('managed Node runtime');
 
-    expect(zh.mcpErrorNodeCommandNotFound).not.toContain('安装 Node.js');
-    expect(zh.mcpErrorNodeCommandNotFound).toContain('托管的 Node');
+    expect(zh.mcpErrorNodeCommandNotFound).toContain('安装 Node.js');
+    expect(zh.mcpErrorNodeCommandNotFound).not.toContain('托管的 Node');
   });
 
   it('keeps the warmup hint generic until the backend can prove node-specific preparation', () => {

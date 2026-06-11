@@ -69,6 +69,30 @@ vi.mock('react-i18next', () => ({
   }),
 }));
 
+vi.mock('@/renderer/pages/conversation/Preview/context/PreviewContext', () => ({
+  usePreviewContext: () => ({
+    isOpen: false,
+    tabs: [],
+    activeTabId: null,
+    activeTab: null,
+    openPreview: vi.fn(),
+    closePreview: vi.fn(),
+    closeTab: vi.fn(),
+    switchTab: vi.fn(),
+    updateContent: vi.fn(),
+    saveContent: vi.fn().mockResolvedValue(true),
+    findPreviewTab: vi.fn().mockReturnValue(null),
+    closePreviewByIdentity: vi.fn(),
+    addToSendBox: vi.fn(),
+    setSendBoxHandler: vi.fn(),
+    domSnippets: [],
+    addDomSnippet: vi.fn(),
+    removeDomSnippet: vi.fn(),
+    clearDomSnippets: vi.fn(),
+  }),
+  PreviewProvider: ({ children }: { children: React.ReactNode }) => <>{children}</>,
+}));
+
 describe('MessageText attachment paths', () => {
   it('resolves relative attachment paths against the current workspace before previewing', () => {
     const message: IMessageText = {
