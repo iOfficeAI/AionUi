@@ -10,7 +10,9 @@ import { buildConnectorCatalog } from '@process/commandEve/connectorCatalogCore'
 import { runConnectorPreflight } from '@process/commandEve/connectorPreflightCore';
 import {
   buildKanbanMarketingBoard,
+  createKanbanMarketingCard,
   createKanbanMarketingProofCard,
+  moveKanbanMarketingCard,
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
@@ -280,4 +282,87 @@ export function initCommandEveBridge(): void {
         };
       }
     });
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-card-create')
+    .provider(
+      async (request?: {
+        title?: string;
+        description?: string;
+        lane_key?: string;
+        client_token?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+      }) => {
+        try {
+          const result = createKanbanMarketingCard({
+            userDataPath: getDataPath(),
+            title: request?.title || '',
+            description: request?.description,
+            lane_key: request?.lane_key || '',
+            client_token: request?.client_token || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing card-create bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-card-create/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_CARD_CREATE_BRIDGE_FAILED',
+              message: error instanceof Error ? error.message : 'Command EVE marketing card-create bridge failed.',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-card-move')
+    .provider(
+      async (request?: { task_id?: string; to_lane_key?: string; boardSlug?: string; eventLedgerPath?: string }) => {
+        try {
+          const result = moveKanbanMarketingCard({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            to_lane_key: request?.to_lane_key || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing card-move bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-card-move/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_CARD_MOVE_BRIDGE_FAILED',
+              message: error instanceof Error ? error.message : 'Command EVE marketing card-move bridge failed.',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
 }

@@ -12,6 +12,8 @@ import { resolveCommandEveRuntimeBootstrapPaths } from './runtimeBootstrapCore';
 export const COMMAND_EVE_KANBAN_PREFLIGHT_BRIDGE_VERSION = 'command-eve-kanban-preflight/v0';
 export const COMMAND_EVE_KANBAN_MARKETING_BOARD_BRIDGE_VERSION = 'command-eve-kanban-marketing-board/v0';
 export const COMMAND_EVE_KANBAN_MARKETING_PROOF_CARD_BRIDGE_VERSION = 'command-eve-kanban-marketing-proof-card/v0';
+export const COMMAND_EVE_KANBAN_MARKETING_CARD_CREATE_BRIDGE_VERSION = 'command-eve-kanban-marketing-card-create/v0';
+export const COMMAND_EVE_KANBAN_MARKETING_CARD_MOVE_BRIDGE_VERSION = 'command-eve-kanban-marketing-card-move/v0';
 
 const MIN_HERMES_KANBAN_VERSION = '0.16.0';
 const RUNTIME_RECONCILIATION_VERSION = 'command-eve-runtime-reconciliation/v0';
@@ -20,6 +22,17 @@ const MARKETING_BOARD_WORKFLOW = 'command-eve-marketing';
 const MARKETING_PROOF_IDEMPOTENCY_KEY = 'command-eve-marketing-board-proof-v0';
 const MARKETING_PROOF_CARD_ID = 't_command_eve_marketing_proof';
 const MARKETING_BOARD_LANES = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'] as const;
+// Native Hermes task status per Command EVE marketing lane. The board projection in
+// `laneForTask` keys off `current_step_key` first (always set to the lane key for a
+// deterministic projection) and falls back to `status`; the status below keeps the
+// native row coherent with the lane even if the step key is ever cleared upstream.
+const MARKETING_LANE_NATIVE_STATUS: Record<CommandEveKanbanMarketingLaneKey, string> = {
+  research: 'triage',
+  draft: 'todo',
+  assetGeneration: 'ready',
+  review: 'review',
+  readyToApprove: 'review',
+};
 const KANBAN_MODULES = [
   { name: 'hermes_cli.kanban_db', required: true },
   { name: 'hermes_cli.kanban', required: true },
@@ -190,6 +203,54 @@ export type CommandEveKanbanMarketingBoardOptions = {
   env?: NodeJS.ProcessEnv;
   now?: () => Date;
   pythonPath?: string;
+};
+
+export type CommandEveKanbanMarketingCardCreateResult = {
+  version: typeof COMMAND_EVE_KANBAN_MARKETING_CARD_CREATE_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  lane_key?: CommandEveKanbanMarketingLaneKey;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: CommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+};
+
+export type CommandEveKanbanMarketingCardMoveResult = {
+  version: typeof COMMAND_EVE_KANBAN_MARKETING_CARD_MOVE_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  from_lane_key?: CommandEveKanbanMarketingLaneKey;
+  to_lane_key?: CommandEveKanbanMarketingLaneKey;
+  moved?: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: CommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+};
+
+export type CommandEveKanbanMarketingCardCreateOptions = CommandEveKanbanMarketingBoardOptions & {
+  title: string;
+  description?: string;
+  lane_key: string;
+  client_token: string;
+};
+
+export type CommandEveKanbanMarketingCardMoveOptions = CommandEveKanbanMarketingBoardOptions & {
+  task_id: string;
+  to_lane_key: string;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -655,6 +716,188 @@ finally:
 `;
 }
 
+function buildMarketingCardCreateScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+os.makedirs(os.path.dirname(db_path), exist_ok=True)
+conn = sqlite3.connect(db_path)
+try:
+    conn.execute("PRAGMA journal_mode=WAL")
+    conn.executescript("""
+    CREATE TABLE IF NOT EXISTS tasks (
+        id TEXT PRIMARY KEY,
+        title TEXT NOT NULL,
+        body TEXT,
+        assignee TEXT,
+        status TEXT NOT NULL,
+        priority INTEGER DEFAULT 0,
+        created_by TEXT,
+        created_at INTEGER NOT NULL,
+        started_at INTEGER,
+        completed_at INTEGER,
+        workspace_kind TEXT NOT NULL DEFAULT 'scratch',
+        workspace_path TEXT,
+        branch_name TEXT,
+        claim_lock TEXT,
+        claim_expires INTEGER,
+        tenant TEXT,
+        result TEXT,
+        idempotency_key TEXT,
+        consecutive_failures INTEGER NOT NULL DEFAULT 0,
+        worker_pid INTEGER,
+        last_failure_error TEXT,
+        max_runtime_seconds INTEGER,
+        last_heartbeat_at INTEGER,
+        current_run_id INTEGER,
+        workflow_template_id TEXT,
+        current_step_key TEXT,
+        skills TEXT,
+        model_override TEXT,
+        max_retries INTEGER,
+        goal_mode INTEGER NOT NULL DEFAULT 0,
+        goal_max_turns INTEGER,
+        session_id TEXT
+    );
+    CREATE TABLE IF NOT EXISTS task_events (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        run_id INTEGER,
+        kind TEXT NOT NULL,
+        payload TEXT,
+        created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS task_comments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        task_id TEXT NOT NULL,
+        author TEXT NOT NULL,
+        body TEXT NOT NULL,
+        created_at INTEGER NOT NULL
+    );
+    CREATE TABLE IF NOT EXISTS task_links (
+        parent_id TEXT NOT NULL,
+        child_id TEXT NOT NULL,
+        PRIMARY KEY (parent_id, child_id)
+    );
+    CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
+    CREATE INDEX IF NOT EXISTS idx_events_task ON task_events(task_id, created_at);
+    """)
+    existing = conn.execute(
+        "SELECT id FROM tasks WHERE idempotency_key = ? AND status != 'archived' LIMIT 1",
+        (request["idempotency_key"],),
+    ).fetchone()
+    if existing:
+        conn.commit()
+        print(json.dumps({"created": False, "card_id": existing[0]}))
+        sys.exit(0)
+    conn.execute(
+        """
+        INSERT INTO tasks (
+          id, title, body, assignee, status, priority, created_by, created_at,
+          workspace_kind, tenant, idempotency_key, workflow_template_id,
+          current_step_key, skills, max_retries, goal_mode
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, 'scratch', ?, ?, ?, ?, ?, ?, 0)
+        """,
+        (
+          request["card_id"],
+          request["title"],
+          request["body"],
+          request["assignee"],
+          request["status"],
+          int(request["priority"]),
+          "command-eve",
+          int(request["created_at"]),
+          request["tenant"],
+          request["idempotency_key"],
+          request["workflow"],
+          request["lane_key"],
+          json.dumps(["company-os-marketing"]),
+          1,
+        ),
+    )
+    conn.execute(
+        "INSERT INTO task_events (task_id, run_id, kind, payload, created_at) VALUES (?, NULL, ?, ?, ?)",
+        (
+          request["card_id"],
+          "command_eve_card_created",
+          json.dumps({
+            "audit_event_id": request["audit_event_id"],
+            "lane_key": request["lane_key"],
+            "client_token": request["idempotency_key"],
+            "human_gate": "HG-2.5",
+            "dispatcher_enabled": False,
+            "auto_decompose_enabled": False,
+          }),
+          int(request["created_at"]),
+        ),
+    )
+    conn.commit()
+    print(json.dumps({"created": True, "card_id": request["card_id"]}))
+finally:
+    conn.close()
+`;
+}
+
+function buildMarketingCardMoveScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"found": False}))
+    sys.exit(0)
+conn = sqlite3.connect(db_path)
+try:
+    conn.execute("PRAGMA journal_mode=WAL")
+    row = conn.execute(
+        "SELECT status, COALESCE(current_step_key, '') FROM tasks WHERE id = ? LIMIT 1",
+        (request["card_id"],),
+    ).fetchone()
+    if row is None:
+        conn.commit()
+        print(json.dumps({"found": False}))
+        sys.exit(0)
+    from_step = row[1] or ""
+    if from_step == request["to_lane_key"] and row[0] == request["to_status"]:
+        conn.commit()
+        print(json.dumps({"found": True, "moved": False, "from_step": from_step}))
+        sys.exit(0)
+    conn.execute(
+        "UPDATE tasks SET status = ?, current_step_key = ?, started_at = COALESCE(started_at, ?) WHERE id = ?",
+        (request["to_status"], request["to_lane_key"], int(request["moved_at"]), request["card_id"]),
+    )
+    conn.execute(
+        "INSERT INTO task_events (task_id, run_id, kind, payload, created_at) VALUES (?, NULL, ?, ?, ?)",
+        (
+          request["card_id"],
+          "command_eve_card_moved",
+          json.dumps({
+            "audit_event_id": request["audit_event_id"],
+            "from_step": from_step,
+            "to_lane_key": request["to_lane_key"],
+            "human_gate": "HG-2.5",
+            "dispatcher_enabled": False,
+            "auto_decompose_enabled": False,
+          }),
+          int(request["moved_at"]),
+        ),
+    )
+    conn.commit()
+    print(json.dumps({"found": True, "moved": True, "from_step": from_step}))
+finally:
+    conn.close()
+`;
+}
+
 function sanitizeEventIdPart(value: string): string {
   return value
     .toLowerCase()
@@ -746,6 +989,79 @@ function marketingAuditEventId(cardId: string, occurredAt: string): string {
   return ['command-eve-kanban-marketing-proof', sanitizeEventIdPart(cardId), sanitizeEventIdPart(occurredAt)].join('-');
 }
 
+function appendMarketingMutationAuditEvent({
+  eventId,
+  eventType,
+  mode,
+  action,
+  eventLedgerPath,
+  occurredAt,
+  cardId,
+  boardSlug,
+  dbPath,
+  extraPayload = {},
+}: {
+  eventId: string;
+  eventType: 'kanban.marketing_board_card_created' | 'kanban.marketing_board_card_moved';
+  mode: 'kanban-card-create' | 'kanban-card-move';
+  action: 'card_create' | 'card_move';
+  eventLedgerPath: string;
+  occurredAt: string;
+  cardId: string;
+  boardSlug: string;
+  dbPath: string;
+  extraPayload?: Record<string, unknown>;
+}): string {
+  const event = {
+    schema_version: 'agent-event/v1',
+    event_id: eventId,
+    event_type: eventType,
+    occurred_at: occurredAt,
+    producer: 'command-eve-desktop',
+    workspace: 'command-eve-local',
+    workspace_path: dbPath,
+    issue_id: cardId,
+    parent_issue_id: '',
+    run_id: `kanban-${action.replace(/_/g, '-')}-${cardId}`,
+    session_id: '',
+    agent: 'eve',
+    mode,
+    role_owner: 'Controller',
+    department: 'Marketing',
+    autonomy_level: 'L1',
+    event_policy: 'append-only',
+    payload: {
+      board_slug: boardSlug,
+      card_id: cardId,
+      db_path: dbPath,
+      human_gate: 'HG-2.5',
+      dispatcher_enabled: false,
+      auto_decompose_enabled: false,
+      action,
+      ...extraPayload,
+    },
+    artifact_paths: [dbPath],
+    linear_comment_ids: [] as string[],
+    human_gate_required: false,
+    redaction_level: 'none',
+  };
+  fs.mkdirSync(path.dirname(eventLedgerPath), { recursive: true });
+  fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
+  return eventId;
+}
+
+function marketingCardCreateAuditEventId(cardId: string, occurredAt: string): string {
+  return ['command-eve-kanban-marketing-card-created', sanitizeEventIdPart(cardId), sanitizeEventIdPart(occurredAt)].join(
+    '-'
+  );
+}
+
+function marketingCardMoveAuditEventId(cardId: string, occurredAt: string): string {
+  return ['command-eve-kanban-marketing-card-moved', sanitizeEventIdPart(cardId), sanitizeEventIdPart(occurredAt)].join(
+    '-'
+  );
+}
+
 function marketingBoardResultBase(
   hermesHome: string
 ): Pick<CommandEveKanbanMarketingBoardResult, 'version' | 'source'> {
@@ -768,6 +1084,47 @@ function marketingProofResultBase(
       hermes_home: hermesHome,
     },
   };
+}
+
+function marketingCardCreateResultBase(
+  hermesHome: string
+): Pick<CommandEveKanbanMarketingCardCreateResult, 'version' | 'source'> {
+  return {
+    version: COMMAND_EVE_KANBAN_MARKETING_CARD_CREATE_BRIDGE_VERSION,
+    source: {
+      generated_by: 'command-eve-kanban-marketing-board-core',
+      hermes_home: hermesHome,
+    },
+  };
+}
+
+function marketingCardMoveResultBase(
+  hermesHome: string
+): Pick<CommandEveKanbanMarketingCardMoveResult, 'version' | 'source'> {
+  return {
+    version: COMMAND_EVE_KANBAN_MARKETING_CARD_MOVE_BRIDGE_VERSION,
+    source: {
+      generated_by: 'command-eve-kanban-marketing-board-core',
+      hermes_home: hermesHome,
+    },
+  };
+}
+
+function normalizeMarketingLaneKey(value: string | undefined): CommandEveKanbanMarketingLaneKey | null {
+  const lane = String(value || '').trim();
+  return (MARKETING_BOARD_LANES as readonly string[]).includes(lane)
+    ? (lane as CommandEveKanbanMarketingLaneKey)
+    : null;
+}
+
+function normalizeClientToken(value: string | undefined): string {
+  return String(value || '')
+    .trim()
+    .slice(0, 128);
+}
+
+function marketingCardId(clientToken: string): string {
+  return `t_command_eve_marketing_${sanitizeEventIdPart(clientToken).replace(/-/g, '_') || 'card'}`.slice(0, 96);
 }
 
 function readRuntimeReconciliation(filePath: string): {
@@ -1235,6 +1592,304 @@ export function createKanbanMarketingProofCard(
     card_id: cardIdFromDb,
     audit_event_path: eventLedgerPath,
     ...(auditEventId ? { audit_event_id: auditEventId } : {}),
+    model: board.model,
+  };
+}
+
+export function createKanbanMarketingCard(
+  options: CommandEveKanbanMarketingCardCreateOptions
+): CommandEveKanbanMarketingCardCreateResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const base = marketingCardCreateResultBase(paths.hermesHome);
+
+  let boardSlug: string;
+  try {
+    boardSlug = normalizeBoardSlug(options.boardSlug);
+  } catch (error) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_BOARD_SLUG_INVALID',
+      message: error instanceof Error ? error.message : 'Invalid Hermes Kanban board slug.',
+    };
+  }
+
+  const laneKey = normalizeMarketingLaneKey(options.lane_key);
+  if (!laneKey) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_LANE_INVALID',
+      message: `Unknown Command EVE marketing lane: ${String(options.lane_key || '')}`,
+    };
+  }
+
+  const title = String(options.title || '').trim();
+  if (!title) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_TITLE_REQUIRED',
+      message: 'A non-empty card title is required to create a marketing card.',
+      lane_key: laneKey,
+    };
+  }
+
+  const clientToken = normalizeClientToken(options.client_token);
+  if (!clientToken) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_CLIENT_TOKEN_REQUIRED',
+      message: 'A client_token is required so card creation can dedupe idempotently.',
+      lane_key: laneKey,
+    };
+  }
+
+  const reconciliation = readRuntimeReconciliation(paths.runtimeReconciliation);
+  const governanceOk =
+    reconciliation.governance.dispatcher_disabled &&
+    reconciliation.governance.auto_decompose_disabled &&
+    reconciliation.governance.mcp_servers_disabled;
+  if (!governanceOk) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_GOVERNANCE_NOT_LOCKED',
+      message: 'Card creation requires dispatcher, auto-decompose and external MCP execution to stay disabled.',
+      lane_key: laneKey,
+    };
+  }
+
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const createdAt = Math.floor(new Date(occurredAt).getTime() / 1000);
+  const dbPath = kanbanDbPath(paths.hermesHome, boardSlug);
+  const eventLedgerPath = resolveMarketingEventLedgerPath(paths, options);
+  const cardId = marketingCardId(clientToken);
+  const existingAuditEvents = fs.existsSync(eventLedgerPath) ? fs.readFileSync(eventLedgerPath, 'utf8') : '';
+  const alreadyRecorded = existingAuditEvents.includes(`"issue_id":"${cardId}"`);
+  const auditEventId = alreadyRecorded ? '' : marketingCardCreateAuditEventId(cardId, occurredAt);
+
+  const pythonPath = pythonForMarketingBoard(paths, options.pythonPath);
+  const writeResult = runPythonJson(
+    pythonPath,
+    {
+      db_path: dbPath,
+      card_id: cardId,
+      title,
+      body: String(options.description || ''),
+      assignee: 'cmo',
+      priority: 5,
+      status: MARKETING_LANE_NATIVE_STATUS[laneKey],
+      lane_key: laneKey,
+      created_at: createdAt,
+      tenant: MARKETING_BOARD_TENANT,
+      workflow: MARKETING_BOARD_WORKFLOW,
+      idempotency_key: clientToken,
+      audit_event_id: auditEventId || `already-recorded:${cardId}`,
+    },
+    buildMarketingCardCreateScript(),
+    paths.hermesHome
+  );
+
+  if (!writeResult.ok || !writeResult.data) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'KANBAN_MARKETING_CARD_CREATE_WRITE_FAILED',
+      message: writeResult.error || 'Command EVE marketing card could not be written.',
+      lane_key: laneKey,
+      audit_event_path: eventLedgerPath,
+      ...(auditEventId ? { audit_event_id: auditEventId } : {}),
+    };
+  }
+
+  const cardIdFromDb = textField(writeResult.data.card_id) || cardId;
+  const created = writeResult.data.created === true;
+  if (created && auditEventId) {
+    appendMarketingMutationAuditEvent({
+      eventId: auditEventId,
+      eventType: 'kanban.marketing_board_card_created',
+      mode: 'kanban-card-create',
+      action: 'card_create',
+      eventLedgerPath,
+      occurredAt,
+      cardId: cardIdFromDb,
+      boardSlug,
+      dbPath,
+      extraPayload: { lane_key: laneKey, client_token: clientToken },
+    });
+  }
+
+  const board = buildKanbanMarketingBoard({
+    ...options,
+    boardSlug,
+    now,
+    pythonPath,
+  });
+
+  return {
+    ...base,
+    ok: true,
+    status: 'ready',
+    reason_code: created ? 'KANBAN_MARKETING_CARD_CREATED' : 'KANBAN_MARKETING_CARD_EXISTS',
+    card_id: cardIdFromDb,
+    lane_key: laneKey,
+    audit_event_path: eventLedgerPath,
+    ...(auditEventId ? { audit_event_id: auditEventId } : {}),
+    model: board.model,
+  };
+}
+
+export function moveKanbanMarketingCard(
+  options: CommandEveKanbanMarketingCardMoveOptions
+): CommandEveKanbanMarketingCardMoveResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const base = marketingCardMoveResultBase(paths.hermesHome);
+
+  let boardSlug: string;
+  try {
+    boardSlug = normalizeBoardSlug(options.boardSlug);
+  } catch (error) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_BOARD_SLUG_INVALID',
+      message: error instanceof Error ? error.message : 'Invalid Hermes Kanban board slug.',
+    };
+  }
+
+  const taskId = String(options.task_id || '').trim();
+  if (!taskId) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_ID_REQUIRED',
+      message: 'A task_id is required to move a marketing card.',
+    };
+  }
+
+  const toLaneKey = normalizeMarketingLaneKey(options.to_lane_key);
+  if (!toLaneKey) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_LANE_INVALID',
+      message: `Unknown Command EVE marketing lane: ${String(options.to_lane_key || '')}`,
+    };
+  }
+
+  const reconciliation = readRuntimeReconciliation(paths.runtimeReconciliation);
+  const governanceOk =
+    reconciliation.governance.dispatcher_disabled &&
+    reconciliation.governance.auto_decompose_disabled &&
+    reconciliation.governance.mcp_servers_disabled;
+  if (!governanceOk) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_GOVERNANCE_NOT_LOCKED',
+      message: 'Card moves require dispatcher, auto-decompose and external MCP execution to stay disabled.',
+      to_lane_key: toLaneKey,
+    };
+  }
+
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const movedAt = Math.floor(new Date(occurredAt).getTime() / 1000);
+  const dbPath = kanbanDbPath(paths.hermesHome, boardSlug);
+  const eventLedgerPath = resolveMarketingEventLedgerPath(paths, options);
+  const auditEventId = marketingCardMoveAuditEventId(taskId, occurredAt);
+
+  const pythonPath = pythonForMarketingBoard(paths, options.pythonPath);
+  const moveResult = runPythonJson(
+    pythonPath,
+    {
+      db_path: dbPath,
+      card_id: taskId,
+      to_lane_key: toLaneKey,
+      to_status: MARKETING_LANE_NATIVE_STATUS[toLaneKey],
+      moved_at: movedAt,
+      audit_event_id: auditEventId,
+    },
+    buildMarketingCardMoveScript(),
+    paths.hermesHome
+  );
+
+  if (!moveResult.ok || !moveResult.data) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'KANBAN_MARKETING_CARD_MOVE_WRITE_FAILED',
+      message: moveResult.error || 'Command EVE marketing card could not be moved.',
+      card_id: taskId,
+      to_lane_key: toLaneKey,
+      audit_event_path: eventLedgerPath,
+    };
+  }
+
+  const found = moveResult.data.found === true;
+  if (!found) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_NOT_FOUND',
+      message: `No marketing card found for task_id: ${taskId}`,
+      card_id: taskId,
+      to_lane_key: toLaneKey,
+      audit_event_path: eventLedgerPath,
+    };
+  }
+
+  const moved = moveResult.data.moved === true;
+  const fromStep = textField(moveResult.data.from_step);
+  const fromLaneKey = normalizeMarketingLaneKey(fromStep) ?? undefined;
+  if (moved) {
+    appendMarketingMutationAuditEvent({
+      eventId: auditEventId,
+      eventType: 'kanban.marketing_board_card_moved',
+      mode: 'kanban-card-move',
+      action: 'card_move',
+      eventLedgerPath,
+      occurredAt,
+      cardId: taskId,
+      boardSlug,
+      dbPath,
+      extraPayload: { from_lane_key: fromLaneKey ?? fromStep, to_lane_key: toLaneKey },
+    });
+  }
+
+  const board = buildKanbanMarketingBoard({
+    ...options,
+    boardSlug,
+    now,
+    pythonPath,
+  });
+
+  return {
+    ...base,
+    ok: true,
+    status: 'ready',
+    reason_code: moved ? 'KANBAN_MARKETING_CARD_MOVED' : 'KANBAN_MARKETING_CARD_ALREADY_IN_LANE',
+    card_id: taskId,
+    ...(fromLaneKey ? { from_lane_key: fromLaneKey } : {}),
+    to_lane_key: toLaneKey,
+    moved,
+    audit_event_path: eventLedgerPath,
+    ...(moved ? { audit_event_id: auditEventId } : {}),
     model: board.model,
   };
 }

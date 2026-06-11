@@ -11,7 +11,9 @@ import os from 'os';
 import path from 'path';
 import {
   buildKanbanMarketingBoard,
+  createKanbanMarketingCard,
   createKanbanMarketingProofCard,
+  moveKanbanMarketingCard,
   runKanbanPreflight,
   type CommandEveKanbanPreflightCommandRunner,
 } from '@/process/commandEve/kanbanPreflightCore';
@@ -437,5 +439,255 @@ finally:
     expect(result.status).toBe('blocked');
     expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
     expect(fs.existsSync(marketingBoardPath(root))).toBe(false);
+  });
+});
+
+describe('Command EVE Kanban marketing-board mutations', () => {
+  it('creates a native card row, a created receipt, and one linked audit event', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const result = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Draft launch teaser',
+      description: 'Short LinkedIn teaser for the alpha.',
+      lane_key: 'draft',
+      client_token: 'teaser-001',
+      now: () => new Date('2026-06-12T09:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('KANBAN_MARKETING_CARD_CREATED');
+    expect(result.lane_key).toBe('draft');
+    expect(result.audit_event_path).toBe(eventLedgerPath);
+    expect(result.audit_event_id).toContain(result.card_id || 'missing-card');
+
+    const dbPath = marketingBoardPath(root);
+    const tasks = readRows(dbPath, 'SELECT id, title, tenant, status, current_step_key, idempotency_key FROM tasks');
+    expect(tasks).toHaveLength(1);
+    expect(tasks[0]).toMatchObject({
+      id: result.card_id,
+      title: 'Draft launch teaser',
+      tenant: 'command-eve-marketing',
+      status: 'todo',
+      current_step_key: 'draft',
+      idempotency_key: 'teaser-001',
+    });
+
+    const taskEvents = readRows(dbPath, 'SELECT task_id, kind, payload FROM task_events');
+    expect(taskEvents).toHaveLength(1);
+    expect(taskEvents[0]).toMatchObject({
+      task_id: result.card_id,
+      kind: 'command_eve_card_created',
+    });
+    expect(String((taskEvents[0] as { payload: string }).payload)).toContain(String(result.audit_event_id));
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(1);
+    expect(auditEvents[0]).toMatchObject({
+      event_type: 'kanban.marketing_board_card_created',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-card-create',
+    });
+
+    expect(result.model?.columns.find((column) => column.key === 'draft')?.cards[0].card_id).toBe(result.card_id);
+  });
+
+  it('dedupes card creation on the client_token', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const first = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Research wedge',
+      lane_key: 'research',
+      client_token: 'wedge-007',
+      now: () => new Date('2026-06-12T09:00:00.000Z'),
+    });
+    const second = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Research wedge (retry)',
+      lane_key: 'research',
+      client_token: 'wedge-007',
+      now: () => new Date('2026-06-12T09:05:00.000Z'),
+    });
+
+    expect(first.ok).toBe(true);
+    expect(first.reason_code).toBe('KANBAN_MARKETING_CARD_CREATED');
+    expect(second.ok).toBe(true);
+    expect(second.reason_code).toBe('KANBAN_MARKETING_CARD_EXISTS');
+    expect(second.card_id).toBe(first.card_id);
+    expect(readRows(marketingBoardPath(root), 'SELECT id FROM tasks')).toHaveLength(1);
+    expect(readAuditEvents(eventLedgerPath)).toHaveLength(1);
+  });
+
+  it('rejects card creation with an invalid lane (fail-closed, no write)', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+
+    const result = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath: path.join(root, 'agent-events.jsonl'),
+      title: 'Bad lane card',
+      lane_key: 'shipped',
+      client_token: 'bad-lane-1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_MARKETING_LANE_INVALID');
+    expect(fs.existsSync(marketingBoardPath(root))).toBe(false);
+  });
+
+  it('blocks card creation fail-closed when governance is not locked', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root, {
+      kanban_auto_decompose: true,
+    });
+
+    const result = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath: path.join(root, 'agent-events.jsonl'),
+      title: 'Ungated card',
+      lane_key: 'draft',
+      client_token: 'ungated-1',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+    expect(fs.existsSync(marketingBoardPath(root))).toBe(false);
+  });
+
+  it('moves a card so the board projection changes and records a moved receipt + audit', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Move me forward',
+      lane_key: 'research',
+      client_token: 'move-me-1',
+      now: () => new Date('2026-06-12T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+
+    const moved = moveKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      to_lane_key: 'review',
+      now: () => new Date('2026-06-12T10:00:00.000Z'),
+    });
+
+    expect(moved.ok).toBe(true);
+    expect(moved.status).toBe('ready');
+    expect(moved.reason_code).toBe('KANBAN_MARKETING_CARD_MOVED');
+    expect(moved.moved).toBe(true);
+    expect(moved.from_lane_key).toBe('research');
+    expect(moved.to_lane_key).toBe('review');
+    expect(moved.audit_event_id).toBeTruthy();
+
+    const dbPath = marketingBoardPath(root);
+    const tasks = readRows(dbPath, 'SELECT id, status, current_step_key FROM tasks');
+    expect(tasks[0]).toMatchObject({
+      id: created.card_id,
+      status: 'review',
+      current_step_key: 'review',
+    });
+
+    const moveEvents = readRows(
+      dbPath,
+      "SELECT task_id, kind, payload FROM task_events WHERE kind = 'command_eve_card_moved'"
+    );
+    expect(moveEvents).toHaveLength(1);
+    expect(String((moveEvents[0] as { payload: string }).payload)).toContain('research');
+    expect(String((moveEvents[0] as { payload: string }).payload)).toContain('review');
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(2);
+    expect(auditEvents[1]).toMatchObject({
+      event_type: 'kanban.marketing_board_card_moved',
+      mode: 'kanban-card-move',
+    });
+
+    // Board projection moved from research to review.
+    expect(moved.model?.columns.find((column) => column.key === 'research')?.cards).toHaveLength(0);
+    expect(moved.model?.columns.find((column) => column.key === 'review')?.cards[0].card_id).toBe(created.card_id);
+  });
+
+  it('treats a move to the current lane as a no-op success (no extra receipt or audit)', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Stay put',
+      lane_key: 'review',
+      client_token: 'stay-1',
+      now: () => new Date('2026-06-12T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+
+    const noop = moveKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      to_lane_key: 'review',
+      now: () => new Date('2026-06-12T10:00:00.000Z'),
+    });
+
+    expect(noop.ok).toBe(true);
+    expect(noop.status).toBe('ready');
+    expect(noop.reason_code).toBe('KANBAN_MARKETING_CARD_ALREADY_IN_LANE');
+    expect(noop.moved).toBe(false);
+    expect(noop.audit_event_id).toBeUndefined();
+
+    const moveEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT id FROM task_events WHERE kind = 'command_eve_card_moved'"
+    );
+    expect(moveEvents).toHaveLength(0);
+    // Only the create audit event exists; the no-op move appended nothing.
+    expect(readAuditEvents(eventLedgerPath)).toHaveLength(1);
+  });
+
+  it('blocks a card move fail-closed when governance is not locked', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root, {
+      kanban_dispatch_in_gateway: true,
+    });
+
+    const result = moveKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath: path.join(root, 'agent-events.jsonl'),
+      task_id: 't_command_eve_marketing_anything',
+      to_lane_key: 'review',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
   });
 });

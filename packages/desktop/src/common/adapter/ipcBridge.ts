@@ -702,6 +702,114 @@ export const application = {
 };
 
 // ---------------------------------------------------------------------------
+// Command EVE Kanban marketing-board mutations — renderer-callable bounded writes
+// ---------------------------------------------------------------------------
+
+export type ICommandEveKanbanMarketingLaneKey =
+  | 'research'
+  | 'draft'
+  | 'assetGeneration'
+  | 'review'
+  | 'readyToApprove';
+
+export type ICommandEveKanbanMarketingBoardStatus = 'ready' | 'blocked' | 'failed';
+
+export interface ICommandEveKanbanMarketingCard {
+  card_id: string;
+  card_title: string;
+  card_status: string;
+  card_priority: number;
+  card_assignee: string;
+  lane_key: ICommandEveKanbanMarketingLaneKey;
+  created_at: number;
+  updated_at: number | null;
+  linked_run_id: string | null;
+  linked_audit_event_id: string | null;
+  governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
+}
+
+export interface ICommandEveKanbanMarketingColumn {
+  key: ICommandEveKanbanMarketingLaneKey;
+  cards: ICommandEveKanbanMarketingCard[];
+}
+
+export interface ICommandEveKanbanMarketingBoardModel {
+  schema_version: 'command-eve-kanban-marketing-board/v0';
+  generated_at: string;
+  board: {
+    slug: string;
+    db_path: string;
+    db_exists: boolean;
+    table_count: number;
+  };
+  policy: {
+    dispatcher_enabled: false;
+    auto_decompose_enabled: false;
+    card_mutation_requires_humangate: 'HG-2.5';
+    delete_allowed: false;
+    assign_dispatch_allowed: false;
+  };
+  summary: {
+    total_cards: number;
+    audit_linked_cards: number;
+  };
+  columns: ICommandEveKanbanMarketingColumn[];
+  warnings: string[];
+}
+
+export interface ICommandEveKanbanMarketingCardCreateResult {
+  version: 'command-eve-kanban-marketing-card-create/v0';
+  ok: boolean;
+  status: ICommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  lane_key?: ICommandEveKanbanMarketingLaneKey;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+export interface ICommandEveKanbanMarketingCardMoveResult {
+  version: 'command-eve-kanban-marketing-card-move/v0';
+  ok: boolean;
+  status: ICommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  from_lane_key?: ICommandEveKanbanMarketingLaneKey;
+  to_lane_key?: ICommandEveKanbanMarketingLaneKey;
+  moved?: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+export interface ICommandEveKanbanMarketingCardCreateRequest {
+  title: string;
+  description?: string;
+  lane_key: ICommandEveKanbanMarketingLaneKey;
+  client_token: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+export interface ICommandEveKanbanMarketingCardMoveRequest {
+  task_id: string;
+  to_lane_key: ICommandEveKanbanMarketingLaneKey;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+// ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
 
@@ -729,6 +837,14 @@ export const commandEve = {
     IBridgeResponse<ICommandEveConnectorCatalogResult>,
     { manifestPath?: string } | undefined
   >('command-eve.connector-catalog'),
+  kanbanMarketingCardCreate: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingCardCreateResult>,
+    ICommandEveKanbanMarketingCardCreateRequest
+  >('command-eve.kanban-marketing-card-create'),
+  kanbanMarketingCardMove: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingCardMoveResult>,
+    ICommandEveKanbanMarketingCardMoveRequest
+  >('command-eve.kanban-marketing-card-move'),
 };
 
 // ---------------------------------------------------------------------------
