@@ -9,6 +9,7 @@ import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { stripWindowsVerbatimPrefix } from '@/renderer/utils/file/fileSelection';
 
 interface DirectoryItem {
   name: string;
@@ -68,7 +69,19 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
           setError('Invalid response from server');
           return;
         }
-        setDirectoryData(data);
+        // Older backends return Windows verbatim paths (`\\?\C:\DEV`), which
+        // break agent spawning when stored as a workspace (issue #3191).
+        // 旧版后端会返回 `\\?\` 前缀的 Windows 路径，存为工作区后会导致 agent 启动失败。
+        const normalized: DirectoryData = {
+          ...data,
+          items: (data.items as DirectoryItem[]).map((item) => ({
+            ...item,
+            path: stripWindowsVerbatimPrefix(item.path),
+          })),
+          parentPath:
+            typeof data.parentPath === 'string' ? stripWindowsVerbatimPrefix(data.parentPath) : data.parentPath,
+        };
+        setDirectoryData(normalized);
         setCurrentPath(dirPath);
       } catch (err) {
         console.error('Failed to load directory:', err);
