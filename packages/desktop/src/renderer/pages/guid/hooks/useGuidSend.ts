@@ -89,10 +89,10 @@ export type GuidSendResult = {
 
 const toCommandEveRuntimeModelId = (acpModelId: string): string => acpModelId.replace(/^custom:/, '');
 
-const commandEveWarmupReadyForModel = (
+export const commandEveWarmupReadyForModel = (
   warmup: ICommandEveRuntimeStatus['model_warmup'] | undefined,
   runtimeModelId: string
-): boolean => Boolean(warmup && warmup.model === runtimeModelId && ['ready', 'skipped'].includes(warmup.status || ''));
+): boolean => Boolean(warmup && warmup.model === runtimeModelId && warmup.status === 'ready');
 
 /**
  * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).

@@ -11,6 +11,11 @@ import path from 'path';
 import { runConnectorPreflight } from '@/process/commandEve/connectorPreflightCore';
 
 const tempRoots: string[] = [];
+const tempFiles: string[] = [];
+
+type TestConnectorManifest = {
+  connectors: Array<{ id: string; preflight_result_file: string } & Record<string, unknown>>;
+} & Record<string, unknown>;
 
 const makeRoot = (): string => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-connector-preflight-test-'));
@@ -104,6 +109,14 @@ const writeManifest = (root: string): string => {
   return manifestPath;
 };
 
+const updateConnectorReceiptPath = (manifestPath: string, connectorId: string, receiptPath: string): void => {
+  const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as TestConnectorManifest;
+  manifest.connectors = manifest.connectors.map((connector) =>
+    connector.id === connectorId ? { ...connector, preflight_result_file: receiptPath } : connector
+  );
+  writeJson(manifestPath, manifest);
+};
+
 const writePlaneSanityScript = (root: string): void => {
   const scriptPath = path.join(root, 'scripts', 'plane', 'plane-api-sanity.mjs');
   fs.mkdirSync(path.dirname(scriptPath), { recursive: true });
@@ -113,6 +126,9 @@ const writePlaneSanityScript = (root: string): void => {
 afterEach(() => {
   for (const root of tempRoots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
+  }
+  for (const filePath of tempFiles.splice(0)) {
+    fs.rmSync(filePath, { force: true });
   }
 });
 
@@ -265,6 +281,56 @@ describe('Command EVE connector preflight core', () => {
     expect(result.status).toBe('blocked');
     expect(result.reason_code).toBe('CONNECTOR_PREFLIGHT_HANDLER_MISSING');
     expect(result.receipt_path).toBeUndefined();
+  });
+
+  it('blocks receipt paths outside the Company.OS root without writing files', () => {
+    const root = makeRoot();
+    const manifestPath = writeManifest(root);
+    const outsideReceiptPath = path.join(os.tmpdir(), `command-eve-outside-receipt-${process.pid}.json`);
+    tempFiles.push(outsideReceiptPath);
+    fs.rmSync(outsideReceiptPath, { force: true });
+    updateConnectorReceiptPath(manifestPath, 'local-company-os-workspace', outsideReceiptPath);
+
+    const result = runConnectorPreflight({
+      connectorId: 'local-company-os-workspace',
+      companyOsRoot: root,
+      env: {},
+      now: () => new Date('2026-06-11T01:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('CONNECTOR_PREFLIGHT_RECEIPT_PATH_OUT_OF_ROOT');
+    expect(result.receipt_path).toBe(path.resolve(outsideReceiptPath));
+    expect(fs.existsSync(outsideReceiptPath)).toBe(false);
+  });
+
+  it('blocks audit event paths outside the Company.OS root before writing receipts', () => {
+    const root = makeRoot();
+    writeManifest(root);
+    fs.mkdirSync(path.join(root, '.company-os', 'operations'), { recursive: true });
+    const outsideAuditPath = path.join(os.tmpdir(), `command-eve-outside-events-${process.pid}.jsonl`);
+    tempFiles.push(outsideAuditPath);
+    fs.rmSync(outsideAuditPath, { force: true });
+
+    const result = runConnectorPreflight({
+      connectorId: 'local-company-os-workspace',
+      companyOsRoot: root,
+      env: {},
+      eventLedgerPath: outsideAuditPath,
+      now: () => new Date('2026-06-11T01:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('CONNECTOR_PREFLIGHT_AUDIT_EVENT_PATH_OUT_OF_ROOT');
+    expect(result.audit_event_path).toBe(path.resolve(outsideAuditPath));
+    expect(fs.existsSync(outsideAuditPath)).toBe(false);
+    expect(
+      fs.existsSync(
+        path.join(root, '.company-os', 'operations', 'preflight-results', 'local-company-os-workspace-latest.json')
+      )
+    ).toBe(false);
   });
 
   it('blocks loudly when the connector id is not in the manifest', () => {

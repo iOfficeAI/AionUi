@@ -83,6 +83,18 @@ type LocalCheckSpec = {
   kind: 'directory' | 'file' | 'glob-directory';
 };
 
+type RootConfinedPathResult =
+  | {
+      ok: true;
+      path: string;
+    }
+  | {
+      ok: false;
+      path: string;
+      reason_code: string;
+      message: string;
+    };
+
 const SUPPORTED_PREFLIGHT_HANDLERS = new Set([
   'local-company-os-workspace',
   'execution-ledger-plane',
@@ -130,8 +142,26 @@ function resultBase(): Pick<CommandEveConnectorPreflightResult, 'version'> {
   };
 }
 
-function resolveRelativePath(root: string, maybeRelative: string): string {
-  return path.isAbsolute(maybeRelative) ? maybeRelative : path.join(root, maybeRelative);
+function isPathInsideRoot(root: string, filePath: string): boolean {
+  const resolvedRoot = path.resolve(root);
+  const resolvedPath = path.resolve(filePath);
+  return resolvedPath === resolvedRoot || resolvedPath.startsWith(`${resolvedRoot}${path.sep}`);
+}
+
+function resolveRootConfinedPath(root: string, maybeRelative: string, reasonCode: string): RootConfinedPathResult {
+  const resolvedPath = path.resolve(path.isAbsolute(maybeRelative) ? maybeRelative : path.join(root, maybeRelative));
+  if (!isPathInsideRoot(root, resolvedPath)) {
+    return {
+      ok: false,
+      path: resolvedPath,
+      reason_code: reasonCode,
+      message: `Path must stay inside the Company.OS root: ${maybeRelative}`,
+    };
+  }
+  return {
+    ok: true,
+    path: resolvedPath,
+  };
 }
 
 function firstNonEmpty(...values: Array<string | undefined>): string | undefined {
@@ -181,7 +211,7 @@ function buildLocalCompanyOsReceipt(
   now: () => Date
 ): CommandEveConnectorPreflightReceipt {
   const checks = LOCAL_COMPANY_OS_CHECKS.map((check) => {
-    const checkPath = check.relativePath ? resolveRelativePath(companyOsRoot, check.relativePath) : companyOsRoot;
+    const checkPath = check.relativePath ? path.join(companyOsRoot, check.relativePath) : companyOsRoot;
     const ok = pathExistsForKind(checkPath, check.kind);
     return {
       id: check.id,
@@ -347,14 +377,14 @@ function sanitizeEventIdPart(value: string): string {
 function resolveAuditEventPath(
   companyOsRoot: string,
   options: Pick<CommandEveConnectorPreflightOptions, 'eventLedgerPath' | 'env'>
-): string {
-  return (
+): RootConfinedPathResult {
+  const eventLedgerPath =
     firstNonEmpty(
       options.eventLedgerPath,
       options.env?.COMMAND_EVE_AGENT_EVENTS_PATH,
       process.env.COMMAND_EVE_AGENT_EVENTS_PATH
-    ) || path.join(companyOsRoot, 'metrics', 'agent-events.jsonl')
-  );
+    ) || path.join('metrics', 'agent-events.jsonl');
+  return resolveRootConfinedPath(companyOsRoot, eventLedgerPath, 'CONNECTOR_PREFLIGHT_AUDIT_EVENT_PATH_OUT_OF_ROOT');
 }
 
 function buildAuditEvent({
@@ -487,10 +517,7 @@ export function runConnectorPreflight(
     };
   }
 
-  const receiptPath = connector.preflight_result_file
-    ? resolveRelativePath(companyOsRoot, connector.preflight_result_file)
-    : undefined;
-  if (!receiptPath) {
+  if (!connector.preflight_result_file) {
     return {
       ...base,
       ok: false,
@@ -500,6 +527,36 @@ export function runConnectorPreflight(
       message: `Connector ${connectorId} does not declare a preflight_result_file.`,
     };
   }
+  const receiptPathResult = resolveRootConfinedPath(
+    companyOsRoot,
+    connector.preflight_result_file,
+    'CONNECTOR_PREFLIGHT_RECEIPT_PATH_OUT_OF_ROOT'
+  );
+  if (receiptPathResult.ok === false) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      connector_id: connectorId,
+      reason_code: receiptPathResult.reason_code,
+      message: receiptPathResult.message,
+      receipt_path: receiptPathResult.path,
+    };
+  }
+  const auditEventPathResult = resolveAuditEventPath(companyOsRoot, options);
+  if (auditEventPathResult.ok === false) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      connector_id: connectorId,
+      reason_code: auditEventPathResult.reason_code,
+      message: auditEventPathResult.message,
+      audit_event_path: auditEventPathResult.path,
+    };
+  }
+  const receiptPath = receiptPathResult.path;
+  const auditEventPath = auditEventPathResult.path;
 
   try {
     const receipt = buildReceipt(
@@ -511,7 +568,7 @@ export function runConnectorPreflight(
     );
     writeReceipt(receiptPath, receipt);
     const audit = appendAuditEvent(
-      resolveAuditEventPath(companyOsRoot, options),
+      auditEventPath,
       buildAuditEvent({
         connector,
         companyOsRoot,

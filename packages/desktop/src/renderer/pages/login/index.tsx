@@ -4,6 +4,7 @@ import { changeLanguage } from '@/renderer/services/i18n';
 import { useNavigate } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '../../hooks/context/AuthContext';
+import { loadRememberedLogin, persistRememberedLogin } from './rememberMeStorage';
 import './LoginPage.css';
 
 type MessageState = {
@@ -18,9 +19,6 @@ type CommandEveLanguage = {
   flag: string;
 };
 
-const REMEMBER_ME_KEY = 'rememberMe';
-const REMEMBERED_USERNAME_KEY = 'rememberedUsername';
-const LEGACY_REMEMBERED_PASSWORD_KEY = 'rememberedPassword';
 const COMMAND_EVE_DEFAULT_LANGUAGE = 'de-DE';
 const COMMAND_EVE_LANGUAGE_BOOTSTRAPPED_KEY = 'commandEveLanguageBootstrapped';
 const COMMAND_EVE_DEFAULT_VERSION = 'v1.x';
@@ -31,21 +29,6 @@ const COMMAND_EVE_LOGIN_POSTER = '/eve-wait-focus-anchor.png?v=command-eve-login
 const COMMAND_EVE_HERO_FIELD_GAP = 32;
 const COMMAND_EVE_HERO_FIELD_RADIUS = 175;
 const COMMAND_EVE_HERO_FIELD_AMPLITUDE = 9;
-
-// Simple obfuscation for non-secret local preferences.
-const obfuscate = (text: string): string => {
-  const encoded = btoa(encodeURIComponent(text));
-  return encoded.split('').toReversed().join('');
-};
-
-const deobfuscate = (text: string): string => {
-  try {
-    const reversed = text.split('').toReversed().join('');
-    return decodeURIComponent(atob(reversed));
-  } catch {
-    return '';
-  }
-};
 
 const CommandEveHeroField: React.FC = () => {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -386,13 +369,9 @@ const LoginPage: React.FC = () => {
   }, [i18n.language]);
 
   useEffect(() => {
-    const isRememberMe = localStorage.getItem(REMEMBER_ME_KEY) === 'true';
-    localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
-    if (isRememberMe) {
-      const storedUsername = localStorage.getItem(REMEMBERED_USERNAME_KEY);
-      if (storedUsername) setUsername(deobfuscate(storedUsername));
-      setRememberMe(true);
-    }
+    const rememberedLogin = loadRememberedLogin(localStorage);
+    setRememberMe(rememberedLogin.rememberMe);
+    if (rememberedLogin.username) setUsername(rememberedLogin.username);
     window.setTimeout(() => {
       usernameRef.current?.focus();
     }, 0);
@@ -465,15 +444,7 @@ const LoginPage: React.FC = () => {
       const result = await login({ username: trimmedUsername, password, remember: rememberMe });
 
       if (result.success) {
-        if (rememberMe) {
-          localStorage.setItem(REMEMBER_ME_KEY, 'true');
-          localStorage.setItem(REMEMBERED_USERNAME_KEY, obfuscate(trimmedUsername));
-          localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
-        } else {
-          localStorage.removeItem(REMEMBER_ME_KEY);
-          localStorage.removeItem(REMEMBERED_USERNAME_KEY);
-          localStorage.removeItem(LEGACY_REMEMBERED_PASSWORD_KEY);
-        }
+        persistRememberedLogin(localStorage, { rememberMe, username: trimmedUsername });
 
         const successText = t('login.success');
         showMessage({ type: 'success', text: successText });
