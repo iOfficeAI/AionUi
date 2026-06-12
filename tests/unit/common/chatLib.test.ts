@@ -9,6 +9,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import {
   composeMessage,
   normalizeAgentStreamError,
+  normalizeTextMessageContent,
   transformMessage,
   type IMessageText,
   type IMessageTips,
@@ -161,6 +162,79 @@ describe('normalizeAgentStreamError', () => {
   });
 });
 
+describe('normalizeTextMessageContent', () => {
+  it('normalizes snake_case team metadata from an object payload', () => {
+    expect(
+      normalizeTextMessageContent({
+        content: '已向 Lead Agent 报告就绪状态',
+        teammate_message: true,
+        sender_name: 'Codex Assistant',
+        sender_backend: 'codex',
+        sender_conversation_id: 'teammate-conversation-1',
+      })
+    ).toEqual({
+      content: '已向 Lead Agent 报告就绪状态',
+      teammateMessage: true,
+      senderName: 'Codex Assistant',
+      senderAgentType: 'codex',
+      senderConversationId: 'teammate-conversation-1',
+    });
+  });
+
+  it('preserves camelCase team metadata from an already-normalized object payload', () => {
+    expect(
+      normalizeTextMessageContent({
+        content: 'online and ready',
+        teammateMessage: true,
+        senderName: 'Claude Assistant',
+        senderAgentType: 'claude',
+        senderConversationId: 'teammate-conversation-2',
+        replace: true,
+      })
+    ).toEqual({
+      content: 'online and ready',
+      teammateMessage: true,
+      senderName: 'Claude Assistant',
+      senderAgentType: 'claude',
+      senderConversationId: 'teammate-conversation-2',
+      replace: true,
+    });
+  });
+
+  it('normalizes JSON string text content from persisted DB payloads', () => {
+    expect(
+      normalizeTextMessageContent(
+        JSON.stringify({
+          content: '[Codex Assistant] idle',
+          teammate_message: true,
+          sender_name: 'Codex Assistant',
+          sender_backend: 'codex',
+          sender_conversation_id: 'teammate-conversation-3',
+        })
+      )
+    ).toEqual({
+      content: '[Codex Assistant] idle',
+      teammateMessage: true,
+      senderName: 'Codex Assistant',
+      senderAgentType: 'codex',
+      senderConversationId: 'teammate-conversation-3',
+    });
+  });
+
+  it('keeps ordinary string text messages as plain content', () => {
+    expect(normalizeTextMessageContent('hello')).toEqual({
+      content: 'hello',
+    });
+  });
+
+  it('lets stream-level replace override a plain text payload', () => {
+    expect(normalizeTextMessageContent('replacement text', { replace: true })).toEqual({
+      content: 'replacement text',
+      replace: true,
+    });
+  });
+});
+
 describe('transformMessage', () => {
   it('returns undefined for hidden system stream messages', () => {
     const message: IResponseMessage = {
@@ -195,6 +269,36 @@ describe('transformMessage', () => {
     expect(transformed.content).toEqual({
       content: '你好',
       replace: true,
+    });
+  });
+
+  it('normalizes team teammate metadata on realtime text messages', () => {
+    const message: IResponseMessage = {
+      type: 'text',
+      data: {
+        content: '[Codex Assistant] idle',
+        teammate_message: true,
+        sender_name: 'Codex Assistant',
+        sender_backend: 'codex',
+        sender_conversation_id: 'teammate-conversation-1',
+      },
+      msg_id: 'team-teammate-message-1',
+      conversation_id: CONVERSATION_ID,
+      position: 'left',
+      status: 'finish',
+    };
+
+    const transformed = transformMessage(message) as IMessageText;
+
+    expect(transformed.type).toBe('text');
+    expect(transformed.position).toBe('left');
+    expect(transformed.status).toBe('finish');
+    expect(transformed.content).toEqual({
+      content: '[Codex Assistant] idle',
+      teammateMessage: true,
+      senderName: 'Codex Assistant',
+      senderAgentType: 'codex',
+      senderConversationId: 'teammate-conversation-1',
     });
   });
 

@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 import { normalizeDbMessage } from '@/renderer/pages/conversation/Messages/hooks';
-import type { IMessageTips } from '@/common/chat/chatLib';
+import type { IMessageText, IMessageTips } from '@/common/chat/chatLib';
 
 describe('normalizeDbMessage', () => {
   it('keeps persisted info tip localization metadata from db content', () => {
@@ -140,6 +140,73 @@ describe('normalizeDbMessage', () => {
       workspacePath: '/Users/zhoukai/Documents/Archive ',
       retryable: false,
       feedback_recommended: false,
+    });
+  });
+
+  it('normalizes team metadata when persisted text content is already an object', () => {
+    const normalized = normalizeDbMessage({
+      id: 'team-message-object',
+      type: 'text',
+      conversation_id: 'leader-conversation-1',
+      position: 'left',
+      status: 'finish',
+      content: {
+        content: '[Claude Assistant] idle',
+        teammate_message: true,
+        sender_name: 'Claude Assistant',
+        sender_backend: 'claude',
+        sender_conversation_id: 'teammate-conversation-1',
+      },
+    } as unknown as IMessageText) as IMessageText;
+
+    expect(normalized.content).toEqual({
+      content: '[Claude Assistant] idle',
+      teammateMessage: true,
+      senderName: 'Claude Assistant',
+      senderAgentType: 'claude',
+      senderConversationId: 'teammate-conversation-1',
+    });
+  });
+
+  it('normalizes team metadata when persisted text content is a JSON string', () => {
+    const normalized = normalizeDbMessage({
+      id: 'team-message-json',
+      type: 'text',
+      conversation_id: 'leader-conversation-1',
+      position: 'left',
+      status: 'finish',
+      content: JSON.stringify({
+        content: '[Codex Assistant] idle',
+        teammate_message: true,
+        sender_name: 'Codex Assistant',
+        sender_backend: 'codex',
+        sender_conversation_id: 'teammate-conversation-2',
+      }),
+    } as unknown as IMessageText) as IMessageText;
+
+    expect(normalized.content).toEqual({
+      content: '[Codex Assistant] idle',
+      teammateMessage: true,
+      senderName: 'Codex Assistant',
+      senderAgentType: 'codex',
+      senderConversationId: 'teammate-conversation-2',
+    });
+  });
+
+  it('keeps ordinary recovered text messages as plain text content', () => {
+    const normalized = normalizeDbMessage({
+      id: 'ordinary-text',
+      type: 'text',
+      conversation_id: 'conversation-1',
+      position: 'left',
+      status: 'finish',
+      content: {
+        content: 'ordinary assistant response',
+      },
+    } as unknown as IMessageText) as IMessageText;
+
+    expect(normalized.content).toEqual({
+      content: 'ordinary assistant response',
     });
   });
 });

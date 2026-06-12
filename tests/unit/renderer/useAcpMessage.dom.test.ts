@@ -218,4 +218,48 @@ describe('useAcpMessage', () => {
       ]);
     });
   });
+
+  it('normalizes team teammate messages before inserting them into the message list', async () => {
+    vi.mocked(getConversationOrNull).mockResolvedValue(null);
+
+    renderHook(() => useAcpMessage('leader-conversation-1'));
+
+    act(() => {
+      responseStreamHandlerRef.current?.({
+        type: 'teammate_message',
+        data: {
+          id: 'projected-message-1',
+          type: 'text',
+          msg_id: 'projected-message-1',
+          conversation_id: 'leader-conversation-1',
+          position: 'left',
+          status: 'finish',
+          content: {
+            content: '[Codex Assistant] idle',
+            teammate_message: true,
+            sender_name: 'Codex Assistant',
+            sender_backend: 'codex',
+            sender_conversation_id: 'teammate-conversation-1',
+          },
+        },
+        msg_id: 'projected-message-1',
+        conversation_id: 'leader-conversation-1',
+      } as unknown as IResponseMessage);
+    });
+
+    expect(addOrUpdateMessageMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'text',
+        msg_id: 'projected-message-1',
+        conversation_id: 'leader-conversation-1',
+        content: {
+          content: '[Codex Assistant] idle',
+          teammateMessage: true,
+          senderName: 'Codex Assistant',
+          senderAgentType: 'codex',
+          senderConversationId: 'teammate-conversation-1',
+        },
+      })
+    );
+  });
 });
