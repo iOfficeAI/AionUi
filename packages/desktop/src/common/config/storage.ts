@@ -67,6 +67,12 @@ export interface IConfigStorageRefer {
   'webui.desktop.allowRemote'?: boolean;
   /** 桌面模式下 WebUI 端口 / WebUI port in desktop mode */
   'webui.desktop.port'?: number;
+  /**
+   * Generic auto-update feed base URL (electron-updater generic provider).
+   * Lower priority than the COMMAND_EVE_UPDATE_FEED_URL env var. When neither is
+   * set, the startup update check no-ops quietly (no feed source configured).
+   */
+  'update.feedUrl'?: string;
   customCss: string; // 自定义 CSS 样式 // @deprecated migrated to theme.activeId/theme.userThemes
   'css.themes': ICssTheme[]; // 自定义 CSS 主题列表 / Custom CSS themes list // @deprecated migrated to theme.activeId/theme.userThemes
   'css.activeThemeId': string; // 当前激活的主题 ID / Currently active theme ID // @deprecated migrated to theme.activeId/theme.userThemes

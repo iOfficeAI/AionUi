@@ -22,5 +22,9 @@
   "autoUpdateMode": "Automatische Updates",
   "showInFolder": "Im Ordner anzeigen",
   "openFile": "Datei öffnen",
-  "errorTitle": "Update fehlgeschlagen"
+  "errorTitle": "Update fehlgeschlagen",
+  "errors": {
+    "checkReturnedNull": "Die Update-Prüfung lieferte kein Ergebnis (Entwicklungsmodus)",
+    "noFeedConfigured": "Es ist keine Update-Quelle konfiguriert. Updates sind nicht verfügbar, bis eine Feed-URL gesetzt ist."
+  }
 }

@@ -12,6 +12,46 @@ import { EventEmitter } from 'events';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 
 /**
+ * Environment variable that supplies the generic auto-update feed base URL.
+ * Highest-priority feed source; overrides any persisted ProcessConfig value.
+ */
+export const UPDATE_FEED_URL_ENV = 'COMMAND_EVE_UPDATE_FEED_URL';
+
+/**
+ * Persisted ProcessConfig key for the generic auto-update feed base URL.
+ * Lower priority than UPDATE_FEED_URL_ENV.
+ */
+export const UPDATE_FEED_URL_CONFIG_KEY = 'update.feedUrl' as const;
+
+/**
+ * Resolve the configured generic-provider update feed base URL.
+ * Priority: COMMAND_EVE_UPDATE_FEED_URL env var, then the persisted
+ * ProcessConfig setting. Returns undefined when neither is configured, which
+ * is a first-class quiet "no feed" state — NOT an error.
+ *
+ * The config reader is injected so this stays unit-testable without booting
+ * Electron storage; production passes ProcessConfig.get.
+ */
+export async function resolveUpdateFeedUrl(
+  readConfig?: (key: typeof UPDATE_FEED_URL_CONFIG_KEY) => Promise<string | undefined>
+): Promise<string | undefined> {
+  const fromEnv = process.env[UPDATE_FEED_URL_ENV];
+  if (typeof fromEnv === 'string' && fromEnv.trim() !== '') {
+    return fromEnv.trim();
+  }
+  if (!readConfig) return undefined;
+  try {
+    const fromConfig = await readConfig(UPDATE_FEED_URL_CONFIG_KEY);
+    if (typeof fromConfig === 'string' && fromConfig.trim() !== '') {
+      return fromConfig.trim();
+    }
+  } catch (error) {
+    log.warn('Failed to read persisted update feed URL:', error);
+  }
+  return undefined;
+}
+
+/**
  * Returns the appropriate update channel name based on the current platform and architecture.
  * Returns undefined for the default channel (Windows x64 / Linux x64).
  */
@@ -67,6 +107,8 @@ class AutoUpdaterService extends EventEmitter {
   private _isInitialized = false;
   private _eventHandlersSetup = false;
   private _allowPrerelease = false;
+  /** True once a generic feed URL has been resolved and applied via setFeedURL */
+  private _feedConfigured = false;
   private _statusBroadcastCallback: StatusBroadcastCallback | null = null;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
@@ -126,6 +168,7 @@ class AutoUpdaterService extends EventEmitter {
     this._isInitialized = false;
     // Note: _eventHandlersSetup is NOT reset to avoid duplicate handler registration
     this._allowPrerelease = false;
+    this._feedConfigured = false;
     this._statusBroadcastCallback = null;
   }
 
@@ -137,6 +180,7 @@ class AutoUpdaterService extends EventEmitter {
     this._isInitialized = false;
     this._eventHandlersSetup = false;
     this._allowPrerelease = false;
+    this._feedConfigured = false;
     this._statusBroadcastCallback = null;
     // Remove listeners from this EventEmitter instance
     this.removeAllListeners();
@@ -184,6 +228,49 @@ class AutoUpdaterService extends EventEmitter {
    */
   get allowPrerelease(): boolean {
     return this._allowPrerelease;
+  }
+
+  /**
+   * Whether a generic update feed has been resolved and applied.
+   */
+  get isFeedConfigured(): boolean {
+    return this._feedConfigured;
+  }
+
+  /**
+   * Resolve and apply the generic-provider update feed.
+   *
+   * Returns `{ configured: false }` quietly when no feed URL is set anywhere —
+   * this is the supported "no feed source" state (no error dialog, no crash).
+   * When a URL is present, points electron-updater at it via setFeedURL using
+   * the generic provider and the platform/arch channel from getUpdateChannel().
+   *
+   * The config reader is injectable for testing; production passes
+   * ProcessConfig.get.
+   */
+  async configureFeed(
+    readConfig?: (key: typeof UPDATE_FEED_URL_CONFIG_KEY) => Promise<string | undefined>
+  ): Promise<{ configured: boolean; url?: string; channel?: string }> {
+    const url = await resolveUpdateFeedUrl(readConfig);
+    if (!url) {
+      this._feedConfigured = false;
+      log.info(`No update feed configured (set ${UPDATE_FEED_URL_ENV} or ${UPDATE_FEED_URL_CONFIG_KEY}); skipping update checks.`);
+      return { configured: false };
+    }
+
+    const channel = getUpdateChannel();
+    // electron-updater's GenericServerOptions.channel selects which "<channel>.yml"
+    // (plus platform suffix) is fetched from the feed base URL. Passing the same
+    // channel getUpdateChannel() applies to autoUpdater.channel keeps the static
+    // feed self-consistent with the metadata filename the updater requests.
+    autoUpdater.setFeedURL({
+      provider: 'generic',
+      url,
+      ...(channel !== undefined ? { channel } : {}),
+    });
+    this._feedConfigured = true;
+    log.info(`Update feed configured (generic): ${url}${channel ? ` [channel=${channel}]` : ''}`);
+    return { configured: true, url, channel };
   }
 
   private setupEventHandlers(): void {
@@ -261,10 +348,25 @@ class AutoUpdaterService extends EventEmitter {
     }
   }
 
-  async checkForUpdates(): Promise<{ success: boolean; updateInfo?: UpdateInfo; error?: string }> {
+  async checkForUpdates(
+    readConfig?: (key: typeof UPDATE_FEED_URL_CONFIG_KEY) => Promise<string | undefined>
+  ): Promise<{ success: boolean; updateInfo?: UpdateInfo; error?: string }> {
     try {
       if (!this._isInitialized) {
         throw new Error('AutoUpdaterService not initialized');
+      }
+
+      let reader = readConfig;
+      if (!reader) {
+        const { ProcessConfig } = await import('@process/utils/initStorage');
+        reader = (key) => ProcessConfig.get(key);
+      }
+      const feed = await this.configureFeed(reader);
+      if (!feed.configured) {
+        // No feed source: surface a clean, localized reason rather than letting
+        // electron-updater throw an opaque error.
+        const { default: i18n } = await import('./i18n');
+        return { success: false, error: i18n.t('update.errors.noFeedConfigured') };
       }
 
       const result = await autoUpdater.checkForUpdates();
@@ -328,10 +430,28 @@ class AutoUpdaterService extends EventEmitter {
   }
 
   /**
-   * Check for updates and notify (for startup)
+   * Check for updates and notify (for startup).
+   *
+   * Resolves the generic update feed first. When no feed URL is configured the
+   * check no-ops quietly (logged reason, no error dialog, no network call) —
+   * this is the supported "no feed source" state. The config reader is
+   * injectable for testing; production reads the persisted ProcessConfig value.
    */
-  async checkForUpdatesAndNotify(): Promise<void> {
+  async checkForUpdatesAndNotify(
+    readConfig?: (key: typeof UPDATE_FEED_URL_CONFIG_KEY) => Promise<string | undefined>
+  ): Promise<void> {
     try {
+      let reader = readConfig;
+      if (!reader) {
+        const { ProcessConfig } = await import('@process/utils/initStorage');
+        reader = (key) => ProcessConfig.get(key);
+      }
+      const feed = await this.configureFeed(reader);
+      if (!feed.configured) {
+        // First-class quiet state: nothing to check against, so do not call into
+        // electron-updater (which would otherwise error into the void).
+        return;
+      }
       // Ensure clean state: prevent stale allowDowngrade=true from prior setAllowPrerelease(true) calls
       autoUpdater.allowDowngrade = false;
       await autoUpdater.checkForUpdatesAndNotify();

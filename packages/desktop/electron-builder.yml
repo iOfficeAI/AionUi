@@ -141,7 +141,12 @@ mac:
     - dmg
     - zip
   icon: resources/app.icns
-  artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+  # Space-free artifact name so the on-disk filename matches the url written into
+  # latest-mac.yml EXACTLY. ${productName} ("Command EVE") contains a space which
+  # electron-builder sanitizes to a dash in the yml url ("Command-EVE-…") while the
+  # on-disk file keeps the space — a 404 on a static HTTPS feed at download time.
+  # Using a literal dash form makes disk name === yml url. (TRAP 2)
+  artifactName: Command-EVE-${version}-${os}-${arch}.${ext}
   category: public.app-category.productivity
   hardenedRuntime: true
   gatekeeperAssess: false

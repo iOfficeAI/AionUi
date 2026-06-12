@@ -22,5 +22,9 @@
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
   "openFile": "Open file",
-  "errorTitle": "Update failed"
+  "errorTitle": "Update failed",
+  "errors": {
+    "checkReturnedNull": "Update check returned no result (development mode)",
+    "noFeedConfigured": "No update feed is configured. Updates are unavailable until a feed URL is set."
+  }
 }
