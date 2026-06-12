@@ -138,10 +138,27 @@ export const useAcpModelInfo = ({
     modelInfoRef.current = model_info;
   }, [model_info]);
 
+  const managedModelInfoForUpdateRef = useRef<AcpModelInfo | null>(null);
+
   const updateModelInfo = useCallback(
     (nextModelInfo: AcpModelInfo) => {
+      // Merge managed provider (POUNDING API) models into every write path.
+      // This ensures the dropdown always shows all available models regardless
+      // of which code path writes (reloadModelInfo, acp_model_info stream, etc.)
+      const managed = managedModelInfoForUpdateRef.current;
+      let merged = nextModelInfo;
+      if (managed && managed.available_models.length > 0) {
+        const existingIds = new Set(nextModelInfo.available_models.map((m) => m.id));
+        const newModels = managed.available_models.filter((m) => !existingIds.has(m.id));
+        if (newModels.length > 0) {
+          merged = {
+            ...nextModelInfo,
+            available_models: [...nextModelInfo.available_models, ...newModels],
+          };
+        }
+      }
       void mutateModelInfo((prev) => {
-        return isSameModelInfo(prev, nextModelInfo) ? prev : nextModelInfo;
+        return isSameModelInfo(prev, merged) ? prev : merged;
       }, false);
     },
     [mutateModelInfo]
@@ -180,6 +197,11 @@ export const useAcpModelInfo = ({
       available_models: models.map((id) => ({ id, label: id })),
     };
   }, [cliTarget, providers]);
+
+  // Sync managedModelInfo to ref for use in updateModelInfo
+  useEffect(() => {
+    managedModelInfoForUpdateRef.current = managedModelInfo;
+  }, [managedModelInfo]);
 
   const loadFallbackModelInfo = useCallback(
     (options?: { preserveInitialModel?: boolean }) => {
@@ -338,43 +360,6 @@ export const useAcpModelInfo = ({
     loadFallbackModelInfo({ preserveInitialModel: true });
   }, [backend, enabled, handshakeModelInfo, isModelInfoLoading, model_info, loadFallbackModelInfo]);
 
-  // Managed runtime CLI fallback: use managed provider model info when
-  // neither the backend nor ACP handshake provide models (e.g. OpenClaw),
-  // or when the handshake only returns a single model but the managed
-  // provider has more (e.g. Hermes — its ACP handshake only returns the
-  // currently selected model, not the full list).
-  const managedModelInfoRef = useRef(managedModelInfo);
-  managedModelInfoRef.current = managedModelInfo;
-  useEffect(() => {
-    if (!enabled) return;
-    if (!managedModelInfo || managedModelInfo.available_models.length === 0) return;
-    if (model_info && model_info.available_models.length > 0) return;
-    if (isModelInfoLoading) return;
-    if (hasUserChangedModel.current) return;
-    // When the handshake has models but the managed provider has MORE,
-    // prefer the managed list (e.g. Hermes only returns 1 model in handshake).
-    const handshakeHasMoreModels =
-      handshakeModelInfo &&
-      handshakeModelInfo.available_models &&
-      handshakeModelInfo.available_models.length >= managedModelInfo.available_models.length;
-    if (handshakeHasMoreModels) return;
-    logAcpModelInfo('fallback_from_managed_provider', {
-      conversation_id,
-      backend,
-      source_model_info: summarizeModelInfo(managedModelInfo),
-    });
-    updateModelInfo(managedModelInfo);
-  }, [
-    backend,
-    enabled,
-    managedModelInfo,
-    handshakeModelInfo,
-    isModelInfoLoading,
-    model_info,
-    conversation_id,
-    updateModelInfo,
-  ]);
-
   // Poll backend for model info while window has focus.
   // Originally Claude-only; now extended to all ACP backends so users
   // see model info for Codex, Gemini, Qwen, Hermes, and others.
@@ -436,10 +421,14 @@ export const useAcpModelInfo = ({
       } else if (message.type === 'codex_model_info' && message.data) {
         const data = message.data as { model: string };
         if (data.model) {
+          // Preserve existing available_models — codex_model_info only provides
+          // the current model, not the full list. Wiping available_models breaks
+          // the model selector dropdown for Hermes/OpenClaw.
+          const current = modelInfoRef.current;
           updateModelInfo({
             current_model_id: data.model,
             current_model_label: data.model,
-            available_models: [],
+            available_models: current?.available_models ?? [],
           });
         }
       }

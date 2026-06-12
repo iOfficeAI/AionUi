@@ -209,9 +209,10 @@ function isManagedCliModelCompatible(
   modelId: string,
   cliTarget?: ManagedRuntimeCliTarget
 ): boolean {
-  if (cliTarget !== 'claude') return true;
-  const protocol = inferManagedModelProtocol(provider, modelId);
-  return protocol ? CLAUDE_COMPATIBLE_PROTOCOLS.has(protocol) : false;
+  // All CLIs can use all models from the managed provider.
+  // POUNDING API provides Anthropic-compatible endpoints for Claude,
+  // OpenAI-compatible for others, and the CLI handles protocol translation.
+  return true;
 }
 
 export function getManagedCliSelectableModels(

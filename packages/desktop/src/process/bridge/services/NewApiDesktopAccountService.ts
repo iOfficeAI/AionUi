@@ -1035,6 +1035,8 @@ function writeHermesEnvFile(apiKey: string): void {
 
 function renderHermesManagedConfig(profile: ProviderSyncProfile): string {
   const hermesBaseUrl = profile.protocol === 'openai' ? resolveOpenClawBaseUrl(profile) : profile.normalizedBaseUrl;
+  const models = profile.modelList?.length ? profile.modelList : [profile.normalizedModelId];
+  const modelEntries = models.map((m) => `      ${JSON.stringify(m)}: {}`).join('\n');
   return normalizeTrailingNewline(
     [
       'custom_providers:',
@@ -1044,7 +1046,7 @@ function renderHermesManagedConfig(profile: ProviderSyncProfile): string {
       `    api_mode: ${JSON.stringify(resolveHermesApiMode(profile))}`,
       `    model: ${JSON.stringify(profile.normalizedModelId)}`,
       '    models:',
-      `      ${JSON.stringify(profile.normalizedModelId)}: {}`,
+      modelEntries,
       'model:',
       `  default: ${JSON.stringify(profile.normalizedModelId)}`,
       '  provider: custom',
@@ -1057,8 +1059,9 @@ function renderHermesManagedConfig(profile: ProviderSyncProfile): string {
   );
 }
 
-async function writeHermesConfigForProviderSync(provider: TProviderWithModel): Promise<void> {
-  const profile = buildProviderSyncProfile(provider);
+
+async function writeHermesConfigForProviderSync(provider: TProviderWithModel, modelList?: string[]): Promise<void> {
+  const profile = buildProviderSyncProfile(provider, modelList);
   if (!profile) return;
   const configPath = resolveHermesConfigPath();
   fs.mkdirSync(path.dirname(configPath), { recursive: true });
@@ -1296,7 +1299,7 @@ function buildManagedOpenClawConfig(
     api: resolveOpenClawApiProtocol(profile),
     headers: {},
     authHeader: true,
-    models: [{ id: profile.normalizedModelId, name: profile.normalizedModelId }],
+    models: (profile.modelList || [profile.normalizedModelId]).map((id) => ({ id, name: id })),
   };
   models.mode = 'merge';
   models.providers = providers;
@@ -1401,7 +1404,7 @@ function resolveCodexBaseUrl(profile: ProviderSyncProfile): string {
 }
 
 function writeCodexConfigForProviderSync(provider: TProviderWithModel, modelList: string[]): void {
-  const profile = buildProviderSyncProfile(provider);
+  const profile = buildProviderSyncProfile(provider, modelList);
   if (!profile) return;
 
   const providerId = profile.managedProviderId;
@@ -1536,6 +1539,36 @@ function writeCodexConfigForProviderSync(provider: TProviderWithModel, modelList
     JSON.stringify({ models: modelObjects }, null, 2) + '\n',
     { encoding: 'utf8', mode: 0o600 }
   );
+
+  // Merge POUNDING models into cc-switch-model-catalog.json so that even if
+  // CC Switch overwrites config.toml to point at its catalog, the catalog
+  // still contains our model metadata. This prevents the "Model metadata not
+  // found" warning.
+  try {
+    let ccCatalog: { models: Array<Record<string, unknown>> } = { models: [] };
+    if (fs.existsSync(ccSwitchCatalogPath)) {
+      ccCatalog = JSON.parse(fs.readFileSync(ccSwitchCatalogPath, 'utf8'));
+    }
+    const existingSlugs = new Set(
+      (ccCatalog.models || []).map((m) => m.slug).filter(Boolean)
+    );
+    let merged = false;
+    for (const obj of modelObjects) {
+      if (!existingSlugs.has(obj.slug)) {
+        ccCatalog.models.push(obj);
+        existingSlugs.add(obj.slug);
+        merged = true;
+      }
+    }
+    if (merged) {
+      fs.writeFileSync(ccSwitchCatalogPath, JSON.stringify(ccCatalog, null, 2) + '\n', {
+        encoding: 'utf8',
+        mode: 0o600,
+      });
+    }
+  } catch {
+    /* best-effort merge */
+  }
 
   // Delete stale models_cache.json so Codex re-reads metadata from
   // pounding-models.json (and cc-switch-model-catalog.json if present).
@@ -1792,7 +1825,7 @@ async function syncManagedProviderRuntimeConfigs(provider: IProvider, prefs: Man
     },
     {
       cliTarget: 'hermes',
-      run: (providerWithModel) => writeHermesConfigForProviderSync(providerWithModel),
+      run: (providerWithModel) => writeHermesConfigForProviderSync(providerWithModel, provider.models),
     },
     {
       cliTarget: 'opencode',

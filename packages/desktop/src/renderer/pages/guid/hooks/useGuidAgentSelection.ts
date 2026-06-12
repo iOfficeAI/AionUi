@@ -498,25 +498,18 @@ export const useGuidAgentSelection = ({
     // For preset agents, resolve to the actual backend type for model list lookup
     const backend = is_presetAgent ? currentEffectiveAgentInfo.agent_type : selectedAgent;
 
-    // Source: `handshake.available_models` from `/api/agents`.
+    // Source 1: `handshake.available_models` from `/api/agents`.
     // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
     // the agent_metadata row, so this is populated across restarts without
     // requiring a fresh session.
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    if (
-      handshakeModels &&
-      Array.isArray(handshakeModels.available_models) &&
-      handshakeModels.available_models.length > 0
-    ) {
-      return handshakeModels;
-    }
 
-    // Fallback: when the backend has not yet observed a session for codex
+    // Fallback for codex: when the backend has not yet observed a session
     // (e.g., first launch before any warmup), use the hardcoded default list
     // so the Guid page shows a model selector immediately.
-    if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+    if (!handshakeModels && backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
       return {
         current_model_id: DEFAULT_CODEX_MODELS[0].id,
         current_model_label: DEFAULT_CODEX_MODELS[0].label,
@@ -524,25 +517,42 @@ export const useGuidAgentSelection = ({
       } satisfies AcpModelInfo;
     }
 
-    // Fallback: for managed CLI agents (claude, codex, hermes, opencode, openclaw),
-    // use the managed POUNDING API provider models when the handshake is empty.
+    // Source 2: Managed POUNDING API provider models.
+    // Merge into handshake models so CLIs show all available POUNDING API
+    // models (mimo-v2.5, MiniMax-M2.7-highspeed, etc.) even when the
+    // handshake only exposes cc-switch slot models (default/opus/sonnet/haiku).
+    const managedModels: Array<{ id: string; label: string }> = [];
     if (providers) {
       const cliTarget = resolveManagedRuntimeCliTarget(backend);
       if (cliTarget) {
         const managedProvider = providers.find((p) => p.id === MANAGED_NEWAPI_PROVIDER_ID);
         if (managedProvider) {
           const models = getManagedCliSelectableModels(managedProvider, cliTarget);
-          if (models.length > 0) {
-            const prefs = (configService.get('newApi.desktop.cliModelPrefs') ?? {}) as Record<string, string>;
-            const currentModelId = prefs[cliTarget as ManagedRuntimeCliTarget] ?? models[0];
-            return {
-              current_model_id: currentModelId,
-              current_model_label: currentModelId,
-              available_models: models.map((id) => ({ id, label: id })),
-            } satisfies AcpModelInfo;
+          for (const id of models) {
+            managedModels.push({ id, label: id });
           }
         }
       }
+    }
+
+    // Merge: start with handshake models, then add managed models not already present.
+    const existingIds = new Set(handshakeModels?.available_models?.map((m) => m.id) ?? []);
+    const mergedModels = [
+      ...(handshakeModels?.available_models ?? []),
+      ...managedModels.filter((m) => !existingIds.has(m.id)),
+    ];
+
+    if (mergedModels.length > 0) {
+      const prefs = (configService.get('newApi.desktop.cliModelPrefs') ?? {}) as Record<string, string>;
+      const cliTarget = resolveManagedRuntimeCliTarget(backend);
+      const currentModelId =
+        handshakeModels?.current_model_id || (cliTarget ? prefs[cliTarget] : undefined) || mergedModels[0].id;
+      return {
+        current_model_id: currentModelId,
+        current_model_label:
+          mergedModels.find((m) => m.id === currentModelId)?.label || handshakeModels?.current_model_label || currentModelId,
+        available_models: mergedModels,
+      } satisfies AcpModelInfo;
     }
 
     return null;

@@ -84,6 +84,7 @@ interface CodexProxyState {
   status: ProxyStatus;
   restartCount: number;
   restartWindowStart: number;
+  apiKey: string | null;
 }
 
 const state: CodexProxyState = {
@@ -92,6 +93,7 @@ const state: CodexProxyState = {
   status: 'stopped',
   restartCount: 0,
   restartWindowStart: 0,
+  apiKey: null,
 };
 
 function resolveProxyScriptPath(): string {
@@ -242,10 +244,25 @@ function handleProxyExit(code: number | null, signal: string | null): void {
     // Read upstream from the resolveCodexBaseUrl logic
     const upstream = 'https://api.mxou.cn/v1';
 
-    startProxy(apiKey, upstream).catch((err) => {
-      console.error('[CodexProxyManager] Failed to restart proxy:', err.message);
-      handleProxyExit(-1, null);
-    });
+    startProxy(apiKey, upstream)
+      .then((port) => {
+        // Re-sync Codex config with the new port
+        console.log(`[CodexProxyManager] Re-syncing Codex config after restart on port ${port}`);
+        try {
+          // Dynamic import to avoid circular dependencies
+          import('@process/bridge/services/NewApiDesktopAccountService').then((m) => {
+            void m.newApiDesktopAccountService.reconcileManagedRuntimeState().catch((err: unknown) => {
+              console.error('[CodexProxyManager] Failed to re-sync config:', err);
+            });
+          });
+        } catch (err: unknown) {
+          console.error('[CodexProxyManager] Failed to import config sync:', err);
+        }
+      })
+      .catch((err) => {
+        console.error('[CodexProxyManager] Failed to restart proxy:', err.message);
+        handleProxyExit(-1, null);
+      });
   }, 1000);
 }
 
@@ -270,9 +287,23 @@ function readApiKeyFromConfig(): string | undefined {
  * DEFAULT_PORT if the default was in use).
  */
 export async function ensureCodexProxyRunning(): Promise<{ port: number } | null> {
-  // Already running
+  // Already running — but check if API key has changed (e.g. after login)
   if (state.status === 'running' && state.process && state.port) {
-    return { port: state.port };
+    const currentApiKey = readApiKeyFromConfig() || process.env.POUNDING_API_KEY || '';
+    if (currentApiKey && state.apiKey && currentApiKey !== state.apiKey) {
+      console.log('[CodexProxyManager] API key changed, restarting proxy...');
+      try {
+        state.process.kill();
+      } catch {
+        /* ignore */
+      }
+      state.process = null;
+      state.port = null;
+      state.status = 'stopped';
+      // Fall through to restart below
+    } else {
+      return { port: state.port };
+    }
   }
 
   // Currently starting — wait for it
@@ -308,6 +339,7 @@ export async function ensureCodexProxyRunning(): Promise<{ port: number } | null
   state.restartWindowStart = Date.now();
 
   const apiKey = readApiKeyFromConfig() || process.env.POUNDING_API_KEY || '';
+  state.apiKey = apiKey;
   const upstream = 'https://api.mxou.cn/v1';
 
   try {
