@@ -49,13 +49,18 @@ import type {
   ITeamAgentRenamedEvent,
   ITeamAgentSpawnedEvent,
   ITeamAgentStatusEvent,
+  ITeamChildTurnEvent,
   ITeamCreatedEvent,
   ITeamListChangedEvent,
   ITeamMcpStatusEvent,
   ITeamRemovedEvent,
   ITeamRenamedEvent,
+  ITeamRunAck,
+  ITeamRunEvent,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
+  ICancelTeamChildTurnParams,
+  ICancelTeamRunParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
@@ -1840,18 +1845,31 @@ export const team = {
     (p) => `/api/teams/${p.team_id}/session-mode`,
     (p) => ({ mode: p.session_mode })
   ),
-  sendMessage: httpPost<void, ISendTeamMessageParams>(
+  sendMessage: httpPost<ITeamRunAck, ISendTeamMessageParams>(
     (p) => `/api/teams/${p.team_id}/messages`,
     (p) => ({
       content: p.input,
       files: p.files,
     })
   ),
-  sendMessageToAgent: httpPost<void, ISendTeamAgentMessageParams>(
+  sendMessageToAgent: httpPost<ITeamRunAck, ISendTeamAgentMessageParams>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}/messages`,
     (p) => ({
       content: p.input,
       files: p.files,
+    })
+  ),
+  cancelRun: httpPost<void, ICancelTeamRunParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/cancel`,
+    (p) => ({
+      target_slot_id: p.target_slot_id,
+      reason: p.reason,
+    })
+  ),
+  cancelChildTurn: httpPost<void, ICancelTeamChildTurnParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/cancel`,
+    (p) => ({
+      reason: p.reason,
     })
   ),
   agentStatusChanged: wsEmitter<ITeamAgentStatusEvent>('team.agentStatusChanged'),
@@ -1866,4 +1884,13 @@ export const team = {
   mcpStatus: wsEmitter<ITeamMcpStatusEvent>('team.mcpStatus'),
   taskChanged: wsEmitter<ITeamTaskChangedEvent>('team.taskChanged'),
   sessionChanged: wsEmitter<ITeamSessionChangedEvent>('team.sessionChanged'),
+  runAccepted: wsEmitter<ITeamRunEvent>('team.runAccepted'),
+  runStarted: wsEmitter<ITeamRunEvent>('team.runStarted'),
+  runUpdated: wsEmitter<ITeamRunEvent>('team.runUpdated'),
+  runCompleted: wsEmitter<ITeamRunEvent>('team.runCompleted'),
+  runCancelled: wsEmitter<ITeamRunEvent>('team.runCancelled'),
+  runFailed: wsEmitter<ITeamRunEvent>('team.runFailed'),
+  childTurnStarted: wsEmitter<ITeamChildTurnEvent>('team.childTurnStarted'),
+  childTurnCompleted: wsEmitter<ITeamChildTurnEvent>('team.childTurnCompleted'),
+  childTurnCancelled: wsEmitter<ITeamChildTurnEvent>('team.childTurnCancelled'),
 };

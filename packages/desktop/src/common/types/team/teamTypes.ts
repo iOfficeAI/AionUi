@@ -55,6 +55,49 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
   slot_id: string;
 };
 
+export type TeamRunTargetRole = 'lead' | 'teammate';
+export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
+
+export type ITeamRunAck = {
+  team_run_id: string;
+  team_id: string;
+  target_slot_id: string;
+  target_role: TeamRunTargetRole;
+  status: TeamRunStatus;
+  message_id?: string;
+};
+
+export type ICancelTeamRunParams = {
+  team_id: string;
+  team_run_id: string;
+  target_slot_id?: string;
+  reason?: string;
+};
+
+export type ICancelTeamChildTurnParams = ICancelTeamRunParams & {
+  slot_id: string;
+};
+
+export type ITeamRunEvent = {
+  team_id: string;
+  team_run_id: string;
+  target_slot_id: string;
+  target_role: TeamRunTargetRole;
+  status: TeamRunStatus;
+  active_child_count: number;
+  pending_wake_count: number;
+};
+
+export type ITeamChildTurnEvent = {
+  team_id: string;
+  team_run_id: string;
+  slot_id: string;
+  role: TeamRunTargetRole;
+  conversation_id: string;
+  turn_id: string;
+  status: TeamRunStatus;
+};
+
 /** IPC event pushed to renderer when agent status changes */
 export type ITeamAgentStatusEvent = {
   team_id: string;

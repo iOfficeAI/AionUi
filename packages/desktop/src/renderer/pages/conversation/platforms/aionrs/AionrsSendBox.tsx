@@ -38,6 +38,7 @@ import { getConversationRuntimeWorkspaceErrorMessage } from '@/renderer/pages/co
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
+import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import { allSupportedExts } from '@/renderer/services/FileService';
 import { iconColors } from '@/renderer/styles/colors';
 import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
@@ -100,7 +101,8 @@ const AionrsSendBox: React.FC<{
   session_mode?: string;
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
-}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage }) => {
+  teamRuntime?: TeamSendBoxRuntime;
+}> = ({ conversation_id, modelSelection, session_mode, agent_name, teamSendMessage, teamRuntime }) => {
   const [workspacePath, setWorkspacePath] = useState('');
   const [dynamicModes, setDynamicModes] = useState<AgentModeOption[]>([]);
   const [currentMode, setCurrentMode] = useState<string | undefined>(session_mode);
@@ -175,7 +177,12 @@ const AionrsSendBox: React.FC<{
   });
 
   const { setSendBoxHandler } = usePreviewContext();
-  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
+  const commandQueueRuntimeGate = teamRuntime?.runtimeGate ?? {
+    hydrated: runtimeView.hydrated,
+    canSendMessage: runtimeView.canSendMessage,
+    isProcessing: runtimeView.isProcessing,
+  };
+  const isBusy = commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -282,11 +289,7 @@ const AionrsSendBox: React.FC<{
     conversation_id: conversation_id,
     enabled: true,
     isBusy,
-    runtimeGate: {
-      hydrated: runtimeView.hydrated,
-      canSendMessage: runtimeView.canSendMessage,
-      isProcessing: runtimeView.isProcessing,
-    },
+    runtimeGate: commandQueueRuntimeGate,
     onExecute: executeCommand,
   });
 
@@ -564,6 +567,7 @@ const AionrsSendBox: React.FC<{
       resetActiveExecution('stop');
     }
   };
+  const effectiveHandleStop = teamRuntime?.onStop ?? handleStop;
 
   return (
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
@@ -580,7 +584,7 @@ const AionrsSendBox: React.FC<{
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay thought={thought} running={running} onStop={handleStop} />
+      <ThoughtDisplay thought={thought} running={teamRuntime?.loading ?? running} onStop={effectiveHandleStop} />
 
       <SendBox
         data-testid='aionrs-sendbox'
@@ -592,7 +596,7 @@ const AionrsSendBox: React.FC<{
           emitter.emit('aionrs.selected.file', items);
           setAtPath(items);
         }}
-        loading={isBusy}
+        loading={teamRuntime?.loading ?? isBusy}
         disabled={!current_model?.use_model}
         placeholder={
           current_model?.use_model
@@ -602,7 +606,7 @@ const AionrsSendBox: React.FC<{
               })
             : t('conversation.chat.noModelSelected')
         }
-        onStop={handleStop}
+        onStop={effectiveHandleStop}
         className='z-10'
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}

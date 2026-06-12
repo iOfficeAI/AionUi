@@ -7,6 +7,7 @@
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import { ConversationProvider } from '@/renderer/hooks/context/ConversationContext';
 import { useTeamPermission } from '@/renderer/pages/team/hooks/TeamPermissionContext';
+import type { TeamSendBoxRuntime } from '@/renderer/pages/team/components/teamSendRuntime';
 import FlexFullContainer from '@renderer/components/layout/FlexFullContainer';
 import MessageList from '@renderer/pages/conversation/Messages/MessageList';
 import { ConversationArtifactProvider } from '@renderer/pages/conversation/Messages/artifacts';
@@ -35,6 +36,7 @@ const AcpChat: React.FC<{
   loadedMcpServers?: string[];
   loadedMcpStatuses?: IConversationMcpStatus[];
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
+  teamRuntime?: TeamSendBoxRuntime;
 }> = ({
   conversation_id,
   workspace,
@@ -48,6 +50,7 @@ const AcpChat: React.FC<{
   loadedMcpServers,
   loadedMcpStatuses,
   teamSendMessage,
+  teamRuntime,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -82,6 +85,7 @@ const AcpChat: React.FC<{
               workspacePath={workspace}
               messageState={messageState}
               teamSendMessage={teamSendMessage}
+              teamRuntime={teamRuntime}
             ></AcpSendBox>
           )}
         </div>
