@@ -70,6 +70,28 @@ describe('normalizeAcpModelInfo', () => {
     expect(normalizeAcpModelInfo(info)).toEqual(info);
   });
 
+  it('keeps the first entry when exact duplicates appear without suffixes', () => {
+    const result = normalizeAcpModelInfo({
+      current_model_id: null,
+      current_model_label: null,
+      available_models: [
+        { id: 'glm-5.1', label: 'GLM-5.1' },
+        { id: 'glm-5.1', label: 'GLM-5.1 copy' },
+      ],
+    });
+    expect(result.available_models).toEqual([{ id: 'glm-5.1', label: 'GLM-5.1' }]);
+  });
+
+  it('preserves null current model fields', () => {
+    const result = normalizeAcpModelInfo({
+      current_model_id: null,
+      current_model_label: null,
+      available_models: [{ id: 'glm-5.1/enabled', label: 'GLM-5.1 (enabled)' }],
+    });
+    expect(result.current_model_id).toBeNull();
+    expect(result.current_model_label).toBeNull();
+  });
+
   it('falls back to the clean id when label is empty', () => {
     const result = normalizeAcpModelInfo({
       current_model_id: null,

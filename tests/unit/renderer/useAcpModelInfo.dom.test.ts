@@ -464,4 +464,111 @@ describe('useAcpModelInfo', () => {
     expect(result.current.model_info?.current_model_id).toBe('opus-4');
     vi.clearAllTimers();
   });
+
+  it('normalizes /enabled /disabled suffixed models from getModel (issue #3297)', async () => {
+    getModelInvokeMock.mockResolvedValue({
+      model_info: {
+        current_model_id: 'glm-5.1/enabled',
+        current_model_label: 'GLM-5.1 (enabled)',
+        available_models: [
+          { id: 'glm-5.1/enabled', label: 'GLM-5.1 (enabled)' },
+          { id: 'glm-5.1/disabled', label: 'GLM-5.1 (disabled)' },
+          { id: 'kimi-k2.6/enabled', label: 'Kimi K2.6 (enabled)' },
+          { id: 'kimi-k2.6/disabled', label: 'Kimi K2.6 (disabled)' },
+        ],
+      } satisfies AcpModelInfo,
+    });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'codebuddy',
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('glm-5.1');
+    });
+    expect(result.current.model_info?.current_model_label).toBe('GLM-5.1');
+    expect(result.current.model_info?.available_models).toEqual([
+      { id: 'glm-5.1', label: 'GLM-5.1' },
+      { id: 'kimi-k2.6', label: 'Kimi K2.6' },
+    ]);
+  });
+
+  it('normalizes suffixed models from acp_model_info stream events (issue #3297)', async () => {
+    getModelInvokeMock.mockResolvedValue({ model_info: null });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'codebuddy',
+    });
+
+    await waitFor(() => {
+      expect(responseStreamHandlerRef.current).toBeTypeOf('function');
+    });
+
+    responseStreamHandlerRef.current?.({
+      type: 'acp_model_info',
+      conversation_id: 'conv-1',
+      data: {
+        current_model_id: 'glm-5.0/disabled',
+        current_model_label: 'GLM-5.0 (disabled)',
+        available_models: [
+          { id: 'glm-5.0/disabled', label: 'GLM-5.0 (disabled)' },
+          { id: 'glm-5.0/enabled', label: 'GLM-5.0 (enabled)' },
+        ],
+      } satisfies AcpModelInfo,
+    } as unknown as IResponseMessage);
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('glm-5.0');
+    });
+    expect(result.current.model_info?.available_models).toEqual([{ id: 'glm-5.0', label: 'GLM-5.0' }]);
+  });
+
+  it('persists the clean model id when setModel confirms with a suffixed id (issue #3297)', async () => {
+    const pollutedInfo: AcpModelInfo = {
+      current_model_id: 'glm-5.1/enabled',
+      current_model_label: 'GLM-5.1 (enabled)',
+      available_models: [
+        { id: 'glm-5.1/enabled', label: 'GLM-5.1 (enabled)' },
+        { id: 'kimi-k2.6/enabled', label: 'Kimi K2.6 (enabled)' },
+      ],
+    };
+    getModelInvokeMock.mockResolvedValueOnce({ model_info: pollutedInfo }).mockResolvedValue({
+      model_info: {
+        ...pollutedInfo,
+        current_model_id: 'kimi-k2.6/enabled',
+        current_model_label: 'Kimi K2.6 (enabled)',
+      },
+    });
+    setModelInvokeMock.mockResolvedValue({
+      model_info: {
+        ...pollutedInfo,
+        current_model_id: 'kimi-k2.6/enabled',
+        current_model_label: 'Kimi K2.6 (enabled)',
+      },
+    });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'codebuddy',
+    });
+
+    await waitFor(() => {
+      expect(result.current.canSwitch).toBe(true);
+    });
+
+    act(() => {
+      result.current.selectModel('kimi-k2.6');
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('kimi-k2.6');
+    });
+    await waitFor(() => {
+      expect(configServiceSetMock).toHaveBeenCalled();
+    });
+    const acpConfigCall = configServiceSetMock.mock.calls.find(([key]) => key === 'acp.config');
+    expect(acpConfigCall?.[1]).toEqual({ codebuddy: { preferredModelId: 'kimi-k2.6' } });
+  });
 });
