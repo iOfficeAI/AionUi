@@ -17,6 +17,36 @@ const emptyState: TeamRunViewState = {
   childTurnsBySlot: {},
 };
 
+const isTeamRunDebugEnabled = process.env.NODE_ENV !== 'production';
+
+const debugTeamRunEvent = (source: string, event: ITeamRunEvent) => {
+  if (!isTeamRunDebugEnabled) return;
+  console.debug('[Renderer:teamRunView] team_run_event_applied', {
+    source,
+    team_id: event.team_id,
+    team_run_id: event.team_run_id,
+    target_slot_id: event.target_slot_id,
+    target_role: event.target_role,
+    status: event.status,
+    active_child_count: event.active_child_count,
+    pending_wake_count: event.pending_wake_count,
+  });
+};
+
+const debugTeamChildTurnEvent = (source: string, event: ITeamChildTurnEvent) => {
+  if (!isTeamRunDebugEnabled) return;
+  console.debug('[Renderer:teamRunView] team_child_turn_event_applied', {
+    source,
+    team_id: event.team_id,
+    team_run_id: event.team_run_id,
+    slot_id: event.slot_id,
+    role: event.role,
+    conversation_id: event.conversation_id,
+    turn_id: event.turn_id,
+    status: event.status,
+  });
+};
+
 const ackToRunEvent = (ack: ITeamRunAck): ITeamRunEvent => ({
   team_id: ack.team_id,
   team_run_id: ack.team_run_id,
@@ -35,8 +65,9 @@ export const useTeamRunView = (team_id: string) => {
   }, [team_id]);
 
   const applyRunEvent = useCallback(
-    (event: ITeamRunEvent) => {
+    (event: ITeamRunEvent, source = 'websocket') => {
       if (event.team_id !== team_id) return;
+      debugTeamRunEvent(source, event);
       setState((prev) => ({
         activeRun: TERMINAL_RUN_STATUSES.has(event.status) ? undefined : event,
         childTurnsBySlot: TERMINAL_RUN_STATUSES.has(event.status) ? {} : prev.childTurnsBySlot,
@@ -47,7 +78,8 @@ export const useTeamRunView = (team_id: string) => {
 
   const applyAck = useCallback(
     (ack: ITeamRunAck) => {
-      applyRunEvent(ackToRunEvent(ack));
+      const event = ackToRunEvent(ack);
+      applyRunEvent(event, 'ack');
     },
     [applyRunEvent]
   );
@@ -55,6 +87,7 @@ export const useTeamRunView = (team_id: string) => {
   const applyChildStarted = useCallback(
     (event: ITeamChildTurnEvent) => {
       if (event.team_id !== team_id) return;
+      debugTeamChildTurnEvent('websocket', event);
       setState((prev) => ({
         ...prev,
         childTurnsBySlot: {
@@ -69,6 +102,7 @@ export const useTeamRunView = (team_id: string) => {
   const applyChildTerminal = useCallback(
     (event: ITeamChildTurnEvent) => {
       if (event.team_id !== team_id) return;
+      debugTeamChildTurnEvent('websocket', event);
       setState((prev) => {
         const next = { ...prev.childTurnsBySlot };
         delete next[event.slot_id];
