@@ -1002,6 +1002,8 @@ export type I18nKey =
   | 'preview.office.errors.portTimeout'
   | 'preview.office.errors.startFailed'
   | 'preview.office.installLinkText'
+  | 'preview.office.serverInstall.hint'
+  | 'preview.office.serverInstall.icuNote'
   | 'preview.openInPanelTooltip'
   | 'preview.openInSystemApp'
   | 'preview.openInSystemFailed'

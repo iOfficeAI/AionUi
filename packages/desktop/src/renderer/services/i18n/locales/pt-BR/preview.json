@@ -73,6 +73,10 @@
       "portTimeout": "O serviço de visualização iniciou, mas não ficou pronto a tempo. Tente novamente.",
       "startFailed": "Falha ao iniciar o serviço de visualização do Office.",
       "outsideSandbox": "Este arquivo está fora da sandbox atual do projeto."
+    },
+    "serverInstall": {
+      "hint": "O AionUi está sendo executado em um servidor. O componente de pré-visualização precisa ser instalado nesse servidor. Execute o comando abaixo no servidor e tente novamente:",
+      "icuNote": "Se ainda não iniciar, instale a biblioteca ICU no servidor (Debian/Ubuntu: apt-get install -y libicu-dev)."
     }
   },
   "word": {

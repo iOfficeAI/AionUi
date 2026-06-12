@@ -73,6 +73,10 @@
       "portTimeout": "预览服务启动后未在预期时间内就绪，请重试。",
       "startFailed": "启动 Office 预览服务失败。",
       "outsideSandbox": "该文件不在当前项目沙箱范围内。"
+    },
+    "serverInstall": {
+      "hint": "AionUi 运行在服务器上，预览组件需要安装在该服务器上。请在服务器执行以下命令后重试：",
+      "icuNote": "若安装后仍无法启动，请在服务器安装 ICU 库（Debian/Ubuntu：apt-get install -y libicu-dev）。"
     }
   },
   "word": {
