@@ -1,5 +1,6 @@
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { Avatar, Button, Input } from '@arco-design/web-react';
+import type { BuiltinAvatarOption } from '../types';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { FieldLabel, SectionCard } from './editorSectionPrimitives';
@@ -15,6 +16,7 @@ type IdentitySectionProps = {
   setEditAvatarPreview: (value: string | undefined) => void;
   onPickAvatarImage: () => void;
   renderAvatarPreview: () => React.ReactNode;
+  builtinAvatarOptions: BuiltinAvatarOption[];
   readOnlyLabel: string;
 };
 
@@ -29,6 +31,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
   setEditAvatarPreview,
   onPickAvatarImage,
   renderAvatarPreview,
+  builtinAvatarOptions,
   readOnlyLabel,
 }) => {
   const { t } = useTranslation();
@@ -54,6 +57,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
           <div className='flex flex-col items-center gap-8px'>
             <EmojiPicker
               value={editAvatar}
+              builtinAvatars={builtinAvatarOptions}
               onChange={(emoji) => {
                 setEditAvatarPreview(undefined);
                 setEditAvatar(emoji);

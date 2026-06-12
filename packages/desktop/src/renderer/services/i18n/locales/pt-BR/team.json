@@ -28,7 +28,6 @@
     "namePlaceholder": "Nome da equipe",
     "dispatchAgentPlaceholder": "Selecione o líder da equipe",
     "subAgentsPlaceholder": "Selecione sub-agentes",
-    "workspacePlaceholder": "Caminho da pasta do projeto (opcional)",
     "confirm": "Criar Equipe",
     "noSupportedAgents": "Nenhum agente suportado instalado",
     "supportedAgentsHint": "Atualmente suporta Claude e Codex. Mais agentes em breve.",

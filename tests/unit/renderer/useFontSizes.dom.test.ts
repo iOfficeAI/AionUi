@@ -51,8 +51,8 @@ describe('useFontSizes', () => {
 
   it('returns defaults when nothing persisted and applies them', async () => {
     const { result } = renderHook(() => useFontSizes());
-    await waitFor(() => expect(result.current.fontSizes.chat).toBe(16));
-    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('16px');
+    await waitFor(() => expect(result.current.fontSizes.chat).toBe(14));
+    expect(document.documentElement.style.getPropertyValue('--chat-font-size')).toBe('14px');
   });
 
   it('loads an out-of-range persisted value clamped and applies it', async () => {
@@ -64,7 +64,7 @@ describe('useFontSizes', () => {
 
   it('persists clamped value and updates CSS variable on setFontSize', async () => {
     const { result } = renderHook(() => useFontSizes());
-    await waitFor(() => expect(result.current.fontSizes.chat).toBe(16));
+    await waitFor(() => expect(result.current.fontSizes.chat).toBe(14));
     await act(async () => {
       await result.current.setFontSize('chat', 99);
     });

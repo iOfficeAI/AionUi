@@ -28,7 +28,6 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Takım liderini seçin",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Proje klasörü yolu (isteğe bağlı)",
     "confirm": "Create Team",
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",

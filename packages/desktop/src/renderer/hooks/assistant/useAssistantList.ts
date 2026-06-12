@@ -6,7 +6,7 @@ import {
   buildAssistantSortUpdates,
   reorderAssistantList,
 } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 /**
@@ -19,6 +19,7 @@ export const useAssistantList = () => {
   const [assistants, setAssistants] = useState<Assistant[]>([]);
   const [activeAssistantId, setActiveAssistantId] = useState<string | null>(null);
   const localeKey = resolveLocaleKey(i18n.language);
+  const previousLocaleKeyRef = useRef(localeKey);
 
   const loadAssistants = useCallback(async () => {
     try {
@@ -63,6 +64,17 @@ export const useAssistantList = () => {
   useEffect(() => {
     void loadAssistants();
   }, [loadAssistants]);
+
+  useEffect(() => {
+    const localeChanged = previousLocaleKeyRef.current !== localeKey;
+    previousLocaleKeyRef.current = localeKey;
+
+    if (!localeChanged) {
+      return;
+    }
+
+    void loadAssistants();
+  }, [loadAssistants, localeKey]);
 
   const activeAssistant = assistants.find((a) => a.id === activeAssistantId) ?? null;
 

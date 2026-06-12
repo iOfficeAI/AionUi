@@ -5,12 +5,19 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
 import { ConfigRow, ReadonlySelectionField, SectionCard } from './editorSectionPrimitives';
+import styles from './DefaultsSection.module.css';
 
 type SelectOption = { key: string; value: string; label: string };
 type EditableSkillOption = { value: string; label: string; isAuto?: boolean; disabled?: boolean };
 
 const getEditorSelectPopupContainer = (node: HTMLElement) =>
   node.closest('[data-editor-popup-root]') ?? node.parentElement ?? document.body;
+
+const AUTO_SELECT_VALUE = '__AUTO__';
+
+const renderSummaryTag = ({ label }: { label: React.ReactNode }) => (
+  <span className={styles.summaryTagText}>{label}</span>
+);
 
 type DefaultsSectionProps = {
   isBuiltin: boolean;
@@ -36,7 +43,6 @@ type DefaultsSectionProps = {
   selectedMcpIds: string[];
   setSelectedMcpIds: (value: string[]) => void;
   handleSkillSelectionChange: (values: string[]) => void;
-  readOnlyLabel: string;
   selectedItemsLabel: (count: number) => string;
   autoDefaultOptionLabel: string;
   readonlySelectionSummary: (items: string[], emptyLabel: string) => string;
@@ -65,7 +71,6 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
   selectedMcpIds,
   setSelectedMcpIds,
   handleSkillSelectionChange,
-  readOnlyLabel,
   selectedItemsLabel,
   autoDefaultOptionLabel,
   readonlySelectionSummary,
@@ -82,8 +87,6 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         label: t('settings.assistantOnlyNewConversation', { defaultValue: 'New conversations only' }),
         tone: 'next',
       }}
-      readOnly={isBuiltin}
-      readOnlyLabel={readOnlyLabel}
       testId='assistant-card-defaults'
     >
       <div className='space-y-16px'>
@@ -96,10 +99,10 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         >
           <Select
             getPopupContainer={getEditorSelectPopupContainer}
-            value={defaultModelMode === 'fixed' && defaultModelValue ? defaultModelValue : '__AUTO__'}
+            value={defaultModelMode === 'fixed' && defaultModelValue ? defaultModelValue : AUTO_SELECT_VALUE}
             onChange={(value) => {
               const nextValue = value as string;
-              if (nextValue === '__AUTO__') {
+              if (nextValue === AUTO_SELECT_VALUE) {
                 setDefaultModelMode('auto');
                 setDefaultModelValue('');
                 return;
@@ -115,7 +118,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             })}
             data-testid='select-assistant-default-model'
           >
-            <Select.Option value='__AUTO__'>{autoDefaultOptionLabel}</Select.Option>
+            <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
             {modelOptions.map((option) => (
               <Select.Option key={option.key} value={option.value}>
                 {option.label}
@@ -127,10 +130,12 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         <ConfigRow label={t('settings.assistantDefaultPermissionLabel', { defaultValue: 'Default Permission' })}>
           <Select
             getPopupContainer={getEditorSelectPopupContainer}
-            value={defaultPermissionMode === 'fixed' && defaultPermissionValue ? defaultPermissionValue : '__AUTO__'}
+            value={
+              defaultPermissionMode === 'fixed' && defaultPermissionValue ? defaultPermissionValue : AUTO_SELECT_VALUE
+            }
             onChange={(value) => {
               const nextValue = value as string;
-              if (nextValue === '__AUTO__') {
+              if (nextValue === AUTO_SELECT_VALUE) {
                 setDefaultPermissionMode('auto');
                 setDefaultPermissionValue('');
                 return;
@@ -148,7 +153,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             })}
             data-testid='select-assistant-default-permission'
           >
-            <Select.Option value='__AUTO__'>{autoDefaultOptionLabel}</Select.Option>
+            <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
             {permissionOptions.map((option) => (
               <Select.Option key={option.value} value={option.value}>
                 {option.label}
@@ -174,18 +179,36 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
           >
             {canEditDefaultSkillsAndMcps ? (
               <Select
+                className={styles.summarySelect}
                 getPopupContainer={getEditorSelectPopupContainer}
                 mode='multiple'
-                value={defaultSkillsMode === 'fixed' ? selectedSkillValues : []}
+                value={defaultSkillsMode === 'fixed' ? selectedSkillValues : [AUTO_SELECT_VALUE]}
                 onChange={(value) => {
+                  const nextValues = ((value as string[]) ?? []).filter(Boolean);
+                  if (nextValues.length === 0) {
+                    setDefaultSkillsMode('fixed');
+                    handleSkillSelectionChange([]);
+                    return;
+                  }
+
+                  const filteredValues = nextValues.filter((item) => item !== AUTO_SELECT_VALUE);
+                  if (filteredValues.length === 0) {
+                    setDefaultSkillsMode('auto');
+                    handleSkillSelectionChange([]);
+                    return;
+                  }
+
                   setDefaultSkillsMode('fixed');
-                  handleSkillSelectionChange((value as string[]) ?? []);
+                  handleSkillSelectionChange(filteredValues);
                 }}
                 onClear={() => setDefaultSkillsMode('auto')}
                 allowClear
                 maxTagCount={{
                   count: 0,
-                  render: () => selectedItemsLabel(selectedSkillValues.length),
+                  render: () =>
+                    defaultSkillsMode === 'auto'
+                      ? autoDefaultOptionLabel
+                      : selectedItemsLabel(selectedSkillValues.length),
                 }}
                 placeholder={
                   defaultSkillsMode === 'auto'
@@ -203,6 +226,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
                         event.preventDefault();
                         event.stopPropagation();
                         setDefaultSkillsMode('auto');
+                        handleSkillSelectionChange([]);
                       }}
                     >
                       {autoDefaultOptionLabel}
@@ -218,7 +242,15 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
                         t('settings.assistantNoDefaultSkillsSelected', { defaultValue: 'No default skills selected' })
                       )
                 }
+                renderTag={renderSummaryTag}
               >
+                <Select.Option
+                  value={AUTO_SELECT_VALUE}
+                  className={styles.hiddenAutoOption}
+                  wrapperClassName={styles.hiddenAutoOptionWrapper}
+                >
+                  {autoDefaultOptionLabel}
+                </Select.Option>
                 {editableSkillOptions.map((option) => (
                   <Select.Option key={option.value} value={option.value} disabled={option.disabled}>
                     {option.label}
@@ -256,18 +288,34 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
         >
           {canEditDefaultSkillsAndMcps ? (
             <Select
+              className={styles.summarySelect}
               getPopupContainer={getEditorSelectPopupContainer}
               mode='multiple'
-              value={defaultMcpMode === 'fixed' ? selectedMcpIds : []}
+              value={defaultMcpMode === 'fixed' ? selectedMcpIds : [AUTO_SELECT_VALUE]}
               onChange={(value) => {
+                const nextValues = ((value as string[]) ?? []).filter(Boolean);
+                if (nextValues.length === 0) {
+                  setDefaultMcpMode('fixed');
+                  setSelectedMcpIds([]);
+                  return;
+                }
+
+                const filteredValues = nextValues.filter((item) => item !== AUTO_SELECT_VALUE);
+                if (filteredValues.length === 0) {
+                  setDefaultMcpMode('auto');
+                  setSelectedMcpIds([]);
+                  return;
+                }
+
                 setDefaultMcpMode('fixed');
-                setSelectedMcpIds((value as string[]) ?? []);
+                setSelectedMcpIds(filteredValues);
               }}
               onClear={() => setDefaultMcpMode('auto')}
               allowClear
               maxTagCount={{
                 count: 0,
-                render: () => selectedItemsLabel(selectedMcpIds.length),
+                render: () =>
+                  defaultMcpMode === 'auto' ? autoDefaultOptionLabel : selectedItemsLabel(selectedMcpIds.length),
               }}
               placeholder={
                 defaultMcpMode === 'auto'
@@ -288,6 +336,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
                       event.preventDefault();
                       event.stopPropagation();
                       setDefaultMcpMode('auto');
+                      setSelectedMcpIds([]);
                     }}
                   >
                     {autoDefaultOptionLabel}
@@ -305,7 +354,15 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
                       t('settings.assistantNoDefaultMcpsSelected', { defaultValue: 'No default MCP selected' })
                     )
               }
+              renderTag={renderSummaryTag}
             >
+              <Select.Option
+                value={AUTO_SELECT_VALUE}
+                className={styles.hiddenAutoOption}
+                wrapperClassName={styles.hiddenAutoOptionWrapper}
+              >
+                {autoDefaultOptionLabel}
+              </Select.Option>
               {enabledMcpServers.map((server) => (
                 <Select.Option key={server.id} value={server.id}>
                   {server.name}

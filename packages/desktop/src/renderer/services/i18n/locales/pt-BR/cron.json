@@ -100,7 +100,6 @@
       "executionModeEditHint": "O modo de execução não pode ser alterado após a criação. Exclua e recrie a tarefa para mudar de modo.",
       "advancedSettings": "Configurações Avançadas",
       "workspace": "Projeto",
-      "workspacePlaceholder": "Selecione uma pasta",
       "workspaceHint": "Opcional: defina a pasta de um projeto para operações de arquivo",
       "selectFolder": "Selecionar Pasta",
       "clearFolder": "Limpar",

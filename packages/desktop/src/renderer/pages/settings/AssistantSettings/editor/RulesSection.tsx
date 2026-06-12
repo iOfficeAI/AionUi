@@ -37,10 +37,14 @@ const RulesSection: React.FC<RulesSectionProps> = ({
         label: t('settings.assistantOnlyNewConversation', { defaultValue: 'New conversations only' }),
         tone: 'next',
       }}
-      readOnly={isBuiltin}
       readOnlyLabel={readOnlyLabel}
       extra={
         <div className='flex items-center gap-6px'>
+          {isBuiltin ? (
+            <span className='rounded-8px bg-fill-1 px-8px py-3px text-10px font-500 text-t-tertiary'>
+              {readOnlyLabel}
+            </span>
+          ) : null}
           {isRuleEditable ? (
             <div className='flex items-center rounded-10px bg-fill-1 p-2px'>
               <Button

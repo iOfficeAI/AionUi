@@ -170,7 +170,7 @@ const MessageListSkeleton: React.FC = () => {
   );
 };
 
-const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = React.memo(
+const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean; showCopyRow?: boolean }> = React.memo(
   HOC((props) => {
     const { message, highlighted } = props as { message: TMessage; highlighted?: boolean };
     return (
@@ -193,11 +193,11 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
         {props.children}
       </div>
     );
-  })(({ message }) => {
+  })(({ message, showCopyRow }: { message: TMessage; highlighted?: boolean; showCopyRow?: boolean }) => {
     const { t } = useTranslation();
     switch (message.type) {
       case 'text':
-        return <MessageText message={message}></MessageText>;
+        return <MessageText message={message} showCopyRow={showCopyRow}></MessageText>;
       case 'tips':
         return <MessageTips message={message}></MessageTips>;
       case 'tool_call':
@@ -227,7 +227,8 @@ const MessageItem: React.FC<{ message: TMessage; highlighted?: boolean }> = Reac
     prev.message.content === next.message.content &&
     prev.message.position === next.message.position &&
     prev.message.type === next.message.type &&
-    prev.highlighted === next.highlighted
+    prev.highlighted === next.highlighted &&
+    prev.showCopyRow === next.showCopyRow
 );
 
 const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }> = ({ emptySlot }) => {
@@ -343,6 +344,40 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
       (a, b) => getProcessedItemCreatedAt(a) - getProcessedItemCreatedAt(b)
     );
   }, [artifacts, list]);
+
+  // An AI reply can be split into several messages (thinking / multiple text /
+  // tool blocks). The hover copy + timestamp row should appear once per turn,
+  // after the turn's last text — not under every intermediate text block.
+  // Collect the id of the last AI text in each turn; a turn runs until the next
+  // user (right) message. Tool/file/artifact items don't end a turn and, per the
+  // fallback strategy, the row stays on the turn's last text even when followed
+  // by tool blocks.
+  const aiCopyRowTextIds = useMemo(() => {
+    const ids = new Set<string>();
+    let pendingTextId: string | undefined;
+    const flush = () => {
+      if (pendingTextId) ids.add(pendingTextId);
+      pendingTextId = undefined;
+    };
+    for (const item of processedList) {
+      if (
+        'type' in item &&
+        (item.type === 'file_summary' || item.type === 'tool_summary' || item.type === 'artifact')
+      ) {
+        continue;
+      }
+      const message = item as TMessage;
+      if (message.position === 'right') {
+        flush();
+        continue;
+      }
+      if (message.type === 'text') {
+        pendingTextId = message.id;
+      }
+    }
+    flush();
+    return ids;
+  }, [processedList]);
 
   // Use auto-scroll hook
   const {
@@ -473,7 +508,12 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         </div>
       );
     }
-    return <MessageItem message={item as TMessage} key={(item as TMessage).id} highlighted={highlighted}></MessageItem>;
+    const message = item as TMessage;
+    // User messages keep their own copy row; AI text only shows it at the turn end.
+    const showCopyRow = message.position !== 'left' || message.type !== 'text' || aiCopyRowTextIds.has(message.id);
+    return (
+      <MessageItem message={message} key={message.id} highlighted={highlighted} showCopyRow={showCopyRow}></MessageItem>
+    );
   };
 
   if (processedList.length === 0 && isMessageListLoading) {

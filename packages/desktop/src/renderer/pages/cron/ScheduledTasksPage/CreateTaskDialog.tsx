@@ -747,7 +747,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                     onChange={(next) => setWorkspace(next || undefined)}
                     onClear={handleWorkspaceClear}
                     placeholder={t('cron.page.form.selectFolder')}
-                    input_placeholder={t('cron.page.form.workspacePlaceholder')}
                     recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
                     chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                       defaultValue: 'Choose a different folder',

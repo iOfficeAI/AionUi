@@ -113,7 +113,6 @@
       "executionModeEditHint": "Oluşturulduktan sonra çalıştırma modu değiştirilemez. Mod değiştirmek için görevi silip yeniden oluşturun.",
       "advancedSettings": "Gelişmiş Ayarlar",
       "workspace": "Proje",
-      "workspacePlaceholder": "Klasör seç",
       "workspaceHint": "İsteğe bağlı: Dosya işlemleri için proje klasörü ayarlayın",
       "selectFolder": "Klasör Seç",
       "clearFolder": "Temizle",

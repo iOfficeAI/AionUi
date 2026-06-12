@@ -9,7 +9,7 @@ import type {
   SkillInfo,
 } from '@/renderer/pages/settings/AssistantSettings/types';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { mutate as swrMutate } from 'swr';
 
@@ -40,6 +40,13 @@ const resolveLocalizedRecommendedPrompts = (
   );
 };
 
+const resolveLocalizedProfileField = (
+  baseValue: string | undefined,
+  localizedValues: Record<string, string> | undefined,
+  localeKey: string,
+  fallbackValue = ''
+): string => localizedValues?.[localeKey] ?? localizedValues?.['en-US'] ?? baseValue ?? fallbackValue;
+
 /**
  * Manages all assistant editing state and handlers:
  * create, edit, duplicate, save, delete, and toggle enabled.
@@ -53,6 +60,7 @@ export const useAssistantEditor = ({
   message,
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
+  const previousLocaleKeyRef = useRef(localeKey);
 
   const [editVisible, setEditVisible] = useState(false);
   const [editName, setEditName] = useState('');
@@ -114,6 +122,48 @@ export const useAssistantEditor = ({
     [loadAssistantDetail]
   );
 
+  useEffect(() => {
+    const localeChanged = previousLocaleKeyRef.current !== localeKey;
+    previousLocaleKeyRef.current = localeKey;
+
+    if (!localeChanged || !editVisible || isCreating || activeAssistant?.source !== 'builtin') {
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadAssistantDetail(activeAssistant.id)
+      .then((detail) => {
+        if (cancelled) return;
+
+        setEditName(
+          resolveLocalizedProfileField(
+            detail.profile.name,
+            detail.profile.name_i18n,
+            localeKey,
+            activeAssistant.name_i18n?.[localeKey] || activeAssistant.name || ''
+          )
+        );
+        setEditDescription(
+          resolveLocalizedProfileField(
+            detail.profile.description,
+            detail.profile.description_i18n,
+            localeKey,
+            activeAssistant.description_i18n?.[localeKey] || activeAssistant.description || ''
+          )
+        );
+        setEditContext(detail.rules.content || '');
+        setEditRecommendedPromptsText(resolveLocalizedRecommendedPrompts(detail, localeKey).join('\n'));
+      })
+      .catch((error) => {
+        console.error('Failed to refresh builtin assistant locale data:', error);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [activeAssistant, editVisible, isCreating, loadAssistantDetail, localeKey]);
+
   const resetSkillEditorState = useCallback(() => {
     setPendingSkills([]);
     setDeletePendingSkillName(null);
@@ -168,8 +218,17 @@ export const useAssistantEditor = ({
 
     try {
       const { detail, skillsList, autoSkills, mcpServers } = await loadEditorResources(assistant.id);
-      setEditName(detail.profile.name || assistant.name || '');
-      setEditDescription(detail.profile.description || '');
+      setEditName(
+        resolveLocalizedProfileField(detail.profile.name, detail.profile.name_i18n, localeKey, assistant.name || '')
+      );
+      setEditDescription(
+        resolveLocalizedProfileField(
+          detail.profile.description,
+          detail.profile.description_i18n,
+          localeKey,
+          assistant.description || ''
+        )
+      );
       setEditAvatar(detail.profile.avatar || '');
       setEditAvatarPreview(undefined);
       setEditAgent(detail.engine.agent_backend || assistant.preset_agent_type || 'claude');

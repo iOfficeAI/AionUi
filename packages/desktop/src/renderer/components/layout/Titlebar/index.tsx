@@ -41,6 +41,11 @@ const resolveFeedbackModule = (pathname: string): string | undefined => {
 // match their footprint, and divide the stroke by the same factor so the rendered
 // line weight stays identical to the neighbouring icons.
 const FEEDBACK_ICON_SCALE = 1.12;
+// The bubble's tail drops to y≈41 (body is y6~38), pulling the optical centre below
+// the viewBox midline, so the icon reads slightly low next to the vertically
+// symmetric @icon-park neighbours. Nudge the whole glyph up a couple of viewBox
+// units to bring its visual centre back onto the shared baseline.
+const FEEDBACK_ICON_RISE = 2;
 const FeedbackIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
     width={size}
@@ -54,7 +59,9 @@ const FeedbackIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size 
     aria-hidden='true'
     focusable='false'
   >
-    <g transform={`translate(24 24) scale(${FEEDBACK_ICON_SCALE}) translate(-24 -24)`}>
+    <g
+      transform={`translate(0 -${FEEDBACK_ICON_RISE}) translate(24 24) scale(${FEEDBACK_ICON_SCALE}) translate(-24 -24)`}
+    >
       {/* Speech bubble with a tail dropping to the bottom-left. Sized to nearly fill
           the viewBox so it reads at the same scale as the neighbouring icons. */}
       <path d='M24 6C34 6 42 13 42 22C42 31 34 38 24 38C21.7 38 19.5 37.7 17.5 37.2L7 41L10 32C7.5 29 6 25.3 6 22C6 13 14 6 24 6Z' />

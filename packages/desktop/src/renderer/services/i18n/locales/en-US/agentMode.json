@@ -4,6 +4,8 @@
   "acceptEdits": "Accept Edits",
   "autoEdit": "Auto Edit",
   "auto_edit": "Auto Edit",
+  "read-only": "Read Only",
+  "full-access": "Full Access",
   "yolo": "YOLO",
   "yoloNoSandbox": "Full Auto (No Sandbox)",
   "auto": "Auto",

@@ -180,6 +180,126 @@ describe('useAssistantEditor', () => {
     expect(result.current.isCreating).toBe(false);
   });
 
+  it('refreshes builtin localized detail when locale changes while editing', async () => {
+    const builtinAssistant: AssistantListItem = {
+      id: 'builtin-1',
+      name: 'Academic Paper',
+      name_i18n: { 'en-US': 'Academic Paper', 'zh-CN': '学术论文助手' },
+      description: 'English description',
+      description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
+      avatar: '📚',
+      preset_agent_type: 'claude',
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+    };
+
+    (ipcBridge.assistants.get.invoke as any).mockImplementation(({ locale }: { locale: string }) =>
+      Promise.resolve({
+        ...mockAssistantDetail,
+        id: 'builtin-1',
+        source: 'builtin',
+        profile:
+          locale === 'zh-CN'
+            ? {
+                name: '学术论文助手',
+                name_i18n: { 'en-US': 'Academic Paper', 'zh-CN': '学术论文助手' },
+                description: '中文描述',
+                description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
+                avatar: '📚',
+              }
+            : {
+                name: 'Academic Paper',
+                name_i18n: { 'en-US': 'Academic Paper', 'zh-CN': '学术论文助手' },
+                description: 'English description',
+                description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
+                avatar: '📚',
+              },
+        rules: {
+          content: locale === 'zh-CN' ? '中文规则' : 'English rules',
+          storage_mode: 'builtin_asset',
+        },
+        prompts: {
+          recommended: ['English prompt'],
+          recommended_i18n: {
+            'en-US': ['English prompt'],
+            'zh-CN': ['中文提示词'],
+          },
+        },
+      })
+    );
+
+    const { result, rerender } = renderHook(
+      ({ localeKey, activeAssistant }) =>
+        useAssistantEditor({
+          ...defaultParams,
+          localeKey,
+          activeAssistant,
+        }),
+      {
+        initialProps: { localeKey: 'en-US', activeAssistant: builtinAssistant },
+      }
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(builtinAssistant);
+    });
+
+    await waitFor(() => expect(result.current.editName).toBe('Academic Paper'));
+    expect(result.current.editDescription).toBe('English description');
+    expect(result.current.editContext).toBe('English rules');
+    expect(result.current.editRecommendedPromptsText).toBe('English prompt');
+
+    rerender({ localeKey: 'zh-CN', activeAssistant: builtinAssistant });
+
+    await waitFor(() => expect(result.current.editName).toBe('学术论文助手'));
+    expect(result.current.editDescription).toBe('中文描述');
+    expect(result.current.editContext).toBe('中文规则');
+    expect(result.current.editRecommendedPromptsText).toBe('中文提示词');
+  });
+
+  it('uses localized builtin profile fields when opening the editor', async () => {
+    const builtinAssistant: AssistantListItem = {
+      id: 'builtin-2',
+      name: 'English Dashboard',
+      name_i18n: { 'en-US': 'English Dashboard', 'zh-CN': '仪表板助手' },
+      description: 'English description',
+      description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
+      avatar: '📊',
+      preset_agent_type: 'claude',
+      sort_order: 1,
+      source: 'builtin',
+      enabled: true,
+    };
+
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+      ...mockAssistantDetail,
+      id: 'builtin-2',
+      source: 'builtin',
+      profile: {
+        name: 'English Dashboard',
+        name_i18n: { 'en-US': 'English Dashboard', 'zh-CN': '仪表板助手' },
+        description: 'English description',
+        description_i18n: { 'en-US': 'English description', 'zh-CN': '中文描述' },
+        avatar: '📊',
+      },
+    });
+
+    const { result } = renderHook(() =>
+      useAssistantEditor({
+        ...defaultParams,
+        localeKey: 'zh-CN',
+      })
+    );
+
+    await act(async () => {
+      await result.current.handleEdit(builtinAssistant);
+    });
+
+    await waitFor(() => expect(result.current.editName).toBe('仪表板助手'));
+    expect(result.current.editDescription).toBe('中文描述');
+  });
+
   it('calls handleCreate and initializes empty form', async () => {
     const { result } = renderHook(() => useAssistantEditor(defaultParams));
 

@@ -96,7 +96,14 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
 
     return [];
   }, [currentBackend, editAgent, providerModelOptions]);
-  const permissionOptions = getAgentModes(editAgent);
+  const permissionOptions = useMemo(
+    () =>
+      getAgentModes(editAgent).map((option) => ({
+        ...option,
+        label: t(`agentMode.${option.value}`, { defaultValue: option.label }),
+      })),
+    [editAgent, t]
+  );
   const recommendedPromptItems = useMemo(
     () =>
       editRecommendedPromptsText
@@ -282,6 +289,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         setEditDescription={setEditDescription}
         setEditAvatar={setEditAvatar}
         setEditAvatarPreview={setEditAvatarPreview}
+        builtinAvatarOptions={profile.builtinAvatarOptions}
         onPickAvatarImage={() => void handlePickAvatarImage()}
         renderAvatarPreview={renderAvatarPreview}
         readOnlyLabel={readOnlyLabel}
@@ -309,8 +317,13 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         className='rounded-12px border border-border-2 bg-2 px-[12px] py-[16px] md:rounded-16px md:px-[24px] md:py-[20px]'
         data-testid='assistant-card-engine'
       >
-        <div className='mb-12px text-14px font-500 text-t-primary'>
-          {t('settings.assistantEngineSection', { defaultValue: 'Engine' })}
+        <div className='mb-12px flex items-center gap-8px'>
+          <div className='text-14px font-500 text-t-primary'>
+            {t('settings.assistantEngineSection', { defaultValue: 'Engine' })}
+          </div>
+          <span className='rounded-6px border border-success-8 bg-success-8 px-8px py-2px text-10px font-600 text-white'>
+            {t('settings.assistantOnlyNewConversation', { defaultValue: 'New conversations only' })}
+          </span>
         </div>
         <div className='flex items-center gap-12px'>
           <div className='w-86px flex-shrink-0 text-13px text-t-secondary'>
@@ -370,7 +383,6 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         selectedMcpIds={selectedMcpIds}
         setSelectedMcpIds={setSelectedMcpIds}
         handleSkillSelectionChange={handleSkillSelectionChange}
-        readOnlyLabel={readOnlyLabel}
         selectedItemsLabel={selectedItemsLabel}
         autoDefaultOptionLabel={autoDefaultOptionLabel}
         readonlySelectionSummary={readonlySelectionSummary}

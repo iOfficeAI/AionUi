@@ -101,7 +101,6 @@
       "executionModeEditHint": "建立後無法更改執行模式，如需切換請刪除任務後重新建立。",
       "advancedSettings": "進階設定",
       "workspace": "專案",
-      "workspacePlaceholder": "選擇資料夾",
       "workspaceHint": "選填：設定檔案操作的專案資料夾",
       "selectFolder": "選擇資料夾",
       "clearFolder": "清除",

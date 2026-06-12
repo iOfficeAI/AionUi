@@ -248,4 +248,96 @@ describe('AssistantSelectionArea', () => {
 
     expect(presetCards).toEqual(['writer', 'cowork']);
   });
+
+  it('prefers localized recommended prompts from assistant detail in selected assistant view', () => {
+    render(
+      <ConfigProvider>
+        <AssistantSelectionArea
+          is_presetAgent={true}
+          selectedAgentKey='custom:academic-paper'
+          selectedAgentInfo={{
+            agent_type: 'acp',
+            name: 'Academic Paper',
+            custom_agent_id: 'academic-paper',
+          }}
+          assistants={[
+            {
+              id: 'academic-paper',
+              source: 'builtin',
+              name: 'Academic Paper',
+              name_i18n: {},
+              description_i18n: {},
+              enabled: true,
+              sort_order: 1,
+              preset_agent_type: 'claude',
+              enabled_skills: [],
+              custom_skill_names: [],
+              disabled_builtin_skills: [],
+              context_i18n: {},
+              prompts: ['English prompt'],
+              prompts_i18n: {
+                'zh-CN': ['中文提示词'],
+              },
+              models: [],
+            },
+          ]}
+          selectedAssistantDetail={{
+            id: 'academic-paper',
+            source: 'builtin',
+            profile: {
+              name: 'Academic Paper',
+              name_i18n: {},
+              description_i18n: {},
+            },
+            state: {
+              enabled: true,
+              sort_order: 1,
+            },
+            engine: {
+              agent_backend: 'claude',
+            },
+            rules: {
+              content: '',
+              storage_mode: 'builtin_asset',
+            },
+            prompts: {
+              recommended: ['English prompt'],
+              recommended_i18n: {
+                'zh-CN': ['中文提示词'],
+              },
+            },
+            defaults: {
+              model: { mode: 'auto' },
+              permission: { mode: 'auto' },
+              skills: { mode: 'auto', value: [] },
+              mcps: { mode: 'auto', value: [] },
+            },
+            capabilities: {
+              default_skill_ids: [],
+              custom_skill_names: [],
+              default_disabled_builtin_skill_ids: [],
+            },
+            preferences: {
+              last_skill_ids: [],
+              last_disabled_builtin_skill_ids: [],
+              last_mcp_ids: [],
+            },
+          }}
+          localeKey='zh-CN'
+          currentEffectiveAgentInfo={{
+            agent_type: 'acp',
+            isFallback: false,
+            originalType: 'acp',
+            isAvailable: true,
+          }}
+          onSelectAssistant={vi.fn()}
+          onSetInput={vi.fn()}
+          onFocusInput={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+    expect(screen.getByText('中文提示词')).toBeInTheDocument();
+    expect(screen.queryByText('English prompt')).not.toBeInTheDocument();
+  });
 });

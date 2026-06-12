@@ -28,7 +28,6 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "チームリーダーを選択",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "プロジェクトフォルダのパス（任意）",
     "confirm": "Create Team",
     "noSupportedAgents": "対応する Agent が見つかりません",
     "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",

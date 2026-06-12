@@ -13,7 +13,7 @@ type AssistantEditorPageProps = {
 
 const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activeAssistant, onBack }) => {
   const { t } = useTranslation();
-  const { isCreating, actions } = editor;
+  const { isCreating, actions, profile } = editor;
 
   return (
     <div data-testid='assistant-editor-page' className='flex h-full min-h-0 flex-col overflow-hidden bg-transparent'>
@@ -27,12 +27,12 @@ const AssistantEditorPage: React.FC<AssistantEditorPageProps> = ({ editor, activ
             icon={<ArrowLeft size={16} />}
             onClick={onBack}
             data-testid='btn-back-assistant-editor'
-            className='!rounded-8px !px-6px !text-primary-6'
+            className='!rounded-8px !px-6px !text-t-primary'
           >
             {t('settings.assistantBackToList', { defaultValue: 'All assistants' })}
           </Button>
           <div className='truncate text-14px font-600 text-t-primary'>
-            {activeAssistant?.name ||
+            {profile.name.trim() ||
               (isCreating
                 ? t('settings.createAssistant', { defaultValue: 'Create Assistant' })
                 : t('settings.editAssistant', { defaultValue: 'Assistant Details' }))}

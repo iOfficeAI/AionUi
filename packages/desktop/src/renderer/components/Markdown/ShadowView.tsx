@@ -28,8 +28,11 @@ const createInitStyle = (
         .join('\n    ')
     : '';
 
-  const lineHeight = isMobile ? '19.6px' : '28px';
+  const lineHeight = isMobile ? '19.6px' : '24px';
   const fontSize = isMobile ? 'var(--chat-font-size, 14px)' : 'var(--chat-font-size, 16px)';
+  // Desktop paragraph spacing trimmed from 16px to 12px (~0.85em) for a more
+  // compact reply; mobile spacing is left untouched (tuned separately).
+  const paragraphMargin = isMobile ? '16px' : '12px';
 
   style.innerHTML = `
   /* Shadow DOM CSS variable definitions */
@@ -58,8 +61,8 @@ const createInitStyle = (
     margin-block-end:0px;
   }
   .markdown-shadow-body p {
-    margin-block-start: 16px;
-    margin-block-end: 16px;
+    margin-block-start: ${paragraphMargin};
+    margin-block-end: ${paragraphMargin};
   }
   .markdown-shadow-body li {
     margin-block-start: 6px;

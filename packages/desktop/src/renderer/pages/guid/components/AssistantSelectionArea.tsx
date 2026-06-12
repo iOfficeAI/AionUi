@@ -159,6 +159,8 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           {(() => {
             const agent = assistants.find((a) => a.id === selectedAgentInfo.custom_agent_id);
             const prompts =
+              selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
+              selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
               selectedAssistantDetail?.prompts.recommended ||
               agent?.prompts_i18n?.[localeKey] ||
               agent?.prompts_i18n?.['en-US'] ||

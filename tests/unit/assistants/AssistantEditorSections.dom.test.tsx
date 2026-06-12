@@ -67,6 +67,7 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
       avatar: '✍️',
       setAvatar: vi.fn(),
       setAvatarPreview: vi.fn(),
+      builtinAvatarOptions: [],
     },
     agent: {
       value: 'claude',
@@ -183,6 +184,50 @@ describe('AssistantEditorSections', () => {
     ).toBeInTheDocument();
   });
 
+  it('renders auto defaults consistently for model, permission, skills, and MCP', () => {
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          defaults: {
+            model: { mode: 'auto', setMode: vi.fn(), value: '', setValue: vi.fn() },
+            permission: { mode: 'auto', setMode: vi.fn(), value: '', setValue: vi.fn() },
+            skills: { mode: 'auto', setMode: vi.fn() },
+            mcps: {
+              mode: 'auto',
+              setMode: vi.fn(),
+              availableServers: [{ id: 'mcp-a', name: 'Server A', enabled: true } as any],
+              selectedIds: [],
+              setSelectedIds: vi.fn(),
+            },
+          },
+          skills: {
+            availableSkills: [
+              { name: 'browse', description: 'Browse the web', location: '', is_custom: false, source: 'builtin' },
+            ],
+            selectedSkills: [],
+            setSelectedSkills: vi.fn(),
+            pendingSkills: [],
+            setDeletePendingSkillName: vi.fn(),
+            setDeleteCustomSkillName: vi.fn(),
+            builtinAutoSkills: [],
+            disabledBuiltinSkills: [],
+            setDisabledBuiltinSkills: vi.fn(),
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    expect(screen.getByTestId('select-assistant-default-model')).toHaveTextContent('Remember last used automatically');
+    expect(screen.getByTestId('select-assistant-default-permission')).toHaveTextContent(
+      'Remember last used automatically'
+    );
+    expect(screen.getByTestId('select-assistant-default-skills')).toHaveTextContent('Remember last used automatically');
+    expect(screen.getByTestId('select-assistant-default-mcp')).toHaveTextContent('Remember last used automatically');
+    expect(screen.getByTestId('select-assistant-default-skills').className).toMatch(/summarySelect/);
+    expect(screen.getByTestId('select-assistant-default-mcp').className).toMatch(/summarySelect/);
+  });
+
   it('keeps builtin and disabled MCP servers in the default MCP summary', () => {
     renderWithProviders(
       <AssistantEditorSections
@@ -264,6 +309,38 @@ describe('AssistantEditorSections', () => {
     expect(promptScope.getByText('Prompt one')).toBeInTheDocument();
     expect(promptScope.getByText('Prompt two')).toBeInTheDocument();
     expect(promptScope.getByRole('button', { name: 'Add' })).toBeInTheDocument();
+  });
+
+  it('keeps existing recommended prompts above the new prompt input while adding', () => {
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({ prompts: { text: 'Prompt one\nPrompt two', setText: vi.fn() } })}
+        activeAssistant={null}
+      />
+    );
+
+    const promptCard = screen.getByTestId('assistant-card-prompts');
+    fireEvent.click(within(promptCard).getByRole('button', { name: 'Add' }));
+
+    const promptPanel = promptCard.querySelector('.bg-fill-1');
+    const firstPrompt = within(promptCard).getByText('Prompt one');
+    const newPromptInput = within(promptCard).getByTestId('input-assistant-recommended-prompt-new');
+
+    expect(promptPanel).not.toBeNull();
+    expect(firstPrompt.compareDocumentPosition(newPromptInput) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
+  it('does not render an empty prompts panel when there are no recommended prompts', () => {
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({ prompts: { text: '', setText: vi.fn() } })}
+        activeAssistant={null}
+      />
+    );
+
+    const promptCard = screen.getByTestId('assistant-card-prompts');
+    expect(promptCard.querySelector('.bg-fill-1')).toBeNull();
+    expect(within(promptCard).getByRole('button', { name: 'Add' })).toBeInTheDocument();
   });
 
   it('lets users pick an avatar image from the file dialog', async () => {
@@ -413,6 +490,50 @@ describe('AssistantEditorSections', () => {
     expect(screen.queryByTestId('select-assistant-default-mcp-mode')).not.toBeInTheDocument();
     expect(screen.getByTestId('btn-open-skills-settings')).toBeInTheDocument();
     expect(screen.getByTestId('btn-open-mcp-settings')).toBeInTheDocument();
+  });
+
+  it('switches default skills from auto to fixed when selecting a concrete skill', async () => {
+    const setDefaultSkillsMode = vi.fn();
+    const setSelectedSkills = vi.fn();
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          defaults: {
+            skills: { mode: 'auto', setMode: setDefaultSkillsMode },
+          },
+          skills: {
+            availableSkills: [
+              { name: 'browse', description: 'Browse the web', location: '', is_custom: false, source: 'builtin' },
+            ],
+            selectedSkills: [],
+            setSelectedSkills,
+            pendingSkills: [],
+            setDeletePendingSkillName: vi.fn(),
+            setDeleteCustomSkillName: vi.fn(),
+            builtinAutoSkills: [],
+            disabledBuiltinSkills: [],
+            setDisabledBuiltinSkills: vi.fn(),
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-skills'));
+    fireEvent.click(await screen.findByText('browse'));
+
+    expect(setDefaultSkillsMode).toHaveBeenCalledWith('fixed');
+    expect(setSelectedSkills).toHaveBeenCalledWith(['browse']);
+  });
+
+  it('uses stronger contrast classes for applies-immediately badges', () => {
+    renderWithProviders(<AssistantEditorSections editor={createEditor()} activeAssistant={null} />);
+
+    const legend = screen.getAllByText('Applies immediately')[0];
+    expect(legend.className).toContain('border');
+    expect(legend.className).toContain('font-600');
+    expect(legend.className).toContain('text-white');
   });
 
   it('does not autofocus the rules textarea when edit mode is visible', () => {

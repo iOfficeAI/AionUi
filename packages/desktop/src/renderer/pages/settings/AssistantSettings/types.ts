@@ -36,6 +36,12 @@ export type BuiltinAutoSkill = {
 
 export type AssistantListItem = Assistant;
 
+export type BuiltinAvatarOption = {
+  id: string;
+  label: string;
+  src: string;
+};
+
 export type AssistantEditorViewModel = {
   isCreating: boolean;
   profile: {
@@ -47,6 +53,7 @@ export type AssistantEditorViewModel = {
     setAvatar: (value: string) => void;
     setAvatarPreview: (value: string | undefined) => void;
     avatarImage?: string;
+    builtinAvatarOptions: BuiltinAvatarOption[];
   };
   agent: {
     value: string;

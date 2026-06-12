@@ -136,6 +136,9 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   };
 
   return (
+    // This picker is opened *from* other modals (team/cron create dialogs sit at
+    // zIndex 10000, the cron workspace menu at 10020), so it must float above all
+    // of them — it's the topmost layer while choosing a folder.
     <Modal
       visible={visible}
       title={isFileMode ? '📄 ' + t('fileSelection.selectFile') : '📁 ' + t('fileSelection.selectDirectory')}
@@ -144,8 +147,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       okButtonProps={{ disabled: !selectedPath }}
       className='w-[90vw] md:w-[600px]'
       style={{ width: 'min(600px, 90vw)' }}
-      wrapStyle={{ zIndex: 3000 }}
-      maskStyle={{ zIndex: 2990 }}
+      wrapStyle={{ zIndex: 10050 }}
+      maskStyle={{ zIndex: 10040 }}
       footer={
         <div className='w-full flex justify-between items-center'>
           <div

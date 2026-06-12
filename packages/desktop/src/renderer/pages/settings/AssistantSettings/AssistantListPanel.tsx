@@ -116,7 +116,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
         </div>
       </div>
       <div
-        className='ml-12px flex flex-shrink-0 items-center gap-10px text-t-secondary'
+        className='ml-12px flex flex-shrink-0 items-center gap-8px text-t-secondary'
         onClick={(e) => e.stopPropagation()}
       >
         <Switch
@@ -130,7 +130,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
         <Button
           type='outline'
           size='small'
-          className='!h-36px !rounded-10px !border-border-2 !bg-base !px-14px !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+          className='!h-30px !rounded-8px !border-border-2 !bg-base !px-10px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
           data-testid={`btn-edit-${assistant.id}`}
           onClick={() => {
             onEdit(assistant);
@@ -142,7 +142,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
           <Button
             type='outline'
             size='small'
-            className='!h-36px !rounded-10px !border-border-2 !bg-base !px-12px !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
+            className='!h-30px !rounded-8px !border-border-2 !bg-base !px-8px !text-12px !font-500 !text-t-primary hover:!border-border-1 hover:!bg-fill-1'
             data-testid={`btn-duplicate-${assistant.id}`}
             onClick={() => {
               onDuplicate(assistant);
@@ -156,7 +156,7 @@ const SortableAssistantCard: React.FC<SortableAssistantCardProps> = ({
             type='outline'
             size='small'
             status='danger'
-            className='!h-36px !rounded-10px !border-danger-2 !bg-base !px-12px'
+            className='!h-30px !rounded-8px !border-danger-2 !bg-base !px-8px !text-12px !font-500'
             data-testid={`btn-delete-${assistant.id}`}
             onClick={() => {
               onDelete(assistant);
@@ -233,7 +233,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
           bordered={false}
           className='!rounded-10px !bg-fill-1 !px-8px !py-1px !text-10px !font-600 !leading-16px !text-primary-6'
         >
-          {t('settings.assistantSourceOfficial', { defaultValue: 'Official' })}
+          {t('settings.builtin', { defaultValue: 'Built-in' })}
         </Tag>
       );
     }
@@ -334,15 +334,7 @@ const AssistantListPanel: React.FC<AssistantListPanelProps> = ({
       >
         <div className='mx-auto w-full max-w-760px'>
           {listAssistants.length > 0 ? (
-            <div className='space-y-16px'>
-              {renderList(listAssistants)}
-              <div className='rounded-12px border border-border-2 bg-2 px-[18px] py-[18px] text-14px text-t-secondary md:rounded-16px md:px-[24px] md:py-[20px]'>
-                {t('settings.assistantListHint', {
-                  defaultValue:
-                    'Drag the handle on each row to update assistant order. Changes affect the home assistant list immediately.',
-                })}
-              </div>
-            </div>
+            renderList(listAssistants)
           ) : (
             <div className='py-12px text-center text-t-secondary'>
               {t('settings.assistantNoMatch', {

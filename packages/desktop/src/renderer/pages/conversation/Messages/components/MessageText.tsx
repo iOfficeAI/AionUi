@@ -94,7 +94,7 @@ const useFormatContent = (content: string) => {
   }, [content]);
 };
 
-const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
+const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = ({ message, showCopyRow = true }) => {
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
@@ -227,8 +227,10 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
           )}
         </div>
         {/* Hover-revealed copy + timestamp row. Mobile has no hover affordance,
-            so we drop the row entirely — system-level long-press still copies. */}
-        {!isMobile && (
+            so we drop the row entirely — system-level long-press still copies.
+            For AI replies split across several text messages, only the last text
+            of the turn shows this row (showCopyRow); user messages always do. */}
+        {!isMobile && showCopyRow && (
           <div
             className={classNames('h-32px flex items-center mt-4px gap-8px', {
               'flex-row-reverse': isUserMessage,
