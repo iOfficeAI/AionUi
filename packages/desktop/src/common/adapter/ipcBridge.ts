@@ -810,6 +810,80 @@ export interface ICommandEveKanbanMarketingCardMoveRequest {
 }
 
 // ---------------------------------------------------------------------------
+// Command EVE registration + license gate (W11)
+// ---------------------------------------------------------------------------
+
+export type ICommandEveLicenseEdition = 'pilot' | 'standard';
+
+export type ICommandEveEntitlementGateState =
+  | 'unconfigured'
+  | 'unregistered'
+  | 'registered_unlicensed'
+  | 'entitled'
+  | 'expired';
+
+export interface ICommandEveEntitlementStatusResult {
+  version: 'command-eve-entitlement/v0';
+  ok: boolean;
+  required: boolean;
+  state: ICommandEveEntitlementGateState;
+  reason_code?: string;
+  message?: string;
+  tenant_id?: string;
+  edition?: ICommandEveLicenseEdition;
+  expires_at?: string | null;
+}
+
+export interface ICommandEveRegistrationRecord {
+  version: 'command-eve-registration/v0';
+  tenant_id: string;
+  name: string;
+  company: string;
+  email: string;
+  gdpr_consent: true;
+  gdpr_consent_at: string;
+  registered_at: string;
+}
+
+export interface ICommandEveEntitlementRecord {
+  version: 'command-eve-entitlement-record/v0';
+  tenant_id: string;
+  code_serial: string;
+  edition: ICommandEveLicenseEdition;
+  expires_at: string | null;
+  activated_at: string;
+}
+
+export interface ICommandEveEntitlementRegisterRequest {
+  name: string;
+  company: string;
+  email: string;
+  consent: boolean;
+}
+
+export interface ICommandEveEntitlementRegisterResult {
+  version: 'command-eve-entitlement/v0';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  record?: ICommandEveRegistrationRecord;
+}
+
+export interface ICommandEveEntitlementActivateRequest {
+  code: string;
+}
+
+export interface ICommandEveEntitlementActivateResult {
+  version: 'command-eve-entitlement/v0';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  record?: ICommandEveEntitlementRecord;
+  audit_event_id?: string;
+  idempotent?: boolean;
+}
+
+// ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
 
@@ -845,6 +919,17 @@ export const commandEve = {
     IBridgeResponse<ICommandEveKanbanMarketingCardMoveResult>,
     ICommandEveKanbanMarketingCardMoveRequest
   >('command-eve.kanban-marketing-card-move'),
+  entitlementStatus: bridge.buildProvider<IBridgeResponse<ICommandEveEntitlementStatusResult>, void>(
+    'command-eve.entitlement-status'
+  ),
+  entitlementRegister: bridge.buildProvider<
+    IBridgeResponse<ICommandEveEntitlementRegisterResult>,
+    ICommandEveEntitlementRegisterRequest
+  >('command-eve.entitlement-register'),
+  entitlementActivate: bridge.buildProvider<
+    IBridgeResponse<ICommandEveEntitlementActivateResult>,
+    ICommandEveEntitlementActivateRequest
+  >('command-eve.entitlement-activate'),
 };
 
 // ---------------------------------------------------------------------------

@@ -9,6 +9,12 @@ import { buildCommandCenterReadModel } from '@process/commandEve/commandCenterRe
 import { buildConnectorCatalog } from '@process/commandEve/connectorCatalogCore';
 import { runConnectorPreflight } from '@process/commandEve/connectorPreflightCore';
 import {
+  activateEntitlement,
+  getEntitlementStatus,
+  registerTenant,
+  COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
+} from '@process/commandEve/entitlementCore';
+import {
   buildKanbanMarketingBoard,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
@@ -365,4 +371,87 @@ export function initCommandEveBridge(): void {
         }
       }
     );
+
+  // -------------------------------------------------------------------------
+  // Registration + license gate (W11). Registration PII is S2, stored LOCAL
+  // ONLY in userData and never returned beyond the renderer that submitted it.
+  // -------------------------------------------------------------------------
+
+  bridge.buildProvider('command-eve.entitlement-status').provider(async () => {
+    try {
+      const result = getEntitlementStatus({ userDataPath: getDataPath() });
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : result.reason_code || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE entitlement status bridge failed.',
+        data: {
+          version: COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
+          ok: false,
+          required: true,
+          state: 'unconfigured',
+          reason_code: 'ENTITLEMENT_STATUS_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE entitlement status bridge failed.',
+        },
+      };
+    }
+  });
+
+  bridge
+    .buildProvider('command-eve.entitlement-register')
+    .provider(async (request?: { name?: string; company?: string; email?: string; consent?: boolean }) => {
+      try {
+        const result = registerTenant(
+          {
+            name: request?.name || '',
+            company: request?.company || '',
+            email: request?.email || '',
+            consent: request?.consent === true,
+          },
+          { userDataPath: getDataPath() }
+        );
+        return {
+          success: result.ok,
+          msg: result.ok ? undefined : result.reason_code || result.message,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE entitlement register bridge failed.',
+          data: {
+            version: COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
+            ok: false,
+            reason_code: 'ENTITLEMENT_REGISTER_BRIDGE_FAILED',
+            message: error instanceof Error ? error.message : 'Command EVE entitlement register bridge failed.',
+          },
+        };
+      }
+    });
+
+  bridge.buildProvider('command-eve.entitlement-activate').provider(async (request?: { code?: string }) => {
+    try {
+      const result = activateEntitlement({ code: request?.code || '' }, { userDataPath: getDataPath() });
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : (result.reason_code as string) || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE entitlement activate bridge failed.',
+        data: {
+          version: COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
+          ok: false,
+          reason_code: 'ENTITLEMENT_ACTIVATE_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE entitlement activate bridge failed.',
+        },
+      };
+    }
+  });
 }
