@@ -173,9 +173,7 @@ const Layout: React.FC<{
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
-  useMainProcessLogBridge();
   useNotificationClick();
-  useTrayEventHandlers();
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
@@ -487,10 +485,10 @@ const Layout: React.FC<{
       if (!collapsedRef.current && finalWidth > 0) {
         setDesktopSiderWidth(finalWidth);
         persistSiderWidth(finalWidth);
+        applySiderWidthVar(finalWidth);
       }
       dragWidthRef.current = 0;
       prevDragWidthRef.current = null;
-      clearSiderWidthVar();
     };
 
     const handleBlur = () => endDrag();
