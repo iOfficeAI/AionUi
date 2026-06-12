@@ -61,6 +61,26 @@ describe('conversationRuntimeViewStore', () => {
     });
   });
 
+  it('maps cancelling runtime as processing and not sendable', () => {
+    const { view } = hydrateSucceededConversationRuntimeView(
+      undefined,
+      conversation_id,
+      runtime({
+        state: 'cancelling',
+        can_send_message: true,
+        has_task: true,
+        task_status: 'running',
+        is_processing: false,
+        turn_id: 'turn-cancel',
+      })
+    );
+
+    expect(view.state).toBe('cancelling');
+    expect(view.isProcessing).toBe(true);
+    expect(view.canSendMessage).toBe(false);
+    expect(view.activeTurnId).toBe('turn-cancel');
+  });
+
   it('hydrates an idle runtime as sendable', () => {
     const { view, logs } = hydrateSucceededConversationRuntimeView(undefined, conversation_id, runtime({}));
 

@@ -174,7 +174,8 @@ const AionrsSendBox: React.FC<{
   });
 
   const { setSendBoxHandler } = usePreviewContext();
-  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
+  const isCancelling = runtimeView.state === 'cancelling';
+  const isBusy = isCancelling || runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);

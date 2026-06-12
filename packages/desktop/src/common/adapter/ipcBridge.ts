@@ -1524,7 +1524,7 @@ export interface IConversationTurnCompletedEvent {
   detail: string;
   can_send_message: boolean;
   runtime: {
-    state: 'idle' | 'starting' | 'running' | 'waiting_confirmation';
+    state: 'idle' | 'starting' | 'running' | 'cancelling' | 'waiting_confirmation';
     can_send_message: boolean;
     has_task: boolean;
     task_status?: 'pending' | 'running' | 'finished';

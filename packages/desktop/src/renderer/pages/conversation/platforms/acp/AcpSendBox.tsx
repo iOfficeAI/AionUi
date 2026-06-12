@@ -220,7 +220,8 @@ const AcpSendBox: React.FC<{
     setAtPath,
     setUploadFile,
   });
-  const isBusy = runtimeView.isProcessing || !runtimeView.canSendMessage;
+  const isCancelling = runtimeView.state === 'cancelling';
+  const isBusy = isCancelling || runtimeView.isProcessing || !runtimeView.canSendMessage;
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
