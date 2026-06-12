@@ -111,6 +111,8 @@ jobs:
 
       - name: Build desktop renderer (for static files)
         run: bunx electron-vite build --config packages/desktop/electron.vite.config.ts
+        env:
+          NODE_OPTIONS: '--max-old-space-size=8192'
 
       - name: Pack web-cli tarball
         shell: bash
