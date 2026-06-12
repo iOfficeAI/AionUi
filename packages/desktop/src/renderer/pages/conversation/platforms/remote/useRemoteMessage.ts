@@ -125,6 +125,11 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
   // until a new 'start' signal arrives for the next turn
   const turnFinishedRef = useRef(false);
 
+  // msg_id of the assistant text bubble currently receiving streamed deltas.
+  // Used to flip its `is_finished` content flag to true at end of turn (or
+  // when deltas switch to a new msg_id mid-turn, e.g. text → tool → text).
+  const streamingTextMsgIdRef = useRef<string | null>(null);
+
   // Track whether current turn has a thinking message in the conversation
   const hasThinkingMessageRef = useRef(false);
   const [hasThinkingMessage, setHasThinkingMessage] = useState(false);
@@ -204,9 +209,32 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
         }
       };
 
+      // Flip the in-flight assistant text bubble to finished. Merges an empty
+      // delta carrying `is_finished: true` onto the tracked msg_id so the
+      // renderer can drop its cheap streaming mode (plain code, deferred
+      // KaTeX) and produce the final rich render exactly once.
+      const finalizeStreamingText = () => {
+        const msgId = streamingTextMsgIdRef.current;
+        if (!msgId) return;
+        streamingTextMsgIdRef.current = null;
+        addOrUpdateMessage({
+          id: msgId,
+          msg_id: msgId,
+          conversation_id: message.conversation_id,
+          type: 'text',
+          position: 'left',
+          content: { content: '', is_finished: true },
+          created_at: Date.now(),
+        });
+      };
+
       const transformedMessage = transformMessage(message);
       switch (message.type) {
         case 'start':
+          // Safety net: a new turn implies the previous one ended even if its
+          // terminal event (finish/error/session_idle) was never delivered —
+          // don't leave the prior bubble stuck in cheap streaming-render mode.
+          finalizeStreamingText();
           // New turn starting — clear the finished guard and content flag
           turnFinishedRef.current = false;
           hasContentInTurnRef.current = false;
@@ -233,7 +261,20 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           startProcessing();
           // Clear thought when the final answer arrives
           setThought({ subject: '', description: '' });
-          addOrUpdateMessage(transformedMessage);
+          if (transformedMessage?.type === 'text' && transformedMessage.msg_id) {
+            // Deltas switched to a new assistant bubble — finalize the old one
+            // so it doesn't stay in cheap streaming-render mode forever.
+            if (streamingTextMsgIdRef.current && streamingTextMsgIdRef.current !== transformedMessage.msg_id) {
+              finalizeStreamingText();
+            }
+            streamingTextMsgIdRef.current = transformedMessage.msg_id;
+            addOrUpdateMessage({
+              ...transformedMessage,
+              content: { ...transformedMessage.content, is_finished: false },
+            });
+          } else {
+            addOrUpdateMessage(transformedMessage);
+          }
           break;
         }
         case 'acp_permission': {
@@ -278,6 +319,7 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           break;
         }
         case 'finish':
+          finalizeStreamingText();
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;
@@ -300,6 +342,7 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
           }
           break;
         case 'error':
+          finalizeStreamingText();
           if ((message.data as { kind?: string; recoverable?: boolean } | undefined)?.kind === 'aborted') {
             turnFinishedRef.current = true;
             setRunning(false);
@@ -338,6 +381,7 @@ export const useRemoteMessage = (conversation_id: string): UseRemoteMessageRetur
         }
         case 'session_idle': {
           const data = message.data as { reason?: string; at?: number };
+          finalizeStreamingText();
           turnFinishedRef.current = true;
           setRunning(false);
           runningRef.current = false;

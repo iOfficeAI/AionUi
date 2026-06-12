@@ -56,6 +56,8 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   // Refs for scroll control
   const userScrolledRef = useRef(false);
   const lastScrollTopRef = useRef(0);
+  // Pointer button currently held on the scroller (scrollbar drag / touch drag)
+  const pointerDownRef = useRef(false);
   const previousListLengthRef = useRef(messages.length);
   const lastProgrammaticScrollTimeRef = useRef(0);
   const scrollerElRef = useRef<HTMLElement | null>(null);
@@ -67,6 +69,41 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
     scrollerElRef.current = el;
     setScrollerEl(el);
   }, []);
+
+  // Explicit user scroll intent — wheel-up and pointer drag. These events
+  // only fire for real user input, never for programmatic scrollTop writes,
+  // so they bypass the time-based programmatic-scroll guard. During streaming
+  // the frame-aligned auto-follow refreshes that guard continuously, which
+  // starves delta-based detection in handleScroll and made it impossible to
+  // scroll up until the response finished.
+  useEffect(() => {
+    if (!scrollerEl) return;
+
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY < 0) {
+        userScrolledRef.current = true;
+      }
+    };
+    const onPointerDown = () => {
+      pointerDownRef.current = true;
+    };
+    const onPointerUp = () => {
+      pointerDownRef.current = false;
+    };
+
+    scrollerEl.addEventListener('wheel', onWheel, { passive: true });
+    scrollerEl.addEventListener('pointerdown', onPointerDown, { passive: true });
+    // pointerup may land outside the scroller (drag released elsewhere)
+    window.addEventListener('pointerup', onPointerUp, { passive: true });
+    window.addEventListener('pointercancel', onPointerUp, { passive: true });
+
+    return () => {
+      scrollerEl.removeEventListener('wheel', onWheel);
+      scrollerEl.removeEventListener('pointerdown', onPointerDown);
+      window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
+    };
+  }, [scrollerEl]);
 
   // ResizeObserver: when the container resizes, set the programmatic scroll guard
   // so Virtuoso's resulting scroll adjustment won't be misdetected as user scroll-up.
@@ -197,6 +234,16 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const currentScrollTop = target.scrollTop;
+    const delta = currentScrollTop - lastScrollTopRef.current;
+
+    // Scrollbar/touch drag: pointer held down and content moved up is
+    // explicit user intent — bypass the programmatic guard (which streaming
+    // auto-follow refreshes continuously). Threshold matches the delta check
+    // below so Virtuoso's small internal negative adjustments (see comment
+    // further down) don't trip it while e.g. selecting text mid-stream.
+    if (pointerDownRef.current && delta < -10) {
+      userScrolledRef.current = true;
+    }
 
     // Ignore scroll events shortly after a programmatic scroll or container resize
     const timeSinceGuard = Date.now() - lastProgrammaticScrollTimeRef.current;
@@ -205,7 +252,6 @@ export function useAutoScroll({ messages, itemCount }: UseAutoScrollOptions): Us
       return;
     }
 
-    const delta = currentScrollTop - lastScrollTopRef.current;
     if (delta < -10) {
       userScrolledRef.current = true;
     }

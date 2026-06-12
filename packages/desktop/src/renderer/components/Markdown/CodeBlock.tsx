@@ -7,7 +7,7 @@
 import { Message } from '@arco-design/web-react';
 import { Copy, Down, Up } from '@icon-park/react';
 import katex from 'katex';
-import React, { useRef, useState } from 'react';
+import React, { useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import { forgeDark, forgeLight } from './codeThemes';
@@ -31,7 +31,7 @@ type CodeBlockProps = {
   [key: string]: unknown;
 };
 
-function CodeBlock(props: CodeBlockProps) {
+function CodeBlockImpl(props: CodeBlockProps) {
   const { t } = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -48,6 +48,32 @@ function CodeBlock(props: CodeBlockProps) {
     return () => observer.disconnect();
   }, []);
 
+  // Destructure and derive pure values up front so the memos below always
+  // run in the same order, before any conditional return.
+  const { children, className, node: _node, hiddenCodeCopyButton: _h, codeStyle: _c, ...rest } = props;
+  const match = /language-(\w+)/.exec(className || '');
+  const language = match?.[1] || 'text';
+  const isLatexLanguage = language === 'latex' || language === 'math' || language === 'tex';
+
+  // Memoize expensive derived values so streaming re-renders that share the
+  // same children/language skip KaTeX, formatCode, and string splits.
+  const latexHtml = useMemo<string | null>(() => {
+    if (!isLatexLanguage) return null;
+    const latexSource = String(children).replace(/\n$/, '');
+    const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
+    if (isFullDocument) return null;
+    try {
+      return katex.renderToString(latexSource, { displayMode: true, throwOnError: false });
+    } catch {
+      return null;
+    }
+  }, [children, isLatexLanguage]);
+
+  const formattedContent = useMemo(() => formatCode(children), [children]);
+  const isDiff = language === 'diff';
+  const totalLines = useMemo(() => formattedContent.split('\n').length, [formattedContent]);
+  const diffLines = useMemo(() => (isDiff ? formattedContent.split('\n') : []), [formattedContent, isDiff]);
+
   const toggleExpanded = () => {
     const willCollapse = expanded;
     setExpanded((v) => !v);
@@ -58,26 +84,13 @@ function CodeBlock(props: CodeBlockProps) {
     }
   };
 
-  const { children, className, node: _node, hiddenCodeCopyButton: _h, codeStyle: _c, ...rest } = props;
-  const match = /language-(\w+)/.exec(className || '');
-  const language = match?.[1] || 'text';
-
   // KaTeX math blocks
-  if (language === 'latex' || language === 'math' || language === 'tex') {
-    const latexSource = String(children).replace(/\n$/, '');
-    const isFullDocument = /\\(documentclass|begin\{document\}|usepackage)\b/.test(latexSource);
-    if (!isFullDocument) {
-      try {
-        const html = katex.renderToString(latexSource, { displayMode: true, throwOnError: false });
-        return <div className='katex-display' dangerouslySetInnerHTML={{ __html: html }} />;
-      } catch {
-        // fall through
-      }
-    }
+  if (latexHtml !== null) {
+    return <div className='katex-display' dangerouslySetInnerHTML={{ __html: latexHtml }} />;
   }
 
   if (language === 'mermaid') {
-    return <MermaidBlock code={formatCode(children)} style={props.codeStyle} />;
+    return <MermaidBlock code={formattedContent} style={props.codeStyle} />;
   }
 
   // Inline code (single line)
@@ -89,12 +102,8 @@ function CodeBlock(props: CodeBlockProps) {
     );
   }
 
-  const isDiff = language === 'diff';
-  const formattedContent = formatCode(children);
-  const totalLines = formattedContent.split('\n').length;
   const canCollapse = totalLines > PREVIEW_LINES;
   const codeTheme = currentTheme === 'dark' ? forgeDark : forgeLight;
-  const diffLines = isDiff ? formattedContent.split('\n') : [];
   const isDark = currentTheme === 'dark';
 
   const handleCopy = () => {
@@ -281,5 +290,8 @@ function CodeBlock(props: CodeBlockProps) {
     </div>
   );
 }
+
+const CodeBlock = React.memo(CodeBlockImpl);
+CodeBlock.displayName = 'CodeBlock';
 
 export default CodeBlock;

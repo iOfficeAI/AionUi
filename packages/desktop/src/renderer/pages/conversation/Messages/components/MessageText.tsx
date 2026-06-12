@@ -92,6 +92,14 @@ export const resolveMessageFilePath = (file_path: string, workspace?: string): s
 
 const useFormatContent = (content: string) => {
   return useMemo(() => {
+    // Cheap short-circuit: if the first non-whitespace character is not
+    // `{` or `[`, the content cannot be a JSON object/array. Skipping
+    // JSON.parse here avoids a per-render throw on streamed text whose
+    // leading bytes are letters/digits/punctuation.
+    const first = content.trimStart()[0];
+    if (first !== '{' && first !== '[') {
+      return { data: content };
+    }
     try {
       const json = JSON.parse(content);
       const isJson = typeof json === 'object';
@@ -135,7 +143,7 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
   // `displayText` may equal `text` after parseFileMarker, but we use
   // spoken.displayText to be explicit about the pipeline.
   const displayBody = spoken?.displayText ?? (typeof contentToRender === 'string' ? contentToRender : '');
-  const { text, files } = parseFileMarker(displayBody);
+  const { text, files } = useMemo(() => parseFileMarker(displayBody), [displayBody]);
   const { data, json } = useFormatContent(text);
   const { t } = useTranslation();
   const [showCopyAlert, setShowCopyAlert] = useState(false);
@@ -424,7 +432,9 @@ const MessageText: React.FC<{ message: IMessageText }> = ({ message }) => {
             </CollapsibleContent>
           ) : (
             <div data-testid='message-text-content'>
-              <MarkdownView codeStyle={CODE_STYLE}>{data}</MarkdownView>
+              <MarkdownView codeStyle={CODE_STYLE} isStreaming={message.content.is_finished === false}>
+                {data}
+              </MarkdownView>
             </div>
           )}
         </div>

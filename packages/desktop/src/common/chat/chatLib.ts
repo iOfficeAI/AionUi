@@ -119,6 +119,13 @@ export type IMessageText = IMessage<
     content: string;
     /** Backend explicitly replaced the accumulated text for this msg_id. */
     replace?: boolean;
+    /**
+     * Streaming lifecycle flag. `false` while deltas are still arriving for
+     * this msg_id, flipped to `true` at end of turn. `undefined` (history,
+     * platforms that don't thread the flag) means "not streaming" — renderers
+     * must only treat an explicit `false` as in-flight.
+     */
+    is_finished?: boolean;
     cronMeta?: CronMessageMeta;
     teammateMessage?: boolean;
     senderName?: string;

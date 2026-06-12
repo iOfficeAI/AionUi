@@ -324,13 +324,35 @@ function composeMessageWithIndex(message: TMessage, list: TMessage[], index: Mes
   return newList;
 }
 
+// Fallback flush delay for when requestAnimationFrame doesn't fire (hidden /
+// occluded window — Electron suspends rAF there, but streamed chunks must
+// still reach the list). 50ms keeps background flushes responsive without
+// outpacing the foreground frame-aligned path.
+const FLUSH_FALLBACK_MS = 50;
+
 export const useAddOrUpdateMessage = () => {
   const update = useUpdateMessageList();
   const pendingRef = useRef<Array<{ message: TMessage; add: boolean }>>([]);
-  const rafRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // Frame-aligned batching: flush once per paint via rAF so streaming updates
+  // never commit more than once per frame, with a setTimeout fallback for
+  // hidden windows where rAF is suspended. Whichever fires first wins and
+  // cancels the other.
+  const rafRef = useRef<number | null>(null);
+  const fallbackRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const clearScheduled = useCallback(() => {
+    if (rafRef.current !== null) {
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = null;
+    }
+    if (fallbackRef.current !== null) {
+      clearTimeout(fallbackRef.current);
+      fallbackRef.current = null;
+    }
+  }, []);
 
   const flush = useCallback(() => {
-    rafRef.current = null;
+    clearScheduled();
 
     const pending = pendingRef.current;
     if (!pending.length) return;
@@ -371,23 +393,16 @@ export const useAddOrUpdateMessage = () => {
       }
       return newList;
     });
+  }, [clearScheduled, update]);
 
-    rafRef.current = setTimeout(flush);
-  }, []);
-
-  useEffect(() => {
-    return () => {
-      if (rafRef.current !== null) {
-        clearTimeout(rafRef.current);
-      }
-    };
-  }, []);
+  useEffect(() => clearScheduled, [clearScheduled]);
 
   return useCallback(
     (message: TMessage, add = false) => {
       pendingRef.current.push({ message, add });
-      if (rafRef.current === null) {
-        rafRef.current = setTimeout(flush);
+      if (rafRef.current === null && fallbackRef.current === null) {
+        rafRef.current = requestAnimationFrame(flush);
+        fallbackRef.current = setTimeout(flush, FLUSH_FALLBACK_MS);
       }
     },
     [flush]
