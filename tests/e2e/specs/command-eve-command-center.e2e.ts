@@ -20,28 +20,60 @@ import path from 'path';
 const COMPANY_OS_ROOT_DEFAULT = '/Users/mathiasheinke/Developer/Company.OS';
 const LEDGER_FIXTURE_RELATIVE = 'reports/command-eve/e2e/2026-06-10/agent-events.clean.jsonl';
 
-const companyOsRoot: string = process.env.COMMAND_EVE_COMPANY_OS_ROOT ?? COMPANY_OS_ROOT_DEFAULT;
-const cleanLedgerSource: string =
-  process.env.COMMAND_EVE_E2E_EVENTS_LEDGER ?? path.join(companyOsRoot, LEDGER_FIXTURE_RELATIVE);
+// State initialised in beforeAll, used by the test body.
+let e2eLedgerPath: string = '';
+let e2eLedgerRoot: string = '';
 
-if (!fs.existsSync(cleanLedgerSource)) {
-  throw new Error(
-    `[command-eve-command-center e2e] Ledger fixture not found: ${cleanLedgerSource}\n` +
-      `Set COMMAND_EVE_COMPANY_OS_ROOT or COMMAND_EVE_E2E_EVENTS_LEDGER to a valid path.`
-  );
-}
-
-const e2eLedgerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-command-center-e2e-'));
-const e2eLedgerPath = path.join(e2eLedgerRoot, 'agent-events.clean.jsonl');
-fs.copyFileSync(cleanLedgerSource, e2eLedgerPath);
-process.env.COMMAND_EVE_COMPANY_OS_ROOT = companyOsRoot;
-process.env.COMMAND_EVE_AGENT_EVENTS_PATH = e2eLedgerPath;
-process.on('exit', () => {
-  fs.rmSync(e2eLedgerRoot, { recursive: true, force: true });
-});
+// Prior env values captured in beforeAll, restored in afterAll.
+let prevCompanyOsRoot: string | undefined;
+let prevAgentEventsPath: string | undefined;
 
 test.describe('Command EVE Command Center', () => {
   test.setTimeout(120_000);
+
+  test.beforeAll(() => {
+    // Capture prior values before any mutation.
+    prevCompanyOsRoot = process.env.COMMAND_EVE_COMPANY_OS_ROOT;
+    prevAgentEventsPath = process.env.COMMAND_EVE_AGENT_EVENTS_PATH;
+
+    const companyOsRoot: string = process.env.COMMAND_EVE_COMPANY_OS_ROOT ?? COMPANY_OS_ROOT_DEFAULT;
+    const cleanLedgerSource: string =
+      process.env.COMMAND_EVE_E2E_EVENTS_LEDGER ?? path.join(companyOsRoot, LEDGER_FIXTURE_RELATIVE);
+
+    if (!fs.existsSync(cleanLedgerSource)) {
+      throw new Error(
+        `[command-eve-command-center e2e] Ledger fixture not found: ${cleanLedgerSource}\n` +
+          `Set COMMAND_EVE_COMPANY_OS_ROOT or COMMAND_EVE_E2E_EVENTS_LEDGER to a valid path.`
+      );
+    }
+
+    e2eLedgerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-command-center-e2e-'));
+    e2eLedgerPath = path.join(e2eLedgerRoot, 'agent-events.clean.jsonl');
+    fs.copyFileSync(cleanLedgerSource, e2eLedgerPath);
+
+    process.env.COMMAND_EVE_COMPANY_OS_ROOT = companyOsRoot;
+    process.env.COMMAND_EVE_AGENT_EVENTS_PATH = e2eLedgerPath;
+  });
+
+  test.afterAll(() => {
+    // Restore prior env values exactly.
+    if (prevCompanyOsRoot === undefined) {
+      delete process.env.COMMAND_EVE_COMPANY_OS_ROOT;
+    } else {
+      process.env.COMMAND_EVE_COMPANY_OS_ROOT = prevCompanyOsRoot;
+    }
+    if (prevAgentEventsPath === undefined) {
+      delete process.env.COMMAND_EVE_AGENT_EVENTS_PATH;
+    } else {
+      process.env.COMMAND_EVE_AGENT_EVENTS_PATH = prevAgentEventsPath;
+    }
+
+    // Clean up temp dir.
+    if (e2eLedgerRoot) {
+      fs.rmSync(e2eLedgerRoot, { recursive: true, force: true });
+      e2eLedgerRoot = '';
+    }
+  });
 
   test('renders real local read-model data and creates a governed marketing proof card', async ({
     page,

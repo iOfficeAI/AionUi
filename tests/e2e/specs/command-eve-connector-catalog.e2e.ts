@@ -10,10 +10,14 @@ import os from 'os';
 import path from 'path';
 
 const tempRoots: string[] = [];
-const previousCommandEveEnv = {
-  COMMAND_EVE_AGENT_EVENTS_PATH: process.env.COMMAND_EVE_AGENT_EVENTS_PATH,
-  COMMAND_EVE_COMPANY_OS_ROOT: process.env.COMMAND_EVE_COMPANY_OS_ROOT,
-  COMMAND_EVE_CONNECTOR_MANIFEST_PATH: process.env.COMMAND_EVE_CONNECTOR_MANIFEST_PATH,
+let previousCommandEveEnv: {
+  COMMAND_EVE_AGENT_EVENTS_PATH: string | undefined;
+  COMMAND_EVE_COMPANY_OS_ROOT: string | undefined;
+  COMMAND_EVE_CONNECTOR_MANIFEST_PATH: string | undefined;
+} = {
+  COMMAND_EVE_AGENT_EVENTS_PATH: undefined,
+  COMMAND_EVE_COMPANY_OS_ROOT: undefined,
+  COMMAND_EVE_CONNECTOR_MANIFEST_PATH: undefined,
 };
 
 function writeJson(filePath: string, value: unknown): void {
@@ -131,20 +135,41 @@ function createE2ECompanyOsRoot(): string {
   return root;
 }
 
-const connectorCatalogE2ERoot = createE2ECompanyOsRoot();
-process.env.COMMAND_EVE_CONNECTOR_MANIFEST_PATH = path.join(
-  connectorCatalogE2ERoot,
-  'kits',
-  'company-os-kit',
-  '.company-os',
-  'eve',
-  'connector-manifests.json'
-);
-process.env.COMMAND_EVE_COMPANY_OS_ROOT = connectorCatalogE2ERoot;
-process.env.COMMAND_EVE_AGENT_EVENTS_PATH = path.join(connectorCatalogE2ERoot, 'metrics', 'agent-events.jsonl');
-
 test.describe('Command EVE Connector Catalog', () => {
   test.setTimeout(120_000);
+
+  test.beforeAll(() => {
+    previousCommandEveEnv = {
+      COMMAND_EVE_AGENT_EVENTS_PATH: process.env.COMMAND_EVE_AGENT_EVENTS_PATH,
+      COMMAND_EVE_COMPANY_OS_ROOT: process.env.COMMAND_EVE_COMPANY_OS_ROOT,
+      COMMAND_EVE_CONNECTOR_MANIFEST_PATH: process.env.COMMAND_EVE_CONNECTOR_MANIFEST_PATH,
+    };
+    const connectorCatalogE2ERoot = createE2ECompanyOsRoot();
+    process.env.COMMAND_EVE_CONNECTOR_MANIFEST_PATH = path.join(
+      connectorCatalogE2ERoot,
+      'kits',
+      'company-os-kit',
+      '.company-os',
+      'eve',
+      'connector-manifests.json'
+    );
+    process.env.COMMAND_EVE_COMPANY_OS_ROOT = connectorCatalogE2ERoot;
+    process.env.COMMAND_EVE_AGENT_EVENTS_PATH = path.join(connectorCatalogE2ERoot, 'metrics', 'agent-events.jsonl');
+  });
+
+  test.afterAll(() => {
+    for (const [key, value] of Object.entries(previousCommandEveEnv)) {
+      if (value === undefined) {
+        delete process.env[key as keyof typeof previousCommandEveEnv];
+      } else {
+        process.env[key] = value;
+      }
+    }
+
+    for (const root of tempRoots.splice(0)) {
+      fs.rmSync(root, { recursive: true, force: true });
+    }
+  });
 
   test('renders governed connector cards from the local manifest', async ({ page }, testInfo) => {
     await page.waitForSelector('body', { state: 'visible' });
@@ -194,16 +219,3 @@ test.describe('Command EVE Connector Catalog', () => {
   });
 });
 
-test.afterAll(() => {
-  for (const [key, value] of Object.entries(previousCommandEveEnv)) {
-    if (value === undefined) {
-      delete process.env[key];
-    } else {
-      process.env[key] = value;
-    }
-  }
-
-  for (const root of tempRoots.splice(0)) {
-    fs.rmSync(root, { recursive: true, force: true });
-  }
-});
