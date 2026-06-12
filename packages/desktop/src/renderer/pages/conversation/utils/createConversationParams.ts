@@ -19,6 +19,7 @@ import {
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
+import { normalizeAcpModelId } from '@/renderer/utils/model/normalizeAcpModelInfo';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
 
@@ -67,7 +68,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
   const preferredModelId = backendConfig?.preferredModelId;
   if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
-    return preferredModelId;
+    return normalizeAcpModelId(preferredModelId);
   }
 
   // Fallback: last-seen model info persisted on the backend's agent_metadata row.
@@ -76,7 +77,7 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
   const handshakeModelId = handshakeModels?.current_model_id;
   if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
-    return handshakeModelId;
+    return normalizeAcpModelId(handshakeModelId);
   }
 
   if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {

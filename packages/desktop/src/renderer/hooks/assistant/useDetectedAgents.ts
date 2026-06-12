@@ -3,6 +3,7 @@ import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
+import { normalizeAcpModelInfo } from '@/renderer/utils/model/normalizeAcpModelInfo';
 import { useCallback, useMemo } from 'react';
 import useSWR, { mutate } from 'swr';
 
@@ -25,7 +26,7 @@ const resolveBackendModelOptions = (agent: AgentMetadata): AvailableBackendModel
     Array.isArray(handshakeModels.available_models) &&
     handshakeModels.available_models.length > 0
   ) {
-    return handshakeModels.available_models.map((model) => ({
+    return normalizeAcpModelInfo(handshakeModels).available_models.map((model) => ({
       value: model.id,
       label: model.label || model.id,
     }));

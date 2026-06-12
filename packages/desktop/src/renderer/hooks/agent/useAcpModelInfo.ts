@@ -10,6 +10,7 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import { normalizeAcpModelInfo } from '@/renderer/utils/model/normalizeAcpModelInfo';
 import { useCallback, useEffect, useMemo, useRef } from 'react';
 import useSWR from 'swr';
 
@@ -46,7 +47,7 @@ const logAcpModelInfo = (event: string, data: Record<string, unknown>) => {
 const fetchAcpModelInfoResult = async ([, conversation_id]: AcpModelInfoKey): Promise<AcpModelInfoFetchResult> => {
   try {
     const result = await ipcBridge.acpConversation.getModel.invoke({ conversation_id });
-    return { model_info: result?.model_info ?? null, missing_active_session: false };
+    return { model_info: normalizeAcpModelInfo(result?.model_info ?? null), missing_active_session: false };
   } catch (error) {
     const missingActiveSession = isBackendHttpError(error) && error.status === 404;
     if (!missingActiveSession) {
@@ -147,7 +148,7 @@ export const useAcpModelInfo = ({
     const matched = agentsData.find((a) => (a.backend ?? a.agent_type) === backend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (!info || !Array.isArray(info.available_models) || info.available_models.length === 0) return null;
-    return info;
+    return normalizeAcpModelInfo(info);
   }, [agentsData, backend]);
 
   useEffect(() => {
@@ -341,7 +342,7 @@ export const useAcpModelInfo = ({
       }
 
       if (message.type === 'acp_model_info' && message.data) {
-        const incoming = message.data as AcpModelInfo;
+        const incoming = normalizeAcpModelInfo(message.data as AcpModelInfo);
         // Same rule as reloadModelInfo: backend's current_model_id wins.
         // Only honor initialModelId when the stream payload has none.
         if (
@@ -392,7 +393,7 @@ export const useAcpModelInfo = ({
         try {
           await prepareRuntime?.();
           const confirmed = await ipcBridge.acpConversation.setModel.invoke({ conversation_id, model_id });
-          confirmedModelInfo = confirmed.model_info ?? null;
+          confirmedModelInfo = normalizeAcpModelInfo(confirmed.model_info ?? null);
           if (confirmedModelInfo) {
             updateModelInfo(confirmedModelInfo);
           }

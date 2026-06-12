@@ -26,6 +26,7 @@ import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
+import { normalizeAcpModelInfo } from '@renderer/utils/model/normalizeAcpModelInfo';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -282,7 +283,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
     const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
     const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    return info?.available_models?.length ? info : null;
+    return info?.available_models?.length ? normalizeAcpModelInfo(info) : null;
   }, [resolvedBackend, detectedAgents]);
 
   // Auto-pick the first available model from /api/providers when aionrs is
