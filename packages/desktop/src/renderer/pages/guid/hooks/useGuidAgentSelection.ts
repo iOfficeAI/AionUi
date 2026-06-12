@@ -34,14 +34,14 @@ export type GuidAgentSelectionResult = {
   selectedAgentInfo: AvailableAgent | undefined;
   is_presetAgent: boolean;
   availableAgents: AvailableAgent[] | undefined;
-  /** Backend-merged preset catalog: builtin + user + extension. */
+  /** Backend-merged preset catalog: builtin + user. */
   assistants: Assistant[];
   /** User-defined ACP engine rows (agent_source === 'custom') from the backend. */
   customAgents: AgentMetadata[];
   selectedMode: string;
-  setSelectedMode: React.Dispatch<React.SetStateAction<string>>;
+  setSelectedMode: (mode: React.SetStateAction<string>, options?: { persistPreference?: boolean }) => void;
   selectedAcpModel: string | null;
-  setSelectedAcpModel: React.Dispatch<React.SetStateAction<string | null>>;
+  setSelectedAcpModel: (model: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => void;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   getAgentKey: (agent: {
@@ -54,7 +54,7 @@ export type GuidAgentSelectionResult = {
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   resolvePresetRulesAndSkills: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
-  ) => Promise<{ rules?: string; skills?: string }>;
+  ) => Promise<{ rules?: string }>;
   resolvePresetContext: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<string | undefined>;
@@ -151,28 +151,40 @@ export const useGuidAgentSelection = ({
   }, []);
 
   // Wrap setSelectedMode to also save preferred mode to the agent's own config
-  const setSelectedMode = useCallback((mode: React.SetStateAction<string>) => {
-    _setSelectedMode((prev) => {
-      const newMode = typeof mode === 'function' ? mode(prev) : mode;
-      const agentKey = selectedAgentRef.current;
-      if (agentKey) {
-        void savePreferredMode(agentKey, newMode);
-      }
-      return newMode;
-    });
-  }, []);
+  const setSelectedMode = useCallback(
+    (mode: React.SetStateAction<string>, options?: { persistPreference?: boolean }) => {
+      _setSelectedMode((prev) => {
+        const newMode = typeof mode === 'function' ? mode(prev) : mode;
+        const agentKey = selectedAgentRef.current;
+        if (agentKey && options?.persistPreference !== false) {
+          void savePreferredMode(agentKey, newMode);
+        }
+        return newMode;
+      });
+    },
+    []
+  );
 
   // Wrap setSelectedAcpModel to also save preferred model to the agent's config
-  const setSelectedAcpModel = useCallback((model_id: React.SetStateAction<string | null>) => {
-    _setSelectedAcpModel((prev) => {
-      const newModelId = typeof model_id === 'function' ? model_id(prev) : model_id;
-      const agentKey = selectedAgentRef.current;
-      if (agentKey && agentKey !== 'gemini' && agentKey !== 'custom' && newModelId) {
-        void savePreferredModelId(agentKey, newModelId);
-      }
-      return newModelId;
-    });
-  }, []);
+  const setSelectedAcpModel = useCallback(
+    (model_id: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => {
+      _setSelectedAcpModel((prev) => {
+        const newModelId = typeof model_id === 'function' ? model_id(prev) : model_id;
+        const agentKey = selectedAgentRef.current;
+        if (
+          agentKey &&
+          agentKey !== 'gemini' &&
+          agentKey !== 'custom' &&
+          newModelId &&
+          options?.persistPreference !== false
+        ) {
+          void savePreferredModelId(agentKey, newModelId);
+        }
+        return newModelId;
+      });
+    },
+    []
+  );
 
   const availableCustomAgentIds = useMemo(() => {
     const ids = new Set<string>();
@@ -472,7 +484,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgent, selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup

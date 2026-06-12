@@ -107,31 +107,32 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     [isLeader, onTeamRunAck, slot_id, team_id]
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
-  const teamRuntime = team_id && slot_id
-    ? buildTeamSendRuntime({
-        slot_id,
-        isLeader: Boolean(isLeader),
-        runView: teamRunView,
-        onStop: async () => {
-          const activeRun = teamRunView.activeRun;
-          if (!activeRun) return;
-          if (isLeader) {
-            await ipcBridge.team.cancelRun.invoke({
+  const teamRuntime =
+    team_id && slot_id
+      ? buildTeamSendRuntime({
+          slot_id,
+          isLeader: Boolean(isLeader),
+          runView: teamRunView,
+          onStop: async () => {
+            const activeRun = teamRunView.activeRun;
+            if (!activeRun) return;
+            if (isLeader) {
+              await ipcBridge.team.cancelRun.invoke({
+                team_id,
+                team_run_id: activeRun.team_run_id,
+                target_slot_id: slot_id,
+              });
+              return;
+            }
+            if (!teamRunView.childTurnsBySlot[slot_id]) return;
+            await ipcBridge.team.cancelChildTurn.invoke({
               team_id,
               team_run_id: activeRun.team_run_id,
-              target_slot_id: slot_id,
+              slot_id,
             });
-            return;
-          }
-          if (!teamRunView.childTurnsBySlot[slot_id]) return;
-          await ipcBridge.team.cancelChildTurn.invoke({
-            team_id,
-            team_run_id: activeRun.team_run_id,
-            slot_id,
-          });
-        },
-      })
-    : undefined;
+          },
+        })
+      : undefined;
   const content = (() => {
     if (isLegacyReadOnlyConversationType(conversation.type)) {
       return <LegacyReadOnlyConversation key={conversation.id} conversation={conversation} emptySlot={emptySlot} />;

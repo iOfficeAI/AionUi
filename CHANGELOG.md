@@ -1,5 +1,59 @@
 # Changelog
 
+## [2.1.17](https://github.com/iOfficeAI/AionUi/compare/v2.1.16...v2.1.17) (2026-06-11)
+
+### Desktop
+
+#### Features
+
+- **settings:** voice input settings revamp and home page mic button (#3283)
+- **titlebar:** add global feedback/report entry to toolbar
+- **theme:** add Follow System theme mode to gallery (#3282)
+- **settings:** support multi-select models when adding a model platform
+
+#### Bug Fixes
+
+- **webui:** normalize Windows verbatim paths from directory picker (#3286)
+- **model-selector:** keep sticky platform title above scrolling items
+- **settings:** allow editing Base URL when editing a model platform
+- **stt:** send multipart request matching backend /api/stt contract (#3274)
+
+#### Styling
+
+- **model-selector:** sticky platform group titles in scrollable dropdown
+
+### Core ([v0.1.28](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.28))
+
+#### Bug Fixes
+
+- **auth:** allow same-origin framing on office preview proxy routes ([#454](https://github.com/iOfficeAI/AionCore/issues/454))
+- **file:** strip Windows verbatim prefix from /api/fs/browse paths ([#453](https://github.com/iOfficeAI/AionCore/issues/453))
+- **stt:** STT compatibility fixes for Groq Whisper and AionUI web frontend ([#400](https://github.com/iOfficeAI/AionCore/issues/400))
+- **stt:** treat blank base_url as unset and log malformed config ([#448](https://github.com/iOfficeAI/AionCore/issues/448))
+
+---
+
+## [2.1.16](https://github.com/iOfficeAI/AionUi/compare/v2.1.15...v2.1.16) (2026-06-10)
+
+### Desktop
+
+#### Bug Fixes
+
+- **preview:** point OfficeCLI install help to official releases (#3264)
+- **http:** read error response body once to avoid double consumption (#3262)
+- **ci:** handle empty release prefix check (#3263)
+
+### Core ([v0.1.27](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.27))
+
+#### Bug Fixes
+
+- **ai-agent:** auto approve team mcp permissions ([#447](https://github.com/iOfficeAI/AionCore/issues/447))
+- **ai-agent:** trim stderr buffer at UTF-8 char boundary ([#443](https://github.com/iOfficeAI/AionCore/issues/443))
+- **office:** resolve officecli shim from node_modules/.bin after npm prefix install ([#440](https://github.com/iOfficeAI/AionCore/issues/440))
+- **office:** restore OfficeCLI installer resolution ([#444](https://github.com/iOfficeAI/AionCore/issues/444))
+
+---
+
 ## [2.1.15](https://github.com/iOfficeAI/AionUi/compare/v2.1.14...v2.1.15) (2026-06-09)
 
 ### Desktop

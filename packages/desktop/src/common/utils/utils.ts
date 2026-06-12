@@ -51,12 +51,18 @@ export const parseError = (error: unknown): string => {
  * 根据语言代码解析为标准化的区域键
  * Resolve language code to standardized locale key
  */
-export const resolveLocaleKey = (language: string): 'zh-CN' | 'en-US' | 'ja-JP' | 'zh-TW' | 'ko-KR' | 'tr-TR' => {
-  const lang = language.toLowerCase();
-  if (lang.startsWith('zh-tw')) return 'zh-TW';
-  if (lang.startsWith('zh')) return 'zh-CN';
-  if (lang.startsWith('ja')) return 'ja-JP';
-  if (lang.startsWith('ko')) return 'ko-KR';
-  if (lang.startsWith('tr')) return 'tr-TR';
+export const resolveLocaleKey = (
+  language: string
+): 'zh-CN' | 'en-US' | 'ja-JP' | 'zh-TW' | 'ko-KR' | 'tr-TR' | 'ru-RU' | 'uk-UA' | 'pt-BR' => {
+  const normalized = language.replace(/_/g, '-').toLowerCase();
+
+  if (normalized.startsWith('zh-tw')) return 'zh-TW';
+  if (normalized.startsWith('zh')) return 'zh-CN';
+  if (normalized.startsWith('ja')) return 'ja-JP';
+  if (normalized.startsWith('ko')) return 'ko-KR';
+  if (normalized.startsWith('tr')) return 'tr-TR';
+  if (normalized.startsWith('ru')) return 'ru-RU';
+  if (normalized.startsWith('uk')) return 'uk-UA';
+  if (normalized.startsWith('pt')) return 'pt-BR';
   return 'en-US';
 };

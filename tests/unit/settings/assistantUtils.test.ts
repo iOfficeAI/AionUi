@@ -154,7 +154,7 @@ describe('filterAssistants', () => {
       name: 'Gamma',
       description: 'Third assistant',
       enabled: true,
-      source: 'extension',
+      source: 'user',
       name_i18n: { zh: '伽马助手' },
     }),
     mockAssistant({ id: 'a4', name: 'Delta', description: 'Fourth', enabled: false, source: 'user' }),
@@ -177,8 +177,7 @@ describe('filterAssistants', () => {
 
   it('filters by source', () => {
     expect(filterAssistants(assistants, '', 'builtin', 'en').map((a) => a.id)).toEqual(['a1']);
-    expect(filterAssistants(assistants, '', 'user', 'en').map((a) => a.id)).toEqual(['a2', 'a4']);
-    expect(filterAssistants(assistants, '', 'extension', 'en').map((a) => a.id)).toEqual(['a3']);
+    expect(filterAssistants(assistants, '', 'user', 'en').map((a) => a.id)).toEqual(['a2', 'a3', 'a4']);
   });
 
   it('combines search and filter', () => {

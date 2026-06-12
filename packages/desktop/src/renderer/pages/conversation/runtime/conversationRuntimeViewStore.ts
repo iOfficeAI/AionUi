@@ -122,17 +122,18 @@ const viewFromRuntimeSummary = (
 ): ConversationRuntimeView => {
   const pendingLocalSend = metadata.pendingLocalSendSeq !== null && options.preservePendingLocalSend !== false;
   const activeTurnId = runtime.turn_id ?? null;
+  const isCancelling = runtime.state === 'cancelling';
   const localStopping =
     metadata.pendingStopTurnId !== null &&
     metadata.pendingStopTurnId === activeTurnId &&
-    runtime.is_processing === true;
+    (runtime.is_processing === true || isCancelling);
 
   return {
     ...previous,
     activeTurnId,
     state: pendingLocalSend && runtime.state === 'idle' ? 'starting' : runtime.state,
-    isProcessing: pendingLocalSend || runtime.is_processing,
-    canSendMessage: !pendingLocalSend && runtime.can_send_message,
+    isProcessing: pendingLocalSend || isCancelling || runtime.is_processing,
+    canSendMessage: !pendingLocalSend && !isCancelling && runtime.can_send_message,
     pendingConfirmations: runtime.pending_confirmations,
     hasBackendRuntime: true,
     hydrated: true,

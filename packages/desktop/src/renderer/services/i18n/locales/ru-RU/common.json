@@ -58,6 +58,7 @@
   "forward": "Вперёд",
   "more": "Ещё",
   "refresh": "Обновить",
+  "readOnly": "Только чтение",
   "tray.showWindow": "Показать AionUi",
   "tray.newChat": "Новый чат",
   "tray.closeToTray": "Свернуть в трей",
@@ -103,5 +104,9 @@
   "optional": "(необязательно)",
   "clear": "Очистить",
   "historyBack": "Назад",
-  "agentMode": "Режим агента"
+  "agentMode": "Режим агента",
+  "unit": {
+    "minute_short": "мин",
+    "second_short": "с"
+  }
 }

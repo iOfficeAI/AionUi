@@ -59,6 +59,7 @@
   "historyBack": "Geri",
   "more": "Daha Fazla",
   "refresh": "Yenile",
+  "readOnly": "Salt okunur",
   "tray.showWindow": "AionUi'yi Göster",
   "tray.newChat": "Yeni Sohbet",
   "tray.closeToTray": "Tepsiye Gizle",
@@ -103,5 +104,9 @@
   "import": "İçe Aktar",
   "processing": "İşleniyor...",
   "optional": "(isteğe bağlı)",
-  "clear": "Temizle"
+  "clear": "Temizle",
+  "unit": {
+    "minute_short": "dk",
+    "second_short": "sn"
+  }
 }

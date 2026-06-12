@@ -59,6 +59,7 @@
   "historyBack": "戻る",
   "more": "その他",
   "refresh": "更新",
+  "readOnly": "読み取り専用",
   "tray.showWindow": "AionUi を表示",
   "tray.newChat": "新しいチャット",
   "tray.closeToTray": "トレイに隠す",
@@ -103,5 +104,9 @@
   "import": "インポート",
   "processing": "処理中...",
   "optional": "（任意）",
-  "clear": "クリア"
+  "clear": "クリア",
+  "unit": {
+    "minute_short": "分",
+    "second_short": "秒"
+  }
 }

@@ -29,6 +29,7 @@ import {
 type UseConversationRuntimeViewReturn = {
   view: ConversationRuntimeView;
   hydrated: boolean;
+  state: ConversationRuntimeView['state'];
   isProcessing: boolean;
   canSendMessage: boolean;
   activeTurnId: string | null;
@@ -170,6 +171,7 @@ export const useConversationRuntimeView = (conversation_id: string): UseConversa
   return {
     view,
     hydrated: view.hydrated,
+    state: view.state,
     isProcessing: view.isProcessing,
     canSendMessage: view.canSendMessage,
     activeTurnId: view.activeTurnId,

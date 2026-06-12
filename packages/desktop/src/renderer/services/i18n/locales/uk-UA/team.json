@@ -28,7 +28,6 @@
     "namePlaceholder": "Назва команди",
     "dispatchAgentPlaceholder": "Виберіть лідера команди",
     "subAgentsPlaceholder": "Виберіть субагентів",
-    "workspacePlaceholder": "Шлях до папки проєкту (опціонально)",
     "confirm": "Створити команду",
     "noSupportedAgents": "Не встановлено жодного підтримуваного агента",
     "supportedAgentsHint": "Наразі підтримуються Claude та Codex. Інші агенти з'являться незабаром.",

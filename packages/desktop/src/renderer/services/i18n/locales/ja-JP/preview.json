@@ -130,6 +130,6 @@
     "loading": "PPTプレビューを起動中...",
     "installing": "プレビューコンポーネントをインストール中...",
     "startFailed": "PPTプレビューの起動に失敗しました",
-    "installHint": "officecliがインストールされていることを確認してください: npm run postinstall"
+    "installHint": "公式 iOfficeAI/OfficeCli releases ページから OfficeCLI をインストールしてください"
   }
 }

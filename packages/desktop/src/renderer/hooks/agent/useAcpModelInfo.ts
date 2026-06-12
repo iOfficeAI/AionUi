@@ -102,6 +102,7 @@ export const useAcpModelInfo = ({
   initialModelId,
   prepareRuntime,
   enabled = true,
+  persistGlobalPreference = true,
   onSelectModelSuccess,
   onSelectModelFailed,
 }: {
@@ -110,6 +111,7 @@ export const useAcpModelInfo = ({
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
   enabled?: boolean;
+  persistGlobalPreference?: boolean;
   onSelectModelSuccess?: (model_id: string) => void;
   onSelectModelFailed?: (model_id: string, error: unknown) => void;
 }): UseAcpModelInfoResult => {
@@ -432,7 +434,7 @@ export const useAcpModelInfo = ({
         onSelectModelSuccess?.(confirmedModelId);
 
         // Persist only after the active ACP session accepts the model switch.
-        if (backend) {
+        if (backend && persistGlobalPreference) {
           void savePreferredModelId(backend, confirmedModelId);
         }
         logAcpModelInfo('select_model_preference_save_queued', {
@@ -454,6 +456,7 @@ export const useAcpModelInfo = ({
       onSelectModelFailed,
       onSelectModelSuccess,
       prepareRuntime,
+      persistGlobalPreference,
       reloadModelInfo,
       updateModelInfo,
     ]

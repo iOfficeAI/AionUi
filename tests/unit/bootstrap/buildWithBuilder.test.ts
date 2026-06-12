@@ -61,13 +61,22 @@ Module._load = function patchedLoad(request, parent, isMain) {
   return originalLoad.call(this, request, parent, isMain);
 };
 
+// Satisfy build-with-builder's output checks without clobbering real build
+// artifacts: out/ lives in the actual repo (the script resolves it from its
+// own __dirname), so only create empty placeholders when nothing is there.
+function ensurePlaceholder(relativePath) {
+  const target = path.join(process.cwd(), relativePath);
+  fs.mkdirSync(path.dirname(target), { recursive: true });
+  if (!fs.existsSync(target)) {
+    fs.writeFileSync(target, '');
+  }
+}
+
 childProcess.execSync = function mockedExecSync(command) {
   const commandText = String(command);
   if (commandText.includes('electron-vite build')) {
-    fs.mkdirSync(path.join(process.cwd(), 'out/main'), { recursive: true });
-    fs.mkdirSync(path.join(process.cwd(), 'out/renderer'), { recursive: true });
-    fs.writeFileSync(path.join(process.cwd(), 'out/main/index.js'), '');
-    fs.writeFileSync(path.join(process.cwd(), 'out/renderer/index.html'), '');
+    ensurePlaceholder('out/main/index.js');
+    ensurePlaceholder('out/renderer/index.html');
   }
   return Buffer.from('');
 };

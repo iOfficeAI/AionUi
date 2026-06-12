@@ -59,6 +59,7 @@
   "historyBack": "뒤로",
   "more": "더보기",
   "refresh": "새로고침",
+  "readOnly": "읽기 전용",
   "tray.showWindow": "AionUi 표시",
   "tray.newChat": "새 채팅",
   "tray.closeToTray": "트레이에 숨기기",
@@ -103,5 +104,9 @@
   "import": "가져오기",
   "processing": "처리 중...",
   "optional": "(선택 사항)",
-  "clear": "지우기"
+  "clear": "지우기",
+  "unit": {
+    "minute_short": "분",
+    "second_short": "초"
+  }
 }

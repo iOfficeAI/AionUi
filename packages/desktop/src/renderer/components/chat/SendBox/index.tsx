@@ -43,6 +43,7 @@ import UploadProgressBar from '@renderer/components/media/UploadProgressBar';
 import { allSupportedExts } from '@renderer/services/FileService';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
+import { createChainedDispatch, useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
 import { getConversationInputHistory, isCaretOnFirstLine } from '@/renderer/utils/chat/messageHistory';
 import './sendbox.css';
 
@@ -221,7 +222,7 @@ const SendBox: React.FC<{
   const effectiveDefaultMultiLine = defaultMultiLine && !isMobileCompact;
   const conversationContext = useConversationContextSafe();
   const teamPermission = useTeamPermission();
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(false);
   const [isSingleLine, setIsSingleLine] = useState(!effectiveDefaultMultiLine);
   const [isInputFocused, setIsInputFocused] = useState(false);
@@ -1230,14 +1231,29 @@ const SendBox: React.FC<{
     }
   };
 
-  const handleSpeechTranscript = useCallback(
-    (transcript: string) => {
-      const current_value = latestInputRef.current;
-      setInputRef.current(appendSpeechTranscript(current_value, transcript));
-    },
+  // SendBox is controlled (`value`/`onChange`): adapt the plain value setter
+  // into a functional-update dispatch. Same-tick updates (live-region restore
+  // followed by the terminal transcript append) must chain through a pending
+  // value — the committed `input` prop only catches up on the next render.
+  const speechDispatch = useMemo(
+    () =>
+      createChainedDispatch(
+        () => latestInputRef.current,
+        (value) => setInputRef.current(value)
+      ),
     [latestInputRef, setInputRef]
   );
-  const speechLocale = i18n?.language || 'en-US';
+  useEffect(() => {
+    // The committed input caught up (or the user typed) — drop the chain.
+    speechDispatch.reset();
+  }, [input, speechDispatch]);
+  const handleSpeechTranscript = useCallback(
+    (transcript: string) => {
+      speechDispatch.dispatch((prev) => appendSpeechTranscript(prev, transcript));
+    },
+    [speechDispatch]
+  );
+  const { handleLiveTranscript } = useLiveTranscriptInsertion(speechDispatch.dispatch);
 
   const hasDraftToSend = input.trim().length > 0 || domSnippets.length > 0;
 
@@ -1307,7 +1323,7 @@ const SendBox: React.FC<{
   const renderedSpeechButton = isMobileCompact ? null : (
     <SpeechInputButton
       disabled={disabled || isLoading || loading || isUploading}
-      locale={speechLocale}
+      onLiveTranscript={handleLiveTranscript}
       onTranscript={handleSpeechTranscript}
     />
   );

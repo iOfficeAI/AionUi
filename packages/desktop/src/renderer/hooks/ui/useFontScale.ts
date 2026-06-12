@@ -7,7 +7,9 @@
 import { ipcBridge } from '@/common';
 import { useCallback, useEffect, useState } from 'react';
 
-const UI_SCALE_DEFAULT = 1;
+// Keep in sync with the main-process default (process/utils/zoom.ts); a mismatch
+// would make the slider show a different value than the actual window zoom.
+const UI_SCALE_DEFAULT = 0.95;
 const UI_SCALE_MIN = 0.8;
 const UI_SCALE_MAX = 1.3;
 const UI_SCALE_STEP = 0.05;

@@ -101,7 +101,16 @@ const AcpSendBox: React.FC<{
   messageState: UseAcpMessageReturn;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
-}> = ({ conversation_id, backend, session_mode, agent_name, workspacePath, messageState, teamSendMessage, teamRuntime }) => {
+}> = ({
+  conversation_id,
+  backend,
+  session_mode,
+  agent_name,
+  workspacePath,
+  messageState,
+  teamSendMessage,
+  teamRuntime,
+}) => {
   const { aiProcessing, setAiProcessing, resetState, hasThinkingMessage, slashCommands, fetchSlashCommands } =
     messageState;
   const { t } = useTranslation();
@@ -115,6 +124,7 @@ const AcpSendBox: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
   const loadedSkills = conversationContext?.loadedSkills ?? [];
+  const assistantId = conversationContext?.assistantId;
   const loadedMcpStatuses =
     conversationContext?.loadedMcpStatuses ??
     (conversationContext?.loadedMcpServers ?? []).map<IConversationMcpStatus>((name) => ({
@@ -141,6 +151,7 @@ const AcpSendBox: React.FC<{
     backend,
     prepareRuntime: prepareRuntimeSync,
     enabled: isMobile,
+    persistGlobalPreference: !assistantId,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
   });
@@ -173,7 +184,7 @@ const AcpSendBox: React.FC<{
         const confirmed = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
         const confirmedMode = confirmed.mode || mode;
         setCurrentMode(confirmedMode);
-        if (backend) void savePreferredMode(backend, confirmedMode);
+        if (backend && !assistantId) void savePreferredMode(backend, confirmedMode);
         if (isLeaderInTeam) teamPermission?.propagateMode?.(confirmedMode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
@@ -181,7 +192,7 @@ const AcpSendBox: React.FC<{
         Message.error(t('agentMode.switchFailed'));
       }
     },
-    [backend, conversation_id, currentMode, isLeaderInTeam, prepareRuntimeSync, t, teamPermission]
+    [assistantId, backend, conversation_id, currentMode, isLeaderInTeam, prepareRuntimeSync, t, teamPermission]
   );
 
   // In team mode, warmup the agent then fetch slash commands
@@ -228,7 +239,8 @@ const AcpSendBox: React.FC<{
     canSendMessage: runtimeView.canSendMessage,
     isProcessing: runtimeView.isProcessing,
   };
-  const isBusy = commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
+  const isCancelling = runtimeView.state === 'cancelling';
+  const isBusy = isCancelling || commandQueueRuntimeGate.isProcessing || !commandQueueRuntimeGate.canSendMessage;
 
   // Register handler for adding text from preview panel to sendbox
   useEffect(() => {
@@ -612,7 +624,10 @@ Please check your local CLI tool authentication status`,
         onRemove={remove}
         onClear={clear}
       />
-      <ThoughtDisplay running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)} onStop={effectiveHandleStop} />
+      <ThoughtDisplay
+        running={teamRuntime?.loading ?? (aiProcessing && !hasThinkingMessage)}
+        onStop={effectiveHandleStop}
+      />
 
       <SendBox
         onMobilePlusClick={isMobile ? () => setIsMobileSheetOpen(true) : undefined}
@@ -657,6 +672,7 @@ Please check your local CLI tool authentication status`,
               hideCompactLabelPrefixOnMobile
               onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
               beforeRuntimeSync={prepareRuntimeSync}
+              persistGlobalPreference={!assistantId}
             />
           ) : undefined
         }

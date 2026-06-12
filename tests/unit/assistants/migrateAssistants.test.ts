@@ -18,6 +18,7 @@ vi.mock('@/common', () => ({
       setState: { invoke: vi.fn() },
       update: { invoke: vi.fn() },
       list: { invoke: vi.fn(async () => []) },
+      get: { invoke: vi.fn() },
     },
     fs: {
       writeAssistantRule: { invoke: vi.fn(async () => true) },
@@ -56,6 +57,9 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 describe('migrateAssistants', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (ipcBridge.assistants.list.invoke as any).mockResolvedValue([]);
+    (ipcBridge.assistants.get.invoke as any).mockResolvedValue(undefined);
+    (ipcBridge.fs.readAssistantRule.invoke as any).mockResolvedValue('');
   });
 
   describe('legacyAssistantToCreateRequest', () => {
@@ -189,6 +193,50 @@ describe('migrateAssistants', () => {
 
       expect(result).toBe(false); // keep retrying on next launch
       expect(config.store).toHaveProperty('assistants'); // legacy field always preserved
+    });
+
+    it('skips legacy builtin override replay when backend already exposes unified assistant detail', async () => {
+      const config = makeConfig({
+        assistants: [
+          { id: 'builtin-morph-ppt-3d', enabled: false, isBuiltin: true },
+          { id: 'custom-1', name: 'Custom 1' },
+        ],
+      });
+
+      (ipcBridge.assistants.list.invoke as any).mockResolvedValue([{ id: 'morph-ppt-3d', source: 'builtin' }]);
+      (ipcBridge.assistants.get.invoke as any).mockResolvedValue({
+        id: 'morph-ppt-3d',
+        source: 'builtin',
+        profile: { name: 'Morph PPT', name_i18n: {}, description_i18n: {} },
+        state: { enabled: true, sort_order: 0 },
+        engine: { agent_backend: 'aionrs' },
+        rules: { content: '', storage_mode: 'builtin_asset' },
+        prompts: { recommended: [], recommended_i18n: {} },
+        defaults: {
+          model: { mode: 'auto' },
+          permission: { mode: 'auto' },
+          skills: { mode: 'auto', value: [] },
+          mcps: { mode: 'auto', value: [] },
+        },
+        capabilities: {
+          default_skill_ids: [],
+          custom_skill_names: [],
+          default_disabled_builtin_skill_ids: [],
+        },
+        preferences: {
+          last_skill_ids: [],
+          last_disabled_builtin_skill_ids: [],
+          last_mcp_ids: [],
+        },
+      });
+      (ipcBridge.assistants.import.invoke as any).mockResolvedValue({ imported: 1, skipped: 0, failed: 0, errors: [] });
+
+      const result = await migrateAssistantsToBackend(config as any);
+
+      expect(result).toBe(true);
+      expect(ipcBridge.assistants.import.invoke).toHaveBeenCalledTimes(1);
+      expect(ipcBridge.assistants.setState.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.assistants.update.invoke).not.toHaveBeenCalled();
     });
   });
 

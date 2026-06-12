@@ -27,7 +27,7 @@ export type UseConversationAgentsResult = {
  *
  * Two independent data sources:
  *   - Execution engines — from AgentRegistry via IPC (agents.detected)
- *   - Preset assistants — from backend `/api/assistants` (merged builtin + user + extension)
+ *   - Preset assistants — from backend `/api/assistants` (merged builtin + user)
  */
 export const useConversationAgents = (): UseConversationAgentsResult => {
   // Execution engines from AgentRegistry (shared cache with useDetectedAgents / useGuidAgentSelection)

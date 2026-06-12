@@ -28,7 +28,6 @@
     "namePlaceholder": "Team name",
     "dispatchAgentPlaceholder": "Select team leader",
     "subAgentsPlaceholder": "Select sub agents",
-    "workspacePlaceholder": "Project folder path (optional)",
     "confirm": "Create Team",
     "noSupportedAgents": "No supported agents installed",
     "supportedAgentsHint": "Currently supports Claude and Codex. More agents coming soon.",

@@ -57,6 +57,11 @@ export interface ConversationContextValue {
    * conversation.extra.mcp_statuses).
    */
   loadedMcpStatuses?: IConversationMcpStatus[];
+
+  /**
+   * Assistant id bound to this conversation snapshot, if any.
+   */
+  assistantId?: string;
 }
 
 /**

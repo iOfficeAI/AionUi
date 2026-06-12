@@ -5,9 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { Input } from '@arco-design/web-react';
 import { Check, Close, Down, FolderClose, FolderOpen } from '@icon-park/react';
-import { isElectronDesktop } from '@renderer/utils/platform';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { DEFAULT_RECENT_WS_KEY, addRecentWorkspace, getRecentWorkspaces } from './recentWorkspaces';
 
@@ -35,7 +33,6 @@ type WorkspaceFolderSelectProps = {
   onChange: (value: string) => void;
   onClear?: () => void;
   placeholder: string;
-  input_placeholder?: string;
   recentLabel: string;
   chooseDifferentLabel: string;
   recentStorageKey?: string;
@@ -49,7 +46,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   onChange,
   onClear,
   placeholder,
-  input_placeholder,
   recentLabel,
   chooseDifferentLabel,
   recentStorageKey = DEFAULT_RECENT_WS_KEY,
@@ -60,7 +56,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPos, setMenuPos] = useState<MenuPosition>({ top: 0, left: 0, width: 0, maxHeight: MAX_MENU_HEIGHT });
   const triggerRef = useRef<HTMLDivElement>(null);
-  const isDesktop = isElectronDesktop();
   const recentWorkspaces = getRecentWorkspaces(recentStorageKey);
 
   const updateMenuPosition = useCallback(() => {
@@ -132,10 +127,6 @@ const WorkspaceFolderSelect: React.FC<WorkspaceFolderSelectProps> = ({
   };
 
   const folderName = value ? value.split(/[\\/]/).pop() || value : '';
-
-  if (!isDesktop) {
-    return <Input placeholder={input_placeholder ?? placeholder} value={value ?? ''} onChange={onChange} />;
-  }
 
   return (
     <div className='relative' ref={triggerRef}>

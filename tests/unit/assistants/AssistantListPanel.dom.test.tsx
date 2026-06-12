@@ -44,11 +44,12 @@ describe('AssistantListPanel', () => {
     assistants: mockAssistants,
     localeKey: 'en',
     avatarImageMap: {},
-    isExtensionAssistant: () => false,
     onEdit: vi.fn(),
     onDuplicate: vi.fn(),
+    onDelete: vi.fn(),
     onCreate: vi.fn(),
     onToggleEnabled: vi.fn(),
+    onReorder: vi.fn(),
     setActiveAssistantId: vi.fn(),
   };
 
@@ -63,6 +64,10 @@ describe('AssistantListPanel', () => {
   it('renders without crashing (smoke)', () => {
     const { container } = renderWithProviders(<AssistantListPanel {...defaultProps} />);
     expect(container.querySelector('[data-testid="btn-create-assistant"]')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-list-shell')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-list-header')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-list-body')).toBeInTheDocument();
+    expect(screen.getByTestId('assistant-card-1')).toBeInTheDocument();
   });
 
   it('renders with empty assistants list (props branch)', () => {
@@ -105,8 +110,52 @@ describe('AssistantListPanel', () => {
     expect(onToggleSpy).toHaveBeenCalledTimes(1);
   });
 
-  it('renders search toggle button (props branch)', () => {
+  it('shows delete only for custom assistants and calls onDelete', async () => {
+    const user = userEvent.setup();
+    const onDeleteSpy = vi.fn();
+    renderWithProviders(<AssistantListPanel {...defaultProps} onDelete={onDeleteSpy} />);
+
+    expect(screen.queryByTestId('btn-delete-1')).not.toBeInTheDocument();
+    const deleteButton = screen.getByTestId('btn-delete-2');
+    await user.click(deleteButton);
+
+    expect(onDeleteSpy).toHaveBeenCalledTimes(1);
+    expect(onDeleteSpy).toHaveBeenCalledWith(mockAssistants[1]);
+  });
+
+  it('shows duplicate only for builtin assistants and calls onDuplicate', async () => {
+    const user = userEvent.setup();
+    const onDuplicateSpy = vi.fn();
+    renderWithProviders(<AssistantListPanel {...defaultProps} onDuplicate={onDuplicateSpy} />);
+
+    const duplicateButton = screen.getByTestId('btn-duplicate-1');
+    expect(screen.queryByTestId('btn-duplicate-2')).not.toBeInTheDocument();
+    await user.click(duplicateButton);
+
+    expect(onDuplicateSpy).toHaveBeenCalledTimes(1);
+    expect(onDuplicateSpy).toHaveBeenCalledWith(mockAssistants[0]);
+  });
+
+  it('renders the single-list layout without legacy filter tabs', () => {
     renderWithProviders(<AssistantListPanel {...defaultProps} />);
-    expect(screen.getByTestId('btn-search-toggle')).toBeInTheDocument();
+    expect(screen.queryByText('settings.assistantFilterAll')).not.toBeInTheDocument();
+    expect(screen.queryByText('settings.assistantSectionEnabled')).not.toBeInTheDocument();
+    expect(screen.getByTestId('btn-duplicate-1')).toBeInTheDocument();
+    expect(screen.queryByTestId('btn-duplicate-2')).not.toBeInTheDocument();
+  });
+
+  it('does not render the legacy reorder hint copy', () => {
+    renderWithProviders(<AssistantListPanel {...defaultProps} />);
+
+    expect(screen.getByTestId('assistant-list-header')).not.toHaveTextContent('settings.assistantListHint');
+    expect(screen.getByTestId('assistant-list-body')).not.toHaveTextContent('settings.assistantListHint');
+  });
+
+  it('uses smaller action button typography on the right-side action rail', () => {
+    renderWithProviders(<AssistantListPanel {...defaultProps} />);
+
+    expect(screen.getByTestId('btn-edit-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
+    expect(screen.getByTestId('btn-duplicate-1')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
+    expect(screen.getByTestId('btn-delete-2')).toHaveClass('!h-30px', '!rounded-8px', '!text-12px', '!font-500');
   });
 });

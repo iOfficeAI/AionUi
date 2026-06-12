@@ -59,6 +59,7 @@
   "historyBack": "後退",
   "more": "更多",
   "refresh": "重新整理",
+  "readOnly": "唯讀",
   "tray.showWindow": "顯示 AionUi",
   "tray.newChat": "新建對話",
   "tray.closeToTray": "隱藏到托盤",
@@ -103,5 +104,9 @@
   "import": "匯入",
   "processing": "處理中...",
   "optional": "（選填）",
-  "clear": "清除"
+  "clear": "清除",
+  "unit": {
+    "minute_short": "分",
+    "second_short": "秒"
+  }
 }

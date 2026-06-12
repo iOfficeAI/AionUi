@@ -283,6 +283,38 @@ describe('useAcpModelInfo', () => {
     expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
   });
 
+  it('does not save preferred model for assistant-backed conversations', async () => {
+    getModelInvokeMock
+      .mockResolvedValueOnce({ model_info: buildModelInfo() })
+      .mockResolvedValue({ model_info: buildModelInfo({ current_model_id: 'opus-4' }) });
+
+    const { result } = renderUseAcpModelInfo({
+      conversation_id: 'conv-1',
+      backend: 'claude',
+      initialModelId: 'sonnet-4',
+      persistGlobalPreference: false,
+    });
+
+    await waitFor(() => {
+      expect(result.current.canSwitch).toBe(true);
+    });
+
+    act(() => {
+      result.current.selectModel('opus-4');
+    });
+
+    await waitFor(() => {
+      expect(setModelInvokeMock).toHaveBeenCalledWith({ conversation_id: 'conv-1', model_id: 'opus-4' });
+    });
+
+    await waitFor(() => {
+      expect(result.current.model_info?.current_model_id).toBe('opus-4');
+    });
+
+    expect(configServiceSetMock).not.toHaveBeenCalled();
+    expect(conversationUpdateInvokeMock).not.toHaveBeenCalled();
+  });
+
   it('rolls back to backend model info and does not persist when selectModel fails', async () => {
     const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
     const onSelectModelSuccess = vi.fn();

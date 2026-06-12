@@ -57,7 +57,11 @@ vi.mock('@/renderer/pages/conversation/Messages/useAutoScroll', () => ({
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageText', () => ({
-  default: ({ message }: { message: IMessageText }) => <div>{message.content.content}</div>,
+  default: ({ message, showCopyRow }: { message: IMessageText; showCopyRow?: boolean }) => (
+    <div data-testid={`msgtext-${message.id}`} data-copy-row={String(showCopyRow ?? true)}>
+      {message.content.content}
+    </div>
+  ),
 }));
 
 vi.mock('@/renderer/pages/conversation/Messages/components/MessageTips', () => ({
@@ -160,6 +164,32 @@ describe('MessageList', () => {
     const messageRow = screen.getByTestId('message-text-left');
     expect(messageRow.className).toContain('m-t-10px');
     expect(messageRow.className).not.toContain('pt-10px');
+  });
+
+  it('shows the copy row only on the last AI text of each turn', () => {
+    // Turn 1: thinking + text(a) + tool + text(b) -> row only on text(b).
+    // A user message ends the turn. Turn 2: text(c) -> row on text(c).
+    const messages = [
+      { id: 'think-1', type: 'thinking', position: 'left', content: { content: 'thinking' }, created_at: 1 },
+      { id: 'text-a', type: 'text', position: 'left', content: { content: 'a' }, created_at: 2 },
+      { id: 'tool-1', type: 'tool_call', position: 'left', content: { content: 't' }, created_at: 3 },
+      { id: 'text-b', type: 'text', position: 'left', content: { content: 'b' }, created_at: 4 },
+      { id: 'user-1', type: 'text', position: 'right', content: { content: 'q' }, created_at: 5 },
+      { id: 'text-c', type: 'text', position: 'left', content: { content: 'c' }, created_at: 6 },
+    ] as unknown as IMessageText[];
+
+    render(<MessageList />, {
+      wrapper: ({ children }) => <Wrapper messages={messages}>{children}</Wrapper>,
+    });
+
+    // Intermediate AI text (followed by a tool then another text) hides the row.
+    expect(screen.getByTestId('msgtext-text-a').getAttribute('data-copy-row')).toBe('false');
+    // Last AI text of turn 1 (after the tool block) keeps the row — fallback strategy.
+    expect(screen.getByTestId('msgtext-text-b').getAttribute('data-copy-row')).toBe('true');
+    // User message always keeps its own row.
+    expect(screen.getByTestId('msgtext-user-1').getAttribute('data-copy-row')).toBe('true');
+    // Turn 2's only/last text keeps the row.
+    expect(screen.getByTestId('msgtext-text-c').getAttribute('data-copy-row')).toBe('true');
   });
 
   it('renders the empty slot when there are no messages', () => {

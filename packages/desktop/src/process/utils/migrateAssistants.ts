@@ -183,6 +183,22 @@ type LegacyConfigAccessor = {
   set?: (key: string, value: unknown) => Promise<unknown>;
 };
 
+async function backendSupportsAssistantDefinitions(): Promise<boolean> {
+  try {
+    const assistants = await ipcBridge.assistants.list.invoke();
+    const probeAssistant = assistants[0];
+    if (!probeAssistant) return false;
+
+    const detail = await ipcBridge.assistants.get.invoke({ id: probeAssistant.id });
+    return Boolean(
+      detail && typeof detail === 'object' && 'profile' in detail && 'defaults' in detail && 'preferences' in detail
+    );
+  } catch (error) {
+    console.warn('[AionUi] Failed to probe unified assistant detail support:', error);
+    return false;
+  }
+}
+
 async function markAssistantsMigrationDone(configFile: ConfigFile): Promise<void> {
   const accessor = configFile as unknown as LegacyConfigAccessor;
   if (typeof accessor.set !== 'function') {
@@ -531,14 +547,19 @@ export async function migrateAssistantsToBackend(configFile: ConfigFile): Promis
 
   const legacyValue = await rawConfigFile.get('assistants').catch(() => [] as unknown);
   const legacy = (Array.isArray(legacyValue) ? legacyValue : []) as Record<string, unknown>[];
+  const supportsAssistantDefinitions = await backendSupportsAssistantDefinitions();
 
   const userAssistants = legacy.filter((a) => !isLegacyBuiltin(a));
-  const builtinDisabledOverrides = collectBuiltinOverrides(legacy);
-  // Phase 3's payload needs the live backend default for each built-in to
-  // decide "did the user actually pick something different?". Fetch once,
-  // pass down. An empty map from a failed GET leaves Phase 3 as a no-op.
-  const currentBuiltinAgentTypes = await fetchCurrentBuiltinAgentTypes();
-  const builtinAgentTypeOverrides = collectBuiltinPresetAgentTypeOverrides(legacy, currentBuiltinAgentTypes);
+  const builtinDisabledOverrides = supportsAssistantDefinitions ? [] : collectBuiltinOverrides(legacy);
+  // Once the backend exposes unified assistant detail, built-in state and
+  // agent overrides already flow through the backend bootstrap / legacy mirror.
+  // Replaying stale Electron config on top would clobber newer backend state.
+  const currentBuiltinAgentTypes = supportsAssistantDefinitions
+    ? new Map<string, string>()
+    : await fetchCurrentBuiltinAgentTypes();
+  const builtinAgentTypeOverrides = supportsAssistantDefinitions
+    ? []
+    : collectBuiltinPresetAgentTypeOverrides(legacy, currentBuiltinAgentTypes);
 
   // Phase 4 keys off the *legacy* custom-assistant id (the file name on
   // disk). The collision-rename path in `legacyAssistantToCreateRequest`

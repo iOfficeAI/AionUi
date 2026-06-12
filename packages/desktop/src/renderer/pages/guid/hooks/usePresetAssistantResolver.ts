@@ -22,7 +22,7 @@ type UsePresetAssistantResolverOptions = {
 type UsePresetAssistantResolverResult = {
   resolvePresetRulesAndSkills: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
-  ) => Promise<{ rules?: string; skills?: string }>;
+  ) => Promise<{ rules?: string }>;
   resolvePresetContext: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
   ) => Promise<string | undefined>;
@@ -39,9 +39,9 @@ type UsePresetAssistantResolverResult = {
 
 /**
  * Hook that provides preset assistant resolution callbacks.
- * Resolves rules, skills, context, and agent type for preset assistants.
- * Rule/skill read requests are served by the backend, which dispatches per
- * assistant source (builtin manifest / extension bundle / user md file).
+ * Resolves rules, context, and agent type for preset assistants.
+ * Rule reads are served by the backend, which dispatches per assistant source
+ * (builtin manifest / extension bundle / user md file).
  */
 export const usePresetAssistantResolver = ({
   assistants,
@@ -50,13 +50,12 @@ export const usePresetAssistantResolver = ({
   const resolvePresetRulesAndSkills = useCallback(
     async (
       agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
-    ): Promise<{ rules?: string; skills?: string }> => {
+    ): Promise<{ rules?: string }> => {
       if (!agentInfo) return {};
       const custom_agent_id = agentInfo.custom_agent_id;
       if (!custom_agent_id) return { rules: agentInfo.context };
 
       let rules = '';
-      let skills = '';
 
       try {
         rules = await ipcBridge.fs.readAssistantRule.invoke({
@@ -67,16 +66,7 @@ export const usePresetAssistantResolver = ({
         console.warn(`Failed to load rules for ${custom_agent_id}:`, error);
       }
 
-      try {
-        skills = await ipcBridge.fs.readAssistantSkill.invoke({
-          assistant_id: custom_agent_id,
-          locale: localeKey,
-        });
-      } catch (_error) {
-        // skills may not exist, this is normal
-      }
-
-      return { rules: rules || agentInfo.context, skills };
+      return { rules: rules || agentInfo.context };
     },
     [localeKey]
   );

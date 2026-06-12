@@ -8,8 +8,8 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { useAgents } from '@/renderer/hooks/agent/useAgents';
-import { useCallback, useMemo } from 'react';
-import useSWR from 'swr';
+import { useCallback, useEffect, useMemo } from 'react';
+import useSWR, { mutate as swrMutate } from 'swr';
 
 type UseCustomAgentsLoaderOptions = {
   /**
@@ -52,7 +52,7 @@ type UseCustomAgentsLoaderResult = {
  *   - `assistants: Assistant[]` — the backend-merged preset catalog
  *     (`GET /api/assistants`). This is the single source of truth for
  *     "what to render in the AssistantSelectionArea pill bar" and what the
- *     editor drawer edits.
+ *     assistant editor edits.
  *   - `customAgents: AgentMetadata[]` — user-defined ACP engine rows
  *     derived from the shared `useAgents()` SWR cache (filtered by
  *     `agent_source === 'custom'`) because they describe a CLI binary to
@@ -75,6 +75,10 @@ export const useCustomAgentsLoader = ({
     }
   });
   const assistants = assistantList ?? [];
+
+  useEffect(() => {
+    void swrMutate('assistants.list');
+  }, []);
 
   // Execution-engine rows come from the shared agents cache — every subscriber
   // (guid / conversation / settings / channels / MCP flows) reads through the

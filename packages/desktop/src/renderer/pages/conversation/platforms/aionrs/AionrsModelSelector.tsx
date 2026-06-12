@@ -68,7 +68,7 @@ const AionrsModelSelector: React.FC<{
       // Desktop: leave default container so click events reach Menu.Item normally.
       {...(isMobileHeaderCompact ? { getPopupContainer: () => document.body } : {})}
       droplist={
-        <Menu>
+        <Menu className='aion-model-menu--sticky-group'>
           {providers.map((provider) => {
             const models = getAvailableModels(provider);
             if (!models.length) return null;

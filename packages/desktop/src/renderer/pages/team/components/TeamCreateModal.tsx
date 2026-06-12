@@ -340,9 +340,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               value={workspace}
               onChange={setWorkspace}
               placeholder={t('team.create.selectFolder', { defaultValue: 'Select folder' })}
-              input_placeholder={t('team.create.workspacePlaceholder', {
-                defaultValue: 'Project folder path (optional)',
-              })}
               recentLabel={t('team.create.recentLabel', { defaultValue: 'Recent' })}
               chooseDifferentLabel={t('team.create.chooseDifferentFolder', {
                 defaultValue: 'Choose a different folder',

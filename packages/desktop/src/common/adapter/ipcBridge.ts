@@ -27,6 +27,7 @@ import type {
 } from '../config/storage';
 import type {
   Assistant,
+  AssistantDetail,
   CreateAssistantRequest,
   ImportAssistantsRequest,
   ImportAssistantsResult,
@@ -43,7 +44,6 @@ import type {
   ProviderHealthCheckResponse,
   UpdateProviderRequest,
 } from '../types/provider/providerApi';
-import type { SpeechToTextRequest, SpeechToTextResult } from '../types/provider/speech';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -127,6 +127,10 @@ export const shell = {
 
 export const assistants = {
   list: httpGet<Assistant[], void>('/api/assistants'),
+  get: httpGet<AssistantDetail, { id: string; locale?: string }>(
+    ({ id, locale }) =>
+      `/api/assistants/${encodeURIComponent(id)}${locale ? `?locale=${encodeURIComponent(locale)}` : ''}`
+  ),
   create: httpPost<Assistant, CreateAssistantRequest>('/api/assistants'),
   update: httpPut<Assistant, UpdateAssistantRequest>((p) => `/api/assistants/${p.id}`),
   delete: httpDelete<void, { id: string }>((p) => `/api/assistants/${p.id}`),
@@ -154,6 +158,7 @@ export const conversation = {
         type: p.type,
         id: p.id,
         name: p.name,
+        assistant: p.assistant,
         extra: p.extra,
       };
       if (isAionrs) {
@@ -566,13 +571,6 @@ export const fs = {
   deleteAssistantRule: httpDelete<boolean, { assistant_id: string }>(
     (p) => `/api/skills/assistant-rule/${p.assistant_id}`
   ),
-  readAssistantSkill: httpPost<string, { assistant_id: string; locale?: string }>('/api/skills/assistant-skill/read'),
-  writeAssistantSkill: httpPost<boolean, { assistant_id: string; content: string; locale?: string }>(
-    '/api/skills/assistant-skill/write'
-  ),
-  deleteAssistantSkill: httpDelete<boolean, { assistant_id: string }>(
-    (p) => `/api/skills/assistant-skill/${p.assistant_id}`
-  ),
   listAvailableSkills: httpGet<
     Array<{
       name: string;
@@ -618,14 +616,6 @@ export const fs = {
   ),
   enableSkillsMarket: httpPost<void, void>('/api/skills/market/enable'),
   disableSkillsMarket: httpPost<void, void>('/api/skills/market/disable'),
-};
-
-// ---------------------------------------------------------------------------
-// Speech to Text — routed to backend
-// ---------------------------------------------------------------------------
-
-export const speechToText = {
-  transcribe: httpPost<SpeechToTextResult, SpeechToTextRequest>('/api/stt'),
 };
 
 // ---------------------------------------------------------------------------
@@ -1394,6 +1384,17 @@ export interface ICreateConversationParams {
   id?: string;
   name?: string;
   model: TProviderWithModel;
+  assistant?: {
+    id: string;
+    locale?: string;
+    conversation_overrides?: {
+      model?: string;
+      permission?: string;
+      skill_ids?: string[];
+      disabled_builtin_skill_ids?: string[];
+      mcp_ids?: string[];
+    };
+  };
   extra: {
     workspace?: string;
     custom_workspace?: boolean;
@@ -1421,14 +1422,10 @@ export interface ICreateConversationParams {
     /** Transient: auto-inject skills the user opted out of on the Guid page.
      *  Consumed by backend create handler and stripped before persistence. */
     exclude_auto_inject_skills?: string[];
-    /** Transient: MCP server ids selected on the Guid page. Consumed by the
-     *  backend create handler and snapshotted into conversation.extra. */
-    selected_mcp_server_ids?: string[];
-    /** Transient: session-scoped MCP server configs that are not stored in the
-     *  backend catalog (currently built-in MCP servers). */
-    selected_session_mcp_servers?: ISessionMcpServer[];
     preset_context?: string;
     preset_assistant_id?: string;
+    selected_mcp_server_ids?: string[];
+    selected_session_mcp_servers?: ISessionMcpServer[];
     session_mode?: string;
     codex_model?: string;
     current_model_id?: string;
@@ -1547,7 +1544,7 @@ export interface IConversationTurnCompletedEvent {
   detail: string;
   can_send_message: boolean;
   runtime: {
-    state: 'idle' | 'starting' | 'running' | 'waiting_confirmation';
+    state: 'idle' | 'starting' | 'running' | 'cancelling' | 'waiting_confirmation';
     can_send_message: boolean;
     has_task: boolean;
     task_status?: 'pending' | 'running' | 'finished';

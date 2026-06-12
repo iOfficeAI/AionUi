@@ -30,6 +30,15 @@ export type SettingsTab = keyof typeof ROUTES.settings;
 
 // ── Navigation helpers ───────────────────────────────────────────────────────
 
+async function ensureRendererReady(page: Page, timeout = 30_000): Promise<void> {
+  await page.waitForFunction(
+    () =>
+      window.location.href !== 'about:blank' &&
+      typeof (window as unknown as { __backendPort?: number }).__backendPort === 'number',
+    { timeout }
+  );
+}
+
 /**
  * Check if the page is already at the target hash route.
  * Avoids redundant navigation + re-render when consecutive tests
@@ -58,6 +67,8 @@ export async function navigateTo(page: Page, hash: string): Promise<void> {
   if (page.isClosed()) {
     throw new Error('Cannot navigate: page is already closed.');
   }
+
+  await ensureRendererReady(page);
 
   if (isAlreadyAt(page, hash)) {
     return;
@@ -147,6 +158,22 @@ export async function goToGuid(page: Page): Promise<void> {
   await navigateWithRetry(page, ROUTES.guid);
 }
 
+/** Reset Guid's persisted last-selected agent so the assistant list view renders on next visit. */
+export async function resetGuidLastSelectedAgent(page: Page, agentKey = 'aionrs'): Promise<void> {
+  await page.evaluate(async (nextAgentKey) => {
+    const port = (window as Window & { __backendPort?: number }).__backendPort || 13400;
+    const response = await fetch(`http://127.0.0.1:${port}/api/settings/client`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 'guid.lastSelectedAgent': nextAgentKey }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to reset guid.lastSelectedAgent: ${response.status}`);
+    }
+  }, agentKey);
+}
+
 /** Navigate to a settings tab. */
 export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> {
   await navigateWithRetry(page, ROUTES.settings[tab]);
@@ -154,7 +181,11 @@ export async function goToSettings(page: Page, tab: SettingsTab): Promise<void> 
 
 /** Navigate to the assistant settings page. */
 export async function goToAssistantSettings(page: Page): Promise<void> {
-  await navigateWithRetry(page, ROUTES.settings.assistants);
+  await goToSettings(page, 'assistants');
+  await page
+    .locator('[data-testid="assistant-list-shell"], [data-testid="assistant-editor-page"]')
+    .first()
+    .waitFor({ state: 'visible', timeout: 10_000 });
 }
 
 /** Navigate to an extension-contributed settings tab by its ID. */

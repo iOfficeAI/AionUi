@@ -36,6 +36,7 @@ const AionrsChat: React.FC<{
   agent_name?: string;
   teamSendMessage?: (payload: { input: string; files: string[] }) => Promise<void>;
   teamRuntime?: TeamSendBoxRuntime;
+  assistantId?: string;
 }> = ({
   conversation_id,
   workspace,
@@ -49,6 +50,7 @@ const AionrsChat: React.FC<{
   agent_name,
   teamSendMessage,
   teamRuntime,
+  assistantId,
 }) => {
   useMessageLstCache(conversation_id);
   usePendingConfirmationsRecovery(conversation_id);
@@ -65,8 +67,9 @@ const AionrsChat: React.FC<{
       loadedSkills,
       loadedMcpServers,
       loadedMcpStatuses,
+      assistantId,
     };
-  }, [conversation_id, workspace, cron_job_id, loadedSkills, loadedMcpServers, loadedMcpStatuses]);
+  }, [conversation_id, workspace, cron_job_id, loadedSkills, loadedMcpServers, loadedMcpStatuses, assistantId]);
 
   return (
     <ConversationProvider value={conversationValue}>

@@ -31,6 +31,16 @@ const runningRuntime = (turn_id: string): TConversationRuntimeSummary => ({
   turn_id,
 });
 
+const cancellingRuntime = (turn_id: string): TConversationRuntimeSummary => ({
+  state: 'cancelling',
+  can_send_message: true,
+  has_task: true,
+  task_status: 'running',
+  is_processing: false,
+  pending_confirmations: 0,
+  turn_id,
+});
+
 describe('conversationRuntimeViewStore turn id contract', () => {
   beforeEach(() => {
     resetConversationRuntimeViewStoreForTest();
@@ -100,6 +110,16 @@ describe('conversationRuntimeViewStore turn id contract', () => {
     expect(view.canSendMessage).toBe(false);
     expect(view.localSubmitting).toBe(false);
     expect(view.activeTurnId).toBe('turn-1');
+  });
+
+  it('keeps cancelling runtime gated from new sends', () => {
+    hydrateSucceeded('conv-1', cancellingRuntime('turn-cancel'));
+
+    const view = getConversationRuntimeViewSnapshot('conv-1');
+    expect(view.state).toBe('cancelling');
+    expect(view.isProcessing).toBe(true);
+    expect(view.canSendMessage).toBe(false);
+    expect(view.activeTurnId).toBe('turn-cancel');
   });
 
   it('ignores stale stop ack for an older turn', () => {

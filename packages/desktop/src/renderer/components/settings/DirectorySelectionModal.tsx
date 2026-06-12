@@ -9,6 +9,7 @@ import { IconFile, IconFolder, IconUp } from '@arco-design/web-react/icon';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
+import { stripWindowsVerbatimPrefix } from '@/renderer/utils/file/fileSelection';
 
 interface DirectoryItem {
   name: string;
@@ -68,7 +69,19 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
           setError('Invalid response from server');
           return;
         }
-        setDirectoryData(data);
+        // Older backends return Windows verbatim paths (`\\?\C:\DEV`), which
+        // break agent spawning when stored as a workspace (issue #3191).
+        // 旧版后端会返回 `\\?\` 前缀的 Windows 路径，存为工作区后会导致 agent 启动失败。
+        const normalized: DirectoryData = {
+          ...data,
+          items: (data.items as DirectoryItem[]).map((item) => ({
+            ...item,
+            path: stripWindowsVerbatimPrefix(item.path),
+          })),
+          parentPath:
+            typeof data.parentPath === 'string' ? stripWindowsVerbatimPrefix(data.parentPath) : data.parentPath,
+        };
+        setDirectoryData(normalized);
         setCurrentPath(dirPath);
       } catch (err) {
         console.error('Failed to load directory:', err);
@@ -123,6 +136,9 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
   };
 
   return (
+    // This picker is opened *from* other modals (team/cron create dialogs sit at
+    // zIndex 10000, the cron workspace menu at 10020), so it must float above all
+    // of them — it's the topmost layer while choosing a folder.
     <Modal
       visible={visible}
       title={isFileMode ? '📄 ' + t('fileSelection.selectFile') : '📁 ' + t('fileSelection.selectDirectory')}
@@ -131,8 +147,8 @@ const DirectorySelectionModal: React.FC<DirectorySelectionModalProps> = ({
       okButtonProps={{ disabled: !selectedPath }}
       className='w-[90vw] md:w-[600px]'
       style={{ width: 'min(600px, 90vw)' }}
-      wrapStyle={{ zIndex: 3000 }}
-      maskStyle={{ zIndex: 2990 }}
+      wrapStyle={{ zIndex: 10050 }}
+      maskStyle={{ zIndex: 10040 }}
       footer={
         <div className='w-full flex justify-between items-center'>
           <div

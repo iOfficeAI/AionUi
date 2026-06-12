@@ -130,6 +130,6 @@
     "loading": "正在啟動 PPT 預覽...",
     "installing": "正在安裝預覽元件...",
     "startFailed": "啟動 PPT 預覽失敗",
-    "installHint": "請確認已安裝 officecli：npm run postinstall"
+    "installHint": "請從官方 iOfficeAI/OfficeCli releases 頁面安裝 OfficeCLI"
   }
 }

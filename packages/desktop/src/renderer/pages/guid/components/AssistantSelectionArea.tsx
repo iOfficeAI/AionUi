@@ -4,16 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import coworkSvg from '@/renderer/assets/icons/cowork.svg';
-import { useDetectedAgents, useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
-import AssistantEditDrawer from '@/renderer/pages/settings/AssistantSettings/AssistantEditDrawer';
-import DeleteAssistantModal from '@/renderer/pages/settings/AssistantSettings/DeleteAssistantModal';
-import SkillConfirmModals from '@/renderer/pages/settings/AssistantSettings/SkillConfirmModals';
-import { resolveAvatarImageSrc } from '@/renderer/pages/settings/AssistantSettings/assistantUtils';
 import { CUSTOM_AVATAR_IMAGE_MAP } from '../constants';
 import styles from '../index.module.css';
 import type { AvailableAgent, EffectiveAgentInfo } from '../types';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 import { Message } from '@arco-design/web-react';
 import { Plus, Robot } from '@icon-park/react';
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
@@ -31,6 +26,7 @@ type AssistantSelectionAreaProps = {
    * those are a separate concept sourced from the AgentRegistry.
    */
   assistants: Assistant[];
+  selectedAssistantDetail?: AssistantDetail | null;
   localeKey: string;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   onSelectAssistant: (assistantId: string) => void;
@@ -44,11 +40,14 @@ const resolveAssistantCandidateIds = (assistantId: string): string[] => {
   return Array.from(new Set([assistantId, `builtin-${stripped}`, stripped]));
 };
 
+const OPEN_ASSISTANT_EDITOR_INTENT_KEY = 'guid.openAssistantEditorIntent';
+
 const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   is_presetAgent,
   selectedAgentKey,
   selectedAgentInfo,
   assistants,
+  selectedAssistantDetail,
   localeKey,
   currentEffectiveAgentInfo,
   onSelectAssistant,
@@ -59,96 +58,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const { t } = useTranslation();
   const navigate = useNavigate();
   const [agentMessage, agentMessageContext] = Message.useMessage({ maxCount: 10 });
-
-  const avatarImageMap: Record<string, string> = useMemo(
-    () => ({
-      'cowork.svg': coworkSvg,
-      '\u{1F6E0}\u{FE0F}': coworkSvg,
-    }),
-    []
-  );
-
-  // Internal useAssistantList owns the drawer editor's working state. Its
-  // `assistants` list is the same backend catalog we receive via the
-  // `assistants` prop (both sourced from ipcBridge.assistants.list), so we
-  // drop it here to avoid a parallel fetch and prop shadow; lookups for the
-  // editor target use the prop.
-  const { activeAssistantId, setActiveAssistantId, activeAssistant, isExtensionAssistant, loadAssistants } =
-    useAssistantList();
-  const { availableBackends, refreshAgentDetection } = useDetectedAgents();
-
-  const editor = useAssistantEditor({
-    localeKey,
-    activeAssistant,
-    isExtensionAssistant,
-    setActiveAssistantId,
-    loadAssistants,
-    refreshAgentDetection,
-    message: agentMessage,
-  });
-
-  const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
-
-  const modalTree = (
-    <>
-      {agentMessageContext}
-      <AssistantEditDrawer
-        editVisible={editor.editVisible}
-        setEditVisible={editor.setEditVisible}
-        isCreating={editor.isCreating}
-        editName={editor.editName}
-        setEditName={editor.setEditName}
-        editDescription={editor.editDescription}
-        setEditDescription={editor.setEditDescription}
-        editAvatar={editor.editAvatar}
-        setEditAvatar={editor.setEditAvatar}
-        editAvatarImage={editAvatarImage}
-        editAgent={editor.editAgent}
-        setEditAgent={editor.setEditAgent}
-        editContext={editor.editContext}
-        setEditContext={editor.setEditContext}
-        promptViewMode={editor.promptViewMode}
-        setPromptViewMode={editor.setPromptViewMode}
-        availableSkills={editor.availableSkills}
-        selectedSkills={editor.selectedSkills}
-        setSelectedSkills={editor.setSelectedSkills}
-        pendingSkills={editor.pendingSkills}
-        customSkills={editor.customSkills}
-        setDeletePendingSkillName={editor.setDeletePendingSkillName}
-        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-        builtinAutoSkills={editor.builtinAutoSkills}
-        disabledBuiltinSkills={editor.disabledBuiltinSkills}
-        setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
-        activeAssistant={activeAssistant}
-        activeAssistantId={activeAssistantId}
-        isExtensionAssistant={isExtensionAssistant}
-        availableBackends={availableBackends}
-        handleSave={editor.handleSave}
-        handleDeleteClick={editor.handleDeleteClick}
-        handleDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
-      />
-      <DeleteAssistantModal
-        visible={editor.deleteConfirmVisible}
-        onCancel={() => editor.setDeleteConfirmVisible(false)}
-        onConfirm={editor.handleDeleteConfirm}
-        activeAssistant={activeAssistant}
-        avatarImageMap={avatarImageMap}
-      />
-      <SkillConfirmModals
-        deletePendingSkillName={editor.deletePendingSkillName}
-        setDeletePendingSkillName={editor.setDeletePendingSkillName}
-        pendingSkills={editor.pendingSkills}
-        setPendingSkills={editor.setPendingSkills}
-        deleteCustomSkillName={editor.deleteCustomSkillName}
-        setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-        customSkills={editor.customSkills}
-        setCustomSkills={editor.setCustomSkills}
-        selectedSkills={editor.selectedSkills}
-        setSelectedSkills={editor.setSelectedSkills}
-        message={agentMessage}
-      />
-    </>
-  );
 
   const resolveOpenAssistantId = (): string | null => {
     if (selectedAgentInfo?.custom_agent_id) return selectedAgentInfo.custom_agent_id;
@@ -167,7 +76,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     }
 
     const candidates = resolveAssistantCandidateIds(assistantId);
-    // `assistants` is the backend-merged catalog (builtin + user + extension)
+    // `assistants` is the backend-merged catalog (builtin + user)
     // and is the only list that yields the Assistant shape the editor expects.
     const targetAssistant = assistants.find((assistant) => candidates.includes(assistant.id));
     if (!targetAssistant) {
@@ -178,8 +87,24 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
       return;
     }
 
-    void editor.handleEdit(targetAssistant);
-  }, [agentMessage, assistants, editor, selectedAgentInfo?.custom_agent_id, selectedAgentKey, t]);
+    const intent = {
+      assistantId: targetAssistant.id,
+      openAssistantEditor: true,
+    };
+
+    try {
+      sessionStorage.setItem(OPEN_ASSISTANT_EDITOR_INTENT_KEY, JSON.stringify(intent));
+    } catch (error) {
+      console.error('[AssistantSelectionArea] Failed to persist assistant open intent:', error);
+    }
+
+    navigate('/settings/assistants', {
+      state: {
+        openAssistantId: targetAssistant.id,
+        openAssistantEditor: true,
+      },
+    });
+  }, [agentMessage, assistants, navigate, selectedAgentInfo?.custom_agent_id, selectedAgentKey, t]);
 
   useLayoutEffect(() => {
     if (!onRegisterOpenDetails) return;
@@ -233,7 +158,13 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           {/* Prompts Section */}
           {(() => {
             const agent = assistants.find((a) => a.id === selectedAgentInfo.custom_agent_id);
-            const prompts = agent?.prompts_i18n?.[localeKey] || agent?.prompts_i18n?.['en-US'] || agent?.prompts;
+            const prompts =
+              selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
+              selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
+              selectedAssistantDetail?.prompts.recommended ||
+              agent?.prompts_i18n?.[localeKey] ||
+              agent?.prompts_i18n?.['en-US'] ||
+              agent?.prompts;
             if (prompts && prompts.length > 0) {
               return (
                 <div className='mt-16px'>
@@ -260,7 +191,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             return null;
           })()}
         </div>
-        {modalTree}
       </div>
     );
   }
@@ -278,11 +208,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         <div className={styles.assistantCardGrid}>
           {assistants
             .filter((a) => a.enabled !== false)
-            .toSorted((a, b) => {
-              if (a.id === 'cowork') return -1;
-              if (b.id === 'cowork') return 1;
-              return 0;
-            })
             .map((assistant) => {
               const avatarValue = assistant.avatar?.trim();
               const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
@@ -329,7 +254,6 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           </div>
         </div>
       </div>
-      {modalTree}
     </div>
   );
 };

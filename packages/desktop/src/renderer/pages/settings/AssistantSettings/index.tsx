@@ -3,31 +3,30 @@
  *
  * Editing permissions by assistant type:
  *
- * | Field          | Builtin | Extension | Custom |
- * |----------------|---------|-----------|--------|
- * | Save button    |  no     |  no       |  yes   |
- * | Name           |  no     |  no       |  yes   |
- * | Description    |  no     |  no       |  yes   |
- * | Avatar         |  no     |  no       |  yes   |
- * | Main Agent     |  no     |  no       |  yes   |
- * | Prompt editing |  no     |  no       |  yes   |
- * | Delete         |  no     |  no       |  yes   |
+ * | Field          | Builtin | Custom |
+ * |----------------|---------|--------|
+ * | Save button    |  yes    |  yes   |
+ * | Name           |  no     |  yes   |
+ * | Description    |  no     |  yes   |
+ * | Avatar         |  no     |  yes   |
+ * | Main Agent     |  yes    |  yes   |
+ * | Prompt editing |  no     |  yes   |
+ * | Delete         |  no     |  yes   |
  *
- * Builtin and extension assistants are fully read-only. The drawer
- * still renders their skills panel so users can inspect what's bundled,
- * but every editing control (including Save) is disabled.
+ * Builtin assistants only allow Main Agent plus default model / permission
+ * overrides. The full-page editor still renders builtin skills and prompts as
+ * read-only so users can inspect what's bundled.
  */
 import { Message } from '@arco-design/web-react';
 import coworkSvg from '@/renderer/assets/icons/cowork.svg';
-import AionScrollArea from '@/renderer/components/base/AionScrollArea';
-import { useSettingsViewMode } from '@/renderer/components/settings/SettingsModal/settingsViewContext';
 import { useDetectedAgents, useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
 import { resolveAvatarImageSrc } from './assistantUtils';
-import AssistantEditDrawer from './AssistantEditDrawer';
+import AssistantEditorPage from './AssistantEditorPage';
 import AssistantListPanel from './AssistantListPanel';
 import DeleteAssistantModal from './DeleteAssistantModal';
 import SkillConfirmModals from './SkillConfirmModals';
+import type { AssistantEditorViewModel } from './types';
 import React, { useCallback, useEffect, useMemo, useRef } from 'react';
 import { useLocation, useSearchParams } from 'react-router-dom';
 
@@ -39,8 +38,6 @@ const OPEN_ASSISTANT_EDITOR_INTENT_KEY = 'guid.openAssistantEditorIntent';
 
 const AssistantSettings: React.FC = () => {
   const [message, messageContext] = Message.useMessage({ maxCount: 10 });
-  const viewMode = useSettingsViewMode();
-  const isPageMode = viewMode === 'page';
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
   const navigationState = (location.state as AssistantNavigationState | null) ?? null;
@@ -62,25 +59,114 @@ const AssistantSettings: React.FC = () => {
     activeAssistantId,
     setActiveAssistantId,
     activeAssistant,
-    isExtensionAssistant,
     loadAssistants,
+    reorderAssistants,
     localeKey,
   } = useAssistantList();
+  const builtinAvatarOptions = useMemo(
+    () =>
+      assistants
+        .filter((assistant) => assistant.source === 'builtin' && assistant.avatar?.startsWith('/api/assistants/'))
+        .map((assistant) => {
+          const src = resolveAvatarImageSrc(assistant.avatar, avatarImageMap);
+          if (!src) {
+            return null;
+          }
+
+          return {
+            id: assistant.id,
+            label: assistant.name_i18n?.[localeKey] || assistant.name,
+            src,
+          };
+        })
+        .filter((option): option is NonNullable<typeof option> => option !== null),
+    [assistants, avatarImageMap, localeKey]
+  );
 
   const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
-    isExtensionAssistant,
     setActiveAssistantId,
     loadAssistants,
     refreshAgentDetection,
     message,
   });
 
-  const editAvatarImage = resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
+  const editAvatarImage = editor.editAvatarPreview || resolveAvatarImageSrc(editor.editAvatar, avatarImageMap);
   const hasConsumedNavigationIntentRef = useRef(false);
+  const showEditor = editor.editVisible && (editor.isCreating || activeAssistantId !== null);
+  const editorViewModel: AssistantEditorViewModel = {
+    isCreating: editor.isCreating,
+    profile: {
+      name: editor.editName,
+      setName: editor.setEditName,
+      description: editor.editDescription,
+      setDescription: editor.setEditDescription,
+      avatar: editor.editAvatar,
+      setAvatar: editor.setEditAvatar,
+      setAvatarPreview: editor.setEditAvatarPreview,
+      avatarImage: editAvatarImage,
+      builtinAvatarOptions,
+    },
+    agent: {
+      value: editor.editAgent,
+      setValue: editor.setEditAgent,
+      availableBackends,
+    },
+    prompts: {
+      text: editor.editRecommendedPromptsText,
+      setText: editor.setEditRecommendedPromptsText,
+    },
+    defaults: {
+      model: {
+        mode: editor.defaultModelMode,
+        setMode: editor.setDefaultModelMode,
+        value: editor.defaultModelValue,
+        setValue: editor.setDefaultModelValue,
+      },
+      permission: {
+        mode: editor.defaultPermissionMode,
+        setMode: editor.setDefaultPermissionMode,
+        value: editor.defaultPermissionValue,
+        setValue: editor.setDefaultPermissionValue,
+      },
+      skills: {
+        mode: editor.defaultSkillsMode,
+        setMode: editor.setDefaultSkillsMode,
+      },
+      mcps: {
+        mode: editor.defaultMcpMode,
+        setMode: editor.setDefaultMcpMode,
+        availableServers: editor.availableMcpServers,
+        selectedIds: editor.selectedMcpIds,
+        setSelectedIds: editor.setSelectedMcpIds,
+      },
+    },
+    rules: {
+      content: editor.editContext,
+      setContent: editor.setEditContext,
+      viewMode: editor.promptViewMode,
+      setViewMode: editor.setPromptViewMode,
+    },
+    skills: {
+      availableSkills: editor.availableSkills,
+      selectedSkills: editor.selectedSkills,
+      setSelectedSkills: editor.setSelectedSkills,
+      pendingSkills: editor.pendingSkills,
+      setDeletePendingSkillName: editor.setDeletePendingSkillName,
+      setDeleteCustomSkillName: editor.setDeleteCustomSkillName,
+      builtinAutoSkills: editor.builtinAutoSkills,
+      disabledBuiltinSkills: editor.disabledBuiltinSkills,
+      setDisabledBuiltinSkills: editor.setDisabledBuiltinSkills,
+    },
+    actions: {
+      save: editor.handleSave,
+      requestDelete: editor.handleDeleteClick,
+      duplicate: (assistant) => void editor.handleDuplicate(assistant),
+    },
+  };
 
   useEffect(() => {
     if (hasConsumedNavigationIntentRef.current) return;
@@ -117,59 +203,32 @@ const AssistantSettings: React.FC = () => {
   }, [assistants, editor, navigationState]);
 
   return (
-    <SettingsPageWrapper>
+    <SettingsPageWrapper className='!h-full !overflow-hidden' contentClassName='!h-full'>
       <div className='flex flex-col h-full w-full'>
         {messageContext}
-        <AionScrollArea className='flex-1 min-h-0 pb-16px scrollbar-hide' disableOverflow={isPageMode}>
-          <AssistantListPanel
-            assistants={assistants}
-            localeKey={localeKey}
-            avatarImageMap={avatarImageMap}
-            isExtensionAssistant={isExtensionAssistant}
-            onEdit={(assistant) => void editor.handleEdit(assistant)}
-            onDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
-            onCreate={() => void editor.handleCreate()}
-            onToggleEnabled={(assistant, checked) => void editor.handleToggleEnabled(assistant, checked)}
-            setActiveAssistantId={setActiveAssistantId}
-            highlightId={highlightId}
-            onHighlightConsumed={handleHighlightConsumed}
-          />
-
-          <AssistantEditDrawer
-            editVisible={editor.editVisible}
-            setEditVisible={editor.setEditVisible}
-            isCreating={editor.isCreating}
-            editName={editor.editName}
-            setEditName={editor.setEditName}
-            editDescription={editor.editDescription}
-            setEditDescription={editor.setEditDescription}
-            editAvatar={editor.editAvatar}
-            setEditAvatar={editor.setEditAvatar}
-            editAvatarImage={editAvatarImage}
-            editAgent={editor.editAgent}
-            setEditAgent={editor.setEditAgent}
-            editContext={editor.editContext}
-            setEditContext={editor.setEditContext}
-            promptViewMode={editor.promptViewMode}
-            setPromptViewMode={editor.setPromptViewMode}
-            availableSkills={editor.availableSkills}
-            selectedSkills={editor.selectedSkills}
-            setSelectedSkills={editor.setSelectedSkills}
-            pendingSkills={editor.pendingSkills}
-            customSkills={editor.customSkills}
-            setDeletePendingSkillName={editor.setDeletePendingSkillName}
-            setDeleteCustomSkillName={editor.setDeleteCustomSkillName}
-            builtinAutoSkills={editor.builtinAutoSkills}
-            disabledBuiltinSkills={editor.disabledBuiltinSkills}
-            setDisabledBuiltinSkills={editor.setDisabledBuiltinSkills}
-            activeAssistant={activeAssistant}
-            activeAssistantId={activeAssistantId}
-            isExtensionAssistant={isExtensionAssistant}
-            availableBackends={availableBackends}
-            handleSave={editor.handleSave}
-            handleDeleteClick={editor.handleDeleteClick}
-            handleDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
-          />
+        <div className='flex-1 min-h-0'>
+          {showEditor ? (
+            <AssistantEditorPage
+              editor={editorViewModel}
+              activeAssistant={activeAssistant}
+              onBack={() => editor.setEditVisible(false)}
+            />
+          ) : (
+            <AssistantListPanel
+              assistants={assistants}
+              localeKey={localeKey}
+              avatarImageMap={avatarImageMap}
+              onEdit={(assistant) => void editor.handleEdit(assistant)}
+              onDuplicate={(assistant) => void editor.handleDuplicate(assistant)}
+              onDelete={(assistant) => editor.handleDeleteRequest(assistant)}
+              onCreate={() => void editor.handleCreate()}
+              onToggleEnabled={(assistant, checked) => void editor.handleToggleEnabled(assistant, checked)}
+              onReorder={(activeId, overId) => void reorderAssistants(activeId, overId)}
+              setActiveAssistantId={setActiveAssistantId}
+              highlightId={highlightId}
+              onHighlightConsumed={handleHighlightConsumed}
+            />
+          )}
 
           <DeleteAssistantModal
             visible={editor.deleteConfirmVisible}
@@ -192,7 +251,7 @@ const AssistantSettings: React.FC = () => {
             setSelectedSkills={editor.setSelectedSkills}
             message={message}
           />
-        </AionScrollArea>
+        </div>
       </div>
     </SettingsPageWrapper>
   );
