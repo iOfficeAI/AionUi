@@ -1,0 +1,61 @@
+{
+  "brand": "Command EVE",
+  "loading": "Aktivierung wird geprüft…",
+  "languageToggle": "Sprache",
+  "steps": {
+    "registration": "Registrierung",
+    "license": "Lizenzcode"
+  },
+  "registration": {
+    "title": "Command EVE registrieren",
+    "subtitle": "Einmalige Einrichtung. Deine Angaben bleiben auf diesem Mac — es wird nichts übertragen.",
+    "nameLabel": "Name",
+    "namePlaceholder": "Dein Name",
+    "companyLabel": "Firma",
+    "companyPlaceholder": "Deine Firma",
+    "emailLabel": "E-Mail",
+    "emailPlaceholder": "du@firma.de",
+    "consentLabel": "Ich bin einverstanden, dass mein Name, meine Firma und meine E-Mail ausschließlich lokal auf diesem Mac gespeichert werden. Es werden keine Daten an FYN-Labs oder einen Server übertragen.",
+    "consentHint": "Erforderlich. Command EVE speichert diesen Eintrag im lokalen Datenverzeichnis der App und synchronisiert ihn nie.",
+    "submit": "Weiter",
+    "submitting": "Wird gespeichert…",
+    "errors": {
+      "fieldsRequired": "Name, Firma und E-Mail sind alle erforderlich.",
+      "emailInvalid": "Bitte gib eine gültige E-Mail-Adresse ein.",
+      "consentRequired": "Bitte bestätige die lokale Speicherung, um fortzufahren.",
+      "unknown": "Die Registrierung konnte nicht gespeichert werden. Bitte versuche es erneut."
+    }
+  },
+  "license": {
+    "title": "Lizenzcode eingeben",
+    "subtitle": "Füge den CEVE.v1-Code ein, den dir das Command-EVE-Team geschickt hat. Die Prüfung läuft vollständig offline auf diesem Mac.",
+    "registeredAs": "Registriert als {{name}} · {{company}}",
+    "codeLabel": "Lizenzcode",
+    "codePlaceholder": "CEVE.v1.…",
+    "submit": "Command EVE freischalten",
+    "submitting": "Wird geprüft…",
+    "back": "Zurück zur Registrierung",
+    "success": "Lizenz akzeptiert. Command EVE wird freigeschaltet…",
+    "errors": {
+      "empty": "Bitte füge deinen Lizenzcode ein.",
+      "LICENSE_MALFORMED": "Dieser Code ist keine gültige Command-EVE-Lizenz. Prüfe, ob du ihn vollständig eingefügt hast.",
+      "LICENSE_VERSION_UNSUPPORTED": "Diese Lizenz wurde für eine andere Command-EVE-Version ausgestellt. Bitte fordere einen aktuellen Code an.",
+      "LICENSE_SIGNATURE_INVALID": "Die Signatur dieses Codes ist ungültig. Er stammt nicht von Command EVE oder wurde verändert.",
+      "LICENSE_EXPIRED": "Diese Lizenz ist abgelaufen. Bitte fordere beim Command-EVE-Team einen erneuerten Code an.",
+      "LICENSE_NOT_YET_VALID": "Diese Lizenz ist noch nicht gültig. Bitte prüfe das Startdatum mit dem Command-EVE-Team.",
+      "LICENSE_KEY_UNCONFIGURED": "Die Lizenzprüfung ist in diesem Build nicht konfiguriert. Bitte wende dich an das Command-EVE-Team.",
+      "REGISTRATION_REQUIRED": "Bitte schließe zuerst die Registrierung ab, bevor du einen Lizenzcode eingibst.",
+      "unknown": "Der Lizenzcode konnte nicht geprüft werden. Bitte versuche es erneut."
+    }
+  },
+  "unconfigured": {
+    "title": "Aktivierung nicht verfügbar",
+    "description": "Dieser Build kann keine Lizenzcodes prüfen, weil kein Prüfschlüssel konfiguriert ist. Bitte wende dich an das Command-EVE-Team oder starte die App mit dem Pilot-Fallback-Flag.",
+    "fallbackHint": "Pilot-Fallback: Setze COMMAND_EVE_REGISTRATION_REQUIRED=0, um das Gate zu umgehen."
+  },
+  "error": {
+    "title": "Aktivierungsprüfung fehlgeschlagen",
+    "description": "Der Aktivierungsstatus konnte nicht gelesen werden. Bitte starte Command EVE neu.",
+    "retry": "Erneut versuchen"
+  }
+}

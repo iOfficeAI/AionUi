@@ -26,6 +26,7 @@
     "commandCenter",
     "connectorCatalog",
     "skillLibrary",
-    "localRuntime"
+    "localRuntime",
+    "registrationGate"
   ]
 }

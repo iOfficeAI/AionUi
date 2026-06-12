@@ -126,6 +126,13 @@ async function launchApp(): Promise<ElectronApplication> {
     AIONUI_E2E_TEST: '1',
     AIONUI_MULTI_INSTANCE: '1',
     AIONUI_CDP_PORT: '0',
+    // Command EVE registration/license gate (W12) defaults ON in pilot builds.
+    // The shared singleton fixtures app is a test harness, not a pilot build, and
+    // every other spec drives main surfaces directly — so the gate must not block
+    // it. The dedicated gate proof (command-eve-registration-gate.e2e.ts) launches
+    // its OWN instance with the flag explicitly ON. Respect an explicit override
+    // so a future gate-specific fixtures spec could still opt in.
+    COMMAND_EVE_REGISTRATION_REQUIRED: process.env.COMMAND_EVE_REGISTRATION_REQUIRED ?? '0',
   };
 
   if (usePackaged) {

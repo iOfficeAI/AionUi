@@ -27,6 +27,7 @@ import commandCenter from './commandCenter.json';
 import connectorCatalog from './connectorCatalog.json';
 import skillLibrary from './skillLibrary.json';
 import localRuntime from './localRuntime.json';
+import registrationGate from './registrationGate.json';
 
 export default {
   common,
@@ -53,4 +54,5 @@ export default {
   connectorCatalog,
   skillLibrary,
   localRuntime,
+  registrationGate,
 };

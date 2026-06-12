@@ -2,6 +2,7 @@ import React, { Suspense } from 'react';
 import { HashRouter, Navigate, Route, Routes } from 'react-router-dom';
 import AppLoader from '@renderer/components/layout/AppLoader';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
+import { useEntitlementGate } from '@renderer/hooks/useEntitlementGate';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 const Conversation = React.lazy(() => import('@renderer/pages/conversation'));
 const Guid = React.lazy(() => import('@renderer/pages/guid'));
@@ -23,6 +24,7 @@ const CommandCenterPage = React.lazy(() => import('@renderer/pages/commandCenter
 const ConnectorCatalogPage = React.lazy(() => import('@renderer/pages/connectorCatalog'));
 const SkillLibraryPage = React.lazy(() => import('@renderer/pages/skillLibrary'));
 const LocalRuntimePage = React.lazy(() => import('@renderer/pages/localRuntime'));
+const RegistrationGatePage = React.lazy(() => import('@renderer/pages/registrationGate'));
 
 const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentType>) => (
   <Suspense fallback={<AppLoader />}>
@@ -32,6 +34,7 @@ const withRouteFallback = (Component: React.LazyExoticComponent<React.ComponentT
 
 const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) => {
   const { status } = useAuth();
+  const { loading: gateLoading, status: gateStatus, blocked: gateBlocked, refresh: refreshGate } = useEntitlementGate();
 
   if (status === 'checking') {
     return <AppLoader />;
@@ -39,6 +42,22 @@ const ProtectedLayout: React.FC<{ layout: React.ReactElement }> = ({ layout }) =
 
   if (status !== 'authenticated') {
     return <Navigate to='/login' replace />;
+  }
+
+  // Command EVE registration + license gate (W12). The gate is a STRUCTURAL
+  // guard: while it is required and not entitled, it replaces the protected
+  // layout entirely, so every protected route — including the index redirect and
+  // the `*` catch-all — renders the gate instead of any main surface. No route,
+  // deep link, or window reopen can reach a main surface from here.
+  if (gateLoading) {
+    return <AppLoader />;
+  }
+  if (gateBlocked) {
+    return (
+      <Suspense fallback={<AppLoader />}>
+        <RegistrationGatePage status={gateStatus} onEntitled={refreshGate} />
+      </Suspense>
+    );
   }
 
   return React.cloneElement(layout);
