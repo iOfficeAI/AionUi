@@ -63,6 +63,25 @@ const AssistantSettings: React.FC = () => {
     reorderAssistants,
     localeKey,
   } = useAssistantList();
+  const builtinAvatarOptions = useMemo(
+    () =>
+      assistants
+        .filter((assistant) => assistant.source === 'builtin' && assistant.avatar?.startsWith('/api/assistants/'))
+        .map((assistant) => {
+          const src = resolveAvatarImageSrc(assistant.avatar, avatarImageMap);
+          if (!src) {
+            return null;
+          }
+
+          return {
+            id: assistant.id,
+            label: assistant.name_i18n?.[localeKey] || assistant.name,
+            src,
+          };
+        })
+        .filter((option): option is NonNullable<typeof option> => option !== null),
+    [assistants, avatarImageMap, localeKey]
+  );
 
   const { availableBackends, refreshAgentDetection } = useDetectedAgents();
 
@@ -89,6 +108,7 @@ const AssistantSettings: React.FC = () => {
       setAvatar: editor.setEditAvatar,
       setAvatarPreview: editor.setEditAvatarPreview,
       avatarImage: editAvatarImage,
+      builtinAvatarOptions,
     },
     agent: {
       value: editor.editAgent,

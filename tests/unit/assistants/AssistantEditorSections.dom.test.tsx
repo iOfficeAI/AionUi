@@ -67,6 +67,7 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
       avatar: '✍️',
       setAvatar: vi.fn(),
       setAvatarPreview: vi.fn(),
+      builtinAvatarOptions: [],
     },
     agent: {
       value: 'claude',

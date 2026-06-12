@@ -289,6 +289,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         setEditDescription={setEditDescription}
         setEditAvatar={setEditAvatar}
         setEditAvatarPreview={setEditAvatarPreview}
+        builtinAvatarOptions={profile.builtinAvatarOptions}
         onPickAvatarImage={() => void handlePickAvatarImage()}
         renderAvatarPreview={renderAvatarPreview}
         readOnlyLabel={readOnlyLabel}
