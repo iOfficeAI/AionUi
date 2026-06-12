@@ -87,6 +87,11 @@
   background-color: rgba(0, 0, 0, 0.14);
 }
 
+.actionBtn:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
 [data-theme='dark'] .actionBtn:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }

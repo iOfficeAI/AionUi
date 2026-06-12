@@ -252,6 +252,11 @@
   background-color: rgba(0, 0, 0, 0.14);
 }
 
+.app-titlebar__button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
+}
+
 [data-theme='dark'] .app-titlebar__button:hover {
   background-color: rgba(255, 255, 255, 0.1);
 }
@@ -319,6 +324,11 @@
 
 .app-window-controls__button:active {
   background-color: rgba(128, 128, 128, 0.3);
+}
+
+.app-window-controls__button:focus-visible {
+  outline: 2px solid var(--brand);
+  outline-offset: -2px;
 }
 
 .app-window-controls__button--close:hover {

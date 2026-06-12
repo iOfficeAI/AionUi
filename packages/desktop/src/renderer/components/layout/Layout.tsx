@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import { configService } from '@/common/config/configService';
 import type { ICssTheme } from '@/common/config/storage';
@@ -12,7 +11,7 @@ import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
 import { Layout as ArcoLayout } from '@arco-design/web-react';
 import classNames from 'classnames';
-import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import React, { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
@@ -22,7 +21,10 @@ import { TerminalPanelProvider } from '@renderer/hooks/context/TerminalPanelCont
 import TerminalPanelHost from '@renderer/components/layout/TerminalPanel/TerminalPanelHost';
 import { useDeepLink } from '@renderer/hooks/system/useDeepLink';
 import { useNotificationClick } from '@renderer/hooks/system/useNotificationClick';
+import { useMainProcessLogBridge } from '@renderer/hooks/system/useMainProcessLogBridge';
+import { useTrayEventHandlers } from '@renderer/hooks/system/useTrayEventHandlers';
 import { useDirectorySelection } from '@renderer/hooks/file/useDirectorySelection';
+import SidebarIcon from '@renderer/components/layout/icons/SidebarIcon';
 import { processCustomCss } from '@renderer/utils/theme/customCssProcessor';
 import { cleanupSiderTooltips } from '@renderer/utils/ui/siderTooltip';
 import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShortcuts';
@@ -37,25 +39,6 @@ import { useEditorContextSafe } from '@renderer/pages/conversation/Editor';
 import { dispatchWorkspaceSetCollapsedEvent } from '@renderer/utils/workspace/workspaceEvents';
 import { useEditorDock } from '@renderer/utils/layout/editorDock';
 import '@renderer/styles/layout.css';
-
-const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
-  <svg
-    width={size}
-    height={size}
-    viewBox='0 0 48 48'
-    fill='none'
-    stroke='currentColor'
-    strokeWidth={strokeWidth}
-    strokeLinecap='round'
-    strokeLinejoin='round'
-    aria-hidden='true'
-    focusable='false'
-    style={{ display: 'inline-block', verticalAlign: 'middle' }}
-  >
-    <rect x='6' y='10' width='36' height='28' rx='5' />
-    <line x1='18' y1='10' x2='18' y2='38' />
-  </svg>
-);
 
 const UpdateModal = React.lazy(() => import('@/renderer/components/settings/UpdateModal'));
 // Command Center editor pane — a single shell-level editor host rendered as a
@@ -190,7 +173,9 @@ const Layout: React.FC<{
   const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
+  useMainProcessLogBridge();
   useNotificationClick();
+  useTrayEventHandlers();
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
@@ -213,6 +198,8 @@ const Layout: React.FC<{
   }, []);
   const collapsedRef = useRef(collapsed);
   const desktopSiderWidthRef = useRef(desktopSiderWidth);
+  const dragWidthRef = useRef(0);
+  const prevDragWidthRef = useRef<number | null>(null);
   const lastCssRef = useRef('');
   const lastUiCssUpdateAtRef = useRef(0);
   const dragStateRef = useRef<{ active: boolean; startX: number; startWidth: number }>({
@@ -397,77 +384,10 @@ const Layout: React.FC<{
   }, [isMobile, collapsed, location.pathname, location.search, location.hash]);
 
   // Bridge Main Process logs to F12 Console
-  useEffect(() => {
-    const unsubscribe = ipcBridge.application.logStream.on((entry) => {
-      const prefix = `%c[Main:${entry.tag}]%c ${entry.message}`;
-      const style = 'color:#7c3aed;font-weight:bold';
-      if (entry.level === 'error') {
-        console.error(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
-      } else if (entry.level === 'warn') {
-        console.warn(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
-      } else {
-        console.log(prefix, style, 'color:inherit', ...(entry.data !== undefined ? [entry.data] : []));
-      }
-    });
-    return () => unsubscribe();
-  }, []);
+  useMainProcessLogBridge();
 
   // Handle tray events from main process / 处理来自主进程的托盘事件
-  useEffect(() => {
-    if (!isElectronDesktop()) return;
-
-    // Navigate to guid page when requested from tray / 托盘请求导航到 guid 页面
-    const handleNavigateToGuid = () => {
-      void navigate('/guid');
-    };
-
-    // Navigate to conversation when requested from tray / 托盘请求导航到对话页面
-    const handleNavigateToConversation = (event: CustomEvent<{ conversation_id: string }>) => {
-      void navigate(`/conversation/${event.detail.conversation_id}`);
-    };
-
-    // Open about dialog when requested from tray / 托盘请求打开关于对话框
-    const handleOpenAbout = () => {
-      // Navigate to settings/about page / 导航到设置/关于页面
-      void navigate('/settings/about');
-    };
-
-    // Handle pause all tasks request from tray / 托盘请求暂停所有任务
-    const handlePauseAllTasks = async () => {
-      const { ipcBridge } = await import('@/common');
-      const result = await ipcBridge.task.stopAll.invoke();
-      if (result?.success) {
-        // Navigate to settings page to show task status
-        void navigate('/settings/system');
-      }
-    };
-
-    // Handle check update request from tray / 托盘请求检查更新
-    // 1. Navigate to about page / 导航到关于页面
-    // 2. Trigger update modal check / 触发更新模态框检查
-    const handleCheckUpdate = () => {
-      void navigate('/settings/about');
-      // Trigger update modal after a short delay to ensure page is loaded
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
-      }, 100);
-    };
-
-    // Listen for tray events / 监听托盘事件
-    window.addEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
-    window.addEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
-    window.addEventListener('tray:open-about', handleOpenAbout as EventListener);
-    window.addEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
-    window.addEventListener('tray:check-update', handleCheckUpdate as EventListener);
-
-    return () => {
-      window.removeEventListener('tray:navigate-to-guid', handleNavigateToGuid as EventListener);
-      window.removeEventListener('tray:navigate-to-conversation', handleNavigateToConversation as EventListener);
-      window.removeEventListener('tray:open-about', handleOpenAbout as EventListener);
-      window.removeEventListener('tray:pause-all-tasks', handlePauseAllTasks as EventListener);
-      window.removeEventListener('tray:check-update', handleCheckUpdate as EventListener);
-    };
-  }, [navigate]);
+  useTrayEventHandlers();
 
   const siderWidth = isMobile
     ? Math.max(
@@ -482,20 +402,44 @@ const Layout: React.FC<{
     desktopSiderWidthRef.current = desktopSiderWidth;
   }, [desktopSiderWidth]);
 
+  const applySiderWidthVar = useCallback((px: number) => {
+    document.documentElement.style.setProperty('--layout-sider-width', `${px}px`);
+  }, []);
+
+  const clearSiderWidthVar = useCallback(() => {
+    document.documentElement.style.removeProperty('--layout-sider-width');
+  }, []);
+
+  // Keep the CSS variable in sync with the committed width outside of drag,
+  // and clear it when the sider is collapsed or on mobile.
+  useEffect(() => {
+    if (isMobile || collapsed) {
+      clearSiderWidthVar();
+      return;
+    }
+    applySiderWidthVar(desktopSiderWidth);
+  }, [desktopSiderWidth, isMobile, collapsed, applySiderWidthVar, clearSiderWidthVar]);
+
   const beginSiderResizeDrag = useCallback(
     (event: React.MouseEvent<HTMLDivElement>) => {
       if (isMobile) return;
       event.preventDefault();
+      const startWidth = collapsedRef.current ? 0 : desktopSiderWidthRef.current;
       dragStateRef.current = {
         active: true,
         startX: event.clientX,
-        startWidth: collapsedRef.current ? 0 : desktopSiderWidthRef.current,
+        startWidth,
       };
+      dragWidthRef.current = startWidth;
+      prevDragWidthRef.current = desktopSiderWidthRef.current;
       setSiderDragging(true);
       document.body.style.cursor = 'col-resize';
       document.body.style.userSelect = 'none';
+      if (!collapsedRef.current && startWidth > 0) {
+        applySiderWidthVar(startWidth);
+      }
     },
-    [isMobile]
+    [isMobile, applySiderWidthVar]
   );
 
   useEffect(() => {
@@ -516,8 +460,19 @@ const Layout: React.FC<{
       if (collapsedRef.current) {
         setCollapsed(false);
       }
-      if (clamped !== desktopSiderWidthRef.current) {
+
+      // Drive the visual width via CSS variable — no React re-render.
+      dragWidthRef.current = clamped;
+      applySiderWidthVar(clamped);
+
+      // Commit state once when crossing the icon-only threshold so the
+      // `layout-sider--icon-only` class flips without per-frame re-renders.
+      const prevWidth = prevDragWidthRef.current ?? desktopSiderWidthRef.current;
+      const prevIconOnly = prevWidth < SIDER_ICON_ONLY_THRESHOLD;
+      const currIconOnly = clamped < SIDER_ICON_ONLY_THRESHOLD;
+      if (prevIconOnly !== currIconOnly) {
         setDesktopSiderWidth(clamped);
+        prevDragWidthRef.current = clamped;
       }
     };
 
@@ -527,9 +482,15 @@ const Layout: React.FC<{
       setSiderDragging(false);
       document.body.style.cursor = '';
       document.body.style.userSelect = '';
-      if (!collapsedRef.current) {
-        persistSiderWidth(desktopSiderWidthRef.current);
+
+      const finalWidth = dragWidthRef.current;
+      if (!collapsedRef.current && finalWidth > 0) {
+        setDesktopSiderWidth(finalWidth);
+        persistSiderWidth(finalWidth);
       }
+      dragWidthRef.current = 0;
+      prevDragWidthRef.current = null;
+      clearSiderWidthVar();
     };
 
     const handleBlur = () => endDrag();
@@ -542,7 +503,7 @@ const Layout: React.FC<{
       window.removeEventListener('blur', handleBlur);
       endDrag();
     };
-  }, []);
+  }, [applySiderWidthVar, clearSiderWidthVar]);
 
   const siderStyle = isMobile
     ? {
@@ -558,18 +519,32 @@ const Layout: React.FC<{
         overflow: 'visible' as const,
       };
 
+  // During drag the live width is driven by the CSS variable so the Sider
+  // resizes without triggering React re-renders on every mousemove.
+  const siderDragStyle: React.CSSProperties | undefined =
+    siderDragging && !isMobile && !collapsed
+      ? {
+          width: 'var(--layout-sider-width)',
+          minWidth: `${SIDER_MIN_WIDTH}px`,
+          maxWidth: `${SIDER_MAX_WIDTH}px`,
+        }
+      : undefined;
+
+  const contextValue = useMemo(
+    () => ({
+      isMobile,
+      siderCollapsed: collapsed,
+      setSiderCollapsed: setCollapsed,
+      siderWidth: isMobile ? 0 : desktopSiderWidth,
+      siderIconOnly: !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
+      conversationPaneCollapsed,
+      setConversationPaneCollapsed,
+    }),
+    [isMobile, collapsed, desktopSiderWidth, conversationPaneCollapsed, setCollapsed, setConversationPaneCollapsed]
+  );
+
   return (
-    <LayoutContext.Provider
-      value={{
-        isMobile,
-        siderCollapsed: collapsed,
-        setSiderCollapsed: setCollapsed,
-        siderWidth: isMobile ? 0 : desktopSiderWidth,
-        siderIconOnly: !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
-        conversationPaneCollapsed,
-        setConversationPaneCollapsed,
-      }}
-    >
+    <LayoutContext.Provider value={contextValue}>
       <NavigationHistoryProvider>
         <TerminalPanelProvider>
           <LayoutModeProvider isMobile={isMobile} editorAvailable={!isMobile} diffAvailable={!isMobile}>
@@ -585,13 +560,13 @@ const Layout: React.FC<{
                 <ArcoLayout.Sider
                   collapsedWidth={isMobile ? 0 : 0}
                   collapsed={collapsed}
-                  width={siderWidth}
+                  width={siderDragging && !isMobile && !collapsed ? undefined : siderWidth}
                   className={classNames('!bg-2 layout-sider', {
                     collapsed: collapsed,
                     'layout-sider--dragging': siderDragging,
                     'layout-sider--icon-only': !isMobile && !collapsed && desktopSiderWidth < SIDER_ICON_ONLY_THRESHOLD,
                   })}
-                  style={siderStyle}
+                  style={{ ...siderStyle, ...siderDragStyle }}
                 >
                   <div
                     role='navigation'
