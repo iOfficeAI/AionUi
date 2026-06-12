@@ -30,6 +30,7 @@ const debugTeamRunEvent = (source: string, event: ITeamRunEvent) => {
     status: event.status,
     active_child_count: event.active_child_count,
     pending_wake_count: event.pending_wake_count,
+    starting_child_count: event.starting_child_count,
   });
 };
 
@@ -55,6 +56,7 @@ const ackToRunEvent = (ack: ITeamRunAck): ITeamRunEvent => ({
   status: ack.status,
   active_child_count: 0,
   pending_wake_count: 0,
+  starting_child_count: 0,
 });
 
 export const useTeamRunView = (team_id: string) => {

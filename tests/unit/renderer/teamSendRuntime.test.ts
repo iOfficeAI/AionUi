@@ -11,6 +11,7 @@ const activeRunView: TeamRunViewState = {
     status: 'running',
     active_child_count: 1,
     pending_wake_count: 0,
+    starting_child_count: 0,
   },
   childTurnsBySlot: {},
 };
@@ -21,6 +22,30 @@ describe('buildTeamSendRuntime', () => {
       slot_id: 'lead',
       isLeader: true,
       runView: activeRunView,
+    });
+
+    expect(runtime.loading).toBe(true);
+    expect(runtime.runtimeGate.canSendMessage).toBe(false);
+    expect(runtime.runtimeGate.isProcessing).toBe(true);
+  });
+
+  it('locks leader sendbox while team run reports starting work', () => {
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      isLeader: true,
+      runView: {
+        activeRun: {
+          team_id: 'team-1',
+          team_run_id: 'run-1',
+          target_slot_id: 'lead',
+          target_role: 'lead',
+          status: 'completed',
+          active_child_count: 0,
+          pending_wake_count: 0,
+          starting_child_count: 1,
+        },
+        childTurnsBySlot: {},
+      },
     });
 
     expect(runtime.loading).toBe(true);

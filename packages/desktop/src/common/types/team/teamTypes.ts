@@ -86,6 +86,7 @@ export type ITeamRunEvent = {
   status: TeamRunStatus;
   active_child_count: number;
   pending_wake_count: number;
+  starting_child_count: number;
 };
 
 export type ITeamChildTurnEvent = {

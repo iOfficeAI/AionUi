@@ -15,8 +15,12 @@ type BuildTeamSendRuntimeOptions = {
 };
 
 const isRunProcessing = (runView: TeamRunViewState): boolean => {
-  const status = runView.activeRun?.status;
-  return status === 'accepted' || status === 'running' || status === 'cancelling';
+  const run = runView.activeRun;
+  if (!run) return false;
+  const statusProcessing = run.status === 'accepted' || run.status === 'running' || run.status === 'cancelling';
+  const workProcessing =
+    run.pending_wake_count > 0 || run.starting_child_count > 0 || run.active_child_count > 0;
+  return statusProcessing || workProcessing;
 };
 
 const isChildProcessing = (runView: TeamRunViewState, slot_id: string): boolean => {
