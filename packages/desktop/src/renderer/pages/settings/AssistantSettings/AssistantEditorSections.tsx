@@ -321,7 +321,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
             {t('settings.assistantEngineSection', { defaultValue: 'Engine' })}
           </div>
           <span className='rounded-6px border border-success-8 bg-success-8 px-8px py-2px text-10px font-600 text-white'>
-            {t('settings.assistantEffectiveImmediately', { defaultValue: 'Applies immediately' })}
+            {t('settings.assistantOnlyNewConversation', { defaultValue: 'New conversations only' })}
           </span>
         </div>
         <div className='flex items-center gap-12px'>
