@@ -29,11 +29,18 @@
  *      tenant_id, persists the entitlement record, and appends ONE agent-event/v1
  *      audit event carrying NO PII (tenant_id + code_serial + edition only).
  *
- * Public-key resolution priority (so W12/pilot can override the embedded key):
- *   env COMMAND_EVE_LICENSE_PUBLIC_KEY (PEM string OR a file path — detected) >
- *   bundled `public/command-eve-license-public-key.pem` read at runtime.
- * No key present + flag ON ⇒ gate state 'unconfigured' (fail-closed, but
- * distinguishable from an invalid code).
+ * Public-key resolution (1.1.0 multi-key): a verification accepts a code signed
+ * by ANY trusted key. Resolution returns an ORDERED LIST of PEMs and the first
+ * key whose signature verifies wins:
+ *   - env COMMAND_EVE_LICENSE_PUBLIC_KEY (PEM string OR a file path — detected;
+ *     may now hold MULTIPLE concatenated PEM blocks, each split into one entry)
+ *     takes priority and REPLACES the bundled list when set (W12/pilot override);
+ *   - otherwise the bundled list = `public/command-eve-license-public-key.pem`
+ *     (founder, offline key) + `public/command-eve-license-public-key-server.pem`
+ *     (server key the SaaS backend mints with — OPTIONAL: an absent file is just
+ *     skipped, never an error).
+ * No key resolvable anywhere + flag ON ⇒ gate state 'unconfigured' (fail-closed,
+ * but distinguishable from an invalid code).
  */
 
 import crypto from 'node:crypto';
@@ -73,6 +80,8 @@ const ENTITLEMENT_FILE = 'entitlement.json';
 const AGENT_EVENTS_FILE = 'agent-events.jsonl';
 const ENTITLEMENT_STATE_DIR = 'entitlement';
 const BUNDLED_PUBLIC_KEY_FILE = 'command-eve-license-public-key.pem';
+// Server (SaaS-minted) key. OPTIONAL: the file may not exist yet — absent is skipped, never an error.
+const BUNDLED_SERVER_PUBLIC_KEY_FILE = 'command-eve-license-public-key-server.pem';
 
 const REGISTRATION_REQUIRED_FLAG = 'COMMAND_EVE_REGISTRATION_REQUIRED';
 const PUBLIC_KEY_ENV = 'COMMAND_EVE_LICENSE_PUBLIC_KEY';
@@ -95,8 +104,30 @@ export interface CommandEveLicensePayload {
   expires_at: string | null;
 }
 
+/**
+ * Which trusted key verified a code, recorded on the entitlement + audit event
+ * for traceability (1.1.0 multi-key):
+ *   - 'founder' = bundled `command-eve-license-public-key.pem` (offline key);
+ *   - 'server'  = bundled `command-eve-license-public-key-server.pem` (SaaS key);
+ *   - 'env'     = a key supplied via COMMAND_EVE_LICENSE_PUBLIC_KEY (override).
+ * Not PII — no email/name/raw-code, only a provenance tag.
+ */
+export const COMMAND_EVE_LICENSE_ISSUERS = ['founder', 'server', 'env'] as const;
+export type CommandEveLicenseIssuer = (typeof COMMAND_EVE_LICENSE_ISSUERS)[number];
+
+/** One trusted public key PEM plus the issuer tag it represents (resolution order). */
+export interface CommandEveLicenseKeyEntry {
+  issuer: CommandEveLicenseIssuer;
+  pem: string;
+}
+
 export type VerifyLicenseCodeResult =
   | { ok: true; payload: CommandEveLicensePayload }
+  | { ok: false; reason_code: CommandEveLicenseReasonCode };
+
+/** Multi-key verify result: on success, also records WHICH key verified. */
+export type VerifyLicenseCodeMultiResult =
+  | { ok: true; payload: CommandEveLicensePayload; issuer: CommandEveLicenseIssuer }
   | { ok: false; reason_code: CommandEveLicenseReasonCode };
 
 // ---------------------------------------------------------------------------
@@ -270,6 +301,74 @@ export function verifyLicenseCodeTs(args: {
   return { ok: true, payload: verified };
 }
 
+/**
+ * Verify a CEVE.v1 code against an ORDERED LIST of trusted keys (1.1.0 multi-key).
+ *
+ * Tries each key in order; the FIRST key whose signature verifies wins and its
+ * `issuer` is recorded. Honest reason-code distinction:
+ *   - structural / version problems are key-INDEPENDENT (the payload bytes are the
+ *     same for every key), so the first MALFORMED / VERSION_UNSUPPORTED short-
+ *     circuits immediately — trying more keys cannot change that verdict;
+ *   - SIGNATURE_INVALID against one key means "not this key" → keep trying. Only
+ *     when EVERY key rejects the signature do we return LICENSE_SIGNATURE_INVALID;
+ *   - a signature MATCH commits to that key: the per-key time checks (NOT_YET_VALID
+ *     / EXPIRED) run AFTER the signature as today and short-circuit — a code valid
+ *     under key B but expired is EXPIRED, never silently retried against other keys
+ *     (signature-before-time order is preserved per key).
+ *
+ * A broken/non-ed25519 key in the list throws (operator/config error), exactly as
+ * the single-key path does — the caller maps that to LICENSE_KEY_UNCONFIGURED.
+ */
+export function verifyLicenseCodeMultiTs(args: {
+  code: string;
+  keys: CommandEveLicenseKeyEntry[];
+  now?: Date | number | string;
+}): VerifyLicenseCodeMultiResult {
+  const { code, keys, now } = args;
+
+  // No keys at all is the caller's "unconfigured" concern, but guard defensively:
+  // with nothing to verify against, nothing can be a valid signature.
+  if (!Array.isArray(keys) || keys.length === 0) {
+    return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.SIGNATURE_INVALID };
+  }
+
+  let lastNonMatch: VerifyLicenseCodeResult & { ok: false } = {
+    ok: false,
+    reason_code: COMMAND_EVE_LICENSE_REASON_CODES.SIGNATURE_INVALID,
+  };
+
+  for (const entry of keys) {
+    const result = verifyLicenseCodeTs({ code, publicKeyPem: entry.pem, now });
+    if (result.ok === true) {
+      return { ok: true, payload: result.payload, issuer: entry.issuer };
+    }
+    // From here `result` is the failure branch.
+    const reason: CommandEveLicenseReasonCode = result.reason_code;
+    // Key-independent verdicts (same payload bytes for every key) short-circuit:
+    // trying another key can never turn MALFORMED / VERSION_UNSUPPORTED into a pass.
+    if (
+      reason === COMMAND_EVE_LICENSE_REASON_CODES.MALFORMED ||
+      reason === COMMAND_EVE_LICENSE_REASON_CODES.VERSION_UNSUPPORTED
+    ) {
+      return { ok: false, reason_code: reason };
+    }
+    // EXPIRED / NOT_YET_VALID mean THIS key's signature matched (signature is checked
+    // before time): the code belongs to this key but is time-invalid. Commit to it —
+    // do not retry other keys (preserve per-key signature-before-time ordering).
+    if (
+      reason === COMMAND_EVE_LICENSE_REASON_CODES.EXPIRED ||
+      reason === COMMAND_EVE_LICENSE_REASON_CODES.NOT_YET_VALID
+    ) {
+      return { ok: false, reason_code: reason };
+    }
+    // SIGNATURE_INVALID against this key only ⇒ try the next key.
+    lastNonMatch = { ok: false, reason_code: reason };
+  }
+
+  // No key in the list produced a matching signature.
+  return lastNonMatch;
+}
+
 // ---------------------------------------------------------------------------
 // Records
 // ---------------------------------------------------------------------------
@@ -292,6 +391,12 @@ export interface CommandEveEntitlementRecord {
   edition: CommandEveLicenseEdition;
   expires_at: string | null;
   activated_at: string;
+  /**
+   * Which trusted key verified this code (1.1.0 multi-key) — audit traceability
+   * only, not PII. Optional for backward compatibility with v0 records written
+   * by the single-key build (absent = legacy/unknown issuer).
+   */
+  issuer?: CommandEveLicenseIssuer;
 }
 
 export type CommandEveEntitlementGateState =
@@ -418,53 +523,114 @@ function looksLikePem(value: string): boolean {
   return value.includes('-----BEGIN') && value.includes('KEY-----');
 }
 
-function resolveBundledPublicKeyPath(options: CommandEveEntitlementOptions): string {
-  if (isNonEmptyString(options.bundledPublicKeyPath)) return options.bundledPublicKeyPath;
+/**
+ * Split a blob that may hold one OR several concatenated PEM blocks into the
+ * individual `-----BEGIN…-----END…-----` blocks. Whitespace/comments between
+ * blocks are ignored. Returns [] when the blob holds no recognizable PEM.
+ */
+function splitPemBlocks(blob: string): string[] {
+  if (typeof blob !== 'string' || !looksLikePem(blob)) return [];
+  const matches = blob.match(/-----BEGIN [^-]+-----[\s\S]*?-----END [^-]+-----/g);
+  return matches ? matches.map((block) => block.trim()).filter(Boolean) : [];
+}
+
+/**
+ * Resolve a bundled candidate file path for a given filename.
+ *
+ * The `bundledPublicKeyPath` override (test/non-Electron seam) anchors the
+ * founder key file:
+ *   - if it points at an EXISTING file, that file is the founder key verbatim
+ *     (legacy single-key contract; the server file is then looked up as a
+ *     sibling of it);
+ *   - if it points at a MISSING/sentinel path (the existing "no bundled key"
+ *     test seam), its DIRECTORY still anchors sibling lookups, so a founder
+ *     and/or server key dropped next to the sentinel is found by its real
+ *     filename — and an absent file simply yields ''.
+ *
+ * Returns '' when no candidate exists.
+ */
+function resolveBundledKeyPath(options: CommandEveEntitlementOptions, fileName: string): string {
+  if (isNonEmptyString(options.bundledPublicKeyPath)) {
+    // Founder file + the override points at an existing file ⇒ use it verbatim.
+    if (
+      fileName === BUNDLED_PUBLIC_KEY_FILE &&
+      fs.existsSync(options.bundledPublicKeyPath)
+    ) {
+      return options.bundledPublicKeyPath;
+    }
+    // Otherwise the override's directory anchors the real bundled filenames.
+    const sibling = path.join(path.dirname(options.bundledPublicKeyPath), fileName);
+    return fs.existsSync(sibling) ? sibling : '';
+  }
   const env = options.env ?? process.env;
   const candidates = [
     // Electron packaged: extraResources copies `public/` to the resources root.
-    env.COMMAND_EVE_RESOURCES_PATH
-      ? path.join(env.COMMAND_EVE_RESOURCES_PATH, BUNDLED_PUBLIC_KEY_FILE)
-      : '',
+    env.COMMAND_EVE_RESOURCES_PATH ? path.join(env.COMMAND_EVE_RESOURCES_PATH, fileName) : '',
     // Dev / unit run from repo root.
-    path.join(process.cwd(), 'public', BUNDLED_PUBLIC_KEY_FILE),
+    path.join(process.cwd(), 'public', fileName),
   ].filter(Boolean);
   return candidates.find((candidate) => fs.existsSync(candidate)) || '';
 }
 
+/** Read a PEM file and return its (split) blocks; [] on any read/parse failure. */
+function readPemFileBlocks(filePath: string): string[] {
+  if (!filePath) return [];
+  try {
+    if (!fs.existsSync(filePath)) return [];
+    return splitPemBlocks(fs.readFileSync(filePath, 'utf8'));
+  } catch {
+    return [];
+  }
+}
+
 /**
- * Resolve the embedded/override public key PEM.
+ * Resolve the ORDERED LIST of trusted public keys (1.1.0 multi-key).
  *
- *   COMMAND_EVE_LICENSE_PUBLIC_KEY (PEM string OR file path — detected) wins,
- *   else the bundled `public/command-eve-license-public-key.pem`.
+ *   - COMMAND_EVE_LICENSE_PUBLIC_KEY set (PEM string OR file path; one or many
+ *     concatenated PEM blocks) ⇒ REPLACES the bundled list entirely, each block
+ *     tagged issuer 'env';
+ *   - otherwise the bundled list, in order:
+ *       1. founder `command-eve-license-public-key.pem`,
+ *       2. server  `command-eve-license-public-key-server.pem` (OPTIONAL — an
+ *          absent file is skipped, never an error).
  *
- * Returns null when no key is available anywhere ⇒ gate is 'unconfigured'.
+ * Returns [] when no key is resolvable anywhere ⇒ gate is 'unconfigured'.
  */
-export function resolveLicensePublicKeyPem(options: CommandEveEntitlementOptions): string | null {
+export function resolveLicensePublicKeyEntries(
+  options: CommandEveEntitlementOptions
+): CommandEveLicenseKeyEntry[] {
   const env = options.env ?? process.env;
   const fromEnv = env[PUBLIC_KEY_ENV];
+
+  // Env override REPLACES the bundled list when set (and parseable).
   if (isNonEmptyString(fromEnv)) {
-    if (looksLikePem(fromEnv)) return fromEnv;
-    // Treat as a file path.
-    try {
-      if (fs.existsSync(fromEnv)) {
-        const contents = fs.readFileSync(fromEnv, 'utf8');
-        if (looksLikePem(contents)) return contents;
-      }
-    } catch {
-      // fall through to bundled
+    const blocks = looksLikePem(fromEnv) ? splitPemBlocks(fromEnv) : readPemFileBlocks(fromEnv);
+    if (blocks.length > 0) {
+      return blocks.map((pem) => ({ issuer: 'env' as const, pem }));
     }
+    // Env was set but unparseable: fall through to the bundled list (the env value
+    // simply contributes nothing rather than blocking the bundled keys).
   }
-  const bundledPath = resolveBundledPublicKeyPath(options);
-  if (bundledPath) {
-    try {
-      const contents = fs.readFileSync(bundledPath, 'utf8');
-      if (looksLikePem(contents)) return contents;
-    } catch {
-      return null;
-    }
+
+  const entries: CommandEveLicenseKeyEntry[] = [];
+  for (const founderPem of readPemFileBlocks(resolveBundledKeyPath(options, BUNDLED_PUBLIC_KEY_FILE))) {
+    entries.push({ issuer: 'founder', pem: founderPem });
   }
-  return null;
+  for (const serverPem of readPemFileBlocks(resolveBundledKeyPath(options, BUNDLED_SERVER_PUBLIC_KEY_FILE))) {
+    entries.push({ issuer: 'server', pem: serverPem });
+  }
+  return entries;
+}
+
+/**
+ * Back-compatible single-PEM accessor: the FIRST resolved trusted key, or null
+ * when none is available. Kept so existing single-key call sites and the
+ * 'unconfigured' (null) signal stay valid; multi-key verification uses
+ * `resolveLicensePublicKeyEntries`.
+ */
+export function resolveLicensePublicKeyPem(options: CommandEveEntitlementOptions): string | null {
+  const entries = resolveLicensePublicKeyEntries(options);
+  return entries.length > 0 ? entries[0].pem : null;
 }
 
 // ---------------------------------------------------------------------------
@@ -495,6 +661,7 @@ function appendActivationAuditEvent(args: {
   tenantId: string;
   codeSerial: string;
   edition: CommandEveLicenseEdition;
+  issuer?: CommandEveLicenseIssuer;
 }): void {
   const ledgerPath = agentEventsPath(args.userDataPath);
   // Idempotency guard at the ledger layer: never append the same event_id twice.
@@ -521,10 +688,12 @@ function appendActivationAuditEvent(args: {
     autonomy_level: 'L1',
     event_policy: 'append-only',
     payload: {
-      // NO PII — tenant_id + code_serial + edition only (spec §5.1).
+      // NO PII — tenant_id + code_serial + edition (+ key issuer) only (spec §5.1).
+      // `issuer` is a provenance tag ('founder' | 'server' | 'env'), not PII.
       tenant_id: args.tenantId,
       code_serial: args.codeSerial,
       edition: args.edition,
+      ...(args.issuer ? { issuer: args.issuer } : {}),
     },
     artifact_paths: [] as string[],
     linear_comment_ids: [] as string[],
@@ -614,8 +783,10 @@ export function registerTenant(
 
 /**
  * Activate an entitlement: requires an existing registration, verifies the code
- * against the resolved public key, persists the entitlement record, and appends
- * ONE PII-free activation audit event. Idempotent on the same code_serial.
+ * against the resolved ORDERED key list (founder/server/env — first match wins),
+ * records WHICH key verified as the entitlement `issuer`, persists the record,
+ * and appends ONE PII-free activation audit event. Idempotent on the same
+ * code_serial.
  */
 export function activateEntitlement(
   args: { code: string },
@@ -634,8 +805,8 @@ export function activateEntitlement(
     };
   }
 
-  const publicKeyPem = resolveLicensePublicKeyPem(options);
-  if (!publicKeyPem) {
+  const keyEntries = resolveLicensePublicKeyEntries(options);
+  if (keyEntries.length === 0) {
     return {
       version: COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
       ok: false,
@@ -645,9 +816,9 @@ export function activateEntitlement(
     };
   }
 
-  const verify = ((): VerifyLicenseCodeResult | 'KEY_ERROR' => {
+  const verify = ((): VerifyLicenseCodeMultiResult | 'KEY_ERROR' => {
     try {
-      return verifyLicenseCodeTs({ code: args?.code ?? '', publicKeyPem, now: now() });
+      return verifyLicenseCodeMultiTs({ code: args?.code ?? '', keys: keyEntries, now: now() });
     } catch {
       // A broken configured key is an operator error, not an invalid code.
       return 'KEY_ERROR';
@@ -675,6 +846,7 @@ export function activateEntitlement(
 
   const occurredAt = now().toISOString();
   const codeSerial = verify.payload.serial;
+  const issuer = verify.issuer;
 
   // Idempotent on the same code_serial: if an entitlement for this serial already
   // exists under this tenant, return it without re-writing or re-auditing.
@@ -696,6 +868,7 @@ export function activateEntitlement(
     edition: verify.payload.edition,
     expires_at: verify.payload.expires_at,
     activated_at: occurredAt,
+    issuer,
   };
 
   writeJsonAtomic600(path.join(entitlementStateDir(options.userDataPath), ENTITLEMENT_FILE), record);
@@ -708,6 +881,7 @@ export function activateEntitlement(
     tenantId: registration.tenant_id,
     codeSerial,
     edition: verify.payload.edition,
+    issuer,
   });
 
   return {

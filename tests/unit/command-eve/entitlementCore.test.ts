@@ -13,6 +13,8 @@ import {
   activateEntitlement,
   getEntitlementStatus,
   registerTenant,
+  resolveLicensePublicKeyEntries,
+  verifyLicenseCodeMultiTs,
   verifyLicenseCodeTs,
   type CommandEveEntitlementOptions,
   type CommandEveLicenseEdition,
@@ -202,6 +204,81 @@ describe('verifyLicenseCodeTs', () => {
 });
 
 // ---------------------------------------------------------------------------
+// verifyLicenseCodeMultiTs — 1.1.0 multi-key: first key that verifies wins
+// ---------------------------------------------------------------------------
+
+describe('verifyLicenseCodeMultiTs', () => {
+  it('verifies a code signed by key A against the ordered list [A, B] (issuer = founder)', () => {
+    const a = makeKeypair();
+    const b = makeKeypair();
+    const code = signCode(a.privateKey, validPayload());
+    const result = verifyLicenseCodeMultiTs({
+      code,
+      keys: [
+        { issuer: 'founder', pem: a.publicKeyPem },
+        { issuer: 'server', pem: b.publicKeyPem },
+      ],
+      now: NOW,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.issuer).toBe('founder');
+      expect(result.payload.serial).toBe('CEVE-PILOT-0001');
+    }
+  });
+
+  it('verifies a code signed by key B against the ordered list [A, B] (issuer = server)', () => {
+    const a = makeKeypair();
+    const b = makeKeypair();
+    const code = signCode(b.privateKey, validPayload());
+    const result = verifyLicenseCodeMultiTs({
+      code,
+      keys: [
+        { issuer: 'founder', pem: a.publicKeyPem },
+        { issuer: 'server', pem: b.publicKeyPem },
+      ],
+      now: NOW,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.issuer).toBe('server');
+  });
+
+  it('rejects a code signed by an untrusted key C against [A, B] with SIGNATURE_INVALID', () => {
+    const a = makeKeypair();
+    const b = makeKeypair();
+    const c = makeKeypair();
+    const code = signCode(c.privateKey, validPayload());
+    const result = verifyLicenseCodeMultiTs({
+      code,
+      keys: [
+        { issuer: 'founder', pem: a.publicKeyPem },
+        { issuer: 'server', pem: b.publicKeyPem },
+      ],
+      now: NOW,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_SIGNATURE_INVALID');
+  });
+
+  it('reports EXPIRED (not SIGNATURE_INVALID) when the matching key signed an expired code', () => {
+    const a = makeKeypair();
+    const b = makeKeypair();
+    // Signed by B, expired: B matches → time check runs → EXPIRED, no retry of A.
+    const code = signCode(b.privateKey, validPayload({ expires_at: '2026-03-01T00:00:00.000Z' }));
+    const result = verifyLicenseCodeMultiTs({
+      code,
+      keys: [
+        { issuer: 'founder', pem: a.publicKeyPem },
+        { issuer: 'server', pem: b.publicKeyPem },
+      ],
+      now: NOW,
+    });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_EXPIRED');
+  });
+});
+
+// ---------------------------------------------------------------------------
 // Registration
 // ---------------------------------------------------------------------------
 
@@ -265,8 +342,11 @@ describe('activateEntitlement', () => {
     expect(result.idempotent).toBe(false);
     expect(result.record?.code_serial).toBe('CEVE-PILOT-0001');
     expect(result.record?.edition).toBe('pilot');
+    // 1.1.0: the env-injected key tags the entitlement issuer as 'env'.
+    expect(result.record?.issuer).toBe('env');
 
-    // Audit event written, agent-event/v1, carries NO PII.
+    // Audit event written, agent-event/v1, carries NO PII (issuer is a provenance
+    // tag, not PII).
     const ledgerPath = path.join(root, 'command-eve-runtime', 'entitlement', 'agent-events.jsonl');
     const lines = fs.readFileSync(ledgerPath, 'utf8').trim().split('\n').filter(Boolean);
     expect(lines).toHaveLength(1);
@@ -277,6 +357,7 @@ describe('activateEntitlement', () => {
       tenant_id: result.record?.tenant_id,
       code_serial: 'CEVE-PILOT-0001',
       edition: 'pilot',
+      issuer: 'env',
     });
     // No PII anywhere in the serialized event.
     const raw = lines[0];
@@ -442,5 +523,130 @@ describe('getEntitlementStatus', () => {
     const status = getEntitlementStatus(options);
     // Key resolves from the file path ⇒ no longer 'unconfigured'.
     expect(status.state).toBe('unregistered');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// 1.1.0 multi-key resolution + activation (founder + server + env)
+// ---------------------------------------------------------------------------
+
+describe('multi-key resolution + activation', () => {
+  // The founder bundled file = `command-eve-license-public-key.pem`; the server
+  // bundled file = `command-eve-license-public-key-server.pem`. `optionsFor`
+  // points the founder-key resolver at `<root>/__no_bundled_key__.pem`, so
+  // sibling bundled files resolve from `<root>`.
+  const FOUNDER_FILE = 'command-eve-license-public-key.pem';
+  const SERVER_FILE = 'command-eve-license-public-key-server.pem';
+
+  it('env with TWO concatenated PEMs verifies a code signed by either embedded key', () => {
+    const root = makeRoot();
+    const a = makeKeypair();
+    const b = makeKeypair();
+    // Both PEMs concatenated into the single env var (issuer 'env' for all).
+    const concatenated = `${a.publicKeyPem}\n${b.publicKeyPem}`;
+    const options = optionsFor(root, concatenated);
+
+    const entries = resolveLicensePublicKeyEntries(options);
+    expect(entries).toHaveLength(2);
+    expect(entries.every((e) => e.issuer === 'env')).toBe(true);
+
+    register(options);
+    // A code signed by the SECOND embedded PEM still activates.
+    const result = activateEntitlement({ code: signCode(b.privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.issuer).toBe('env');
+  });
+
+  it('env with a SINGLE PEM still works (W12 e2e env contract preserved)', () => {
+    const root = makeRoot();
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const options = optionsFor(root, publicKeyPem); // single-PEM env injection
+
+    const entries = resolveLicensePublicKeyEntries(options);
+    expect(entries).toHaveLength(1);
+    expect(entries[0].issuer).toBe('env');
+
+    register(options);
+    const result = activateEntitlement({ code: signCode(privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.issuer).toBe('env');
+  });
+
+  it('bundled founder + server keys: a server-signed code verifies (issuer = server)', () => {
+    const root = makeRoot();
+    const founder = makeKeypair();
+    const server = makeKeypair();
+    fs.writeFileSync(path.join(root, FOUNDER_FILE), founder.publicKeyPem);
+    fs.writeFileSync(path.join(root, SERVER_FILE), server.publicKeyPem);
+    // No env key → fall back to the bundled list (founder, then server).
+    const options = optionsFor(root, undefined);
+
+    const entries = resolveLicensePublicKeyEntries(options);
+    expect(entries.map((e) => e.issuer)).toEqual(['founder', 'server']);
+
+    register(options);
+    const result = activateEntitlement({ code: signCode(server.privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.issuer).toBe('server');
+
+    // The audit event carries the (non-PII) issuer provenance tag.
+    const ledgerPath = path.join(root, 'command-eve-runtime', 'entitlement', 'agent-events.jsonl');
+    const event = JSON.parse(fs.readFileSync(ledgerPath, 'utf8').trim().split('\n').filter(Boolean)[0]);
+    expect(event.payload.issuer).toBe('server');
+  });
+
+  it('bundled founder + server keys: a founder-signed code verifies (issuer = founder)', () => {
+    const root = makeRoot();
+    const founder = makeKeypair();
+    const server = makeKeypair();
+    fs.writeFileSync(path.join(root, FOUNDER_FILE), founder.publicKeyPem);
+    fs.writeFileSync(path.join(root, SERVER_FILE), server.publicKeyPem);
+    const options = optionsFor(root, undefined);
+
+    register(options);
+    const result = activateEntitlement({ code: signCode(founder.privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.issuer).toBe('founder');
+  });
+
+  it('optional server PEM ABSENT: founder-only resolution still works (no error)', () => {
+    const root = makeRoot();
+    const founder = makeKeypair();
+    // Only the founder file exists; server file deliberately not written.
+    fs.writeFileSync(path.join(root, FOUNDER_FILE), founder.publicKeyPem);
+    const options = optionsFor(root, undefined);
+
+    const entries = resolveLicensePublicKeyEntries(options);
+    expect(entries.map((e) => e.issuer)).toEqual(['founder']);
+
+    register(options);
+    const result = activateEntitlement({ code: signCode(founder.privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.issuer).toBe('founder');
+  });
+
+  it('rejects a code signed by an untrusted key against bundled [founder, server] with SIGNATURE_INVALID', () => {
+    const root = makeRoot();
+    const founder = makeKeypair();
+    const server = makeKeypair();
+    const attacker = makeKeypair();
+    fs.writeFileSync(path.join(root, FOUNDER_FILE), founder.publicKeyPem);
+    fs.writeFileSync(path.join(root, SERVER_FILE), server.publicKeyPem);
+    const options = optionsFor(root, undefined);
+
+    register(options);
+    const result = activateEntitlement({ code: signCode(attacker.privateKey, validPayload()) }, options);
+    expect(result.ok).toBe(false);
+    expect(result.reason_code).toBe('LICENSE_SIGNATURE_INVALID');
+  });
+
+  it('no key resolvable anywhere ⇒ unconfigured (gate state unchanged)', () => {
+    const root = makeRoot();
+    // No env key, founder sentinel path missing, no bundled siblings written.
+    const options = optionsFor(root, undefined);
+    expect(resolveLicensePublicKeyEntries(options)).toHaveLength(0);
+    const status = getEntitlementStatus(options);
+    expect(status.state).toBe('unconfigured');
+    expect(status.ok).toBe(false);
   });
 });
