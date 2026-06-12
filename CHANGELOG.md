@@ -1,5 +1,52 @@
 # Changelog
 
+## [2.1.18](https://github.com/iOfficeAI/AionUi/compare/v2.1.17...v2.1.18) (2026-06-12)
+
+### Desktop
+
+#### Features
+
+- **stt:** streaming voice input with live transcript (#3291)
+- **assistant:** deliver phase-1 governance settings (#3277)
+- stabilize team mode conversation runtime (#3309)
+
+#### Bug Fixes
+
+- **updater:** wait for backend shutdown before install (#3270)
+- **windows-installer:** recover from long-path uninstall failures (#3296)
+- **macos:** add audio-input entitlement so microphone works (#3294)
+- **preview:** drop bare trailing slash from office watch proxy url (#3287)
+- **workspace:** float directory picker above team/cron create modals
+- **workspace:** enable clickable folder picker in webui
+
+#### Styling
+
+- **titlebar:** nudge feedback icon up to align with neighbors
+- **markdown:** tighten desktop paragraph spacing
+- **markdown:** tighten desktop chat body line-height
+- **conversation:** show AI copy/timestamp row only at turn end
+- **display:** tighten factory default font sizes and zoom
+
+### Core ([v0.1.29](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.29))
+
+#### Features
+
+- converge team mode runtime architecture ([#464](https://github.com/iOfficeAI/AionCore/issues/464))
+- **stt:** streaming transcription proxy over websocket ([#455](https://github.com/iOfficeAI/AionCore/issues/455))
+
+#### Bug Fixes
+
+- **agent:** validate managed ACP platform binaries ([#462](https://github.com/iOfficeAI/AionCore/issues/462))
+- **cron:** retry busy jobs from runtime state ([#459](https://github.com/iOfficeAI/AionCore/issues/459))
+- isolate ACP cancel turn completion ([#461](https://github.com/iOfficeAI/AionCore/issues/461))
+- **office:** probe star-office preferred_url host as given ([#456](https://github.com/iOfficeAI/AionCore/issues/456))
+
+#### Refactoring
+
+- **assistant:** finalize unified governance storage ([#449](https://github.com/iOfficeAI/AionCore/issues/449))
+
+---
+
 ## [2.1.17](https://github.com/iOfficeAI/AionUi/compare/v2.1.16...v2.1.17) (2026-06-11)
 
 ### Desktop
