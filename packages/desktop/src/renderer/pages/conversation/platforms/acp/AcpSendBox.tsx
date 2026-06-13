@@ -153,7 +153,7 @@ const AcpSendBox: React.FC<{
   const runtimeConfig = useAcpConfigOptions({
     conversation_id,
     prepareRuntime: prepareRuntimeSync,
-    enabled: isMobile,
+    enabled: true,
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;

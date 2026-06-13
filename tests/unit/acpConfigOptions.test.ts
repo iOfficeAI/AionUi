@@ -36,6 +36,26 @@ describe('ACP config option derivation', () => {
     expect(thought?.options.map((item) => item.value)).toEqual(['low', 'high']);
   });
 
+  it('derives select options from backend DTOs using type', () => {
+    const backendOptions = [
+      {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        type: 'select',
+        current_value: 'high',
+        options: [
+          { value: 'low', name: 'Low' },
+          { value: 'high', name: 'High' },
+        ],
+      },
+    ] as unknown as AcpConfigOptionDto[];
+
+    const thought = deriveSelectOption(backendOptions, 'thought_level', ['reasoning_effort']);
+
+    expect(thought?.currentValue).toBe('high');
+    expect(thought?.options.map((item) => item.value)).toEqual(['low', 'high']);
+  });
+
   it('accepts only observed set responses with matching current_value', () => {
     const response: SetConfigOptionResponse = {
       confirmation: 'observed',

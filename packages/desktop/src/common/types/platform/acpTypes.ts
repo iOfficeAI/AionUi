@@ -186,7 +186,8 @@ export type AcpConfigOptionDto = {
   label?: string | null;
   description?: string | null;
   category?: string | null;
-  option_type: AcpConfigOptionType;
+  type?: AcpConfigOptionType;
+  option_type?: AcpConfigOptionType;
   current_value?: string | null;
   options: AcpConfigSelectOptionDto[];
 };

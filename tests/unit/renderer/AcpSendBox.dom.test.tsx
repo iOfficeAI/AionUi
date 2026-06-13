@@ -11,14 +11,21 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 
-const { sendMessageInvokeMock, addOrUpdateMessageMock, resetStateMock, emitterEmitMock, setSendBoxHandlerMock } =
-  vi.hoisted(() => ({
-    sendMessageInvokeMock: vi.fn(),
-    addOrUpdateMessageMock: vi.fn(),
-    resetStateMock: vi.fn(),
-    emitterEmitMock: vi.fn(),
-    setSendBoxHandlerMock: vi.fn(),
-  }));
+const {
+  sendMessageInvokeMock,
+  addOrUpdateMessageMock,
+  resetStateMock,
+  emitterEmitMock,
+  setSendBoxHandlerMock,
+  useAcpConfigOptionsMock,
+} = vi.hoisted(() => ({
+  sendMessageInvokeMock: vi.fn(),
+  addOrUpdateMessageMock: vi.fn(),
+  resetStateMock: vi.fn(),
+  emitterEmitMock: vi.fn(),
+  setSendBoxHandlerMock: vi.fn(),
+  useAcpConfigOptionsMock: vi.fn(),
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -36,19 +43,26 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/components/chat/SendBox', () => ({
-  default: ({ onSend }: { onSend: (message: string) => Promise<void> }) => (
-    <button
-      type='button'
-      onClick={() => {
-        void onSend('Hello').catch(() => {});
-      }}
-    >
-      send
-    </button>
+  default: ({ onSend, rightTools }: { onSend: (message: string) => Promise<void>; rightTools?: React.ReactNode }) => (
+    <div>
+      {rightTools}
+      <button
+        type='button'
+        onClick={() => {
+          void onSend('Hello').catch(() => {});
+        }}
+      >
+        send
+      </button>
+    </div>
   ),
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
+vi.mock('@/renderer/components/agent/AcpThoughtLevelSelector', () => ({
+  default: ({ thoughtLevel }: { thoughtLevel: unknown }) =>
+    thoughtLevel ? <div data-testid='mock-thought-selector'>thought</div> : null,
+}));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
   default: () => null,
@@ -66,6 +80,10 @@ vi.mock('@/renderer/hooks/agent/useAcpModelInfo', () => ({
     canSwitch: false,
     selectModel: vi.fn(),
   }),
+}));
+vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
+  classifyConfigSetError: () => 'unknown',
+  useAcpConfigOptions: useAcpConfigOptionsMock,
 }));
 vi.mock('@/renderer/hooks/agent/useAgentModesForBackend', () => ({
   useAgentModesForBackend: () => [],
@@ -185,6 +203,14 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
   });
 
   it('resets ACP loading state when sendMessage fails before any stream error arrives', async () => {
@@ -218,5 +244,33 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(resetStateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('enables ACP config options on desktop so thought_level can render', () => {
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'high',
+        options: [{ value: 'high', label: 'High' }],
+      },
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+    expect(screen.getByTestId('mock-thought-selector')).toBeInTheDocument();
   });
 });

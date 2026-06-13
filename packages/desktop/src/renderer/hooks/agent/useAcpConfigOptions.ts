@@ -62,7 +62,7 @@ export function deriveSelectOption(
   fallbackIds: string[] = []
 ): AcpDerivedOption | null {
   const option = findConfigOption(options, category, fallbackIds);
-  if (!option || option.option_type !== 'select') return null;
+  if (!option || (option.option_type ?? option.type) !== 'select') return null;
   return {
     id: option.id,
     category,
