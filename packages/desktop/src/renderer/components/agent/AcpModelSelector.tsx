@@ -5,6 +5,7 @@
  */
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
+import { classifyConfigSetError } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
@@ -14,6 +15,14 @@ import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import MarqueePillLabel from './MarqueePillLabel';
+
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
 
 /**
  * Model selector for ACP-based agents. Renders three states:
@@ -39,14 +48,14 @@ const AcpModelSelector: React.FC<{
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const prepareRuntime = useCallback(() => warmupConversation(conversation_id), [conversation_id]);
-  const { model_info, canSwitch, selectModel } = useAcpModelInfo({
+  const { model_info, canSwitch, isSetting, selectModel } = useAcpModelInfo({
     conversation_id,
     backend,
     initialModelId,
     prepareRuntime: waitForWarmup ? prepareRuntime : undefined,
     persistGlobalPreference,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
-    onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
+    onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
 
   const defaultModelLabel = t('common.defaultModel');
@@ -114,7 +123,9 @@ const AcpModelSelector: React.FC<{
             <Menu.Item
               key={model.id}
               className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-              onClick={() => selectModel(model.id)}
+              onClick={() => {
+                if (!isSetting) selectModel(model.id);
+              }}
             >
               <div className='flex items-center gap-8px w-full'>
                 <span>{model.label || model.id}</span>
@@ -124,7 +135,13 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
+      <Button
+        className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+        shape='round'
+        size='small'
+        loading={isSetting}
+        disabled={isSetting}
+      >
         <span className='flex items-center gap-6px min-w-0 leading-none'>
           {renderLogo()}
           <MarqueePillLabel>{display_label}</MarqueePillLabel>

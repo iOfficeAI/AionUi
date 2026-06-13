@@ -30,5 +30,17 @@
   "model": {
     "switchSuccess": "Model switched successfully",
     "switchFailed": "Failed to switch model"
+  },
+  "config": {
+    "setting": "Ayar uygulanıyor...",
+    "commandAck": "Komut gönderildi, ancak durum doğrulanmadı. Daha sonra yenileyin veya yeniden deneyin.",
+    "timeout": "Ayar doğrulaması zaman aşımına uğradı. Önceki durum gösterilmeye devam ediyor.",
+    "busy": "Başka bir ayar uygulanıyor. Daha sonra tekrar deneyin.",
+    "failed": "Ayar uygulanamadı. Önceki durum gösterilmeye devam ediyor."
+  },
+  "thoughtLevel": {
+    "label": "Düşünme düzeyi",
+    "switchSuccess": "Düşünme düzeyi değiştirildi",
+    "switchFailed": "Düşünme düzeyi değiştirilemedi"
   }
 }

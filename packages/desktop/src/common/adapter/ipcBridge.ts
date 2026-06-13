@@ -35,7 +35,11 @@ import type {
   UpdateAssistantRequest,
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
-import type { AcpModelInfo } from '../types/platform/acpTypes';
+import type {
+  GetConfigOptionsResponse,
+  SetConfigOptionRequest,
+  SetConfigOptionResponse,
+} from '../types/platform/acpTypes';
 import type {
   CreateProviderRequest,
   FetchModelsAnonymousRequest,
@@ -817,26 +821,13 @@ export const acpConversation = {
   checkProviderHealth: httpPost<ProviderHealthCheckResponse, ProviderHealthCheckRequest>(
     '/api/agents/provider-health-check'
   ),
-  setMode: httpPut<{ mode: string; initialized: boolean }, { conversation_id: string; mode: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
-    (p) => ({ mode: p.mode })
-  ),
-  // 404 is the expected pre-warmup response from `/api/conversations/:id/mode`
-  // and `/api/conversations/:id/model` — the agent has not attached yet, so
-  // we have nothing to read. AcpModeSelector / AcpModelSelector both fall back
-  // to handshake metadata in that case. Silence the bridge log so this
-  // ordinary state doesn't pollute Sentry breadcrumbs (ELECTRON-1BT).
-  getMode: httpGet<{ mode: string; initialized: boolean }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/mode`,
+  getConfigOptions: httpGet<GetConfigOptionsResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options`,
     { silentStatuses: [404] }
   ),
-  getModel: httpGet<{ model_info: AcpModelInfo | null }, { conversation_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    { silentStatuses: [404] }
-  ),
-  setModel: httpPut<{ model_info: AcpModelInfo | null }, { conversation_id: string; model_id: string }>(
-    (p) => `/api/conversations/${p.conversation_id}/model`,
-    (p) => ({ model_id: p.model_id })
+  setConfigOption: httpPut<SetConfigOptionResponse, { conversation_id: string; option_id: string; value: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/config-options/${encodeURIComponent(p.option_id)}`,
+    (p): SetConfigOptionRequest => ({ value: p.value })
   ),
 };
 

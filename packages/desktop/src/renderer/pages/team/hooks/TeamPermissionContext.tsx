@@ -31,7 +31,7 @@ export const TeamPermissionProvider: React.FC<{
     (mode: string) => {
       // Persist session_mode on the team record so newly spawned agents inherit it
       void ipcBridge.team.setSessionMode.invoke({ team_id, session_mode: mode }).catch(() => {
-        // Best-effort: if this fails, agents still get mode via per-conversation setMode below
+        // Best-effort: if this fails, active agents still receive per-conversation config updates.
       });
     },
     [team_id]

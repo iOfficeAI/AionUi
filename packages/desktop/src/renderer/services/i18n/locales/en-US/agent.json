@@ -30,5 +30,17 @@
   "model": {
     "switchSuccess": "Model switched successfully",
     "switchFailed": "Failed to switch model"
+  },
+  "config": {
+    "setting": "Applying setting...",
+    "commandAck": "Command sent, but the state is not confirmed. Refresh or try again later.",
+    "timeout": "Setting confirmation timed out. The previous state is still shown.",
+    "busy": "Another setting is being applied. Try again later.",
+    "failed": "Failed to apply setting. The previous state is still shown."
+  },
+  "thoughtLevel": {
+    "label": "Thinking Level",
+    "switchSuccess": "Thinking level switched",
+    "switchFailed": "Failed to switch thinking level"
   }
 }
