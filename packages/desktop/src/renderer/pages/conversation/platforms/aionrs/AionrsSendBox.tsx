@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { IConversationMcpStatus } from '@/common/config/storage';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpThoughtLevelSelector from '@/renderer/components/agent/AcpThoughtLevelSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -658,20 +659,29 @@ const AionrsSendBox: React.FC<{
           />
         }
         rightTools={
-          <AgentModeSelector
-            backend='aionrs'
-            conversation_id={conversation_id}
-            compact
-            initialMode={session_mode}
-            dynamicModes={dynamicModes}
-            compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-            modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-            compactLabelPrefix={t('agentMode.permission')}
-            hideCompactLabelPrefixOnMobile
-            onModeChanged={propagateMode}
-            beforeRuntimeSync={prepareRuntimeSync}
-            persistGlobalPreference={!assistantId}
-          />
+          <div className='flex items-center gap-8px min-w-0'>
+            {!isMobile && (
+              <AcpThoughtLevelSelector
+                thoughtLevel={runtimeThoughtLevel}
+                setStatus={runtimeConfig.setStatus}
+                onSetOption={runtimeConfig.setConfigOption}
+              />
+            )}
+            <AgentModeSelector
+              backend='aionrs'
+              conversation_id={conversation_id}
+              compact
+              initialMode={session_mode}
+              dynamicModes={dynamicModes}
+              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+              compactLabelPrefix={t('agentMode.permission')}
+              hideCompactLabelPrefixOnMobile
+              onModeChanged={propagateMode}
+              beforeRuntimeSync={prepareRuntimeSync}
+              persistGlobalPreference={!assistantId}
+            />
+          </div>
         }
         prefix={
           <>

@@ -4,6 +4,7 @@ import { isBackendHttpError } from '@/common/adapter/httpBridge';
 import { isSideQuestionSupported } from '@/common/chat/sideQuestion';
 import { parseError, uuid } from '@/common/utils';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
+import AcpThoughtLevelSelector from '@/renderer/components/agent/AcpThoughtLevelSelector';
 import CommandQueuePanel from '@/renderer/components/chat/CommandQueuePanel';
 import MobileActionSheet, {
   type MobileActionSheetEntry,
@@ -696,21 +697,30 @@ Please check your local CLI tool authentication status`,
           />
         }
         rightTools={
-          showModeSelector ? (
-            <AgentModeSelector
-              backend={backend}
-              conversation_id={conversation_id}
-              compact
-              initialMode={session_mode}
-              compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
-              modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
-              compactLabelPrefix={t('agentMode.permission')}
-              hideCompactLabelPrefixOnMobile
-              onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
-              beforeRuntimeSync={prepareRuntimeSync}
-              persistGlobalPreference={!assistantId}
-            />
-          ) : undefined
+          <div className='flex items-center gap-8px min-w-0'>
+            {!isMobile && (
+              <AcpThoughtLevelSelector
+                thoughtLevel={runtimeThoughtLevel}
+                setStatus={runtimeConfig.setStatus}
+                onSetOption={runtimeConfig.setConfigOption}
+              />
+            )}
+            {showModeSelector && (
+              <AgentModeSelector
+                backend={backend}
+                conversation_id={conversation_id}
+                compact
+                initialMode={session_mode}
+                compactLeadingIcon={<Shield theme='outline' size='14' fill={iconColors.secondary} />}
+                modeLabelFormatter={(mode) => t(`agentMode.${mode.value}`, { defaultValue: mode.label })}
+                compactLabelPrefix={t('agentMode.permission')}
+                hideCompactLabelPrefixOnMobile
+                onModeChanged={isLeaderInTeam ? teamPermission?.propagateMode : undefined}
+                beforeRuntimeSync={prepareRuntimeSync}
+                persistGlobalPreference={!assistantId}
+              />
+            )}
+          </div>
         }
         prefix={
           <>
