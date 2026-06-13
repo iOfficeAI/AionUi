@@ -10,7 +10,7 @@ import {
   type AcpDerivedOption,
 } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -62,37 +62,37 @@ const AcpThoughtLevelSelector: React.FC<{
       trigger='click'
       droplist={
         <Menu>
-          {thoughtLevel.options.map((item) => (
-            <Menu.Item
-              key={item.value}
-              className={item.value === thoughtLevel.currentValue ? 'bg-2!' : ''}
-              onClick={() => void handleSelect(item.value)}
-            >
-              <div className='flex items-center gap-8px w-full'>
-                {item.value === thoughtLevel.currentValue && <span className='text-primary'>✓</span>}
-                <span className={item.value !== thoughtLevel.currentValue ? 'ml-16px' : ''}>{item.label}</span>
-              </div>
-            </Menu.Item>
-          ))}
+          <Menu.ItemGroup title={t('agent.thoughtLevel.label')}>
+            {thoughtLevel.options.map((item) => (
+              <Menu.Item
+                key={item.value}
+                className={item.value === thoughtLevel.currentValue ? 'bg-2!' : ''}
+                onClick={() => void handleSelect(item.value)}
+              >
+                <div className='flex items-center gap-8px w-full'>
+                  {item.value === thoughtLevel.currentValue && <span className='text-primary'>✓</span>}
+                  <span className={item.value !== thoughtLevel.currentValue ? 'ml-16px' : ''}>{item.label}</span>
+                </div>
+              </Menu.Item>
+            ))}
+          </Menu.ItemGroup>
         </Menu>
       }
     >
-      <Tooltip content={t('agent.thoughtLevel.label')} position='top'>
-        <Button
-          data-testid='acp-thought-level-selector'
-          className='sendbox-model-btn agent-mode-compact-pill'
-          shape='round'
-          size='small'
-          loading={isSetting}
-          disabled={isSetting}
-        >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-            <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
-            <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
-          </span>
-        </Button>
-      </Tooltip>
+      <Button
+        data-testid='acp-thought-level-selector'
+        className='sendbox-model-btn agent-mode-compact-pill'
+        shape='round'
+        size='small'
+        loading={isSetting}
+        disabled={isSetting}
+      >
+        <span className='flex items-center gap-6px min-w-0 leading-none'>
+          <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
+          <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
+          <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
+        </span>
+      </Button>
     </Dropdown>
   );
 };

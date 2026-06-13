@@ -15,6 +15,12 @@ const { messageSuccessMock, messageErrorMock } = vi.hoisted(() => ({
   messageErrorMock: vi.fn(),
 }));
 
+vi.mock('react-i18next', () => ({
+  useTranslation: () => ({
+    t: (key: string) => (key === 'agent.thoughtLevel.label' ? 'Thinking Level' : key),
+  }),
+}));
+
 vi.mock('@arco-design/web-react', () => {
   return {
     Button: ({
@@ -44,13 +50,23 @@ vi.mock('@arco-design/web-react', () => {
         Item: ({ children, onClick }: { children?: React.ReactNode; onClick?: () => void }) => (
           <div onClick={onClick}>{children}</div>
         ),
+        ItemGroup: ({ children, title }: { children?: React.ReactNode; title?: React.ReactNode }) => (
+          <div>
+            <div data-testid='thought-menu-title'>{title}</div>
+            {children}
+          </div>
+        ),
       }
     ),
     Message: {
       success: messageSuccessMock,
       error: messageErrorMock,
     },
-    Tooltip: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    Tooltip: ({ children, content }: { children?: React.ReactNode; content?: React.ReactNode }) => (
+      <div data-testid='thought-tooltip' data-content={String(content)}>
+        {children}
+      </div>
+    ),
   };
 });
 
@@ -73,6 +89,13 @@ describe('AcpThoughtLevelSelector', () => {
     render(<AcpThoughtLevelSelector thoughtLevel={thoughtLevel} setStatus={{ state: 'idle' }} onSetOption={vi.fn()} />);
 
     expect(screen.getByTestId('acp-thought-level-selector')).toHaveTextContent('Low');
+  });
+
+  it('shows the localized thought label inside the menu instead of a hover tooltip', () => {
+    render(<AcpThoughtLevelSelector thoughtLevel={thoughtLevel} setStatus={{ state: 'idle' }} onSetOption={vi.fn()} />);
+
+    expect(screen.getByTestId('thought-menu-title')).toHaveTextContent('Thinking Level');
+    expect(screen.queryByTestId('thought-tooltip')).not.toBeInTheDocument();
   });
 
   it('does not render when thought_level is unavailable', () => {
