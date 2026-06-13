@@ -1,4 +1,4 @@
-import { useMemo, useState, useRef } from "react";
+import React, { useMemo, useState, useRef } from "react";
 import { useKanbanData } from "./useKanbanData";
 import KanbanDetailPanel from "./KanbanDetailPanel";
 import type { KanbanStatus } from "./types";

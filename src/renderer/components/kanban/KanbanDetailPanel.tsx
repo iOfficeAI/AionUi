@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useRef } from "react";
+import React, { useMemo, useEffect, useRef } from "react";
 import type { KanbanTask, KanbanStatus } from "./types";
 import { PRIORITY_THRESHOLDS } from "./types";
 

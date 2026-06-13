@@ -21,14 +21,14 @@ const POLL_INTERVAL = 30_000;
 const TIMEOUT_MS = 3_000;
 
 const SERVICES: Array<{ id: string; name: string; url: string }> = [
-  { id: 'hermes', name: 'Hermes', url: 'http://127.0.0.1:8642/health' },
+  { id: 'hermes', name: 'Hermes', url: 'http://127.0.0.1:8644/health' },
   { id: 'openclaw', name: 'OpenClaw', url: 'http://127.0.0.1:18793/health' },
   { id: 'clawmem', name: 'ClawMem', url: 'http://127.0.0.1:7438/health' },
   { id: 'ollama', name: 'Ollama', url: 'http://127.0.0.1:11434/api/tags' },
   { id: 'litellm', name: 'LiteLLM', url: 'http://127.0.0.1:4000/health/readiness' },
-  { id: 'vibevoice', name: 'VibeVoice', url: 'http://127.0.0.1:8094/health' },
+  { id: 'voice', name: 'Voice', url: 'http://127.0.0.1:8098/health' },
   { id: 'n8n', name: 'n8n', url: 'http://127.0.0.1:5678/healthz' },
-  { id: 'space', name: 'Space', url: 'http://127.0.0.1:3003/health' },
+  { id: 'space', name: 'Space', url: 'http://127.0.0.1:3003/' },
 ];
 
 interface ServiceHealthState {

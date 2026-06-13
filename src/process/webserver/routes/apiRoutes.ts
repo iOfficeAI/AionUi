@@ -314,9 +314,9 @@ const NOVAMASTER_PROBES: NovaMasterProbe[] = [
     id: 'hermes',
     name: 'Hermes',
     role: 'Self-improving agent',
-    port: 8642,
+    port: 8644,
     healthPath: '/health',
-    openUrl: 'http://127.0.0.1:8642/health',
+    openUrl: 'http://127.0.0.1:8644/health',
     primaryAction: {
       id: 'health',
       label: 'Health',
