@@ -487,7 +487,7 @@ function readJsonFile<T>(file: string): T | null {
   }
 }
 
-function readRegistration(userDataPath: string): CommandEveRegistrationRecord | null {
+export function readRegistration(userDataPath: string): CommandEveRegistrationRecord | null {
   const record = readJsonFile<CommandEveRegistrationRecord>(
     path.join(entitlementStateDir(userDataPath), REGISTRATION_FILE)
   );

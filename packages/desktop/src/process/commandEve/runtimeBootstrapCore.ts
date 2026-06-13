@@ -9,6 +9,7 @@ import fs from 'fs';
 import http from 'http';
 import os from 'os';
 import path from 'path';
+import { readRegistration } from './entitlementCore';
 
 export const COMMAND_EVE_RUNTIME_BOOTSTRAP_VERSION = 'command-eve-runtime-bootstrap/v0';
 
@@ -62,7 +63,12 @@ export type RuntimeBootstrapStageId =
   | 'model'
   | 'identity';
 
-export type RuntimeBootstrapIdentitySource = 'env' | 'macos_full_name' | 'os_user' | 'unverified';
+export type RuntimeBootstrapIdentitySource =
+  | 'registration'
+  | 'env'
+  | 'macos_full_name'
+  | 'os_user'
+  | 'unverified';
 
 export type RuntimeBootstrapIdentityConfidence = 'verified' | 'needs_confirmation' | 'placeholder';
 
@@ -961,11 +967,21 @@ function writeCommandEveRuntimeReconciliation(
   writeJsonAtomic(path.join(paths.hermesHome, COMMAND_EVE_RUNTIME_RECONCILIATION_FILE), reconciliation);
 }
 
-function resolveCommandEveFirstRunProfile(options: {
+export function resolveCommandEveFirstRunProfile(options: {
   env: NodeJS.ProcessEnv;
   now: () => Date;
   displayNameLookup?: () => string;
+  /**
+   * COMPA-596: the founder + company the user EXPLICITLY confirmed at the
+   * registration gate (from registration.json). This is the highest-confidence
+   * seed — it outranks the env/macOS guesses and never needs re-confirmation —
+   * so EVE can greet the founder with their real name + company on first launch
+   * instead of "not known yet".
+   */
+  registration?: { founder_name?: string; company_name?: string };
 }): RuntimeBootstrapIdentityProfile {
+  const founderFromRegistration = normalizeIdentityText(options.registration?.founder_name);
+  const companyFromRegistration = normalizeIdentityText(options.registration?.company_name);
   const founderFromEnv = normalizeIdentityText(
     options.env.COMMAND_EVE_FOUNDER_NAME || options.env.COMMAND_EVE_USER_NAME
   );
@@ -973,12 +989,22 @@ function resolveCommandEveFirstRunProfile(options: {
   const displayName = normalizeIdentityText((options.displayNameLookup || defaultDisplayNameLookup)());
   const userName = normalizeIdentityText(options.env.USER || options.env.USERNAME || options.env.LOGNAME);
 
+  // The gate-confirmed company wins over any env value.
+  const hasRegistrationCompany =
+    Boolean(companyFromRegistration) && !isPlaceholderIdentityName(companyFromRegistration);
+  const companyName = hasRegistrationCompany ? companyFromRegistration : companyFromEnv;
+
   let founderName = '';
   let source: RuntimeBootstrapIdentitySource = 'unverified';
   let confidence: RuntimeBootstrapIdentityConfidence = 'placeholder';
   let needsConfirmation = true;
 
-  if (founderFromEnv && !isPlaceholderIdentityName(founderFromEnv)) {
+  if (founderFromRegistration && !isPlaceholderIdentityName(founderFromRegistration)) {
+    founderName = founderFromRegistration;
+    source = 'registration';
+    confidence = 'verified';
+    needsConfirmation = false;
+  } else if (founderFromEnv && !isPlaceholderIdentityName(founderFromEnv)) {
     founderName = founderFromEnv;
     source = 'env';
     confidence = 'verified';
@@ -1001,11 +1027,13 @@ function resolveCommandEveFirstRunProfile(options: {
     updated_at: options.now().toISOString(),
   };
   if (founderName) profile.founder_name = founderName;
-  if (companyFromEnv) profile.company_name = companyFromEnv;
-  if (!founderName && companyFromEnv) {
-    profile.source = 'env';
-    profile.confidence = 'needs_confirmation';
-    profile.needs_confirmation = true;
+  if (companyName) profile.company_name = companyName;
+  // Company-only seed: a gate-confirmed company is verified; an env-only company
+  // still needs founder confirmation.
+  if (!founderName && companyName) {
+    profile.source = hasRegistrationCompany ? 'registration' : 'env';
+    profile.confidence = hasRegistrationCompany ? 'verified' : 'needs_confirmation';
+    profile.needs_confirmation = !hasRegistrationCompany;
   }
   return profile;
 }
@@ -1565,10 +1593,17 @@ export async function ensureCommandEveRuntimeBootstrap(
     })
   );
 
+  // COMPA-596: seed EVE's first-run greeting with the founder + company the user
+  // confirmed at the registration gate (registration.json), so EVE opens with
+  // "I already know: <name>, <company>" instead of asking from scratch.
+  const registrationRecord = readRegistration(options.userDataPath);
   firstRunProfile = resolveCommandEveFirstRunProfile({
     env,
     now,
     displayNameLookup: options.displayNameLookup,
+    registration: registrationRecord
+      ? { founder_name: registrationRecord.name, company_name: registrationRecord.company }
+      : undefined,
   });
   writeJsonAtomic(paths.firstRunProfile, firstRunProfile);
   pushStage(

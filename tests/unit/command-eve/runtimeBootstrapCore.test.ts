@@ -17,6 +17,7 @@ import {
   loadCommandEveRuntimeBootstrapManifest,
   parseOllamaListHasModel,
   prepareCommandEveRuntimeProcessEnv,
+  resolveCommandEveFirstRunProfile,
   resolveCommandEveCapabilityManifestPath,
   resolveCommandEveRuntimeBootstrapPaths,
   resolveCommandEveRuntimeBootstrapManifestPath,
@@ -644,5 +645,46 @@ describe('Command EVE runtime bootstrap core', () => {
     expect(prepared.hermesRoot).toBe(paths.hermesRoot);
     expect(fs.existsSync(paths.hermesShim)).toBe(true);
     expect(env.PATH?.split(path.delimiter)[0]).toBe(paths.hermesRoot);
+  });
+});
+
+describe('resolveCommandEveFirstRunProfile registration seed (COMPA-596)', () => {
+  const now = () => new Date('2026-06-13T00:00:00.000Z');
+
+  it('uses the gate-confirmed founder + company as the highest verified source', () => {
+    const profile = resolveCommandEveFirstRunProfile({
+      env: { COMMAND_EVE_FOUNDER_NAME: 'Someone Else', COMMAND_EVE_COMPANY_NAME: 'Env Co' },
+      now,
+      displayNameLookup: () => 'macOS Name',
+      registration: { founder_name: 'Mathias Heinke', company_name: 'FYN Labs' },
+    });
+    expect(profile.founder_name).toBe('Mathias Heinke');
+    expect(profile.company_name).toBe('FYN Labs');
+    expect(profile.source).toBe('registration');
+    expect(profile.confidence).toBe('verified');
+    expect(profile.needs_confirmation).toBe(false);
+  });
+
+  it('falls back to the macOS display name when there is no registration (backward compatible)', () => {
+    const profile = resolveCommandEveFirstRunProfile({
+      env: {},
+      now,
+      displayNameLookup: () => 'Mathias Heinke',
+    });
+    expect(profile.founder_name).toBe('Mathias Heinke');
+    expect(profile.source).toBe('macos_full_name');
+    expect(profile.needs_confirmation).toBe(true);
+  });
+
+  it('treats a gate-confirmed company without a founder name as verified', () => {
+    const profile = resolveCommandEveFirstRunProfile({
+      env: {},
+      now,
+      displayNameLookup: () => '',
+      registration: { company_name: 'FYN Labs' },
+    });
+    expect(profile.company_name).toBe('FYN Labs');
+    expect(profile.source).toBe('registration');
+    expect(profile.needs_confirmation).toBe(false);
   });
 });
