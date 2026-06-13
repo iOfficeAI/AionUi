@@ -118,11 +118,15 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     enabled: Boolean(conversation_id),
   });
   const runtimeMode = runtimeConfig.mode;
-  const runtimeModes = runtimeMode?.options.map((item) => ({
-    value: item.value,
-    label: item.label,
-    description: item.description ?? undefined,
-  }));
+  const runtimeModes = useMemo(
+    () =>
+      runtimeMode?.options.map((item) => ({
+        value: item.value,
+        label: item.label,
+        description: item.description ?? undefined,
+      })),
+    [runtimeMode?.options]
+  );
 
   // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
   // then fall back to `acp.cached_config_options` category=mode (codex)
@@ -178,11 +182,11 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   // Validate against available modes to handle backends with non-standard default
   // (e.g. opencode uses 'build' instead of 'default').
   useEffect(() => {
-    if (initialMode !== undefined) {
+    if (initialMode !== undefined && !runtimeMode?.currentValue) {
       const valid = modes.some((m) => m.value === initialMode) ? initialMode : defaultMode;
       setCurrentMode(valid);
     }
-  }, [initialMode, modes, defaultMode]);
+  }, [initialMode, modes, defaultMode, runtimeMode?.currentValue]);
 
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
