@@ -1,9 +1,12 @@
 import { createRequire } from 'node:module';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it } from 'vitest';
 
 const require = createRequire(import.meta.url);
-const { buildNotarytoolArgs, getDmgSignIdentity } = require('../../../scripts/afterAllArtifactBuild.js');
+const { buildNotarytoolArgs, getDmgSignIdentity, findAppForDmg } = require('../../../scripts/afterAllArtifactBuild.js');
 
 describe('afterAllArtifactBuild DMG notarization helpers', () => {
   it('resolves the configured DMG signing identity', () => {
@@ -76,5 +79,51 @@ describe('afterAllArtifactBuild DMG notarization helpers', () => {
         {}
       )
     ).toBeNull();
+  });
+});
+
+describe('afterAllArtifactBuild findAppForDmg (COMPA-591 hdiutil pipeline)', () => {
+  const tempDirs: string[] = [];
+  const makeOutDir = (): string => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ce-afterbuild-'));
+    tempDirs.push(dir);
+    return dir;
+  };
+  const makeApp = (outDir: string, subdir: string): string => {
+    const appDir = path.join(outDir, subdir, 'Command EVE.app');
+    fs.mkdirSync(appDir, { recursive: true });
+    return appDir;
+  };
+  afterEach(() => {
+    while (tempDirs.length) fs.rmSync(tempDirs.pop() as string, { recursive: true, force: true });
+  });
+
+  it('maps an arm64 DMG to the staged .app under mac-arm64/', () => {
+    const outDir = makeOutDir();
+    const app = makeApp(outDir, 'mac-arm64');
+    makeApp(outDir, 'mac-x64'); // decoy other-arch app must not be chosen
+    const dmg = path.join(outDir, 'Command-EVE-1.0.0-alpha.5-mac-arm64.dmg');
+    expect(findAppForDmg(dmg, { outDir })).toBe(app);
+  });
+
+  it('maps an x64 DMG to the staged .app under mac-x64/', () => {
+    const outDir = makeOutDir();
+    makeApp(outDir, 'mac-arm64');
+    const app = makeApp(outDir, 'mac-x64');
+    const dmg = path.join(outDir, 'Command-EVE-1.0.0-alpha.5-mac-x64.dmg');
+    expect(findAppForDmg(dmg, { outDir })).toBe(app);
+  });
+
+  it('falls back to the generic mac/ dir when no per-arch dir exists', () => {
+    const outDir = makeOutDir();
+    const app = makeApp(outDir, 'mac');
+    const dmg = path.join(outDir, 'Command-EVE-1.0.0-alpha.5-mac-arm64.dmg');
+    expect(findAppForDmg(dmg, { outDir })).toBe(app);
+  });
+
+  it('returns null when no .app is staged for the DMG', () => {
+    const outDir = makeOutDir();
+    const dmg = path.join(outDir, 'Command-EVE-1.0.0-alpha.5-mac-arm64.dmg');
+    expect(findAppForDmg(dmg, { outDir })).toBeNull();
   });
 });
