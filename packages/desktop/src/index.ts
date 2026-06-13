@@ -67,6 +67,19 @@ import {
 // @ts-expect-error - electron-squirrel-startup doesn't have types
 import electronSquirrelStartup from 'electron-squirrel-startup';
 
+// ============ Command EVE license-key resolution (COMPA-593) ============
+// In the packaged app, electron-builder `extraResources: { from: public, to: . }`
+// copies public/ — including the founder AND server license public keys — into
+// Contents/Resources. entitlementCore's resolver already documents
+// COMMAND_EVE_RESOURCES_PATH as the packaged-app key location, but nothing ever
+// set it, so resolution fell through to `process.cwd()/public` — which is '/'
+// for a Finder launch, where no key exists. Point the resolver at the real
+// resources root so BOTH trusted keys load and server-minted (SaaS) CEVE.v1
+// codes verify offline. Dev (app.isPackaged === false) keeps the cwd/public path.
+if (app.isPackaged && !process.env.COMMAND_EVE_RESOURCES_PATH) {
+  process.env.COMMAND_EVE_RESOURCES_PATH = process.resourcesPath;
+}
+
 // ============ Single Instance Lock ============
 // Acquire lock early so the second instance quits before doing unnecessary work.
 // When a second instance starts (e.g. from protocol URL), it sends its data
