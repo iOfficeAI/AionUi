@@ -665,6 +665,7 @@ const AionrsSendBox: React.FC<{
                 thoughtLevel={runtimeThoughtLevel}
                 setStatus={runtimeConfig.setStatus}
                 onSetOption={runtimeConfig.setConfigOption}
+                iconOnly={Boolean(teamPermission)}
               />
             )}
             <AgentModeSelector

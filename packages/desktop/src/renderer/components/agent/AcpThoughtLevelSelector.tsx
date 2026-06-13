@@ -33,7 +33,8 @@ const AcpThoughtLevelSelector: React.FC<{
   thoughtLevel: AcpDerivedOption | null;
   setStatus: AcpConfigSetStatus;
   onSetOption: (optionId: string, value: string) => Promise<unknown>;
-}> = ({ thoughtLevel, setStatus, onSetOption }) => {
+  iconOnly?: boolean;
+}> = ({ thoughtLevel, setStatus, onSetOption, iconOnly = false }) => {
   const { t } = useTranslation();
   const [isLocalSetting, setIsLocalSetting] = useState(false);
   const isSetting = isLocalSetting || setStatus.state === 'setting';
@@ -81,12 +82,13 @@ const AcpThoughtLevelSelector: React.FC<{
     >
       <RuntimeSelectorPill
         testId='acp-thought-level-selector'
-        className='sendbox-model-btn agent-mode-compact-pill'
-        label={currentLabel}
+        className={`sendbox-model-btn agent-mode-compact-pill ${iconOnly ? 'agent-mode-compact-pill--icon-only' : ''}`}
+        label={iconOnly ? undefined : currentLabel}
         leading={<Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
-        trailing={<Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}
+        trailing={iconOnly ? null : <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}
         loading={isSetting}
         disabled={isSetting}
+        aria-label={t('agent.thoughtLevel.label')}
       />
     </Dropdown>
   );

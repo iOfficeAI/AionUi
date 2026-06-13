@@ -18,6 +18,7 @@ const {
   emitterEmitMock,
   setSendBoxHandlerMock,
   useAcpConfigOptionsMock,
+  useTeamPermissionMock,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
   addOrUpdateMessageMock: vi.fn(),
@@ -25,6 +26,7 @@ const {
   emitterEmitMock: vi.fn(),
   setSendBoxHandlerMock: vi.fn(),
   useAcpConfigOptionsMock: vi.fn(),
+  useTeamPermissionMock: vi.fn(),
 }));
 
 vi.mock('@/common', () => ({
@@ -60,8 +62,12 @@ vi.mock('@/renderer/components/chat/SendBox', () => ({
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
 vi.mock('@/renderer/components/agent/AcpThoughtLevelSelector', () => ({
-  default: ({ thoughtLevel }: { thoughtLevel: unknown }) =>
-    thoughtLevel ? <div data-testid='mock-thought-selector'>thought</div> : null,
+  default: ({ thoughtLevel, iconOnly }: { thoughtLevel: unknown; iconOnly?: boolean }) =>
+    thoughtLevel ? (
+      <div data-testid='mock-thought-selector' data-icon-only={String(Boolean(iconOnly))}>
+        thought
+      </div>
+    ) : null,
 }));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
@@ -155,7 +161,7 @@ vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
   warmupConversation: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
-  useTeamPermission: () => null,
+  useTeamPermission: useTeamPermissionMock,
 }));
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
@@ -203,6 +209,7 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useTeamPermissionMock.mockReturnValue(null);
     useAcpConfigOptionsMock.mockReturnValue({
       setStatus: { state: 'idle' },
       mode: null,
@@ -272,5 +279,38 @@ describe('AcpSendBox', () => {
 
     expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
     expect(screen.getByTestId('mock-thought-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'false');
+  });
+
+  it('renders thought_level as icon-only inside a team pane', () => {
+    useTeamPermissionMock.mockReturnValue({
+      leaderConversationId: 'leader-conv',
+      warmupSession: vi.fn().mockResolvedValue(undefined),
+      propagateMode: vi.fn(),
+    });
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'high',
+        options: [{ value: 'high', label: 'High' }],
+      },
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='teammate-conv'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'true');
   });
 });

@@ -120,6 +120,27 @@ describe('AcpThoughtLevelSelector', () => {
     expect(messageSuccessMock).toHaveBeenCalled();
   });
 
+  it('can render as icon-only while keeping the selectable menu', async () => {
+    const onSetOption = vi.fn().mockResolvedValue(undefined);
+    render(
+      <AcpThoughtLevelSelector
+        thoughtLevel={thoughtLevel}
+        setStatus={{ state: 'idle' }}
+        onSetOption={onSetOption}
+        iconOnly
+      />
+    );
+
+    expect(screen.getByTestId('acp-thought-level-selector')).not.toHaveTextContent('Low');
+    expect(screen.getByTestId('thought-menu-title')).toHaveTextContent('Thinking Level');
+
+    fireEvent.click(screen.getByText('High'));
+
+    await waitFor(() => {
+      expect(onSetOption).toHaveBeenCalledWith('effort', 'high');
+    });
+  });
+
   it('renders setting progress at the trailing edge instead of using Arco button loading', () => {
     render(
       <AcpThoughtLevelSelector thoughtLevel={thoughtLevel} setStatus={{ state: 'setting' }} onSetOption={vi.fn()} />

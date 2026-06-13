@@ -703,6 +703,7 @@ Please check your local CLI tool authentication status`,
                 thoughtLevel={runtimeThoughtLevel}
                 setStatus={runtimeConfig.setStatus}
                 onSetOption={runtimeConfig.setConfigOption}
+                iconOnly={Boolean(teamPermission)}
               />
             )}
             {showModeSelector && (

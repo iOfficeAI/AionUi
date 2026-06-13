@@ -16,7 +16,7 @@ type RuntimeSelectorPillProps = Omit<
 > & {
   testId?: string;
   className: string;
-  label: string;
+  label?: string;
   leading?: React.ReactNode;
   trailing?: React.ReactNode;
   loading?: boolean;
@@ -49,7 +49,7 @@ const RuntimeSelectorPill = React.forwardRef<React.ElementRef<typeof Button>, Ru
     >
       <span className='flex items-center gap-6px min-w-0 leading-none'>
         {leading}
-        <MarqueePillLabel>{label}</MarqueePillLabel>
+        {label && <MarqueePillLabel>{label}</MarqueePillLabel>}
         {loading ? <RuntimeSelectorLoadingIndicator /> : trailing}
       </span>
     </Button>
