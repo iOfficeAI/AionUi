@@ -10,11 +10,11 @@ import {
   type AcpDerivedOption,
 } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MarqueePillLabel from './MarqueePillLabel';
+import RuntimeSelectorPill from './RuntimeSelectorPill';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -79,20 +79,15 @@ const AcpThoughtLevelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button
-        data-testid='acp-thought-level-selector'
+      <RuntimeSelectorPill
+        testId='acp-thought-level-selector'
         className='sendbox-model-btn agent-mode-compact-pill'
-        shape='round'
-        size='small'
+        label={currentLabel}
+        leading={<Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />}
+        trailing={<Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}
         loading={isSetting}
         disabled={isSetting}
-      >
-        <span className='flex items-center gap-6px min-w-0 leading-none'>
-          <Brain theme='outline' size='14' fill={iconColors.secondary} className='shrink-0' />
-          <MarqueePillLabel>{currentLabel}</MarqueePillLabel>
-          <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
-        </span>
-      </Button>
+      />
     </Dropdown>
   );
 };

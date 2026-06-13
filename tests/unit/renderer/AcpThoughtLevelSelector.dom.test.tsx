@@ -119,4 +119,17 @@ describe('AcpThoughtLevelSelector', () => {
     });
     expect(messageSuccessMock).toHaveBeenCalled();
   });
+
+  it('renders setting progress at the trailing edge instead of using Arco button loading', () => {
+    render(
+      <AcpThoughtLevelSelector thoughtLevel={thoughtLevel} setStatus={{ state: 'setting' }} onSetOption={vi.fn()} />
+    );
+
+    const button = screen.getByTestId('acp-thought-level-selector');
+    const loading = screen.getByTestId('runtime-selector-loading-indicator');
+
+    expect(button).not.toHaveAttribute('loading');
+    expect(button).toHaveTextContent('Low');
+    expect(loading.parentElement?.lastElementChild).toBe(loading);
+  });
 });

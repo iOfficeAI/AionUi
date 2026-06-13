@@ -38,6 +38,7 @@ vi.mock('@/renderer/components/agent/MarqueePillLabel', () => ({
 
 vi.mock('@icon-park/react', () => ({
   Down: () => <span aria-hidden='true'>v</span>,
+  Loading: ({ className }: { className?: string }) => <span aria-hidden='true' className={className} />,
 }));
 
 vi.mock('@arco-design/web-react', () => {
@@ -123,5 +124,33 @@ describe('AgentModeSelector', () => {
 
     await waitFor(() => expect(screen.getByTestId('mode-selector')).toHaveAttribute('data-current-mode', 'default'));
     expect(screen.getByText('权限 · 默认')).toBeInTheDocument();
+  });
+
+  it('renders setting progress at the compact trailing edge instead of using Arco button loading', async () => {
+    useAcpConfigOptionsMock.mockImplementation(() => ({
+      setStatus: { state: 'setting' },
+      mode: runtimeMode(),
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    }));
+
+    render(
+      <AgentModeSelector
+        backend='claude'
+        conversation_id='conv-1'
+        compact
+        modeLabelFormatter={(mode) => (mode.value === 'default' ? '默认' : '全自动')}
+        compactLabelPrefix='权限'
+      />
+    );
+
+    const button = screen.getByTestId('agent-mode-selector-claude');
+    const loading = screen.getByTestId('runtime-selector-loading-indicator');
+
+    expect(button).not.toHaveAttribute('loading');
+    expect(button).toHaveTextContent('权限 · 默认');
+    expect(loading.parentElement?.lastElementChild).toBe(loading);
   });
 });

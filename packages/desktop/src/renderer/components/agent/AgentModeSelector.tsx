@@ -11,11 +11,11 @@ import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUti
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
-import { Button, Dropdown, Menu, Message } from '@arco-design/web-react';
+import { Dropdown, Menu, Message } from '@arco-design/web-react';
 import { Down } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import MarqueePillLabel from './MarqueePillLabel';
+import RuntimeSelectorPill from './RuntimeSelectorPill';
 
 const configErrorMessageKey = (error: unknown) => {
   const errorKind = classifyConfigSetError(error);
@@ -308,11 +308,17 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
 
     const compactContent = (
       <span data-testid='mode-selector' data-current-mode={current_mode} className='inline-flex'>
-        <Button
-          data-testid={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
+        <RuntimeSelectorPill
+          testId={backend ? `agent-mode-selector-${backend}` : 'agent-mode-selector'}
           className={`sendbox-model-btn agent-mode-compact-pill ${canInteract ? '' : 'agent-mode-compact-pill--readonly'}`}
-          shape='round'
-          size='small'
+          label={compactLabel}
+          leading={
+            <>
+              {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
+              {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
+            </>
+          }
+          trailing={canInteract ? <Down size={12} className='text-t-tertiary shrink-0' /> : null}
           loading={isSetting}
           disabled={isSetting}
           onClick={canInteract ? () => !isSetting && setDropdownVisible((visible) => !visible) : undefined}
@@ -321,14 +327,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
             transition: 'opacity 0.2s',
             cursor: canInteract ? 'pointer' : 'default',
           }}
-        >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {compactLeadingIcon && <span className='shrink-0 inline-flex items-center'>{compactLeadingIcon}</span>}
-            {showLogoInCompact && <span className='shrink-0 inline-flex items-center'>{renderLogo()}</span>}
-            <MarqueePillLabel>{compactLabel}</MarqueePillLabel>
-            {canInteract && <Down size={12} className='text-t-tertiary shrink-0' />}
-          </span>
-        </Button>
+        />
       </span>
     );
 
