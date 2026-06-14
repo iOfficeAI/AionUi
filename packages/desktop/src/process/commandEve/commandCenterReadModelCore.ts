@@ -172,7 +172,7 @@ export async function buildCommandCenterReadModel(
     };
   }
 
-  const nodeBinary = options.nodeBinary || process.env.COMMAND_EVE_NODE_BINARY || process.execPath || 'node';
+  const nodeBinary = options.nodeBinary || process.env.COMMAND_EVE_NODE_BINARY || process.env.NODE_BINARY || 'node';
   const maxRuns = normalizeMaxRuns(options.maxRuns);
   const runner = options.runner ?? defaultCommandCenterReadModelRunner;
   const args = [cliPath, '--events', eventLedger, '--format', 'json', '--max-runs', String(maxRuns)];

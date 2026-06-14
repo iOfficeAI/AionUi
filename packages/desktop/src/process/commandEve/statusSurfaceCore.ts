@@ -142,7 +142,7 @@ export async function buildCommandEveStatusSurface(
     };
   }
 
-  const nodeBinary = options.nodeBinary || process.env.COMMAND_EVE_NODE_BINARY || process.execPath || 'node';
+  const nodeBinary = options.nodeBinary || process.env.COMMAND_EVE_NODE_BINARY || process.env.NODE_BINARY || 'node';
   const maxRuns = normalizeMaxRuns(options.maxRuns);
   const runner = options.runner ?? defaultCommandEveStatusSurfaceRunner;
   const args = [
