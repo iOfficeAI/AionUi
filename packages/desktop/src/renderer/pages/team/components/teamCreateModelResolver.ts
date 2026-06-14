@@ -7,6 +7,7 @@
 import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { normalizeAcpModelId } from '@/renderer/utils/model/normalizeAcpModelInfo';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -49,7 +50,7 @@ async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
     const matched = agents.find((a) => (a.backend ?? a.agent_type) === agent_type);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (handshakeModels?.current_model_id) {
-      return handshakeModels.current_model_id;
+      return normalizeAcpModelId(handshakeModels.current_model_id);
     }
   } catch {
     // Fall through to cached models

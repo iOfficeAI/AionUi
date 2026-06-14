@@ -25,6 +25,7 @@ import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
+import { normalizeAcpModelId, normalizeAcpModelInfo } from '@/renderer/utils/model/normalizeAcpModelInfo';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -413,14 +414,16 @@ export const useGuidAgentSelection = ({
     const config = configService.get('acp.config');
     const preferred = (config?.[backend as string] as Record<string, unknown>)?.preferredModelId as string | undefined;
     if (preferred) {
-      _setSelectedAcpModel(preferred);
+      _setSelectedAcpModel(normalizeAcpModelId(preferred));
       return;
     }
 
     const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    _setSelectedAcpModel(handshakeModels?.current_model_id ?? null);
+    _setSelectedAcpModel(
+      handshakeModels?.current_model_id ? normalizeAcpModelId(handshakeModels.current_model_id) : null
+    );
   }, [selectedAgentKey, availableAgentsData, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
 
   // Read preferred mode or fallback to legacy yoloMode config
@@ -502,7 +505,7 @@ export const useGuidAgentSelection = ({
       Array.isArray(handshakeModels.available_models) &&
       handshakeModels.available_models.length > 0
     ) {
-      return handshakeModels;
+      return normalizeAcpModelInfo(handshakeModels);
     }
 
     // Fallback: when the backend has not yet observed a session for codex

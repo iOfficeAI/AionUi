@@ -113,6 +113,38 @@ describe('useDetectedAgents', () => {
     ]);
   });
 
+  it('normalizes /enabled /disabled suffixed handshake models (issue #3297)', () => {
+    const mockAgents: AgentMetadata[] = [
+      {
+        id: 'a1',
+        name: 'CodeBuddy',
+        agent_type: 'acp',
+        agent_source: 'custom',
+        backend: 'codebuddy',
+        handshake: {
+          available_models: {
+            current_model_id: 'glm-5.1/enabled',
+            current_model_label: 'GLM-5.1 (enabled)',
+            available_models: [
+              { id: 'glm-5.1/enabled', label: 'GLM-5.1 (enabled)' },
+              { id: 'glm-5.1/disabled', label: 'GLM-5.1 (disabled)' },
+              { id: 'kimi-k2.6/enabled', label: 'Kimi K2.6 (enabled)' },
+              { id: 'kimi-k2.6/disabled', label: 'Kimi K2.6 (disabled)' },
+            ],
+          },
+        },
+      },
+    ];
+    (useSWR as any).mockReturnValue({ data: mockAgents, error: null });
+
+    const { result } = renderHook(() => useDetectedAgents());
+
+    expect(result.current.availableBackends[0]?.modelOptions).toEqual([
+      { value: 'glm-5.1', label: 'GLM-5.1' },
+      { value: 'kimi-k2.6', label: 'Kimi K2.6' },
+    ]);
+  });
+
   it('calls refreshCustomAgents and mutate on refreshAgentDetection', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null });
     (ipcBridge.acpConversation.refreshCustomAgents.invoke as any).mockResolvedValue(undefined);
