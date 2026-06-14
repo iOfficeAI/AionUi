@@ -19,6 +19,7 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: vi.fn(() => null),
+  resolveBackendAssetUrl: vi.fn((url?: string) => url),
 }));
 
 describe('AssistantSelectionArea', () => {
@@ -99,6 +100,57 @@ describe('AssistantSelectionArea', () => {
 
     expect(screen.getByText('学术论文助手')).toBeInTheDocument();
     expect(screen.queryByText('Academic Paper')).not.toBeInTheDocument();
+  });
+
+  const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo=';
+
+  const makeAssistant = (id: string, avatar?: string) => ({
+    id,
+    source: 'user' as const,
+    name: id,
+    name_i18n: {},
+    description_i18n: {},
+    enabled: true,
+    sort_order: 1,
+    preset_agent_type: 'claude',
+    avatar,
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    context_i18n: {},
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+  });
+
+  const renderList = (avatar?: string) =>
+    render(
+      <ConfigProvider>
+        <AssistantSelectionArea
+          selectedAssistantId='writer'
+          assistants={[makeAssistant('writer', avatar)]}
+          localeKey='en-US'
+          onSelectAssistant={vi.fn()}
+        />
+      </ConfigProvider>
+    );
+
+  it('renders an assistant card image avatar as <img>, never as raw data-URL text', () => {
+    const { container } = renderList(PNG_DATA_URL);
+    expect(container.querySelector('img')?.getAttribute('src')).toBe(PNG_DATA_URL);
+    expect(container.textContent).not.toContain('data:image');
+  });
+
+  it('renders an emoji assistant avatar as text', () => {
+    const { container } = renderList('🐙');
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.textContent).toContain('🐙');
+  });
+
+  it('falls back to the Robot icon when an assistant has no avatar', () => {
+    const { container } = renderList(undefined);
+    expect(container.querySelector('img')).toBeNull();
+    expect(container.querySelector('svg')).toBeTruthy();
   });
 });
 

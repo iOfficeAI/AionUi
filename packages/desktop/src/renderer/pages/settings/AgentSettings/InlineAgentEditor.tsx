@@ -7,9 +7,10 @@
 import type { CustomAgentAdvancedOverrides } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
-import { Alert, Avatar, Button, Collapse, Input, Typography } from '@arco-design/web-react';
-import { CheckOne, CloseOne } from '@icon-park/react';
+import { Alert, Avatar, Button, Collapse, Input, Message, Typography, Upload } from '@arco-design/web-react';
+import { CheckOne, CloseOne, Pic } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
+import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import CodeMirror from '@uiw/react-codemirror';
 import { json } from '@codemirror/lang-json';
 import { useThemeContext } from '@/renderer/hooks/context/ThemeContext';
@@ -19,6 +20,21 @@ import { useTranslation } from 'react-i18next';
 import EnvVarEditor, { type EnvVarRow } from './EnvVarEditor';
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
+
+const ACCEPTED_AVATAR_TYPES = '.png,.jpg,.jpeg,.gif,.webp,.svg';
+const MAX_AVATAR_BYTES = 1024 * 1024;
+
+export function readImageAsDataUrl(file: File): Promise<string | null> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = () => {
+      const result = reader.result;
+      resolve(typeof result === 'string' ? result : null);
+    };
+    reader.onerror = () => resolve(null);
+    reader.readAsDataURL(file);
+  });
+}
 
 export interface EnvVar {
   id: string;
@@ -237,6 +253,25 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
     setEnvVars(rows);
   }, []);
 
+  const handleAvatarBeforeUpload = useCallback(
+    async (file: File) => {
+      isJsonEditingRef.current = false;
+      if (file.size > MAX_AVATAR_BYTES) {
+        Message.error(t('settings.agentAvatarTooLarge'));
+        return false;
+      }
+
+      const dataUrl = await readImageAsDataUrl(file);
+      if (dataUrl) {
+        setAvatar(dataUrl);
+      } else {
+        Message.error(t('settings.agentAvatarReadFailed'));
+      }
+      return false;
+    },
+    [t]
+  );
+
   const handleTestConnection = useCallback(async () => {
     setTestStatus('testing');
     setTestErrorDetail('');
@@ -298,22 +333,44 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const isTestDisabled = !command.trim() || testStatus === 'testing';
   const fieldLabelClassName = 'mb-6px block text-13px font-medium text-t-primary';
   const fieldHelpClassName = 'mt-4px block text-12px leading-18px text-t-tertiary';
+  const avatarDisplay = resolveAssistantAvatar(avatar);
 
   return (
     <div className='flex flex-col gap-16px pt-8px pb-20px'>
       {/* Avatar + Name row */}
       <div className='flex items-center gap-12px'>
-        <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
-          <div className='cursor-pointer shrink-0'>
-            <Avatar
-              size={48}
-              shape='square'
-              style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
+        <div className='flex shrink-0 flex-col items-center gap-6px'>
+          <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
+            <div className='cursor-pointer shrink-0'>
+              <Avatar
+                size={48}
+                shape='square'
+                style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
+              >
+                {avatarDisplay.kind === 'image' ? (
+                  <img src={avatarDisplay.value} alt={t('settings.agentAvatarAlt')} className='h-full w-full object-contain' />
+                ) : (
+                  avatar
+                )}
+              </Avatar>
+            </div>
+          </EmojiPicker>
+          <Upload
+            showUploadList={false}
+            accept={ACCEPTED_AVATAR_TYPES}
+            autoUpload={false}
+            beforeUpload={handleAvatarBeforeUpload}
+          >
+            <Button
+              type='text'
+              size='mini'
+              icon={<Pic theme='outline' size={12} />}
+              className='!px-4px text-12px text-t-secondary hover:!text-primary-6'
             >
-              {avatar}
-            </Avatar>
-          </div>
-        </EmojiPicker>
+              {t('settings.agentAvatarUpload')}
+            </Button>
+          </Upload>
+        </div>
         <div className='min-w-0 flex-1'>
           <Typography.Text className={fieldLabelClassName}>{t('settings.agentDisplayName')}</Typography.Text>
           <Input
