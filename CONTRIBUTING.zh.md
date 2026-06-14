@@ -90,7 +90,7 @@ bunx vitest run
 | `bot:needs-human-review` | 发现阻塞性问题                  | 维护者会介入审查并评论         |
 | `bot:ready-to-merge`     | 所有检查已通过                  | 维护者会在准备好后合并         |
 
-完整自动化流程请参考 [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)。
+完整自动化流程请参考 [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md)。当 PR 已就绪但分支保护仍要求非作者审批时，人工 approve 与合并流程请参考 [docs/contributing/merge-steward.md](docs/contributing/merge-steward.md)。
 
 ## 执行方式
 

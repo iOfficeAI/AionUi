@@ -90,7 +90,7 @@ This repository runs a PR automation bot that reviews, fixes minor issues, and p
 | `bot:needs-human-review` | Blocking issue found                   | A maintainer will review and comment    |
 | `bot:ready-to-merge`     | All checks passed                      | A maintainer will merge when ready      |
 
-See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow.
+See [docs/contributing/pr-automation.md](docs/contributing/pr-automation.md) for the full automation workflow. When a PR is ready but branch protection still requires a non-author approval, see [docs/contributing/merge-steward.md](docs/contributing/merge-steward.md) for the human approve-and-merge procedure.
 
 ## Enforcement
 
