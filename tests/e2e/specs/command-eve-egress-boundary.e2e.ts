@@ -20,6 +20,11 @@ type RuntimeStatus = {
   status?: string;
   default_model?: string;
   next_action?: string;
+  model_warmup?: {
+    status?: string;
+    model?: string;
+    error?: string;
+  };
   egress_boundary?: {
     decision?: string;
     observed_at?: string;
@@ -34,9 +39,21 @@ async function commandEveRuntimeStatus(page: Parameters<typeof invokeBridge>[0])
   return response;
 }
 
+function isRuntimeReady(status: RuntimeStatus | undefined): boolean {
+  return status?.status === 'ready' && Boolean(status.default_model);
+}
+
+function isDefaultModelWarm(status: RuntimeStatus | undefined): boolean {
+  return Boolean(
+    isRuntimeReady(status) &&
+    status?.model_warmup?.status === 'ready' &&
+    status.model_warmup.model === status.default_model
+  );
+}
+
 async function ensureCommandEveRuntimeReady(page: Parameters<typeof invokeBridge>[0]): Promise<RuntimeStatus> {
   const initial = await commandEveRuntimeStatus(page);
-  if (initial.success && initial.data?.status === 'ready') return initial.data;
+  if (initial.success && isDefaultModelWarm(initial.data)) return initial.data;
 
   const ensured = await invokeBridge<RuntimeStatusResponse>(
     page,
@@ -45,11 +62,28 @@ async function ensureCommandEveRuntimeReady(page: Parameters<typeof invokeBridge
     180_000
   );
   const status = ensured.data;
-  if (ensured.success && status?.status === 'ready') return status;
+  if (ensured.success && isDefaultModelWarm(status)) return status;
+
+  const warmed = await invokeBridge<RuntimeStatusResponse>(
+    page,
+    'command-eve.warm-local-model',
+    { tierId: 'e4b' },
+    180_000
+  );
+  if (warmed.success && isDefaultModelWarm(warmed.data)) return warmed.data;
 
   test.skip(
     true,
-    `Command EVE runtime not ready: ${ensured.msg || status?.next_action || initial.msg || initial.data?.next_action || 'unknown'}`
+    `Command EVE runtime not ready: ${
+      warmed.msg ||
+      warmed.data?.model_warmup?.error ||
+      warmed.data?.next_action ||
+      ensured.msg ||
+      status?.next_action ||
+      initial.msg ||
+      initial.data?.next_action ||
+      'unknown'
+    }`
   );
   throw new Error('unreachable after test.skip');
 }

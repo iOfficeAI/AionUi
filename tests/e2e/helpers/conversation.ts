@@ -4,15 +4,13 @@
  * Provides utilities for creating, waiting on, and deleting ACP conversations
  * through the actual UI flow (guid page → conversation page → cleanup).
  */
+/* eslint-disable no-await-in-loop */
 import type { Page } from '@playwright/test';
 import { expect } from '../fixtures';
 import { goToGuid } from './navigation';
 import {
   GUID_INPUT,
-  AGENT_PILL,
   AGENT_STATUS_MESSAGE,
-  AI_TEXT_MESSAGE,
-  MESSAGE_TEXT_CONTENT,
   MODEL_SELECTOR_BTN,
   NEW_CHAT_TRIGGER,
   GUID_SEND_BTN,
@@ -79,15 +77,25 @@ export async function sendMessageFromGuid(page: Page, message: string): Promise<
   await textarea.fill(message);
   await expect(textarea).toHaveValue(message, { timeout: 5_000 });
   const sendButton = page.locator(GUID_SEND_BTN);
-  await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+  try {
+    await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+  } catch {
+    await textarea.fill('');
+    await textarea.click();
+    await textarea.pressSequentially(message);
+    await expect(textarea).toHaveValue(message, { timeout: 5_000 });
+    await expect(sendButton).toBeEnabled({ timeout: 5_000 });
+  }
   await sendButton.click();
-  // Wait for navigation to a new conversation route instead of reusing a stale hash.
+  // Command EVE's first real send may need to finish local model warmup before
+  // the conversation exists. Keep this bounded, but do not fail before the
+  // runtime readiness window has had a chance to complete.
   try {
     await page.waitForFunction(
       (prevHash) => window.location.hash.includes('/conversation/') && window.location.hash !== prevHash,
       previousHash,
       {
-        timeout: 15_000,
+        timeout: 75_000,
       }
     );
   } catch (error) {
