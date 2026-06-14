@@ -69,7 +69,17 @@ function generateI18nKeysDtsContent() {
 }
 
 function formatOutputFile(filePath) {
-  const commands = [`bunx prettier --write "${filePath}"`];
+  const isBunAvailable = () => {
+    try {
+      const { spawnSync } = require('child_process');
+      const result = spawnSync('bun', ['--version'], { stdio: 'ignore' });
+      return result.status === 0;
+    } catch {
+      return false;
+    }
+  };
+  const prettierCmd = isBunAvailable() ? 'bunx prettier' : 'npx prettier';
+  const commands = [`${prettierCmd} --write "${filePath}"`];
 
   if (fs.existsSync(OXFMT_BIN)) {
     commands.push(`"${OXFMT_BIN}" "${filePath}"`);

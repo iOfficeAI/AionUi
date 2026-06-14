@@ -126,13 +126,23 @@ function resolveStaticDir(): string {
  *   $AIONUI_NO_BUILD=1        : env-level opt-out
  *   $AIONUI_STATIC_DIR is set : caller is pointing us at a prebuilt artifact dir
  */
+function isBunAvailable(): boolean {
+  try {
+    const result = require('child_process').spawnSync('bun', ['--version'], { stdio: 'ignore' });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
+}
+
 function runPackageIfNeeded(): void {
   if (has('--no-build')) return;
   if (parseBoolean(process.env.AIONUI_NO_BUILD)) return;
   if (process.env.AIONUI_STATIC_DIR) return;
-  console.log('[webui] running "bun run package" to refresh out/renderer (pass --no-build to skip)...');
+  const runner = isBunAvailable() ? 'bun' : 'npm';
+  console.log(`[webui] running "${runner} run package" to refresh out/renderer (pass --no-build to skip)...`);
   const start = Date.now();
-  execSync('bun run package', { cwd: repoRoot, stdio: 'inherit' });
+  execSync(`${runner} run package`, { cwd: repoRoot, stdio: 'inherit' });
   console.log(`[webui] package finished in ${((Date.now() - start) / 1000).toFixed(1)}s`);
 }
 
@@ -201,6 +211,10 @@ async function fetchAdminUsername(backendPort: number): Promise<string> {
 
 async function main(): Promise<void> {
   augmentPathWithNvm();
+  if (process.platform === 'win32' && process.env.AIONUI_CUSTOM_PATH) {
+    process.env.PATH = `${process.env.PATH};${process.env.AIONUI_CUSTOM_PATH}`;
+  }
+  process.env.NODE_OPTIONS = (process.env.NODE_OPTIONS || '') + ' --max-old-space-size=4096';
   runPackageIfNeeded();
   const port = resolvePort();
   const allowRemote = resolveAllowRemote();

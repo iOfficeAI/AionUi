@@ -136,6 +136,8 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
       // Ignore errors when reading nvm directory
     }
   }
+} else if (process.platform === 'win32' && process.env.AIONUI_CUSTOM_PATH) {
+  process.env.PATH = `${process.env.PATH};${process.env.AIONUI_CUSTOM_PATH}`;
 }
 
 // Handle Squirrel startup events (Windows installer)

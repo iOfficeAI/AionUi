@@ -24,13 +24,28 @@ function isVxAvailable() {
 }
 
 /**
+ * Check if bun is available in the system
+ */
+function isBunAvailable() {
+  try {
+    const result = spawnSync('bun', ['--version'], { stdio: 'ignore' });
+    return result.status === 0;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Get bunx command for the current platform
  * Windows requires bunx.cmd, others use bunx
  * Note: does NOT add 'vx' prefix here — the caller's cmdPrefix (e.g. 'vx --with msvc')
  * already provides the vx entry point, so we must not nest another 'vx' call.
  */
 function getBunxCommand() {
-  return process.platform === 'win32' ? 'bun x' : 'bun x';
+  if (isBunAvailable()) {
+    return 'bun x';
+  }
+  return 'npx';
 }
 
 /**

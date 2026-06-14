@@ -23,8 +23,18 @@ function runPostInstall() {
       console.log('Native modules will be handled by electron-forge during packaging');
     } else {
       // In local environment, use electron-builder to install dependencies
-      console.log('Local environment, installing app deps');
-      execSync('bunx electron-builder install-app-deps', {
+      const isBunAvailable = () => {
+        try {
+          const { spawnSync } = require('child_process');
+          const result = spawnSync('bun', ['--version'], { stdio: 'ignore' });
+          return result.status === 0;
+        } catch {
+          return false;
+        }
+      };
+      const runner = isBunAvailable() ? 'bunx' : 'npx';
+      console.log(`Local environment, installing app deps using ${runner}`);
+      execSync(`${runner} electron-builder install-app-deps`, {
         stdio: 'inherit',
         env: {
           ...process.env,
