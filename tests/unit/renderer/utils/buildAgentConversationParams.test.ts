@@ -49,6 +49,31 @@ describe('buildAgentConversationParams agent type policy', () => {
     expect(params.extra.backend).toBe('codex');
   });
 
+  it('writes thought_level into ACP conversation extra when provided', () => {
+    const params = buildAgentConversationParams({
+      backend: 'codex',
+      name: 'Codex CLI',
+      workspace: '/tmp/aionui-codex',
+      model,
+      thought_level: 'high',
+    });
+
+    expect(params.type).toBe('acp');
+    expect(params.extra.backend).toBe('codex');
+    expect(params.extra.thought_level).toBe('high');
+  });
+
+  it('omits thought_level from ACP conversation extra when no preference exists', () => {
+    const params = buildAgentConversationParams({
+      backend: 'codex',
+      name: 'Codex CLI',
+      workspace: '/tmp/aionui-codex',
+      model,
+    });
+
+    expect(params.extra.thought_level).toBeUndefined();
+  });
+
   it('does not produce remote or nanobot top-level conversation types', () => {
     for (const backend of ['remote', 'nanobot']) {
       const params = buildAgentConversationParams({

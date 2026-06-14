@@ -30,6 +30,7 @@ export type BuildAgentConversationInput = {
   preset_agent_type?: string;
   session_mode?: string;
   current_model_id?: string;
+  thought_level?: string;
   assistant_locale?: string;
   assistant_conversation_overrides?: BuildAgentConversationAssistantOverrides;
   extra?: Partial<ICreateConversationParams['extra']>;
@@ -55,6 +56,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     preset_agent_type,
     session_mode,
     current_model_id,
+    thought_level,
     assistant_locale,
     assistant_conversation_overrides,
     extra: extraOverrides,
@@ -86,6 +88,7 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
 
   if (session_mode) extra.session_mode = session_mode;
   if (current_model_id) extra.current_model_id = current_model_id;
+  if (thought_level) extra.thought_level = thought_level;
 
   return {
     type,

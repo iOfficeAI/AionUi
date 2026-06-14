@@ -1420,6 +1420,7 @@ export interface ICreateConversationParams {
     session_mode?: string;
     codex_model?: string;
     current_model_id?: string;
+    thought_level?: string;
     cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
     runtime_validation?: {

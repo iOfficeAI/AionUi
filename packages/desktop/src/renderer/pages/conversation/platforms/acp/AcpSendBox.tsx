@@ -19,7 +19,7 @@ import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
-import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { savePreferredMode, savePreferredThoughtLevel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
 import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useSendBoxFiles';
@@ -157,6 +157,16 @@ const AcpSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+  const handleThoughtLevelSetOption = useCallback(
+    async (optionId: string, value: string) => {
+      const result = await runtimeConfig.setConfigOption(optionId, value);
+      if (backend && !assistantId) {
+        void savePreferredThoughtLevel(backend, value);
+      }
+      return result;
+    },
+    [assistantId, backend, runtimeConfig]
+  );
 
   // Drive the mobile sheet's model entry off the same source AcpModelSelector uses
   const {
@@ -518,8 +528,7 @@ Please check your local CLI tool authentication status`,
             active: runtimeThoughtLevel.currentValue === item.value,
           })),
           onSelect: (value) => {
-            void runtimeConfig
-              .setConfigOption(runtimeThoughtLevel.id, value)
+            void handleThoughtLevelSetOption(runtimeThoughtLevel.id, value)
               .then(() => Message.success(t('agent.thoughtLevel.switchSuccess')))
               .catch((error) => Message.error(t(configErrorMessageKey(error))));
           },
@@ -601,11 +610,11 @@ Please check your local CLI tool authentication status`,
     canSwitchModel,
     currentMode,
     handleSheetModeChange,
+    handleThoughtLevelSetOption,
     isMobile,
     loadedMcpStatuses,
     loadedSkills,
     model_info,
-    runtimeConfig,
     runtimeMode,
     runtimeThoughtLevel,
     selectModel,
@@ -702,7 +711,7 @@ Please check your local CLI tool authentication status`,
               <AcpThoughtLevelSelector
                 thoughtLevel={runtimeThoughtLevel}
                 setStatus={runtimeConfig.setStatus}
-                onSetOption={runtimeConfig.setConfigOption}
+                onSetOption={handleThoughtLevelSetOption}
                 iconOnly={Boolean(teamPermission)}
               />
             )}

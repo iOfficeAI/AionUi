@@ -21,6 +21,7 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
+import { getPreferredThoughtLevel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 
 type ModePreference = {
   preferredMode?: string;
@@ -163,6 +164,7 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
   const type = getConversationTypeForBackend(agentKey);
   const preferredMode = await resolvePreferredMode(agentKey);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agentKey) : undefined;
+  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(agentKey) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'aionrs') {
@@ -181,6 +183,7 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
+    thought_level: preferredThoughtLevel,
   });
 }
 
@@ -202,6 +205,7 @@ export async function buildPresetAssistantParams(
   const preferredMode = await resolvePreferredMode(preset_agent_type);
   const type = getConversationTypeForBackend(preset_agent_type);
   const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(preset_agent_type) : undefined;
+  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(preset_agent_type) : undefined;
   const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
@@ -222,5 +226,6 @@ export async function buildPresetAssistantParams(
     model,
     session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
+    thought_level: preferredThoughtLevel,
   });
 }
