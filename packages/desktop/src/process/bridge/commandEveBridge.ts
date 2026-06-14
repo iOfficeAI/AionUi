@@ -19,6 +19,7 @@ import {
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
   moveKanbanMarketingCard,
+  planKanbanMarketingCardDispatch,
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
@@ -381,6 +382,51 @@ export function initCommandEveBridge(): void {
               status: 'failed',
               reason_code: 'KANBAN_MARKETING_CARD_MOVE_BRIDGE_FAILED',
               message: error instanceof Error ? error.message : 'Command EVE marketing card-move bridge failed.',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-dispatch-plan')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        command?: 'decompose' | 'specify';
+        boardSlug?: string;
+        eventLedgerPath?: string;
+      }) => {
+        try {
+          const result = planKanbanMarketingCardDispatch({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            command: request?.command,
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing dispatch-plan bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-dispatch-plan/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_FAILED'],
+              message: error instanceof Error ? error.message : 'Command EVE marketing dispatch-plan bridge failed.',
+              subprocess_spawned: false,
+              data_boundary_checked: false,
               source: {
                 generated_by: 'command-eve-kanban-marketing-board-core',
                 hermes_home: '',

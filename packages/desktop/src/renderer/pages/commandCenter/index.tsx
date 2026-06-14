@@ -285,6 +285,35 @@ interface ICommandEveMarketingCardMoveResult {
   };
 }
 
+interface ICommandEveMarketingDispatchPlanRequest {
+  task_id: string;
+  command?: 'decompose' | 'specify';
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+interface ICommandEveMarketingDispatchPlanResult {
+  version: 'command-eve-kanban-marketing-dispatch-plan/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  reason_codes: string[];
+  message?: string;
+  card_id?: string;
+  command?: 'decompose' | 'specify';
+  subprocess_spawned: boolean;
+  data_boundary_checked: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  dispatch_plan?: Record<string, unknown>;
+  policy?: Record<string, unknown>;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+    company_os_root?: string;
+  };
+}
+
 // Shared board-carrying shape between the create and move mutation results, used
 // to re-render the read-only board projection after a successful mutation.
 interface IMarketingMutationBoardCarrier {
@@ -328,6 +357,11 @@ const kanbanMarketingCardMove = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingCardMoveResult>,
   ICommandEveMarketingCardMoveRequest
 >('command-eve.kanban-marketing-card-move');
+
+const kanbanMarketingDispatchPlan = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingDispatchPlanResult>,
+  ICommandEveMarketingDispatchPlanRequest
+>('command-eve.kanban-marketing-dispatch-plan');
 
 const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
 
@@ -485,11 +519,14 @@ const BoardColumnView: React.FC<{ column: BoardColumn }> = ({ column }) => {
 const MarketingCardView: React.FC<{
   card: ICommandEveMarketingCard;
   movingCardId: string | null;
+  dispatchingCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
-}> = ({ card, movingCardId, onMoveNext }) => {
+  onPlanDispatch: (card: ICommandEveMarketingCard) => void;
+}> = ({ card, movingCardId, dispatchingCardId, onMoveNext, onPlanDispatch }) => {
   const { t } = useTranslation();
   const nextLane = nextMarketingLane(card.lane_key);
   const moving = movingCardId === card.card_id;
+  const dispatching = dispatchingCardId === card.card_id;
   return (
     <article
       data-testid={`marketing-card-${card.card_id}`}
@@ -508,7 +545,17 @@ const MarketingCardView: React.FC<{
         <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.labels.audit')}</dt>
         <dd className='m-0 truncate text-t-secondary'>{textOrDash(card.linked_audit_event_id)}</dd>
       </dl>
-      <div className='mt-8px flex items-center justify-end'>
+      <div className='mt-8px flex flex-wrap items-center justify-end gap-6px'>
+        <Button
+          size='mini'
+          shape='round'
+          loading={dispatching}
+          disabled={dispatching}
+          data-testid={`marketing-card-dispatch-plan-${card.card_id}`}
+          onClick={() => onPlanDispatch(card)}
+        >
+          {t('commandCenter.marketingBoard.actions.checkDispatch')}
+        </Button>
         {nextLane ? (
           <Button
             size='mini'
@@ -535,8 +582,10 @@ const MarketingCardView: React.FC<{
 const MarketingColumnView: React.FC<{
   column: ICommandEveMarketingColumn;
   movingCardId: string | null;
+  dispatchingCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
-}> = ({ column, movingCardId, onMoveNext }) => {
+  onPlanDispatch: (card: ICommandEveMarketingCard) => void;
+}> = ({ column, movingCardId, dispatchingCardId, onMoveNext, onPlanDispatch }) => {
   const { t } = useTranslation();
   return (
     <div
@@ -556,7 +605,9 @@ const MarketingColumnView: React.FC<{
               key={`${column.key}-${card.card_id}`}
               card={card}
               movingCardId={movingCardId}
+              dispatchingCardId={dispatchingCardId}
               onMoveNext={onMoveNext}
+              onPlanDispatch={onPlanDispatch}
             />
           ))}
         </div>
@@ -690,28 +741,34 @@ const MarketingBoardSection: React.FC<{
   proofRunning: boolean;
   createResult: ICommandEveMarketingCardCreateResult | null;
   moveResult: ICommandEveMarketingCardMoveResult | null;
+  dispatchPlanResult: ICommandEveMarketingDispatchPlanResult | null;
   createModalVisible: boolean;
   createSubmitting: boolean;
   movingCardId: string | null;
+  dispatchingCardId: string | null;
   onCreateProofCard: () => void;
   onOpenCreateModal: () => void;
   onCloseCreateModal: () => void;
   onSubmitCreateCard: (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => void;
   onMoveCardNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
+  onPlanDispatch: (card: ICommandEveMarketingCard) => void;
 }> = ({
   result,
   proofResult,
   proofRunning,
   createResult,
   moveResult,
+  dispatchPlanResult,
   createModalVisible,
   createSubmitting,
   movingCardId,
+  dispatchingCardId,
   onCreateProofCard,
   onOpenCreateModal,
   onCloseCreateModal,
   onSubmitCreateCard,
   onMoveCardNext,
+  onPlanDispatch,
 }) => {
   const { t } = useTranslation();
   const model = result?.model;
@@ -765,6 +822,27 @@ const MarketingBoardSection: React.FC<{
         />
       ) : null}
 
+      {dispatchPlanResult ? (
+        <Alert
+          type={dispatchPlanResult.ok ? 'success' : dispatchPlanResult.status === 'failed' ? 'error' : 'warning'}
+          title={dispatchPlanResult.reason_code || t('commandCenter.marketingBoard.dispatch.resultTitle')}
+          content={[
+            dispatchPlanResult.message || '-',
+            `${t('commandCenter.marketingBoard.dispatch.dataBoundary')}: ${
+              dispatchPlanResult.data_boundary_checked
+                ? t('commandCenter.marketingBoard.dispatch.checked')
+                : t('commandCenter.marketingBoard.dispatch.notChecked')
+            }`,
+            `${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
+              dispatchPlanResult.subprocess_spawned
+                ? t('commandCenter.marketingBoard.dispatch.spawned')
+                : t('commandCenter.marketingBoard.dispatch.notSpawned')
+            }`,
+          ].join(' · ')}
+          data-testid='marketing-card-dispatch-plan-result'
+        />
+      ) : null}
+
       {blocked ? (
         <Alert
           type='warning'
@@ -785,7 +863,9 @@ const MarketingBoardSection: React.FC<{
                 key={column.key}
                 column={column}
                 movingCardId={movingCardId}
+                dispatchingCardId={dispatchingCardId}
                 onMoveNext={onMoveCardNext}
+                onPlanDispatch={onPlanDispatch}
               />
             ))}
           </div>
@@ -970,9 +1050,11 @@ const CommandCenterPage: React.FC = () => {
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
   const [moveResult, setMoveResult] = useState<ICommandEveMarketingCardMoveResult | null>(null);
+  const [dispatchPlanResult, setDispatchPlanResult] = useState<ICommandEveMarketingDispatchPlanResult | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [movingCardId, setMovingCardId] = useState<string | null>(null);
+  const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -1078,6 +1160,7 @@ const CommandCenterPage: React.FC = () => {
 
   const openCreateModal = useCallback(() => {
     setCreateResult(null);
+    setDispatchPlanResult(null);
     setCreateModalVisible(true);
   }, []);
 
@@ -1110,6 +1193,7 @@ const CommandCenterPage: React.FC = () => {
       if (!isElectronDesktop()) return;
       setCreateSubmitting(true);
       setMoveResult(null);
+      setDispatchPlanResult(null);
       try {
         const response = await kanbanMarketingCardCreate.invoke({
           title: input.title,
@@ -1153,6 +1237,7 @@ const CommandCenterPage: React.FC = () => {
       if (!isElectronDesktop()) return;
       setMovingCardId(card.card_id);
       setCreateResult(null);
+      setDispatchPlanResult(null);
       try {
         const response = await kanbanMarketingCardMove.invoke({
           task_id: card.card_id,
@@ -1186,6 +1271,50 @@ const CommandCenterPage: React.FC = () => {
       }
     },
     [applyBoardModel, t]
+  );
+
+  const planDispatch = useCallback(
+    async (card: ICommandEveMarketingCard) => {
+      if (!isElectronDesktop()) return;
+      setDispatchingCardId(card.card_id);
+      setCreateResult(null);
+      setMoveResult(null);
+      try {
+        const response = await kanbanMarketingDispatchPlan.invoke({
+          task_id: card.card_id,
+          command: 'decompose',
+          boardSlug: MARKETING_BOARD_SLUG,
+        });
+        const data = response.data ?? null;
+        setDispatchPlanResult(data);
+        if (data?.ok) {
+          Message.success(t('commandCenter.marketingBoard.dispatch.ready'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.marketingBoard.dispatch.blocked'));
+        }
+      } catch (dispatchError) {
+        const failure: ICommandEveMarketingDispatchPlanResult = {
+          version: 'command-eve-kanban-marketing-dispatch-plan/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'KANBAN_MARKETING_DISPATCH_PLAN_UI_FAILED',
+          reason_codes: ['KANBAN_MARKETING_DISPATCH_PLAN_UI_FAILED'],
+          message:
+            dispatchError instanceof Error ? dispatchError.message : t('commandCenter.marketingBoard.dispatch.failed'),
+          subprocess_spawned: false,
+          data_boundary_checked: false,
+          source: {
+            generated_by: 'command-eve-kanban-marketing-board-core',
+            hermes_home: '',
+          },
+        };
+        setDispatchPlanResult(failure);
+        Message.error(failure.message || t('commandCenter.marketingBoard.dispatch.failed'));
+      } finally {
+        setDispatchingCardId(null);
+      }
+    },
+    [t]
   );
 
   return (
@@ -1269,14 +1398,17 @@ const CommandCenterPage: React.FC = () => {
               proofRunning={proofRunning}
               createResult={createResult}
               moveResult={moveResult}
+              dispatchPlanResult={dispatchPlanResult}
               createModalVisible={createModalVisible}
               createSubmitting={createSubmitting}
               movingCardId={movingCardId}
+              dispatchingCardId={dispatchingCardId}
               onCreateProofCard={createProofCard}
               onOpenCreateModal={openCreateModal}
               onCloseCreateModal={closeCreateModal}
               onSubmitCreateCard={submitCreateCard}
               onMoveCardNext={moveCardNext}
+              onPlanDispatch={planDispatch}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>

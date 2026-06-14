@@ -72,6 +72,7 @@
       "description": "Hermes Kanban is ready, but the local marketing board database has not been created yet."
     },
     "actions": {
+      "checkDispatch": "Check dispatch",
       "createCard": "New post",
       "createProofCard": "Create proof card",
       "moveNext": "Move",
@@ -95,6 +96,18 @@
       "resultTitle": "Move receipt",
       "success": "Card moved.",
       "failed": "Card could not be moved."
+    },
+    "dispatch": {
+      "resultTitle": "Dispatch gate receipt",
+      "ready": "Dispatch plan is ready, but still waits for controller approval.",
+      "blocked": "Dispatch was blocked before Hermes could spawn.",
+      "failed": "Dispatch check could not run.",
+      "dataBoundary": "NL-5",
+      "checked": "checked",
+      "notChecked": "not checked",
+      "subprocess": "Hermes",
+      "spawned": "spawned",
+      "notSpawned": "not spawned"
     },
     "proof": {
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",

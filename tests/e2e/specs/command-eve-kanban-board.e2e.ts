@@ -4,7 +4,8 @@
  * Verifies that real GUI interactions (create card + move card) produce:
  *   1. A real sqlite row in the tasks table of the board DB the app wrote.
  *   2. A real task_events receipt row (kind = command_eve_card_created /
- *      command_eve_card_moved) with the HG-2.5 governance payload.
+ *      command_eve_card_moved / command_eve_dispatch_plan_checked) with the
+ *      HG-2.5 / NL-5 governance payload.
  *   3. A real agent-event/v1 audit line in the temp ledger
  *      (event_type = kanban.marketing_board_card_created /
  *       kanban.marketing_board_card_moved).
@@ -46,6 +47,8 @@ let e2eLedgerRoot: string = '';
 // Prior env values captured in beforeAll, restored in afterAll.
 let prevCompanyOsRoot: string | undefined;
 let prevAgentEventsPath: string | undefined;
+let prevNl5CompanyOsRoot: string | undefined;
+let prevCommandEveNodeBinary: string | undefined;
 
 // ── SQLite helper ─────────────────────────────────────────────────────────────
 
@@ -93,6 +96,38 @@ function writeReconciliationLock(reconciliationPath: string): void {
   );
 }
 
+function writeFakeNl5DispatchCli(companyOsRoot: string): void {
+  const cliPath = path.join(companyOsRoot, 'scripts', 'orchestration', 'hermes-pre-generation-dispatch.mjs');
+  fs.mkdirSync(path.dirname(cliPath), { recursive: true });
+  fs.writeFileSync(
+    cliPath,
+    `#!/usr/bin/env node
+import fs from 'node:fs';
+
+JSON.parse(fs.readFileSync(0, 'utf8'));
+console.log(JSON.stringify({
+  version: 'hermes-pre-generation-dispatch/v0',
+  ok: false,
+  status: 'blocked',
+  subprocess_spawned: false,
+  reason_codes: ['hermes.pre_generation.controller_approval_missing'],
+  policy: {
+    status: 'blocked',
+    data_boundary_receipt: {
+      ok: true,
+      status: 'local-only-pass',
+      sensitivity: 'S1',
+      sensitivity_score: 1,
+      effective_lane: 'local_only'
+    }
+  }
+}, null, 2));
+process.exitCode = 78;
+`,
+    { mode: 0o700 }
+  );
+}
+
 // ── Shared state (create → move hand-off) ─────────────────────────────────────
 
 let createdCardId: string | null = null;
@@ -107,6 +142,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     // Capture prior values before any mutation.
     prevCompanyOsRoot = process.env.COMMAND_EVE_COMPANY_OS_ROOT;
     prevAgentEventsPath = process.env.COMMAND_EVE_AGENT_EVENTS_PATH;
+    prevNl5CompanyOsRoot = process.env.COMMAND_EVE_NL5_COMPANY_OS_ROOT;
+    prevCommandEveNodeBinary = process.env.COMMAND_EVE_NODE_BINARY;
 
     const companyOsRoot: string = process.env.COMMAND_EVE_COMPANY_OS_ROOT ?? COMPANY_OS_ROOT_DEFAULT;
     const cleanLedgerSource: string =
@@ -123,10 +160,14 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     e2eLedgerRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'command-eve-kanban-board-e2e-'));
     e2eLedgerPath = path.join(e2eLedgerRoot, 'agent-events.clean.jsonl');
     fs.copyFileSync(cleanLedgerSource, e2eLedgerPath);
+    const nl5CompanyOsRoot = path.join(e2eLedgerRoot, 'company-os-nl5-fixture');
+    writeFakeNl5DispatchCli(nl5CompanyOsRoot);
 
     // Point the bridge at our isolated ledger.
     process.env.COMMAND_EVE_COMPANY_OS_ROOT = companyOsRoot;
     process.env.COMMAND_EVE_AGENT_EVENTS_PATH = e2eLedgerPath;
+    process.env.COMMAND_EVE_NL5_COMPANY_OS_ROOT = nl5CompanyOsRoot;
+    process.env.COMMAND_EVE_NODE_BINARY = process.execPath;
   });
 
   test.afterAll(() => {
@@ -140,6 +181,16 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       delete process.env.COMMAND_EVE_AGENT_EVENTS_PATH;
     } else {
       process.env.COMMAND_EVE_AGENT_EVENTS_PATH = prevAgentEventsPath;
+    }
+    if (prevNl5CompanyOsRoot === undefined) {
+      delete process.env.COMMAND_EVE_NL5_COMPANY_OS_ROOT;
+    } else {
+      process.env.COMMAND_EVE_NL5_COMPANY_OS_ROOT = prevNl5CompanyOsRoot;
+    }
+    if (prevCommandEveNodeBinary === undefined) {
+      delete process.env.COMMAND_EVE_NODE_BINARY;
+    } else {
+      process.env.COMMAND_EVE_NODE_BINARY = prevCommandEveNodeBinary;
     }
 
     // Clean up temp dir.
@@ -179,9 +230,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     // This is the same step the command-center spec proves. It initialises
     // the DB and makes the "Post anlegen" button enabled.
     await page.getByRole('button', { name: /Proof-Karte anlegen|Create proof card/ }).click();
-    await expect(
-      page.getByText(/KANBAN_MARKETING_PROOF_CARD_CREATED|KANBAN_MARKETING_PROOF_CARD_EXISTS/)
-    ).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/KANBAN_MARKETING_PROOF_CARD_CREATED|KANBAN_MARKETING_PROOF_CARD_EXISTS/)).toBeVisible({
+      timeout: 60_000,
+    });
 
     // After proof card creation the marketingResult state is updated in-place
     // by the UI (it re-reads the board via kanbanMarketingBoard.invoke).
@@ -392,5 +443,107 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-move.png';
     await page.screenshot({ path: screenshotPath, fullPage: true });
     await testInfo.attach('kanban-board-move-proof', { path: screenshotPath, contentType: 'image/png' });
+  });
+
+  // ── TEST 3: Dispatch gate check ───────────────────────────────────────────
+  test('dispatch gate: GUI click routes through NL-5 and records a blocked no-spawn receipt', async ({
+    page,
+    electronApp,
+  }, testInfo) => {
+    const userDataPath = await electronApp.evaluate(async ({ app }) => app.getPath('userData'));
+    const reconciliationPath = path.join(
+      userDataPath,
+      'command-eve-runtime',
+      'capabilities',
+      'command-eve-runtime-reconciliation.json'
+    );
+    writeReconciliationLock(reconciliationPath);
+
+    await page.waitForSelector('body', { state: 'visible' });
+    await page.evaluate(() => {
+      window.location.hash = '#/command-center';
+    });
+    await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Lokales Board|Local Board/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole('button', { name: /Proof-Karte anlegen|Create proof card/ }).click();
+    await expect(page.getByText(/KANBAN_MARKETING_PROOF_CARD_CREATED|KANBAN_MARKETING_PROOF_CARD_EXISTS/)).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const createOpenBtn = page.getByTestId('marketing-card-create-open');
+    await expect(createOpenBtn).toBeVisible({ timeout: 30_000 });
+    await expect(createOpenBtn).toBeEnabled({ timeout: 30_000 });
+
+    const dbPathLabel = await page.locator('span:has-text("/kanban/boards/marketing/kanban.db")').first().textContent();
+    const dbPathMatch = dbPathLabel?.match(/([^\s]+kanban\.db)/);
+    const dispatchBoardDbPath = dbPathMatch?.[1] ?? null;
+    expect(dispatchBoardDbPath, 'Board db_path must be visible in the marketing board section').toBeTruthy();
+
+    const postTitle = `${uniquePostTitle()} Dispatch`;
+    await createOpenBtn.click();
+    await expect(page.getByTestId('marketing-card-create-modal')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('marketing-card-create-title').fill(postTitle);
+    await page.getByTestId('marketing-card-create-description').fill('E2E mutation proof – dispatch gate');
+    await page.getByTestId('marketing-card-create-submit').click();
+    await expect(page.getByTestId('marketing-card-create-modal')).not.toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('KANBAN_MARKETING_CARD_CREATED')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(postTitle)).toBeVisible({ timeout: 30_000 });
+
+    const cardArticle = page.locator(`article:has-text("${postTitle}")`).first();
+    await expect(cardArticle).toBeVisible({ timeout: 10_000 });
+    const cardTestId = await cardArticle.getAttribute('data-testid');
+    expect(cardTestId, 'Card article must have data-testid attribute').toBeTruthy();
+    const dispatchCardId = cardTestId?.replace(/^marketing-card-/, '') ?? null;
+    expect(dispatchCardId, 'card_id must be extractable from data-testid').toBeTruthy();
+
+    const dispatchButton = page.getByTestId(`marketing-card-dispatch-plan-${dispatchCardId}`);
+    await expect(dispatchButton).toBeVisible({ timeout: 30_000 });
+    await dispatchButton.click();
+
+    const dispatchResult = page.getByTestId('marketing-card-dispatch-plan-result');
+    await expect(dispatchResult).toBeVisible({ timeout: 60_000 });
+    await expect(dispatchResult.getByText(/hermes\.pre_generation\.controller_approval_missing/)).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const dispatchRows = sqliteQuery(
+      dispatchBoardDbPath!,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${dispatchCardId}' AND kind = 'command_eve_dispatch_plan_checked' LIMIT 1`
+    );
+    expect(dispatchRows.length, `dispatch plan receipt must exist for ${dispatchCardId}`).toBeGreaterThan(0);
+    const dispatchPayload = JSON.parse(dispatchRows[0][1]) as {
+      nl5_gate_checked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+    };
+    expect(dispatchPayload.nl5_gate_checked, 'NL-5 must be checked').toBe(true);
+    expect(dispatchPayload.subprocess_spawned, 'Hermes subprocess must not spawn without controller approval').toBe(
+      false
+    );
+    expect(dispatchPayload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+
+    const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
+    const matchingDispatchAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; issue_id?: string; payload?: Record<string, unknown> };
+        return (
+          evt.issue_id === dispatchCardId &&
+          evt.event_type === 'kanban.marketing_board_dispatch_plan_checked' &&
+          evt.payload?.subprocess_spawned === false
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(
+      matchingDispatchAudit,
+      `audit ledger must contain kanban.marketing_board_dispatch_plan_checked for card_id=${dispatchCardId}`
+    ).toBeTruthy();
+
+    const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-dispatch-gate.png';
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo.attach('kanban-board-dispatch-gate-proof', { path: screenshotPath, contentType: 'image/png' });
   });
 });

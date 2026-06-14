@@ -14,6 +14,8 @@ export const COMMAND_EVE_KANBAN_MARKETING_BOARD_BRIDGE_VERSION = 'command-eve-ka
 export const COMMAND_EVE_KANBAN_MARKETING_PROOF_CARD_BRIDGE_VERSION = 'command-eve-kanban-marketing-proof-card/v0';
 export const COMMAND_EVE_KANBAN_MARKETING_CARD_CREATE_BRIDGE_VERSION = 'command-eve-kanban-marketing-card-create/v0';
 export const COMMAND_EVE_KANBAN_MARKETING_CARD_MOVE_BRIDGE_VERSION = 'command-eve-kanban-marketing-card-move/v0';
+export const COMMAND_EVE_KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_VERSION =
+  'command-eve-kanban-marketing-dispatch-plan/v0';
 
 const MIN_HERMES_KANBAN_VERSION = '0.16.0';
 const RUNTIME_RECONCILIATION_VERSION = 'command-eve-runtime-reconciliation/v0';
@@ -241,6 +243,28 @@ export type CommandEveKanbanMarketingCardMoveResult = {
   };
 };
 
+export type CommandEveKanbanMarketingDispatchPlanResult = {
+  version: typeof COMMAND_EVE_KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  reason_codes: string[];
+  message?: string;
+  card_id?: string;
+  command?: 'decompose' | 'specify';
+  subprocess_spawned: boolean;
+  data_boundary_checked: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  dispatch_plan?: JsonRecord;
+  policy?: JsonRecord;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+    company_os_root?: string;
+  };
+};
+
 export type CommandEveKanbanMarketingCardCreateOptions = CommandEveKanbanMarketingBoardOptions & {
   title: string;
   description?: string;
@@ -251,6 +275,13 @@ export type CommandEveKanbanMarketingCardCreateOptions = CommandEveKanbanMarketi
 export type CommandEveKanbanMarketingCardMoveOptions = CommandEveKanbanMarketingBoardOptions & {
   task_id: string;
   to_lane_key: string;
+};
+
+export type CommandEveKanbanMarketingDispatchPlanOptions = CommandEveKanbanMarketingBoardOptions & {
+  task_id: string;
+  command?: 'decompose' | 'specify';
+  companyOsRoot?: string;
+  commandRunner?: CommandEveKanbanPreflightCommandRunner;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -281,6 +312,22 @@ function pythonBinary(hermesVenv: string): string {
   return process.platform === 'win32'
     ? path.join(hermesVenv, 'Scripts', 'python.exe')
     : path.join(hermesVenv, 'bin', 'python');
+}
+
+function nodeRuntimeForDispatch(): { executable: string; env: NodeJS.ProcessEnv } {
+  const override = process.env.COMMAND_EVE_NODE_BINARY || process.env.NODE_BINARY;
+  if (override) {
+    return { executable: override, env: {} };
+  }
+
+  if (process.versions?.electron) {
+    return {
+      executable: process.execPath,
+      env: { ELECTRON_RUN_AS_NODE: '1' },
+    };
+  }
+
+  return { executable: process.execPath, env: {} };
 }
 
 function compareSemver(left: string, right: string): number {
@@ -898,6 +945,110 @@ finally:
 `;
 }
 
+function buildMarketingCardDispatchPlanScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"found": False}))
+    sys.exit(0)
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+try:
+    row = conn.execute(
+        """
+        SELECT
+          id,
+          title,
+          COALESCE(body, '') AS body,
+          COALESCE(status, '') AS status,
+          COALESCE(current_step_key, '') AS current_step_key,
+          COALESCE(tenant, '') AS tenant,
+          COALESCE(workflow_template_id, '') AS workflow_template_id
+        FROM tasks
+        WHERE id = ?
+        LIMIT 1
+        """,
+        (request["card_id"],),
+    ).fetchone()
+    if row is None:
+        conn.commit()
+        print(json.dumps({"found": False}))
+        sys.exit(0)
+
+    conn.execute(
+        "INSERT INTO task_events (task_id, run_id, kind, payload, created_at) VALUES (?, NULL, ?, ?, ?)",
+        (
+          request["card_id"],
+          "command_eve_dispatch_plan_checked",
+          json.dumps({
+            "audit_event_id": request["audit_event_id"],
+            "human_gate": "HG-2.5",
+            "dispatcher_enabled": False,
+            "auto_decompose_enabled": False,
+            "nl5_gate_checked": bool(request.get("data_boundary_checked")),
+            "subprocess_spawned": bool(request.get("subprocess_spawned")),
+            "dispatch_status": request.get("dispatch_status"),
+            "reason_codes": request.get("reason_codes") or [],
+            "policy": request.get("policy") or {},
+          }),
+          int(request["checked_at"]),
+        ),
+    )
+    conn.commit()
+    print(json.dumps({"found": True, "task": dict(row)}))
+finally:
+    conn.close()
+`;
+}
+
+function buildMarketingCardLookupScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"found": False}))
+    sys.exit(0)
+
+conn = sqlite3.connect(f"file:{db_path}?mode=ro", uri=True)
+conn.row_factory = sqlite3.Row
+try:
+    row = conn.execute(
+        """
+        SELECT
+          id,
+          title,
+          COALESCE(body, '') AS body,
+          COALESCE(status, '') AS status,
+          COALESCE(current_step_key, '') AS current_step_key,
+          COALESCE(tenant, '') AS tenant,
+          COALESCE(workflow_template_id, '') AS workflow_template_id
+        FROM tasks
+        WHERE id = ?
+        LIMIT 1
+        """,
+        (request["card_id"],),
+    ).fetchone()
+    if row is None:
+        print(json.dumps({"found": False}))
+        sys.exit(0)
+    print(json.dumps({"found": True, "task": dict(row)}))
+finally:
+    conn.close()
+`;
+}
+
 function sanitizeEventIdPart(value: string): string {
   return value
     .toLowerCase()
@@ -1050,16 +1201,88 @@ function appendMarketingMutationAuditEvent({
   return eventId;
 }
 
+function appendMarketingDispatchPlanAuditEvent({
+  eventId,
+  eventLedgerPath,
+  occurredAt,
+  cardId,
+  boardSlug,
+  dbPath,
+  companyOsRoot,
+  dispatchPlan,
+}: {
+  eventId: string;
+  eventLedgerPath: string;
+  occurredAt: string;
+  cardId: string;
+  boardSlug: string;
+  dbPath: string;
+  companyOsRoot: string;
+  dispatchPlan: JsonRecord;
+}): string {
+  const policy = isRecord(dispatchPlan.policy) ? dispatchPlan.policy : {};
+  const event = {
+    schema_version: 'agent-event/v1',
+    event_id: eventId,
+    event_type: 'kanban.marketing_board_dispatch_plan_checked',
+    occurred_at: occurredAt,
+    producer: 'command-eve-desktop',
+    workspace: 'command-eve-local',
+    workspace_path: dbPath,
+    issue_id: cardId,
+    parent_issue_id: '',
+    run_id: `kanban-dispatch-plan-${cardId}`,
+    session_id: '',
+    agent: 'eve',
+    mode: 'kanban-dispatch-plan',
+    role_owner: 'Controller',
+    department: 'Marketing',
+    autonomy_level: 'L1',
+    event_policy: 'append-only',
+    payload: {
+      board_slug: boardSlug,
+      card_id: cardId,
+      db_path: dbPath,
+      company_os_root: companyOsRoot,
+      human_gate: 'HG-2.5',
+      dispatcher_enabled: false,
+      auto_decompose_enabled: false,
+      action: 'dispatch_plan_check',
+      dispatch_status: textField(dispatchPlan.status),
+      subprocess_spawned: dispatchPlan.subprocess_spawned === true,
+      reason_codes: Array.isArray(dispatchPlan.reason_codes) ? dispatchPlan.reason_codes : [],
+      data_boundary_receipt: isRecord(policy.data_boundary_receipt) ? policy.data_boundary_receipt : {},
+    },
+    artifact_paths: [dbPath],
+    linear_comment_ids: [] as string[],
+    human_gate_required: true,
+    redaction_level: 'none',
+  };
+  fs.mkdirSync(path.dirname(eventLedgerPath), { recursive: true });
+  fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
+  return eventId;
+}
+
 function marketingCardCreateAuditEventId(cardId: string, occurredAt: string): string {
-  return ['command-eve-kanban-marketing-card-created', sanitizeEventIdPart(cardId), sanitizeEventIdPart(occurredAt)].join(
-    '-'
-  );
+  return [
+    'command-eve-kanban-marketing-card-created',
+    sanitizeEventIdPart(cardId),
+    sanitizeEventIdPart(occurredAt),
+  ].join('-');
 }
 
 function marketingCardMoveAuditEventId(cardId: string, occurredAt: string): string {
   return ['command-eve-kanban-marketing-card-moved', sanitizeEventIdPart(cardId), sanitizeEventIdPart(occurredAt)].join(
     '-'
   );
+}
+
+function marketingCardDispatchAuditEventId(cardId: string, occurredAt: string): string {
+  return [
+    'command-eve-kanban-marketing-dispatch-plan',
+    sanitizeEventIdPart(cardId),
+    sanitizeEventIdPart(occurredAt),
+  ].join('-');
 }
 
 function marketingBoardResultBase(
@@ -1110,11 +1333,143 @@ function marketingCardMoveResultBase(
   };
 }
 
+function marketingDispatchPlanResultBase(
+  hermesHome: string,
+  companyOsRoot?: string
+): Pick<
+  CommandEveKanbanMarketingDispatchPlanResult,
+  'version' | 'source' | 'reason_codes' | 'subprocess_spawned' | 'data_boundary_checked'
+> {
+  return {
+    version: COMMAND_EVE_KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_VERSION,
+    reason_codes: [],
+    subprocess_spawned: false,
+    data_boundary_checked: false,
+    source: {
+      generated_by: 'command-eve-kanban-marketing-board-core',
+      hermes_home: hermesHome,
+      ...(companyOsRoot ? { company_os_root: companyOsRoot } : {}),
+    },
+  };
+}
+
 function normalizeMarketingLaneKey(value: string | undefined): CommandEveKanbanMarketingLaneKey | null {
   const lane = String(value || '').trim();
   return (MARKETING_BOARD_LANES as readonly string[]).includes(lane)
     ? (lane as CommandEveKanbanMarketingLaneKey)
     : null;
+}
+
+function resolveCompanyOsRootForDispatch(options: CommandEveKanbanMarketingDispatchPlanOptions): string | undefined {
+  const env = options.env ?? process.env;
+  return firstNonEmpty(
+    options.companyOsRoot,
+    env.COMMAND_EVE_NL5_COMPANY_OS_ROOT,
+    env.COMMAND_EVE_COMPANY_OS_ROOT,
+    env.COMPANY_OS_ROOT,
+    env.COMMAND_EVE_SOURCE_ROOT
+  );
+}
+
+function companyOsDispatchCliPath(companyOsRoot: string): string {
+  return path.join(companyOsRoot, 'scripts', 'orchestration', 'hermes-pre-generation-dispatch.mjs');
+}
+
+function parseJsonRecord(value = ''): JsonRecord | null {
+  try {
+    const parsed = JSON.parse(value) as unknown;
+    return isRecord(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function reasonCodesFromDispatchPlan(plan: JsonRecord): string[] {
+  return Array.isArray(plan.reason_codes)
+    ? plan.reason_codes.filter((item): item is string => typeof item === 'string' && item.length > 0)
+    : [];
+}
+
+function buildMarketingDispatchRequest({
+  task,
+  cardId,
+  command,
+  companyOsRoot,
+}: {
+  task: JsonRecord;
+  cardId: string;
+  command: 'decompose' | 'specify';
+  companyOsRoot: string;
+}): JsonRecord {
+  const title = textField(task.title);
+  const body = textField(task.body);
+  const laneKey = textField(task.current_step_key) || textField(task.status) || 'unknown';
+  const payload = [
+    `Command EVE marketing card: ${title}`,
+    body ? `Description: ${body}` : '',
+    `Lane: ${laneKey}`,
+    `Task ID: ${cardId}`,
+  ]
+    .filter(Boolean)
+    .join('\n');
+
+  return {
+    command: `hermes kanban ${command}`,
+    taskId: cardId,
+    tenant: MARKETING_BOARD_TENANT,
+    author: 'eve',
+    critic: 'codex-controller',
+    sourceRoot: companyOsRoot,
+    requestedLane: 'local_only',
+    payload,
+    fields: {
+      card_id: cardId,
+      title,
+      body,
+      lane_key: laneKey,
+      tenant: textField(task.tenant) || MARKETING_BOARD_TENANT,
+      workflow_template_id: textField(task.workflow_template_id) || MARKETING_BOARD_WORKFLOW,
+    },
+    routeReceipt: {
+      ok: true,
+      status: 'local-only-pass',
+      requested_lane: 'local_only',
+      effective_lane: 'local_only',
+      sensitivity: 'S1',
+      sensitivity_score: 1,
+      provider_execution_allowed: false,
+      reason_codes: ['command_eve.local_dispatch_preview'],
+    },
+    auxiliaryLaneReceipt: {
+      ok: true,
+      status: 'local-only-pass',
+      effective_lane: 'local_only',
+      sensitivity: 'S1',
+      sensitivity_score: 1,
+      provider_execution_allowed: false,
+      reason_codes: ['command_eve.no_external_auxiliary_lane'],
+    },
+    workerContract: {
+      role: 'cmo',
+      agent: 'hermes',
+      mode: `kanban-${command}`,
+      workspace: 'command-eve-local',
+      dispatch: 'manual',
+      source_of_truth: `Hermes kanban task ${cardId}`,
+      acceptance_criteria:
+        'NL-5 policy passes, HG-2.5 approval exists, and author/critic are separate before dispatch.',
+      gates: 'NL-5 data boundary, route receipt, auxiliary receipt, HG-2.5, author-critic separation',
+      human_gate: 'HG-2.5',
+      reporting: 'Append task_events and agent-events receipts before any Hermes subprocess spawn.',
+      author: 'eve',
+      critic: 'codex-controller',
+    },
+    humanGate: 'HG-2.5',
+    controllerApproval: {
+      status: 'missing',
+      reason: 'Command EVE UI only plans dispatch here; controller execution approval is a later explicit gate.',
+    },
+  };
 }
 
 function normalizeClientToken(value: string | undefined): string {
@@ -1891,5 +2246,237 @@ export function moveKanbanMarketingCard(
     audit_event_path: eventLedgerPath,
     ...(moved ? { audit_event_id: auditEventId } : {}),
     model: board.model,
+  };
+}
+
+export function planKanbanMarketingCardDispatch(
+  options: CommandEveKanbanMarketingDispatchPlanOptions
+): CommandEveKanbanMarketingDispatchPlanResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const companyOsRoot = resolveCompanyOsRootForDispatch(options);
+  const base = marketingDispatchPlanResultBase(paths.hermesHome, companyOsRoot);
+
+  let boardSlug: string;
+  try {
+    boardSlug = normalizeBoardSlug(options.boardSlug);
+  } catch (error) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_BOARD_SLUG_INVALID',
+      reason_codes: ['KANBAN_BOARD_SLUG_INVALID'],
+      message: error instanceof Error ? error.message : 'Invalid Hermes Kanban board slug.',
+    };
+  }
+
+  const command = options.command === 'specify' ? 'specify' : 'decompose';
+  const taskId = String(options.task_id || '').trim();
+  if (!taskId) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_ID_REQUIRED',
+      reason_codes: ['KANBAN_MARKETING_CARD_ID_REQUIRED'],
+      message: 'A task_id is required to plan a marketing card dispatch.',
+      command,
+    };
+  }
+
+  const reconciliation = readRuntimeReconciliation(paths.runtimeReconciliation);
+  const governanceOk =
+    reconciliation.governance.dispatcher_disabled &&
+    reconciliation.governance.auto_decompose_disabled &&
+    reconciliation.governance.mcp_servers_disabled;
+  if (!governanceOk) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_GOVERNANCE_NOT_LOCKED',
+      reason_codes: ['KANBAN_GOVERNANCE_NOT_LOCKED'],
+      message: 'Dispatch planning requires dispatcher, auto-decompose and external MCP execution to stay disabled.',
+      card_id: taskId,
+      command,
+    };
+  }
+
+  if (!companyOsRoot) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'COMMAND_EVE_COMPANY_OS_ROOT_MISSING',
+      reason_codes: ['COMMAND_EVE_COMPANY_OS_ROOT_MISSING'],
+      message: 'Set COMMAND_EVE_NL5_COMPANY_OS_ROOT or COMMAND_EVE_COMPANY_OS_ROOT to run the NL-5 dispatch gate.',
+      card_id: taskId,
+      command,
+    };
+  }
+
+  const dispatchCliPath = companyOsDispatchCliPath(companyOsRoot);
+  if (!fs.existsSync(dispatchCliPath)) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'COMMAND_EVE_NL5_DISPATCH_CLI_MISSING',
+      reason_codes: ['COMMAND_EVE_NL5_DISPATCH_CLI_MISSING'],
+      message: `Company.OS NL-5 dispatch CLI not found: ${dispatchCliPath}`,
+      card_id: taskId,
+      command,
+    };
+  }
+
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const checkedAt = Math.floor(new Date(occurredAt).getTime() / 1000);
+  const dbPath = kanbanDbPath(paths.hermesHome, boardSlug);
+  const eventLedgerPath = resolveMarketingEventLedgerPath(paths, options);
+  const auditEventId = marketingCardDispatchAuditEventId(taskId, occurredAt);
+  const pythonPath = pythonForMarketingBoard(paths, options.pythonPath);
+  const lookup = runPythonJson(
+    pythonPath,
+    {
+      db_path: dbPath,
+      card_id: taskId,
+    },
+    buildMarketingCardLookupScript(),
+    paths.hermesHome
+  );
+
+  if (!lookup.ok || !lookup.data) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'KANBAN_MARKETING_CARD_LOOKUP_FAILED',
+      reason_codes: ['KANBAN_MARKETING_CARD_LOOKUP_FAILED'],
+      message: lookup.error || 'Command EVE marketing card could not be read before dispatch planning.',
+      card_id: taskId,
+      command,
+      audit_event_path: eventLedgerPath,
+    };
+  }
+  if (lookup.data.found !== true || !isRecord(lookup.data.task)) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_NOT_FOUND',
+      reason_codes: ['KANBAN_MARKETING_CARD_NOT_FOUND'],
+      message: `No marketing card found for task_id: ${taskId}`,
+      card_id: taskId,
+      command,
+      audit_event_path: eventLedgerPath,
+    };
+  }
+
+  const request = buildMarketingDispatchRequest({
+    task: lookup.data.task,
+    cardId: taskId,
+    command,
+    companyOsRoot,
+  });
+  const runner = options.commandRunner || defaultCommandRunner;
+  const nodeRuntime = nodeRuntimeForDispatch();
+  const dispatch = runner({
+    executable: nodeRuntime.executable,
+    args: [dispatchCliPath, '--stdin', '--cwd', companyOsRoot],
+    cwd: companyOsRoot,
+    env: {
+      ...process.env,
+      ...nodeRuntime.env,
+      ...(options.env || {}),
+    },
+    timeoutMs: 30_000,
+    input: `${JSON.stringify(request)}\n`,
+  });
+  const dispatchPlan = parseJsonRecord(dispatch.stdout || '');
+  if (!dispatchPlan) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'COMMAND_EVE_NL5_DISPATCH_PLAN_PARSE_FAILED',
+      reason_codes: ['COMMAND_EVE_NL5_DISPATCH_PLAN_PARSE_FAILED'],
+      message: dispatch.stderr || dispatch.error || 'Company.OS NL-5 dispatch plan returned non-JSON output.',
+      card_id: taskId,
+      command,
+      audit_event_path: eventLedgerPath,
+    };
+  }
+
+  const policy = isRecord(dispatchPlan.policy) ? dispatchPlan.policy : {};
+  const dataBoundaryChecked = isRecord(policy.data_boundary_receipt);
+  const reasonCodes = reasonCodesFromDispatchPlan(dispatchPlan);
+  const subprocessSpawned = dispatchPlan.subprocess_spawned === true;
+  const receiptWrite = runPythonJson(
+    pythonPath,
+    {
+      db_path: dbPath,
+      card_id: taskId,
+      audit_event_id: auditEventId,
+      checked_at: checkedAt,
+      dispatch_status: textField(dispatchPlan.status) || (dispatch.ok ? 'ready' : 'blocked'),
+      reason_codes: reasonCodes,
+      data_boundary_checked: dataBoundaryChecked,
+      subprocess_spawned: subprocessSpawned,
+      policy,
+    },
+    buildMarketingCardDispatchPlanScript(),
+    paths.hermesHome
+  );
+
+  if (!receiptWrite.ok || !receiptWrite.data) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'KANBAN_MARKETING_DISPATCH_RECEIPT_WRITE_FAILED',
+      reason_codes: ['KANBAN_MARKETING_DISPATCH_RECEIPT_WRITE_FAILED'],
+      message: receiptWrite.error || 'Command EVE dispatch-plan receipt could not be written.',
+      card_id: taskId,
+      command,
+      audit_event_path: eventLedgerPath,
+      dispatch_plan: dispatchPlan,
+      policy,
+      subprocess_spawned: subprocessSpawned,
+      data_boundary_checked: dataBoundaryChecked,
+    };
+  }
+
+  appendMarketingDispatchPlanAuditEvent({
+    eventId: auditEventId,
+    eventLedgerPath,
+    occurredAt,
+    cardId: taskId,
+    boardSlug,
+    dbPath,
+    companyOsRoot,
+    dispatchPlan,
+  });
+
+  const ready = dispatchPlan.status === 'ready' || dispatchPlan.status === 'dispatched';
+  return {
+    ...base,
+    ok: dispatchPlan.ok === true && ready,
+    status: ready ? 'ready' : dispatchPlan.status === 'failed' ? 'failed' : 'blocked',
+    reason_code: ready
+      ? 'KANBAN_MARKETING_DISPATCH_PLAN_READY'
+      : reasonCodes[0] || 'KANBAN_MARKETING_DISPATCH_PLAN_BLOCKED',
+    reason_codes: reasonCodes,
+    message: ready
+      ? 'NL-5 dispatch plan is ready, but execution still requires an explicit controller gate.'
+      : 'NL-5 dispatch plan blocked execution before Hermes could spawn.',
+    card_id: taskId,
+    command,
+    subprocess_spawned: subprocessSpawned,
+    data_boundary_checked: dataBoundaryChecked,
+    audit_event_id: auditEventId,
+    audit_event_path: eventLedgerPath,
+    dispatch_plan: dispatchPlan,
+    policy,
   };
 }

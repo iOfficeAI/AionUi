@@ -14,6 +14,7 @@ import {
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
   moveKanbanMarketingCard,
+  planKanbanMarketingCardDispatch,
   runKanbanPreflight,
   type CommandEveKanbanPreflightCommandRunner,
 } from '@/process/commandEve/kanbanPreflightCore';
@@ -54,6 +55,13 @@ const writeLockedReconciliation = (root: string, overrides: Record<string, unkno
 
 const marketingBoardPath = (root: string): string =>
   path.join(root, 'command-eve-runtime', 'hermes', 'home', 'kanban', 'boards', 'marketing', 'kanban.db');
+
+const makeCompanyOsDispatchCli = (root: string): string => {
+  const cliPath = path.join(root, 'scripts', 'orchestration', 'hermes-pre-generation-dispatch.mjs');
+  fs.mkdirSync(path.dirname(cliPath), { recursive: true });
+  fs.writeFileSync(cliPath, '#!/usr/bin/env node\n', { mode: 0o700 });
+  return cliPath;
+};
 
 const createNativeKanbanDb = (dbPath: string): void => {
   fs.mkdirSync(path.dirname(dbPath), { recursive: true });
@@ -689,5 +697,103 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(result.ok).toBe(false);
     expect(result.status).toBe('blocked');
     expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+  });
+
+  it('routes dispatch planning through the NL-5 gate and records a blocked receipt without spawning Hermes', () => {
+    const root = makeRoot();
+    const companyOsRoot = makeRoot();
+    makeCompanyOsDispatchCli(companyOsRoot);
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Dispatch me only after gates',
+      description: 'Contains customer-facing marketing work, not a worker launch.',
+      lane_key: 'draft',
+      client_token: 'dispatch-plan-1',
+      now: () => new Date('2026-06-13T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+
+    const requests: unknown[] = [];
+    const commandRunner: CommandEveKanbanPreflightCommandRunner = (request) => {
+      requests.push(JSON.parse(request.input));
+      return {
+        ok: false,
+        exitCode: 78,
+        stdout: `${JSON.stringify({
+          version: 'hermes-pre-generation-dispatch/v0',
+          ok: false,
+          status: 'blocked',
+          subprocess_spawned: false,
+          reason_codes: ['hermes.pre_generation.controller_approval_missing'],
+          policy: {
+            status: 'blocked',
+            data_boundary_receipt: {
+              ok: true,
+              status: 'local-only-pass',
+              sensitivity: 'S1',
+              sensitivity_score: 1,
+              effective_lane: 'local_only',
+            },
+          },
+        })}\n`,
+        stderr: '',
+      };
+    };
+
+    const result = planKanbanMarketingCardDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      command: 'decompose',
+      companyOsRoot,
+      commandRunner,
+      now: () => new Date('2026-06-13T10:00:00.000Z'),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('hermes.pre_generation.controller_approval_missing');
+    expect(result.subprocess_spawned).toBe(false);
+    expect(result.data_boundary_checked).toBe(true);
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({
+      command: 'hermes kanban decompose',
+      taskId: created.card_id,
+      requestedLane: 'local_only',
+      humanGate: 'HG-2.5',
+    });
+
+    const dispatchEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT task_id, kind, payload FROM task_events WHERE kind = 'command_eve_dispatch_plan_checked'"
+    );
+    expect(dispatchEvents).toHaveLength(1);
+    expect(dispatchEvents[0]).toMatchObject({
+      task_id: created.card_id,
+      kind: 'command_eve_dispatch_plan_checked',
+    });
+    const payload = JSON.parse(String((dispatchEvents[0] as { payload: string }).payload)) as {
+      nl5_gate_checked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+    };
+    expect(payload.nl5_gate_checked).toBe(true);
+    expect(payload.subprocess_spawned).toBe(false);
+    expect(payload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(2);
+    expect(auditEvents[1]).toMatchObject({
+      event_type: 'kanban.marketing_board_dispatch_plan_checked',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-dispatch-plan',
+    });
   });
 });
