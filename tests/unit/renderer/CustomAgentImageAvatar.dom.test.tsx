@@ -49,7 +49,25 @@ vi.mock('@/renderer/utils/model/agentLogo', async (importActual) => {
 const messageErrorMock = vi.hoisted(() => vi.fn());
 vi.mock('@arco-design/web-react', async () => {
   const actual = await vi.importActual<typeof import('@arco-design/web-react')>('@arco-design/web-react');
-  return { ...actual, Message: { ...actual.Message, error: messageErrorMock } };
+  const ReactActual = await vi.importActual<typeof import('react')>('react');
+  const Popover = ({
+    children,
+    content,
+    popupVisible,
+    onVisibleChange,
+  }: {
+    children?: React.ReactNode;
+    content?: React.ReactNode;
+    popupVisible?: boolean;
+    onVisibleChange?: (visible: boolean) => void;
+  }) =>
+    ReactActual.createElement(
+      'span',
+      null,
+      ReactActual.createElement('span', { onClick: () => onVisibleChange?.(!popupVisible) }, children),
+      popupVisible ? ReactActual.createElement('div', null, content) : null
+    );
+  return { ...actual, Message: { ...actual.Message, error: messageErrorMock }, Popover };
 });
 
 import { readImageAsDataUrl } from '@/renderer/pages/settings/AgentSettings/InlineAgentEditor';
@@ -115,13 +133,15 @@ describe('AgentCard custom image avatar', () => {
     const { container } = render(
       <AgentCard
         {...props}
-        agent={{
-          id: 'custom-img',
-          name: 'Image Agent',
-          command: 'cmd',
-          enabled: true,
-          icon: PNG_DATA_URL,
-        } as never}
+        agent={
+          {
+            id: 'custom-img',
+            name: 'Image Agent',
+            command: 'cmd',
+            enabled: true,
+            icon: PNG_DATA_URL,
+          } as never
+        }
       />
     );
 
@@ -133,13 +153,15 @@ describe('AgentCard custom image avatar', () => {
     const { container } = render(
       <AgentCard
         {...props}
-        agent={{
-          id: 'custom-emoji',
-          name: 'Emoji Agent',
-          command: 'cmd',
-          enabled: true,
-          icon: '🐙',
-        } as never}
+        agent={
+          {
+            id: 'custom-emoji',
+            name: 'Emoji Agent',
+            command: 'cmd',
+            enabled: true,
+            icon: '🐙',
+          } as never
+        }
       />
     );
 
@@ -159,6 +181,17 @@ describe('InlineAgentEditor image avatar', () => {
         <InlineAgentEditor onSave={vi.fn()} onCancel={vi.fn()} />
       </ConfigProvider>
     );
+
+  const openAvatarMenu = async (): Promise<void> => {
+    fireEvent.keyDown(screen.getByRole('button', { name: 'settings.agentAvatarEdit' }), { key: 'Enter' });
+    await screen.findByText('settings.agentAvatarUpload');
+  };
+
+  const openEmojiPicker = async (): Promise<void> => {
+    await openAvatarMenu();
+    fireEvent.click(screen.getByText('settings.agentAvatarEmoji'));
+    await screen.findByTestId('pick-emoji');
+  };
 
   const selectFile = (container: HTMLElement, file: File): void => {
     const input = container.querySelector('input[type="file"]') as HTMLInputElement;
@@ -193,6 +226,7 @@ describe('InlineAgentEditor image avatar', () => {
     const { container } = renderEditor();
 
     await act(async () => {
+      await openEmojiPicker();
       fireEvent.click(screen.getByTestId('pick-emoji'));
     });
 
@@ -201,8 +235,10 @@ describe('InlineAgentEditor image avatar', () => {
     });
   });
 
-  it('renders the upload trigger button', () => {
+  it('renders the upload trigger button', async () => {
     renderEditor();
+
+    await openAvatarMenu();
 
     expect(screen.getByText('settings.agentAvatarUpload')).toBeTruthy();
   });
@@ -212,6 +248,7 @@ describe('InlineAgentEditor image avatar', () => {
     const { container } = renderEditor();
 
     await act(async () => {
+      await openAvatarMenu();
       selectFile(container, new File(['tiny'], 'a.png', { type: 'image/png' }));
     });
 
@@ -227,6 +264,7 @@ describe('InlineAgentEditor image avatar', () => {
     const huge = new File([new Uint8Array(1024 * 1024 + 1)], 'big.png', { type: 'image/png' });
 
     await act(async () => {
+      await openAvatarMenu();
       selectFile(container, huge);
     });
 
@@ -241,6 +279,7 @@ describe('InlineAgentEditor image avatar', () => {
     const { container } = renderEditor();
 
     await act(async () => {
+      await openAvatarMenu();
       selectFile(container, new File(['tiny'], 'a.png', { type: 'image/png' }));
     });
 

@@ -440,6 +440,7 @@ interface EmojiPickerProps {
   onChange?: (emoji: string) => void;
   children?: React.ReactNode;
   placement?: PopoverPosition;
+  inline?: boolean;
   builtinAvatars?: Array<{
     id: string;
     label: string;
@@ -452,6 +453,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
   onChange,
   children,
   placement = 'bl',
+  inline = false,
   builtinAvatars = [],
 }) => {
   const { t } = useTranslation();
@@ -626,6 +628,10 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
     ) : (
       emojiPickerContent
     );
+
+  if (inline) {
+    return pickerContent;
+  }
 
   return (
     <Popover

@@ -7,8 +7,8 @@
 import type { CustomAgentAdvancedOverrides } from '@/common/types/platform/acpTypes';
 import type { AgentMetadata, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import { acpConversation } from '@/common/adapter/ipcBridge';
-import { Alert, Avatar, Button, Collapse, Input, Message, Typography, Upload } from '@arco-design/web-react';
-import { CheckOne, CloseOne, Pic } from '@icon-park/react';
+import { Alert, Avatar, Button, Collapse, Input, Message, Popover, Typography, Upload } from '@arco-design/web-react';
+import { CheckOne, CloseOne, Delete, EditOne, Left, Pic } from '@icon-park/react';
 import EmojiPicker from '@/renderer/components/chat/EmojiPicker';
 import { resolveAssistantAvatar } from '@/renderer/utils/model/assistantAvatar';
 import CodeMirror from '@uiw/react-codemirror';
@@ -20,6 +20,7 @@ import { useTranslation } from 'react-i18next';
 import EnvVarEditor, { type EnvVarRow } from './EnvVarEditor';
 
 type TestStatus = 'idle' | 'testing' | 'success' | 'fail_cli' | 'fail_acp';
+type AvatarPopoverMode = 'menu' | 'emoji';
 
 const ACCEPTED_AVATAR_TYPES = '.png,.jpg,.jpeg,.gif,.webp,.svg';
 const MAX_AVATAR_BYTES = 1024 * 1024;
@@ -157,6 +158,8 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const isJsonEditingRef = useRef(false);
   const [testStatus, setTestStatus] = useState<TestStatus>('idle');
   const [testErrorDetail, setTestErrorDetail] = useState('');
+  const [avatarPopoverVisible, setAvatarPopoverVisible] = useState(false);
+  const [avatarMode, setAvatarMode] = useState<AvatarPopoverMode>('menu');
   const runtimeScopeId = useMemo(() => agent?.id || uuid(), [agent?.id]);
 
   // Canonical empty shape shown when the user has not filled anything yet.
@@ -264,6 +267,8 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
       const dataUrl = await readImageAsDataUrl(file);
       if (dataUrl) {
         setAvatar(dataUrl);
+        setAvatarPopoverVisible(false);
+        setAvatarMode('menu');
       } else {
         Message.error(t('settings.agentAvatarReadFailed'));
       }
@@ -334,42 +339,118 @@ const InlineAgentEditor: React.FC<InlineAgentEditorProps> = ({ agent, onSave, on
   const fieldLabelClassName = 'mb-6px block text-13px font-medium text-t-primary';
   const fieldHelpClassName = 'mt-4px block text-12px leading-18px text-t-tertiary';
   const avatarDisplay = resolveAssistantAvatar(avatar);
+  const handleAvatarPopoverVisibleChange = (visible: boolean) => {
+    setAvatarPopoverVisible(visible);
+    if (!visible) {
+      setAvatarMode('menu');
+    }
+  };
+  const handleEmojiSelect = (emoji: string) => {
+    setAvatar(emoji);
+    setAvatarPopoverVisible(false);
+    setAvatarMode('menu');
+  };
+  const resetAvatar = () => {
+    setAvatar('🤖');
+    setAvatarPopoverVisible(false);
+    setAvatarMode('menu');
+  };
+  const avatarPopoverContent =
+    avatarMode === 'emoji' ? (
+      <div className='w-280px'>
+        <Button
+          type='text'
+          size='mini'
+          onClick={() => setAvatarMode('menu')}
+          className='mb-6px !px-0 text-t-secondary hover:!text-primary-6'
+        >
+          <span className='flex items-center gap-4px'>
+            <Left theme='outline' size={14} />
+            {t('common.historyBack')}
+          </span>
+        </Button>
+        <EmojiPicker inline value={avatar} onChange={handleEmojiSelect} />
+      </div>
+    ) : (
+      <div className='flex w-180px flex-col py-4px'>
+        <Button
+          type='text'
+          onClick={() => setAvatarMode('emoji')}
+          className='!h-36px !justify-start !rounded-8px text-t-primary'
+        >
+          <span className='flex items-center gap-8px'>
+            <EditOne theme='outline' size={16} />
+            {t('settings.agentAvatarEmoji')}
+          </span>
+        </Button>
+        <Upload
+          showUploadList={false}
+          accept={ACCEPTED_AVATAR_TYPES}
+          autoUpload={false}
+          beforeUpload={handleAvatarBeforeUpload}
+        >
+          <Button type='text' className='!h-36px !w-full !justify-start !rounded-8px text-t-primary'>
+            <span className='flex items-center gap-8px'>
+              <Pic theme='outline' size={16} />
+              {t('settings.agentAvatarUpload')}
+            </span>
+          </Button>
+        </Upload>
+        {avatar !== '🤖' ? (
+          <Button type='text' status='danger' onClick={resetAvatar} className='!h-36px !justify-start !rounded-8px'>
+            <span className='flex items-center gap-8px'>
+              <Delete theme='outline' size={16} />
+              {t('settings.agentAvatarReset')}
+            </span>
+          </Button>
+        ) : null}
+      </div>
+    );
 
   return (
     <div className='flex flex-col gap-16px pt-8px pb-20px'>
       {/* Avatar + Name row */}
       <div className='flex items-center gap-12px'>
-        <div className='flex shrink-0 flex-col items-center gap-6px'>
-          <EmojiPicker onChange={(emoji) => setAvatar(emoji)}>
-            <div className='cursor-pointer shrink-0'>
+        <div className='shrink-0'>
+          <Popover
+            trigger='click'
+            popupVisible={avatarPopoverVisible}
+            onVisibleChange={handleAvatarPopoverVisibleChange}
+            content={avatarPopoverContent}
+            position='bottom'
+          >
+            <div
+              className='group relative cursor-pointer shrink-0'
+              role='button'
+              tabIndex={0}
+              aria-label={t('settings.agentAvatarEdit')}
+              onKeyDown={(event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  setAvatarPopoverVisible((visible) => !visible);
+                }
+              }}
+            >
               <Avatar
                 size={48}
                 shape='square'
                 style={{ backgroundColor: 'var(--color-fill-3)', fontSize: 24, borderRadius: 12 }}
               >
                 {avatarDisplay.kind === 'image' ? (
-                  <img src={avatarDisplay.value} alt={t('settings.agentAvatarAlt')} className='h-full w-full object-contain' />
+                  <img
+                    src={avatarDisplay.value}
+                    alt={t('settings.agentAvatarAlt')}
+                    className='h-full w-full object-contain'
+                  />
                 ) : (
                   avatar
                 )}
               </Avatar>
+              <span className='absolute -right-4px -bottom-4px flex h-18px w-18px items-center justify-center rounded-full bg-primary-6 text-white shadow-sm opacity-0 transition-opacity group-hover:opacity-100'>
+                <EditOne theme='outline' size={11} />
+              </span>
             </div>
-          </EmojiPicker>
-          <Upload
-            showUploadList={false}
-            accept={ACCEPTED_AVATAR_TYPES}
-            autoUpload={false}
-            beforeUpload={handleAvatarBeforeUpload}
-          >
-            <Button
-              type='text'
-              size='mini'
-              icon={<Pic theme='outline' size={12} />}
-              className='!px-4px text-12px text-t-secondary hover:!text-primary-6'
-            >
-              {t('settings.agentAvatarUpload')}
-            </Button>
-          </Upload>
+          </Popover>
         </div>
         <div className='min-w-0 flex-1'>
           <Typography.Text className={fieldLabelClassName}>{t('settings.agentDisplayName')}</Typography.Text>

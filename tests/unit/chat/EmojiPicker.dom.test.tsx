@@ -43,4 +43,28 @@ describe('EmojiPicker', () => {
       expect(onChange).toHaveBeenCalledWith('/api/assistants/dashboard-creator/avatar');
     });
   });
+
+  it('renders the picker content directly (no popover trigger) in inline mode and fires onChange on emoji select', async () => {
+    const onChange = vi.fn();
+
+    const { container } = render(
+      <ConfigProvider>
+        <EmojiPicker inline onChange={onChange} />
+      </ConfigProvider>
+    );
+
+    // Inline mode skips the Popover: the emoji grid must be present immediately
+    // without any trigger to click.
+    const emojiButtons = Array.from(container.querySelectorAll('.grid button')).filter(
+      (btn) => (btn.textContent ?? '').trim().length > 0
+    );
+    expect(emojiButtons.length).toBeGreaterThan(0);
+
+    const firstEmoji = (emojiButtons[0].textContent ?? '').trim();
+    fireEvent.click(emojiButtons[0]);
+
+    await waitFor(() => {
+      expect(onChange).toHaveBeenCalledWith(firstEmoji);
+    });
+  });
 });

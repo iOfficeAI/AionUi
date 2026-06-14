@@ -33,6 +33,10 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('swr', () => ({ default: () => ({ data: [] }) }));
 
+vi.mock('@/renderer/hooks/context/ThemeContext', () => ({
+  useThemeContext: () => ({ theme: 'light', fontScale: 1 }),
+}));
+
 const PNG_DATA_URL = 'data:image/png;base64,iVBORw0KGgo=';
 
 const presetAssistant = {
