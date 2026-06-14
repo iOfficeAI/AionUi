@@ -14,26 +14,24 @@ type BuildTeamSendRuntimeOptions = {
   onStop?: () => Promise<void>;
 };
 
-const isRunProcessing = (runView: TeamRunViewState): boolean => {
-  const run = runView.activeRun;
-  if (!run) return false;
-  const statusProcessing = run.status === 'accepted' || run.status === 'running' || run.status === 'cancelling';
-  const workProcessing = run.pending_wake_count > 0 || run.starting_child_count > 0 || run.active_child_count > 0;
-  return statusProcessing || workProcessing;
-};
+const isSlotWorkProcessing = (runView: TeamRunViewState, slot_id: string): boolean => {
+  const work = runView.slotWorkBySlot[slot_id];
+  const hasSlotWork =
+    Boolean(work?.active_turn_id) ||
+    (work?.pending_wake_count ?? 0) > 0 ||
+    (work?.starting_child_count ?? 0) > 0;
+  if (hasSlotWork) return true;
 
-const isChildProcessing = (runView: TeamRunViewState, slot_id: string): boolean => {
-  const status = runView.childTurnsBySlot[slot_id]?.status;
-  return status === 'accepted' || status === 'running' || status === 'cancelling';
+  const childStatus = runView.childTurnsBySlot[slot_id]?.status;
+  return childStatus === 'accepted' || childStatus === 'running' || childStatus === 'cancelling';
 };
 
 export const buildTeamSendRuntime = ({
   slot_id,
-  isLeader,
   runView,
   onStop,
 }: BuildTeamSendRuntimeOptions): TeamSendBoxRuntime => {
-  const processing = isLeader ? isRunProcessing(runView) : isChildProcessing(runView, slot_id);
+  const processing = isSlotWorkProcessing(runView, slot_id);
   return {
     loading: processing,
     runtimeGate: {

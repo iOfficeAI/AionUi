@@ -14,22 +14,66 @@ const activeRunView: TeamRunViewState = {
     starting_child_count: 0,
   },
   childTurnsBySlot: {},
+  slotWorkBySlot: {},
 };
 
 describe('buildTeamSendRuntime', () => {
-  it('locks leader sendbox while team run is active', () => {
+  it('does not lock leader sendbox for teammate-only active work', () => {
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
       isLeader: true,
-      runView: activeRunView,
+      runView: {
+        activeRun: {
+          ...activeRunView.activeRun!,
+          active_child_count: 1,
+          pending_wake_count: 1,
+          starting_child_count: 1,
+          slot_work: [
+            {
+              slot_id: 'worker',
+              role: 'teammate',
+              pending_wake_count: 1,
+              starting_child_count: 0,
+              active_turn_id: 'turn-worker',
+            },
+          ],
+        },
+        childTurnsBySlot: {
+          worker: {
+            team_id: 'team-1',
+            team_run_id: 'run-1',
+            slot_id: 'worker',
+            role: 'teammate',
+            conversation_id: 'conv-worker',
+            turn_id: 'turn-worker',
+            status: 'running',
+          },
+        },
+        slotWorkBySlot: {
+          worker: {
+            slot_id: 'worker',
+            role: 'teammate',
+            pending_wake_count: 1,
+            starting_child_count: 0,
+            active_turn_id: 'turn-worker',
+          },
+        },
+      },
     });
 
-    expect(runtime.loading).toBe(true);
-    expect(runtime.runtimeGate.canSendMessage).toBe(false);
-    expect(runtime.runtimeGate.isProcessing).toBe(true);
+    expect(runtime.loading).toBe(false);
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.runtimeGate.isProcessing).toBe(false);
   });
 
-  it('locks leader sendbox while team run reports starting work', () => {
+  it('locks leader sendbox while leader slot has pending work', () => {
+    const leaderWork = {
+      slot_id: 'lead',
+      role: 'lead' as const,
+      pending_wake_count: 1,
+      starting_child_count: 0,
+      active_turn_id: undefined,
+    };
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
       isLeader: true,
@@ -41,10 +85,14 @@ describe('buildTeamSendRuntime', () => {
           target_role: 'lead',
           status: 'completed',
           active_child_count: 0,
-          pending_wake_count: 0,
-          starting_child_count: 1,
+          pending_wake_count: 1,
+          starting_child_count: 0,
+          slot_work: [leaderWork],
         },
         childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: leaderWork,
+        },
       },
     });
 

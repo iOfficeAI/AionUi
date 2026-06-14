@@ -22,6 +22,7 @@ type TeamSendOverride = (payload: { input: string; files: string[] }) => Promise
 const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
+  slotWorkBySlot: {},
 };
 
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
@@ -116,15 +117,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           onStop: async () => {
             const activeRun = teamRunView.activeRun;
             if (!activeRun) return;
-            if (isLeader) {
-              await ipcBridge.team.cancelRun.invoke({
-                team_id,
-                team_run_id: activeRun.team_run_id,
-                target_slot_id: slot_id,
-              });
-              return;
-            }
-            if (!teamRunView.childTurnsBySlot[slot_id]) return;
+            const hasSlotWork =
+              Boolean(teamRunView.childTurnsBySlot[slot_id]) ||
+              Boolean(teamRunView.slotWorkBySlot[slot_id]?.active_turn_id) ||
+              (teamRunView.slotWorkBySlot[slot_id]?.starting_child_count ?? 0) > 0;
+            if (!hasSlotWork) return;
             await ipcBridge.team.cancelChildTurn.invoke({
               team_id,
               team_run_id: activeRun.team_run_id,
