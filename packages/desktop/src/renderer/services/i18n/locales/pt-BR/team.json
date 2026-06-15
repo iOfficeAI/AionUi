@@ -20,6 +20,7 @@
   "newAgent": "Novo Agente",
   "noMessages": "Nenhuma mensagem ainda.",
   "agentNotConfigured": "Agente ainda não configurado.",
+  "stopAgentFailed": "Falha ao parar este agente. Tente novamente.",
   "sendBox": {
     "placeholder": "Despachar mensagem para o agente..."
   },

@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Agent 尚未設定。",
+  "stopAgentFailed": "停止該成員失敗，請稍後再試",
   "sendBox": {
     "placeholder": "向調度 Agent 發訊息..."
   },

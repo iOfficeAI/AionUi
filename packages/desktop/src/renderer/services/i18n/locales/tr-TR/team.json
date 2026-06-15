@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Ajan henüz yapılandırılmadı.",
+  "stopAgentFailed": "Bu ajan durdurulamadı. Lütfen tekrar deneyin.",
   "sendBox": {
     "placeholder": "Dağıtım ajanına mesaj gönder..."
   },

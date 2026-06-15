@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "Agent not configured yet.",
+  "stopAgentFailed": "Failed to stop this agent. Please try again.",
   "sendBox": {
     "placeholder": "Message dispatch agent..."
   },

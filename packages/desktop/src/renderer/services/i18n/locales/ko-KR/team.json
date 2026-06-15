@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "에이전트가 아직 구성되지 않았습니다.",
+  "stopAgentFailed": "이 에이전트를 중지하지 못했습니다. 다시 시도해 주세요.",
   "sendBox": {
     "placeholder": "디스패치 에이전트에 메시지 보내기..."
   },

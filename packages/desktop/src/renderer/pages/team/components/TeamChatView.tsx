@@ -1,12 +1,13 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Spin } from '@arco-design/web-react';
+import { Message, Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime } from './teamSendRuntime';
+import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
@@ -86,6 +87,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   teamRunView = EMPTY_TEAM_RUN_VIEW,
   onTeamRunAck,
 }) => {
+  const { t } = useTranslation();
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
   // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
@@ -113,24 +115,17 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
       ? buildTeamSendRuntime({
           slot_id,
           runView: teamRunView,
-          onStop: async () => {
-            const activeRun = teamRunView.activeRun;
-            if (!activeRun) return;
-            const work = teamRunView.slotWorkBySlot[slot_id];
-            const hasSlotWork =
-              Boolean(teamRunView.childTurnsBySlot[slot_id]) ||
-              Boolean(work?.active_turn_id) ||
-              (work?.starting_child_count ?? 0) > 0 ||
-              (work?.pending_wake_count ?? 0) > 0 ||
-              (work?.suppressed_wake_count ?? 0) > 0;
-            if (!hasSlotWork) return;
-            await ipcBridge.team.pauseSlotWork.invoke({
-              team_id,
-              team_run_id: activeRun.team_run_id,
-              slot_id,
-              reason: 'user_stop',
-            });
-          },
+          onStop: buildTeamStopHandler({
+            team_id,
+            slot_id,
+            runView: teamRunView,
+            pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+            onStopFailed: () => {
+              Message.error(
+                t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
+              );
+            },
+          }),
         })
       : undefined;
   const content = (() => {

@@ -2117,6 +2117,7 @@ export type I18nKey =
   | 'team.sider.renameTitle'
   | 'team.sider.title'
   | 'team.sider.unpin'
+  | 'team.stopAgentFailed'
   | 'tools.actions.create'
   | 'tools.actions.delete'
   | 'tools.actions.modify'

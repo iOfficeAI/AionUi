@@ -1,5 +1,8 @@
-import { describe, expect, it } from 'vitest';
-import { buildTeamSendRuntime } from '../../../packages/desktop/src/renderer/pages/team/components/teamSendRuntime';
+import { describe, expect, it, vi } from 'vitest';
+import {
+  buildTeamSendRuntime,
+  buildTeamStopHandler,
+} from '../../../packages/desktop/src/renderer/pages/team/components/teamSendRuntime';
 import type { TeamRunViewState } from '../../../packages/desktop/src/renderer/pages/team/hooks/useTeamRunView';
 
 const activeRunView: TeamRunViewState = {
@@ -212,5 +215,43 @@ describe('buildTeamSendRuntime', () => {
     expect(runtime.loading).toBe(true);
     expect(runtime.runtimeGate.canSendMessage).toBe(false);
     expect(runtime.runtimeGate.isProcessing).toBe(true);
+  });
+
+  it('shows a generic failure callback when team slot stop fails', async () => {
+    const pauseSlotWork = vi.fn().mockRejectedValue(new Error('internal runtime cancel details'));
+    const onStopFailed = vi.fn();
+    const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const handler = buildTeamStopHandler({
+      team_id: 'team-1',
+      slot_id: 'lead',
+      runView: {
+        activeRun: activeRunView.activeRun,
+        childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: {
+            slot_id: 'lead',
+            role: 'lead',
+            pending_wake_count: 0,
+            starting_child_count: 0,
+            active_turn_id: 'turn-lead',
+          },
+        },
+      },
+      pauseSlotWork,
+      onStopFailed,
+    });
+
+    await handler();
+
+    expect(pauseSlotWork).toHaveBeenCalledWith({
+      team_id: 'team-1',
+      team_run_id: 'run-1',
+      slot_id: 'lead',
+      reason: 'user_stop',
+    });
+    expect(onStopFailed).toHaveBeenCalledTimes(1);
+    expect(onStopFailed).toHaveBeenCalledWith();
+    expect(warn).toHaveBeenCalledWith('[TeamChatView] pause slot work failed', expect.any(Error));
+    warn.mockRestore();
   });
 });
