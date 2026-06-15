@@ -212,13 +212,6 @@ function composeMessageWithIndex(message: TMessage | undefined, list: TMessage[]
         if ((message.content as { teammateMessage?: boolean })?.teammateMessage) {
           return list;
         }
-        // AI streaming messages (left position) — append by default, replace when explicitly signaled
-        const newList = list.slice();
-        newList[existingIdx] = {
-          ...existingMsg,
-          content: mergeTextMessageContent(existingMsg.content, message.content),
-        };
-        return newList;
       }
     }
 
