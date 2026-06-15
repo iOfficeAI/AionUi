@@ -1,10 +1,9 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@renderer/pages/guid/constants';
+import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import {
   isDeprecatedRuntimeAgentType,
   resolveSupportedConversationType,
@@ -74,22 +73,13 @@ export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
 
 export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
   const logo = getAgentLogo(agent.backend);
-  const avatarImage = agent.icon ? CUSTOM_AVATAR_IMAGE_MAP[agent.icon] : undefined;
-  const directIcon =
-    agent.icon &&
-    !avatarImage &&
-    (/^(?:[a-z][a-z\d+.-]*:|\/)/i.test(agent.icon) || /\.(svg|png|jpe?g|gif|webp)$/i.test(agent.icon))
-      ? (resolveBackendAssetUrl(agent.icon) ?? agent.icon)
-      : undefined;
-  const isEmoji = Boolean(agent.icon && !avatarImage && !directIcon);
+  const avatar = resolveAssistantAvatar(agent.icon);
   return (
     <div className='flex items-center gap-8px'>
-      {avatarImage ? (
-        <img src={avatarImage} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
-      ) : isEmoji ? (
-        <span style={{ fontSize: 14, lineHeight: '16px' }}>{agent.icon}</span>
-      ) : directIcon ? (
-        <img src={directIcon} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      {avatar.kind === 'image' ? (
+        <img src={avatar.value} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+      ) : avatar.kind === 'emoji' ? (
+        <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatar.value}</span>
       ) : logo ? (
         <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (

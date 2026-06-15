@@ -6,7 +6,9 @@
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 function normalizeAgentBackend(agent: string | undefined): string | undefined {
   if (!agent) return undefined;
@@ -22,15 +24,38 @@ function normalizeAgentBackend(agent: string | undefined): string | undefined {
  * `agent_type` directly — aionrs in particular reuses `agent_config.backend`
  * for provider_id, so we must not fall back to it there.
  */
-export function getJobAgentMeta(job: ICronJob, cliAgents: AgentMetadata[]): { name?: string; logo?: string | null } {
+export function getJobAgentMeta(
+  job: ICronJob,
+  cliAgents: AgentMetadata[],
+  presetAssistants: Assistant[]
+): { name?: string; logo?: string | null; emoji?: string } {
   const rawType = normalizeAgentBackend(job.metadata.agent_type);
   if (!rawType) return {};
 
+  const config = job.metadata.agent_config;
+  if (config?.is_preset && config.custom_agent_id) {
+    const assistant = presetAssistants.find((item) => item.id === config.custom_agent_id);
+    const displayName = assistant?.name || config.name || rawType;
+    const avatar = resolveAssistantAvatar(assistant?.avatar);
+    if (avatar.kind === 'image') {
+      return { name: displayName, logo: avatar.value };
+    }
+    if (avatar.kind === 'emoji') {
+      return { name: displayName, emoji: avatar.value };
+    }
+
+    const presetBackend = config.preset_agent_type || (rawType === 'acp' ? config.backend : rawType);
+    return {
+      name: displayName,
+      logo: getAgentLogo(presetBackend),
+    };
+  }
+
   if (rawType === 'acp') {
-    const backend = job.metadata.agent_config?.backend;
+    const backend = config?.backend;
     const detected = backend ? cliAgents.find((a) => (a.backend || a.agent_type) === backend) : undefined;
     return {
-      name: detected?.name || job.metadata.agent_config?.name || backend || rawType,
+      name: detected?.name || config?.name || backend || rawType,
       logo: getAgentLogo(backend),
     };
   }

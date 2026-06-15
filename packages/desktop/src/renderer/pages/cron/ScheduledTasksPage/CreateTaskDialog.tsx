@@ -14,7 +14,6 @@ import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
 import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
-import { CUSTOM_AVATAR_IMAGE_MAP } from '@/renderer/pages/guid/constants';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -25,7 +24,9 @@ import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
+import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
+import { resolveCronAgentConfig } from './resolveCronAgentConfig';
 
 const FormItem = Form.Item;
 const TextArea = Input.TextArea;
@@ -368,71 +369,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     setWorkspace(undefined);
   }, []);
 
-  const resolveAgentConfig = (agentValue: string) => {
-    const colonIdx = agentValue.indexOf(':');
-    const agentKind = colonIdx >= 0 ? agentValue.substring(0, colonIdx) : 'cli';
-    const agentId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
-
-    let agent_config: ICronAgentConfig | undefined;
-    let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType(agent_type || 'acp');
-
-    if (agentKind === 'cli') {
-      const agent = cliAgents.find((a) => a.backend === agentId || a.agent_type === agentId);
-      const backend = (agent?.backend || agent?.agent_type || agentId) as string;
-
-      if (backend === 'aionrs') {
-        // aionrs stores provider_id in `agent_config.backend` and the model
-        // name in `model_id` — different semantic from ACP, where backend is
-        // a vendor label. The executor looks up the provider row by this id.
-        if (!geminiCurrentModel || !model_id) {
-          throw new Error(t('cron.page.form.aionrsModelRequired'));
-        }
-        resolvedAgentType = 'aionrs' as ICreateCronJobParams['agent_type'];
-        agent_config = {
-          backend: geminiCurrentModel.id as string,
-          name: geminiCurrentModel.name,
-          mode: getFullAutoMode('aionrs'),
-          model_id,
-          workspace,
-        };
-      } else if (agent?.agent_type === 'acp') {
-        const capitalizedBackend = backend.charAt(0).toUpperCase() + backend.slice(1);
-        resolvedAgentType = 'acp';
-        agent_config = {
-          // cli_path is no longer sent from the frontend — the backend
-          // resolves it server-side from the `agent_metadata` catalog.
-          backend,
-          name: agent.name || capitalizedBackend,
-          mode: getFullAutoMode(backend),
-          model_id,
-          config_options,
-          workspace,
-        };
-      } else if (agent) {
-        resolvedAgentType = resolveSupportedConversationType(backend);
-      }
-    } else if (agentKind === 'preset') {
-      const assistant = presetAssistants.find((a) => a.id === agentId);
-      if (assistant) {
-        const presetBackend = assistant.preset_agent_type;
-        resolvedAgentType = resolveSupportedConversationType(presetBackend);
-        agent_config = {
-          backend: presetBackend as string,
-          name: assistant.name,
-          is_preset: true,
-          custom_agent_id: assistant.id,
-          preset_agent_type: presetBackend,
-          mode: getFullAutoMode(presetBackend),
-          model_id,
-          config_options,
-          workspace,
-        };
-      }
-    }
-
-    return { agent_config, resolvedAgentType };
-  };
-
   const handleSubmit = async () => {
     try {
       const values = await form.validate();
@@ -442,7 +378,23 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const scheduleDesc = scheduleInfo.description;
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
 
-      const { agent_config, resolvedAgentType } = resolveAgentConfig(values.agent);
+      const { agent_config, resolvedAgentType } = resolveCronAgentConfig({
+        agentValue: values.agent,
+        conversationAgentType: agent_type || 'acp',
+        cliAgents,
+        presetAssistants,
+        selectedAionrsProvider: geminiCurrentModel
+          ? {
+              id: geminiCurrentModel.id as string | undefined,
+              name: geminiCurrentModel.name,
+            }
+          : undefined,
+        model_id,
+        config_options,
+        workspace,
+        getMode: getFullAutoMode,
+        aionrsModelRequiredMessage: t('cron.page.form.aionrsModelRequired'),
+      });
 
       if (isEditMode) {
         // Edit mode: update existing job
@@ -553,12 +505,11 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                   const assistant = presetAssistants.find((a) => a.id === id);
                   if (assistant) {
                     name = assistant.name;
-                    const avatarImage = assistant.avatar ? CUSTOM_AVATAR_IMAGE_MAP[assistant.avatar] : undefined;
-                    const isEmoji = assistant.avatar && !avatarImage && !assistant.avatar.endsWith('.svg');
-                    if (avatarImage) {
-                      logo = <img src={avatarImage} alt={assistant.name} className='w-16px h-16px object-contain' />;
-                    } else if (isEmoji) {
-                      logo = <span className='text-14px leading-16px'>{assistant.avatar}</span>;
+                    const avatar = resolveAssistantAvatar(assistant.avatar);
+                    if (avatar.kind === 'image') {
+                      logo = <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />;
+                    } else if (avatar.kind === 'emoji') {
+                      logo = <span className='text-14px leading-16px'>{avatar.value}</span>;
                     }
                   }
                 }
@@ -603,15 +554,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
               {presetAssistants.length > 0 && (
                 <OptGroup label={t('conversation.dropdown.presetAssistants')}>
                   {presetAssistants.map((assistant) => {
-                    const avatarImage = assistant.avatar ? CUSTOM_AVATAR_IMAGE_MAP[assistant.avatar] : undefined;
-                    const isEmoji = assistant.avatar && !avatarImage && !assistant.avatar.endsWith('.svg');
+                    const avatar = resolveAssistantAvatar(assistant.avatar);
                     return (
                       <Option key={`preset:${assistant.id}`} value={`preset:${assistant.id}`}>
                         <div className='flex items-center gap-8px'>
-                          {avatarImage ? (
-                            <img src={avatarImage} alt={assistant.name} className='w-16px h-16px object-contain' />
-                          ) : isEmoji ? (
-                            <span className='text-14px leading-16px'>{assistant.avatar}</span>
+                          {avatar.kind === 'image' ? (
+                            <img src={avatar.value} alt={assistant.name} className='w-16px h-16px object-contain' />
+                          ) : avatar.kind === 'emoji' ? (
+                            <span className='text-14px leading-16px'>{avatar.value}</span>
                           ) : (
                             <Robot size='16' />
                           )}
