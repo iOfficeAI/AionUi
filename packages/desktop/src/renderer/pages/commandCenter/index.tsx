@@ -1338,76 +1338,111 @@ const MarketingBoardSection: React.FC<{
           type={dispatchPlanResult.ok ? 'success' : dispatchPlanResult.status === 'failed' ? 'error' : 'warning'}
           title={dispatchPlanResult.reason_code || t('commandCenter.marketingBoard.dispatch.resultTitle')}
           content={
-            <div className='flex flex-col gap-6px' data-testid='marketing-card-dispatch-plan-detail'>
-              <span>{dispatchPlanResult.message || '-'}</span>
-              <div className='flex flex-wrap gap-6px'>
-                <Tag color={dispatchPlanResult.data_boundary_checked ? 'green' : 'orange'}>
-                  {`${t('commandCenter.marketingBoard.dispatch.dataBoundary')}: ${
-                    dispatchPlanResult.data_boundary_checked
-                      ? t('commandCenter.marketingBoard.dispatch.checked')
-                      : t('commandCenter.marketingBoard.dispatch.notChecked')
-                  }`}
-                </Tag>
-                <Tag color={dispatchPlanResult.subprocess_spawned ? 'red' : 'green'}>
-                  {`${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
-                    dispatchPlanResult.subprocess_spawned
-                      ? t('commandCenter.marketingBoard.dispatch.spawned')
-                      : t('commandCenter.marketingBoard.dispatch.notSpawned')
-                  }`}
-                </Tag>
-                <Tag color={dispatchPlanResult.controller_approval_required ? 'orange' : 'green'}>
-                  <span data-testid='marketing-card-dispatch-controller-approval'>
-                    {`${t('commandCenter.marketingBoard.dispatch.controllerApproval')}: ${
-                      dispatchPlanResult.controller_approval_required
-                        ? t('commandCenter.marketingBoard.dispatch.required')
-                        : t('commandCenter.marketingBoard.dispatch.notRequired')
-                    }`}
-                  </span>
-                </Tag>
-                <Tag color={dispatchPlanResult.release_blocked ? 'orange' : 'green'}>
-                  <span data-testid='marketing-card-dispatch-release-gate'>
-                    {`${t('commandCenter.marketingBoard.dispatch.release')}: ${
-                      dispatchPlanResult.release_blocked
-                        ? t('commandCenter.marketingBoard.dispatch.blockedByGate')
-                        : t('commandCenter.marketingBoard.dispatch.ready')
-                    }`}
-                  </span>
-                </Tag>
-                <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: ${
-                  dispatchPlanResult.human_gate || 'HG-2.5'
-                }`}</Tag>
-                <Tag color='blue'>
-                  <span data-testid='marketing-card-dispatch-plan-source'>
-                    {dispatchSourceForResult(dispatchPlanResult)}
-                  </span>
-                </Tag>
-              </div>
-              <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
-                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>
-                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.card_id)}</dd>
-                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.command')}</dt>
-                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.command)}</dd>
-                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.reason')}</dt>
-                <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-plan-reason'>
-                  {firstReasonCode(dispatchPlanResult.reason_codes, dispatchPlanResult.reason_code)}
-                </dd>
-                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
-                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.audit_event_id)}</dd>
-                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.source')}</dt>
-                <dd className='m-0 truncate text-t-secondary'>{dispatchSourceForResult(dispatchPlanResult)}</dd>
-                {dispatchHandoffForResult(dispatchPlanResult) ? (
-                  <>
-                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.handoff')}</dt>
-                    <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-handoff'>
-                      {`${recordStringField(dispatchHandoffForResult(dispatchPlanResult), 'role_label')} / ${recordStringField(
-                        dispatchHandoffForResult(dispatchPlanResult),
-                        'dispatch'
-                      )}`}
+            (() => {
+              const handoff = dispatchHandoffForResult(dispatchPlanResult);
+              const handoffRole = recordStringField(handoff, 'role_label');
+              const handoffMode = recordStringField(handoff, 'dispatch');
+              return (
+                <div className='flex flex-col gap-8px' data-testid='marketing-card-dispatch-plan-detail'>
+                  <span>{dispatchPlanResult.message || '-'}</span>
+                  <div className='flex flex-wrap gap-6px'>
+                    <Tag color={dispatchPlanResult.data_boundary_checked ? 'green' : 'orange'}>
+                      {`${t('commandCenter.marketingBoard.dispatch.dataBoundary')}: ${
+                        dispatchPlanResult.data_boundary_checked
+                          ? t('commandCenter.marketingBoard.dispatch.checked')
+                          : t('commandCenter.marketingBoard.dispatch.notChecked')
+                      }`}
+                    </Tag>
+                    <Tag color={dispatchPlanResult.subprocess_spawned ? 'red' : 'green'}>
+                      {`${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
+                        dispatchPlanResult.subprocess_spawned
+                          ? t('commandCenter.marketingBoard.dispatch.spawned')
+                          : t('commandCenter.marketingBoard.dispatch.notSpawned')
+                      }`}
+                    </Tag>
+                    <Tag color={dispatchPlanResult.controller_approval_required ? 'orange' : 'green'}>
+                      <span data-testid='marketing-card-dispatch-controller-approval'>
+                        {`${t('commandCenter.marketingBoard.dispatch.controllerApproval')}: ${
+                          dispatchPlanResult.controller_approval_required
+                            ? t('commandCenter.marketingBoard.dispatch.required')
+                            : t('commandCenter.marketingBoard.dispatch.notRequired')
+                        }`}
+                      </span>
+                    </Tag>
+                    <Tag color={dispatchPlanResult.release_blocked ? 'orange' : 'green'}>
+                      <span data-testid='marketing-card-dispatch-release-gate'>
+                        {`${t('commandCenter.marketingBoard.dispatch.release')}: ${
+                          dispatchPlanResult.release_blocked
+                            ? t('commandCenter.marketingBoard.dispatch.blockedByGate')
+                            : t('commandCenter.marketingBoard.dispatch.ready')
+                        }`}
+                      </span>
+                    </Tag>
+                    <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: ${
+                      dispatchPlanResult.human_gate || 'HG-2.5'
+                    }`}</Tag>
+                    <Tag color='blue'>
+                      <span data-testid='marketing-card-dispatch-plan-source'>
+                        {dispatchSourceForResult(dispatchPlanResult)}
+                      </span>
+                    </Tag>
+                  </div>
+                  <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>
+                    <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.card_id)}</dd>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.command')}</dt>
+                    <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.command)}</dd>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.reason')}</dt>
+                    <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-plan-reason'>
+                      {firstReasonCode(dispatchPlanResult.reason_codes, dispatchPlanResult.reason_code)}
                     </dd>
-                  </>
-                ) : null}
-              </dl>
-            </div>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
+                    <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.audit_event_id)}</dd>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.source')}</dt>
+                    <dd className='m-0 truncate text-t-secondary'>{dispatchSourceForResult(dispatchPlanResult)}</dd>
+                    {handoff ? (
+                      <>
+                        <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.handoff')}</dt>
+                        <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-handoff'>
+                          {`${handoffRole} / ${handoffMode}`}
+                        </dd>
+                      </>
+                    ) : null}
+                  </dl>
+                  {handoff ? (
+                    <div
+                      className='rounded-8px border border-solid border-fill-3 bg-fill-1 p-10px'
+                      data-testid='marketing-card-dispatch-approval-panel'
+                    >
+                      <div className='mb-6px flex flex-wrap items-center gap-6px'>
+                        <span className='text-12px font-600 text-t-primary'>
+                          {t('commandCenter.marketingBoard.dispatch.approvalPanelTitle')}
+                        </span>
+                        <Tag color='orange' data-testid='marketing-card-dispatch-approval-state'>
+                          {t('commandCenter.marketingBoard.dispatch.waitingForController')}
+                        </Tag>
+                      </div>
+                      <p className='m-0 mb-8px text-11px leading-16px text-t-secondary'>
+                        {t('commandCenter.marketingBoard.dispatch.approvalPanelDescription')}
+                      </p>
+                      <div className='mb-8px flex flex-wrap gap-6px'>
+                        <Tag color='green'>{t('commandCenter.marketingBoard.dispatch.gateNl5Passed')}</Tag>
+                        <Tag color='green'>{t('commandCenter.marketingBoard.dispatch.gateNoSpawn')}</Tag>
+                        <Tag color='orange'>{t('commandCenter.marketingBoard.dispatch.gateControllerMissing')}</Tag>
+                      </div>
+                      <Button
+                        shape='round'
+                        type='outline'
+                        disabled
+                        data-testid='marketing-card-dispatch-approve-disabled'
+                      >
+                        {t('commandCenter.marketingBoard.dispatch.approveButton')}
+                      </Button>
+                    </div>
+                  ) : null}
+                </div>
+              );
+            })()
           }
           data-testid='marketing-card-dispatch-plan-result'
         />

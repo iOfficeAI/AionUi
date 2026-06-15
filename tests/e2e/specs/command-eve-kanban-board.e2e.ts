@@ -650,6 +650,11 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-handoff')).toContainText(/role:cmo\s*\/\s*manual/, {
       timeout: 30_000,
     });
+    await expect(page.getByTestId('marketing-card-dispatch-approval-panel')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('marketing-card-dispatch-approval-state')).toContainText(
+      /wartet auf Controller|waiting for controller/
+    );
+    await expect(page.getByTestId('marketing-card-dispatch-approve-disabled')).toBeDisabled();
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
       /ready|bereit|KANBAN_MARKETING_DISPATCH_PLAN_READY/
@@ -779,6 +784,11 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-handoff')).toContainText(/role:cmo\s*\/\s*manual/, {
       timeout: 30_000,
     });
+    await expect(page.getByTestId('marketing-card-dispatch-approval-panel')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('marketing-card-dispatch-approval-state')).toContainText(
+      /wartet auf Controller|waiting for controller/
+    );
+    await expect(page.getByTestId('marketing-card-dispatch-approve-disabled')).toBeDisabled();
     await expect(page.getByTestId('marketing-card-dispatch-plan-reason')).toHaveText(
       /hermes\.pre_generation\.controller_approval_missing/
     );

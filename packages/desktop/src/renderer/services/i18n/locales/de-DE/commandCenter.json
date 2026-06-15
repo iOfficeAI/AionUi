@@ -186,6 +186,13 @@
       "audit": "Audit",
       "source": "Quelle",
       "handoff": "Handoff",
+      "approvalPanelTitle": "HG-2.5 Review",
+      "waitingForController": "wartet auf Controller",
+      "approvalPanelDescription": "Das lokale Handoff ist vorbereitet, aber EVE startet keinen Worker, bis der Controller diese Übergabe explizit freigibt.",
+      "gateNl5Passed": "NL-5 geprüft",
+      "gateNoSpawn": "kein Spawn",
+      "gateControllerMissing": "Controller fehlt",
+      "approveButton": "Freigabe später aktivieren",
       "subprocess": "Hermes",
       "spawned": "gestartet",
       "notSpawned": "nicht gestartet"
