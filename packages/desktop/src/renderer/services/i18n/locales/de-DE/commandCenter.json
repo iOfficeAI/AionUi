@@ -17,6 +17,7 @@
     "source": "Quelle",
     "board": "Lokales Board",
     "marketingBoard": "Marketing Board",
+    "crmOverlay": "CRM Overlay",
     "workerRuns": "Worker-Runs",
     "humanGates": "Human-Gates",
     "ceoCriticalReleases": "CEO-kritische Releases",
@@ -123,6 +124,40 @@
       "note": "Legt genau eine lokale Proof-Karte und ein append-only Audit-Event an. Keine Worker werden gestartet.",
       "resultTitle": "Proof-Card-Receipt",
       "failed": "Proof-Karte konnte nicht angelegt werden."
+    }
+  },
+  "crmOverlay": {
+    "description": "Lokaler CRM-ready Sales-Overlay fuer Companies, Kontakte und Deals. Keine Cloud-Syncs, keine Bulk-Imports, keine Outreach-Automation.",
+    "policy": {
+      "localOnly": "Local-only",
+      "hg4": "HG-4 fuer Kundendaten",
+      "noOutreach": "Outreach aus"
+    },
+    "blocked": {
+      "title": "CRM Overlay noch nicht initialisiert",
+      "description": "EVE kann das lokale CRM-Schema erst nutzen, nachdem die lokalen Tabellen angelegt wurden."
+    },
+    "initialize": {
+      "note": "Legt nur lokale CRM-Tabellen und ein Audit-Receipt an. Keine Kontakte, keine externen Calls, kein Plane-Sync.",
+      "resultTitle": "CRM-Overlay-Receipt",
+      "success": "CRM Overlay lokal initialisiert.",
+      "failed": "CRM Overlay konnte nicht initialisiert werden."
+    },
+    "readyNote": "CRM Overlay ist lokal initialisiert. Kontakte, Deals und echte Aktionen bleiben weiter gate-pflichtig.",
+    "actions": {
+      "initialize": "CRM lokal initialisieren"
+    },
+    "counts": {
+      "companies": "Companies",
+      "contacts": "Kontakte",
+      "deals": "Deals",
+      "audit_events": "Audit-Events"
+    },
+    "labels": {
+      "database": "Datenbank",
+      "ledger": "Ledger",
+      "defaultClass": "Default-Datenklasse",
+      "actionCeiling": "Action-Ceiling"
     }
   },
   "labels": {

@@ -836,6 +836,64 @@ export interface ICommandEveKanbanMarketingDispatchPlanRequest {
   eventLedgerPath?: string;
 }
 
+export interface ICommandEveCrmOverlayPolicy {
+  local_only: true;
+  plane_sync_enabled: false;
+  hosted_sync_enabled: false;
+  bulk_import_enabled: false;
+  enrichment_enabled: false;
+  outreach_enabled: false;
+  crm_data_class_default: 'S2';
+  customer_write_requires_humangate: 'HG-4';
+  deal_action_ceiling_without_consent: 'draft-only';
+}
+
+export interface ICommandEveCrmOverlayCounts {
+  companies: number;
+  contacts: number;
+  deals: number;
+  audit_events: number;
+}
+
+export interface ICommandEveCrmOverlayModel {
+  schema_version: 'command-eve-crm-overlay/v0';
+  generated_at: string;
+  initialized: boolean;
+  db_path: string;
+  event_ledger_path: string;
+  policy: ICommandEveCrmOverlayPolicy;
+  counts: ICommandEveCrmOverlayCounts;
+  warnings: string[];
+}
+
+export interface ICommandEveCrmOverlayResult {
+  version: 'command-eve-crm-overlay/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
+export interface ICommandEveCrmOverlayInitializeResult {
+  version: 'command-eve-crm-overlay-initialize/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Command EVE registration + license gate (W11)
 // ---------------------------------------------------------------------------
@@ -950,6 +1008,13 @@ export const commandEve = {
     IBridgeResponse<ICommandEveKanbanMarketingDispatchPlanResult>,
     ICommandEveKanbanMarketingDispatchPlanRequest
   >('command-eve.kanban-marketing-dispatch-plan'),
+  crmOverlay: bridge.buildProvider<IBridgeResponse<ICommandEveCrmOverlayResult>, { eventLedgerPath?: string } | void>(
+    'command-eve.crm-overlay'
+  ),
+  crmOverlayInitialize: bridge.buildProvider<
+    IBridgeResponse<ICommandEveCrmOverlayInitializeResult>,
+    { eventLedgerPath?: string } | void
+  >('command-eve.crm-overlay-initialize'),
   entitlementStatus: bridge.buildProvider<IBridgeResponse<ICommandEveEntitlementStatusResult>, void>(
     'command-eve.entitlement-status'
   ),

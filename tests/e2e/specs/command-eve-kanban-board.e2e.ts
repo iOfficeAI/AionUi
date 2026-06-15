@@ -128,6 +128,21 @@ process.exitCode = 78;
   );
 }
 
+function removeCrmOverlayDatabases(userDataPath: string): void {
+  const commandEveDataRoots = [
+    path.join(userDataPath, 'command-eve'),
+    path.join(os.homedir(), '.command-eve-dev'),
+    path.join(os.homedir(), '.command-eve-dev-2'),
+    path.join(os.homedir(), '.command-eve'),
+  ];
+  for (const root of commandEveDataRoots) {
+    const crmDbPath = path.join(root, 'command-eve-runtime', 'hermes', 'home', 'crm', 'command-eve-crm.db');
+    for (const suffix of ['', '-wal', '-shm']) {
+      fs.rmSync(`${crmDbPath}${suffix}`, { force: true });
+    }
+  }
+}
+
 // ── Shared state (create → move hand-off) ─────────────────────────────────────
 
 let createdCardId: string | null = null;
@@ -222,7 +237,7 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     });
     await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
     // Wait for read model to load (mirrors command-center spec).
-    await expect(page.getByText(/agent-events\.clean\.jsonl/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/agent-events\.clean\.jsonl/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/Lokales Board|Local Board/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
 
@@ -460,6 +475,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     writeReconciliationLock(reconciliationPath);
 
     await page.waitForSelector('body', { state: 'visible' });
+    await page.reload();
+    await page.waitForSelector('body', { state: 'visible' });
     await page.evaluate(() => {
       window.location.hash = '#/command-center';
     });
@@ -565,5 +582,81 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-dispatch-gate.png';
     await page.screenshot({ path: screenshotPath, fullPage: true });
     await testInfo.attach('kanban-board-dispatch-gate-proof', { path: screenshotPath, contentType: 'image/png' });
+  });
+
+  // ── TEST 4: CRM overlay init ──────────────────────────────────────────────
+  test('crm overlay: GUI click initializes local-only CRM schema + audit receipt', async ({
+    page,
+    electronApp,
+  }, testInfo) => {
+    const userDataPath = await electronApp.evaluate(async ({ app }) => app.getPath('userData'));
+    removeCrmOverlayDatabases(userDataPath);
+    const reconciliationPath = path.join(
+      userDataPath,
+      'command-eve-runtime',
+      'capabilities',
+      'command-eve-runtime-reconciliation.json'
+    );
+    writeReconciliationLock(reconciliationPath);
+
+    await page.waitForSelector('body', { state: 'visible' });
+    await page.evaluate(() => {
+      window.location.hash = '#/command-center';
+    });
+    await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/CRM Overlay/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('crm-overlay-blocked')).toBeVisible({ timeout: 30_000 });
+
+    const initializeButton = page.getByTestId('crm-overlay-initialize');
+    await expect(initializeButton).toBeVisible({ timeout: 30_000 });
+    await expect(initializeButton).toBeEnabled({ timeout: 30_000 });
+    await initializeButton.click();
+
+    await expect(page.getByTestId('crm-overlay-initialize-result')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/CRM_OVERLAY_INITIALIZED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
+    await expect(initializeButton).toBeDisabled({ timeout: 30_000 });
+
+    const dbPathLabel = await page.getByTestId('crm-overlay-db-path').textContent();
+    const crmDbPath = dbPathLabel?.trim() || '';
+    expect(crmDbPath, 'CRM overlay db path must be visible').toContain('command-eve-crm.db');
+
+    const tableRows = sqliteQuery(crmDbPath, "SELECT name FROM sqlite_master WHERE type='table' ORDER BY name");
+    expect(tableRows).toEqual([
+      ['crm_companies'],
+      ['crm_contacts'],
+      ['crm_deals'],
+      ['crm_events'],
+      ['sqlite_sequence'],
+    ]);
+    const crmEventRows = sqliteQuery(
+      crmDbPath,
+      "SELECT kind, payload FROM crm_events WHERE kind = 'crm_overlay_initialized'"
+    );
+    expect(crmEventRows.length, 'crm_events initialization receipt must exist').toBeGreaterThan(0);
+    const crmEventPayload = JSON.parse(crmEventRows[0][1]) as {
+      local_only?: boolean;
+      hosted_sync_enabled?: boolean;
+      outreach_enabled?: boolean;
+      human_gate?: string;
+    };
+    expect(crmEventPayload.local_only).toBe(true);
+    expect(crmEventPayload.hosted_sync_enabled).toBe(false);
+    expect(crmEventPayload.outreach_enabled).toBe(false);
+    expect(crmEventPayload.human_gate).toBe('HG-4');
+
+    const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
+    const matchingCrmAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; payload?: Record<string, unknown> };
+        return evt.event_type === 'crm.overlay_initialized' && evt.payload?.local_only === true;
+      } catch {
+        return false;
+      }
+    });
+    expect(matchingCrmAudit, 'audit ledger must contain crm.overlay_initialized').toBeTruthy();
+
+    const screenshotPath = 'tests/e2e/results/command-eve-crm-overlay-init.png';
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo.attach('crm-overlay-init-proof', { path: screenshotPath, contentType: 'image/png' });
   });
 });

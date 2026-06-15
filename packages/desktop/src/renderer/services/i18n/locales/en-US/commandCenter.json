@@ -17,6 +17,7 @@
     "source": "Source",
     "board": "Local Board",
     "marketingBoard": "Marketing Board",
+    "crmOverlay": "CRM Overlay",
     "workerRuns": "Worker runs",
     "humanGates": "Human gates",
     "ceoCriticalReleases": "CEO-critical releases",
@@ -123,6 +124,40 @@
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",
       "resultTitle": "Proof-card receipt",
       "failed": "Proof card could not be created."
+    }
+  },
+  "crmOverlay": {
+    "description": "Local CRM-ready sales overlay for companies, contacts, and deals. No cloud sync, no bulk imports, no outreach automation.",
+    "policy": {
+      "localOnly": "Local-only",
+      "hg4": "HG-4 for customer data",
+      "noOutreach": "Outreach off"
+    },
+    "blocked": {
+      "title": "CRM Overlay is not initialized yet",
+      "description": "EVE can only use the local CRM schema after the local tables have been created."
+    },
+    "initialize": {
+      "note": "Creates only local CRM tables and an audit receipt. No contacts, no external calls, no Plane sync.",
+      "resultTitle": "CRM overlay receipt",
+      "success": "CRM Overlay initialized locally.",
+      "failed": "CRM Overlay could not be initialized."
+    },
+    "readyNote": "CRM Overlay is initialized locally. Contacts, deals, and real actions remain gated.",
+    "actions": {
+      "initialize": "Initialize CRM locally"
+    },
+    "counts": {
+      "companies": "Companies",
+      "contacts": "Contacts",
+      "deals": "Deals",
+      "audit_events": "Audit events"
+    },
+    "labels": {
+      "database": "Database",
+      "ledger": "Ledger",
+      "defaultClass": "Default data class",
+      "actionCeiling": "Action ceiling"
     }
   },
   "labels": {

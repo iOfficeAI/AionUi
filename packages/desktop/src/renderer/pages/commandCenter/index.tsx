@@ -317,6 +317,64 @@ interface ICommandEveMarketingDispatchPlanResult {
   };
 }
 
+interface ICommandEveCrmOverlayPolicy {
+  local_only: true;
+  plane_sync_enabled: false;
+  hosted_sync_enabled: false;
+  bulk_import_enabled: false;
+  enrichment_enabled: false;
+  outreach_enabled: false;
+  crm_data_class_default: 'S2';
+  customer_write_requires_humangate: 'HG-4';
+  deal_action_ceiling_without_consent: 'draft-only';
+}
+
+interface ICommandEveCrmOverlayCounts {
+  companies: number;
+  contacts: number;
+  deals: number;
+  audit_events: number;
+}
+
+interface ICommandEveCrmOverlayModel {
+  schema_version: 'command-eve-crm-overlay/v0';
+  generated_at: string;
+  initialized: boolean;
+  db_path: string;
+  event_ledger_path: string;
+  policy: ICommandEveCrmOverlayPolicy;
+  counts: ICommandEveCrmOverlayCounts;
+  warnings: string[];
+}
+
+interface ICommandEveCrmOverlayResult {
+  version: 'command-eve-crm-overlay/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
+interface ICommandEveCrmOverlayInitializeResult {
+  version: 'command-eve-crm-overlay-initialize/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // Shared board-carrying shape between the create and move mutation results, used
 // to re-render the read-only board projection after a successful mutation.
 interface IMarketingMutationBoardCarrier {
@@ -365,6 +423,15 @@ const kanbanMarketingDispatchPlan = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingDispatchPlanResult>,
   ICommandEveMarketingDispatchPlanRequest
 >('command-eve.kanban-marketing-dispatch-plan');
+
+const crmOverlay = bridge.buildProvider<IBridgeResponse<ICommandEveCrmOverlayResult>, { eventLedgerPath?: string }>(
+  'command-eve.crm-overlay'
+);
+
+const crmOverlayInitialize = bridge.buildProvider<
+  IBridgeResponse<ICommandEveCrmOverlayInitializeResult>,
+  { eventLedgerPath?: string }
+>('command-eve.crm-overlay-initialize');
 
 const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
 
@@ -944,6 +1011,92 @@ const MarketingBoardSection: React.FC<{
   );
 };
 
+const CrmOverlaySection: React.FC<{
+  result: ICommandEveCrmOverlayResult | null;
+  initializeResult: ICommandEveCrmOverlayInitializeResult | null;
+  initializing: boolean;
+  onInitialize: () => void;
+}> = ({ result, initializeResult, initializing, onInitialize }) => {
+  const { t } = useTranslation();
+  const model = result?.model;
+  const counts = model?.counts ?? { companies: 0, contacts: 0, deals: 0, audit_events: 0 };
+  const initialized = result?.status === 'ready' && model?.initialized === true;
+  return (
+    <Section title={t('commandCenter.sections.crmOverlay')} count={counts.deals}>
+      <div className='flex flex-wrap items-center justify-between gap-10px'>
+        <p className='m-0 text-12px leading-18px text-t-secondary'>{t('commandCenter.crmOverlay.description')}</p>
+        <div className='flex flex-wrap items-center gap-6px'>
+          <Tag color='green'>{t('commandCenter.crmOverlay.policy.localOnly')}</Tag>
+          <Tag color='orange'>{t('commandCenter.crmOverlay.policy.hg4')}</Tag>
+          <Tag color='gray'>{t('commandCenter.crmOverlay.policy.noOutreach')}</Tag>
+        </div>
+      </div>
+
+      {result && result.status !== 'ready' ? (
+        <Alert
+          type={result.status === 'failed' ? 'error' : 'warning'}
+          title={result.reason_code || t('commandCenter.crmOverlay.blocked.title')}
+          content={result.message || t('commandCenter.crmOverlay.blocked.description')}
+          data-testid='crm-overlay-blocked'
+        />
+      ) : null}
+
+      {initializeResult ? (
+        <Alert
+          type={initializeResult.ok ? 'success' : 'warning'}
+          title={initializeResult.reason_code || t('commandCenter.crmOverlay.initialize.resultTitle')}
+          content={
+            initializeResult.audit_event_path || initializeResult.message || initializeResult.audit_event_id || '-'
+          }
+          data-testid='crm-overlay-initialize-result'
+        />
+      ) : null}
+
+      <div className='grid gap-10px sm:grid-cols-2 lg:grid-cols-4'>
+        {(['companies', 'contacts', 'deals', 'audit_events'] as const).map((key) => (
+          <div
+            key={key}
+            className='rounded-10px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'
+          >
+            <div className='text-11px leading-16px text-t-tertiary'>{t(`commandCenter.crmOverlay.counts.${key}`)}</div>
+            <div className='mt-4px text-20px font-700 leading-26px text-t-primary'>{formatCount(counts[key])}</div>
+          </div>
+        ))}
+      </div>
+
+      {model ? (
+        <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
+          <dt className='text-t-tertiary'>{t('commandCenter.crmOverlay.labels.database')}</dt>
+          <dd className='m-0 truncate text-t-secondary' data-testid='crm-overlay-db-path'>
+            {textOrDash(model.db_path)}
+          </dd>
+          <dt className='text-t-tertiary'>{t('commandCenter.crmOverlay.labels.ledger')}</dt>
+          <dd className='m-0 truncate text-t-secondary'>{textOrDash(model.event_ledger_path)}</dd>
+          <dt className='text-t-tertiary'>{t('commandCenter.crmOverlay.labels.defaultClass')}</dt>
+          <dd className='m-0 truncate text-t-secondary'>{model.policy.crm_data_class_default}</dd>
+          <dt className='text-t-tertiary'>{t('commandCenter.crmOverlay.labels.actionCeiling')}</dt>
+          <dd className='m-0 truncate text-t-secondary'>{model.policy.deal_action_ceiling_without_consent}</dd>
+        </dl>
+      ) : null}
+
+      <div className='flex flex-wrap items-center justify-between gap-10px'>
+        <span className='text-12px leading-18px text-t-tertiary'>
+          {initialized ? t('commandCenter.crmOverlay.readyNote') : t('commandCenter.crmOverlay.initialize.note')}
+        </span>
+        <Button
+          shape='round'
+          loading={initializing}
+          disabled={initializing || initialized}
+          onClick={onInitialize}
+          data-testid='crm-overlay-initialize'
+        >
+          {t('commandCenter.crmOverlay.actions.initialize')}
+        </Button>
+      </div>
+    </Section>
+  );
+};
+
 const StatusSurfaceSection: React.FC<{ result: ICommandEveStatusSurfaceResult | null }> = ({ result }) => {
   const { t } = useTranslation();
   const surface = result?.surface;
@@ -1093,6 +1246,8 @@ const CommandCenterPage: React.FC = () => {
   const [statusSurface, setStatusSurface] = useState<ICommandEveStatusSurfaceResult | null>(null);
   const [result, setResult] = useState<ICommandEveCommandCenterReadModelResult | null>(null);
   const [marketingResult, setMarketingResult] = useState<ICommandEveMarketingBoardResult | null>(null);
+  const [crmResult, setCrmResult] = useState<ICommandEveCrmOverlayResult | null>(null);
+  const [crmInitializeResult, setCrmInitializeResult] = useState<ICommandEveCrmOverlayInitializeResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
@@ -1102,6 +1257,7 @@ const CommandCenterPage: React.FC = () => {
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [movingCardId, setMovingCardId] = useState<string | null>(null);
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
+  const [crmInitializing, setCrmInitializing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -1129,18 +1285,21 @@ const CommandCenterPage: React.FC = () => {
         },
       });
       setMarketingResult(null);
+      setCrmResult(null);
       setLoading(false);
       return;
     }
     try {
-      const [statusSurfaceResponse, readModelResponse, marketingBoardResponse] = await Promise.all([
+      const [statusSurfaceResponse, readModelResponse, marketingBoardResponse, crmOverlayResponse] = await Promise.all([
         commandEveStatusSurface.invoke({ maxRuns: MAX_RUNS }),
         commandCenterReadModel.invoke({ maxRuns: MAX_RUNS }),
         kanbanMarketingBoard.invoke({ boardSlug: 'marketing' }),
+        crmOverlay.invoke({}),
       ]);
       setStatusSurface(statusSurfaceResponse.data ?? null);
       setResult(readModelResponse.data ?? null);
       setMarketingResult(marketingBoardResponse.data ?? null);
+      setCrmResult(crmOverlayResponse.data ?? null);
       if (!readModelResponse.success && !readModelResponse.data) {
         setError(readModelResponse.msg || t('commandCenter.errors.loadFailed'));
       }
@@ -1364,6 +1523,52 @@ const CommandCenterPage: React.FC = () => {
     [t]
   );
 
+  const initializeCrm = useCallback(async () => {
+    if (!isElectronDesktop()) return;
+    setCrmInitializing(true);
+    setCrmInitializeResult(null);
+    try {
+      const response = await crmOverlayInitialize.invoke({});
+      const data = response.data ?? null;
+      setCrmInitializeResult(data);
+      if (data?.model) {
+        setCrmResult({
+          version: 'command-eve-crm-overlay/v0',
+          ok: data.ok,
+          status: data.status,
+          reason_code: data.reason_code,
+          message: data.message,
+          model: data.model,
+          source: data.source,
+        });
+      } else {
+        const nextCrm = await crmOverlay.invoke({});
+        setCrmResult(nextCrm.data ?? null);
+      }
+      if (data?.ok) {
+        Message.success(t('commandCenter.crmOverlay.initialize.success'));
+      } else {
+        Message.warning(data?.reason_code || t('commandCenter.crmOverlay.initialize.failed'));
+      }
+    } catch (crmError) {
+      const failure: ICommandEveCrmOverlayInitializeResult = {
+        version: 'command-eve-crm-overlay-initialize/v0',
+        ok: false,
+        status: 'failed',
+        reason_code: 'CRM_OVERLAY_INITIALIZE_UI_FAILED',
+        message: crmError instanceof Error ? crmError.message : t('commandCenter.crmOverlay.initialize.failed'),
+        source: {
+          generated_by: 'command-eve-crm-overlay-core',
+          hermes_home: '',
+        },
+      };
+      setCrmInitializeResult(failure);
+      Message.error(failure.message || t('commandCenter.crmOverlay.initialize.failed'));
+    } finally {
+      setCrmInitializing(false);
+    }
+  }, [t]);
+
   return (
     <div
       className={classNames(
@@ -1456,6 +1661,13 @@ const CommandCenterPage: React.FC = () => {
               onSubmitCreateCard={submitCreateCard}
               onMoveCardNext={moveCardNext}
               onPlanDispatch={planDispatch}
+            />
+
+            <CrmOverlaySection
+              result={crmResult}
+              initializeResult={crmInitializeResult}
+              initializing={crmInitializing}
+              onInitialize={initializeCrm}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>

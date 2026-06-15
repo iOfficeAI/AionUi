@@ -8,6 +8,7 @@ import { bridge } from '@office-ai/platform';
 import { buildCommandCenterReadModel } from '@process/commandEve/commandCenterReadModelCore';
 import { buildConnectorCatalog } from '@process/commandEve/connectorCatalogCore';
 import { runConnectorPreflight } from '@process/commandEve/connectorPreflightCore';
+import { buildCrmOverlay, initializeCrmOverlay } from '@process/commandEve/crmOverlayCore';
 import {
   activateEntitlement,
   getEntitlementStatus,
@@ -436,6 +437,68 @@ export function initCommandEveBridge(): void {
         }
       }
     );
+
+  bridge.buildProvider('command-eve.crm-overlay').provider(async (request?: { eventLedgerPath?: string }) => {
+    try {
+      const result = buildCrmOverlay({
+        userDataPath: getDataPath(),
+        eventLedgerPath: request?.eventLedgerPath,
+      });
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : result.reason_code || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE CRM overlay bridge failed.',
+        data: {
+          version: 'command-eve-crm-overlay/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'CRM_OVERLAY_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE CRM overlay bridge failed.',
+          source: {
+            generated_by: 'command-eve-crm-overlay-core',
+            hermes_home: '',
+          },
+        },
+      };
+    }
+  });
+
+  bridge
+    .buildProvider('command-eve.crm-overlay-initialize')
+    .provider(async (request?: { eventLedgerPath?: string }) => {
+      try {
+        const result = initializeCrmOverlay({
+          userDataPath: getDataPath(),
+          eventLedgerPath: request?.eventLedgerPath,
+        });
+        return {
+          success: result.ok,
+          msg: result.ok ? undefined : result.reason_code || result.message,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE CRM overlay initialize bridge failed.',
+          data: {
+            version: 'command-eve-crm-overlay-initialize/v0',
+            ok: false,
+            status: 'failed',
+            reason_code: 'CRM_OVERLAY_INITIALIZE_BRIDGE_FAILED',
+            message: error instanceof Error ? error.message : 'Command EVE CRM overlay initialize bridge failed.',
+            source: {
+              generated_by: 'command-eve-crm-overlay-core',
+              hermes_home: '',
+            },
+          },
+        };
+      }
+    });
 
   // -------------------------------------------------------------------------
   // Registration + license gate (W11). Registration PII is S2, stored LOCAL
