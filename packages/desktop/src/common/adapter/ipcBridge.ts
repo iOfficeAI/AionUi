@@ -828,6 +828,8 @@ export interface ICommandEveKanbanMarketingDispatchPlanResult {
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: Record<string, unknown>;
+  dispatch_source?: string;
+  dispatch_source_reason?: string;
   policy?: Record<string, unknown>;
   source: {
     generated_by: 'command-eve-kanban-marketing-board-core';

@@ -265,6 +265,7 @@ export type I18nKey =
   | 'commandCenter.marketingBoard.dispatch.release'
   | 'commandCenter.marketingBoard.dispatch.required'
   | 'commandCenter.marketingBoard.dispatch.resultTitle'
+  | 'commandCenter.marketingBoard.dispatch.source'
   | 'commandCenter.marketingBoard.dispatch.spawned'
   | 'commandCenter.marketingBoard.dispatch.subprocess'
   | 'commandCenter.marketingBoard.emptyColumn'

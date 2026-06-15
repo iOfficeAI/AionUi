@@ -340,6 +340,8 @@ interface ICommandEveMarketingDispatchPlanResult {
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: Record<string, unknown>;
+  dispatch_source?: string;
+  dispatch_source_reason?: string;
   policy?: Record<string, unknown>;
   source: {
     generated_by: 'command-eve-kanban-marketing-board-core';
@@ -578,6 +580,19 @@ const formatCount = (value: number | undefined): string => String(Number.isFinit
 
 const firstReasonCode = (reasonCodes: string[] | undefined, fallback?: string): string =>
   reasonCodes && reasonCodes.length > 0 ? reasonCodes[0] : fallback || '-';
+
+const recordStringField = (record: Record<string, unknown> | undefined, key: string): string => {
+  const value = record?.[key];
+  return typeof value === 'string' ? value.trim() : '';
+};
+
+const dispatchSourceForResult = (result: ICommandEveMarketingDispatchPlanResult): string =>
+  textOrDash(
+    result.dispatch_source ||
+      recordStringField(result.policy, 'implementation') ||
+      recordStringField(result.policy, 'dispatch_source') ||
+      recordStringField(result.dispatch_plan, 'dispatch_source')
+  );
 
 const stateColor = (state: string): 'blue' | 'green' | 'orange' | 'red' | 'gray' => {
   if (['reported', 'done', 'released', 'pass'].includes(state)) return 'green';
@@ -1127,6 +1142,11 @@ const MarketingBoardSection: React.FC<{
                 <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: ${
                   dispatchPlanResult.human_gate || 'HG-2.5'
                 }`}</Tag>
+                <Tag color='blue'>
+                  <span data-testid='marketing-card-dispatch-plan-source'>
+                    {dispatchSourceForResult(dispatchPlanResult)}
+                  </span>
+                </Tag>
               </div>
               <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
                 <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>
@@ -1139,6 +1159,8 @@ const MarketingBoardSection: React.FC<{
                 </dd>
                 <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
                 <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.audit_event_id)}</dd>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.source')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{dispatchSourceForResult(dispatchPlanResult)}</dd>
               </dl>
             </div>
           }

@@ -691,7 +691,131 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await testInfo.attach('kanban-board-dispatch-gate-proof', { path: screenshotPath, contentType: 'image/png' });
   });
 
-  // ── TEST 4: CRM overlay init ──────────────────────────────────────────────
+  // ── TEST 5: Embedded NL-5 fallback ─────────────────────────────────────────
+  test('dispatch gate: GUI click uses embedded NL-5 when Company.OS dispatch CLI is unavailable', async ({
+    page,
+    electronApp,
+  }, testInfo) => {
+    const nl5FixtureRoot = process.env.COMMAND_EVE_NL5_COMPANY_OS_ROOT;
+    if (nl5FixtureRoot) {
+      fs.rmSync(nl5FixtureRoot, { recursive: true, force: true });
+    }
+
+    const userDataPath = await electronApp.evaluate(async ({ app }) => app.getPath('userData'));
+    const reconciliationPath = path.join(
+      userDataPath,
+      'command-eve-runtime',
+      'capabilities',
+      'command-eve-runtime-reconciliation.json'
+    );
+    writeReconciliationLock(reconciliationPath);
+
+    await page.waitForSelector('body', { state: 'visible' });
+    await page.reload();
+    await page.waitForSelector('body', { state: 'visible' });
+    await page.evaluate(() => {
+      window.location.hash = '#/command-center';
+    });
+    await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
+
+    await page.getByRole('button', { name: /Proof-Karte anlegen|Create proof card/ }).click();
+    await expect(page.getByText(/KANBAN_MARKETING_PROOF_CARD_CREATED|KANBAN_MARKETING_PROOF_CARD_EXISTS/)).toBeVisible({
+      timeout: 60_000,
+    });
+
+    const createOpenBtn = page.getByTestId('marketing-card-create-open');
+    await expect(createOpenBtn).toBeEnabled({ timeout: 30_000 });
+    const dbPathLabel = await page.locator('span:has-text("/kanban/boards/marketing/kanban.db")').first().textContent();
+    const dbPathMatch = dbPathLabel?.match(/([^\s]+kanban\.db)/);
+    const embeddedBoardDbPath = dbPathMatch?.[1] ?? null;
+    expect(embeddedBoardDbPath, 'Board db_path must be visible for embedded NL-5 proof').toBeTruthy();
+
+    const postTitle = `${uniquePostTitle()} Embedded NL5`;
+    await createOpenBtn.click();
+    await expect(page.getByTestId('marketing-card-create-modal')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('marketing-card-create-title').fill(postTitle);
+    await page
+      .getByTestId('marketing-card-create-description')
+      .fill('Embedded NL-5 proof with German phone +49 30 12345678 and no external Company.OS CLI.');
+    await page.getByTestId('marketing-card-create-submit').click();
+    await expect(page.getByTestId('marketing-card-create-modal')).not.toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('KANBAN_MARKETING_CARD_CREATED')).toBeVisible({ timeout: 60_000 });
+
+    const cardArticle = page.locator(`article:has-text("${postTitle}")`).first();
+    await expect(cardArticle).toBeVisible({ timeout: 10_000 });
+    const cardTestId = await cardArticle.getAttribute('data-testid');
+    const embeddedCardId = cardTestId?.replace(/^marketing-card-/, '') ?? null;
+    expect(embeddedCardId, 'embedded NL-5 card_id must be extractable').toBeTruthy();
+
+    await page.getByTestId(`marketing-card-dispatch-plan-${embeddedCardId}`).click();
+
+    const dispatchResult = page.getByTestId('marketing-card-dispatch-plan-result');
+    await expect(dispatchResult).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('marketing-card-dispatch-plan-source')).toHaveText('command-eve-embedded-nl5', {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId('marketing-card-dispatch-plan-reason')).toHaveText(
+      /hermes\.pre_generation\.controller_approval_missing/
+    );
+    await expect(dispatchResult.getByText(/Hermes: nicht gestartet|Hermes: not spawned/)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const dispatchRows = sqliteQuery(
+      embeddedBoardDbPath!,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${embeddedCardId}' AND kind = 'command_eve_dispatch_plan_checked' LIMIT 1`
+    );
+    expect(dispatchRows.length, `embedded dispatch receipt must exist for ${embeddedCardId}`).toBeGreaterThan(0);
+    const dispatchPayload = JSON.parse(dispatchRows[0][1]) as {
+      nl5_gate_checked?: boolean;
+      subprocess_spawned?: boolean;
+      dispatch_source?: string;
+      dispatch_source_reason?: string;
+      reason_codes?: string[];
+      policy?: {
+        dispatch_source?: string;
+        dispatch_source_reason?: string;
+        implementation?: string;
+        data_boundary_receipt?: { finding_count?: number; raw_text_stored?: boolean };
+      };
+    };
+    expect(dispatchPayload.nl5_gate_checked).toBe(true);
+    expect(dispatchPayload.subprocess_spawned).toBe(false);
+    expect(dispatchPayload.dispatch_source).toBe('command-eve-embedded-nl5');
+    expect(dispatchPayload.policy?.dispatch_source).toBe('command-eve-embedded-nl5');
+    expect(dispatchPayload.dispatch_source_reason || dispatchPayload.policy?.dispatch_source_reason || '').toContain(
+      'Company.OS'
+    );
+    expect(dispatchPayload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+    expect(dispatchPayload.policy?.implementation).toBe('command-eve-embedded-nl5');
+    expect(dispatchPayload.policy?.data_boundary_receipt?.raw_text_stored).toBe(false);
+    expect(dispatchPayload.policy?.data_boundary_receipt?.finding_count ?? 0).toBeGreaterThanOrEqual(1);
+
+    const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
+    const matchingEmbeddedAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; issue_id?: string; payload?: Record<string, unknown> };
+        return (
+          evt.issue_id === embeddedCardId &&
+          evt.event_type === 'kanban.marketing_board_dispatch_plan_checked' &&
+          evt.payload?.subprocess_spawned === false
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(
+      matchingEmbeddedAudit,
+      `audit ledger must contain embedded NL-5 dispatch event for card_id=${embeddedCardId}`
+    ).toBeTruthy();
+
+    const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-embedded-nl5.png';
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo.attach('kanban-board-embedded-nl5-proof', { path: screenshotPath, contentType: 'image/png' });
+  });
+
+  // ── TEST 6: CRM overlay init ──────────────────────────────────────────────
   test('crm overlay: GUI click initializes local-only CRM schema + audit receipt', async ({
     page,
     electronApp,

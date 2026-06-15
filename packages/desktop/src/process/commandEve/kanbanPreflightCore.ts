@@ -286,6 +286,8 @@ export type CommandEveKanbanMarketingDispatchPlanResult = {
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: JsonRecord;
+  dispatch_source?: string;
+  dispatch_source_reason?: string;
   policy?: JsonRecord;
   source: {
     generated_by: 'command-eve-kanban-marketing-board-core';
@@ -1143,6 +1145,8 @@ try:
             "controller_approval_required": bool(request.get("controller_approval_required")),
             "release_blocked": bool(request.get("release_blocked")),
             "dispatch_status": request.get("dispatch_status"),
+            "dispatch_source": request.get("dispatch_source"),
+            "dispatch_source_reason": request.get("dispatch_source_reason"),
             "reason_codes": request.get("reason_codes") or [],
             "policy": request.get("policy") or {},
           }),
@@ -1412,6 +1416,8 @@ function appendMarketingDispatchPlanAuditEvent({
       auto_decompose_enabled: false,
       action: 'dispatch_plan_check',
       dispatch_status: textField(dispatchPlan.status),
+      dispatch_source: textField(dispatchPlan.dispatch_source),
+      dispatch_source_reason: textField(dispatchPlan.dispatch_source_reason),
       subprocess_spawned: subprocessSpawned,
       reason_codes: Array.isArray(dispatchPlan.reason_codes) ? dispatchPlan.reason_codes : [],
       data_boundary_receipt: isRecord(policy.data_boundary_receipt) ? policy.data_boundary_receipt : {},
@@ -2971,6 +2977,13 @@ export function planKanbanMarketingCardDispatch(
   const dataBoundaryChecked = isRecord(policy.data_boundary_receipt);
   const reasonCodes = reasonCodesFromDispatchPlan(dispatchPlan);
   const subprocessSpawned = dispatchPlan.subprocess_spawned === true;
+  const dispatchSource = textField(dispatchPlan.dispatch_source) || (hasExternalDispatchCli ? 'company-os-nl5-cli' : '');
+  const dispatchSourceReason = textField(dispatchPlan.dispatch_source_reason);
+  const receiptPolicy = {
+    ...policy,
+    ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
+    ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
+  };
   const controllerApprovalRequired = true;
   const releaseBlocked = !subprocessSpawned;
   const receiptWrite = runPythonJson(
@@ -2986,7 +2999,9 @@ export function planKanbanMarketingCardDispatch(
       subprocess_spawned: subprocessSpawned,
       controller_approval_required: controllerApprovalRequired,
       release_blocked: releaseBlocked,
-      policy,
+      policy: receiptPolicy,
+      dispatch_source: dispatchSource,
+      dispatch_source_reason: dispatchSourceReason,
     },
     buildMarketingCardDispatchPlanScript(),
     paths.hermesHome
@@ -3004,12 +3019,14 @@ export function planKanbanMarketingCardDispatch(
       command,
       audit_event_path: eventLedgerPath,
       dispatch_plan: dispatchPlan,
-      policy,
+      policy: receiptPolicy,
       subprocess_spawned: subprocessSpawned,
       data_boundary_checked: dataBoundaryChecked,
       controller_approval_required: controllerApprovalRequired,
       release_blocked: releaseBlocked,
       human_gate: 'HG-2.5',
+      ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
+      ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
     };
   }
 
@@ -3046,6 +3063,8 @@ export function planKanbanMarketingCardDispatch(
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
     dispatch_plan: dispatchPlan,
-    policy,
+    ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
+    ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
+    policy: receiptPolicy,
   };
 }
