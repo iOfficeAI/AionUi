@@ -47,7 +47,7 @@
     }
   },
   "marketingBoard": {
-    "description": "Hermes-native Kanban-Sicht fuer Command EVE Marketing. Die App liest die lokale kanban.db und erlaubt nur eine idempotente Proof-Karte mit Audit-Receipt.",
+    "description": "Hermes-native Kanban-Sicht fuer Command EVE Marketing. Die App liest die lokale kanban.db, schreibt lokale Karten und Moves nur mit Audit-Receipt und prueft Dispatches ueber NL-5, bevor ein Worker starten duerfte.",
     "emptyColumn": "Keine Marketing-Karten in dieser Lane.",
     "columns": {
       "research": "Recherche",
@@ -105,6 +105,11 @@
       "dataBoundary": "NL-5",
       "checked": "geprüft",
       "notChecked": "nicht geprüft",
+      "humanGate": "HumanGate",
+      "card": "Karte",
+      "command": "Command",
+      "reason": "Reason",
+      "audit": "Audit",
       "subprocess": "Hermes",
       "spawned": "gestartet",
       "notSpawned": "nicht gestartet"

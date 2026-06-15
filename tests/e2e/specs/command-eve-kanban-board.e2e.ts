@@ -504,8 +504,12 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
 
     const dispatchResult = page.getByTestId('marketing-card-dispatch-plan-result');
     await expect(dispatchResult).toBeVisible({ timeout: 60_000 });
-    await expect(dispatchResult.getByText(/hermes\.pre_generation\.controller_approval_missing/)).toBeVisible({
-      timeout: 60_000,
+    await expect(page.getByTestId('marketing-card-dispatch-plan-detail')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('marketing-card-dispatch-plan-reason')).toHaveText(
+      /hermes\.pre_generation\.controller_approval_missing/
+    );
+    await expect(dispatchResult.getByText(/Hermes: nicht gestartet|Hermes: not spawned/)).toBeVisible({
+      timeout: 30_000,
     });
 
     const dispatchRows = sqliteQuery(

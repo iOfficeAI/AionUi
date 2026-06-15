@@ -389,6 +389,9 @@ const textOrDash = (value?: string | null): string => {
 
 const formatCount = (value: number | undefined): string => String(Number.isFinite(value) ? value : 0);
 
+const firstReasonCode = (reasonCodes: string[] | undefined, fallback?: string): string =>
+  reasonCodes && reasonCodes.length > 0 ? reasonCodes[0] : fallback || '-';
+
 const stateColor = (state: string): 'blue' | 'green' | 'orange' | 'red' | 'gray' => {
   if (['reported', 'done', 'released', 'pass'].includes(state)) return 'green';
   if (['blocked', 'failed', 'rejected', 'timed_out', 'cancelled'].includes(state)) return 'red';
@@ -826,19 +829,40 @@ const MarketingBoardSection: React.FC<{
         <Alert
           type={dispatchPlanResult.ok ? 'success' : dispatchPlanResult.status === 'failed' ? 'error' : 'warning'}
           title={dispatchPlanResult.reason_code || t('commandCenter.marketingBoard.dispatch.resultTitle')}
-          content={[
-            dispatchPlanResult.message || '-',
-            `${t('commandCenter.marketingBoard.dispatch.dataBoundary')}: ${
-              dispatchPlanResult.data_boundary_checked
-                ? t('commandCenter.marketingBoard.dispatch.checked')
-                : t('commandCenter.marketingBoard.dispatch.notChecked')
-            }`,
-            `${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
-              dispatchPlanResult.subprocess_spawned
-                ? t('commandCenter.marketingBoard.dispatch.spawned')
-                : t('commandCenter.marketingBoard.dispatch.notSpawned')
-            }`,
-          ].join(' · ')}
+          content={
+            <div className='flex flex-col gap-6px' data-testid='marketing-card-dispatch-plan-detail'>
+              <span>{dispatchPlanResult.message || '-'}</span>
+              <div className='flex flex-wrap gap-6px'>
+                <Tag color={dispatchPlanResult.data_boundary_checked ? 'green' : 'orange'}>
+                  {`${t('commandCenter.marketingBoard.dispatch.dataBoundary')}: ${
+                    dispatchPlanResult.data_boundary_checked
+                      ? t('commandCenter.marketingBoard.dispatch.checked')
+                      : t('commandCenter.marketingBoard.dispatch.notChecked')
+                  }`}
+                </Tag>
+                <Tag color={dispatchPlanResult.subprocess_spawned ? 'red' : 'green'}>
+                  {`${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
+                    dispatchPlanResult.subprocess_spawned
+                      ? t('commandCenter.marketingBoard.dispatch.spawned')
+                      : t('commandCenter.marketingBoard.dispatch.notSpawned')
+                  }`}
+                </Tag>
+                <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: HG-2.5`}</Tag>
+              </div>
+              <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.card_id)}</dd>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.command')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.command)}</dd>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.reason')}</dt>
+                <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-plan-reason'>
+                  {firstReasonCode(dispatchPlanResult.reason_codes, dispatchPlanResult.reason_code)}
+                </dd>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.audit_event_id)}</dd>
+              </dl>
+            </div>
+          }
           data-testid='marketing-card-dispatch-plan-result'
         />
       ) : null}
