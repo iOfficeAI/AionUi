@@ -1,8 +1,8 @@
 {
   "sider": "Command Center",
   "title": "Command Center",
-  "subtitle": "Read-only view into EVE's local Company.OS read model. No fake data, no direct write path.",
-  "readOnly": "Read-only",
+  "subtitle": "Local operating view into EVE's Company.OS read model. Marketing and CRM actions write local audit receipts only; dispatcher, auto-decompose, and external actions remain gated.",
+  "readOnly": "Local safe mode",
   "refresh": "Refresh",
   "blocked": {
     "title": "Read model unavailable",
@@ -38,7 +38,7 @@
     "blockedActions": "Blocked actions"
   },
   "board": {
-    "description": "Board view from the same local read model. No mutation, no dispatcher, no auto-decompose.",
+    "description": "Board view from the same local read model. This overview stays read-only; local controls live in Marketing Board and CRM Overlay. No dispatcher, no auto-decompose.",
     "empty": "No items in this column.",
     "columns": {
       "active": "Active",

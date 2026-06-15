@@ -111,9 +111,9 @@ test.describe('Command EVE Command Center', () => {
 
     await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('COMMAND_CENTER_ELECTRON_BRIDGE_REQUIRED')).toHaveCount(0);
-    await expect(page.getByText(/agent-events\.clean\.jsonl/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/agent-events\.clean\.jsonl/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/Lokales Board|Local Board/)).toBeVisible({ timeout: 30_000 });
-    await expect(page.getByText(/Keine Mutation|No mutation/)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/lokale Bedienflächen|local controls/i)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('morning-ceo-brief-20260610-0632')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('daily-improvement-dream-2026-06-10').first()).toBeVisible({

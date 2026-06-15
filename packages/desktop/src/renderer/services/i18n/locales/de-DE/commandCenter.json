@@ -1,8 +1,8 @@
 {
   "sider": "Command Center",
   "title": "Command Center",
-  "subtitle": "Read-only Sicht auf EVEs lokales Company.OS Read-Model. Keine Fake-Daten, kein direkter Write-Pfad.",
-  "readOnly": "Read-only",
+  "subtitle": "Lokale Operating-Sicht auf EVEs Company.OS Read-Model. Marketing- und CRM-Aktionen schreiben nur lokale Audit-Receipts; Dispatcher, Auto-Decompose und externe Aktionen bleiben gate-pflichtig.",
+  "readOnly": "Lokaler Safe-Mode",
   "refresh": "Aktualisieren",
   "blocked": {
     "title": "Read-Model nicht verfügbar",
@@ -38,7 +38,7 @@
     "blockedActions": "Gesperrte Aktionen"
   },
   "board": {
-    "description": "Board-Sicht aus demselben lokalen Read-Model. Keine Mutation, kein Dispatcher, kein Auto-Decompose.",
+    "description": "Board-Sicht aus demselben lokalen Read-Model. Diese Übersicht bleibt read-only; lokale Bedienflächen liegen in Marketing Board und CRM Overlay. Kein Dispatcher, kein Auto-Decompose.",
     "empty": "Keine Items in dieser Spalte.",
     "columns": {
       "active": "Aktiv",
