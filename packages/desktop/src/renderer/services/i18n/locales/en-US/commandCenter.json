@@ -77,6 +77,10 @@
       "title": "CRM NL-5 receipts",
       "description": "CRM actions write local NL-5 receipts before customer data may later touch any execution path."
     },
+    "controllerReviewQueue": {
+      "title": "Controller review queue",
+      "description": "At least one dispatch handoff is visibly waiting for HG-2.5 review; worker execution remains locked."
+    },
     "dispatchBlocked": {
       "title": "Dispatch blocked before spawn",
       "description": "The dispatch plan was checked through NL-5 and Hermes/worker execution stayed stopped.",
@@ -118,6 +122,7 @@
       "audit": "Audit",
       "board": "Board",
       "database": "Database",
+      "controllerReview": "Controller review",
       "owner": "Owner"
     },
     "blocked": {
@@ -198,6 +203,7 @@
       "approvalRecordFailed": "Controller review could not be recorded.",
       "approvalReceiptTitle": "Controller review receipt",
       "approvalStatus": "Review",
+      "notRecorded": "not recorded",
       "pending": "pending",
       "subprocess": "Hermes",
       "spawned": "spawned",

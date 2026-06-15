@@ -173,6 +173,8 @@ interface ICommandEveMarketingCard {
   updated_at: number | null;
   linked_run_id: string | null;
   linked_audit_event_id: string | null;
+  controller_review_status: 'pending' | null;
+  controller_review_audit_event_id: string | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
 }
 
@@ -200,6 +202,7 @@ interface ICommandEveMarketingBoardModel {
   summary: {
     total_cards: number;
     audit_linked_cards: number;
+    controller_review_pending_cards: number;
   };
   columns: ICommandEveMarketingColumn[];
   warnings: string[];
@@ -732,7 +735,7 @@ type OperatingSurfaceCard = {
 };
 
 type OperatingReadinessCheck = {
-  key: 'marketingReceipts' | 'crmNl5Receipts' | 'dispatchBlocked' | 'workerAutonomyLocked';
+  key: 'marketingReceipts' | 'crmNl5Receipts' | 'controllerReviewQueue' | 'dispatchBlocked' | 'workerAutonomyLocked';
   ok: boolean;
   status: OperatingSurfaceStatus;
   titleKey: string;
@@ -837,6 +840,7 @@ const OperatingReadinessSection: React.FC<{
   const { t } = useTranslation();
   const marketingCards = marketingResult?.model?.summary.total_cards ?? 0;
   const marketingAuditCards = marketingResult?.model?.summary.audit_linked_cards ?? 0;
+  const controllerReviewPendingCards = marketingResult?.model?.summary.controller_review_pending_cards ?? 0;
   const crmAuditEvents = crmResult?.model?.counts.audit_events ?? 0;
   const dispatchChecked = dispatchPlanResult?.data_boundary_checked === true;
   const dispatchBlockedBeforeSpawn =
@@ -872,6 +876,14 @@ const OperatingReadinessSection: React.FC<{
       titleKey: 'commandCenter.operatingReadiness.crmNl5Receipts.title',
       descriptionKey: 'commandCenter.operatingReadiness.crmNl5Receipts.description',
       evidence: formatCount(crmAuditEvents),
+    },
+    {
+      key: 'controllerReviewQueue',
+      ok: controllerReviewPendingCards > 0 && workerAutonomyLocked,
+      status: controllerReviewPendingCards > 0 && workerAutonomyLocked ? 'ready' : 'check',
+      titleKey: 'commandCenter.operatingReadiness.controllerReviewQueue.title',
+      descriptionKey: 'commandCenter.operatingReadiness.controllerReviewQueue.description',
+      evidence: formatCount(controllerReviewPendingCards),
     },
     {
       key: 'dispatchBlocked',
@@ -1019,7 +1031,23 @@ const MarketingCardView: React.FC<{
         <dd className='m-0 truncate text-t-secondary'>{textOrDash(card.card_assignee)}</dd>
         <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.labels.audit')}</dt>
         <dd className='m-0 truncate text-t-secondary'>{textOrDash(card.linked_audit_event_id)}</dd>
+        <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.labels.controllerReview')}</dt>
+        <dd className='m-0 truncate text-t-secondary' data-testid={`marketing-card-controller-review-${card.card_id}`}>
+          {card.controller_review_status
+            ? `${t(`commandCenter.marketingBoard.dispatch.${card.controller_review_status}`)} · ${textOrDash(
+                card.controller_review_audit_event_id
+              )}`
+            : t('commandCenter.marketingBoard.dispatch.notRecorded')}
+        </dd>
       </dl>
+      {card.controller_review_status === 'pending' ? (
+        <div className='mt-8px flex flex-wrap gap-6px'>
+          <Tag color='orange' data-testid={`marketing-card-controller-review-pending-${card.card_id}`}>
+            {t('commandCenter.marketingBoard.dispatch.waitingForController')}
+          </Tag>
+          <Tag color='green'>{t('commandCenter.marketingBoard.dispatch.gateNoSpawn')}</Tag>
+        </div>
+      ) : null}
       <div className='mt-8px flex flex-wrap items-center justify-end gap-6px'>
         <Button
           size='mini'

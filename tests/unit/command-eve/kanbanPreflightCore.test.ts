@@ -356,6 +356,7 @@ finally:
     expect(result.model?.columns.find((column) => column.key === 'research')?.cards[0].card_id).toBe('t_research');
     expect(result.model?.columns.find((column) => column.key === 'review')?.cards[0].card_id).toBe('t_review');
     expect(result.model?.summary.total_cards).toBe(2);
+    expect(result.model?.summary.controller_review_pending_cards).toBe(0);
     expect(result.model?.policy.dispatcher_enabled).toBe(false);
     expect(result.model?.policy.auto_decompose_enabled).toBe(false);
   });
@@ -989,6 +990,14 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       version: 'command-eve-local-dispatch-handoff/v0',
       dispatch: 'manual',
       role_label: 'role:cmo',
+    });
+    expect(approval.model?.summary.controller_review_pending_cards).toBe(1);
+    const projectedCard = approval.model?.columns
+      .flatMap((column) => column.cards)
+      .find((card) => card.card_id === created.card_id);
+    expect(projectedCard).toMatchObject({
+      controller_review_status: 'pending',
+      controller_review_audit_event_id: approval.audit_event_id,
     });
 
     const approvalEvents = readRows(

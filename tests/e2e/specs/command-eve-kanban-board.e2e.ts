@@ -660,7 +660,14 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(approvalResult).toBeVisible({ timeout: 30_000 });
     await expect(approvalResult).toContainText(/KANBAN_MARKETING_CONTROLLER_APPROVAL_PENDING_RECORDED/);
     await expect(page.getByTestId('marketing-card-dispatch-approval-detail')).toContainText(/ausstehend|pending/);
+    await expect(page.getByTestId(`marketing-card-controller-review-${dispatchCardId}`)).toContainText(
+      /ausstehend|pending/
+    );
+    await expect(page.getByTestId(`marketing-card-controller-review-pending-${dispatchCardId}`)).toContainText(
+      /wartet auf Controller|waiting for controller/
+    );
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-readiness-controllerReviewQueue')).toContainText(/ready|bereit|1/);
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
       /ready|bereit|KANBAN_MARKETING_DISPATCH_PLAN_READY/
     );

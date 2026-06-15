@@ -143,6 +143,8 @@ export type CommandEveKanbanMarketingCard = {
   updated_at: number | null;
   linked_run_id: string | null;
   linked_audit_event_id: string | null;
+  controller_review_status: 'pending' | null;
+  controller_review_audit_event_id: string | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
 };
 
@@ -170,6 +172,7 @@ export type CommandEveKanbanMarketingBoardModel = {
   summary: {
     total_cards: number;
     audit_linked_cards: number;
+    controller_review_pending_cards: number;
   };
   columns: CommandEveKanbanMarketingColumn[];
   warnings: string[];
@@ -487,6 +490,7 @@ function marketingBoardBaseModel({
     summary: {
       total_cards: 0,
       audit_linked_cards: 0,
+      controller_review_pending_cards: 0,
     },
     columns: emptyMarketingColumns(),
     warnings,
@@ -595,6 +599,8 @@ function parseMarketingCards(rows: unknown[]): CommandEveKanbanMarketingCard[] {
     const status = textField(item.status);
     const currentStepKey = nullableTextField(item.current_step_key);
     const linkedAuditEventId = nullableTextField(item.linked_audit_event_id);
+    const controllerReviewStatus =
+      textField(item.controller_review_status) === 'pending' ? ('pending' as const) : null;
     return {
       card_id: textField(item.id),
       card_title: textField(item.title),
@@ -606,6 +612,8 @@ function parseMarketingCards(rows: unknown[]): CommandEveKanbanMarketingCard[] {
       updated_at: typeof item.updated_at === 'number' ? item.updated_at : null,
       linked_run_id: nullableTextField(item.linked_run_id),
       linked_audit_event_id: linkedAuditEventId,
+      controller_review_status: controllerReviewStatus,
+      controller_review_audit_event_id: nullableTextField(item.controller_review_audit_event_id),
       governance_state: linkedAuditEventId ? 'proof_write_recorded' : 'read_only',
     };
   });
@@ -643,6 +651,7 @@ function buildMarketingModelFromRows({
     summary: {
       total_cards: cards.length,
       audit_linked_cards: cards.filter((card) => card.linked_audit_event_id).length,
+      controller_review_pending_cards: cards.filter((card) => card.controller_review_status === 'pending').length,
     },
     columns,
   };
@@ -697,6 +706,30 @@ try:
             ),
             ''
           ) AS linked_audit_event_id,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.controller_approval_status')
+              FROM task_events e
+              WHERE e.task_id = t.id
+                AND e.kind = 'command_eve_controller_approval_pending'
+                AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC
+              LIMIT 1
+            ),
+            ''
+          ) AS controller_review_status,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id
+                AND e.kind = 'command_eve_controller_approval_pending'
+                AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC
+              LIMIT 1
+            ),
+            ''
+          ) AS controller_review_audit_event_id,
           COALESCE(CAST(t.current_run_id AS TEXT), '') AS linked_run_id
         FROM tasks t
         WHERE COALESCE(t.tenant, '') = ?

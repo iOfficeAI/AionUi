@@ -77,6 +77,10 @@
       "title": "CRM-NL-5-Receipts",
       "description": "CRM-Aktionen schreiben lokale NL-5-Receipts, bevor Kundendaten spaeter irgendeinen Ausfuehrungspfad beruehren duerfen."
     },
+    "controllerReviewQueue": {
+      "title": "Controller-Review-Queue",
+      "description": "Mindestens ein Dispatch-Handoff wartet sichtbar auf HG-2.5-Review; Worker-Ausfuehrung bleibt gesperrt."
+    },
     "dispatchBlocked": {
       "title": "Dispatch blockiert vor Spawn",
       "description": "Der Dispatch-Plan wurde durch NL-5 geprueft und Hermes/Worker-Ausfuehrung blieb gestoppt.",
@@ -118,6 +122,7 @@
       "audit": "Audit",
       "board": "Board",
       "database": "Datenbank",
+      "controllerReview": "Controller-Review",
       "owner": "Owner"
     },
     "blocked": {
@@ -198,6 +203,7 @@
       "approvalRecordFailed": "Controller-Review konnte nicht gespeichert werden.",
       "approvalReceiptTitle": "Controller-Review-Receipt",
       "approvalStatus": "Review",
+      "notRecorded": "nicht erfasst",
       "pending": "ausstehend",
       "subprocess": "Hermes",
       "spawned": "gestartet",
