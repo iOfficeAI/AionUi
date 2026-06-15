@@ -9,6 +9,8 @@ import {
   parseWindowsRegistryPathOutput,
 } from '@/process/startup/windowsPath';
 
+const windowsOnlyIt = process.platform === 'win32' ? it : it.skip;
+
 describe('parseWindowsRegistryPathOutput', () => {
   it('extracts and expands the Path value from reg.exe output', () => {
     const output = `
@@ -105,7 +107,7 @@ HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environ
     );
   });
 
-  it('hydrates PATH from real Windows profile files and existing fallback directories', () => {
+  windowsOnlyIt('hydrates PATH from real Windows profile files and existing fallback directories', () => {
     const root = mkdtempSync(path.join(tmpdir(), 'aionui-windows-path-'));
     const userProfile = path.join(root, 'User');
     const appData = path.join(userProfile, 'AppData', 'Roaming');
