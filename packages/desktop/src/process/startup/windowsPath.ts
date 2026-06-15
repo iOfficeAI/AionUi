@@ -227,8 +227,6 @@ function getExistingWindowsFallbackPathEntries(env: NodeJS.ProcessEnv): string[]
   const userProfile = env.USERPROFILE || env.HOME || '';
   const appData = env.APPDATA || (userProfile ? path.win32.join(userProfile, 'AppData', 'Roaming') : '');
   const localAppData = env.LOCALAPPDATA || (userProfile ? path.win32.join(userProfile, 'AppData', 'Local') : '');
-  const programFiles = env.ProgramFiles || 'C:\\Program Files';
-  const programFilesX86 = env['ProgramFiles(x86)'] || 'C:\\Program Files (x86)';
   const scoop = env.SCOOP || (userProfile ? path.win32.join(userProfile, 'scoop') : '');
   const scoopGlobal = env.SCOOP_GLOBAL || 'C:\\ProgramData\\scoop';
 
@@ -239,18 +237,9 @@ function getExistingWindowsFallbackPathEntries(env: NodeJS.ProcessEnv): string[]
     'D:\\Scoop\\shims',
     appData && path.win32.join(appData, 'npm'),
     localAppData && path.win32.join(localAppData, 'Microsoft', 'WindowsApps'),
-    localAppData && path.win32.join(localAppData, 'Programs', 'OpenAI', 'Codex', 'bin'),
-    localAppData && path.win32.join(localAppData, 'Programs', 'opencode', 'bin'),
-    localAppData && path.win32.join(localAppData, 'Programs', 'Qoder', 'bin'),
-    localAppData && path.win32.join(localAppData, 'nvm'),
     userProfile && path.win32.join(userProfile, '.bun', 'bin'),
     userProfile && path.win32.join(userProfile, '.cargo', 'bin'),
     userProfile && path.win32.join(userProfile, '.local', 'bin'),
-    path.win32.join(programFiles, 'nodejs'),
-    path.win32.join(programFiles, 'Git', 'cmd'),
-    path.win32.join(programFiles, 'Qoder', 'bin'),
-    path.win32.join(programFilesX86, 'Qoder', 'bin'),
-    'C:\\nvm4w\\nodejs',
   ].filter((candidate): candidate is string => Boolean(candidate));
 
   return dedupeWindowsPathEntries(candidates.filter(isExistingDirectory));
