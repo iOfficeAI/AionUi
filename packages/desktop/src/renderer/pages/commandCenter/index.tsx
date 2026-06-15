@@ -351,6 +351,36 @@ interface ICommandEveMarketingDispatchPlanResult {
   };
 }
 
+interface ICommandEveMarketingDispatchApprovalRequest {
+  task_id: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+  dispatch_handoff_packet?: Record<string, unknown>;
+  review_note?: string;
+}
+
+interface ICommandEveMarketingDispatchApprovalResult {
+  version: 'command-eve-kanban-marketing-dispatch-approval/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  approval_event_kind?: 'command_eve_controller_approval_pending';
+  controller_approval_status?: 'pending';
+  subprocess_spawned: false;
+  release_blocked: true;
+  human_gate: 'HG-2.5';
+  dispatch_handoff_packet?: Record<string, unknown>;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
 interface ICommandEveCrmOverlayPolicy {
   local_only: true;
   plane_sync_enabled: false;
@@ -528,6 +558,11 @@ const kanbanMarketingDispatchPlan = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingDispatchPlanResult>,
   ICommandEveMarketingDispatchPlanRequest
 >('command-eve.kanban-marketing-dispatch-plan');
+
+const kanbanMarketingDispatchApproval = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingDispatchApprovalResult>,
+  ICommandEveMarketingDispatchApprovalRequest
+>('command-eve.kanban-marketing-dispatch-approval');
 
 const crmOverlay = bridge.buildProvider<IBridgeResponse<ICommandEveCrmOverlayResult>, { eventLedgerPath?: string }>(
   'command-eve.crm-overlay'
@@ -1228,11 +1263,13 @@ const MarketingBoardSection: React.FC<{
   moveResult: ICommandEveMarketingCardMoveResult | null;
   actionResult: ICommandEveMarketingCardActionResult | null;
   dispatchPlanResult: ICommandEveMarketingDispatchPlanResult | null;
+  dispatchApprovalResult: ICommandEveMarketingDispatchApprovalResult | null;
   createModalVisible: boolean;
   createSubmitting: boolean;
   movingCardId: string | null;
   actioningCardId: string | null;
   dispatchingCardId: string | null;
+  approvalRecording: boolean;
   onCreateProofCard: () => void;
   onOpenCreateModal: () => void;
   onCloseCreateModal: () => void;
@@ -1241,6 +1278,7 @@ const MarketingBoardSection: React.FC<{
   onOpenComment: (card: ICommandEveMarketingCard) => void;
   onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
+  onRecordDispatchReview: () => void;
 }> = ({
   result,
   proofResult,
@@ -1249,11 +1287,13 @@ const MarketingBoardSection: React.FC<{
   moveResult,
   actionResult,
   dispatchPlanResult,
+  dispatchApprovalResult,
   createModalVisible,
   createSubmitting,
   movingCardId,
   actioningCardId,
   dispatchingCardId,
+  approvalRecording,
   onCreateProofCard,
   onOpenCreateModal,
   onCloseCreateModal,
@@ -1262,6 +1302,7 @@ const MarketingBoardSection: React.FC<{
   onOpenComment,
   onApplyAction,
   onPlanDispatch,
+  onRecordDispatchReview,
 }) => {
   const { t } = useTranslation();
   const model = result?.model;
@@ -1430,14 +1471,25 @@ const MarketingBoardSection: React.FC<{
                         <Tag color='green'>{t('commandCenter.marketingBoard.dispatch.gateNoSpawn')}</Tag>
                         <Tag color='orange'>{t('commandCenter.marketingBoard.dispatch.gateControllerMissing')}</Tag>
                       </div>
-                      <Button
-                        shape='round'
-                        type='outline'
-                        disabled
-                        data-testid='marketing-card-dispatch-approve-disabled'
-                      >
-                        {t('commandCenter.marketingBoard.dispatch.approveButton')}
-                      </Button>
+                      <div className='flex flex-wrap gap-6px'>
+                        <Button
+                          shape='round'
+                          type='outline'
+                          loading={approvalRecording}
+                          onClick={onRecordDispatchReview}
+                          data-testid='marketing-card-dispatch-record-review'
+                        >
+                          {t('commandCenter.marketingBoard.dispatch.recordReviewButton')}
+                        </Button>
+                        <Button
+                          shape='round'
+                          type='outline'
+                          disabled
+                          data-testid='marketing-card-dispatch-approve-disabled'
+                        >
+                          {t('commandCenter.marketingBoard.dispatch.approveButton')}
+                        </Button>
+                      </div>
                     </div>
                   ) : null}
                 </div>
@@ -1445,6 +1497,51 @@ const MarketingBoardSection: React.FC<{
             })()
           }
           data-testid='marketing-card-dispatch-plan-result'
+        />
+      ) : null}
+
+      {dispatchApprovalResult ? (
+        <Alert
+          type={dispatchApprovalResult.ok ? 'success' : dispatchApprovalResult.status === 'failed' ? 'error' : 'warning'}
+          title={dispatchApprovalResult.reason_code || t('commandCenter.marketingBoard.dispatch.approvalReceiptTitle')}
+          content={
+            <div className='flex flex-col gap-6px' data-testid='marketing-card-dispatch-approval-detail'>
+              <span>{dispatchApprovalResult.message || '-'}</span>
+              <div className='flex flex-wrap gap-6px'>
+                <Tag color='orange'>
+                  {`${t('commandCenter.marketingBoard.dispatch.approvalStatus')}: ${
+                    dispatchApprovalResult.controller_approval_status
+                      ? t(`commandCenter.marketingBoard.dispatch.${dispatchApprovalResult.controller_approval_status}`)
+                      : '-'
+                  }`}
+                </Tag>
+                <Tag color='green'>
+                  {`${t('commandCenter.marketingBoard.dispatch.subprocess')}: ${
+                    dispatchApprovalResult.subprocess_spawned
+                      ? t('commandCenter.marketingBoard.dispatch.spawned')
+                      : t('commandCenter.marketingBoard.dispatch.notSpawned')
+                  }`}
+                </Tag>
+                <Tag color='orange'>
+                  {`${t('commandCenter.marketingBoard.dispatch.release')}: ${
+                    dispatchApprovalResult.release_blocked
+                      ? t('commandCenter.marketingBoard.dispatch.blockedByGate')
+                      : t('commandCenter.marketingBoard.dispatch.ready')
+                  }`}
+                </Tag>
+                <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: ${
+                  dispatchApprovalResult.human_gate
+                }`}</Tag>
+              </div>
+              <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchApprovalResult.card_id)}</dd>
+                <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
+                <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchApprovalResult.audit_event_id)}</dd>
+              </dl>
+            </div>
+          }
+          data-testid='marketing-card-dispatch-approval-result'
         />
       ) : null}
 
@@ -1948,6 +2045,8 @@ const CommandCenterPage: React.FC = () => {
   const [moveResult, setMoveResult] = useState<ICommandEveMarketingCardMoveResult | null>(null);
   const [actionResult, setActionResult] = useState<ICommandEveMarketingCardActionResult | null>(null);
   const [dispatchPlanResult, setDispatchPlanResult] = useState<ICommandEveMarketingDispatchPlanResult | null>(null);
+  const [dispatchApprovalResult, setDispatchApprovalResult] =
+    useState<ICommandEveMarketingDispatchApprovalResult | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
   const [commentCard, setCommentCard] = useState<ICommandEveMarketingCard | null>(null);
@@ -1955,6 +2054,7 @@ const CommandCenterPage: React.FC = () => {
   const [movingCardId, setMovingCardId] = useState<string | null>(null);
   const [actioningCardId, setActioningCardId] = useState<string | null>(null);
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
+  const [approvalRecording, setApprovalRecording] = useState(false);
   const [crmInitializing, setCrmInitializing] = useState(false);
   const [crmDraftCreating, setCrmDraftCreating] = useState(false);
   const [crmStagingDealId, setCrmStagingDealId] = useState<string | null>(null);
@@ -2069,6 +2169,7 @@ const CommandCenterPage: React.FC = () => {
     setCreateResult(null);
     setActionResult(null);
     setDispatchPlanResult(null);
+    setDispatchApprovalResult(null);
     setCreateModalVisible(true);
   }, []);
 
@@ -2103,6 +2204,7 @@ const CommandCenterPage: React.FC = () => {
       setMoveResult(null);
       setActionResult(null);
       setDispatchPlanResult(null);
+      setDispatchApprovalResult(null);
       try {
         const response = await kanbanMarketingCardCreate.invoke({
           title: input.title,
@@ -2148,6 +2250,7 @@ const CommandCenterPage: React.FC = () => {
       setCreateResult(null);
       setActionResult(null);
       setDispatchPlanResult(null);
+      setDispatchApprovalResult(null);
       try {
         const response = await kanbanMarketingCardMove.invoke({
           task_id: card.card_id,
@@ -2188,6 +2291,7 @@ const CommandCenterPage: React.FC = () => {
     setMoveResult(null);
     setActionResult(null);
     setDispatchPlanResult(null);
+    setDispatchApprovalResult(null);
     setCommentCard(card);
   }, []);
 
@@ -2207,6 +2311,7 @@ const CommandCenterPage: React.FC = () => {
       setCreateResult(null);
       setMoveResult(null);
       setDispatchPlanResult(null);
+      setDispatchApprovalResult(null);
       try {
         const response = await kanbanMarketingCardAction.invoke({
           task_id: card.card_id,
@@ -2275,6 +2380,7 @@ const CommandCenterPage: React.FC = () => {
       setCreateResult(null);
       setMoveResult(null);
       setActionResult(null);
+      setDispatchApprovalResult(null);
       try {
         const response = await kanbanMarketingDispatchPlan.invoke({
           task_id: card.card_id,
@@ -2312,6 +2418,55 @@ const CommandCenterPage: React.FC = () => {
     },
     [t]
   );
+
+  const recordDispatchReview = useCallback(async () => {
+    if (!isElectronDesktop() || !dispatchPlanResult?.card_id) return;
+    const handoff = dispatchHandoffForResult(dispatchPlanResult);
+    if (!handoff) {
+      Message.warning(t('commandCenter.marketingBoard.dispatch.approvalRecordFailed'));
+      return;
+    }
+    setApprovalRecording(true);
+    try {
+      const response = await kanbanMarketingDispatchApproval.invoke({
+        task_id: dispatchPlanResult.card_id,
+        boardSlug: MARKETING_BOARD_SLUG,
+        dispatch_handoff_packet: handoff,
+        review_note: 'Command EVE UI recorded HG-2.5 pending review receipt.',
+      });
+      const data = response.data ?? null;
+      setDispatchApprovalResult(data);
+      await applyBoardModel(data);
+      if (data?.ok) {
+        Message.success(t('commandCenter.marketingBoard.dispatch.approvalRecorded'));
+      } else {
+        Message.warning(data?.reason_code || t('commandCenter.marketingBoard.dispatch.approvalRecordFailed'));
+      }
+    } catch (approvalError) {
+      const failure: ICommandEveMarketingDispatchApprovalResult = {
+        version: 'command-eve-kanban-marketing-dispatch-approval/v0',
+        ok: false,
+        status: 'failed',
+        reason_code: 'KANBAN_MARKETING_DISPATCH_APPROVAL_UI_FAILED',
+        message:
+          approvalError instanceof Error
+            ? approvalError.message
+            : t('commandCenter.marketingBoard.dispatch.approvalRecordFailed'),
+        card_id: dispatchPlanResult.card_id,
+        subprocess_spawned: false,
+        release_blocked: true,
+        human_gate: 'HG-2.5',
+        source: {
+          generated_by: 'command-eve-kanban-marketing-board-core',
+          hermes_home: '',
+        },
+      };
+      setDispatchApprovalResult(failure);
+      Message.error(failure.message || t('commandCenter.marketingBoard.dispatch.approvalRecordFailed'));
+    } finally {
+      setApprovalRecording(false);
+    }
+  }, [applyBoardModel, dispatchPlanResult, t]);
 
   const initializeCrm = useCallback(async () => {
     if (!isElectronDesktop()) return;
@@ -2598,11 +2753,13 @@ const CommandCenterPage: React.FC = () => {
               moveResult={moveResult}
               actionResult={actionResult}
               dispatchPlanResult={dispatchPlanResult}
+              dispatchApprovalResult={dispatchApprovalResult}
               createModalVisible={createModalVisible}
               createSubmitting={createSubmitting}
               movingCardId={movingCardId}
               actioningCardId={actioningCardId}
               dispatchingCardId={dispatchingCardId}
+              approvalRecording={approvalRecording}
               onCreateProofCard={createProofCard}
               onOpenCreateModal={openCreateModal}
               onCloseCreateModal={closeCreateModal}
@@ -2611,6 +2768,7 @@ const CommandCenterPage: React.FC = () => {
               onOpenComment={openComment}
               onApplyAction={applyNonCommentAction}
               onPlanDispatch={planDispatch}
+              onRecordDispatchReview={recordDispatchReview}
             />
             <MarketingCardCommentModal
               card={commentCard}

@@ -16,6 +16,7 @@ import {
   createKanbanMarketingProofCard,
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
+  recordKanbanMarketingDispatchApproval,
   runKanbanPreflight,
   type CommandEveKanbanPreflightCommandRunner,
 } from '@/process/commandEve/kanbanPreflightCore';
@@ -960,6 +961,76 @@ describe('Command EVE Kanban marketing-board mutations', () => {
         subprocess_spawned: false,
         dispatch_handoff_packet: expect.objectContaining({
           version: 'command-eve-local-dispatch-handoff/v0',
+          dispatch: 'manual',
+          role_label: 'role:cmo',
+        }),
+      }),
+    });
+
+    const approval = recordKanbanMarketingDispatchApproval({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      dispatch_handoff_packet: result.dispatch_handoff_packet,
+      review_note: 'Controller sees this handoff and keeps execution blocked.',
+      now: () => new Date('2026-06-13T10:05:00.000Z'),
+    });
+
+    expect(approval.ok).toBe(true);
+    expect(approval.status).toBe('ready');
+    expect(approval.reason_code).toBe('KANBAN_MARKETING_CONTROLLER_APPROVAL_PENDING_RECORDED');
+    expect(approval.approval_event_kind).toBe('command_eve_controller_approval_pending');
+    expect(approval.controller_approval_status).toBe('pending');
+    expect(approval.subprocess_spawned).toBe(false);
+    expect(approval.release_blocked).toBe(true);
+    expect(approval.human_gate).toBe('HG-2.5');
+    expect(approval.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
+
+    const approvalEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT task_id, kind, payload FROM task_events WHERE kind = 'command_eve_controller_approval_pending'"
+    );
+    expect(approvalEvents).toHaveLength(1);
+    const approvalPayload = JSON.parse(String((approvalEvents[0] as { payload: string }).payload)) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        dispatch?: string;
+        role_label?: string;
+      };
+    };
+    expect(approvalPayload.controller_approval_status).toBe('pending');
+    expect(approvalPayload.controller_approved).toBe(false);
+    expect(approvalPayload.release_blocked).toBe(true);
+    expect(approvalPayload.subprocess_spawned).toBe(false);
+    expect(approvalPayload.reason_codes).toContain('command_eve.controller_approval_pending');
+    expect(approvalPayload.dispatch_handoff_packet).toMatchObject({
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
+
+    const nextAuditEvents = readAuditEvents(eventLedgerPath);
+    expect(nextAuditEvents).toHaveLength(3);
+    expect(nextAuditEvents[2]).toMatchObject({
+      event_type: 'kanban.marketing_board_controller_approval_pending',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-controller-approval',
+      human_gate_required: true,
+      payload: expect.objectContaining({
+        controller_approval_status: 'pending',
+        controller_approved: false,
+        release_blocked: true,
+        subprocess_spawned: false,
+        dispatch_handoff_packet: expect.objectContaining({
           dispatch: 'manual',
           role_label: 'role:cmo',
         }),

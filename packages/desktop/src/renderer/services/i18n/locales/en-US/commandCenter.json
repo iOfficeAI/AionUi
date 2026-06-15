@@ -193,6 +193,12 @@
       "gateNoSpawn": "no spawn",
       "gateControllerMissing": "controller missing",
       "approveButton": "Enable approval later",
+      "recordReviewButton": "Record review receipt",
+      "approvalRecorded": "Controller review receipt recorded.",
+      "approvalRecordFailed": "Controller review could not be recorded.",
+      "approvalReceiptTitle": "Controller review receipt",
+      "approvalStatus": "Review",
+      "pending": "pending",
       "subprocess": "Hermes",
       "spawned": "spawned",
       "notSpawned": "not spawned"

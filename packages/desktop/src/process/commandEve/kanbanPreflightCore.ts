@@ -19,6 +19,8 @@ export const COMMAND_EVE_KANBAN_MARKETING_CARD_ACTION_BRIDGE_VERSION =
   'command-eve-kanban-marketing-card-action/v0';
 export const COMMAND_EVE_KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_VERSION =
   'command-eve-kanban-marketing-dispatch-plan/v0';
+export const COMMAND_EVE_KANBAN_MARKETING_DISPATCH_APPROVAL_BRIDGE_VERSION =
+  'command-eve-kanban-marketing-dispatch-approval/v0';
 
 const MIN_HERMES_KANBAN_VERSION = '0.16.0';
 const RUNTIME_RECONCILIATION_VERSION = 'command-eve-runtime-reconciliation/v0';
@@ -297,6 +299,28 @@ export type CommandEveKanbanMarketingDispatchPlanResult = {
   };
 };
 
+export type CommandEveKanbanMarketingDispatchApprovalResult = {
+  version: typeof COMMAND_EVE_KANBAN_MARKETING_DISPATCH_APPROVAL_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  approval_event_kind?: 'command_eve_controller_approval_pending';
+  controller_approval_status?: 'pending';
+  subprocess_spawned: false;
+  release_blocked: true;
+  human_gate: 'HG-2.5';
+  dispatch_handoff_packet?: JsonRecord;
+  model?: CommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+};
+
 export type CommandEveKanbanMarketingCardCreateOptions = CommandEveKanbanMarketingBoardOptions & {
   title: string;
   description?: string;
@@ -320,6 +344,12 @@ export type CommandEveKanbanMarketingDispatchPlanOptions = CommandEveKanbanMarke
   command?: 'decompose' | 'specify';
   companyOsRoot?: string;
   commandRunner?: CommandEveKanbanPreflightCommandRunner;
+};
+
+export type CommandEveKanbanMarketingDispatchApprovalOptions = CommandEveKanbanMarketingBoardOptions & {
+  task_id: string;
+  dispatch_handoff_packet?: JsonRecord;
+  review_note?: string;
 };
 
 type JsonRecord = Record<string, unknown>;
@@ -1162,6 +1192,72 @@ finally:
 `;
 }
 
+function buildMarketingDispatchApprovalScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"found": False}))
+    sys.exit(0)
+
+conn = sqlite3.connect(db_path)
+conn.row_factory = sqlite3.Row
+try:
+    row = conn.execute(
+        """
+        SELECT
+          id,
+          title,
+          COALESCE(body, '') AS body,
+          COALESCE(status, '') AS status,
+          COALESCE(current_step_key, '') AS current_step_key,
+          COALESCE(tenant, '') AS tenant,
+          COALESCE(workflow_template_id, '') AS workflow_template_id
+        FROM tasks
+        WHERE id = ?
+        LIMIT 1
+        """,
+        (request["card_id"],),
+    ).fetchone()
+    if row is None:
+        conn.commit()
+        print(json.dumps({"found": False}))
+        sys.exit(0)
+
+    review_note = request.get("review_note") or ""
+    conn.execute(
+        "INSERT INTO task_events (task_id, run_id, kind, payload, created_at) VALUES (?, NULL, ?, ?, ?)",
+        (
+          request["card_id"],
+          "command_eve_controller_approval_pending",
+          json.dumps({
+            "audit_event_id": request["audit_event_id"],
+            "human_gate": "HG-2.5",
+            "controller_approval_status": "pending",
+            "controller_approved": False,
+            "release_blocked": True,
+            "dispatcher_enabled": False,
+            "auto_decompose_enabled": False,
+            "subprocess_spawned": False,
+            "dispatch_handoff_packet": request.get("dispatch_handoff_packet") or {},
+            "review_note_length": len(review_note),
+            "reason_codes": ["command_eve.controller_approval_pending"],
+          }),
+          int(request["recorded_at"]),
+        ),
+    )
+    conn.commit()
+    print(json.dumps({"found": True, "task": dict(row)}))
+finally:
+    conn.close()
+`;
+}
+
 function buildMarketingCardLookupScript(): string {
   return String.raw`
 import json
@@ -1436,6 +1532,66 @@ function appendMarketingDispatchPlanAuditEvent({
   return eventId;
 }
 
+function appendMarketingDispatchApprovalAuditEvent({
+  eventId,
+  eventLedgerPath,
+  occurredAt,
+  cardId,
+  boardSlug,
+  dbPath,
+  dispatchHandoffPacket,
+}: {
+  eventId: string;
+  eventLedgerPath: string;
+  occurredAt: string;
+  cardId: string;
+  boardSlug: string;
+  dbPath: string;
+  dispatchHandoffPacket: JsonRecord;
+}): string {
+  const event = {
+    schema_version: 'agent-event/v1',
+    event_id: eventId,
+    event_type: 'kanban.marketing_board_controller_approval_pending',
+    occurred_at: occurredAt,
+    producer: 'command-eve-desktop',
+    workspace: 'command-eve-local',
+    workspace_path: dbPath,
+    issue_id: cardId,
+    parent_issue_id: '',
+    run_id: `kanban-controller-approval-${cardId}`,
+    session_id: '',
+    agent: 'eve',
+    mode: 'kanban-controller-approval',
+    role_owner: 'Controller',
+    department: 'Marketing',
+    autonomy_level: 'L1',
+    event_policy: 'append-only',
+    payload: {
+      board_slug: boardSlug,
+      card_id: cardId,
+      db_path: dbPath,
+      human_gate: 'HG-2.5',
+      controller_approval_status: 'pending',
+      controller_approved: false,
+      release_blocked: true,
+      dispatcher_enabled: false,
+      auto_decompose_enabled: false,
+      subprocess_spawned: false,
+      action: 'controller_approval_pending',
+      reason_codes: ['command_eve.controller_approval_pending'],
+      dispatch_handoff_packet: dispatchHandoffPacket,
+    },
+    artifact_paths: [dbPath],
+    linear_comment_ids: [] as string[],
+    human_gate_required: true,
+    redaction_level: 'none',
+  };
+  fs.mkdirSync(path.dirname(eventLedgerPath), { recursive: true });
+  fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
+  return eventId;
+}
+
 function marketingCardCreateAuditEventId(cardId: string, occurredAt: string): string {
   return [
     'command-eve-kanban-marketing-card-created',
@@ -1465,6 +1621,14 @@ function marketingCardActionAuditEventId(
 function marketingCardDispatchAuditEventId(cardId: string, occurredAt: string): string {
   return [
     'command-eve-kanban-marketing-dispatch-plan',
+    sanitizeEventIdPart(cardId),
+    sanitizeEventIdPart(occurredAt),
+  ].join('-');
+}
+
+function marketingCardDispatchApprovalAuditEventId(cardId: string, occurredAt: string): string {
+  return [
+    'command-eve-kanban-marketing-controller-approval-pending',
     sanitizeEventIdPart(cardId),
     sanitizeEventIdPart(occurredAt),
   ].join('-');
@@ -1556,6 +1720,24 @@ function marketingDispatchPlanResultBase(
       generated_by: 'command-eve-kanban-marketing-board-core',
       hermes_home: hermesHome,
       ...(companyOsRoot ? { company_os_root: companyOsRoot } : {}),
+    },
+  };
+}
+
+function marketingDispatchApprovalResultBase(
+  hermesHome: string
+): Pick<
+  CommandEveKanbanMarketingDispatchApprovalResult,
+  'version' | 'source' | 'subprocess_spawned' | 'release_blocked' | 'human_gate'
+> {
+  return {
+    version: COMMAND_EVE_KANBAN_MARKETING_DISPATCH_APPROVAL_BRIDGE_VERSION,
+    subprocess_spawned: false,
+    release_blocked: true,
+    human_gate: 'HG-2.5',
+    source: {
+      generated_by: 'command-eve-kanban-marketing-board-core',
+      hermes_home: hermesHome,
     },
   };
 }
@@ -3155,5 +3337,146 @@ export function planKanbanMarketingCardDispatch(
     ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
     ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
     policy: receiptPolicy,
+  };
+}
+
+export function recordKanbanMarketingDispatchApproval(
+  options: CommandEveKanbanMarketingDispatchApprovalOptions
+): CommandEveKanbanMarketingDispatchApprovalResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const base = marketingDispatchApprovalResultBase(paths.hermesHome);
+
+  let boardSlug: string;
+  try {
+    boardSlug = normalizeBoardSlug(options.boardSlug);
+  } catch (error) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_BOARD_SLUG_INVALID',
+      message: error instanceof Error ? error.message : 'Invalid Hermes Kanban board slug.',
+    };
+  }
+
+  const taskId = String(options.task_id || '').trim();
+  if (!taskId) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_ID_REQUIRED',
+      message: 'A task_id is required to record a controller review receipt.',
+    };
+  }
+
+  const dispatchHandoffPacket = isRecord(options.dispatch_handoff_packet) ? options.dispatch_handoff_packet : {};
+  if (!isRecord(dispatchHandoffPacket) || Object.keys(dispatchHandoffPacket).length === 0) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_DISPATCH_HANDOFF_REQUIRED',
+      message: 'Controller review receipt requires a dispatch handoff packet.',
+      card_id: taskId,
+    };
+  }
+
+  const reconciliation = readRuntimeReconciliation(paths.runtimeReconciliation);
+  const governanceOk =
+    reconciliation.governance.dispatcher_disabled &&
+    reconciliation.governance.auto_decompose_disabled &&
+    reconciliation.governance.mcp_servers_disabled;
+  if (!governanceOk) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_GOVERNANCE_NOT_LOCKED',
+      message: 'Controller review receipts require dispatcher, auto-decompose and external MCP execution to stay disabled.',
+      card_id: taskId,
+      dispatch_handoff_packet: dispatchHandoffPacket,
+    };
+  }
+
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const recordedAt = Math.floor(new Date(occurredAt).getTime() / 1000);
+  const dbPath = kanbanDbPath(paths.hermesHome, boardSlug);
+  const eventLedgerPath = resolveMarketingEventLedgerPath(paths, options);
+  const auditEventId = marketingCardDispatchApprovalAuditEventId(taskId, occurredAt);
+  const pythonPath = pythonForMarketingBoard(paths, options.pythonPath);
+  const receiptWrite = runPythonJson(
+    pythonPath,
+    {
+      db_path: dbPath,
+      card_id: taskId,
+      audit_event_id: auditEventId,
+      recorded_at: recordedAt,
+      dispatch_handoff_packet: dispatchHandoffPacket,
+      review_note: options.review_note || '',
+    },
+    buildMarketingDispatchApprovalScript(),
+    paths.hermesHome
+  );
+
+  if (!receiptWrite.ok || !receiptWrite.data) {
+    return {
+      ...base,
+      ok: false,
+      status: 'failed',
+      reason_code: 'KANBAN_MARKETING_CONTROLLER_APPROVAL_RECEIPT_WRITE_FAILED',
+      message: receiptWrite.error || 'Command EVE controller-review receipt could not be written.',
+      card_id: taskId,
+      audit_event_path: eventLedgerPath,
+      dispatch_handoff_packet: dispatchHandoffPacket,
+    };
+  }
+  if (receiptWrite.data.found !== true) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'KANBAN_MARKETING_CARD_NOT_FOUND',
+      message: `No marketing card found for task_id: ${taskId}`,
+      card_id: taskId,
+      audit_event_path: eventLedgerPath,
+      dispatch_handoff_packet: dispatchHandoffPacket,
+    };
+  }
+
+  appendMarketingDispatchApprovalAuditEvent({
+    eventId: auditEventId,
+    eventLedgerPath,
+    occurredAt,
+    cardId: taskId,
+    boardSlug,
+    dbPath,
+    dispatchHandoffPacket,
+  });
+
+  const board = buildKanbanMarketingBoard({
+    ...options,
+    boardSlug,
+    now,
+    pythonPath,
+  });
+
+  return {
+    ...base,
+    ok: true,
+    status: 'ready',
+    reason_code: 'KANBAN_MARKETING_CONTROLLER_APPROVAL_PENDING_RECORDED',
+    message: 'Controller review receipt recorded; worker execution remains blocked.',
+    card_id: taskId,
+    audit_event_id: auditEventId,
+    audit_event_path: eventLedgerPath,
+    approval_event_kind: 'command_eve_controller_approval_pending',
+    controller_approval_status: 'pending',
+    subprocess_spawned: false,
+    release_blocked: true,
+    human_gate: 'HG-2.5',
+    dispatch_handoff_packet: dispatchHandoffPacket,
+    model: board.model,
   };
 }

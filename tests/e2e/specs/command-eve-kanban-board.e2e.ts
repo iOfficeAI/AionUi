@@ -655,6 +655,11 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       /wartet auf Controller|waiting for controller/
     );
     await expect(page.getByTestId('marketing-card-dispatch-approve-disabled')).toBeDisabled();
+    await page.getByTestId('marketing-card-dispatch-record-review').click();
+    const approvalResult = page.getByTestId('marketing-card-dispatch-approval-result');
+    await expect(approvalResult).toBeVisible({ timeout: 30_000 });
+    await expect(approvalResult).toContainText(/KANBAN_MARKETING_CONTROLLER_APPROVAL_PENDING_RECORDED/);
+    await expect(page.getByTestId('marketing-card-dispatch-approval-detail')).toContainText(/ausstehend|pending/);
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
       /ready|bereit|KANBAN_MARKETING_DISPATCH_PLAN_READY/
@@ -693,6 +698,34 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       role_label: 'role:cmo',
     });
 
+    const approvalRows = sqliteQuery(
+      dispatchBoardDbPath!,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${dispatchCardId}' AND kind = 'command_eve_controller_approval_pending' LIMIT 1`
+    );
+    expect(approvalRows.length, `controller review receipt must exist for ${dispatchCardId}`).toBeGreaterThan(0);
+    const approvalPayload = JSON.parse(approvalRows[0][1]) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+      };
+    };
+    expect(approvalPayload.controller_approval_status).toBe('pending');
+    expect(approvalPayload.controller_approved).toBe(false);
+    expect(approvalPayload.release_blocked).toBe(true);
+    expect(approvalPayload.subprocess_spawned).toBe(false);
+    expect(approvalPayload.reason_codes).toContain('command_eve.controller_approval_pending');
+    expect(approvalPayload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
+
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingDispatchAudit = ledgerLines.find((line) => {
       try {
@@ -710,6 +743,24 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(
       matchingDispatchAudit,
       `audit ledger must contain kanban.marketing_board_dispatch_plan_checked for card_id=${dispatchCardId}`
+    ).toBeTruthy();
+    const matchingApprovalAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; issue_id?: string; payload?: Record<string, unknown> };
+        return (
+          evt.issue_id === dispatchCardId &&
+          evt.event_type === 'kanban.marketing_board_controller_approval_pending' &&
+          evt.payload?.controller_approval_status === 'pending' &&
+          evt.payload?.subprocess_spawned === false &&
+          (evt.payload?.dispatch_handoff_packet as { dispatch?: string } | undefined)?.dispatch === 'manual'
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(
+      matchingApprovalAudit,
+      `audit ledger must contain kanban.marketing_board_controller_approval_pending for card_id=${dispatchCardId}`
     ).toBeTruthy();
 
     const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-dispatch-gate.png';

@@ -193,6 +193,12 @@
       "gateNoSpawn": "kein Spawn",
       "gateControllerMissing": "Controller fehlt",
       "approveButton": "Freigabe später aktivieren",
+      "recordReviewButton": "Review-Receipt speichern",
+      "approvalRecorded": "Controller-Review-Receipt gespeichert.",
+      "approvalRecordFailed": "Controller-Review konnte nicht gespeichert werden.",
+      "approvalReceiptTitle": "Controller-Review-Receipt",
+      "approvalStatus": "Review",
+      "pending": "ausstehend",
       "subprocess": "Hermes",
       "spawned": "gestartet",
       "notSpawned": "nicht gestartet"

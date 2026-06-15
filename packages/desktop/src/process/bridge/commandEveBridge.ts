@@ -28,6 +28,7 @@ import {
   createKanbanMarketingProofCard,
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
+  recordKanbanMarketingDispatchApproval,
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
@@ -479,6 +480,54 @@ export function initCommandEveBridge(): void {
               message: error instanceof Error ? error.message : 'Command EVE marketing dispatch-plan bridge failed.',
               subprocess_spawned: false,
               data_boundary_checked: false,
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-dispatch-approval')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        review_note?: string;
+      }) => {
+        try {
+          const result = recordKanbanMarketingDispatchApproval({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            review_note: request?.review_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing dispatch-approval bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-dispatch-approval/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_DISPATCH_APPROVAL_BRIDGE_FAILED',
+              message:
+                error instanceof Error ? error.message : 'Command EVE marketing dispatch-approval bridge failed.',
+              subprocess_spawned: false,
+              release_blocked: true,
+              human_gate: 'HG-2.5',
               source: {
                 generated_by: 'command-eve-kanban-marketing-board-core',
                 hermes_home: '',
