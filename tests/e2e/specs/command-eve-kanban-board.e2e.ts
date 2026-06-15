@@ -927,12 +927,20 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       consent_status?: string;
       allowed_actions?: string;
       human_gate?: string;
+      data_boundary_checked?: boolean;
+      data_boundary_receipt?: { version?: string; action?: string; status?: string };
     };
     expect(draftEventPayload.local_only).toBe(true);
     expect(draftEventPayload.outreach_enabled).toBe(false);
     expect(draftEventPayload.consent_status).toBe('unknown');
     expect(draftEventPayload.allowed_actions).toBe('draft-only');
     expect(draftEventPayload.human_gate).toBe('HG-4');
+    expect(draftEventPayload.data_boundary_checked).toBe(true);
+    expect(draftEventPayload.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_draft_deal_create',
+      status: 'local-only-pass',
+    });
     const stageEventRows = sqliteQuery(
       crmDbPath,
       "SELECT kind, payload FROM crm_events WHERE kind = 'crm_draft_deal_stage_changed'"
@@ -946,6 +954,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       allowed_actions?: string;
       human_gate?: string;
       stage?: string;
+      data_boundary_checked?: boolean;
+      data_boundary_receipt?: { version?: string; action?: string; status?: string };
     };
     expect(stageEventPayload.local_only).toBe(true);
     expect(stageEventPayload.outreach_enabled).toBe(false);
@@ -954,6 +964,12 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(stageEventPayload.allowed_actions).toBe('draft-only');
     expect(stageEventPayload.human_gate).toBe('HG-4');
     expect(stageEventPayload.stage).toBe('qualified');
+    expect(stageEventPayload.data_boundary_checked).toBe(true);
+    expect(stageEventPayload.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_draft_deal_stage_local',
+      status: 'local-only-pass',
+    });
     const consentEventRows = sqliteQuery(
       crmDbPath,
       "SELECT kind, payload FROM crm_events WHERE kind = 'crm_consent_captured_local'"
@@ -969,6 +985,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       allowed_actions?: string;
       human_gate?: string;
       data_class?: string;
+      data_boundary_checked?: boolean;
+      data_boundary_receipt?: { version?: string; action?: string; status?: string };
     };
     expect(consentEventPayload.local_only).toBe(true);
     expect(consentEventPayload.outreach_enabled).toBe(false);
@@ -979,6 +997,12 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(consentEventPayload.allowed_actions).toBe('review-only');
     expect(consentEventPayload.human_gate).toBe('HG-4');
     expect(consentEventPayload.data_class).toBe('S2');
+    expect(consentEventPayload.data_boundary_checked).toBe(true);
+    expect(consentEventPayload.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_consent_capture_local',
+      status: 'local-only-pass',
+    });
 
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingCrmAudit = ledgerLines.find((line) => {
@@ -995,8 +1019,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         const evt = JSON.parse(line) as { event_type?: string; payload?: Record<string, unknown> };
         return (
           evt.event_type === 'crm.draft_deal_created' &&
-          evt.payload?.local_only === true &&
-          evt.payload?.allowed_actions === 'draft-only'
+            evt.payload?.local_only === true &&
+            evt.payload?.allowed_actions === 'draft-only' &&
+            evt.payload?.data_boundary_checked === true
         );
       } catch {
         return false;
@@ -1009,8 +1034,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.event_type === 'crm.draft_deal_stage_changed' &&
           evt.payload?.local_only === true &&
-          evt.payload?.subprocess_spawned === false &&
-          evt.payload?.stage === 'qualified'
+            evt.payload?.subprocess_spawned === false &&
+            evt.payload?.data_boundary_checked === true &&
+            evt.payload?.stage === 'qualified'
         );
       } catch {
         return false;
@@ -1023,8 +1049,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.event_type === 'crm.consent_captured_local' &&
           evt.payload?.local_only === true &&
-          evt.payload?.subprocess_spawned === false &&
-          evt.payload?.consent_status === 'captured-local' &&
+            evt.payload?.subprocess_spawned === false &&
+            evt.payload?.data_boundary_checked === true &&
+            evt.payload?.consent_status === 'captured-local' &&
           evt.payload?.allowed_actions === 'review-only'
         );
       } catch {

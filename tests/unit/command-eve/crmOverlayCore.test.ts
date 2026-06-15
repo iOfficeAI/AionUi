@@ -204,6 +204,17 @@ finally:
     expect(result.ok).toBe(true);
     expect(result.status).toBe('ready');
     expect(result.reason_code).toBe('CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY');
+    expect(result.data_boundary_checked).toBe(true);
+    expect(result.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_draft_deal_create',
+      status: 'local-only-pass',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      provider_execution_allowed: false,
+      subprocess_spawned: false,
+      raw_text_stored: false,
+    });
     expect(result.company_id).toContain('crm-company-');
     expect(result.contact_id).toContain('crm-contact-');
     expect(result.deal_id).toContain('crm-deal-');
@@ -253,6 +264,12 @@ finally:
       consent_status: 'unknown',
       allowed_actions: 'draft-only',
       human_gate: 'HG-4',
+      data_boundary_checked: true,
+      data_boundary_receipt: expect.objectContaining({
+        version: 'command-eve-crm-nl5-local-receipt/v0',
+        action: 'crm_draft_deal_create',
+        status: 'local-only-pass',
+      }),
     });
   });
 
@@ -282,6 +299,17 @@ finally:
     expect(result.ok).toBe(true);
     expect(result.status).toBe('ready');
     expect(result.reason_code).toBe('CRM_STAGE_CHANGED_LOCAL_ONLY');
+    expect(result.data_boundary_checked).toBe(true);
+    expect(result.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_draft_deal_stage_local',
+      status: 'local-only-pass',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      provider_execution_allowed: false,
+      subprocess_spawned: false,
+      raw_text_stored: false,
+    });
     expect(result.deal_id).toBe(draft.deal_id);
     expect(result.previous_stage).toBe('draft');
     expect(result.stage).toBe('qualified');
@@ -329,6 +357,12 @@ finally:
       allowed_actions: 'draft-only',
       human_gate: 'HG-4',
       stage: 'qualified',
+      data_boundary_checked: true,
+      data_boundary_receipt: expect.objectContaining({
+        version: 'command-eve-crm-nl5-local-receipt/v0',
+        action: 'crm_draft_deal_stage_local',
+        status: 'local-only-pass',
+      }),
     });
   });
 
@@ -358,6 +392,17 @@ finally:
     expect(result.ok).toBe(true);
     expect(result.status).toBe('ready');
     expect(result.reason_code).toBe('CRM_CONSENT_CAPTURED_LOCAL_ONLY');
+    expect(result.data_boundary_checked).toBe(true);
+    expect(result.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_consent_capture_local',
+      status: 'local-only-pass',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      provider_execution_allowed: false,
+      subprocess_spawned: false,
+      raw_text_stored: false,
+    });
     expect(result.deal_id).toBe(draft.deal_id);
     expect(result.consent_status).toBe('captured-local');
     expect(result.allowed_actions).toBe('review-only');
@@ -419,6 +464,12 @@ finally:
       allowed_actions: 'review-only',
       human_gate: 'HG-4',
       data_class: 'S2',
+      data_boundary_checked: true,
+      data_boundary_receipt: expect.objectContaining({
+        version: 'command-eve-crm-nl5-local-receipt/v0',
+        action: 'crm_consent_capture_local',
+        status: 'local-only-pass',
+      }),
     });
   });
 });

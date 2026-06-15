@@ -722,7 +722,7 @@ const OperatingSurfacesSection: React.FC<{
       metric: formatCount(crmResult?.model?.counts.deals),
       descriptionKey: 'commandCenter.operatingSurfaces.crm.description',
       anchorId: 'command-eve-crm-overlay',
-      tags: ['HG-4', t('commandCenter.operatingSurfaces.tags.localOnly')],
+      tags: ['HG-4', 'NL-5', t('commandCenter.operatingSurfaces.tags.localOnly')],
     },
     {
       key: 'dispatch',
@@ -1456,6 +1456,7 @@ const CrmOverlaySection: React.FC<{
         <p className='m-0 text-12px leading-18px text-t-secondary'>{t('commandCenter.crmOverlay.description')}</p>
         <div className='flex flex-wrap items-center gap-6px'>
           <Tag color='green'>{t('commandCenter.crmOverlay.policy.localOnly')}</Tag>
+          <Tag color='green'>NL-5</Tag>
           <Tag color='orange'>{t('commandCenter.crmOverlay.policy.hg4')}</Tag>
           <Tag color='gray'>{t('commandCenter.crmOverlay.policy.noOutreach')}</Tag>
         </div>

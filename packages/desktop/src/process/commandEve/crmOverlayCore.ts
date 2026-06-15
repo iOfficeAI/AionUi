@@ -7,6 +7,7 @@
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { detectCommandEveSensitiveEgress } from './egressBoundaryCore';
 import { resolveCommandEveRuntimeBootstrapPaths } from './runtimeBootstrapCore';
 
 export const COMMAND_EVE_CRM_OVERLAY_BRIDGE_VERSION = 'command-eve-crm-overlay/v0';
@@ -34,6 +35,23 @@ export type CommandEveCrmOverlayCounts = {
   contacts: number;
   deals: number;
   audit_events: number;
+};
+
+export type CommandEveCrmDataBoundaryReceipt = {
+  version: 'command-eve-crm-nl5-local-receipt/v0';
+  action: 'crm_draft_deal_create' | 'crm_draft_deal_stage_local' | 'crm_consent_capture_local';
+  ok: true;
+  status: 'local-only-pass';
+  requested_lane: 'local_only';
+  effective_lane: 'local_only';
+  data_class: 'S2';
+  human_gate: 'HG-4';
+  finding_count: number;
+  findings: Array<{ kind: string; rule_id: string; count: number }>;
+  raw_text_stored: false;
+  provider_execution_allowed: false;
+  subprocess_spawned: false;
+  reason_codes: ['command_eve.crm_nl5_local_only_pass'];
 };
 
 export type CommandEveCrmOverlayDeal = {
@@ -95,6 +113,8 @@ export type CommandEveCrmDraftCreateResult = {
   message?: string;
   audit_event_id?: string;
   audit_event_path?: string;
+  data_boundary_checked?: boolean;
+  data_boundary_receipt?: CommandEveCrmDataBoundaryReceipt;
   company_id?: string;
   contact_id?: string;
   deal_id?: string;
@@ -118,6 +138,8 @@ export type CommandEveCrmStageLocalResult = {
   message?: string;
   audit_event_id?: string;
   audit_event_path?: string;
+  data_boundary_checked?: boolean;
+  data_boundary_receipt?: CommandEveCrmDataBoundaryReceipt;
   deal_id?: string;
   previous_stage?: string;
   stage?: string;
@@ -140,6 +162,8 @@ export type CommandEveCrmConsentLocalResult = {
   message?: string;
   audit_event_id?: string;
   audit_event_path?: string;
+  data_boundary_checked?: boolean;
+  data_boundary_receipt?: CommandEveCrmDataBoundaryReceipt;
   deal_id?: string;
   consent_status?: string;
   allowed_actions?: string;
@@ -462,6 +486,8 @@ try:
         "allowed_actions": "draft-only",
         "data_class": "S2",
         "human_gate": "HG-4",
+        "data_boundary_checked": True,
+        "data_boundary_receipt": request["data_boundary_receipt"],
     }
     conn.execute(
         """
@@ -561,6 +587,8 @@ try:
         "allowed_actions": allowed_actions,
         "data_class": data_class,
         "human_gate": human_gate,
+        "data_boundary_checked": True,
+        "data_boundary_receipt": request["data_boundary_receipt"],
     }
     conn.execute(
         "INSERT OR IGNORE INTO crm_events (event_id, kind, payload, created_at) VALUES (?, ?, ?, ?)",
@@ -655,6 +683,8 @@ try:
         "allowed_actions": next_allowed_actions,
         "data_class": data_class,
         "human_gate": human_gate,
+        "data_boundary_checked": True,
+        "data_boundary_receipt": request["data_boundary_receipt"],
     }
     conn.execute(
         "INSERT OR IGNORE INTO crm_events (event_id, kind, payload, created_at) VALUES (?, ?, ?, ?)",
@@ -752,6 +782,36 @@ function crmConsentAuditEventId(dealId: string, occurredAt: string): string {
   return ['command-eve-crm-consent-local', sanitizeEventIdPart(dealId), sanitizeEventIdPart(occurredAt)].join('-');
 }
 
+function buildCrmDataBoundaryReceipt({
+  action,
+  fields,
+}: {
+  action: CommandEveCrmDataBoundaryReceipt['action'];
+  fields: JsonRecord;
+}): CommandEveCrmDataBoundaryReceipt {
+  const findings = detectCommandEveSensitiveEgress(JSON.stringify(fields)).map((finding) => ({
+    kind: finding.kind,
+    rule_id: finding.rule_id,
+    count: finding.count,
+  }));
+  return {
+    version: 'command-eve-crm-nl5-local-receipt/v0',
+    action,
+    ok: true,
+    status: 'local-only-pass',
+    requested_lane: 'local_only',
+    effective_lane: 'local_only',
+    data_class: 'S2',
+    human_gate: 'HG-4',
+    finding_count: findings.reduce((sum, finding) => sum + finding.count, 0),
+    findings,
+    raw_text_stored: false,
+    provider_execution_allowed: false,
+    subprocess_spawned: false,
+    reason_codes: ['command_eve.crm_nl5_local_only_pass'],
+  };
+}
+
 function appendCrmAuditEvent({
   eventId,
   eventLedgerPath,
@@ -810,6 +870,7 @@ function appendCrmDraftAuditEvent({
   companyId,
   contactId,
   dealId,
+  dataBoundaryReceipt,
 }: {
   eventId: string;
   eventLedgerPath: string;
@@ -818,6 +879,7 @@ function appendCrmDraftAuditEvent({
   companyId: string;
   contactId: string;
   dealId: string;
+  dataBoundaryReceipt: CommandEveCrmDataBoundaryReceipt;
 }): void {
   const event = {
     schema_version: 'agent-event/v1',
@@ -850,6 +912,8 @@ function appendCrmDraftAuditEvent({
       allowed_actions: 'draft-only',
       data_class: 'S2',
       human_gate: 'HG-4',
+      data_boundary_checked: true,
+      data_boundary_receipt: dataBoundaryReceipt,
       action: 'crm_draft_deal_create',
     },
     artifact_paths: [dbPath],
@@ -869,6 +933,7 @@ function appendCrmStageAuditEvent({
   dealId,
   previousStage,
   stage,
+  dataBoundaryReceipt,
 }: {
   eventId: string;
   eventLedgerPath: string;
@@ -877,6 +942,7 @@ function appendCrmStageAuditEvent({
   dealId: string;
   previousStage: string;
   stage: string;
+  dataBoundaryReceipt: CommandEveCrmDataBoundaryReceipt;
 }): void {
   const event = {
     schema_version: 'agent-event/v1',
@@ -910,6 +976,8 @@ function appendCrmStageAuditEvent({
       allowed_actions: 'draft-only',
       data_class: 'S2',
       human_gate: 'HG-4',
+      data_boundary_checked: true,
+      data_boundary_receipt: dataBoundaryReceipt,
       action: 'crm_draft_deal_stage_local',
     },
     artifact_paths: [dbPath],
@@ -929,6 +997,7 @@ function appendCrmConsentAuditEvent({
   dealId,
   consentStatus,
   allowedActions,
+  dataBoundaryReceipt,
 }: {
   eventId: string;
   eventLedgerPath: string;
@@ -937,6 +1006,7 @@ function appendCrmConsentAuditEvent({
   dealId: string;
   consentStatus: string;
   allowedActions: string;
+  dataBoundaryReceipt: CommandEveCrmDataBoundaryReceipt;
 }): void {
   const event = {
     schema_version: 'agent-event/v1',
@@ -970,6 +1040,8 @@ function appendCrmConsentAuditEvent({
       allowed_actions: allowedActions,
       data_class: 'S2',
       human_gate: 'HG-4',
+      data_boundary_checked: true,
+      data_boundary_receipt: dataBoundaryReceipt,
       action: 'crm_consent_capture_local',
     },
     artifact_paths: [dbPath],
@@ -1136,6 +1208,17 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
   const contactId = `crm-contact-${idPart}`;
   const dealId = `crm-deal-${idPart}`;
   const auditEventId = crmDraftAuditEventId(occurredAt);
+  const dataBoundaryReceipt = buildCrmDataBoundaryReceipt({
+    action: 'crm_draft_deal_create',
+    fields: {
+      company_id: companyId,
+      contact_id: contactId,
+      deal_id: dealId,
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      local_only: true,
+    },
+  });
   const base = draftCreateResultBase(paths.hermesHome);
   const python = pythonBinary(paths, options.pythonPath);
 
@@ -1148,6 +1231,7 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
       company_id: companyId,
       contact_id: contactId,
       deal_id: dealId,
+      data_boundary_receipt: dataBoundaryReceipt,
     },
     crmDraftCreateScript(),
     paths.hermesHome
@@ -1172,6 +1256,7 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
     companyId,
     contactId,
     dealId,
+    dataBoundaryReceipt,
   });
   const overlay = buildCrmOverlay({ ...options, now });
   return {
@@ -1182,6 +1267,8 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
     message: overlay.message,
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
+    data_boundary_checked: true,
+    data_boundary_receipt: dataBoundaryReceipt,
     company_id: companyId,
     contact_id: contactId,
     deal_id: dealId,
@@ -1200,6 +1287,16 @@ export function changeCrmDealStageLocal(
   const occurredAt = now().toISOString();
   const dealId = request.dealId.trim();
   const auditEventId = crmStageAuditEventId(dealId, occurredAt);
+  const dataBoundaryReceipt = buildCrmDataBoundaryReceipt({
+    action: 'crm_draft_deal_stage_local',
+    fields: {
+      deal_id: dealId,
+      target_stage: request.targetStage,
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      local_only: true,
+    },
+  });
   const base = stageLocalResultBase(paths.hermesHome);
   const python = pythonBinary(paths, options.pythonPath);
 
@@ -1221,6 +1318,7 @@ export function changeCrmDealStageLocal(
       created_at: occurredAt,
       deal_id: dealId,
       target_stage: request.targetStage,
+      data_boundary_receipt: dataBoundaryReceipt,
     },
     crmStageLocalScript(),
     paths.hermesHome
@@ -1248,6 +1346,7 @@ export function changeCrmDealStageLocal(
     dealId,
     previousStage,
     stage,
+    dataBoundaryReceipt,
   });
   const overlay = buildCrmOverlay({ ...options, now });
   return {
@@ -1258,6 +1357,8 @@ export function changeCrmDealStageLocal(
     message: overlay.message,
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
+    data_boundary_checked: true,
+    data_boundary_receipt: dataBoundaryReceipt,
     deal_id: dealId,
     previous_stage: previousStage,
     stage,
@@ -1276,6 +1377,18 @@ export function captureCrmConsentLocal(
   const occurredAt = now().toISOString();
   const dealId = request.dealId.trim();
   const auditEventId = crmConsentAuditEventId(dealId, occurredAt);
+  const dataBoundaryReceipt = buildCrmDataBoundaryReceipt({
+    action: 'crm_consent_capture_local',
+    fields: {
+      deal_id: dealId,
+      consent_status: 'captured-local',
+      consent_basis: 'manual-founder-confirmation',
+      consent_source: 'command-eve-local-ui',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      local_only: true,
+    },
+  });
   const base = consentLocalResultBase(paths.hermesHome);
   const python = pythonBinary(paths, options.pythonPath);
 
@@ -1296,6 +1409,7 @@ export function captureCrmConsentLocal(
       audit_event_id: auditEventId,
       created_at: occurredAt,
       deal_id: dealId,
+      data_boundary_receipt: dataBoundaryReceipt,
     },
     crmConsentLocalScript(),
     paths.hermesHome
@@ -1323,6 +1437,7 @@ export function captureCrmConsentLocal(
     dealId,
     consentStatus,
     allowedActions,
+    dataBoundaryReceipt,
   });
   const overlay = buildCrmOverlay({ ...options, now });
   return {
@@ -1333,6 +1448,8 @@ export function captureCrmConsentLocal(
     message: overlay.message,
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
+    data_boundary_checked: true,
+    data_boundary_receipt: dataBoundaryReceipt,
     deal_id: dealId,
     consent_status: consentStatus,
     allowed_actions: allowedActions,
