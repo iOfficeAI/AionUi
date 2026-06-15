@@ -15,6 +15,7 @@ import * as path from 'path';
 import { jsonrepair } from 'jsonrepair';
 import type OpenAI from 'openai';
 import { ClientFactory, type RotatingClient } from '@/common/api/ClientFactory';
+import { observeRouteShadow } from '@/process/commandEve/routePolicyCore';
 import type { TProviderWithModel } from '@/common/config/storage';
 import type { UnifiedChatCompletionResponse } from '@/common/api/RotatingApiClient';
 import { IMAGE_EXTENSIONS, MIME_TYPE_MAP, MIME_TO_EXT_MAP, DEFAULT_IMAGE_EXTENSION } from '@/common/config/constants';
@@ -235,6 +236,22 @@ export async function executeImageGeneration(
     }
 
     const messages: OpenAI.Chat.Completions.ChatCompletionMessageParam[] = [{ role: 'user', content: contentParts }];
+
+    // Command EVE inference-router — Phase 1 SHADOW (pure observability).
+    // Classify the prompt's data sensitivity and emit a hash-only route receipt
+    // recording the lane a future enforcing router *would* recommend. This does
+    // NOT change which client/model/provider is used below, does NOT loosen the
+    // egress boundary, and never throws (observation only).
+    try {
+      observeRouteShadow({
+        text: params.prompt || '',
+        provider,
+        taskClass: 'image_generation',
+        label: 'image-gen',
+      });
+    } catch (_routeShadowError) {
+      // Shadow routing must never break image generation.
+    }
 
     // Create client and call API
     const rotatingClient: RotatingClient = await ClientFactory.createRotatingClient(provider, {
