@@ -387,7 +387,11 @@ const AionrsSendBox: React.FC<{
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              onLocalFilesAdded={handleFilesAdded}
+              onFilePathsSelected={appendSelectedFiles}
+            />
             <AgentModeSelector
               backend='aionrs'
               conversationId={conversation_id}

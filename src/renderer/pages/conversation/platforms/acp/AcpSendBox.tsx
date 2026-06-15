@@ -367,7 +367,11 @@ Please check your local CLI tool authentication status`,
         lockMultiLine={true}
         tools={
           <div className='flex items-center gap-4px'>
-            <FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />
+            <FileAttachButton
+              openFileSelector={openFileSelector}
+              onLocalFilesAdded={handleFilesAdded}
+              onFilePathsSelected={appendSelectedFiles}
+            />
             {showModeSelector && (
               <AgentModeSelector
                 backend={backend}

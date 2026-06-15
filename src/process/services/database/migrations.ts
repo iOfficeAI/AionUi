@@ -1214,6 +1214,85 @@ const migration_v26: IMigration = {
 };
 
 /**
+ * Migration v26 -> v27: Add library_folders table and folder_id to library_items
+ */
+const migration_v27: IMigration = {
+  version: 27,
+  name: 'Add library tables (items, folders, notes)',
+  up: (db) => {
+    // Create library_items table if not present (may be missing on existing v26 databases)
+    db.exec(`CREATE TABLE IF NOT EXISTS library_items (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      source TEXT NOT NULL,
+      favorite INTEGER NOT NULL DEFAULT 0,
+      shared INTEGER NOT NULL DEFAULT 0,
+      private INTEGER NOT NULL DEFAULT 1,
+      folder_id TEXT,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      last_opened_at INTEGER
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_file_type ON library_items(file_type)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_favorite ON library_items(favorite)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_last_opened ON library_items(last_opened_at DESC)');
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_folder_id ON library_items(folder_id)');
+
+    // Create library_folders table
+    db.exec(`CREATE TABLE IF NOT EXISTS library_folders (
+      id TEXT PRIMARY KEY,
+      name TEXT NOT NULL,
+      category TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_folders_category ON library_folders(category)');
+
+    // Create library_notes table (BlockNote blocks JSON storage for markdown items)
+    db.exec(`CREATE TABLE IF NOT EXISTS library_notes (
+      id TEXT PRIMARY KEY,
+      item_id TEXT NOT NULL UNIQUE,
+      blocks_json TEXT NOT NULL,
+      created_at INTEGER NOT NULL,
+      updated_at INTEGER NOT NULL,
+      FOREIGN KEY (item_id) REFERENCES library_items(id) ON DELETE CASCADE
+    )`);
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_notes_item_id ON library_notes(item_id)');
+
+    console.log('[Migration v27] Added library tables (items, folders, notes)');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_library_items_folder_id');
+    db.exec('DROP INDEX IF EXISTS idx_library_folders_category');
+    db.exec('DROP TABLE IF EXISTS library_folders');
+    console.log('[Migration v27] Rolled back: Removed library_folders and folder_id index');
+  },
+};
+
+/**
+ * Migration v27 -> v28: Add parent_id to library_items
+ */
+const migration_v28: IMigration = {
+  version: 28,
+  name: 'Add parent_id column to library_items',
+  up: (db) => {
+    try {
+      db.exec('ALTER TABLE library_items ADD COLUMN parent_id TEXT');
+    } catch (err) {
+      console.warn('[Migration v28] Column parent_id might already exist:', err);
+    }
+    db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_parent_id ON library_items(parent_id)');
+    console.log('[Migration v28] Added parent_id column and index');
+  },
+  down: (db) => {
+    db.exec('DROP INDEX IF EXISTS idx_library_items_parent_id');
+    console.log('[Migration v28] Rolled back: parent_id index dropped');
+  },
+};
+
+/**
  * All migrations in order
  */
 // prettier-ignore
@@ -1222,7 +1301,7 @@ export const ALL_MIGRATIONS: IMigration[] = [
   migration_v7, migration_v8, migration_v9, migration_v10, migration_v11, migration_v12,
   migration_v13, migration_v14, migration_v15, migration_v16, migration_v17, migration_v18,
   migration_v19, migration_v20, migration_v21, migration_v22, migration_v23, migration_v24,
-  migration_v25, migration_v26,
+  migration_v25, migration_v26, migration_v27, migration_v28,
 ];
 
 /**

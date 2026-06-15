@@ -1,0 +1,66 @@
+{
+  "title": "文件库",
+  "subtitle": "存储、组织和预览任意格式的文件",
+  "searchPlaceholder": "搜索页面或链接...",
+  "newPage": "新建页面",
+  "noData": "该分类下暂无文件",
+  "confirmDeleteTitle": "删除文件库项目？",
+  "confirmDeleteContent": "您确定要删除 \"{{name}}\" 吗？这将永久移除它。",
+  "columns": {
+    "pageName": "页面名称",
+    "createdBy": "创建者",
+    "source": "来源",
+    "lastOpenedAt": "最后打开",
+    "createdAt": "创建时间"
+  },
+  "tabs": {
+    "recents": "最近",
+    "favorites": "收藏",
+    "shared": "共享",
+    "private": "私有"
+  },
+  "actions": {
+    "createMarkdown": "新建 Markdown 页面",
+    "importFile": "导入本地文件",
+    "addLink": "添加网页链接",
+    "rename": "重命名项目"
+  },
+  "form": {
+    "pageName": "页面名称",
+    "namePlaceholder": "例如：项目笔记",
+    "linkName": "名称",
+    "url": "网址",
+    "newName": "新名称"
+  },
+  "tooltips": {
+    "preview": "打开预览",
+    "rename": "重命名",
+    "favorite": "收藏",
+    "delete": "删除",
+    "setShared": "设为共享",
+    "setPrivate": "设为私有"
+  },
+  "errors": {
+    "loadFailed": "加载文件库项目失败",
+    "openFailed": "无法打开文件",
+    "updateFailed": "更新项目失败",
+    "deleteFailed": "删除项目失败",
+    "nameRequired": "请输入名称",
+    "urlRequired": "请输入网址",
+    "invalidUrl": "请输入有效的网址",
+    "importFailed": "导入文件失败"
+  },
+  "feedback": {
+    "favorited": "已加入收藏",
+    "unfavorited": "已取消收藏",
+    "deleted": "项目已删除",
+    "created": "页面创建成功",
+    "imported": "文件导入成功",
+    "linkAdded": "网页链接已添加",
+    "renamed": "项目重命名成功"
+  },
+  "source": {
+    "private": "私有",
+    "shared": "共享"
+  }
+}

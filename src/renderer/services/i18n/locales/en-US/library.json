@@ -1,0 +1,66 @@
+{
+  "title": "Library",
+  "subtitle": "Store, organize, and preview files of any format",
+  "searchPlaceholder": "Search pages or links...",
+  "newPage": "New page",
+  "noData": "No items in this category yet",
+  "confirmDeleteTitle": "Delete Library Item?",
+  "confirmDeleteContent": "Are you sure you want to delete \"{{name}}\"? This will remove it permanently.",
+  "columns": {
+    "pageName": "Page name",
+    "createdBy": "Created by",
+    "source": "Source",
+    "lastOpenedAt": "Last opened",
+    "createdAt": "Created"
+  },
+  "tabs": {
+    "recents": "Recents",
+    "favorites": "Favorites",
+    "shared": "Shared",
+    "private": "Private"
+  },
+  "actions": {
+    "createMarkdown": "New Markdown Page",
+    "importFile": "Import Local File",
+    "addLink": "Add Web Link",
+    "rename": "Rename Item"
+  },
+  "form": {
+    "pageName": "Page Name",
+    "namePlaceholder": "e.g. Project Notes",
+    "linkName": "Name",
+    "url": "URL",
+    "newName": "New Name"
+  },
+  "tooltips": {
+    "preview": "Open Preview",
+    "rename": "Rename",
+    "favorite": "Favorite",
+    "delete": "Delete",
+    "setShared": "Make shared",
+    "setPrivate": "Make private"
+  },
+  "errors": {
+    "loadFailed": "Failed to load library items",
+    "openFailed": "Could not open file",
+    "updateFailed": "Failed to update item",
+    "deleteFailed": "Failed to delete item",
+    "nameRequired": "Please input a name",
+    "urlRequired": "Please input a URL",
+    "invalidUrl": "Please enter a valid URL",
+    "importFailed": "Failed to import file"
+  },
+  "feedback": {
+    "favorited": "Added to favorites",
+    "unfavorited": "Removed from favorites",
+    "deleted": "Item deleted",
+    "created": "Page created successfully",
+    "imported": "File imported successfully",
+    "linkAdded": "Web link added",
+    "renamed": "Item renamed successfully"
+  },
+  "source": {
+    "private": "Private",
+    "shared": "Shared"
+  }
+}

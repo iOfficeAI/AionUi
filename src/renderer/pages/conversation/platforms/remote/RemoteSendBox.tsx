@@ -464,7 +464,13 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         supportedExts={allSupportedExts}
         defaultMultiLine={true}
         lockMultiLine={true}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            onLocalFilesAdded={handleFilesAdded}
+            onFilePathsSelected={appendSelectedFiles}
+          />
+        }
         prefix={
           uploadFile.length > 0 ? (
             <HorizontalFileList>

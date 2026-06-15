@@ -815,6 +815,40 @@ export const webui = {
   ),
 };
 
+// Library management API / 文件库管理接口
+export const library = {
+  listItems: bridge.buildProvider<
+    import('../types/library').ILibraryItem[],
+    { filter?: import('../types/library').LibraryFilter; keyword?: string }
+  >('library.list-items'),
+  addItem: bridge.buildProvider<
+    import('../types/library').ILibraryItem,
+    import('../types/library').IAddLibraryItemParams
+  >('library.add-item'),
+  deleteItem: bridge.buildProvider<boolean, { id: string }>('library.delete-item'),
+  updateItem: bridge.buildProvider<boolean, { id: string; updates: Partial<import('../types/library').ILibraryItem> }>(
+    'library.update-item'
+  ),
+  toggleFavorite: bridge.buildProvider<boolean, { id: string }>('library.toggle-favorite'),
+  toggleShared: bridge.buildProvider<boolean, { id: string }>('library.toggle-shared'),
+  togglePrivate: bridge.buildProvider<boolean, { id: string }>('library.toggle-private'),
+  openItem: bridge.buildProvider<boolean, { id: string }>('library.open-item'),
+  saveNote: bridge.buildProvider<boolean, { itemId: string; blocksJson: string }>('library.save-note'),
+  getNote: bridge.buildProvider<string | null, { itemId: string }>('library.get-note'),
+  // Folder management
+  listFolders: bridge.buildProvider<
+    import('../types/library').ILibraryFolder[],
+    { category: import('../types/library').LibraryFilter }
+  >('library.list-folders'),
+  createFolder: bridge.buildProvider<
+    import('../types/library').ILibraryFolder,
+    { name: string; category: import('../types/library').LibraryFilter }
+  >('library.create-folder'),
+  renameFolder: bridge.buildProvider<boolean, { id: string; name: string }>('library.rename-folder'),
+  deleteFolder: bridge.buildProvider<boolean, { id: string }>('library.delete-folder'),
+  moveItem: bridge.buildProvider<boolean, { id: string; folderId: string | null }>('library.move-item'),
+};
+
 // Cron job management API / 定时任务管理接口
 export const cron = {
   // Query
@@ -1027,13 +1061,13 @@ export interface IConversationTurnCompletedEvent {
   sessionId: string;
   status: 'pending' | 'running' | 'finished';
   state:
-    | 'ai_generating'
-    | 'ai_waiting_input'
-    | 'ai_waiting_confirmation'
-    | 'initializing'
-    | 'stopped'
-    | 'error'
-    | 'unknown';
+  | 'ai_generating'
+  | 'ai_waiting_input'
+  | 'ai_waiting_confirmation'
+  | 'initializing'
+  | 'stopped'
+  | 'error'
+  | 'unknown';
   detail: string;
   canSendMessage: boolean;
   runtime: {
@@ -1066,22 +1100,22 @@ export interface IConversationListChangedEvent {
 
 export type ConversationSideQuestionResult =
   | {
-      status: 'ok';
-      answer: string;
-    }
+    status: 'ok';
+    answer: string;
+  }
   | {
-      status: 'noAnswer';
-    }
+    status: 'noAnswer';
+  }
   | {
-      status: 'unsupported';
-    }
+    status: 'unsupported';
+  }
   | {
-      status: 'invalid';
-      reason: 'emptyQuestion';
-    }
+    status: 'invalid';
+    reason: 'emptyQuestion';
+  }
   | {
-      status: 'toolsRequired';
-    };
+    status: 'toolsRequired';
+  };
 
 interface IBridgeResponse<D = {}> {
   success: boolean;

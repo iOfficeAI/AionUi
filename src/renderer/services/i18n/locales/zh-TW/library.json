@@ -1,0 +1,66 @@
+{
+  "title": "文件庫",
+  "subtitle": "儲存、組織和預覽任意格式的檔案",
+  "searchPlaceholder": "搜尋頁面或連結...",
+  "newPage": "新建頁面",
+  "noData": "該分類下暫無檔案",
+  "confirmDeleteTitle": "刪除文件庫項目？",
+  "confirmDeleteContent": "您確定要刪除 \"{{name}}\" 嗎？這將永久移除它。",
+  "columns": {
+    "pageName": "頁面名稱",
+    "createdBy": "建立者",
+    "source": "來源",
+    "lastOpenedAt": "最後打開",
+    "createdAt": "建立時間"
+  },
+  "tabs": {
+    "recents": "最近",
+    "favorites": "收藏",
+    "shared": "共享",
+    "private": "私有"
+  },
+  "actions": {
+    "createMarkdown": "新建 Markdown 頁面",
+    "importFile": "匯入本地檔案",
+    "addLink": "新增網頁連結",
+    "rename": "重新命名項目"
+  },
+  "form": {
+    "pageName": "頁面名稱",
+    "namePlaceholder": "例如：專案筆記",
+    "linkName": "名稱",
+    "url": "網址",
+    "newName": "新名稱"
+  },
+  "tooltips": {
+    "preview": "打開預覽",
+    "rename": "重新命名",
+    "favorite": "收藏",
+    "delete": "刪除",
+    "setShared": "設為共享",
+    "setPrivate": "設為私有"
+  },
+  "errors": {
+    "loadFailed": "載入文件庫項目失敗",
+    "openFailed": "無法打開檔案",
+    "updateFailed": "更新項目失敗",
+    "deleteFailed": "刪除項目失敗",
+    "nameRequired": "請輸入名稱",
+    "urlRequired": "請輸入網址",
+    "invalidUrl": "請輸入有效的網址",
+    "importFailed": "匯入檔案失敗"
+  },
+  "feedback": {
+    "favorited": "已加入收藏",
+    "unfavorited": "已取消收藏",
+    "deleted": "項目已刪除",
+    "created": "頁面建立成功",
+    "imported": "檔案匯入成功",
+    "linkAdded": "網頁連結已新增",
+    "renamed": "項目重新命名成功"
+  },
+  "source": {
+    "private": "私有",
+    "shared": "共享"
+  }
+}

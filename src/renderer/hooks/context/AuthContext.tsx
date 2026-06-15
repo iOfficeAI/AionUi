@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState, useCallback } from 'react';
 import { withCsrfToken, hasValidCsrfToken, clearCookie } from '@process/webserver/middleware/csrfClient';
 import { CSRF_COOKIE_NAME } from '@process/webserver/config/constants';
 
@@ -142,6 +142,21 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
         setReady(true);
         return { success: true };
       }
+      
+      // Guest login: allow username "guest" (case-insensitive) with any password
+      if (username.toLowerCase() === "guest") {
+        const guestUser: AuthUser = {
+          id: "guest",
+          username: "Guest",
+        };
+        setUser(guestUser);
+        setStatus('authenticated');
+        setReady(true);
+        return {
+          success: true,
+          shouldClearCache: false,
+        };
+      }
 
       // Check CSRF token availability before login
       // If token is missing, clear cache and inform user
@@ -266,18 +281,15 @@ export const AuthProvider: React.FC<React.PropsWithChildren> = ({ children }) =>
     }
   }, []);
 
-  const value = useMemo<AuthContextValue>(
-    () => ({
-      ready,
-      user,
-      status,
-      login,
-      logout,
-      refresh,
-      clearAuthCache,
-    }),
-    [login, logout, ready, refresh, status, user]
-  );
+  const value = useMemo<AuthContextValue>(() => ({
+    ready,
+    user,
+    status,
+    login,
+    logout,
+    refresh,
+    clearAuthCache,
+  }), [login, logout, ready, refresh, status, user]);
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 };

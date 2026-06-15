@@ -434,7 +434,13 @@ const NanobotSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id
         onFilesAdded={handleFilesAdded}
         hasPendingAttachments={uploadFile.length > 0 || atPath.length > 0}
         supportedExts={allSupportedExts}
-        tools={<FileAttachButton openFileSelector={openFileSelector} onLocalFilesAdded={handleFilesAdded} />}
+        tools={
+          <FileAttachButton
+            openFileSelector={openFileSelector}
+            onLocalFilesAdded={handleFilesAdded}
+            onFilePathsSelected={appendSelectedFiles}
+          />
+        }
         prefix={
           <>
             {uploadFile.length > 0 && (

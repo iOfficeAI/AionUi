@@ -123,6 +123,49 @@ export function initSchema(db: ISqliteDriver): void {
   )`);
   db.exec('CREATE INDEX IF NOT EXISTS idx_tasks_team ON team_tasks(team_id, status)');
 
+  // Library items table (stores files, notes, images, videos, PDFs, etc.)
+  db.exec(`CREATE TABLE IF NOT EXISTS library_items (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    file_path TEXT NOT NULL,
+    file_type TEXT NOT NULL,
+    source TEXT NOT NULL,
+    favorite INTEGER NOT NULL DEFAULT 0,
+    shared INTEGER NOT NULL DEFAULT 0,
+    private INTEGER NOT NULL DEFAULT 1,
+    folder_id TEXT,
+    parent_id TEXT,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    last_opened_at INTEGER
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_file_type ON library_items(file_type)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_favorite ON library_items(favorite)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_folder_id ON library_items(folder_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_parent_id ON library_items(parent_id)');
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_items_last_opened ON library_items(last_opened_at DESC)');
+
+  // Library folders table (organizes library items into named folders per category)
+  db.exec(`CREATE TABLE IF NOT EXISTS library_folders (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    category TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_folders_category ON library_folders(category)');
+
+  // Library notes table (stores BlockNote blocks JSON for markdown library items)
+  db.exec(`CREATE TABLE IF NOT EXISTS library_notes (
+    id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL UNIQUE,
+    blocks_json TEXT NOT NULL,
+    created_at INTEGER NOT NULL,
+    updated_at INTEGER NOT NULL,
+    FOREIGN KEY (item_id) REFERENCES library_items(id) ON DELETE CASCADE
+  )`);
+  db.exec('CREATE INDEX IF NOT EXISTS idx_library_notes_item_id ON library_notes(item_id)');
+
   console.log('[Database] Schema initialized successfully');
 }
 
@@ -151,4 +194,4 @@ export function setDatabaseVersion(db: ISqliteDriver, version: number): void {
  * Current database schema version
  * Update this when adding new migrations in migrations.ts
  */
-export const CURRENT_DB_VERSION = 26;
+export const CURRENT_DB_VERSION = 28;

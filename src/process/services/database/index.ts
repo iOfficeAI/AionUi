@@ -205,14 +205,15 @@ export class AionUIDatabase {
 
   private initialize(): void {
     try {
-      initSchema(this.db);
-
-      // Check and run migrations if needed
+      // 1. Check and run migrations if needed to ensure columns like parent_id exist
       const currentVersion = getDatabaseVersion(this.db);
       if (currentVersion < CURRENT_DB_VERSION) {
         this.runMigrations(currentVersion, CURRENT_DB_VERSION);
         setDatabaseVersion(this.db, CURRENT_DB_VERSION);
       }
+
+      // 2. Initialize the remaining schema
+      initSchema(this.db);
 
       this.ensureSystemUser();
     } catch (error) {

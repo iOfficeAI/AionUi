@@ -15,11 +15,50 @@ import { iconColors } from '@/renderer/styles/colors';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import type { AcpBackend, AcpBackendConfig, AvailableAgent } from '../types';
 import PresetAgentTag, { type AgentSwitcherItem } from './PresetAgentTag';
-import { Button, Checkbox, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
-import { ArrowUp, Brain, FolderOpen, Lightning, Plus, Shield, UploadOne } from '@icon-park/react';
-import React, { useCallback, useRef, useState } from 'react';
+import { Button, Checkbox, Dropdown, Menu, Message, Tooltip, Modal, Input, List, Spin } from '@arco-design/web-react';
+import {
+  ArrowUp,
+  Brain,
+  FolderOpen,
+  Lightning,
+  Plus,
+  Shield,
+  UploadOne,
+  FileText,
+  FilePdf,
+  Picture,
+  Video as VideoIcon,
+  FileWord,
+  FileExcel,
+  FilePpt,
+} from '@icon-park/react';
+import React, { useCallback, useRef, useState, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import styles from '../index.module.css';
+import type { ILibraryItem, LibraryFileType } from '@/common/types/library';
+
+const getFileTypeIcon = (type: LibraryFileType) => {
+  const iconProps = { theme: 'outline' as const, size: '16', className: 'mr-8px shrink-0 text-[#8c8c8c]' };
+  switch (type) {
+    case 'markdown':
+      return <FileText {...iconProps} fill='#e3e3e3' />;
+    case 'pdf':
+      return <FilePdf {...iconProps} fill='#FF4D4F' />;
+    case 'image':
+      return <Picture {...iconProps} fill='#52C41A' />;
+    case 'video':
+      return <VideoIcon {...iconProps} fill='#722ED1' />;
+    case 'document':
+      return <FileWord {...iconProps} fill='#1890FF' />;
+    case 'spreadsheet':
+      return <FileExcel {...iconProps} fill='#389E0D' />;
+    case 'presentation':
+      return <FilePpt {...iconProps} fill='#D4380D' />;
+    default:
+      return <FileText {...iconProps} fill='#e3e3e3' />;
+  }
+};
+
 
 type GuidActionRowProps = {
   // File handling
@@ -96,6 +135,34 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
+
+  // Library modal states
+  const [isLibraryModalVisible, setIsLibraryModalVisible] = useState(false);
+  const [libraryItems, setLibraryItems] = useState<ILibraryItem[]>([]);
+  const [libraryLoading, setLibraryLoading] = useState(false);
+  const [searchKeyword, setSearchKeyword] = useState('');
+
+  const loadLibraryItems = useCallback(async () => {
+    setLibraryLoading(true);
+    try {
+      const results = await ipcBridge.library.listItems.invoke({
+        filter: 'recents',
+        keyword: searchKeyword,
+      });
+      setLibraryItems(results);
+    } catch (err) {
+      console.error('[GuidActionRow] Failed to load library items:', err);
+    } finally {
+      setLibraryLoading(false);
+    }
+  }, [searchKeyword]);
+
+  useEffect(() => {
+    if (isLibraryModalVisible) {
+      void loadLibraryItems();
+    }
+  }, [isLibraryModalVisible, loadLibraryItems]);
+
   const modeBackend = effectiveModeAgent || selectedAgent;
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
@@ -149,6 +216,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             });
         } else if (key === 'device') {
           fileInputRef.current?.click();
+        } else if (key === 'library') {
+          setIsLibraryModalVisible(true);
         }
       }}
     >
@@ -206,6 +275,12 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           ))}
         </Menu.SubMenu>
       )}
+      <Menu.Item key='library'>
+        <div className='flex items-center gap-8px'>
+          <FolderOpen theme='outline' size='16' fill={iconColors.secondary} style={{ lineHeight: 0 }} />
+          <span>{t('library.title', { defaultValue: 'Library' })}</span>
+        </div>
+      </Menu.Item>
     </Menu>
   );
 
@@ -325,6 +400,47 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           onClick={onSend}
         />
       </div>
+      {/* Library selector Modal */}
+      <Modal
+        title={t('library.title', { defaultValue: 'Select from Library' })}
+        visible={isLibraryModalVisible}
+        onCancel={() => setIsLibraryModalVisible(false)}
+        footer={null}
+        style={{ width: '480px', borderRadius: '12px' }}
+      >
+        <div className='flex flex-col gap-12px'>
+          <Input.Search
+            placeholder={t('library.searchPlaceholder', { defaultValue: 'Search pages...' })}
+            value={searchKeyword}
+            onChange={setSearchKeyword}
+            allowClear
+          />
+          <Spin loading={libraryLoading}>
+            <div style={{ maxHeight: '300px', overflowY: 'auto' }}>
+              <List
+                dataSource={libraryItems}
+                noDataElement={<div className='py-20px text-center text-t-secondary'>No pages found</div>}
+                render={(item) => (
+                  <List.Item
+                    key={item.id}
+                    className='px-12px py-8px cursor-pointer hover:bg-fill-2 transition-colors flex items-center rounded-8px'
+                    onClick={() => {
+                      if (item.filePath) {
+                        onFilesUploaded([item.filePath]);
+                        Message.success(t('common.saveSuccess', { defaultValue: 'Success' }));
+                      }
+                      setIsLibraryModalVisible(false);
+                    }}
+                  >
+                    {getFileTypeIcon(item.fileType)}
+                    <span className='text-13px font-medium text-t-primary truncate'>{item.name}</span>
+                  </List.Item>
+                )}
+              />
+            </div>
+          </Spin>
+        </div>
+      </Modal>
     </div>
   );
 };
