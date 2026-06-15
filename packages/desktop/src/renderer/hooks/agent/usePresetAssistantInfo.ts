@@ -256,24 +256,26 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       return { info: null, isLoading: false };
     }
 
+    const presetId = resolvePresetId(conversation);
+
     // Custom ACP row short-circuit: conversation.extra carries `agent_id`
     // (written by buildAgentConversationParams) or the legacy `custom_agent_id`
     // alias. Neither is a preset assistant id, so we resolve directly against
     // the detected-agent catalog and trust the row's own icon/name.
-    const extra = conversation.extra as { agent_id?: unknown; custom_agent_id?: unknown } | undefined;
-    const rowAgentId =
-      (typeof extra?.agent_id === 'string' && extra.agent_id.trim()) ||
-      (typeof extra?.custom_agent_id === 'string' && extra.custom_agent_id.trim()) ||
-      '';
-    if (rowAgentId && Array.isArray(detectedAgents)) {
-      const row = detectedAgents.find((a) => a.id === rowAgentId && a.agent_source === 'custom');
-      if (row) {
-        const normalized = normalizeAvatar(row.icon);
-        return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+    if (!presetId) {
+      const extra = conversation.extra as { agent_id?: unknown; custom_agent_id?: unknown } | undefined;
+      const rowAgentId =
+        (typeof extra?.agent_id === 'string' && extra.agent_id.trim()) ||
+        (typeof extra?.custom_agent_id === 'string' && extra.custom_agent_id.trim()) ||
+        '';
+      if (rowAgentId && Array.isArray(detectedAgents)) {
+        const row = detectedAgents.find((a) => a.id === rowAgentId && a.agent_source === 'custom');
+        if (row) {
+          const normalized = normalizeAvatar(row.icon);
+          return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+        }
       }
     }
-
-    const presetId = resolvePresetId(conversation);
     const locale = i18n.language || 'en-US';
 
     if (!presetId) {
