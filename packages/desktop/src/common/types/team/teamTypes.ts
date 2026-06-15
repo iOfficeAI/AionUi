@@ -65,7 +65,6 @@ export type ITeamSlotWork = {
   starting_child_count: number;
   paused?: boolean;
   suppressed_wake_count?: number;
-  foreground_pending_count?: number;
   active_turn_id?: string;
 };
 

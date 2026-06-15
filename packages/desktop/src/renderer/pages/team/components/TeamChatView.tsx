@@ -112,7 +112,6 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     team_id && slot_id
       ? buildTeamSendRuntime({
           slot_id,
-          isLeader: Boolean(isLeader),
           runView: teamRunView,
           onStop: async () => {
             const activeRun = teamRunView.activeRun;

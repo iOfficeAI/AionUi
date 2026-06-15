@@ -9,7 +9,6 @@ export type TeamSendBoxRuntime = {
 
 type BuildTeamSendRuntimeOptions = {
   slot_id: string;
-  isLeader: boolean;
   runView: TeamRunViewState;
   onStop?: () => Promise<void>;
 };

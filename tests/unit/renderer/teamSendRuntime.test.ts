@@ -21,7 +21,6 @@ describe('buildTeamSendRuntime', () => {
   it('does not lock leader sendbox for teammate-only active work', () => {
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
-      isLeader: true,
       runView: {
         activeRun: {
           ...activeRunView.activeRun!,
@@ -76,7 +75,6 @@ describe('buildTeamSendRuntime', () => {
     };
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
-      isLeader: true,
       runView: {
         activeRun: {
           team_id: 'team-1',
@@ -112,7 +110,6 @@ describe('buildTeamSendRuntime', () => {
     };
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
-      isLeader: true,
       runView: {
         activeRun: {
           team_id: 'team-1',
@@ -148,7 +145,6 @@ describe('buildTeamSendRuntime', () => {
     };
     const runtime = buildTeamSendRuntime({
       slot_id: 'lead',
-      isLeader: true,
       runView: {
         activeRun: {
           team_id: 'team-1',
@@ -186,7 +182,6 @@ describe('buildTeamSendRuntime', () => {
   it('does not lock teammate sendbox just because another team run is active', () => {
     const runtime = buildTeamSendRuntime({
       slot_id: 'worker',
-      isLeader: false,
       runView: activeRunView,
     });
 
@@ -198,7 +193,6 @@ describe('buildTeamSendRuntime', () => {
   it('locks teammate sendbox while its child turn is active', () => {
     const runtime = buildTeamSendRuntime({
       slot_id: 'worker',
-      isLeader: false,
       runView: {
         ...activeRunView,
         childTurnsBySlot: {
