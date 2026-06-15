@@ -104,6 +104,12 @@ export class ClientFactory {
         const clientConfig: GeminiClientConfig = {
           model: provider.use_model,
           baseURL: base_url,
+          ...(COMMAND_EVE_SHELL_ENABLED
+            ? {
+                commandEveEgressPolicyAction: 'block',
+                commandEveEgressProviderName: provider.platform || 'gemini',
+              }
+            : {}),
           ...(options.baseConfig as GeminiClientConfig),
         };
 
@@ -113,6 +119,12 @@ export class ClientFactory {
       case AuthType.USE_VERTEX_AI: {
         const clientConfig: GeminiClientConfig = {
           model: provider.use_model,
+          ...(COMMAND_EVE_SHELL_ENABLED
+            ? {
+                commandEveEgressPolicyAction: 'block',
+                commandEveEgressProviderName: provider.platform || 'vertex-ai',
+              }
+            : {}),
           ...(options.baseConfig as GeminiClientConfig),
         };
 

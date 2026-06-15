@@ -13,11 +13,18 @@ import {
   type OpenAIChatCompletionParams,
   type OpenAIChatCompletionResponse,
 } from './OpenAI2GeminiConverter';
+import {
+  evaluateCommandEveEgressBoundary,
+  redactCommandEveSensitiveText,
+  type CommandEveEgressPolicyAction,
+} from './egressBoundaryCore';
 
 export interface GeminiClientConfig {
   model?: string;
   baseURL?: string;
   requestOptions?: Record<string, unknown>;
+  commandEveEgressPolicyAction?: CommandEveEgressPolicyAction;
+  commandEveEgressProviderName?: string;
 }
 
 export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
@@ -59,11 +66,71 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
     return super.getCurrentApiKey();
   }
 
+  private openAiMessageText(message: OpenAIChatCompletionParams['messages'][number]): string {
+    const content = message.content;
+    if (typeof content === 'string') return content;
+    if (!Array.isArray(content)) return '';
+    return content
+      .map((part) => (part.type === 'text' && typeof part.text === 'string' ? part.text : ''))
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  private redactOpenAiParams(params: OpenAIChatCompletionParams): OpenAIChatCompletionParams {
+    return {
+      ...params,
+      messages: params.messages.map((message) => {
+        const content = message.content;
+        if (typeof content === 'string') {
+          return { ...message, content: redactCommandEveSensitiveText(content) };
+        }
+        if (!Array.isArray(content)) return message;
+        return {
+          ...message,
+          content: content.map((part) =>
+            part.type === 'text' && typeof part.text === 'string'
+              ? { ...part, text: redactCommandEveSensitiveText(part.text) }
+              : part
+          ),
+        };
+      }),
+    };
+  }
+
+  /**
+   * Fail-closed Command EVE egress boundary for the Gemini/Vertex cloud path.
+   * Mirrors AnthropicRotatingClient/OpenAIRotatingClient: evaluate the outbound
+   * text, THROW on decision==='block' before any Gemini egress, and redact in
+   * place when the policy is 'redact'. No-op when no policy action is injected.
+   */
+  private async enforceCommandEveGeminiEgressBoundary(text: string, model: string): Promise<void> {
+    const policyAction = this.config.commandEveEgressPolicyAction;
+    if (!policyAction) return;
+    const boundary = await evaluateCommandEveEgressBoundary({
+      text,
+      provider: {
+        kind: 'cloud',
+        name: this.config.commandEveEgressProviderName || 'gemini',
+        model: model || this.config.model || '',
+        baseUrl: this.config.baseURL,
+      },
+      policyAction,
+    });
+    if (boundary.decision === 'block') {
+      throw new Error(
+        `Command EVE blocked sensitive data before Gemini model egress (${boundary.receipt.finding_count} finding(s)).`
+      );
+    }
+  }
+
   async generateContent(prompt: string, config?: GenerateContentParameters['config']): Promise<unknown> {
+    const model = this.config.model || 'gemini-1.5-flash';
+    await this.enforceCommandEveGeminiEgressBoundary(prompt, model);
+    const safePrompt = this.config.commandEveEgressPolicyAction === 'redact' ? redactCommandEveSensitiveText(prompt) : prompt;
     return await this.executeWithRetry(async (client) => {
       const request: GenerateContentParameters = {
-        model: this.config.model || 'gemini-1.5-flash',
-        contents: [{ role: 'user', parts: [{ text: prompt }] }],
+        model,
+        contents: [{ role: 'user', parts: [{ text: safePrompt }] }],
         ...(config ? { config } : {}),
       };
       return await client.models.generateContent(request);
@@ -78,15 +145,21 @@ export class GeminiRotatingClient extends RotatingApiClient<GoogleGenAI> {
       throw new Error('Request was aborted');
     }
 
+    await this.enforceCommandEveGeminiEgressBoundary(
+      params.messages.map((message) => this.openAiMessageText(message)).join('\n\n'),
+      params.model
+    );
+    const safeParams = this.config.commandEveEgressPolicyAction === 'redact' ? this.redactOpenAiParams(params) : params;
+
     return await this.executeWithRetry(async (client) => {
-      const geminiRequest = this.converter.convertRequest(params);
+      const geminiRequest = this.converter.convertRequest(safeParams);
       const { generationConfig, ...generateContentRequest } = geminiRequest;
       const request: GenerateContentParameters = {
         ...generateContentRequest,
         ...(generationConfig ? { config: generationConfig } : {}),
       };
       const geminiResponse = await client.models.generateContent(request);
-      return this.converter.convertResponse(geminiResponse, params.model);
+      return this.converter.convertResponse(geminiResponse, safeParams.model);
     });
   }
 }
