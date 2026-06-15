@@ -761,6 +761,9 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(result.reason_code).toBe('hermes.pre_generation.controller_approval_missing');
     expect(result.subprocess_spawned).toBe(false);
     expect(result.data_boundary_checked).toBe(true);
+    expect(result.controller_approval_required).toBe(true);
+    expect(result.release_blocked).toBe(true);
+    expect(result.human_gate).toBe('HG-2.5');
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({
       command: 'hermes kanban decompose',
@@ -781,10 +784,14 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     const payload = JSON.parse(String((dispatchEvents[0] as { payload: string }).payload)) as {
       nl5_gate_checked?: boolean;
       subprocess_spawned?: boolean;
+      controller_approval_required?: boolean;
+      release_blocked?: boolean;
       reason_codes?: string[];
     };
     expect(payload.nl5_gate_checked).toBe(true);
     expect(payload.subprocess_spawned).toBe(false);
+    expect(payload.controller_approval_required).toBe(true);
+    expect(payload.release_blocked).toBe(true);
     expect(payload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
 
     const auditEvents = readAuditEvents(eventLedgerPath);
@@ -794,6 +801,12 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       producer: 'command-eve-desktop',
       agent: 'eve',
       mode: 'kanban-dispatch-plan',
+      human_gate_required: true,
+      payload: expect.objectContaining({
+        controller_approval_required: true,
+        release_blocked: true,
+        subprocess_spawned: false,
+      }),
     });
   });
 });

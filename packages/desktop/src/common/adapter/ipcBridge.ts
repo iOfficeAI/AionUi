@@ -799,6 +799,9 @@ export interface ICommandEveKanbanMarketingDispatchPlanResult {
   command?: 'decompose' | 'specify';
   subprocess_spawned: boolean;
   data_boundary_checked: boolean;
+  controller_approval_required?: boolean;
+  release_blocked?: boolean;
+  human_gate?: 'HG-2.5';
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: Record<string, unknown>;

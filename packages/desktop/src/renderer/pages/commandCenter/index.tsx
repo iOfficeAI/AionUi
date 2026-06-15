@@ -303,6 +303,9 @@ interface ICommandEveMarketingDispatchPlanResult {
   command?: 'decompose' | 'specify';
   subprocess_spawned: boolean;
   data_boundary_checked: boolean;
+  controller_approval_required?: boolean;
+  release_blocked?: boolean;
+  human_gate?: 'HG-2.5';
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: Record<string, unknown>;
@@ -847,7 +850,27 @@ const MarketingBoardSection: React.FC<{
                       : t('commandCenter.marketingBoard.dispatch.notSpawned')
                   }`}
                 </Tag>
-                <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: HG-2.5`}</Tag>
+                <Tag color={dispatchPlanResult.controller_approval_required ? 'orange' : 'green'}>
+                  <span data-testid='marketing-card-dispatch-controller-approval'>
+                    {`${t('commandCenter.marketingBoard.dispatch.controllerApproval')}: ${
+                      dispatchPlanResult.controller_approval_required
+                        ? t('commandCenter.marketingBoard.dispatch.required')
+                        : t('commandCenter.marketingBoard.dispatch.notRequired')
+                    }`}
+                  </span>
+                </Tag>
+                <Tag color={dispatchPlanResult.release_blocked ? 'orange' : 'green'}>
+                  <span data-testid='marketing-card-dispatch-release-gate'>
+                    {`${t('commandCenter.marketingBoard.dispatch.release')}: ${
+                      dispatchPlanResult.release_blocked
+                        ? t('commandCenter.marketingBoard.dispatch.blockedByGate')
+                        : t('commandCenter.marketingBoard.dispatch.ready')
+                    }`}
+                  </span>
+                </Tag>
+                <Tag color='gray'>{`${t('commandCenter.marketingBoard.dispatch.humanGate')}: ${
+                  dispatchPlanResult.human_gate || 'HG-2.5'
+                }`}</Tag>
               </div>
               <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
                 <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.card')}</dt>

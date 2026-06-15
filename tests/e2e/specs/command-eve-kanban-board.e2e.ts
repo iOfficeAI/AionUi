@@ -511,6 +511,18 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(dispatchResult.getByText(/Hermes: nicht gestartet|Hermes: not spawned/)).toBeVisible({
       timeout: 30_000,
     });
+    await expect(page.getByTestId('marketing-card-dispatch-controller-approval')).toContainText(
+      /Controller-Freigabe:\s*erforderlich|Controller approval:\s*required/,
+      {
+        timeout: 30_000,
+      }
+    );
+    await expect(page.getByTestId('marketing-card-dispatch-release-gate')).toContainText(
+      /Release:\s*blockiert|Release:\s*blocked/,
+      {
+        timeout: 30_000,
+      }
+    );
 
     const dispatchRows = sqliteQuery(
       dispatchBoardDbPath!,
@@ -520,12 +532,16 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     const dispatchPayload = JSON.parse(dispatchRows[0][1]) as {
       nl5_gate_checked?: boolean;
       subprocess_spawned?: boolean;
+      controller_approval_required?: boolean;
+      release_blocked?: boolean;
       reason_codes?: string[];
     };
     expect(dispatchPayload.nl5_gate_checked, 'NL-5 must be checked').toBe(true);
     expect(dispatchPayload.subprocess_spawned, 'Hermes subprocess must not spawn without controller approval').toBe(
       false
     );
+    expect(dispatchPayload.controller_approval_required, 'Controller approval must be required').toBe(true);
+    expect(dispatchPayload.release_blocked, 'Release must remain blocked before controller approval').toBe(true);
     expect(dispatchPayload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
 
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);

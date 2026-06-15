@@ -254,6 +254,9 @@ export type CommandEveKanbanMarketingDispatchPlanResult = {
   command?: 'decompose' | 'specify';
   subprocess_spawned: boolean;
   data_boundary_checked: boolean;
+  controller_approval_required?: boolean;
+  release_blocked?: boolean;
+  human_gate?: 'HG-2.5';
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: JsonRecord;
@@ -994,6 +997,8 @@ try:
             "auto_decompose_enabled": False,
             "nl5_gate_checked": bool(request.get("data_boundary_checked")),
             "subprocess_spawned": bool(request.get("subprocess_spawned")),
+            "controller_approval_required": bool(request.get("controller_approval_required")),
+            "release_blocked": bool(request.get("release_blocked")),
             "dispatch_status": request.get("dispatch_status"),
             "reason_codes": request.get("reason_codes") or [],
             "policy": request.get("policy") or {},
@@ -1221,6 +1226,7 @@ function appendMarketingDispatchPlanAuditEvent({
   dispatchPlan: JsonRecord;
 }): string {
   const policy = isRecord(dispatchPlan.policy) ? dispatchPlan.policy : {};
+  const subprocessSpawned = dispatchPlan.subprocess_spawned === true;
   const event = {
     schema_version: 'agent-event/v1',
     event_id: eventId,
@@ -1245,11 +1251,13 @@ function appendMarketingDispatchPlanAuditEvent({
       db_path: dbPath,
       company_os_root: companyOsRoot,
       human_gate: 'HG-2.5',
+      controller_approval_required: true,
+      release_blocked: !subprocessSpawned,
       dispatcher_enabled: false,
       auto_decompose_enabled: false,
       action: 'dispatch_plan_check',
       dispatch_status: textField(dispatchPlan.status),
-      subprocess_spawned: dispatchPlan.subprocess_spawned === true,
+      subprocess_spawned: subprocessSpawned,
       reason_codes: Array.isArray(dispatchPlan.reason_codes) ? dispatchPlan.reason_codes : [],
       data_boundary_receipt: isRecord(policy.data_boundary_receipt) ? policy.data_boundary_receipt : {},
     },
@@ -1338,13 +1346,23 @@ function marketingDispatchPlanResultBase(
   companyOsRoot?: string
 ): Pick<
   CommandEveKanbanMarketingDispatchPlanResult,
-  'version' | 'source' | 'reason_codes' | 'subprocess_spawned' | 'data_boundary_checked'
+  | 'version'
+  | 'source'
+  | 'reason_codes'
+  | 'subprocess_spawned'
+  | 'data_boundary_checked'
+  | 'controller_approval_required'
+  | 'release_blocked'
+  | 'human_gate'
 > {
   return {
     version: COMMAND_EVE_KANBAN_MARKETING_DISPATCH_PLAN_BRIDGE_VERSION,
     reason_codes: [],
     subprocess_spawned: false,
     data_boundary_checked: false,
+    controller_approval_required: true,
+    release_blocked: true,
+    human_gate: 'HG-2.5',
     source: {
       generated_by: 'command-eve-kanban-marketing-board-core',
       hermes_home: hermesHome,
@@ -2412,6 +2430,8 @@ export function planKanbanMarketingCardDispatch(
   const dataBoundaryChecked = isRecord(policy.data_boundary_receipt);
   const reasonCodes = reasonCodesFromDispatchPlan(dispatchPlan);
   const subprocessSpawned = dispatchPlan.subprocess_spawned === true;
+  const controllerApprovalRequired = true;
+  const releaseBlocked = !subprocessSpawned;
   const receiptWrite = runPythonJson(
     pythonPath,
     {
@@ -2423,6 +2443,8 @@ export function planKanbanMarketingCardDispatch(
       reason_codes: reasonCodes,
       data_boundary_checked: dataBoundaryChecked,
       subprocess_spawned: subprocessSpawned,
+      controller_approval_required: controllerApprovalRequired,
+      release_blocked: releaseBlocked,
       policy,
     },
     buildMarketingCardDispatchPlanScript(),
@@ -2444,6 +2466,9 @@ export function planKanbanMarketingCardDispatch(
       policy,
       subprocess_spawned: subprocessSpawned,
       data_boundary_checked: dataBoundaryChecked,
+      controller_approval_required: controllerApprovalRequired,
+      release_blocked: releaseBlocked,
+      human_gate: 'HG-2.5',
     };
   }
 
@@ -2474,6 +2499,9 @@ export function planKanbanMarketingCardDispatch(
     command,
     subprocess_spawned: subprocessSpawned,
     data_boundary_checked: dataBoundaryChecked,
+    controller_approval_required: controllerApprovalRequired,
+    release_blocked: releaseBlocked,
+    human_gate: 'HG-2.5',
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
     dispatch_plan: dispatchPlan,
