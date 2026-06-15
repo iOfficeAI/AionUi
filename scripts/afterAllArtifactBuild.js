@@ -1,4 +1,4 @@
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
@@ -76,6 +76,17 @@ function getDmgSignIdentity(env = process.env) {
   return firstEnv(env, ['APPLE_DMG_SIGN_IDENTITY', 'APPLE_DEVELOPER_IDENTITY', 'CSC_NAME']);
 }
 
+// Args for the post-staple self-verification. `xcrun stapler validate <dmg>`
+// proves a notarization ticket is stapled; `spctl -a -t open` proves Gatekeeper
+// would accept opening the DMG. Pure builders so they can be unit-tested.
+function buildStaplerValidateArgs(artifactPath) {
+  return ['stapler', 'validate', artifactPath];
+}
+
+function buildSpctlAssessArgs(artifactPath) {
+  return ['-a', '-t', 'open', '--context', 'context:primary-signature', artifactPath];
+}
+
 function buildNotarytoolArgs(options, artifactPath, env = process.env) {
   const timeout = firstEnv(env, ['NOTARYTOOL_WAIT_TIMEOUT']) || '20m';
   const args = ['notarytool', 'submit', artifactPath, '--wait', '--timeout', timeout];
@@ -131,7 +142,61 @@ function notarizeDmgArtifact(artifactPath, env = process.env) {
   console.log(`Starting DMG notarization for ${path.basename(artifactPath)} using ${getNotarizeAuthMode(options)}...`);
   execFileSync('xcrun', args, { stdio: 'inherit' });
   execFileSync('xcrun', ['stapler', 'staple', artifactPath], { stdio: 'inherit' });
-  execFileSync('xcrun', ['stapler', 'validate', artifactPath], { stdio: 'inherit' });
+  // Self-verify: prove the staple stuck AND Gatekeeper accepts the DMG. This
+  // throws (fails the build) on any problem so we never ship an unverified DMG.
+  verifyNotarizationStapled(artifactPath);
+  return true;
+}
+
+// Decide whether a captured `spctl` run accepted the artifact. spctl writes its
+// verdict to stderr and exits 0 on accept / non-zero on reject. Fail-closed:
+// require BOTH a zero exit AND an "accepted" verdict; any reject/deny blocks.
+function evaluateSpctlAssessment(exitCode, output) {
+  const text = String(output == null ? '' : output);
+  if (/\b(rejected|denied)\b/i.test(text)) {
+    return { ok: false, detail: 'spctl rejected the artifact (Gatekeeper would block it)' };
+  }
+  if (exitCode === 0 && /\baccepted\b/i.test(text)) {
+    return { ok: true, detail: 'spctl accepted the artifact (Notarized Developer ID)' };
+  }
+  if (exitCode !== 0) {
+    return { ok: false, detail: `spctl exited non-zero (${String(exitCode)})` };
+  }
+  return { ok: false, detail: 'spctl did not return an "accepted" verdict' };
+}
+
+// Run `xcrun stapler validate` (throws on non-zero) then `spctl -a -t open`
+// (captured + evaluated), throwing if Gatekeeper does not accept the DMG.
+function verifyNotarizationStapled(artifactPath, deps = {}) {
+  const runValidate =
+    deps.runValidate ||
+    ((p) => {
+      execFileSync('xcrun', buildStaplerValidateArgs(p), { stdio: 'inherit' });
+    });
+  const runSpctl =
+    deps.runSpctl ||
+    ((p) => {
+      const result = spawnSync('spctl', buildSpctlAssessArgs(p), { encoding: 'utf8' });
+      if (result.error) {
+        return { status: result.status == null ? 127 : result.status, output: result.error.message };
+      }
+      return { status: result.status, output: `${result.stdout || ''}${result.stderr || ''}` };
+    });
+
+  // stapler validate exits non-zero (and throws via execFileSync) when no ticket
+  // is stapled, so a successful return is itself the staple proof.
+  runValidate(artifactPath);
+
+  const spctlResult = runSpctl(artifactPath);
+  const verdict = evaluateSpctlAssessment(spctlResult.status, spctlResult.output);
+  if (!verdict.ok) {
+    throw new Error(
+      `Notarization self-verification FAILED for ${path.basename(artifactPath)}: ${verdict.detail}. ${
+        String(spctlResult.output || '').trim()
+      }`
+    );
+  }
+  console.log(`Notarization self-verification PASSED for ${path.basename(artifactPath)}: stapled + ${verdict.detail}.`);
   return true;
 }
 
@@ -155,6 +220,10 @@ exports.default = async function afterAllArtifactBuild(context) {
 };
 
 exports.buildNotarytoolArgs = buildNotarytoolArgs;
+exports.buildStaplerValidateArgs = buildStaplerValidateArgs;
+exports.buildSpctlAssessArgs = buildSpctlAssessArgs;
+exports.evaluateSpctlAssessment = evaluateSpctlAssessment;
+exports.verifyNotarizationStapled = verifyNotarizationStapled;
 exports.findAppForDmg = findAppForDmg;
 exports.rebuildDmgWithHdiutil = rebuildDmgWithHdiutil;
 exports.getDmgSignIdentity = getDmgSignIdentity;
