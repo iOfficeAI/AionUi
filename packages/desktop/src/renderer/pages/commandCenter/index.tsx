@@ -210,6 +210,8 @@ interface ICommandEveMarketingBoardModel {
     audit_linked_cards: number;
     controller_review_pending_cards: number;
     controller_decision_recorded_cards: number;
+    controller_decision_approved_cards: number;
+    controller_decision_rejected_cards: number;
   };
   columns: ICommandEveMarketingColumn[];
   warnings: string[];
@@ -686,6 +688,23 @@ const dispatchHandoffForResult = (
     ? (embedded as Record<string, unknown>)
     : undefined;
 };
+
+const marketingCardsForDispatchQueue = (model: ICommandEveMarketingBoardModel): ICommandEveMarketingCard[] =>
+  model.columns
+    .flatMap((column) => column.cards)
+    .filter((card) => card.controller_review_status === 'pending' || Boolean(card.controller_decision_status))
+    .sort((left, right) => {
+      const rank = (card: ICommandEveMarketingCard): number => {
+        if (card.controller_review_status === 'pending' && !card.controller_decision_status) return 0;
+        if (card.controller_decision_status === 'approved') return 1;
+        if (card.controller_decision_status === 'rejected') return 2;
+        return 3;
+      };
+      const rankDelta = rank(left) - rank(right);
+      return rankDelta !== 0
+        ? rankDelta
+        : (right.updated_at || right.created_at) - (left.updated_at || left.created_at);
+    });
 
 const stateColor = (state: string): 'blue' | 'green' | 'orange' | 'red' | 'gray' => {
   if (['reported', 'done', 'released', 'pass'].includes(state)) return 'green';
@@ -1256,6 +1275,98 @@ const MarketingColumnView: React.FC<{
   );
 };
 
+const MarketingDispatchQueueView: React.FC<{ model: ICommandEveMarketingBoardModel }> = ({ model }) => {
+  const { t } = useTranslation();
+  const queueCards = marketingCardsForDispatchQueue(model);
+  return (
+    <div
+      className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-1 px-12px py-12px'
+      data-testid='marketing-dispatch-queue'
+    >
+      <div className='flex flex-wrap items-start justify-between gap-10px'>
+        <div className='min-w-0'>
+          <h3 className='m-0 text-13px font-600 leading-20px text-t-primary'>
+            {t('commandCenter.marketingBoard.dispatchQueue.title')}
+          </h3>
+          <p className='m-0 mt-2px text-12px leading-18px text-t-secondary'>
+            {t('commandCenter.marketingBoard.dispatchQueue.description')}
+          </p>
+        </div>
+        <div className='flex flex-wrap gap-6px'>
+          <Tag color='orange' data-testid='marketing-dispatch-queue-pending-count'>
+            {`${t('commandCenter.marketingBoard.dispatchQueue.pending')}: ${formatCount(
+              model.summary.controller_review_pending_cards
+            )}`}
+          </Tag>
+          <Tag color='green' data-testid='marketing-dispatch-queue-approved-count'>
+            {`${t('commandCenter.marketingBoard.dispatchQueue.approved')}: ${formatCount(
+              model.summary.controller_decision_approved_cards
+            )}`}
+          </Tag>
+          <Tag color='red' data-testid='marketing-dispatch-queue-rejected-count'>
+            {`${t('commandCenter.marketingBoard.dispatchQueue.rejected')}: ${formatCount(
+              model.summary.controller_decision_rejected_cards
+            )}`}
+          </Tag>
+        </div>
+      </div>
+      {queueCards.length > 0 ? (
+        <div className='mt-10px grid gap-8px lg:grid-cols-2'>
+          {queueCards.map((card) => {
+            const decision = card.controller_decision_status;
+            const queueStatus = decision || card.controller_review_status || 'pending';
+            const nextStepKey = decision ? (decision === 'approved' ? 'approvedNext' : 'rejectedNext') : 'pendingNext';
+            return (
+              <article
+                key={card.card_id}
+                className='rounded-10px border border-solid border-fill-3 bg-fill-2 px-10px py-9px'
+                data-testid={`marketing-dispatch-queue-item-${card.card_id}`}
+              >
+                <div className='flex items-start justify-between gap-8px'>
+                  <div className='min-w-0'>
+                    <div className='truncate text-12px font-600 leading-18px text-t-primary'>
+                      {textOrDash(card.card_title)}
+                    </div>
+                    <div className='mt-2px truncate text-11px leading-16px text-t-tertiary'>
+                      {textOrDash(card.card_id)}
+                    </div>
+                  </div>
+                  <Tag
+                    color={decision === 'approved' ? 'green' : decision === 'rejected' ? 'red' : 'orange'}
+                    data-testid={`marketing-dispatch-queue-status-${card.card_id}`}
+                  >
+                    {t(`commandCenter.marketingBoard.dispatch.${queueStatus}`)}
+                  </Tag>
+                </div>
+                <dl className='m-0 mt-8px grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
+                  <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.handoff')}</dt>
+                  <dd className='m-0 truncate text-t-secondary'>
+                    {`${textOrDash(card.controller_decision_handoff_role || card.controller_review_handoff_role)} / ${textOrDash(
+                      card.controller_decision_handoff_dispatch || card.controller_review_handoff_dispatch
+                    )}`}
+                  </dd>
+                  <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.audit')}</dt>
+                  <dd className='m-0 truncate text-t-secondary'>
+                    {textOrDash(card.controller_decision_audit_event_id || card.controller_review_audit_event_id)}
+                  </dd>
+                  <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatchQueue.nextStep')}</dt>
+                  <dd className='m-0 text-t-secondary' data-testid={`marketing-dispatch-queue-next-${card.card_id}`}>
+                    {t(`commandCenter.marketingBoard.dispatchQueue.${nextStepKey}`)}
+                  </dd>
+                </dl>
+              </article>
+            );
+          })}
+        </div>
+      ) : (
+        <div className='mt-10px rounded-8px border border-dashed border-border-2 px-10px py-14px text-center text-12px leading-18px text-t-tertiary'>
+          {t('commandCenter.marketingBoard.dispatchQueue.empty')}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MarketingCardCreateModal: React.FC<{
   visible: boolean;
   submitting: boolean;
@@ -1741,6 +1852,7 @@ const MarketingBoardSection: React.FC<{
             <span className='min-w-0 truncate'>{`${t('commandCenter.marketingBoard.labels.board')}: ${model.board.slug}`}</span>
             <span className='min-w-0 truncate'>{`${t('commandCenter.marketingBoard.labels.database')}: ${model.board.db_path}`}</span>
           </div>
+          <MarketingDispatchQueueView model={model} />
           <div className='grid gap-12px md:grid-cols-2 xl:grid-cols-5'>
             {model.columns.map((column) => (
               <MarketingColumnView

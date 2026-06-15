@@ -1070,6 +1070,8 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(decision.release_blocked).toBe(true);
     expect(decision.human_gate).toBe('HG-2.5');
     expect(decision.model?.summary.controller_decision_recorded_cards).toBe(1);
+    expect(decision.model?.summary.controller_decision_approved_cards).toBe(1);
+    expect(decision.model?.summary.controller_decision_rejected_cards).toBe(0);
     const decidedCard = decision.model?.columns
       .flatMap((column) => column.cards)
       .find((card) => card.card_id === created.card_id);

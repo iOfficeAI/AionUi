@@ -216,6 +216,18 @@
       "spawned": "gestartet",
       "notSpawned": "nicht gestartet"
     },
+    "dispatchQueue": {
+      "title": "Lokale Dispatch-Queue",
+      "description": "Zeigt lokale Controller-Handoffs und Entscheidungen. Auch freigegebene Handoffs bleiben ohne Worker-Spawn, bis ein spaeteres Release-Gate echte Ausfuehrung erlaubt.",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "nextStep": "Naechster Schritt",
+      "pendingNext": "Controller muss das Handoff noch freigeben oder ablehnen.",
+      "approvedNext": "Handoff ist lokal freigegeben; Ausfuehrung bleibt bis zum Dispatch-Release-Gate gesperrt.",
+      "rejectedNext": "Handoff ist abgelehnt; Karte ueberarbeiten oder blockiert lassen.",
+      "empty": "Keine Controller-Handoffs in der lokalen Queue."
+    },
     "proof": {
       "note": "Legt genau eine lokale Proof-Karte und ein append-only Audit-Event an. Keine Worker werden gestartet.",
       "resultTitle": "Proof-Card-Receipt",

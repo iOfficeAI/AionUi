@@ -181,6 +181,8 @@ export type CommandEveKanbanMarketingBoardModel = {
     audit_linked_cards: number;
     controller_review_pending_cards: number;
     controller_decision_recorded_cards: number;
+    controller_decision_approved_cards: number;
+    controller_decision_rejected_cards: number;
   };
   columns: CommandEveKanbanMarketingColumn[];
   warnings: string[];
@@ -532,6 +534,8 @@ function marketingBoardBaseModel({
       audit_linked_cards: 0,
       controller_review_pending_cards: 0,
       controller_decision_recorded_cards: 0,
+      controller_decision_approved_cards: 0,
+      controller_decision_rejected_cards: 0,
     },
     columns: emptyMarketingColumns(),
     warnings,
@@ -702,6 +706,8 @@ function buildMarketingModelFromRows({
       audit_linked_cards: cards.filter((card) => card.linked_audit_event_id).length,
       controller_review_pending_cards: cards.filter((card) => card.controller_review_status === 'pending').length,
       controller_decision_recorded_cards: cards.filter((card) => card.controller_decision_status).length,
+      controller_decision_approved_cards: cards.filter((card) => card.controller_decision_status === 'approved').length,
+      controller_decision_rejected_cards: cards.filter((card) => card.controller_decision_status === 'rejected').length,
     },
     columns,
   };

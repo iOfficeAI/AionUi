@@ -669,6 +669,15 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId(`marketing-card-controller-handoff-${dispatchCardId}`)).toContainText(
       /role:cmo\s*\/\s*manual/
     );
+    await expect(page.getByTestId('marketing-dispatch-queue')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('marketing-dispatch-queue-pending-count')).toContainText(/Pending:\s*[1-9]\d*/);
+    await expect(page.getByTestId(`marketing-dispatch-queue-item-${dispatchCardId}`)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId(`marketing-dispatch-queue-status-${dispatchCardId}`)).toContainText(
+      /ausstehend|pending/
+    );
+    await expect(page.getByTestId(`marketing-dispatch-queue-next-${dispatchCardId}`)).toContainText(
+      /Controller muss|Controller still needs/
+    );
     await page.getByTestId('marketing-card-dispatch-approve-receipt').click();
     const decisionResult = page.getByTestId('marketing-card-dispatch-decision-result');
     await expect(decisionResult).toBeVisible({ timeout: 30_000 });
@@ -676,6 +685,13 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-decision-detail')).toContainText(/freigegeben|approved/);
     await expect(page.getByTestId(`marketing-card-controller-decision-${dispatchCardId}`)).toContainText(
       /freigegeben|approved/
+    );
+    await expect(page.getByTestId('marketing-dispatch-queue-approved-count')).toContainText(/Approved:\s*[1-9]\d*/);
+    await expect(page.getByTestId(`marketing-dispatch-queue-status-${dispatchCardId}`)).toContainText(
+      /freigegeben|approved/
+    );
+    await expect(page.getByTestId(`marketing-dispatch-queue-next-${dispatchCardId}`)).toContainText(
+      /Release-Gate|release gate/
     );
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-controllerReviewQueue')).toContainText(/ready|bereit|1/);

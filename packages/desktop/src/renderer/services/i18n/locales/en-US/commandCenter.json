@@ -216,6 +216,18 @@
       "spawned": "spawned",
       "notSpawned": "not spawned"
     },
+    "dispatchQueue": {
+      "title": "Local dispatch queue",
+      "description": "Shows local controller handoffs and decisions. Even approved handoffs do not spawn workers until a later dispatch release gate allows real execution.",
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "nextStep": "Next step",
+      "pendingNext": "Controller still needs to approve or reject this handoff.",
+      "approvedNext": "Handoff is locally approved; execution remains locked until the dispatch release gate.",
+      "rejectedNext": "Handoff was rejected; revise the card or keep it blocked.",
+      "empty": "No controller handoffs in the local queue."
+    },
     "proof": {
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",
       "resultTitle": "Proof-card receipt",
