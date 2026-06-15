@@ -43,6 +43,14 @@ vi.mock('@/process/utils/analyticsId', () => ({
   getOrCreateAnalyticsId: () => 'test-device-id',
 }));
 
+// These tests exercise the consent-granted path: telemetry is opt-in, and the
+// Sentry surfaces below are no-ops without consent (covered separately in
+// telemetryConsentCore.test.ts). Force consent on so the existing behavioral
+// assertions for beforeSend / captureBackendStartupFailure remain meaningful.
+vi.mock('@/process/commandEve/telemetryConsentCore', () => ({
+  isTelemetryAllowed: () => true,
+}));
+
 const autoUpdateDiagnosticsMock = vi.hoisted(() => ({
   readAutoUpdateDiagnostics: vi.fn(),
 }));

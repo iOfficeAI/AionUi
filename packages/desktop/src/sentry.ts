@@ -13,6 +13,7 @@ import { getOrCreateAnalyticsId } from './process/utils/analyticsId';
 import { readAutoUpdateDiagnostics } from './process/services/autoUpdateDiagnostics';
 import { collectBackendInstallDiagnostics } from './process/startup/backendInstallDiagnostics';
 import { classifyBackendStartupFailure } from './process/startup/backendStartupFailure';
+import { isTelemetryAllowed } from './process/commandEve/telemetryConsentCore';
 
 // 抑制 Chromium GPU 崩溃噪声（参见 ELECTRON-9A / ELECTRON-9D）：
 // 自愈逻辑在 gpuRecovery 中处理，事件流量已无价值。
@@ -96,6 +97,11 @@ function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> 
 }
 
 export function initSentry(): void {
+  // Telemetry is opt-in. Without explicit consent we never initialize Sentry,
+  // so no crash reports, breadcrumbs, or device identifiers can ever be sent.
+  if (!isTelemetryAllowed()) {
+    return;
+  }
   Sentry.init({
     dsn: process.env.SENTRY_DSN,
     environment: app.isPackaged ? 'production' : 'development',
@@ -122,6 +128,10 @@ export function initSentry(): void {
  * a stable device identifier.
  */
 export function setSentryDeviceId(): void {
+  // No consent → never attach a device identifier to the Sentry scope.
+  if (!isTelemetryAllowed()) {
+    return;
+  }
   const id = getOrCreateAnalyticsId();
   Sentry.setUser({ id });
   Sentry.setTag('device_id', id);
@@ -215,7 +225,12 @@ function getSecondsSince(timestamp: string | undefined): string | undefined {
 const BACKEND_STARTUP_FLUSH_TIMEOUT_MS = 2000;
 
 export async function captureBackendStartupFailure(error: unknown): Promise<void> {
+  // Record the local flag (used to suppress secondary error noise) regardless,
+  // but never send the failure to Sentry without explicit telemetry consent.
   (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+  if (!isTelemetryAllowed()) {
+    return;
+  }
   const capturedError = error instanceof Error ? error : new Error(String(error));
   const details = getBackendStartupDetails(error);
   const failureInfo = classifyBackendStartupFailure(error);
@@ -425,6 +440,14 @@ class UnretryableError extends Error {}
 class RetryableError extends Error {}
 
 async function runStartupLogReport(): Promise<void> {
+  // Defensive re-check: consent may have been revoked during the startup delay.
+  // No consent → never upload logs. Don't touch throttle state so a later
+  // opt-in still fires on the next launch.
+  if (!isTelemetryAllowed()) {
+    console.info('[sentry] startup log report skipped (telemetry consent not granted)');
+    return;
+  }
+
   const now = Date.now();
   const state = readState();
 
@@ -503,6 +526,10 @@ async function runStartupLogReport(): Promise<void> {
  * retries.
  */
 export function scheduleStartupLogReport(window: BrowserWindow): void {
+  // No consent → never schedule a log upload.
+  if (!isTelemetryAllowed()) {
+    return;
+  }
   const trigger = () => {
     setTimeout(() => {
       runStartupLogReport().catch((err) => {

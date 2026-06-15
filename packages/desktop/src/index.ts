@@ -9,8 +9,21 @@
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
 import { initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+import {
+  isTelemetryAllowed,
+  readConsent,
+  setConsent,
+  TELEMETRY_CONSENT_GET_CHANNEL,
+  TELEMETRY_CONSENT_SET_CHANNEL,
+  type TelemetryConsentBridgeResult,
+} from './process/commandEve/telemetryConsentCore';
+import { bridge } from '@office-ai/platform';
 
-initSentry();
+// Telemetry is opt-in (default OFF). Sentry is only ever initialized when the
+// user has explicitly consented in the privacy settings — fail CLOSED.
+if (isTelemetryAllowed()) {
+  initSentry();
+}
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
@@ -702,6 +715,21 @@ function registerCommandEveRuntimeBridge(): void {
       return { success: false, msg: error instanceof Error ? error.message : String(error) };
     }
   });
+
+  // Telemetry consent (opt-in). The renderer privacy toggle reads/writes the
+  // consent store through these bridge channels. Sentry stays gated on the
+  // persisted value via isTelemetryAllowed() — fail CLOSED on any error.
+  bridge.buildProvider<TelemetryConsentBridgeResult, void>(TELEMETRY_CONSENT_GET_CHANNEL).provider(async () => {
+    const state = readConsent();
+    return { consent: state.consent === true, updatedAt: state.updatedAt };
+  });
+
+  bridge
+    .buildProvider<TelemetryConsentBridgeResult, { consent: boolean }>(TELEMETRY_CONSENT_SET_CHANNEL)
+    .provider(async (request) => {
+      const state = setConsent(request?.consent === true);
+      return { consent: state.consent === true, updatedAt: state.updatedAt };
+    });
 }
 
 function scheduleCommandEveLocalModelWarmup(
@@ -806,7 +834,9 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   });
   console.log(`[CommandEVE] Main window created (id=${mainWindow.id})`);
 
-  scheduleStartupLogReport(mainWindow);
+  if (isTelemetryAllowed()) {
+    scheduleStartupLogReport(mainWindow);
+  }
 
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
@@ -981,7 +1011,9 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  setSentryDeviceId();
+  if (isTelemetryAllowed()) {
+    setSentryDeviceId();
+  }
 
   try {
     await initializeProcess();
