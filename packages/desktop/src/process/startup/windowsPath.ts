@@ -41,7 +41,10 @@ function expandShellEnvVars(value: string, env: NodeJS.ProcessEnv): string {
   const lookup = buildEnvLookup(env);
   return expandWindowsEnvVars(value, env)
     .replace(/\$(?:env:)?([A-Za-z_][A-Za-z0-9_]*)/g, (match, name: string) => lookup.get(name.toUpperCase()) ?? match)
-    .replace(/\$\{(?:env:)?([A-Za-z_][A-Za-z0-9_]*)\}/g, (match, name: string) => lookup.get(name.toUpperCase()) ?? match);
+    .replace(
+      /\$\{(?:env:)?([A-Za-z_][A-Za-z0-9_]*)\}/g,
+      (match, name: string) => lookup.get(name.toUpperCase()) ?? match
+    );
 }
 
 function splitWindowsPathEntries(value: string): string[] {
@@ -161,7 +164,13 @@ export function buildWindowsHydratedPath(options: WindowsPathHydrationOptions): 
   const fallbackPaths = dedupeWindowsPathEntries(options.fallbackPathEntries ?? []);
   const currentPaths = splitWindowsPathEntries(options.currentPath);
 
-  return dedupeWindowsPathEntries([...machinePaths, ...userPaths, ...profilePaths, ...fallbackPaths, ...currentPaths]).join(';');
+  return dedupeWindowsPathEntries([
+    ...machinePaths,
+    ...userPaths,
+    ...profilePaths,
+    ...fallbackPaths,
+    ...currentPaths,
+  ]).join(';');
 }
 
 function readWindowsRegistryPath(registryKey: string, execFileSyncImpl: ExecFileSyncLike = execFileSync): string {
@@ -220,7 +229,9 @@ function getWindowsProfileFilePaths(env: NodeJS.ProcessEnv): string[] {
 }
 
 function readWindowsProfileContents(env: NodeJS.ProcessEnv): string[] {
-  return getWindowsProfileFilePaths(env).map(readTextFileIfPresent).filter((content) => content.length > 0);
+  return getWindowsProfileFilePaths(env)
+    .map(readTextFileIfPresent)
+    .filter((content) => content.length > 0);
 }
 
 function getExistingWindowsFallbackPathEntries(env: NodeJS.ProcessEnv): string[] {

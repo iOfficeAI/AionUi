@@ -100,7 +100,9 @@ HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Session Manager\\Environ
       },
     });
 
-    expect(hydrated).toBe('D:\\Portable\\opencode\\bin;C:\\Users\\zhoukai\\AppData\\Roaming\\npm;C:\\Windows\\System32');
+    expect(hydrated).toBe(
+      'D:\\Portable\\opencode\\bin;C:\\Users\\zhoukai\\AppData\\Roaming\\npm;C:\\Windows\\System32'
+    );
   });
 
   it('hydrates PATH from real Windows profile files and existing fallback directories', () => {
