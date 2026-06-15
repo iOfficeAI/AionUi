@@ -70,6 +70,23 @@ describe('AssistantSelectionArea', () => {
     expect(screen.getByTestId('assistant-overflow-user-finance')).toBeInTheDocument();
   });
 
+  it('reports the real assistant id when a pill is selected', () => {
+    const onSelectAssistant = vi.fn();
+
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='bare-aionrs'
+        assistants={assistants()}
+        localeKey='en-US'
+        onSelectAssistant={onSelectAssistant}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('preset-pill-builtin-writer'));
+
+    expect(onSelectAssistant).toHaveBeenCalledWith('builtin-writer');
+  });
+
   it('orders assistant pills by sort_order before applying overflow', () => {
     render(
       <AssistantSelectionArea

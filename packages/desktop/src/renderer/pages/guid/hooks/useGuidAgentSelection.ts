@@ -11,20 +11,15 @@ import { configService } from '@/common/config/configService';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
-import {
-  DETECTED_AGENTS_SWR_KEY,
-  fetchDetectedAgents,
-  type AgentMetadata,
-  type AgentSource,
-} from '@/renderer/utils/model/agentTypes';
+import type { AgentMetadata, AgentSource } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import useSWR from 'swr';
 import { savePreferredMode, savePreferredModelId, getAgentKey as getAgentKeyUtil } from './agentSelectionUtils';
 import { usePresetAssistantResolver } from './usePresetAssistantResolver';
 import { useAgentAvailability } from './useAgentAvailability';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 import { isSupportedNewConversationAgent } from '@/renderer/utils/model/agentTypeSupportPolicy';
+import { useAgents } from '@/renderer/hooks/agent/useAgents';
 
 export type GuidAgentSelectionResult = {
   selectedAgentKey: string;
@@ -161,22 +156,26 @@ export const useGuidAgentSelection = ({
       return '';
     }
   });
-  const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   // Track whether mode was loaded from preferences to avoid overwriting during initial load
   const selectedAgentRef = useRef<string | null>(null);
   // Guard: only run the initial restore once; user selections are never overwritten
   const initialRestoreDoneRef = useRef(false);
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
+  const { agents } = useAgents();
 
-  // Wrap setSelectedAgentKey to also save to storage
-  const setSelectedAgentKey = useCallback((key: string) => {
-    initialRestoreDoneRef.current = true;
-    _setSelectedAgentKey(key);
-    configService.set('guid.lastSelectedAgent', key).catch((error) => {
-      console.error('Failed to save selected agent:', error);
-    });
-  }, []);
+  const availableAgents = useMemo<AvailableAgent[]>(
+    () =>
+      agents.filter(isSupportedNewConversationAgent).map((agent) => {
+        const isCustomRow = agent.agent_source === 'custom';
+        return {
+          ...agent,
+          custom_agent_id: isCustomRow ? agent.id : agent.custom_agent_id,
+          avatar: isCustomRow ? agent.icon : undefined,
+        } satisfies AvailableAgent;
+      }),
+    [agents]
+  );
 
   // Wrap setSelectedMode to also save preferred mode to the agent's own config
   const setSelectedMode = useCallback(
@@ -241,6 +240,19 @@ export const useGuidAgentSelection = ({
     resolveDisabledBuiltinSkills,
   } = usePresetAssistantResolver({ assistants, localeKey });
 
+  // Wrap setSelectedAgentKey to also save to storage
+  const setSelectedAgentKey = useCallback(
+    (key: string) => {
+      initialRestoreDoneRef.current = true;
+      const normalizedKey = resolveAssistantSelectionKey(key, assistants) ?? key;
+      _setSelectedAgentKey(normalizedKey);
+      configService.set('guid.lastSelectedAgent', normalizedKey).catch((error) => {
+        console.error('Failed to save selected agent:', error);
+      });
+    },
+    [assistants]
+  );
+
   const { isMainAgentAvailable, getEffectiveAgentType } = useAgentAvailability({
     modelList,
     isGoogleAuth,
@@ -278,6 +290,20 @@ export const useGuidAgentSelection = ({
       }
       return undefined;
     }
+    const assistant = assistants.find((item) => item.id === key);
+    if (assistant) {
+      return {
+        agent_type: assistant.preset_agent_type || 'gemini',
+        backend: assistant.preset_agent_type || 'gemini',
+        name: assistant.name,
+        id: assistant.id,
+        custom_agent_id: assistant.id,
+        is_preset: true,
+        context: '',
+        avatar: assistant.avatar,
+        presetAgentType: assistant.preset_agent_type,
+      };
+    }
     // Row id (custom ACP / remote) takes precedence, so two rows sharing
     // the same backend do not collide.
     const byId = availableAgents?.find((a) => a.id === key);
@@ -288,47 +314,25 @@ export const useGuidAgentSelection = ({
   // Derived state: collapse row-scoped rows to a stable slot key so shared
   // config namespaces (acp.config / mode preferences) are not fragmented
   // per row.
-  const selectedAgent: string = ((): string => {
-    if (selectedAgentKey.startsWith('custom:')) return 'custom';
-    const info = availableAgents?.find((a) => a.id === selectedAgentKey);
-    if (info?.agent_source === 'custom') return 'custom';
-    return selectedAgentKey;
-  })();
   const selectedAgentInfo = useMemo(() => {
     return findAgentByKey(selectedAgentKey);
   }, [selectedAgentKey, availableAgents, assistants]);
+  const selectedAgent = useMemo((): string => {
+    if (selectedAgentKey.startsWith('custom:')) return 'custom';
+    if (assistants.some((assistant) => assistant.id === selectedAgentKey)) return 'custom';
+    if (selectedAgentInfo?.agent_source === 'custom') return 'custom';
+    return selectedAgentKey;
+  }, [assistants, selectedAgentInfo?.agent_source, selectedAgentKey]);
   const is_presetAgent = Boolean(selectedAgentInfo?.is_preset);
   const selectedAssistantId = useMemo(() => {
     if (selectedAgentKey.startsWith('custom:')) {
       return selectedAgentKey.slice(7);
     }
+    if (assistants.some((assistant) => assistant.id === selectedAgentKey)) {
+      return selectedAgentKey;
+    }
     return selectedAgentInfo?.custom_agent_id ?? null;
-  }, [selectedAgentInfo?.custom_agent_id, selectedAgentKey]);
-
-  // --- SWR: Fetch detected execution engines (shared cache) ---
-  const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
-
-  useEffect(() => {
-    if (!availableAgentsData) return;
-    // Normalise backend /api/agents rows into AvailableAgent shape.
-    // `id` is the canonical row identifier; `custom_agent_id` is a legacy
-    // alias still read by a few downstream consumers (send hook / mention
-    // tokens / preset resolver). Custom-row `icon` is a user-picked emoji,
-    // exposed as `avatar` so AgentPillBar renders the glyph directly
-    // instead of mistaking it for a logo URL.
-    const normalisedDetected: AvailableAgent[] = availableAgentsData
-      .filter(isSupportedNewConversationAgent)
-      .map((a) => {
-        const asAgent = a as AgentMetadata;
-        const isCustomRow = asAgent.agent_source === 'custom';
-        return Object.assign({}, a, {
-          id: asAgent.id,
-          custom_agent_id: isCustomRow ? asAgent.id : (a as AvailableAgent).custom_agent_id,
-          avatar: isCustomRow ? asAgent.icon : (a as AvailableAgent).avatar,
-        });
-      });
-    setAvailableAgents(normalisedDetected);
-  }, [availableAgentsData]);
+  }, [assistants, selectedAgentInfo?.custom_agent_id, selectedAgentKey]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
   // per navigation. Use locationKey (changes on every navigate()) to reset the guard,
@@ -428,11 +432,11 @@ export const useGuidAgentSelection = ({
       return;
     }
 
-    const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
+    const metadataAgents = agents;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
     _setSelectedAcpModel(handshakeModels?.current_model_id ?? null);
-  }, [selectedAgentKey, availableAgentsData, is_presetAgent, currentEffectiveAgentInfo.agent_type]);
+  }, [selectedAgentKey, agents, is_presetAgent, currentEffectiveAgentInfo.agent_type, selectedAgent]);
 
   // Read preferred mode or fallback to legacy yoloMode config
   useEffect(() => {
@@ -441,7 +445,7 @@ export const useGuidAgentSelection = ({
     selectedAgentRef.current = configKey;
     // Reset to the backend's actual default (from handshake.available_modes),
     // not the literal 'default' — codex/opencode/cursor don't have that value.
-    const fallbackMode = resolveDefaultMode(configKey, availableAgentsData as unknown as AgentMetadata[] | undefined);
+    const fallbackMode = resolveDefaultMode(configKey, agents);
     _setSelectedMode(fallbackMode);
     if (!configKey) return;
 
@@ -495,7 +499,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [selectedAgent, selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgent, selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, agents]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
     // For preset agents, resolve to the actual backend type for model list lookup
@@ -505,7 +509,7 @@ export const useGuidAgentSelection = ({
     // The backend persists the last-seen `ModelInfoPayload` (snake_case) on
     // the agent_metadata row, so this is populated across restarts without
     // requiring a fresh session.
-    const metadataAgents = availableAgentsData as unknown as AgentMetadata[] | undefined;
+    const metadataAgents = agents;
     const matched = metadataAgents?.find((a) => (a.backend ?? a.agent_type) === backend);
     const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
     if (
@@ -528,7 +532,7 @@ export const useGuidAgentSelection = ({
     }
 
     return null;
-  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, availableAgentsData]);
+  }, [selectedAgentKey, is_presetAgent, currentEffectiveAgentInfo.agent_type, agents]);
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {

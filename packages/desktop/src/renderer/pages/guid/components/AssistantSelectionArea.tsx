@@ -69,7 +69,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         }`}
         style={isSelected ? { background: 'var(--bg-base, #fff)' } : { background: 'transparent' }}
         onClick={() => {
-          onSelectAssistant(`custom:${assistant.id}`);
+          onSelectAssistant(assistant.id);
           setMoreVisible(false);
         }}
       >
