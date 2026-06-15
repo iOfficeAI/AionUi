@@ -938,4 +938,69 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       }),
     });
   });
+
+  it('uses the embedded NL-5 gate when the Company.OS dispatch CLI is unavailable', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Embedded NL-5 check',
+      description: 'Prospect phone +49 30 12345678 must still be gated before Hermes.',
+      lane_key: 'draft',
+      client_token: 'embedded-nl5-1',
+      now: () => new Date('2026-06-15T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+
+    const result = planKanbanMarketingCardDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      command: 'decompose',
+      now: () => new Date('2026-06-15T09:30:00.000Z'),
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('hermes.pre_generation.controller_approval_missing');
+    expect(result.subprocess_spawned).toBe(false);
+    expect(result.data_boundary_checked).toBe(true);
+    expect(result.controller_approval_required).toBe(true);
+    expect(result.release_blocked).toBe(true);
+    const policy = result.policy as { data_boundary_receipt?: { finding_count?: number } } | undefined;
+    expect(policy?.data_boundary_receipt?.finding_count ?? 0).toBeGreaterThanOrEqual(1);
+    expect(result.policy).toMatchObject({
+      implementation: 'command-eve-embedded-nl5',
+      status: 'blocked',
+      controller_approved: false,
+      data_boundary_receipt: expect.objectContaining({
+        ok: true,
+        status: 'local-only-pass',
+        raw_text_stored: false,
+      }),
+    });
+
+    const dispatchEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT kind, payload FROM task_events WHERE kind = 'command_eve_dispatch_plan_checked'"
+    );
+    expect(dispatchEvents).toHaveLength(1);
+    const payload = JSON.parse(String((dispatchEvents[0] as { payload: string }).payload)) as {
+      nl5_gate_checked?: boolean;
+      subprocess_spawned?: boolean;
+      controller_approval_required?: boolean;
+      release_blocked?: boolean;
+      reason_codes?: string[];
+    };
+    expect(payload.nl5_gate_checked).toBe(true);
+    expect(payload.subprocess_spawned).toBe(false);
+    expect(payload.controller_approval_required).toBe(true);
+    expect(payload.release_blocked).toBe(true);
+    expect(payload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+  });
 });

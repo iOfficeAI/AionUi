@@ -7,6 +7,7 @@
 import { spawnSync } from 'child_process';
 import fs from 'fs';
 import path from 'path';
+import { detectCommandEveSensitiveEgress } from '../../common/api/egressBoundaryCore';
 import { resolveCommandEveRuntimeBootstrapPaths } from './runtimeBootstrapCore';
 
 export const COMMAND_EVE_KANBAN_PREFLIGHT_BRIDGE_VERSION = 'command-eve-kanban-preflight/v0';
@@ -319,6 +320,13 @@ export type CommandEveKanbanMarketingDispatchPlanOptions = CommandEveKanbanMarke
 };
 
 type JsonRecord = Record<string, unknown>;
+
+type EmbeddedHermesPreGenerationPolicy = JsonRecord & {
+  allowed: boolean;
+  status: 'pass' | 'blocked';
+  reason_codes: string[];
+  data_boundary_receipt: JsonRecord;
+};
 
 type RuntimeReconciliationShape = {
   version?: unknown;
@@ -1588,7 +1596,7 @@ function buildMarketingDispatchRequest({
   task: JsonRecord;
   cardId: string;
   command: 'decompose' | 'specify';
-  companyOsRoot: string;
+  companyOsRoot?: string;
 }): JsonRecord {
   const title = textField(task.title);
   const body = textField(task.body);
@@ -1608,7 +1616,7 @@ function buildMarketingDispatchRequest({
     tenant: MARKETING_BOARD_TENANT,
     author: 'eve',
     critic: 'codex-controller',
-    sourceRoot: companyOsRoot,
+    sourceRoot: companyOsRoot || 'command-eve-local',
     requestedLane: 'local_only',
     payload,
     fields: {
@@ -1658,6 +1666,162 @@ function buildMarketingDispatchRequest({
       status: 'missing',
       reason: 'Command EVE UI only plans dispatch here; controller execution approval is a later explicit gate.',
     },
+  };
+}
+
+function receiptOk(receipt: JsonRecord): boolean {
+  const status = textField(receipt.status).toLowerCase();
+  return receipt.ok === true
+    || receipt.allowed === true
+    || ['pass', 'passed', 'redacted-pass', 'rerouted-pass', 'local-only-pass'].includes(status);
+}
+
+function receiptFailed(receipt: JsonRecord): boolean {
+  const status = textField(receipt.status).toLowerCase();
+  return receipt.ok === false
+    || receipt.allowed === false
+    || ['fail', 'failed', 'block', 'blocked', 'reject', 'rejected'].includes(status);
+}
+
+function parseableWorkerContract(contract: JsonRecord): boolean {
+  if (contract.parseable === true || contract.valid === true || contract.status === 'pass') return true;
+  return [
+    'role',
+    'agent',
+    'mode',
+    'workspace',
+    'dispatch',
+    'source_of_truth',
+    'acceptance_criteria',
+    'gates',
+    'human_gate',
+    'reporting',
+  ].every((key) => textField(contract[key]).length > 0);
+}
+
+function controllerApproved(approval: unknown): boolean {
+  if (approval === true) return true;
+  if (!isRecord(approval)) return false;
+  const status = textField(approval.status || approval.verdict || approval.decision).toLowerCase();
+  return ['approved', 'pass', 'controller_pass', 'hg-2.5-pass', 'accepted'].includes(status);
+}
+
+function authorsSeparate(request: JsonRecord, workerContract: JsonRecord): boolean {
+  const author = textField(request.author || workerContract.author).toLowerCase();
+  const critic = textField(request.critic || workerContract.critic).toLowerCase();
+  return Boolean(author && critic && author !== critic);
+}
+
+function normalizeDispatchCommand(command: unknown): string {
+  const parts = textField(command).toLowerCase().split(/\s+/).filter(Boolean);
+  if (parts[0] === 'hermes') parts.shift();
+  if (parts[0] === 'kanban') parts.shift();
+  return parts[0] || '';
+}
+
+function embeddedDataBoundaryReceipt(request: JsonRecord): JsonRecord {
+  const payload = [
+    typeof request.payload === 'string' ? request.payload : '',
+    isRecord(request.fields) ? JSON.stringify(request.fields) : '',
+  ].filter(Boolean).join('\n');
+  const findings = detectCommandEveSensitiveEgress(payload);
+  const findingCount = findings.reduce((sum, finding) => sum + finding.count, 0);
+  const requestedLane = textField(request.requestedLane || request.requested_lane || request.lane || 'local_only');
+  const localOnly = ['local_only', 'local', 'lane_local_only'].includes(requestedLane.toLowerCase());
+  const sensitivityScore = findingCount > 0 ? 2 : 1;
+  const ok = localOnly || findingCount === 0;
+
+  return {
+    ok,
+    status: ok ? (localOnly ? 'local-only-pass' : 'pass') : 'blocked',
+    sensitivity: `S${sensitivityScore}`,
+    sensitivity_score: sensitivityScore,
+    effective_sensitivity: `S${sensitivityScore}`,
+    effective_sensitivity_score: sensitivityScore,
+    requested_lane: requestedLane,
+    effective_lane: localOnly ? 'local_only' : requestedLane,
+    finding_count: findingCount,
+    findings: findings.map((finding) => ({
+      kind: finding.kind,
+      rule_id: finding.rule_id,
+      count: finding.count,
+    })),
+    raw_text_stored: false,
+    provider_execution_allowed: false,
+    reason_codes: ok
+      ? ['command_eve.embedded_nl5_data_boundary_pass']
+      : ['command_eve.embedded_nl5_data_boundary_blocked'],
+  };
+}
+
+function buildEmbeddedHermesPreGenerationPolicy(request: JsonRecord): EmbeddedHermesPreGenerationPolicy {
+  const command = normalizeDispatchCommand(request.command || request.proposedCommand);
+  const routeReceipt = isRecord(request.routeReceipt || request.route_receipt)
+    ? (request.routeReceipt || request.route_receipt) as JsonRecord
+    : {};
+  const auxiliaryReceipt = isRecord(request.auxiliaryLaneReceipt || request.auxiliary_lane_receipt)
+    ? (request.auxiliaryLaneReceipt || request.auxiliary_lane_receipt) as JsonRecord
+    : {};
+  const workerContract = isRecord(request.workerContract || request.worker_contract || request.contract)
+    ? (request.workerContract || request.worker_contract || request.contract) as JsonRecord
+    : {};
+  const dataBoundaryReceipt = embeddedDataBoundaryReceipt(request);
+  const failures: string[] = [];
+
+  if (!['specify', 'decompose'].includes(command)) failures.push('hermes.pre_generation.unsupported_command');
+  if (!dataBoundaryReceipt.ok) failures.push('hermes.pre_generation.data_boundary_failed');
+  if (!Object.keys(routeReceipt).length) failures.push('hermes.pre_generation.route_receipt_missing');
+  else if (receiptFailed(routeReceipt) || !receiptOk(routeReceipt)) failures.push('hermes.pre_generation.route_receipt_failed');
+  if (!Object.keys(auxiliaryReceipt).length) failures.push('hermes.pre_generation.auxiliary_receipt_missing');
+  else if (receiptFailed(auxiliaryReceipt) || !receiptOk(auxiliaryReceipt)) {
+    failures.push('hermes.pre_generation.auxiliary_receipt_failed');
+  }
+  if (!parseableWorkerContract(workerContract)) failures.push('hermes.pre_generation.worker_contract_unparseable');
+  if (!textField(request.humanGate || request.human_gate || workerContract.human_gate)) {
+    failures.push('hermes.pre_generation.human_gate_missing');
+  }
+  if (!controllerApproved(request.controllerApproval ?? request.controller_approval)) {
+    failures.push('hermes.pre_generation.controller_approval_missing');
+  }
+  if (!authorsSeparate(request, workerContract)) failures.push('hermes.pre_generation.author_critic_not_separate');
+
+  const reasonCodes = [...new Set(failures)];
+  return {
+    version: 'hermes-pre-generation-policy/v0',
+    id: 'hermes.pre_generation_policy',
+    implementation: 'command-eve-embedded-nl5',
+    command,
+    applies: ['specify', 'decompose'].includes(command),
+    allowed: reasonCodes.length === 0,
+    status: reasonCodes.length === 0 ? 'pass' : 'blocked',
+    data_boundary_receipt: dataBoundaryReceipt,
+    route_receipt: routeReceipt,
+    auxiliary_lane_receipt: auxiliaryReceipt,
+    worker_contract_parseable: parseableWorkerContract(workerContract),
+    human_gate: textField(request.humanGate || request.human_gate || workerContract.human_gate),
+    controller_approved: controllerApproved(request.controllerApproval ?? request.controller_approval),
+    author_critic_separate: authorsSeparate(request, workerContract),
+    reason_codes: reasonCodes,
+  };
+}
+
+function buildEmbeddedHermesPreGenerationDispatchPlan({
+  request,
+  reason,
+}: {
+  request: JsonRecord;
+  reason: string;
+}): JsonRecord {
+  const policy = buildEmbeddedHermesPreGenerationPolicy(request);
+  return {
+    version: 'hermes-pre-generation-dispatch/v0',
+    ok: false,
+    status: 'blocked',
+    subprocess_spawned: false,
+    reason_codes: policy.reason_codes.length ? policy.reason_codes : ['hermes.pre_generation.controller_approval_missing'],
+    policy,
+    dispatch_source: 'command-eve-embedded-nl5',
+    dispatch_source_reason: reason,
   };
 }
 
@@ -2698,33 +2862,6 @@ export function planKanbanMarketingCardDispatch(
     };
   }
 
-  if (!companyOsRoot) {
-    return {
-      ...base,
-      ok: false,
-      status: 'blocked',
-      reason_code: 'COMMAND_EVE_COMPANY_OS_ROOT_MISSING',
-      reason_codes: ['COMMAND_EVE_COMPANY_OS_ROOT_MISSING'],
-      message: 'Set COMMAND_EVE_NL5_COMPANY_OS_ROOT or COMMAND_EVE_COMPANY_OS_ROOT to run the NL-5 dispatch gate.',
-      card_id: taskId,
-      command,
-    };
-  }
-
-  const dispatchCliPath = companyOsDispatchCliPath(companyOsRoot);
-  if (!fs.existsSync(dispatchCliPath)) {
-    return {
-      ...base,
-      ok: false,
-      status: 'blocked',
-      reason_code: 'COMMAND_EVE_NL5_DISPATCH_CLI_MISSING',
-      reason_codes: ['COMMAND_EVE_NL5_DISPATCH_CLI_MISSING'],
-      message: `Company.OS NL-5 dispatch CLI not found: ${dispatchCliPath}`,
-      card_id: taskId,
-      command,
-    };
-  }
-
   const now = options.now ?? (() => new Date());
   const occurredAt = now().toISOString();
   const checkedAt = Math.floor(new Date(occurredAt).getTime() / 1000);
@@ -2775,21 +2912,47 @@ export function planKanbanMarketingCardDispatch(
     command,
     companyOsRoot,
   });
+  const dispatchCliPath = companyOsRoot ? companyOsDispatchCliPath(companyOsRoot) : '';
+  const hasExternalDispatchCli = Boolean(companyOsRoot && fs.existsSync(dispatchCliPath));
   const runner = options.commandRunner || defaultCommandRunner;
-  const nodeRuntime = nodeRuntimeForDispatch();
-  const dispatch = runner({
-    executable: nodeRuntime.executable,
-    args: [dispatchCliPath, '--stdin', '--cwd', companyOsRoot],
-    cwd: companyOsRoot,
-    env: {
-      ...process.env,
-      ...nodeRuntime.env,
-      ...(options.env || {}),
-    },
-    timeoutMs: 30_000,
-    input: `${JSON.stringify(request)}\n`,
-  });
-  const dispatchPlan = parseJsonRecord(dispatch.stdout || '');
+  let dispatch: CommandEveKanbanPreflightCommandResult = {
+    ok: false,
+    exitCode: 78,
+    stdout: '',
+    stderr: '',
+  };
+  let dispatchPlan: JsonRecord | null = null;
+
+  if (hasExternalDispatchCli && companyOsRoot) {
+    const nodeRuntime = nodeRuntimeForDispatch();
+    dispatch = runner({
+      executable: nodeRuntime.executable,
+      args: [dispatchCliPath, '--stdin', '--cwd', companyOsRoot],
+      cwd: companyOsRoot,
+      env: {
+        ...process.env,
+        ...nodeRuntime.env,
+        ...(options.env || {}),
+      },
+      timeoutMs: 30_000,
+      input: `${JSON.stringify(request)}\n`,
+    });
+    dispatchPlan = parseJsonRecord(dispatch.stdout || '');
+  } else {
+    dispatchPlan = buildEmbeddedHermesPreGenerationDispatchPlan({
+      request,
+      reason: companyOsRoot
+        ? `Company.OS NL-5 dispatch CLI not found: ${dispatchCliPath}`
+        : 'Company.OS root not configured; using embedded Command EVE NL-5 gate.',
+    });
+    dispatch = {
+      ok: false,
+      exitCode: 78,
+      stdout: `${JSON.stringify(dispatchPlan)}\n`,
+      stderr: '',
+    };
+  }
+
   if (!dispatchPlan) {
     return {
       ...base,
