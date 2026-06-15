@@ -15,6 +15,14 @@ function loadSettingsLocale(language: string): Record<string, string> {
   return JSON.parse(readFileSync(url, 'utf8')) as Record<string, string>;
 }
 
+function loadCommonLocale(language: string): Record<string, unknown> {
+  const url = new URL(
+    `../../../packages/desktop/src/renderer/services/i18n/locales/${language}/common.json`,
+    import.meta.url
+  );
+  return JSON.parse(readFileSync(url, 'utf8')) as Record<string, unknown>;
+}
+
 function loadConversationLocale(language: string): Record<string, unknown> {
   const url = new URL(
     `../../../packages/desktop/src/renderer/services/i18n/locales/${language}/conversation.json`,
@@ -44,5 +52,16 @@ describe('managed node runtime settings copy', () => {
 
     expect((zh.runtimePreparing as Record<string, string>).sendboxHint).toContain('运行环境');
     expect((zh.runtimePreparing as Record<string, string>).sendboxHint).not.toContain('托管的 Node');
+  });
+
+  it('localizes the installation-integrity runtime guidance for supported non-English languages', () => {
+    for (const language of ['ja-JP', 'ko-KR', 'pt-BR', 'ru-RU', 'tr-TR', 'uk-UA', 'zh-CN', 'zh-TW']) {
+      const common = loadCommonLocale(language);
+      const backendStartup = common.backendStartup as Record<string, unknown>;
+      const incompleteInstallation = backendStartup.incompleteInstallation as Record<string, string>;
+
+      expect(incompleteInstallation.sendDiagnostics).toBeTruthy();
+      expect(incompleteInstallation.runtimeComponentDescription).not.toMatch(/^This installation is missing/);
+    }
   });
 });

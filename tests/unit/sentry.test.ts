@@ -299,4 +299,27 @@ describe('initSentry beforeSend', () => {
 
     delete (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed;
   });
+
+  it('keeps user feedback reports even when diagnostics contain backend secondary text', () => {
+    initSentry();
+    (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+
+    const event = {
+      tags: {
+        type: 'user-feedback',
+        'aionui.installation_integrity.user_report': 'true',
+      },
+      extra: {
+        installation_integrity: {
+          backendStartupFailure: {
+            message: 'BackendStartupError: connect ECONNREFUSED 127.0.0.1:33334',
+          },
+        },
+      },
+    };
+
+    expect(sentryInitOptions?.beforeSend?.(event)).toBe(event);
+
+    delete (globalThis as { __backendStartupFailed?: boolean }).__backendStartupFailed;
+  });
 });
