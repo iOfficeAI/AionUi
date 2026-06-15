@@ -194,7 +194,6 @@ AionUi inclui **21 assistentes profissionais** com capacidades predefinidas, ext
 - **📗 Excel Creator** — Geração de planilhas com análise, gráficos e formatação automática
 - **🎓 Academic Paper Writer** — Escrita estruturada de artigos acadêmicos
 - **💰 Financial Model Creator** — Modelos financeiros e projeções
-- **⭐ Star Office Helper** — Assistente de produtividade para escritório
 - **🎮 Jogo 3D** — Geração de jogos 3D de arquivo único
 - **🎨 UI/UX Pro Max** — Design UI/UX profissional (57 estilos, 95 paletas de cores)
 - **📋 Planejamento com arquivos** — Planejamento baseado em arquivos para tarefas complexas (planejamento persistente de Markdown estilo Manus)

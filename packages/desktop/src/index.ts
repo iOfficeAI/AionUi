@@ -36,6 +36,7 @@ import { setInitialLanguage } from '@process/services/i18n';
 import { setupApplicationMenu } from './process/utils/appMenu';
 import { startWebHost } from '@aionui/web-host';
 import { initializeZoomFactor, setupZoomForWindow } from './process/utils/zoom';
+import { hydrateWindowsProcessPath } from './process/startup/windowsPath';
 import {
   MIN_WINDOW_WIDTH,
   MIN_WINDOW_HEIGHT,
@@ -113,8 +114,7 @@ if (!gotTheLock) {
   });
 }
 
-// Handle creating/removing shortcuts on Windows when installing/uninstalling.
-// 修复 macOS 和 Linux 下 GUI 应用的 PATH 环境变量,使其与命令行一致
+// Align GUI-launched PATH with what local CLIs expect on each desktop OS.
 if (process.platform === 'darwin' || process.platform === 'linux') {
   fixPath();
 
@@ -136,6 +136,8 @@ if (process.platform === 'darwin' || process.platform === 'linux') {
       // Ignore errors when reading nvm directory
     }
   }
+} else if (process.platform === 'win32') {
+  hydrateWindowsProcessPath();
 }
 
 // Handle Squirrel startup events (Windows installer)

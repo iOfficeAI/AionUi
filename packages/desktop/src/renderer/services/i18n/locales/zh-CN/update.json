@@ -9,6 +9,7 @@
   "downloadingTitle": "正在下载更新...",
   "downloadButton": "下载",
   "downloadAndInstall": "下载并安装",
+  "manualInstall": "手动安装",
   "downloadStartFailed": "启动下载失败",
   "downloadFailed": "下载失败",
   "noCompatibleAsset": "未找到适用于当前平台的安装包",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "自动更新模式",
   "showInFolder": "在文件夹中显示",
   "openFile": "打开文件",
-  "errorTitle": "更新失败"
+  "errorTitle": "更新失败",
+  "errors": {
+    "invalidUrl": "下载地址无效",
+    "httpsOnly": "只允许使用 HTTPS 下载地址",
+    "hostNotAllowed": "不允许从该主机下载：{{host}}",
+    "redirectNoLocation": "下载重定向缺少 Location 响应头",
+    "tooManyRedirects": "下载重定向次数过多",
+    "githubApiFailed": "GitHub API 请求失败（{{status}}）",
+    "githubApiNotArray": "GitHub API 响应不是 Release 列表",
+    "githubApiTimeout": "GitHub API 请求 30 秒超时",
+    "downloadFailed": "下载请求失败（{{status}}）",
+    "downloadNoBody": "下载响应没有内容",
+    "missingUrl": "缺少下载地址",
+    "checkReturnedNull": "更新检查没有返回结果，需要打包应用或强制启用开发更新配置。"
+  }
 }

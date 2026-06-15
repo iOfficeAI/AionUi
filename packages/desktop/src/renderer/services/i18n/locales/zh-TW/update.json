@@ -9,6 +9,7 @@
   "downloadingTitle": "正在下載更新...",
   "downloadButton": "下載",
   "downloadAndInstall": "下載並安裝",
+  "manualInstall": "手動安裝",
   "downloadStartFailed": "啟動下載失敗",
   "downloadFailed": "下載失敗",
   "noCompatibleAsset": "找不到適用於此平台的安裝檔",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "自動更新模式",
   "showInFolder": "在資料夾中顯示",
   "openFile": "開啟檔案",
-  "errorTitle": "更新失敗"
+  "errorTitle": "更新失敗",
+  "errors": {
+    "invalidUrl": "下載網址無效",
+    "httpsOnly": "只允許使用 HTTPS 下載網址",
+    "hostNotAllowed": "不允許從此主機下載：{{host}}",
+    "redirectNoLocation": "下載重新導向缺少 Location 回應標頭",
+    "tooManyRedirects": "下載重新導向次數過多",
+    "githubApiFailed": "GitHub API 請求失敗（{{status}}）",
+    "githubApiNotArray": "GitHub API 回應不是 Release 清單",
+    "githubApiTimeout": "GitHub API 請求 30 秒逾時",
+    "downloadFailed": "下載請求失敗（{{status}}）",
+    "downloadNoBody": "下載回應沒有內容",
+    "missingUrl": "缺少下載網址",
+    "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。"
+  }
 }

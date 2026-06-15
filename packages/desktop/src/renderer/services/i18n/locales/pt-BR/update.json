@@ -9,6 +9,7 @@
   "downloadingTitle": "Baixando atualização...",
   "downloadButton": "Baixar",
   "downloadAndInstall": "Baixar e Instalar",
+  "manualInstall": "Instalar manualmente",
   "downloadStartFailed": "Falha ao iniciar o download",
   "downloadFailed": "O download falhou",
   "noCompatibleAsset": "Nenhum download compatível encontrado para esta plataforma",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "Modo de atualização automática",
   "showInFolder": "Mostrar na pasta",
   "openFile": "Abrir arquivo",
-  "errorTitle": "A atualização falhou"
+  "errorTitle": "A atualização falhou",
+  "errors": {
+    "invalidUrl": "URL de download inválida",
+    "httpsOnly": "Somente URLs de download HTTPS são permitidas",
+    "hostNotAllowed": "Host de download não permitido: {{host}}",
+    "redirectNoLocation": "O redirecionamento do download não incluiu o cabeçalho Location",
+    "tooManyRedirects": "Redirecionamentos demais no download",
+    "githubApiFailed": "Falha na solicitação da API do GitHub ({{status}})",
+    "githubApiNotArray": "A resposta da API do GitHub não é uma lista de Releases",
+    "githubApiTimeout": "A solicitação da API do GitHub expirou após 30 segundos",
+    "downloadFailed": "Falha na solicitação de download ({{status}})",
+    "downloadNoBody": "A resposta do download não incluiu conteúdo",
+    "missingUrl": "URL de download ausente",
+    "checkReturnedNull": "A verificação de atualização não retornou resultado. É necessário usar o app empacotado ou forçar a configuração de atualização de desenvolvimento."
+  }
 }

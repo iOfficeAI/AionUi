@@ -50,6 +50,7 @@ vi.mock('electron-updater', () => ({
     autoInstallOnAppQuit: true,
     allowPrerelease: false,
     allowDowngrade: false,
+    setFeedURL: vi.fn(),
     on: vi.fn(),
     removeListener: vi.fn(),
     checkForUpdates: vi.fn(),
@@ -62,6 +63,7 @@ vi.mock('electron-updater', () => ({
 vi.mock('electron-log', () => ({
   default: {
     transports: { file: { level: 'info' } },
+    debug: vi.fn(),
     info: vi.fn(),
     error: vi.fn(),
     warn: vi.fn(),
@@ -153,6 +155,7 @@ describe('updateBridge CDN URL rewriting', () => {
       const result = await handler({ repo: 'iOfficeAI/AionUi' });
 
       expect(result.success).toBe(true);
+      expect(result.data?.currentVersion).toBe('1.0.0');
       const assets = result.data?.latest?.assets ?? [];
       expect(assets.length).toBe(3);
 
@@ -217,12 +220,13 @@ describe('updateBridge allowlist includes CDN host', () => {
       const handler = lastCall[0];
 
       const result = await handler({
+        downloadId: 'manual-download-1',
         url: 'https://static.aionui.com/releases/1.9.22/AionUi-1.9.22-mac-arm64.dmg',
         file_name: 'AionUi-1.9.22-mac-arm64.dmg',
       });
 
       expect(result.success).toBe(true);
-      expect(result.data?.downloadId).toBeTruthy();
+      expect(result.data?.downloadId).toBe('manual-download-1');
     } finally {
       vi.unstubAllGlobals();
     }

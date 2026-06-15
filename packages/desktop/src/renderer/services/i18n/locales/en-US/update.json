@@ -9,6 +9,7 @@
   "downloadingTitle": "Downloading update...",
   "downloadButton": "Download",
   "downloadAndInstall": "Download & Install",
+  "manualInstall": "Manual install",
   "downloadStartFailed": "Failed to start download",
   "downloadFailed": "Download failed",
   "noCompatibleAsset": "No compatible download found for this platform",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "Auto-update mode",
   "showInFolder": "Show in folder",
   "openFile": "Open file",
-  "errorTitle": "Update failed"
+  "errorTitle": "Update failed",
+  "errors": {
+    "invalidUrl": "Invalid download URL",
+    "httpsOnly": "Only HTTPS download URLs are allowed",
+    "hostNotAllowed": "Download host is not allowed: {{host}}",
+    "redirectNoLocation": "Download redirect did not include a Location header",
+    "tooManyRedirects": "Too many download redirects",
+    "githubApiFailed": "GitHub API request failed ({{status}})",
+    "githubApiNotArray": "GitHub API response is not a release list",
+    "githubApiTimeout": "GitHub API request timed out after 30 seconds",
+    "downloadFailed": "Download request failed ({{status}})",
+    "downloadNoBody": "Download response did not include a body",
+    "missingUrl": "Missing download URL",
+    "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required."
+  }
 }

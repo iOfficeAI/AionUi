@@ -9,6 +9,7 @@
   "downloadingTitle": "更新をダウンロードしています...",
   "downloadButton": "ダウンロード",
   "downloadAndInstall": "ダウンロードしてインストール",
+  "manualInstall": "手動インストール",
   "downloadStartFailed": "ダウンロードを開始できませんでした",
   "downloadFailed": "ダウンロードに失敗しました",
   "noCompatibleAsset": "このプラットフォームに対応するファイルが見つかりません",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "自動更新モード",
   "showInFolder": "フォルダーで表示",
   "openFile": "ファイルを開く",
-  "errorTitle": "更新に失敗しました"
+  "errorTitle": "更新に失敗しました",
+  "errors": {
+    "invalidUrl": "ダウンロード URL が無効です",
+    "httpsOnly": "HTTPS のダウンロード URL のみ許可されています",
+    "hostNotAllowed": "このホストからのダウンロードは許可されていません：{{host}}",
+    "redirectNoLocation": "ダウンロードのリダイレクトに Location ヘッダーがありません",
+    "tooManyRedirects": "ダウンロードのリダイレクト回数が多すぎます",
+    "githubApiFailed": "GitHub API リクエストに失敗しました（{{status}}）",
+    "githubApiNotArray": "GitHub API の応答が Release 一覧ではありません",
+    "githubApiTimeout": "GitHub API リクエストが 30 秒でタイムアウトしました",
+    "downloadFailed": "ダウンロードリクエストに失敗しました（{{status}}）",
+    "downloadNoBody": "ダウンロード応答に本文がありません",
+    "missingUrl": "ダウンロード URL がありません",
+    "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。"
+  }
 }

@@ -94,7 +94,6 @@ test.describe('Extension: Lifecycle – Loaded Extensions List', () => {
         'example-acp-adapter',
         'ext-feishu',
         'ext-wecom-bot',
-        'star-office',
       ])
     );
   });
