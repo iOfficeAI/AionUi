@@ -654,7 +654,7 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-approval-state')).toContainText(
       /wartet auf Controller|waiting for controller/
     );
-    await expect(page.getByTestId('marketing-card-dispatch-approve-disabled')).toBeDisabled();
+    await expect(page.getByTestId('marketing-card-dispatch-approve-receipt')).toBeEnabled();
     await page.getByTestId('marketing-card-dispatch-record-review').click();
     const approvalResult = page.getByTestId('marketing-card-dispatch-approval-result');
     await expect(approvalResult).toBeVisible({ timeout: 30_000 });
@@ -668,6 +668,14 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     );
     await expect(page.getByTestId(`marketing-card-controller-handoff-${dispatchCardId}`)).toContainText(
       /role:cmo\s*\/\s*manual/
+    );
+    await page.getByTestId('marketing-card-dispatch-approve-receipt').click();
+    const decisionResult = page.getByTestId('marketing-card-dispatch-decision-result');
+    await expect(decisionResult).toBeVisible({ timeout: 30_000 });
+    await expect(decisionResult).toContainText(/KANBAN_MARKETING_CONTROLLER_APPROVAL_RECORDED_NO_SPAWN/);
+    await expect(page.getByTestId('marketing-card-dispatch-decision-detail')).toContainText(/freigegeben|approved/);
+    await expect(page.getByTestId(`marketing-card-controller-decision-${dispatchCardId}`)).toContainText(
+      /freigegeben|approved/
     );
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-controllerReviewQueue')).toContainText(/ready|bereit|1/);
@@ -736,6 +744,34 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       role_label: 'role:cmo',
     });
 
+    const decisionRows = sqliteQuery(
+      dispatchBoardDbPath!,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${dispatchCardId}' AND kind = 'command_eve_controller_decision_recorded' LIMIT 1`
+    );
+    expect(decisionRows.length, `controller decision receipt must exist for ${dispatchCardId}`).toBeGreaterThan(0);
+    const decisionPayload = JSON.parse(decisionRows[0][1]) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+      };
+    };
+    expect(decisionPayload.controller_approval_status).toBe('approved');
+    expect(decisionPayload.controller_approved).toBe(true);
+    expect(decisionPayload.release_blocked).toBe(true);
+    expect(decisionPayload.subprocess_spawned).toBe(false);
+    expect(decisionPayload.reason_codes).toContain('command_eve.controller_approval_recorded_no_spawn');
+    expect(decisionPayload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
+
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingDispatchAudit = ledgerLines.find((line) => {
       try {
@@ -771,6 +807,25 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(
       matchingApprovalAudit,
       `audit ledger must contain kanban.marketing_board_controller_approval_pending for card_id=${dispatchCardId}`
+    ).toBeTruthy();
+    const matchingDecisionAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; issue_id?: string; payload?: Record<string, unknown> };
+        return (
+          evt.issue_id === dispatchCardId &&
+          evt.event_type === 'kanban.marketing_board_controller_decision_recorded' &&
+          evt.payload?.controller_approval_status === 'approved' &&
+          evt.payload?.subprocess_spawned === false &&
+          evt.payload?.release_blocked === true &&
+          (evt.payload?.dispatch_handoff_packet as { dispatch?: string } | undefined)?.dispatch === 'manual'
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(
+      matchingDecisionAudit,
+      `audit ledger must contain kanban.marketing_board_controller_decision_recorded for card_id=${dispatchCardId}`
     ).toBeTruthy();
 
     const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-dispatch-gate.png';
@@ -849,7 +904,7 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-approval-state')).toContainText(
       /wartet auf Controller|waiting for controller/
     );
-    await expect(page.getByTestId('marketing-card-dispatch-approve-disabled')).toBeDisabled();
+    await expect(page.getByTestId('marketing-card-dispatch-approve-receipt')).toBeEnabled();
     await expect(page.getByTestId('marketing-card-dispatch-plan-reason')).toHaveText(
       /hermes\.pre_generation\.controller_approval_missing/
     );
@@ -1132,9 +1187,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         const evt = JSON.parse(line) as { event_type?: string; payload?: Record<string, unknown> };
         return (
           evt.event_type === 'crm.draft_deal_created' &&
-            evt.payload?.local_only === true &&
-            evt.payload?.allowed_actions === 'draft-only' &&
-            evt.payload?.data_boundary_checked === true
+          evt.payload?.local_only === true &&
+          evt.payload?.allowed_actions === 'draft-only' &&
+          evt.payload?.data_boundary_checked === true
         );
       } catch {
         return false;
@@ -1147,9 +1202,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.event_type === 'crm.draft_deal_stage_changed' &&
           evt.payload?.local_only === true &&
-            evt.payload?.subprocess_spawned === false &&
-            evt.payload?.data_boundary_checked === true &&
-            evt.payload?.stage === 'qualified'
+          evt.payload?.subprocess_spawned === false &&
+          evt.payload?.data_boundary_checked === true &&
+          evt.payload?.stage === 'qualified'
         );
       } catch {
         return false;
@@ -1162,9 +1217,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.event_type === 'crm.consent_captured_local' &&
           evt.payload?.local_only === true &&
-            evt.payload?.subprocess_spawned === false &&
-            evt.payload?.data_boundary_checked === true &&
-            evt.payload?.consent_status === 'captured-local' &&
+          evt.payload?.subprocess_spawned === false &&
+          evt.payload?.data_boundary_checked === true &&
+          evt.payload?.consent_status === 'captured-local' &&
           evt.payload?.allowed_actions === 'review-only'
         );
       } catch {

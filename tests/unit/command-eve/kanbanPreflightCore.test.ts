@@ -17,6 +17,7 @@ import {
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
   recordKanbanMarketingDispatchApproval,
+  recordKanbanMarketingDispatchDecision,
   runKanbanPreflight,
   type CommandEveKanbanPreflightCommandRunner,
 } from '@/process/commandEve/kanbanPreflightCore';
@@ -1039,6 +1040,75 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       payload: expect.objectContaining({
         controller_approval_status: 'pending',
         controller_approved: false,
+        release_blocked: true,
+        subprocess_spawned: false,
+        dispatch_handoff_packet: expect.objectContaining({
+          dispatch: 'manual',
+          role_label: 'role:cmo',
+        }),
+      }),
+    });
+
+    const decision = recordKanbanMarketingDispatchDecision({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      decision: 'approved',
+      dispatch_handoff_packet: result.dispatch_handoff_packet,
+      decision_note: 'Controller approves the handoff as a receipt only; execution stays blocked.',
+      now: () => new Date('2026-06-13T10:06:00.000Z'),
+    });
+
+    expect(decision.ok).toBe(true);
+    expect(decision.status).toBe('ready');
+    expect(decision.reason_code).toBe('KANBAN_MARKETING_CONTROLLER_APPROVAL_RECORDED_NO_SPAWN');
+    expect(decision.decision_event_kind).toBe('command_eve_controller_decision_recorded');
+    expect(decision.controller_approval_status).toBe('approved');
+    expect(decision.controller_approved).toBe(true);
+    expect(decision.subprocess_spawned).toBe(false);
+    expect(decision.release_blocked).toBe(true);
+    expect(decision.human_gate).toBe('HG-2.5');
+    expect(decision.model?.summary.controller_decision_recorded_cards).toBe(1);
+    const decidedCard = decision.model?.columns
+      .flatMap((column) => column.cards)
+      .find((card) => card.card_id === created.card_id);
+    expect(decidedCard).toMatchObject({
+      controller_decision_status: 'approved',
+      controller_decision_audit_event_id: decision.audit_event_id,
+      controller_decision_handoff_role: 'role:cmo',
+      controller_decision_handoff_dispatch: 'manual',
+    });
+
+    const decisionEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT task_id, kind, payload FROM task_events WHERE kind = 'command_eve_controller_decision_recorded'"
+    );
+    expect(decisionEvents).toHaveLength(1);
+    const decisionPayload = JSON.parse(String((decisionEvents[0] as { payload: string }).payload)) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      reason_codes?: string[];
+    };
+    expect(decisionPayload.controller_approval_status).toBe('approved');
+    expect(decisionPayload.controller_approved).toBe(true);
+    expect(decisionPayload.release_blocked).toBe(true);
+    expect(decisionPayload.subprocess_spawned).toBe(false);
+    expect(decisionPayload.reason_codes).toContain('command_eve.controller_approval_recorded_no_spawn');
+
+    const finalAuditEvents = readAuditEvents(eventLedgerPath);
+    expect(finalAuditEvents).toHaveLength(4);
+    expect(finalAuditEvents[3]).toMatchObject({
+      event_type: 'kanban.marketing_board_controller_decision_recorded',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-controller-decision',
+      human_gate_required: true,
+      payload: expect.objectContaining({
+        controller_approval_status: 'approved',
+        controller_approved: true,
         release_blocked: true,
         subprocess_spawned: false,
         dispatch_handoff_packet: expect.objectContaining({

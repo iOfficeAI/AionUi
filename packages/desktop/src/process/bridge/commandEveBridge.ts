@@ -29,6 +29,7 @@ import {
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
   recordKanbanMarketingDispatchApproval,
+  recordKanbanMarketingDispatchDecision,
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
@@ -538,6 +539,57 @@ export function initCommandEveBridge(): void {
       }
     );
 
+  bridge
+    .buildProvider('command-eve.kanban-marketing-dispatch-decision')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        decision?: 'approved' | 'rejected';
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        decision_note?: string;
+      }) => {
+        try {
+          const result = recordKanbanMarketingDispatchDecision({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            decision: request?.decision === 'rejected' ? 'rejected' : 'approved',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            decision_note: request?.decision_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing dispatch-decision bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-dispatch-decision/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_DISPATCH_DECISION_BRIDGE_FAILED',
+              message:
+                error instanceof Error ? error.message : 'Command EVE marketing dispatch-decision bridge failed.',
+              controller_approved: false,
+              subprocess_spawned: false,
+              release_blocked: true,
+              human_gate: 'HG-2.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
   bridge.buildProvider('command-eve.crm-overlay').provider(async (request?: { eventLedgerPath?: string }) => {
     try {
       const result = buildCrmOverlay({
@@ -668,40 +720,42 @@ export function initCommandEveBridge(): void {
       }
     });
 
-  bridge.buildProvider('command-eve.crm-consent-local').provider(async (request?: { dealId?: string; eventLedgerPath?: string }) => {
-    try {
-      const result = captureCrmConsentLocal(
-        {
-          userDataPath: getDataPath(),
-          eventLedgerPath: request?.eventLedgerPath,
-        },
-        {
-          dealId: request?.dealId || '',
-        }
-      );
-      return {
-        success: result.ok,
-        msg: result.ok ? undefined : result.reason_code || result.message,
-        data: result,
-      };
-    } catch (error) {
-      return {
-        success: false,
-        msg: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
-        data: {
-          version: 'command-eve-crm-consent-local/v0',
-          ok: false,
-          status: 'failed',
-          reason_code: 'CRM_CONSENT_LOCAL_BRIDGE_FAILED',
-          message: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
-          source: {
-            generated_by: 'command-eve-crm-overlay-core',
-            hermes_home: '',
+  bridge
+    .buildProvider('command-eve.crm-consent-local')
+    .provider(async (request?: { dealId?: string; eventLedgerPath?: string }) => {
+      try {
+        const result = captureCrmConsentLocal(
+          {
+            userDataPath: getDataPath(),
+            eventLedgerPath: request?.eventLedgerPath,
           },
-        },
-      };
-    }
-  });
+          {
+            dealId: request?.dealId || '',
+          }
+        );
+        return {
+          success: result.ok,
+          msg: result.ok ? undefined : result.reason_code || result.message,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
+          data: {
+            version: 'command-eve-crm-consent-local/v0',
+            ok: false,
+            status: 'failed',
+            reason_code: 'CRM_CONSENT_LOCAL_BRIDGE_FAILED',
+            message: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
+            source: {
+              generated_by: 'command-eve-crm-overlay-core',
+              hermes_home: '',
+            },
+          },
+        };
+      }
+    });
 
   // -------------------------------------------------------------------------
   // Registration + license gate (W11). Registration PII is S2, stored LOCAL
