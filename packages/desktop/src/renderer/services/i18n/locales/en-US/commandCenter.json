@@ -218,15 +218,25 @@
     },
     "dispatchQueue": {
       "title": "Local dispatch queue",
-      "description": "Shows local controller handoffs and decisions. Even approved handoffs do not spawn workers until a later dispatch release gate allows real execution.",
+      "description": "Shows local controller handoffs and decisions. Approved handoffs can generate a local marketing draft; worker spawns remain locked.",
       "pending": "Pending",
       "approved": "Approved",
       "rejected": "Rejected",
+      "generated": "Drafts",
       "nextStep": "Next step",
       "pendingNext": "Controller still needs to approve or reject this handoff.",
-      "approvedNext": "Handoff is locally approved; execution remains locked until the dispatch release gate.",
+      "approvedNext": "Handoff is locally approved; EVE can now generate a local marketing draft.",
+      "generatedNext": "Draft generated and ready for review in the queue.",
       "rejectedNext": "Handoff was rejected; revise the card or keep it blocked.",
+      "generateDraft": "Generate draft",
+      "draftAlreadyGenerated": "Draft generated",
+      "generatedDraft": "Generated draft",
       "empty": "No controller handoffs in the local queue."
+    },
+    "draftGenerate": {
+      "resultTitle": "Marketing draft receipt",
+      "success": "Local marketing draft generated.",
+      "failed": "Marketing draft could not be generated."
     },
     "proof": {
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",

@@ -14,6 +14,7 @@ import {
   buildKanbanMarketingBoard,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
+  generateKanbanMarketingDraft,
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
   recordKanbanMarketingDispatchApproval,
@@ -1119,6 +1120,139 @@ describe('Command EVE Kanban marketing-board mutations', () => {
         }),
       }),
     });
+
+    const draft = generateKanbanMarketingDraft({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      dispatch_handoff_packet: result.dispatch_handoff_packet,
+      generation_note: 'Generate the first local marketing loop output.',
+      now: () => new Date('2026-06-13T10:07:00.000Z'),
+    });
+
+    expect(draft.ok).toBe(true);
+    expect(draft.status).toBe('ready');
+    expect(draft.reason_code).toBe('KANBAN_MARKETING_DRAFT_GENERATED');
+    expect(draft.draft_event_kind).toBe('command_eve_marketing_draft_generated');
+    expect(draft.data_boundary_checked).toBe(true);
+    expect(draft.controller_approved).toBe(true);
+    expect(draft.release_blocked).toBe(false);
+    expect(draft.subprocess_spawned).toBe(false);
+    expect(draft.draft_text).toContain('Dispatch me only after gates');
+    expect(draft.model?.summary.generated_draft_cards).toBe(1);
+    const generatedCard = draft.model?.columns
+      .flatMap((column) => column.cards)
+      .find((card) => card.card_id === created.card_id);
+    expect(generatedCard).toMatchObject({
+      lane_key: 'review',
+      generated_draft_status: 'generated',
+      generated_draft_audit_event_id: draft.audit_event_id,
+      generated_draft_source: 'command-eve-local-marketing-draft-generator/v0',
+    });
+    expect(generatedCard?.generated_draft_text).toContain('Dispatch me only after gates');
+
+    const draftEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT task_id, kind, payload FROM task_events WHERE kind = 'command_eve_marketing_draft_generated'"
+    );
+    expect(draftEvents).toHaveLength(1);
+    const draftPayload = JSON.parse(String((draftEvents[0] as { payload: string }).payload)) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      nl5_gate_checked?: boolean;
+      draft_status?: string;
+      draft_text?: string;
+      reason_codes?: string[];
+    };
+    expect(draftPayload.controller_approval_status).toBe('approved');
+    expect(draftPayload.controller_approved).toBe(true);
+    expect(draftPayload.release_blocked).toBe(false);
+    expect(draftPayload.subprocess_spawned).toBe(false);
+    expect(draftPayload.nl5_gate_checked).toBe(true);
+    expect(draftPayload.draft_status).toBe('generated');
+    expect(draftPayload.draft_text).toContain('Dispatch me only after gates');
+    expect(draftPayload.reason_codes).toContain('command_eve.marketing_draft_generated_local');
+
+    const comments = readRows(marketingBoardPath(root), 'SELECT task_id, author, body FROM task_comments');
+    expect(comments).toHaveLength(1);
+    expect(comments[0]).toMatchObject({
+      task_id: created.card_id,
+      author: 'eve',
+    });
+    expect(String((comments[0] as { body: string }).body)).toContain('Dispatch me only after gates');
+
+    const draftAuditEvents = readAuditEvents(eventLedgerPath);
+    expect(draftAuditEvents).toHaveLength(5);
+    expect(draftAuditEvents[4]).toMatchObject({
+      event_type: 'kanban.marketing_board_marketing_draft_generated',
+      producer: 'command-eve-desktop',
+      agent: 'eve',
+      mode: 'kanban-marketing-draft-generate',
+      human_gate_required: true,
+      payload: expect.objectContaining({
+        controller_approval_status: 'approved',
+        controller_approved: true,
+        release_blocked: false,
+        subprocess_spawned: false,
+        external_calls: false,
+        draft_status: 'generated',
+      }),
+    });
+  });
+
+  it('blocks local marketing draft generation before a controller approval decision exists', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Do not draft before approval',
+      description: 'A draft must wait for the local HG-2.5 controller decision receipt.',
+      lane_key: 'draft',
+      client_token: 'draft-before-approval-1',
+      now: () => new Date('2026-06-15T11:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+
+    const draft = generateKanbanMarketingDraft({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: created.card_id || '',
+      dispatch_handoff_packet: {
+        version: 'command-eve-local-dispatch-handoff/v0',
+        dispatch: 'manual',
+        role_label: 'role:cmo',
+        card_id: created.card_id,
+      },
+      now: () => new Date('2026-06-15T11:03:00.000Z'),
+    });
+
+    expect(draft.ok).toBe(false);
+    expect(draft.status).toBe('blocked');
+    expect(draft.reason_code).toBe('KANBAN_MARKETING_CONTROLLER_APPROVAL_REQUIRED');
+    expect(draft.data_boundary_checked).toBe(true);
+    expect(draft.controller_approved).toBe(false);
+    expect(draft.release_blocked).toBe(true);
+    expect(draft.subprocess_spawned).toBe(false);
+
+    const draftEvents = readRows(
+      marketingBoardPath(root),
+      "SELECT kind FROM task_events WHERE kind = 'command_eve_marketing_draft_generated'"
+    );
+    expect(draftEvents).toHaveLength(0);
+    const comments = readRows(marketingBoardPath(root), 'SELECT body FROM task_comments');
+    expect(comments).toHaveLength(0);
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents.map((event) => event.event_type)).not.toContain(
+      'kanban.marketing_board_marketing_draft_generated'
+    );
   });
 
   it('uses the embedded NL-5 gate when the Company.OS dispatch CLI is unavailable', () => {

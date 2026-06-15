@@ -104,15 +104,18 @@ function writeFakeNl5DispatchCli(companyOsRoot: string): void {
     `#!/usr/bin/env node
 import fs from 'node:fs';
 
-JSON.parse(fs.readFileSync(0, 'utf8'));
+const request = JSON.parse(fs.readFileSync(0, 'utf8'));
+const controllerApproved = request?.controllerApproval?.status === 'approved';
 console.log(JSON.stringify({
   version: 'hermes-pre-generation-dispatch/v0',
-  ok: false,
-  status: 'blocked',
+  ok: controllerApproved,
+  status: controllerApproved ? 'ready' : 'blocked',
   subprocess_spawned: false,
-  reason_codes: ['hermes.pre_generation.controller_approval_missing'],
+  reason_codes: controllerApproved
+    ? ['command_eve.nl5_ready_after_controller_approval']
+    : ['hermes.pre_generation.controller_approval_missing'],
   policy: {
-    status: 'blocked',
+    status: controllerApproved ? 'pass' : 'blocked',
     data_boundary_receipt: {
       ok: true,
       status: 'local-only-pass',
@@ -122,7 +125,7 @@ console.log(JSON.stringify({
     }
   }
 }, null, 2));
-process.exitCode = 78;
+process.exitCode = controllerApproved ? 0 : 78;
 `,
     { mode: 0o700 }
   );
@@ -691,8 +694,19 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       /freigegeben|approved/
     );
     await expect(page.getByTestId(`marketing-dispatch-queue-next-${dispatchCardId}`)).toContainText(
-      /Release-Gate|release gate/
+      /Marketing-Draft|marketing draft/
     );
+    const generateDraftButton = page.getByTestId(`marketing-dispatch-queue-generate-${dispatchCardId}`);
+    await expect(generateDraftButton).toBeEnabled({ timeout: 30_000 });
+    await generateDraftButton.click();
+    const draftResult = page.getByTestId('marketing-draft-generate-result');
+    await expect(draftResult).toBeVisible({ timeout: 60_000 });
+    await expect(draftResult).toContainText(postTitle);
+    await expect(page.getByTestId(`marketing-generated-draft-preview-${dispatchCardId}`)).toContainText(postTitle, {
+      timeout: 30_000,
+    });
+    await expect(page.getByTestId(`marketing-dispatch-queue-next-${dispatchCardId}`)).toContainText(/Review|review/);
+    await expect(page.getByTestId('marketing-dispatch-queue-generated-count')).toContainText(/Drafts:\s*[1-9]\d*/);
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-controllerReviewQueue')).toContainText(/ready|bereit|1/);
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
@@ -788,6 +802,39 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       role_label: 'role:cmo',
     });
 
+    const draftRows = sqliteQuery(
+      dispatchBoardDbPath!,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${dispatchCardId}' AND kind = 'command_eve_marketing_draft_generated' LIMIT 1`
+    );
+    expect(draftRows.length, `marketing draft receipt must exist for ${dispatchCardId}`).toBeGreaterThan(0);
+    const draftPayload = JSON.parse(draftRows[0][1]) as {
+      controller_approval_status?: string;
+      controller_approved?: boolean;
+      release_blocked?: boolean;
+      subprocess_spawned?: boolean;
+      external_calls?: boolean;
+      nl5_gate_checked?: boolean;
+      draft_status?: string;
+      draft_text?: string;
+      reason_codes?: string[];
+    };
+    expect(draftPayload.controller_approval_status).toBe('approved');
+    expect(draftPayload.controller_approved).toBe(true);
+    expect(draftPayload.release_blocked).toBe(false);
+    expect(draftPayload.subprocess_spawned).toBe(false);
+    expect(draftPayload.external_calls).toBe(false);
+    expect(draftPayload.nl5_gate_checked).toBe(true);
+    expect(draftPayload.draft_status).toBe('generated');
+    expect(draftPayload.draft_text).toContain(postTitle);
+    expect(draftPayload.reason_codes).toContain('command_eve.marketing_draft_generated_local');
+
+    const draftComments = sqliteQuery(
+      dispatchBoardDbPath!,
+      `SELECT author, body FROM task_comments WHERE task_id = '${dispatchCardId}' AND author = 'eve' ORDER BY id DESC LIMIT 1`
+    );
+    expect(draftComments.length, `marketing draft comment must exist for ${dispatchCardId}`).toBeGreaterThan(0);
+    expect(draftComments[0][1]).toContain(postTitle);
+
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingDispatchAudit = ledgerLines.find((line) => {
       try {
@@ -842,6 +889,24 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(
       matchingDecisionAudit,
       `audit ledger must contain kanban.marketing_board_controller_decision_recorded for card_id=${dispatchCardId}`
+    ).toBeTruthy();
+    const matchingDraftAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; issue_id?: string; payload?: Record<string, unknown> };
+        return (
+          evt.issue_id === dispatchCardId &&
+          evt.event_type === 'kanban.marketing_board_marketing_draft_generated' &&
+          evt.payload?.controller_approval_status === 'approved' &&
+          evt.payload?.subprocess_spawned === false &&
+          evt.payload?.release_blocked === false
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(
+      matchingDraftAudit,
+      `audit ledger must contain kanban.marketing_board_marketing_draft_generated for card_id=${dispatchCardId}`
     ).toBeTruthy();
 
     const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-dispatch-gate.png';
