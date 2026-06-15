@@ -23,7 +23,7 @@ export function setAppConfig(config: { name: string; version: string; protocolVe
  * Gets the application client name from the app config if available
  */
 export const getConfiguredAppClientName = (): string => {
-  return appConfig?.name || 'AionUi';
+  return appConfig?.name || 'INFINITY MIND OS';
 };
 
 /**

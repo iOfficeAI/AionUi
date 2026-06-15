@@ -1,7 +1,7 @@
 {
   "welcome": {
     "title": "Hi, what's your plan for today?",
-    "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
+    "placeholder": "Infinity Mind, inserisci un comando o invia un messaggio...",
     "linkFolder": "Open Folder",
     "newConversation": "New Chat",
     "selectModel": "Select Model",
@@ -12,10 +12,10 @@
     "clearWorkspace": "Remove project",
     "openFolder": "Open Folder",
     "none": "None",
-    "quickActionsTitle": "What can AionUi do?",
+    "quickActionsTitle": "What can INFINITY MIND OS do?",
     "quickActionFeedback": "Report Issue",
     "quickActionStar": "Like us? Give us a star!",
-    "skillsMarket": "AionUi Skills Market",
+    "skillsMarket": "INFINITY MIND OS Skills Market",
     "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
     "skillsMarketDetails": "View More >>"
   },
