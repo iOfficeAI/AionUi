@@ -11,6 +11,7 @@ import os from 'os';
 import path from 'path';
 import {
   buildCrmOverlay,
+  captureCrmConsentLocal,
   changeCrmDealStageLocal,
   createCrmDraftDeal,
   initializeCrmOverlay,
@@ -328,6 +329,96 @@ finally:
       allowed_actions: 'draft-only',
       human_gate: 'HG-4',
       stage: 'qualified',
+    });
+  });
+
+  it('captures local CRM consent without sync, outreach or worker spawn', () => {
+    const root = makeRoot();
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+    initializeCrmOverlay({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T08:50:00.000Z'),
+    });
+    const draft = createCrmDraftDeal({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T08:51:00.000Z'),
+    });
+
+    const result = captureCrmConsentLocal(
+      {
+        userDataPath: root,
+        eventLedgerPath,
+        now: () => new Date('2026-06-15T08:52:00.000Z'),
+      },
+      { dealId: draft.deal_id || '' }
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('CRM_CONSENT_CAPTURED_LOCAL_ONLY');
+    expect(result.deal_id).toBe(draft.deal_id);
+    expect(result.consent_status).toBe('captured-local');
+    expect(result.allowed_actions).toBe('review-only');
+    expect(result.model?.recent_deals[0]).toMatchObject({
+      deal_id: draft.deal_id,
+      stage: 'draft',
+      allowed_actions: 'review-only',
+      consent_status: 'captured-local',
+      human_gate: 'HG-4',
+      data_class: 'S2',
+      last_activity_at: '2026-06-15T08:52:00.000Z',
+    });
+
+    const dbPath = result.model?.db_path || '';
+    const dealRows = readRows(
+      dbPath,
+      'SELECT stage, allowed_actions, consent_status, human_gate, data_class, last_activity_at FROM crm_deals ORDER BY deal_id'
+    );
+    expect(dealRows).toEqual([
+      {
+        stage: 'draft',
+        allowed_actions: 'review-only',
+        consent_status: 'captured-local',
+        human_gate: 'HG-4',
+        data_class: 'S2',
+        last_activity_at: '2026-06-15T08:52:00.000Z',
+      },
+    ]);
+    const contactRows = readRows(
+      dbPath,
+      'SELECT consent_status, consent_basis, consent_source, last_verified FROM crm_contacts ORDER BY contact_id'
+    );
+    expect(contactRows).toEqual([
+      {
+        consent_status: 'captured-local',
+        consent_basis: 'manual-founder-confirmation',
+        consent_source: 'command-eve-local-ui',
+        last_verified: '2026-06-15T08:52:00.000Z',
+      },
+    ]);
+    const crmEvents = readRows(dbPath, 'SELECT kind FROM crm_events ORDER BY id');
+    expect(crmEvents).toEqual([
+      { kind: 'crm_overlay_initialized' },
+      { kind: 'crm_draft_deal_created' },
+      { kind: 'crm_consent_captured_local' },
+    ]);
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(3);
+    expect(auditEvents[2].event_type).toBe('crm.consent_captured_local');
+    expect(auditEvents[2].payload).toMatchObject({
+      local_only: true,
+      hosted_sync_enabled: false,
+      outreach_enabled: false,
+      subprocess_spawned: false,
+      consent_status: 'captured-local',
+      consent_basis: 'manual-founder-confirmation',
+      consent_source: 'command-eve-local-ui',
+      allowed_actions: 'review-only',
+      human_gate: 'HG-4',
+      data_class: 'S2',
     });
   });
 });

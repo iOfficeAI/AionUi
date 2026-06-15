@@ -423,6 +423,24 @@ interface ICommandEveCrmStageLocalResult {
   };
 }
 
+interface ICommandEveCrmConsentLocalResult {
+  version: 'command-eve-crm-consent-local/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  deal_id?: string;
+  consent_status?: string;
+  allowed_actions?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // Shared board-carrying shape between the create and move mutation results, used
 // to re-render the read-only board projection after a successful mutation.
 interface IMarketingMutationBoardCarrier {
@@ -490,6 +508,11 @@ const crmStageLocal = bridge.buildProvider<
   IBridgeResponse<ICommandEveCrmStageLocalResult>,
   { dealId: string; targetStage: 'qualified'; eventLedgerPath?: string }
 >('command-eve.crm-stage-local');
+
+const crmConsentLocal = bridge.buildProvider<
+  IBridgeResponse<ICommandEveCrmConsentLocalResult>,
+  { dealId: string; eventLedgerPath?: string }
+>('command-eve.crm-consent-local');
 
 const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
 
@@ -1074,23 +1097,29 @@ const CrmOverlaySection: React.FC<{
   initializeResult: ICommandEveCrmOverlayInitializeResult | null;
   draftCreateResult: ICommandEveCrmDraftCreateResult | null;
   stageResult: ICommandEveCrmStageLocalResult | null;
+  consentResult: ICommandEveCrmConsentLocalResult | null;
   initializing: boolean;
   creatingDraft: boolean;
   stagingDealId: string | null;
+  consentingDealId: string | null;
   onInitialize: () => void;
   onCreateDraft: () => void;
   onStageDeal: (dealId: string) => void;
+  onCaptureConsent: (dealId: string) => void;
 }> = ({
   result,
   initializeResult,
   draftCreateResult,
   stageResult,
+  consentResult,
   initializing,
   creatingDraft,
   stagingDealId,
+  consentingDealId,
   onInitialize,
   onCreateDraft,
   onStageDeal,
+  onCaptureConsent,
 }) => {
   const { t } = useTranslation();
   const model = result?.model;
@@ -1145,6 +1174,15 @@ const CrmOverlaySection: React.FC<{
         />
       ) : null}
 
+      {consentResult ? (
+        <Alert
+          type={consentResult.ok ? 'success' : 'warning'}
+          title={consentResult.reason_code || t('commandCenter.crmOverlay.consent.resultTitle')}
+          content={consentResult.deal_id || consentResult.message || consentResult.audit_event_id || '-'}
+          data-testid='crm-consent-local-result'
+        />
+      ) : null}
+
       <div className='grid gap-10px sm:grid-cols-2 lg:grid-cols-4'>
         {(['companies', 'contacts', 'deals', 'audit_events'] as const).map((key) => (
           <div
@@ -1181,7 +1219,18 @@ const CrmOverlaySection: React.FC<{
               <div className='mt-6px truncate text-11px leading-16px text-t-tertiary'>
                 {textOrDash(deal.last_activity_at)}
               </div>
-              <div className='mt-10px flex justify-end'>
+              <div className='mt-10px flex flex-wrap justify-end gap-8px'>
+                <Button
+                  size='mini'
+                  shape='round'
+                  type='outline'
+                  loading={consentingDealId === deal.deal_id}
+                  disabled={Boolean(consentingDealId) || deal.consent_status === 'captured-local'}
+                  onClick={() => onCaptureConsent(deal.deal_id)}
+                  data-testid={`crm-consent-local-${deal.deal_id}`}
+                >
+                  {t('commandCenter.crmOverlay.actions.captureConsent')}
+                </Button>
                 <Button
                   size='mini'
                   shape='round'
@@ -1397,6 +1446,7 @@ const CommandCenterPage: React.FC = () => {
   const [crmInitializeResult, setCrmInitializeResult] = useState<ICommandEveCrmOverlayInitializeResult | null>(null);
   const [crmDraftCreateResult, setCrmDraftCreateResult] = useState<ICommandEveCrmDraftCreateResult | null>(null);
   const [crmStageResult, setCrmStageResult] = useState<ICommandEveCrmStageLocalResult | null>(null);
+  const [crmConsentResult, setCrmConsentResult] = useState<ICommandEveCrmConsentLocalResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
@@ -1409,6 +1459,7 @@ const CommandCenterPage: React.FC = () => {
   const [crmInitializing, setCrmInitializing] = useState(false);
   const [crmDraftCreating, setCrmDraftCreating] = useState(false);
   const [crmStagingDealId, setCrmStagingDealId] = useState<string | null>(null);
+  const [crmConsentingDealId, setCrmConsentingDealId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -1815,6 +1866,55 @@ const CommandCenterPage: React.FC = () => {
     [t]
   );
 
+  const captureCrmConsent = useCallback(
+    async (dealId: string) => {
+      if (!isElectronDesktop()) return;
+      setCrmConsentingDealId(dealId);
+      setCrmConsentResult(null);
+      try {
+        const response = await crmConsentLocal.invoke({ dealId });
+        const data = response.data ?? null;
+        setCrmConsentResult(data);
+        if (data?.model) {
+          setCrmResult({
+            version: 'command-eve-crm-overlay/v0',
+            ok: data.ok,
+            status: data.status,
+            reason_code: data.reason_code,
+            message: data.message,
+            model: data.model,
+            source: data.source,
+          });
+        } else {
+          const nextCrm = await crmOverlay.invoke({});
+          setCrmResult(nextCrm.data ?? null);
+        }
+        if (data?.ok) {
+          Message.success(t('commandCenter.crmOverlay.consent.success'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.crmOverlay.consent.failed'));
+        }
+      } catch (consentError) {
+        const failure: ICommandEveCrmConsentLocalResult = {
+          version: 'command-eve-crm-consent-local/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'CRM_CONSENT_LOCAL_UI_FAILED',
+          message: consentError instanceof Error ? consentError.message : t('commandCenter.crmOverlay.consent.failed'),
+          source: {
+            generated_by: 'command-eve-crm-overlay-core',
+            hermes_home: '',
+          },
+        };
+        setCrmConsentResult(failure);
+        Message.error(failure.message || t('commandCenter.crmOverlay.consent.failed'));
+      } finally {
+        setCrmConsentingDealId(null);
+      }
+    },
+    [t]
+  );
+
   return (
     <div
       className={classNames(
@@ -1914,12 +2014,15 @@ const CommandCenterPage: React.FC = () => {
               initializeResult={crmInitializeResult}
               draftCreateResult={crmDraftCreateResult}
               stageResult={crmStageResult}
+              consentResult={crmConsentResult}
               initializing={crmInitializing}
               creatingDraft={crmDraftCreating}
               stagingDealId={crmStagingDealId}
+              consentingDealId={crmConsentingDealId}
               onInitialize={initializeCrm}
               onCreateDraft={createCrmDraft}
               onStageDeal={stageCrmDeal}
+              onCaptureConsent={captureCrmConsent}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>

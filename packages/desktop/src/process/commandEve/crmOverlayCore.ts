@@ -13,6 +13,7 @@ export const COMMAND_EVE_CRM_OVERLAY_BRIDGE_VERSION = 'command-eve-crm-overlay/v
 export const COMMAND_EVE_CRM_OVERLAY_INITIALIZE_BRIDGE_VERSION = 'command-eve-crm-overlay-initialize/v0';
 export const COMMAND_EVE_CRM_DRAFT_CREATE_BRIDGE_VERSION = 'command-eve-crm-draft-create/v0';
 export const COMMAND_EVE_CRM_STAGE_LOCAL_BRIDGE_VERSION = 'command-eve-crm-stage-local/v0';
+export const COMMAND_EVE_CRM_CONSENT_LOCAL_BRIDGE_VERSION = 'command-eve-crm-consent-local/v0';
 
 export type CommandEveCrmOverlayStatus = 'ready' | 'blocked' | 'failed';
 
@@ -120,6 +121,28 @@ export type CommandEveCrmStageLocalResult = {
   deal_id?: string;
   previous_stage?: string;
   stage?: string;
+  model?: CommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+};
+
+export type CommandEveCrmConsentLocalRequest = {
+  dealId: string;
+};
+
+export type CommandEveCrmConsentLocalResult = {
+  version: typeof COMMAND_EVE_CRM_CONSENT_LOCAL_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveCrmOverlayStatus;
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  deal_id?: string;
+  consent_status?: string;
+  allowed_actions?: string;
   model?: CommandEveCrmOverlayModel;
   source: {
     generated_by: 'command-eve-crm-overlay-core';
@@ -550,6 +573,100 @@ finally:
 `;
 }
 
+function crmConsentLocalScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"ok": False, "reason_code": "CRM_OVERLAY_NOT_INITIALIZED"}))
+    sys.exit(0)
+
+conn = sqlite3.connect(db_path)
+try:
+    conn.execute("PRAGMA busy_timeout=5000")
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    required = {"crm_companies", "crm_contacts", "crm_deals", "crm_events"}
+    if not required.issubset(tables):
+        print(json.dumps({"ok": False, "reason_code": "CRM_SCHEMA_INCOMPLETE"}))
+        sys.exit(0)
+
+    deal_id = request["deal_id"]
+    row = conn.execute(
+        "SELECT contact_ids, consent_status, human_gate, data_class FROM crm_deals WHERE deal_id = ?",
+        (deal_id,),
+    ).fetchone()
+    if row is None:
+        print(json.dumps({"ok": False, "reason_code": "CRM_DEAL_NOT_FOUND"}))
+        sys.exit(0)
+
+    contact_ids_raw, consent_status, human_gate, data_class = row
+    if consent_status not in ("unknown", "captured-local"):
+        print(json.dumps({"ok": False, "reason_code": "CRM_CONSENT_STATUS_NOT_ALLOWED"}))
+        sys.exit(0)
+    if human_gate != "HG-4" or data_class != "S2":
+        print(json.dumps({"ok": False, "reason_code": "CRM_CONSENT_POLICY_MISMATCH"}))
+        sys.exit(0)
+
+    try:
+        contact_ids = json.loads(contact_ids_raw or "[]")
+    except Exception:
+        contact_ids = []
+    contact_ids = [item for item in contact_ids if isinstance(item, str) and item]
+
+    created_at = request["created_at"]
+    event_id = request["audit_event_id"]
+    next_consent_status = "captured-local"
+    next_allowed_actions = "review-only"
+    consent_basis = "manual-founder-confirmation"
+    consent_source = "command-eve-local-ui"
+    for contact_id in contact_ids:
+        conn.execute(
+            """
+            UPDATE crm_contacts
+            SET consent_status = ?, consent_basis = ?, consent_source = ?, last_verified = ?
+            WHERE contact_id = ?
+            """,
+            (next_consent_status, consent_basis, consent_source, created_at, contact_id),
+        )
+    conn.execute(
+        """
+        UPDATE crm_deals
+        SET consent_status = ?, allowed_actions = ?, last_activity_at = ?
+        WHERE deal_id = ?
+        """,
+        (next_consent_status, next_allowed_actions, created_at, deal_id),
+    )
+    payload = {
+        "deal_id": deal_id,
+        "contact_ids": contact_ids,
+        "local_only": True,
+        "plane_sync_enabled": False,
+        "hosted_sync_enabled": False,
+        "outreach_enabled": False,
+        "subprocess_spawned": False,
+        "consent_status": next_consent_status,
+        "consent_basis": consent_basis,
+        "consent_source": consent_source,
+        "allowed_actions": next_allowed_actions,
+        "data_class": data_class,
+        "human_gate": human_gate,
+    }
+    conn.execute(
+        "INSERT OR IGNORE INTO crm_events (event_id, kind, payload, created_at) VALUES (?, ?, ?, ?)",
+        (event_id, "crm_consent_captured_local", json.dumps(payload), created_at),
+    )
+    conn.commit()
+    print(json.dumps({"ok": True, "consent_status": next_consent_status, "allowed_actions": next_allowed_actions}))
+finally:
+    conn.close()
+`;
+}
+
 function countsFrom(value: unknown): CommandEveCrmOverlayCounts {
   const counts = isRecord(value) ? value : {};
   return {
@@ -629,6 +746,10 @@ function crmDraftAuditEventId(occurredAt: string): string {
 
 function crmStageAuditEventId(dealId: string, occurredAt: string): string {
   return ['command-eve-crm-stage-local', sanitizeEventIdPart(dealId), sanitizeEventIdPart(occurredAt)].join('-');
+}
+
+function crmConsentAuditEventId(dealId: string, occurredAt: string): string {
+  return ['command-eve-crm-consent-local', sanitizeEventIdPart(dealId), sanitizeEventIdPart(occurredAt)].join('-');
 }
 
 function appendCrmAuditEvent({
@@ -800,6 +921,66 @@ function appendCrmStageAuditEvent({
   fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
 }
 
+function appendCrmConsentAuditEvent({
+  eventId,
+  eventLedgerPath,
+  occurredAt,
+  dbPath,
+  dealId,
+  consentStatus,
+  allowedActions,
+}: {
+  eventId: string;
+  eventLedgerPath: string;
+  occurredAt: string;
+  dbPath: string;
+  dealId: string;
+  consentStatus: string;
+  allowedActions: string;
+}): void {
+  const event = {
+    schema_version: 'agent-event/v1',
+    event_id: eventId,
+    event_type: 'crm.consent_captured_local',
+    occurred_at: occurredAt,
+    producer: 'command-eve-desktop',
+    workspace: 'command-eve-local',
+    workspace_path: dbPath,
+    issue_id: dealId,
+    parent_issue_id: '',
+    run_id: 'crm-consent-local',
+    session_id: '',
+    agent: 'eve',
+    mode: 'crm-consent-local',
+    role_owner: 'Controller',
+    department: 'Sales',
+    autonomy_level: 'L1',
+    event_policy: 'append-only',
+    payload: {
+      deal_id: dealId,
+      db_path: dbPath,
+      local_only: true,
+      plane_sync_enabled: false,
+      hosted_sync_enabled: false,
+      outreach_enabled: false,
+      subprocess_spawned: false,
+      consent_status: consentStatus,
+      consent_basis: 'manual-founder-confirmation',
+      consent_source: 'command-eve-local-ui',
+      allowed_actions: allowedActions,
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      action: 'crm_consent_capture_local',
+    },
+    artifact_paths: [dbPath],
+    linear_comment_ids: [] as string[],
+    human_gate_required: true,
+    redaction_level: 'ids-only',
+  };
+  fs.mkdirSync(path.dirname(eventLedgerPath), { recursive: true });
+  fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
+}
+
 function resultBase(hermesHome: string): Pick<CommandEveCrmOverlayResult, 'version' | 'source'> {
   return {
     version: COMMAND_EVE_CRM_OVERLAY_BRIDGE_VERSION,
@@ -833,6 +1014,16 @@ function draftCreateResultBase(hermesHome: string): Pick<CommandEveCrmDraftCreat
 function stageLocalResultBase(hermesHome: string): Pick<CommandEveCrmStageLocalResult, 'version' | 'source'> {
   return {
     version: COMMAND_EVE_CRM_STAGE_LOCAL_BRIDGE_VERSION,
+    source: {
+      generated_by: 'command-eve-crm-overlay-core',
+      hermes_home: hermesHome,
+    },
+  };
+}
+
+function consentLocalResultBase(hermesHome: string): Pick<CommandEveCrmConsentLocalResult, 'version' | 'source'> {
+  return {
+    version: COMMAND_EVE_CRM_CONSENT_LOCAL_BRIDGE_VERSION,
     source: {
       generated_by: 'command-eve-crm-overlay-core',
       hermes_home: hermesHome,
@@ -1070,6 +1261,81 @@ export function changeCrmDealStageLocal(
     deal_id: dealId,
     previous_stage: previousStage,
     stage,
+    model: overlay.model,
+  };
+}
+
+export function captureCrmConsentLocal(
+  options: CommandEveCrmOverlayOptions,
+  request: CommandEveCrmConsentLocalRequest
+): CommandEveCrmConsentLocalResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const dbPath = crmDbPath(paths.hermesHome);
+  const eventLedgerPath = resolveEventLedgerPath(paths, options);
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const dealId = request.dealId.trim();
+  const auditEventId = crmConsentAuditEventId(dealId, occurredAt);
+  const base = consentLocalResultBase(paths.hermesHome);
+  const python = pythonBinary(paths, options.pythonPath);
+
+  if (!dealId) {
+    return {
+      ...base,
+      ok: false,
+      status: 'blocked',
+      reason_code: 'CRM_CONSENT_DEAL_ID_REQUIRED',
+      message: 'Command EVE CRM local consent capture requires a deal id.',
+    };
+  }
+
+  const write = readPythonJson(
+    python,
+    {
+      db_path: dbPath,
+      audit_event_id: auditEventId,
+      created_at: occurredAt,
+      deal_id: dealId,
+    },
+    crmConsentLocalScript(),
+    paths.hermesHome
+  );
+  if (!write.ok || write.data?.ok !== true) {
+    const reasonCode =
+      typeof write.data?.reason_code === 'string' ? write.data.reason_code : 'CRM_CONSENT_LOCAL_FAILED';
+    return {
+      ...base,
+      ok: false,
+      status: write.ok ? 'blocked' : 'failed',
+      reason_code: reasonCode,
+      message: write.error || 'Command EVE CRM local consent capture could not be applied.',
+      deal_id: dealId,
+    };
+  }
+
+  const consentStatus = typeof write.data.consent_status === 'string' ? write.data.consent_status : 'captured-local';
+  const allowedActions = typeof write.data.allowed_actions === 'string' ? write.data.allowed_actions : 'review-only';
+  appendCrmConsentAuditEvent({
+    eventId: auditEventId,
+    eventLedgerPath,
+    occurredAt,
+    dbPath,
+    dealId,
+    consentStatus,
+    allowedActions,
+  });
+  const overlay = buildCrmOverlay({ ...options, now });
+  return {
+    ...base,
+    ok: overlay.ok,
+    status: overlay.status,
+    reason_code: overlay.ok ? 'CRM_CONSENT_CAPTURED_LOCAL_ONLY' : overlay.reason_code,
+    message: overlay.message,
+    audit_event_id: auditEventId,
+    audit_event_path: eventLedgerPath,
+    deal_id: dealId,
+    consent_status: consentStatus,
+    allowed_actions: allowedActions,
     model: overlay.model,
   };
 }

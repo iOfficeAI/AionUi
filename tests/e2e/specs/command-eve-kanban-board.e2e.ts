@@ -670,11 +670,21 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByText(/CRM_STAGE_CHANGED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
     await expect(draftDealList.getByText('qualified')).toBeVisible({ timeout: 30_000 });
 
+    const consentButton = draftDealList.getByRole('button', { name: /Consent notieren|Record consent/ }).first();
+    await expect(consentButton).toBeVisible({ timeout: 30_000 });
+    await expect(consentButton).toBeEnabled({ timeout: 30_000 });
+    await consentButton.click();
+
+    await expect(page.getByTestId('crm-consent-local-result')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/CRM_CONSENT_CAPTURED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
+    await expect(draftDealList.getByText('captured-local')).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText('review-only')).toBeVisible({ timeout: 30_000 });
+
     const dealRows = sqliteQuery(
       crmDbPath,
       'SELECT stage, allowed_actions, consent_status, human_gate, data_class FROM crm_deals'
     );
-    expect(dealRows).toEqual([['qualified', 'draft-only', 'unknown', 'HG-4', 'S2']]);
+    expect(dealRows).toEqual([['qualified', 'review-only', 'captured-local', 'HG-4', 'S2']]);
     const draftEventRows = sqliteQuery(
       crmDbPath,
       "SELECT kind, payload FROM crm_events WHERE kind = 'crm_draft_deal_created'"
@@ -713,6 +723,31 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(stageEventPayload.allowed_actions).toBe('draft-only');
     expect(stageEventPayload.human_gate).toBe('HG-4');
     expect(stageEventPayload.stage).toBe('qualified');
+    const consentEventRows = sqliteQuery(
+      crmDbPath,
+      "SELECT kind, payload FROM crm_events WHERE kind = 'crm_consent_captured_local'"
+    );
+    expect(consentEventRows.length, 'crm_events consent receipt must exist').toBeGreaterThan(0);
+    const consentEventPayload = JSON.parse(consentEventRows[0][1]) as {
+      local_only?: boolean;
+      outreach_enabled?: boolean;
+      subprocess_spawned?: boolean;
+      consent_status?: string;
+      consent_basis?: string;
+      consent_source?: string;
+      allowed_actions?: string;
+      human_gate?: string;
+      data_class?: string;
+    };
+    expect(consentEventPayload.local_only).toBe(true);
+    expect(consentEventPayload.outreach_enabled).toBe(false);
+    expect(consentEventPayload.subprocess_spawned).toBe(false);
+    expect(consentEventPayload.consent_status).toBe('captured-local');
+    expect(consentEventPayload.consent_basis).toBe('manual-founder-confirmation');
+    expect(consentEventPayload.consent_source).toBe('command-eve-local-ui');
+    expect(consentEventPayload.allowed_actions).toBe('review-only');
+    expect(consentEventPayload.human_gate).toBe('HG-4');
+    expect(consentEventPayload.data_class).toBe('S2');
 
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingCrmAudit = ledgerLines.find((line) => {
@@ -751,6 +786,21 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       }
     });
     expect(matchingCrmStageAudit, 'audit ledger must contain crm.draft_deal_stage_changed').toBeTruthy();
+    const matchingCrmConsentAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; payload?: Record<string, unknown> };
+        return (
+          evt.event_type === 'crm.consent_captured_local' &&
+          evt.payload?.local_only === true &&
+          evt.payload?.subprocess_spawned === false &&
+          evt.payload?.consent_status === 'captured-local' &&
+          evt.payload?.allowed_actions === 'review-only'
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(matchingCrmConsentAudit, 'audit ledger must contain crm.consent_captured_local').toBeTruthy();
 
     const screenshotPath = 'tests/e2e/results/command-eve-crm-overlay-init.png';
     await page.screenshot({ path: screenshotPath, fullPage: true });

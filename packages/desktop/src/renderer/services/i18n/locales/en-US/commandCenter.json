@@ -153,10 +153,16 @@
       "success": "Local CRM stage updated.",
       "failed": "CRM stage could not be updated locally."
     },
+    "consent": {
+      "resultTitle": "CRM consent receipt",
+      "success": "Local CRM consent recorded.",
+      "failed": "CRM consent could not be recorded locally."
+    },
     "readyNote": "CRM Overlay is initialized locally. Contacts, deals, and real actions remain gated.",
     "actions": {
       "initialize": "Initialize CRM locally",
       "createDraft": "Create local draft",
+      "captureConsent": "Record consent",
       "qualifyDraft": "Qualify"
     },
     "counts": {

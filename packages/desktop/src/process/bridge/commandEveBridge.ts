@@ -10,6 +10,7 @@ import { buildConnectorCatalog } from '@process/commandEve/connectorCatalogCore'
 import { runConnectorPreflight } from '@process/commandEve/connectorPreflightCore';
 import {
   buildCrmOverlay,
+  captureCrmConsentLocal,
   changeCrmDealStageLocal,
   createCrmDraftDeal,
   initializeCrmOverlay,
@@ -572,6 +573,41 @@ export function initCommandEveBridge(): void {
         };
       }
     });
+
+  bridge.buildProvider('command-eve.crm-consent-local').provider(async (request?: { dealId?: string; eventLedgerPath?: string }) => {
+    try {
+      const result = captureCrmConsentLocal(
+        {
+          userDataPath: getDataPath(),
+          eventLedgerPath: request?.eventLedgerPath,
+        },
+        {
+          dealId: request?.dealId || '',
+        }
+      );
+      return {
+        success: result.ok,
+        msg: result.ok ? undefined : result.reason_code || result.message,
+        data: result,
+      };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
+        data: {
+          version: 'command-eve-crm-consent-local/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'CRM_CONSENT_LOCAL_BRIDGE_FAILED',
+          message: error instanceof Error ? error.message : 'Command EVE CRM local consent bridge failed.',
+          source: {
+            generated_by: 'command-eve-crm-overlay-core',
+            hermes_home: '',
+          },
+        },
+      };
+    }
+  });
 
   // -------------------------------------------------------------------------
   // Registration + license gate (W11). Registration PII is S2, stored LOCAL

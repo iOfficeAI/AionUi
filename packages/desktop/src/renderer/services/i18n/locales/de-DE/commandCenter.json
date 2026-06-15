@@ -153,10 +153,16 @@
       "success": "Lokale CRM-Stufe aktualisiert.",
       "failed": "CRM-Stufe konnte nicht lokal aktualisiert werden."
     },
+    "consent": {
+      "resultTitle": "CRM-Consent-Receipt",
+      "success": "Lokale CRM-Einwilligung notiert.",
+      "failed": "CRM-Einwilligung konnte nicht lokal notiert werden."
+    },
     "readyNote": "CRM Overlay ist lokal initialisiert. Kontakte, Deals und echte Aktionen bleiben weiter gate-pflichtig.",
     "actions": {
       "initialize": "CRM lokal initialisieren",
       "createDraft": "Lokalen Draft anlegen",
+      "captureConsent": "Consent notieren",
       "qualifyDraft": "Qualifizieren"
     },
     "counts": {
