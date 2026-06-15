@@ -8,7 +8,12 @@ import { bridge } from '@office-ai/platform';
 import { buildCommandCenterReadModel } from '@process/commandEve/commandCenterReadModelCore';
 import { buildConnectorCatalog } from '@process/commandEve/connectorCatalogCore';
 import { runConnectorPreflight } from '@process/commandEve/connectorPreflightCore';
-import { buildCrmOverlay, createCrmDraftDeal, initializeCrmOverlay } from '@process/commandEve/crmOverlayCore';
+import {
+  buildCrmOverlay,
+  changeCrmDealStageLocal,
+  createCrmDraftDeal,
+  initializeCrmOverlay,
+} from '@process/commandEve/crmOverlayCore';
 import {
   activateEntitlement,
   getEntitlementStatus,
@@ -529,6 +534,44 @@ export function initCommandEveBridge(): void {
       };
     }
   });
+
+  bridge
+    .buildProvider('command-eve.crm-stage-local')
+    .provider(async (request?: { dealId?: string; targetStage?: 'qualified'; eventLedgerPath?: string }) => {
+      try {
+        const result = changeCrmDealStageLocal(
+          {
+            userDataPath: getDataPath(),
+            eventLedgerPath: request?.eventLedgerPath,
+          },
+          {
+            dealId: request?.dealId || '',
+            targetStage: request?.targetStage || 'qualified',
+          }
+        );
+        return {
+          success: result.ok,
+          msg: result.ok ? undefined : result.reason_code || result.message,
+          data: result,
+        };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE CRM local stage bridge failed.',
+          data: {
+            version: 'command-eve-crm-stage-local/v0',
+            ok: false,
+            status: 'failed',
+            reason_code: 'CRM_STAGE_LOCAL_BRIDGE_FAILED',
+            message: error instanceof Error ? error.message : 'Command EVE CRM local stage bridge failed.',
+            source: {
+              generated_by: 'command-eve-crm-overlay-core',
+              hermes_home: '',
+            },
+          },
+        };
+      }
+    });
 
   // -------------------------------------------------------------------------
   // Registration + license gate (W11). Registration PII is S2, stored LOCAL

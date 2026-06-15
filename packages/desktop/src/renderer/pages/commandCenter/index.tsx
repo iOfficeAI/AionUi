@@ -405,6 +405,24 @@ interface ICommandEveCrmDraftCreateResult {
   };
 }
 
+interface ICommandEveCrmStageLocalResult {
+  version: 'command-eve-crm-stage-local/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  deal_id?: string;
+  previous_stage?: string;
+  stage?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // Shared board-carrying shape between the create and move mutation results, used
 // to re-render the read-only board projection after a successful mutation.
 interface IMarketingMutationBoardCarrier {
@@ -467,6 +485,11 @@ const crmDraftCreate = bridge.buildProvider<
   IBridgeResponse<ICommandEveCrmDraftCreateResult>,
   { eventLedgerPath?: string }
 >('command-eve.crm-draft-create');
+
+const crmStageLocal = bridge.buildProvider<
+  IBridgeResponse<ICommandEveCrmStageLocalResult>,
+  { dealId: string; targetStage: 'qualified'; eventLedgerPath?: string }
+>('command-eve.crm-stage-local');
 
 const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
 
@@ -1050,11 +1073,25 @@ const CrmOverlaySection: React.FC<{
   result: ICommandEveCrmOverlayResult | null;
   initializeResult: ICommandEveCrmOverlayInitializeResult | null;
   draftCreateResult: ICommandEveCrmDraftCreateResult | null;
+  stageResult: ICommandEveCrmStageLocalResult | null;
   initializing: boolean;
   creatingDraft: boolean;
+  stagingDealId: string | null;
   onInitialize: () => void;
   onCreateDraft: () => void;
-}> = ({ result, initializeResult, draftCreateResult, initializing, creatingDraft, onInitialize, onCreateDraft }) => {
+  onStageDeal: (dealId: string) => void;
+}> = ({
+  result,
+  initializeResult,
+  draftCreateResult,
+  stageResult,
+  initializing,
+  creatingDraft,
+  stagingDealId,
+  onInitialize,
+  onCreateDraft,
+  onStageDeal,
+}) => {
   const { t } = useTranslation();
   const model = result?.model;
   const counts = model?.counts ?? { companies: 0, contacts: 0, deals: 0, audit_events: 0 };
@@ -1099,6 +1136,15 @@ const CrmOverlaySection: React.FC<{
         />
       ) : null}
 
+      {stageResult ? (
+        <Alert
+          type={stageResult.ok ? 'success' : 'warning'}
+          title={stageResult.reason_code || t('commandCenter.crmOverlay.stage.resultTitle')}
+          content={stageResult.deal_id || stageResult.message || stageResult.audit_event_id || '-'}
+          data-testid='crm-stage-local-result'
+        />
+      ) : null}
+
       <div className='grid gap-10px sm:grid-cols-2 lg:grid-cols-4'>
         {(['companies', 'contacts', 'deals', 'audit_events'] as const).map((key) => (
           <div
@@ -1134,6 +1180,19 @@ const CrmOverlaySection: React.FC<{
               </div>
               <div className='mt-6px truncate text-11px leading-16px text-t-tertiary'>
                 {textOrDash(deal.last_activity_at)}
+              </div>
+              <div className='mt-10px flex justify-end'>
+                <Button
+                  size='mini'
+                  shape='round'
+                  type='outline'
+                  loading={stagingDealId === deal.deal_id}
+                  disabled={Boolean(stagingDealId) || deal.stage === 'qualified'}
+                  onClick={() => onStageDeal(deal.deal_id)}
+                  data-testid={`crm-stage-qualified-${deal.deal_id}`}
+                >
+                  {t('commandCenter.crmOverlay.actions.qualifyDraft')}
+                </Button>
               </div>
             </article>
           ))}
@@ -1337,6 +1396,7 @@ const CommandCenterPage: React.FC = () => {
   const [crmResult, setCrmResult] = useState<ICommandEveCrmOverlayResult | null>(null);
   const [crmInitializeResult, setCrmInitializeResult] = useState<ICommandEveCrmOverlayInitializeResult | null>(null);
   const [crmDraftCreateResult, setCrmDraftCreateResult] = useState<ICommandEveCrmDraftCreateResult | null>(null);
+  const [crmStageResult, setCrmStageResult] = useState<ICommandEveCrmStageLocalResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
@@ -1348,6 +1408,7 @@ const CommandCenterPage: React.FC = () => {
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
   const [crmInitializing, setCrmInitializing] = useState(false);
   const [crmDraftCreating, setCrmDraftCreating] = useState(false);
+  const [crmStagingDealId, setCrmStagingDealId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -1705,6 +1766,55 @@ const CommandCenterPage: React.FC = () => {
     }
   }, [t]);
 
+  const stageCrmDeal = useCallback(
+    async (dealId: string) => {
+      if (!isElectronDesktop()) return;
+      setCrmStagingDealId(dealId);
+      setCrmStageResult(null);
+      try {
+        const response = await crmStageLocal.invoke({ dealId, targetStage: 'qualified' });
+        const data = response.data ?? null;
+        setCrmStageResult(data);
+        if (data?.model) {
+          setCrmResult({
+            version: 'command-eve-crm-overlay/v0',
+            ok: data.ok,
+            status: data.status,
+            reason_code: data.reason_code,
+            message: data.message,
+            model: data.model,
+            source: data.source,
+          });
+        } else {
+          const nextCrm = await crmOverlay.invoke({});
+          setCrmResult(nextCrm.data ?? null);
+        }
+        if (data?.ok) {
+          Message.success(t('commandCenter.crmOverlay.stage.success'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.crmOverlay.stage.failed'));
+        }
+      } catch (stageError) {
+        const failure: ICommandEveCrmStageLocalResult = {
+          version: 'command-eve-crm-stage-local/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'CRM_STAGE_LOCAL_UI_FAILED',
+          message: stageError instanceof Error ? stageError.message : t('commandCenter.crmOverlay.stage.failed'),
+          source: {
+            generated_by: 'command-eve-crm-overlay-core',
+            hermes_home: '',
+          },
+        };
+        setCrmStageResult(failure);
+        Message.error(failure.message || t('commandCenter.crmOverlay.stage.failed'));
+      } finally {
+        setCrmStagingDealId(null);
+      }
+    },
+    [t]
+  );
+
   return (
     <div
       className={classNames(
@@ -1803,10 +1913,13 @@ const CommandCenterPage: React.FC = () => {
               result={crmResult}
               initializeResult={crmInitializeResult}
               draftCreateResult={crmDraftCreateResult}
+              stageResult={crmStageResult}
               initializing={crmInitializing}
               creatingDraft={crmDraftCreating}
+              stagingDealId={crmStagingDealId}
               onInitialize={initializeCrm}
               onCreateDraft={createCrmDraft}
+              onStageDeal={stageCrmDeal}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>

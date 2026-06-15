@@ -148,10 +148,16 @@
       "success": "Local CRM draft created.",
       "failed": "CRM draft could not be created."
     },
+    "stage": {
+      "resultTitle": "CRM stage receipt",
+      "success": "Local CRM stage updated.",
+      "failed": "CRM stage could not be updated locally."
+    },
     "readyNote": "CRM Overlay is initialized locally. Contacts, deals, and real actions remain gated.",
     "actions": {
       "initialize": "Initialize CRM locally",
-      "createDraft": "Create local draft"
+      "createDraft": "Create local draft",
+      "qualifyDraft": "Qualify"
     },
     "counts": {
       "companies": "Companies",
