@@ -685,6 +685,15 @@ type OperatingSurfaceCard = {
   tags: string[];
 };
 
+type OperatingReadinessCheck = {
+  key: 'marketingReceipts' | 'crmNl5Receipts' | 'dispatchBlocked' | 'workerAutonomyLocked';
+  ok: boolean;
+  status: OperatingSurfaceStatus;
+  titleKey: string;
+  descriptionKey: string;
+  evidence: string;
+};
+
 const operatingSurfaceColor = (status: OperatingSurfaceStatus): 'green' | 'orange' | 'red' => {
   if (status === 'ready') return 'green';
   if (status === 'blocked') return 'red';
@@ -766,6 +775,109 @@ const OperatingSurfacesSection: React.FC<{
             <Button shape='round' type='outline' onClick={() => scrollToSection(card.anchorId)}>
               {t('commandCenter.operatingSurfaces.open')}
             </Button>
+          </article>
+        ))}
+      </div>
+    </Section>
+  );
+};
+
+const OperatingReadinessSection: React.FC<{
+  marketingResult: ICommandEveMarketingBoardResult | null;
+  crmResult: ICommandEveCrmOverlayResult | null;
+  dispatchPlanResult: ICommandEveMarketingDispatchPlanResult | null;
+  readModel: ICommandEveCommandCenterReadModel;
+}> = ({ marketingResult, crmResult, dispatchPlanResult, readModel }) => {
+  const { t } = useTranslation();
+  const marketingCards = marketingResult?.model?.summary.total_cards ?? 0;
+  const marketingAuditCards = marketingResult?.model?.summary.audit_linked_cards ?? 0;
+  const crmAuditEvents = crmResult?.model?.counts.audit_events ?? 0;
+  const dispatchChecked = dispatchPlanResult?.data_boundary_checked === true;
+  const dispatchBlockedBeforeSpawn =
+    dispatchChecked &&
+    dispatchPlanResult?.subprocess_spawned === false &&
+    dispatchPlanResult?.release_blocked !== false;
+  const workerAutonomyLocked =
+    readModel.blocked_actions.includes('worker_dispatch') ||
+    Boolean(marketingResult?.model?.policy && marketingResult.model.policy.dispatcher_enabled === false);
+  const checks: OperatingReadinessCheck[] = [
+    {
+      key: 'marketingReceipts',
+      ok: marketingResult?.status === 'ready' && marketingAuditCards >= marketingCards,
+      status:
+        marketingResult?.status === 'failed'
+          ? 'blocked'
+          : marketingResult?.status === 'ready' && marketingAuditCards >= marketingCards
+            ? 'ready'
+            : 'check',
+      titleKey: 'commandCenter.operatingReadiness.marketingReceipts.title',
+      descriptionKey: 'commandCenter.operatingReadiness.marketingReceipts.description',
+      evidence: `${formatCount(marketingAuditCards)} / ${formatCount(marketingCards)}`,
+    },
+    {
+      key: 'crmNl5Receipts',
+      ok: crmResult?.status === 'ready' && crmResult.model?.initialized === true && crmAuditEvents > 0,
+      status:
+        crmResult?.status === 'failed'
+          ? 'blocked'
+          : crmResult?.status === 'ready' && crmResult.model?.initialized === true && crmAuditEvents > 0
+            ? 'ready'
+            : 'check',
+      titleKey: 'commandCenter.operatingReadiness.crmNl5Receipts.title',
+      descriptionKey: 'commandCenter.operatingReadiness.crmNl5Receipts.description',
+      evidence: formatCount(crmAuditEvents),
+    },
+    {
+      key: 'dispatchBlocked',
+      ok: dispatchBlockedBeforeSpawn,
+      status: dispatchPlanResult?.status === 'failed' ? 'blocked' : dispatchBlockedBeforeSpawn ? 'ready' : 'check',
+      titleKey: 'commandCenter.operatingReadiness.dispatchBlocked.title',
+      descriptionKey: 'commandCenter.operatingReadiness.dispatchBlocked.description',
+      evidence: dispatchChecked
+        ? dispatchPlanResult?.reason_code || t('commandCenter.operatingReadiness.dispatchBlocked.checked')
+        : t('commandCenter.operatingReadiness.dispatchBlocked.waiting'),
+    },
+    {
+      key: 'workerAutonomyLocked',
+      ok: workerAutonomyLocked,
+      status: workerAutonomyLocked ? 'ready' : 'blocked',
+      titleKey: 'commandCenter.operatingReadiness.workerAutonomyLocked.title',
+      descriptionKey: 'commandCenter.operatingReadiness.workerAutonomyLocked.description',
+      evidence: readModel.blocked_actions.includes('worker_dispatch')
+        ? 'worker_dispatch'
+        : marketingResult?.model?.policy.dispatcher_enabled === false
+          ? 'dispatcher_enabled=false'
+          : t('commandCenter.operatingReadiness.workerAutonomyLocked.missing'),
+    },
+  ];
+  const readyCount = checks.filter((check) => check.ok).length;
+  return (
+    <Section title={t('commandCenter.sections.operatingReadiness')} testId='command-center-operating-readiness'>
+      <div className='flex flex-wrap items-start justify-between gap-10px'>
+        <p className='m-0 max-w-720px text-12px leading-18px text-t-secondary'>
+          {t('commandCenter.operatingReadiness.description')}
+        </p>
+        <Tag color={readyCount === checks.length ? 'green' : 'orange'}>
+          {`${formatCount(readyCount)} / ${formatCount(checks.length)}`}
+        </Tag>
+      </div>
+      <div className='grid gap-10px md:grid-cols-2'>
+        {checks.map((check) => (
+          <article
+            key={check.key}
+            className='rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'
+            data-testid={`operating-readiness-${check.key}`}
+          >
+            <div className='flex items-start justify-between gap-10px'>
+              <div className='min-w-0'>
+                <h3 className='m-0 text-13px font-700 leading-20px text-t-primary'>{t(check.titleKey)}</h3>
+                <p className='m-0 mt-4px text-12px leading-18px text-t-secondary'>{t(check.descriptionKey)}</p>
+              </div>
+              <Tag color={operatingSurfaceColor(check.status)}>
+                {t(`commandCenter.operatingSurfaces.status.${check.status}`)}
+              </Tag>
+            </div>
+            <div className='mt-10px truncate text-11px leading-16px text-t-tertiary'>{check.evidence}</div>
           </article>
         ))}
       </div>
@@ -2404,6 +2516,12 @@ const CommandCenterPage: React.FC = () => {
               marketingResult={marketingResult}
               crmResult={crmResult}
               dispatchPlanResult={dispatchPlanResult}
+            />
+            <OperatingReadinessSection
+              marketingResult={marketingResult}
+              crmResult={crmResult}
+              dispatchPlanResult={dispatchPlanResult}
+              readModel={model}
             />
 
             <Section title={t('commandCenter.sections.board')} count={model.worker_runs.length}>

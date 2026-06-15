@@ -16,6 +16,7 @@
     "statusSurface": "Status / Health",
     "source": "Quelle",
     "operatingSurfaces": "Operating Surfaces",
+    "operatingReadiness": "Operating Readiness",
     "board": "Lokales Board",
     "marketingBoard": "Marketing Board",
     "crmOverlay": "CRM Overlay",
@@ -64,6 +65,28 @@
       "description": "Zeigt, ob ein Card-Dispatch durch NL-5 geprüft wurde und Hermes weiter blockiert bleibt.",
       "checked": "geprüft",
       "waiting": "wartet"
+    }
+  },
+  "operatingReadiness": {
+    "description": "Beweist die lokale Bedienbarkeit, ohne Autonomie still freizuschalten: Marketing-Receipts, CRM-NL-5-Receipts, Dispatch-Block und Worker-Lock muessen sichtbar gruen sein.",
+    "marketingReceipts": {
+      "title": "Marketing-Receipts",
+      "description": "Alle lokalen Marketing-Karten sind mit einem append-only Audit-Event verknuepft."
+    },
+    "crmNl5Receipts": {
+      "title": "CRM-NL-5-Receipts",
+      "description": "CRM-Aktionen schreiben lokale NL-5-Receipts, bevor Kundendaten spaeter irgendeinen Ausfuehrungspfad beruehren duerfen."
+    },
+    "dispatchBlocked": {
+      "title": "Dispatch blockiert vor Spawn",
+      "description": "Der Dispatch-Plan wurde durch NL-5 geprueft und Hermes/Worker-Ausfuehrung blieb gestoppt.",
+      "checked": "geprueft",
+      "waiting": "wartet auf Dispatch-Check"
+    },
+    "workerAutonomyLocked": {
+      "title": "Worker-Autonomie gelockt",
+      "description": "Worker-Dispatch bleibt explizit gesperrt, bis Controller- und Release-Gates echte Ausfuehrung erlauben.",
+      "missing": "kein Lock-Evidence"
     }
   },
   "board": {

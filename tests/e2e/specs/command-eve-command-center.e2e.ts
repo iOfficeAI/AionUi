@@ -119,6 +119,11 @@ test.describe('Command EVE Command Center', () => {
     await expect(page.getByTestId('operating-surface-crm')).toContainText(/CRM Lane/);
     await expect(page.getByTestId('operating-surface-dispatch')).toContainText(/Dispatch Gate/);
     await expect(page.getByTestId('operating-surface-dispatch')).toContainText(/NL-5/);
+    await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-readiness-marketingReceipts')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-readiness-workerAutonomyLocked')).toContainText(
+      /worker_dispatch|dispatcher_enabled=false/
+    );
     await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('morning-ceo-brief-20260610-0632')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('daily-improvement-dream-2026-06-10').first()).toBeVisible({

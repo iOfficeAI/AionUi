@@ -16,6 +16,7 @@
     "statusSurface": "Status / Health",
     "source": "Source",
     "operatingSurfaces": "Operating Surfaces",
+    "operatingReadiness": "Operating Readiness",
     "board": "Local Board",
     "marketingBoard": "Marketing Board",
     "crmOverlay": "CRM Overlay",
@@ -64,6 +65,28 @@
       "description": "Shows whether a card dispatch was checked through NL-5 and Hermes remains blocked.",
       "checked": "checked",
       "waiting": "waiting"
+    }
+  },
+  "operatingReadiness": {
+    "description": "Proves local operability without silently enabling autonomy: marketing receipts, CRM NL-5 receipts, dispatch block, and worker lock must be visibly green.",
+    "marketingReceipts": {
+      "title": "Marketing receipts",
+      "description": "Every local marketing card is linked to an append-only audit event."
+    },
+    "crmNl5Receipts": {
+      "title": "CRM NL-5 receipts",
+      "description": "CRM actions write local NL-5 receipts before customer data may later touch any execution path."
+    },
+    "dispatchBlocked": {
+      "title": "Dispatch blocked before spawn",
+      "description": "The dispatch plan was checked through NL-5 and Hermes/worker execution stayed stopped.",
+      "checked": "checked",
+      "waiting": "waiting for dispatch check"
+    },
+    "workerAutonomyLocked": {
+      "title": "Worker autonomy locked",
+      "description": "Worker dispatch stays explicitly locked until controller and release gates allow real execution.",
+      "missing": "no lock evidence"
     }
   },
   "board": {

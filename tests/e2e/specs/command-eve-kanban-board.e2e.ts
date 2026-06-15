@@ -647,6 +647,13 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         timeout: 30_000,
       }
     );
+    await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
+      /ready|bereit|KANBAN_MARKETING_DISPATCH_PLAN_READY/
+    );
+    await expect(page.getByTestId('operating-readiness-workerAutonomyLocked')).toContainText(
+      /ready|bereit|worker_dispatch|dispatcher_enabled=false/
+    );
 
     const dispatchRows = sqliteQuery(
       dispatchBoardDbPath!,
@@ -910,6 +917,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByText(/CRM_CONSENT_CAPTURED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
     await expect(draftDealList.getByText('captured-local')).toBeVisible({ timeout: 30_000 });
     await expect(draftDealList.getByText('review-only')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-readiness-crmNl5Receipts')).toContainText(/ready|bereit/);
 
     const dealRows = sqliteQuery(
       crmDbPath,
