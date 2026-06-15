@@ -600,6 +600,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     writeReconciliationLock(reconciliationPath);
 
     await page.waitForSelector('body', { state: 'visible' });
+    await page.reload();
+    await page.waitForSelector('body', { state: 'visible' });
     await page.evaluate(() => {
       window.location.hash = '#/command-center';
     });
@@ -644,6 +646,37 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(crmEventPayload.outreach_enabled).toBe(false);
     expect(crmEventPayload.human_gate).toBe('HG-4');
 
+    const draftButton = page.getByTestId('crm-draft-create');
+    await expect(draftButton).toBeVisible({ timeout: 30_000 });
+    await expect(draftButton).toBeEnabled({ timeout: 30_000 });
+    await draftButton.click();
+
+    await expect(page.getByTestId('crm-draft-create-result')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText(/CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
+
+    const dealRows = sqliteQuery(
+      crmDbPath,
+      'SELECT stage, allowed_actions, consent_status, human_gate, data_class FROM crm_deals'
+    );
+    expect(dealRows).toEqual([['draft', 'draft-only', 'unknown', 'HG-4', 'S2']]);
+    const draftEventRows = sqliteQuery(
+      crmDbPath,
+      "SELECT kind, payload FROM crm_events WHERE kind = 'crm_draft_deal_created'"
+    );
+    expect(draftEventRows.length, 'crm_events draft receipt must exist').toBeGreaterThan(0);
+    const draftEventPayload = JSON.parse(draftEventRows[0][1]) as {
+      local_only?: boolean;
+      outreach_enabled?: boolean;
+      consent_status?: string;
+      allowed_actions?: string;
+      human_gate?: string;
+    };
+    expect(draftEventPayload.local_only).toBe(true);
+    expect(draftEventPayload.outreach_enabled).toBe(false);
+    expect(draftEventPayload.consent_status).toBe('unknown');
+    expect(draftEventPayload.allowed_actions).toBe('draft-only');
+    expect(draftEventPayload.human_gate).toBe('HG-4');
+
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingCrmAudit = ledgerLines.find((line) => {
       try {
@@ -654,6 +687,19 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       }
     });
     expect(matchingCrmAudit, 'audit ledger must contain crm.overlay_initialized').toBeTruthy();
+    const matchingCrmDraftAudit = ledgerLines.find((line) => {
+      try {
+        const evt = JSON.parse(line) as { event_type?: string; payload?: Record<string, unknown> };
+        return (
+          evt.event_type === 'crm.draft_deal_created' &&
+          evt.payload?.local_only === true &&
+          evt.payload?.allowed_actions === 'draft-only'
+        );
+      } catch {
+        return false;
+      }
+    });
+    expect(matchingCrmDraftAudit, 'audit ledger must contain crm.draft_deal_created').toBeTruthy();
 
     const screenshotPath = 'tests/e2e/results/command-eve-crm-overlay-init.png';
     await page.screenshot({ path: screenshotPath, fullPage: true });

@@ -9,7 +9,7 @@ import { execFileSync } from 'child_process';
 import fs from 'fs';
 import os from 'os';
 import path from 'path';
-import { buildCrmOverlay, initializeCrmOverlay } from '@/process/commandEve/crmOverlayCore';
+import { buildCrmOverlay, createCrmDraftDeal, initializeCrmOverlay } from '@/process/commandEve/crmOverlayCore';
 
 const tempRoots: string[] = [];
 
@@ -166,5 +166,64 @@ finally:
       audit_events: 1,
     });
     expect(result.model?.policy.local_only).toBe(true);
+  });
+
+  it('creates a local-only draft company, contact, deal and audit receipt', () => {
+    const root = makeRoot();
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+    initializeCrmOverlay({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T08:30:00.000Z'),
+    });
+
+    const result = createCrmDraftDeal({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T08:31:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY');
+    expect(result.company_id).toContain('crm-company-');
+    expect(result.contact_id).toContain('crm-contact-');
+    expect(result.deal_id).toContain('crm-deal-');
+    expect(result.model?.counts).toMatchObject({
+      companies: 1,
+      contacts: 1,
+      deals: 1,
+      audit_events: 2,
+    });
+
+    const dbPath = result.model?.db_path || '';
+    const dealRows = readRows(
+      dbPath,
+      'SELECT deal_id, stage, allowed_actions, consent_status, human_gate, data_class FROM crm_deals ORDER BY deal_id'
+    );
+    expect(dealRows).toEqual([
+      {
+        deal_id: result.deal_id,
+        stage: 'draft',
+        allowed_actions: 'draft-only',
+        consent_status: 'unknown',
+        human_gate: 'HG-4',
+        data_class: 'S2',
+      },
+    ]);
+    const crmEvents = readRows(dbPath, 'SELECT kind FROM crm_events ORDER BY id');
+    expect(crmEvents).toEqual([{ kind: 'crm_overlay_initialized' }, { kind: 'crm_draft_deal_created' }]);
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents).toHaveLength(2);
+    expect(auditEvents[1].event_type).toBe('crm.draft_deal_created');
+    expect(auditEvents[1].payload).toMatchObject({
+      local_only: true,
+      hosted_sync_enabled: false,
+      outreach_enabled: false,
+      consent_status: 'unknown',
+      allowed_actions: 'draft-only',
+      human_gate: 'HG-4',
+    });
   });
 });

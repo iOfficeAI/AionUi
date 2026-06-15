@@ -143,9 +143,15 @@
       "success": "CRM Overlay initialized locally.",
       "failed": "CRM Overlay could not be initialized."
     },
+    "draft": {
+      "resultTitle": "CRM draft receipt",
+      "success": "Local CRM draft created.",
+      "failed": "CRM draft could not be created."
+    },
     "readyNote": "CRM Overlay is initialized locally. Contacts, deals, and real actions remain gated.",
     "actions": {
-      "initialize": "Initialize CRM locally"
+      "initialize": "Initialize CRM locally",
+      "createDraft": "Create local draft"
     },
     "counts": {
       "companies": "Companies",

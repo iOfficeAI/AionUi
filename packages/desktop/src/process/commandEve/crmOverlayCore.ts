@@ -11,6 +11,7 @@ import { resolveCommandEveRuntimeBootstrapPaths } from './runtimeBootstrapCore';
 
 export const COMMAND_EVE_CRM_OVERLAY_BRIDGE_VERSION = 'command-eve-crm-overlay/v0';
 export const COMMAND_EVE_CRM_OVERLAY_INITIALIZE_BRIDGE_VERSION = 'command-eve-crm-overlay-initialize/v0';
+export const COMMAND_EVE_CRM_DRAFT_CREATE_BRIDGE_VERSION = 'command-eve-crm-draft-create/v0';
 
 export type CommandEveCrmOverlayStatus = 'ready' | 'blocked' | 'failed';
 
@@ -65,6 +66,24 @@ export type CommandEveCrmOverlayInitializeResult = {
   message?: string;
   audit_event_id?: string;
   audit_event_path?: string;
+  model?: CommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+};
+
+export type CommandEveCrmDraftCreateResult = {
+  version: typeof COMMAND_EVE_CRM_DRAFT_CREATE_BRIDGE_VERSION;
+  ok: boolean;
+  status: CommandEveCrmOverlayStatus;
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  company_id?: string;
+  contact_id?: string;
+  deal_id?: string;
   model?: CommandEveCrmOverlayModel;
   source: {
     generated_by: 'command-eve-crm-overlay-core';
@@ -325,6 +344,81 @@ finally:
 `;
 }
 
+function crmDraftCreateScript(): string {
+  return String.raw`
+import json
+import os
+import sqlite3
+import sys
+
+request = json.loads(sys.stdin.read() or "{}")
+db_path = request["db_path"]
+if not os.path.isfile(db_path):
+    print(json.dumps({"ok": False, "reason_code": "CRM_OVERLAY_NOT_INITIALIZED"}))
+    sys.exit(0)
+
+conn = sqlite3.connect(db_path)
+try:
+    conn.execute("PRAGMA busy_timeout=5000")
+    tables = {row[0] for row in conn.execute("SELECT name FROM sqlite_master WHERE type='table'")}
+    required = {"crm_companies", "crm_contacts", "crm_deals", "crm_events"}
+    if not required.issubset(tables):
+        print(json.dumps({"ok": False, "reason_code": "CRM_SCHEMA_INCOMPLETE"}))
+        sys.exit(0)
+
+    company_id = request["company_id"]
+    contact_id = request["contact_id"]
+    deal_id = request["deal_id"]
+    created_at = request["created_at"]
+    event_id = request["audit_event_id"]
+    payload = {
+        "company_id": company_id,
+        "contact_id": contact_id,
+        "deal_id": deal_id,
+        "local_only": True,
+        "plane_sync_enabled": False,
+        "hosted_sync_enabled": False,
+        "outreach_enabled": False,
+        "consent_status": "unknown",
+        "allowed_actions": "draft-only",
+        "data_class": "S2",
+        "human_gate": "HG-4",
+    }
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO crm_companies
+        (company_id, display_name, source, relationship_status, owner, data_class, last_verified)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (company_id, "Draft Company", "command-eve-local-draft", "draft", "eve", "S2", created_at),
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO crm_contacts
+        (contact_id, display_name, company_id, role_title, source, owner, consent_status, data_class, last_verified, notes_ref)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (contact_id, "Draft Contact", company_id, "Decision Maker", "command-eve-local-draft", "eve", "unknown", "S2", created_at, "local-draft-only"),
+    )
+    conn.execute(
+        """
+        INSERT OR IGNORE INTO crm_deals
+        (deal_id, pipeline_board_slug, company_id, contact_ids, stage, owner, source, confidence, human_gate, allowed_actions, last_activity_at, data_class, consent_status, notes_ref)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """,
+        (deal_id, "sales", company_id, json.dumps([contact_id]), "draft", "eve", "command-eve-local-draft", 0.1, "HG-4", "draft-only", created_at, "S2", "unknown", "local-draft-only"),
+    )
+    conn.execute(
+        "INSERT OR IGNORE INTO crm_events (event_id, kind, payload, created_at) VALUES (?, ?, ?, ?)",
+        (event_id, "crm_draft_deal_created", json.dumps(payload), created_at),
+    )
+    conn.commit()
+    print(json.dumps({"ok": True}))
+finally:
+    conn.close()
+`;
+}
+
 function countsFrom(value: unknown): CommandEveCrmOverlayCounts {
   const counts = isRecord(value) ? value : {};
   return {
@@ -378,6 +472,10 @@ function crmAuditEventId(occurredAt: string): string {
   return ['command-eve-crm-overlay-initialized', sanitizeEventIdPart(occurredAt)].join('-');
 }
 
+function crmDraftAuditEventId(occurredAt: string): string {
+  return ['command-eve-crm-draft-deal-created', sanitizeEventIdPart(occurredAt)].join('-');
+}
+
 function appendCrmAuditEvent({
   eventId,
   eventLedgerPath,
@@ -428,6 +526,65 @@ function appendCrmAuditEvent({
   fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
 }
 
+function appendCrmDraftAuditEvent({
+  eventId,
+  eventLedgerPath,
+  occurredAt,
+  dbPath,
+  companyId,
+  contactId,
+  dealId,
+}: {
+  eventId: string;
+  eventLedgerPath: string;
+  occurredAt: string;
+  dbPath: string;
+  companyId: string;
+  contactId: string;
+  dealId: string;
+}): void {
+  const event = {
+    schema_version: 'agent-event/v1',
+    event_id: eventId,
+    event_type: 'crm.draft_deal_created',
+    occurred_at: occurredAt,
+    producer: 'command-eve-desktop',
+    workspace: 'command-eve-local',
+    workspace_path: dbPath,
+    issue_id: dealId,
+    parent_issue_id: companyId,
+    run_id: 'crm-draft-create',
+    session_id: '',
+    agent: 'eve',
+    mode: 'crm-draft-create',
+    role_owner: 'Controller',
+    department: 'Sales',
+    autonomy_level: 'L1',
+    event_policy: 'append-only',
+    payload: {
+      company_id: companyId,
+      contact_id: contactId,
+      deal_id: dealId,
+      db_path: dbPath,
+      local_only: true,
+      plane_sync_enabled: false,
+      hosted_sync_enabled: false,
+      outreach_enabled: false,
+      consent_status: 'unknown',
+      allowed_actions: 'draft-only',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      action: 'crm_draft_deal_create',
+    },
+    artifact_paths: [dbPath],
+    linear_comment_ids: [] as string[],
+    human_gate_required: true,
+    redaction_level: 'ids-only',
+  };
+  fs.mkdirSync(path.dirname(eventLedgerPath), { recursive: true });
+  fs.appendFileSync(eventLedgerPath, `${JSON.stringify(event)}\n`);
+}
+
 function resultBase(hermesHome: string): Pick<CommandEveCrmOverlayResult, 'version' | 'source'> {
   return {
     version: COMMAND_EVE_CRM_OVERLAY_BRIDGE_VERSION,
@@ -441,6 +598,16 @@ function resultBase(hermesHome: string): Pick<CommandEveCrmOverlayResult, 'versi
 function initializeResultBase(hermesHome: string): Pick<CommandEveCrmOverlayInitializeResult, 'version' | 'source'> {
   return {
     version: COMMAND_EVE_CRM_OVERLAY_INITIALIZE_BRIDGE_VERSION,
+    source: {
+      generated_by: 'command-eve-crm-overlay-core',
+      hermes_home: hermesHome,
+    },
+  };
+}
+
+function draftCreateResultBase(hermesHome: string): Pick<CommandEveCrmDraftCreateResult, 'version' | 'source'> {
+  return {
+    version: COMMAND_EVE_CRM_DRAFT_CREATE_BRIDGE_VERSION,
     source: {
       generated_by: 'command-eve-crm-overlay-core',
       hermes_home: hermesHome,
@@ -537,6 +704,70 @@ export function initializeCrmOverlay(options: CommandEveCrmOverlayOptions): Comm
     message: overlay.message,
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
+    model: overlay.model,
+  };
+}
+
+export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): CommandEveCrmDraftCreateResult {
+  const paths = resolveCommandEveRuntimeBootstrapPaths(options.userDataPath);
+  const dbPath = crmDbPath(paths.hermesHome);
+  const eventLedgerPath = resolveEventLedgerPath(paths, options);
+  const now = options.now ?? (() => new Date());
+  const occurredAt = now().toISOString();
+  const idPart = sanitizeEventIdPart(occurredAt) || String(Date.now());
+  const companyId = `crm-company-${idPart}`;
+  const contactId = `crm-contact-${idPart}`;
+  const dealId = `crm-deal-${idPart}`;
+  const auditEventId = crmDraftAuditEventId(occurredAt);
+  const base = draftCreateResultBase(paths.hermesHome);
+  const python = pythonBinary(paths, options.pythonPath);
+
+  const write = readPythonJson(
+    python,
+    {
+      db_path: dbPath,
+      audit_event_id: auditEventId,
+      created_at: occurredAt,
+      company_id: companyId,
+      contact_id: contactId,
+      deal_id: dealId,
+    },
+    crmDraftCreateScript(),
+    paths.hermesHome
+  );
+  if (!write.ok || write.data?.ok !== true) {
+    const reasonCode =
+      typeof write.data?.reason_code === 'string' ? write.data.reason_code : 'CRM_DRAFT_DEAL_CREATE_FAILED';
+    return {
+      ...base,
+      ok: false,
+      status: write.ok ? 'blocked' : 'failed',
+      reason_code: reasonCode,
+      message: write.error || 'Command EVE CRM draft deal could not be created.',
+    };
+  }
+
+  appendCrmDraftAuditEvent({
+    eventId: auditEventId,
+    eventLedgerPath,
+    occurredAt,
+    dbPath,
+    companyId,
+    contactId,
+    dealId,
+  });
+  const overlay = buildCrmOverlay({ ...options, now });
+  return {
+    ...base,
+    ok: overlay.ok,
+    status: overlay.status,
+    reason_code: overlay.ok ? 'CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY' : overlay.reason_code,
+    message: overlay.message,
+    audit_event_id: auditEventId,
+    audit_event_path: eventLedgerPath,
+    company_id: companyId,
+    contact_id: contactId,
+    deal_id: dealId,
     model: overlay.model,
   };
 }

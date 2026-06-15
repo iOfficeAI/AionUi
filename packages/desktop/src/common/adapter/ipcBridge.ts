@@ -894,6 +894,24 @@ export interface ICommandEveCrmOverlayInitializeResult {
   };
 }
 
+export interface ICommandEveCrmDraftCreateResult {
+  version: 'command-eve-crm-draft-create/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  company_id?: string;
+  contact_id?: string;
+  deal_id?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // ---------------------------------------------------------------------------
 // Command EVE registration + license gate (W11)
 // ---------------------------------------------------------------------------
@@ -1015,6 +1033,10 @@ export const commandEve = {
     IBridgeResponse<ICommandEveCrmOverlayInitializeResult>,
     { eventLedgerPath?: string } | void
   >('command-eve.crm-overlay-initialize'),
+  crmDraftCreate: bridge.buildProvider<
+    IBridgeResponse<ICommandEveCrmDraftCreateResult>,
+    { eventLedgerPath?: string } | void
+  >('command-eve.crm-draft-create'),
   entitlementStatus: bridge.buildProvider<IBridgeResponse<ICommandEveEntitlementStatusResult>, void>(
     'command-eve.entitlement-status'
   ),

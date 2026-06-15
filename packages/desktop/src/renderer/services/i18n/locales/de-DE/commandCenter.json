@@ -143,9 +143,15 @@
       "success": "CRM Overlay lokal initialisiert.",
       "failed": "CRM Overlay konnte nicht initialisiert werden."
     },
+    "draft": {
+      "resultTitle": "CRM-Draft-Receipt",
+      "success": "Lokaler CRM-Draft angelegt.",
+      "failed": "CRM-Draft konnte nicht angelegt werden."
+    },
     "readyNote": "CRM Overlay ist lokal initialisiert. Kontakte, Deals und echte Aktionen bleiben weiter gate-pflichtig.",
     "actions": {
-      "initialize": "CRM lokal initialisieren"
+      "initialize": "CRM lokal initialisieren",
+      "createDraft": "Lokalen Draft anlegen"
     },
     "counts": {
       "companies": "Companies",

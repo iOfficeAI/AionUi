@@ -375,6 +375,24 @@ interface ICommandEveCrmOverlayInitializeResult {
   };
 }
 
+interface ICommandEveCrmDraftCreateResult {
+  version: 'command-eve-crm-draft-create/v0';
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  message?: string;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  company_id?: string;
+  contact_id?: string;
+  deal_id?: string;
+  model?: ICommandEveCrmOverlayModel;
+  source: {
+    generated_by: 'command-eve-crm-overlay-core';
+    hermes_home: string;
+  };
+}
+
 // Shared board-carrying shape between the create and move mutation results, used
 // to re-render the read-only board projection after a successful mutation.
 interface IMarketingMutationBoardCarrier {
@@ -432,6 +450,11 @@ const crmOverlayInitialize = bridge.buildProvider<
   IBridgeResponse<ICommandEveCrmOverlayInitializeResult>,
   { eventLedgerPath?: string }
 >('command-eve.crm-overlay-initialize');
+
+const crmDraftCreate = bridge.buildProvider<
+  IBridgeResponse<ICommandEveCrmDraftCreateResult>,
+  { eventLedgerPath?: string }
+>('command-eve.crm-draft-create');
 
 const MARKETING_LANE_ORDER: IMarketingLaneKey[] = ['research', 'draft', 'assetGeneration', 'review', 'readyToApprove'];
 
@@ -1014,9 +1037,12 @@ const MarketingBoardSection: React.FC<{
 const CrmOverlaySection: React.FC<{
   result: ICommandEveCrmOverlayResult | null;
   initializeResult: ICommandEveCrmOverlayInitializeResult | null;
+  draftCreateResult: ICommandEveCrmDraftCreateResult | null;
   initializing: boolean;
+  creatingDraft: boolean;
   onInitialize: () => void;
-}> = ({ result, initializeResult, initializing, onInitialize }) => {
+  onCreateDraft: () => void;
+}> = ({ result, initializeResult, draftCreateResult, initializing, creatingDraft, onInitialize, onCreateDraft }) => {
   const { t } = useTranslation();
   const model = result?.model;
   const counts = model?.counts ?? { companies: 0, contacts: 0, deals: 0, audit_events: 0 };
@@ -1052,6 +1078,15 @@ const CrmOverlaySection: React.FC<{
         />
       ) : null}
 
+      {draftCreateResult ? (
+        <Alert
+          type={draftCreateResult.ok ? 'success' : 'warning'}
+          title={draftCreateResult.reason_code || t('commandCenter.crmOverlay.draft.resultTitle')}
+          content={draftCreateResult.deal_id || draftCreateResult.message || draftCreateResult.audit_event_id || '-'}
+          data-testid='crm-draft-create-result'
+        />
+      ) : null}
+
       <div className='grid gap-10px sm:grid-cols-2 lg:grid-cols-4'>
         {(['companies', 'contacts', 'deals', 'audit_events'] as const).map((key) => (
           <div
@@ -1083,15 +1118,27 @@ const CrmOverlaySection: React.FC<{
         <span className='text-12px leading-18px text-t-tertiary'>
           {initialized ? t('commandCenter.crmOverlay.readyNote') : t('commandCenter.crmOverlay.initialize.note')}
         </span>
-        <Button
-          shape='round'
-          loading={initializing}
-          disabled={initializing || initialized}
-          onClick={onInitialize}
-          data-testid='crm-overlay-initialize'
-        >
-          {t('commandCenter.crmOverlay.actions.initialize')}
-        </Button>
+        <div className='flex flex-wrap items-center gap-8px'>
+          <Button
+            shape='round'
+            loading={initializing}
+            disabled={initializing || initialized}
+            onClick={onInitialize}
+            data-testid='crm-overlay-initialize'
+          >
+            {t('commandCenter.crmOverlay.actions.initialize')}
+          </Button>
+          <Button
+            shape='round'
+            type='outline'
+            loading={creatingDraft}
+            disabled={creatingDraft || !initialized}
+            onClick={onCreateDraft}
+            data-testid='crm-draft-create'
+          >
+            {t('commandCenter.crmOverlay.actions.createDraft')}
+          </Button>
+        </div>
       </div>
     </Section>
   );
@@ -1248,6 +1295,7 @@ const CommandCenterPage: React.FC = () => {
   const [marketingResult, setMarketingResult] = useState<ICommandEveMarketingBoardResult | null>(null);
   const [crmResult, setCrmResult] = useState<ICommandEveCrmOverlayResult | null>(null);
   const [crmInitializeResult, setCrmInitializeResult] = useState<ICommandEveCrmOverlayInitializeResult | null>(null);
+  const [crmDraftCreateResult, setCrmDraftCreateResult] = useState<ICommandEveCrmDraftCreateResult | null>(null);
   const [proofResult, setProofResult] = useState<ICommandEveMarketingProofCardResult | null>(null);
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
@@ -1258,6 +1306,7 @@ const CommandCenterPage: React.FC = () => {
   const [movingCardId, setMovingCardId] = useState<string | null>(null);
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
   const [crmInitializing, setCrmInitializing] = useState(false);
+  const [crmDraftCreating, setCrmDraftCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const refresh = useCallback(async () => {
@@ -1569,6 +1618,52 @@ const CommandCenterPage: React.FC = () => {
     }
   }, [t]);
 
+  const createCrmDraft = useCallback(async () => {
+    if (!isElectronDesktop()) return;
+    setCrmDraftCreating(true);
+    setCrmDraftCreateResult(null);
+    try {
+      const response = await crmDraftCreate.invoke({});
+      const data = response.data ?? null;
+      setCrmDraftCreateResult(data);
+      if (data?.model) {
+        setCrmResult({
+          version: 'command-eve-crm-overlay/v0',
+          ok: data.ok,
+          status: data.status,
+          reason_code: data.reason_code,
+          message: data.message,
+          model: data.model,
+          source: data.source,
+        });
+      } else {
+        const nextCrm = await crmOverlay.invoke({});
+        setCrmResult(nextCrm.data ?? null);
+      }
+      if (data?.ok) {
+        Message.success(t('commandCenter.crmOverlay.draft.success'));
+      } else {
+        Message.warning(data?.reason_code || t('commandCenter.crmOverlay.draft.failed'));
+      }
+    } catch (draftError) {
+      const failure: ICommandEveCrmDraftCreateResult = {
+        version: 'command-eve-crm-draft-create/v0',
+        ok: false,
+        status: 'failed',
+        reason_code: 'CRM_DRAFT_CREATE_UI_FAILED',
+        message: draftError instanceof Error ? draftError.message : t('commandCenter.crmOverlay.draft.failed'),
+        source: {
+          generated_by: 'command-eve-crm-overlay-core',
+          hermes_home: '',
+        },
+      };
+      setCrmDraftCreateResult(failure);
+      Message.error(failure.message || t('commandCenter.crmOverlay.draft.failed'));
+    } finally {
+      setCrmDraftCreating(false);
+    }
+  }, [t]);
+
   return (
     <div
       className={classNames(
@@ -1666,8 +1761,11 @@ const CommandCenterPage: React.FC = () => {
             <CrmOverlaySection
               result={crmResult}
               initializeResult={crmInitializeResult}
+              draftCreateResult={crmDraftCreateResult}
               initializing={crmInitializing}
+              creatingDraft={crmDraftCreating}
               onInitialize={initializeCrm}
+              onCreateDraft={createCrmDraft}
             />
 
             <Section title={t('commandCenter.sections.workerRuns')} count={model.worker_runs.length}>
