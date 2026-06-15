@@ -157,6 +157,18 @@ const AcpSendBox: React.FC<{
   });
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
+
+  const persistSessionMode = useCallback(
+    async (mode: string) => {
+      await ipcBridge.conversation.update.invoke({
+        id: conversation_id,
+        updates: { extra: { session_mode: mode } },
+        merge_extra: true,
+      });
+    },
+    [conversation_id]
+  );
+
   const handleThoughtLevelSetOption = useCallback(
     async (optionId: string, value: string) => {
       const result = await runtimeConfig.setConfigOption(optionId, value);
@@ -191,10 +203,20 @@ const AcpSendBox: React.FC<{
 
   const handleSheetModeChange = useCallback(
     async (mode: string) => {
-      if (!runtimeMode || mode === runtimeMode.currentValue) return;
+      const activeMode = runtimeMode?.currentValue ?? currentMode;
+      if (mode === activeMode) return;
       try {
-        await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+        await prepareRuntimeSync();
+        if (runtimeMode) {
+          await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+        } else {
+          const response = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+          if (response.mode !== mode) {
+            throw new Error('config_not_observed');
+          }
+        }
         setCurrentMode(mode);
+        await persistSessionMode(mode);
         if (backend && !assistantId) void savePreferredMode(backend, mode);
         if (isLeaderInTeam) teamPermission?.propagateMode?.(mode);
         Message.success(t('agentMode.switchSuccess'));
@@ -203,7 +225,19 @@ const AcpSendBox: React.FC<{
         Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [assistantId, backend, isLeaderInTeam, runtimeConfig, runtimeMode, t, teamPermission]
+    [
+      assistantId,
+      backend,
+      conversation_id,
+      currentMode,
+      isLeaderInTeam,
+      persistSessionMode,
+      prepareRuntimeSync,
+      runtimeConfig,
+      runtimeMode,
+      t,
+      teamPermission,
+    ]
   );
 
   // In team mode, warmup the agent then fetch slash commands

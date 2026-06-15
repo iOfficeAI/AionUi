@@ -170,6 +170,17 @@ const AionrsSendBox: React.FC<{
   const runtimeMode = runtimeConfig.mode;
   const runtimeThoughtLevel = runtimeConfig.thoughtLevel;
 
+  const persistSessionMode = useCallback(
+    async (mode: string) => {
+      await ipcBridge.conversation.update.invoke({
+        id: conversation_id,
+        updates: { extra: { session_mode: mode } },
+        merge_extra: true,
+      });
+    },
+    [conversation_id]
+  );
+
   useEffect(() => {
     if (!runtimeMode?.currentValue) return;
     setCurrentMode(runtimeMode.currentValue);
@@ -392,10 +403,20 @@ const AionrsSendBox: React.FC<{
 
   const handleSheetModeChange = useCallback(
     async (mode: string) => {
-      if (!runtimeMode || mode === runtimeMode.currentValue) return;
+      const activeMode = runtimeMode?.currentValue ?? currentMode;
+      if (mode === activeMode) return;
       try {
-        await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+        await prepareRuntimeSync();
+        if (runtimeMode) {
+          await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+        } else {
+          const response = await ipcBridge.acpConversation.setMode.invoke({ conversation_id, mode });
+          if (response.mode !== mode) {
+            throw new Error('config_not_observed');
+          }
+        }
         setCurrentMode(mode);
+        await persistSessionMode(mode);
         if (!assistantId) {
           void savePreferredMode('aionrs', mode);
         }
@@ -406,7 +427,17 @@ const AionrsSendBox: React.FC<{
         Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [assistantId, propagateMode, runtimeConfig, runtimeMode, t]
+    [
+      assistantId,
+      conversation_id,
+      currentMode,
+      persistSessionMode,
+      prepareRuntimeSync,
+      propagateMode,
+      runtimeConfig,
+      runtimeMode,
+      t,
+    ]
   );
 
   const handleSheetModelSelect = useCallback(

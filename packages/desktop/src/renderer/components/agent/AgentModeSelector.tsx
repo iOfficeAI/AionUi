@@ -5,9 +5,11 @@
  */
 
 import { configService } from '@/common/config/configService';
+import { ipcBridge } from '@/common';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
+import { refreshConversationCache } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
@@ -193,6 +195,19 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     setCurrentMode(runtimeMode.currentValue);
   }, [runtimeMode?.currentValue]);
 
+  const persistConversationMode = useCallback(
+    async (mode: string) => {
+      if (!conversation_id) return;
+      await ipcBridge.conversation.update.invoke({
+        id: conversation_id,
+        updates: { extra: { session_mode: mode } },
+        merge_extra: true,
+      });
+      await refreshConversationCache(conversation_id);
+    },
+    [conversation_id]
+  );
+
   const handleModeChange = useCallback(
     async (mode: string) => {
       // Close dropdown immediately after selection
@@ -211,10 +226,18 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       if (!conversation_id) return;
 
       const setActiveMode = async () => {
-        if (!runtimeMode) {
+        if (runtimeMode) {
+          await runtimeConfig.setConfigOption(runtimeMode.id, mode);
+          return;
+        }
+
+        const response = await ipcBridge.acpConversation.setMode.invoke({
+          conversation_id,
+          mode,
+        });
+        if (response.mode !== mode) {
           throw new Error('config_not_observed');
         }
-        await runtimeConfig.setConfigOption(runtimeMode.id, mode);
       };
 
       setIsLoading(true);
@@ -222,6 +245,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         await beforeRuntimeSync?.();
         await setActiveMode();
         setCurrentMode(mode);
+        await persistConversationMode(mode);
         onModeChanged?.(mode);
         if (backend && persistGlobalPreference) {
           // Mirror Guid page behaviour so a switch made inside the
@@ -243,6 +267,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       current_mode,
       onModeChanged,
       onModeSelect,
+      persistConversationMode,
       persistGlobalPreference,
       runtimeConfig,
       runtimeMode,

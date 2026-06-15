@@ -36,9 +36,11 @@ import type {
 } from '../types/agent/assistantTypes';
 import type { PreviewHistoryTarget, PreviewSnapshotInfo } from '../types/office/preview';
 import type {
+  AgentModeResponse,
   GetConfigOptionsResponse,
   SetConfigOptionRequest,
   SetConfigOptionResponse,
+  SetModeRequest,
 } from '../types/platform/acpTypes';
 import type {
   CreateProviderRequest,
@@ -827,6 +829,13 @@ export const acpConversation = {
   setConfigOption: httpPut<SetConfigOptionResponse, { conversation_id: string; option_id: string; value: string }>(
     (p) => `/api/conversations/${p.conversation_id}/config-options/${encodeURIComponent(p.option_id)}`,
     (p): SetConfigOptionRequest => ({ value: p.value })
+  ),
+  getMode: httpGet<AgentModeResponse, { conversation_id: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/mode`
+  ),
+  setMode: httpPut<AgentModeResponse, { conversation_id: string; mode: string }>(
+    (p) => `/api/conversations/${p.conversation_id}/mode`,
+    (p): SetModeRequest => ({ mode: p.mode })
   ),
 };
 
