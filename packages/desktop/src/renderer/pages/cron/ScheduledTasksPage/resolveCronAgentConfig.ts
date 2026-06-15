@@ -51,7 +51,9 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
   const agentId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
 
   let agent_config: ICronAgentConfig | undefined;
-  let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType(conversationAgentType || 'acp');
+  let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType(
+    conversationAgentType || 'acp'
+  );
 
   if (agentKind === 'cli') {
     const agent = cliAgents.find((item) => item.backend === agentId || item.agent_type === agentId);

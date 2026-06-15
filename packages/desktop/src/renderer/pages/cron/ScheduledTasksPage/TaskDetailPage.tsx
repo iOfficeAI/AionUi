@@ -306,7 +306,9 @@ const TaskDetailPage: React.FC = () => {
                         {logo ? (
                           <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
                         ) : emoji ? (
-                          <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>{emoji}</span>
+                          <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
+                            {emoji}
+                          </span>
                         ) : (
                           <Robot size='28' className='shrink-0 text-t-secondary' />
                         )}

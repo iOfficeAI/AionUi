@@ -37,7 +37,9 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   useConversationAgents: () => ({
-    cliAgents: [{ id: 'aionrs-runtime', name: 'Aion CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true }],
+    cliAgents: [
+      { id: 'aionrs-runtime', name: 'Aion CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true },
+    ],
     presetAssistants: assistants(),
   }),
 }));
@@ -46,7 +48,9 @@ vi.mock('@renderer/components/base/AionModal', () => ({
   default: ({ visible, header, footer, children }: Record<string, unknown>) =>
     visible ? (
       <div data-testid='team-create-modal'>
-        {typeof header === 'object' && header && 'render' in header ? (header as { render: () => React.ReactNode }).render() : null}
+        {typeof header === 'object' && header && 'render' in header
+          ? (header as { render: () => React.ReactNode }).render()
+          : null}
         <div>{children as React.ReactNode}</div>
         <div>{footer as React.ReactNode}</div>
       </div>
@@ -109,7 +113,9 @@ function assistants(): Assistant[] {
   ];
 }
 
-function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>): Assistant {
+function assistant(
+  overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>
+): Assistant {
   return {
     id: overrides.id,
     source: overrides.source,
