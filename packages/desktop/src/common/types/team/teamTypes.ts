@@ -63,6 +63,10 @@ export type ITeamSlotWork = {
   role: TeamRunTargetRole;
   pending_wake_count: number;
   starting_child_count: number;
+  paused?: boolean;
+  suppressed_wake_count?: number;
+  foreground_pending_count?: number;
+  background_pending_count?: number;
   active_turn_id?: string;
 };
 
@@ -87,6 +91,8 @@ export type ICancelTeamRunParams = {
 export type ICancelTeamChildTurnParams = ICancelTeamRunParams & {
   slot_id: string;
 };
+
+export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
 
 export type ITeamRunEvent = {
   team_id: string;

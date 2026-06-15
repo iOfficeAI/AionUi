@@ -101,6 +101,88 @@ describe('buildTeamSendRuntime', () => {
     expect(runtime.runtimeGate.isProcessing).toBe(true);
   });
 
+  it('allows priority send when slot is paused with suppressed work', () => {
+    const leaderWork = {
+      slot_id: 'lead',
+      role: 'lead' as const,
+      pending_wake_count: 0,
+      starting_child_count: 0,
+      paused: true,
+      suppressed_wake_count: 2,
+    };
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      isLeader: true,
+      runView: {
+        activeRun: {
+          team_id: 'team-1',
+          team_run_id: 'run-1',
+          target_slot_id: 'lead',
+          target_role: 'lead',
+          status: 'running',
+          active_child_count: 0,
+          pending_wake_count: 0,
+          starting_child_count: 0,
+          slot_work: [leaderWork],
+        },
+        childTurnsBySlot: {},
+        slotWorkBySlot: {
+          lead: leaderWork,
+        },
+      },
+    });
+
+    expect(runtime.loading).toBe(false);
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.runtimeGate.isProcessing).toBe(false);
+  });
+
+  it('allows priority send when paused slot still has stale active child status', () => {
+    const leaderWork = {
+      slot_id: 'lead',
+      role: 'lead' as const,
+      pending_wake_count: 0,
+      starting_child_count: 0,
+      paused: true,
+      suppressed_wake_count: 1,
+    };
+    const runtime = buildTeamSendRuntime({
+      slot_id: 'lead',
+      isLeader: true,
+      runView: {
+        activeRun: {
+          team_id: 'team-1',
+          team_run_id: 'run-1',
+          target_slot_id: 'lead',
+          target_role: 'lead',
+          status: 'running',
+          active_child_count: 1,
+          pending_wake_count: 0,
+          starting_child_count: 0,
+          slot_work: [leaderWork],
+        },
+        childTurnsBySlot: {
+          lead: {
+            team_id: 'team-1',
+            team_run_id: 'run-1',
+            slot_id: 'lead',
+            role: 'lead',
+            conversation_id: 'conv-lead',
+            turn_id: 'turn-lead',
+            status: 'running',
+          },
+        },
+        slotWorkBySlot: {
+          lead: leaderWork,
+        },
+      },
+    });
+
+    expect(runtime.loading).toBe(false);
+    expect(runtime.runtimeGate.canSendMessage).toBe(true);
+    expect(runtime.runtimeGate.isProcessing).toBe(false);
+  });
+
   it('does not lock teammate sendbox just because another team run is active', () => {
     const runtime = buildTeamSendRuntime({
       slot_id: 'worker',

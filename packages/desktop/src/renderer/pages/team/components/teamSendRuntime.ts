@@ -16,6 +16,8 @@ type BuildTeamSendRuntimeOptions = {
 
 const isSlotWorkProcessing = (runView: TeamRunViewState, slot_id: string): boolean => {
   const work = runView.slotWorkBySlot[slot_id];
+  if (work?.paused) return false;
+
   const hasSlotWork =
     Boolean(work?.active_turn_id) ||
     (work?.pending_wake_count ?? 0) > 0 ||

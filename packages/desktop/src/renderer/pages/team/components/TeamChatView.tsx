@@ -117,15 +117,19 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
           onStop: async () => {
             const activeRun = teamRunView.activeRun;
             if (!activeRun) return;
+            const work = teamRunView.slotWorkBySlot[slot_id];
             const hasSlotWork =
               Boolean(teamRunView.childTurnsBySlot[slot_id]) ||
-              Boolean(teamRunView.slotWorkBySlot[slot_id]?.active_turn_id) ||
-              (teamRunView.slotWorkBySlot[slot_id]?.starting_child_count ?? 0) > 0;
+              Boolean(work?.active_turn_id) ||
+              (work?.starting_child_count ?? 0) > 0 ||
+              (work?.pending_wake_count ?? 0) > 0 ||
+              (work?.suppressed_wake_count ?? 0) > 0;
             if (!hasSlotWork) return;
-            await ipcBridge.team.cancelChildTurn.invoke({
+            await ipcBridge.team.pauseSlotWork.invoke({
               team_id,
               team_run_id: activeRun.team_run_id,
               slot_id,
+              reason: 'user_stop',
             });
           },
         })

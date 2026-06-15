@@ -129,6 +129,7 @@ export const useTeamRunView = (team_id: string) => {
         slotWorkBySlot: {
           ...prev.slotWorkBySlot,
           [event.slot_id]: {
+            ...prev.slotWorkBySlot[event.slot_id],
             slot_id: event.slot_id,
             role: event.role,
             pending_wake_count: prev.slotWorkBySlot[event.slot_id]?.pending_wake_count ?? 0,
@@ -154,10 +155,12 @@ export const useTeamRunView = (team_id: string) => {
             ...nextSlotWork[event.slot_id],
             active_turn_id: undefined,
           };
-          if (
-            nextSlotWork[event.slot_id]?.pending_wake_count === 0 &&
-            nextSlotWork[event.slot_id]?.starting_child_count === 0
-          ) {
+          const hasRemainingWork =
+            (nextSlotWork[event.slot_id]?.pending_wake_count ?? 0) > 0 ||
+            (nextSlotWork[event.slot_id]?.starting_child_count ?? 0) > 0 ||
+            Boolean(nextSlotWork[event.slot_id]?.paused) ||
+            (nextSlotWork[event.slot_id]?.suppressed_wake_count ?? 0) > 0;
+          if (!hasRemainingWork) {
             delete nextSlotWork[event.slot_id];
           }
         }
