@@ -10,6 +10,7 @@ import fs from 'fs';
 import os from 'os';
 import path from 'path';
 import {
+  applyKanbanMarketingCardAction,
   buildKanbanMarketingBoard,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
@@ -692,6 +693,134 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       eventLedgerPath: path.join(root, 'agent-events.jsonl'),
       task_id: 't_command_eve_marketing_anything',
       to_lane_key: 'review',
+    });
+
+    expect(result.ok).toBe(false);
+    expect(result.status).toBe('blocked');
+    expect(result.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+  });
+
+  it('records comment, block, unblock and complete actions with receipts and audit events', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Action me',
+      lane_key: 'draft',
+      client_token: 'action-me-1',
+      now: () => new Date('2026-06-14T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+    const cardId = created.card_id || '';
+
+    const commented = applyKanbanMarketingCardAction({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      action: 'comment',
+      comment: 'Founder approved local draft direction.',
+      now: () => new Date('2026-06-14T09:05:00.000Z'),
+    });
+    expect(commented.ok).toBe(true);
+    expect(commented.reason_code).toBe('KANBAN_MARKETING_CARD_COMMENTED');
+
+    const blocked = applyKanbanMarketingCardAction({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      action: 'block',
+      now: () => new Date('2026-06-14T09:10:00.000Z'),
+    });
+    expect(blocked.ok).toBe(true);
+    expect(blocked.to_status).toBe('blocked');
+    expect(blocked.to_lane_key).toBe('review');
+
+    const unblocked = applyKanbanMarketingCardAction({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      action: 'unblock',
+      now: () => new Date('2026-06-14T09:15:00.000Z'),
+    });
+    expect(unblocked.ok).toBe(true);
+    expect(unblocked.to_status).toBe('review');
+    expect(unblocked.to_lane_key).toBe('review');
+
+    const completed = applyKanbanMarketingCardAction({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      action: 'complete',
+      now: () => new Date('2026-06-14T09:20:00.000Z'),
+    });
+    expect(completed.ok).toBe(true);
+    expect(completed.reason_code).toBe('KANBAN_MARKETING_CARD_COMPLETED');
+    expect(completed.to_status).toBe('completed');
+    expect(completed.to_lane_key).toBe('readyToApprove');
+
+    const dbPath = marketingBoardPath(root);
+    const comments = readRows(dbPath, 'SELECT task_id, author, body FROM task_comments');
+    expect(comments).toHaveLength(1);
+    expect(comments[0]).toMatchObject({
+      task_id: cardId,
+      author: 'eve',
+      body: 'Founder approved local draft direction.',
+    });
+
+    const tasks = readRows(dbPath, 'SELECT id, status, current_step_key, completed_at FROM tasks');
+    expect(tasks[0]).toMatchObject({
+      id: cardId,
+      status: 'completed',
+      current_step_key: 'readyToApprove',
+      completed_at: 1781428800,
+    });
+
+    const actionEvents = readRows(
+      dbPath,
+      "SELECT kind, payload FROM task_events WHERE kind IN ('command_eve_card_commented', 'command_eve_card_blocked', 'command_eve_card_unblocked', 'command_eve_card_completed') ORDER BY id"
+    );
+    expect(actionEvents.map((event) => (event as { kind: string }).kind)).toEqual([
+      'command_eve_card_commented',
+      'command_eve_card_blocked',
+      'command_eve_card_unblocked',
+      'command_eve_card_completed',
+    ]);
+    for (const event of actionEvents) {
+      const payload = JSON.parse(String((event as { payload: string }).payload)) as { subprocess_spawned?: boolean };
+      expect(payload.subprocess_spawned).toBe(false);
+    }
+
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents.map((event) => event.event_type)).toEqual([
+      'kanban.marketing_board_card_created',
+      'kanban.marketing_board_card_commented',
+      'kanban.marketing_board_card_blocked',
+      'kanban.marketing_board_card_unblocked',
+      'kanban.marketing_board_card_completed',
+    ]);
+    expect(completed.model?.columns.find((column) => column.key === 'readyToApprove')?.cards[0].card_id).toBe(cardId);
+  });
+
+  it('blocks card actions fail-closed when governance is not locked', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root, {
+      kanban_dispatch_in_gateway: true,
+    });
+
+    const result = applyKanbanMarketingCardAction({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath: path.join(root, 'agent-events.jsonl'),
+      task_id: 't_command_eve_marketing_anything',
+      action: 'block',
     });
 
     expect(result.ok).toBe(false);

@@ -73,11 +73,15 @@
       "description": "Hermes Kanban ist bereit, aber die lokale Marketing-Board-Datenbank wurde noch nicht angelegt."
     },
     "actions": {
+      "block": "Blockieren",
       "checkDispatch": "Dispatch prüfen",
+      "comment": "Kommentar",
+      "complete": "Abschließen",
       "createCard": "Post anlegen",
       "createProofCard": "Proof-Karte anlegen",
       "moveNext": "Weiter",
-      "finalLane": "Letzte Lane"
+      "finalLane": "Letzte Lane",
+      "unblock": "Freigeben"
     },
     "create": {
       "note": "Legt genau eine lokale Marketing-Karte und ein append-only Audit-Event an. Kein Dispatcher, kein Auto-Decompose, keine Worker.",
@@ -97,6 +101,18 @@
       "resultTitle": "Move-Receipt",
       "success": "Karte verschoben.",
       "failed": "Karte konnte nicht verschoben werden."
+    },
+    "action": {
+      "resultTitle": "Action-Receipt",
+      "success": "Karten-Aktion lokal aufgezeichnet.",
+      "failed": "Karten-Aktion konnte nicht aufgezeichnet werden."
+    },
+    "comment": {
+      "title": "Kommentar notieren",
+      "card": "Karte",
+      "placeholder": "Kurzer lokaler Kommentar fuer diese Marketing-Karte",
+      "required": "Ein Kommentar ist erforderlich.",
+      "submit": "Kommentar speichern"
     },
     "dispatch": {
       "resultTitle": "Dispatch-Gate-Receipt",

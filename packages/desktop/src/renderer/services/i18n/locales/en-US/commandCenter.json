@@ -73,11 +73,15 @@
       "description": "Hermes Kanban is ready, but the local marketing board database has not been created yet."
     },
     "actions": {
+      "block": "Block",
       "checkDispatch": "Check dispatch",
+      "comment": "Comment",
+      "complete": "Complete",
       "createCard": "New post",
       "createProofCard": "Create proof card",
       "moveNext": "Move",
-      "finalLane": "Final lane"
+      "finalLane": "Final lane",
+      "unblock": "Unblock"
     },
     "create": {
       "note": "Creates exactly one local marketing card and one append-only audit event. No dispatcher, no auto-decompose, no workers.",
@@ -97,6 +101,18 @@
       "resultTitle": "Move receipt",
       "success": "Card moved.",
       "failed": "Card could not be moved."
+    },
+    "action": {
+      "resultTitle": "Action receipt",
+      "success": "Card action recorded locally.",
+      "failed": "Card action could not be recorded."
+    },
+    "comment": {
+      "title": "Record comment",
+      "card": "Card",
+      "placeholder": "Short local comment for this marketing card",
+      "required": "A comment is required.",
+      "submit": "Save comment"
     },
     "dispatch": {
       "resultTitle": "Dispatch gate receipt",

@@ -22,6 +22,7 @@ import {
   COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
 } from '@process/commandEve/entitlementCore';
 import {
+  applyKanbanMarketingCardAction,
   buildKanbanMarketingBoard,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
@@ -389,6 +390,50 @@ export function initCommandEveBridge(): void {
               status: 'failed',
               reason_code: 'KANBAN_MARKETING_CARD_MOVE_BRIDGE_FAILED',
               message: error instanceof Error ? error.message : 'Command EVE marketing card-move bridge failed.',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-card-action')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        action?: 'comment' | 'block' | 'unblock' | 'complete';
+        comment?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+      }) => {
+        try {
+          const result = applyKanbanMarketingCardAction({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            action: request?.action || 'comment',
+            comment: request?.comment,
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing card-action bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-card-action/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_CARD_ACTION_BRIDGE_FAILED',
+              message: error instanceof Error ? error.message : 'Command EVE marketing card-action bridge failed.',
               source: {
                 generated_by: 'command-eve-kanban-marketing-board-core',
                 hermes_home: '',

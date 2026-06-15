@@ -460,7 +460,114 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await testInfo.attach('kanban-board-move-proof', { path: screenshotPath, contentType: 'image/png' });
   });
 
-  // ── TEST 3: Dispatch gate check ───────────────────────────────────────────
+  // ── TEST 3: Local card actions ────────────────────────────────────────────
+  test('actions: GUI comment/block/unblock/complete produce receipts without spawning Hermes', async ({
+    page,
+    electronApp,
+  }, testInfo) => {
+    if (!createdCardId || !boardDbPath) {
+      throw new Error(
+        `[kanban-board e2e] action test requires a prior successful create test; ` +
+          `createdCardId=${String(createdCardId)} boardDbPath=${String(boardDbPath)}`
+      );
+    }
+
+    const userDataPath = await electronApp.evaluate(async ({ app }) => app.getPath('userData'));
+    const reconciliationPath = path.join(
+      userDataPath,
+      'command-eve-runtime',
+      'capabilities',
+      'command-eve-runtime-reconciliation.json'
+    );
+    writeReconciliationLock(reconciliationPath);
+
+    await page.waitForSelector('body', { state: 'visible' });
+    await page.evaluate(() => {
+      window.location.hash = '#/command-center';
+    });
+    await expect(page.getByText(/Command Center|Kommandozentrale/).first()).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
+
+    const cardTestId = `marketing-card-${createdCardId}`;
+    await expect(page.getByTestId(cardTestId)).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId(`marketing-card-comment-${createdCardId}`).click();
+    await expect(page.getByTestId('marketing-card-comment-modal')).toBeVisible({ timeout: 10_000 });
+    await page.getByTestId('marketing-card-comment-input').fill('E2E local action receipt.');
+    await page.getByTestId('marketing-card-comment-submit').click();
+    await expect(page.getByTestId('marketing-card-comment-modal')).not.toBeVisible({ timeout: 60_000 });
+    await expect(page.getByText('KANBAN_MARKETING_CARD_COMMENTED')).toBeVisible({ timeout: 60_000 });
+
+    await page.getByTestId(`marketing-card-block-${createdCardId}`).click();
+    await expect(page.getByText('KANBAN_MARKETING_CARD_BLOCKED')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('marketing-lane-review').getByTestId(cardTestId)).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId(`marketing-card-unblock-${createdCardId}`).click();
+    await expect(page.getByText('KANBAN_MARKETING_CARD_UNBLOCKED')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('marketing-lane-review').getByTestId(cardTestId)).toBeVisible({ timeout: 30_000 });
+
+    await page.getByTestId(`marketing-card-complete-${createdCardId}`).click();
+    await expect(page.getByText('KANBAN_MARKETING_CARD_COMPLETED')).toBeVisible({ timeout: 60_000 });
+    await expect(page.getByTestId('marketing-lane-readyToApprove').getByTestId(cardTestId)).toBeVisible({
+      timeout: 30_000,
+    });
+
+    const taskRows = sqliteQuery(
+      boardDbPath,
+      `SELECT id, current_step_key, status, completed_at FROM tasks WHERE id = '${createdCardId}'`
+    );
+    expect(taskRows[0][1], 'current_step_key must be readyToApprove after complete').toBe('readyToApprove');
+    expect(taskRows[0][2], 'status must be completed after complete').toBe('completed');
+    expect(Number(taskRows[0][3]), 'completed_at must be recorded').toBeGreaterThan(0);
+
+    const commentRows = sqliteQuery(
+      boardDbPath,
+      `SELECT author, body FROM task_comments WHERE task_id = '${createdCardId}'`
+    );
+    expect(commentRows.length, 'task_comments receipt row must exist').toBeGreaterThan(0);
+    expect(commentRows[0][0], 'comment author must be eve').toBe('eve');
+    expect(commentRows[0][1], 'comment body must match submitted text').toBe('E2E local action receipt.');
+
+    const receiptKinds = sqliteQuery(
+      boardDbPath,
+      `SELECT kind, payload FROM task_events WHERE task_id = '${createdCardId}' AND kind IN ('command_eve_card_commented','command_eve_card_blocked','command_eve_card_unblocked','command_eve_card_completed') ORDER BY id`
+    );
+    expect(receiptKinds.map((row) => row[0])).toEqual([
+      'command_eve_card_commented',
+      'command_eve_card_blocked',
+      'command_eve_card_unblocked',
+      'command_eve_card_completed',
+    ]);
+    for (const row of receiptKinds) {
+      const payload = JSON.parse(row[1]) as { subprocess_spawned?: boolean; external_calls?: boolean };
+      expect(payload.subprocess_spawned, `${row[0]} must not spawn Hermes`).toBe(false);
+      expect(payload.external_calls, `${row[0]} must not call external services`).toBe(false);
+    }
+
+    const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
+    for (const eventType of [
+      'kanban.marketing_board_card_commented',
+      'kanban.marketing_board_card_blocked',
+      'kanban.marketing_board_card_unblocked',
+      'kanban.marketing_board_card_completed',
+    ]) {
+      const match = ledgerLines.find((line) => {
+        try {
+          const evt = JSON.parse(line) as { event_type?: string; issue_id?: string };
+          return evt.issue_id === createdCardId && evt.event_type === eventType;
+        } catch {
+          return false;
+        }
+      });
+      expect(match, `audit ledger must contain ${eventType} for card_id=${createdCardId}`).toBeTruthy();
+    }
+
+    const screenshotPath = 'tests/e2e/results/command-eve-kanban-board-actions.png';
+    await page.screenshot({ path: screenshotPath, fullPage: true });
+    await testInfo.attach('kanban-board-action-proof', { path: screenshotPath, contentType: 'image/png' });
+  });
+
+  // ── TEST 4: Dispatch gate check ───────────────────────────────────────────
   test('dispatch gate: GUI click routes through NL-5 and records a blocked no-spawn receipt', async ({
     page,
     electronApp,

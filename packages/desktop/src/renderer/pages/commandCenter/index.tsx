@@ -160,6 +160,7 @@ interface ICommandEveStatusSurfaceResult {
 }
 
 type IMarketingLaneKey = 'research' | 'draft' | 'assetGeneration' | 'review' | 'readyToApprove';
+type IMarketingCardAction = 'comment' | 'block' | 'unblock' | 'complete';
 
 interface ICommandEveMarketingCard {
   card_id: string;
@@ -276,6 +277,36 @@ interface ICommandEveMarketingCardMoveResult {
   from_lane_key?: IMarketingLaneKey;
   to_lane_key?: IMarketingLaneKey;
   moved?: boolean;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+interface ICommandEveMarketingCardActionRequest {
+  task_id: string;
+  action: IMarketingCardAction;
+  comment?: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+interface ICommandEveMarketingCardActionResult {
+  version: 'command-eve-kanban-marketing-card-action/v0';
+  status: 'ready' | 'blocked' | 'failed';
+  ok: boolean;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  action?: IMarketingCardAction;
+  action_applied?: boolean;
+  from_status?: string;
+  to_status?: string;
+  from_lane_key?: IMarketingLaneKey;
+  to_lane_key?: IMarketingLaneKey;
   audit_event_id?: string;
   audit_event_path?: string;
   model?: ICommandEveMarketingBoardModel;
@@ -485,6 +516,11 @@ const kanbanMarketingCardMove = bridge.buildProvider<
   ICommandEveMarketingCardMoveRequest
 >('command-eve.kanban-marketing-card-move');
 
+const kanbanMarketingCardAction = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingCardActionResult>,
+  ICommandEveMarketingCardActionRequest
+>('command-eve.kanban-marketing-card-action');
+
 const kanbanMarketingDispatchPlan = bridge.buildProvider<
   IBridgeResponse<ICommandEveMarketingDispatchPlanResult>,
   ICommandEveMarketingDispatchPlanRequest
@@ -674,13 +710,19 @@ const MarketingCardView: React.FC<{
   card: ICommandEveMarketingCard;
   movingCardId: string | null;
   dispatchingCardId: string | null;
+  actioningCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
-}> = ({ card, movingCardId, dispatchingCardId, onMoveNext, onPlanDispatch }) => {
+  onOpenComment: (card: ICommandEveMarketingCard) => void;
+  onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
+}> = ({ card, movingCardId, dispatchingCardId, actioningCardId, onMoveNext, onPlanDispatch, onOpenComment, onApplyAction }) => {
   const { t } = useTranslation();
   const nextLane = nextMarketingLane(card.lane_key);
   const moving = movingCardId === card.card_id;
   const dispatching = dispatchingCardId === card.card_id;
+  const actioning = actioningCardId === card.card_id;
+  const blocked = card.card_status === 'blocked';
+  const completed = card.card_status === 'completed';
   return (
     <article
       data-testid={`marketing-card-${card.card_id}`}
@@ -700,6 +742,45 @@ const MarketingCardView: React.FC<{
         <dd className='m-0 truncate text-t-secondary'>{textOrDash(card.linked_audit_event_id)}</dd>
       </dl>
       <div className='mt-8px flex flex-wrap items-center justify-end gap-6px'>
+        <Button
+          size='mini'
+          shape='round'
+          disabled={actioning}
+          data-testid={`marketing-card-comment-${card.card_id}`}
+          onClick={() => onOpenComment(card)}
+        >
+          {t('commandCenter.marketingBoard.actions.comment')}
+        </Button>
+        <Button
+          size='mini'
+          shape='round'
+          loading={actioning && !blocked}
+          disabled={actioning || blocked || completed}
+          data-testid={`marketing-card-block-${card.card_id}`}
+          onClick={() => onApplyAction(card, 'block')}
+        >
+          {t('commandCenter.marketingBoard.actions.block')}
+        </Button>
+        <Button
+          size='mini'
+          shape='round'
+          loading={actioning && blocked}
+          disabled={actioning || !blocked}
+          data-testid={`marketing-card-unblock-${card.card_id}`}
+          onClick={() => onApplyAction(card, 'unblock')}
+        >
+          {t('commandCenter.marketingBoard.actions.unblock')}
+        </Button>
+        <Button
+          size='mini'
+          shape='round'
+          loading={actioning && !completed}
+          disabled={actioning || completed}
+          data-testid={`marketing-card-complete-${card.card_id}`}
+          onClick={() => onApplyAction(card, 'complete')}
+        >
+          {t('commandCenter.marketingBoard.actions.complete')}
+        </Button>
         <Button
           size='mini'
           shape='round'
@@ -737,9 +818,12 @@ const MarketingColumnView: React.FC<{
   column: ICommandEveMarketingColumn;
   movingCardId: string | null;
   dispatchingCardId: string | null;
+  actioningCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
-}> = ({ column, movingCardId, dispatchingCardId, onMoveNext, onPlanDispatch }) => {
+  onOpenComment: (card: ICommandEveMarketingCard) => void;
+  onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
+}> = ({ column, movingCardId, dispatchingCardId, actioningCardId, onMoveNext, onPlanDispatch, onOpenComment, onApplyAction }) => {
   const { t } = useTranslation();
   return (
     <div
@@ -760,8 +844,11 @@ const MarketingColumnView: React.FC<{
               card={card}
               movingCardId={movingCardId}
               dispatchingCardId={dispatchingCardId}
+              actioningCardId={actioningCardId}
               onMoveNext={onMoveNext}
               onPlanDispatch={onPlanDispatch}
+              onOpenComment={onOpenComment}
+              onApplyAction={onApplyAction}
             />
           ))}
         </div>
@@ -895,16 +982,20 @@ const MarketingBoardSection: React.FC<{
   proofRunning: boolean;
   createResult: ICommandEveMarketingCardCreateResult | null;
   moveResult: ICommandEveMarketingCardMoveResult | null;
+  actionResult: ICommandEveMarketingCardActionResult | null;
   dispatchPlanResult: ICommandEveMarketingDispatchPlanResult | null;
   createModalVisible: boolean;
   createSubmitting: boolean;
   movingCardId: string | null;
+  actioningCardId: string | null;
   dispatchingCardId: string | null;
   onCreateProofCard: () => void;
   onOpenCreateModal: () => void;
   onCloseCreateModal: () => void;
   onSubmitCreateCard: (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => void;
   onMoveCardNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
+  onOpenComment: (card: ICommandEveMarketingCard) => void;
+  onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
 }> = ({
   result,
@@ -912,16 +1003,20 @@ const MarketingBoardSection: React.FC<{
   proofRunning,
   createResult,
   moveResult,
+  actionResult,
   dispatchPlanResult,
   createModalVisible,
   createSubmitting,
   movingCardId,
+  actioningCardId,
   dispatchingCardId,
   onCreateProofCard,
   onOpenCreateModal,
   onCloseCreateModal,
   onSubmitCreateCard,
   onMoveCardNext,
+  onOpenComment,
+  onApplyAction,
   onPlanDispatch,
 }) => {
   const { t } = useTranslation();
@@ -973,6 +1068,19 @@ const MarketingBoardSection: React.FC<{
               ? `${textOrDash(moveResult.from_lane_key)} → ${textOrDash(moveResult.to_lane_key)}`
               : moveResult.message || moveResult.reason_code || '-'
           }
+        />
+      ) : null}
+
+      {actionResult ? (
+        <Alert
+          type={actionResult.ok ? 'success' : actionResult.status === 'failed' ? 'error' : 'warning'}
+          title={actionResult.reason_code || t('commandCenter.marketingBoard.action.resultTitle')}
+          content={
+            actionResult.ok
+              ? `${textOrDash(actionResult.action)} · ${textOrDash(actionResult.audit_event_id)}`
+              : actionResult.message || actionResult.reason_code || '-'
+          }
+          data-testid='marketing-card-action-result'
         />
       ) : null}
 
@@ -1059,8 +1167,11 @@ const MarketingBoardSection: React.FC<{
                 column={column}
                 movingCardId={movingCardId}
                 dispatchingCardId={dispatchingCardId}
+                actioningCardId={actioningCardId}
                 onMoveNext={onMoveCardNext}
                 onPlanDispatch={onPlanDispatch}
+                onOpenComment={onOpenComment}
+                onApplyAction={onApplyAction}
               />
             ))}
           </div>
@@ -1089,6 +1200,82 @@ const MarketingBoardSection: React.FC<{
         onSubmit={onSubmitCreateCard}
       />
     </Section>
+  );
+};
+
+const MarketingCardCommentModal: React.FC<{
+  card: ICommandEveMarketingCard | null;
+  submitting: boolean;
+  onCancel: () => void;
+  onSubmit: (comment: string) => void;
+}> = ({ card, submitting, onCancel, onSubmit }) => {
+  const { t } = useTranslation();
+  const [comment, setComment] = useState('');
+  const [commentError, setCommentError] = useState(false);
+
+  useEffect(() => {
+    if (card) {
+      setComment('');
+      setCommentError(false);
+    }
+  }, [card]);
+
+  const handleSubmit = (): void => {
+    const trimmed = comment.trim();
+    if (!trimmed) {
+      setCommentError(true);
+      return;
+    }
+    onSubmit(trimmed);
+  };
+
+  return (
+    <Modal
+      title={t('commandCenter.marketingBoard.comment.title')}
+      visible={Boolean(card)}
+      onCancel={onCancel}
+      footer={null}
+      maskClosable={!submitting}
+      escToExit={!submitting}
+      unmountOnExit
+    >
+      <div className='flex flex-col gap-14px' data-testid='marketing-card-comment-modal'>
+        <p className='m-0 text-12px leading-18px text-t-secondary'>
+          {card ? `${t('commandCenter.marketingBoard.comment.card')}: ${card.card_title}` : ''}
+        </p>
+        <Input.TextArea
+          value={comment}
+          onChange={(value) => {
+            setComment(value);
+            if (value.trim()) setCommentError(false);
+          }}
+          placeholder={t('commandCenter.marketingBoard.comment.placeholder')}
+          autoSize={{ minRows: 3, maxRows: 6 }}
+          data-testid='marketing-card-comment-input'
+          status={commentError ? 'error' : undefined}
+          disabled={submitting}
+        />
+        {commentError ? (
+          <span className='text-11px leading-16px text-danger-6' data-testid='marketing-card-comment-error'>
+            {t('commandCenter.marketingBoard.comment.required')}
+          </span>
+        ) : null}
+        <div className='flex items-center justify-end gap-8px'>
+          <Button shape='round' onClick={onCancel} disabled={submitting} data-testid='marketing-card-comment-cancel'>
+            {t('common.cancel')}
+          </Button>
+          <Button
+            shape='round'
+            type='primary'
+            loading={submitting}
+            onClick={handleSubmit}
+            data-testid='marketing-card-comment-submit'
+          >
+            {t('commandCenter.marketingBoard.comment.submit')}
+          </Button>
+        </div>
+      </div>
+    </Modal>
   );
 };
 
@@ -1451,10 +1638,14 @@ const CommandCenterPage: React.FC = () => {
   const [proofRunning, setProofRunning] = useState(false);
   const [createResult, setCreateResult] = useState<ICommandEveMarketingCardCreateResult | null>(null);
   const [moveResult, setMoveResult] = useState<ICommandEveMarketingCardMoveResult | null>(null);
+  const [actionResult, setActionResult] = useState<ICommandEveMarketingCardActionResult | null>(null);
   const [dispatchPlanResult, setDispatchPlanResult] = useState<ICommandEveMarketingDispatchPlanResult | null>(null);
   const [createModalVisible, setCreateModalVisible] = useState(false);
   const [createSubmitting, setCreateSubmitting] = useState(false);
+  const [commentCard, setCommentCard] = useState<ICommandEveMarketingCard | null>(null);
+  const [commentSubmitting, setCommentSubmitting] = useState(false);
   const [movingCardId, setMovingCardId] = useState<string | null>(null);
+  const [actioningCardId, setActioningCardId] = useState<string | null>(null);
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
   const [crmInitializing, setCrmInitializing] = useState(false);
   const [crmDraftCreating, setCrmDraftCreating] = useState(false);
@@ -1568,6 +1759,7 @@ const CommandCenterPage: React.FC = () => {
 
   const openCreateModal = useCallback(() => {
     setCreateResult(null);
+    setActionResult(null);
     setDispatchPlanResult(null);
     setCreateModalVisible(true);
   }, []);
@@ -1601,6 +1793,7 @@ const CommandCenterPage: React.FC = () => {
       if (!isElectronDesktop()) return;
       setCreateSubmitting(true);
       setMoveResult(null);
+      setActionResult(null);
       setDispatchPlanResult(null);
       try {
         const response = await kanbanMarketingCardCreate.invoke({
@@ -1645,6 +1838,7 @@ const CommandCenterPage: React.FC = () => {
       if (!isElectronDesktop()) return;
       setMovingCardId(card.card_id);
       setCreateResult(null);
+      setActionResult(null);
       setDispatchPlanResult(null);
       try {
         const response = await kanbanMarketingCardMove.invoke({
@@ -1681,12 +1875,98 @@ const CommandCenterPage: React.FC = () => {
     [applyBoardModel, t]
   );
 
+  const openComment = useCallback((card: ICommandEveMarketingCard) => {
+    setCreateResult(null);
+    setMoveResult(null);
+    setActionResult(null);
+    setDispatchPlanResult(null);
+    setCommentCard(card);
+  }, []);
+
+  const closeComment = useCallback(() => {
+    if (commentSubmitting) return;
+    setCommentCard(null);
+  }, [commentSubmitting]);
+
+  const applyCardAction = useCallback(
+    async (
+      card: ICommandEveMarketingCard,
+      action: IMarketingCardAction,
+      comment?: string
+    ): Promise<ICommandEveMarketingCardActionResult | null> => {
+      if (!isElectronDesktop()) return null;
+      setActioningCardId(card.card_id);
+      setCreateResult(null);
+      setMoveResult(null);
+      setDispatchPlanResult(null);
+      try {
+        const response = await kanbanMarketingCardAction.invoke({
+          task_id: card.card_id,
+          action,
+          comment,
+          boardSlug: MARKETING_BOARD_SLUG,
+        });
+        const data = response.data ?? null;
+        setActionResult(data);
+        await applyBoardModel(data);
+        if (data?.ok) {
+          Message.success(t('commandCenter.marketingBoard.action.success'));
+        } else {
+          Message.warning(data?.reason_code || t('commandCenter.marketingBoard.action.failed'));
+        }
+        return data;
+      } catch (actionError) {
+        const failure: ICommandEveMarketingCardActionResult = {
+          version: 'command-eve-kanban-marketing-card-action/v0',
+          ok: false,
+          status: 'failed',
+          reason_code: 'KANBAN_MARKETING_CARD_ACTION_UI_FAILED',
+          message:
+            actionError instanceof Error ? actionError.message : t('commandCenter.marketingBoard.action.failed'),
+          card_id: card.card_id,
+          action,
+          source: {
+            generated_by: 'command-eve-kanban-marketing-board-core',
+            hermes_home: '',
+          },
+        };
+        setActionResult(failure);
+        Message.error(failure.message || t('commandCenter.marketingBoard.action.failed'));
+        return failure;
+      } finally {
+        setActioningCardId(null);
+      }
+    },
+    [applyBoardModel, t]
+  );
+
+  const applyNonCommentAction = useCallback(
+    (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => {
+      void applyCardAction(card, action);
+    },
+    [applyCardAction]
+  );
+
+  const submitComment = useCallback(
+    async (comment: string) => {
+      if (!commentCard) return;
+      setCommentSubmitting(true);
+      const result = await applyCardAction(commentCard, 'comment', comment);
+      setCommentSubmitting(false);
+      if (result?.ok) {
+        setCommentCard(null);
+      }
+    },
+    [applyCardAction, commentCard]
+  );
+
   const planDispatch = useCallback(
     async (card: ICommandEveMarketingCard) => {
       if (!isElectronDesktop()) return;
       setDispatchingCardId(card.card_id);
       setCreateResult(null);
       setMoveResult(null);
+      setActionResult(null);
       try {
         const response = await kanbanMarketingDispatchPlan.invoke({
           task_id: card.card_id,
@@ -1996,17 +2276,27 @@ const CommandCenterPage: React.FC = () => {
               proofRunning={proofRunning}
               createResult={createResult}
               moveResult={moveResult}
+              actionResult={actionResult}
               dispatchPlanResult={dispatchPlanResult}
               createModalVisible={createModalVisible}
               createSubmitting={createSubmitting}
               movingCardId={movingCardId}
+              actioningCardId={actioningCardId}
               dispatchingCardId={dispatchingCardId}
               onCreateProofCard={createProofCard}
               onOpenCreateModal={openCreateModal}
               onCloseCreateModal={closeCreateModal}
               onSubmitCreateCard={submitCreateCard}
               onMoveCardNext={moveCardNext}
+              onOpenComment={openComment}
+              onApplyAction={applyNonCommentAction}
               onPlanDispatch={planDispatch}
+            />
+            <MarketingCardCommentModal
+              card={commentCard}
+              submitting={commentSubmitting}
+              onCancel={closeComment}
+              onSubmit={submitComment}
             />
 
             <CrmOverlaySection

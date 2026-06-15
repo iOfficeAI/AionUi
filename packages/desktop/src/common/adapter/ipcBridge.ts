@@ -708,6 +708,7 @@ export const application = {
 export type ICommandEveKanbanMarketingLaneKey = 'research' | 'draft' | 'assetGeneration' | 'review' | 'readyToApprove';
 
 export type ICommandEveKanbanMarketingBoardStatus = 'ready' | 'blocked' | 'failed';
+export type ICommandEveKanbanMarketingCardAction = 'comment' | 'block' | 'unblock' | 'complete';
 
 export interface ICommandEveKanbanMarketingCard {
   card_id: string;
@@ -788,6 +789,28 @@ export interface ICommandEveKanbanMarketingCardMoveResult {
   };
 }
 
+export interface ICommandEveKanbanMarketingCardActionResult {
+  version: 'command-eve-kanban-marketing-card-action/v0';
+  ok: boolean;
+  status: ICommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  message?: string;
+  card_id?: string;
+  action?: ICommandEveKanbanMarketingCardAction;
+  action_applied?: boolean;
+  from_status?: string;
+  to_status?: string;
+  from_lane_key?: ICommandEveKanbanMarketingLaneKey;
+  to_lane_key?: ICommandEveKanbanMarketingLaneKey;
+  audit_event_id?: string;
+  audit_event_path?: string;
+  model?: ICommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
 export interface ICommandEveKanbanMarketingDispatchPlanResult {
   version: 'command-eve-kanban-marketing-dispatch-plan/v0';
   ok: boolean;
@@ -825,6 +848,14 @@ export interface ICommandEveKanbanMarketingCardCreateRequest {
 export interface ICommandEveKanbanMarketingCardMoveRequest {
   task_id: string;
   to_lane_key: ICommandEveKanbanMarketingLaneKey;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+}
+
+export interface ICommandEveKanbanMarketingCardActionRequest {
+  task_id: string;
+  action: ICommandEveKanbanMarketingCardAction;
+  comment?: string;
   boardSlug?: string;
   eventLedgerPath?: string;
 }
@@ -1081,6 +1112,10 @@ export const commandEve = {
     IBridgeResponse<ICommandEveKanbanMarketingCardMoveResult>,
     ICommandEveKanbanMarketingCardMoveRequest
   >('command-eve.kanban-marketing-card-move'),
+  kanbanMarketingCardAction: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingCardActionResult>,
+    ICommandEveKanbanMarketingCardActionRequest
+  >('command-eve.kanban-marketing-card-action'),
   kanbanMarketingDispatchPlan: bridge.buildProvider<
     IBridgeResponse<ICommandEveKanbanMarketingDispatchPlanResult>,
     ICommandEveKanbanMarketingDispatchPlanRequest
