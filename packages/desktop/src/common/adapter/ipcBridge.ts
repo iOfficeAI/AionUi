@@ -855,6 +855,17 @@ export interface ICommandEveCrmOverlayCounts {
   audit_events: number;
 }
 
+export interface ICommandEveCrmOverlayDeal {
+  deal_id: string;
+  company_id: string;
+  stage: string;
+  allowed_actions: string;
+  consent_status: string;
+  human_gate: string;
+  data_class: string;
+  last_activity_at: string;
+}
+
 export interface ICommandEveCrmOverlayModel {
   schema_version: 'command-eve-crm-overlay/v0';
   generated_at: string;
@@ -863,6 +874,7 @@ export interface ICommandEveCrmOverlayModel {
   event_ledger_path: string;
   policy: ICommandEveCrmOverlayPolicy;
   counts: ICommandEveCrmOverlayCounts;
+  recent_deals: ICommandEveCrmOverlayDeal[];
   warnings: string[];
 }
 

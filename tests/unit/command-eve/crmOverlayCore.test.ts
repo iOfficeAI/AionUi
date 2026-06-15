@@ -165,6 +165,18 @@ finally:
       deals: 1,
       audit_events: 1,
     });
+    expect(result.model?.recent_deals).toEqual([
+      {
+        deal_id: 'd_1',
+        company_id: 'c_1',
+        stage: 'draft',
+        allowed_actions: 'draft-only',
+        consent_status: 'unknown',
+        human_gate: 'HG-4',
+        data_class: 'S2',
+        last_activity_at: '',
+      },
+    ]);
     expect(result.model?.policy.local_only).toBe(true);
   });
 
@@ -194,6 +206,17 @@ finally:
       contacts: 1,
       deals: 1,
       audit_events: 2,
+    });
+    expect(result.model?.recent_deals).toHaveLength(1);
+    expect(result.model?.recent_deals[0]).toMatchObject({
+      deal_id: result.deal_id,
+      company_id: result.company_id,
+      stage: 'draft',
+      allowed_actions: 'draft-only',
+      consent_status: 'unknown',
+      human_gate: 'HG-4',
+      data_class: 'S2',
+      last_activity_at: '2026-06-15T08:31:00.000Z',
     });
 
     const dbPath = result.model?.db_path || '';

@@ -34,6 +34,17 @@ export type CommandEveCrmOverlayCounts = {
   audit_events: number;
 };
 
+export type CommandEveCrmOverlayDeal = {
+  deal_id: string;
+  company_id: string;
+  stage: string;
+  allowed_actions: string;
+  consent_status: string;
+  human_gate: string;
+  data_class: string;
+  last_activity_at: string;
+};
+
 export type CommandEveCrmOverlayModel = {
   schema_version: 'command-eve-crm-overlay/v0';
   generated_at: string;
@@ -42,6 +53,7 @@ export type CommandEveCrmOverlayModel = {
   event_ledger_path: string;
   policy: CommandEveCrmOverlayPolicy;
   counts: CommandEveCrmOverlayCounts;
+  recent_deals: CommandEveCrmOverlayDeal[];
   warnings: string[];
 };
 
@@ -231,7 +243,27 @@ try:
         "deals": int(conn.execute("SELECT COUNT(*) FROM crm_deals").fetchone()[0]),
         "audit_events": int(conn.execute("SELECT COUNT(*) FROM crm_events").fetchone()[0]),
     }
-    print(json.dumps({"initialized": True, "counts": counts, "warnings": []}))
+    recent_deals = [
+        {
+            "deal_id": row[0],
+            "company_id": row[1] or "",
+            "stage": row[2],
+            "allowed_actions": row[3],
+            "consent_status": row[4],
+            "human_gate": row[5],
+            "data_class": row[6],
+            "last_activity_at": row[7] or "",
+        }
+        for row in conn.execute(
+            """
+            SELECT deal_id, company_id, stage, allowed_actions, consent_status, human_gate, data_class, last_activity_at
+            FROM crm_deals
+            ORDER BY COALESCE(last_activity_at, '') DESC, deal_id DESC
+            LIMIT 8
+            """
+        ).fetchall()
+    ]
+    print(json.dumps({"initialized": True, "counts": counts, "recent_deals": recent_deals, "warnings": []}))
 finally:
     conn.close()
 `;
@@ -433,11 +465,29 @@ function warningsFrom(value: unknown): string[] {
   return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : [];
 }
 
+function recentDealsFrom(value: unknown): CommandEveCrmOverlayDeal[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter(isRecord)
+    .map((deal) => ({
+      deal_id: typeof deal.deal_id === 'string' ? deal.deal_id : '',
+      company_id: typeof deal.company_id === 'string' ? deal.company_id : '',
+      stage: typeof deal.stage === 'string' ? deal.stage : '',
+      allowed_actions: typeof deal.allowed_actions === 'string' ? deal.allowed_actions : '',
+      consent_status: typeof deal.consent_status === 'string' ? deal.consent_status : '',
+      human_gate: typeof deal.human_gate === 'string' ? deal.human_gate : '',
+      data_class: typeof deal.data_class === 'string' ? deal.data_class : '',
+      last_activity_at: typeof deal.last_activity_at === 'string' ? deal.last_activity_at : '',
+    }))
+    .filter((deal) => deal.deal_id);
+}
+
 function baseModel({
   dbPath,
   eventLedgerPath,
   initialized,
   counts,
+  recentDeals,
   warnings,
   now,
 }: {
@@ -445,6 +495,7 @@ function baseModel({
   eventLedgerPath: string;
   initialized: boolean;
   counts: CommandEveCrmOverlayCounts;
+  recentDeals: CommandEveCrmOverlayDeal[];
   warnings: string[];
   now: () => Date;
 }): CommandEveCrmOverlayModel {
@@ -456,6 +507,7 @@ function baseModel({
     event_ledger_path: eventLedgerPath,
     policy: policy(),
     counts,
+    recent_deals: recentDeals,
     warnings,
   };
 }
@@ -640,6 +692,7 @@ export function buildCrmOverlay(options: CommandEveCrmOverlayOptions): CommandEv
     eventLedgerPath,
     initialized,
     counts: countsFrom(read.data?.counts),
+    recentDeals: recentDealsFrom(read.data?.recent_deals),
     warnings: warningsFrom(read.data?.warnings),
     now,
   });

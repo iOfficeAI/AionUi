@@ -653,6 +653,13 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
 
     await expect(page.getByTestId('crm-draft-create-result')).toBeVisible({ timeout: 60_000 });
     await expect(page.getByText(/CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY/)).toBeVisible({ timeout: 60_000 });
+    const draftDealList = page.getByTestId('crm-draft-deal-list');
+    await expect(draftDealList).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText(/crm-deal-/)).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText('draft-only')).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText('unknown')).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText('HG-4')).toBeVisible({ timeout: 30_000 });
+    await expect(draftDealList.getByText('S2')).toBeVisible({ timeout: 30_000 });
 
     const dealRows = sqliteQuery(
       crmDbPath,

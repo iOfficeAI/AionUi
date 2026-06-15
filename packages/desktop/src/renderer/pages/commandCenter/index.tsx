@@ -336,6 +336,17 @@ interface ICommandEveCrmOverlayCounts {
   audit_events: number;
 }
 
+interface ICommandEveCrmOverlayDeal {
+  deal_id: string;
+  company_id: string;
+  stage: string;
+  allowed_actions: string;
+  consent_status: string;
+  human_gate: string;
+  data_class: string;
+  last_activity_at: string;
+}
+
 interface ICommandEveCrmOverlayModel {
   schema_version: 'command-eve-crm-overlay/v0';
   generated_at: string;
@@ -344,6 +355,7 @@ interface ICommandEveCrmOverlayModel {
   event_ledger_path: string;
   policy: ICommandEveCrmOverlayPolicy;
   counts: ICommandEveCrmOverlayCounts;
+  recent_deals: ICommandEveCrmOverlayDeal[];
   warnings: string[];
 }
 
@@ -1098,6 +1110,35 @@ const CrmOverlaySection: React.FC<{
           </div>
         ))}
       </div>
+
+      {model?.recent_deals.length ? (
+        <div className='grid gap-10px lg:grid-cols-2' data-testid='crm-draft-deal-list'>
+          {model.recent_deals.map((deal) => (
+            <article
+              key={deal.deal_id}
+              className='rounded-10px border border-solid border-[var(--color-border-2)] bg-fill-2 px-12px py-10px'
+              data-testid={`crm-draft-deal-${deal.deal_id}`}
+            >
+              <div className='flex items-start justify-between gap-10px'>
+                <div className='min-w-0'>
+                  <div className='truncate text-13px font-600 leading-20px text-t-primary'>{deal.deal_id}</div>
+                  <div className='mt-2px truncate text-11px leading-16px text-t-tertiary'>{deal.company_id}</div>
+                </div>
+                <Tag color='blue'>{deal.stage}</Tag>
+              </div>
+              <div className='mt-8px flex flex-wrap gap-6px text-11px leading-16px'>
+                <Tag color='gray'>{deal.allowed_actions}</Tag>
+                <Tag color={deal.consent_status === 'unknown' ? 'orange' : 'green'}>{deal.consent_status}</Tag>
+                <Tag color='orange'>{deal.human_gate}</Tag>
+                <Tag color='gray'>{deal.data_class}</Tag>
+              </div>
+              <div className='mt-6px truncate text-11px leading-16px text-t-tertiary'>
+                {textOrDash(deal.last_activity_at)}
+              </div>
+            </article>
+          ))}
+        </div>
+      ) : null}
 
       {model ? (
         <dl className='m-0 grid gap-x-10px gap-y-4px text-11px leading-16px sm:grid-cols-[max-content_1fr]'>
