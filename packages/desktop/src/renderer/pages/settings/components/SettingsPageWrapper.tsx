@@ -15,6 +15,7 @@ import {
   LinkCloud,
   Puzzle,
   Robot,
+  Shield,
   System,
 } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
@@ -67,6 +68,12 @@ export function getBuiltinSettingsNavItems(isDesktop: boolean, t: TranslateFn): 
       path: 'webui',
     },
     pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat theme='outline' size='16' />, path: 'pet' },
+    privacy: {
+      id: 'privacy',
+      label: t('settings.privacy.navLabel', { defaultValue: 'Privacy' }),
+      icon: <Shield theme='outline' size='16' />,
+      path: 'privacy',
+    },
     system: { id: 'system', label: t('settings.system'), icon: <System theme='outline' size='16' />, path: 'system' },
     about: { id: 'about', label: t('settings.about'), icon: <Info theme='outline' size='16' />, path: 'about' },
   };

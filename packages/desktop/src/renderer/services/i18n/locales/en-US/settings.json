@@ -265,6 +265,13 @@
     "skills": "Skills",
     "tools": "MCP & Voice"
   },
+  "privacy": {
+    "navLabel": "Privacy",
+    "telemetryLabel": "Send anonymous crash reports",
+    "telemetryDescription": "Off by default. Help diagnose failures by sending anonymous crash reports and recent logs.",
+    "disclosure": "Telemetry is OFF by default. Nothing is sent unless you turn it on here.\n\nWhen enabled, Command EVE sends anonymous crash reports and a capped, gzipped slice of recent app logs to our error-tracking service (Sentry) to help diagnose failures, tagged with an anonymous random installation id, app version, OS and CPU architecture. No account details, file contents, prompts, API keys or personal data are collected.\n\nYou can turn this off again at any time; turning it off stops all crash reporting and log uploads immediately.",
+    "desktopOnly": "Telemetry is only collected by the desktop app."
+  },
   "webui": "Remote",
   "installed": "Installed",
   "builtin": "Built-in",

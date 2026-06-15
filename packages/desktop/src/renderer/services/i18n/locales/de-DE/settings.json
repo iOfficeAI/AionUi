@@ -276,6 +276,13 @@
     "skills": "Skills",
     "tools": "Tools"
   },
+  "privacy": {
+    "navLabel": "Datenschutz",
+    "telemetryLabel": "Anonyme Absturzberichte senden",
+    "telemetryDescription": "Standardmäßig deaktiviert. Hilf bei der Fehlerdiagnose, indem du anonyme Absturzberichte und aktuelle Logs sendest.",
+    "disclosure": "Telemetrie ist standardmäßig DEAKTIVIERT. Es wird nichts gesendet, solange du sie hier nicht aktivierst.\n\nWenn aktiviert, sendet Command EVE anonyme Absturzberichte sowie einen begrenzten, gzip-komprimierten Ausschnitt der letzten App-Logs an unseren Fehler-Tracking-Dienst (Sentry), um Fehler zu diagnostizieren. Dabei werden eine anonyme zufällige Installations-ID, App-Version, Betriebssystem und CPU-Architektur übermittelt. Es werden keine Kontodaten, Dateiinhalte, Prompts, API-Schlüssel oder personenbezogenen Daten erfasst.\n\nDu kannst dies jederzeit wieder deaktivieren; beim Deaktivieren werden alle Absturzberichte und Log-Uploads sofort gestoppt.",
+    "desktopOnly": "Telemetrie wird nur von der Desktop-App erfasst."
+  },
   "webui": "Remote",
   "installed": "Installiert",
   "builtin": "Integriert",

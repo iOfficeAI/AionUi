@@ -13,6 +13,7 @@ import {
   LinkCloud,
   Puzzle,
   Robot,
+  Shield,
   Speed,
   System,
 } from '@icon-park/react';
@@ -32,6 +33,7 @@ export const BUILTIN_TAB_IDS = [
   'appearance',
   'webui',
   'pet',
+  'privacy',
   'system',
   'about',
 ] as const;
@@ -109,6 +111,12 @@ const SettingsSider: React.FC<{ collapsed?: boolean; tooltipEnabled?: boolean }>
         path: 'webui',
       },
       pet: { id: 'pet', label: t('pet.desktopPet'), icon: <Cat />, path: 'pet' },
+      privacy: {
+        id: 'privacy',
+        label: t('settings.privacy.navLabel', { defaultValue: 'Privacy' }),
+        icon: <Shield />,
+        path: 'privacy',
+      },
       system: { id: 'system', label: t('settings.system'), icon: <System />, path: 'system' },
       about: { id: 'about', label: t('settings.about'), icon: <Info />, path: 'about' },
     };
