@@ -145,6 +145,8 @@ export type CommandEveKanbanMarketingCard = {
   linked_audit_event_id: string | null;
   controller_review_status: 'pending' | null;
   controller_review_audit_event_id: string | null;
+  controller_review_handoff_role: string | null;
+  controller_review_handoff_dispatch: string | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
 };
 
@@ -614,6 +616,8 @@ function parseMarketingCards(rows: unknown[]): CommandEveKanbanMarketingCard[] {
       linked_audit_event_id: linkedAuditEventId,
       controller_review_status: controllerReviewStatus,
       controller_review_audit_event_id: nullableTextField(item.controller_review_audit_event_id),
+      controller_review_handoff_role: nullableTextField(item.controller_review_handoff_role),
+      controller_review_handoff_dispatch: nullableTextField(item.controller_review_handoff_dispatch),
       governance_state: linkedAuditEventId ? 'proof_write_recorded' : 'read_only',
     };
   });
@@ -730,6 +734,30 @@ try:
             ),
             ''
           ) AS controller_review_audit_event_id,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.dispatch_handoff_packet.role_label')
+              FROM task_events e
+              WHERE e.task_id = t.id
+                AND e.kind = 'command_eve_controller_approval_pending'
+                AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC
+              LIMIT 1
+            ),
+            ''
+          ) AS controller_review_handoff_role,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.dispatch_handoff_packet.dispatch')
+              FROM task_events e
+              WHERE e.task_id = t.id
+                AND e.kind = 'command_eve_controller_approval_pending'
+                AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC
+              LIMIT 1
+            ),
+            ''
+          ) AS controller_review_handoff_dispatch,
           COALESCE(CAST(t.current_run_id AS TEXT), '') AS linked_run_id
         FROM tasks t
         WHERE COALESCE(t.tenant, '') = ?

@@ -666,6 +666,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId(`marketing-card-controller-review-pending-${dispatchCardId}`)).toContainText(
       /wartet auf Controller|waiting for controller/
     );
+    await expect(page.getByTestId(`marketing-card-controller-handoff-${dispatchCardId}`)).toContainText(
+      /role:cmo\s*\/\s*manual/
+    );
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-controllerReviewQueue')).toContainText(/ready|bereit|1/);
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(

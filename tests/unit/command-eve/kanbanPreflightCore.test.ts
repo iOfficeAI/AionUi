@@ -998,6 +998,8 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(projectedCard).toMatchObject({
       controller_review_status: 'pending',
       controller_review_audit_event_id: approval.audit_event_id,
+      controller_review_handoff_role: 'role:cmo',
+      controller_review_handoff_dispatch: 'manual',
     });
 
     const approvalEvents = readRows(

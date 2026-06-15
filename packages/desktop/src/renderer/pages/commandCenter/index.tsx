@@ -175,6 +175,8 @@ interface ICommandEveMarketingCard {
   linked_audit_event_id: string | null;
   controller_review_status: 'pending' | null;
   controller_review_audit_event_id: string | null;
+  controller_review_handoff_role: string | null;
+  controller_review_handoff_dispatch: string | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
 }
 
@@ -1036,6 +1038,14 @@ const MarketingCardView: React.FC<{
           {card.controller_review_status
             ? `${t(`commandCenter.marketingBoard.dispatch.${card.controller_review_status}`)} · ${textOrDash(
                 card.controller_review_audit_event_id
+              )}`
+            : t('commandCenter.marketingBoard.dispatch.notRecorded')}
+        </dd>
+        <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.handoff')}</dt>
+        <dd className='m-0 truncate text-t-secondary' data-testid={`marketing-card-controller-handoff-${card.card_id}`}>
+          {card.controller_review_handoff_role || card.controller_review_handoff_dispatch
+            ? `${textOrDash(card.controller_review_handoff_role)} / ${textOrDash(
+                card.controller_review_handoff_dispatch
               )}`
             : t('commandCenter.marketingBoard.dispatch.notRecorded')}
         </dd>
