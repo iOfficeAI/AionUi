@@ -196,11 +196,7 @@ vi.mock('@/renderer/pages/guid/components/GuidActionRow', () => ({
 vi.mock('@/renderer/pages/guid/components/GuidInputCard', () => ({
   default: (props: Record<string, unknown>) => {
     capturedGuidInputCardProps.push(props);
-    return (
-      <div data-testid='guid-input-card'>
-        {props.actionRow as React.ReactNode}
-      </div>
-    );
+    return <div data-testid='guid-input-card'>{props.actionRow as React.ReactNode}</div>;
   },
 }));
 

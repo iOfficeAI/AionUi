@@ -54,7 +54,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     const avatarImage = mappedAvatar || resolvedAvatar;
     const isImageAvatar = Boolean(
       avatarImage &&
-        (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
+      (/\.(svg|png|jpe?g|webp|gif)$/i.test(avatarImage) || /^(https?:|file:\/\/|data:|\/)/i.test(avatarImage))
     );
     const isSelected = selectedId === assistant.id;
     const label = assistant.name_i18n?.[localeKey] || assistant.name;

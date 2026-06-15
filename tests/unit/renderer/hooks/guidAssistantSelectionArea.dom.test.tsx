@@ -102,12 +102,12 @@ describe('AssistantSelectionArea', () => {
       />
     );
 
-    expect(screen.getAllByRole('button').slice(0, 4).map((node) => node.textContent?.trim())).toEqual([
-      'Early',
-      'Aion CLI',
-      'Mid',
-      'Writer',
-    ]);
+    expect(
+      screen
+        .getAllByRole('button')
+        .slice(0, 4)
+        .map((node) => node.textContent?.trim())
+    ).toEqual(['Early', 'Aion CLI', 'Mid', 'Writer']);
   });
 
   it('can re-render from an empty assistant catalog without breaking hook order', () => {

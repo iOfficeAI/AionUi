@@ -113,7 +113,10 @@ type UseGuidAgentSelectionOptions = {
 
 const toAssistantSelectionKey = (assistantId: string): string => `custom:${assistantId}`;
 
-export function resolveAssistantSelectionKey(savedKey: string | undefined, assistants: Assistant[]): string | undefined {
+export function resolveAssistantSelectionKey(
+  savedKey: string | undefined,
+  assistants: Assistant[]
+): string | undefined {
   if (!savedKey) return undefined;
 
   if (savedKey.startsWith('custom:')) {

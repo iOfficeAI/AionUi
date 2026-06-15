@@ -44,9 +44,9 @@ describe('AgentCard (custom variant)', () => {
 
     // Disabled => identity block carries the opacity treatment.
     expect(container.querySelector('.opacity-50')).toBeTruthy();
-    const testConnection = screen.getByText('settings.agentManagement.testConnection').closest(
-      'button'
-    ) as HTMLButtonElement;
+    const testConnection = screen
+      .getByText('settings.agentManagement.testConnection')
+      .closest('button') as HTMLButtonElement;
     expect(testConnection.disabled).toBe(false);
   });
 
