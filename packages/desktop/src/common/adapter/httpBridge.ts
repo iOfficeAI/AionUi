@@ -143,10 +143,10 @@ export function isBackendHttpError(error: unknown): error is BackendHttpError {
 /**
  * Per-request overrides for `httpRequest`.
  *
- * `silentStatuses` lets known-soft failures (e.g. `GET /:id/model` returning
- * 404 before the agent has attached) skip the noisy `console.error` and the
- * Sentry breadcrumb that comes with it. The error is still thrown so the
- * caller's existing try/catch keeps working.
+ * `silentStatuses` lets known-soft failures (e.g. a runtime-scoped lookup
+ * returning 404 before the agent has attached) skip the noisy `console.error`
+ * and the Sentry breadcrumb that comes with it. The error is still thrown so
+ * the caller's existing try/catch keeps working.
  */
 export type HttpRequestOptions = {
   silentStatuses?: number[];

@@ -6,7 +6,12 @@
 
 import { ipcBridge } from '@/common';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from '@/renderer/utils/model/agentTypes';
+import {
+  DETECTED_AGENTS_SWR_KEY,
+  MANAGED_AGENTS_SWR_KEY,
+  fetchDetectedAgents,
+  fetchManagedAgents,
+} from '@/renderer/utils/model/agentTypes';
 import useSWR, { mutate } from 'swr';
 
 export type UseAgentsResult = {
@@ -37,6 +42,40 @@ export const useAgents = (): UseAgentsResult => {
     refreshCustomAgents: async () => {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
       await mutate(DETECTED_AGENTS_SWR_KEY);
+    },
+  };
+};
+
+/**
+ * Hook for the Agent settings management surface only. Reads the
+ * `include_disabled=true` view (`MANAGED_AGENTS_SWR_KEY`) so user-disabled
+ * custom agents stay listed with a working re-enable toggle.
+ *
+ * Its `revalidate` refreshes **both** the management key and the shared
+ * `DETECTED_AGENTS_SWR_KEY`, so toggling an agent on/off in settings is
+ * immediately reflected in every picker (which reads the detected key).
+ * Do not use this anywhere other than `AgentSettings` — pickers must stay
+ * on {@link useAgents} to keep disabled agents hidden.
+ */
+export const useManagedAgents = (): UseAgentsResult => {
+  const { data, isLoading, error } = useSWR<AgentMetadata[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
+
+  const revalidateBoth = async () => {
+    const [managed] = await Promise.all([
+      mutate<AgentMetadata[]>(MANAGED_AGENTS_SWR_KEY),
+      mutate(DETECTED_AGENTS_SWR_KEY),
+    ]);
+    return managed;
+  };
+
+  return {
+    agents: data ?? [],
+    isLoading,
+    error,
+    revalidate: revalidateBoth,
+    refreshCustomAgents: async () => {
+      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await revalidateBoth();
     },
   };
 };

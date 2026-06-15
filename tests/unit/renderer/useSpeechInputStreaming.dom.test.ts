@@ -279,7 +279,42 @@ describe('useSpeechInput streaming orchestration', () => {
     expect(result.current.errorCode).toBe('empty-transcript');
   });
 
-  it('falls back to blob transcription and remembers on STT_STREAM_UNSUPPORTED', async () => {
+  it('keeps recording when streaming fails before ready, then batches the full PCM on stop', async () => {
+    const recorder = installRecorderMock();
+    const stream = installStreamMock();
+    const { result, onTranscript } = renderSpeechInput();
+
+    await act(async () => {
+      await result.current.startRecording();
+    });
+    expect(result.current.status).toBe('recording');
+
+    // Stream drops before `ready` with a non-UNSUPPORTED code (the real-world
+    // faster-whisper case: a generic early close surfaces as INTERRUPTED). This
+    // used to stop the recorder immediately and transcribe ~0.12s of silence →
+    // "no speech detected" on every attempt.
+    await act(async () => {
+      stream.callbacks().onError('STT_STREAM_INTERRUPTED', 'closed before ready');
+    });
+
+    // The regression: the recorder must keep running so the whole utterance is
+    // still captured; an ambiguous pre-ready code is not persisted.
+    expect(recorder.handle.stop).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('recording');
+    expect(mocks.rememberStreamUnsupported).not.toHaveBeenCalled();
+    expect(onTranscript).not.toHaveBeenCalled();
+
+    // The deferred whole-blob fallback runs only once the user stops.
+    await act(async () => {
+      result.current.stopRecording();
+    });
+    await waitFor(() => expect(onTranscript).toHaveBeenCalledWith('fallback text'));
+    expect(recorder.handle.stop).toHaveBeenCalled();
+    expect(mocks.encodeWavPcm16).toHaveBeenCalledWith(STREAM_PCM, 24000, 1);
+    expect(result.current.status).toBe('idle');
+  });
+
+  it('remembers on STT_STREAM_UNSUPPORTED before ready, then batches the full recording on stop', async () => {
     const recorder = installRecorderMock();
     const stream = installStreamMock();
     const { result, onLiveTranscript, onTranscript } = renderSpeechInput();
@@ -287,17 +322,22 @@ describe('useSpeechInput streaming orchestration', () => {
     await act(async () => {
       await result.current.startRecording();
     });
-    act(() => stream.callbacks().onPartial('hel'));
-    act(() => {
-      result.current.stopRecording();
-    });
 
+    // Server explicitly rejects streaming before `ready`: remember the config so
+    // future recordings skip straight to batch, but keep recording right now.
     await act(async () => {
       stream.callbacks().onError('STT_STREAM_UNSUPPORTED', 'streaming not supported');
     });
+    expect(mocks.rememberStreamUnsupported).toHaveBeenCalledWith(makeConfig());
+    expect(recorder.handle.stop).not.toHaveBeenCalled();
+    expect(result.current.status).toBe('recording');
+    expect(onTranscript).not.toHaveBeenCalled();
+
+    await act(async () => {
+      result.current.stopRecording();
+    });
 
     await waitFor(() => expect(onTranscript).toHaveBeenCalledWith('fallback text'));
-    expect(mocks.rememberStreamUnsupported).toHaveBeenCalledWith(makeConfig());
     expect(recorder.handle.stop).toHaveBeenCalled();
     expect(mocks.encodeWavPcm16).toHaveBeenCalledWith(STREAM_PCM, 24000, 1);
     // Fallback transcription carries no UI-locale language hint either.
@@ -318,6 +358,9 @@ describe('useSpeechInput streaming orchestration', () => {
     await act(async () => {
       await result.current.startRecording();
     });
+    // The stream established (`ready`) before it dropped — a true mid-session
+    // interruption, where replaying the captured PCM immediately is correct.
+    act(() => stream.callbacks().onReady());
     act(() => stream.callbacks().onPartial('mid'));
 
     // Stream dies while still recording (no stopRecording call).
@@ -341,6 +384,8 @@ describe('useSpeechInput streaming orchestration', () => {
     await act(async () => {
       await result.current.startRecording();
     });
+    // Mid-session drop (after `ready`) → immediate replay, which then fails.
+    act(() => stream.callbacks().onReady());
     await act(async () => {
       stream.callbacks().onError('STT_STREAM_INTERRUPTED', 'connection closed');
     });

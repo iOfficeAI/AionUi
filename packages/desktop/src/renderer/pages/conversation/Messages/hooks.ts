@@ -11,6 +11,7 @@ import {
   mergeAcpToolCallContent,
   mergeTextMessageContent,
   normalizeAgentStreamError,
+  normalizeTextMessageContent,
   preferTextMessageVersion,
 } from '@/common/chat/chatLib';
 import { useCallback, useEffect, useRef } from 'react';
@@ -576,30 +577,16 @@ const normalizeDbTipsMessage = (msg: TMessage): TMessage => {
 };
 
 /**
- * Normalize a message loaded from backend DB: if `content` is a JSON string,
- * parse it and map stored fields to renderer message content.
+ * Normalize a message loaded from backend DB into renderer runtime shape.
  */
 export function normalizeDbMessage(msg: TMessage): TMessage {
   if (msg.type === 'tips') return normalizeDbTipsMessage(msg);
   if (msg.type !== 'text') return msg;
-  const raw = msg.content as unknown;
-  if (typeof raw !== 'string') return msg;
-  try {
-    const parsed = JSON.parse(raw) as Record<string, unknown>;
-    if (typeof parsed.content !== 'string') return msg;
-    return {
-      ...msg,
-      content: {
-        content: parsed.content as string,
-        ...(parsed.teammate_message ? { teammateMessage: true } : {}),
-        ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
-        ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
-        ...(parsed.sender_conversation_id ? { senderConversationId: parsed.sender_conversation_id as string } : {}),
-      },
-    };
-  } catch {
-    return msg;
-  }
+
+  return {
+    ...msg,
+    content: normalizeTextMessageContent((msg as IMessageText).content),
+  };
 }
 
 export const useMessageLstCache = (key: string) => {

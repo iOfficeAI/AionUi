@@ -4,26 +4,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useEffect, useMemo, useState } from 'react';
-import { Button, Progress, Message } from '@arco-design/web-react';
-import { CheckOne, Download, FolderOpen, Refresh, CloseOne, Install } from '@icon-park/react';
 import { ipcBridge } from '@/common';
+import type { AutoUpdateStatus, UpdateDownloadProgressEvent, UpdateReleaseInfo } from '@/common/update/updateTypes';
+import { uuid } from '@/common/utils';
 import AionModal from '@/renderer/components/base/AionModal';
 import MarkdownView from '@/renderer/components/Markdown';
-import type { UpdateDownloadProgressEvent, UpdateReleaseInfo, AutoUpdateStatus } from '@/common/update/updateTypes';
+import { Button, Message, Progress } from '@arco-design/web-react';
+import { CheckOne, CloseOne, Download, FolderOpen, Install, Refresh } from '@icon-park/react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 
 type UpdateStatus = 'checking' | 'upToDate' | 'available' | 'downloading' | 'downloaded' | 'success' | 'error';
 
 type UpdateInfo = UpdateReleaseInfo;
 
+// Build-time injected app version, used as the fallback current version so the
+// "current → new" display is never empty when neither the IPC check nor the
+// auto-update status event provides one.
+declare const __APP_VERSION__: string;
+
 const UpdateModal: React.FC = () => {
   const { t } = useTranslation();
   const [visible, setVisible] = useState(false);
   const [status, setStatus] = useState<UpdateStatus>('checking');
   const [updateInfo, setUpdateInfo] = useState<UpdateInfo | null>(null);
-  const [currentVersion, setCurrentVersion] = useState<string>('');
-  const [downloadId, setDownloadId] = useState<string | null>(null);
+  const [currentVersion, setCurrentVersion] = useState<string>(__APP_VERSION__);
+  const downloadIdRef = useRef<string | null>(null);
   const [progress, setProgress] = useState({ percent: 0, speed: '', total: 0, transferred: 0 });
   const [errorMsg, setErrorMsg] = useState('');
   const [downloadPath, setDownloadPath] = useState('');
@@ -35,8 +41,8 @@ const UpdateModal: React.FC = () => {
   const resetState = () => {
     setStatus('checking');
     setUpdateInfo(null);
-    setCurrentVersion('');
-    setDownloadId(null);
+    setCurrentVersion(__APP_VERSION__);
+    downloadIdRef.current = null;
     setProgress({ percent: 0, speed: '', total: 0, transferred: 0 });
     setErrorMsg('');
     setDownloadPath('');
@@ -47,12 +53,31 @@ const UpdateModal: React.FC = () => {
 
   const includePrerelease = useMemo(() => localStorage.getItem('update.includePrerelease') === 'true', [visible]);
   const hasCompatibleManualAsset = Boolean(updateInfo?.recommendedAsset);
+  const showManualInstallFallback = autoUpdateAvailable && hasCompatibleManualAsset;
 
   const openReleasePage = () => {
     if (!releasePageUrl) return;
     void ipcBridge.shell.openExternal.invoke(releasePageUrl).catch((error) => {
       console.error('Failed to open release page:', error);
     });
+  };
+
+  const loadManualReleaseInfoForDisplay = async () => {
+    try {
+      const res = await ipcBridge.update.check.invoke({
+        includePrerelease: localStorage.getItem('update.includePrerelease') === 'true',
+      });
+      if (!res?.success) {
+        console.warn('Manual release info check failed:', res?.msg);
+        return;
+      }
+      if (res.data?.latest) {
+        setUpdateInfo(res.data.latest);
+        setReleasePageUrl(res.data.latest.htmlUrl || '');
+      }
+    } catch (err) {
+      console.warn('Manual release info check error:', err);
+    }
   };
 
   const checkForUpdates = async () => {
@@ -81,7 +106,7 @@ const UpdateModal: React.FC = () => {
       if (!res?.success) {
         throw new Error(res?.msg || t('update.checkFailed'));
       }
-      setCurrentVersion(res.data?.currentVersion || '');
+      setCurrentVersion(res.data?.currentVersion || __APP_VERSION__);
 
       if (autoUpdateOk) {
         // Auto-update available — use manual check data for display only
@@ -115,35 +140,45 @@ const UpdateModal: React.FC = () => {
     }
   };
 
+  const startManualInstallDownload = async () => {
+    if (!updateInfo?.recommendedAsset) return;
+    const manualDownloadId = uuid();
+    downloadIdRef.current = manualDownloadId;
+    setStatus('downloading');
+    try {
+      const asset = updateInfo.recommendedAsset;
+      const res = await ipcBridge.update.download.invoke({
+        downloadId: manualDownloadId,
+        url: asset.url,
+        fallbackUrl: asset.fallbackUrl,
+        file_name: asset.name,
+      });
+      if (!res?.success || !res.data) {
+        throw new Error(res?.msg || t('update.downloadStartFailed'));
+      }
+      setDownloadPath(res.data.file_path);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Manual installer download failed:', err);
+      setErrorMsg(msg);
+      setStatus('error');
+    }
+  };
+
   const startDownload = async () => {
     if (!updateInfo && !autoUpdateAvailable) return;
     setStatus('downloading');
     try {
-      // Prefer the manual path so the URL is the CDN-rewritten asset.url.
-      // Fall back to electron-updater (GitHub) only when the GitHub API manual check failed
-      // but the yml-based auto-update check succeeded — a rare edge case.
-      // 优先走手动路径（URL 是重写后的 CDN 地址）。仅当 GitHub API 失败但 electron-updater 检查成功时，
-      // 回退到 electron-updater 的下载（走 GitHub），保证用户能升级。
-      if (updateInfo?.recommendedAsset) {
-        const asset = updateInfo.recommendedAsset;
-        const res = await ipcBridge.update.download.invoke({
-          url: asset.url,
-          fallbackUrl: asset.fallbackUrl,
-          file_name: asset.name,
-        });
-        if (!res?.success || !res.data) {
-          throw new Error(res?.msg || t('update.downloadStartFailed'));
-        }
-        setDownloadId(res.data.downloadId);
-        setDownloadPath(res.data.file_path);
-        return;
-      }
-
       if (autoUpdateAvailable) {
         const res = await ipcBridge.autoUpdate.download.invoke();
         if (!res?.success) {
           throw new Error(res?.msg || t('update.downloadStartFailed'));
         }
+        return;
+      }
+
+      if (updateInfo?.recommendedAsset) {
+        await startManualInstallDownload();
         return;
       }
 
@@ -210,6 +245,12 @@ const UpdateModal: React.FC = () => {
             version: evt.version || '',
             releaseNotes: evt.releaseNotes,
           });
+          // Prefer the event's current version (reflects the dev debug override);
+          // fall back to the build-time version so the display is never empty.
+          if (evt.currentVersion) {
+            setCurrentVersion(evt.currentVersion);
+          }
+          void loadManualReleaseInfoForDisplay();
           setStatus('available');
           setVisible(true);
           break;
@@ -244,7 +285,7 @@ const UpdateModal: React.FC = () => {
   useEffect(() => {
     const removeProgressListener = ipcBridge.update.downloadProgress.on((evt: UpdateDownloadProgressEvent) => {
       if (!evt) return;
-      if (!downloadId || evt.downloadId !== downloadId) return;
+      if (!downloadIdRef.current || evt.downloadId !== downloadIdRef.current) return;
 
       setProgress({
         percent: Math.round(evt.percent ?? 0),
@@ -267,7 +308,7 @@ const UpdateModal: React.FC = () => {
     return () => {
       removeProgressListener();
     };
-  }, [downloadId, t]);
+  }, [t]);
 
   const handleClose = () => {
     setVisible(false);
@@ -344,6 +385,11 @@ const UpdateModal: React.FC = () => {
                 ) : (
                   <Button type='primary' size='small' onClick={startDownload} className='!px-16px'>
                     {t('update.downloadButton')}
+                  </Button>
+                )}
+                {showManualInstallFallback && (
+                  <Button size='small' onClick={startManualInstallDownload} className='!px-16px'>
+                    {t('update.manualInstall')}
                   </Button>
                 )}
               </div>

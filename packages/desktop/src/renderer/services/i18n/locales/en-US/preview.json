@@ -73,6 +73,10 @@
       "portTimeout": "Preview service started but did not become ready in time. Retry.",
       "startFailed": "Failed to start the Office preview service.",
       "outsideSandbox": "This file is outside the current project sandbox."
+    },
+    "serverInstall": {
+      "hint": "AionUi is running on a server. Install the preview component on that server, then retry:",
+      "icuNote": "If it still fails to start, install the ICU library on the server (Debian/Ubuntu: apt-get install -y libicu-dev)."
     }
   },
   "word": {

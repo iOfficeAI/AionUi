@@ -15,6 +15,7 @@ import type {
 } from '@/common/update/updateTypes';
 import { uuid } from '@/common/utils';
 import { app } from 'electron';
+import log from 'electron-log';
 import * as fs from 'fs';
 import * as path from 'path';
 import semver from 'semver';
@@ -379,6 +380,8 @@ const attemptDownload = async (
 
   emitThrottled('starting');
 
+  log.info('[update-download] Downloading from URL:', url);
+
   let stream: fs.WriteStream | null = null;
   try {
     const res = await fetchWithAllowlistedRedirects(url, abortController.signal);
@@ -469,11 +472,11 @@ const startDownloadInBackground = async (
       await assertAllowedUrl(fallbackUrl);
     } catch (err) {
       // Fallback URL itself is invalid — keep the primary failure result.
-      console.warn('[updateBridge] Fallback URL rejected by allowlist:', err);
+      log.warn('[update-download] Fallback URL rejected by allowlist:', err);
       return primary;
     }
 
-    console.warn(`[updateBridge] Primary download failed (${primary.message}). Retrying with fallback URL.`);
+    log.warn(`[update-download] Primary download failed (${primary.message}). Retrying with fallback URL.`);
     return attemptDownload(downloadId, fallbackUrl, file_path, abortController);
   };
 
@@ -589,7 +592,7 @@ export function initUpdateBridge(): void {
           await assertAllowedUrl(params.fallbackUrl);
         }
 
-        const downloadId = uuid();
+        const downloadId = params.downloadId || uuid();
         const abortController = new AbortController();
 
         const downloadsDir = app.getPath('downloads');
@@ -658,7 +661,7 @@ export function initUpdateBridge(): void {
 
   ipcBridge.autoUpdate.quitAndInstall.provider(async (): Promise<void> => {
     try {
-      autoUpdaterService.quitAndInstall();
+      await autoUpdaterService.quitAndInstall();
     } catch (err: unknown) {
       console.error('quitAndInstall failed:', err);
     }

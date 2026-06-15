@@ -20,6 +20,14 @@ RUN node scripts/build-server.mjs
 FROM oven/bun:latest AS runtime
 WORKDIR /app
 
+# officecli (the Office preview component, auto-installed at runtime by the
+# backend) is a .NET binary that aborts on startup without ICU, and Debian
+# base images don't ship it. libicu-dev is version-agnostic so it keeps
+# resolving the right libicuNN when the base image bumps Debian releases.
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libicu-dev \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy only build artifacts and production deps
 COPY --from=builder /app/dist-server ./dist-server
 COPY --from=builder /app/out/renderer ./out/renderer

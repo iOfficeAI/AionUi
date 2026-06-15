@@ -357,8 +357,26 @@ function getResolveDiagnostics(error: unknown): Partial<BackendStartupErrorDetai
   return diagnostics as Partial<BackendStartupErrorDetails>;
 }
 
-function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGTERM' | 'SIGKILL'): void {
-  if (!childProcess?.pid) return;
+function waitForChildProcessEnd(childProcess: ChildProcess): Promise<void> {
+  return new Promise((resolve) => {
+    let settled = false;
+    const finish = () => {
+      if (settled) return;
+      settled = true;
+      childProcess.removeListener('error', finish);
+      childProcess.removeListener('exit', finish);
+      childProcess.removeListener('close', finish);
+      resolve();
+    };
+
+    childProcess.once('error', finish);
+    childProcess.once('exit', finish);
+    childProcess.once('close', finish);
+  });
+}
+
+function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGTERM' | 'SIGKILL'): Promise<void> {
+  if (!childProcess?.pid) return Promise.resolve();
 
   if (process.platform === 'win32') {
     const args = ['/PID', String(childProcess.pid), '/T'];
@@ -366,14 +384,16 @@ function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGT
       args.unshift('/F');
     }
     try {
-      spawn('taskkill', args, {
+      const taskkillProcess = spawn('taskkill', args, {
         stdio: 'ignore',
         windowsHide: true,
-      }).unref();
+      });
+      taskkillProcess.unref();
+      return waitForChildProcessEnd(taskkillProcess);
     } catch {
       /* best-effort tree kill */
     }
-    return;
+    return Promise.resolve();
   }
 
   try {
@@ -385,6 +405,7 @@ function killBackendProcessTree(childProcess: ChildProcess | null, signal: 'SIGT
       /* already exited */
     }
   }
+  return Promise.resolve();
 }
 
 async function probeHealthCheckTcpConnect(port: number, timeoutMs = 1_000): Promise<Partial<HealthCheckDiagnostics>> {
@@ -562,7 +583,7 @@ export class BackendLifecycleManager {
     backendPid = this.childProcess.pid;
     const pid = backendPid;
     const killOnExit = () => {
-      if (pid) killBackendProcessTree(this.childProcess, 'SIGKILL');
+      if (pid) void killBackendProcessTree(this.childProcess, 'SIGKILL');
     };
     process.on('exit', killOnExit);
 
@@ -698,7 +719,7 @@ export class BackendLifecycleManager {
     } catch (error) {
       if (error instanceof BackendStartupError && error.details.stage === 'listen_timeout') {
         startupSettled = true;
-        killBackendProcessTree(this.childProcess, 'SIGKILL');
+        await killBackendProcessTree(this.childProcess, 'SIGKILL');
         this.childProcess = null;
         this._status = 'error';
       }
@@ -724,7 +745,7 @@ export class BackendLifecycleManager {
         return this._port;
       }
       startupSettled = true;
-      killBackendProcessTree(this.childProcess, 'SIGKILL');
+      await killBackendProcessTree(this.childProcess, 'SIGKILL');
       this.childProcess = null;
       this._status = 'error';
       throw healthTimeoutError;
@@ -745,15 +766,14 @@ export class BackendLifecycleManager {
     this._status = 'stopped';
     const dataDir = this._lastDbPath;
 
-    killBackendProcessTree(childProcess, 'SIGTERM');
+    const gracefulKill = killBackendProcessTree(childProcess, 'SIGTERM');
     await new Promise<void>((resolve) => {
       const timeout = setTimeout(() => {
-        killBackendProcessTree(childProcess, 'SIGKILL');
-        resolve();
+        void killBackendProcessTree(childProcess, 'SIGKILL').finally(resolve);
       }, 5000);
       childProcess.on('exit', () => {
         clearTimeout(timeout);
-        resolve();
+        void gracefulKill.finally(resolve);
       });
     });
     await cleanupRegisteredAgentProcesses(dataDir);

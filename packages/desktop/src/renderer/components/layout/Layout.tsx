@@ -8,9 +8,10 @@ import { ipcBridge } from '@/common';
 import { TEAM_MODE_ENABLED } from '@/common/config/constants';
 import PwaPullToRefresh from '@/renderer/components/layout/PwaPullToRefresh';
 import Titlebar from '@/renderer/components/layout/Titlebar';
-import { Layout as ArcoLayout } from '@arco-design/web-react';
+import { Layout as ArcoLayout, Tooltip } from '@arco-design/web-react';
 import classNames from 'classnames';
 import React, { Suspense, useCallback, useEffect, useRef, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { LayoutContext } from '@renderer/hooks/context/LayoutContext';
 import { NavigationHistoryProvider } from '@renderer/hooks/context/NavigationHistoryContext';
@@ -113,6 +114,27 @@ const Layout: React.FC<{
   const navigate = useNavigate();
   useConversationShortcuts({ navigate });
   const location = useLocation();
+  const { t } = useTranslation();
+  // The "AionUi" wordmark acts as Home / Back-to-Chat, but only from settings routes.
+  // In non-settings routes the user is already "home", so it is a no-op (and not actionable).
+  const isSettingsRoute = location.pathname.startsWith('/settings');
+  // Only wired to the wordmark in the isSettingsRoute branch below, so the
+  // "no-op outside settings" contract is enforced structurally — no internal
+  // route guard needed (the chat-route wordmark is a plain, inert div).
+  const handleBrandHome = useCallback(() => {
+    // Mirror Titlebar's handleBackToChat convention: return to the last non-settings path.
+    let target: string | null = null;
+    try {
+      target = sessionStorage.getItem('aion:last-non-settings-path');
+    } catch {
+      // ignore
+    }
+    if (target && !target.startsWith('/settings')) {
+      void navigate(target);
+      return;
+    }
+    void navigate('/guid');
+  }, [navigate]);
   const workspaceAvailable =
     location.pathname.startsWith('/conversation/') || (TEAM_MODE_ENABLED && location.pathname.startsWith('/team/'));
   const collapsedRef = useRef(collapsed);
@@ -355,7 +377,27 @@ const Layout: React.FC<{
                     ></path>
                   </svg>
                 </div>
-                <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                {isSettingsRoute ? (
+                  <Tooltip content={t('common.back', { defaultValue: 'Back to Chat' })} position='bottom'>
+                    <div
+                      className='text-16px text-t-primary collapsed-hidden font-semibold cursor-pointer'
+                      role='button'
+                      tabIndex={0}
+                      aria-label={t('common.back', { defaultValue: 'Back to Chat' })}
+                      onClick={handleBrandHome}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          handleBrandHome();
+                        }
+                      }}
+                    >
+                      AionUi
+                    </div>
+                  </Tooltip>
+                ) : (
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                )}
                 {isMobile && !collapsed && (
                   <button
                     type='button'

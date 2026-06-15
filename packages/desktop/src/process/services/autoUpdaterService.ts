@@ -9,7 +9,14 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import fs from 'fs';
+import path from 'path';
+import { parse } from 'semver';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
+import { buildCdnFeedOptions } from './updateFeed';
+
+const FORCE_DEV_AUTO_UPDATE_ENV = 'AIONUI_FORCE_DEV_AUTO_UPDATE';
+const DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV = 'AIONUI_DEBUG_AUTO_UPDATE_CURRENT_VERSION';
 
 /**
  * Returns the appropriate update channel name based on the current platform and architecture.
@@ -44,6 +51,8 @@ export function getUpdateChannel(): string | undefined {
 export interface AutoUpdateStatus {
   status: 'checking' | 'available' | 'not-available' | 'downloading' | 'downloaded' | 'error' | 'cancelled';
   version?: string;
+  /** Current installed version — reflects the dev debug override when set. */
+  currentVersion?: string;
   releaseDate?: string;
   releaseNotes?: string;
   progress?: {
@@ -57,6 +66,7 @@ export interface AutoUpdateStatus {
 
 /** Callback type for broadcasting update status */
 export type StatusBroadcastCallback = (status: AutoUpdateStatus) => void;
+export type BeforeQuitAndInstallCallback = () => void | Promise<void>;
 
 /** Events emitted by AutoUpdaterService */
 export interface AutoUpdaterEvents {
@@ -68,6 +78,7 @@ class AutoUpdaterService extends EventEmitter {
   private _eventHandlersSetup = false;
   private _allowPrerelease = false;
   private _statusBroadcastCallback: StatusBroadcastCallback | null = null;
+  private _beforeQuitAndInstallCallback: BeforeQuitAndInstallCallback | null = null;
   /** Stores registered autoUpdater event handlers for cleanup and test access */
   private readonly _autoUpdaterHandlers = new Map<string, (...args: unknown[]) => void>();
 
@@ -75,11 +86,13 @@ class AutoUpdaterService extends EventEmitter {
     super();
     // Configure logging
     autoUpdater.logger = log;
-    (autoUpdater.logger as typeof log).transports.file.level = 'info';
+    (autoUpdater.logger as typeof log).transports.file.level = 'debug';
 
     // Disable auto-download for manual control
     autoUpdater.autoDownload = false;
     autoUpdater.autoInstallOnAppQuit = true;
+    this.configureDevAutoUpdateDebug();
+    const cdnFeedOptions = buildCdnFeedOptions();
 
     // Set the correct update channel based on platform and architecture before
     // any update checks are performed
@@ -87,6 +100,74 @@ class AutoUpdaterService extends EventEmitter {
     if (channel !== undefined) {
       autoUpdater.channel = channel;
       log.info(`Update channel set to: ${channel}`);
+    }
+    autoUpdater.setFeedURL(cdnFeedOptions);
+    log.info('Update feed set to CDN provider');
+    log.debug('[auto-update] CDN feed configured', {
+      provider: cdnFeedOptions.provider,
+      url: cdnFeedOptions.url,
+      channel: channel ?? 'latest',
+      platform: process.platform,
+      arch: process.arch,
+    });
+  }
+
+  private configureDevAutoUpdateDebug(): void {
+    if (app.isPackaged || process.env[FORCE_DEV_AUTO_UPDATE_ENV] !== '1') {
+      return;
+    }
+
+    autoUpdater.forceDevUpdateConfig = true;
+    log.warn(`[auto-update] Forced dev auto-update checks enabled by ${FORCE_DEV_AUTO_UPDATE_ENV}`);
+
+    // In dev mode electron-updater reads "dev-app-update.yml" from the app path to
+    // resolve `updaterCacheDirName` during download. It does not exist in the repo,
+    // so the download step fails with ENOENT. The feed itself is provided via
+    // setFeedURL(), so this file only needs to satisfy the cache-dir lookup. Write a
+    // minimal config to a temp path and point the updater at it. Must run before
+    // setFeedURL() — the updateConfigPath setter clears the injected provider.
+    this.ensureDevUpdateConfig();
+
+    const debugCurrentVersion = process.env[DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV];
+    if (!debugCurrentVersion) {
+      return;
+    }
+
+    const parsedVersion = parse(debugCurrentVersion);
+    if (!parsedVersion) {
+      log.warn(`[auto-update] Ignoring invalid ${DEBUG_AUTO_UPDATE_CURRENT_VERSION_ENV}: ${debugCurrentVersion}`);
+      return;
+    }
+
+    Object.defineProperty(autoUpdater, 'currentVersion', {
+      configurable: true,
+      value: parsedVersion,
+    });
+    log.warn(`[auto-update] Debug current version override enabled: ${parsedVersion.version}`);
+  }
+
+  /**
+   * Write a minimal dev-app-update.yml and point the updater at it, so the
+   * download step's `updaterCacheDirName` lookup succeeds in dev mode. The
+   * `provider`/`url` here are placeholders — the real feed comes from
+   * setFeedURL() — but `updaterCacheDirName` must match the packaged value
+   * (electron-builder defaults it to the appId) to reuse the same cache dir.
+   */
+  private ensureDevUpdateConfig(): void {
+    try {
+      const cdnFeedOptions = buildCdnFeedOptions();
+      const devConfig = [
+        'provider: generic',
+        `url: ${cdnFeedOptions.url}`,
+        'updaterCacheDirName: com.aionui.app',
+        '',
+      ].join('\n');
+      const configPath = path.join(app.getPath('userData'), 'dev-app-update.yml');
+      fs.writeFileSync(configPath, devConfig, 'utf-8');
+      autoUpdater.updateConfigPath = configPath;
+      log.warn(`[auto-update] Dev update config written to: ${configPath}`);
+    } catch (err) {
+      log.error('[auto-update] Failed to write dev update config:', err);
     }
   }
 
@@ -112,6 +193,10 @@ class AutoUpdaterService extends EventEmitter {
     this._statusBroadcastCallback = callback;
   }
 
+  setBeforeQuitAndInstall(callback: BeforeQuitAndInstallCallback | null): void {
+    this._beforeQuitAndInstallCallback = callback;
+  }
+
   /**
    * Check if the service has been initialized
    */
@@ -127,6 +212,7 @@ class AutoUpdaterService extends EventEmitter {
     // Note: _eventHandlersSetup is NOT reset to avoid duplicate handler registration
     this._allowPrerelease = false;
     this._statusBroadcastCallback = null;
+    this._beforeQuitAndInstallCallback = null;
   }
 
   /**
@@ -138,6 +224,7 @@ class AutoUpdaterService extends EventEmitter {
     this._eventHandlersSetup = false;
     this._allowPrerelease = false;
     this._statusBroadcastCallback = null;
+    this._beforeQuitAndInstallCallback = null;
     // Remove listeners from this EventEmitter instance
     this.removeAllListeners();
     // Remove each registered handler from autoUpdater to prevent
@@ -203,6 +290,9 @@ class AutoUpdaterService extends EventEmitter {
       this.broadcastStatus({
         status: 'available',
         version: info.version,
+        // Reflects the dev debug override (autoUpdater.currentVersion) when set,
+        // so the "current → new" display matches the version used for comparison.
+        currentVersion: autoUpdater.currentVersion?.version,
         releaseDate: info.releaseDate,
         releaseNotes: typeof info.releaseNotes === 'string' ? info.releaseNotes : undefined,
       });
@@ -214,7 +304,7 @@ class AutoUpdaterService extends EventEmitter {
     });
 
     register('download-progress', (progress: ProgressInfo) => {
-      log.info(`Download progress: ${progress.percent.toFixed(2)}%`);
+      log.debug(`Download progress: ${progress.percent.toFixed(2)}%`);
       this.broadcastStatus({
         status: 'downloading',
         progress: {
@@ -238,9 +328,24 @@ class AutoUpdaterService extends EventEmitter {
       log.error('Auto-updater error:', error);
       this.broadcastStatus({
         status: 'error',
-        error: error.message,
+        error: this.describeAutoUpdateError(error),
       });
     });
+  }
+
+  /**
+   * In dev mode the running shell is the stock Electron bundle (com.github.Electron),
+   * while the downloaded archive contains the packaged app (com.aionui.app). Squirrel.Mac
+   * looks for a bundle matching the *running* id, fails to find it, and reports
+   * "Could not locate update bundle". This is expected in dev and cannot be reproduced
+   * without a packaged build, so surface a clearer message instead of the raw error.
+   */
+  private describeAutoUpdateError(error: Error): string {
+    const message = error.message;
+    if (!app.isPackaged && /Could not locate update bundle/i.test(message)) {
+      return `[dev] Download succeeded; install cannot complete in dev mode (the install step requires a packaged build). Original error: ${message}`;
+    }
+    return message;
   }
 
   /**
@@ -267,17 +372,38 @@ class AutoUpdaterService extends EventEmitter {
         throw new Error('AutoUpdaterService not initialized');
       }
 
+      log.debug('[auto-update] checkForUpdates requested', {
+        allowPrerelease: this._allowPrerelease,
+        channel: autoUpdater.channel ?? 'latest',
+        currentVersion: app.getVersion(),
+        appIsPackaged: app.isPackaged,
+      });
+
+      if (this._allowPrerelease) {
+        log.info('Skipping electron-updater check for prerelease manual mode');
+        log.debug('[auto-update] CDN stable feed skipped because prerelease mode is handled by GitHub API');
+        return { success: true };
+      }
+
       const result = await autoUpdater.checkForUpdates();
       if (!result) {
         const { default: i18n } = await import('./i18n');
+        log.debug('[auto-update] checkForUpdates returned null');
         return { success: false, error: i18n.t('update.errors.checkReturnedNull') };
       }
       // Only report updateInfo when electron-updater internally confirms the update is available.
       // When isUpdateAvailable is false, updateInfoAndProvider is NOT set internally,
       // so a subsequent downloadUpdate() call would fail with "Please check update first".
       if (!result.isUpdateAvailable) {
+        log.debug('[auto-update] no update available from CDN feed', {
+          version: result.updateInfo.version,
+        });
         return { success: true };
       }
+      log.debug('[auto-update] update available from CDN feed', {
+        version: result.updateInfo.version,
+        releaseDate: result.updateInfo.releaseDate,
+      });
       return {
         success: true,
         updateInfo: result.updateInfo,
@@ -298,7 +424,9 @@ class AutoUpdaterService extends EventEmitter {
         throw new Error('AutoUpdaterService not initialized');
       }
 
+      log.debug('[auto-update] downloadUpdate requested');
       await autoUpdater.downloadUpdate();
+      log.debug('[auto-update] downloadUpdate started');
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -310,7 +438,12 @@ class AutoUpdaterService extends EventEmitter {
     }
   }
 
-  quitAndInstall(): void {
+  async quitAndInstall(): Promise<void> {
+    if (this._beforeQuitAndInstallCallback) {
+      log.info('Running pre-install cleanup before quitAndInstall...');
+      await this._beforeQuitAndInstallCallback();
+    }
+
     log.info('Quitting and installing update...');
     recordAutoUpdateQuitAndInstall({
       currentAppVersion: app.getVersion(),

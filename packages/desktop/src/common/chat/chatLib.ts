@@ -286,22 +286,6 @@ export const mergeAcpToolCallContent = (
   },
 });
 
-type ResponseTextData = {
-  content: string;
-  replace?: boolean;
-  cronMeta?: CronMessageMeta;
-  teammate_message?: boolean;
-  sender_name?: string;
-  sender_backend?: string;
-  sender_conversation_id?: string;
-};
-
-const isResponseTextData = (data: unknown): data is ResponseTextData =>
-  typeof data === 'object' &&
-  data !== null &&
-  'content' in data &&
-  typeof (data as { content?: unknown }).content === 'string';
-
 export const isTextContentReplacement = (content: IMessageText['content'] | undefined): boolean =>
   content?.replace === true;
 
@@ -394,6 +378,104 @@ export interface IConfirmation<Option extends any = any> {
 
 const isObject = (value: unknown): value is Record<string, unknown> =>
   typeof value === 'object' && value !== null && !Array.isArray(value);
+
+type RawTextMessageContent = {
+  content?: unknown;
+  replace?: unknown;
+  cronMeta?: unknown;
+  teammateMessage?: unknown;
+  teammate_message?: unknown;
+  senderName?: unknown;
+  sender_name?: unknown;
+  from_name?: unknown;
+  senderAgentType?: unknown;
+  sender_backend?: unknown;
+  senderBackend?: unknown;
+  senderConversationId?: unknown;
+  sender_conversation_id?: unknown;
+  senderConversationID?: unknown;
+};
+
+type NormalizeTextMessageContentOptions = {
+  replace?: boolean;
+};
+
+const isCronMessageMeta = (value: unknown): value is CronMessageMeta =>
+  isObject(value) &&
+  value.source === 'cron' &&
+  typeof value.cron_job_id === 'string' &&
+  typeof value.cron_job_name === 'string' &&
+  typeof value.triggered_at === 'number';
+
+const firstStringField = (
+  data: RawTextMessageContent,
+  keys: Array<keyof RawTextMessageContent>
+): string | undefined => {
+  for (const key of keys) {
+    const value = data[key];
+    if (typeof value === 'string' && value.length > 0) {
+      return value;
+    }
+  }
+  return undefined;
+};
+
+const normalizeTextMessageContentObject = (
+  data: RawTextMessageContent,
+  options?: NormalizeTextMessageContentOptions
+): IMessageText['content'] => {
+  const content = typeof data.content === 'string' ? data.content : String(data.content ?? '');
+  const senderName = firstStringField(data, ['senderName', 'sender_name', 'from_name']);
+  const senderAgentType = firstStringField(data, ['senderAgentType', 'sender_backend', 'senderBackend']);
+  const senderConversationId = firstStringField(data, [
+    'senderConversationId',
+    'sender_conversation_id',
+    'senderConversationID',
+  ]);
+  const cronMeta = isCronMessageMeta(data.cronMeta) ? data.cronMeta : undefined;
+  const replace = options?.replace === true || data.replace === true;
+  const teammateMessage = Boolean(data.teammateMessage) || Boolean(data.teammate_message);
+
+  return {
+    content,
+    ...(replace ? { replace: true } : {}),
+    ...(cronMeta ? { cronMeta } : {}),
+    ...(teammateMessage ? { teammateMessage: true } : {}),
+    ...(senderName ? { senderName } : {}),
+    ...(senderAgentType ? { senderAgentType } : {}),
+    ...(senderConversationId ? { senderConversationId } : {}),
+  };
+};
+
+export const normalizeTextMessageContent = (
+  raw: unknown,
+  options?: NormalizeTextMessageContentOptions
+): IMessageText['content'] => {
+  if (typeof raw === 'string') {
+    try {
+      const parsed = JSON.parse(raw) as unknown;
+      if (isObject(parsed)) {
+        return normalizeTextMessageContentObject(parsed as RawTextMessageContent, options);
+      }
+    } catch {
+      // Plain text is the common streaming shape.
+    }
+
+    return {
+      content: raw,
+      ...(options?.replace === true ? { replace: true } : {}),
+    };
+  }
+
+  if (isObject(raw)) {
+    return normalizeTextMessageContentObject(raw as RawTextMessageContent, options);
+  }
+
+  return {
+    content: String(raw ?? ''),
+    ...(options?.replace === true ? { replace: true } : {}),
+  };
+};
 
 const AGENT_ERROR_OWNERSHIPS = new Set<AgentErrorOwnership>([
   'aionui',
@@ -489,6 +571,12 @@ export const normalizeAgentStreamError = (value: unknown): AgentStreamErrorInfo 
 /**
  * @description 将后端返回的消息转换为前端消息
  * */
+const isChatMessagePosition = (value: unknown): value is NonNullable<TMessage['position']> =>
+  value === 'left' || value === 'right' || value === 'center' || value === 'pop';
+
+const isChatMessageStatus = (value: unknown): value is NonNullable<TMessage['status']> =>
+  value === 'finish' || value === 'pending' || value === 'error' || value === 'work';
+
 export const transformMessage = (message: IResponseMessage): TMessage | undefined => {
   const created_at = message.created_at ?? Date.now();
   switch (message.type) {
@@ -548,29 +636,23 @@ export const transformMessage = (message: IResponseMessage): TMessage | undefine
     case 'content':
     case 'user_content': {
       const data = message.data;
-      const isRichData = isResponseTextData(data);
-      const shouldReplace = message.replace === true || (isRichData && data.replace === true);
+      const position = isChatMessagePosition(message.position)
+        ? message.position
+        : message.type === 'user_content'
+          ? 'right'
+          : 'left';
+      const status = isChatMessageStatus(message.status) ? message.status : undefined;
       return {
         id: uuid(),
         type: 'text',
         msg_id: message.msg_id,
-        position: message.type === 'user_content' ? 'right' : 'left',
+        position,
+        ...(status ? { status } : {}),
         conversation_id: message.conversation_id,
         created_at,
-        content: isRichData
-          ? {
-              content: data.content,
-              cronMeta: data.cronMeta,
-              ...(shouldReplace ? { replace: true } : {}),
-              ...(data.teammate_message ? { teammateMessage: true } : {}),
-              ...(data.sender_name ? { senderName: data.sender_name } : {}),
-              ...(data.sender_backend ? { senderAgentType: data.sender_backend } : {}),
-              ...(data.sender_conversation_id ? { senderConversationId: data.sender_conversation_id } : {}),
-            }
-          : {
-              content: data as string,
-              ...(shouldReplace ? { replace: true } : {}),
-            },
+        content: normalizeTextMessageContent(data, {
+          replace: message.replace === true,
+        }),
         ...(message.hidden && { hidden: true }),
       };
     }

@@ -17,6 +17,7 @@ import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
+import { getPreferredThoughtLevel } from './agentSelectionUtils';
 
 export type GuidSendDeps = {
   // Input state
@@ -111,7 +112,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     selectedMcpServerIds,
     assistantDefaultMcpIds,
     currentEffectiveAgentInfo: _currentEffectiveAgentInfo,
-    isGoogleAuth,
     setMentionOpen,
     setMentionQuery,
     setMentionSelectorOpen,
@@ -268,6 +268,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn(`${acpBackend} CLI not found, but proceeding to let conversation panel handle it.`);
       }
       const agentBackend = acpBackend || selectedAgent;
+      const preferredThoughtLevel = getPreferredThoughtLevel(agentBackend);
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
@@ -286,6 +287,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         preset_agent_type: finalEffectiveAgentType,
         session_mode: selectedMode,
         current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+        thought_level: preferredThoughtLevel,
         assistant_locale: localeKey,
         assistant_conversation_overrides: assistantOverrides,
         extra: {

@@ -169,6 +169,42 @@ export interface AcpSessionConfigOption {
   options?: AcpConfigSelectOption[];
 }
 
+export type AcpConfigOptionType = 'select' | 'boolean' | 'string';
+
+export type AcpConfigOptionConfirmation = 'observed' | 'command_ack';
+
+export type AcpConfigSelectOptionDto = {
+  value: string;
+  name?: string | null;
+  label?: string | null;
+  description?: string | null;
+};
+
+export type AcpConfigOptionDto = {
+  id: string;
+  name?: string | null;
+  label?: string | null;
+  description?: string | null;
+  category?: string | null;
+  type?: AcpConfigOptionType;
+  option_type?: AcpConfigOptionType;
+  current_value?: string | null;
+  options: AcpConfigSelectOptionDto[];
+};
+
+export type GetConfigOptionsResponse = {
+  config_options: AcpConfigOptionDto[];
+};
+
+export type SetConfigOptionRequest = {
+  value: string;
+};
+
+export type SetConfigOptionResponse = {
+  confirmation: AcpConfigOptionConfirmation;
+  config_options: AcpConfigOptionDto[] | null;
+};
+
 // ===== ACP Mode / Model types (unstable API) =====
 
 /** Mode entry in the top-level `modes` object of session/new response */

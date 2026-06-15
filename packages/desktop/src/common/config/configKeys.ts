@@ -19,6 +19,7 @@ export type ConfigKeyMap = {
       yoloMode?: boolean;
       preferredMode?: string;
       preferredModelId?: string;
+      preferredThoughtLevel?: string;
       promptTimeout?: number;
     };
   };

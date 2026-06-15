@@ -9,6 +9,7 @@
   "downloadingTitle": "Завантаження оновлення...",
   "downloadButton": "Завантажити",
   "downloadAndInstall": "Завантажити та встановити",
+  "manualInstall": "Установити вручну",
   "downloadStartFailed": "Не вдалося почати завантаження",
   "downloadFailed": "Завантаження не вдалося",
   "noCompatibleAsset": "Не знайдено сумісного завантаження для цієї платформи",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "Режим автоматичного оновлення",
   "showInFolder": "Показати в папці",
   "openFile": "Відкрити файл",
-  "errorTitle": "Помилка оновлення"
+  "errorTitle": "Помилка оновлення",
+  "errors": {
+    "invalidUrl": "Недійсний URL завантаження",
+    "httpsOnly": "Дозволені лише HTTPS URL для завантаження",
+    "hostNotAllowed": "Хост завантаження не дозволений: {{host}}",
+    "redirectNoLocation": "Перенаправлення завантаження не містить заголовка Location",
+    "tooManyRedirects": "Забагато перенаправлень під час завантаження",
+    "githubApiFailed": "Запит до GitHub API не вдався ({{status}})",
+    "githubApiNotArray": "Відповідь GitHub API не є списком Release",
+    "githubApiTimeout": "Час очікування запиту GitHub API минув через 30 секунд",
+    "downloadFailed": "Запит завантаження не вдався ({{status}})",
+    "downloadNoBody": "Відповідь завантаження не містить тіла",
+    "missingUrl": "Відсутній URL завантаження",
+    "checkReturnedNull": "Перевірка оновлень не повернула результат. Потрібен запакований застосунок або примусова конфігурація оновлення для розробки."
+  }
 }

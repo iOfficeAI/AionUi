@@ -11,14 +11,29 @@ import { BackendHttpError } from '@/common/adapter/httpBridge';
 import AcpSendBox from '@/renderer/pages/conversation/platforms/acp/AcpSendBox';
 import type { UseAcpMessageReturn } from '@/renderer/pages/conversation/platforms/acp/useAcpMessage';
 
-const { sendMessageInvokeMock, addOrUpdateMessageMock, resetStateMock, emitterEmitMock, setSendBoxHandlerMock } =
-  vi.hoisted(() => ({
-    sendMessageInvokeMock: vi.fn(),
-    addOrUpdateMessageMock: vi.fn(),
-    resetStateMock: vi.fn(),
-    emitterEmitMock: vi.fn(),
-    setSendBoxHandlerMock: vi.fn(),
-  }));
+const {
+  sendMessageInvokeMock,
+  addOrUpdateMessageMock,
+  resetStateMock,
+  emitterEmitMock,
+  setSendBoxHandlerMock,
+  useAcpConfigOptionsMock,
+  useTeamPermissionMock,
+  savePreferredThoughtLevelMock,
+  thoughtSelectorProps,
+} = vi.hoisted(() => ({
+  sendMessageInvokeMock: vi.fn(),
+  addOrUpdateMessageMock: vi.fn(),
+  resetStateMock: vi.fn(),
+  emitterEmitMock: vi.fn(),
+  setSendBoxHandlerMock: vi.fn(),
+  useAcpConfigOptionsMock: vi.fn(),
+  useTeamPermissionMock: vi.fn(),
+  savePreferredThoughtLevelMock: vi.fn(),
+  thoughtSelectorProps: {
+    current: null as null | { onSetOption: (optionId: string, value: string) => Promise<unknown> },
+  },
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -36,19 +51,36 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/components/chat/SendBox', () => ({
-  default: ({ onSend }: { onSend: (message: string) => Promise<void> }) => (
-    <button
-      type='button'
-      onClick={() => {
-        void onSend('Hello').catch(() => {});
-      }}
-    >
-      send
-    </button>
+  default: ({ onSend, rightTools }: { onSend: (message: string) => Promise<void>; rightTools?: React.ReactNode }) => (
+    <div>
+      {rightTools}
+      <button
+        type='button'
+        onClick={() => {
+          void onSend('Hello').catch(() => {});
+        }}
+      >
+        send
+      </button>
+    </div>
   ),
 }));
 
 vi.mock('@/renderer/components/agent/AgentModeSelector', () => ({ default: () => null }));
+vi.mock('@/renderer/components/agent/AcpThoughtLevelSelector', () => ({
+  default: (props: {
+    thoughtLevel: unknown;
+    iconOnly?: boolean;
+    onSetOption: (optionId: string, value: string) => Promise<unknown>;
+  }) => {
+    thoughtSelectorProps.current = props;
+    return props.thoughtLevel ? (
+      <div data-testid='mock-thought-selector' data-icon-only={String(Boolean(props.iconOnly))}>
+        thought
+      </div>
+    ) : null;
+  },
+}));
 vi.mock('@/renderer/components/chat/CommandQueuePanel', () => ({ default: () => null }));
 vi.mock('@/renderer/components/chat/MobileActionSheet', () => ({
   default: () => null,
@@ -66,6 +98,10 @@ vi.mock('@/renderer/hooks/agent/useAcpModelInfo', () => ({
     canSwitch: false,
     selectModel: vi.fn(),
   }),
+}));
+vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
+  classifyConfigSetError: () => 'unknown',
+  useAcpConfigOptions: useAcpConfigOptionsMock,
 }));
 vi.mock('@/renderer/hooks/agent/useAgentModesForBackend', () => ({
   useAgentModesForBackend: () => [],
@@ -137,7 +173,7 @@ vi.mock('@/renderer/pages/conversation/utils/warmupConversation', () => ({
   warmupConversation: vi.fn().mockResolvedValue(undefined),
 }));
 vi.mock('@/renderer/pages/team/hooks/TeamPermissionContext', () => ({
-  useTeamPermission: () => null,
+  useTeamPermission: useTeamPermissionMock,
 }));
 vi.mock('@/renderer/services/FileService', () => ({
   allSupportedExts: [],
@@ -156,6 +192,10 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
 }));
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
   useAcpInitialMessage: vi.fn(),
+}));
+vi.mock('@/renderer/pages/guid/hooks/agentSelectionUtils', () => ({
+  savePreferredMode: vi.fn(),
+  savePreferredThoughtLevel: savePreferredThoughtLevelMock,
 }));
 
 vi.mock('@arco-design/web-react', () => ({
@@ -185,6 +225,17 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    savePreferredThoughtLevelMock.mockResolvedValue(undefined);
+    thoughtSelectorProps.current = null;
+    useTeamPermissionMock.mockReturnValue(null);
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
   });
 
   it('resets ACP loading state when sendMessage fails before any stream error arrives', async () => {
@@ -218,5 +269,134 @@ describe('AcpSendBox', () => {
     await waitFor(() => {
       expect(resetStateMock).toHaveBeenCalledTimes(1);
     });
+  });
+
+  it('enables ACP config options on desktop so thought_level can render', () => {
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'high',
+        options: [{ value: 'high', label: 'High' }],
+      },
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(useAcpConfigOptionsMock).toHaveBeenCalledWith(expect.objectContaining({ enabled: true }));
+    expect(screen.getByTestId('mock-thought-selector')).toBeInTheDocument();
+    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'false');
+  });
+
+  it('persists preferred thought level after the desktop selector observes the change', async () => {
+    const setConfigOption = vi.fn().mockResolvedValue([]);
+    useAcpConfigOptionsMock.mockReturnValue({
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'medium',
+        options: [
+          { value: 'medium', label: 'Medium' },
+          { value: 'high', label: 'High' },
+        ],
+      },
+      setStatus: { state: 'idle' },
+      setConfigOption,
+      reload: vi.fn(),
+      isLoading: false,
+      configOptions: [],
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    await act(async () => {
+      await thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high');
+    });
+
+    expect(savePreferredThoughtLevelMock).toHaveBeenCalledWith('codex', 'high');
+  });
+
+  it('does not persist preferred thought level when observed confirmation fails', async () => {
+    const setConfigOption = vi.fn().mockRejectedValue(new Error('command_ack'));
+    useAcpConfigOptionsMock.mockReturnValue({
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'medium',
+        options: [{ value: 'high', label: 'High' }],
+      },
+      setStatus: { state: 'idle' },
+      setConfigOption,
+      reload: vi.fn(),
+      isLoading: false,
+      configOptions: [],
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='conv-1'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    await expect(thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high')).rejects.toThrow('command_ack');
+    expect(savePreferredThoughtLevelMock).not.toHaveBeenCalled();
+  });
+
+  it('renders thought_level as icon-only inside a team pane', () => {
+    useTeamPermissionMock.mockReturnValue({
+      leaderConversationId: 'leader-conv',
+      warmupSession: vi.fn().mockResolvedValue(undefined),
+      propagateMode: vi.fn(),
+    });
+    useAcpConfigOptionsMock.mockReturnValue({
+      setStatus: { state: 'idle' },
+      mode: null,
+      model: null,
+      thoughtLevel: {
+        id: 'reasoning_effort',
+        category: 'thought_level',
+        currentValue: 'high',
+        options: [{ value: 'high', label: 'High' }],
+      },
+      reload: vi.fn(),
+      setConfigOption: vi.fn(),
+    });
+
+    render(
+      <AcpSendBox
+        conversation_id='teammate-conv'
+        backend='codex'
+        workspacePath='/tmp/workspace'
+        messageState={makeMessageState()}
+      />
+    );
+
+    expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'true');
   });
 });

@@ -7,7 +7,7 @@
 import { ipcBridge } from '@/common';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
-import { useAgents } from '@/renderer/hooks/agent/useAgents';
+import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { Button, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
@@ -23,8 +23,11 @@ const LocalAgents: React.FC = () => {
   const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
 
-  // Single fetch for all agents; both detected and custom lists are derived from it.
-  const { agents: allAgents, revalidate: mutateAgents } = useAgents();
+  // Management view: includes user-disabled custom agents so they stay
+  // listed (greyed) with a working re-enable toggle. `revalidate` here
+  // refreshes both the management cache and the shared detected cache, so
+  // toggling an agent on/off is reflected in the pickers too.
+  const { agents: allAgents, revalidate: mutateAgents } = useManagedAgents();
 
   const detectedAgents = allAgents.filter(
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'

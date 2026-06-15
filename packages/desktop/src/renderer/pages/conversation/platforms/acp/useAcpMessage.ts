@@ -5,8 +5,8 @@
  */
 
 import { ipcBridge } from '@/common';
-import { isErrorTipMessage, transformMessage } from '@/common/chat/chatLib';
-import type { AvailableCommand } from '@/common/chat/chatLib';
+import { isErrorTipMessage, normalizeTextMessageContent, transformMessage } from '@/common/chat/chatLib';
+import type { AvailableCommand, TMessage } from '@/common/chat/chatLib';
 import { mapAcpCommandsToSlashCommands } from '@/common/chat/slash/acpMapping';
 import type { SlashCommandItem } from '@/common/chat/slash/types';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
@@ -332,43 +332,16 @@ export const useAcpMessage = (conversation_id: string, options?: { skipWarmup?: 
           addOrUpdateMessage(transformedMessage);
           break;
         case 'teammate_message': {
-          const tmMsg = message.data as import('@/common/chat/chatLib').TMessage;
+          const tmMsg = message.data as TMessage;
           if (tmMsg && tmMsg.conversation_id === conversation_id) {
-            if (tmMsg.type === 'text') {
-              const raw = tmMsg.content as unknown;
-              if (typeof raw === 'string') {
-                try {
-                  const parsed = JSON.parse(raw) as Record<string, unknown>;
-                  if (typeof parsed.content === 'string') {
-                    tmMsg.content = {
-                      content: parsed.content,
-                      ...(parsed.teammate_message ? { teammateMessage: true } : {}),
-                      ...(parsed.sender_name ? { senderName: parsed.sender_name as string } : {}),
-                      ...(parsed.sender_backend ? { senderAgentType: parsed.sender_backend as string } : {}),
-                      ...(parsed.sender_conversation_id
-                        ? { senderConversationId: parsed.sender_conversation_id as string }
-                        : {}),
-                    };
+            addOrUpdateMessage(
+              tmMsg.type === 'text'
+                ? {
+                    ...tmMsg,
+                    content: normalizeTextMessageContent(tmMsg.content),
                   }
-                } catch {
-                  /* keep original */
-                }
-              } else if (typeof raw === 'object' && raw !== null) {
-                const obj = raw as Record<string, unknown>;
-                if (obj.teammate_message && !obj.teammateMessage) {
-                  tmMsg.content = {
-                    content: (obj.content as string) ?? '',
-                    teammateMessage: true,
-                    ...(obj.sender_name ? { senderName: obj.sender_name as string } : {}),
-                    ...(obj.sender_backend ? { senderAgentType: obj.sender_backend as string } : {}),
-                    ...(obj.sender_conversation_id
-                      ? { senderConversationId: obj.sender_conversation_id as string }
-                      : {}),
-                  };
-                }
-              }
-            }
-            addOrUpdateMessage(tmMsg);
+                : tmMsg
+            );
           }
           break;
         }

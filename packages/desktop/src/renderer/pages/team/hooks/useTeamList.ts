@@ -23,9 +23,17 @@ export function useTeamList() {
     const unsubCreated = ipcBridge.team.created.on(() => {
       void mutate();
     });
+    const unsubRemoved = ipcBridge.team.removed.on(() => {
+      void mutate();
+    });
+    const unsubRenamed = ipcBridge.team.renamed.on(() => {
+      void mutate();
+    });
     return () => {
       unsubListChanged();
       unsubCreated();
+      unsubRemoved();
+      unsubRenamed();
     };
   }, [mutate]);
 

@@ -62,6 +62,14 @@ type StreamingSession = {
   recorder: PcmRecorderHandle;
   handle: SpeechStreamHandle | null;
   liveCleared: boolean;
+  /** Set once the server acks `ready` — i.e. the stream actually established. */
+  ready: boolean;
+  /**
+   * Non-null once streaming was abandoned before it ever established and the
+   * session degraded to batch capture: holds the originating error code and
+   * defers the whole-blob /api/stt fallback until the user stops recording.
+   */
+  deferredFallbackCode: string | null;
 };
 
 const LOCAL_HOSTNAMES = new Set(['localhost', '127.0.0.1', '::1']);
@@ -469,9 +477,9 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
   );
 
   /**
-   * Streaming failed (server error, interruption, timeout): replay the PCM
-   * captured so far through the whole-blob /api/stt fallback so the user's
-   * recording is never lost.
+   * Streaming failed after it had established (`ready`): stop now and replay the
+   * PCM captured so far through the whole-blob /api/stt fallback, so a mid-session
+   * interruption never loses the user's recording.
    */
   const fallbackStreamingSession = useCallback(
     async (session: StreamingSession, code: string) => {
@@ -494,6 +502,32 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
       }
     },
     [clearLiveTranscript, resetSpeechVisualizer, teardownStreamingSession, transcribeBlob]
+  );
+
+  /**
+   * Streaming failed BEFORE it ever established (no `ready`): a custom
+   * OpenAI-compatible endpoint with no `/api/stt/stream` support rejects/closes
+   * within a fraction of a second — well under the connect timeout. Immediately
+   * replaying the PCM captured so far would transcribe only that fraction of a
+   * second of audio and surface "no speech detected" on every single attempt.
+   *
+   * Instead: drop the dead socket but KEEP the PCM recorder running, so recording
+   * continues uninterrupted; the captured audio is replayed through the
+   * whole-blob /api/stt fallback when the user actually stops. Only an explicit
+   * `STT_STREAM_UNSUPPORTED` is persisted as stream-unsupported — ambiguous codes
+   * (connect-failed/timeout/interrupted) may be transient, so they degrade this
+   * one recording without permanently disabling streaming for the config.
+   */
+  const degradeStreamingSessionToBatch = useCallback(
+    (session: StreamingSession, code: string) => {
+      if (code === 'STT_STREAM_UNSUPPORTED') {
+        rememberStreamUnsupported(session.config);
+      }
+      session.handle?.abort();
+      session.deferredFallbackCode = code;
+      clearLiveTranscript(session);
+    },
+    [clearLiveTranscript]
   );
 
   /**
@@ -538,6 +572,8 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
         recorder,
         handle: null,
         liveCleared: false,
+        ready: false,
+        deferredFallbackCode: null,
       };
       const isActive = () => streamSessionRef.current === session;
 
@@ -547,6 +583,7 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
         callbacks: {
           onReady: () => {
             // Chunk buffering/flushing is handled inside the stream client.
+            session.ready = true;
           },
           onPartial: (text) => {
             if (!isActive()) return;
@@ -567,7 +604,13 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
           },
           onError: (code) => {
             if (!isActive()) return;
-            void fallbackStreamingSession(session, code);
+            // Never established → keep recording and defer to batch on stop.
+            // Established then dropped → replay what was captured immediately.
+            if (session.ready) {
+              void fallbackStreamingSession(session, code);
+            } else {
+              degradeStreamingSessionToBatch(session, code);
+            }
           },
         },
       });
@@ -583,7 +626,14 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
       await startSpeechVisualizer(recorder.stream);
       return true;
     },
-    [emitLiveTranscript, fallbackStreamingSession, finishStreamingSession, resetSpeechVisualizer, startSpeechVisualizer]
+    [
+      degradeStreamingSessionToBatch,
+      emitLiveTranscript,
+      fallbackStreamingSession,
+      finishStreamingSession,
+      resetSpeechVisualizer,
+      startSpeechVisualizer,
+    ]
   );
 
   const startRecording = useCallback(async () => {
@@ -659,6 +709,12 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
 
     const session = streamSessionRef.current;
     if (session) {
+      if (session.deferredFallbackCode !== null) {
+        // Streaming never established and degraded to batch capture; now that
+        // recording ended, transcribe the full PCM via the whole-blob fallback.
+        void fallbackStreamingSession(session, session.deferredFallbackCode);
+        return;
+      }
       setStatus('transcribing');
       pauseSpeechVisualizer();
       // Keep the accumulated PCM (resolved by this stop) for potential fallback.
@@ -674,7 +730,7 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
 
     setStatus('transcribing');
     recorder.stop();
-  }, [pauseSpeechVisualizer, status]);
+  }, [fallbackStreamingSession, pauseSpeechVisualizer, status]);
 
   const transcribeFile = useCallback(
     async (file: Blob) => {

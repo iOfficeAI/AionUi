@@ -9,6 +9,7 @@
   "downloadingTitle": "업데이트 다운로드 중...",
   "downloadButton": "다운로드",
   "downloadAndInstall": "다운로드 및 설치",
+  "manualInstall": "수동 설치",
   "downloadStartFailed": "다운로드를 시작하지 못했습니다",
   "downloadFailed": "다운로드에 실패했습니다",
   "noCompatibleAsset": "이 플랫폼에 호환되는 다운로드를 찾을 수 없습니다",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "자동 업데이트 모드",
   "showInFolder": "폴더에서 보기",
   "openFile": "파일 열기",
-  "errorTitle": "업데이트 실패"
+  "errorTitle": "업데이트 실패",
+  "errors": {
+    "invalidUrl": "다운로드 URL이 올바르지 않습니다",
+    "httpsOnly": "HTTPS 다운로드 URL만 허용됩니다",
+    "hostNotAllowed": "허용되지 않은 다운로드 호스트입니다: {{host}}",
+    "redirectNoLocation": "다운로드 리디렉션에 Location 헤더가 없습니다",
+    "tooManyRedirects": "다운로드 리디렉션이 너무 많습니다",
+    "githubApiFailed": "GitHub API 요청에 실패했습니다({{status}})",
+    "githubApiNotArray": "GitHub API 응답이 Release 목록이 아닙니다",
+    "githubApiTimeout": "GitHub API 요청이 30초 후 시간 초과되었습니다",
+    "downloadFailed": "다운로드 요청에 실패했습니다({{status}})",
+    "downloadNoBody": "다운로드 응답에 본문이 없습니다",
+    "missingUrl": "다운로드 URL이 없습니다",
+    "checkReturnedNull": "업데이트 확인 결과가 없습니다. 패키지된 앱 또는 강제 개발 업데이트 설정이 필요합니다."
+  }
 }

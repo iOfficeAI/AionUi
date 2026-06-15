@@ -9,6 +9,7 @@
   "downloadingTitle": "Güncelleme indiriliyor...",
   "downloadButton": "İndir",
   "downloadAndInstall": "İndir ve Yükle",
+  "manualInstall": "Manuel yükle",
   "downloadStartFailed": "İndirme başlatılamadı",
   "downloadFailed": "İndirme başarısız",
   "noCompatibleAsset": "Bu platform için uyumlu indirme bulunamadı",
@@ -22,5 +23,19 @@
   "autoUpdateMode": "Otomatik güncelleme modu",
   "showInFolder": "Klasörde göster",
   "openFile": "Dosyayı aç",
-  "errorTitle": "Güncelleme başarısız"
+  "errorTitle": "Güncelleme başarısız",
+  "errors": {
+    "invalidUrl": "Geçersiz indirme URL'si",
+    "httpsOnly": "Yalnızca HTTPS indirme URL'lerine izin verilir",
+    "hostNotAllowed": "İndirme ana makinesine izin verilmiyor: {{host}}",
+    "redirectNoLocation": "İndirme yönlendirmesinde Location başlığı yok",
+    "tooManyRedirects": "Çok fazla indirme yönlendirmesi",
+    "githubApiFailed": "GitHub API isteği başarısız oldu ({{status}})",
+    "githubApiNotArray": "GitHub API yanıtı bir Release listesi değil",
+    "githubApiTimeout": "GitHub API isteği 30 saniye sonra zaman aşımına uğradı",
+    "downloadFailed": "İndirme isteği başarısız oldu ({{status}})",
+    "downloadNoBody": "İndirme yanıtında gövde yok",
+    "missingUrl": "İndirme URL'si eksik",
+    "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir."
+  }
 }

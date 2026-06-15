@@ -5,15 +5,24 @@
  */
 
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
+import { classifyConfigSetError } from '@/renderer/hooks/agent/useAcpConfigOptions';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { warmupConversation } from '@/renderer/pages/conversation/utils/warmupConversation';
 import { getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
-import { Button, Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
+import { Dropdown, Menu, Message, Tooltip } from '@arco-design/web-react';
 import { Brain, Down } from '@icon-park/react';
 import React, { useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
-import MarqueePillLabel from './MarqueePillLabel';
+import RuntimeSelectorPill from './RuntimeSelectorPill';
+
+const configErrorMessageKey = (error: unknown) => {
+  const errorKind = classifyConfigSetError(error);
+  if (errorKind === 'command_ack') return 'agent.config.commandAck';
+  if (errorKind === 'confirmation_timeout') return 'agent.config.timeout';
+  if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
+  return 'agent.config.failed';
+};
 
 /**
  * Model selector for ACP-based agents. Renders three states:
@@ -39,14 +48,14 @@ const AcpModelSelector: React.FC<{
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
   const prepareRuntime = useCallback(() => warmupConversation(conversation_id), [conversation_id]);
-  const { model_info, canSwitch, selectModel } = useAcpModelInfo({
+  const { model_info, canSwitch, isSetting, selectModel } = useAcpModelInfo({
     conversation_id,
     backend,
     initialModelId,
     prepareRuntime: waitForWarmup ? prepareRuntime : undefined,
     persistGlobalPreference,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
-    onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
+    onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });
 
   const defaultModelLabel = t('common.defaultModel');
@@ -69,17 +78,12 @@ const AcpModelSelector: React.FC<{
   if (!model_info) {
     return (
       <Tooltip content={t('conversation.welcome.modelSwitchNotSupported')} position='top'>
-        <Button
+        <RuntimeSelectorPill
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
-          shape='round'
-          size='small'
+          label={t('conversation.welcome.useCliModel')}
+          leading={renderLogo()}
           style={{ cursor: 'default' }}
-        >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {renderLogo()}
-            <MarqueePillLabel>{t('conversation.welcome.useCliModel')}</MarqueePillLabel>
-          </span>
-        </Button>
+        />
       </Tooltip>
     );
   }
@@ -87,17 +91,12 @@ const AcpModelSelector: React.FC<{
   if (!canSwitch) {
     return (
       <Tooltip content={tooltipContent} position='top'>
-        <Button
+        <RuntimeSelectorPill
           className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
-          shape='round'
-          size='small'
+          label={display_label}
+          leading={renderLogo()}
           style={{ cursor: 'default' }}
-        >
-          <span className='flex items-center gap-6px min-w-0 leading-none'>
-            {renderLogo()}
-            <MarqueePillLabel>{display_label}</MarqueePillLabel>
-          </span>
-        </Button>
+        />
       </Tooltip>
     );
   }
@@ -114,7 +113,9 @@ const AcpModelSelector: React.FC<{
             <Menu.Item
               key={model.id}
               className={model.id === model_info.current_model_id ? 'bg-2!' : ''}
-              onClick={() => selectModel(model.id)}
+              onClick={() => {
+                if (!isSetting) selectModel(model.id);
+              }}
             >
               <div className='flex items-center gap-8px w-full'>
                 <span>{model.label || model.id}</span>
@@ -124,13 +125,15 @@ const AcpModelSelector: React.FC<{
         </Menu>
       }
     >
-      <Button className='sendbox-model-btn header-model-btn agent-mode-compact-pill' shape='round' size='small'>
-        <span className='flex items-center gap-6px min-w-0 leading-none'>
-          {renderLogo()}
-          <MarqueePillLabel>{display_label}</MarqueePillLabel>
-          <Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />
-        </span>
-      </Button>
+      <RuntimeSelectorPill
+        testId='acp-model-selector'
+        className='sendbox-model-btn header-model-btn agent-mode-compact-pill'
+        label={display_label}
+        leading={renderLogo()}
+        trailing={<Down theme='outline' size={12} fill={iconColors.secondary} className='shrink-0' />}
+        loading={isSetting}
+        disabled={isSetting}
+      />
     </Dropdown>
   );
 };
