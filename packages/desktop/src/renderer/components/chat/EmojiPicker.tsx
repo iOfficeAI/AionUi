@@ -603,8 +603,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
             key='builtin'
             title={
               <span className='flex items-center gap-4px'>
-                <span aria-hidden='true'>👤</span>
-                {' '}
+                <span aria-hidden='true'>👤</span>{' '}
                 <span>{t('settings.assistantAvatarBuiltinTab', { defaultValue: 'Built-in' })}</span>
               </span>
             }
@@ -615,8 +614,7 @@ const EmojiPicker: React.FC<EmojiPickerProps> = ({
             key='emoji'
             title={
               <span className='flex items-center gap-4px'>
-                <span aria-hidden='true'>🙂</span>
-                {' '}
+                <span aria-hidden='true'>🙂</span>{' '}
                 <span>{t('settings.assistantAvatarEmojiTab', { defaultValue: 'Emoji' })}</span>
               </span>
             }

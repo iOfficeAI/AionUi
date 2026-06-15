@@ -89,7 +89,6 @@ const ExtensionSettingsPage: React.FC = () => {
         void postLocaleInit();
         return;
       }
-
     };
 
     window.addEventListener('message', onMessage);

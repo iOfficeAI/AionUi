@@ -76,7 +76,6 @@ const ExtensionSettingsTabContent: React.FC<ExtensionSettingsTabContentProps> = 
         void postLocaleInit();
         return;
       }
-
     };
 
     window.addEventListener('message', onMessage);
