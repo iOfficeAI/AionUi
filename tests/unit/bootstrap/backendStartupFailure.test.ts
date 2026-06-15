@@ -1,7 +1,7 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { classifyBackendStartupFailure } from '@/process/startup/backendStartupFailure';
 import { detectStartupArchitectureMismatch } from '@/process/startup/architectureCompatibility';
-import { getDownloadLatestModalActionProps } from '@/renderer/components/layout/InstallationIntegrityDialog';
+import { getInstallationIntegrityModalActions } from '@/renderer/components/layout/InstallationIntegrityDialog';
 
 describe('classifyBackendStartupFailure', () => {
   it('classifies missing GLIBC symbols as an incompatible backend runtime', () => {
@@ -207,17 +207,17 @@ describe('detectStartupArchitectureMismatch', () => {
   });
 });
 
-describe('getDownloadLatestModalActionProps', () => {
-  it('hides the cancel action for blocking download-latest dialogs', () => {
+describe('getInstallationIntegrityModalActions', () => {
+  it('exposes diagnostics reporting next to download-latest for blocking dialogs', () => {
     const t = (key: string) => key;
+    const onReportDiagnostics = vi.fn();
 
-    expect(getDownloadLatestModalActionProps(t)).toMatchObject({
-      okText: 'common.backendStartup.incompleteInstallation.downloadLatest',
-      cancelButtonProps: {
-        style: {
-          display: 'none',
-        },
-      },
-    });
+    const actions = getInstallationIntegrityModalActions(t, { onReportDiagnostics });
+
+    expect(actions.downloadText).toBe('common.backendStartup.incompleteInstallation.downloadLatest');
+    expect(actions.reportText).toBe('common.backendStartup.incompleteInstallation.sendDiagnostics');
+
+    actions.onReportDiagnostics();
+    expect(onReportDiagnostics).toHaveBeenCalledOnce();
   });
 });

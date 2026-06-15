@@ -13,6 +13,42 @@ import { ipcMain, app, BrowserWindow } from 'electron';
 import * as path from 'path';
 import { collectFeedbackLogAttachment } from '../feedback/logs';
 
+type RendererFeedbackLogPayload = {
+  details?: unknown;
+  level?: unknown;
+  message?: unknown;
+};
+
+function normalizeRendererFeedbackLogPayload(payload: RendererFeedbackLogPayload): {
+  details?: unknown;
+  level: 'info' | 'warn' | 'error';
+  message: string;
+} {
+  const level = payload.level === 'warn' || payload.level === 'error' ? payload.level : 'info';
+  const message = typeof payload.message === 'string' && payload.message.trim() ? payload.message : 'feedback log';
+  return {
+    level,
+    message,
+    details: payload.details,
+  };
+}
+
+ipcMain.on('feedback:renderer-log', (_event, payload: RendererFeedbackLogPayload) => {
+  const log = normalizeRendererFeedbackLogPayload(payload ?? {});
+  const args = [`[FeedbackReport:renderer] ${log.message}`];
+  if (log.details !== undefined) {
+    args.push(log.details as string);
+  }
+
+  if (log.level === 'error') {
+    console.error(...args);
+  } else if (log.level === 'warn') {
+    console.warn(...args);
+  } else {
+    console.info(...args);
+  }
+});
+
 ipcMain.handle('feedback:collect-logs', async () => {
   try {
     let logsDir: string;
@@ -22,7 +58,8 @@ ipcMain.handle('feedback:collect-logs', async () => {
       logsDir = path.join(app.getPath('userData'), 'logs');
     }
 
-    const attachment = collectFeedbackLogAttachment(logsDir);
+    const logDirs = [logsDir, path.join(logsDir, 'logs')];
+    const attachment = collectFeedbackLogAttachment(logDirs);
     if (!attachment) return null;
 
     // Return as number array for IPC serialization (Buffer is not serializable)

@@ -4,10 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+
+const createTeamInvokeMock = vi.fn();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -35,6 +37,9 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   useConversationAgents: () => ({
+    cliAgents: [
+      { id: 'aionrs-runtime', name: 'Aion CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true },
+    ],
     presetAssistants: assistants(),
   }),
 }));
@@ -43,7 +48,9 @@ vi.mock('@renderer/components/base/AionModal', () => ({
   default: ({ visible, header, footer, children }: Record<string, unknown>) =>
     visible ? (
       <div data-testid='team-create-modal'>
-        {typeof header === 'object' && header && 'render' in header ? (header as { render: () => React.ReactNode }).render() : null}
+        {typeof header === 'object' && header && 'render' in header
+          ? (header as { render: () => React.ReactNode }).render()
+          : null}
         <div>{children as React.ReactNode}</div>
         <div>{footer as React.ReactNode}</div>
       </div>
@@ -57,7 +64,7 @@ vi.mock('@renderer/components/workspace', () => ({
 vi.mock('@/common', () => ({
   ipcBridge: {
     team: {
-      create: { invoke: vi.fn() },
+      create: { invoke: (...args: unknown[]) => createTeamInvokeMock(...args) },
     },
   },
 }));
@@ -69,6 +76,11 @@ vi.mock('@renderer/pages/team/components/teamCreateModelResolver', () => ({
 import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
 
 describe('TeamCreateModal', () => {
+  beforeEach(() => {
+    createTeamInvokeMock.mockReset();
+    createTeamInvokeMock.mockResolvedValue({ id: 'team-1', agents: [] });
+  });
+
   it('keeps blocked assistants visible with a reason and prevents selecting them', () => {
     render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
 
@@ -83,6 +95,25 @@ describe('TeamCreateModal', () => {
     fireEvent.click(screen.getByTestId('team-create-agent-option-blocked-reviewer'));
 
     expect(createButton).toBeDisabled();
+  });
+
+  it('passes assistant identity through when creating a team with an assistant leader', async () => {
+    render(<TeamCreateModal visible onClose={vi.fn()} onCreated={vi.fn()} />);
+
+    fireEvent.change(screen.getByPlaceholderText('Team name'), {
+      target: { value: 'Docs Team' },
+    });
+    fireEvent.click(screen.getByTestId('team-create-agent-option-bare-aionrs'));
+    fireEvent.click(screen.getByRole('button', { name: 'Create Team' }));
+
+    await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
+
+    const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(payload.agents[0]).toMatchObject({
+      role: 'leader',
+      custom_agent_id: 'bare-aionrs',
+      agent_name: 'Aion CLI',
+    });
   });
 });
 
@@ -107,7 +138,9 @@ function assistants(): Assistant[] {
   ];
 }
 
-function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>): Assistant {
+function assistant(
+  overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'source' | 'preset_agent_type'>
+): Assistant {
   return {
     id: overrides.id,
     source: overrides.source,
@@ -124,8 +157,10 @@ function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name'
     prompts: [],
     prompts_i18n: {},
     models: [],
+    avatar: undefined,
     agent_status: 'available',
     team_selectable: true,
+    team_block_reason: undefined,
     deletable: false,
     ...overrides,
   };

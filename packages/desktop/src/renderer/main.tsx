@@ -97,6 +97,7 @@ import type { IRuntimeStatusEvent, RuntimeFailureKind } from '@/common/adapter/i
 import {
   InstallationIntegrityContent,
   InstallationIntegrityModalHost,
+  type InstallationIntegrityDiagnostics,
   getBackendStartupInstallationDescription,
   getDownloadLatestModalActionProps,
   getRuntimeComponentInstallationDescription,
@@ -159,6 +160,25 @@ function captureRuntimeInstallationIntegrityFailure(event: IRuntimeStatusEvent):
     .catch(() => {});
 }
 
+function buildRuntimeInstallationDiagnostics(
+  event: IRuntimeStatusEvent,
+  description: string
+): InstallationIntegrityDiagnostics {
+  return {
+    source: 'runtime_status',
+    description,
+    runtime: {
+      failureKind: event.failure_kind,
+      message: event.message,
+      phase: event.phase,
+      resource: event.resource,
+      resourceId: event.resource_id,
+      scopeId: event.scope.id,
+      scopeKind: event.scope.kind,
+    },
+  };
+}
+
 function resolveRuntimeResourceLabel(event: IRuntimeStatusEvent, t: TFunction): string {
   if (event.resource === 'node') {
     return t('settings.runtimeResource.node');
@@ -202,7 +222,7 @@ const RuntimeFailureDialogs: React.FC = () => {
         : t('settings.runtimeStatus.failedUnknown', { resource });
       if (installationIntegrityFailure) {
         captureRuntimeInstallationIntegrityFailure(event);
-        showInstallationIntegrityModal(modal, t, description);
+        showInstallationIntegrityModal(modal, t, description, buildRuntimeInstallationDiagnostics(event, description));
         return;
       }
 
@@ -311,7 +331,14 @@ const BackendStartupFailureDialog: React.FC<{ failure: BackendStartupFailureInfo
   if (!isIncompatibleRuntime && !isPackageArchitectureMismatch) {
     return (
       <div className='min-h-screen bg-bg-1'>
-        <InstallationIntegrityModalHost description={description} />
+        <InstallationIntegrityModalHost
+          description={description}
+          diagnostics={{
+            source: 'backend_startup_failure',
+            description,
+            backendStartupFailure: failure as unknown as Record<string, unknown>,
+          }}
+        />
       </div>
     );
   }

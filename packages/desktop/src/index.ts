@@ -308,6 +308,53 @@ function markBackendReady(backendPort: number, source: string): void {
   scheduleBackendMigrations();
 }
 
+function resolveDebugBackendStartupFailure(): BackendStartupFailureInfo | null {
+  const reason = process.env.AIONUI_DEBUG_BACKEND_STARTUP_FAILURE as BackendStartupFailureInfo['reason'] | undefined;
+  if (!reason) {
+    return null;
+  }
+  if ((app.isPackaged && !isE2ETestMode) || isWebUIMode || isResetPasswordMode) {
+    console.warn('[AionUi] Ignoring AIONUI_DEBUG_BACKEND_STARTUP_FAILURE outside desktop dev/e2e mode.');
+    return null;
+  }
+
+  if (reason === 'backend_incompatible_runtime') {
+    return { reason, runtime: 'glibc', requiredVersions: ['2.28'] };
+  }
+  if (reason === 'backend_package_architecture_mismatch') {
+    return {
+      reason,
+      deviceArch: process.arch === 'arm64' ? 'arm64' : 'x64',
+      expectedDownloadArch: process.arch === 'arm64' ? 'arm64' : 'x64',
+      packageArch: process.arch === 'arm64' ? 'x64' : 'arm64',
+    };
+  }
+  if (reason === 'backend_startup_failed') {
+    return {
+      reason,
+      backendBoundaryCode: 'E2E_DEBUG_BACKEND_STARTUP_FAILURE',
+      backendBoundaryStage: 'debug_injection',
+    };
+  }
+  if (reason === 'backend_incomplete_installation') {
+    return {
+      reason,
+      incompleteInstallationKind: 'missing_directory_resources',
+      missingRuntimeDir: true,
+      missingResources: ['managed node runtime', 'ACP adapters'],
+    };
+  }
+
+  console.warn(`[AionUi] Ignoring unknown AIONUI_DEBUG_BACKEND_STARTUP_FAILURE value: ${reason}`);
+  return null;
+}
+
+function applyDebugBackendStartupFailure(failure: BackendStartupFailureInfo): void {
+  backendStartupFailed = true;
+  backendStartupFailureInfo = failure;
+  (globalThis as typeof globalThis & { __backendStartupFailed?: boolean }).__backendStartupFailed = true;
+}
+
 const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): void => {
   console.log('[AionUi] Creating main window...');
   const { x: windowX, y: windowY, width: windowWidth, height: windowHeight } = resolveInitialBounds();
@@ -550,71 +597,77 @@ const handleAppReady = async (): Promise<void> => {
     return;
   }
 
-  // Start aioncore only after initializeProcess(). initStorage may open
-  // the legacy Electron SQLite catalog for a one-shot v26 migration and must
-  // close it before the backend touches the same file.
-  const backendStartup = await startBackendOrExit({
-    startBackend: async () => {
-      assertStartupArchitectureCompatible({
-        arch: process.arch,
-        isPackaged: app.isPackaged,
-        platform: process.platform,
-      });
-      const { getDataPath } = await import('./process/utils/utils');
-      const { getSystemDir } = await import('./process/utils/initStorage');
-      const sysDir = getSystemDir();
-      return backendManager.start(
-        getDataPath(),
-        sysDir.logDir,
-        {
-          cacheDir: sysDir.cacheDir,
-          workDir: sysDir.workDir,
-          logDir: sysDir.logDir,
-        },
-        {
-          allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
-          onHealthTimeout: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
+  const debugBackendStartupFailure = resolveDebugBackendStartupFailure();
+  if (debugBackendStartupFailure) {
+    applyDebugBackendStartupFailure(debugBackendStartupFailure);
+    mark(`debugBackendStartupFailure:${debugBackendStartupFailure.reason}`);
+  } else {
+    // Start aioncore only after initializeProcess(). initStorage may open
+    // the legacy Electron SQLite catalog for a one-shot v26 migration and must
+    // close it before the backend touches the same file.
+    const backendStartup = await startBackendOrExit({
+      startBackend: async () => {
+        assertStartupArchitectureCompatible({
+          arch: process.arch,
+          isPackaged: app.isPackaged,
+          platform: process.platform,
+        });
+        const { getDataPath } = await import('./process/utils/utils');
+        const { getSystemDir } = await import('./process/utils/initStorage');
+        const sysDir = getSystemDir();
+        return backendManager.start(
+          getDataPath(),
+          sysDir.logDir,
+          {
+            cacheDir: sysDir.cacheDir,
+            workDir: sysDir.workDir,
+            logDir: sysDir.logDir,
           },
-          onPendingExit: async (error) => {
-            markBackendStartupFailed(error);
-            await captureBackendStartupFailure(error);
-          },
-          onReady: (backendPort) => {
-            markBackendReady(backendPort, 'backendManager.lateReady');
-          },
+          {
+            allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
+            onHealthTimeout: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onPendingExit: async (error) => {
+              markBackendStartupFailed(error);
+              await captureBackendStartupFailure(error);
+            },
+            onReady: (backendPort) => {
+              markBackendReady(backendPort, 'backendManager.lateReady');
+            },
+          }
+        );
+      },
+      onStarted: (backendPort) => {
+        exposeBackendPort(backendPort);
+        if (backendManager.status === 'running') {
+          markBackendReady(backendPort, 'backendManager.start');
+          return;
         }
-      );
-    },
-    onStarted: (backendPort) => {
-      exposeBackendPort(backendPort);
-      if (backendManager.status === 'running') {
-        markBackendReady(backendPort, 'backendManager.start');
+        mark(`backendManager.start pending health (port=${backendPort})`);
+      },
+      captureFailure: async (error) => {
+        markBackendStartupFailed(error);
+        await captureBackendStartupFailure(error);
+      },
+      exitApp: (code) => app.exit(code),
+      exitOnFailure: isWebUIMode || isResetPasswordMode,
+      logError: console.error,
+    });
+    if (!backendStartup.ok) {
+      if (isWebUIMode || isResetPasswordMode) {
         return;
       }
-      mark(`backendManager.start pending health (port=${backendPort})`);
-    },
-    captureFailure: async (error) => {
-      markBackendStartupFailed(error);
-      await captureBackendStartupFailure(error);
-    },
-    exitApp: (code) => app.exit(code),
-    exitOnFailure: isWebUIMode || isResetPasswordMode,
-    logError: console.error,
-  });
-  if (!backendStartup.ok) {
-    if (isWebUIMode || isResetPasswordMode) {
-      return;
     }
-  }
 
-  // One-shot WebUI admin credential migration. Must run after the backend is
-  // up (__backendPort set) and before any mode branch below that might log the
-  // user in. Swallows its own errors; the next boot retries.
-  const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
-  if (backendStartedOk && bootBackendPort) {
-    await ensureAdminUserOnce(bootBackendPort);
+    // One-shot WebUI admin credential migration. Must run after the backend is
+    // up (__backendPort set) and before any mode branch below that might log the
+    // user in. Swallows its own errors; the next boot retries.
+    const bootBackendPort = (globalThis as typeof globalThis & { __backendPort?: number }).__backendPort;
+    if (backendStartedOk && bootBackendPort) {
+      await ensureAdminUserOnce(bootBackendPort);
+    }
   }
 
   // One-shot backend migrations are deferred until after the renderer finishes

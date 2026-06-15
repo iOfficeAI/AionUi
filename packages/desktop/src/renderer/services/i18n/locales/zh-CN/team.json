@@ -20,6 +20,7 @@
   "newAgent": "新成员",
   "noMessages": "暂无消息。",
   "agentNotConfigured": "Agent 尚未配置。",
+  "stopAgentFailed": "停止该成员失败，请稍后重试",
   "sendBox": {
     "placeholder": "向调度 Agent 发消息..."
   },

@@ -7,6 +7,7 @@
 import type { IConversationArtifact } from '@/common/adapter/ipcBridge';
 import type { IMessageAcpToolCall, IMessageToolCall, IMessageToolGroup, TMessage } from '@/common/chat/chatLib';
 import { useConversationContextSafe } from '@/renderer/hooks/context/ConversationContext';
+import { useConversationRuntimeView } from '@/renderer/pages/conversation/runtime/useConversationRuntimeView';
 import { iconColors } from '@/renderer/styles/colors';
 import { CHAT_MESSAGE_JUMP_EVENT, type ChatMessageJumpDetail } from '@/renderer/utils/chat/chatMinimapEvents';
 import { Image } from '@arco-design/web-react';
@@ -237,6 +238,10 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   const artifacts = useConversationArtifacts();
   const conversationContext = useConversationContextSafe();
   useAutoPreviewOfficeFiles(conversationContext);
+  // While the agent is still streaming, the in-progress turn's last text keeps
+  // moving down, so we defer its copy/timestamp row until the turn finishes to
+  // avoid the row flashing in and the layout reflowing mid-stream.
+  const { isProcessing } = useConversationRuntimeView(conversationContext?.conversation_id ?? '');
   const { t } = useTranslation();
   const location = useLocation();
   const locationState = (location.state || {}) as ConversationLocationState;
@@ -351,10 +356,13 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
   // Collect the id of the last AI text in each turn; a turn runs until the next
   // user (right) message. Tool/file/artifact items don't end a turn and, per the
   // fallback strategy, the row stays on the turn's last text even when followed
-  // by tool blocks.
+  // by tool blocks. While the conversation is still streaming, the final turn's
+  // row is withheld (it would otherwise appear then shift down as more text
+  // streams in); earlier, already-finished turns always keep their row.
   const aiCopyRowTextIds = useMemo(() => {
     const ids = new Set<string>();
     let pendingTextId: string | undefined;
+    let lastTurnTextId: string | undefined;
     const flush = () => {
       if (pendingTextId) ids.add(pendingTextId);
       pendingTextId = undefined;
@@ -375,9 +383,12 @@ const MessageList: React.FC<{ className?: string; emptySlot?: React.ReactNode }>
         pendingTextId = message.id;
       }
     }
+    lastTurnTextId = pendingTextId;
     flush();
+    // The final turn is the one that may still be streaming; hide its row until done.
+    if (isProcessing && lastTurnTextId) ids.delete(lastTurnTextId);
     return ids;
-  }, [processedList]);
+  }, [processedList, isProcessing]);
 
   // Use auto-scroll hook
   const {

@@ -20,6 +20,7 @@
   "newAgent": "New Agent",
   "noMessages": "No messages yet.",
   "agentNotConfigured": "エージェントはまだ設定されていません。",
+  "stopAgentFailed": "このエージェントを停止できませんでした。もう一度お試しください。",
   "sendBox": {
     "placeholder": "ディスパッチエージェントにメッセージを送信..."
   },

@@ -1,12 +1,13 @@
 import { ipcBridge } from '@/common';
 import type { IProvider, TChatConversation, TProviderWithModel } from '@/common/config/storage';
-import { Spin } from '@arco-design/web-react';
+import { Message, Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
 import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
-import { buildTeamSendRuntime } from './teamSendRuntime';
+import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 
@@ -22,6 +23,7 @@ type TeamSendOverride = (payload: { input: string; files: string[] }) => Promise
 const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
   activeRun: undefined,
   childTurnsBySlot: {},
+  slotWorkBySlot: {},
 };
 
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
@@ -85,6 +87,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   teamRunView = EMPTY_TEAM_RUN_VIEW,
   onTeamRunAck,
 }) => {
+  const { t } = useTranslation();
   // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
   // to MessageList; the empty state itself reads team_id / backend / preset info from the
   // shared SWR-cached conversation record, so none of that needs to flow through props.
@@ -111,26 +114,18 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     team_id && slot_id
       ? buildTeamSendRuntime({
           slot_id,
-          isLeader: Boolean(isLeader),
           runView: teamRunView,
-          onStop: async () => {
-            const activeRun = teamRunView.activeRun;
-            if (!activeRun) return;
-            if (isLeader) {
-              await ipcBridge.team.cancelRun.invoke({
-                team_id,
-                team_run_id: activeRun.team_run_id,
-                target_slot_id: slot_id,
-              });
-              return;
-            }
-            if (!teamRunView.childTurnsBySlot[slot_id]) return;
-            await ipcBridge.team.cancelChildTurn.invoke({
-              team_id,
-              team_run_id: activeRun.team_run_id,
-              slot_id,
-            });
-          },
+          onStop: buildTeamStopHandler({
+            team_id,
+            slot_id,
+            runView: teamRunView,
+            pauseSlotWork: (params) => ipcBridge.team.pauseSlotWork.invoke(params),
+            onStopFailed: () => {
+              Message.error(
+                t('team.stopAgentFailed', { defaultValue: 'Failed to stop this agent. Please try again.' })
+              );
+            },
+          }),
         })
       : undefined;
   const content = (() => {

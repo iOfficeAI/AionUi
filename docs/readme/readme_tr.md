@@ -194,7 +194,6 @@ AionUi önceden tanımlanmış yeteneklere sahip **21 profesyonel asistan** içe
 - **📗 Excel Creator** — Analiz, grafikler ve otomatik biçimlendirme ile elektronik tablo oluşturma
 - **🎓 Academic Paper Writer** — Yapılandırılmış akademik makale yazımı
 - **💰 Financial Model Creator** — Finansal modeller ve projeksiyonlar
-- **⭐ Star Office Helper** — Ofis üretkenlik asistanı
 - **🎮 3D Oyun** — Tek dosya 3D oyun oluşturma
 - **🎨 UI/UX Pro Max** — Profesyonel UI/UX tasarımı (57 stil, 95 renk paleti)
 - **📋 Dosyalarla Planlama** — Karmaşık görevler için dosya tabanlı planlama (Manus tarzı kalıcı Markdown planlama)

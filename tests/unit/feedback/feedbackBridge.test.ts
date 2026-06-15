@@ -8,10 +8,11 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, rmSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import * as path from 'node:path';
 import { gunzipSync } from 'node:zlib';
+import { app } from 'electron';
 import { collectFeedbackLogAttachment } from '@/process/feedback/logs';
 
 // Table of handlers registered via ipcMain.handle during module import.
@@ -33,6 +34,7 @@ vi.mock('electron', () => ({
     handle: (channel: string, fn: (event: unknown, ...args: unknown[]) => unknown) => {
       handlers.set(channel, fn);
     },
+    on: vi.fn(),
   },
   app: {
     getPath: vi.fn(() => '/tmp/aionui-test-logs-nonexistent'),
@@ -130,6 +132,37 @@ describe('feedbackBridge — capture-screenshot', () => {
 });
 
 describe('feedback logs', () => {
+  it('collects top-level frontend logs and nested backend logs through the IPC handler', async () => {
+    const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-feedback-bridge-'));
+    try {
+      const backendLogsDir = path.join(logsDir, 'logs');
+      mkdirSync(backendLogsDir);
+      writeFileSync(path.join(logsDir, '2026-05-25.log'), 'frontend renderer log\n');
+      writeFileSync(path.join(backendLogsDir, '2026-05-25.log'), 'backend process log\n');
+      writeFileSync(path.join(backendLogsDir, '2026-05-24.log'), 'second day backend log\n');
+      writeFileSync(path.join(backendLogsDir, '2026-05-23.log'), 'third day backend log\n');
+      writeFileSync(path.join(backendLogsDir, '2026-05-22.log'), 'too old backend log\n');
+
+      vi.mocked(app.getPath).mockImplementation((name: string) => {
+        if (name === 'logs') return logsDir;
+        return path.join(logsDir, 'userData');
+      });
+
+      const handler = handlers.get('feedback:collect-logs')!;
+      const result = (await handler({})) as { filename: string; data: number[] } | null;
+
+      expect(result).not.toBeNull();
+      const content = gunzipSync(Buffer.from(result!.data)).toString('utf8');
+      expect(content).toContain('frontend renderer log');
+      expect(content).toContain('backend process log');
+      expect(content).toContain('second day backend log');
+      expect(content).toContain('third day backend log');
+      expect(content).not.toContain('too old backend log');
+    } finally {
+      rmSync(logsDir, { recursive: true, force: true });
+    }
+  });
+
   it('collects the same recent three log days used by user feedback reports', () => {
     const logsDir = mkdtempSync(path.join(tmpdir(), 'aionui-feedback-logs-'));
     try {

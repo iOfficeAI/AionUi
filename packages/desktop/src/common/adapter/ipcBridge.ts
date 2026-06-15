@@ -65,6 +65,7 @@ import type {
   ITeamTaskChangedEvent,
   ICancelTeamChildTurnParams,
   ICancelTeamRunParams,
+  IPauseTeamSlotParams,
   ISendTeamAgentMessageParams,
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
@@ -506,16 +507,6 @@ export const autoUpdate = {
   download: bridge.buildProvider<IBridgeResponse, void>('auto-update.download'),
   quitAndInstall: bridge.buildProvider<void, void>('auto-update.quit-and-install'),
   status: bridge.buildEmitter<AutoUpdateStatus>('auto-update.status'),
-};
-
-// ---------------------------------------------------------------------------
-// Star Office — routed to backend
-// ---------------------------------------------------------------------------
-
-export const starOffice = {
-  detectUrl: httpPost<{ url: string | null }, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>(
-    '/api/star-office/detect'
-  ),
 };
 
 // ---------------------------------------------------------------------------
@@ -1863,6 +1854,12 @@ export const team = {
   ),
   cancelChildTurn: httpPost<void, ICancelTeamChildTurnParams>(
     (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/cancel`,
+    (p) => ({
+      reason: p.reason,
+    })
+  ),
+  pauseSlotWork: httpPost<void, IPauseTeamSlotParams>(
+    (p) => `/api/teams/${p.team_id}/runs/${p.team_run_id}/agents/${p.slot_id}/pause`,
     (p) => ({
       reason: p.reason,
     })

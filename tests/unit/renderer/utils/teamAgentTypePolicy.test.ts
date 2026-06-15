@@ -80,6 +80,7 @@ function assistant(id: string, team_selectable: boolean, team_block_reason?: str
     prompts: [],
     prompts_i18n: {},
     models: [],
+    avatar: undefined,
     agent_status: 'available',
     team_selectable,
     team_block_reason,

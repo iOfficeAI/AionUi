@@ -19,6 +19,8 @@ export interface ElectronBridgeAPI {
   collectFeedbackLogs?: () => Promise<{ filename: string; data: number[] } | null>;
   // Feedback screenshot capture / 反馈截图
   captureFeedbackScreenshot?: () => Promise<{ filename: string; data: number[] } | null>;
+  // Forward feedback diagnostics logs to the main process console / 转发反馈诊断日志到主进程控制台
+  logFeedbackEvent?: (payload: { details?: unknown; level: 'info' | 'warn' | 'error'; message: string }) => void;
 }
 
 export type BackendStartupFailureReason =
@@ -53,7 +55,10 @@ declare global {
   interface Window {
     electronAPI?: ElectronBridgeAPI;
     __initialLanguage?: string | null;
+    __aionuiE2ETest?: boolean;
     __backendStartupFailed?: boolean;
     __backendStartupFailure?: BackendStartupFailureInfo | null;
+    __installationIntegrityReportCount?: number;
+    __lastInstallationIntegrityReportMessage?: string;
   }
 }

@@ -180,4 +180,66 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.id).toBe('assistant-1');
     expect(payload.extra.preset_assistant_id).toBe('assistant-1');
   });
+
+  it('forwards local skill overrides for non-preset CLI agents through conversation extra', async () => {
+    const deps = createDeps();
+    deps.selectedAgent = 'claude';
+    deps.selectedAgentKey = 'claude';
+    deps.selectedAgentInfo = {
+      id: 'meta-claude',
+      key: 'claude',
+      name: 'Claude',
+      agent_type: 'claude',
+      backend: 'claude',
+      is_preset: false,
+      isExtension: false,
+      cli_path: '/usr/local/bin/claude',
+    } as never;
+    deps.is_presetAgent = false;
+    deps.current_model = { provider_id: 'anthropic', model: 'claude-sonnet', use_model: 'claude-sonnet' } as never;
+    deps.guidEnabledSkills = ['pdf-reader'];
+    deps.guidDisabledBuiltinSkills = ['todo-tracker'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant).toBeUndefined();
+    expect(payload.extra.enabled_skills).toEqual(['pdf-reader']);
+    expect(payload.extra.exclude_builtin_skills).toEqual(['todo-tracker']);
+  });
+
+  it('forwards local skill overrides for non-preset Aion CLI conversations', async () => {
+    const deps = createDeps();
+    deps.selectedAgent = 'aionrs';
+    deps.selectedAgentKey = 'aionrs';
+    deps.selectedAgentInfo = {
+      id: 'meta-aionrs',
+      key: 'aionrs',
+      name: 'Aion CLI',
+      agent_type: 'aionrs',
+      backend: 'aionrs',
+      is_preset: false,
+      isExtension: false,
+    } as never;
+    deps.is_presetAgent = false;
+    deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
+    deps.guidEnabledSkills = ['pdf-reader'];
+    deps.guidDisabledBuiltinSkills = ['todo-tracker'];
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.type).toBe('aionrs');
+    expect(payload.assistant).toBeUndefined();
+    expect(payload.extra.enabled_skills).toEqual(['pdf-reader']);
+    expect(payload.extra.exclude_builtin_skills).toEqual(['todo-tracker']);
+  });
 });

@@ -211,6 +211,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
             preset_assistant_id,
+            ...(!is_preset && enabled_skills_to_send?.length ? { enabled_skills: enabled_skills_to_send } : {}),
+            ...(!is_preset && excludeBuiltinSkills?.length ? { exclude_builtin_skills: excludeBuiltinSkills } : {}),
             selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
             selected_session_mcp_servers: selectedSessionMcpServersToSend,
             session_mode: selectedMode,
@@ -294,6 +296,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         assistant_conversation_overrides: assistantOverrides,
         extra: {
           default_files: files,
+          ...(!is_preset && enabled_skills_to_send?.length ? { enabled_skills: enabled_skills_to_send } : {}),
+          ...(!is_preset && excludeBuiltinSkills?.length ? { exclude_builtin_skills: excludeBuiltinSkills } : {}),
           selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
           selected_session_mcp_servers:
             selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,

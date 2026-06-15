@@ -35,7 +35,7 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents, presetAssistants } = useConversationAgents();
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
@@ -300,11 +300,15 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const { name: displayName, logo } = getJobAgentMeta(job, cliAgents);
+                    const { name: displayName, logo, emoji } = getJobAgentMeta(job, cliAgents, presetAssistants);
                     return (
                       <>
                         {logo ? (
                           <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
+                        ) : emoji ? (
+                          <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
+                            {emoji}
+                          </span>
                         ) : (
                           <Robot size='28' className='shrink-0 text-t-secondary' />
                         )}

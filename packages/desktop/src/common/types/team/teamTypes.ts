@@ -58,11 +58,23 @@ export type ISendTeamAgentMessageParams = ISendTeamMessageParams & {
 export type TeamRunTargetRole = 'lead' | 'teammate';
 export type TeamRunStatus = 'accepted' | 'running' | 'cancelling' | 'completed' | 'cancelled' | 'failed';
 
+export type ITeamSlotWork = {
+  slot_id: string;
+  role: TeamRunTargetRole;
+  pending_wake_count: number;
+  starting_child_count: number;
+  paused?: boolean;
+  suppressed_wake_count?: number;
+  active_turn_id?: string;
+};
+
 export type ITeamRunAck = {
   team_run_id: string;
   team_id: string;
   target_slot_id: string;
   target_role: TeamRunTargetRole;
+  accepted_slot_id: string;
+  accepted_role: TeamRunTargetRole;
   status: TeamRunStatus;
   message_id?: string;
 };
@@ -78,6 +90,8 @@ export type ICancelTeamChildTurnParams = ICancelTeamRunParams & {
   slot_id: string;
 };
 
+export type IPauseTeamSlotParams = ICancelTeamChildTurnParams;
+
 export type ITeamRunEvent = {
   team_id: string;
   team_run_id: string;
@@ -87,6 +101,7 @@ export type ITeamRunEvent = {
   active_child_count: number;
   pending_wake_count: number;
   starting_child_count: number;
+  slot_work?: ITeamSlotWork[];
 };
 
 export type ITeamChildTurnEvent = {
