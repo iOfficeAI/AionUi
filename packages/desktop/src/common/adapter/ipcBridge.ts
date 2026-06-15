@@ -509,16 +509,6 @@ export const autoUpdate = {
 };
 
 // ---------------------------------------------------------------------------
-// Star Office — routed to backend
-// ---------------------------------------------------------------------------
-
-export const starOffice = {
-  detectUrl: httpPost<{ url: string | null }, { preferredUrl?: string; force?: boolean; timeoutMs?: number }>(
-    '/api/star-office/detect'
-  ),
-};
-
-// ---------------------------------------------------------------------------
 // Dialog — stays IPC (native file picker)
 // ---------------------------------------------------------------------------
 

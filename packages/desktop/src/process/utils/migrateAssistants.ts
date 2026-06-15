@@ -73,7 +73,6 @@ const PRESET_ID_WHITELIST = new Set<string>([
   'dashboard-creator',
   'academic-paper',
   'financial-model-creator',
-  'star-office-helper',
   'openclaw-setup',
   'cowork',
   'game-3d',
