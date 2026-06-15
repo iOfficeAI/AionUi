@@ -15,6 +15,7 @@
   "sections": {
     "statusSurface": "Status / Health",
     "source": "Source",
+    "operatingSurfaces": "Operating Surfaces",
     "board": "Local Board",
     "marketingBoard": "Marketing Board",
     "crmOverlay": "CRM Overlay",
@@ -36,6 +37,34 @@
     "hermesAvailable": "available",
     "hermesUnavailable": "unavailable",
     "blockedActions": "Blocked actions"
+  },
+  "operatingSurfaces": {
+    "description": "The active operating surfaces are visible separately: local marketing work, local CRM, and the dispatch gate. Everything writes local receipts only until a gate allows real execution.",
+    "open": "Open",
+    "status": {
+      "ready": "ready",
+      "check": "check",
+      "blocked": "blocked"
+    },
+    "tags": {
+      "localReceipts": "local receipts",
+      "localOnly": "local-only",
+      "noAutoSpawn": "no auto-spawn"
+    },
+    "marketing": {
+      "title": "Marketing Lane",
+      "description": "Create, move, comment on posts, and check NL-5 before worker dispatch."
+    },
+    "crm": {
+      "title": "CRM Lane",
+      "description": "Prepare companies, contacts, and deals locally; customer data remains HG-4 gated."
+    },
+    "dispatch": {
+      "title": "Dispatch Gate",
+      "description": "Shows whether a card dispatch was checked through NL-5 and Hermes remains blocked.",
+      "checked": "checked",
+      "waiting": "waiting"
+    }
   },
   "board": {
     "description": "Board view from the same local read model. This overview stays read-only; local controls live in Marketing Board and CRM Overlay. No dispatcher, no auto-decompose.",

@@ -15,6 +15,7 @@
   "sections": {
     "statusSurface": "Status / Health",
     "source": "Quelle",
+    "operatingSurfaces": "Operating Surfaces",
     "board": "Lokales Board",
     "marketingBoard": "Marketing Board",
     "crmOverlay": "CRM Overlay",
@@ -36,6 +37,34 @@
     "hermesAvailable": "verfügbar",
     "hermesUnavailable": "nicht verfügbar",
     "blockedActions": "Gesperrte Aktionen"
+  },
+  "operatingSurfaces": {
+    "description": "Die aktiven Bedienflächen sind getrennt sichtbar: lokale Marketing-Arbeit, lokales CRM und das Dispatch-Gate. Alles schreibt nur lokale Receipts, bis ein Gate echte Ausführung erlaubt.",
+    "open": "Öffnen",
+    "status": {
+      "ready": "bereit",
+      "check": "prüfen",
+      "blocked": "blockiert"
+    },
+    "tags": {
+      "localReceipts": "lokale Receipts",
+      "localOnly": "local-only",
+      "noAutoSpawn": "kein Auto-Spawn"
+    },
+    "marketing": {
+      "title": "Marketing Lane",
+      "description": "Posts anlegen, bewegen, kommentieren und vor Worker-Dispatch durch NL-5 prüfen."
+    },
+    "crm": {
+      "title": "CRM Lane",
+      "description": "Companies, Kontakte und Deals lokal vorbereiten; Kundendaten bleiben HG-4-gatepflichtig."
+    },
+    "dispatch": {
+      "title": "Dispatch Gate",
+      "description": "Zeigt, ob ein Card-Dispatch durch NL-5 geprüft wurde und Hermes weiter blockiert bleibt.",
+      "checked": "geprüft",
+      "waiting": "wartet"
+    }
   },
   "board": {
     "description": "Board-Sicht aus demselben lokalen Read-Model. Diese Übersicht bleibt read-only; lokale Bedienflächen liegen in Marketing Board und CRM Overlay. Kein Dispatcher, kein Auto-Decompose.",

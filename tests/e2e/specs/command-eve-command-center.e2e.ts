@@ -114,6 +114,11 @@ test.describe('Command EVE Command Center', () => {
     await expect(page.getByText(/agent-events\.clean\.jsonl/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/Lokales Board|Local Board/)).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText(/lokale Bedienflächen|local controls/i)).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('command-center-operating-surfaces')).toBeVisible({ timeout: 30_000 });
+    await expect(page.getByTestId('operating-surface-marketing')).toContainText(/Marketing Lane/);
+    await expect(page.getByTestId('operating-surface-crm')).toContainText(/CRM Lane/);
+    await expect(page.getByTestId('operating-surface-dispatch')).toContainText(/Dispatch Gate/);
+    await expect(page.getByTestId('operating-surface-dispatch')).toContainText(/NL-5/);
     await expect(page.getByText(/Marketing Board/).first()).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('morning-ceo-brief-20260610-0632')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByText('daily-improvement-dream-2026-06-10').first()).toBeVisible({

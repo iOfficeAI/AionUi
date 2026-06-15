@@ -653,12 +653,18 @@ const buildBoardColumns = (runs: ICommandEveCommandCenterRunCard[]): BoardColumn
   ];
 };
 
-const Section: React.FC<{ title: string; count?: number; children: React.ReactNode }> = ({
+const Section: React.FC<{ title: string; count?: number; id?: string; testId?: string; children: React.ReactNode }> = ({
   title,
   count,
+  id,
+  testId,
   children,
 }) => (
-  <section className='flex flex-col gap-10px rounded-14px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'>
+  <section
+    id={id}
+    data-testid={testId}
+    className='flex flex-col gap-10px rounded-14px border border-solid border-[var(--color-border-2)] bg-fill-1 px-16px py-14px'
+  >
     <div className='flex items-center justify-between gap-12px'>
       <h2 className='m-0 text-16px font-600 leading-24px text-t-primary'>{title}</h2>
       {typeof count === 'number' ? <Tag color='gray'>{formatCount(count)}</Tag> : null}
@@ -666,6 +672,106 @@ const Section: React.FC<{ title: string; count?: number; children: React.ReactNo
     {children}
   </section>
 );
+
+type OperatingSurfaceStatus = 'ready' | 'check' | 'blocked';
+
+type OperatingSurfaceCard = {
+  key: 'marketing' | 'crm' | 'dispatch';
+  titleKey: string;
+  status: OperatingSurfaceStatus;
+  metric: string;
+  descriptionKey: string;
+  anchorId: string;
+  tags: string[];
+};
+
+const operatingSurfaceColor = (status: OperatingSurfaceStatus): 'green' | 'orange' | 'red' => {
+  if (status === 'ready') return 'green';
+  if (status === 'blocked') return 'red';
+  return 'orange';
+};
+
+const scrollToSection = (anchorId: string): void => {
+  document.getElementById(anchorId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+};
+
+const OperatingSurfacesSection: React.FC<{
+  marketingResult: ICommandEveMarketingBoardResult | null;
+  crmResult: ICommandEveCrmOverlayResult | null;
+  dispatchPlanResult: ICommandEveMarketingDispatchPlanResult | null;
+}> = ({ marketingResult, crmResult, dispatchPlanResult }) => {
+  const { t } = useTranslation();
+  const marketingReady = marketingResult?.status === 'ready' && Boolean(marketingResult.model);
+  const crmInitialized = crmResult?.status === 'ready' && crmResult.model?.initialized === true;
+  const dispatchChecked = dispatchPlanResult?.data_boundary_checked === true;
+  const dispatchBlockedBeforeSpawn = dispatchPlanResult?.subprocess_spawned === false;
+  const cards: OperatingSurfaceCard[] = [
+    {
+      key: 'marketing',
+      titleKey: 'commandCenter.operatingSurfaces.marketing.title',
+      status: marketingReady ? 'ready' : marketingResult?.status === 'failed' ? 'blocked' : 'check',
+      metric: formatCount(marketingResult?.model?.summary.total_cards),
+      descriptionKey: 'commandCenter.operatingSurfaces.marketing.description',
+      anchorId: 'command-eve-marketing-board',
+      tags: ['HG-2.5', t('commandCenter.operatingSurfaces.tags.localReceipts')],
+    },
+    {
+      key: 'crm',
+      titleKey: 'commandCenter.operatingSurfaces.crm.title',
+      status: crmInitialized ? 'ready' : crmResult?.status === 'failed' ? 'blocked' : 'check',
+      metric: formatCount(crmResult?.model?.counts.deals),
+      descriptionKey: 'commandCenter.operatingSurfaces.crm.description',
+      anchorId: 'command-eve-crm-overlay',
+      tags: ['HG-4', t('commandCenter.operatingSurfaces.tags.localOnly')],
+    },
+    {
+      key: 'dispatch',
+      titleKey: 'commandCenter.operatingSurfaces.dispatch.title',
+      status: dispatchChecked && dispatchBlockedBeforeSpawn ? 'ready' : dispatchPlanResult?.status === 'failed' ? 'blocked' : 'check',
+      metric: dispatchChecked ? t('commandCenter.operatingSurfaces.dispatch.checked') : t('commandCenter.operatingSurfaces.dispatch.waiting'),
+      descriptionKey: 'commandCenter.operatingSurfaces.dispatch.description',
+      anchorId: 'command-eve-marketing-board',
+      tags: ['NL-5', t('commandCenter.operatingSurfaces.tags.noAutoSpawn')],
+    },
+  ];
+  return (
+    <Section title={t('commandCenter.sections.operatingSurfaces')} testId='command-center-operating-surfaces'>
+      <p className='m-0 text-12px leading-18px text-t-secondary'>
+        {t('commandCenter.operatingSurfaces.description')}
+      </p>
+      <div className='grid gap-10px lg:grid-cols-3'>
+        {cards.map((card) => (
+          <article
+            key={card.key}
+            className='flex min-h-150px flex-col justify-between gap-12px rounded-12px border border-solid border-[var(--color-border-2)] bg-fill-2 px-14px py-12px'
+            data-testid={`operating-surface-${card.key}`}
+          >
+            <div className='flex items-start justify-between gap-10px'>
+              <div className='min-w-0'>
+                <h3 className='m-0 text-14px font-700 leading-22px text-t-primary'>{t(card.titleKey)}</h3>
+                <p className='m-0 mt-6px text-12px leading-18px text-t-secondary'>{t(card.descriptionKey)}</p>
+              </div>
+              <Tag color={operatingSurfaceColor(card.status)}>{t(`commandCenter.operatingSurfaces.status.${card.status}`)}</Tag>
+            </div>
+            <div className='flex flex-wrap items-center justify-between gap-8px'>
+              <div className='flex flex-wrap gap-6px'>
+                {card.tags.map((tag) => (
+                  <Tag key={`${card.key}-${tag}`} color='gray'>
+                    {tag}
+                  </Tag>
+                ))}
+              </div>
+              <span className='text-13px font-700 leading-20px text-t-primary'>{card.metric}</span>
+            </div>
+            <Button shape='round' type='outline' onClick={() => scrollToSection(card.anchorId)}>
+              {t('commandCenter.operatingSurfaces.open')}
+            </Button>
+          </article>
+        ))}
+      </div>
+    </Section>
+  );
+};
 
 const BoardRunCard: React.FC<{ run: ICommandEveCommandCenterRunCard }> = ({ run }) => {
   const { t } = useTranslation();
@@ -1039,7 +1145,12 @@ const MarketingBoardSection: React.FC<{
   const cardCount = model?.summary.total_cards ?? 0;
   const blocked = !result || result.status !== 'ready' || !model;
   return (
-    <Section title={t('commandCenter.sections.marketingBoard')} count={cardCount}>
+    <Section
+      id='command-eve-marketing-board'
+      testId='command-eve-marketing-board'
+      title={t('commandCenter.sections.marketingBoard')}
+      count={cardCount}
+    >
       <div className='flex flex-wrap items-center justify-between gap-10px'>
         <p className='m-0 text-12px leading-18px text-t-secondary'>{t('commandCenter.marketingBoard.description')}</p>
         <div className='flex flex-wrap items-center gap-6px'>
@@ -1335,7 +1446,12 @@ const CrmOverlaySection: React.FC<{
   const counts = model?.counts ?? { companies: 0, contacts: 0, deals: 0, audit_events: 0 };
   const initialized = result?.status === 'ready' && model?.initialized === true;
   return (
-    <Section title={t('commandCenter.sections.crmOverlay')} count={counts.deals}>
+    <Section
+      id='command-eve-crm-overlay'
+      testId='command-eve-crm-overlay'
+      title={t('commandCenter.sections.crmOverlay')}
+      count={counts.deals}
+    >
       <div className='flex flex-wrap items-center justify-between gap-10px'>
         <p className='m-0 text-12px leading-18px text-t-secondary'>{t('commandCenter.crmOverlay.description')}</p>
         <div className='flex flex-wrap items-center gap-6px'>
@@ -2282,6 +2398,12 @@ const CommandCenterPage: React.FC = () => {
                 </div>
               )}
             </section>
+
+            <OperatingSurfacesSection
+              marketingResult={marketingResult}
+              crmResult={crmResult}
+              dispatchPlanResult={dispatchPlanResult}
+            />
 
             <Section title={t('commandCenter.sections.board')} count={model.worker_runs.length}>
               <p className='m-0 text-12px leading-18px text-t-secondary'>{t('commandCenter.board.description')}</p>
