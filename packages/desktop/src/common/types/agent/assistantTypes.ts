@@ -7,7 +7,8 @@
 // Mirror of aionui-api-types/src/assistant.rs.
 // Any shape change on either side requires a same-PR update on the other.
 
-export type AssistantSource = 'builtin' | 'user';
+export type AssistantSource = 'builtin' | 'bare' | 'user';
+export type AssistantAgentStatus = 'missing' | 'available' | 'unavailable';
 
 export interface Assistant {
   id: string;
@@ -29,6 +30,11 @@ export interface Assistant {
   prompts_i18n: Record<string, string[]>;
   models: string[];
   last_used_at?: number;
+  agent_status: AssistantAgentStatus;
+  agent_status_message?: string;
+  team_selectable: boolean;
+  team_block_reason?: string;
+  deletable: boolean;
 }
 
 export interface AssistantProfile {
@@ -100,6 +106,11 @@ export interface AssistantPreferences {
 export interface AssistantDetail {
   id: string;
   source: AssistantSource;
+  agent_status: AssistantAgentStatus;
+  agent_status_message?: string;
+  team_selectable: boolean;
+  team_block_reason?: string;
+  deletable: boolean;
   profile: AssistantProfile;
   state: AssistantState;
   engine: AssistantEngine;

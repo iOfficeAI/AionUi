@@ -33,6 +33,7 @@ export type GuidSendDeps = {
   // Agent state
   selectedAgent: string;
   selectedAgentKey: string;
+  selectedAssistantId: string | null;
   selectedAgentInfo: AvailableAgent | undefined;
   is_presetAgent: boolean;
   selectedMode: string;
@@ -94,6 +95,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     loading,
     selectedAgent,
     selectedAgentKey,
+    selectedAssistantId,
     selectedAgentInfo,
     is_presetAgent,
     selectedMode,
@@ -128,7 +130,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const agentInfo = selectedAgentInfo;
     const is_preset = is_presetAgent;
-    const preset_assistant_id = is_preset ? agentInfo?.custom_agent_id : undefined;
+    const preset_assistant_id = is_preset ? selectedAssistantId || undefined : undefined;
 
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
@@ -336,6 +338,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     dir,
     selectedAgent,
     selectedAgentKey,
+    selectedAssistantId,
     selectedAgentInfo,
     is_presetAgent,
     selectedMode,

@@ -11,23 +11,22 @@ import {
 } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /**
- * Team leader selector entry — unified view over CLI agents and preset
- * assistants. Both sources share the dropdown but have different native
- * shapes; this type is what the dropdown code actually reads.
+ * Team leader selector entry derived from the unified assistant catalog.
  */
 export type TeamAgentOption = {
   id: string;
   name: string;
-  /** Execution backend (claude, gemini, qwen, …). For assistants this is
-   *  `preset_agent_type`; for CLI agents it's `backend`. */
+  /** Execution backend (claude, gemini, qwen, …). */
   backend?: string;
-  /** Top-level runtime type from detected agents. Preset assistants leave this unset. */
+  /** Top-level runtime type used to resolve conversation kind. */
   agent_type?: string;
   /** Icon / avatar token — an SVG filename, emoji, or key into
    *  `CUSTOM_AVATAR_IMAGE_MAP`. */
   icon?: string;
-  /** Whether this agent supports team mode. Sourced from backend `team_capable` field. */
+  /** Whether this assistant can currently be used in team mode. */
   team_capable?: boolean;
+  /** Why this assistant cannot currently be used in team mode. */
+  team_block_reason?: string;
 };
 
 export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
@@ -41,13 +40,15 @@ export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
   };
 }
 
-export function assistantToOption(assistant: Assistant, teamCapableKeys?: Set<string>): TeamAgentOption {
+export function assistantToOption(assistant: Assistant): TeamAgentOption {
   return {
     id: assistant.id,
     name: assistant.name,
     backend: assistant.preset_agent_type,
+    agent_type: assistant.preset_agent_type,
     icon: assistant.avatar,
-    team_capable: teamCapableKeys ? teamCapableKeys.has(assistant.preset_agent_type) : undefined,
+    team_capable: assistant.team_selectable,
+    team_block_reason: assistant.team_block_reason,
   };
 }
 
@@ -65,7 +66,7 @@ export function resolveTeamAgentType(agent: TeamAgentOption | undefined, fallbac
 
 /** Filter agents to only those supported in team mode */
 export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentOption[] {
-  return agents.filter((a) => a.team_capable && !isDeprecatedRuntimeAgentType(a.agent_type));
+  return agents.filter((a) => !isDeprecatedRuntimeAgentType(a.agent_type));
 }
 
 export function resolveConversationType(backend: string): 'acp' | 'aionrs' {

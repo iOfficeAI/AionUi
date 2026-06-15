@@ -8,20 +8,18 @@ import { ipcBridge } from '@/common';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
-import { Button, Typography } from '@arco-design/web-react';
+import { Button, Message, Typography } from '@arco-design/web-react';
 import { Home, Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { useNavigate } from 'react-router-dom';
 import AgentCard from './AgentCard';
 import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
-import { getAgentKey } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
-  const navigate = useNavigate();
   const [hubModalVisible, setHubModalVisible] = useState(false);
+  const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
   // listed (greyed) with a working re-enable toggle. `revalidate` here
@@ -29,7 +27,7 @@ const LocalAgents: React.FC = () => {
   // toggling an agent on/off is reflected in the pickers too.
   const { agents: allAgents, revalidate: mutateAgents } = useManagedAgents();
 
-  const detectedAgents = allAgents.filter(
+  const officialAgents = allAgents.filter(
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
   );
 
@@ -89,20 +87,50 @@ const LocalAgents: React.FC = () => {
     [mutateAgents]
   );
 
-  // Aion CLI first among detected agents
-  const aionrsAgent = detectedAgents?.find((a) => a.agent_type === 'aionrs' || a.backend === 'aionrs');
-  const otherDetected = detectedAgents?.filter((a) => a.agent_type !== 'aionrs' && a.backend !== 'aionrs') ?? [];
+  const sortedOfficialAgents = [...officialAgents].sort((left, right) => {
+    const leftIsAionrs = left.agent_type === 'aionrs' || left.backend === 'aionrs';
+    const rightIsAionrs = right.agent_type === 'aionrs' || right.backend === 'aionrs';
+    if (leftIsAionrs !== rightIsAionrs) {
+      return leftIsAionrs ? -1 : 1;
+    }
+    return left.name.localeCompare(right.name);
+  });
 
   const openCustomAgentEditor = useCallback(() => {
     setEditingAgent(null);
     setEditorVisible(true);
   }, []);
 
-  const goToChatWithAgent = useCallback(
-    (agent: AgentMetadata) => {
-      navigate('/guid', { state: { selectedAgentKey: getAgentKey(agent) } });
+  const handleTestConnection = useCallback(
+    async (agentId: string) => {
+      try {
+        setTestingAgentId(agentId);
+        const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
+        await mutateAgents();
+        switch (result.status) {
+          case 'available':
+            Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
+            break;
+          case 'missing':
+            Message.warning(t('settings.agentManagement.testConnectionMissing', { name: result.name }));
+            break;
+          case 'unavailable':
+            Message.warning(
+              result.last_check_error_message ||
+                t('settings.agentManagement.testConnectionUnavailable', { name: result.name })
+            );
+            break;
+          default:
+            break;
+        }
+      } catch (error) {
+        console.error('test managed agent failed:', error);
+        Message.error(t('settings.agentManagement.testConnectionError'));
+      } finally {
+        setTestingAgentId(null);
+      }
     },
-    [navigate]
+    [mutateAgents, t]
   );
 
   return (
@@ -152,23 +180,21 @@ const LocalAgents: React.FC = () => {
       {/* Detected Agents section */}
       <div className='px-16px mt-8px'>
         <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-          {t('settings.agentManagement.detected')}
+          {t('settings.agentManagement.officialAgents')}
         </Typography.Text>
       </div>
       <div className='grid grid-cols-2 gap-10px px-16px md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5'>
-        {aionrsAgent && (
-          <AgentCard type='detected' agent={aionrsAgent} onGoToChat={() => goToChatWithAgent(aionrsAgent)} />
-        )}
-        {otherDetected.map((agent) => (
+        {sortedOfficialAgents.map((agent) => (
           <AgentCard
-            key={agent.backend || agent.agent_type}
-            type='detected'
+            key={agent.id}
+            type='official'
             agent={agent}
-            onGoToChat={() => goToChatWithAgent(agent)}
+            onTestConnection={() => void handleTestConnection(agent.id)}
+            isTesting={testingAgentId === agent.id}
           />
         ))}
       </div>
-      {(!detectedAgents || detectedAgents.length === 0) && (
+      {(!officialAgents || officialAgents.length === 0) && (
         <Typography.Text type='secondary' className='block px-16px py-16px text-center text-12px'>
           {t('settings.agentManagement.localAgentsEmpty')}
         </Typography.Text>
@@ -228,13 +254,14 @@ const LocalAgents: React.FC = () => {
             key={agent.id}
             type='custom'
             agent={agent}
-            onGoToChat={() => goToChatWithAgent(agent)}
+            onTestConnection={() => void handleTestConnection(agent.id)}
             onEdit={() => {
               setEditingAgent(agent);
               setEditorVisible(true);
             }}
             onDelete={() => void handleDeleteCustomAgent(agent.id)}
             onToggle={(enabled) => void handleToggleCustomAgent(agent.id, enabled)}
+            isTesting={testingAgentId === agent.id}
           />
         ))}
       </div>

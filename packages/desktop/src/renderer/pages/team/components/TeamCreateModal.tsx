@@ -17,7 +17,6 @@ import {
   resolveTeamAgentType,
   filterTeamSupportedAgents,
   AgentOptionLabel,
-  cliAgentToOption,
   assistantToOption,
 } from './agentSelectUtils';
 import type { TeamAgentOption } from './agentSelectUtils';
@@ -38,32 +37,46 @@ const AgentRadioRow: React.FC<{
   agent: TeamAgentOption;
   isSelected: boolean;
   onClick: () => void;
-}> = ({ agent, isSelected, onClick }) => (
-  <div
-    className={`flex cursor-pointer items-center gap-12px rounded-8px px-12px py-9px transition-colors ${
-      isSelected ? 'bg-aou-1' : 'hover:bg-fill-2'
-    }`}
-    style={isSelected ? { boxShadow: 'inset 0 0 0 1px var(--aou-6)' } : undefined}
-    onClick={onClick}
-    data-testid={`team-create-agent-option-${agentKey(agent)}`}
-  >
+}> = ({ agent, isSelected, onClick }) => {
+  const disabled = agent.team_capable === false;
+  const row = (
     <div
-      className='h-16px w-16px flex-shrink-0 rounded-full transition-all'
-      style={{
-        boxSizing: 'border-box',
-        border: isSelected ? '5px solid var(--aou-6)' : '1.5px solid var(--color-border-3)',
+      className={`flex items-center gap-12px rounded-8px px-12px py-9px transition-colors ${
+        disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+      } ${isSelected ? 'bg-aou-1' : disabled ? '' : 'hover:bg-fill-2'}`}
+      style={isSelected ? { boxShadow: 'inset 0 0 0 1px var(--aou-6)' } : undefined}
+      onClick={() => {
+        if (!disabled) onClick();
       }}
-    />
-    <div className='flex-1 overflow-hidden'>
-      <AgentOptionLabel agent={agent} />
+      data-testid={`team-create-agent-option-${agentKey(agent)}`}
+    >
+      <div
+        className='h-16px w-16px flex-shrink-0 rounded-full transition-all'
+        style={{
+          boxSizing: 'border-box',
+          border: isSelected ? '5px solid var(--aou-6)' : '1.5px solid var(--color-border-3)',
+        }}
+      />
+      <div className='min-w-0 flex-1 overflow-hidden'>
+        <AgentOptionLabel agent={agent} />
+        {agent.team_block_reason ? (
+          <div className='mt-4px truncate text-11px text-t-tertiary'>{agent.team_block_reason}</div>
+        ) : null}
+      </div>
     </div>
-  </div>
-);
+  );
+
+  if (agent.team_block_reason) {
+    return <Tooltip content={agent.team_block_reason}>{row}</Tooltip>;
+  }
+
+  return row;
+};
 
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { cliAgents, presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
   const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
@@ -83,42 +96,20 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
-  const cliAgentOptions = useMemo(() => cliAgents.map(cliAgentToOption), [cliAgents]);
-  const teamCapableKeys = useMemo(
-    () =>
-      new Set(
-        cliAgents
-          .filter((a) => a.team_capable)
-          .flatMap((a) => [a.id, a.backend, a.agent_type].filter(Boolean) as string[])
-      ),
-    [cliAgents]
+  const allAgents = useMemo(
+    () => filterTeamSupportedAgents(presetAssistants.map((assistant) => assistantToOption(assistant))),
+    [presetAssistants]
   );
-  const presetAssistantOptions = useMemo(
-    () => presetAssistants.map((a) => assistantToOption(a, teamCapableKeys)),
-    [presetAssistants, teamCapableKeys]
-  );
-  const allAgents = filterTeamSupportedAgents([...cliAgentOptions, ...presetAssistantOptions]);
 
-  const { supportedCliAgents, supportedPresetAssistants } = useMemo(() => {
-    const supportedKeys = new Set(allAgents.map(agentKey));
-    return {
-      supportedCliAgents: cliAgentOptions.filter((a) => supportedKeys.has(agentKey(a))),
-      supportedPresetAssistants: presetAssistantOptions.filter((a) => supportedKeys.has(agentKey(a))),
-    };
-  }, [allAgents, cliAgentOptions, presetAssistantOptions]);
-
-  const { filteredCliAgents, filteredPresetAssistants } = useMemo(() => {
+  const filteredAgents = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
-      return { filteredCliAgents: supportedCliAgents, filteredPresetAssistants: supportedPresetAssistants };
+      return allAgents;
     }
-    return {
-      filteredCliAgents: supportedCliAgents.filter((a) => a.name.toLowerCase().includes(q)),
-      filteredPresetAssistants: supportedPresetAssistants.filter((a) => a.name.toLowerCase().includes(q)),
-    };
-  }, [supportedCliAgents, supportedPresetAssistants, search]);
+    return allAgents.filter((assistant) => assistant.name.toLowerCase().includes(q));
+  }, [allAgents, search]);
 
-  const hasSearchResults = filteredCliAgents.length > 0 || filteredPresetAssistants.length > 0;
+  const hasSearchResults = filteredAgents.length > 0;
 
   useEffect(() => {
     if (visible) {
@@ -308,7 +299,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       {t('team.create.noSearchResults', { defaultValue: 'No results found' })}
                     </div>
                   ) : (
-                    [...filteredCliAgents, ...filteredPresetAssistants].map((agent) => {
+                    filteredAgents.map((agent) => {
                       const key = agentKey(agent);
                       return (
                         <AgentRadioRow

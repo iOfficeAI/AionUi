@@ -31,6 +31,7 @@ export type GuidAgentSelectionResult = {
   setSelectedAgentKey: (key: string) => void;
   defaultAgentKey: string;
   selectedAgent: string;
+  selectedAssistantId: string | null;
   selectedAgentInfo: AvailableAgent | undefined;
   is_presetAgent: boolean;
   availableAgents: AvailableAgent[] | undefined;
@@ -115,6 +116,33 @@ type UseGuidAgentSelectionOptions = {
   locationKey?: string;
 };
 
+const toAssistantSelectionKey = (assistantId: string): string => `custom:${assistantId}`;
+
+export function resolveAssistantSelectionKey(savedKey: string | undefined, assistants: Assistant[]): string | undefined {
+  if (!savedKey) return undefined;
+
+  if (savedKey.startsWith('custom:')) {
+    const assistantId = savedKey.slice(7);
+    return assistants.some((assistant) => assistant.id === assistantId) ? savedKey : undefined;
+  }
+
+  if (assistants.some((assistant) => assistant.id === savedKey)) {
+    return toAssistantSelectionKey(savedKey);
+  }
+
+  const backendMatch = assistants.find((assistant) => assistant.preset_agent_type === savedKey);
+  return backendMatch ? toAssistantSelectionKey(backendMatch.id) : undefined;
+}
+
+export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string {
+  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  const preferred =
+    enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === 'aionrs') ??
+    enabledAssistants.find((assistant) => assistant.preset_agent_type === 'aionrs') ??
+    enabledAssistants[0];
+  return preferred ? toAssistantSelectionKey(preferred.id) : toAssistantSelectionKey('aionrs');
+}
+
 /**
  * Hook that manages agent selection, availability, and preset assistant logic.
  */
@@ -128,9 +156,9 @@ export const useGuidAgentSelection = ({
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
   const [selectedAgentKey, _setSelectedAgentKey] = useState<string>(() => {
     try {
-      return configService.get('guid.lastSelectedAgent') || 'aionrs';
+      return configService.get('guid.lastSelectedAgent') || '';
     } catch {
-      return 'aionrs';
+      return '';
     }
   });
   const [availableAgents, setAvailableAgents] = useState<AvailableAgent[]>();
@@ -270,6 +298,12 @@ export const useGuidAgentSelection = ({
     return findAgentByKey(selectedAgentKey);
   }, [selectedAgentKey, availableAgents, assistants]);
   const is_presetAgent = Boolean(selectedAgentInfo?.is_preset);
+  const selectedAssistantId = useMemo(() => {
+    if (selectedAgentKey.startsWith('custom:')) {
+      return selectedAgentKey.slice(7);
+    }
+    return selectedAgentInfo?.custom_agent_id ?? null;
+  }, [selectedAgentInfo?.custom_agent_id, selectedAgentKey]);
 
   // --- SWR: Fetch detected execution engines (shared cache) ---
   const { data: availableAgentsData } = useSWR<AvailableAgent[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
@@ -310,18 +344,16 @@ export const useGuidAgentSelection = ({
   // before paint so the previous assistant selection does not flash for a
   // frame when navigating to /guid again.
   useLayoutEffect(() => {
-    if (!availableAgents || availableAgents.length === 0) return;
+    if (assistants.length === 0) return;
     if (resetHandledRef.current) return;
 
-    // Explicit pre-selection (e.g. from Settings → Agent "Go to Chat") wins
-    // over reset and saved-selection when the agent is actually present.
+    // Explicit pre-selection wins when it maps to an assistant.
     if (preselectAgentKey) {
-      const matched = availableAgents.find((a) => getAgentKey(a) === preselectAgentKey);
-      if (matched) {
+      const resolvedPreselect = resolveAssistantSelectionKey(preselectAgentKey, assistants);
+      if (resolvedPreselect) {
         resetHandledRef.current = true;
-        const key = getAgentKey(matched);
-        _setSelectedAgentKey(key);
-        configService.set('guid.lastSelectedAgent', key).catch((error) => {
+        _setSelectedAgentKey(resolvedPreselect);
+        configService.set('guid.lastSelectedAgent', resolvedPreselect).catch((error) => {
           console.error('Failed to save preselected agent key:', error);
         });
         return;
@@ -330,29 +362,19 @@ export const useGuidAgentSelection = ({
 
     if (resetAssistant) {
       resetHandledRef.current = true;
-      // Only reset when the current selection is a preset assistant.
-      // CLI agent selections (Claude Code, Gemini CLI, etc.) are preserved so
-      // New Chat keeps the last-used CLI agent.
-      const currentIsPreset = selectedAgentKey.startsWith('custom:');
-      if (currentIsPreset) {
-        const firstCliAgent = availableAgents.find((a) => !a.is_preset);
-        const fallbackKey = firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-        _setSelectedAgentKey(fallbackKey);
-        configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
-          console.error('Failed to save reset agent key:', error);
-        });
-      }
+      const fallbackKey = pickDefaultAssistantSelectionKey(assistants);
+      _setSelectedAgentKey(fallbackKey);
+      configService.set('guid.lastSelectedAgent', fallbackKey).catch((error) => {
+        console.error('Failed to save reset agent key:', error);
+      });
     }
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [assistants, resetAssistant, preselectAgentKey, locationKey]);
 
   // Load last selected agent when no explicit reset was requested.
   useEffect(() => {
-    if (!availableAgents || availableAgents.length === 0) return;
+    if (assistants.length === 0) return;
     if (resetAssistant) return;
-    // An explicit pre-selection from navigation state wins over the
-    // persisted last-selected key — skip the saved-restore path so
-    // useLayoutEffect's preselect remains the authoritative pick.
-    if (preselectAgentKey && availableAgents.some((a) => getAgentKey(a) === preselectAgentKey)) return;
+    if (preselectAgentKey && resolveAssistantSelectionKey(preselectAgentKey, assistants)) return;
 
     let cancelled = false;
     initialRestoreDoneRef.current = true;
@@ -362,24 +384,13 @@ export const useGuidAgentSelection = ({
         const savedKey = configService.get('guid.lastSelectedAgent');
         if (cancelled) return;
 
-        if (savedKey) {
-          // Preset assistant key — trust directly, assistants list resolves later
-          if (savedKey.startsWith('custom:')) {
-            _setSelectedAgentKey(savedKey);
-            return;
-          }
-          // Plain row key — verify it still exists in detected engines
-          if (availableAgents.some((agent) => getAgentKey(agent) === savedKey)) {
-            _setSelectedAgentKey(savedKey);
-            return;
-          }
+        const resolvedSavedKey = resolveAssistantSelectionKey(savedKey, assistants);
+        if (resolvedSavedKey) {
+          _setSelectedAgentKey(resolvedSavedKey);
+          return;
         }
 
-        // No saved preference or stale key — default to first detected engine
-        const firstAgent = availableAgents[0];
-        if (firstAgent) {
-          _setSelectedAgentKey(getAgentKey(firstAgent));
-        }
+        _setSelectedAgentKey(pickDefaultAssistantSelectionKey(assistants));
       } catch (error) {
         console.error('Failed to load last selected agent:', error);
       }
@@ -390,7 +401,7 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [availableAgents, resetAssistant, preselectAgentKey, locationKey]);
+  }, [assistants, resetAssistant, preselectAgentKey, locationKey]);
 
   const currentEffectiveAgentInfo = useMemo(() => {
     if (!is_presetAgent) {
@@ -521,15 +532,15 @@ export const useGuidAgentSelection = ({
 
   // Key of the first non-preset CLI agent (used as fallback when leaving preset mode)
   const defaultAgentKey = useMemo(() => {
-    const firstCliAgent = availableAgents?.find((a) => !a.is_preset);
-    return firstCliAgent ? getAgentKey(firstCliAgent) : 'aionrs';
-  }, [availableAgents]);
+    return pickDefaultAssistantSelectionKey(assistants);
+  }, [assistants]);
 
   return {
     selectedAgentKey,
     setSelectedAgentKey,
     defaultAgentKey,
     selectedAgent,
+    selectedAssistantId,
     selectedAgentInfo,
     is_presetAgent,
     availableAgents,

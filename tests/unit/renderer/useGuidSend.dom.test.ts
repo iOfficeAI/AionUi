@@ -54,6 +54,7 @@ const createDeps = (): GuidSendDeps => ({
   loading: false,
   selectedAgent: 'claude',
   selectedAgentKey: 'preset-claude',
+  selectedAssistantId: 'assistant-1',
   selectedAgentInfo: {
     id: 'meta-1',
     key: 'preset-claude',
@@ -160,5 +161,23 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.mcp_ids).toEqual(['mcp-user', 'builtin-mcp']);
     expect(payload.extra.selected_mcp_server_ids).toEqual(['mcp-user']);
     expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'builtin-mcp' })]);
+  });
+
+  it('uses the selected assistant id instead of the legacy custom_agent_id alias for preset sends', async () => {
+    const deps = createDeps();
+    deps.selectedAgentInfo = {
+      ...deps.selectedAgentInfo,
+      custom_agent_id: undefined,
+    } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant?.id).toBe('assistant-1');
+    expect(payload.extra.preset_assistant_id).toBe('assistant-1');
   });
 });

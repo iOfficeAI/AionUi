@@ -23,6 +23,10 @@ export type AgentType = 'acp' | 'remote' | 'aionrs' | 'openclaw-gateway' | 'nano
 /** Source tier of an agent row, mirroring backend `agent_source` enum. */
 export type AgentSource = 'internal' | 'builtin' | 'extension' | 'custom';
 
+export type AgentManagementStatus = 'available' | 'unavailable' | 'missing';
+export type AgentSnapshotCheckStatus = 'available' | 'unavailable';
+export type AgentSnapshotCheckKind = 'startup' | 'scheduled' | 'manual' | 'session';
+
 /** Source-specific bookkeeping (how to probe, how to upgrade). */
 export type AgentSourceInfo = {
   binary_name?: string;
@@ -75,6 +79,7 @@ export type AgentHandshake = {
 export type AgentMetadata = {
   id: string;
   icon?: string;
+  custom_agent_id?: string;
   name: string;
   name_i18n?: Record<string, string>;
   description?: string;
@@ -90,8 +95,13 @@ export type AgentMetadata = {
   enabled: boolean;
   /** True iff the backend resolved the spawn command on `$PATH` at hydrate time. */
   available: boolean;
+  /** True when the management view resolved the agent command on `$PATH`. */
+  installed?: boolean;
+  isExtension?: boolean;
   /** True when the agent supports team mode (MCP stdio capable). Computed by backend. */
   team_capable?: boolean;
+  /** Derived status used by the Agent settings management view. */
+  status?: AgentManagementStatus;
 
   /** Pre-resolution spawn command as stored in the catalog (e.g. "bun"). */
   command?: string;
@@ -105,6 +115,16 @@ export type AgentMetadata = {
    *  aliases resolve to before calling `session/set_mode`. Absent
    *  when the backend has no yolo equivalent. */
   yolo_id?: string;
+
+  last_check_status?: AgentSnapshotCheckStatus;
+  last_check_kind?: AgentSnapshotCheckKind;
+  last_check_error_code?: string;
+  last_check_error_message?: string;
+  last_check_guidance?: string;
+  last_check_latency_ms?: number;
+  last_check_at?: number;
+  last_success_at?: number;
+  last_failure_at?: number;
 
   handshake?: AgentHandshake;
 };

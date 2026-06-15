@@ -39,22 +39,22 @@ const renderCustom = (enabled: boolean, handlers: Partial<{ onToggle: (v: boolea
   );
 
 describe('AgentCard (custom variant)', () => {
-  it('greys the identity block and disables Go-to-chat when the agent is disabled', () => {
+  it('greys the identity block and keeps test-connection available when the agent is disabled', () => {
     const { container } = renderCustom(false);
 
     // Disabled => identity block carries the opacity treatment.
     expect(container.querySelector('.opacity-50')).toBeTruthy();
-    // Start-chat is blocked while disabled.
-    const goToChat = screen.getByText('settings.agentManagement.goToChat').closest('button') as HTMLButtonElement;
-    expect(goToChat.disabled).toBe(true);
+    const testConnection = screen.getByText('settings.agentManagement.testConnection').closest(
+      'button'
+    ) as HTMLButtonElement;
+    expect(testConnection.disabled).toBe(false);
   });
 
-  it('renders at full opacity with Go-to-chat enabled when the agent is enabled', () => {
+  it('renders at full opacity with test-connection visible when the agent is enabled', () => {
     const { container } = renderCustom(true);
 
     expect(container.querySelector('.opacity-50')).toBeNull();
-    const goToChat = screen.getByText('settings.agentManagement.goToChat').closest('button') as HTMLButtonElement;
-    expect(goToChat.disabled).toBe(false);
+    expect(screen.getByText('settings.agentManagement.testConnection')).toBeTruthy();
   });
 
   it('fires onToggle when the switch is clicked', () => {
