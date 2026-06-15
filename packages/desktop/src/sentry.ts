@@ -87,9 +87,7 @@ function isBackendStartupFailureEvent(event: { tags?: Record<string, unknown> })
 }
 
 function isUserFeedbackEvent(event: { tags?: Record<string, unknown> }): boolean {
-  return (
-    event.tags?.type === 'user-feedback' || event.tags?.['aionui.installation_integrity.user_report'] === 'true'
-  );
+  return event.tags?.type === 'user-feedback' || event.tags?.['aionui.installation_integrity.user_report'] === 'true';
 }
 
 function isBackendStartupSecondaryEvent(event: { tags?: Record<string, unknown> }, haystacks: string[]): boolean {
