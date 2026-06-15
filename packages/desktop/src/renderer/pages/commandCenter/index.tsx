@@ -340,6 +340,7 @@ interface ICommandEveMarketingDispatchPlanResult {
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: Record<string, unknown>;
+  dispatch_handoff_packet?: Record<string, unknown>;
   dispatch_source?: string;
   dispatch_source_reason?: string;
   policy?: Record<string, unknown>;
@@ -593,6 +594,16 @@ const dispatchSourceForResult = (result: ICommandEveMarketingDispatchPlanResult)
       recordStringField(result.policy, 'dispatch_source') ||
       recordStringField(result.dispatch_plan, 'dispatch_source')
   );
+
+const dispatchHandoffForResult = (
+  result: ICommandEveMarketingDispatchPlanResult
+): Record<string, unknown> | undefined => {
+  if (result.dispatch_handoff_packet) return result.dispatch_handoff_packet;
+  const embedded = result.dispatch_plan?.dispatch_handoff_packet;
+  return embedded && typeof embedded === 'object' && !Array.isArray(embedded)
+    ? embedded as Record<string, unknown>
+    : undefined;
+};
 
 const stateColor = (state: string): 'blue' | 'green' | 'orange' | 'red' | 'gray' => {
   if (['reported', 'done', 'released', 'pass'].includes(state)) return 'green';
@@ -1384,6 +1395,17 @@ const MarketingBoardSection: React.FC<{
                 <dd className='m-0 truncate text-t-secondary'>{textOrDash(dispatchPlanResult.audit_event_id)}</dd>
                 <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.source')}</dt>
                 <dd className='m-0 truncate text-t-secondary'>{dispatchSourceForResult(dispatchPlanResult)}</dd>
+                {dispatchHandoffForResult(dispatchPlanResult) ? (
+                  <>
+                    <dt className='text-t-tertiary'>{t('commandCenter.marketingBoard.dispatch.handoff')}</dt>
+                    <dd className='m-0 truncate text-t-secondary' data-testid='marketing-card-dispatch-handoff'>
+                      {`${recordStringField(dispatchHandoffForResult(dispatchPlanResult), 'role_label')} / ${recordStringField(
+                        dispatchHandoffForResult(dispatchPlanResult),
+                        'dispatch'
+                      )}`}
+                    </dd>
+                  </>
+                ) : null}
               </dl>
             </div>
           }

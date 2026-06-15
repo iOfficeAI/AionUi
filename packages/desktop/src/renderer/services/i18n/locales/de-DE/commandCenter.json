@@ -185,6 +185,7 @@
       "reason": "Reason",
       "audit": "Audit",
       "source": "Quelle",
+      "handoff": "Handoff",
       "subprocess": "Hermes",
       "spawned": "gestartet",
       "notSpawned": "nicht gestartet"

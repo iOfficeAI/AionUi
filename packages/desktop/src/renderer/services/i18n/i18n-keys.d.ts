@@ -256,6 +256,7 @@ export type I18nKey =
   | 'commandCenter.marketingBoard.dispatch.controllerApproval'
   | 'commandCenter.marketingBoard.dispatch.dataBoundary'
   | 'commandCenter.marketingBoard.dispatch.failed'
+  | 'commandCenter.marketingBoard.dispatch.handoff'
   | 'commandCenter.marketingBoard.dispatch.humanGate'
   | 'commandCenter.marketingBoard.dispatch.notChecked'
   | 'commandCenter.marketingBoard.dispatch.notRequired'

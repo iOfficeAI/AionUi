@@ -893,6 +893,19 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(result.controller_approval_required).toBe(true);
     expect(result.release_blocked).toBe(true);
     expect(result.human_gate).toBe('HG-2.5');
+    expect(result.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      status: 'dispatch_ready_waiting_for_controller',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+      human_gate: 'HG-2.5',
+      safety: expect.objectContaining({
+        nl5_gate_checked: true,
+        subprocess_spawned: false,
+        provider_execution_allowed: false,
+        release_blocked: true,
+      }),
+    });
     expect(requests).toHaveLength(1);
     expect(requests[0]).toMatchObject({
       command: 'hermes kanban decompose',
@@ -916,12 +929,22 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       controller_approval_required?: boolean;
       release_blocked?: boolean;
       reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+      };
     };
     expect(payload.nl5_gate_checked).toBe(true);
     expect(payload.subprocess_spawned).toBe(false);
     expect(payload.controller_approval_required).toBe(true);
     expect(payload.release_blocked).toBe(true);
     expect(payload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+    expect(payload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
 
     const auditEvents = readAuditEvents(eventLedgerPath);
     expect(auditEvents).toHaveLength(2);
@@ -935,6 +958,11 @@ describe('Command EVE Kanban marketing-board mutations', () => {
         controller_approval_required: true,
         release_blocked: true,
         subprocess_spawned: false,
+        dispatch_handoff_packet: expect.objectContaining({
+          version: 'command-eve-local-dispatch-handoff/v0',
+          dispatch: 'manual',
+          role_label: 'role:cmo',
+        }),
       }),
     });
   });
@@ -972,6 +1000,15 @@ describe('Command EVE Kanban marketing-board mutations', () => {
     expect(result.data_boundary_checked).toBe(true);
     expect(result.controller_approval_required).toBe(true);
     expect(result.release_blocked).toBe(true);
+    expect(result.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+      safety: expect.objectContaining({
+        dispatch_source: 'command-eve-embedded-nl5',
+        subprocess_spawned: false,
+      }),
+    });
     const policy = result.policy as { data_boundary_receipt?: { finding_count?: number } } | undefined;
     expect(policy?.data_boundary_receipt?.finding_count ?? 0).toBeGreaterThanOrEqual(1);
     expect(result.policy).toMatchObject({
@@ -996,11 +1033,23 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       controller_approval_required?: boolean;
       release_blocked?: boolean;
       reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+        safety?: { dispatch_source?: string };
+      };
     };
     expect(payload.nl5_gate_checked).toBe(true);
     expect(payload.subprocess_spawned).toBe(false);
     expect(payload.controller_approval_required).toBe(true);
     expect(payload.release_blocked).toBe(true);
     expect(payload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+    expect(payload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+      safety: expect.objectContaining({ dispatch_source: 'command-eve-embedded-nl5' }),
+    });
   });
 });

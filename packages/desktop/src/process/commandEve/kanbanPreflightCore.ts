@@ -286,6 +286,7 @@ export type CommandEveKanbanMarketingDispatchPlanResult = {
   audit_event_id?: string;
   audit_event_path?: string;
   dispatch_plan?: JsonRecord;
+  dispatch_handoff_packet?: JsonRecord;
   dispatch_source?: string;
   dispatch_source_reason?: string;
   policy?: JsonRecord;
@@ -1148,6 +1149,7 @@ try:
             "dispatch_source": request.get("dispatch_source"),
             "dispatch_source_reason": request.get("dispatch_source_reason"),
             "reason_codes": request.get("reason_codes") or [],
+            "dispatch_handoff_packet": request.get("dispatch_handoff_packet") or {},
             "policy": request.get("policy") or {},
           }),
           int(request["checked_at"]),
@@ -1386,6 +1388,7 @@ function appendMarketingDispatchPlanAuditEvent({
 }): string {
   const policy = isRecord(dispatchPlan.policy) ? dispatchPlan.policy : {};
   const subprocessSpawned = dispatchPlan.subprocess_spawned === true;
+  const handoffPacket = isRecord(dispatchPlan.dispatch_handoff_packet) ? dispatchPlan.dispatch_handoff_packet : {};
   const event = {
     schema_version: 'agent-event/v1',
     event_id: eventId,
@@ -1421,6 +1424,7 @@ function appendMarketingDispatchPlanAuditEvent({
       subprocess_spawned: subprocessSpawned,
       reason_codes: Array.isArray(dispatchPlan.reason_codes) ? dispatchPlan.reason_codes : [],
       data_boundary_receipt: isRecord(policy.data_boundary_receipt) ? policy.data_boundary_receipt : {},
+      dispatch_handoff_packet: handoffPacket,
     },
     artifact_paths: [dbPath],
     linear_comment_ids: [] as string[],
@@ -1672,6 +1676,75 @@ function buildMarketingDispatchRequest({
       status: 'missing',
       reason: 'Command EVE UI only plans dispatch here; controller execution approval is a later explicit gate.',
     },
+  };
+}
+
+function buildMarketingDispatchHandoffPacket({
+  request,
+  dispatchPlan,
+  policy,
+  cardId,
+  command,
+  companyOsRoot,
+  occurredAt,
+}: {
+  request: JsonRecord;
+  dispatchPlan: JsonRecord;
+  policy: JsonRecord;
+  cardId: string;
+  command: 'decompose' | 'specify';
+  companyOsRoot?: string;
+  occurredAt: string;
+}): JsonRecord {
+  const workerContract = isRecord(request.workerContract || request.worker_contract || request.contract)
+    ? (request.workerContract || request.worker_contract || request.contract) as JsonRecord
+    : {};
+  const fields = isRecord(request.fields) ? request.fields as JsonRecord : {};
+  const title = textField(fields.title) || `Command EVE marketing card ${cardId}`;
+
+  return {
+    version: 'command-eve-local-dispatch-handoff/v0',
+    status: 'dispatch_ready_waiting_for_controller',
+    dispatch: 'manual',
+    target_runtime: 'hermes-kanban',
+    proposed_command: `hermes kanban ${command}`,
+    card_id: cardId,
+    tenant: textField(request.tenant) || MARKETING_BOARD_TENANT,
+    role_label: `role:${textField(workerContract.role) || 'cmo'}`,
+    agent: textField(workerContract.agent) || 'hermes',
+    mode: textField(workerContract.mode) || `kanban-${command}`,
+    workspace: companyOsRoot || textField(workerContract.workspace) || 'command-eve-local',
+    source_of_truth: textField(workerContract.source_of_truth) || `Hermes kanban task ${cardId}`,
+    title,
+    acceptance_criteria: textField(workerContract.acceptance_criteria),
+    gates: [
+      'NL-5 data boundary',
+      'route receipt',
+      'auxiliary receipt',
+      'HG-2.5 controller approval',
+      'author-critic separation',
+      'no subprocess spawn before controller approval',
+    ],
+    human_gate: 'HG-2.5',
+    controller_approval: {
+      required: true,
+      status: 'missing',
+      reason: 'Local Command EVE UI can prepare the handoff, but controller approval is required before spawn.',
+    },
+    safety: {
+      nl5_gate_checked: isRecord(policy.data_boundary_receipt),
+      subprocess_spawned: dispatchPlan.subprocess_spawned === true,
+      provider_execution_allowed: false,
+      release_blocked: dispatchPlan.subprocess_spawned !== true,
+      dispatch_source: textField(dispatchPlan.dispatch_source),
+      dispatch_source_reason: textField(dispatchPlan.dispatch_source_reason),
+      reason_codes: Array.isArray(dispatchPlan.reason_codes) ? dispatchPlan.reason_codes : [],
+    },
+    reporting: [
+      'task_events.command_eve_dispatch_plan_checked',
+      'agent-events.kanban.marketing_board_dispatch_plan_checked',
+    ],
+    created_at: occurredAt,
   };
 }
 
@@ -2984,6 +3057,19 @@ export function planKanbanMarketingCardDispatch(
     ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
     ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
   };
+  const dispatchHandoffPacket = buildMarketingDispatchHandoffPacket({
+    request,
+    dispatchPlan,
+    policy: receiptPolicy,
+    cardId: taskId,
+    command,
+    companyOsRoot,
+    occurredAt,
+  });
+  dispatchPlan = {
+    ...dispatchPlan,
+    dispatch_handoff_packet: dispatchHandoffPacket,
+  };
   const controllerApprovalRequired = true;
   const releaseBlocked = !subprocessSpawned;
   const receiptWrite = runPythonJson(
@@ -3000,6 +3086,7 @@ export function planKanbanMarketingCardDispatch(
       controller_approval_required: controllerApprovalRequired,
       release_blocked: releaseBlocked,
       policy: receiptPolicy,
+      dispatch_handoff_packet: dispatchHandoffPacket,
       dispatch_source: dispatchSource,
       dispatch_source_reason: dispatchSourceReason,
     },
@@ -3019,6 +3106,7 @@ export function planKanbanMarketingCardDispatch(
       command,
       audit_event_path: eventLedgerPath,
       dispatch_plan: dispatchPlan,
+      dispatch_handoff_packet: dispatchHandoffPacket,
       policy: receiptPolicy,
       subprocess_spawned: subprocessSpawned,
       data_boundary_checked: dataBoundaryChecked,
@@ -3063,6 +3151,7 @@ export function planKanbanMarketingCardDispatch(
     audit_event_id: auditEventId,
     audit_event_path: eventLedgerPath,
     dispatch_plan: dispatchPlan,
+    dispatch_handoff_packet: dispatchHandoffPacket,
     ...(dispatchSource ? { dispatch_source: dispatchSource } : {}),
     ...(dispatchSourceReason ? { dispatch_source_reason: dispatchSourceReason } : {}),
     policy: receiptPolicy,

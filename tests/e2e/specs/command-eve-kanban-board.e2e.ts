@@ -647,6 +647,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         timeout: 30_000,
       }
     );
+    await expect(page.getByTestId('marketing-card-dispatch-handoff')).toContainText(/role:cmo\s*\/\s*manual/, {
+      timeout: 30_000,
+    });
     await expect(page.getByTestId('command-center-operating-readiness')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('operating-readiness-dispatchBlocked')).toContainText(
       /ready|bereit|KANBAN_MARKETING_DISPATCH_PLAN_READY/
@@ -666,6 +669,11 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       controller_approval_required?: boolean;
       release_blocked?: boolean;
       reason_codes?: string[];
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+      };
     };
     expect(dispatchPayload.nl5_gate_checked, 'NL-5 must be checked').toBe(true);
     expect(dispatchPayload.subprocess_spawned, 'Hermes subprocess must not spawn without controller approval').toBe(
@@ -674,6 +682,11 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     expect(dispatchPayload.controller_approval_required, 'Controller approval must be required').toBe(true);
     expect(dispatchPayload.release_blocked, 'Release must remain blocked before controller approval').toBe(true);
     expect(dispatchPayload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+    expect(dispatchPayload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+    });
 
     const ledgerLines = fs.readFileSync(e2eLedgerPath, 'utf8').split('\n').filter(Boolean);
     const matchingDispatchAudit = ledgerLines.find((line) => {
@@ -682,7 +695,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.issue_id === dispatchCardId &&
           evt.event_type === 'kanban.marketing_board_dispatch_plan_checked' &&
-          evt.payload?.subprocess_spawned === false
+          evt.payload?.subprocess_spawned === false &&
+          (evt.payload?.dispatch_handoff_packet as { dispatch?: string } | undefined)?.dispatch === 'manual'
         );
       } catch {
         return false;
@@ -762,6 +776,9 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
     await expect(page.getByTestId('marketing-card-dispatch-plan-source')).toHaveText('command-eve-embedded-nl5', {
       timeout: 30_000,
     });
+    await expect(page.getByTestId('marketing-card-dispatch-handoff')).toContainText(/role:cmo\s*\/\s*manual/, {
+      timeout: 30_000,
+    });
     await expect(page.getByTestId('marketing-card-dispatch-plan-reason')).toHaveText(
       /hermes\.pre_generation\.controller_approval_missing/
     );
@@ -786,6 +803,12 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         implementation?: string;
         data_boundary_receipt?: { finding_count?: number; raw_text_stored?: boolean };
       };
+      dispatch_handoff_packet?: {
+        version?: string;
+        dispatch?: string;
+        role_label?: string;
+        safety?: { dispatch_source?: string; subprocess_spawned?: boolean };
+      };
     };
     expect(dispatchPayload.nl5_gate_checked).toBe(true);
     expect(dispatchPayload.subprocess_spawned).toBe(false);
@@ -795,6 +818,15 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
       'Company.OS'
     );
     expect(dispatchPayload.reason_codes).toContain('hermes.pre_generation.controller_approval_missing');
+    expect(dispatchPayload.dispatch_handoff_packet).toMatchObject({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      dispatch: 'manual',
+      role_label: 'role:cmo',
+      safety: expect.objectContaining({
+        dispatch_source: 'command-eve-embedded-nl5',
+        subprocess_spawned: false,
+      }),
+    });
     expect(dispatchPayload.policy?.implementation).toBe('command-eve-embedded-nl5');
     expect(dispatchPayload.policy?.data_boundary_receipt?.raw_text_stored).toBe(false);
     expect(dispatchPayload.policy?.data_boundary_receipt?.finding_count ?? 0).toBeGreaterThanOrEqual(1);
@@ -806,7 +838,8 @@ test.describe('Command EVE Kanban Board – mutation proof', () => {
         return (
           evt.issue_id === embeddedCardId &&
           evt.event_type === 'kanban.marketing_board_dispatch_plan_checked' &&
-          evt.payload?.subprocess_spawned === false
+          evt.payload?.subprocess_spawned === false &&
+          (evt.payload?.dispatch_handoff_packet as { dispatch?: string } | undefined)?.dispatch === 'manual'
         );
       } catch {
         return false;
