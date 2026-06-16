@@ -165,8 +165,31 @@ function evaluateSpctlAssessment(exitCode, output) {
   return { ok: false, detail: 'spctl did not return an "accepted" verdict' };
 }
 
+// Default bounded-retry policy for the spctl Gatekeeper assessment. Right after
+// `stapler staple`, Gatekeeper's local assessment DB can lag, so spctl
+// transiently returns a non-accepted verdict for a DMG that is genuinely
+// notarized + stapled (this false-negative bit alpha.6). We retry the spctl
+// assessment a few times with a short backoff before failing. This is a
+// false-NEGATIVE fix, NOT a bypass: `stapler validate` remains the authoritative
+// staple proof (and still throws immediately on a missing ticket), and a truly
+// unsigned/unnotarized DMG that never returns "accepted" still fails closed
+// after the retries are exhausted.
+const SPCTL_RETRY_ATTEMPTS = 5;
+const SPCTL_RETRY_DELAY_MS = 2500;
+
+// Synchronous sleep that does not require a foreground `sleep` binary. Skipped
+// entirely when delayMs <= 0 so unit tests run instantly.
+function sleepSyncMs(delayMs) {
+  if (!delayMs || delayMs <= 0) return;
+  const shared = new Int32Array(new SharedArrayBuffer(4));
+  Atomics.wait(shared, 0, 0, delayMs);
+}
+
 // Run `xcrun stapler validate` (throws on non-zero) then `spctl -a -t open`
 // (captured + evaluated), throwing if Gatekeeper does not accept the DMG.
+// The spctl assessment is wrapped in a bounded retry-with-backoff to absorb the
+// transient post-staple Gatekeeper-DB lag false-negative; stapler validate is
+// the authoritative staple proof and is NOT retried.
 function verifyNotarizationStapled(artifactPath, deps = {}) {
   const runValidate =
     deps.runValidate ||
@@ -182,18 +205,37 @@ function verifyNotarizationStapled(artifactPath, deps = {}) {
       }
       return { status: result.status, output: `${result.stdout || ''}${result.stderr || ''}` };
     });
+  const sleep = deps.sleep || sleepSyncMs;
+  const attempts = Number.isInteger(deps.spctlAttempts) && deps.spctlAttempts > 0 ? deps.spctlAttempts : SPCTL_RETRY_ATTEMPTS;
+  const delayMs = Number.isInteger(deps.spctlDelayMs) && deps.spctlDelayMs >= 0 ? deps.spctlDelayMs : SPCTL_RETRY_DELAY_MS;
 
   // stapler validate exits non-zero (and throws via execFileSync) when no ticket
-  // is stapled, so a successful return is itself the staple proof.
+  // is stapled, so a successful return is itself the staple proof. NOT retried:
+  // a missing staple is a hard, authoritative failure.
   runValidate(artifactPath);
 
-  const spctlResult = runSpctl(artifactPath);
-  const verdict = evaluateSpctlAssessment(spctlResult.status, spctlResult.output);
+  // spctl assessment with bounded retry: succeed as soon as it returns accepted;
+  // only throw after ALL attempts still fail (fail-closed for a truly-unaccepted
+  // DMG). Backoff absorbs the transient post-staple Gatekeeper-DB lag.
+  let verdict;
+  let spctlResult;
+  for (let attempt = 1; attempt <= attempts; attempt += 1) {
+    spctlResult = runSpctl(artifactPath);
+    verdict = evaluateSpctlAssessment(spctlResult.status, spctlResult.output);
+    if (verdict.ok) break;
+    if (attempt < attempts) {
+      console.log(
+        `Notarization self-verification: spctl not yet accepted for ${path.basename(artifactPath)} ` +
+          `(attempt ${attempt}/${attempts}: ${verdict.detail}); retrying in ${delayMs}ms (Gatekeeper DB lag).`
+      );
+      sleep(delayMs);
+    }
+  }
   if (!verdict.ok) {
     throw new Error(
-      `Notarization self-verification FAILED for ${path.basename(artifactPath)}: ${verdict.detail}. ${
-        String(spctlResult.output || '').trim()
-      }`
+      `Notarization self-verification FAILED for ${path.basename(artifactPath)} after ${attempts} spctl attempt(s): ${
+        verdict.detail
+      }. ${String(spctlResult.output || '').trim()}`
     );
   }
   console.log(`Notarization self-verification PASSED for ${path.basename(artifactPath)}: stapled + ${verdict.detail}.`);
