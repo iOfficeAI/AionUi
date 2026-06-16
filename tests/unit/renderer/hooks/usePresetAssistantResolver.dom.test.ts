@@ -129,6 +129,33 @@ describe('usePresetAssistantResolver', () => {
     expect(result.current.resolveDisabledBuiltinSkills(agentInfo as any)).toBeUndefined();
   });
 
+  it('falls back to backend metadata when an explicit assistant identity no longer resolves', async () => {
+    const { result } = renderHook(() =>
+      usePresetAssistantResolver({
+        localeKey: 'zh-CN',
+        assistants: [] as any,
+      })
+    );
+
+    const agentInfo = {
+      agent_type: 'acp',
+      backend: 'claude',
+      assistant_id: 'assistant-deleted',
+      context: 'legacy context',
+    };
+
+    const resolved = await result.current.resolvePresetRulesAndSkills(agentInfo as any);
+
+    expect(readAssistantRuleInvokeMock).toHaveBeenCalledWith({
+      assistant_id: 'assistant-deleted',
+      locale: 'zh-CN',
+    });
+    expect(resolved).toEqual({ rules: 'legacy context' });
+    expect(result.current.resolvePresetAgentType(agentInfo as any)).toBe('claude');
+    expect(result.current.resolveEnabledSkills(agentInfo as any)).toBeUndefined();
+    expect(result.current.resolveDisabledBuiltinSkills(agentInfo as any)).toBeUndefined();
+  });
+
   it('still resolves legacy custom_agent_id when it matches an assistant id', async () => {
     readAssistantRuleInvokeMock.mockResolvedValue('assistant rules');
 

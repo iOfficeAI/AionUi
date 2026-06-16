@@ -327,14 +327,12 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       if (assistantMatch) return { info: buildPresetInfoFromAssistant(assistantMatch, locale), isLoading: false };
     }
 
-    if (!hasExplicitAssistantId) {
-      const runtimeInfo = resolveLegacyRuntimeInfo();
-      if (runtimeInfo) return runtimeInfo;
-    }
-
     // Still loading — defer to avoid flickering fallback
     if (isLoadingAssistants || isLoadingExtAdapters)
       return { info: null as PresetAssistantInfo | null, isLoading: true };
+
+    const runtimeInfo = resolveLegacyRuntimeInfo();
+    if (runtimeInfo) return runtimeInfo;
 
     // Extension ACP adapters (custom_agent_id like ext:{extensionName}:{adapterId})
     if (presetId.startsWith('ext:') && extensionAcpAdapters && Array.isArray(extensionAcpAdapters)) {

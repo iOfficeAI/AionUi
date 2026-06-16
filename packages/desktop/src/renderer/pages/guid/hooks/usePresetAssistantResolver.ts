@@ -174,7 +174,7 @@ export const usePresetAssistantResolver = ({
       const assistantId = resolveAssistantIdentityId(agentInfo, assistants);
       if (!assistantId) return agentInfo.backend || agentInfo.agent_type;
       const assistant = assistants.find((a) => a.id === assistantId);
-      return assistant?.preset_agent_type || 'gemini';
+      return assistant?.preset_agent_type || agentInfo.backend || agentInfo.agent_type || 'gemini';
     },
     [assistants]
   );

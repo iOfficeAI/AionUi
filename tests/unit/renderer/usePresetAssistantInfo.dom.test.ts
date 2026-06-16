@@ -125,6 +125,29 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('falls back to runtime metadata when an explicit assistant identity no longer resolves', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      assistant_id: 'assistant-deleted',
+      custom_agent_id: 'runtime-social',
+      agent_name: 'Gemini Runtime',
+      backend: 'gemini',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Gemini Runtime',
+      logo: '🤖',
+      isEmoji: true,
+    });
+  });
+
   it('restores assistant info from a legacy custom_agent_id when it still matches an assistant id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {
