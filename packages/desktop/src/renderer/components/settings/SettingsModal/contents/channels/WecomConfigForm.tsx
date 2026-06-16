@@ -5,20 +5,21 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
-import { channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { assistants, channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
-import {
-  isSupportedNewConversationAgent,
-  normalizeSupportedAgentSelection,
-} from '@/renderer/utils/model/agentTypeSupportPolicy';
 import { Button, Dropdown, Empty, Input, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
 import { CheckOne, CloseOne, Copy, Delete, Down, Refresh } from '@icon-park/react';
 import React, { useCallback, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  buildChannelAssistantBinding,
+  getDefaultChannelAssistant,
+  resolveChannelAssistantId,
+} from './assistantBinding';
 
 /**
  * Preference row component
@@ -82,16 +83,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   const [pendingPairings, setPendingPairings] = useState<IChannelPairingRequest[]>([]);
   const [authorizedUsers, setAuthorizedUsers] = useState<IChannelUser[]>([]);
 
-  // Agent selection
-  const [availableAgents, setAvailableAgents] = useState<
-    Array<{ agent_type: string; backend?: string; name: string; id?: string }>
-  >([]);
-  const [selectedAgent, setSelectedAgent] = useState<{
-    agent_type: string;
-    backend?: string;
-    name?: string;
-    id?: string;
-  }>({ agent_type: 'aionrs' });
+  const [availableAssistants, setAvailableAssistants] = useState<Assistant[]>([]);
+  const [selectedAssistant, setSelectedAssistant] = useState<Assistant | null>(null);
 
   // Load pending pairings
   const loadPendingPairings = useCallback(async () => {
@@ -129,71 +122,41 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
     void loadAuthorizedUsers();
   }, [loadPendingPairings, loadAuthorizedUsers]);
 
-  // Load available agents + saved selection
+  // Load available assistants + saved selection
   useEffect(() => {
-    const loadAgentsAndSelection = async () => {
+    const loadAssistantsAndSelection = async () => {
       try {
-        const [agentsResp, saved] = await Promise.all([getAgents(), configService.get('assistant.wecom.agent')]);
+        const [assistantList, saved] = await Promise.all([
+          assistants.list.invoke(),
+          configService.get('assistant.wecom.agent'),
+        ]);
 
-        if (Array.isArray(agentsResp)) {
-          const list = agentsResp.filter(isSupportedNewConversationAgent).map((a) => ({
-            agent_type: a.agent_type,
-            backend: a.backend,
-            name: a.name,
-            id: a.id,
-          }));
-          setAvailableAgents(list);
-        }
+        setAvailableAssistants(assistantList);
 
-        if (saved && typeof saved === 'object') {
-          const s = saved as Record<string, unknown>;
-          const backend = typeof s.backend === 'string' ? s.backend : undefined;
-          const normalized = normalizeSupportedAgentSelection(
-            typeof s.agent_type === 'string' ? s.agent_type : undefined,
-            backend
-          );
-          if (normalized) {
-            setSelectedAgent({
-              ...normalized,
-              // Legacy rows persist `custom_agent_id`; new rows write `id`.
-              id: (s.id as string | undefined) ?? (s.custom_agent_id as string | undefined),
-              name: s.name as string | undefined,
-            });
-          }
-        } else if (typeof saved === 'string') {
-          const backend = saved as string;
-          const normalized = normalizeSupportedAgentSelection(undefined, backend);
-          if (normalized) {
-            setSelectedAgent(normalized);
-          }
-        }
+        const selectedAssistantId = resolveChannelAssistantId(saved, assistantList);
+        const nextAssistant =
+          assistantList.find((assistant) => assistant.id === selectedAssistantId) ||
+          getDefaultChannelAssistant(assistantList) ||
+          null;
+
+        setSelectedAssistant(nextAssistant);
       } catch (error) {
-        console.error('[WecomConfig] Failed to load agents:', error);
+        console.error('[WecomConfig] Failed to load assistants:', error);
       }
     };
 
-    void loadAgentsAndSelection();
+    void loadAssistantsAndSelection();
   }, []);
 
-  const persistSelectedAgent = async (agent: { agent_type: string; backend?: string; id?: string; name?: string }) => {
-    // Write both `id` (new unified AgentMetadata field) and
-    // `custom_agent_id` (legacy channel-plugin field) so older reads
-    // keep working until every consumer migrates off the legacy name.
-    const payload = {
-      agent_type: agent.agent_type,
-      backend: agent.backend,
-      id: agent.id,
-      custom_agent_id: agent.id,
-      name: agent.name,
-    };
+  const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
-      await configService.set('assistant.wecom.agent', payload);
+      await configService.set('assistant.wecom.agent', buildChannelAssistantBinding(assistant));
       await channel.syncChannelSettings
         .invoke({ platform: 'wecom' })
         .catch((err) => console.warn('[WecomConfig] syncChannelSettings failed:', err));
-      Message.success(t('settings.assistant.agentSwitched', 'Agent switched successfully'));
+      Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
-      console.error('[WecomConfig] Failed to save agent:', error);
+      console.error('[WecomConfig] Failed to save assistant:', error);
       Message.error(t('common.saveFailed', 'Failed to save'));
     }
   };
@@ -317,13 +280,8 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
   };
 
   const hasExistingUsers = authorizedUsers.length > 0;
-  const showModelSelector = selectedAgent.agent_type === 'aionrs';
-  const agentOptions: Array<{
-    agent_type: string;
-    backend?: string;
-    name: string;
-    id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  const showModelSelector = selectedAssistant?.preset_agent_type === 'aionrs';
+  const assistantOptions = availableAssistants;
 
   return (
     <div className='flex flex-col gap-24px'>
@@ -457,45 +415,29 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         </div>
       )}
 
-      {/* Agent Selection */}
+      {/* Assistant Selection */}
       <div className='flex flex-col gap-8px'>
         <PreferenceRow
-          label={t('settings.wecom.agent', 'Agent')}
+          label={t('settings.assistant.name', 'Assistant')}
           description={t('settings.wecom.agentDesc', 'Used for WeCom conversations')}
         >
           <Dropdown
             trigger='click'
             position='br'
             droplist={
-              <Menu
-                selectedKeys={[
-                  selectedAgent.id
-                    ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                    : selectedAgent.backend || selectedAgent.agent_type,
-                ]}
-              >
-                {agentOptions.map((a) => {
-                  const key = a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type;
+              <Menu selectedKeys={selectedAssistant ? [selectedAssistant.id] : []}>
+                {assistantOptions.map((assistant) => {
                   return (
                     <Menu.Item
-                      key={key}
+                      key={assistant.id}
                       onClick={() => {
-                        const currentKey = selectedAgent.id
-                          ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                          : selectedAgent.backend || selectedAgent.agent_type;
-                        if (key === currentKey) {
+                        if (assistant.id === selectedAssistant?.id) {
                           return;
                         }
-                        const next = {
-                          agent_type: a.agent_type,
-                          backend: a.backend,
-                          id: a.id,
-                          name: a.name,
-                        };
-                        setSelectedAgent(next);
-                        void persistSelectedAgent(next);
+                        setSelectedAssistant(assistant);
+                        void persistSelectedAssistant(assistant);
 
-                        if (next.agent_type === 'aionrs') {
+                        if (assistant.preset_agent_type === 'aionrs') {
                           const savedModel = configService.get('assistant.wecom.defaultModel');
                           const providers = modelSelection.providers;
                           const savedProviderExists = savedModel?.id && providers.some((p) => p.id === savedModel.id);
@@ -508,7 +450,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
                         }
                       }}
                     >
-                      {a.name}
+                      {assistant.name}
                     </Menu.Item>
                   );
                 })}
@@ -516,17 +458,7 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
             }
           >
             <Button type='secondary' className='min-w-160px flex items-center justify-between gap-8px'>
-              <span className='truncate'>
-                {selectedAgent.name ||
-                  availableAgents.find(
-                    (a) =>
-                      (a.id ? `${a.agent_type}|${a.id}` : a.backend || a.agent_type) ===
-                      (selectedAgent.id
-                        ? `${selectedAgent.agent_type}|${selectedAgent.id}`
-                        : selectedAgent.backend || selectedAgent.agent_type)
-                  )?.name ||
-                  selectedAgent.agent_type}
-              </span>
+              <span className='truncate'>{selectedAssistant?.name || t('settings.assistant.name', 'Assistant')}</span>
               <Down theme='outline' size={14} />
             </Button>
           </Dropdown>

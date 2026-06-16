@@ -1,0 +1,73 @@
+/**
+ * @license
+ * Copyright 2025 AionUi (aionui.com)
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+import type { Assistant } from '@/common/types/agent/assistantTypes';
+import {
+  buildChannelAssistantBinding,
+  getDefaultChannelAssistant,
+  resolveChannelAssistantId,
+} from '@/renderer/components/settings/SettingsModal/contents/channels/assistantBinding';
+import { describe, expect, it } from 'vitest';
+
+function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'name' | 'preset_agent_type'>): Assistant {
+  return {
+    id: overrides.id,
+    source: overrides.source ?? 'user',
+    name: overrides.name,
+    name_i18n: {},
+    description: overrides.description,
+    description_i18n: {},
+    avatar: overrides.avatar,
+    enabled: overrides.enabled ?? true,
+    sort_order: overrides.sort_order ?? 1000,
+    preset_agent_type: overrides.preset_agent_type,
+    enabled_skills: [],
+    custom_skill_names: [],
+    disabled_builtin_skills: [],
+    prompts: [],
+    prompts_i18n: {},
+    models: [],
+    agent_status: 'available',
+    team_selectable: true,
+    deletable: true,
+    ...overrides,
+  };
+}
+
+describe('channel assistant binding helpers', () => {
+  const assistants = [
+    assistant({ id: 'bare-aionrs', name: 'Aion CLI', source: 'bare', preset_agent_type: 'aionrs' }),
+    assistant({ id: 'bare-claude', name: 'Claude', source: 'bare', preset_agent_type: 'claude' }),
+    assistant({ id: 'user-writer', name: 'Writer', source: 'user', preset_agent_type: 'claude' }),
+  ];
+
+  it('prefers the bare aionrs assistant as the default selection', () => {
+    expect(getDefaultChannelAssistant(assistants)?.id).toBe('bare-aionrs');
+  });
+
+  it('resolves explicit assistant ids from new channel bindings', () => {
+    expect(resolveChannelAssistantId({ assistant_id: 'user-writer' }, assistants)).toBe('user-writer');
+  });
+
+  it('falls back to legacy custom_agent_id bindings', () => {
+    expect(resolveChannelAssistantId({ custom_agent_id: 'bare-claude' }, assistants)).toBe('bare-claude');
+  });
+
+  it('maps legacy backend-only bindings to the matching bare assistant', () => {
+    expect(resolveChannelAssistantId({ backend: 'claude' }, assistants)).toBe('bare-claude');
+    expect(resolveChannelAssistantId('claude', assistants)).toBe('bare-claude');
+  });
+
+  it('serializes assistant identity while retaining backend compatibility fields', () => {
+    expect(buildChannelAssistantBinding(assistants[1])).toEqual({
+      assistant_id: 'bare-claude',
+      custom_agent_id: 'bare-claude',
+      backend: 'claude',
+      agent_type: 'acp',
+      name: 'Claude',
+    });
+  });
+});
