@@ -30,6 +30,48 @@ const COMMAND_EVE_RUNTIME_RECONCILIATION_FILE = 'command-eve-runtime-reconciliat
 const DEFAULT_STAGE_TIMEOUT_MS = 120_000;
 const DEFAULT_LONG_STAGE_TIMEOUT_MS = 2_700_000;
 const PYTHON_BINARY_CANDIDATES = ['python3.13', 'python3.12', 'python3.11', 'python3'];
+// Hermes 0.16 supports CPython 3.11, 3.12, 3.13. We probe newest-first.
+const SUPPORTED_PYTHON_MINORS = ['3.13', '3.12', '3.11'] as const;
+const COMMAND_EVE_PYTHON_PATH_ENV = 'COMMAND_EVE_PYTHON_PATH';
+// On a zsh-default Mac, `bash -lc 'command -v'` runs a bash login shell that
+// does NOT source ~/.zprofile, so Homebrew's /opt/homebrew/bin (added by
+// `brew shellenv` in ~/.zprofile) can be missing from that PATH even after
+// `brew install python@3.12`. Probe the well-known absolute install locations
+// directly (fs.existsSync, then `<abs> --version`) so a supported interpreter
+// is found regardless of the login-shell PATH.
+function commonAbsolutePythonCandidates(): string[] {
+  if (process.platform === 'win32') return [];
+  const home = os.homedir();
+  const candidates: string[] = [];
+  for (const minor of SUPPORTED_PYTHON_MINORS) {
+    const bin = `python${minor}`; // e.g. python3.12
+    const pkg = `python@${minor}`; // e.g. python@3.12
+    candidates.push(
+      // Apple-Silicon Homebrew
+      `/opt/homebrew/bin/${bin}`,
+      `/opt/homebrew/opt/${pkg}/bin/${bin}`,
+      // Intel Homebrew
+      `/usr/local/bin/${bin}`,
+      `/usr/local/opt/${pkg}/bin/${bin}`,
+      // python.org framework build
+      `/Library/Frameworks/Python.framework/Versions/${minor}/bin/${bin}`,
+      // pyenv version-specific shim
+      path.join(home, '.pyenv', 'shims', bin)
+    );
+  }
+  // pyenv installed versions: ~/.pyenv/versions/<x.y.z>/bin/python3
+  const pyenvVersionsDir = path.join(home, '.pyenv', 'versions');
+  try {
+    const entries = fs.readdirSync(pyenvVersionsDir);
+    // Newest version first so a supported interpreter is preferred.
+    for (const entry of entries.toSorted((a, b) => b.localeCompare(a))) {
+      candidates.push(path.join(pyenvVersionsDir, entry, 'bin', 'python3'));
+    }
+  } catch {
+    // No pyenv versions dir — ignore.
+  }
+  return candidates;
+}
 const LOCAL_OLLAMA_BINARY_CANDIDATES =
   process.platform === 'darwin'
     ? ['/Applications/Ollama.app/Contents/Resources/ollama', '/opt/homebrew/bin/ollama', '/usr/local/bin/ollama']
@@ -1097,25 +1139,79 @@ function pythonVersionSupported(version: { major: number; minor: number }): bool
   return version.minor >= 11 && version.minor < 14;
 }
 
+const PYTHON_INSTALL_GUIDANCE =
+  'Install Python 3.11, 3.12, or 3.13 (macOS: `brew install python@3.12`, or python.org), then restart Command EVE. ' +
+  '(You can also set COMMAND_EVE_PYTHON_PATH to a compatible python.) Python 3.14 is not supported by Hermes 0.16.';
+
+// Probe a single resolved interpreter path: run `--version`, parse it, and
+// classify it as supported / unsupported. Cheap + safe: errors are swallowed
+// per-candidate and the runner enforces a bounded timeout.
+async function probePythonAt(
+  resolvedPath: string,
+  runner: RuntimeBootstrapRunner,
+  env: NodeJS.ProcessEnv
+): Promise<{ supported?: PythonLookup; unsupportedText?: string }> {
+  if (!resolvedPath) return {};
+  const versionResult = await runner(resolvedPath, ['--version'], { env, timeoutMs: 10_000 });
+  const version = parsePythonVersion(`${versionResult.stdout || ''}\n${versionResult.stderr || ''}`);
+  if (version && pythonVersionSupported(version)) {
+    return { supported: { ok: true, path: resolvedPath, version: version.text } };
+  }
+  return { unsupportedText: version?.text || resolvedPath };
+}
+
 async function resolvePythonCommand(
   runner: RuntimeBootstrapRunner,
   env: NodeJS.ProcessEnv,
-  candidates = PYTHON_BINARY_CANDIDATES
+  candidates = PYTHON_BINARY_CANDIDATES,
+  absoluteCandidates: string[] = commonAbsolutePythonCandidates()
 ): Promise<PythonLookup> {
   let foundUnsupported = '';
+  const noteUnsupported = (detailText: string): void => {
+    if (!foundUnsupported) {
+      foundUnsupported = `Found ${detailText}, but Command EVE needs Python 3.11–3.13. ${PYTHON_INSTALL_GUIDANCE}`;
+    }
+  };
+
+  // 1) Explicit env override wins. Lets us / the user point at a known-good
+  //    interpreter when auto-detection cannot find one. If it is set but
+  //    unsupported, surface that clearly instead of silently ignoring it.
+  const overridePath = compact(env[COMMAND_EVE_PYTHON_PATH_ENV]);
+  if (overridePath) {
+    if (!fs.existsSync(overridePath)) {
+      foundUnsupported =
+        foundUnsupported || `${COMMAND_EVE_PYTHON_PATH_ENV}=${overridePath} does not exist. ${PYTHON_INSTALL_GUIDANCE}`;
+    } else {
+      const probe = await probePythonAt(overridePath, runner, env);
+      if (probe.supported) return probe.supported;
+      if (probe.unsupportedText) {
+        foundUnsupported =
+          foundUnsupported ||
+          `${COMMAND_EVE_PYTHON_PATH_ENV} points at ${probe.unsupportedText}, but Command EVE needs Python 3.11–3.13. ${PYTHON_INSTALL_GUIDANCE}`;
+      }
+    }
+  }
+
+  // 2) Version-specific PATH names first, then bare python3 — via the login
+  //    shell so a user's normal PATH (incl. pyenv/asdf shims) is honored.
   for (const candidate of candidates) {
     const lookup = await commandExists(candidate, runner, env);
     if (!lookup.ok) continue;
-
-    const versionResult = await runner(lookup.path, ['--version'], { env, timeoutMs: 10_000 });
-    const version = parsePythonVersion(`${versionResult.stdout || ''}\n${versionResult.stderr || ''}`);
-    if (version && pythonVersionSupported(version)) {
-      return { ...lookup, version: version.text };
-    }
-
-    const detail = version?.text || lookup.path;
-    foundUnsupported = foundUnsupported || `${detail} is outside Hermes 0.16 supported range >=3.11,<3.14.`;
+    const probe = await probePythonAt(lookup.path, runner, env);
+    if (probe.supported) return { ...lookup, version: probe.supported.version };
+    if (probe.unsupportedText) noteUnsupported(probe.unsupportedText);
   }
+
+  // 3) Common absolute install locations. Catches the zsh-Mac Homebrew case
+  //    where `bash -lc 'command -v'` misses /opt/homebrew/bin. existsSync
+  //    gates the spawn so probing is cheap and safe.
+  for (const candidate of absoluteCandidates) {
+    if (!fs.existsSync(candidate)) continue;
+    const probe = await probePythonAt(candidate, runner, env);
+    if (probe.supported) return probe.supported;
+    if (probe.unsupportedText) noteUnsupported(probe.unsupportedText);
+  }
+
   return { ok: false, path: '', foundUnsupported };
 }
 
@@ -1644,9 +1740,7 @@ export async function ensureCommandEveRuntimeBootstrap(
     pushStage(
       makeStage('python', 'blocked', {
         code: python.foundUnsupported ? 'PYTHON_UNSUPPORTED' : 'PYTHON_MISSING',
-        detail:
-          python.foundUnsupported ||
-          'Install Python >=3.11,<3.14, then restart Command EVE. Python 3.14 is not supported by Hermes 0.16.',
+        detail: python.foundUnsupported || `No Python found. ${PYTHON_INSTALL_GUIDANCE}`,
       })
     );
     return finishReceipt();
