@@ -526,5 +526,12 @@
       "redacted": "EVE redacted sensitive data before model egress ({{count}} finding(s)).",
       "clear": "Last model call had no sensitive findings."
     }
+  },
+  "commandEveLocalMarketingIntent": {
+    "desktopRequired": "The Command EVE marketing loop is only available in the desktop app.",
+    "createFailed": "The marketing card could not be created.",
+    "createdChecked": "Created marketing card \"{{title}}\" and checked its dispatch plan (HG-2.5). Continue in the Command Center: advance the stages there and — on a deliberate approval — promote to executor (HG-3.5).",
+    "createdUnchecked": "Created marketing card \"{{title}}\". Its dispatch plan was not confirmed yet — please continue and approve in the Command Center.",
+    "failed": "The Command EVE marketing command failed."
   }
 }

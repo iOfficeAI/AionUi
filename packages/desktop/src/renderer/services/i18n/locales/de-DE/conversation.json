@@ -506,5 +506,12 @@
   "sendbox": {
     "hint": "Tippe / für Befehle, @ um Dateien zu referenzieren"
   },
-  "notFound": "Gespräch nicht gefunden oder wurde gelöscht"
+  "notFound": "Gespräch nicht gefunden oder wurde gelöscht",
+  "commandEveLocalMarketingIntent": {
+    "desktopRequired": "Der Command-EVE-Marketing-Loop ist nur in der Desktop-App verfügbar.",
+    "createFailed": "Marketing-Karte konnte nicht angelegt werden.",
+    "createdChecked": "Marketing-Karte \"{{title}}\" angelegt und Dispatch-Plan (HG-2.5) geprüft. Weiter geht es im Command Center: dort die Stufen freigeben und – bei bewusster Freigabe – zum Executor (HG-3.5) befördern.",
+    "createdUnchecked": "Marketing-Karte \"{{title}}\" angelegt. Der Dispatch-Plan wurde noch nicht bestätigt – bitte im Command Center fortsetzen und freigeben.",
+    "failed": "Command-EVE-Marketing-Befehl fehlgeschlagen."
+  }
 }
