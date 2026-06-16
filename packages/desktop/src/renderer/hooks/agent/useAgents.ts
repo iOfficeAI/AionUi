@@ -107,6 +107,17 @@ export async function getAgents(): Promise<AgentMetadata[]> {
 }
 
 /**
+ * Non-hook entry point for settings/tooling surfaces that need the management
+ * diagnostics catalog rather than the business-facing detected agent list.
+ * Writes the result into the shared management cache only.
+ */
+export async function getManagedAgents(): Promise<ManagedAgent[]> {
+  const data = await fetchManagedAgents();
+  await mutate(MANAGED_AGENTS_SWR_KEY, data, { revalidate: false });
+  return data;
+}
+
+/**
  * Non-hook entry point to trigger a backend re-scan (`POST /api/agents/refresh`)
  * and revalidate the shared cache. Safe to call from plain async code.
  */

@@ -1,5 +1,5 @@
 import type { IMcpServer } from '@/common/config/storage';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import React, { useEffect, useState } from 'react';
 import JsonImportModal from './JsonImportModal';
 import OneClickImportModal from './OneClickImportModal';
@@ -33,7 +33,7 @@ const AddMcpServerModal: React.FC<AddMcpServerModalProps> = ({
       // 初始化时检测可用的agents
       const loadAgents = async () => {
         try {
-          const result = await getAgents();
+          const result = await getManagedAgents();
 
           if (result.length > 0) {
             // 根据检测到的agents数量和importMode决定显示哪个模态框

@@ -3,7 +3,7 @@ import { Down, Plus } from '@icon-park/react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME, type IMcpServer } from '@/common/config/storage';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { useMcpConnection, useMcpModal, useMcpOAuth, useMcpServerCRUD, useMcpServers } from '@/renderer/hooks/mcp';
 import AddMcpServerModal from '../components/AddMcpServerModal';
 import McpServerItem from './McpServerItem';
@@ -114,7 +114,7 @@ const McpManagement: React.FC<McpManagementProps> = ({ message }) => {
   React.useEffect(() => {
     const loadAgents = async () => {
       try {
-        const agents = await getAgents();
+        const agents = await getManagedAgents();
         setDetectedAgents(agents.map((agent) => ({ backend: agent.backend, name: agent.name })));
       } catch (error) {
         console.error('Failed to load agents:', error);

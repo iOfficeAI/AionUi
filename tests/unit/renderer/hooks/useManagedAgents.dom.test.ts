@@ -35,7 +35,7 @@ vi.mock('@/renderer/utils/model/agentTypes', () => ({
   fetchManagedAgents: vi.fn(),
 }));
 
-import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents, useManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { ipcBridge } from '@/common';
 import useSWR, { mutate } from 'swr';
 import { fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
@@ -97,5 +97,19 @@ describe('useManagedAgents', () => {
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
     expect(mutate).toHaveBeenCalledWith('agents.detected');
+  });
+
+  it('getManagedAgents fetches the management catalog and updates the managed cache only', async () => {
+    const managedAgents = [
+      { id: 'managed-1', name: 'Managed Agent', agent_type: 'acp', agent_source: 'builtin', enabled: true },
+    ];
+    (fetchManagedAgents as any).mockResolvedValue(managedAgents);
+
+    const result = await getManagedAgents();
+
+    expect(fetchManagedAgents).toHaveBeenCalledTimes(1);
+    expect(mutate).toHaveBeenCalledWith('agents.managed', managedAgents, { revalidate: false });
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected', managedAgents, { revalidate: false });
+    expect(result).toEqual(managedAgents);
   });
 });

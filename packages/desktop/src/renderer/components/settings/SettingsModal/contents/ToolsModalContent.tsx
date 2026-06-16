@@ -9,7 +9,7 @@ import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/co
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
 import { isImageGenSupported } from '@/common/utils/imageModelAllowlist';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import { getManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -138,7 +138,7 @@ const ModalMcpManagementSection: React.FC<{
   useEffect(() => {
     const loadAgents = async () => {
       try {
-        const agents = await getAgents();
+        const agents = await getManagedAgents();
         setDetectedAgents(
           agents.map((agent) => ({
             backend: agent.backend,
