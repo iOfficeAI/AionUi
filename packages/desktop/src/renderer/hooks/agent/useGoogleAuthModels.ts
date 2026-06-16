@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
+import { httpRequest } from '@/common/adapter/httpBridge';
 import useSWR from 'swr';
 
 export interface GoogleAuthModelResult {
@@ -19,7 +19,9 @@ export interface GoogleAuthModelResult {
 }
 
 export const useGoogleAuthModels = (): GoogleAuthModelResult => {
-  const { data: googleConfig } = useSWR('google.config', () => configService.get('google.config'));
+  const { data: googleConfig } = useSWR('settings.client.google.config', () =>
+    httpRequest<{ proxy?: string }>('GET', '/api/settings/client?key=google.config')
+  );
   const proxyKey = googleConfig?.proxy || '';
 
   // Check whether Google Auth CLI is ready.
