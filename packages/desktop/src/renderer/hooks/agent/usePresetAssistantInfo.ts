@@ -299,14 +299,14 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 
     const explicitAssistantCandidates = collectExplicitAssistantIdentityCandidates(conversation);
     const legacyAssistantCandidates = collectLegacyAssistantIdentityCandidates(conversation);
-    const assistantMatch =
-      findAssistantByIdentityCandidates(assistantsList, explicitAssistantCandidates) ??
-      findAssistantByIdentityCandidates(assistantsList, legacyAssistantCandidates);
     const hasExplicitAssistantId = hasExplicitAssistantIdentity(conversation);
+    const assistantMatch = hasExplicitAssistantId
+      ? findAssistantByIdentityCandidates(assistantsList, explicitAssistantCandidates)
+      : findAssistantByIdentityCandidates(assistantsList, legacyAssistantCandidates);
     const runtimeRowAgentId = resolveLegacyRuntimeRowId(conversation);
     const locale = i18n.language || 'en-US';
-    const adapterIdentity = [...explicitAssistantCandidates, ...legacyAssistantCandidates].find((candidate) =>
-      candidate.startsWith('ext:')
+    const adapterIdentity = (hasExplicitAssistantId ? explicitAssistantCandidates : legacyAssistantCandidates).find(
+      (candidate) => candidate.startsWith('ext:')
     );
 
     const resolveLegacyRuntimeInfo = (): { info: PresetAssistantInfo; isLoading: false } | null => {

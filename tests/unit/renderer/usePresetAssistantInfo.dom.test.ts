@@ -148,6 +148,41 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('does not revive a different legacy assistant when an explicit assistant identity is present', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') {
+        return {
+          data: [
+            {
+              id: 'assistant-legacy',
+              name: 'Legacy Planner',
+              avatar: '🧭',
+              name_i18n: {},
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      assistant_id: 'assistant-deleted',
+      custom_agent_id: 'assistant-legacy',
+      agent_name: 'Gemini Runtime',
+      backend: 'gemini',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Gemini Runtime',
+      logo: '🤖',
+      isEmoji: true,
+    });
+  });
+
   it('falls back from a stale assistant_id to a valid preset_assistant_id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {
