@@ -5,9 +5,14 @@
  */
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import type { IChannelAssistantBindingWrite, IChannelAssistantStoredBinding } from '@/common/types/channel/channel';
+import type { IChannelAssistantBindingRead, IChannelAssistantBindingWrite } from '@/common/types/channel/channel';
 
-export type ChannelAssistantBinding = IChannelAssistantStoredBinding | string | undefined;
+/**
+ * Channel settings still need to read legacy assistant bindings while the
+ * backend/config migration remains in progress. New writes must use
+ * `IChannelAssistantBindingWrite` and should never introduce these legacy keys.
+ */
+export type ChannelAssistantBinding = IChannelAssistantBindingRead | string | undefined;
 
 export function getDefaultChannelAssistant(assistants: Assistant[]): Assistant | undefined {
   return (
