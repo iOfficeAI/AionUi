@@ -44,12 +44,16 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { createCommandEveLocalIntentClientToken, parseCommandEveLocalMarketingIntent } from './commandEveLocalIntent';
 import { useAionrsMessage } from './useAionrsMessage';
 import type { AionrsModelSelection } from './useAionrsModelSelection';
+
+const COMMAND_EVE_MARKETING_BOARD_SLUG = 'marketing';
 
 const useAionrsSendBoxDraft = getSendBoxDraftHook('aionrs', {
   _type: 'aionrs',
@@ -306,7 +310,103 @@ const AionrsSendBox: React.FC<{
     void processInitialMessage();
   }, [conversation_id, current_model?.use_model, executeCommand]);
 
+  // Command EVE /marketing-loop | /marketing chat intent (v15 A2).
+  //
+  // SECURITY-CORRECT, SCOPE-HONEST FORM. The chat command chains ONLY the two
+  // gate-safe providers exposed on this build:
+  //   kanbanMarketingCardCreate  -> creates the marketing card
+  //   kanbanMarketingDispatchPlan -> records the HG-2.5 dispatch-plan receipt
+  // then emits a board refresh and tells the user to continue + promote in the
+  // Command Center.
+  //
+  // HARD GUARD — the chat NEVER invokes worker-executor-promotion and NEVER
+  // passes cao_gate_approved anywhere. The HG-3.5 executor promotion is a
+  // deliberate human action reachable ONLY through the Command Center's
+  // explicit-approval button. Hardcoding cao_gate_approved here (as a prior
+  // draft did) would let the chat self-assert HG-3.5 — that is forbidden.
+  // The intent's `shouldRunSafeLocalLoop` flag therefore does NOT trigger any
+  // ladder rung from chat; it only distinguishes the /marketing-loop verb so
+  // the user is told the loop is continued (not run) in the Command Center.
+  const runCommandEveLocalMarketingIntent = useCallback(
+    async (message: string): Promise<boolean> => {
+      const intent = parseCommandEveLocalMarketingIntent(message);
+      if (!intent) return false;
+
+      if (!isElectronDesktop()) {
+        Message.warning(t('conversation.commandEveLocalMarketingIntent.desktopRequired'));
+        return true;
+      }
+
+      try {
+        const createResponse = await ipcBridge.commandEve.kanbanMarketingCardCreate.invoke({
+          title: intent.title,
+          description: intent.description,
+          lane_key: intent.laneKey,
+          client_token: createCommandEveLocalIntentClientToken(),
+          boardSlug: COMMAND_EVE_MARKETING_BOARD_SLUG,
+        });
+        const cardResult = createResponse.data ?? null;
+        if (!createResponse.success || !cardResult?.ok || !cardResult.card_id) {
+          Message.warning(
+            cardResult?.reason_code ||
+              createResponse.msg ||
+              t('conversation.commandEveLocalMarketingIntent.createFailed')
+          );
+          return true;
+        }
+
+        // Second and FINAL chat rung: record the HG-2.5 dispatch-plan receipt.
+        // The chat stops here. The ladder (output-approve -> ... -> HG-3.5
+        // executor promotion) is advanced only from the Command Center.
+        const dispatchPlanResponse = await ipcBridge.commandEve.kanbanMarketingDispatchPlan.invoke({
+          task_id: cardResult.card_id,
+          command: 'decompose',
+          boardSlug: COMMAND_EVE_MARKETING_BOARD_SLUG,
+        });
+        const dispatchPlan = dispatchPlanResponse.data ?? null;
+
+        // Tell the Command Center to re-read the board so the new card + its
+        // dispatch-plan receipt show up immediately. A window CustomEvent keeps
+        // this cross-page signal decoupled from the typed in-page emitter
+        // registry (the chat and the Command Center are separate pages).
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('command-eve.marketing-board.refresh'));
+        }
+
+        if (
+          dispatchPlanResponse.success &&
+          dispatchPlan?.ok &&
+          dispatchPlan.data_boundary_checked &&
+          dispatchPlan.subprocess_spawned === false
+        ) {
+          Message.success(
+            t('conversation.commandEveLocalMarketingIntent.createdChecked', { title: intent.title })
+          );
+        } else {
+          Message.success(
+            t('conversation.commandEveLocalMarketingIntent.createdUnchecked', { title: intent.title })
+          );
+        }
+      } catch (intentError) {
+        const detail = intentError instanceof Error ? intentError.message : String(intentError);
+        Message.error(`${t('conversation.commandEveLocalMarketingIntent.failed')}: ${detail}`);
+      }
+      return true;
+    },
+    [t]
+  );
+
   const onSendHandler = async (message: string) => {
+    // Command EVE marketing chat intent is handled fully in-process (create +
+    // dispatch-plan receipt only) and never reaches the agent runtime. The
+    // promotion ladder lives in the Command Center, not here.
+    if (await runCommandEveLocalMarketingIntent(message)) {
+      clearFiles();
+      emitter.emit('aionrs.selected.file.clear');
+      setContent('');
+      return;
+    }
+
     const filesToSend = collectSelectedFiles(uploadFile, atPath);
     clearFiles();
     emitter.emit('aionrs.selected.file.clear');

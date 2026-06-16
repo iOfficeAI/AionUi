@@ -242,6 +242,41 @@
       "note": "Creates exactly one local proof card and one append-only audit event. No workers are started.",
       "resultTitle": "Proof-card receipt",
       "failed": "Proof card could not be created."
+    },
+    "ladder": {
+      "title": "Executor ladder",
+      "summaryTitle": "Ladder:",
+      "notStarted": "Not started",
+      "recorded": "Recorded",
+      "advance": "Record stage",
+      "advanceFailed": "The ladder stage could not be recorded.",
+      "advanced": {
+        "output_approved": "Output-approval receipt recorded.",
+        "dispatch_requested": "Dispatch-request receipt recorded (still policy-locked).",
+        "observed_run": "Observed-run receipt recorded (no subprocess).",
+        "start_gate": "Start-gate (HG-3) receipt recorded.",
+        "dispatcher_prepared": "Dispatcher-prepare receipt recorded."
+      },
+      "stages": {
+        "output_approved": "Output approved",
+        "dispatch_requested": "Dispatch requested",
+        "observed_run": "Observed run",
+        "start_gate": "Start gate (HG-3)",
+        "dispatcher_prepared": "Dispatcher prepared",
+        "executor_promoted": "Executor promoted (HG-3.5)"
+      },
+      "promoteButton": "Promote to executor (HG-3.5)",
+      "promoted": "Promoted (HG-3.5)",
+      "promoteSuccess": "Local executor promoted (HG-3.5) — no subprocess, no external call.",
+      "promoteFailed": "The executor promotion failed.",
+      "hg35Recorded": "HG-3.5 promotion recorded · release-blocked · no spawn",
+      "gatedNoSpawn": "Gated: every stage is release-blocked and spawns no subprocess. The HG-3.5 promotion requires an explicit approval.",
+      "promoteConfirm": {
+        "title": "Promote to executor (HG-3.5)?",
+        "content": "Promote card \"{{title}}\" to the local in-process executor. This is an explicit human HG-3.5 approval. No subprocess is spawned, no external call, publish or outreach runs; the action stays release-blocked.",
+        "ok": "Promote (HG-3.5)",
+        "cancel": "Cancel"
+      }
     }
   },
   "crmOverlay": {

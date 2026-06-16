@@ -1612,6 +1612,85 @@ describe('Command EVE Kanban marketing-executor LADDER (v15 gated, additive)', (
     }
   });
 
+  it('projects the ladder receipts onto the board read-model (A2, additive)', () => {
+    const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
+
+    // Before any ladder rung: the projection exists and is fully un-recorded.
+    const beforeBoard = buildKanbanMarketingBoard({ userDataPath: root, boardSlug: 'marketing' });
+    expect(beforeBoard.ok).toBe(true);
+    const beforeCard = beforeBoard
+      .model!.columns.flatMap((column) => column.cards)
+      .find((card) => card.card_id === cardId);
+    expect(beforeCard).toBeDefined();
+    expect(beforeCard!.ladder.highest_recorded_stage).toBeNull();
+    expect(beforeCard!.ladder.executor_promoted).toBe(false);
+    expect(beforeCard!.ladder.rungs.map((rung) => rung.stage)).toEqual([
+      'output_approved',
+      'dispatch_requested',
+      'observed_run',
+      'start_gate',
+      'dispatcher_prepared',
+      'executor_promoted',
+    ]);
+    expect(beforeCard!.ladder.rungs.every((rung) => rung.recorded === false)).toBe(true);
+    expect(beforeBoard.model!.summary.ladder_summary).toEqual({
+      output_approved_cards: 0,
+      dispatch_requested_cards: 0,
+      observed_run_cards: 0,
+      start_gate_cards: 0,
+      dispatcher_prepared_cards: 0,
+      executor_promoted_cards: 0,
+    });
+
+    // Advance exactly the first two rungs.
+    approveKanbanMarketingOutput({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      approval_note: 'Approve output.',
+      now: () => new Date('2026-06-13T10:08:00.000Z'),
+    });
+    requestKanbanMarketingWorkerDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      request_note: 'Request dispatch.',
+      now: () => new Date('2026-06-13T10:09:00.000Z'),
+    });
+
+    const afterBoard = buildKanbanMarketingBoard({ userDataPath: root, boardSlug: 'marketing' });
+    const afterCard = afterBoard
+      .model!.columns.flatMap((column) => column.cards)
+      .find((card) => card.card_id === cardId);
+    expect(afterCard).toBeDefined();
+    const recordedStages = afterCard!.ladder.rungs.filter((rung) => rung.recorded).map((rung) => rung.stage);
+    expect(recordedStages).toEqual(['output_approved', 'dispatch_requested']);
+    expect(afterCard!.ladder.highest_recorded_stage).toBe('dispatch_requested');
+    expect(afterCard!.ladder.executor_promoted).toBe(false);
+    // Recorded rungs carry an audit_event_id; un-recorded ones do not.
+    const outputRung = afterCard!.ladder.rungs.find((rung) => rung.stage === 'output_approved')!;
+    expect(outputRung.audit_event_id).toBeTruthy();
+    const observedRung = afterCard!.ladder.rungs.find((rung) => rung.stage === 'observed_run')!;
+    expect(observedRung.recorded).toBe(false);
+    expect(observedRung.audit_event_id).toBeNull();
+    expect(afterBoard.model!.summary.ladder_summary).toEqual({
+      output_approved_cards: 1,
+      dispatch_requested_cards: 1,
+      observed_run_cards: 0,
+      start_gate_cards: 0,
+      dispatcher_prepared_cards: 0,
+      executor_promoted_cards: 0,
+    });
+
+    // The projection must NOT alter any existing board field.
+    expect(afterCard!.card_id).toBe(cardId);
+    expect(afterCard!.governance_state).toBe('proof_write_recorded');
+  });
+
   it('hard-fails each ladder stage when the prior persisted receipt is absent (monotonic gate)', () => {
     const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
 
