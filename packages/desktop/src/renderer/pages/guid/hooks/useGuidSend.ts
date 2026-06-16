@@ -222,7 +222,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           workspace: finalWorkspace,
           custom_workspace: isCustomWorkspace,
           default_files: files,
-          backend: assistantBackend,
+          ...(!assistantConversationId
+            ? {
+                backend: assistantBackend,
+              }
+            : {}),
           ...(!assistantConversationId && selectedMode
             ? {
                 session_mode: selectedMode,
