@@ -135,6 +135,11 @@ dist/
 build/
 out/
 
+# Bundled Python staging (scripts/fetch-bundled-python.mjs downloads + extracts
+# a ~25MB CPython here at build time — NEVER commit the binary). Covered by
+# build/ above; listed explicitly so it stays ignored if build/ is ever scoped.
+build/bundled-python/
+
 # Keep extension example dist (pre-built distributable assets)
 !examples/**/dist/
 .webpack/
