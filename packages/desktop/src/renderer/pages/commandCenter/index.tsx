@@ -1287,7 +1287,9 @@ const nextLadderStage = (ladder: ICommandEveMarketingLadderProjection): IMarketi
 // control. It is an explicit human action gated behind onPromoteExecutor, which
 // the parent wires to a confirmation affordance that passes cao_gate_approved
 // true ONLY on the deliberate confirm. This component never sets that flag.
-const MarketingLadderView: React.FC<{
+// Exported for the ladder render test (tests/unit/renderer). It is a pure
+// presentational component over the projected ladder state.
+export const MarketingLadderView: React.FC<{
   card: ICommandEveMarketingCard;
   advancingStage: IMarketingLadderStage | null;
   promoting: boolean;
