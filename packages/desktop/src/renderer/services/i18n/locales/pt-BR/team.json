@@ -33,6 +33,8 @@
     "noSupportedAgents": "Nenhum agente suportado instalado",
     "supportedAgentsHint": "Atualmente suporta Claude e Codex. Mais agentes em breve.",
     "leaderDesc": "Entende seus objetivos e coordena agentes para concluir tarefas",
+    "searchPlaceholder": "Buscar assistentes...",
+    "noSearchResults": "Nenhum resultado encontrado",
     "step": {
       "dispatch": "Líder da Equipe",
       "subAgents": "Sub-Agentes",

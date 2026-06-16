@@ -33,6 +33,8 @@
     "noSupportedAgents": "Поддерживаемые агенты не установлены",
     "supportedAgentsHint": "Сейчас поддерживаются Claude, Codex, CodeBuddy. Другие агенты скоро появятся.",
     "leaderDesc": "Понимает ваши цели и координирует агентов для выполнения задач",
+    "searchPlaceholder": "Поиск ассистентов...",
+    "noSearchResults": "Ничего не найдено",
     "step": {
       "dispatch": "Лидер команды",
       "subAgents": "Подагенты",

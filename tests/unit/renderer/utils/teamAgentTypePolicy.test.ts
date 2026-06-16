@@ -2,9 +2,9 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assistantToOption,
-  filterTeamSupportedAgents,
+  filterTeamSupportedAssistants,
   resolveConversationType,
-} from '@/renderer/pages/team/components/agentSelectUtils';
+} from '@/renderer/pages/team/components/assistantSelectUtils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 describe('team agent type policy', () => {
@@ -27,7 +27,7 @@ describe('team agent type policy', () => {
       assistantToOption(assistant('assistant-gemini', true, undefined, 'gemini')),
     ];
 
-    expect(filterTeamSupportedAgents(options).map((option) => option.backend)).toEqual(['claude', 'aionrs']);
+    expect(filterTeamSupportedAssistants(options).map((option) => option.backend)).toEqual(['claude', 'aionrs']);
   });
 
   it('maps assistant team selectability directly from the assistant catalog', () => {
@@ -46,7 +46,7 @@ describe('team agent type policy', () => {
       assistantToOption(assistant('assistant-2', false, 'agent unavailable')),
     ];
 
-    expect(filterTeamSupportedAgents(options).map((option) => option.id)).toEqual(['assistant-1', 'assistant-2']);
+    expect(filterTeamSupportedAssistants(options).map((option) => option.id)).toEqual(['assistant-1', 'assistant-2']);
   });
 });
 

@@ -168,7 +168,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [model_id, setModelId] = useState<string | undefined>(undefined);
   const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
-  const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
+  const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(undefined);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -190,12 +190,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         )
       );
       const agentKey = getAgentKeyFromJob(editJob, presetAssistants);
-      setSelectedAgent(agentKey);
+      setSelectedAssistantId(agentKey);
       form.setFieldsValue({
         name: editJob.name,
         description: getDescriptionInitialValue(editJob),
         prompt: editJob.target.payload.text,
-        agent: agentKey,
+        assistant: agentKey,
       });
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agent_config?.model_id);
@@ -212,14 +212,14 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
-      setSelectedAgent(undefined);
+      setSelectedAssistantId(undefined);
     }
   }, [visible, editJob, form, presetAssistants]);
 
   // Resolve backend from the selected assistant.
   const selectedAssistant = useMemo(
-    () => (selectedAgent ? presetAssistants.find((item) => item.id === selectedAgent) : undefined),
-    [presetAssistants, selectedAgent]
+    () => (selectedAssistantId ? presetAssistants.find((item) => item.id === selectedAssistantId) : undefined),
+    [presetAssistants, selectedAssistantId]
   );
 
   const resolvedBackend = selectedAssistant?.preset_agent_type;
@@ -354,8 +354,8 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-  const handleAgentChange = useCallback((value: string) => {
-    setSelectedAgent(value);
+  const handleAssistantChange = useCallback((value: string) => {
+    setSelectedAssistantId(value);
     // Reset model and config_options when agent changes
     setModelId(undefined);
     setConfigOptions(undefined);
@@ -376,7 +376,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
 
       const { agent_config, resolvedAgentType } = resolveCronAgentConfig({
-        agentValue: values.agent,
+        agentValue: values.assistant,
         conversationAgentType: agent_type || 'acp',
         presetAssistants,
         selectedAionrsProvider: geminiCurrentModel
@@ -472,12 +472,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
           <FormItem
             label={t('cron.page.form.agent')}
-            field='agent'
+            field='assistant'
             rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
           >
             <Select
               placeholder={t('cron.page.form.agentPlaceholder')}
-              onChange={handleAgentChange}
+              onChange={handleAssistantChange}
               renderFormat={(_option, value) => {
                 const assistantId = value as unknown as string;
                 if (!assistantId) return '';

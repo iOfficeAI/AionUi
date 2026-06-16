@@ -33,6 +33,8 @@
     "noSupportedAgents": "Desteklenen agent bulunamadı",
     "supportedAgentsHint": "Şu anda Claude ve Codex desteklenmektedir. Daha fazla agent yakında eklenecek.",
     "leaderDesc": "Hedeflerinizi anlayarak görevleri tamamlamak için ajanları koordine eder",
+    "searchPlaceholder": "Asistan ara...",
+    "noSearchResults": "Sonuç bulunamadı",
     "step": {
       "dispatch": "Takım Lideri",
       "subAgents": "Sub Agents",

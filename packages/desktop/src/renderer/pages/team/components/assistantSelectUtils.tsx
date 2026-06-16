@@ -9,7 +9,7 @@ import {
 } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
-export type TeamAgentOption = {
+export type TeamAssistantOption = {
   id: string;
   name: string;
   /** Execution backend (claude, gemini, qwen, …). */
@@ -25,7 +25,7 @@ export type TeamAgentOption = {
   team_block_reason?: string;
 };
 
-export function assistantToOption(assistant: Assistant): TeamAgentOption {
+export function assistantToOption(assistant: Assistant): TeamAssistantOption {
   return {
     id: assistant.id,
     name: assistant.name,
@@ -37,42 +37,45 @@ export function assistantToOption(assistant: Assistant): TeamAgentOption {
   };
 }
 
-export function agentKey(agent: TeamAgentOption): string {
-  return agent.id;
+export function assistantKey(assistant: TeamAssistantOption): string {
+  return assistant.id;
 }
 
-export function agentFromKey(key: string, allAgents: TeamAgentOption[]): TeamAgentOption | undefined {
-  return allAgents.find((a) => agentKey(a) === key);
+export function assistantFromId(
+  assistantId: string,
+  allAssistants: TeamAssistantOption[]
+): TeamAssistantOption | undefined {
+  return allAssistants.find((assistant) => assistantKey(assistant) === assistantId);
 }
 
-export function resolveTeamAgentType(agent: TeamAgentOption | undefined, fallback: string): string {
-  return agent?.backend || fallback;
+export function resolveTeamAssistantBackend(assistant: TeamAssistantOption | undefined, fallback: string): string {
+  return assistant?.backend || fallback;
 }
 
-/** Filter agents to only those supported in team mode */
-export function filterTeamSupportedAgents(agents: TeamAgentOption[]): TeamAgentOption[] {
-  return agents.filter((a) => !isDeprecatedRuntimeAgentType(a.agent_type));
+/** Filter assistants to only those supported in team mode. */
+export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] {
+  return assistants.filter((assistant) => !isDeprecatedRuntimeAgentType(assistant.agent_type));
 }
 
 export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
   return resolveSupportedConversationType(backend);
 }
 
-export const AgentOptionLabel: React.FC<{ agent: TeamAgentOption }> = ({ agent }) => {
-  const logo = getAgentLogo(agent.backend);
-  const avatar = resolveAssistantAvatar(agent.icon);
+export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {
+  const logo = getAgentLogo(assistant.backend);
+  const avatar = resolveAssistantAvatar(assistant.icon);
   return (
     <div className='flex items-center gap-8px'>
       {avatar.kind === 'image' ? (
-        <img src={avatar.value} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+        <img src={avatar.value} alt={assistant.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : avatar.kind === 'emoji' ? (
         <span style={{ fontSize: 14, lineHeight: '16px' }}>{avatar.value}</span>
       ) : logo ? (
-        <img src={logo} alt={agent.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
+        <img src={logo} alt={assistant.name} style={{ width: 16, height: 16, objectFit: 'contain' }} />
       ) : (
         <Robot size='16' />
       )}
-      <span>{agent.name}</span>
+      <span>{assistant.name}</span>
     </div>
   );
 };

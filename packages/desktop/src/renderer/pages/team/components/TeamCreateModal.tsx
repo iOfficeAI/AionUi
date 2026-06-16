@@ -11,15 +11,15 @@ import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import {
-  agentKey,
-  agentFromKey,
+  assistantKey,
+  assistantFromId,
   resolveConversationType,
-  resolveTeamAgentType,
-  filterTeamSupportedAgents,
-  AgentOptionLabel,
+  resolveTeamAssistantBackend,
+  filterTeamSupportedAssistants,
+  AssistantOptionLabel,
   assistantToOption,
-} from './agentSelectUtils';
-import type { TeamAgentOption } from './agentSelectUtils';
+} from './assistantSelectUtils';
+import type { TeamAssistantOption } from './assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
@@ -34,11 +34,11 @@ type Props = {
 };
 
 const AgentRadioRow: React.FC<{
-  agent: TeamAgentOption;
+  assistant: TeamAssistantOption;
   isSelected: boolean;
   onClick: () => void;
-}> = ({ agent, isSelected, onClick }) => {
-  const disabled = agent.team_capable === false;
+}> = ({ assistant, isSelected, onClick }) => {
+  const disabled = assistant.team_capable === false;
   const row = (
     <div
       className={`flex items-center gap-12px rounded-8px px-12px py-9px transition-colors ${
@@ -48,7 +48,7 @@ const AgentRadioRow: React.FC<{
       onClick={() => {
         if (!disabled) onClick();
       }}
-      data-testid={`team-create-agent-option-${agentKey(agent)}`}
+      data-testid={`team-create-agent-option-${assistantKey(assistant)}`}
     >
       <div
         className='h-16px w-16px flex-shrink-0 rounded-full transition-all'
@@ -58,16 +58,16 @@ const AgentRadioRow: React.FC<{
         }}
       />
       <div className='min-w-0 flex-1 overflow-hidden'>
-        <AgentOptionLabel agent={agent} />
-        {agent.team_block_reason ? (
-          <div className='mt-4px truncate text-11px text-t-tertiary'>{agent.team_block_reason}</div>
+        <AssistantOptionLabel assistant={assistant} />
+        {assistant.team_block_reason ? (
+          <div className='mt-4px truncate text-11px text-t-tertiary'>{assistant.team_block_reason}</div>
         ) : null}
       </div>
     </div>
   );
 
-  if (agent.team_block_reason) {
-    return <Tooltip content={agent.team_block_reason}>{row}</Tooltip>;
+  if (assistant.team_block_reason) {
+    return <Tooltip content={assistant.team_block_reason}>{row}</Tooltip>;
   }
 
   return row;
@@ -78,7 +78,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { user } = useAuth();
   const { presetAssistants } = useConversationAssistants();
   const [name, setName] = useState('');
-  const [leaderAssistantKey, setLeaderAssistantKey] = useState<string | undefined>(undefined);
+  const [leaderAssistantId, setLeaderAssistantId] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -97,7 +97,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   };
 
   const allAssistants = useMemo(
-    () => filterTeamSupportedAgents(presetAssistants.map((assistant) => assistantToOption(assistant))),
+    () => filterTeamSupportedAssistants(presetAssistants.map((assistant) => assistantToOption(assistant))),
     [presetAssistants]
   );
 
@@ -119,15 +119,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
   const handleClose = () => {
     setName('');
-    setLeaderAssistantKey(undefined);
+    setLeaderAssistantId(undefined);
     setWorkspace('');
     setSearch('');
     setSearchExpanded(false);
     onClose();
   };
 
-  const handleSelectLeader = (assistantKey: string) => {
-    setLeaderAssistantKey(assistantKey);
+  const handleSelectLeader = (assistantId: string) => {
+    setLeaderAssistantId(assistantId);
   };
 
   const handleCreate = async () => {
@@ -136,7 +136,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       nameInputRef.current?.focus();
       return;
     }
-    if (!leaderAssistantKey) {
+    if (!leaderAssistantId) {
       Message.warning(t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' }));
       return;
     }
@@ -145,8 +145,8 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     try {
       const agents: TeamAgent[] = [];
 
-      const leaderAssistant = leaderAssistantKey ? agentFromKey(leaderAssistantKey, allAssistants) : undefined;
-      const leaderAssistantBackend = resolveTeamAgentType(leaderAssistant, 'acp');
+      const leaderAssistant = leaderAssistantId ? assistantFromId(leaderAssistantId, allAssistants) : undefined;
+      const leaderAssistantBackend = resolveTeamAssistantBackend(leaderAssistant, 'acp');
       const dispatchConversationType = resolveConversationType(leaderAssistantBackend);
       const resolvedModel = await resolveDefaultTeamAgentModel({
         assistant_id: leaderAssistant?.id,
@@ -227,7 +227,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             type='primary'
             onClick={handleCreate}
             loading={loading}
-            disabled={!name.trim() || !leaderAssistantKey}
+            disabled={!name.trim() || !leaderAssistantId}
             className='min-w-80px'
             style={{ borderRadius: 8 }}
           >
@@ -274,7 +274,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
           >
             {allAssistants.length === 0 ? (
               <div className='flex items-center justify-center rounded-10px border border-dashed border-border-2 bg-fill-1 py-20px text-12px text-t-tertiary'>
-                {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
+                {t('team.create.noSupportedAgents', { defaultValue: 'No supported assistants available' })}
               </div>
             ) : (
               <div className='relative flex flex-col gap-8px'>
@@ -285,7 +285,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     <input
                       ref={searchInputRef}
                       className='flex-1 border-none bg-transparent text-13px text-t-primary outline-none placeholder:text-t-tertiary'
-                      placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search agents...' })}
+                      placeholder={t('team.create.searchPlaceholder', { defaultValue: 'Search assistants...' })}
                       value={search}
                       onChange={(e) => setSearch(e.target.value)}
                       data-testid='team-create-leader-search'
@@ -301,13 +301,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     </div>
                   ) : (
                     filteredAssistants.map((assistant) => {
-                      const key = agentKey(assistant);
+                      const assistantId = assistantKey(assistant);
                       return (
                         <AgentRadioRow
-                          key={key}
-                          agent={assistant}
-                          isSelected={leaderAssistantKey === key}
-                          onClick={() => handleSelectLeader(key)}
+                          key={assistantId}
+                          assistant={assistant}
+                          isSelected={leaderAssistantId === assistantId}
+                          onClick={() => handleSelectLeader(assistantId)}
                         />
                       );
                     })

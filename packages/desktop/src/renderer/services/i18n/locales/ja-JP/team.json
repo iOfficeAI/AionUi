@@ -33,6 +33,8 @@
     "noSupportedAgents": "対応する Agent が見つかりません",
     "supportedAgentsHint": "現在 Claude と Codex に対応しています。他の Agent は順次対応予定です。",
     "leaderDesc": "目標を理解し、エージェントを調整してタスクを完了します",
+    "searchPlaceholder": "アシスタントを検索...",
+    "noSearchResults": "結果が見つかりません",
     "step": {
       "dispatch": "チームリーダー",
       "subAgents": "Sub Agents",

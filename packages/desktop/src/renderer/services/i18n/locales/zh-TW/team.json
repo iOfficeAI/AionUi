@@ -33,6 +33,8 @@
     "noSupportedAgents": "未偵測到支援的 Agent",
     "supportedAgentsHint": "目前支援 Claude 和 Codex，更多 Agent 適配中",
     "leaderDesc": "接收你的指令，拆解任務並分配給團隊中的 Agent",
+    "searchPlaceholder": "搜尋助手...",
+    "noSearchResults": "未找到結果",
     "step": {
       "dispatch": "團隊 Leader",
       "subAgents": "Sub Agents",
