@@ -54,23 +54,10 @@ export const useMcpServers = () => {
   }, []);
 
   const saveMcpServers = useCallback((serversOrUpdater: IMcpServer[] | ((prev: IMcpServer[]) => IMcpServer[])) => {
-    return new Promise<void>((resolve, reject) => {
-      setMcpServers((prevServers) => {
-        const nextServers = typeof serversOrUpdater === 'function' ? serversOrUpdater(prevServers) : serversOrUpdater;
-
-        queueMicrotask(() => {
-          configService
-            .set('mcp.config', nextServers)
-            .then(() => resolve())
-            .catch((error) => {
-              console.error('[useMcpServers] Failed to persist MCP servers:', error);
-              reject(error);
-            });
-        });
-
-        return nextServers;
-      });
-    });
+    setMcpServers((prevServers) =>
+      typeof serversOrUpdater === 'function' ? serversOrUpdater(prevServers) : serversOrUpdater
+    );
+    return Promise.resolve();
   }, []);
 
   return {

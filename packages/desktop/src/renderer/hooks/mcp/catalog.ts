@@ -112,7 +112,6 @@ export const ensureBackendMcpCatalog = async (): Promise<{
   }
 
   const allServers = dedupeServers([...userServers, ...builtinServers]);
-  configService.setLocal('mcp.config', allServers);
 
   return {
     userServers,
