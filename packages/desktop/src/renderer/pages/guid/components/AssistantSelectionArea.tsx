@@ -29,21 +29,39 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   const { t } = useTranslation();
   const [moreVisible, setMoreVisible] = useState(false);
   const [search, setSearch] = useState('');
-
-  const enabledAssistants = [...assistants]
-    .filter((assistant) => assistant.enabled !== false)
-    .sort((left, right) => left.sort_order - right.sort_order);
-  const visibleAssistants = enabledAssistants.slice(0, 4);
-  const hasOverflow = enabledAssistants.length > visibleAssistants.length;
   const selectedId = selectedAssistantId || undefined;
+  const enabledAssistants = useMemo(
+    () =>
+      [...assistants]
+        .filter((assistant) => assistant.enabled !== false)
+        .sort((left, right) => left.sort_order - right.sort_order),
+    [assistants]
+  );
+  const visibleAssistants = useMemo(() => {
+    if (enabledAssistants.length <= 4 || !selectedId) {
+      return enabledAssistants.slice(0, 4);
+    }
+
+    const selectedIndex = enabledAssistants.findIndex((assistant) => assistant.id === selectedId);
+    if (selectedIndex < 0 || selectedIndex < 4) {
+      return enabledAssistants.slice(0, 4);
+    }
+
+    return [...enabledAssistants.slice(0, 3), enabledAssistants[selectedIndex]];
+  }, [enabledAssistants, selectedId]);
+  const hasOverflow = enabledAssistants.length > visibleAssistants.length;
+  const overflowAssistants = useMemo(() => {
+    const visibleIds = new Set(visibleAssistants.map((assistant) => assistant.id));
+    return enabledAssistants.filter((assistant) => !visibleIds.has(assistant.id));
+  }, [enabledAssistants, visibleAssistants]);
   const filteredOverflowAssistants = useMemo(() => {
     const query = search.trim().toLowerCase();
-    if (!query) return enabledAssistants;
-    return enabledAssistants.filter((assistant) => {
+    if (!query) return overflowAssistants;
+    return overflowAssistants.filter((assistant) => {
       const label = assistant.name_i18n?.[localeKey] || assistant.name;
       return label.toLowerCase().includes(query);
     });
-  }, [enabledAssistants, localeKey, search]);
+  }, [localeKey, overflowAssistants, search]);
 
   if (enabledAssistants.length === 0) return null;
 
@@ -64,7 +82,7 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
         key={assistant.id}
         data-testid={testId}
         type='text'
-        className={`!inline-flex !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
+        className={`!inline-flex !min-w-0 !h-auto !items-center !gap-6px !rounded-999px !border-none !px-12px !py-8px !text-13px transition-all ${
           isSelected ? 'font-600 text-t-primary shadow-sm' : 'text-t-secondary opacity-75 hover:opacity-100'
         }`}
         style={isSelected ? { background: 'var(--bg-base, #fff)' } : { background: 'transparent' }}
@@ -82,13 +100,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
             <Robot theme='outline' size={14} />
           )}
         </span>
-        <span className='whitespace-nowrap'>{label}</span>
+        <span className='max-w-180px truncate whitespace-nowrap'>{label}</span>
       </Button>
     );
   };
 
   const overflowDroplist = (
-    <div className='min-w-240px rounded-12px border border-border-2 bg-bg-base p-8px shadow-lg'>
+    <div
+      className='min-w-240px rounded-12px border border-border-2 p-8px shadow-lg'
+      style={{ background: 'var(--bg-base, #fff)' }}
+    >
       <div className='mb-8px'>
         <Input
           size='small'
@@ -108,11 +129,12 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
 
   return (
     <div className='mt-18px mb-16px w-full'>
-      <div className='w-full overflow-x-auto'>
+      <div className='flex w-full justify-center'>
         <div
-          className='inline-flex min-w-full items-center gap-6px rounded-999px px-6px py-6px'
+          className='inline-flex max-w-full items-center rounded-999px px-6px py-6px'
           style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
         >
+          <div className='flex min-w-0 max-w-full items-center gap-6px'>
           {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
           {hasOverflow ? (
             <Dropdown
@@ -125,13 +147,14 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
               <Button
                 data-testid='assistant-more-btn'
                 type='text'
-                className='!inline-flex !h-34px !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100'
+                className='!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100'
               >
                 <span>{t('common.more', { defaultValue: 'More' })}</span>
                 <Down theme='outline' size={14} />
               </Button>
             </Dropdown>
           ) : null}
+          </div>
         </div>
       </div>
     </div>

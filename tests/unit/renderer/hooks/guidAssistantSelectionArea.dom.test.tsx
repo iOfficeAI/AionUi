@@ -68,6 +68,8 @@ describe('AssistantSelectionArea', () => {
 
     expect(await screen.findByTestId('assistant-overflow-user-translate')).toBeInTheDocument();
     expect(screen.getByTestId('assistant-overflow-user-finance')).toBeInTheDocument();
+    expect(screen.queryByTestId('assistant-overflow-bare-aionrs')).not.toBeInTheDocument();
+    expect(screen.queryByTestId('assistant-overflow-builtin-writer')).not.toBeInTheDocument();
   });
 
   it('reports the real assistant id when a pill is selected', () => {
@@ -108,6 +110,20 @@ describe('AssistantSelectionArea', () => {
         .slice(0, 4)
         .map((node) => node.textContent?.trim())
     ).toEqual(['Early', 'Aion CLI', 'Mid', 'Writer']);
+  });
+
+  it('keeps a selected overflow assistant visible in the top pill row', () => {
+    render(
+      <AssistantSelectionArea
+        selectedAssistantId='user-finance'
+        assistants={manyAssistants()}
+        localeKey='en-US'
+        onSelectAssistant={vi.fn()}
+      />
+    );
+
+    expect(screen.getByTestId('preset-pill-user-finance')).toBeInTheDocument();
+    expect(screen.queryByTestId('preset-pill-user-review')).not.toBeInTheDocument();
   });
 
   it('can re-render from an empty assistant catalog without breaking hook order', () => {
