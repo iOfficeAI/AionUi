@@ -7,7 +7,6 @@
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
 import { assistants, channel, type IWebUIStatus } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { configService } from '@/common/config/configService';
 import { openExternalUrl } from '@/renderer/utils/platform';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
@@ -128,12 +127,12 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          configService.get('assistant.wecom.agent'),
+          channel.getPlatformSettings.invoke({ platform: 'wecom' }),
         ]);
 
         setAvailableAssistants(assistantList);
 
-        const selectedAssistantId = resolveChannelAssistantId(saved, assistantList);
+        const selectedAssistantId = resolveChannelAssistantId(saved.assistant ?? undefined, assistantList);
         const nextAssistant =
           assistantList.find((assistant) => assistant.id === selectedAssistantId) ||
           getDefaultChannelAssistant(assistantList) ||
@@ -150,7 +149,10 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
 
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
-      await configService.set('assistant.wecom.agent', buildChannelAssistantBinding(assistant));
+      await channel.setAssistantSetting.invoke({
+        platform: 'wecom',
+        assistant: buildChannelAssistantBinding(assistant),
+      });
       await channel.syncChannelSettings
         .invoke({ platform: 'wecom' })
         .catch((err) => console.warn('[WecomConfig] syncChannelSettings failed:', err));
@@ -438,9 +440,10 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
                         void persistSelectedAssistant(assistant);
 
                         if (assistant.preset_agent_type === 'aionrs') {
-                          const savedModel = configService.get('assistant.wecom.defaultModel');
                           const providers = modelSelection.providers;
-                          const savedProviderExists = savedModel?.id && providers.some((p) => p.id === savedModel.id);
+                          const savedProviderExists =
+                            modelSelection.current_model?.id &&
+                            providers.some((p) => p.id === modelSelection.current_model?.id);
                           if (!savedProviderExists && providers.length > 0) {
                             const firstProvider = providers[0];
                             if (firstProvider.id && firstProvider.models?.[0]) {

@@ -63,3 +63,22 @@ export interface IChannelSession {
   created_at: number;
   lastActivity: number;
 }
+
+export interface IChannelAssistantSetting {
+  assistant_id?: string;
+  custom_agent_id?: string;
+  backend?: string;
+  agent_type?: string;
+  name?: string;
+}
+
+export interface IChannelDefaultModelSetting {
+  id: string;
+  use_model: string;
+}
+
+export interface IChannelPlatformSettings {
+  platform: string;
+  assistant: IChannelAssistantSetting | null;
+  default_model: IChannelDefaultModelSetting | null;
+}

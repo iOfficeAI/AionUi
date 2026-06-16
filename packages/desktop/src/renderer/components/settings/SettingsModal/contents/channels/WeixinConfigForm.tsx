@@ -8,7 +8,6 @@ import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from 
 import { assistants, channel } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
-import { configService } from '@/common/config/configService';
 import GoogleModelSelector from '@/renderer/pages/conversation/platforms/gemini/GoogleModelSelector';
 import type { GoogleModelSelection } from '@/renderer/pages/conversation/platforms/gemini/useGoogleModelSelection';
 import { Button, Dropdown, Empty, Menu, Message, Spin, Tooltip } from '@arco-design/web-react';
@@ -199,12 +198,12 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
       try {
         const [assistantList, saved] = await Promise.all([
           assistants.list.invoke(),
-          configService.get('assistant.weixin.agent'),
+          channel.getPlatformSettings.invoke({ platform: 'weixin' }),
         ]);
 
         setAvailableAssistants(assistantList);
 
-        const selectedAssistantId = resolveChannelAssistantId(saved, assistantList);
+        const selectedAssistantId = resolveChannelAssistantId(saved.assistant ?? undefined, assistantList);
         const nextAssistant =
           assistantList.find((assistant) => assistant.id === selectedAssistantId) ||
           getDefaultChannelAssistant(assistantList) ||
@@ -220,7 +219,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
 
   const persistSelectedAssistant = async (assistant: Assistant) => {
     try {
-      await configService.set('assistant.weixin.agent', buildChannelAssistantBinding(assistant));
+      await channel.setAssistantSetting.invoke({
+        platform: 'weixin',
+        assistant: buildChannelAssistantBinding(assistant),
+      });
       await channel.syncChannelSettings
         .invoke({ platform: 'weixin' })
         .catch((err) => console.warn('[WeixinConfig] syncChannelSettings failed:', err));
@@ -399,9 +401,10 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
                       void persistSelectedAssistant(assistant);
 
                       if (assistant.preset_agent_type === 'aionrs') {
-                        const savedModel = configService.get('assistant.weixin.defaultModel');
                         const providers = modelSelection.providers;
-                        const savedProviderExists = savedModel?.id && providers.some((p) => p.id === savedModel.id);
+                        const savedProviderExists =
+                          modelSelection.current_model?.id &&
+                          providers.some((p) => p.id === modelSelection.current_model?.id);
                         if (!savedProviderExists && providers.length > 0) {
                           const firstProvider = providers[0];
                           if (firstProvider.id && firstProvider.models?.[0]) {

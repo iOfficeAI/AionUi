@@ -57,61 +57,6 @@ export type ConfigKeyMap = {
   'system.cronNotificationEnabled': boolean | undefined;
   'system.keepAwake': boolean | undefined;
   'system.autoPreviewOfficeFiles': boolean | undefined;
-  'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
-  'assistant.telegram.agent':
-    | {
-        assistant_id?: string;
-        agent_type?: string;
-        backend?: string;
-        id?: string;
-        custom_agent_id?: string;
-        name?: string;
-      }
-    | undefined;
-  'assistant.lark.defaultModel': { id: string; use_model: string } | undefined;
-  'assistant.lark.agent':
-    | {
-        assistant_id?: string;
-        agent_type?: string;
-        backend?: string;
-        id?: string;
-        custom_agent_id?: string;
-        name?: string;
-      }
-    | undefined;
-  'assistant.dingtalk.defaultModel': { id: string; use_model: string } | undefined;
-  'assistant.dingtalk.agent':
-    | {
-        assistant_id?: string;
-        agent_type?: string;
-        backend?: string;
-        id?: string;
-        custom_agent_id?: string;
-        name?: string;
-      }
-    | undefined;
-  'assistant.weixin.defaultModel': { id: string; use_model: string } | undefined;
-  'assistant.weixin.agent':
-    | {
-        assistant_id?: string;
-        agent_type?: string;
-        backend?: string;
-        id?: string;
-        custom_agent_id?: string;
-        name?: string;
-      }
-    | undefined;
-  'assistant.wecom.defaultModel': { id: string; use_model: string } | undefined;
-  'assistant.wecom.agent':
-    | {
-        assistant_id?: string;
-        agent_type?: string;
-        backend?: string;
-        id?: string;
-        custom_agent_id?: string;
-        name?: string;
-      }
-    | undefined;
   'skillsMarket.enabled': boolean | undefined;
   'pet.enabled': boolean | undefined;
   'pet.size': number | undefined;

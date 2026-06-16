@@ -140,6 +140,36 @@ describe('configMigration', () => {
         language: 'en',
       });
     });
+
+    it('still migrates legacy channel assistant settings from local config', async () => {
+      const legacyChannelAgent = {
+        assistant_id: 'asst_123',
+        backend: 'codex',
+        name: 'Telegram Assistant',
+      };
+      const configFile: ConfigFile = {
+        get: vi.fn((key: string) => {
+          if (key === 'assistant.telegram.agent') return Promise.resolve(legacyChannelAgent);
+          if (key === 'assistant.telegram.defaultModel') {
+            return Promise.resolve({ id: 'provider_1', use_model: 'gpt-5' });
+          }
+          return Promise.reject(new Error('not found'));
+        }),
+        set: vi.fn(),
+      };
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateConfigStorage(configFile);
+
+      expect(httpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
+        'assistant.telegram.agent': legacyChannelAgent,
+        'assistant.telegram.defaultModel': { id: 'provider_1', use_model: 'gpt-5' },
+      });
+    });
   });
 
   describe('migrateProviders', () => {

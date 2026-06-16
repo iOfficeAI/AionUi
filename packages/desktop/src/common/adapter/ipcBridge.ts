@@ -1666,7 +1666,10 @@ export const extensions = {
 // ---------------------------------------------------------------------------
 
 import type {
+  IChannelAssistantSetting,
+  IChannelDefaultModelSetting,
   IChannelPairingRequest,
+  IChannelPlatformSettings,
   IChannelPluginStatus,
   IChannelSession,
   IChannelUser,
@@ -1749,6 +1752,17 @@ export const channel = {
   revokeUser: httpPost<void, { user_id: string }>('/api/channel/users/revoke'),
   getActiveSessions: withResponseMap(httpGet<RawSession[], void>('/api/channel/sessions'), (raw) =>
     raw.map(toChannelSession)
+  ),
+  getPlatformSettings: httpGet<IChannelPlatformSettings, { platform: string }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}`
+  ),
+  setAssistantSetting: httpPut<void, { platform: string; assistant: IChannelAssistantSetting }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/assistant`,
+    (p) => p.assistant
+  ),
+  setDefaultModelSetting: httpPut<void, { platform: string; default_model: IChannelDefaultModelSetting }>(
+    (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/default-model`,
+    (p) => p.default_model
   ),
   syncChannelSettings: httpPost<void, { platform: string }>('/api/channel/settings/sync'),
   pairingRequested: wsMappedEmitter<IChannelPairingRequest>('channel.pairing-requested', (raw) =>
