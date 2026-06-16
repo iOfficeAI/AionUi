@@ -12,7 +12,8 @@ import { Left, Delete, Write, Attention, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
+import { useRuntimeAgentsCatalog } from '@renderer/pages/conversation/hooks/useRuntimeAgentsCatalog';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
@@ -35,7 +36,8 @@ const TaskDetailPage: React.FC = () => {
   const isNewConversationMode = job?.target.execution_mode === 'new_conversation';
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
-  const { cliAgents, presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
+  const { cliAgents } = useRuntimeAgentsCatalog();
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;

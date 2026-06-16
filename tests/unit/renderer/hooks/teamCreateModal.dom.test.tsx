@@ -36,11 +36,8 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
   useAuth: () => ({ user: { id: 'user-1' } }),
 }));
 
-vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({
-    cliAgents: [
-      { id: 'aionrs-runtime', name: 'Aion CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true },
-    ],
+vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
+  useConversationAssistants: () => ({
     presetAssistants: assistants(),
   }),
 }));

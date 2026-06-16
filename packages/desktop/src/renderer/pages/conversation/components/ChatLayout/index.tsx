@@ -12,7 +12,7 @@ import { useTitleRename } from '@/renderer/pages/conversation/hooks/useTitleRena
 import { useWorkspaceCollapse } from '@/renderer/pages/conversation/hooks/useWorkspaceCollapse';
 import { PreviewPanel, usePreviewContext } from '@/renderer/pages/conversation/Preview';
 import { dispatchWorkspaceToggleEvent } from '@/renderer/utils/workspace/workspaceEvents';
-import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
+import { useRuntimeAgentsCatalog } from '@/renderer/pages/conversation/hooks/useRuntimeAgentsCatalog';
 import classNames from 'classnames';
 import { isMacEnvironment, isWindowsEnvironment } from '@/renderer/pages/conversation/utils/detectPlatform';
 import {
@@ -94,7 +94,7 @@ const ChatLayout: React.FC<{
   // Resolve backend display name from detected agents catalog (backend-authoritative).
   // Custom ACP agents live in the same catalog with `agent_source === 'custom'`,
   // so we no longer need a separate `acp.customAgents` ConfigStorage fallback.
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents } = useRuntimeAgentsCatalog();
   const backendAgentName = backend
     ? cliAgents.find((a) => a.backend === backend || a.agent_type === backend)?.name
     : undefined;

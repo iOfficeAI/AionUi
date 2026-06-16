@@ -11,7 +11,7 @@ import ModalWrapper from '@renderer/components/base/ModalWrapper';
 import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronAgentConfig, ICronJob } from '@/common/adapter/ipcBridge';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
@@ -153,7 +153,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const { presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
   const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');

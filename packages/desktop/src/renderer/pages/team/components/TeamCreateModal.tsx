@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
 import type { TTeam, TeamAgent } from '@/common/types/team/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import AionModal from '@renderer/components/base/AionModal';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
@@ -76,7 +76,7 @@ const AgentRadioRow: React.FC<{
 const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { t } = useTranslation();
   const { user } = useAuth();
-  const { presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
   const [name, setName] = useState('');
   const [leaderAssistantKey, setLeaderAssistantKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');

@@ -14,7 +14,8 @@ import { useAllCronJobs } from '@renderer/pages/cron/useCronJobs';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { systemSettings, type ICronJob } from '@/common/adapter/ipcBridge';
 import { configService } from '@/common/config/configService';
-import { useConversationAgents } from '@renderer/pages/conversation/hooks/useConversationAgents';
+import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
+import { useRuntimeAgentsCatalog } from '@renderer/pages/conversation/hooks/useRuntimeAgentsCatalog';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
@@ -25,7 +26,8 @@ const ScheduledTasksPage: React.FC = () => {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const { jobs, loading, pauseJob, resumeJob } = useAllCronJobs();
-  const { cliAgents, presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAssistants();
+  const { cliAgents } = useRuntimeAgentsCatalog();
   const [createDialogVisible, setCreateDialogVisible] = useState(false);
   const [keepAwake, setKeepAwake] = useState(false);
 

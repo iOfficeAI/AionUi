@@ -44,8 +44,14 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
-  useConversationAgents: () => ({
+vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
+  useConversationAssistants: () => ({
+    presetAssistants: assistants(),
+  }),
+}));
+
+vi.mock('@renderer/pages/conversation/hooks/useRuntimeAgentsCatalog', () => ({
+  useRuntimeAgentsCatalog: () => ({
     cliAgents: [
       {
         id: 'codex-runtime',
@@ -55,7 +61,6 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
         icon: 'codex.svg',
       },
     ],
-    presetAssistants: assistants(),
   }),
 }));
 

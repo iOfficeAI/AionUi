@@ -9,7 +9,7 @@ import { Badge, Typography } from '@arco-design/web-react';
 import React from 'react';
 import { useTranslation } from 'react-i18next';
 import FeedbackButton from '@/renderer/components/base/FeedbackButton';
-import { useConversationAgents } from '@/renderer/pages/conversation/hooks/useConversationAgents';
+import { useRuntimeAgentsCatalog } from '@/renderer/pages/conversation/hooks/useRuntimeAgentsCatalog';
 
 const { Text } = Typography;
 
@@ -23,7 +23,7 @@ interface MessageAgentStatusProps {
 const MessageAgentStatus: React.FC<MessageAgentStatusProps> = ({ message }) => {
   const { t } = useTranslation();
   const { backend, status, agent_name } = message.content;
-  const { cliAgents } = useConversationAgents();
+  const { cliAgents } = useRuntimeAgentsCatalog();
 
   // Resolve display name: agent_name (extension/custom) > detected agent name > capitalized backend
   const display_name =
