@@ -1361,10 +1361,10 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs';
+  type: 'acp' | 'codex' | 'openclaw-gateway' | 'nanobot' | 'remote' | 'aionrs' | 'infinity-mind';
   id?: string;
   name?: string;
-  model: TProviderWithModel;
+  model?: TProviderWithModel;
   extra: {
     workspace?: string;
     custom_workspace?: boolean;

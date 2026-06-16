@@ -477,6 +477,26 @@ export type TChatConversation =
         /** Cron job ID that spawned this conversation */
         cron_job_id?: string;
       }
+    >
+  | Omit<
+      IChatConversation<
+        'infinity-mind',
+        {
+          workspace?: string;
+          custom_workspace?: boolean;
+          /** Preset assistant ID */
+          preset_assistant_id?: string;
+          /** Whether this conversation is pinned */
+          pinned?: boolean;
+          /** Pin timestamp in milliseconds */
+          pinned_at?: number;
+          /** Legacy marker for pre-provider-probe health-check conversations */
+          is_health_check?: boolean;
+          /** Cron job ID that spawned this conversation */
+          cron_job_id?: string;
+        }
+      >,
+      'model'
     >;
 
 export type IChatConversationRefer = {

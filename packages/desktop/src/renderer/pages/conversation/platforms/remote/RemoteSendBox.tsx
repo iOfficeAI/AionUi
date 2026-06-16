@@ -83,36 +83,23 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       if (now - ref.lastUpdate >= THROTTLE_MS) {
         ref.lastUpdate = now;
         ref.pending = null;
-        if (ref.timer) {
-          clearTimeout(ref.timer);
-          ref.timer = null;
-        }
+        if (ref.timer) { clearTimeout(ref.timer); ref.timer = null; }
         setThought(data);
       } else {
         ref.pending = data;
         if (!ref.timer) {
-          ref.timer = setTimeout(
-            () => {
-              ref.lastUpdate = Date.now();
-              ref.timer = null;
-              if (ref.pending) {
-                setThought(ref.pending);
-                ref.pending = null;
-              }
-            },
-            THROTTLE_MS - (now - ref.lastUpdate)
-          );
+          ref.timer = setTimeout(() => {
+            ref.lastUpdate = Date.now();
+            ref.timer = null;
+            if (ref.pending) { setThought(ref.pending); ref.pending = null; }
+          }, THROTTLE_MS - (now - ref.lastUpdate));
         }
       }
     };
   }, []);
 
-  useEffect(() => {
-    return () => {
-      if (thoughtThrottleRef.current.timer) {
-        clearTimeout(thoughtThrottleRef.current.timer);
-      }
-    };
+  useEffect(() => () => {
+    if (thoughtThrottleRef.current.timer) clearTimeout(thoughtThrottleRef.current.timer);
   }, []);
 
   const { data: draftData, mutate: mutateDraft } = useRemoteSendBoxDraft(conversation_id);
@@ -120,29 +107,20 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
   const uploadFile = draftData?.uploadFile ?? EMPTY_UPLOAD_FILES;
   const content = draftData?.content ?? '';
 
-  const setAtPath = useCallback(
-    (val: Array<string | FileOrFolderItem>) => {
-      mutateDraft((prev) => ({ ...(prev as RemoteDraftData), atPath: val }));
-    },
-    [mutateDraft]
-  );
+  const setAtPath = useCallback((val: Array<string | FileOrFolderItem>) => {
+    mutateDraft((prev) => ({ ...(prev as RemoteDraftData), atPath: val }));
+  }, [mutateDraft]);
 
   const setUploadFile = createSetUploadFile(mutateDraft, draftData);
 
-  const setContent = useCallback(
-    (val: string) => {
-      mutateDraft((prev) => ({ ...(prev as RemoteDraftData), content: val }));
-    },
-    [mutateDraft]
-  );
+  const setContent = useCallback((val: string) => {
+    mutateDraft((prev) => ({ ...(prev as RemoteDraftData), content: val }));
+  }, [mutateDraft]);
 
-  const handleContentChange = useCallback(
-    (val: string) => {
-      if (val && teamPermission) teamPermission.warmupSession();
-      setContent(val);
-    },
-    [teamPermission, setContent]
-  );
+  const handleContentChange = useCallback((val: string) => {
+    if (val && teamPermission) teamPermission.warmupSession();
+    setContent(val);
+  }, [teamPermission, setContent]);
 
   const setContentRef = useLatestRef(setContent);
   const contentRef = useLatestRef(content);
@@ -175,14 +153,10 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     setSendBoxHandler(handler);
   }, [setSendBoxHandler, content]);
 
-  useAddEventListener(
-    'sendbox.fill',
-    (text: string) => {
-      const prev = contentRef.current;
-      setContentRef.current(prev ? `${prev}${text}` : text);
-    },
-    []
-  );
+  useAddEventListener('sendbox.fill', (text: string) => {
+    const prev = contentRef.current;
+    setContentRef.current(prev ? `${prev}${text}` : text);
+  }, []);
 
   useEffect(() => {
     return ipcBridge.conversation.responseStream.on((message) => {
@@ -194,9 +168,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
         setThought({ subject: '', description: '' });
         hasContentInTurnRef.current = false;
         const transformedMessage = transformMessage(message);
-        if (transformedMessage) {
-          addOrUpdateMessage(transformedMessage);
-        }
+        if (transformedMessage) addOrUpdateMessage(transformedMessage);
         return;
       }
 
@@ -223,24 +195,18 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
           }
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
+          if (transformedMessage) addOrUpdateMessage(transformedMessage);
           break;
         }
         case 'agent_status': {
           const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
+          if (transformedMessage) addOrUpdateMessage(transformedMessage);
           break;
         }
         default: {
           setThought({ subject: '', description: '' });
           const transformedMessage = transformMessage(message);
-          if (transformedMessage) {
-            addOrUpdateMessage(transformedMessage);
-          }
+          if (transformedMessage) addOrUpdateMessage(transformedMessage);
         }
       }
     });
@@ -257,7 +223,7 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     });
   }, [conversation_id]);
 
-  // Handle initial message from Guid page
+  // ────────────── GESTIONE MESSAGGIO INIZIALE (bypass Infinity Mind) ──────────────
   useEffect(() => {
     const storageKey = `remote_initial_message_${conversation_id}`;
     const processedKey = `remote_initial_processed_${conversation_id}`;
@@ -270,79 +236,115 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
       try {
         sessionStorage.setItem(processedKey, 'true');
         const { input, files = [] } = JSON.parse(stored) as { input: string; files?: string[] };
-        const initialDisplayMessage = buildDisplayMessage(input, files, workspacePath);
+
+        // Aggiunge subito il messaggio utente
+        addOrUpdateMessage({
+          id: `user_init_${Date.now()}`,
+          conversation_id,
+          role: 'user',
+          content: [{ type: 'text', text: input }],
+          status: 'Success',
+          create_at: Date.now(),
+        });
 
         setAiProcessing(true);
         aiProcessingRef.current = true;
-
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
-          input: initialDisplayMessage,
-          conversation_id,
-          files,
+
+        // Chiamata diretta al backend Python
+        const response = await fetch('http://localhost:8080/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: input }),
         });
+        const data = await response.json();
+
+        // Aggiunge la risposta dell'assistente
+        addOrUpdateMessage({
+          id: `assistant_init_${Date.now()}`,
+          conversation_id,
+          role: 'assistant',
+          content: [{ type: 'text', text: data.message || data.response || JSON.stringify(data) }],
+          status: 'Success',
+          create_at: Date.now(),
+        });
+
         emitter.emit('chat.history.refresh');
         sessionStorage.removeItem(storageKey);
       } catch (error) {
         sessionStorage.removeItem(processedKey);
+        Message.error("❌ Errore di connessione a Infinity Mind (porta 8080).");
+      } finally {
         setAiProcessing(false);
         aiProcessingRef.current = false;
-        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
       }
     };
 
-    // Small delay to let the component mount and response stream listener attach
     const timer = setTimeout(() => void processInitialMessage(), 300);
     return () => clearTimeout(timer);
   }, [conversation_id, workspacePath, addOrUpdateMessage, checkAndUpdateTitle]);
 
-  const handleFilesAdded = useCallback(
-    (pastedFiles: FileMetadata[]) => {
-      const file_paths = pastedFiles.map((file) => file.path);
-      setUploadFile((prev) => [...prev, ...file_paths]);
-    },
-    [setUploadFile]
-  );
+  const handleFilesAdded = useCallback((pastedFiles: FileMetadata[]) => {
+    const file_paths = pastedFiles.map((file) => file.path);
+    setUploadFile((prev) => [...prev, ...file_paths]);
+  }, [setUploadFile]);
 
   useAddEventListener('remote.selected.file', (items: Array<string | FileOrFolderItem>) => {
-    setTimeout(() => {
-      setAtPath(items);
-    }, 10);
+    setTimeout(() => setAtPath(items), 10);
   });
 
   useAddEventListener('remote.selected.file.append', (items: Array<string | FileOrFolderItem>) => {
     setTimeout(() => {
       const merged = mergeFileSelectionItems(atPathRef.current, items);
-      if (merged !== atPathRef.current) {
-        setAtPath(merged as Array<string | FileOrFolderItem>);
-      }
+      if (merged !== atPathRef.current) setAtPath(merged as Array<string | FileOrFolderItem>);
     }, 10);
   });
 
   const executeCommand = useCallback(
     async ({ input, files }: Pick<ConversationCommandQueueItem, 'input' | 'files'>) => {
       if (teamPermission) await teamPermission.warmupSession();
-      const displayMessage = buildDisplayMessage(input, files, workspacePath);
 
       setAiProcessing(true);
       aiProcessingRef.current = true;
 
       try {
         void checkAndUpdateTitle(conversation_id, input);
-        await ipcBridge.conversation.sendMessage.invoke({
-          input: displayMessage,
-          conversation_id,
-          files,
+
+        addOrUpdateMessage({
+          id: 'msg_user_' + Date.now(),
+          conversation_id: conversation_id,
+          role: 'user',
+          content: [{ type: 'text', text: input }],
+          status: 'Success',
+          create_at: Date.now()
         });
+
+        const response = await fetch('http://localhost:8080/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ message: input })
+        });
+        const data = await response.json();
+
+        addOrUpdateMessage({
+          id: 'msg_ai_' + Date.now(),
+          conversation_id: conversation_id,
+          role: 'assistant',
+          content: [{ type: 'text', text: data.message || data.response || JSON.stringify(data) }],
+          status: 'Success',
+          create_at: Date.now()
+        });
+
         emitter.emit('chat.history.refresh');
       } catch (error) {
+        Message.error("❌ Errore di connessione alla porta 8080 di Infinity Mind.");
+        throw error;
+      } finally {
         setAiProcessing(false);
         aiProcessingRef.current = false;
-        Message.error(getConversationRuntimeWorkspaceErrorMessage(error, t));
-        throw error;
       }
     },
-    [checkAndUpdateTitle, conversation_id, t, workspacePath]
+    [checkAndUpdateTitle, conversation_id, workspacePath, addOrUpdateMessage, teamPermission]
   );
 
   const {
@@ -350,15 +352,8 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     isPaused: isQueuePaused,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
-    enqueue,
-    remove,
-    clear,
-    reorder,
-    pause,
-    resume,
-    lockInteraction,
-    unlockInteraction,
-    resetActiveExecution,
+    enqueue, remove, clear, reorder, pause, resume,
+    lockInteraction, unlockInteraction, resetActiveExecution,
   } = useConversationCommandQueue({
     conversation_id: conversation_id,
     enabled: true,
@@ -367,59 +362,99 @@ const RemoteSendBox: React.FC<{ conversation_id: string }> = ({ conversation_id 
     onExecute: executeCommand,
   });
 
-  const onSendHandler = useCallback(
-    async (message: string) => {
-      emitter.emit('remote.selected.file.clear');
-      const currentAtPath = [...atPath];
-      const currentUploadFile = [...uploadFile];
-      setAtPath([]);
-      setUploadFile([]);
-      const file_paths = [
-        ...currentUploadFile,
-        ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
-      ];
+  const onSendHandler = useCallback(async (message: string) => {
+    emitter.emit('remote.selected.file.clear');
+    const currentAtPath = [...atPath];
+    const currentUploadFile = [...uploadFile];
+    setAtPath([]);
+    setUploadFile([]);
+    const file_paths = [
+      ...currentUploadFile,
+      ...currentAtPath.map((item) => (typeof item === 'string' ? item : item.path)),
+    ];
 
-      if (
-        shouldEnqueueConversationCommand({
-          enabled: true,
-          isBusy: aiProcessing,
-          hasPendingCommands,
-        })
-      ) {
-        enqueue({ input: message, files: file_paths });
-        return;
-      }
+    // --- INIZIO BYPASS DIRETTO INFINITY MIND ---
+    try {
+      console.log("🚀 Inviando a Python (Porta 8080):", message);
 
-      await executeCommand({ input: message, files: file_paths });
-    },
-    [aiProcessing, atPath, enqueue, executeCommand, hasPendingCommands, setAtPath, setUploadFile, uploadFile]
-  );
+      // 1. Disegna il TUO messaggio a schermo
+      // @ts-ignore
+      addOrUpdateMessage({
+        id: 'msg_user_' + Date.now(),
+        conversation_id: conversation_id,
+        role: 'user',
+        content: [{ type: 'text', text: message }],
+        status: 'Success',
+        create_at: Date.now()
+      });
 
-  const handleEditQueuedCommand = useCallback(
-    (item: ConversationCommandQueueItem) => {
-      remove(item.id);
-      setContent(item.input);
-      setUploadFile(Array.from(new Set(item.files)));
-      setAtPath([]);
-      emitter.emit('remote.selected.file.clear');
-    },
-    [remove, setAtPath, setContent, setUploadFile]
-  );
+      // 2. Chiama il server Python tramite XHR (Il Tunnel)
+      const data: any = await new Promise((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+          xhr.open("POST", "http://localhost:8080/api/chat", true);
+          xhr.setRequestHeader("Content-Type", "application/json");
+          xhr.onreadystatechange = function () {
+              if (xhr.readyState === 4) {
+                  if (xhr.status === 200) {
+                      try {
+                          resolve(JSON.parse(xhr.responseText));
+                      } catch(e) {
+                          resolve({ response: xhr.responseText });
+                      }
+                  } else {
+                      reject("Errore HTTP: " + xhr.status);
+                  }
+              }
+          };
+          xhr.onerror = function () { reject("Errore di Rete"); };
+          xhr.send(JSON.stringify({ message: message }));
+      });
+      
+      // Estrai il testo dalla risposta Python
+      const testoRisposta = data.message || data.response || JSON.stringify(data);
 
-  const appendSelectedFiles = useCallback(
-    (files: string[]) => {
-      setUploadFile((prev) => [...prev, ...files]);
-    },
-    [setUploadFile]
-  );
-  const { openFileSelector } = useOpenFileSelector({
-    onFilesSelected: appendSelectedFiles,
-  });
+      // 3. Disegna la RISPOSTA a schermo
+      // @ts-ignore
+      addOrUpdateMessage({
+        id: 'msg_ai_' + Date.now(),
+        conversation_id: conversation_id,
+        role: 'assistant',
+        content: [{ type: 'text', text: testoRisposta }],
+        status: 'Success',
+        create_at: Date.now()
+      });
+
+      emitter.emit('chat.history.refresh');
+      return; // 🛑 BLOCCA L'ESECUZIONE DEL VECCHIO MOTORE NATIVO
+    } catch (error) {
+      console.error("❌ Errore API Python:", error);
+      return;
+    }
+    // --- FINE BYPASS DIRETTO INFINITY MIND ---
+
+    if (shouldEnqueueConversationCommand({ enabled: true, isBusy: aiProcessing, hasPendingCommands })) {
+      enqueue({ input: message, files: file_paths });
+      return;
+    }
+
+    await executeCommand({ input: message, files: file_paths });
+  }, [aiProcessing, atPath, enqueue, executeCommand, hasPendingCommands, setAtPath, setUploadFile, uploadFile]);
+
+  const handleEditQueuedCommand = useCallback((item: ConversationCommandQueueItem) => {
+    remove(item.id);
+    setContent(item.input);
+    setUploadFile(Array.from(new Set(item.files)));
+    setAtPath([]);
+    emitter.emit('remote.selected.file.clear');
+  }, [remove, setAtPath, setContent, setUploadFile]);
+
+  const appendSelectedFiles = useCallback((files: string[]) => {
+    setUploadFile((prev) => [...prev, ...files]);
+  }, [setUploadFile]);
+
+  const { openFileSelector } = useOpenFileSelector({ onFilesSelected: appendSelectedFiles });
 
   const handleStop = async (): Promise<void> => {
-    // Best-effort cancel: swallow rejections (e.g. backend returns 409 when
-    // the WS session is not yet connected) so they don't surface as unhandled
-    // rejections. UI state is still reset via finally.
     try {
       await ipcBridge.conversation.stop.invoke({ conversation_id });
     } catch (error) {

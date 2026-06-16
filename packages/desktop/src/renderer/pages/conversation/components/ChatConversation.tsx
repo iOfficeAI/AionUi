@@ -35,7 +35,7 @@ import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { usePreviewContext } from '../Preview';
 import StarOfficeMonitorCard from '../platforms/openclaw/StarOfficeMonitorCard.tsx';
-// import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
+import InfinityMindChat from '../platforms/infinity-mind/InfinityMindChat';
 
 /** Check whether a specific skill is mounted on the conversation. */
 const hasLoadedSkill = (conversation: TChatConversation | undefined, skillName: string): boolean => {
@@ -316,6 +316,13 @@ const ChatConversation: React.FC<{
             workspace={conversation.extra?.workspace}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
             loadedSkills={(conversation.extra as { skills?: string[] } | undefined)?.skills}
+          />
+        );
+      case 'infinity-mind':
+        return (
+          <InfinityMindChat
+            key={conversation.id}
+            conversation={conversation}
           />
         );
       default:

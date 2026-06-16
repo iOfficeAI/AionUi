@@ -18,7 +18,6 @@ import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation
 import type { AcpModelInfo, AvailableAgent, EffectiveAgentInfo } from '../types';
 
 export type GuidSendDeps = {
-  // Input state
   input: string;
   setInput: React.Dispatch<React.SetStateAction<string>>;
   files: string[];
@@ -27,8 +26,6 @@ export type GuidSendDeps = {
   setDir: React.Dispatch<React.SetStateAction<string>>;
   setLoading: React.Dispatch<React.SetStateAction<boolean>>;
   loading: boolean;
-
-  // Agent state
   selectedAgent: string;
   selectedAgentKey: string;
   selectedAgentInfo: AvailableAgent | undefined;
@@ -37,8 +34,6 @@ export type GuidSendDeps = {
   selectedAcpModel: string | null;
   currentAcpCachedModelInfo: AcpModelInfo | null;
   current_model: TProviderWithModel | undefined;
-
-  // Agent helpers
   findAgentByKey: (key: string) => AvailableAgent | undefined;
   getEffectiveAgentType: (
     agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
@@ -58,14 +53,10 @@ export type GuidSendDeps = {
   selectedMcpServerIds: string[] | undefined;
   currentEffectiveAgentInfo: EffectiveAgentInfo;
   isGoogleAuth: boolean;
-
-  // Mention state reset
   setMentionOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setMentionQuery: React.Dispatch<React.SetStateAction<string | null>>;
   setMentionSelectorOpen: React.Dispatch<React.SetStateAction<boolean>>;
   setMentionActiveIndex: React.Dispatch<React.SetStateAction<number>>;
-
-  // Navigation
   navigate: NavigateFunction;
   t: TFunction;
 };
@@ -77,7 +68,7 @@ export type GuidSendResult = {
 };
 
 /**
- * Hook that manages the send logic for all conversation types (openclaw/nanobot/acp).
+ * Hook che gestisce l'invio per tutti i tipi di conversazione.
  */
 export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
   const {
@@ -115,11 +106,12 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     navigate,
     t,
   } = deps;
+
   const sendingRef = useRef(false);
 
   const handleSend = useCallback(async () => {
     const isCustomWorkspace = !!dir;
-    const finalWorkspace = dir || '';
+    const finalWorkspace = isCustomWorkspace ? dir : undefined;
 
     const agentInfo = selectedAgentInfo;
     const is_preset = is_presetAgent;
@@ -128,11 +120,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
     const { rules: preset_rules } = await resolvePresetRulesAndSkills(agentInfo);
-    // Guid page's per-conversation skill overrides take precedence over the
-    // assistant's saved defaults. The combined skills menu lets the user pick
-    // any custom skill — not just preset-declared ones — so for non-preset
-    // agents we still forward the user's selection (the backend accepts
-    // `preset_enabled_skills` regardless of `is_preset`).
     const presetEnabledSkillsDefault = resolveEnabledSkills(agentInfo);
     const enabled_skills = guidEnabledSkills ?? presetEnabledSkillsDefault;
     const enabled_skills_to_send = is_presetAgent
@@ -154,10 +141,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const finalEffectiveAgentType = effectiveAgentType;
 
-    // OpenClaw Gateway path
+    // ─────────── OpenClaw Gateway ───────────
     if (selectedAgent === 'openclaw-gateway') {
       const openclawAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-      const openclawConversationParams = buildAgentConversationParams({
+      const params = buildAgentConversationParams({
         backend: openclawAgentInfo?.backend || 'openclaw-gateway',
         name: input,
         agent_name: openclawAgentInfo?.name,
@@ -181,27 +168,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
-
       try {
-        const conversation = await ipcBridge.conversation.create.invoke(openclawConversationParams);
-
+        const conversation = await ipcBridge.conversation.create.invoke(params);
         if (!conversation || !conversation.id) {
           Message.error(t('conversation.createFailed'));
           return;
         }
-
-        if (isCustomWorkspace) {
-          updateWorkspaceTime(finalWorkspace);
-        }
-
+        if (isCustomWorkspace) updateWorkspaceTime(finalWorkspace);
         emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`openclaw_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
+        sessionStorage.setItem(`openclaw_initial_message_${conversation.id}`, JSON.stringify({ input, files: files.length > 0 ? files : undefined }));
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create OpenClaw conversation:', error);
@@ -210,10 +185,10 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    // Nanobot path
+    // ─────────── Nanobot ───────────
     if (selectedAgent === 'nanobot') {
       const nanobotAgentInfo = agentInfo || findAgentByKey(selectedAgentKey);
-      const nanobotConversationParams = buildAgentConversationParams({
+      const params = buildAgentConversationParams({
         backend: nanobotAgentInfo?.backend || 'nanobot',
         name: input,
         agent_name: nanobotAgentInfo?.name,
@@ -228,27 +203,15 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           exclude_auto_inject_skills: excludeBuiltinSkills,
         },
       });
-
       try {
-        const conversation = await ipcBridge.conversation.create.invoke(nanobotConversationParams);
-
+        const conversation = await ipcBridge.conversation.create.invoke(params);
         if (!conversation || !conversation.id) {
           Message.error(t('conversation.createFailed'));
           return;
         }
-
-        if (isCustomWorkspace) {
-          updateWorkspaceTime(finalWorkspace);
-        }
-
+        if (isCustomWorkspace) updateWorkspaceTime(finalWorkspace);
         emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
+        sessionStorage.setItem(`nanobot_initial_message_${conversation.id}`, JSON.stringify({ input, files: files.length > 0 ? files : undefined }));
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create Nanobot conversation:', error);
@@ -257,9 +220,53 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    // Aionrs path (direct selection or preset assistant with aionrs as main agent)
+    // ─────────── Infinity Mind (bypass) ───────────
+    if (selectedAgent === 'infinity-mind') {
+      // Modello fittizio per soddisfare i controlli UI
+      const dummyModel: TProviderWithModel = {
+        provider: 'infinity',
+        model: 'infinity-mind',
+        use_model: 'infinity-mind',
+      };
+
+      try {
+        const conversation = await ipcBridge.conversation.create.invoke({
+          type: 'infinity-mind',
+          name: input,
+          model: dummyModel,               // <-- evita "No model configured"
+          extra: {
+            default_files: files,
+            workspace: finalWorkspace,
+            custom_workspace: isCustomWorkspace,
+          },
+        });
+
+        if (!conversation || !conversation.id) {
+          Message.error(t('conversation.createFailed'));
+          return;
+        }
+
+        if (isCustomWorkspace) updateWorkspaceTime(finalWorkspace);
+        emitter.emit('chat.history.refresh');
+
+        const initialMessage = {
+          input,
+          files: files.length > 0 ? files : undefined,
+        };
+        // Usa la stessa chiave di RemoteSendBox per il messaggio iniziale
+        sessionStorage.setItem(`remote_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
+
+        await navigate(`/conversation/${conversation.id}`);
+      } catch (error: unknown) {
+        console.error('Failed to create Infinity Mind conversation:', error);
+        throw error;
+      }
+      return;
+    }
+
+    // ─────────── Aionrs ───────────
     if (selectedAgent === 'aionrs' || (is_preset && finalEffectiveAgentType === 'aionrs')) {
-      if (!current_model) {
+      if (!current_model && selectedAgent !== 'infinity-mind') {
         Message.warning(t('conversation.noModelConfigured'));
         return;
       }
@@ -276,9 +283,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             preset_enabled_skills: enabled_skills_to_send,
             exclude_auto_inject_skills: excludeBuiltinSkills,
             selected_mcp_server_ids: selectedUserMcpServerIds,
-            // aionrs should consume the authoritative session snapshot, just
-            // like team MCP does, instead of reloading only user servers from
-            // the global MCP repository at runtime.
             selected_session_mcp_servers: selectedAllSessionMcpServers,
             preset_assistant_id,
             session_mode: selectedMode,
@@ -290,18 +294,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           return;
         }
 
-        if (isCustomWorkspace) {
-          updateWorkspaceTime(finalWorkspace);
-        }
-
+        if (isCustomWorkspace) updateWorkspaceTime(finalWorkspace);
         emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
+        sessionStorage.setItem(`aionrs_initial_message_${conversation.id}`, JSON.stringify({ input, files: files.length > 0 ? files : undefined }));
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create Aion CLI conversation:', error);
@@ -310,12 +305,8 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    // Remaining agent path (ACP/remote/custom, including preset fallbacks)
+    // ─────────── ACP / Remote / Custom ───────────
     {
-      // Agent-type fallback only applies to preset assistants whose primary agent
-      // was unavailable and got switched. For non-preset
-      // agents (including extension-contributed ACP adapters with backend='custom'),
-      // we must keep the original selectedAgent so the correct backend/cli_path is used.
       const agent_typeChanged = is_preset && selectedAgent !== finalEffectiveAgentType;
       const acpBackend: string | undefined = agent_typeChanged
         ? finalEffectiveAgentType
@@ -334,9 +325,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const agentConversationParams = buildAgentConversationParams({
         backend: agentBackend,
         name: input,
-        // For row-scoped rows (custom ACP / remote) the backend factory
-        // needs the actual catalog id — `backend` collapses to the `custom`
-        // slot so it cannot discriminate between rows on its own.
         agent_id: acpAgentInfo?.id,
         agent_name: acpAgentInfo?.name,
         preset_assistant_id,
@@ -361,9 +349,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           exclude_auto_inject_skills: excludeBuiltinSkills,
           selected_mcp_server_ids: selectedUserMcpServerIds,
           selected_session_mcp_servers: selectedSessionMcpServers,
-          // Non-preset agents still forward user-selected custom skills via the
-          // shared backend slot. For preset assistants this is already wired
-          // through `preset_resources.enabled_skills` above.
           ...(is_preset ? {} : guidEnabledSkills?.length ? { preset_enabled_skills: guidEnabledSkills } : {}),
         },
       });
@@ -375,18 +360,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           return;
         }
 
-        if (isCustomWorkspace) {
-          updateWorkspaceTime(finalWorkspace);
-        }
-
+        if (isCustomWorkspace) updateWorkspaceTime(finalWorkspace);
         emitter.emit('chat.history.refresh');
-
-        const initialMessage = {
-          input,
-          files: files.length > 0 ? files : undefined,
-        };
-        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify(initialMessage));
-
+        sessionStorage.setItem(`acp_initial_message_${conversation.id}`, JSON.stringify({ input, files: files.length > 0 ? files : undefined }));
         await navigate(`/conversation/${conversation.id}`);
       } catch (error: unknown) {
         console.error('Failed to create ACP conversation:', error);
@@ -453,7 +429,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     t,
   ]);
 
-  // Calculate button disabled state
   const isButtonDisabled = loading || !input.trim();
 
   return {

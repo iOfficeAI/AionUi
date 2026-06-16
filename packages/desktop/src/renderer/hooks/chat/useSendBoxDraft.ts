@@ -46,6 +46,12 @@ type Draft =
       uploadFile: string[];
     }
   | {
+      _type: 'infinity-mind';
+      content: string;
+      atPath: Array<string | FileOrFolderItem>;
+      uploadFile: string[];
+    }
+  | {
       // Legacy Gemini conversations are read-only on the backend — this draft
       // shape exists only so the store map stays type-exhaustive.
       _type: 'gemini';
@@ -69,6 +75,7 @@ const store: SendBoxDraftStore = {
   nanobot: new Map(),
   remote: new Map(),
   aionrs: new Map(),
+  'infinity-mind': new Map(),
 };
 
 const setDraft = <K extends TChatConversation['type']>(
@@ -120,6 +127,13 @@ const setDraft = <K extends TChatConversation['type']>(
         store.aionrs.delete(conversation_id);
       }
       break;
+    case 'infinity-mind':
+      if (draft) {
+        store['infinity-mind'].set(conversation_id, draft as Extract<Draft, { _type: 'infinity-mind' }>);
+      } else {
+        store['infinity-mind'].delete(conversation_id);
+      }
+      break;
     default:
       break;
   }
@@ -143,6 +157,8 @@ const getDraft = <K extends TChatConversation['type']>(
       return store.remote.get(conversation_id) as Extract<Draft, { _type: K }>;
     case 'aionrs':
       return store.aionrs.get(conversation_id) as Extract<Draft, { _type: K }>;
+    case 'infinity-mind':
+      return store['infinity-mind'].get(conversation_id) as Extract<Draft, { _type: K }>;
     default:
       return undefined;
   }
