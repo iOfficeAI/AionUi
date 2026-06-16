@@ -48,6 +48,15 @@
       "unknown": "Der Lizenzcode konnte nicht geprüft werden. Bitte versuche es erneut."
     }
   },
+  "curtain": {
+    "title": "Deine Testphase ist beendet",
+    "lede": "Willkommen zurück. Deine 14-tägige Testphase von Command EVE ist abgelaufen. Du kannst genau dort weitermachen, wo du aufgehört hast.",
+    "preservedTitle": "Deine Einrichtung bleibt erhalten",
+    "preservedBody": "Dein Company OS, dein Gedächtnis, deine Verbindungen und deine SOPs sind weiterhin gespeichert und warten auf dich. Es wird nichts gelöscht oder zurückgesetzt.",
+    "price": "Weiter für 250 €/Monat",
+    "continue": "Jetzt fortsetzen",
+    "hint": "Der Button öffnet die sichere Bezahlseite in deinem Browser. Sobald dein Abo aktiv ist, schalte Command EVE mit deinem neuen Lizenzcode wieder frei."
+  },
   "unconfigured": {
     "title": "Aktivierung nicht verfügbar",
     "description": "Dieser Build kann keine Lizenzcodes prüfen, weil kein Prüfschlüssel konfiguriert ist. Bitte wende dich an das Command-EVE-Team oder starte die App mit dem Pilot-Fallback-Flag.",

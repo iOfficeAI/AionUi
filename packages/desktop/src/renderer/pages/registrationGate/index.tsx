@@ -23,6 +23,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button, Checkbox, Input } from '@arco-design/web-react';
 import { changeLanguage } from '@renderer/services/i18n';
+import { openExternalUrl } from '@renderer/utils/platform';
 import {
   commandEve,
   type ICommandEveEntitlementStatusResult,
@@ -31,6 +32,33 @@ import {
 import './RegistrationGatePage.css';
 
 type GateStep = 'registration' | 'license';
+
+/**
+ * The day-14 trial-conversion curtain destination. This routes the user OUT to
+ * the web `/account` surface where the existing 250€/mo checkout lives — the
+ * desktop never holds a card or a checkout form. Founder may refine the exact
+ * destination (e.g. a deep-link that pre-fills the tenant) — see needs_founder.
+ */
+const CURTAIN_CHECKOUT_URL = 'https://command-eve.com/account';
+
+/**
+ * True only for the day-14 TRIAL-EXPIRED state: the gate reports `expired` AND
+ * the (now-mirrored) CEVE.v2 `trial_ends_at` field is a non-null string, which
+ * the main-process core sets ONLY for a trial entitlement. A paid-license expiry
+ * (or any v1 code) leaves `trial_ends_at` null/absent and stays on the normal
+ * license path — the curtain is a warm "continue", NOT the generic-expired error.
+ *
+ * This is a pure read of the main-process status; the renderer makes no
+ * entitlement decision and cannot unlock anything (the structural route guard in
+ * Router.tsx keeps every main surface blocked while `state !== 'entitled'`).
+ */
+function isTrialExpired(status: ICommandEveEntitlementStatusResult | null): boolean {
+  return (
+    status?.state === 'expired' &&
+    typeof status.trial_ends_at === 'string' &&
+    status.trial_ends_at.length > 0
+  );
+}
 
 const SUPPORTED_LANGUAGES: Array<{ code: string; short: string; flag: string; label: string }> = [
   { code: 'de-DE', short: 'DE', flag: '🇩🇪', label: 'Deutsch' },
@@ -60,11 +88,34 @@ export interface RegistrationGatePageProps {
 const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onEntitled }) => {
   const { t, i18n } = useTranslation();
 
+  // The day-14 trial curtain takes over the whole gate: it is NOT a step in the
+  // registration→license flow but a distinct conversion screen (warm "continue",
+  // not the generic-expired error). It only shows when the main process reports a
+  // TRIAL that has expired (see `isTrialExpired`).
+  const trialExpired = isTrialExpired(status);
+
   // When the user is already registered (e.g. relaunch with registration but no
-  // license, or a now-expired license) jump straight to the license step.
+  // license, or a now-expired PAID license) jump straight to the license step.
+  // A trial expiry is handled by the curtain above, not this step.
   const initialStep: GateStep =
-    status?.state === 'registered_unlicensed' || status?.state === 'expired' ? 'license' : 'registration';
+    !trialExpired && (status?.state === 'registered_unlicensed' || status?.state === 'expired') ? 'license' : 'registration';
   const [step, setStep] = useState<GateStep>(initialStep);
+
+  // Opening the web checkout is a deliberate, low-risk action — it never touches
+  // local data. Setup (memory, connections, SOPs) is preserved by definition:
+  // the curtain does no reset/wipe, and the structural gate keeps the existing
+  // local entitlement/registration records untouched on disk.
+  const [curtainOpening, setCurtainOpening] = useState(false);
+  const handleContinueToCheckout = useCallback(async () => {
+    setCurtainOpening(true);
+    try {
+      await openExternalUrl(CURTAIN_CHECKOUT_URL);
+    } catch (error) {
+      console.error('Failed to open conversion checkout:', error);
+    } finally {
+      setCurtainOpening(false);
+    }
+  }, []);
 
   // Registration form state.
   const [name, setName] = useState('');
@@ -204,28 +255,89 @@ const RegistrationGatePage: React.FC<RegistrationGatePageProps> = ({ status, onE
     return t('registrationGate.license.registeredAs', { name: displayName, company: displayCompany });
   }, [company, name, registrationRecord, t]);
 
+  const languageToggle = (
+    <div className='registration-gate__lang-toggle' role='group' aria-label={t('registrationGate.languageToggle')}>
+      {SUPPORTED_LANGUAGES.map((lang) => {
+        const active = i18n.language === lang.code || i18n.resolvedLanguage === lang.code;
+        return (
+          <button
+            key={lang.code}
+            type='button'
+            className={`registration-gate__lang-option ${active ? 'registration-gate__lang-option--active' : ''}`}
+            onClick={() => handleLanguageChange(lang.code)}
+            aria-pressed={active}
+            aria-label={lang.label}
+            data-testid={`registration-gate-lang-${lang.short.toLowerCase()}`}
+          >
+            <span aria-hidden='true'>{lang.flag}</span>
+            <span>{lang.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+
+  // ---- Day-14 trial-conversion CURTAIN -----------------------------------
+  // A warm "welcome back, continue" conversion screen that REPLACES the gate
+  // flow when a trial has expired. It is intentionally distinct from the hard
+  // license-error states: it leads with the value the user already built (their
+  // Company OS, memory, connections, SOPs are PRESERVED and waiting) and offers a
+  // single primary CTA out to the web 250€/mo checkout. It wipes nothing and
+  // cannot itself unlock the app — the structural route guard keeps every main
+  // surface blocked until the entitlement flips to `entitled` (after the user
+  // converts on the web and re-activates / the gate re-reads).
+  if (trialExpired) {
+    return (
+      <div className='registration-gate' data-testid='registration-gate'>
+        <div className='registration-gate__card registration-gate__card--curtain' data-testid='registration-gate-curtain'>
+          {languageToggle}
+
+          <div className='registration-gate__header'>
+            <h1 className='registration-gate__title'>
+              <span className='registration-gate__title-command' aria-hidden='true'>
+                ⌘
+              </span>
+              <span>{t('registrationGate.brand')}</span>
+            </h1>
+            <p className='registration-gate__subtitle'>{t('registrationGate.curtain.title')}</p>
+          </div>
+
+          <div className='registration-gate__form'>
+            <p className='registration-gate__curtain-lede'>{t('registrationGate.curtain.lede')}</p>
+
+            <div className='registration-gate__curtain-preserved' data-testid='registration-gate-curtain-preserved'>
+              <p className='registration-gate__curtain-preserved-title'>
+                {t('registrationGate.curtain.preservedTitle')}
+              </p>
+              <p className='registration-gate__curtain-preserved-body'>
+                {t('registrationGate.curtain.preservedBody')}
+              </p>
+            </div>
+
+            <p className='registration-gate__curtain-price'>{t('registrationGate.curtain.price')}</p>
+
+            <Button
+              type='primary'
+              long
+              shape='round'
+              loading={curtainOpening}
+              onClick={handleContinueToCheckout}
+              data-testid='registration-gate-curtain-continue'
+            >
+              {t('registrationGate.curtain.continue')}
+            </Button>
+
+            <span className='registration-gate__hint'>{t('registrationGate.curtain.hint')}</span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className='registration-gate' data-testid='registration-gate'>
       <div className='registration-gate__card'>
-        <div className='registration-gate__lang-toggle' role='group' aria-label={t('registrationGate.languageToggle')}>
-          {SUPPORTED_LANGUAGES.map((lang) => {
-            const active = i18n.language === lang.code || i18n.resolvedLanguage === lang.code;
-            return (
-              <button
-                key={lang.code}
-                type='button'
-                className={`registration-gate__lang-option ${active ? 'registration-gate__lang-option--active' : ''}`}
-                onClick={() => handleLanguageChange(lang.code)}
-                aria-pressed={active}
-                aria-label={lang.label}
-                data-testid={`registration-gate-lang-${lang.short.toLowerCase()}`}
-              >
-                <span aria-hidden='true'>{lang.flag}</span>
-                <span>{lang.short}</span>
-              </button>
-            );
-          })}
-        </div>
+        {languageToggle}
 
         <div className='registration-gate__header'>
           <h1 className='registration-gate__title'>
