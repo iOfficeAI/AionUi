@@ -157,4 +157,13 @@ describe('LocalAgents', () => {
     expect(screen.getByText('settings.agentManagement.statusUnavailable')).toBeTruthy();
     expect(screen.queryByText('settings.agentManagement.goToChat')).toBeNull();
   });
+
+  it('renders official agents as diagnostics cards with backend/type metadata', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+
+    render(<LocalAgents />);
+
+    expect(screen.getByText('AIONRS · AIONRS')).toBeInTheDocument();
+    expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
+  });
 });

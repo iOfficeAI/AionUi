@@ -67,3 +67,26 @@ describe('AgentCard (custom variant)', () => {
     expect(onToggle).toHaveBeenCalled();
   });
 });
+
+describe('AgentCard (official variant)', () => {
+  it('shows backend/type metadata and the latest diagnostic message', () => {
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'claude',
+          name: 'Claude Code',
+          agent_type: 'acp',
+          backend: 'claude',
+          status: 'missing',
+          last_check_error_message: 'CLI command not found',
+          last_check_guidance: 'Install Claude Code locally to continue.',
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
+    expect(screen.getByText('CLI command not found Install Claude Code locally to continue.')).toBeInTheDocument();
+  });
+});

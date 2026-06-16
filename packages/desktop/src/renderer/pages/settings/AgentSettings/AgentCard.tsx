@@ -30,6 +30,8 @@ type DetectedAgent = {
 type CustomAgentCardData = {
   id: string;
   name: string;
+  agent_type?: string;
+  backend?: string;
   /** User-picked emoji or avatar URL (maps to `AgentMetadata.icon`). */
   icon?: string;
   /** Spawn command for the CLI. */
@@ -87,6 +89,11 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
 
 const statusHelpText = (error?: string, guidance?: string) => [error, guidance].filter(Boolean).join(' ');
 
+const diagnosticMeta = (backend?: string, agentType?: string) => {
+  const parts = [backend, agentType].filter(Boolean).map((value) => value!.toUpperCase());
+  return parts.join(' · ');
+};
+
 const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
 
@@ -102,6 +109,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         isExtension: agent.isExtension,
       });
 
+    const metadata = diagnosticMeta(agent.backend, agent.agent_type);
+    const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
+
     return (
       <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
         <div className='mb-10px flex justify-center'>
@@ -114,16 +124,24 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           <Typography.Text className='block text-13px font-medium leading-18px line-clamp-2'>
             {agent.name}
           </Typography.Text>
+          {metadata ? (
+            <Typography.Text className='mt-4px block text-11px text-t-secondary'>{metadata}</Typography.Text>
+          ) : null}
           <div className='mt-6px flex items-center justify-center gap-6px'>
             <Tag size='small' color={statusColor(agent.status)}>
               {t(statusLabelKey(agent.status))}
             </Tag>
-            {statusHelpText(agent.last_check_error_message, agent.last_check_guidance) && (
-              <Tooltip content={statusHelpText(agent.last_check_error_message, agent.last_check_guidance)}>
+            {diagnostics && (
+              <Tooltip content={diagnostics}>
                 <Typography.Text className='text-11px text-t-secondary'>i</Typography.Text>
               </Tooltip>
             )}
           </div>
+          {diagnostics ? (
+            <Typography.Paragraph className='mt-6px mb-0 text-11px leading-16px text-t-secondary'>
+              {diagnostics}
+            </Typography.Paragraph>
+          ) : null}
         </div>
 
         <Button size='small' type='secondary' onClick={onTestConnection} loading={isTesting}>
@@ -135,6 +153,8 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
 
   const { agent, onTestConnection, onEdit, onDelete, onToggle, isTesting } = props;
   const isDisabled = agent.enabled === false;
+  const metadata = diagnosticMeta(agent.backend, agent.agent_type);
+  const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
 
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -148,6 +168,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
         </Avatar>
         <div className='min-w-0 flex-1'>
           <Typography.Text className='font-medium text-14px'>{agent.name || 'Custom Agent'}</Typography.Text>
+          {metadata ? <div className='text-11px text-t-secondary truncate'>{metadata}</div> : null}
           <div className='text-12px text-t-secondary truncate'>
             {agent.command}
             {agent.args && agent.args.length > 0 ? ` ${agent.args.join(' ')}` : ''}
@@ -156,12 +177,13 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             <Tag size='small' color={statusColor(agent.status)}>
               {t(statusLabelKey(agent.status))}
             </Tag>
-            {statusHelpText(agent.last_check_error_message, agent.last_check_guidance) && (
-              <Tooltip content={statusHelpText(agent.last_check_error_message, agent.last_check_guidance)}>
+            {diagnostics && (
+              <Tooltip content={diagnostics}>
                 <Typography.Text className='text-11px text-t-secondary'>i</Typography.Text>
               </Tooltip>
             )}
           </div>
+          {diagnostics ? <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{diagnostics}</div> : null}
         </div>
       </div>
       <div className='flex items-center gap-8px'>
