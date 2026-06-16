@@ -4,11 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+// Sentry temporarily disabled
 // Hook Sentry IPC so the renderer SDK uses ipcRenderer.send instead of falling
 // back to fetch('sentry-ipc://...'), which floods the DevTools Network panel.
 // Bundled into this preload via `externalizeDepsPlugin({ exclude: [...] })` so
 // Electron's sandbox-mode preload doesn't try to resolve it from node_modules.
-import '@sentry/electron/preload';
+// import '@sentry/electron/preload';
 import { contextBridge, ipcRenderer, webUtils } from 'electron';
 import { ADAPTER_BRIDGE_EVENT_KEY } from '../common/adapter/constant';
 

@@ -68,7 +68,8 @@ const mainAliases = {
 
 export default defineConfig(({ mode }) => {
   const isDevelopment = mode === 'development';
-  const enableSentrySourceMaps = !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
+  // Sentry temporarily disabled
+  const enableSentrySourceMaps = false; // !isDevelopment && !!process.env.SENTRY_AUTH_TOKEN;
 
   const sentryPluginOptions = {
     org: process.env.SENTRY_ORG,
@@ -148,12 +149,9 @@ export default defineConfig(({ mode }) => {
     },
 
     preload: {
-      // Bundle @sentry/electron/preload so its hookupIpc() runs in the preload
-      // context. Externalized dependencies leave a runtime require('...') in
-      // the output, which Electron's sandbox-mode preload cannot resolve from
-      // node_modules (→ "module not found"). Bundling inlines the few hundred
-      // bytes of IPC wiring we actually need.
-      plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
+      // Sentry temporarily disabled — no need to bundle @sentry/electron/preload.
+      // plugins: [externalizeDepsPlugin({ exclude: ['@sentry/electron'] })],
+      plugins: [externalizeDepsPlugin()],
       resolve: {
         alias: {
           '@': resolve('packages/desktop/src'),

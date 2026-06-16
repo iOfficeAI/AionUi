@@ -8,9 +8,9 @@
 // ANY module that calls app.getPath('userData'), because Electron caches the path on first call.
 import './process/utils/configureChromium';
 import { installGpuCrashHandler } from './process/utils/gpuRecovery';
-import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
-
-initSentry();
+// Sentry temporarily disabled
+// import { captureBackendStartupFailure, initSentry, scheduleStartupLogReport, setSentryDeviceId } from './sentry';
+// initSentry();
 
 import './process/utils/configureConsoleLog';
 import { app, BrowserWindow, ipcMain, nativeImage, powerMonitor } from 'electron';
@@ -407,7 +407,7 @@ const createWindow = ({ showOnReady = true }: { showOnReady?: boolean } = {}): v
   });
   console.log(`[AionUi] Main window created (id=${mainWindow.id})`);
 
-  scheduleStartupLogReport(mainWindow);
+  // scheduleStartupLogReport(mainWindow);
 
   // Show window after content is ready to prevent FOUC (Flash of Unstyled Content)
   // Use 'ready-to-show' which fires when renderer has painted first frame,
@@ -585,7 +585,7 @@ const handleAppReady = async (): Promise<void> => {
     }
   }
 
-  setSentryDeviceId();
+  // setSentryDeviceId();
 
   try {
     await initializeProcess();
@@ -627,11 +627,11 @@ const handleAppReady = async (): Promise<void> => {
             allowPendingOnHealthTimeout: !(isWebUIMode || isResetPasswordMode),
             onHealthTimeout: async (error) => {
               markBackendStartupFailed(error);
-              await captureBackendStartupFailure(error);
+              // await captureBackendStartupFailure(error);
             },
             onPendingExit: async (error) => {
               markBackendStartupFailed(error);
-              await captureBackendStartupFailure(error);
+              // await captureBackendStartupFailure(error);
             },
             onReady: (backendPort) => {
               markBackendReady(backendPort, 'backendManager.lateReady');
@@ -649,7 +649,7 @@ const handleAppReady = async (): Promise<void> => {
       },
       captureFailure: async (error) => {
         markBackendStartupFailed(error);
-        await captureBackendStartupFailure(error);
+        // await captureBackendStartupFailure(error);
       },
       exitApp: (code) => app.exit(code),
       exitOnFailure: isWebUIMode || isResetPasswordMode,

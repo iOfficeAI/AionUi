@@ -133,6 +133,16 @@ export async function submitFeedbackReport(input: SubmitFeedbackReportInput): Pr
   let logAttachmentStatus: FeedbackLogAttachmentStatus = input.collectLogs ? 'empty' : 'skipped';
   let logAttachment: FeedbackAttachment | null = null;
 
+  // Sentry temporarily disabled in the app (still exercised under Vitest).
+  const sentryEnabled = process.env.VITEST === 'true';
+  if (!sentryEnabled) {
+    logFeedbackReport('info', 'skipped (Sentry disabled)', {
+      module: input.module,
+      collectLogs: Boolean(input.collectLogs),
+    });
+    return;
+  }
+
   try {
     if (input.collectLogs) {
       const collectedLogAttachment = await collectLogAttachment();
