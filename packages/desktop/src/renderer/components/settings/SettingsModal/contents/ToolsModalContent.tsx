@@ -4,7 +4,6 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/common/config/imageGenerationMcpEnv';
 import { mcpService } from '@/common/adapter/ipcBridge';
@@ -21,6 +20,11 @@ import AionSelect from '@/renderer/components/base/AionSelect';
 import AddMcpServerModal from '@/renderer/pages/settings/components/AddMcpServerModal';
 import McpServerItem from '@/renderer/pages/settings/ToolsSettings/McpServerItem';
 import { useMcpServers, useMcpConnection, useMcpModal, useMcpServerCRUD, useMcpOAuth } from '@/renderer/hooks/mcp';
+import {
+  getClientBusinessSetting,
+  removeClientBusinessSetting,
+  setClientBusinessSetting,
+} from '@/renderer/services/clientBusinessSettings';
 import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 
@@ -322,7 +326,7 @@ const ToolsModalContent: React.FC = () => {
   useEffect(() => {
     const loadConfigs = async () => {
       try {
-        const storedModel = configService.get('tools.imageGenerationModel');
+        const storedModel = await getClientBusinessSetting('tools.imageGenerationModel');
         if (storedModel) {
           setImageGenerationModel(storedModel);
         }
@@ -412,7 +416,7 @@ const ToolsModalContent: React.FC = () => {
 
     if (!currentProvider) {
       setImageGenerationModel(undefined);
-      configService.remove('tools.imageGenerationModel').catch((error) => {
+      removeClientBusinessSetting('tools.imageGenerationModel').catch((error) => {
         console.error('Failed to remove image generation model config:', error);
       });
       void syncMcpServerEnv({}).catch((error) => {
@@ -431,7 +435,7 @@ const ToolsModalContent: React.FC = () => {
 
     if (imageGenerationModel.api_key || imageGenerationModel.base_url) {
       setImageGenerationModel(sanitizedModel);
-      configService.set('tools.imageGenerationModel', sanitizedModel).catch((error) => {
+      setClientBusinessSetting('tools.imageGenerationModel', sanitizedModel).catch((error) => {
         console.error('Failed to sanitize image generation model config:', error);
       });
     }
@@ -453,7 +457,7 @@ const ToolsModalContent: React.FC = () => {
           api_key: '',
           use_model: value.use_model,
         } as ConfigKeyMap['tools.imageGenerationModel'];
-        configService.set('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
+        setClientBusinessSetting('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });
         // Sync env vars to the built-in MCP server
@@ -493,7 +497,7 @@ const ToolsModalContent: React.FC = () => {
         setImageGenerationModel((prev) => {
           if (!prev) return prev;
           const next = { ...prev, switch: checked };
-          configService.set('tools.imageGenerationModel', next).catch((error) => {
+          setClientBusinessSetting('tools.imageGenerationModel', next).catch((error) => {
             console.error('Failed to sync image generation switch state:', error);
           });
           return next;
