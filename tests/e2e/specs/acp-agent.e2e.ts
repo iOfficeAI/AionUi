@@ -1,11 +1,9 @@
 /**
- * ACP Agent – integration & switching tests.
+ * Agent diagnostics — phase 2 coverage.
  *
  * Covers:
- *  - Agent settings page loads and has management UI
- *  - Agent pill bar on guid page renders available agents
- *  - Switching between agent backends
- *  - Agent mode selection within a backend
+ *  - Agent settings page loads and exposes diagnostics actions
+ *  - Guid no longer renders direct agent pills
  *  - MCP tools page loads
  */
 import { test, expect } from '../fixtures';
@@ -16,15 +14,17 @@ import {
   expectUrlContains,
   takeScreenshot,
   AGENT_PILL,
-  AGENT_PILL_SELECTED,
   settingsSiderItemById,
 } from '../helpers';
 
-test.describe('ACP Agent', () => {
+test.describe('Agent Diagnostics', () => {
   test('agent settings page has management UI', async ({ page }) => {
     await goToSettings(page, 'agent');
     await expectUrlContains(page, 'agent');
     await expectBodyContainsAny(page, ['Agent', 'agent', '助手', '预设', 'Preset', 'Custom', 'Assistants']);
+    await expect(page.getByRole('button', { name: /Test Connection|测试连接/ }).first()).toBeVisible({
+      timeout: 8_000,
+    });
   });
 
   test('screenshot: agent settings', async ({ page }) => {
@@ -33,57 +33,17 @@ test.describe('ACP Agent', () => {
     await takeScreenshot(page, 'agent-settings');
   });
 
-  test('agent pill bar renders on guid page', async ({ page }) => {
+  test('guid no longer renders direct agent pills', async ({ page }) => {
     await goToGuid(page);
-
-    const pills = page.locator(AGENT_PILL);
-    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
-    expect(await pills.count()).toBeGreaterThanOrEqual(1);
+    await expect(page.locator(AGENT_PILL)).toHaveCount(0);
+    await expect(page.locator('[data-testid^="preset-pill-"]').first()).toBeVisible({ timeout: 12_000 });
   });
 
-  test('can see agent backend names', async ({ page }) => {
-    await goToGuid(page);
-
-    const knownBackends = new Set(['claude', 'gemini', 'qwen', 'opencode', 'codex']);
-    const pills = page.locator(AGENT_PILL);
-    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
-
-    const count = await pills.count();
-    const backends: string[] = [];
-    for (let i = 0; i < count; i++) {
-      const backend = await pills.nth(i).getAttribute('data-agent-backend');
-      if (backend) backends.push(backend);
-    }
-
-    expect(backends.some((backend) => knownBackends.has(backend))).toBeTruthy();
-  });
-
-  test('clicking an agent pill selects it', async ({ page }) => {
-    await goToGuid(page);
-
-    const pills = page.locator(AGENT_PILL);
-    await expect(pills.first()).toBeVisible({ timeout: 8_000 });
-
-    const count = await pills.count();
-    if (count >= 2) {
-      const target = pills.nth(1);
-      await target.click();
-
-      await expect
-        .poll(async () => {
-          return await target.getAttribute('data-agent-selected');
-        })
-        .toBe('true');
-
-      await expect(page.locator(AGENT_PILL_SELECTED).first()).toBeVisible();
-    }
-  });
-
-  test('screenshot: agent pill bar', async ({ page }) => {
+  test('screenshot: guid assistant pills', async ({ page }) => {
     test.skip(!process.env.E2E_SCREENSHOTS, 'screenshots disabled');
     await goToGuid(page);
-    await expect(page.locator(AGENT_PILL).first()).toBeVisible({ timeout: 8_000 });
-    await takeScreenshot(page, 'agent-pill-bar');
+    await expect(page.locator('[data-testid^="preset-pill-"]').first()).toBeVisible({ timeout: 12_000 });
+    await takeScreenshot(page, 'guid-assistant-pills');
   });
 
   test('MCP tools page has server management UI', async ({ page }) => {

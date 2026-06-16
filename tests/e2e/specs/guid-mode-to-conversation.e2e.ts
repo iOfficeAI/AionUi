@@ -1,22 +1,21 @@
 /**
- * Guid Mode → Conversation Mode Sync — E2E tests.
+ * Guid assistant mode → conversation mode sync — E2E tests.
  *
- * For each agent backend, verifies the permission mode set on the Guid page
- * is correctly carried into the conversation page.
- * Each agent runs TWO conversation cycles with different modes to confirm
- * mode switching works end-to-end.
+ * For each backend, selects the matching assistant (prefer the bare assistant)
+ * and verifies the permission mode set on the Guid page is correctly carried
+ * into the conversation page.
  */
 import { test, expect } from '../fixtures';
 import {
   goToGuid,
-  selectAgent,
   sendMessageFromGuid,
   waitForSessionActive,
-  deleteConversation,
-  AGENT_PILL,
-  agentPillByBackend,
   MODE_SELECTOR,
+  httpGet,
+  httpDelete,
+  presetPillById,
 } from '../helpers';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 test.describe.configure({ timeout: 240_000 });
 
@@ -74,11 +73,11 @@ async function waitForConversationMode(
  */
 async function runModeVerificationCycle(
   page: import('@playwright/test').Page,
-  backend: string,
+  assistantId: string,
   targetMode: string
 ): Promise<void> {
   await goToGuid(page);
-  await selectAgent(page, backend);
+  await page.locator(presetPillById(assistantId)).click();
 
   const modeSelector = page.locator(MODE_SELECTOR);
   await modeSelector.waitFor({ state: 'visible', timeout: 10_000 });
@@ -92,8 +91,20 @@ async function runModeVerificationCycle(
     await waitForSessionActive(page, 120_000);
     await waitForConversationMode(page, targetMode);
   } finally {
-    await deleteConversation(page, conversationId);
+    await httpDelete(page, `/api/conversations/${conversationId}`).catch(() => {});
   }
+}
+
+async function findAssistantIdForBackend(
+  page: import('@playwright/test').Page,
+  backend: string
+): Promise<string | null> {
+  const assistants = await httpGet<Assistant[]>(page, '/api/assistants');
+  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  const preferred =
+    enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend) ??
+    enabledAssistants.find((assistant) => assistant.preset_agent_type === backend);
+  return preferred?.id ?? null;
 }
 
 const BACKENDS = ['gemini', 'aionrs', 'codex', 'claude'] as const;
@@ -103,19 +114,19 @@ test.describe('Guid Mode → Conversation Sync', () => {
     test(`${backend}: two mode switches both carry into conversation`, async ({ page }) => {
       await goToGuid(page);
 
-      // Check agent availability
-      const pill = page.locator(agentPillByBackend(backend));
-      await page
-        .locator(AGENT_PILL)
-        .first()
-        .waitFor({ state: 'visible', timeout: 30_000 })
-        .catch(() => {});
-      if (!(await pill.isVisible().catch(() => false))) {
-        test.skip(true, `${backend} agent not available`);
+      const assistantId = await findAssistantIdForBackend(page, backend);
+      if (!assistantId) {
+        test.skip(true, `${backend} assistant not available`);
         return;
       }
 
-      await selectAgent(page, backend);
+      const assistantPill = page.locator(presetPillById(assistantId));
+      if (!(await assistantPill.isVisible().catch(() => false))) {
+        test.skip(true, `${backend} assistant pill not visible on guid`);
+        return;
+      }
+
+      await assistantPill.click();
 
       // Check mode selector visibility
       const modeSelector = page.locator(MODE_SELECTOR);
@@ -140,10 +151,10 @@ test.describe('Guid Mode → Conversation Sync', () => {
       const modeB = availableModes[0];
 
       // Cycle 1: set modeA → verify in conversation
-      await runModeVerificationCycle(page, backend, modeA);
+      await runModeVerificationCycle(page, assistantId, modeA);
 
       // Cycle 2: set modeB → verify in conversation
-      await runModeVerificationCycle(page, backend, modeB);
+      await runModeVerificationCycle(page, assistantId, modeB);
     });
   }
 });
