@@ -472,4 +472,158 @@ finally:
       }),
     });
   });
+
+  it('stages sanitized, length-capped draft labels when draftInput is supplied', () => {
+    const root = makeRoot();
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+    initializeCrmOverlay({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T09:00:00.000Z'),
+    });
+
+    const longName = 'A'.repeat(300);
+    const longCompany = 'B'.repeat(200);
+    const result = createCrmDraftDeal({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T09:01:00.000Z'),
+      draftInput: {
+        companyDisplayName: longCompany,
+        contactDisplayName: 'Ada\tLovelace\n',
+        contactRoleTitle: 'Head of Sales',
+        dealLabel: 'Pilot Q3',
+        notes: longName,
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.status).toBe('ready');
+    expect(result.reason_code).toBe('CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY');
+
+    // Governance unchanged with real labels present.
+    expect(result.data_boundary_checked).toBe(true);
+    expect(result.data_boundary_receipt).toMatchObject({
+      version: 'command-eve-crm-nl5-local-receipt/v0',
+      action: 'crm_draft_deal_create',
+      status: 'local-only-pass',
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      provider_execution_allowed: false,
+      subprocess_spawned: false,
+      raw_text_stored: false,
+    });
+    expect(result.model?.recent_deals[0]).toMatchObject({
+      stage: 'draft',
+      allowed_actions: 'draft-only',
+      consent_status: 'unknown',
+      human_gate: 'HG-4',
+      data_class: 'S2',
+    });
+
+    const dbPath = result.model?.db_path || '';
+    const companyRows = readRows(dbPath, 'SELECT display_name, data_class FROM crm_companies ORDER BY company_id') as Array<{
+      display_name: string;
+      data_class: string;
+    }>;
+    // 200-char input capped to the 120 default maxLength.
+    expect(companyRows).toEqual([{ display_name: 'B'.repeat(120), data_class: 'S2' }]);
+
+    const contactRows = readRows(
+      dbPath,
+      'SELECT display_name, role_title, consent_status, data_class FROM crm_contacts ORDER BY contact_id'
+    ) as Array<{ display_name: string; role_title: string; consent_status: string; data_class: string }>;
+    // Control chars collapsed to single spaces, NUL stripped, trimmed.
+    expect(contactRows).toEqual([
+      { display_name: 'Ada Lovelace', role_title: 'Head of Sales', consent_status: 'unknown', data_class: 'S2' },
+    ]);
+
+    const dealRows = readRows(
+      dbPath,
+      'SELECT notes_ref, allowed_actions, consent_status, human_gate, data_class FROM crm_deals ORDER BY deal_id'
+    ) as Array<{ notes_ref: string; allowed_actions: string; consent_status: string; human_gate: string; data_class: string }>;
+    expect(dealRows).toEqual([
+      {
+        notes_ref: 'Pilot Q3',
+        allowed_actions: 'draft-only',
+        consent_status: 'unknown',
+        human_gate: 'HG-4',
+        data_class: 'S2',
+      },
+    ]);
+
+    // notes is length-capped at 240 — stored on the contact, never raw in telemetry.
+    const contactNotes = readRows(dbPath, 'SELECT notes_ref FROM crm_contacts ORDER BY contact_id') as Array<{
+      notes_ref: string;
+    }>;
+    expect(contactNotes[0].notes_ref.length).toBe(240);
+
+    // Telemetry is length-only: no raw label text in the audit payload.
+    const auditEvents = readAuditEvents(eventLedgerPath);
+    expect(auditEvents[1].event_type).toBe('crm.draft_deal_created');
+    expect(auditEvents[1].payload).toMatchObject({
+      company_label_length: 120,
+      contact_label_length: 'Ada Lovelace'.length,
+      contact_role_label_length: 'Head of Sales'.length,
+      deal_label_length: 'Pilot Q3'.length,
+      notes_length: 240,
+      local_only: true,
+      consent_status: 'unknown',
+      allowed_actions: 'draft-only',
+      human_gate: 'HG-4',
+      data_class: 'S2',
+    });
+    const payloadJson = JSON.stringify(auditEvents[1].payload);
+    expect(payloadJson).not.toContain(longCompany);
+    expect(payloadJson).not.toContain('Ada Lovelace');
+    expect(payloadJson).not.toContain('Pilot Q3');
+    expect(payloadJson).not.toContain(longName);
+  });
+
+  it('falls back to placeholder labels when draftInput is omitted (existing callers unchanged)', () => {
+    const root = makeRoot();
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+    initializeCrmOverlay({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T09:10:00.000Z'),
+    });
+
+    const result = createCrmDraftDeal({
+      userDataPath: root,
+      eventLedgerPath,
+      now: () => new Date('2026-06-15T09:11:00.000Z'),
+    });
+
+    expect(result.ok).toBe(true);
+    expect(result.reason_code).toBe('CRM_DRAFT_DEAL_CREATED_LOCAL_ONLY');
+    expect(result.data_boundary_receipt).toMatchObject({
+      data_class: 'S2',
+      human_gate: 'HG-4',
+      provider_execution_allowed: false,
+      subprocess_spawned: false,
+      raw_text_stored: false,
+    });
+
+    const dbPath = result.model?.db_path || '';
+    const companyRows = readRows(dbPath, 'SELECT display_name FROM crm_companies ORDER BY company_id');
+    expect(companyRows).toEqual([{ display_name: 'Draft Company' }]);
+    const contactRows = readRows(dbPath, 'SELECT display_name, role_title, notes_ref FROM crm_contacts ORDER BY contact_id');
+    expect(contactRows).toEqual([
+      { display_name: 'Draft Contact', role_title: 'Decision Maker', notes_ref: 'local-draft-only' },
+    ]);
+    const dealRows = readRows(
+      dbPath,
+      'SELECT notes_ref, allowed_actions, consent_status, human_gate, data_class FROM crm_deals ORDER BY deal_id'
+    );
+    expect(dealRows).toEqual([
+      {
+        notes_ref: 'local-draft-only',
+        allowed_actions: 'draft-only',
+        consent_status: 'unknown',
+        human_gate: 'HG-4',
+        data_class: 'S2',
+      },
+    ]);
+  });
 });
