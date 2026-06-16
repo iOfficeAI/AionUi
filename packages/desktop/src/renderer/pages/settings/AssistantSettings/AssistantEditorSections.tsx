@@ -364,6 +364,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
       </div>
 
       <DefaultsSection
+        key={`assistant-defaults-${localeKey}-${editAgent}`}
         localeKey={localeKey}
         isBuiltin={isBuiltin}
         isReadOnlyAssistant={isReadOnlyAssistant}
