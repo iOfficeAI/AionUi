@@ -60,10 +60,10 @@
   "more": "更多",
   "refresh": "刷新",
   "readOnly": "只读",
-  "tray.showWindow": "显示 AionUi",
+  "tray.showWindow": "显示 Coworker",
   "tray.newChat": "新建对话",
   "tray.closeToTray": "隐藏到托盘",
-  "tray.about": "关于 AionUi",
+  "tray.about": "关于 Coworker",
   "tray.restart": "重启应用",
   "tray.quit": "退出",
   "tray.runningTasks": "运行中的任务",
@@ -74,22 +74,22 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "当前系统不支持内置后端",
-      "description": "AionUi 已打开，但本地 AionCore 后端无法在当前 Linux 版本上运行。请升级到受支持的 Linux 发行版后重启 AionUi。",
+      "description": "Coworker 已打开，但本地 AionCore 后端无法在当前 Linux 版本上运行。请升级到受支持的 Linux 发行版后重启 Coworker。",
       "requiredVersions": "需要的运行时符号：{{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi 安装不完整",
-      "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionCore。",
+      "title": "Coworker 安装不完整",
+      "description": "当前安装缺少必要的本地资源，AionCore 无法启动。请下载并重新安装最新版 Coworker；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionCore。",
       "downloadLatest": "下载最新版",
       "sendDiagnostics": "发送诊断报告",
       "diagnosticsSent": "诊断报告已发送",
       "diagnosticsReportSuccess": "诊断报告已发送",
       "diagnosticsReportFailed": "诊断报告发送失败",
-      "runtimeComponentDescription": "当前安装缺少必要的内置运行组件，{{resource}} 无法启动。请重新安装最新版 AionUi；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 AionUi 组件。"
+      "runtimeComponentDescription": "当前安装缺少必要的内置运行组件，{{resource}} 无法启动。请重新安装最新版 Coworker；如果重新安装后仍然出现，请检查系统安全软件或杀毒软件是否隔离了 Coworker 组件。"
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi 安装包架构不匹配",
-      "description": "当前 AionUi 安装包是 {{packageArch}}，但这台 Mac 是 {{deviceArch}}。你可能下载了错误的安装包，请重新下载并安装 {{expectedArch}} 版本。"
+      "title": "Coworker 安装包架构不匹配",
+      "description": "当前 Coworker 安装包是 {{packageArch}}，但这台 Mac 是 {{deviceArch}}。你可能下载了错误的安装包，请重新下载并安装 {{expectedArch}} 版本。"
     }
   },
   "fileAttach.addFiles": "添加文件",

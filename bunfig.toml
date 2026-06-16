@@ -1,0 +1,3 @@
+[install]
+# Hoisted layout works better with Electron native deps and peer resolution.
+linker = "hoisted"

@@ -12,6 +12,7 @@ import { viteStaticCopy } from 'vite-plugin-static-copy';
 // at "0.0.0" — never use it for user-visible version strings.
 const rootPackageJson = JSON.parse(readFileSync(resolve(__dirname, '../../package.json'), 'utf-8')) as {
   version: string;
+  productName: string;
 };
 
 // Build builtin MCP servers after main process bundle so they survive out/main/ cleanup.
@@ -293,6 +294,7 @@ export default defineConfig(({ mode }) => {
         // can show it without importing packages/desktop/package.json, which is
         // a workspace-internal placeholder frozen at "0.0.0".
         __APP_VERSION__: JSON.stringify(rootPackageJson.version),
+        __APP_DISPLAY_NAME__: JSON.stringify(rootPackageJson.productName),
         global: 'globalThis',
       },
       optimizeDeps: {

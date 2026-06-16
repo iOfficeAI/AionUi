@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { APP_DISPLAY_NAME, FORK_REPO } from '@/common/brand';
 import type {
   UpdateCheckResult,
   UpdateDownloadProgressEvent,
@@ -55,8 +56,8 @@ interface AutoUpdateCheckParams {
   includePrerelease?: boolean;
 }
 
-const DEFAULT_REPO = 'iOfficeAI/AionUi';
-const DEFAULT_USER_AGENT = 'AionUi';
+const DEFAULT_REPO = FORK_REPO;
+const DEFAULT_USER_AGENT = APP_DISPLAY_NAME;
 const ALLOWED_ASSET_EXTS = new Set(['.exe', '.msi', '.dmg', '.zip', '.deb', '.rpm']);
 const CDN_HOST = 'static.aionui.com';
 const CDN_BASE_URL = `https://${CDN_HOST}/releases`;

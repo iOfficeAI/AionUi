@@ -16,6 +16,8 @@ import { useFeedback } from '@/renderer/hooks/context/FeedbackContext';
 import { isElectronDesktop, isMacOS } from '@/renderer/utils/platform';
 import './titlebar.css';
 
+declare const __APP_DISPLAY_NAME__: string;
+
 interface TitlebarProps {
   workspaceAvailable: boolean;
 }
@@ -104,7 +106,7 @@ const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size =
 
 const Titlebar: React.FC<TitlebarProps> = ({ workspaceAvailable }) => {
   const { t } = useTranslation();
-  const appTitle = useMemo(() => 'AionUi', []);
+  const appTitle = useMemo(() => __APP_DISPLAY_NAME__, []);
   const [workspaceCollapsed, setWorkspaceCollapsed] = useState(true);
   const [mobileCenterTitle, setMobileCenterTitle] = useState(appTitle);
   const [mobileCenterOffset, setMobileCenterOffset] = useState(0);

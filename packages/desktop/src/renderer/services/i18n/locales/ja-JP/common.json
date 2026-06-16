@@ -60,10 +60,10 @@
   "more": "その他",
   "refresh": "更新",
   "readOnly": "読み取り専用",
-  "tray.showWindow": "AionUi を表示",
+  "tray.showWindow": "Coworker を表示",
   "tray.newChat": "新しいチャット",
   "tray.closeToTray": "トレイに隠す",
-  "tray.about": "AionUi について",
+  "tray.about": "Coworker について",
   "tray.restart": "アプリを再起動",
   "tray.quit": "終了",
   "tray.runningTasks": "実行中のタスク",
@@ -74,22 +74,22 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "このシステムは同梱バックエンドに対応していません",
-      "description": "AionUi は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから AionUi を再起動してください。",
+      "description": "Coworker は開きましたが、ローカルの AionCore バックエンドはこの Linux バージョンでは実行できません。対応している Linux ディストリビューションにアップグレードしてから Coworker を再起動してください。",
       "requiredVersions": "必要なランタイムシンボル: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi のインストールが不完全です",
-      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の AionUi をダウンロードして再インストールしてください。再インストール後も問題が再発する場合は、セキュリティソフトまたはウイルス対策ソフトが AionCore を隔離していないか確認してください。",
+      "title": "Coworker のインストールが不完全です",
+      "description": "このインストールには必要なローカルリソースが不足しているため、AionCore を起動できません。最新の Coworker をダウンロードして再インストールしてください。再インストール後も問題が再発する場合は、セキュリティソフトまたはウイルス対策ソフトが AionCore を隔離していないか確認してください。",
       "downloadLatest": "最新版をダウンロード",
       "sendDiagnostics": "診断レポートを送信",
       "diagnosticsSent": "診断レポートを送信済み",
       "diagnosticsReportSuccess": "診断レポートを送信しました",
       "diagnosticsReportFailed": "診断レポートの送信に失敗しました",
-      "runtimeComponentDescription": "このインストールには必要な組み込み実行コンポーネントが不足しているため、{{resource}} を起動できません。最新版の AionUi パッケージを再インストールしてください。再インストール後も続く場合は、セキュリティソフトまたはウイルス対策ソフトが AionUi コンポーネントを隔離していないか確認してください。"
+      "runtimeComponentDescription": "このインストールには必要な組み込み実行コンポーネントが不足しているため、{{resource}} を起動できません。最新版の Coworker パッケージを再インストールしてください。再インストール後も続く場合は、セキュリティソフトまたはウイルス対策ソフトが Coworker コンポーネントを隔離していないか確認してください。"
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "Coworker package architecture mismatch",
+      "description": "This Coworker package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     }
   },
   "fileAttach.addFiles": "ファイルを追加",

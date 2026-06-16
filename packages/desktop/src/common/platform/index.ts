@@ -4,13 +4,15 @@ import { NodePlatformServices } from './NodePlatformServices';
 
 let _services: IPlatformServices | null = null;
 
+import { APP_DEV_NAME, APP_DEV_NAME_MULTI } from '@/common/brand';
+
 /**
  * Resolve the dev-mode app name for environment isolation.
  * Centralised so that every call-site stays in sync.
  */
 export function getDevAppName(): string {
   const isMultiInstance = process.env.AIONUI_MULTI_INSTANCE === '1';
-  return isMultiInstance ? 'AionUi-Dev-2' : 'AionUi-Dev';
+  return isMultiInstance ? APP_DEV_NAME_MULTI : APP_DEV_NAME;
 }
 
 export function registerPlatformServices(services: IPlatformServices): void {

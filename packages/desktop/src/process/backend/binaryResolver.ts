@@ -88,27 +88,48 @@ export function resolveBinaryPath(): string {
 /**
  * Check bundled binary in resources directory.
  * Layout: bundled-aioncore/{platform}-{arch}/aioncore[.exe]
+ *
+ * In dev, Electron's process.resourcesPath points at the framework bundle,
+ * not the repo's resources/ where prepareAioncore writes binaries.
  */
 function bundledPath(
   runtimeKey: string,
   binaryName: string,
   diagnostics: BackendBinaryResolveDiagnostics
 ): string | null {
-  const resourcesPath = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
-  if (!resourcesPath) return null;
-  diagnostics.resourcesPath = resourcesPath;
+  const resourcesBases = resolveBundledResourcesBases(diagnostics);
+  for (const resourcesPath of resourcesBases) {
+    const bundledDir = join(resourcesPath, 'bundled-aioncore');
+    const runtimeDir = join(bundledDir, runtimeKey);
+    const candidate = join(runtimeDir, binaryName);
+    diagnostics.checkedBundledPath = candidate;
+    diagnostics.bundledDirExists = existsSync(bundledDir);
+    diagnostics.runtimeDirExists = existsSync(runtimeDir);
+    diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
+    diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
 
-  const bundledDir = join(resourcesPath, 'bundled-aioncore');
-  const runtimeDir = join(bundledDir, runtimeKey);
-  const candidate = join(runtimeDir, binaryName);
-  diagnostics.checkedBundledPath = candidate;
-  diagnostics.bundledDirExists = existsSync(bundledDir);
-  diagnostics.runtimeDirExists = existsSync(runtimeDir);
-  diagnostics.resourcesDirEntries = listDirEntries(resourcesPath);
-  diagnostics.runtimeDirEntries = listDirEntries(runtimeDir);
-
-  if (existsSync(candidate)) return candidate;
+    if (existsSync(candidate)) return candidate;
+  }
   return null;
+}
+
+function resolveBundledResourcesBases(diagnostics: BackendBinaryResolveDiagnostics): string[] {
+  const bases: string[] = [];
+  const electronResources = (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath;
+  const devResources = join(process.cwd(), 'resources');
+
+  if (electronResources) {
+    bases.push(electronResources);
+  }
+  if (devResources !== electronResources) {
+    bases.push(devResources);
+  }
+
+  if (bases.length > 0) {
+    diagnostics.resourcesPath = bases[0];
+  }
+
+  return bases;
 }
 
 /**

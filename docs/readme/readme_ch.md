@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="../../resources/aionui-banner-1.png" alt="AionUi - Cowork with AI Agents" width="100%">
+  <img src="../../resources/aionui-banner-1.png" alt="Coworker - 与 AI 智能体协作" width="100%">
 </p>
 
 <p align="center">
@@ -19,8 +19,12 @@
 ---
 
 <p align="center">
-  <strong>免费、开源，与AI Agents协作的Cowork App</strong><br>
+  <strong>Coworker — 免费开源的 AI 智能体协作桌面</strong><br>
   <em>内置 Agent | 零配置 | 任意 API 密钥 | 多 Agent | 远程访问 | 跨平台 | 24/7 自动化</em>
+</p>
+
+<p align="center">
+  <em>Fork 自 <a href="https://github.com/iOfficeAI/AionUi">iOfficeAI/AionUi</a> · <a href="../fork-workflow.zh.md">二开与同步上游指南</a></em>
 </p>
 
 <p align="center">

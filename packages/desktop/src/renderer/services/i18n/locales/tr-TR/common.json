@@ -60,10 +60,10 @@
   "more": "Daha Fazla",
   "refresh": "Yenile",
   "readOnly": "Salt okunur",
-  "tray.showWindow": "AionUi'yi Göster",
+  "tray.showWindow": "Coworker'yi Göster",
   "tray.newChat": "Yeni Sohbet",
   "tray.closeToTray": "Tepsiye Gizle",
-  "tray.about": "AionUi Hakkında",
+  "tray.about": "Coworker Hakkında",
   "tray.restart": "Uygulamayı Yeniden Başlat",
   "tray.quit": "Çıkış",
   "tray.runningTasks": "Çalışan Görevler",
@@ -74,22 +74,22 @@
   "backendStartup": {
     "incompatibleRuntime": {
       "title": "Bu sistem paketlenmiş backend tarafından desteklenmiyor",
-      "description": "AionUi açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip AionUi'yi yeniden başlatın.",
+      "description": "Coworker açıldı, ancak yerel AionCore backend bu Linux sürümünde çalışamaz. Desteklenen bir Linux dağıtımına yükseltip Coworker'yi yeniden başlatın.",
       "requiredVersions": "Gerekli çalışma zamanı sembolleri: {{versions}}"
     },
     "incompleteInstallation": {
-      "title": "AionUi kurulumu eksik",
-      "description": "Bu kurulumda gerekli yerel kaynaklar eksik, bu yüzden AionCore başlatılamıyor. Lütfen en son AionUi sürümünü indirip yeniden kurun. Yeniden kurulumdan sonra sorun tekrarlarsa güvenlik veya antivirüs yazılımının AionCore'u karantinaya alıp almadığını kontrol edin.",
+      "title": "Coworker kurulumu eksik",
+      "description": "Bu kurulumda gerekli yerel kaynaklar eksik, bu yüzden AionCore başlatılamıyor. Lütfen en son Coworker sürümünü indirip yeniden kurun. Yeniden kurulumdan sonra sorun tekrarlarsa güvenlik veya antivirüs yazılımının AionCore'u karantinaya alıp almadığını kontrol edin.",
       "downloadLatest": "Son sürümü indir",
       "sendDiagnostics": "Tanı raporu gönder",
       "diagnosticsSent": "Tanı raporu gönderildi",
       "diagnosticsReportSuccess": "Tanı raporu gönderildi",
       "diagnosticsReportFailed": "Tanı raporu gönderilemedi",
-      "runtimeComponentDescription": "Bu kurulumda gerekli yerleşik çalışma zamanı bileşenleri eksik olduğu için {{resource}} başlatılamıyor. En son AionUi paketini yeniden yükleyin. Yeniden yükledikten sonra da devam ederse güvenlik veya antivirüs yazılımının AionUi bileşenlerini karantinaya alıp almadığını kontrol edin."
+      "runtimeComponentDescription": "Bu kurulumda gerekli yerleşik çalışma zamanı bileşenleri eksik olduğu için {{resource}} başlatılamıyor. En son Coworker paketini yeniden yükleyin. Yeniden yükledikten sonra da devam ederse güvenlik veya antivirüs yazılımının Coworker bileşenlerini karantinaya alıp almadığını kontrol edin."
     },
     "packageArchitectureMismatch": {
-      "title": "AionUi package architecture mismatch",
-      "description": "This AionUi package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
+      "title": "Coworker package architecture mismatch",
+      "description": "This Coworker package is for {{packageArch}}, but this Mac is {{deviceArch}}. You may have downloaded the wrong package. Please download and install the {{expectedArch}} package."
     }
   },
   "fileAttach.addFiles": "Dosya ekle",

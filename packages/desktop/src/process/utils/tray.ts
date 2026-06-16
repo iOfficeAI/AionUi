@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { BrowserWindow, Tray as TrayInstance } from 'electron';
+import { APP_DISPLAY_NAME, FORK_REPO } from '@/common/brand';
 import {
   electronApp as app,
   electronMenu as Menu,
@@ -243,7 +243,7 @@ export const createOrUpdateTray = (): void => {
   try {
     const icon = getTrayIcon();
     tray = new Tray(icon);
-    tray.setToolTip('AionUi');
+    tray.setToolTip(APP_DISPLAY_NAME);
     void buildTrayContextMenu().then((menu) => tray?.setContextMenu(menu));
 
     tray.on('double-click', () => {

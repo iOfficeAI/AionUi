@@ -23,6 +23,8 @@ import { useConversationShortcuts } from '@renderer/hooks/ui/useConversationShor
 import { isElectronDesktop } from '@renderer/utils/platform';
 import '@renderer/styles/layout.css';
 
+declare const __APP_DISPLAY_NAME__: string;
+
 const SidebarIcon: React.FC<{ size?: number; strokeWidth?: number }> = ({ size = 18, strokeWidth = 4 }) => (
   <svg
     width={size}
@@ -392,11 +394,11 @@ const Layout: React.FC<{
                         }
                       }}
                     >
-                      AionUi
+                      {__APP_DISPLAY_NAME__}
                     </div>
                   </Tooltip>
                 ) : (
-                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>AionUi</div>
+                  <div className='text-16px text-t-primary collapsed-hidden font-semibold'>{__APP_DISPLAY_NAME__}</div>
                 )}
                 {isMobile && !collapsed && (
                   <button

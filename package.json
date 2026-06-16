@@ -1,11 +1,11 @@
 {
-  "name": "AionUi",
+  "name": "Coworker",
   "version": "2.1.19",
-  "description": "Transform your command-line AI agent into a modern, efficient AI Chat interface.",
+  "description": "Coworker — a desktop workspace to chat and cowork with AI agents.",
   "keywords": [],
   "license": "Apache-2.0",
   "author": {
-    "name": "AionUi",
+    "name": "Coworker",
     "email": "service@aionui.com"
   },
   "workspaces": [
@@ -13,10 +13,10 @@
   ],
   "main": "./out/main/index.js",
   "scripts": {
-    "dev": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
-    "start": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
-    "start:multi": "cross-env AIONUI_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
-    "cli": "electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "dev": "cross-env ELECTRON_RUN_AS_NODE= electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "start": "cross-env ELECTRON_RUN_AS_NODE= electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "start:multi": "cross-env ELECTRON_RUN_AS_NODE= AIONUI_MULTI_INSTANCE=1 electron-vite dev --config packages/desktop/electron.vite.config.ts",
+    "cli": "cross-env ELECTRON_RUN_AS_NODE= electron-vite dev --config packages/desktop/electron.vite.config.ts",
     "webui": "tsx scripts/webui.ts",
     "webui:remote": "tsx scripts/webui.ts --remote",
     "webui:prod": "cross-env NODE_ENV=production tsx scripts/webui.ts",
@@ -269,5 +269,5 @@
   "patchedDependencies": {
     "7zip-bin@5.2.0": "patches/7zip-bin@5.2.0.patch"
   },
-  "productName": "AionUi"
+  "productName": "Coworker"
 }

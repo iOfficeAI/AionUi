@@ -1,12 +1,12 @@
-appId: com.aionui.app
-productName: AionUi
-executableName: AionUi
-copyright: Copyright © 2024 AionUi
+appId: com.coworker.app
+productName: Coworker
+executableName: Coworker
+copyright: Copyright © 2024 Coworker
 
 protocols:
-  - name: AionUi Protocol
+  - name: Coworker Protocol
     schemes:
-      - aionui
+      - coworker
 
 asar:
   smartUnpack: true
@@ -172,17 +172,17 @@ linux:
   icon: resources/app.png
   artifactName: ${productName}-${version}-${os}-${arch}.${ext}
   category: Utility
-  maintainer: aionui
-  vendor: aionui
+  maintainer: coworker
+  vendor: coworker
   synopsis: ${description}
   description: ${description}
   desktop:
     entry:
-      Name: AionUi
+      Name: Coworker
       Comment: ${description}
-      Icon: aionui
+      Icon: coworker
       Categories: Office;Utility;
-      MimeType: x-scheme-handler/aionui;
+      MimeType: x-scheme-handler/coworker;
 
 npmRebuild: false
 buildDependenciesFromSource: false

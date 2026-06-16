@@ -12,10 +12,10 @@
     "clearWorkspace": "Remover projeto",
     "openFolder": "Abrir Pasta",
     "none": "Nenhum",
-    "quickActionsTitle": "O que o AionUi pode fazer?",
+    "quickActionsTitle": "O que o Coworker pode fazer?",
     "quickActionFeedback": "Reportar Problema",
     "quickActionStar": "Gostou? Nos dê uma estrela!",
-    "skillsMarket": "Mercado de Habilidades AionUi",
+    "skillsMarket": "Mercado de Habilidades Coworker",
     "skillsMarketDesc": "Pesquise e ative as Habilidades da comunidade sob demanda. Configure uma vez, disponível para todos os agentes.",
     "skillsMarketDetails": "Ver Mais >>"
   },
@@ -269,8 +269,8 @@
       },
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
         "title": "Este caminho de projeto não é mais compatível com execução",
-        "body": "Esta conversa ou tarefa existente usa um caminho de projeto cujos nomes de diretório contêm espaços ou outros caracteres de espaço em branco. O AionUi não oferece mais suporte ao envio de mensagens em caminhos desse tipo. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco.",
-        "bodyWithPath": "O caminho de projeto existente \"{{workspacePath}}\" contém espaços ou outros caracteres de espaço em branco. O AionUi não oferece mais suporte ao envio de mensagens em conversas ou tarefas que usam esse caminho. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco."
+        "body": "Esta conversa ou tarefa existente usa um caminho de projeto cujos nomes de diretório contêm espaços ou outros caracteres de espaço em branco. O Coworker não oferece mais suporte ao envio de mensagens em caminhos desse tipo. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco.",
+        "bodyWithPath": "O caminho de projeto existente \"{{workspacePath}}\" contém espaços ou outros caracteres de espaço em branco. O Coworker não oferece mais suporte ao envio de mensagens em conversas ou tarefas que usam esse caminho. Crie uma nova conversa ou tarefa com um caminho de projeto sem espaços em branco."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
         "title": "O agente ou provedor upstream falhou",
