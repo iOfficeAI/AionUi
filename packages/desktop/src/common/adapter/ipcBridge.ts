@@ -869,6 +869,60 @@ export interface ICommandEveKanbanMarketingDispatchPlanRequest {
   eventLedgerPath?: string;
 }
 
+// ---------------------------------------------------------------------------
+// v15 gated marketing-executor LADDER (additive IPC contract)
+// Fail-closed: every handler maps a thrown error / blocked stage to
+// release_blocked:true, subprocess_spawned:false. The executor-promotion
+// request reads cao_gate_approved STRICTLY (=== true) — never defaulted.
+// ---------------------------------------------------------------------------
+export interface ICommandEveKanbanMarketingWorkerLoopResult {
+  version: string;
+  ok: boolean;
+  status: ICommandEveKanbanMarketingBoardStatus;
+  reason_code?: string;
+  reason_codes?: string[];
+  message?: string;
+  card_id?: string;
+  subprocess_spawned: boolean;
+  external_calls?: boolean;
+  data_boundary_checked: boolean;
+  controller_approval_status?: string;
+  controller_approved?: boolean;
+  release_blocked?: boolean;
+  human_gate?: 'HG-2.5' | 'HG-3' | 'HG-3.5';
+  audit_event_id?: string;
+  audit_event_path?: string;
+  dispatch_handoff_packet?: Record<string, unknown>;
+  worker_contract_yaml?: string;
+  worker_prompt?: string;
+  worker_observed_output?: string;
+  worker_start_gate_status?: 'ready' | 'blocked';
+  worker_start_packet?: Record<string, unknown>;
+  worker_dispatcher_prepare_status?: 'ready';
+  dispatcher_prepare_packet?: Record<string, unknown>;
+  worker_report?: string;
+  executor_promotion_packet?: Record<string, unknown>;
+  model?: ICommandEveKanbanMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
+export interface ICommandEveKanbanMarketingWorkerLoopRequest {
+  task_id: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+  dispatch_handoff_packet?: Record<string, unknown>;
+  approval_note?: string;
+  request_note?: string;
+  observed_note?: string;
+  gate_note?: string;
+  prepare_note?: string;
+  executor_enabled?: boolean;
+  executor_profile?: Record<string, unknown>;
+}
+
 export interface ICommandEveCrmOverlayPolicy {
   local_only: true;
   plane_sync_enabled: false;
@@ -1136,6 +1190,31 @@ export const commandEve = {
     IBridgeResponse<ICommandEveKanbanMarketingDispatchPlanResult>,
     ICommandEveKanbanMarketingDispatchPlanRequest
   >('command-eve.kanban-marketing-dispatch-plan'),
+  // v15 gated marketing-executor LADDER providers (additive, fail-closed handlers)
+  kanbanMarketingOutputApprove: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest
+  >('command-eve.kanban-marketing-output-approve'),
+  kanbanMarketingWorkerDispatchRequest: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest
+  >('command-eve.kanban-marketing-worker-dispatch-request'),
+  kanbanMarketingWorkerObservedRun: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest
+  >('command-eve.kanban-marketing-worker-observed-run'),
+  kanbanMarketingWorkerStartGate: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest
+  >('command-eve.kanban-marketing-worker-start-gate'),
+  kanbanMarketingWorkerDispatcherPrepare: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest
+  >('command-eve.kanban-marketing-worker-dispatcher-prepare'),
+  kanbanMarketingWorkerExecutorPromotion: bridge.buildProvider<
+    IBridgeResponse<ICommandEveKanbanMarketingWorkerLoopResult>,
+    ICommandEveKanbanMarketingWorkerLoopRequest & { cao_gate_approved?: boolean; promotion_note?: string }
+  >('command-eve.kanban-marketing-worker-executor-promotion'),
   crmOverlay: bridge.buildProvider<IBridgeResponse<ICommandEveCrmOverlayResult>, { eventLedgerPath?: string } | void>(
     'command-eve.crm-overlay'
   ),
