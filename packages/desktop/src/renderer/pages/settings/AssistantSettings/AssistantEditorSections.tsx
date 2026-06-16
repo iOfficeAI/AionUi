@@ -18,6 +18,7 @@ export type AssistantEditorSectionsProps = {
 
 const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ editor, activeAssistant }) => {
   const { t, i18n } = useTranslation();
+  const localeKey = i18n.resolvedLanguage ?? i18n.language;
   const { providers, getAvailableModels } = useModelProviderList();
   const [rulesExpanded, setRulesExpanded] = useState(false);
   const [addingPrompt, setAddingPrompt] = useState(false);
@@ -104,7 +105,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
         ...option,
         label: t(`agentMode.${option.value}`, { defaultValue: option.label }),
       })),
-    [editAgent, i18n.language, t]
+    [editAgent, localeKey, t]
   );
   const recommendedPromptItems = useMemo(
     () =>
@@ -363,7 +364,7 @@ const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ edito
       </div>
 
       <DefaultsSection
-        localeKey={i18n.language}
+        localeKey={localeKey}
         isBuiltin={isBuiltin}
         isReadOnlyAssistant={isReadOnlyAssistant}
         isCreating={isCreating}

@@ -296,6 +296,30 @@ describe('AssistantEditorSections', () => {
     });
   });
 
+  it('renders localized default permission options on initial non-English render', async () => {
+    mockLanguage = 'zh-CN';
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          agent: {
+            value: 'codex',
+            setValue: vi.fn(),
+            availableBackends: [],
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-permission'));
+    await waitFor(() => {
+      expect(screen.getByText('只读')).toBeInTheDocument();
+      expect(screen.getByText('自动')).toBeInTheDocument();
+      expect(screen.getByText('完全访问')).toBeInTheDocument();
+    });
+  });
+
   it('keeps builtin and disabled MCP servers in the default MCP summary', () => {
     renderWithProviders(
       <AssistantEditorSections
