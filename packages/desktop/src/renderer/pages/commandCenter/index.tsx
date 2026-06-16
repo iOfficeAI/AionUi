@@ -2935,20 +2935,6 @@ const CommandCenterPage: React.FC = () => {
     void refresh();
   }, [refresh]);
 
-  // Re-read only the marketing board when the chat /marketing-loop intent (in a
-  // different page) signals a new card + dispatch-plan receipt. Passing null to
-  // applyBoardModel forces a fresh kanbanMarketingBoard read.
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const handler = (): void => {
-      void applyBoardModel(null);
-    };
-    window.addEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
-    return () => {
-      window.removeEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
-    };
-  }, [applyBoardModel]);
-
   const model = result?.model;
   const totals = model?.morning_brief?.totals ?? {};
   const totalRows = useMemo(
@@ -3032,6 +3018,20 @@ const CommandCenterPage: React.FC = () => {
     const nextBoard = await kanbanMarketingBoard.invoke({ boardSlug: MARKETING_BOARD_SLUG });
     setMarketingResult(nextBoard.data ?? null);
   }, []);
+
+  // Re-read only the marketing board when the chat /marketing-loop intent (in a
+  // different page) signals a new card + dispatch-plan receipt. Passing null to
+  // applyBoardModel forces a fresh kanbanMarketingBoard read.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (): void => {
+      void applyBoardModel(null);
+    };
+    window.addEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
+    return () => {
+      window.removeEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
+    };
+  }, [applyBoardModel]);
 
   const submitCreateCard = useCallback(
     async (input: { title: string; description: string; lane_key: IMarketingLaneKey }) => {
