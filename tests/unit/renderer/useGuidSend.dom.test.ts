@@ -142,7 +142,7 @@ describe('useGuidSend', () => {
     expect(payload.extra.selected_session_mcp_servers).toEqual([expect.objectContaining({ id: 'builtin-mcp' })]);
   });
 
-  it('uses the selected assistant id instead of the legacy custom_agent_id alias for preset sends', async () => {
+  it('does not write legacy preset_assistant_id for preset assistant sends', async () => {
     const deps = createDeps();
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -153,7 +153,7 @@ describe('useGuidSend', () => {
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.assistant?.id).toBe('assistant-1');
-    expect(payload.extra.preset_assistant_id).toBe('assistant-1');
+    expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 
   it('forwards local skill overrides through assistant conversation overrides for ACP assistants', async () => {
@@ -194,7 +194,7 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('attaches the selected assistant id for bare Aion CLI assistant conversations', async () => {
+  it('does not write legacy preset_assistant_id for bare Aion CLI assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
@@ -208,10 +208,10 @@ describe('useGuidSend', () => {
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.assistant?.id).toBe('bare:aionrs');
-    expect(payload.extra.preset_assistant_id).toBe('bare:aionrs');
+    expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 
-  it('attaches the selected assistant id for bare ACP assistant conversations', async () => {
+  it('does not write legacy preset_assistant_id for bare ACP assistant conversations', async () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:claude';
     deps.selectedAssistantBackend = 'claude';
@@ -225,6 +225,6 @@ describe('useGuidSend', () => {
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.assistant?.id).toBe('bare:claude');
-    expect(payload.extra.preset_assistant_id).toBe('bare:claude');
+    expect(payload.extra.preset_assistant_id).toBeUndefined();
   });
 });
