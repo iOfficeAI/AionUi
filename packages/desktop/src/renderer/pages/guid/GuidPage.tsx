@@ -488,12 +488,12 @@ const GuidPage: React.FC = () => {
               <div className={`${styles.assistantPromptHint} mb-10px text-left`}>
                 {t('guid.promptExamplesHint', { defaultValue: 'Try these example prompts:' })}
               </div>
-              <div className='grid grid-cols-1 gap-9px sm:grid-cols-3'>
+              <div className='flex flex-col gap-9px'>
                 {selectedAssistantPrompts.map((prompt, index) => (
                   <Button
                     key={`${index}-${prompt}`}
                     type='text'
-                    className='!h-auto !rounded-10px !border !border-border-2 !bg-bg-base !px-10px !py-10px !text-left !text-12.5px !text-t-secondary transition-colors hover:!border-aou-6 hover:!text-t-primary'
+                    className='!h-auto !w-full !rounded-10px !border !border-border-2 !bg-bg-base !px-10px !py-10px !text-left !text-12.5px !text-t-secondary !whitespace-normal !break-words transition-colors hover:!border-aou-6 hover:!text-t-primary'
                     onClick={() => {
                       guidInput.setInput(prompt);
                       guidInput.handleTextareaFocus();

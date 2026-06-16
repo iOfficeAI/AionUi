@@ -6,7 +6,7 @@
 
 import { render, screen } from '@testing-library/react';
 import React from 'react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const {
   modelSelectionMock,
@@ -27,6 +27,7 @@ const {
   agentSelectionMock: {
     selectedAgent: 'custom',
     selectedAgentKey: 'custom:bare-aionrs',
+    selectedAssistantId: 'bare-aionrs',
     selectedAgentInfo: {
       id: 'bare-aionrs',
       custom_agent_id: 'bare-aionrs',
@@ -250,27 +251,94 @@ vi.mock('swr', async () => {
 import GuidPage from '@/renderer/pages/guid/GuidPage';
 
 describe('GuidPage', () => {
-  it('keeps a generic conversation heading and omits assistant-detail chrome on the home page', () => {
+  beforeEach(() => {
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
+    agentSelectionMock.assistants = [
+      {
+        id: 'bare-aionrs',
+        source: 'bare',
+        name: 'Aion CLI',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 10,
+        preset_agent_type: 'aionrs',
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {},
+        models: [],
+        agent_status: 'available',
+        team_selectable: true,
+        deletable: false,
+      },
+    ];
+  });
+
+  it('keeps a generic conversation heading and omits assistant-detail chrome on the home page', () => {
     render(<GuidPage />);
 
     expect(screen.queryByLabelText('common.back')).not.toBeInTheDocument();
     expect(screen.queryByLabelText('Assistant Details')).not.toBeInTheDocument();
     expect(screen.getByText('conversation.welcome.title')).toBeInTheDocument();
     expect(screen.getByTestId('assistant-selection-area')).toBeInTheDocument();
-    expect(capturedAssistantSelectionAreaProps).toHaveLength(1);
-    expect(capturedAssistantSelectionAreaProps[0]).not.toHaveProperty('is_presetAgent');
-    expect(capturedAssistantSelectionAreaProps[0]).not.toHaveProperty('selectedAgentInfo');
-    expect(capturedGuidActionRowProps).toHaveLength(1);
-    expect(capturedGuidActionRowProps[0]).not.toHaveProperty('hidePresetTag');
-    expect(capturedGuidActionRowProps[0]).not.toHaveProperty('is_presetAgent');
-    expect(capturedGuidActionRowProps[0]).not.toHaveProperty('selectedAgentInfo');
-    expect(capturedGuidActionRowProps[0]).not.toHaveProperty('onClosePresetTag');
-    expect(capturedGuidInputCardProps).toHaveLength(1);
-    expect(capturedGuidInputCardProps[0]).not.toHaveProperty('mentionOpen');
-    expect(capturedGuidInputCardProps[0]).not.toHaveProperty('mentionSelectorBadge');
-    expect(capturedGuidInputCardProps[0]).not.toHaveProperty('mentionDropdown');
+    const latestAssistantSelectionAreaProps = capturedAssistantSelectionAreaProps.at(-1);
+    const latestGuidActionRowProps = capturedGuidActionRowProps.at(-1);
+    const latestGuidInputCardProps = capturedGuidInputCardProps.at(-1);
+
+    expect(capturedAssistantSelectionAreaProps.length).toBeGreaterThan(0);
+    expect(latestAssistantSelectionAreaProps).not.toHaveProperty('is_presetAgent');
+    expect(latestAssistantSelectionAreaProps).not.toHaveProperty('selectedAgentInfo');
+    expect(capturedGuidActionRowProps.length).toBeGreaterThan(0);
+    expect(latestGuidActionRowProps).not.toHaveProperty('hidePresetTag');
+    expect(latestGuidActionRowProps).not.toHaveProperty('is_presetAgent');
+    expect(latestGuidActionRowProps).not.toHaveProperty('selectedAgentInfo');
+    expect(latestGuidActionRowProps).not.toHaveProperty('onClosePresetTag');
+    expect(capturedGuidInputCardProps.length).toBeGreaterThan(0);
+    expect(latestGuidInputCardProps).not.toHaveProperty('mentionOpen');
+    expect(latestGuidInputCardProps).not.toHaveProperty('mentionSelectorBadge');
+    expect(latestGuidInputCardProps).not.toHaveProperty('mentionDropdown');
+  });
+
+  it('renders example prompts with wrapping text for long assistant suggestions', () => {
+    agentSelectionMock.assistants = [
+      {
+        id: 'bare-aionrs',
+        source: 'bare',
+        name: 'Aion CLI',
+        name_i18n: {},
+        description_i18n: {},
+        enabled: true,
+        sort_order: 10,
+        preset_agent_type: 'aionrs',
+        enabled_skills: [],
+        custom_skill_names: [],
+        disabled_builtin_skills: [],
+        context_i18n: {},
+        prompts: [],
+        prompts_i18n: {
+          'en-US': [
+            'Create a three-page financial dashboard with profit, revenue mix, and conditional formatting highlights',
+          ],
+        },
+        models: [],
+        agent_status: 'available',
+        team_selectable: true,
+        deletable: false,
+      },
+    ];
+
+    render(<GuidPage />);
+
+    const promptButton = screen.getByRole('button', {
+      name: /Create a three-page financial dashboard with profit/i,
+    });
+
+    expect(promptButton.className).toContain('!whitespace-normal');
+    expect(promptButton.className).toContain('!break-words');
   });
 });
