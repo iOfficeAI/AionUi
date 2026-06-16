@@ -37,7 +37,6 @@ describe('resolveCronAgentConfig', () => {
         name: '文件规划助手',
         is_preset: true,
         assistant_id: 'assistant-1',
-        custom_agent_id: 'assistant-1',
         preset_agent_type: 'aionrs',
         mode: 'yolo',
         model_id: 'gemini-3.1-pro-preview',
@@ -69,7 +68,6 @@ describe('resolveCronAgentConfig', () => {
         name: 'Codex 助手',
         is_preset: true,
         assistant_id: 'assistant-2',
-        custom_agent_id: 'assistant-2',
         preset_agent_type: 'codex',
         mode: 'full-access',
         config_options: { reasoning_effort: 'high' },
@@ -77,6 +75,25 @@ describe('resolveCronAgentConfig', () => {
         workspace: undefined,
       },
     });
+  });
+
+  it('does not write legacy custom_agent_id for new preset cron jobs', () => {
+    const result = resolveCronAgentConfig({
+      agentValue: 'assistant-3',
+      conversationAgentType: 'acp',
+      presetAssistants: [
+        assistant({
+          id: 'assistant-3',
+          name: '社媒发布助手',
+          preset_agent_type: 'claude',
+        }),
+      ],
+      getMode: () => 'default',
+      aionrsModelRequiredMessage: 'provider required',
+    });
+
+    expect(result.agent_config).toBeDefined();
+    expect(result.agent_config).not.toHaveProperty('custom_agent_id');
   });
 });
 
