@@ -116,6 +116,13 @@ extraResources:
   # being published to the public Python package index.
   - from: resources/bundled-hermes
     to: bundled-hermes
+  # Self-contained CPython 3.12 (astral-sh/python-build-standalone), staged at
+  # build/bundled-python/python by scripts/fetch-bundled-python.mjs (NOT committed
+  # to git). Lands at Contents/Resources/python/ — interpreter at
+  # python/bin/python3.12. S2 bootstrap prefers it; S3 must deep-sign
+  # Resources/python/** before notarize. See docs/bundled-python.md.
+  - from: build/bundled-python/python
+    to: python
   - from: resources/hub
     to: hub
 win:
