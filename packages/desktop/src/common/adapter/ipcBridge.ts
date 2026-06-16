@@ -808,9 +808,6 @@ export const acpConversation = {
     (p) => `/api/agents/${p.id}/enabled`,
     (p) => ({ enabled: p.enabled })
   ),
-  checkAgentHealth: httpPost<{ available: boolean; latency?: number; error?: string }, { backend: string }>(
-    '/api/agents/health-check'
-  ),
   checkManagedAgentHealthById: httpPost<import('@/renderer/utils/model/agentTypes').ManagedAgent, { id: string }>(
     (p) => `/api/agents/${p.id}/health-check`,
     () => undefined
