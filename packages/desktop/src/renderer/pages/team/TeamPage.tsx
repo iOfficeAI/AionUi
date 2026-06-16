@@ -145,6 +145,7 @@ const AgentChatSlot: React.FC<{
             team_id={team_id}
             slot_id={agent.slot_id}
             assistant_name={agent.assistant_name}
+            assistant_backend={agent.assistant_backend}
             agent_icon={agent.icon}
             isLeader={isLeader}
             teamRunView={teamRunView}

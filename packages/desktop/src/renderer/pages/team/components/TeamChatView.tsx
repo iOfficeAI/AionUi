@@ -64,6 +64,7 @@ type TeamChatViewProps = {
   team_id?: string;
   slot_id?: string;
   assistant_name?: string;
+  assistant_backend?: string;
   agent_icon?: string;
   isLeader?: boolean;
   teamRunView?: TeamRunViewState;
@@ -80,18 +81,26 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   team_id,
   slot_id,
   assistant_name,
+  assistant_backend,
   agent_icon,
   isLeader,
   teamRunView = EMPTY_TEAM_RUN_VIEW,
   onTeamRunAck,
 }) => {
   const { t } = useTranslation();
-  // Single source of truth for the team greeting. Each *Chat simply forwards `emptySlot`
-  // to MessageList; the empty state itself reads team_id / backend / preset info from the
-  // shared SWR-cached conversation record, so none of that needs to flow through props.
+  // Single source of truth for the team greeting. Each *Chat simply forwards
+  // `emptySlot` to MessageList. The empty state can derive preset assistant
+  // details from the shared SWR-cached conversation record, but it should
+  // prefer the assistant identity already carried by the team runtime.
   const resolvedHideSendBox = hideSendBox || isLegacyReadOnlyConversationType(conversation.type);
   const emptySlot = team_id ? (
-    <TeamChatEmptyState conversation_id={conversation.id} icon={agent_icon} isLeader={isLeader} />
+    <TeamChatEmptyState
+      conversation_id={conversation.id}
+      assistant_name={assistant_name}
+      assistant_backend={assistant_backend}
+      icon={agent_icon}
+      isLeader={isLeader}
+    />
   ) : undefined;
   const teamSendMessage = useCallback<TeamSendOverride>(
     async ({ input, files }) => {
@@ -138,7 +147,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            backend={conversation.extra?.backend || 'claude'}
+            backend={assistant_backend ?? conversation.extra?.backend ?? 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={assistant_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={resolvedHideSendBox}

@@ -13,6 +13,8 @@ const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: 
 
 type Props = {
   conversation_id: string;
+  assistant_name?: string;
+  assistant_backend?: string;
   icon?: string;
   isLeader?: boolean;
 };
@@ -36,7 +38,13 @@ const toDraftKind = (type: TChatConversation['type']): TeamDraftKind => {
   return type === 'aionrs' ? 'aionrs' : 'acp';
 };
 
-const resolveAssistantBackendFromConversation = (conversation: TChatConversation): string => {
+const resolveAssistantBackendFromConversation = (
+  conversation: TChatConversation,
+  explicitAssistantBackend?: string
+): string => {
+  if (explicitAssistantBackend?.trim()) {
+    return explicitAssistantBackend.trim();
+  }
   if (conversation.type === 'acp') {
     return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'acp';
   }
@@ -46,8 +54,14 @@ const resolveAssistantBackendFromConversation = (conversation: TChatConversation
   return conversation.type;
 };
 
-const resolveAssistantName = (conversation: TChatConversation, presetName: string | null): string => {
+const resolveAssistantName = (
+  conversation: TChatConversation,
+  presetName: string | null,
+  explicitAssistantName?: string
+): string => {
   if (presetName) return presetName;
+  const trimmedExplicitName = explicitAssistantName?.trim();
+  if (trimmedExplicitName) return trimmedExplicitName;
   const extraAgentName = (conversation.extra as { agent_name?: string } | undefined)?.agent_name;
   if (extraAgentName && extraAgentName.trim()) return extraAgentName.trim();
   // conversation.name is typically "teamName - agentRole"
@@ -57,7 +71,13 @@ const resolveAssistantName = (conversation: TChatConversation, presetName: strin
   return 'Leader';
 };
 
-const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader = false }) => {
+const TeamChatEmptyState: React.FC<Props> = ({
+  conversation_id,
+  assistant_name,
+  assistant_backend,
+  icon,
+  isLeader = false,
+}) => {
   const { t } = useTranslation();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
@@ -89,8 +109,8 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
   )?.trim();
   if (!team_id) return null;
 
-  const assistantBackend = resolveAssistantBackendFromConversation(conversation);
-  const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null);
+  const assistantBackend = resolveAssistantBackendFromConversation(conversation, assistant_backend);
+  const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null, assistant_name);
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(assistantBackend);
 
