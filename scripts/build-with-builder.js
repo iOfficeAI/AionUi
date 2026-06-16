@@ -296,6 +296,33 @@ function cleanupWindowsPackOutput() {
   }
 }
 
+// Stage the self-contained CPython 3.12 bundle BEFORE electron-builder runs so its
+// `extraResources` mapping (build/bundled-python/python -> python) has a tree to copy
+// into Contents/Resources/python, and afterSign can then deep-sign it before notarize.
+// (The durable Alois fix — see docs/bundled-python.md.) Mac builds only; arm64 is the
+// only pinned/shipped arch (x86_64 is intentionally unpinned and not yet bundled, so it
+// is NOT fetched here — fetching it would fail-closed and abort an --arm64 --x64 build).
+// FAIL-CLOSED: a non-zero exit (download error / sha mismatch / unpinned) aborts the
+// build rather than packaging a missing/unverified bundle. IDEMPOTENT: the fetch script
+// re-verifies the staged tarball and skips download/extraction when already present.
+function fetchBundledPython() {
+  const fetchScript = path.join(__dirname, 'fetch-bundled-python.mjs');
+  console.log('🐍 Staging bundled CPython 3.12 (arm64) for extraResources...');
+  const result = spawnSync(process.execPath, [fetchScript, '--arch', 'arm64'], {
+    stdio: 'inherit',
+    env: process.env,
+  });
+  if (result.error) {
+    throw new Error(`Bundled-Python fetch could not start: ${result.error.message}`);
+  }
+  if (result.status !== 0) {
+    throw new Error(
+      `Bundled-Python fetch failed (exit ${result.status}) — aborting before electron-builder ` +
+        `to avoid packaging a missing/unverified python bundle. See docs/bundled-python.md.`
+    );
+  }
+}
+
 // Parse command line arguments
 const args = process.argv.slice(2);
 const archList = ['x64', 'arm64', 'ia32', 'armv7l'];
@@ -468,6 +495,14 @@ try {
 
   // 6. Prepare hub resources (index.json + extension zips for offline fallback)
   execSync('node scripts/prepareHubResources.js', { stdio: 'inherit', env: process.env });
+
+  // 6b. Stage the bundled CPython 3.12 for macOS builds, BEFORE electron-builder runs,
+  // so its extraResources mapping picks up build/bundled-python/python and afterSign can
+  // deep-sign it before notarize. Fail-closed (throws on fetch failure → caught below →
+  // exit 1). Guarded to mac builds only (the bundle is the macOS Alois runtime fix).
+  if (builderArgs.includes('--mac') || builderArgs.includes('--all')) {
+    fetchBundledPython();
+  }
 
   // 6. 运行 electron-builder 生成分发包（DMG/ZIP/EXE等）
   // Run electron-builder to create distributables (DMG/ZIP/EXE, etc.)
