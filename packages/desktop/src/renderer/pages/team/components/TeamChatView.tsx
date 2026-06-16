@@ -29,10 +29,10 @@ const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
   emptySlot?: React.ReactNode;
-  agent_name?: string;
+  assistant_name?: string;
   teamSendMessage?: TeamSendOverride;
   teamRuntime?: ReturnType<typeof buildTeamSendRuntime>;
-}> = ({ conversation, emptySlot, agent_name, teamSendMessage, teamRuntime }) => {
+}> = ({ conversation, emptySlot, assistant_name, teamSendMessage, teamRuntime }) => {
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -50,7 +50,7 @@ const AionrsTeamChat: React.FC<{
       workspace={conversation.extra.workspace}
       modelSelection={modelSelection}
       emptySlot={emptySlot}
-      agent_name={agent_name}
+      agent_name={assistant_name}
       teamSendMessage={teamSendMessage}
       teamRuntime={teamRuntime}
     />
@@ -63,7 +63,7 @@ type TeamChatViewProps = {
   /** When set, shows the team greeting empty state */
   team_id?: string;
   slot_id?: string;
-  agent_name?: string;
+  assistant_name?: string;
   agent_icon?: string;
   isLeader?: boolean;
   teamRunView?: TeamRunViewState;
@@ -79,7 +79,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   hideSendBox,
   team_id,
   slot_id,
-  agent_name,
+  assistant_name,
   agent_icon,
   isLeader,
   teamRunView = EMPTY_TEAM_RUN_VIEW,
@@ -140,7 +140,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             workspace={conversation.extra?.workspace}
             backend={conversation.extra?.backend || 'claude'}
             session_mode={conversation.extra?.session_mode}
-            agent_name={agent_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
+            agent_name={assistant_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
             teamSendMessage={teamSendMessageOverride}
@@ -153,7 +153,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
-            agent_name={agent_name}
+            assistant_name={assistant_name}
             teamSendMessage={teamSendMessageOverride}
             teamRuntime={teamRuntime}
           />

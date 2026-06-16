@@ -11,8 +11,8 @@ const TAB_OVERFLOW_THRESHOLD = 10;
 
 type TeamTabViewProps = {
   slot_id: string;
-  agent_name: string;
-  agent_type: string;
+  assistant_name: string;
+  assistant_backend: string;
   icon?: string;
   conversation_id?: string;
   isActive: boolean;
@@ -31,8 +31,8 @@ type TeamTabViewProps = {
 
 const TeamTabView: React.FC<TeamTabViewProps> = ({
   slot_id,
-  agent_name,
-  agent_type,
+  assistant_name,
+  assistant_backend,
   icon,
   conversation_id,
   isActive,
@@ -48,7 +48,7 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   isDragOver,
 }) => {
   const [editing, setEditing] = useState(false);
-  const [editValue, setEditValue] = useState(agent_name);
+  const [editValue, setEditValue] = useState(assistant_name);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -61,32 +61,32 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
   const commitRename = useCallback(() => {
     const trimmed = editValue.trim();
     setEditing(false);
-    if (trimmed && trimmed !== agent_name && onRename) {
+    if (trimmed && trimmed !== assistant_name && onRename) {
       onRename(slot_id, trimmed);
     } else {
-      setEditValue(agent_name);
+      setEditValue(assistant_name);
     }
-  }, [editValue, agent_name, slot_id, onRename]);
+  }, [editValue, assistant_name, slot_id, onRename]);
 
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
       if (e.key === 'Enter') {
         commitRename();
       } else if (e.key === 'Escape') {
-        setEditValue(agent_name);
+        setEditValue(assistant_name);
         setEditing(false);
       }
     },
-    [commitRename, agent_name]
+    [commitRename, assistant_name]
   );
 
   const startEditing = useCallback(
     (e: React.MouseEvent) => {
       e.stopPropagation();
-      setEditValue(agent_name);
+      setEditValue(assistant_name);
       setEditing(true);
     },
-    [agent_name]
+    [assistant_name]
   );
 
   const isRunning = status === 'active';
@@ -137,8 +137,8 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
             </span>
           )}
           <TeamAgentIdentity
-            agent_name={agent_name}
-            agent_type={agent_type}
+            assistant_name={assistant_name}
+            assistant_backend={assistant_backend}
             icon={icon}
             conversation_id={conversation_id}
             isLeader={isLeader}
@@ -253,8 +253,8 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
               <TeamTabView
                 key={agent.slot_id}
                 slot_id={agent.slot_id}
-                agent_name={agent.agent_name}
-                agent_type={agent.agent_type}
+                assistant_name={agent.assistant_name}
+                assistant_backend={agent.assistant_backend}
                 icon={agent.icon}
                 conversation_id={agent.conversation_id}
                 isActive={agent.slot_id === activeSlotId}

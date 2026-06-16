@@ -37,6 +37,23 @@ describe('teamMapper', () => {
     expect(agent.status).toBe('active');
   });
 
+  it('maps backend agent fields into assistant-first frontend runtime fields', () => {
+    const agent = fromBackendAgent({
+      slot_id: 'slot-1',
+      conversation_id: 'conversation-1',
+      role: 'teammate',
+      backend: 'claude',
+      agent_type: 'claude',
+      agent_name: 'Worker',
+      status: 'idle',
+    });
+
+    expect(agent.assistant_backend).toBe('claude');
+    expect(agent.assistant_name).toBe('Worker');
+    expect(agent).not.toHaveProperty('agent_type');
+    expect(agent).not.toHaveProperty('agent_name');
+  });
+
   it('hydrates assistant identity from either assistant_id or legacy custom_agent_id', () => {
     expect(
       fromBackendAgent({
@@ -79,14 +96,15 @@ describe('teamMapper', () => {
     expect(
       toBackendAgent({
         role: 'leader',
-        agent_type: 'aionrs',
-        agent_name: 'Aion CLI',
+        assistant_backend: 'aionrs',
+        assistant_name: 'Aion CLI',
         conversation_type: 'aionrs',
         status: 'pending',
         assistant_id: 'assistant-1',
       })
     ).toMatchObject({
       backend: 'aionrs',
+      name: 'Aion CLI',
       assistant_id: 'assistant-1',
     });
   });

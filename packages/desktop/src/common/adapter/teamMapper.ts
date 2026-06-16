@@ -70,9 +70,9 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
     slot_id: (r.slot_id as string | undefined) ?? '',
     conversation_id: (r.conversation_id as string | undefined) ?? '',
     role: toRole(r.role as string | undefined),
-    agent_type: agentType,
+    assistant_backend: agentType,
     icon: r.icon as string | undefined,
-    agent_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
+    assistant_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
     conversation_type: conversationType,
     status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,
@@ -111,9 +111,9 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 
 export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
   return {
-    name: a.agent_name,
+    name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
-    backend: a.agent_type,
+    backend: a.assistant_backend,
     model: a.model || 'default',
     ...(a.assistant_id ? { assistant_id: a.assistant_id } : {}),
   };

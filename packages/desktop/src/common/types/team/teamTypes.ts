@@ -19,9 +19,9 @@ export type TeamAgent = {
   slot_id: string;
   conversation_id: string;
   role: TeammateRole;
-  agent_type: string;
+  assistant_backend: string;
   icon?: string;
-  agent_name: string;
+  assistant_name: string;
   conversation_type: string;
   status: TeammateStatus;
   cli_path?: string;

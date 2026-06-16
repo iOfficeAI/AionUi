@@ -6,8 +6,8 @@ import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 
 type Props = {
-  agent_name: string;
-  agent_type: string;
+  assistant_name: string;
+  assistant_backend: string;
   icon?: string;
   /** When provided, enables preset-aware avatar (emoji / custom svg) via the agent's conversation extras. */
   conversation_id?: string;
@@ -21,8 +21,8 @@ type Props = {
 };
 
 const TeamAgentIdentity: React.FC<Props> = ({
-  agent_name,
-  agent_type,
+  assistant_name,
+  assistant_backend,
   icon,
   conversation_id,
   isLeader = false,
@@ -37,9 +37,9 @@ const TeamAgentIdentity: React.FC<Props> = ({
     getConversationOrNull(conversation_id!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
-  const displayName = presetInfo?.name || agent_name;
+  const displayName = presetInfo?.name || assistant_name;
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(agent_type);
+  const backendLogo = getAgentLogo(assistant_backend);
 
   const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
   const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;

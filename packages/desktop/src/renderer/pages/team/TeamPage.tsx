@@ -94,8 +94,8 @@ const AgentChatSlot: React.FC<{
         }
       >
         <TeamAgentIdentity
-          agent_name={agent.agent_name}
-          agent_type={agent.agent_type}
+          assistant_name={agent.assistant_name}
+          assistant_backend={agent.assistant_backend}
           icon={agent.icon}
           conversation_id={agent.conversation_id}
           isLeader={isLeader}
@@ -108,7 +108,7 @@ const AgentChatSlot: React.FC<{
               <AcpModelSelector
                 key={agent.conversation_id}
                 conversation_id={agent.conversation_id}
-                backend={agent.agent_type}
+                backend={agent.assistant_backend}
                 initialModelId={initialModelId}
               />
             </div>
@@ -144,7 +144,7 @@ const AgentChatSlot: React.FC<{
             conversation={conversation as TChatConversation}
             team_id={team_id}
             slot_id={agent.slot_id}
-            agent_name={agent.agent_name}
+            assistant_name={agent.assistant_name}
             agent_icon={agent.icon}
             isLeader={isLeader}
             teamRunView={teamRunView}
