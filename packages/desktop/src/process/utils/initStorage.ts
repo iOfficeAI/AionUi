@@ -33,6 +33,8 @@ import {
   BUILTIN_IMAGE_GEN_LEGACY_NAMES,
   BUILTIN_IMAGE_GEN_NAME,
 } from '../resources/builtinMcp/constants';
+import { encryptImageGenApiKeyAtRest } from '@/common/config/imageGenApiKeyAtRest';
+import { IMAGE_GEN_ENV_KEYS } from '@/common/config/imageGenerationMcpEnv';
 // Platform and architecture types (moved from deleted updateConfig)
 type PlatformType = 'win32' | 'darwin' | 'linux';
 type ArchitectureType = 'x64' | 'arm64' | 'ia32' | 'arm';
@@ -420,15 +422,34 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       shouldEnable = true;
     }
 
-    // Build env vars from existing image generation model config
+    // Build env vars from existing image generation model config.
+    //
+    // SECURITY (keychain P0 — image-gen lane): we deliberately do NOT write
+    // AIONUI_IMG_API_KEY into this locally-persisted env. The api_key is the
+    // one TS-fixable local-file plaintext leak (it used to be copied here and
+    // saved into command-eve-config.txt). The authoritative, FUNCTIONAL env
+    // value is re-derived later from the provider record by
+    // runBackendMigrations.ensureBootstrapMcpServersInDb
+    // (imageGenerationMcpEnv.buildEnv, sourced from provider.api_key), which
+    // OVERRIDES this server's image env in the backend DB before any child is
+    // spawned. Persisting the key here only duplicated a secret onto disk.
     const buildEnvFromConfig = (cfg: typeof oldConfig): Record<string, string> => {
       if (!cfg) return {};
       const env: Record<string, string> = {};
       if (cfg.platform) env.AIONUI_IMG_PLATFORM = cfg.platform;
       if (cfg.base_url) env.AIONUI_IMG_BASE_URL = cfg.base_url;
-      if (cfg.api_key) env.AIONUI_IMG_API_KEY = cfg.api_key;
+      // NOTE: api_key intentionally omitted — never persist it to the local file.
       if (cfg.use_model) env.AIONUI_IMG_MODEL = cfg.use_model;
       return env;
+    };
+
+    // Defence-in-depth: strip any pre-existing AIONUI_IMG_API_KEY (plaintext OR
+    // a stale keychain ref) from an env we are about to re-persist locally, so a
+    // legacy on-disk value written by an older build is removed on this pass.
+    const stripApiKeyFromEnv = (env: Record<string, string> | undefined): Record<string, string> => {
+      const next = { ...(env || {}) };
+      delete next[IMAGE_GEN_ENV_KEYS.apiKey];
+      return next;
     };
 
     const buildOriginalJson = (scriptPathValue: string, env: Record<string, string>) =>
@@ -458,22 +479,32 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
 
       const needsMigration = shouldEnable && !existing.enabled;
 
-      if (needsNameMigration || needsPathUpdate || needsMigration) {
+      // SECURITY (keychain P0): a legacy on-disk env may still carry a plaintext
+      // AIONUI_IMG_API_KEY written by an older build. If so we must remove it
+      // from the locally-persisted copy regardless of the other update flags.
+      const existingEnvHasApiKey =
+        existing.transport.type === 'stdio' && Boolean(existing.transport.env?.[IMAGE_GEN_ENV_KEYS.apiKey]);
+
+      if (needsNameMigration || needsPathUpdate || needsMigration || existingEnvHasApiKey) {
         let updatedTransport: IMcpServer['transport'] = existing.transport;
 
         if (existing.transport.type === 'stdio') {
+          // Always strip the api_key from any env we re-persist locally; merge
+          // in the (api_key-free) config-derived env only during migration.
           const mergedEnv = needsMigration
-            ? { ...existing.transport.env, ...buildEnvFromConfig(oldConfig) }
-            : existing.transport.env;
+            ? stripApiKeyFromEnv({ ...existing.transport.env, ...buildEnvFromConfig(oldConfig) })
+            : stripApiKeyFromEnv(existing.transport.env);
           updatedTransport = {
             ...existing.transport,
             ...(needsPathUpdate && { args: [scriptPath] }),
-            ...(needsMigration && { env: mergedEnv }),
+            env: mergedEnv,
           };
         }
 
+        // Re-serialize original_json whenever the path changed OR we scrubbed a
+        // plaintext api_key out of the env, so the persisted JSON matches.
         const newOriginalJson =
-          needsPathUpdate && updatedTransport.type === 'stdio'
+          (needsPathUpdate || existingEnvHasApiKey) && updatedTransport.type === 'stdio'
             ? buildOriginalJson(scriptPath, updatedTransport.env ?? {})
             : existing.original_json;
 
@@ -515,10 +546,28 @@ const ensureBuiltinMcpServers = async (): Promise<void> => {
       console.log('[CommandEVE] Built-in MCP servers ensured');
     }
 
-    // Clear old switch flag after migration
-    if (shouldEnable && oldConfig) {
+    // SECURITY (keychain P0 — image-gen lane): re-persist
+    // tools.imageGenerationModel so any LEGACY plaintext api_key left on disk by
+    // an older build is upgraded to a keychain:v1: ref (one-time migration).
+    // FAIL CLOSED: when the keychain is unavailable the helper drops the key
+    // rather than re-writing plaintext. We do this independently of the old
+    // switch-flag clear so a never-enabled legacy config is still scrubbed.
+    if (oldConfig) {
+      // `rest` strips the transient `switch` flag exactly as before.
       const { switch: _switch, ...rest } = oldConfig;
-      await configFile.set('tools.imageGenerationModel', rest as typeof oldConfig);
+      const atRest = encryptImageGenApiKeyAtRest(rest as typeof rest & { api_key?: string });
+      if (atRest.outcome === 'dropped-fail-closed') {
+        console.warn(
+          '[CommandEVE] image-gen api_key could not be encrypted at rest (%s); dropped from local config — keychain required to persist secrets',
+          atRest.reason_code
+        );
+      }
+      // Re-persist when the switch flag had to be cleared (legacy behaviour) OR
+      // the api_key value changed (wrapped to a ref or dropped). Never writes
+      // plaintext: `atRest.config.api_key` is a ref, '' , or unchanged-already-ref.
+      if (shouldEnable || atRest.changed) {
+        await configFile.set('tools.imageGenerationModel', atRest.config as typeof oldConfig);
+      }
     }
   } catch (error) {
     console.error('[CommandEVE] Failed to ensure built-in MCP servers:', error);
