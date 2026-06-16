@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
-import { DETECTED_AGENTS_SWR_KEY, MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
+import { MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
 import useSWR, { mutate } from 'swr';
 
 export type UseManagedAgentsResult = {
@@ -23,21 +23,17 @@ export type UseManagedAgentsResult = {
  * user-disabled or missing agents stay listed with working test-connection
  * and re-enable actions.
  *
- * Its `revalidate` refreshes **both** the management key and the shared
- * `DETECTED_AGENTS_SWR_KEY`, so diagnostics-oriented settings surfaces that
- * still consume `/api/agents` immediately see the latest status after
- * toggles or test-connection runs.
+ * Its `revalidate` refreshes the management key only. Business candidate
+ * selection must not depend on `/api/agents`; settings diagnostics should not
+ * reach across and mutate unrelated caches.
  *
  * Do not use this anywhere other than `AgentSettings`.
  */
 export const useManagedAgents = (): UseManagedAgentsResult => {
   const { data, isLoading, error } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
 
-  const revalidateBoth = async () => {
-    const [managed] = await Promise.all([
-      mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY),
-      mutate(DETECTED_AGENTS_SWR_KEY),
-    ]);
+  const revalidateManaged = async () => {
+    const managed = await mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY);
     return managed;
   };
 
@@ -45,10 +41,10 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
     agents: data ?? [],
     isLoading,
     error,
-    revalidate: revalidateBoth,
+    revalidate: revalidateManaged,
     refreshCustomAgents: async () => {
       await ipcBridge.acpConversation.refreshCustomAgents.invoke();
-      await revalidateBoth();
+      await revalidateManaged();
     },
   };
 };

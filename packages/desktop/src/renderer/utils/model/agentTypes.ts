@@ -13,7 +13,8 @@ export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
  * SWR key for the Agent settings management view
  * (`/api/agents?include_disabled=true`). Kept separate from
  * {@link DETECTED_AGENTS_SWR_KEY} so user-disabled agents never leak into
- * the pickers that consume the shared detected key.
+ * assistant-editor detection surfaces that still derive backend options from
+ * live agent metadata.
  */
 export const MANAGED_AGENTS_SWR_KEY = 'agents.managed';
 
@@ -159,8 +160,8 @@ export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
  * Fetcher for MANAGED_AGENTS_SWR_KEY — the Agent settings management view.
  * Hits `/api/agents/management` so user-disabled and missing rows remain
  * visible for diagnostics and re-enable/test-connection actions. Must only be
- * used by the settings surface; business pickers use
- * {@link fetchDetectedAgents}.
+ * used by the settings surface; user-facing business pickers must not depend
+ * on `/api/agents`.
  */
 export async function fetchManagedAgents(): Promise<ManagedAgent[]> {
   try {

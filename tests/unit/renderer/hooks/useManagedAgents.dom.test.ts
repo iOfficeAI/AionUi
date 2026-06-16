@@ -6,10 +6,8 @@
  * Unit tests for renderer/hooks/agent/useAgents.ts → useManagedAgents.
  *
  * The Agent settings management surface must read the
- * `include_disabled=true` view (a SEPARATE SWR key from the shared detected
- * cache) and, when an agent is toggled, revalidate BOTH keys so other
- * diagnostics-oriented settings consumers immediately see the refreshed
- * management state.
+ * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
+ * cache) and revalidate the management key only.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -72,7 +70,7 @@ describe('useManagedAgents', () => {
     expect(result.current.agents).toEqual([]);
   });
 
-  it('revalidate refreshes BOTH the management and the shared detected key', async () => {
+  it('revalidate refreshes the management key only', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -82,10 +80,10 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCustomAgents triggers a backend rescan then revalidates both keys', async () => {
+  it('refreshCustomAgents triggers a backend rescan then revalidates the management key only', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -96,7 +94,7 @@ describe('useManagedAgents', () => {
 
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
   it('getManagedAgents fetches the management catalog and updates the managed cache only', async () => {
