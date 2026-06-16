@@ -70,7 +70,7 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
     slot_id: (r.slot_id as string | undefined) ?? '',
     conversation_id: (r.conversation_id as string | undefined) ?? '',
     role: toRole(r.role as string | undefined),
-    assistant_backend: agentType,
+    assistant_backend: backend,
     icon: r.icon as string | undefined,
     assistant_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
     conversation_type: conversationType,

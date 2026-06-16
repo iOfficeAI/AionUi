@@ -54,6 +54,21 @@ describe('teamMapper', () => {
     expect(agent).not.toHaveProperty('agent_name');
   });
 
+  it('prefers the concrete backend over generic agent_type when hydrating assistant runtime fields', () => {
+    const agent = fromBackendAgent({
+      slot_id: 'slot-1',
+      conversation_id: 'conversation-1',
+      role: 'teammate',
+      backend: 'claude',
+      agent_type: 'acp',
+      agent_name: 'Worker',
+      status: 'idle',
+    });
+
+    expect(agent.assistant_backend).toBe('claude');
+    expect(agent.conversation_type).toBe('acp');
+  });
+
   it('hydrates assistant identity from either assistant_id or legacy custom_agent_id', () => {
     expect(
       fromBackendAgent({
