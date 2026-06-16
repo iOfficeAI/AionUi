@@ -5,7 +5,6 @@
  */
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { resolveSupportedConversationType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 export type ChannelAssistantBinding =
   | {
@@ -51,13 +50,8 @@ export function resolveChannelAssistantId(saved: ChannelAssistantBinding, assist
 }
 
 export function buildChannelAssistantBinding(assistant: Assistant) {
-  const backend = assistant.preset_agent_type;
-
   return {
     assistant_id: assistant.id,
-    custom_agent_id: assistant.id,
-    backend,
-    agent_type: resolveSupportedConversationType(backend),
     name: assistant.name,
   };
 }

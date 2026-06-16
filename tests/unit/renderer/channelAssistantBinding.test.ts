@@ -61,12 +61,9 @@ describe('channel assistant binding helpers', () => {
     expect(resolveChannelAssistantId('claude', assistants)).toBe('bare-claude');
   });
 
-  it('serializes assistant identity while retaining backend compatibility fields', () => {
+  it('serializes only assistant identity for new channel bindings', () => {
     expect(buildChannelAssistantBinding(assistants[1])).toEqual({
       assistant_id: 'bare-claude',
-      custom_agent_id: 'bare-claude',
-      backend: 'claude',
-      agent_type: 'acp',
       name: 'Claude',
     });
   });
