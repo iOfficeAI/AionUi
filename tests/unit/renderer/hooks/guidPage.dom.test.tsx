@@ -149,8 +149,8 @@ vi.mock('@/renderer/pages/guid/hooks/useGuidModelSelection', () => ({
   useGuidModelSelection: () => modelSelectionMock,
 }));
 
-vi.mock('@/renderer/pages/guid/hooks/useGuidAgentSelection', () => ({
-  useGuidAgentSelection: () => agentSelectionMock,
+vi.mock('@/renderer/pages/guid/hooks/useGuidAssistantSelection', () => ({
+  useGuidAssistantSelection: () => agentSelectionMock,
   resolveAssistantSelectionKey: vi.fn(),
   pickDefaultAssistantSelectionKey: vi.fn(),
 }));
@@ -226,11 +226,39 @@ vi.mock('@/renderer/pages/guid/utils/assistantDefaults', () => ({
   }),
 }));
 
+const swrMock = vi.hoisted(() => ({
+  useSWRMock: vi.fn(),
+}));
+
+const assistantDetailFixture = {
+  prompts: {
+    recommended: [],
+    recommended_i18n: {
+      'en-US': [
+        'Create a three-page financial dashboard with profit, revenue mix, and conditional formatting highlights',
+      ],
+    },
+  },
+  defaults: {
+    model: { mode: 'auto' },
+    permission: { mode: 'auto' },
+    skills: { mode: 'auto', value: [] },
+    mcps: { mode: 'auto', value: [] },
+  },
+  preferences: {
+    last_model_id: null,
+    last_permission_value: null,
+    last_skill_ids: [],
+    last_disabled_builtin_skill_ids: [],
+    last_mcp_ids: [],
+  },
+};
+
 vi.mock('swr', async () => {
   const actual = await vi.importActual<typeof import('swr')>('swr');
   return {
     ...actual,
-    default: () => ({ data: null }),
+    default: swrMock.useSWRMock,
     mutate: vi.fn(),
   };
 });
@@ -239,6 +267,7 @@ import GuidPage from '@/renderer/pages/guid/GuidPage';
 
 describe('GuidPage', () => {
   beforeEach(() => {
+    swrMock.useSWRMock.mockReturnValue({ data: null });
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
@@ -319,6 +348,15 @@ describe('GuidPage', () => {
         deletable: false,
       },
     ];
+
+    swrMock.useSWRMock.mockImplementation((key: string | null) => {
+      if (key?.startsWith('guid.assistant.detail.')) {
+        return {
+          data: assistantDetailFixture,
+        };
+      }
+      return { data: null };
+    });
 
     render(<GuidPage />);
 

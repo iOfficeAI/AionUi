@@ -10,8 +10,8 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import {
   buildAssistantModelInfo,
   resolveInitialAssistantModel,
-  useGuidAgentSelection,
-} from '@/renderer/pages/guid/hooks/useGuidAgentSelection';
+  useGuidAssistantSelection,
+} from '@/renderer/pages/guid/hooks/useGuidAssistantSelection';
 
 vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   useCustomAgentsLoader: () => ({
@@ -40,10 +40,10 @@ vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   }),
 }));
 
-describe('useGuidAgentSelection', () => {
+describe('useGuidAssistantSelection', () => {
   it('derives availability and model info from assistant catalog data', async () => {
     const { result } = renderHook(() =>
-      useGuidAgentSelection({
+      useGuidAssistantSelection({
         resetAssistant: false,
       })
     );

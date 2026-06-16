@@ -17,7 +17,7 @@ import GuidInputCard from './components/GuidInputCard';
 import GuidModelSelector from './components/GuidModelSelector';
 import QuickActionButtons from './components/QuickActionButtons';
 import FeedbackReportModal from '@/renderer/components/settings/SettingsModal/contents/FeedbackReportModal';
-import { useGuidAgentSelection } from './hooks/useGuidAgentSelection';
+import { useGuidAssistantSelection } from './hooks/useGuidAssistantSelection';
 import { useGuidInput } from './hooks/useGuidInput';
 import { useGuidModelSelection } from './hooks/useGuidModelSelection';
 import { useGuidSend } from './hooks/useGuidSend';
@@ -122,10 +122,11 @@ const GuidPage: React.FC = () => {
     selectedAgentKey?: string;
   } | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
+  // Legacy fallback for agent-first navigation state written before phase 2.
   const preselectAssistantId = navState?.selectedAssistantId || navState?.selectedAgentKey;
-  const agentSelection = useGuidAgentSelection({
+  const agentSelection = useGuidAssistantSelection({
     resetAssistant: resetAssistantRequested,
-    preselectAgentKey: preselectAssistantId,
+    preselectAssistantId,
     locationKey: location.key,
   });
 

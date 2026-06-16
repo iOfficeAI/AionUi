@@ -19,7 +19,7 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
-import { buildAssistantModelInfo } from '@renderer/pages/guid/hooks/useGuidAgentSelection';
+import { buildAssistantModelInfo } from '@renderer/pages/guid/hooks/useGuidAssistantSelection';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';

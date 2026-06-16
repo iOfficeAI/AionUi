@@ -4,7 +4,7 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import {
   pickDefaultAssistantSelectionKey,
   resolveAssistantSelectionKey,
-} from '@/renderer/pages/guid/hooks/useGuidAgentSelection';
+} from '@/renderer/pages/guid/hooks/useGuidAssistantSelection';
 
 describe('guid assistant selection helpers', () => {
   const assistants: Assistant[] = [

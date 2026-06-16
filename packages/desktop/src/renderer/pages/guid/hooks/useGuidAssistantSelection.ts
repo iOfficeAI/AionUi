@@ -11,7 +11,7 @@ import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
-export type GuidAgentSelectionResult = {
+export type GuidAssistantSelectionResult = {
   selectedAssistantId: string | null;
   setSelectedAssistantId: (assistantId: string) => void;
   defaultAssistantId: string | null;
@@ -95,17 +95,17 @@ export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): strin
   return preferred?.id ?? 'aionrs';
 }
 
-type UseGuidAgentSelectionOptions = {
+type UseGuidAssistantSelectionOptions = {
   resetAssistant?: boolean;
-  preselectAgentKey?: string;
+  preselectAssistantId?: string;
   locationKey?: string;
 };
 
-export const useGuidAgentSelection = ({
+export const useGuidAssistantSelection = ({
   resetAssistant,
-  preselectAgentKey,
+  preselectAssistantId,
   locationKey,
-}: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
+}: UseGuidAssistantSelectionOptions): GuidAssistantSelectionResult => {
   const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string>('');
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
@@ -150,8 +150,8 @@ export const useGuidAgentSelection = ({
     if (assistants.length === 0) return;
     if (resetHandledRef.current) return;
 
-    if (preselectAgentKey) {
-      const resolvedPreselect = resolveAssistantSelectionKey(preselectAgentKey, assistants);
+    if (preselectAssistantId) {
+      const resolvedPreselect = resolveAssistantSelectionKey(preselectAssistantId, assistants);
       if (resolvedPreselect) {
         resetHandledRef.current = true;
         _setSelectedAssistantId(resolvedPreselect);
@@ -164,16 +164,16 @@ export const useGuidAgentSelection = ({
       const fallbackId = pickDefaultAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
     }
-  }, [assistants, preselectAgentKey, resetAssistant]);
+  }, [assistants, preselectAssistantId, resetAssistant]);
 
   useEffect(() => {
     if (assistants.length === 0) return;
     if (resetAssistant) return;
-    if (preselectAgentKey && resolveAssistantSelectionKey(preselectAgentKey, assistants)) return;
+    if (preselectAssistantId && resolveAssistantSelectionKey(preselectAssistantId, assistants)) return;
     if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
       _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
     }
-  }, [assistants, preselectAgentKey, resetAssistant, selectedAssistantIdState]);
+  }, [assistants, preselectAssistantId, resetAssistant, selectedAssistantIdState]);
 
   const selectedAssistant = useMemo(
     () =>
