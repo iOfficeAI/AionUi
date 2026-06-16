@@ -61,6 +61,10 @@ function resolveConversationType(backend: string): string {
   return NON_ACP_BACKENDS.has(backend) ? backend : 'acp';
 }
 
+function resolveAssistantIdentity(raw: Record<string, unknown>): string | undefined {
+  return (raw.assistant_id as string | undefined) ?? (raw.custom_agent_id as string | undefined);
+}
+
 export function fromBackendAgent(raw: unknown): TeamAgent {
   const r = (raw ?? {}) as Record<string, unknown>;
   const agentType = (r.agent_type as string | undefined) ?? (r.backend as string | undefined) ?? '';
@@ -76,7 +80,8 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
     conversation_type: conversationType,
     status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,
-    assistant_id: (r.assistant_id as string | undefined) ?? (r.custom_agent_id as string | undefined),
+    // New payloads write `assistant_id`; `custom_agent_id` is read-only legacy compatibility.
+    assistant_id: resolveAssistantIdentity(r),
     model: r.model as string | undefined,
     pending_confirmations: (r.pending_confirmations ?? r.pendingConfirmations ?? 0) as number,
   };

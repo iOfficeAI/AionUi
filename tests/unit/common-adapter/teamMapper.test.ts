@@ -93,6 +93,20 @@ describe('teamMapper', () => {
     ).toBe('assistant-legacy');
   });
 
+  it('prefers assistant_id over legacy custom_agent_id when both are present', () => {
+    expect(
+      fromBackendAgent({
+        slot_id: 'slot-3',
+        conversation_id: 'conversation-3',
+        role: 'teammate',
+        backend: 'aionrs',
+        name: 'Worker',
+        assistant_id: 'assistant-modern',
+        custom_agent_id: 'assistant-legacy',
+      }).assistant_id
+    ).toBe('assistant-modern');
+  });
+
   it('does not expose legacy custom_agent_id on the frontend team agent shape', () => {
     const agent = fromBackendAgent({
       slot_id: 'slot-2',
