@@ -116,15 +116,18 @@ const GuidPage: React.FC = () => {
   // regular ACP backend with its own model selector).
   const modelSelection = useGuidModelSelection('aionrs');
 
-  const navState = location.state as { resetAssistant?: boolean; selectedAgentKey?: string } | null;
+  const navState = location.state as {
+    resetAssistant?: boolean;
+    selectedAssistantId?: string;
+    selectedAgentKey?: string;
+  } | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
-  const preselectAgentKey = navState?.selectedAgentKey;
+  const preselectAssistantId = navState?.selectedAssistantId || navState?.selectedAgentKey;
   const agentSelection = useGuidAgentSelection({
     modelList: modelSelection.modelList,
     isGoogleAuth: modelSelection.isGoogleAuth,
-    localeKey,
     resetAssistant: resetAssistantRequested,
-    preselectAgentKey,
+    preselectAgentKey: preselectAssistantId,
     locationKey: location.key,
   });
 
@@ -162,21 +165,14 @@ const GuidPage: React.FC = () => {
     loading: guidInput.loading,
 
     // Agent state
-    selectedAgent: agentSelection.selectedAgent,
-    selectedAgentKey: agentSelection.selectedAgentKey,
     selectedAssistantId: agentSelection.selectedAssistantId,
-    selectedAgentInfo: agentSelection.selectedAgentInfo,
-    is_presetAgent: agentSelection.is_presetAgent,
+    selectedAssistantBackend: agentSelection.selectedAssistantBackend,
+    selectedAssistantName: agentSelection.selectedAssistant?.name,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
     currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,
     current_model: modelSelection.current_model,
 
-    // Agent helpers
-    findAgentByKey: agentSelection.findAgentByKey,
-    getEffectiveAgentType: agentSelection.getEffectiveAgentType,
-    resolveEnabledSkills: agentSelection.resolveEnabledSkills,
-    resolveDisabledBuiltinSkills: agentSelection.resolveDisabledBuiltinSkills,
     guidDisabledBuiltinSkills,
     guidEnabledSkills,
     assistantDefaultSkillIds: resolvedAssistantDefaults.skillIds,
@@ -184,7 +180,6 @@ const GuidPage: React.FC = () => {
     availableMcpServers,
     selectedMcpServerIds: guidSelectedMcpServerIds,
     assistantDefaultMcpIds: resolvedAssistantDefaults.mcpIds,
-    currentEffectiveAgentInfo: agentSelection.currentEffectiveAgentInfo,
     isGoogleAuth: modelSelection.isGoogleAuth,
 
     // Mention state reset
@@ -220,9 +215,9 @@ const GuidPage: React.FC = () => {
 
   const handleSelectAssistant = useCallback(
     (assistantId: string) => {
-      agentSelection.setSelectedAgentKey(assistantId);
+      agentSelection.setSelectedAssistantId(assistantId);
     },
-    [agentSelection.setSelectedAgentKey]
+    [agentSelection.setSelectedAssistantId]
   );
 
   // Typewriter placeholder
@@ -280,7 +275,7 @@ const GuidPage: React.FC = () => {
 
     const signature = JSON.stringify({
       assistantId: selectedAssistantId,
-      backend: agentSelection.currentEffectiveAgentInfo.agent_type,
+      backend: agentSelection.selectedAssistantBackend,
       defaults: selectedAssistantDetail.defaults,
       preferences: {
         last_model_id: selectedAssistantDetail.preferences.last_model_id,
@@ -295,7 +290,7 @@ const GuidPage: React.FC = () => {
 
     const applyAssistantDefaults = async () => {
       const resolvedDefaults = resolveGuidAssistantDefaults(selectedAssistantDetail);
-      const effectiveBackend = agentSelection.currentEffectiveAgentInfo.agent_type;
+      const effectiveBackend = agentSelection.selectedAssistantBackend;
 
       if (effectiveBackend === 'aionrs') {
         if (resolvedDefaults.modelId) {
@@ -330,7 +325,7 @@ const GuidPage: React.FC = () => {
       console.error('[GuidPage] Failed to apply assistant defaults:', error);
     });
   }, [
-    agentSelection.currentEffectiveAgentInfo.agent_type,
+    agentSelection.selectedAssistantBackend,
     agentSelection.setSelectedAcpModel,
     agentSelection.setSelectedMode,
     modelSelection.modelList,
@@ -379,21 +374,14 @@ const GuidPage: React.FC = () => {
   // next hard reload, the browser would then request '/guid' directly from
   // the dev server (which has no SPA fallback) and 404.
   useEffect(() => {
-    if (!resetAssistantRequested && !preselectAgentKey) return;
+    if (!resetAssistantRequested && !preselectAssistantId) return;
     navigate(`${location.pathname}${location.search}${location.hash}`, { replace: true, state: null });
-  }, [resetAssistantRequested, preselectAgentKey, location.pathname, location.search, location.hash, navigate]);
-
-  // Resolve the effective agent type once — covers both direct selection and preset assistants
-  const effectiveAgentType = agentSelection.is_presetAgent
-    ? agentSelection.currentEffectiveAgentInfo.agent_type
-    : agentSelection.selectedAgent;
+  }, [resetAssistantRequested, preselectAssistantId, location.pathname, location.search, location.hash, navigate]);
 
   // Agents that use configured model providers instead of ACP probe-based models.
   // Only aionrs now — Gemini runs as a regular ACP backend with ACP-cached models.
   const PROVIDER_BASED_AGENTS = new Set(['aionrs']);
-  const isGeminiMode =
-    PROVIDER_BASED_AGENTS.has(effectiveAgentType) &&
-    (!agentSelection.is_presetAgent || agentSelection.currentEffectiveAgentInfo.isAvailable);
+  const isGeminiMode = PROVIDER_BASED_AGENTS.has(agentSelection.selectedAssistantBackend);
 
   // Build the mention dropdown node
   // Build the model selector node
@@ -423,8 +411,7 @@ const GuidPage: React.FC = () => {
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
       modelSelectorNode={modelSelectorNode}
-      selectedAgent={agentSelection.selectedAgent}
-      effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
+      modeBackend={agentSelection.selectedAssistantBackend}
       selectedMode={agentSelection.selectedMode}
       onModeSelect={setGuidSelectedMode}
       allSkills={allSkills}

@@ -27,8 +27,7 @@ type GuidActionRowProps = {
   modelSelectorNode: React.ReactNode;
 
   // Agent mode
-  selectedAgent: string | 'custom';
-  effectiveModeAgent?: string;
+  modeBackend?: string;
   selectedMode: string;
   onModeSelect: (mode: string) => void;
 
@@ -52,8 +51,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
   onFilesUploaded,
   modelSelectorNode,
-  selectedAgent,
-  effectiveModeAgent,
+  modeBackend,
   selectedMode,
   onModeSelect,
   allSkills,
@@ -72,7 +70,6 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
-  const modeBackend = effectiveModeAgent || selectedAgent;
   const showModeSwitch = supportsModeSwitch(modeBackend);
   const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
 

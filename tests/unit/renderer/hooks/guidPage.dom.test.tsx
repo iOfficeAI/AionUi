@@ -25,19 +25,27 @@ const {
     resetCurrentModel: vi.fn(),
   },
   agentSelectionMock: {
-    selectedAgent: 'custom',
-    selectedAgentKey: 'custom:bare-aionrs',
     selectedAssistantId: 'bare-aionrs',
-    selectedAgentInfo: {
+    selectedAssistant: {
       id: 'bare-aionrs',
-      custom_agent_id: 'bare-aionrs',
-      agent_type: 'aionrs',
-      backend: 'aionrs',
+      source: 'bare',
       name: 'Aion CLI',
-      is_preset: true,
+      name_i18n: {},
+      description_i18n: {},
+      enabled: true,
+      sort_order: 10,
+      preset_agent_type: 'aionrs',
+      enabled_skills: [],
+      custom_skill_names: [],
+      disabled_builtin_skills: [],
+      context_i18n: {},
+      prompts: [],
+      prompts_i18n: {},
+      models: [],
+      agent_status: 'available',
+      team_selectable: true,
+      deletable: false,
     },
-    is_presetAgent: true,
-    availableAgents: [],
     assistants: [
       {
         id: 'bare-aionrs',
@@ -60,36 +68,15 @@ const {
         deletable: false,
       },
     ],
-    customAgents: [],
+    selectedAssistantBackend: 'aionrs',
+    selectedAssistantAvailable: true,
     selectedMode: 'default',
     setSelectedMode: vi.fn(),
     selectedAcpModel: null,
     setSelectedAcpModel: vi.fn(),
     currentAcpCachedModelInfo: null,
-    currentEffectiveAgentInfo: {
-      agent_type: 'aionrs',
-      isFallback: false,
-      originalType: 'aionrs',
-      isAvailable: true,
-    },
-    getAgentKey: vi.fn(),
-    findAgentByKey: vi.fn(),
-    resolvePresetRulesAndSkills: vi.fn(),
-    resolvePresetContext: vi.fn(),
-    resolvePresetAgentType: vi.fn(() => 'aionrs'),
-    resolveEnabledSkills: vi.fn(() => []),
-    resolveDisabledBuiltinSkills: vi.fn(() => []),
-    isMainAgentAvailable: vi.fn(() => true),
-    getEffectiveAgentType: vi.fn(() => ({
-      agent_type: 'aionrs',
-      isFallback: false,
-      originalType: 'aionrs',
-      isAvailable: true,
-    })),
-    refreshCustomAgents: vi.fn(),
-    customAgentAvatarMap: new Map(),
-    defaultAgentKey: 'custom:bare-aionrs',
-    setSelectedAgentKey: vi.fn(),
+    defaultAssistantId: 'bare-aionrs',
+    setSelectedAssistantId: vi.fn(),
   },
   guidInputMock: {
     input: '',
@@ -296,6 +283,7 @@ describe('GuidPage', () => {
     expect(capturedGuidActionRowProps.length).toBeGreaterThan(0);
     expect(latestGuidActionRowProps).not.toHaveProperty('hidePresetTag');
     expect(latestGuidActionRowProps).not.toHaveProperty('is_presetAgent');
+    expect(latestGuidActionRowProps).not.toHaveProperty('selectedAgent');
     expect(latestGuidActionRowProps).not.toHaveProperty('selectedAgentInfo');
     expect(latestGuidActionRowProps).not.toHaveProperty('onClosePresetTag');
     expect(capturedGuidInputCardProps.length).toBeGreaterThan(0);

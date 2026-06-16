@@ -52,31 +52,13 @@ const createDeps = (): GuidSendDeps => ({
   setDir: vi.fn(),
   setLoading: vi.fn(),
   loading: false,
-  selectedAgent: 'claude',
-  selectedAgentKey: 'preset-claude',
   selectedAssistantId: 'assistant-1',
-  selectedAgentInfo: {
-    id: 'meta-1',
-    key: 'preset-claude',
-    name: 'Claude',
-    agent_type: 'claude',
-    backend: 'claude',
-    custom_agent_id: 'assistant-1',
-    is_preset: true,
-    isExtension: false,
-  } as never,
-  is_presetAgent: true,
+  selectedAssistantBackend: 'claude',
+  selectedAssistantName: 'Claude',
   selectedMode: 'bypassPermissions',
   selectedAcpModel: 'claude-opus',
   currentAcpCachedModelInfo: null,
   current_model: undefined,
-  findAgentByKey: vi.fn(),
-  getEffectiveAgentType: vi.fn(() => ({
-    agent_type: 'claude',
-    isAvailable: true,
-  })),
-  resolveEnabledSkills: vi.fn(() => ['skill-a']),
-  resolveDisabledBuiltinSkills: vi.fn(() => ['skill-b']),
   guidDisabledBuiltinSkills: undefined,
   guidEnabledSkills: undefined,
   assistantDefaultSkillIds: undefined,
@@ -84,10 +66,6 @@ const createDeps = (): GuidSendDeps => ({
   availableMcpServers: [{ id: 'mcp-user', name: 'User MCP', enabled: true, builtin: false } as IMcpServer],
   selectedMcpServerIds: ['mcp-user'],
   assistantDefaultMcpIds: undefined,
-  currentEffectiveAgentInfo: {
-    agent_type: 'claude',
-    isAvailable: true,
-  } as never,
   isGoogleAuth: false,
   setMentionOpen: vi.fn(),
   setMentionQuery: vi.fn(),
@@ -107,7 +85,9 @@ describe('useGuidSend', () => {
   });
 
   it('passes selected mode into assistant conversation overrides when creating a preset ACP conversation', async () => {
-    const { result } = renderHook(() => useGuidSend(createDeps()));
+    const deps = createDeps();
+
+    const { result } = renderHook(() => useGuidSend(deps));
 
     await act(async () => {
       await result.current.handleSend();
@@ -165,10 +145,6 @@ describe('useGuidSend', () => {
 
   it('uses the selected assistant id instead of the legacy custom_agent_id alias for preset sends', async () => {
     const deps = createDeps();
-    deps.selectedAgentInfo = {
-      ...deps.selectedAgentInfo,
-      custom_agent_id: undefined,
-    } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
 
@@ -181,23 +157,8 @@ describe('useGuidSend', () => {
     expect(payload.extra.preset_assistant_id).toBe('assistant-1');
   });
 
-  it('forwards local skill overrides for non-preset CLI agents through conversation extra', async () => {
+  it('forwards local skill overrides through assistant conversation overrides for ACP assistants', async () => {
     const deps = createDeps();
-    deps.selectedAgent = 'claude';
-    deps.selectedAgentKey = 'claude';
-    deps.selectedAssistantId = null;
-    deps.selectedAgentInfo = {
-      id: 'meta-claude',
-      key: 'claude',
-      name: 'Claude',
-      agent_type: 'claude',
-      backend: 'claude',
-      is_preset: false,
-      isExtension: false,
-      cli_path: '/usr/local/bin/claude',
-    } as never;
-    deps.is_presetAgent = false;
-    deps.current_model = { provider_id: 'anthropic', model: 'claude-sonnet', use_model: 'claude-sonnet' } as never;
     deps.guidEnabledSkills = ['pdf-reader'];
     deps.guidDisabledBuiltinSkills = ['todo-tracker'];
 
@@ -208,26 +169,16 @@ describe('useGuidSend', () => {
     });
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
-    expect(payload.assistant).toBeUndefined();
-    expect(payload.extra.enabled_skills).toEqual(['pdf-reader']);
-    expect(payload.extra.exclude_builtin_skills).toEqual(['todo-tracker']);
+    expect(payload.assistant?.id).toBe('assistant-1');
+    expect(payload.assistant?.conversation_overrides?.skill_ids).toEqual(['pdf-reader']);
+    expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('forwards local skill overrides for non-preset Aion CLI conversations', async () => {
+  it('forwards local skill overrides for bare Aion CLI assistants through assistant conversation overrides', async () => {
     const deps = createDeps();
-    deps.selectedAgent = 'aionrs';
-    deps.selectedAgentKey = 'aionrs';
-    deps.selectedAssistantId = null;
-    deps.selectedAgentInfo = {
-      id: 'meta-aionrs',
-      key: 'aionrs',
-      name: 'Aion CLI',
-      agent_type: 'aionrs',
-      backend: 'aionrs',
-      is_preset: false,
-      isExtension: false,
-    } as never;
-    deps.is_presetAgent = false;
+    deps.selectedAssistantId = 'bare:aionrs';
+    deps.selectedAssistantBackend = 'aionrs';
+    deps.selectedAssistantName = 'Aion CLI';
     deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
     deps.guidEnabledSkills = ['pdf-reader'];
     deps.guidDisabledBuiltinSkills = ['todo-tracker'];
@@ -240,25 +191,16 @@ describe('useGuidSend', () => {
 
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.type).toBe('aionrs');
-    expect(payload.assistant).toBeUndefined();
-    expect(payload.extra.enabled_skills).toEqual(['pdf-reader']);
-    expect(payload.extra.exclude_builtin_skills).toEqual(['todo-tracker']);
+    expect(payload.assistant?.id).toBe('bare:aionrs');
+    expect(payload.assistant?.conversation_overrides?.skill_ids).toEqual(['pdf-reader']);
+    expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
   });
 
-  it('attaches the selected assistant id for non-legacy assistant-backed Aion CLI conversations', async () => {
+  it('attaches the selected assistant id for bare Aion CLI assistant conversations', async () => {
     const deps = createDeps();
-    deps.selectedAgent = 'aionrs';
     deps.selectedAssistantId = 'bare:aionrs';
-    deps.selectedAgentInfo = {
-      id: 'bare:aionrs',
-      key: 'bare:aionrs',
-      name: 'Aion CLI',
-      agent_type: 'aionrs',
-      backend: 'aionrs',
-      is_preset: false,
-      isExtension: false,
-    } as never;
-    deps.is_presetAgent = false;
+    deps.selectedAssistantBackend = 'aionrs';
+    deps.selectedAssistantName = 'Aion CLI';
     deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -272,22 +214,11 @@ describe('useGuidSend', () => {
     expect(payload.extra.preset_assistant_id).toBe('bare:aionrs');
   });
 
-  it('attaches the selected assistant id for non-legacy assistant-backed ACP conversations', async () => {
+  it('attaches the selected assistant id for bare ACP assistant conversations', async () => {
     const deps = createDeps();
-    deps.selectedAgent = 'claude';
-    deps.selectedAgentKey = 'bare:claude';
     deps.selectedAssistantId = 'bare:claude';
-    deps.selectedAgentInfo = {
-      id: 'bare:claude',
-      key: 'bare:claude',
-      name: 'Claude',
-      agent_type: 'claude',
-      backend: 'claude',
-      is_preset: false,
-      isExtension: false,
-      cli_path: '/usr/local/bin/claude',
-    } as never;
-    deps.is_presetAgent = false;
+    deps.selectedAssistantBackend = 'claude';
+    deps.selectedAssistantName = 'Claude';
     deps.current_model = { provider_id: 'anthropic', model: 'claude-sonnet', use_model: 'claude-sonnet' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
