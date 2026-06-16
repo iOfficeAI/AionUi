@@ -1,481 +1,481 @@
 {
   "welcome": {
-    "title": "Hi, what's your plan for today?",
-    "placeholder": "Send a message, upload files, open a folder, or create a scheduled task...",
-    "linkFolder": "Open Folder",
-    "newConversation": "New Chat",
-    "selectModel": "Select Model",
-    "useCliModel": "Select Model",
-    "modelSwitchNotSupported": "Model list will be available after first connection. Send a message to connect and load available models.",
-    "specifyWorkspace": "Chat in Project",
-    "currentWorkspace": "Current Project",
-    "clearWorkspace": "Remove project",
-    "openFolder": "Open Folder",
-    "none": "None",
-    "quickActionsTitle": "What can AionUi do?",
-    "quickActionFeedback": "Report Issue",
-    "quickActionStar": "Like us? Give us a star!",
+    "title": "Ola, qual e o seu plano para hoje?",
+    "placeholder": "Envie uma mensagem, faca upload de arquivos, abra uma pasta ou crie uma tarefa agendada...",
+    "linkFolder": "Abrir Pasta",
+    "newConversation": "Novo Chat",
+    "selectModel": "Selecionar Modelo",
+    "useCliModel": "Selecionar Modelo",
+    "modelSwitchNotSupported": "A lista de modelos estara disponivel apos a primeira conexao. Envie uma mensagem para conectar e carregar os modelos disponiveis.",
+    "specifyWorkspace": "Chat no Projeto",
+    "currentWorkspace": "Projeto Atual",
+    "clearWorkspace": "Remover projeto",
+    "openFolder": "Abrir Pasta",
+    "none": "Nenhum",
+    "quickActionsTitle": "O que o AionUi pode fazer?",
+    "quickActionFeedback": "Reportar Problema",
+    "quickActionStar": "Gostou? Deixe uma estrela!",
     "skillsMarket": "AionUi Skills Market",
-    "skillsMarketDesc": "Search and activate community Skills on demand. Configure once, available for all agents.",
-    "skillsMarketDetails": "View More >>"
+    "skillsMarketDesc": "Busque e ative Skills da comunidade sob demanda. Configure uma vez, disponivel para todos os agentes.",
+    "skillsMarketDetails": "Ver Mais >>"
   },
   "history": {
-    "recents": "Recents",
-    "noHistory": "No chat history",
+    "recents": "Recentes",
+    "noHistory": "Nenhum historico de chat",
     "deleteTitle": "Excluir",
-    "deleteConfirm": "Are you sure you want to delete this chat?",
+    "deleteConfirm": "Tem certeza de que deseja excluir este chat?",
     "confirmDelete": "Excluir",
     "cancelDelete": "Cancelar",
-    "editName": "Edit Name",
+    "editName": "Editar Nome",
     "saveName": "Salvar",
     "cancelEdit": "Cancelar",
     "rename": "Renomear",
-    "renameTitle": "Rename Chat",
-    "renamePlaceholder": "Please enter a new name",
-    "renameSuccess": "Renamed successfully",
-    "renameFailed": "Rename failed",
-    "batchManage": "Batch Manage",
-    "batchModeExit": "Exit Batch Mode",
-    "selectAll": "Select All",
-    "selectedCount": "{{count}} selected",
-    "batchExport": "Batch Export",
-    "batchExportConfirm": "Export {{count}} selected topics?",
-    "batchDelete": "Batch Delete",
-    "batchDeleteConfirm": "Delete {{count}} selected topics?",
-    "batchDeleteSuccess": "{{count}} topics deleted",
-    "batchNoSelection": "Please select topics first",
-    "export": "Export",
-    "exportDialogTitle": "Export Topics",
-    "exportDialogSingleDescription": "Export current topic conversation records (JSON + Markdown) and project files into a ZIP package.",
-    "exportDialogBatchDescription": "Export {{count}} selected topics' conversation records (JSON + Markdown) and project files into one ZIP package.",
-    "exportTargetFolder": "Export To Folder",
-    "exportSelectFolder": "Please select an export folder",
-    "exportDialogHint": "Folder selection follows the same interaction as changing the project.",
-    "exporting": "Exporting...",
-    "exportSuccess": "Export succeeded",
-    "exportCanceled": "Export canceled",
-    "exportFailed": "Export failed",
+    "renameTitle": "Renomear Chat",
+    "renamePlaceholder": "Digite um novo nome",
+    "renameSuccess": "Renomeado com sucesso",
+    "renameFailed": "Falha ao renomear",
+    "batchManage": "Gerenciar em Lote",
+    "batchModeExit": "Sair do Modo em Lote",
+    "selectAll": "Selecionar Tudo",
+    "selectedCount": "{{count}} selecionado(s)",
+    "batchExport": "Exportar em Lote",
+    "batchExportConfirm": "Exportar {{count}} topicos selecionados?",
+    "batchDelete": "Excluir em Lote",
+    "batchDeleteConfirm": "Excluir {{count}} topicos selecionados?",
+    "batchDeleteSuccess": "{{count}} topicos excluidos",
+    "batchNoSelection": "Selecione topicos primeiro",
+    "export": "Exportar",
+    "exportDialogTitle": "Exportar Topicos",
+    "exportDialogSingleDescription": "Exporte os registros de conversa do topico atual (JSON + Markdown) e arquivos do projeto em um pacote ZIP.",
+    "exportDialogBatchDescription": "Exporte os registros de conversa (JSON + Markdown) e arquivos do projeto de {{count}} topicos selecionados em um pacote ZIP.",
+    "exportTargetFolder": "Exportar Para Pasta",
+    "exportSelectFolder": "Selecione uma pasta de exportacao",
+    "exportDialogHint": "A selecao de pasta segue a mesma interacao de alterar o projeto.",
+    "exporting": "Exportando...",
+    "exportSuccess": "Exportacao concluida",
+    "exportCanceled": "Exportacao cancelada",
+    "exportFailed": "Falha na exportacao",
     "pin": "Fixar",
     "unpin": "Desafixar",
-    "pinned": "Pinned",
-    "pinFailed": "Pin operation failed",
-    "pinnedSection": "Pinned",
+    "pinned": "Fixado",
+    "pinFailed": "Falha na operacao de fixar",
+    "pinnedSection": "Fixados",
     "deleteSuccess": "Excluido com sucesso",
-    "deleteFailed": "Delete failed",
-    "today": "Today",
-    "yesterday": "Yesterday",
-    "recent7Days": "Last 7 Days",
-    "earlier": "Earlier",
-    "projectsSection": "Projects",
-    "conversationsSection": "Conversations",
-    "removeProjectTitle": "Remove project",
-    "removeProject": "Remove project",
-    "removeProjectConfirm": "Remove project \"{{name}}\"? Its {{count}} conversation(s) will be removed too.",
-    "newConversationInProject": "New chat in this project"
+    "deleteFailed": "Falha ao excluir",
+    "today": "Hoje",
+    "yesterday": "Ontem",
+    "recent7Days": "Ultimos 7 Dias",
+    "earlier": "Anterior",
+    "projectsSection": "Projetos",
+    "conversationsSection": "Conversas",
+    "removeProjectTitle": "Remover projeto",
+    "removeProject": "Remover projeto",
+    "removeProjectConfirm": "Remover o projeto \"{{name}}\"? Suas {{count}} conversa(s) tambem serao removidas.",
+    "newConversationInProject": "Novo chat neste projeto"
   },
   "historySearch": {
-    "tooltip": "Search messages",
-    "title": "Search conversation content",
-    "shortTitle": "Search",
-    "description": "Search historical messages by keyword, load more on scroll, and jump to the matched message.",
-    "placeholder": "Search message content...",
-    "idle": "Enter keywords to search messages",
-    "empty": "No matching messages found",
-    "loadingMore": "Loading more...",
-    "untitled": "Untitled conversation"
+    "tooltip": "Buscar mensagens",
+    "title": "Buscar conteudo da conversa",
+    "shortTitle": "Buscar",
+    "description": "Busque mensagens anteriores por palavra-chave, carregue mais ao rolar e va para a mensagem encontrada.",
+    "placeholder": "Buscar conteudo da mensagem...",
+    "idle": "Digite palavras-chave para buscar mensagens",
+    "empty": "Nenhuma mensagem correspondente encontrada",
+    "loadingMore": "Carregando mais...",
+    "untitled": "Conversa sem titulo"
   },
   "dropdown": {
-    "cliAgents": "CLI Agents",
-    "presetAssistants": "Preset Assistants"
+    "cliAgents": "Agentes CLI",
+    "presetAssistants": "Assistentes Predefinidos"
   },
-  "noAgentsAvailable": "No agents available",
-  "noModelConfigured": "No model configured. Please configure in settings.",
-  "createFailed": "Failed to create conversation",
+  "noAgentsAvailable": "Nenhum agente disponivel",
+  "noModelConfigured": "Nenhum modelo configurado. Configure nas configuracoes.",
+  "createFailed": "Falha ao criar conversa",
   "createError": {
     "pathVariants": {
-      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "The selected workspace path \"{{workspacePath}}\" contains a folder name with spaces or other whitespace characters. Rename the affected folder or choose a workspace path whose every directory name avoids whitespace."
+      "WORKSPACE_PATH_CONTAINS_WHITESPACE_UNSUPPORTED": "O caminho do projeto selecionado \"{{workspacePath}}\" contem um nome de pasta com espacos ou outros caracteres de espaco em branco. Renomeie a pasta afetada ou escolha um caminho de projeto cujos nomes de diretorio nao tenham espacos em branco."
     }
   },
   "agentError": {
-    "fallbackTitle": "The agent could not reply",
-    "errorCode": "Error code",
-    "retryable": "Retryable",
-    "notRetryable": "Needs configuration",
-    "resolutionPrefix": "Suggestion: ",
+    "fallbackTitle": "O agente nao conseguiu responder",
+    "errorCode": "Codigo de erro",
+    "retryable": "Pode tentar novamente",
+    "notRetryable": "Requer configuracao",
+    "resolutionPrefix": "Sugestao: ",
     "resolution": {
-      "retry": "Retry later, or send this message again.",
-      "wait_for_current_response": "Wait for the current response to finish before sending another message.",
-      "start_new_session": "Start a new conversation before continuing.",
-      "reconnect_agent": "Restart or reconnect the selected agent, then retry.",
-      "check_agent_login": "Log in to the selected agent, or refresh its credentials.",
-      "check_agent_installation": "Check the agent installation and local command configuration.",
-      "check_agent_version": "Update the agent, or fix the protocol version incompatibility.",
-      "check_local_command": "Install the missing command, or confirm it has been added to PATH.",
-      "check_provider_credentials": "Check the model provider API key or account credentials in settings.",
-      "check_provider_billing": "Check the model provider balance, credits, or quota.",
-      "check_provider_base_url": "Check the model provider Base URL, API path, proxy, and API compatibility.",
-      "change_model": "Choose a model that is available for the current account and supports this request.",
-      "reduce_context": "Reduce the message content, referenced files, or context size, then retry.",
-      "send_feedback": "Send feedback with logs so the team can investigate."
+      "retry": "Tente novamente mais tarde ou envie esta mensagem de novo.",
+      "wait_for_current_response": "Aguarde a resposta atual terminar antes de enviar outra mensagem.",
+      "start_new_session": "Inicie uma nova conversa antes de continuar.",
+      "reconnect_agent": "Reinicie ou reconecte o agente selecionado e tente novamente.",
+      "check_agent_login": "Faca login no agente selecionado ou atualize suas credenciais.",
+      "check_agent_installation": "Verifique a instalacao do agente e a configuracao do comando local.",
+      "check_agent_version": "Atualize o agente ou corrija a incompatibilidade de versao do protocolo.",
+      "check_local_command": "Instale o comando ausente ou confirme que ele foi adicionado ao PATH.",
+      "check_provider_credentials": "Verifique a API key ou credenciais da conta do provedor de modelos nas configuracoes.",
+      "check_provider_billing": "Verifique o saldo, creditos ou cota do provedor de modelos.",
+      "check_provider_base_url": "Verifique a Base URL, caminho da API, proxy e compatibilidade da API do provedor de modelos.",
+      "change_model": "Escolha um modelo disponivel para a conta atual e compativel com esta solicitacao.",
+      "reduce_context": "Reduza o conteudo da mensagem, arquivos referenciados ou tamanho do contexto e tente novamente.",
+      "send_feedback": "Envie feedback com logs para que a equipe possa investigar."
     },
     "ownership": {
       "aionui": "App",
-      "user_agent": "Agent",
-      "user_llm_provider": "Model provider",
+      "user_agent": "Agente",
+      "user_llm_provider": "Provedor de modelos",
       "unknown_upstream": "Upstream"
     },
     "codes": {
       "AIONUI_STREAM_BROKEN": {
-        "title": "Response stream was interrupted",
-        "body": "The app accepted your message but the response stream ended unexpectedly. Please retry; if it happens again, send feedback."
+        "title": "Fluxo de resposta foi interrompido",
+        "body": "O app aceitou sua mensagem, mas o fluxo de resposta terminou inesperadamente. Tente novamente; se persistir, envie feedback."
       },
       "AIONUI_STATE_INCONSISTENT": {
-        "title": "Conversation state is out of sync",
-        "body": "The conversation state is out of sync. Restart this chat or reload the app before retrying."
+        "title": "Estado da conversa esta dessincronizado",
+        "body": "O estado da conversa esta dessincronizado. Reinicie este chat ou recarregue o app antes de tentar novamente."
       },
       "AIONUI_PERMISSION_ERROR": {
-        "title": "Could not access the requested resource",
-        "body": "A local permission or filesystem check failed. Check the project path and app permissions, then retry."
+        "title": "Nao foi possivel acessar o recurso solicitado",
+        "body": "Uma verificacao local de permissao ou sistema de arquivos falhou. Verifique o caminho do projeto e as permissoes do app, depois tente novamente."
       },
       "AIONUI_INTERNAL_ERROR": {
-        "title": "Request failed in the app",
-        "body": "The request failed while the app was processing it. Please retry once; if it repeats, send feedback."
+        "title": "Solicitacao falhou no app",
+        "body": "A solicitacao falhou enquanto o app a processava. Tente uma vez; se repetir, envie feedback."
       },
       "AIONUI_CONVERSATION_BUSY": {
-        "title": "Conversation is busy",
-        "body": "Another response is still running. Wait for it to finish before sending a new message."
+        "title": "Conversa ocupada",
+        "body": "Outra resposta ainda esta em execucao. Aguarde terminar antes de enviar uma nova mensagem."
       },
       "USER_AGENT_NOT_INSTALLED": {
-        "title": "The selected agent is not installed",
-        "body": "Install the CLI or app required by this agent, then reconnect it in settings."
+        "title": "O agente selecionado nao esta instalado",
+        "body": "Instale o CLI ou app exigido por este agente e reconecte-o nas configuracoes."
       },
       "USER_AGENT_STARTUP_FAILED": {
-        "title": "The selected agent failed to start",
-        "body": "The agent process exited before it was ready. Check its installation, login status, and local command configuration."
+        "title": "O agente selecionado falhou ao iniciar",
+        "body": "O processo do agente encerrou antes de ficar pronto. Verifique a instalacao, status de login e configuracao do comando local."
       },
       "USER_AGENT_DISCONNECTED": {
-        "title": "The selected agent disconnected",
-        "body": "The agent connection closed while handling this message. Restart or reconnect the agent, then retry."
+        "title": "O agente selecionado desconectou",
+        "body": "A conexao do agente foi fechada enquanto processava esta mensagem. Reinicie ou reconecte o agente e tente novamente."
       },
       "USER_AGENT_AUTH_REQUIRED": {
-        "title": "The selected agent needs authentication",
-        "body": "Log in to the selected agent or refresh its credentials, then send the message again."
+        "title": "O agente selecionado precisa de autenticacao",
+        "body": "Faca login no agente selecionado ou atualize suas credenciais e envie a mensagem novamente."
       },
       "USER_AGENT_SESSION_NOT_FOUND": {
-        "title": "The agent session was lost",
-        "body": "The agent no longer recognizes this session. Start a new chat or reconnect the agent."
+        "title": "A sessao do agente foi perdida",
+        "body": "O agente nao reconhece mais esta sessao. Inicie um novo chat ou reconecte o agente."
       },
       "USER_AGENT_UNSUPPORTED_METHOD": {
-        "title": "The selected agent does not support this action",
-        "body": "This agent cannot handle the requested operation. Try another agent or update the current one."
+        "title": "O agente selecionado nao suporta esta acao",
+        "body": "Este agente nao pode executar a operacao solicitada. Tente outro agente ou atualize o atual."
       },
       "USER_AGENT_INVALID_PARAMS": {
-        "title": "The selected agent rejected the request",
-        "body": "The agent reported that the request format was invalid. Try simplifying the message or switching agents."
+        "title": "O agente selecionado rejeitou a solicitacao",
+        "body": "O agente informou que o formato da solicitacao e invalido. Tente simplificar a mensagem ou trocar de agente."
       },
       "USER_AGENT_HANDSHAKE_FAILED": {
-        "title": "Agent handshake failed",
-        "body": "The selected agent could not complete its startup handshake. Restart or reconnect the agent, then retry."
+        "title": "Handshake do agente falhou",
+        "body": "O agente selecionado nao conseguiu concluir o handshake de inicializacao. Reinicie ou reconecte o agente e tente novamente."
       },
       "USER_AGENT_HANDSHAKE_TIMEOUT": {
-        "title": "Agent handshake timed out",
-        "body": "The selected agent did not finish its startup handshake in time. Check whether it is still starting or blocked, then retry."
+        "title": "Timeout no handshake do agente",
+        "body": "O agente selecionado nao concluiu o handshake de inicializacao a tempo. Verifique se ainda esta iniciando ou bloqueado e tente novamente."
       },
       "USER_AGENT_ACP_INIT_FAILED": {
-        "title": "Agent protocol initialization failed",
-        "body": "The app could not initialize the Agent Client Protocol session with this agent. Check the agent version and reconnect."
+        "title": "Falha na inicializacao do protocolo do agente",
+        "body": "O app nao conseguiu inicializar a sessao Agent Client Protocol com este agente. Verifique a versao do agente e reconecte."
       },
       "USER_AGENT_PROTOCOL_MISMATCH": {
-        "title": "Agent protocol versions are incompatible",
-        "body": "The selected agent is using an incompatible protocol version. Update the agent or switch to a compatible one."
+        "title": "Versoes do protocolo do agente sao incompativeis",
+        "body": "O agente selecionado usa uma versao de protocolo incompativel. Atualize o agente ou troque para um compativel."
       },
       "USER_AGENT_NO_PREVIOUS_SESSION": {
-        "title": "Previous agent session is unavailable",
-        "body": "The agent cannot resume the previous session. Start a new conversation to continue."
+        "title": "Sessao anterior do agente indisponivel",
+        "body": "O agente nao pode retomar a sessao anterior. Inicie uma nova conversa para continuar."
       },
       "USER_AGENT_COMMAND_NOT_FOUND": {
-        "title": "Agent command was not found",
-        "body": "The configured agent command could not be found. Install it or update the command path in settings."
+        "title": "Comando do agente nao encontrado",
+        "body": "O comando configurado do agente nao foi encontrado. Instale-o ou atualize o caminho do comando nas configuracoes."
       },
       "USER_AGENT_MISSING_ENV": {
-        "title": "Agent environment is missing required variables",
-        "body": "The agent needs environment variables that are not configured. Add them in settings or your shell environment, then reconnect."
+        "title": "Ambiente do agente sem variaveis obrigatorias",
+        "body": "O agente precisa de variaveis de ambiente que nao estao configuradas. Adicione-as nas configuracoes ou no seu shell e reconecte."
       },
       "USER_LLM_PROVIDER_AUTH_FAILED": {
-        "title": "Model provider authentication failed",
-        "body": "The selected provider rejected the API key or account credentials. Check the provider settings and try again."
+        "title": "Autenticacao do provedor de modelos falhou",
+        "body": "O provedor selecionado rejeitou a API key ou credenciais da conta. Verifique as configuracoes do provedor e tente novamente."
       },
       "USER_LLM_PROVIDER_CONFIG_ERROR": {
-        "title": "Model provider configuration is invalid",
-        "body": "The provider request could not be built from the current settings. Check credentials, region, Base URL, and provider-specific configuration before retrying."
+        "title": "Configuracao do provedor de modelos invalida",
+        "body": "A solicitacao ao provedor nao pode ser montada com as configuracoes atuais. Verifique credenciais, regiao, Base URL e configuracao especifica do provedor antes de tentar novamente."
       },
       "USER_LLM_PROVIDER_MODEL_NOT_FOUND": {
-        "title": "The selected model was not found",
-        "body": "The provider does not recognize this model name. Choose an available model from settings and retry."
+        "title": "Modelo selecionado nao encontrado",
+        "body": "O provedor nao reconhece este nome de modelo. Escolha um modelo disponivel nas configuracoes e tente novamente."
       },
       "USER_LLM_PROVIDER_RATE_LIMITED": {
-        "title": "Model provider rate limit reached",
-        "body": "The provider is temporarily limiting requests. Wait a moment, reduce request frequency, or switch models."
+        "title": "Limite de taxa do provedor de modelos atingido",
+        "body": "O provedor esta limitando solicitacoes temporariamente. Aguarde um momento, reduza a frequencia ou troque de modelo."
       },
       "USER_LLM_PROVIDER_TIMEOUT": {
-        "title": "Model provider request timed out",
-        "body": "The provider did not respond in time. Retry later or switch to a more stable provider."
+        "title": "Timeout na solicitacao ao provedor de modelos",
+        "body": "O provedor nao respondeu a tempo. Tente novamente mais tarde ou troque para um provedor mais estavel."
       },
       "USER_LLM_PROVIDER_NETWORK_ERROR": {
-        "title": "Could not reach the model provider",
-        "body": "A network or DNS error prevented access to the provider. Check your network, proxy, and Base URL."
+        "title": "Nao foi possivel alcancar o provedor de modelos",
+        "body": "Um erro de rede ou DNS impediu o acesso ao provedor. Verifique sua rede, proxy e Base URL."
       },
       "USER_LLM_PROVIDER_GATEWAY_ERROR": {
-        "title": "Model provider service is unavailable",
-        "body": "The provider returned a gateway or service error. Retry later or use another provider."
+        "title": "Servico do provedor de modelos indisponivel",
+        "body": "O provedor retornou um erro de gateway ou servico. Tente novamente mais tarde ou use outro provedor."
       },
       "USER_LLM_PROVIDER_PERMISSION_DENIED": {
-        "title": "Model provider permission denied",
-        "body": "The provider account does not have permission for this model or operation. Check account permissions or choose another model."
+        "title": "Permissao negada pelo provedor de modelos",
+        "body": "A conta do provedor nao tem permissao para este modelo ou operacao. Verifique permissoes da conta ou escolha outro modelo."
       },
       "USER_LLM_PROVIDER_BILLING_REQUIRED": {
-        "title": "Model provider billing is required",
-        "body": "The selected provider needs active billing, credits, or quota before it can complete this request."
+        "title": "Cobranca do provedor de modelos necessaria",
+        "body": "O provedor selecionado precisa de cobranca ativa, creditos ou cota antes de concluir esta solicitacao."
       },
       "USER_LLM_PROVIDER_UNSUPPORTED_MODEL": {
-        "title": "Model does not support this request",
-        "body": "The selected model is unavailable or does not support the requested capability. Choose a supported model and retry."
+        "title": "Modelo nao suporta esta solicitacao",
+        "body": "O modelo selecionado esta indisponivel ou nao suporta a capacidade solicitada. Escolha um modelo compativel e tente novamente."
       },
       "USER_LLM_PROVIDER_ENDPOINT_NOT_FOUND": {
-        "title": "Model provider endpoint was not found",
-        "body": "The provider endpoint or API path was not found. Check the Base URL, deployment name, and API compatibility."
+        "title": "Endpoint do provedor de modelos nao encontrado",
+        "body": "O endpoint ou caminho da API do provedor nao foi encontrado. Verifique a Base URL, nome do deployment e compatibilidade da API."
       },
       "USER_LLM_PROVIDER_INVALID_REQUEST": {
-        "title": "Model provider rejected the request",
-        "body": "The provider reported that the request was invalid. Simplify the message or check model/provider settings."
+        "title": "Provedor de modelos rejeitou a solicitacao",
+        "body": "O provedor informou que a solicitacao e invalida. Simplifique a mensagem ou verifique as configuracoes de modelo/provedor."
       },
       "USER_LLM_PROVIDER_INVALID_TOOL_SCHEMA": {
-        "title": "Tool schema was rejected by the provider",
-        "body": "The provider rejected a tool definition in this request. Update the agent or disable the incompatible tool, then retry."
+        "title": "Schema de ferramenta rejeitado pelo provedor",
+        "body": "O provedor rejeitou uma definicao de ferramenta nesta solicitacao. Atualize o agente ou desative a ferramenta incompativel e tente novamente."
       },
       "USER_LLM_PROVIDER_CONTEXT_TOO_LARGE": {
-        "title": "Context is too large for the model",
-        "body": "The request exceeds the model context limit. Reduce message content, referenced files, or conversation history, then retry."
+        "title": "Contexto grande demais para o modelo",
+        "body": "A solicitacao excede o limite de contexto do modelo. Reduza o conteudo da mensagem, arquivos referenciados ou historico da conversa e tente novamente."
       },
       "USER_LLM_PROVIDER_EMPTY_RESPONSE": {
-        "title": "Model provider returned an empty response",
-        "body": "The provider completed the request without usable content. Retry once or switch providers if it repeats."
+        "title": "Provedor de modelos retornou resposta vazia",
+        "body": "O provedor concluiu a solicitacao sem conteudo utilizavel. Tente uma vez ou troque de provedor se repetir."
       },
       "WORKSPACE_PATH_CONTAINS_WHITESPACE_RUNTIME_UNSUPPORTED": {
-        "title": "This workspace path is no longer supported for execution",
-        "body": "This existing conversation or task uses a workspace path whose directory names contain spaces or other whitespace characters. AionUi no longer supports sending messages on paths like this. Create a new conversation or task with a workspace path that contains no whitespace.",
-        "bodyWithPath": "The existing workspace path \"{{workspacePath}}\" contains spaces or other whitespace characters. AionUi no longer supports sending messages in conversations or tasks that use this path. Create a new conversation or task with a workspace path that contains no whitespace."
+        "title": "Este caminho de projeto nao e mais suportado para execucao",
+        "body": "Esta conversa ou tarefa existente usa um caminho de projeto cujos nomes de diretorio contem espacos ou outros caracteres de espaco em branco. O AionUi nao suporta mais enviar mensagens em caminhos assim. Crie uma nova conversa ou tarefa com um caminho de projeto sem espacos em branco.",
+        "bodyWithPath": "O caminho de projeto existente \"{{workspacePath}}\" contem espacos ou outros caracteres de espaco em branco. O AionUi nao suporta mais enviar mensagens em conversas ou tarefas que usam este caminho. Crie uma nova conversa ou tarefa com um caminho de projeto sem espacos em branco."
       },
       "UNKNOWN_UPSTREAM_ERROR": {
-        "title": "The upstream agent or provider failed",
-        "body": "The app received an upstream error but could not classify it confidently. Review the details below or send feedback."
+        "title": "Agente ou provedor upstream falhou",
+        "body": "O app recebeu um erro upstream, mas nao conseguiu classifica-lo com confianca. Revise os detalhes abaixo ou envie feedback."
       }
     }
   },
   "workspace": {
     "title": "Projeto",
-    "pasteConfirm_title": "Paste files",
-    "pasteConfirm_message": "Are you sure you want to paste '{{name}}' into the selected folder ({{target}})?",
-    "pasteConfirm_paste": "Paste",
+    "pasteConfirm_title": "Colar arquivos",
+    "pasteConfirm_message": "Tem certeza de que deseja colar '{{name}}' na pasta selecionada ({{target}})?",
+    "pasteConfirm_paste": "Colar",
     "pasteConfirm_cancel": "Cancelar",
-    "pasteConfirm_noAsk": "Do not ask me again",
-    "pasteConfirm_fileName": "File name",
-    "pasteConfirm_targetFolder": "Target folder",
-    "pasteConfirm_multipleFiles": "{{count}} files",
-    "empty": "It's empty",
-    "emptyDescription": "Files will appear here after uploading files or opening a folder",
-    "searchPlaceholder": "Search files...",
-    "createNewConversation": "Create new chat in current project",
-    "search.empty": "The search result is empty",
-    "addFile": "Add File",
+    "pasteConfirm_noAsk": "Nao perguntar novamente",
+    "pasteConfirm_fileName": "Nome do arquivo",
+    "pasteConfirm_targetFolder": "Pasta de destino",
+    "pasteConfirm_multipleFiles": "{{count}} arquivos",
+    "empty": "Esta vazio",
+    "emptyDescription": "Os arquivos aparecerao aqui apos fazer upload ou abrir uma pasta",
+    "searchPlaceholder": "Buscar arquivos...",
+    "createNewConversation": "Criar novo chat no projeto atual",
+    "search.empty": "O resultado da busca esta vazio",
+    "addFile": "Adicionar Arquivo",
     "refresh": "Atualizar",
-    "temporarySpace": "Temporary Space",
-    "dragOverlayTitle": "Drop to import",
-    "dragOverlayDesc": "Drag files or folders here to copy them into this project.",
-    "dragOverlayHint": "Tip: drop anywhere to import into the selected folder.",
-    "dragNoFiles": "No valid files detected. Please drag from Finder/Explorer.",
-    "dragFailed": "Failed to import dropped files.",
+    "temporarySpace": "Espaco Temporario",
+    "dragOverlayTitle": "Solte para importar",
+    "dragOverlayDesc": "Arraste arquivos ou pastas aqui para copia-los para este projeto.",
+    "dragOverlayHint": "Dica: solte em qualquer lugar para importar na pasta selecionada.",
+    "dragNoFiles": "Nenhum arquivo valido detectado. Arraste do Finder/Explorer.",
+    "dragFailed": "Falha ao importar arquivos soltos.",
     "contextMenu": {
-      "open": "Open",
-      "openLocation": "Show in folder",
+      "open": "Abrir",
+      "openLocation": "Mostrar na pasta",
       "preview": "Preview",
-      "previewFailed": "Failed to preview",
-      "deleteTitle": "Delete file",
-      "deleteConfirm": "This will delete the file from your system. Continue?",
+      "previewFailed": "Falha no preview",
+      "deleteTitle": "Excluir arquivo",
+      "deleteConfirm": "Isso excluira o arquivo do seu sistema. Continuar?",
       "deleteSuccess": "Excluido com sucesso",
-      "deleteFailed": "Delete failed",
+      "deleteFailed": "Falha ao excluir",
       "rename": "Renomear",
       "renameTitle": "Renomear",
-      "renamePlaceholder": "Enter new name",
-      "renameSuccess": "Renamed successfully",
-      "renameFailed": "Rename failed",
-      "renameEmpty": "Name cannot be empty",
-      "renameTimeout": "Rename request timed out, please try again",
-      "addToChat": "Add to chat",
-      "addedToChat": "Added to chat",
-      "openFailed": "Failed to open",
-      "revealFailed": "Failed to open containing folder",
+      "renamePlaceholder": "Digite o novo nome",
+      "renameSuccess": "Renomeado com sucesso",
+      "renameFailed": "Falha ao renomear",
+      "renameEmpty": "O nome nao pode estar vazio",
+      "renameTimeout": "Timeout na solicitacao de renomear, tente novamente",
+      "addToChat": "Adicionar ao chat",
+      "addedToChat": "Adicionado ao chat",
+      "openFailed": "Falha ao abrir",
+      "revealFailed": "Falha ao abrir pasta contendo",
       "download": "Baixar",
-      "downloadSuccess": "Download successful",
-      "downloadFailed": "Download failed"
+      "downloadSuccess": "Download concluido",
+      "downloadFailed": "Falha no download"
     },
     "preview": {
       "errors": {
-        "outsideSandbox": "File is outside the project sandbox, cannot preview.",
-        "notFound": "File does not exist or has been deleted.",
-        "timeout": "Reading file timed out. Please retry."
+        "outsideSandbox": "Arquivo fora do sandbox do projeto, nao e possivel fazer preview.",
+        "notFound": "Arquivo nao existe ou foi excluido.",
+        "timeout": "Timeout ao ler arquivo. Tente novamente."
       }
     },
     "changes": {
-      "tab": "Changes",
-      "filesTab": "Files",
-      "currentBranchLabel": "Current branch",
-      "summary": "{{count}} file(s) changed",
-      "insertions": "+{{count}} insertions",
-      "deletions": "-{{count}} deletions",
-      "empty": "No changes yet",
-      "emptyDescription": "File changes will appear here when AI modifies files",
+      "tab": "Alteracoes",
+      "filesTab": "Arquivos",
+      "currentBranchLabel": "Branch atual",
+      "summary": "{{count}} arquivo(s) alterado(s)",
+      "insertions": "+{{count}} insercoes",
+      "deletions": "-{{count}} exclusoes",
+      "empty": "Nenhuma alteracao ainda",
+      "emptyDescription": "Alteracoes de arquivos aparecerao aqui quando a IA modificar arquivos",
       "refresh": "Atualizar",
-      "staged": "Staged Changes",
-      "unstaged": "Changes",
-      "changedFiles": "Changed Files",
-      "stage": "Stage",
-      "stageAll": "Stage All Changes",
-      "unstage": "Unstage",
-      "unstageAll": "Unstage All Changes",
-      "discard": "Discard Changes",
-      "reset": "Revert Changes",
-      "noUnstaged": "No unstaged changes",
-      "noStaged": "No staged changes"
+      "staged": "Alteracoes Preparadas",
+      "unstaged": "Alteracoes",
+      "changedFiles": "Arquivos Alterados",
+      "stage": "Preparar",
+      "stageAll": "Preparar Todas as Alteracoes",
+      "unstage": "Despreparar",
+      "unstageAll": "Despreparar Todas as Alteracoes",
+      "discard": "Descartar Alteracoes",
+      "reset": "Reverter Alteracoes",
+      "noUnstaged": "Nenhuma alteracao nao preparada",
+      "noStaged": "Nenhuma alteracao preparada"
     },
-    "openWorkspace": "Open project folder",
+    "openWorkspace": "Abrir pasta do projeto",
     "openWith": {
       "vscode": "VS Code",
       "terminal": "Terminal",
-      "explorer": "File Explorer"
+      "explorer": "Explorador de Arquivos"
     }
   },
   "minimap": {
-    "searchAria": "Search conversation",
-    "searchHint": "Click here to search keywords",
-    "empty": "No Q&A turns yet",
-    "noMatch": "No matching content found",
-    "count": "{{count}} turns"
+    "searchAria": "Buscar conversa",
+    "searchHint": "Clique aqui para buscar palavras-chave",
+    "empty": "Nenhuma pergunta e resposta ainda",
+    "noMatch": "Nenhum conteudo correspondente encontrado",
+    "count": "{{count}} turnos"
   },
   "chat": {
-    "noModelSelected": "No model selected for current session, cannot send message",
-    "sendMessageTo": "Send message to {{model}}",
+    "noModelSelected": "Nenhum modelo selecionado para a sessao atual, nao e possivel enviar mensagem",
+    "sendMessageTo": "Enviar mensagem para {{model}}",
     "processing": "Processando...",
-    "quotaExceededTitle": "Model quota reached",
-    "quotaExceededBody": "The current model quota is exhausted. Switch to {{model}} to continue?",
-    "quotaExceededNoFallback": "Model quota reached. Please switch to another available model.",
-    "quotaSwitched": "Switched to {{model}}.",
-    "apiErrorNoCli": "API error occurred. No CLI agent available for fallback.",
-    "apiErrorSwitchFailed": "Failed to create fallback conversation.",
-    "apiErrorSwitched": "API error, auto-switched to {{cli}} CLI",
-    "confirmationLoadError": "Failed to load confirmation dialog",
-    "tryAnotherAgent": "Try another agent:",
-    "switchedToAgent": "Switched to {{agent}}",
-    "switchAgentFailed": "Failed to switch agent",
+    "quotaExceededTitle": "Cota do modelo atingida",
+    "quotaExceededBody": "A cota do modelo atual esgotou. Trocar para {{model}} para continuar?",
+    "quotaExceededNoFallback": "Cota do modelo atingida. Troque para outro modelo disponivel.",
+    "quotaSwitched": "Trocado para {{model}}.",
+    "apiErrorNoCli": "Erro de API ocorreu. Nenhum agente CLI disponivel para fallback.",
+    "apiErrorSwitchFailed": "Falha ao criar conversa de fallback.",
+    "apiErrorSwitched": "Erro de API, trocado automaticamente para CLI {{cli}}",
+    "confirmationLoadError": "Falha ao carregar dialogo de confirmacao",
+    "tryAnotherAgent": "Tente outro agente:",
+    "switchedToAgent": "Trocado para {{agent}}",
+    "switchAgentFailed": "Falha ao trocar agente",
     "speech": {
-      "recordTooltip": "Start voice input",
-      "pickFileTooltip": "Select an audio file",
-      "stopTooltip": "Stop recording",
-      "processing": "Transcribing audio...",
-      "unsupported": "Voice input is not available in this environment",
+      "recordTooltip": "Iniciar entrada por voz",
+      "pickFileTooltip": "Selecionar um arquivo de audio",
+      "stopTooltip": "Parar gravacao",
+      "processing": "Transcrevendo audio...",
+      "unsupported": "Entrada por voz nao disponivel neste ambiente",
       "startShort": "Mic",
-      "stopShort": "Stop",
+      "stopShort": "Parar",
       "transcribingShort": "...",
-      "audioCaptureError": "No microphone was detected",
-      "emptyTranscript": "No speech was detected",
-      "fileTooLarge": "Audio file is too large",
-      "networkError": "Network error while transcribing audio",
-      "notConfigured": "Speech-to-text is not configured yet",
-      "permissionDenied": "Microphone permission was denied",
-      "recordingUnsupported": "Live recording is not supported here. Please upload an audio file instead",
-      "transcriptionFailed": "Audio transcription failed",
-      "genericError": "Voice input failed. Please try again"
+      "audioCaptureError": "Nenhum microfone detectado",
+      "emptyTranscript": "Nenhuma fala detectada",
+      "fileTooLarge": "Arquivo de audio grande demais",
+      "networkError": "Erro de rede ao transcrever audio",
+      "notConfigured": "Speech-to-text ainda nao configurado",
+      "permissionDenied": "Permissao do microfone negada",
+      "recordingUnsupported": "Gravacao ao vivo nao suportada aqui. Faca upload de um arquivo de audio",
+      "transcriptionFailed": "Falha na transcricao de audio",
+      "genericError": "Entrada por voz falhou. Tente novamente"
     }
   },
   "sideQuestion": {
-    "title": "Side Question",
-    "description": "Ask a quick question about the current conversation",
-    "started": "Starting side question...",
-    "answered": "Side question answered.",
-    "noAnswer": "The side question did not have a clear answer in the current conversation.",
-    "loading": "Thinking...",
-    "parentTaskRunning": "Main task still running in the background.",
-    "dismissHint": "Press Escape, Enter, or Space to dismiss",
-    "unsupported": "Side questions are not available for this conversation.",
-    "alreadyRunning": "A side question is already running.",
-    "attachmentsNotAllowed": "Side questions cannot include files or DOM snippets.",
-    "emptyQuestion": "Please enter a side question after /btw.",
-    "toolsRequired": "/btw can only answer questions based on what's already in this conversation. It doesn't have access to search, browse, or fetch new information.",
-    "error": "Failed to answer the side question."
+    "title": "Pergunta Lateral",
+    "description": "Faca uma pergunta rapida sobre a conversa atual",
+    "started": "Iniciando pergunta lateral...",
+    "answered": "Pergunta lateral respondida.",
+    "noAnswer": "A pergunta lateral nao teve uma resposta clara na conversa atual.",
+    "loading": "Pensando...",
+    "parentTaskRunning": "Tarefa principal ainda em execucao em segundo plano.",
+    "dismissHint": "Pressione Escape, Enter ou Espaco para dispensar",
+    "unsupported": "Perguntas laterais nao disponiveis para esta conversa.",
+    "alreadyRunning": "Uma pergunta lateral ja esta em execucao.",
+    "attachmentsNotAllowed": "Perguntas laterais nao podem incluir arquivos ou trechos DOM.",
+    "emptyQuestion": "Digite uma pergunta lateral apos /btw.",
+    "toolsRequired": "/btw so pode responder com base no que ja esta nesta conversa. Nao tem acesso a busca, navegacao ou obtencao de novas informacoes.",
+    "error": "Falha ao responder a pergunta lateral."
   },
   "commandQueue": {
-    "title": "Queued Commands",
-    "clear": "Clear Queue",
+    "title": "Comandos na Fila",
+    "clear": "Limpar Fila",
     "edit": "Editar",
-    "editing": "Editing",
-    "editPlaceholder": "Update the queued command before it runs.",
+    "editing": "Editando",
+    "editPlaceholder": "Atualize o comando na fila antes de executar.",
     "cancelEdit": "Cancelar",
     "saveEdit": "Salvar",
-    "moreActions": "More actions",
-    "reorder": "Drag to reorder queued command",
+    "moreActions": "Mais acoes",
+    "reorder": "Arraste para reordenar comando na fila",
     "remove": "Remover",
-    "files": "{{count}} files",
-    "pausedAfterFailure": "The next queued command could not start. Edit, reorder, or remove it to continue.",
-    "emptyInput": "Queued commands cannot be empty.",
-    "queueFull": "Queue is full. Remove a command before adding more.",
-    "inputTooLong": "This queued command is too long. Shorten it before sending.",
-    "tooManyFiles": "Too many files are attached to this queued command.",
-    "queueTooLarge": "Queue data is too large to persist safely. Remove some queued commands first."
+    "files": "{{count}} arquivos",
+    "pausedAfterFailure": "O proximo comando na fila nao pode iniciar. Edite, reordene ou remova para continuar.",
+    "emptyInput": "Comandos na fila nao podem estar vazios.",
+    "queueFull": "Fila cheia. Remova um comando antes de adicionar mais.",
+    "inputTooLong": "Este comando na fila e longo demais. Encurte antes de enviar.",
+    "tooManyFiles": "Arquivos demais anexados a este comando na fila.",
+    "queueTooLarge": "Dados da fila grandes demais para persistir com seguranca. Remova alguns comandos primeiro."
   },
   "contextUsage": {
-    "contextUsed": "context used"
+    "contextUsed": "contexto usado"
   },
   "skill_generator": {
-    "title": "Generate Skill/Rule",
-    "generate": "Generate",
-    "description": "Analyze conversation history to generate:",
+    "title": "Gerar Skill/Regra",
+    "generate": "Gerar",
+    "description": "Analise o historico da conversa para gerar:",
     "type_skill": "Skill (Python)",
-    "type_rule": "Rule (JSON/MD)",
-    "name_label": "Agent Name:",
-    "name_placeholder": "e.g. Excel Translator",
-    "menu_generate": "Generate from History",
-    "menu_load": "Load Rule/Skill",
-    "load_title": "Load Rule/Skill",
-    "load_error": "Failed to load files",
-    "no_files": "No relevant files found in project",
-    "read_error": "Failed to read file",
-    "rule_loaded": "Rule loaded successfully",
-    "no_workspace": "No project configured",
-    "name_required": "Please enter a name for the preset",
-    "no_history": "No conversation history found",
-    "request_sent": "Request sent to agent",
-    "failed": "Failed to generate",
-    "preset_registered": "Agent preset registered successfully!"
+    "type_rule": "Regra (JSON/MD)",
+    "name_label": "Nome do Agente:",
+    "name_placeholder": "ex.: Tradutor Excel",
+    "menu_generate": "Gerar do Historico",
+    "menu_load": "Carregar Regra/Skill",
+    "load_title": "Carregar Regra/Skill",
+    "load_error": "Falha ao carregar arquivos",
+    "no_files": "Nenhum arquivo relevante encontrado no projeto",
+    "read_error": "Falha ao ler arquivo",
+    "rule_loaded": "Regra carregada com sucesso",
+    "no_workspace": "Nenhum projeto configurado",
+    "name_required": "Digite um nome para o preset",
+    "no_history": "Nenhum historico de conversa encontrado",
+    "request_sent": "Solicitacao enviada ao agente",
+    "failed": "Falha ao gerar",
+    "preset_registered": "Preset do agente registrado com sucesso!"
   },
   "thinking": {
-    "complete": "Thought complete",
-    "label": "Thinking..."
+    "complete": "Pensamento concluido",
+    "label": "Pensando..."
   },
   "skills": {
-    "loaded": "Loaded Skills"
+    "loaded": "Skills Carregadas"
   },
   "mcp": {
-    "loaded": "Loaded MCP",
-    "managementHint": "If an MCP looks abnormal, it is usually caused by the MCP JSON configuration. Go to Tools settings and test it there.",
-    "openSettings": "Open Tools settings",
+    "loaded": "MCP Carregado",
+    "managementHint": "Se um MCP parecer anormal, geralmente e causado pela configuracao JSON do MCP. Va para configuracoes de Ferramentas e teste la.",
+    "openSettings": "Abrir configuracoes de Ferramentas",
     "status": {
-      "loaded": "Loaded",
+      "loaded": "Carregado",
       "failed": "Falhou",
-      "unsupported": "Unsupported"
+      "unsupported": "Nao suportado"
     }
   },
   "sendbox": {
-    "hint": "Type / for commands, @ to reference files"
+    "hint": "Digite / para comandos, @ para referenciar arquivos"
   },
-  "notFound": "Conversation not found or has been deleted"
+  "notFound": "Conversa nao encontrada ou foi excluida"
 }
