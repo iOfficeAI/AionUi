@@ -66,6 +66,11 @@ export type ITeamSlotWork = {
   paused?: boolean;
   suppressed_wake_count?: number;
   active_turn_id?: string;
+  active_turn_started_at_ms?: number;
+  active_turn_elapsed_ms?: number;
+  active_turn_slow?: boolean;
+  active_turn_slow_threshold_ms?: number;
+  runtime_health?: 'disconnected' | 'unhealthy';
 };
 
 export type ITeamRunAck = {
