@@ -22,29 +22,67 @@ type UsePresetAssistantResolverOptions = {
 type UsePresetAssistantResolverResult = {
   resolvePresetRulesAndSkills: (
     agentInfo:
-      | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+      | {
+          agent_type: string;
+          backend?: string;
+          assistant_id?: string;
+          preset_assistant_id?: string;
+          custom_agent_id?: string;
+          context?: string;
+        }
       | undefined
   ) => Promise<{ rules?: string }>;
   resolvePresetContext: (
     agentInfo:
-      | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+      | {
+          agent_type: string;
+          backend?: string;
+          assistant_id?: string;
+          preset_assistant_id?: string;
+          custom_agent_id?: string;
+          context?: string;
+        }
       | undefined
   ) => Promise<string | undefined>;
   resolvePresetAgentType: (
-    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+    agentInfo:
+      | {
+          agent_type: string;
+          backend?: string;
+          assistant_id?: string;
+          preset_assistant_id?: string;
+          custom_agent_id?: string;
+        }
+      | undefined
   ) => string;
   resolveEnabledSkills: (
-    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+    agentInfo:
+      | {
+          agent_type: string;
+          backend?: string;
+          assistant_id?: string;
+          preset_assistant_id?: string;
+          custom_agent_id?: string;
+        }
+      | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+    agentInfo:
+      | {
+          agent_type: string;
+          backend?: string;
+          assistant_id?: string;
+          preset_assistant_id?: string;
+          custom_agent_id?: string;
+        }
+      | undefined
   ) => string[] | undefined;
 };
 
 function resolveAssistantIdentityId(
-  agentInfo: { assistant_id?: string; custom_agent_id?: string } | undefined
+  agentInfo: { assistant_id?: string; preset_assistant_id?: string; custom_agent_id?: string } | undefined
 ): string | undefined {
-  return agentInfo?.assistant_id || agentInfo?.custom_agent_id;
+  return agentInfo?.assistant_id || agentInfo?.preset_assistant_id || agentInfo?.custom_agent_id;
 }
 
 /**
@@ -60,7 +98,14 @@ export const usePresetAssistantResolver = ({
   const resolvePresetRulesAndSkills = useCallback(
     async (
       agentInfo:
-        | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+        | {
+            agent_type: string;
+            backend?: string;
+            assistant_id?: string;
+            preset_assistant_id?: string;
+            custom_agent_id?: string;
+            context?: string;
+          }
         | undefined
     ): Promise<{ rules?: string }> => {
       if (!agentInfo) return {};
@@ -86,7 +131,14 @@ export const usePresetAssistantResolver = ({
   const resolvePresetContext = useCallback(
     async (
       agentInfo:
-        | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+        | {
+            agent_type: string;
+            backend?: string;
+            assistant_id?: string;
+            preset_assistant_id?: string;
+            custom_agent_id?: string;
+            context?: string;
+          }
         | undefined
     ): Promise<string | undefined> => {
       const { rules } = await resolvePresetRulesAndSkills(agentInfo);
@@ -97,7 +149,15 @@ export const usePresetAssistantResolver = ({
 
   const resolvePresetAgentType = useCallback(
     (
-      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+      agentInfo:
+        | {
+            agent_type: string;
+            backend?: string;
+            assistant_id?: string;
+            preset_assistant_id?: string;
+            custom_agent_id?: string;
+          }
+        | undefined
     ): string => {
       if (!agentInfo) return 'gemini';
       const assistantId = resolveAssistantIdentityId(agentInfo);
@@ -110,7 +170,15 @@ export const usePresetAssistantResolver = ({
 
   const resolveEnabledSkills = useCallback(
     (
-      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+      agentInfo:
+        | {
+            agent_type: string;
+            backend?: string;
+            assistant_id?: string;
+            preset_assistant_id?: string;
+            custom_agent_id?: string;
+          }
+        | undefined
     ): string[] | undefined => {
       const assistantId = resolveAssistantIdentityId(agentInfo);
       if (!assistantId) return undefined;
@@ -127,7 +195,15 @@ export const usePresetAssistantResolver = ({
 
   const resolveDisabledBuiltinSkills = useCallback(
     (
-      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+      agentInfo:
+        | {
+            agent_type: string;
+            backend?: string;
+            assistant_id?: string;
+            preset_assistant_id?: string;
+            custom_agent_id?: string;
+          }
+        | undefined
     ): string[] | undefined => {
       const assistantId = resolveAssistantIdentityId(agentInfo);
       if (!assistantId) return undefined;

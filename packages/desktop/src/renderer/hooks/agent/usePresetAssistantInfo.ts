@@ -78,6 +78,26 @@ export function resolvePresetId(conversation: TChatConversation): string | null 
   return null;
 }
 
+function hasExplicitAssistantIdentity(conversation: TChatConversation): boolean {
+  const extra = conversation.extra as {
+    assistant_id?: unknown;
+    preset_assistant_id?: unknown;
+  };
+  const assistant_id = typeof extra?.assistant_id === 'string' ? extra.assistant_id.trim() : '';
+  const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
+  return Boolean(assistant_id || preset_assistant_id);
+}
+
+function resolveLegacyRuntimeRowId(conversation: TChatConversation): string | null {
+  const extra = conversation.extra as {
+    agent_id?: unknown;
+    custom_agent_id?: unknown;
+  };
+  const agent_id = typeof extra?.agent_id === 'string' ? extra.agent_id.trim() : '';
+  const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
+  return agent_id || custom_agent_id || null;
+}
+
 /**
  * 规范化头像：支持 emoji / 内置 svg / 扩展资源 URL
  * Normalize avatar to either emoji text or a renderable image URL
@@ -257,26 +277,25 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     }
 
     const presetId = resolvePresetId(conversation);
-
-    // Custom ACP row short-circuit: conversation.extra carries `agent_id`
-    // (written by buildAgentConversationParams) or the legacy `custom_agent_id`
-    // alias. Neither is a preset assistant id, so we resolve directly against
-    // the detected-agent catalog and trust the row's own icon/name.
-    if (!presetId) {
-      const extra = conversation.extra as { agent_id?: unknown; custom_agent_id?: unknown } | undefined;
-      const rowAgentId =
-        (typeof extra?.agent_id === 'string' && extra.agent_id.trim()) ||
-        (typeof extra?.custom_agent_id === 'string' && extra.custom_agent_id.trim()) ||
-        '';
-      if (rowAgentId && Array.isArray(detectedAgents)) {
-        const row = detectedAgents.find((a) => a.id === rowAgentId && a.agent_source === 'custom');
-        if (row) {
-          const normalized = normalizeAvatar(row.icon);
-          return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
-        }
-      }
-    }
+    const hasExplicitAssistantId = hasExplicitAssistantIdentity(conversation);
+    const runtimeRowAgentId = resolveLegacyRuntimeRowId(conversation);
     const locale = i18n.language || 'en-US';
+
+    const resolveCustomRuntimeRow = (): { info: PresetAssistantInfo; isLoading: false } | null => {
+      if (!runtimeRowAgentId || !Array.isArray(detectedAgents)) return null;
+      const row = detectedAgents.find((a) => a.id === runtimeRowAgentId && a.agent_source === 'custom');
+      if (!row) return null;
+      const normalized = normalizeAvatar(row.icon);
+      return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+    };
+
+    // Custom ACP row short-circuit: only when there is no explicit assistant
+    // identity. Legacy `custom_agent_id` sometimes carries a runtime row id,
+    // not an assistant id, so let assistant-based restore win first.
+    if (!presetId || !hasExplicitAssistantId) {
+      const runtimeInfo = resolveCustomRuntimeRow();
+      if (runtimeInfo && !presetId) return runtimeInfo;
+    }
 
     if (!presetId) {
       const inferredInfo = inferLegacyAssistantInfo(conversation, locale, assistantsList);
@@ -296,6 +315,11 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         (a) => a.id === presetId || a.id === `builtin-${presetId}` || a.id === `ext-${presetId}`
       );
       if (assistantMatch) return { info: buildPresetInfoFromAssistant(assistantMatch, locale), isLoading: false };
+    }
+
+    if (!hasExplicitAssistantId) {
+      const runtimeInfo = resolveCustomRuntimeRow();
+      if (runtimeInfo) return runtimeInfo;
     }
 
     // Still loading — defer to avoid flickering fallback

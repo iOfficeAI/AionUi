@@ -126,6 +126,40 @@ describe('usePresetAssistantInfo', () => {
       isEmoji: true,
     });
   });
+
+  it('falls back to custom runtime metadata when legacy custom_agent_id is only a runtime row id', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      if (key === 'agents.detected') {
+        return {
+          data: [
+            {
+              id: 'runtime-social',
+              name: 'Gemini Runtime',
+              icon: '🧩',
+              agent_source: 'custom',
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      custom_agent_id: 'runtime-social',
+      backend: 'gemini',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Gemini Runtime',
+      logo: '🧩',
+      isEmoji: true,
+    });
+  });
 });
 
 function makeConversation(extra: Record<string, unknown>): TChatConversation {

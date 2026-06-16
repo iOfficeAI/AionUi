@@ -61,4 +61,40 @@ describe('usePresetAssistantResolver', () => {
     expect(result.current.resolveEnabledSkills(agentInfo)).toEqual(['skill-a']);
     expect(result.current.resolveDisabledBuiltinSkills(agentInfo)).toEqual(['skill-b']);
   });
+
+  it('uses preset_assistant_id before backend fallback when restoring legacy assistant conversations', async () => {
+    readAssistantRuleInvokeMock.mockResolvedValue('assistant rules');
+
+    const { result } = renderHook(() =>
+      usePresetAssistantResolver({
+        localeKey: 'zh-CN',
+        assistants: [
+          {
+            id: 'assistant-modern',
+            preset_agent_type: 'aionrs',
+            enabled_skills: ['skill-a'],
+            disabled_builtin_skills: ['skill-b'],
+          },
+        ] as any,
+      })
+    );
+
+    const agentInfo = {
+      agent_type: 'acp',
+      backend: 'claude',
+      preset_assistant_id: 'assistant-modern',
+      context: 'legacy context',
+    };
+
+    const resolved = await result.current.resolvePresetRulesAndSkills(agentInfo as any);
+
+    expect(readAssistantRuleInvokeMock).toHaveBeenCalledWith({
+      assistant_id: 'assistant-modern',
+      locale: 'zh-CN',
+    });
+    expect(resolved).toEqual({ rules: 'assistant rules' });
+    expect(result.current.resolvePresetAgentType(agentInfo as any)).toBe('aionrs');
+    expect(result.current.resolveEnabledSkills(agentInfo as any)).toEqual(['skill-a']);
+    expect(result.current.resolveDisabledBuiltinSkills(agentInfo as any)).toEqual(['skill-b']);
+  });
 });
