@@ -735,6 +735,7 @@ export const useConversationCommandQueue = ({
       waitingForTeamUpgradeHandoffRef.current = true;
       if (
         !teamUpgradeHandoffReady ||
+        isBusy ||
         !executionGate.hydrated ||
         !executionGate.canExecute ||
         executionGate.isProcessing
@@ -805,6 +806,7 @@ export const useConversationCommandQueue = ({
     executionGate.canExecute,
     executionGate.hydrated,
     executionGate.isProcessing,
+    isBusy,
     teamUpgradeHandoffReady,
     isInteractionLocked,
     onExecute,

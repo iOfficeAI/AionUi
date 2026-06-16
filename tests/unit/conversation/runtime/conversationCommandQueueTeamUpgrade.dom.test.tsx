@@ -63,26 +63,28 @@ const storageKey = (conversationId: string) => `conversation-command-queue/${con
 const renderQueue = ({
   conversation_id,
   runtimeGate,
+  isBusy = false,
   teamUpgradeHandoffReady = true,
   onExecute = vi.fn().mockResolvedValue(undefined),
 }: {
   conversation_id: string;
   runtimeGate: ConversationCommandQueueRuntimeGate;
+  isBusy?: boolean;
   teamUpgradeHandoffReady?: boolean;
   onExecute?: (item: Parameters<Parameters<typeof useConversationCommandQueue>[0]['onExecute']>[0]) => Promise<void>;
 }) =>
   renderHook(
-    ({ gate, handoffReady }) =>
+    ({ gate, busy, handoffReady }) =>
       useConversationCommandQueue({
         conversation_id,
         enabled: true,
-        isBusy: false,
+        isBusy: busy,
         runtimeGate: gate,
         teamUpgradeHandoffReady: handoffReady,
         onExecute,
       }),
     {
-      initialProps: { gate: runtimeGate, handoffReady: teamUpgradeHandoffReady },
+      initialProps: { gate: runtimeGate, busy: isBusy, handoffReady: teamUpgradeHandoffReady },
       wrapper: createSwrWrapper(),
     }
   );
@@ -127,6 +129,39 @@ describe('useConversationCommandQueue team-upgrade handoff', () => {
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({ input: 'queued follow-up' }));
   });
 
+  it('waits for the original conversation turn to finish before draining the Team-upgrade handoff queue', async () => {
+    const onExecute = vi.fn().mockResolvedValue(undefined);
+    const { result, rerender } = renderQueue({
+      conversation_id: 'conv-original-busy',
+      runtimeGate: processingGate,
+      isBusy: true,
+      onExecute,
+    });
+
+    act(() => {
+      result.current.enqueue({ input: 'queued follow-up', files: [] });
+    });
+    await waitFor(() => expect(result.current.items).toHaveLength(1));
+
+    act(() => {
+      emitter.emit('conversation.commandQueue.deferAfterTeamUpgrade', {
+        conversation_id: 'conv-original-busy',
+        team_id: 'team-1',
+      });
+    });
+
+    rerender({ gate: idleGate, busy: true, handoffReady: true });
+
+    await new Promise((resolve) => setTimeout(resolve, 10));
+    expect(onExecute).not.toHaveBeenCalled();
+    expect(result.current.items).toHaveLength(1);
+
+    rerender({ gate: idleGate, busy: false, handoffReady: true });
+
+    await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
+    expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({ input: 'queued follow-up' }));
+  });
+
   it('does not pause or block another conversation', async () => {
     const onExecute = vi.fn().mockResolvedValue(undefined);
     const { result, rerender } = renderQueue({
@@ -147,7 +182,7 @@ describe('useConversationCommandQueue team-upgrade handoff', () => {
       });
     });
 
-    rerender({ gate: idleGate });
+    rerender({ gate: idleGate, busy: false, handoffReady: true });
 
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
     expect(result.current.isPaused).toBe(false);
@@ -209,7 +244,7 @@ describe('useConversationCommandQueue team-upgrade handoff', () => {
     expect(secondRender.result.current.isPaused).toBe(false);
     expect(onExecute).not.toHaveBeenCalled();
 
-    secondRender.rerender({ gate: idleGate, handoffReady: true });
+    secondRender.rerender({ gate: idleGate, busy: false, handoffReady: true });
 
     await waitFor(() => expect(onExecute).toHaveBeenCalledTimes(1));
     expect(onExecute).toHaveBeenCalledWith(expect.objectContaining({ input: 'queued follow-up' }));
