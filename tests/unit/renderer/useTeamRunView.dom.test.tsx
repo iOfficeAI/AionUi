@@ -2,9 +2,7 @@ import React from 'react';
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ITeamChildTurnEvent, ITeamRunEvent } from '@/common/types/team/teamTypes';
-import TeamRuntimeNotice, {
-  TeamRuntimeBadge,
-} from '@/renderer/pages/team/components/TeamRuntimeNotice';
+import TeamRuntimeNotice, { TeamRuntimeBadge } from '@/renderer/pages/team/components/TeamRuntimeNotice';
 import { useTeamRunView } from '@/renderer/pages/team/hooks/useTeamRunView';
 
 type TeamRunHandler = (event: ITeamRunEvent) => void;
