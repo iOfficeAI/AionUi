@@ -14,11 +14,12 @@
  * FailedMember is the only non-leader slot.
  */
 import { test, expect } from '../../fixtures';
-import { invokeBridge, navigateTo, createTeam, deleteTeam } from '../../helpers';
+import { invokeBridge, navigateTo, createTeam, deleteTeam, findAssistantIdForBackend } from '../../helpers';
 
 type AgentPayload = {
   name: string;
   role: string;
+  assistant_id?: string;
   backend: string;
   model: string;
 };
@@ -27,6 +28,8 @@ type TeamAgentResult = { slot_id: string; name: string; status: string };
 
 test.describe('Team Member Init Failure UI', () => {
   test('failed agent slot renders error overlay with remove button', async ({ page }) => {
+    await navigateTo(page, '#/team');
+
     // [setup] Create a team with a leader slot via shared helper
     let teamId: string;
     try {
@@ -37,12 +40,21 @@ test.describe('Team Member Init Failure UI', () => {
       return;
     }
 
+    const failedAssistantId = await findAssistantIdForBackend(page, 'claude');
+    if (!failedAssistantId) {
+      console.log('[E2E] No assistant found for claude backend — skipping member-init-failure test');
+      await deleteTeam(page, teamId);
+      test.skip();
+      return;
+    }
+
     // [inject] Add a teammate via team.add-agent. Backend assigns slot_id/status;
     // init-failure surface is produced by the agent not being able to initialise.
     const failedAgent: AgentPayload = {
       name: 'FailedMember',
       role: 'teammate',
-      backend: 'acp',
+      assistant_id: failedAssistantId,
+      backend: 'claude',
       model: 'claude',
     };
 
