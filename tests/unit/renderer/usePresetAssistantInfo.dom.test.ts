@@ -148,6 +148,43 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('falls back from a stale assistant_id to a valid preset_assistant_id', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') {
+        return {
+          data: [
+            {
+              id: 'assistant-modern',
+              name: 'Modern Planner',
+              avatar: '🧭',
+              name_i18n: {},
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      assistant_id: 'assistant-deleted',
+      preset_assistant_id: 'assistant-modern',
+      custom_agent_id: 'runtime-social',
+      agent_name: 'Gemini Runtime',
+      backend: 'gemini',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Modern Planner',
+      logo: '🧭',
+      isEmoji: true,
+      assistantId: 'assistant-modern',
+    });
+  });
+
   it('restores assistant info from a legacy custom_agent_id when it still matches an assistant id', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {

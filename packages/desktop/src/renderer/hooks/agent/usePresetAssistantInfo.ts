@@ -43,37 +43,47 @@ export function resolveAssistantConfigId(conversation: TChatConversation): strin
   return assistant_id || preset_assistant_id || null;
 }
 
-export function resolvePresetId(conversation: TChatConversation): string | null {
+function collectExplicitAssistantIdentityCandidates(conversation: TChatConversation): string[] {
   const extra = conversation.extra as {
     assistant_id?: unknown;
     preset_assistant_id?: unknown;
-    custom_agent_id?: unknown;
-    enabled_skills?: unknown;
   };
   const assistant_id = typeof extra?.assistant_id === 'string' ? extra.assistant_id.trim() : '';
   const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
+  return [assistant_id, preset_assistant_id].filter(
+    (value, index, values) => Boolean(value) && values.indexOf(value) === index
+  );
+}
+
+function collectLegacyAssistantIdentityCandidates(conversation: TChatConversation): string[] {
+  const extra = conversation.extra as {
+    custom_agent_id?: unknown;
+    enabled_skills?: unknown;
+  };
   const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
-  const enabled_skills = Array.isArray(extra?.enabled_skills) ? extra.enabled_skills : [];
+  return [custom_agent_id].filter(Boolean);
+}
 
-  if (assistant_id) {
-    return assistant_id.replace('builtin-', '');
+function normalizeAssistantIdentityCandidate(value: string): string {
+  return value.replace('builtin-', '');
+}
+
+function findAssistantByIdentityCandidates(
+  assistants: Assistant[] | null | undefined,
+  candidates: string[]
+): Assistant | undefined {
+  if (!assistants?.length || !candidates.length) return undefined;
+
+  for (const rawCandidate of candidates) {
+    const candidate = normalizeAssistantIdentityCandidate(rawCandidate);
+    const match = assistants.find((assistant) => {
+      const ids = new Set([assistant.id, `builtin-${assistant.id}`, `ext-${assistant.id}`]);
+      return ids.has(rawCandidate) || ids.has(candidate);
+    });
+    if (match) return match;
   }
 
-  // 1. 优先使用 preset_assistant_id（新会话）
-  // Priority: use preset_assistant_id (new conversations)
-  if (preset_assistant_id) {
-    const resolved = preset_assistant_id.replace('builtin-', '');
-    return resolved;
-  }
-
-  // 2. 向后兼容：custom_agent_id（ACP/Codex 旧会话）
-  // Backward compatible: custom_agent_id (ACP/Codex old conversations)
-  if (custom_agent_id) {
-    const resolved = custom_agent_id.replace('builtin-', '');
-    return resolved;
-  }
-
-  return null;
+  return undefined;
 }
 
 function hasExplicitAssistantIdentity(conversation: TChatConversation): boolean {
@@ -287,10 +297,17 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       return { info: null, isLoading: false };
     }
 
-    const presetId = resolvePresetId(conversation);
+    const explicitAssistantCandidates = collectExplicitAssistantIdentityCandidates(conversation);
+    const legacyAssistantCandidates = collectLegacyAssistantIdentityCandidates(conversation);
+    const assistantMatch =
+      findAssistantByIdentityCandidates(assistantsList, explicitAssistantCandidates) ??
+      findAssistantByIdentityCandidates(assistantsList, legacyAssistantCandidates);
     const hasExplicitAssistantId = hasExplicitAssistantIdentity(conversation);
     const runtimeRowAgentId = resolveLegacyRuntimeRowId(conversation);
     const locale = i18n.language || 'en-US';
+    const adapterIdentity = [...explicitAssistantCandidates, ...legacyAssistantCandidates].find((candidate) =>
+      candidate.startsWith('ext:')
+    );
 
     const resolveLegacyRuntimeInfo = (): { info: PresetAssistantInfo; isLoading: false } | null => {
       if (!runtimeRowAgentId) return null;
@@ -299,44 +316,26 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       return { info: { name, logo: '🤖', isEmoji: true }, isLoading: false };
     };
 
-    // Custom ACP row short-circuit: only when there is no explicit assistant
-    // identity. Legacy `custom_agent_id` sometimes carries a runtime row id,
-    // not an assistant id, so let assistant-based restore win first.
-    if (!presetId || !hasExplicitAssistantId) {
-      const runtimeInfo = resolveLegacyRuntimeInfo();
-      if (runtimeInfo && !presetId) return runtimeInfo;
+    if (assistantMatch) {
+      return { info: buildPresetInfoFromAssistant(assistantMatch, locale), isLoading: false };
     }
 
-    if (!presetId) {
-      const inferredInfo = inferLegacyAssistantInfo(conversation, locale, assistantsList);
-      if (inferredInfo) return { info: inferredInfo, isLoading: false };
+    const inferredInfo = inferLegacyAssistantInfo(conversation, locale, assistantsList);
+    if (inferredInfo) return { info: inferredInfo, isLoading: false };
 
-      const { hasPayload } = extractLegacyPresetPayload(conversation);
-      if (hasPayload && isLoadingAssistants) {
-        return { info: null, isLoading: true };
-      }
-      return { info: null, isLoading: false };
+    const { hasPayload } = extractLegacyPresetPayload(conversation);
+    if (
+      (hasPayload || explicitAssistantCandidates.length > 0 || legacyAssistantCandidates.length > 0) &&
+      isLoadingAssistants
+    ) {
+      return { info: null, isLoading: true };
     }
 
-    // Assistant lookup: backend returns merged builtin + user list.
-    // Accept either the bare id or the legacy `builtin-` / `ext-` prefixed forms.
-    if (assistantsList && Array.isArray(assistantsList)) {
-      const assistantMatch = assistantsList.find(
-        (a) => a.id === presetId || a.id === `builtin-${presetId}` || a.id === `ext-${presetId}`
-      );
-      if (assistantMatch) return { info: buildPresetInfoFromAssistant(assistantMatch, locale), isLoading: false };
-    }
-
-    // Still loading — defer to avoid flickering fallback
-    if (isLoadingAssistants || isLoadingExtAdapters)
-      return { info: null as PresetAssistantInfo | null, isLoading: true };
-
-    const runtimeInfo = resolveLegacyRuntimeInfo();
-    if (runtimeInfo) return runtimeInfo;
+    if (adapterIdentity && isLoadingExtAdapters) return { info: null as PresetAssistantInfo | null, isLoading: true };
 
     // Extension ACP adapters (custom_agent_id like ext:{extensionName}:{adapterId})
-    if (presetId.startsWith('ext:') && extensionAcpAdapters && Array.isArray(extensionAcpAdapters)) {
-      const parts = presetId.split(':');
+    if (adapterIdentity && extensionAcpAdapters && Array.isArray(extensionAcpAdapters)) {
+      const parts = adapterIdentity.split(':');
       if (parts.length >= 3) {
         const extensionName = parts[1];
         const adapterId = parts.slice(2).join(':');
@@ -353,6 +352,17 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         }
       }
     }
+
+    // Custom ACP row short-circuit: only when there is no explicit assistant
+    // identity. Legacy `custom_agent_id` sometimes carries a runtime row id,
+    // not an assistant id, so let assistant-based restore win first.
+    if (!hasExplicitAssistantId) {
+      const runtimeInfo = resolveLegacyRuntimeInfo();
+      if (runtimeInfo) return runtimeInfo;
+    }
+
+    const runtimeInfo = resolveLegacyRuntimeInfo();
+    if (runtimeInfo) return runtimeInfo;
 
     return { info: null, isLoading: false };
   }, [

@@ -83,9 +83,15 @@ function resolveAssistantIdentityId(
   agentInfo: { assistant_id?: string; preset_assistant_id?: string; custom_agent_id?: string } | undefined,
   assistants: Assistant[]
 ): string | undefined {
-  const explicitAssistantId = agentInfo?.assistant_id || agentInfo?.preset_assistant_id;
-  if (explicitAssistantId) {
-    return explicitAssistantId;
+  const explicitAssistantCandidates = [agentInfo?.assistant_id, agentInfo?.preset_assistant_id].filter(
+    (value, index, values): value is string =>
+      typeof value === 'string' && value.length > 0 && values.indexOf(value) === index
+  );
+  if (explicitAssistantCandidates.length) {
+    const matchingExplicitAssistantId = explicitAssistantCandidates.find((candidate) =>
+      assistants.some((assistant) => assistant.id === candidate)
+    );
+    return matchingExplicitAssistantId || explicitAssistantCandidates[0];
   }
 
   const legacyAssistantId = agentInfo?.custom_agent_id;
