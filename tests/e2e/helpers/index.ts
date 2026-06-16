@@ -52,6 +52,8 @@ export { invokeBridge } from './bridge';
 export { httpInvoke, httpGet, httpPost, httpDelete } from './httpBridge';
 export {
   selectAgent,
+  findAssistantIdForBackend,
+  selectAssistantForBackend,
   selectModel,
   sendMessageFromGuid,
   waitForSessionActive,

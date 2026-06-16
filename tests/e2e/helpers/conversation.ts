@@ -7,6 +7,7 @@
 import type { Page } from '@playwright/test';
 import { expect } from '../fixtures';
 import { goToGuid } from './navigation';
+import { httpGet } from './httpBridge';
 import {
   GUID_INPUT,
   AGENT_PILL,
@@ -16,7 +17,9 @@ import {
   MODEL_SELECTOR_BTN,
   NEW_CHAT_TRIGGER,
   agentPillByBackend,
+  presetPillById,
 } from './selectors';
+import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 /** Select an agent on the guid page by backend name (e.g. 'claude', 'codex'). */
 export async function selectAgent(page: Page, backend: string, model?: string): Promise<void> {
@@ -49,6 +52,24 @@ export async function selectAgent(page: Page, backend: string, model?: string): 
   if (model) {
     await selectModel(page, model);
   }
+}
+
+export async function findAssistantIdForBackend(page: Page, backend: string): Promise<string | null> {
+  const assistants = await httpGet<Assistant[]>(page, '/api/assistants');
+  const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
+  const preferred =
+    enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend) ??
+    enabledAssistants.find((assistant) => assistant.preset_agent_type === backend);
+  return preferred?.id ?? null;
+}
+
+export async function selectAssistantForBackend(page: Page, backend: string): Promise<string | null> {
+  const assistantId = await findAssistantIdForBackend(page, backend);
+  if (!assistantId) return null;
+  const assistantPill = page.locator(presetPillById(assistantId));
+  if (!(await assistantPill.isVisible().catch(() => false))) return null;
+  await assistantPill.click();
+  return assistantId;
 }
 
 /**
