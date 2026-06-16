@@ -3,16 +3,15 @@ import path from 'node:path';
 import type { ElectronApplication, Page } from '@playwright/test';
 import { test, expect } from '../../../fixtures';
 import {
-  AGENT_PILL,
   MODE_SELECTOR,
-  agentPillByBackend,
   deleteConversation,
+  findAssistantIdForBackend,
   goToGuid,
   httpDelete,
   httpGet,
   httpInvoke,
   httpPost,
-  selectAgent,
+  presetPillById,
   sendMessageFromGuid,
   waitForPermissionMessageCard,
 } from '../../../helpers';
@@ -85,15 +84,11 @@ function queryCronRow(dbPath: string, jobId: string): CronDbRow {
 }
 
 async function pickAvailableBackend(page: Page): Promise<(typeof PREFERRED_ACP_BACKENDS)[number] | null> {
-  await page
-    .locator(AGENT_PILL)
-    .first()
-    .waitFor({ state: 'visible', timeout: 30_000 })
-    .catch(() => {});
-
   for (const backend of PREFERRED_ACP_BACKENDS) {
+    const assistantId = await findAssistantIdForBackend(page, backend);
+    if (!assistantId) continue;
     const visible = await page
-      .locator(agentPillByBackend(backend))
+      .locator(presetPillById(assistantId))
       .isVisible()
       .catch(() => false);
     if (visible) {
@@ -239,11 +234,17 @@ test.describe('ACP cron busy handling', () => {
 
       const backend = await pickAvailableBackend(page);
       if (!backend) {
-        test.skip(true, 'No ACP backend pill available on the guid page');
+        test.skip(true, 'No ACP-backed assistant pill available on the guid page');
         return;
       }
 
-      await selectAgent(page, backend);
+      const assistantId = await findAssistantIdForBackend(page, backend);
+      if (!assistantId) {
+        test.skip(true, `No assistant projected for backend ${backend}`);
+        return;
+      }
+
+      await page.locator(presetPillById(assistantId)).click();
 
       const readOnlyModeReady = await ensureReadOnlyMode(page);
       if (!readOnlyModeReady) {

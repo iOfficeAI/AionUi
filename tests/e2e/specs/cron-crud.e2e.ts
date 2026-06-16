@@ -13,8 +13,8 @@ import { test, expect } from '../fixtures';
 import { invokeBridge } from '../helpers/bridge';
 import { goToGuid } from '../helpers/navigation';
 import {
-  AGENT_PILL,
-  selectAgent,
+  findAssistantIdForBackend,
+  presetPillById,
   sendMessageFromGuid,
   waitForSessionActive,
   waitForAiReply,
@@ -33,20 +33,16 @@ interface CronJob {
 }
 
 async function pickAvailableBackend(page: import('@playwright/test').Page): Promise<string | null> {
+  const preferredBackends = ['gemini', 'claude', 'codex', 'aionrs'];
   for (let attempt = 0; attempt < 2; attempt++) {
-    const visible = await page
-      .locator(AGENT_PILL)
-      .first()
-      .waitFor({ state: 'visible', timeout: 45_000 })
-      .then(() => true)
-      .catch(() => false);
-    if (visible) {
-      const backends = await page
-        .locator(AGENT_PILL)
-        .evaluateAll((els) => els.map((el) => el.getAttribute('data-agent-backend')).filter(Boolean));
-      const preferred = ['gemini', 'claude', 'codex', 'aionrs'].find((backend) => backends.includes(backend));
-      const found = preferred ?? backends[0] ?? null;
-      if (found) return found;
+    for (const backend of preferredBackends) {
+      const assistantId = await findAssistantIdForBackend(page, backend);
+      if (!assistantId) continue;
+      const isVisible = await page
+        .locator(presetPillById(assistantId))
+        .isVisible()
+        .catch(() => false);
+      if (isVisible) return backend;
     }
     if (attempt === 0) {
       await page.reload({ waitUntil: 'domcontentloaded' });
@@ -173,10 +169,15 @@ test.describe('Cron via AI conversation', () => {
 
     const backend = await pickAvailableBackend(page);
     if (!backend) {
-      test.skip(true, 'No usable agent available on guid page');
+      test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    await selectAgent(page, backend);
+    const assistantId = await findAssistantIdForBackend(page, backend);
+    if (!assistantId) {
+      test.skip(true, `No assistant projected for backend ${backend}`);
+      return;
+    }
+    await page.locator(presetPillById(assistantId)).click();
 
     // ── Step 2: Send message to create a scheduled task ──
     conversationId = await sendMessageFromGuid(
@@ -307,10 +308,15 @@ test.describe('Cron via AI conversation', () => {
 
     const backend = await pickAvailableBackend(page);
     if (!backend) {
-      test.skip(true, 'No usable agent available on guid page');
+      test.skip(true, 'No usable assistant available on guid page');
       return;
     }
-    await selectAgent(page, backend);
+    const assistantId = await findAssistantIdForBackend(page, backend);
+    if (!assistantId) {
+      test.skip(true, `No assistant projected for backend ${backend}`);
+      return;
+    }
+    await page.locator(presetPillById(assistantId)).click();
 
     conversationId = await sendMessageFromGuid(
       page,
@@ -326,12 +332,19 @@ test.describe('Cron via AI conversation', () => {
     const job = await waitForCronJobCreated(page, conversationId, 120_000);
     createdJobId = job.id;
 
+    // Expand the scheduled-task sidebar section when needed.
+    const childEntry = page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`);
+    if (!(await childEntry.isVisible().catch(() => false))) {
+      const scheduledSection = page.locator('.sider-section-label').filter({ hasText: /Scheduled Tasks|定时任务/ }).first();
+      await expect(scheduledSection).toBeVisible({ timeout: 10_000 });
+      await scheduledSection.click();
+    }
+
     // Verify the sidebar shows the cron job with child conversation
-    const siderJobName = page.locator('.font-medium.truncate').filter({ hasText: job.name }).first();
+    const siderJobName = page.locator('.cron-job-name').filter({ hasText: job.name }).first();
     await expect(siderJobName).toBeVisible({ timeout: 15_000 });
 
     // The child conversation should appear under the cron job in sidebar
-    const childEntry = page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`);
     await expect(childEntry).toBeVisible({ timeout: 10_000 });
   });
 });
