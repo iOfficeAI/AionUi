@@ -18,6 +18,7 @@ import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelecti
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
+import TeamRuntimeNotice, { TeamRuntimeBadge } from './components/TeamRuntimeNotice';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -74,6 +75,7 @@ const AgentChatSlot: React.FC<{
   const initialModelId = (conversation?.extra as { current_model_id?: string })?.current_model_id;
   const isAcpLike =
     agent.conversation_type === 'acp' || agent.conversation_type === 'codex' || conversation?.type === 'acp';
+  const slotWork = teamRunView.slotWorkBySlot[agent.slot_id];
 
   return (
     <div
@@ -105,6 +107,7 @@ const AgentChatSlot: React.FC<{
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
         <div className='flex items-center gap-8px shrink-0'>
+          <TeamRuntimeBadge work={slotWork} />
           {!isMobile && agent.conversation_id && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector
@@ -141,6 +144,7 @@ const AgentChatSlot: React.FC<{
         </div>
       </div>
       <div className='relative flex flex-col flex-1 min-h-0'>
+        <TeamRuntimeNotice work={slotWork} />
         {conversation ? (
           <TeamChatView
             conversation={conversation as TChatConversation}

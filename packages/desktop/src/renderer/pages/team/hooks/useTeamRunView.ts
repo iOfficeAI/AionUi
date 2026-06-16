@@ -154,6 +154,10 @@ export const useTeamRunView = (team_id: string) => {
           nextSlotWork[event.slot_id] = {
             ...nextSlotWork[event.slot_id],
             active_turn_id: undefined,
+            active_turn_started_at_ms: undefined,
+            active_turn_elapsed_ms: undefined,
+            active_turn_slow: undefined,
+            active_turn_slow_threshold_ms: undefined,
           };
           const hasRemainingWork =
             (nextSlotWork[event.slot_id]?.pending_wake_count ?? 0) > 0 ||

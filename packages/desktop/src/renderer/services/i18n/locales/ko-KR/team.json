@@ -56,5 +56,25 @@
       "interview": "Agent 간 심층 인터뷰 기획",
       "expert_review": "여러 전문가가 같은 문제를 분석"
     }
+  },
+  "runtime": {
+    "badge": {
+      "queued": "Queued",
+      "busy": "Busy",
+      "slow": "Slow",
+      "disconnected": "Disconnected",
+      "unhealthy": "Runtime issue"
+    },
+    "notice": {
+      "queued": "Queued for this agent.",
+      "busy": "This agent is processing the previous turn.",
+      "slow": "This agent has been running for {elapsed} and is still processing.",
+      "disconnected": "This agent session is disconnected.",
+      "unhealthy": "This agent runtime is not healthy.",
+      "suppressedByPause": "New background work is paused for this agent."
+    },
+    "error": {
+      "internal": "Request failed in the app."
+    }
   }
 }

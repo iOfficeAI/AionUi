@@ -56,5 +56,25 @@
       "interview": "Plan an in-depth interview between agents",
       "expert_review": "Have multiple experts analyze the same problem"
     }
+  },
+  "runtime": {
+    "badge": {
+      "queued": "Queued",
+      "busy": "Busy",
+      "slow": "Slow",
+      "disconnected": "Disconnected",
+      "unhealthy": "Runtime issue"
+    },
+    "notice": {
+      "queued": "Queued for this agent.",
+      "busy": "This agent is processing the previous turn.",
+      "slow": "This agent has been running for {elapsed} and is still processing.",
+      "disconnected": "This agent session is disconnected.",
+      "unhealthy": "This agent runtime is not healthy.",
+      "suppressedByPause": "New background work is paused for this agent."
+    },
+    "error": {
+      "internal": "Request failed in the app."
+    }
   }
 }
