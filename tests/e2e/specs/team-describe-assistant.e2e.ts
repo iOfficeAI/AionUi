@@ -32,7 +32,7 @@
  */
 import * as net from 'node:net';
 import { test, expect } from '../fixtures';
-import { invokeBridge } from '../helpers';
+import { createTeam, invokeBridge } from '../helpers';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
 
 type JsonRpcError = { code?: number; message?: string };
@@ -70,12 +70,7 @@ type TTeam = {
 // server to describe each candidate and taking the first that succeeds.
 // Preset enabled-state persists across E2E runs, so a user (or a prior test)
 // that disabled "word-creator" would break a hardcoded id.
-const PREFERRED_PRESET_IDS = [
-  'cowork',
-  'word-creator',
-  'ppt-creator',
-  'excel-creator',
-] as const;
+const PREFERRED_PRESET_IDS = ['cowork', 'word-creator', 'ppt-creator', 'excel-creator'] as const;
 
 class FramedTcpClient {
   private readonly socket: net.Socket;
@@ -211,24 +206,16 @@ test.describe('Team MCP - team_describe_assistant', () => {
     let createdTeamId: string | undefined;
 
     try {
-      // ── 1. Create team (gemini leader; any backend works, we only need MCP) ──
-      const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        name: `E2E Describe Assistant ${Date.now()}`,
-        agents: [
-          {
-            name: 'Leader',
-            role: 'lead',
-            backend: 'gemini',
-            model: 'gemini',
-          },
-        ],
-      }).catch(() => null);
-
-      if (!created?.id) {
-        test.skip(true, 'Could not create a gemini-led team (gemini backend likely missing in env)');
+      // ── 1. Create team through the assistant-only UI flow ─────────────────
+      try {
+        createdTeamId = await createTeam(page, `E2E Describe Assistant ${Date.now()}`, 'gemini');
+      } catch (error) {
+        test.skip(
+          true,
+          `Could not create a gemini bare-assistant led team (gemini assistant likely unavailable): ${(error as Error).message}`
+        );
         return;
       }
-      createdTeamId = created.id;
 
       // Starting the session is what boots the TCP MCP server and writes the
       // stdio config into the leader's conversation extra.
