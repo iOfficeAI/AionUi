@@ -7,7 +7,12 @@
 import { httpRequest } from '@/common/adapter/httpBridge';
 import type { ConfigKeyMap } from '@/common/config/configKeys';
 
-type BusinessClientSettingKey = 'google.config' | 'tools.imageGenerationModel' | 'tools.speechToText';
+type BusinessClientSettingKey =
+  | 'google.config'
+  | 'tools.imageGenerationModel'
+  | 'tools.speechToText'
+  | 'acp.promptTimeout'
+  | 'acp.agentIdleTimeout';
 
 export async function getClientBusinessSetting<K extends BusinessClientSettingKey>(
   key: K

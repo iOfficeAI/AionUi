@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 import { SWRConfig } from 'swr';
@@ -17,6 +17,10 @@ const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock, message
   restartMock: vi.fn(),
   showOpenMock: vi.fn(),
   messageInfoMock: vi.fn(),
+}));
+const clientBusinessSettingsMocks = vi.hoisted(() => ({
+  getClientBusinessSetting: vi.fn(),
+  setClientBusinessSetting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -41,6 +45,12 @@ vi.mock('@/renderer/components/settings/LanguageSwitcher', () => ({
 
 vi.mock('@/renderer/components/settings/SettingsModal/contents/SystemModalContent/DevSettings', () => ({
   default: () => <div>DevSettings</div>,
+}));
+
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: clientBusinessSettingsMocks.getClientBusinessSetting,
+  setClientBusinessSetting: clientBusinessSettingsMocks.setClientBusinessSetting,
+  removeClientBusinessSetting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/common/config/configService', () => ({
@@ -118,6 +128,12 @@ describe('SystemModalContent directory settings', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
+      if (key === 'acp.promptTimeout') return undefined;
+      if (key === 'acp.agentIdleTimeout') return undefined;
+      return undefined;
+    });
+    clientBusinessSettingsMocks.setClientBusinessSetting.mockResolvedValue(undefined);
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
       value: vi.fn().mockImplementation((query: string) => ({
@@ -240,5 +256,43 @@ describe('SystemModalContent directory settings', () => {
     await user.unhover(workDirButton);
     await user.hover(logDirButton);
     expect(await screen.findByText('settings.changeLogDir')).toBeInTheDocument();
+  });
+
+  it('loads ACP timeouts from backend client settings', async () => {
+    clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
+      if (key === 'acp.promptTimeout') return 640;
+      if (key === 'acp.agentIdleTimeout') return 9;
+      return undefined;
+    });
+
+    renderContent();
+
+    expect(await screen.findByDisplayValue('640')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('9')).toBeInTheDocument();
+  });
+
+  it('persists ACP timeout changes through backend client settings', async () => {
+    const user = userEvent.setup();
+    renderContent();
+
+    const timeoutInputs = await screen.findAllByRole('spinbutton');
+    const promptTimeoutInput = timeoutInputs[0];
+    const agentIdleTimeoutInput = timeoutInputs[1];
+
+    await user.clear(promptTimeoutInput);
+    await user.type(promptTimeoutInput, '450');
+    fireEvent.blur(promptTimeoutInput);
+
+    await waitFor(() => {
+      expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.promptTimeout', 450);
+    });
+
+    await user.clear(agentIdleTimeoutInput);
+    await user.type(agentIdleTimeoutInput, '7');
+    fireEvent.blur(agentIdleTimeoutInput);
+
+    await waitFor(() => {
+      expect(clientBusinessSettingsMocks.setClientBusinessSetting).toHaveBeenCalledWith('acp.agentIdleTimeout', 7);
+    });
   });
 });
