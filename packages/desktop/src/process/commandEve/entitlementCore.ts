@@ -56,6 +56,23 @@ export const COMMAND_EVE_LICENSE_CODE_VERSION = 'command-eve-license/v1';
 export const COMMAND_EVE_LICENSE_CODE_PREFIX = 'CEVE';
 export const COMMAND_EVE_LICENSE_CODE_WIRE_VERSION = 'v1';
 
+// CEVE.v2 — additive superset of v1 (trial_ends_at + seat_count appended). See
+// `Company.OS/docs/specs/command-eve-ceve-v2-payload-lock.md`. v1 stays frozen;
+// this v2-aware verifier accepts BOTH wire versions, dispatching on the wire
+// segment and binding it to the payload's license_version. MIRRORS the canonical
+// `scripts/licensing/license-code-core.mjs` + `_shared/license-code-core.ts`.
+export const COMMAND_EVE_LICENSE_CODE_VERSION_V2 = 'command-eve-license/v2';
+export const COMMAND_EVE_LICENSE_CODE_WIRE_VERSION_V2 = 'v2';
+
+// Wire versions this verifier accepts. A v1-only verifier (an old desktop) keeps
+// COMMAND_EVE_LICENSE_CODE_WIRE_VERSION as its sole supported version and fails
+// closed on "v2" — the rollout-order guarantee in the lock (ship the v2-aware
+// verifier BEFORE minting any v2 code).
+export const COMMAND_EVE_SUPPORTED_WIRE_VERSIONS = [
+  COMMAND_EVE_LICENSE_CODE_WIRE_VERSION,
+  COMMAND_EVE_LICENSE_CODE_WIRE_VERSION_V2,
+] as const;
+
 export const COMMAND_EVE_LICENSE_EDITIONS = ['pilot', 'standard'] as const;
 export type CommandEveLicenseEdition = (typeof COMMAND_EVE_LICENSE_EDITIONS)[number];
 
@@ -102,6 +119,17 @@ export interface CommandEveLicensePayload {
   tenant_serial: string;
   issued_at: string;
   expires_at: string | null;
+  /**
+   * CEVE.v2 (additive superset, lock doc). Present ONLY on a verified v2 payload;
+   * absent (undefined) on a v1 payload so the v1 result shape is byte-identical
+   * to before this addition.
+   *   - trial_ends_at: ISO-8601 string | null  (null = paid / non-trial)
+   *   - seat_count:    integer >= 1            (offline-informational; the server
+   *                                             is the binding seat gate — NOT
+   *                                             enforced here).
+   */
+  trial_ends_at?: string | null;
+  seat_count?: number;
 }
 
 /**
@@ -180,17 +208,58 @@ function payloadShapeValid(payload: Record<string, unknown>): boolean {
 }
 
 /**
- * Verify a CEVE.v1 code offline against an embedded Ed25519 public key.
+ * CEVE.v2 shape validation: the v1 shape (re-used, not re-implemented) PLUS the
+ * two appended fields. Same "never half-activate" guard as the v1 path — a
+ * signed-but-malformed v2 field is rejected as MALFORMED even when the signature
+ * is valid.
+ *   - trial_ends_at: null/undefined (= paid) OR a non-empty string;
+ *   - seat_count:    undefined (defaults to 1) OR an integer >= 1.
+ * seat_count is informational offline; the server is the binding seat gate, so a
+ * present-but-broken value is still a malformed mint we refuse to honor.
+ */
+function payloadShapeValidV2(payload: Record<string, unknown>): boolean {
+  if (!payloadShapeValid(payload)) return false;
+  if (
+    payload.trial_ends_at !== null &&
+    payload.trial_ends_at !== undefined &&
+    !isNonEmptyString(payload.trial_ends_at)
+  ) {
+    return false;
+  }
+  if (payload.seat_count !== undefined) {
+    const seat = payload.seat_count;
+    if (typeof seat !== 'number' || !Number.isInteger(seat) || seat < 1) return false;
+  }
+  return true;
+}
+
+/**
+ * Verify a CEVE.v1 OR CEVE.v2 code offline against an embedded Ed25519 public key.
  *
  * Faithful TS port of `verifyLicenseCode` in
- * `scripts/licensing/license-code-core.mjs`. Check order (each → a distinct
- * reason code):
+ * `scripts/licensing/license-code-core.mjs` (and the Deno
+ * `_shared/license-code-core.ts`). The verifier DISPATCHES on the wire-version
+ * segment and accepts BOTH v1 and v2, BINDING the wire version to the payload's
+ * `license_version` (a "v1" wire carrying a v2 payload — or vice versa — is
+ * rejected as VERSION_UNSUPPORTED, never cross-parsed). The v1 byte path is
+ * literally untouched: same crypto, same key, same canonical signed bytes; a v1
+ * code verifies EXACTLY as before this v2 addition existed.
+ *
+ * Check order (each → a distinct reason code):
  *   1. structural shape + base64url decode + JSON object  -> LICENSE_MALFORMED
- *   2. wire prefix/version + payload license_version       -> LICENSE_VERSION_UNSUPPORTED
- *   3. payload required-field shape (TS addition)          -> LICENSE_MALFORMED
- *   4. ed25519 signature over the exact carried bytes      -> LICENSE_SIGNATURE_INVALID
- *   5. not-yet-valid (issued_at in the future)             -> LICENSE_NOT_YET_VALID
- *   6. expired (expires_at <= now, inclusive)              -> LICENSE_EXPIRED
+ *   2. wire prefix + supported wire version                -> LICENSE_VERSION_UNSUPPORTED (struct) / MALFORMED (prefix)
+ *   3. payload license_version bound to the wire version   -> LICENSE_VERSION_UNSUPPORTED
+ *   4. payload required-field shape (v1 or v2 superset)    -> LICENSE_MALFORMED
+ *   5. ed25519 signature over the exact carried bytes      -> LICENSE_SIGNATURE_INVALID
+ *   6. not-yet-valid (issued_at in the future)             -> LICENSE_NOT_YET_VALID
+ *   7a. v2 TRIAL (trial_ends_at != null): now >= trial_ends_at -> LICENSE_EXPIRED
+ *   7b. else PAID: expired (expires_at <= now, inclusive)  -> LICENSE_EXPIRED
+ *
+ * v2 offline semantics (lock doc): trial_ends_at != null → TRIAL, valid iff
+ * now < trial_ends_at (gated by trial_ends_at, NOT expires_at); trial_ends_at ==
+ * null → PAID, valid iff now < expires_at (today's exact v1 behavior). seat_count
+ * is informational offline — read and surfaced, but NOT enforced here (the server
+ * is the binding seat gate).
  *
  * Signature is verified BEFORE the time checks so a forged payload can never get
  * far enough to leak whether its (forged) dates were the problem. A broken /
@@ -218,9 +287,16 @@ export function verifyLicenseCodeTs(args: {
   if (prefix !== COMMAND_EVE_LICENSE_CODE_PREFIX) {
     return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.MALFORMED };
   }
-  if (wireVersion !== COMMAND_EVE_LICENSE_CODE_WIRE_VERSION) {
+  // Dispatch on the wire-version segment. This v2-aware verifier accepts BOTH
+  // "v1" and "v2"; an old v1-only verifier keeps a single supported version and
+  // fails closed on "v2" (the rollout-order guarantee).
+  if (!(COMMAND_EVE_SUPPORTED_WIRE_VERSIONS as readonly string[]).includes(wireVersion)) {
     return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.VERSION_UNSUPPORTED };
   }
+  const isV2Wire = wireVersion === COMMAND_EVE_LICENSE_CODE_WIRE_VERSION_V2;
+  const expectedPayloadVersion = isV2Wire
+    ? COMMAND_EVE_LICENSE_CODE_VERSION_V2
+    : COMMAND_EVE_LICENSE_CODE_VERSION;
 
   const payloadBytes = fromBase64Url(payloadB64);
   const signature = fromBase64Url(sigB64);
@@ -239,12 +315,16 @@ export function verifyLicenseCodeTs(args: {
   }
   const payload = parsed as Record<string, unknown>;
 
-  if (payload.license_version !== COMMAND_EVE_LICENSE_CODE_VERSION) {
+  // BIND the payload's license_version to the wire version. Neither can be
+  // swapped independently: a "v1" wire MUST carry "command-eve-license/v1" and a
+  // "v2" wire MUST carry "command-eve-license/v2", else VERSION_UNSUPPORTED.
+  if (payload.license_version !== expectedPayloadVersion) {
     return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.VERSION_UNSUPPORTED };
   }
 
-  // TS addition: reject signed-but-incomplete payloads as MALFORMED.
-  if (!payloadShapeValid(payload)) {
+  // TS addition: reject signed-but-incomplete payloads as MALFORMED. v2 uses the
+  // superset shape check (v1 fields + the two appended fields); v1 is untouched.
+  if (!(isV2Wire ? payloadShapeValidV2(payload) : payloadShapeValid(payload))) {
     return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.MALFORMED };
   }
 
@@ -279,7 +359,21 @@ export function verifyLicenseCodeTs(args: {
     return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.NOT_YET_VALID };
   }
 
-  if (payload.expires_at !== null && payload.expires_at !== undefined) {
+  // v2 TRIAL branch (offline semantics, lock doc): trial_ends_at != null gates on
+  // trial_ends_at, NOT expires_at. trial_ends_at == null falls through to the
+  // unchanged v1 expires_at (PAID) check below. Only reachable on a v2 wire (the
+  // version binding above guarantees a v1 payload never carries trial_ends_at).
+  const trialEndsAt = isV2Wire ? (payload.trial_ends_at as string | null | undefined) : null;
+  if (trialEndsAt !== null && trialEndsAt !== undefined) {
+    const trialEndsMs = Date.parse(trialEndsAt);
+    if (Number.isNaN(trialEndsMs)) {
+      return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.MALFORMED };
+    }
+    // Inclusive expiry: at-or-after the trial-end instant the trial is over.
+    if (nowMs >= trialEndsMs) {
+      return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.EXPIRED };
+    }
+  } else if (payload.expires_at !== null && payload.expires_at !== undefined) {
     const expiresMs = Date.parse(payload.expires_at as string);
     if (Number.isNaN(expiresMs)) {
       return { ok: false, reason_code: COMMAND_EVE_LICENSE_REASON_CODES.MALFORMED };
@@ -291,12 +385,22 @@ export function verifyLicenseCodeTs(args: {
   }
 
   const verified: CommandEveLicensePayload = {
-    license_version: COMMAND_EVE_LICENSE_CODE_VERSION,
+    license_version: expectedPayloadVersion,
     edition: payload.edition as CommandEveLicenseEdition,
     serial: payload.serial as string,
     tenant_serial: payload.tenant_serial as string,
     issued_at: payload.issued_at as string,
     expires_at: (payload.expires_at as string | null | undefined) ?? null,
+    // v2-only fields: carried through on a v2 payload, left ABSENT on v1 so the
+    // v1 result object is byte-identical to before this addition. seat_count is
+    // informational (server-gated); trial_ends_at defaults to null when absent.
+    ...(isV2Wire
+      ? {
+          trial_ends_at: (payload.trial_ends_at as string | null | undefined) ?? null,
+          seat_count:
+            typeof payload.seat_count === 'number' ? (payload.seat_count as number) : 1,
+        }
+      : {}),
   };
   return { ok: true, payload: verified };
 }
@@ -397,6 +501,15 @@ export interface CommandEveEntitlementRecord {
    * by the single-key build (absent = legacy/unknown issuer).
    */
   issuer?: CommandEveLicenseIssuer;
+  /**
+   * CEVE.v2 fields carried from the verified payload. Optional/absent on records
+   * written from a v1 code (back-compat with the single-version build).
+   *   - trial_ends_at: when present + non-null this is a TRIAL entitlement; the
+   *     gate re-locks on trial_ends_at, not expires_at.
+   *   - seat_count: informational only (server is the binding seat gate).
+   */
+  trial_ends_at?: string | null;
+  seat_count?: number;
 }
 
 export type CommandEveEntitlementGateState =
@@ -416,6 +529,13 @@ export interface CommandEveEntitlementStatusResult {
   tenant_id?: string;
   edition?: CommandEveLicenseEdition;
   expires_at?: string | null;
+  /**
+   * CEVE.v2 surface. trial_ends_at present + non-null ⇒ this is a TRIAL; the UI
+   * can show "trial ends <date>". seat_count is informational ("N seats"); the
+   * desktop never blocks on it (server is the binding seat gate).
+   */
+  trial_ends_at?: string | null;
+  seat_count?: number;
 }
 
 export interface CommandEveRegisterResult {
@@ -869,6 +989,12 @@ export function activateEntitlement(
     expires_at: verify.payload.expires_at,
     activated_at: occurredAt,
     issuer,
+    // CEVE.v2: carry trial/seat through only when the verified payload supplied
+    // them (a v2 code). A v1 code leaves these absent ⇒ record shape unchanged.
+    ...(verify.payload.trial_ends_at !== undefined
+      ? { trial_ends_at: verify.payload.trial_ends_at }
+      : {}),
+    ...(verify.payload.seat_count !== undefined ? { seat_count: verify.payload.seat_count } : {}),
   };
 
   writeJsonAtomic600(path.join(entitlementStateDir(options.userDataPath), ENTITLEMENT_FILE), record);
@@ -957,8 +1083,33 @@ export function getEntitlementStatus(options: CommandEveEntitlementOptions): Com
     };
   }
 
-  // Re-evaluate expiry against the real clock (spec §6).
-  if (entitlement.expires_at !== null && entitlement.expires_at !== undefined) {
+  // CEVE.v2 surface fields, carried onto every entitled/expired result below.
+  const v2Surface = {
+    ...(entitlement.trial_ends_at !== undefined ? { trial_ends_at: entitlement.trial_ends_at } : {}),
+    ...(entitlement.seat_count !== undefined ? { seat_count: entitlement.seat_count } : {}),
+  };
+
+  // Re-evaluate expiry against the real clock (spec §6). A v2 TRIAL entitlement
+  // (trial_ends_at != null) re-locks on trial_ends_at, NOT expires_at — mirroring
+  // the offline verify branch. A PAID / v1 entitlement (trial_ends_at absent or
+  // null) uses the unchanged expires_at check.
+  const trialEndsAt = entitlement.trial_ends_at;
+  if (trialEndsAt !== null && trialEndsAt !== undefined) {
+    const trialEndsMs = Date.parse(trialEndsAt);
+    if (Number.isNaN(trialEndsMs) || now().getTime() >= trialEndsMs) {
+      return {
+        version: COMMAND_EVE_ENTITLEMENT_BRIDGE_VERSION,
+        ok: false,
+        required: true,
+        state: 'expired',
+        reason_code: COMMAND_EVE_LICENSE_REASON_CODES.EXPIRED,
+        tenant_id: registration.tenant_id,
+        edition: entitlement.edition,
+        expires_at: entitlement.expires_at,
+        ...v2Surface,
+      };
+    }
+  } else if (entitlement.expires_at !== null && entitlement.expires_at !== undefined) {
     const expiresMs = Date.parse(entitlement.expires_at);
     if (Number.isNaN(expiresMs) || now().getTime() >= expiresMs) {
       return {
@@ -970,6 +1121,7 @@ export function getEntitlementStatus(options: CommandEveEntitlementOptions): Com
         tenant_id: registration.tenant_id,
         edition: entitlement.edition,
         expires_at: entitlement.expires_at,
+        ...v2Surface,
       };
     }
   }
@@ -982,5 +1134,6 @@ export function getEntitlementStatus(options: CommandEveEntitlementOptions): Com
     tenant_id: registration.tenant_id,
     edition: entitlement.edition,
     expires_at: entitlement.expires_at,
+    ...v2Surface,
   };
 }
