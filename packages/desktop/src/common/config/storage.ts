@@ -15,15 +15,6 @@ export const ConfigStorage = storage.buildStorage<IConfigStorageRefer>('agent.co
 export const EnvStorage = storage.buildStorage<IEnvStorageRefer>('agent.env');
 
 export interface IConfigStorageRefer {
-  'google.config': {
-    /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
-    proxy?: string;
-  };
-  /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
-  'acp.promptTimeout'?: number;
-  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
-  'acp.agentIdleTimeout'?: number;
-  'mcp.config'?: IMcpServer[];
   language: string;
   theme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
@@ -48,11 +39,6 @@ export interface IConfigStorageRefer {
   'theme.activeId': string;
   /** User-created themes */
   'theme.userThemes': Theme[];
-  'tools.imageGenerationModel': TProviderWithModel & {
-    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
-    switch?: boolean;
-  };
-  'tools.speechToText'?: SpeechToTextConfig;
   // 是否在粘贴文件到工作区时询问确认（true = 不再询问）
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）
@@ -95,6 +81,31 @@ export interface IConfigStorageRefer {
   // Desktop Pet: whether tool-call confirmations are routed to the pet's bubble
   // (true) or remain in the main chat window (false). Default true.
   'pet.confirmEnabled'?: boolean;
+}
+
+/**
+ * Legacy config keys that may still exist on disk from the pre-aionCore era.
+ *
+ * New business truth must not be added here. Keep this surface migration-only:
+ * renderer/process code may read these keys during one-shot imports into the
+ * backend, but all current writes should go through aionCore-owned storage.
+ */
+export interface ILegacyConfigStorageRefer extends IConfigStorageRefer {
+  'google.config'?: {
+    /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
+    proxy?: string;
+  };
+  /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
+  'acp.promptTimeout'?: number;
+  /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
+  'acp.agentIdleTimeout'?: number;
+  'mcp.config'?: IMcpServer[];
+  'tools.imageGenerationModel'?: TProviderWithModel & {
+    /** @deprecated Image generation is now controlled via built-in MCP server toggle */
+    switch?: boolean;
+  };
+  'tools.speechToText'?: SpeechToTextConfig;
+  'model.config'?: unknown;
 }
 
 export interface IEnvStorageRefer {

@@ -3,12 +3,12 @@ import { httpRequest } from '@/common/adapter/httpBridge';
 import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
 import type { ConfigKey } from './configKeys';
-import type { IConfigStorageRefer, IMcpServer } from './storage';
+import type { ILegacyConfigStorageRefer, IMcpServer } from './storage';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './storage';
 
 export type ConfigFile = {
-  get<K extends keyof IConfigStorageRefer>(key: K): Promise<IConfigStorageRefer[K]>;
-  set<K extends keyof IConfigStorageRefer>(key: K, value: IConfigStorageRefer[K]): Promise<unknown>;
+  get<K extends keyof ILegacyConfigStorageRefer>(key: K): Promise<ILegacyConfigStorageRefer[K]>;
+  set<K extends keyof ILegacyConfigStorageRefer>(key: K, value: ILegacyConfigStorageRefer[K]): Promise<unknown>;
 };
 
 const LEGACY_MCP_CONFIG_KEY = 'mcp.config' as const;
@@ -271,7 +271,7 @@ export async function migrateProviders(configFile: ConfigFile): Promise<void> {
   let legacyProviders: LegacyProvider[];
   try {
     legacyProviders = (await configFile.get(
-      'model.config' as keyof IConfigStorageRefer
+      'model.config' as keyof ILegacyConfigStorageRefer
     )) as unknown as LegacyProvider[];
   } catch (err) {
     console.info('[Migration] providers migration skipped — no model.config in config file', err);

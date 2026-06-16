@@ -12,8 +12,8 @@ import { application } from '@/common/adapter/ipcBridge';
 import type { TMessage } from '@/common/chat/chatLib';
 import type {
   IChatConversationRefer,
-  IConfigStorageRefer,
   IEnvStorageRefer,
+  ILegacyConfigStorageRefer,
   TChatConversation,
   TProviderWithModel,
 } from '@/common/config/storage';
@@ -240,7 +240,7 @@ const dirConfig = envFile.getSync('aionui.dir');
 
 const cacheDir = dirConfig?.cacheDir || getHomePage();
 
-const configFile = JsonFileBuilder<IConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
+const configFile = JsonFileBuilder<ILegacyConfigStorageRefer>(path.join(cacheDir, STORAGE_PATH.config));
 type ConversationHistoryData = Record<string, TMessage[]>;
 
 const _chatMessageFile = JsonFileBuilder<ConversationHistoryData>(path.join(cacheDir, STORAGE_PATH.chatMessage));
