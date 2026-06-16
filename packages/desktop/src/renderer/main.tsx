@@ -80,10 +80,9 @@ configService.initialize().catch((err) => {
 import './services/i18n';
 import { registerPwa } from './services/registerPwa';
 
-import { mutate as swrMutate } from 'swr';
 import { ipcBridge } from '@/common';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents } from './utils/model/agentTypes';
 import { repairAllCronJobTimeZonesOnce } from '@renderer/pages/cron/repairCronJobTimeZone';
+import { bootstrapRendererConfig } from '@renderer/services/bootstrapRenderer';
 
 // Components and utilities
 import Layout from './components/layout/Layout';
@@ -273,20 +272,7 @@ const Main = () => {
 
   useEffect(() => {
     if (!ready) return;
-    // Prefetch `/api/agents` in parallel with configService.initialize() and
-    // seed the shared SWR cache so the Guid page's model/mode selectors can
-    // read `handshake.available_models` on the very first render — without
-    // waiting for a session to be created.
-    Promise.all([
-      configService.initialize().catch((err) => {
-        console.error('Failed to initialize config:', err);
-      }),
-      fetchDetectedAgents()
-        .then((agents) => swrMutate(DETECTED_AGENTS_SWR_KEY, agents, false))
-        .catch((err) => {
-          console.error('Failed to prefetch agents:', err);
-        }),
-    ]).finally(() => setConfigReady(true));
+    void bootstrapRendererConfig().finally(() => setConfigReady(true));
   }, [ready]);
 
   useEffect(() => {
