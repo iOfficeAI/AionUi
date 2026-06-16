@@ -2,16 +2,13 @@ import React from 'react';
 import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
-import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import {
   isDeprecatedRuntimeAgentType,
   resolveSupportedConversationType,
 } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
-/**
- * Team leader selector entry derived from the unified assistant catalog.
- */
+/** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAgentOption = {
   id: string;
   name: string;
@@ -27,17 +24,6 @@ export type TeamAgentOption = {
   /** Why this assistant cannot currently be used in team mode. */
   team_block_reason?: string;
 };
-
-export function cliAgentToOption(agent: AgentMetadata): TeamAgentOption {
-  return {
-    id: agent.id,
-    name: agent.name,
-    backend: agent.backend || agent.agent_type,
-    agent_type: agent.agent_type,
-    icon: agent.icon,
-    team_capable: agent.team_capable,
-  };
-}
 
 export function assistantToOption(assistant: Assistant): TeamAgentOption {
   return {

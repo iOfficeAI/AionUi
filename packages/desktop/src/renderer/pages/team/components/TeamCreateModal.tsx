@@ -78,7 +78,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
   const { user } = useAuth();
   const { presetAssistants } = useConversationAgents();
   const [name, setName] = useState('');
-  const [dispatchAgentKey, setDispatchAgentKey] = useState<string | undefined>(undefined);
+  const [leaderAssistantKey, setLeaderAssistantKey] = useState<string | undefined>(undefined);
   const [workspace, setWorkspace] = useState('');
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
@@ -96,20 +96,20 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     }
   };
 
-  const allAgents = useMemo(
+  const allAssistants = useMemo(
     () => filterTeamSupportedAgents(presetAssistants.map((assistant) => assistantToOption(assistant))),
     [presetAssistants]
   );
 
-  const filteredAgents = useMemo(() => {
+  const filteredAssistants = useMemo(() => {
     const q = search.trim().toLowerCase();
     if (!q) {
-      return allAgents;
+      return allAssistants;
     }
-    return allAgents.filter((assistant) => assistant.name.toLowerCase().includes(q));
-  }, [allAgents, search]);
+    return allAssistants.filter((assistant) => assistant.name.toLowerCase().includes(q));
+  }, [allAssistants, search]);
 
-  const hasSearchResults = filteredAgents.length > 0;
+  const hasSearchResults = filteredAssistants.length > 0;
 
   useEffect(() => {
     if (visible) {
@@ -119,15 +119,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
 
   const handleClose = () => {
     setName('');
-    setDispatchAgentKey(undefined);
+    setLeaderAssistantKey(undefined);
     setWorkspace('');
     setSearch('');
     setSearchExpanded(false);
     onClose();
   };
 
-  const handleSelectLeader = (key: string) => {
-    setDispatchAgentKey(key);
+  const handleSelectLeader = (assistantKey: string) => {
+    setLeaderAssistantKey(assistantKey);
   };
 
   const handleCreate = async () => {
@@ -136,7 +136,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       nameInputRef.current?.focus();
       return;
     }
-    if (!dispatchAgentKey) {
+    if (!leaderAssistantKey) {
       Message.warning(t('team.create.leaderRequired', { defaultValue: 'Please select a team leader' }));
       return;
     }
@@ -145,12 +145,12 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     try {
       const agents: TeamAgent[] = [];
 
-      const dispatchAgent = dispatchAgentKey ? agentFromKey(dispatchAgentKey, allAgents) : undefined;
-      const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
-      const dispatchConversationType = resolveConversationType(dispatchAgentType);
+      const leaderAssistant = leaderAssistantKey ? agentFromKey(leaderAssistantKey, allAssistants) : undefined;
+      const leaderAssistantBackend = resolveTeamAgentType(leaderAssistant, 'acp');
+      const dispatchConversationType = resolveConversationType(leaderAssistantBackend);
       const resolvedModel = await resolveDefaultTeamAgentModel({
-        assistant_id: dispatchAgent?.id,
-        agent_type: dispatchAgentType,
+        assistant_id: leaderAssistant?.id,
+        assistant_backend: leaderAssistantBackend,
         conversation_type: dispatchConversationType,
       });
       agents.push({
@@ -158,11 +158,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         conversation_id: '',
         role: 'leader',
         status: 'pending',
-        agent_type: dispatchAgentType,
-        agent_name: dispatchAgent?.name || 'Leader',
+        agent_type: leaderAssistantBackend,
+        agent_name: leaderAssistant?.name || 'Leader',
         conversation_type: dispatchConversationType,
-        assistant_id: dispatchAgent?.id,
-        custom_agent_id: dispatchAgent?.id,
+        assistant_id: leaderAssistant?.id,
+        custom_agent_id: leaderAssistant?.id,
         model: resolvedModel,
       });
 
@@ -228,7 +228,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
             type='primary'
             onClick={handleCreate}
             loading={loading}
-            disabled={!name.trim() || !dispatchAgentKey}
+            disabled={!name.trim() || !leaderAssistantKey}
             className='min-w-80px'
             style={{ borderRadius: 8 }}
           >
@@ -273,7 +273,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
               </div>
             }
           >
-            {allAgents.length === 0 ? (
+            {allAssistants.length === 0 ? (
               <div className='flex items-center justify-center rounded-10px border border-dashed border-border-2 bg-fill-1 py-20px text-12px text-t-tertiary'>
                 {t('team.create.noSupportedAgents', { defaultValue: 'No supported agents installed' })}
               </div>
@@ -301,13 +301,13 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                       {t('team.create.noSearchResults', { defaultValue: 'No results found' })}
                     </div>
                   ) : (
-                    filteredAgents.map((agent) => {
-                      const key = agentKey(agent);
+                    filteredAssistants.map((assistant) => {
+                      const key = agentKey(assistant);
                       return (
                         <AgentRadioRow
                           key={key}
-                          agent={agent}
-                          isSelected={dispatchAgentKey === key}
+                          agent={assistant}
+                          isSelected={leaderAssistantKey === key}
                           onClick={() => handleSelectLeader(key)}
                         />
                       );

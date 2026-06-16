@@ -27,25 +27,25 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
  */
 export async function resolveDefaultTeamAgentModel(params: {
   assistant_id?: string;
-  agent_type: string;
+  assistant_backend: string;
   conversation_type: string;
 }): Promise<string> {
-  const { assistant_id, agent_type, conversation_type } = params;
+  const { assistant_id, assistant_backend, conversation_type } = params;
 
   const assistantModel = await resolveAssistantDefaultModel(assistant_id);
   if (assistantModel) {
     return assistantModel;
   }
 
-  if (conversation_type === 'gemini' || agent_type === 'gemini') {
+  if (conversation_type === 'gemini' || assistant_backend === 'gemini') {
     return resolveGeminiDefaultModel();
   }
 
-  if (conversation_type === 'aionrs' || agent_type === 'aionrs') {
+  if (conversation_type === 'aionrs' || assistant_backend === 'aionrs') {
     return resolveAionrsDefaultModel();
   }
 
-  return resolveAcpDefaultModel(agent_type);
+  return resolveAcpDefaultModel(assistant_backend);
 }
 
 async function resolveAssistantDefaultModel(assistant_id?: string): Promise<string | undefined> {
@@ -69,7 +69,7 @@ async function resolveAssistantDefaultModel(assistant_id?: string): Promise<stri
   return undefined;
 }
 
-async function resolveAcpDefaultModel(_agent_type: string): Promise<string> {
+async function resolveAcpDefaultModel(_assistant_backend: string): Promise<string> {
   return 'default';
 }
 

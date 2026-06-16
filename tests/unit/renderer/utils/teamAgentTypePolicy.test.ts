@@ -2,12 +2,10 @@ import { describe, expect, it } from 'vitest';
 
 import {
   assistantToOption,
-  cliAgentToOption,
   filterTeamSupportedAgents,
   resolveConversationType,
 } from '@/renderer/pages/team/components/agentSelectUtils';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 
 describe('team agent type policy', () => {
   it('resolves every non-Aion CLI backend as ACP conversation type', () => {
@@ -21,12 +19,12 @@ describe('team agent type policy', () => {
 
   it('filters retired top-level runtime agents out of team creation options', () => {
     const options = [
-      cliAgentToOption(agent('acp', 'claude')),
-      cliAgentToOption(agent('aionrs')),
-      cliAgentToOption(agent('openclaw-gateway')),
-      cliAgentToOption(agent('nanobot')),
-      cliAgentToOption(agent('remote')),
-      cliAgentToOption(agent('gemini')),
+      assistantToOption(assistant('assistant-claude', true, undefined, 'claude')),
+      assistantToOption(assistant('assistant-aionrs', true, undefined, 'aionrs')),
+      assistantToOption(assistant('assistant-openclaw', true, undefined, 'openclaw-gateway')),
+      assistantToOption(assistant('assistant-nanobot', true, undefined, 'nanobot')),
+      assistantToOption(assistant('assistant-remote', true, undefined, 'remote')),
+      assistantToOption(assistant('assistant-gemini', true, undefined, 'gemini')),
     ];
 
     expect(filterTeamSupportedAgents(options).map((option) => option.backend)).toEqual(['claude', 'aionrs']);
@@ -52,18 +50,12 @@ describe('team agent type policy', () => {
   });
 });
 
-function agent(agent_type: string, backend?: string): AgentMetadata {
-  return {
-    id: backend ?? agent_type,
-    name: backend ?? agent_type,
-    agent_type,
-    backend,
-    agent_source: 'builtin',
-    team_capable: true,
-  } as AgentMetadata;
-}
-
-function assistant(id: string, team_selectable: boolean, team_block_reason?: string): Assistant {
+function assistant(
+  id: string,
+  team_selectable: boolean,
+  team_block_reason?: string,
+  preset_agent_type = 'claude'
+): Assistant {
   return {
     id,
     source: 'bare',
@@ -72,7 +64,7 @@ function assistant(id: string, team_selectable: boolean, team_block_reason?: str
     description_i18n: {},
     enabled: true,
     sort_order: 0,
-    preset_agent_type: 'claude',
+    preset_agent_type,
     enabled_skills: [],
     custom_skill_names: [],
     disabled_builtin_skills: [],

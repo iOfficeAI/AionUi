@@ -114,7 +114,7 @@ describe('TeamCreateModal', () => {
     const payload = createTeamInvokeMock.mock.calls[0][0];
     expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledWith({
       assistant_id: 'bare-aionrs',
-      agent_type: 'aionrs',
+      assistant_backend: 'aionrs',
       conversation_type: 'aionrs',
     });
     expect(payload.agents[0]).toMatchObject({

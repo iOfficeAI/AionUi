@@ -46,7 +46,7 @@ describe('resolveDefaultTeamAgentModel', () => {
     await expect(
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-fixed',
-        agent_type: 'claude',
+        assistant_backend: 'claude',
         conversation_type: 'acp',
       })
     ).resolves.toBe('claude-sonnet-4-5-20250514');
@@ -68,7 +68,7 @@ describe('resolveDefaultTeamAgentModel', () => {
     await expect(
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-auto',
-        agent_type: 'aionrs',
+        assistant_backend: 'aionrs',
         conversation_type: 'aionrs',
       })
     ).resolves.toBe('gemini-2.5-pro');
