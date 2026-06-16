@@ -18,7 +18,7 @@ import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelecti
 import TeamTabs from './components/TeamTabs';
 import TeamChatView from './components/TeamChatView';
 import TeamAgentIdentity from './components/TeamAgentIdentity';
-import TeamRuntimeNotice, { TeamRuntimeBadge } from './components/TeamRuntimeNotice';
+import TeamRuntimeNotice from './components/TeamRuntimeNotice';
 import { TeamTabsProvider, useTeamTabs } from './hooks/TeamTabsContext';
 import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
@@ -107,7 +107,6 @@ const AgentChatSlot: React.FC<{
           nameClassName='text-13px text-[color:var(--color-text-2)] font-medium'
         />
         <div className='flex items-center gap-8px shrink-0'>
-          <TeamRuntimeBadge work={slotWork} />
           {!isMobile && agent.conversation_id && !isAionrs && isAcpLike && (
             <div className='min-w-0 max-w-140px [&_button]:max-w-full [&_button_span]:truncate'>
               <AcpModelSelector

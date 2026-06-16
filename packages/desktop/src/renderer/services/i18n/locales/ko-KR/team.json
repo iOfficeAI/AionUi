@@ -58,20 +58,12 @@
     }
   },
   "runtime": {
-    "badge": {
-      "queued": "Queued",
-      "busy": "Busy",
-      "slow": "Slow",
-      "disconnected": "Disconnected",
-      "unhealthy": "Runtime issue"
-    },
     "notice": {
-      "queued": "Queued for this agent.",
-      "busy": "This agent is processing the previous turn.",
-      "slow": "This agent has been running for {elapsed} and is still processing.",
-      "disconnected": "This agent session is disconnected.",
-      "unhealthy": "This agent runtime is not healthy.",
-      "suppressedByPause": "New background work is paused for this agent."
+      "queued": "이 Agent에 대해 대기열에 추가되었습니다.",
+      "slow": "이 Agent가 {{elapsed}} 동안 실행 중이며 아직 처리 중입니다.",
+      "disconnected": "이 Agent 세션의 연결이 끊어졌습니다.",
+      "unhealthy": "이 Agent 런타임 상태가 정상적이지 않습니다.",
+      "suppressedByPause": "이 Agent의 새 백그라운드 작업이 일시 중지되었습니다."
     },
     "error": {
       "internal": "Request failed in the app."

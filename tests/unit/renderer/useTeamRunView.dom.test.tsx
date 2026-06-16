@@ -2,7 +2,7 @@ import React from 'react';
 import { act, render, renderHook, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ITeamChildTurnEvent, ITeamRunEvent } from '@/common/types/team/teamTypes';
-import TeamRuntimeNotice, { TeamRuntimeBadge } from '@/renderer/pages/team/components/TeamRuntimeNotice';
+import TeamRuntimeNotice from '@/renderer/pages/team/components/TeamRuntimeNotice';
 import { useTeamRunView } from '@/renderer/pages/team/hooks/useTeamRunView';
 
 type TeamRunHandler = (event: ITeamRunEvent) => void;
@@ -60,7 +60,7 @@ vi.mock('react-i18next', () => ({
 }));
 
 describe('TeamRuntimeNotice', () => {
-  it('renders slow notice and badge from backend slot work', () => {
+  it('renders slow notice from backend slot work', () => {
     const work = {
       slot_id: 'worker-1',
       role: 'teammate' as const,
@@ -71,15 +71,24 @@ describe('TeamRuntimeNotice', () => {
       active_turn_slow: true,
     };
 
+    render(<TeamRuntimeNotice work={work} />);
+
+    expect(screen.getByText('slow notice 12m')).toBeInTheDocument();
+  });
+
+  it('renders queued notice when work is queued for the slot', () => {
     render(
-      <>
-        <TeamRuntimeBadge work={work} />
-        <TeamRuntimeNotice work={work} />
-      </>
+      <TeamRuntimeNotice
+        work={{
+          slot_id: 'worker-1',
+          role: 'teammate',
+          pending_wake_count: 1,
+          starting_child_count: 0,
+        }}
+      />
     );
 
-    expect(screen.getByText('team.runtime.badge.slow')).toBeInTheDocument();
-    expect(screen.getByText('slow notice 12m')).toBeInTheDocument();
+    expect(screen.getByText('team.runtime.notice.queued')).toBeInTheDocument();
   });
 });
 

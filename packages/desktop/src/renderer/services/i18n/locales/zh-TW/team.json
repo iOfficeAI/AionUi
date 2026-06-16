@@ -58,20 +58,12 @@
     }
   },
   "runtime": {
-    "badge": {
-      "queued": "Queued",
-      "busy": "Busy",
-      "slow": "Slow",
-      "disconnected": "Disconnected",
-      "unhealthy": "Runtime issue"
-    },
     "notice": {
-      "queued": "Queued for this agent.",
-      "busy": "This agent is processing the previous turn.",
-      "slow": "This agent has been running for {elapsed} and is still processing.",
-      "disconnected": "This agent session is disconnected.",
-      "unhealthy": "This agent runtime is not healthy.",
-      "suppressedByPause": "New background work is paused for this agent."
+      "queued": "已為此 Agent 排隊。",
+      "slow": "此 Agent 已執行 {{elapsed}}，仍在處理中。",
+      "disconnected": "此 Agent 工作階段已斷線。",
+      "unhealthy": "此 Agent 執行狀態異常。",
+      "suppressedByPause": "此 Agent 的新背景工作已暫停。"
     },
     "error": {
       "internal": "Request failed in the app."

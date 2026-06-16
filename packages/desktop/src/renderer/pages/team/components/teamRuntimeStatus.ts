@@ -1,10 +1,9 @@
 import type { ITeamSlotWork } from '@/common/types/team/teamTypes';
 
-export type TeamRuntimeStatusKind = 'queued' | 'busy' | 'slow' | 'suppressed' | 'disconnected' | 'unhealthy';
+export type TeamRuntimeStatusKind = 'queued' | 'slow' | 'suppressed' | 'disconnected' | 'unhealthy';
 
 export type TeamRuntimeStatus = {
   kind: TeamRuntimeStatusKind;
-  badgeKey: string;
   noticeKey?: string;
   elapsed?: string;
 };
@@ -23,7 +22,6 @@ export const getTeamRuntimeStatus = (work?: ITeamSlotWork): TeamRuntimeStatus | 
   if (work.runtime_health === 'disconnected') {
     return {
       kind: 'disconnected',
-      badgeKey: 'team.runtime.badge.disconnected',
       noticeKey: 'team.runtime.notice.disconnected',
     };
   }
@@ -31,7 +29,6 @@ export const getTeamRuntimeStatus = (work?: ITeamSlotWork): TeamRuntimeStatus | 
   if (work.runtime_health === 'unhealthy') {
     return {
       kind: 'unhealthy',
-      badgeKey: 'team.runtime.badge.unhealthy',
       noticeKey: 'team.runtime.notice.unhealthy',
     };
   }
@@ -39,7 +36,6 @@ export const getTeamRuntimeStatus = (work?: ITeamSlotWork): TeamRuntimeStatus | 
   if (work.active_turn_id && work.active_turn_slow) {
     return {
       kind: 'slow',
-      badgeKey: 'team.runtime.badge.slow',
       noticeKey: 'team.runtime.notice.slow',
       elapsed: formatElapsedShort(work.active_turn_elapsed_ms ?? 0),
     };
@@ -48,23 +44,13 @@ export const getTeamRuntimeStatus = (work?: ITeamSlotWork): TeamRuntimeStatus | 
   if (work.paused && (work.suppressed_wake_count ?? 0) > 0) {
     return {
       kind: 'suppressed',
-      badgeKey: 'team.runtime.badge.busy',
       noticeKey: 'team.runtime.notice.suppressedByPause',
-    };
-  }
-
-  if (work.active_turn_id || (work.starting_child_count ?? 0) > 0) {
-    return {
-      kind: 'busy',
-      badgeKey: 'team.runtime.badge.busy',
-      noticeKey: 'team.runtime.notice.busy',
     };
   }
 
   if ((work.pending_wake_count ?? 0) > 0) {
     return {
       kind: 'queued',
-      badgeKey: 'team.runtime.badge.queued',
       noticeKey: 'team.runtime.notice.queued',
     };
   }
