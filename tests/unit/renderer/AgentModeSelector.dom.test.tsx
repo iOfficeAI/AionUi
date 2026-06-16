@@ -22,16 +22,6 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/hooks/agent/useAgents', () => ({
-  useAgents: () => ({
-    agents: [],
-    isLoading: false,
-    error: null,
-    revalidate: vi.fn(),
-    refreshCustomAgents: vi.fn(),
-  }),
-}));
-
 vi.mock('@/renderer/components/agent/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
