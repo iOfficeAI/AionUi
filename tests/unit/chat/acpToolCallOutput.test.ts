@@ -61,6 +61,31 @@ describe('ACP tool call image output', () => {
     expect(sanitized.update.rawOutput?.image).toBeUndefined();
   });
 
+  it('preserves oversized non-image results even when saved_path is present', () => {
+    const content = createAcpToolCall({
+      saved_path: '/tmp/result.txt',
+      result: `long text output ${'A'.repeat(128 * 1024)}`,
+    }).content;
+
+    const sanitized = sanitizeAcpToolCallContent(content);
+
+    expect(sanitized.update.rawOutput?.result).toContain('long text output');
+    expect(sanitized.update.rawOutput?.result_omitted).toBeUndefined();
+    expect(sanitized.update.rawOutput?.image).toBeUndefined();
+  });
+
+  it('omits oversized inline image results even without saved_path', () => {
+    const content = createAcpToolCall({
+      result: `iVBORw0KGgo${'A'.repeat(128 * 1024)}`,
+    }).content;
+
+    const sanitized = sanitizeAcpToolCallContent(content);
+
+    expect(sanitized.update.rawOutput?.result).toBeUndefined();
+    expect(sanitized.update.rawOutput?.result_omitted).toBe(true);
+    expect(sanitized.update.rawOutput?.image).toBeUndefined();
+  });
+
   it('preserves missing and non-string raw outputs', () => {
     const withoutRawOutput = sanitizeAcpToolCallContent(createAcpToolCall(undefined).content);
     expect(withoutRawOutput.update.rawOutput).toBeUndefined();
@@ -212,6 +237,27 @@ describe('ACP tool call image output', () => {
     ).toBe('/persisted.png');
 
     expect(getAcpImagePath(createAcpToolCall(undefined).content.update)).toBeUndefined();
+  });
+
+  it('does not resolve non-image saved_path as an image preview path', () => {
+    expect(
+      getAcpImagePath({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: {
+          saved_path: '/tmp/result.txt',
+        },
+      })
+    ).toBeUndefined();
+
+    expect(
+      getAcpImagePath({
+        ...createAcpToolCall(undefined).content.update,
+        rawOutput: {
+          saved_path: '/tmp/result.txt',
+          result_omitted_reason: 'image_base64',
+        },
+      })
+    ).toBe('/tmp/result.txt');
   });
 
   it('falls back to a generated image file name when the path has no file name', () => {
