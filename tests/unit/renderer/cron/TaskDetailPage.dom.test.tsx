@@ -83,6 +83,8 @@ describe('TaskDetailPage', () => {
     await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
 
     expect(await screen.findByText('问好助手')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
+    expect(screen.queryByText('cron.detail.agent')).not.toBeInTheDocument();
 
     const assistantAvatar = screen.getByAltText('问好助手');
     expect(assistantAvatar).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');

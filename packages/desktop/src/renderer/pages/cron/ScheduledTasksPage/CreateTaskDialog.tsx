@@ -471,12 +471,12 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           </FormItem>
 
           <FormItem
-            label={t('cron.page.form.agent')}
+            label={t('cron.page.form.assistant')}
             field='assistant'
-            rules={[{ required: true, message: t('cron.page.form.agentRequired') }]}
+            rules={[{ required: true, message: t('cron.page.form.assistantRequired') }]}
           >
             <Select
-              placeholder={t('cron.page.form.agentPlaceholder')}
+              placeholder={t('cron.page.form.assistantPlaceholder')}
               onChange={handleAssistantChange}
               renderFormat={(_option, value) => {
                 const assistantId = value as unknown as string;

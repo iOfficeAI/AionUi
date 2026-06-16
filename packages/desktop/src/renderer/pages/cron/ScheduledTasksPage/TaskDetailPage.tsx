@@ -297,7 +297,7 @@ const TaskDetailPage: React.FC = () => {
 
             {job.metadata.agent_type && (
               <section className='flex flex-col gap-10px'>
-                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
+                <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
                     const { name: displayName, logo, emoji } = getJobAgentMeta(job, presetAssistants);
