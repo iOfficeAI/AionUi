@@ -1055,5 +1055,6 @@
     "acpTool": "the managed ACP tool",
     "codexAcp": "the Codex ACP runtime component",
     "claudeAgentAcp": "the Claude ACP runtime component"
-  }
+  },
+  "updateReadyInstall": "{{version}} готова, установить сейчас"
 }

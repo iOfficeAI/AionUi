@@ -1053,5 +1053,6 @@
     "conversation": "Conversation",
     "mcp": "MCP",
     "customAgent": "Custom Agent"
-  }
+  },
+  "updateReadyInstall": "{{version}} is ready, install now"
 }

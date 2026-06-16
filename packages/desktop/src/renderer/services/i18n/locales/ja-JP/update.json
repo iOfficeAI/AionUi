@@ -10,6 +10,7 @@
   "downloadButton": "ダウンロード",
   "downloadAndInstall": "ダウンロードしてインストール",
   "manualInstall": "手動インストール",
+  "later": "後で",
   "downloadStartFailed": "ダウンロードを開始できませんでした",
   "downloadFailed": "ダウンロードに失敗しました",
   "noCompatibleAsset": "このプラットフォームに対応するファイルが見つかりません",
@@ -36,6 +37,13 @@
     "downloadFailed": "ダウンロードリクエストに失敗しました（{{status}}）",
     "downloadNoBody": "ダウンロード応答に本文がありません",
     "missingUrl": "ダウンロード URL がありません",
-    "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。"
-  }
+    "checkReturnedNull": "更新確認が結果を返しませんでした。パッケージ済みアプリ、または開発用更新設定の強制有効化が必要です。",
+    "missingDownloadId": "ダウンロード ID がありません"
+  },
+  "releaseNotesLoading": "更新内容を取得中",
+  "releaseNotesFailed": "取得に失敗しました。",
+  "viewRelease": "リリースを見る",
+  "cancel": "キャンセル",
+  "minimize": "最小化",
+  "restoreUpdateNotification": "更新の進行状況を復元"
 }

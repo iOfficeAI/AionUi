@@ -10,6 +10,7 @@
   "downloadButton": "İndir",
   "downloadAndInstall": "İndir ve Yükle",
   "manualInstall": "Manuel yükle",
+  "later": "Daha sonra",
   "downloadStartFailed": "İndirme başlatılamadı",
   "downloadFailed": "İndirme başarısız",
   "noCompatibleAsset": "Bu platform için uyumlu indirme bulunamadı",
@@ -36,6 +37,13 @@
     "downloadFailed": "İndirme isteği başarısız oldu ({{status}})",
     "downloadNoBody": "İndirme yanıtında gövde yok",
     "missingUrl": "İndirme URL'si eksik",
-    "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir."
-  }
+    "checkReturnedNull": "Güncelleme kontrolü sonuç döndürmedi. Paketlenmiş uygulama veya zorunlu geliştirme güncelleme yapılandırması gerekir.",
+    "missingDownloadId": "İndirme ID eksik"
+  },
+  "releaseNotesLoading": "Güncelleme ayrıntıları alınıyor...",
+  "releaseNotesFailed": "Ayrıntılar alınamadı.",
+  "viewRelease": "Sürümü görüntüle",
+  "cancel": "İptal",
+  "minimize": "Küçült",
+  "restoreUpdateNotification": "Güncelleme ilerlemesini geri yükle"
 }

@@ -10,6 +10,7 @@
   "downloadButton": "Скачать",
   "downloadAndInstall": "Скачать и установить",
   "manualInstall": "Установить вручную",
+  "later": "Позже",
   "downloadStartFailed": "Не удалось начать загрузку",
   "downloadFailed": "Ошибка загрузки",
   "noCompatibleAsset": "Совместимая загрузка для этой платформы не найдена",
@@ -36,6 +37,13 @@
     "downloadFailed": "Загрузка не удалась ({{status}})",
     "downloadNoBody": "Ответ загрузки не содержит данные",
     "missingUrl": "Отсутствует URL",
-    "checkReturnedNull": "Проверка обновлений не вернула результат (режим разработки)"
-  }
+    "checkReturnedNull": "Проверка обновлений не вернула результат (режим разработки)",
+    "missingDownloadId": "Отсутствует ID загрузки"
+  },
+  "releaseNotesLoading": "Получение сведений об обновлении...",
+  "releaseNotesFailed": "Не удалось получить сведения.",
+  "viewRelease": "Открыть релиз",
+  "cancel": "Отмена",
+  "minimize": "Свернуть",
+  "restoreUpdateNotification": "Восстановить прогресс обновления"
 }

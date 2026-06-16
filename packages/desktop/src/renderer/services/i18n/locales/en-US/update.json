@@ -10,6 +10,7 @@
   "downloadButton": "Download",
   "downloadAndInstall": "Download & Install",
   "manualInstall": "Manual install",
+  "later": "Later",
   "downloadStartFailed": "Failed to start download",
   "downloadFailed": "Download failed",
   "noCompatibleAsset": "No compatible download found for this platform",
@@ -36,6 +37,13 @@
     "downloadFailed": "Download request failed ({{status}})",
     "downloadNoBody": "Download response did not include a body",
     "missingUrl": "Missing download URL",
-    "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required."
-  }
+    "checkReturnedNull": "Update check returned no result. Packaged app or forced dev update config is required.",
+    "missingDownloadId": "Missing download ID"
+  },
+  "releaseNotesLoading": "Fetching update details...",
+  "releaseNotesFailed": "Failed to fetch update details.",
+  "viewRelease": "View release",
+  "cancel": "Cancel",
+  "minimize": "Minimize",
+  "restoreUpdateNotification": "Restore update progress"
 }

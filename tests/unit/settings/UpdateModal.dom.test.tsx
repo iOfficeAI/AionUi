@@ -14,6 +14,7 @@ const mocks = vi.hoisted(() => ({
   manualProgressHandler: null as ((evt: UpdateDownloadProgressEvent) => void) | null,
   autoStatusHandler: null as ((evt: AutoUpdateStatus) => void) | null,
   autoUpdateCheckMock: vi.fn(),
+  autoUpdateRestoreDownloadedMock: vi.fn(),
   updateCheckMock: vi.fn(),
   updateDownloadMock: vi.fn(),
 }));
@@ -35,6 +36,7 @@ vi.mock('@/common', () => ({
   ipcBridge: {
     autoUpdate: {
       check: { invoke: mocks.autoUpdateCheckMock },
+      restoreDownloaded: { invoke: mocks.autoUpdateRestoreDownloadedMock },
       download: { invoke: vi.fn() },
       quitAndInstall: { invoke: vi.fn() },
       status: {
@@ -70,15 +72,8 @@ describe('UpdateModal manual install fallback', () => {
     vi.stubGlobal('__APP_VERSION__', '2.1.15');
     mocks.manualProgressHandler = null;
     mocks.autoStatusHandler = null;
-    mocks.autoUpdateCheckMock.mockResolvedValue({
-      success: true,
-      data: {
-        updateInfo: {
-          version: '2.1.14',
-          releaseNotes: 'notes',
-        },
-      },
-    });
+    mocks.autoUpdateCheckMock.mockResolvedValue({ success: true });
+    mocks.autoUpdateRestoreDownloadedMock.mockResolvedValue({ success: true, data: { ready: false } });
     mocks.updateCheckMock.mockResolvedValue({
       success: true,
       data: {
@@ -136,11 +131,11 @@ describe('UpdateModal manual install fallback', () => {
       window.dispatchEvent(new Event('aionui-open-update-modal'));
     });
 
-    const manualInstall = await screen.findByText('update.manualInstall');
-    await user.click(manualInstall);
+    const downloadAndInstall = await screen.findByText('update.downloadAndInstall');
+    await user.click(downloadAndInstall);
 
     await waitFor(() => {
-      expect(screen.getByText('update.downloadCompleteTitle')).toBeInTheDocument();
+      expect(screen.getByText('update.installNow')).toBeInTheDocument();
     });
 
     expect(mocks.updateDownloadMock).toHaveBeenCalledWith({
@@ -149,7 +144,7 @@ describe('UpdateModal manual install fallback', () => {
       fallbackUrl: 'https://github.com/iOfficeAI/AionUi/releases/download/v2.1.14/AionUi-2.1.14-mac-arm64.dmg',
       file_name: 'AionUi-2.1.14-mac-arm64.dmg',
     });
-    expect(screen.queryByText('update.downloadingTitle')).not.toBeInTheDocument();
+    expect(screen.queryByText('update.manualInstall')).not.toBeInTheDocument();
   });
 
   it('loads release notes when auto-update status opens the modal', async () => {

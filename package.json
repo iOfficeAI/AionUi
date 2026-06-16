@@ -109,6 +109,7 @@
     "bcryptjs": "^2.4.3",
     "better-sqlite3": "^12.4.1",
     "buffer": "^6.0.3",
+    "builder-util-runtime": "9.5.1",
     "classnames": "^2.5.1",
     "cookie": "^1.0.2",
     "cookie-parser": "^1.4.7",

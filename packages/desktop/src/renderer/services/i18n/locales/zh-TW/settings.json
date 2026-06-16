@@ -1055,5 +1055,6 @@
     "acpTool": "受管 ACP 執行元件",
     "codexAcp": "Codex ACP 執行元件",
     "claudeAgentAcp": "Claude ACP 執行元件"
-  }
+  },
+  "updateReadyInstall": "{{version}} 已就緒, 立即安裝"
 }

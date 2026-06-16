@@ -10,6 +10,7 @@
   "downloadButton": "下載",
   "downloadAndInstall": "下載並安裝",
   "manualInstall": "手動安裝",
+  "later": "稍後",
   "downloadStartFailed": "啟動下載失敗",
   "downloadFailed": "下載失敗",
   "noCompatibleAsset": "找不到適用於此平台的安裝檔",
@@ -36,6 +37,13 @@
     "downloadFailed": "下載請求失敗（{{status}}）",
     "downloadNoBody": "下載回應沒有內容",
     "missingUrl": "缺少下載網址",
-    "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。"
-  }
+    "checkReturnedNull": "更新檢查沒有回傳結果，需要打包應用程式或強制啟用開發更新設定。",
+    "missingDownloadId": "缺少下載 ID"
+  },
+  "releaseNotesLoading": "正在取得更新內容",
+  "releaseNotesFailed": "取得失敗，可",
+  "viewRelease": "前往查看",
+  "cancel": "取消",
+  "minimize": "最小化",
+  "restoreUpdateNotification": "恢復更新進度"
 }

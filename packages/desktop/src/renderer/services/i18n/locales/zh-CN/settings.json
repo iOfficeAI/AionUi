@@ -1054,5 +1054,6 @@
     "conversation": "对话",
     "mcp": "MCP",
     "customAgent": "自定义 Agent"
-  }
+  },
+  "updateReadyInstall": "{{version}} 已就绪, 立即安装"
 }

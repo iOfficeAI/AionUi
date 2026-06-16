@@ -106,7 +106,6 @@ const Layout: React.FC<{
   const [viewportWidth, setViewportWidth] = useState<number>(() =>
     typeof window === 'undefined' ? 390 : window.innerWidth
   );
-  const [shouldMountUpdateModal, setShouldMountUpdateModal] = useState(false);
   const { onClick } = useDebug();
   const { contextHolder: directorySelectionContextHolder } = useDirectorySelection();
   useDeepLink();
@@ -211,7 +210,6 @@ const Layout: React.FC<{
 
     // Handle pause all tasks request from tray / 托盘请求暂停所有任务
     const handlePauseAllTasks = async () => {
-      const { ipcBridge } = await import('@/common');
       const result = await ipcBridge.task.stopAll.invoke();
       if (result?.success) {
         // Navigate to settings page to show task status
@@ -220,14 +218,8 @@ const Layout: React.FC<{
     };
 
     // Handle check update request from tray / 托盘请求检查更新
-    // 1. Navigate to about page / 导航到关于页面
-    // 2. Trigger update modal check / 触发更新模态框检查
     const handleCheckUpdate = () => {
-      void navigate('/settings/about');
-      // Trigger update modal after a short delay to ensure page is loaded
-      setTimeout(() => {
-        window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
-      }, 100);
+      window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'tray' } }));
     };
 
     // Listen for tray events / 监听托盘事件

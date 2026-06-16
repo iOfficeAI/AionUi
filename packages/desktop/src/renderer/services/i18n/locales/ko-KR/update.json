@@ -10,6 +10,7 @@
   "downloadButton": "다운로드",
   "downloadAndInstall": "다운로드 및 설치",
   "manualInstall": "수동 설치",
+  "later": "나중에",
   "downloadStartFailed": "다운로드를 시작하지 못했습니다",
   "downloadFailed": "다운로드에 실패했습니다",
   "noCompatibleAsset": "이 플랫폼에 호환되는 다운로드를 찾을 수 없습니다",
@@ -36,6 +37,13 @@
     "downloadFailed": "다운로드 요청에 실패했습니다({{status}})",
     "downloadNoBody": "다운로드 응답에 본문이 없습니다",
     "missingUrl": "다운로드 URL이 없습니다",
-    "checkReturnedNull": "업데이트 확인 결과가 없습니다. 패키지된 앱 또는 강제 개발 업데이트 설정이 필요합니다."
-  }
+    "checkReturnedNull": "업데이트 확인 결과가 없습니다. 패키지된 앱 또는 강제 개발 업데이트 설정이 필요합니다.",
+    "missingDownloadId": "다운로드 ID가 없습니다"
+  },
+  "releaseNotesLoading": "업데이트 내용을 가져오는 중",
+  "releaseNotesFailed": "가져오지 못했습니다.",
+  "viewRelease": "릴리스 보기",
+  "cancel": "취소",
+  "minimize": "최소화",
+  "restoreUpdateNotification": "업데이트 진행 상황 복원"
 }

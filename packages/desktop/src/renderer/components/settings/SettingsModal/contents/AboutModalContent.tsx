@@ -12,6 +12,12 @@ import classNames from 'classnames';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { isElectronDesktop, openExternalUrl } from '@/renderer/utils/platform';
 import FeedbackReportModal from './FeedbackReportModal';
+import { ipcBridge } from '@/common';
+import {
+  getUpdateReadyState,
+  subscribeUpdateReadyState,
+  type UpdateReadyState,
+} from '@/renderer/components/settings/updateReadyState';
 
 // __APP_VERSION__ is injected by electron.vite.config.ts `define:` from the
 // repo-root package.json. The previous `import packageJson from
@@ -31,11 +37,14 @@ const AboutModalContent: React.FC = () => {
 
   const [includePrerelease, setIncludePrerelease] = useState(false);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const [updateReadyState, setUpdateReadyState] = useState<UpdateReadyState>(() => getUpdateReadyState());
 
   useEffect(() => {
     const saved = localStorage.getItem('update.includePrerelease');
     setIncludePrerelease(saved === 'true');
   }, []);
+
+  useEffect(() => subscribeUpdateReadyState(setUpdateReadyState), []);
 
   const handlePrereleaseChange = (val: boolean) => {
     setIncludePrerelease(val);
@@ -51,6 +60,14 @@ const AboutModalContent: React.FC = () => {
   };
 
   const checkUpdate = () => {
+    if (updateReadyState.ready) {
+      if (updateReadyState.filePath) {
+        void ipcBridge.shell.openFile.invoke(updateReadyState.filePath);
+        return;
+      }
+      void ipcBridge.autoUpdate.quitAndInstall.invoke();
+      return;
+    }
     // 使用 window 自定义事件在渲染进程内部通信（buildEmitter 只支持主进程->渲染进程）
     // Use window custom event for renderer-side communication (buildEmitter only works main->renderer)
     window.dispatchEvent(new CustomEvent('aionui-open-update-modal', { detail: { source: 'about' } }));
@@ -122,7 +139,9 @@ const AboutModalContent: React.FC = () => {
             {isElectron && (
               <div className='flex flex-col items-center gap-12px w-full max-w-300px bg-fill-2 p-16px rounded-lg'>
                 <Button type='primary' long onClick={checkUpdate}>
-                  {t('settings.checkForUpdates')}
+                  {updateReadyState.ready
+                    ? t('settings.updateReadyInstall', { version: updateReadyState.version })
+                    : t('settings.checkForUpdates')}
                 </Button>
                 <div className='flex items-center justify-between w-full'>
                   <Typography.Text className='text-12px text-t-secondary'>

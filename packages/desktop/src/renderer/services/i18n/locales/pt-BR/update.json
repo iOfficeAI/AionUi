@@ -10,6 +10,7 @@
   "downloadButton": "Baixar",
   "downloadAndInstall": "Baixar e Instalar",
   "manualInstall": "Instalar manualmente",
+  "later": "Mais tarde",
   "downloadStartFailed": "Falha ao iniciar o download",
   "downloadFailed": "O download falhou",
   "noCompatibleAsset": "Nenhum download compatível encontrado para esta plataforma",
@@ -36,6 +37,13 @@
     "downloadFailed": "Falha na solicitação de download ({{status}})",
     "downloadNoBody": "A resposta do download não incluiu conteúdo",
     "missingUrl": "URL de download ausente",
-    "checkReturnedNull": "A verificação de atualização não retornou resultado. É necessário usar o app empacotado ou forçar a configuração de atualização de desenvolvimento."
-  }
+    "checkReturnedNull": "A verificação de atualização não retornou resultado. É necessário usar o app empacotado ou forçar a configuração de atualização de desenvolvimento.",
+    "missingDownloadId": "ID de download ausente"
+  },
+  "releaseNotesLoading": "Buscando detalhes da atualização...",
+  "releaseNotesFailed": "Falha ao buscar detalhes.",
+  "viewRelease": "Ver release",
+  "cancel": "Cancelar",
+  "minimize": "Minimizar",
+  "restoreUpdateNotification": "Restaurar progresso da atualização"
 }
