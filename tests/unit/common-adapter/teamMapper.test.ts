@@ -61,6 +61,20 @@ describe('teamMapper', () => {
     ).toBe('assistant-legacy');
   });
 
+  it('does not expose legacy custom_agent_id on the frontend team agent shape', () => {
+    const agent = fromBackendAgent({
+      slot_id: 'slot-2',
+      conversation_id: 'conversation-2',
+      role: 'teammate',
+      backend: 'aionrs',
+      name: 'Worker',
+      custom_agent_id: 'assistant-legacy',
+    });
+
+    expect(agent.assistant_id).toBe('assistant-legacy');
+    expect(agent).not.toHaveProperty('custom_agent_id');
+  });
+
   it('preserves assistant identity when serializing agents back to the backend payload', () => {
     expect(
       toBackendAgent({
@@ -70,7 +84,6 @@ describe('teamMapper', () => {
         conversation_type: 'aionrs',
         status: 'pending',
         assistant_id: 'assistant-1',
-        custom_agent_id: 'assistant-1',
       })
     ).toMatchObject({
       backend: 'aionrs',
