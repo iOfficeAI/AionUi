@@ -37,7 +37,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
     getConversationOrNull(conversation_id!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
-  const displayName = presetInfo?.name || assistant_name;
+  const displayName = presetInfo?.name || assistant_name || 'Assistant';
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(assistant_backend);
 

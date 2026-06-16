@@ -42,7 +42,9 @@ describe('TeamAgentIdentity', () => {
       info: { name: 'Writer Assistant', logo: '✍️', isEmoji: true },
     });
 
-    render(<TeamAgentIdentity agent_name='Legacy Runtime Name' agent_type='claude' conversation_id='conv-1' />);
+    render(
+      <TeamAgentIdentity assistant_name='Legacy Runtime Name' assistant_backend='claude' conversation_id='conv-1' />
+    );
 
     expect(screen.getByText('Writer Assistant')).toBeInTheDocument();
     expect(screen.queryByText('Legacy Runtime Name')).not.toBeInTheDocument();
@@ -52,8 +54,19 @@ describe('TeamAgentIdentity', () => {
     useSWRMock.mockReturnValue({ data: { id: 'conv-1' } });
     usePresetAssistantInfoMock.mockReturnValue({ info: null });
 
-    render(<TeamAgentIdentity agent_name='Legacy Runtime Name' agent_type='claude' conversation_id='conv-1' />);
+    render(
+      <TeamAgentIdentity assistant_name='Legacy Runtime Name' assistant_backend='claude' conversation_id='conv-1' />
+    );
 
     expect(screen.getByText('Legacy Runtime Name')).toBeInTheDocument();
+  });
+
+  it('falls back to a safe assistant label when the runtime name is empty', () => {
+    useSWRMock.mockReturnValue({ data: { id: 'conv-1' } });
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(<TeamAgentIdentity assistant_name='' assistant_backend='claude' conversation_id='conv-1' />);
+
+    expect(screen.getByText('Assistant')).toBeInTheDocument();
   });
 });

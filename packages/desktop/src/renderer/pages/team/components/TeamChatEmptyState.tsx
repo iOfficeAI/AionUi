@@ -36,7 +36,7 @@ const toDraftKind = (type: TChatConversation['type']): TeamDraftKind => {
   return type === 'aionrs' ? 'aionrs' : 'acp';
 };
 
-const resolveAgentTypeFromConversation = (conversation: TChatConversation): string => {
+const resolveAssistantBackendFromConversation = (conversation: TChatConversation): string => {
   if (conversation.type === 'acp') {
     return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'acp';
   }
@@ -46,7 +46,7 @@ const resolveAgentTypeFromConversation = (conversation: TChatConversation): stri
   return conversation.type;
 };
 
-const resolveAgentName = (conversation: TChatConversation, presetName: string | null): string => {
+const resolveAssistantName = (conversation: TChatConversation, presetName: string | null): string => {
   if (presetName) return presetName;
   const extraAgentName = (conversation.extra as { agent_name?: string } | undefined)?.agent_name;
   if (extraAgentName && extraAgentName.trim()) return extraAgentName.trim();
@@ -89,10 +89,10 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
   )?.trim();
   if (!team_id) return null;
 
-  const agent_type = resolveAgentTypeFromConversation(conversation);
-  const agent_name = resolveAgentName(conversation, presetInfo?.name ?? null);
+  const assistantBackend = resolveAssistantBackendFromConversation(conversation);
+  const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null);
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(agent_type);
+  const backendLogo = getAgentLogo(assistantBackend);
 
   const renderAvatar = () => {
     if (presetInfo) {
@@ -113,15 +113,17 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
     }
     if (explicitLogo) {
       return (
-        <img src={explicitLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+        <img src={explicitLogo} alt={assistantName} className='w-48px h-48px object-contain rounded-8px opacity-80' />
       );
     }
     if (backendLogo) {
-      return <img src={backendLogo} alt={agent_name} className='w-48px h-48px object-contain rounded-8px opacity-80' />;
+      return (
+        <img src={backendLogo} alt={assistantName} className='w-48px h-48px object-contain rounded-8px opacity-80' />
+      );
     }
     return (
       <div className='w-48px h-48px rounded-full bg-fill-3 flex items-center justify-center text-20px font-medium text-t-secondary'>
-        {agent_name.charAt(0).toUpperCase()}
+        {assistantName.charAt(0).toUpperCase()}
       </div>
     );
   };
@@ -133,7 +135,7 @@ const TeamChatEmptyState: React.FC<Props> = ({ conversation_id, icon, isLeader =
     >
       {renderAvatar()}
       <div className='flex flex-col gap-6px'>
-        <span className='text-16px font-semibold text-t-primary'>{agent_name}</span>
+        <span className='text-16px font-semibold text-t-primary'>{assistantName}</span>
         {isLeader && (
           <span data-testid='team-chat-empty-state-subtitle' className='text-13px text-t-secondary'>
             {t('team.emptyState.subtitle', { defaultValue: "Describe your goal and I'll get the team working on it" })}
