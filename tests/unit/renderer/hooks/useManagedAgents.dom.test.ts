@@ -7,7 +7,8 @@
  *
  * The Agent settings management surface must read the
  * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
- * cache) and revalidate the management key only.
+ * cache) and refresh both the management cache and the shared detected-agent
+ * cache when diagnostics actions mutate availability.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -70,7 +71,7 @@ describe('useManagedAgents', () => {
     expect(result.current.agents).toEqual([]);
   });
 
-  it('revalidate refreshes the management key only', async () => {
+  it('revalidate refreshes both the management key and the shared detected cache', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -80,10 +81,10 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+    expect(mutate).toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCustomAgents triggers a backend rescan then revalidates the management key only', async () => {
+  it('refreshCustomAgents triggers a backend rescan then refreshes both caches', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -94,10 +95,10 @@ describe('useManagedAgents', () => {
 
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+    expect(mutate).toHaveBeenCalledWith('agents.detected');
   });
 
-  it('getManagedAgents fetches the management catalog and updates the managed cache only', async () => {
+  it('getManagedAgents fetches the management catalog and refreshes the shared detected cache too', async () => {
     const managedAgents = [
       { id: 'managed-1', name: 'Managed Agent', agent_type: 'acp', agent_source: 'builtin', enabled: true },
     ];
@@ -107,7 +108,7 @@ describe('useManagedAgents', () => {
 
     expect(fetchManagedAgents).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith('agents.managed', managedAgents, { revalidate: false });
-    expect(mutate).not.toHaveBeenCalledWith('agents.detected', managedAgents, { revalidate: false });
+    expect(mutate).toHaveBeenCalledWith('agents.detected');
     expect(result).toEqual(managedAgents);
   });
 });
