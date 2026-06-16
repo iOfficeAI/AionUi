@@ -55,6 +55,29 @@ describe('useMcpServers', () => {
     expect(result.current.mcpServers).toEqual([]);
   });
 
+  it('does not fall back to configService business data when MCP catalog loading fails', async () => {
+    ensureBackendMcpCatalogMock.mockRejectedValue(new Error('catalog failed'));
+    configServiceMock.get.mockReturnValue([
+      {
+        id: 'legacy-1',
+        name: 'legacy server',
+        enabled: true,
+        transport: { type: 'stdio', command: 'legacy', args: [] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+        builtin: false,
+      },
+    ]);
+
+    const { result } = renderHook(() => useMcpServers());
+
+    await waitFor(() => expect(result.current.isMcpServersLoading).toBe(false));
+
+    expect(result.current.mcpServers).toEqual([]);
+    expect(configServiceMock.get).not.toHaveBeenCalled();
+  });
+
   it('updates local MCP state without persisting business data to configService', async () => {
     const { result } = renderHook(() => useMcpServers());
 

@@ -37,18 +37,7 @@ describe('ensureBackendMcpCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     httpRequestMock.mockResolvedValue({
-      'mcp.config': [
-        {
-          id: 'builtin-1',
-          name: 'builtin one',
-          enabled: true,
-          transport: { type: 'stdio', command: 'builtin', args: [] },
-          created_at: 1,
-          updated_at: 1,
-          original_json: '{}',
-          builtin: true,
-        },
-      ],
+      'mcp.config': [],
     });
     configServiceMock.get.mockReturnValue([]);
     mcpServiceMock.listServers.invoke.mockResolvedValue([
@@ -65,12 +54,28 @@ describe('ensureBackendMcpCatalog', () => {
     ]);
   });
 
-  it('reads legacy config when needed but does not write mcp catalog back into configService cache', async () => {
+  it('reads MCP catalog from backend settings without falling back to configService', async () => {
+    httpRequestMock.mockResolvedValue({
+      'mcp.config': [
+        {
+          id: 'builtin-1',
+          name: 'builtin one',
+          enabled: true,
+          transport: { type: 'stdio', command: 'builtin', args: [] },
+          created_at: 1,
+          updated_at: 1,
+          original_json: '{}',
+          builtin: true,
+        },
+      ],
+    });
+
     const result = await ensureBackendMcpCatalog();
 
     expect(result.userServers).toHaveLength(1);
     expect(result.builtinServers).toHaveLength(1);
     expect(result.allServers).toHaveLength(2);
+    expect(configServiceMock.get).not.toHaveBeenCalled();
     expect(configServiceMock.setLocal).not.toHaveBeenCalled();
   });
 });

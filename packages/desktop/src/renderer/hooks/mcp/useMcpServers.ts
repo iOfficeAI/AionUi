@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
 import type { IMcpServer } from '@/common/config/storage';
 import { ensureBackendMcpCatalog } from './catalog';
 
@@ -20,7 +19,7 @@ export const useMcpServers = () => {
       })
       .catch((error) => {
         console.error('[useMcpServers] Failed to load MCP catalog:', error);
-        setMcpServers(configService.get('mcp.config') ?? []);
+        setMcpServers([]);
       })
       .finally(() => {
         setIsMcpServersLoading(false);
