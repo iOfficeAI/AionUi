@@ -72,4 +72,24 @@ describe('MessageAgentStatus — FeedbackButton wiring', () => {
       autoScreenshot: true,
     });
   });
+
+  it('falls back to a capitalized backend name without consulting runtime agent catalogs', () => {
+    render(
+      <MessageAgentStatus
+        message={
+          {
+            id: 'm2',
+            type: 'agent_status',
+            content: {
+              backend: 'codex',
+              status: 'connected',
+            },
+          } as IMessageAgentStatus
+        }
+      />
+    );
+
+    expect(screen.getByText('Codex')).toBeInTheDocument();
+    expect(screen.getByText('acp.status.connected:Codex')).toBeInTheDocument();
+  });
 });
