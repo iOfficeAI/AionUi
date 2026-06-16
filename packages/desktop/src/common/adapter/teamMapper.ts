@@ -117,6 +117,5 @@ export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>
     backend: a.agent_type,
     model: a.model || 'default',
     ...(a.assistant_id ? { assistant_id: a.assistant_id } : {}),
-    ...(a.custom_agent_id ? { custom_agent_id: a.custom_agent_id } : {}),
   };
 }

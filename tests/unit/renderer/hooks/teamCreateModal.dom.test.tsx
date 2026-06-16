@@ -120,9 +120,9 @@ describe('TeamCreateModal', () => {
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
       assistant_id: 'bare-aionrs',
-      custom_agent_id: 'bare-aionrs',
       agent_name: 'Aion CLI',
     });
+    expect(payload.agents[0]).not.toHaveProperty('custom_agent_id');
   });
 });
 

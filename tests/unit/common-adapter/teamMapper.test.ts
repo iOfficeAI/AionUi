@@ -75,7 +75,6 @@ describe('teamMapper', () => {
     ).toMatchObject({
       backend: 'aionrs',
       assistant_id: 'assistant-1',
-      custom_agent_id: 'assistant-1',
     });
   });
 });
