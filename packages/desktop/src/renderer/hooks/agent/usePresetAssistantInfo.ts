@@ -11,7 +11,6 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
   name: string;
@@ -96,6 +95,24 @@ function resolveLegacyRuntimeRowId(conversation: TChatConversation): string | nu
   const agent_id = typeof extra?.agent_id === 'string' ? extra.agent_id.trim() : '';
   const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
   return agent_id || custom_agent_id || null;
+}
+
+function resolveLegacyRuntimeDisplayName(conversation: TChatConversation): string | null {
+  const extra = conversation.extra as {
+    agent_name?: unknown;
+    backend?: unknown;
+  };
+  const agent_name = typeof extra?.agent_name === 'string' ? extra.agent_name.trim() : '';
+  if (agent_name) return agent_name;
+
+  const backend = typeof extra?.backend === 'string' ? extra.backend.trim() : '';
+  if (!backend) return null;
+
+  return backend
+    .split(/[-_\s]+/)
+    .filter(Boolean)
+    .map((segment) => segment.charAt(0).toUpperCase() + segment.slice(1))
+    .join(' ');
 }
 
 /**
@@ -255,11 +272,6 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     () => (remoteAgentId ? ipcBridge.remoteAgent.get.invoke({ id: remoteAgentId }) : null)
   );
 
-  // Backend-registered agents (includes `agent_source === 'custom'` rows). Used
-  // to resolve the user-picked emoji/name for a custom ACP conversation where
-  // no preset assistant was attached.
-  const { data: detectedAgents } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
-
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
 
@@ -281,19 +293,18 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     const runtimeRowAgentId = resolveLegacyRuntimeRowId(conversation);
     const locale = i18n.language || 'en-US';
 
-    const resolveCustomRuntimeRow = (): { info: PresetAssistantInfo; isLoading: false } | null => {
-      if (!runtimeRowAgentId || !Array.isArray(detectedAgents)) return null;
-      const row = detectedAgents.find((a) => a.id === runtimeRowAgentId && a.agent_source === 'custom');
-      if (!row) return null;
-      const normalized = normalizeAvatar(row.icon);
-      return { info: { name: row.name, logo: normalized.logo, isEmoji: normalized.isEmoji }, isLoading: false };
+    const resolveLegacyRuntimeInfo = (): { info: PresetAssistantInfo; isLoading: false } | null => {
+      if (!runtimeRowAgentId) return null;
+      const name = resolveLegacyRuntimeDisplayName(conversation);
+      if (!name) return null;
+      return { info: { name, logo: '🤖', isEmoji: true }, isLoading: false };
     };
 
     // Custom ACP row short-circuit: only when there is no explicit assistant
     // identity. Legacy `custom_agent_id` sometimes carries a runtime row id,
     // not an assistant id, so let assistant-based restore win first.
     if (!presetId || !hasExplicitAssistantId) {
-      const runtimeInfo = resolveCustomRuntimeRow();
+      const runtimeInfo = resolveLegacyRuntimeInfo();
       if (runtimeInfo && !presetId) return runtimeInfo;
     }
 
@@ -318,7 +329,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     }
 
     if (!hasExplicitAssistantId) {
-      const runtimeInfo = resolveCustomRuntimeRow();
+      const runtimeInfo = resolveLegacyRuntimeInfo();
       if (runtimeInfo) return runtimeInfo;
     }
 
@@ -357,6 +368,5 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
     remoteAgentId,
     remoteAgent,
     isLoadingRemoteAgent,
-    detectedAgents,
   ]);
 }

@@ -61,19 +61,6 @@ describe('usePresetAssistantInfo', () => {
         };
       }
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
-      if (key === 'agents.detected') {
-        return {
-          data: [
-            {
-              id: 'runtime-social',
-              name: 'Gemini Runtime',
-              icon: '🧩',
-              agent_source: 'custom',
-            },
-          ],
-          isLoading: false,
-        };
-      }
       return { data: undefined, isLoading: false };
     });
 
@@ -97,24 +84,12 @@ describe('usePresetAssistantInfo', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
-      if (key === 'agents.detected') {
-        return {
-          data: [
-            {
-              id: 'runtime-social',
-              name: 'Gemini Runtime',
-              icon: '🧩',
-              agent_source: 'custom',
-            },
-          ],
-          isLoading: false,
-        };
-      }
       return { data: undefined, isLoading: false };
     });
 
     const conversation = makeConversation({
       agent_id: 'runtime-social',
+      agent_name: 'Gemini Runtime',
       backend: 'gemini',
     });
 
@@ -122,7 +97,7 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🧩',
+      logo: '🤖',
       isEmoji: true,
     });
   });
@@ -131,24 +106,12 @@ describe('usePresetAssistantInfo', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') return { data: [], isLoading: false };
       if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
-      if (key === 'agents.detected') {
-        return {
-          data: [
-            {
-              id: 'runtime-social',
-              name: 'Gemini Runtime',
-              icon: '🧩',
-              agent_source: 'custom',
-            },
-          ],
-          isLoading: false,
-        };
-      }
       return { data: undefined, isLoading: false };
     });
 
     const conversation = makeConversation({
       custom_agent_id: 'runtime-social',
+      agent_name: 'Gemini Runtime',
       backend: 'gemini',
     });
 
@@ -156,7 +119,28 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🧩',
+      logo: '🤖',
+      isEmoji: true,
+    });
+  });
+
+  it('falls back to a capitalized backend name when legacy runtime rows lack agent_name', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      agent_id: 'runtime-social',
+      backend: 'openclaw-gateway',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Openclaw Gateway',
+      logo: '🤖',
       isEmoji: true,
     });
   });
