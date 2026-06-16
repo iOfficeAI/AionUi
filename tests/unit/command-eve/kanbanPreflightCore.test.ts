@@ -11,14 +11,20 @@ import os from 'os';
 import path from 'path';
 import {
   applyKanbanMarketingCardAction,
+  approveKanbanMarketingOutput,
   buildKanbanMarketingBoard,
+  checkKanbanMarketingWorkerStartGate,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
   generateKanbanMarketingDraft,
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
+  prepareKanbanMarketingWorkerDispatcher,
+  promoteKanbanMarketingWorkerExecutor,
   recordKanbanMarketingDispatchApproval,
   recordKanbanMarketingDispatchDecision,
+  requestKanbanMarketingWorkerDispatch,
+  runKanbanMarketingWorkerObserved,
   runKanbanPreflight,
   type CommandEveKanbanPreflightCommandRunner,
 } from '@/process/commandEve/kanbanPreflightCore';
@@ -1339,5 +1345,516 @@ describe('Command EVE Kanban marketing-board mutations', () => {
       role_label: 'role:cmo',
       safety: expect.objectContaining({ dispatch_source: 'command-eve-embedded-nl5' }),
     });
+  });
+});
+
+describe('Command EVE Kanban marketing-executor LADDER (v15 gated, additive)', () => {
+  // Valid observed-local runtime executor profile accepted by the start gate.
+  const validExecutorProfile = {
+    version: 'command-eve-runtime-executor-profile/v0',
+    executor_kind: 'hermes-local-observed',
+    execution_mode: 'observed',
+    transport: 'local',
+    data_boundary_enforced: true,
+    external_calls_allowed: false,
+    subprocess_spawn_allowed: false,
+    hg3_approved: true,
+    approved_by: 'cao',
+    approved_at: '2026-06-13T11:00:00.000Z',
+  };
+
+  // Drives a fresh card through dispatch-plan -> controller-approval -> decision
+  // -> draft-generated, returning the shared context the ladder builds on.
+  const driveToGeneratedDraft = (): {
+    root: string;
+    eventLedgerPath: string;
+    cardId: string;
+    handoff: Record<string, unknown>;
+  } => {
+    const root = makeRoot();
+    const companyOsRoot = makeRoot();
+    makeCompanyOsDispatchCli(companyOsRoot);
+    writeLockedReconciliation(root);
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+
+    const created = createKanbanMarketingCard({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      title: 'Dispatch me only after gates',
+      description: 'Customer-facing marketing work with prospect phone +49 30 12345678, not a worker launch.',
+      lane_key: 'draft',
+      client_token: 'ladder-1',
+      now: () => new Date('2026-06-13T09:00:00.000Z'),
+    });
+    expect(created.ok).toBe(true);
+    const cardId = created.card_id || '';
+
+    const commandRunner: CommandEveKanbanPreflightCommandRunner = () => ({
+      ok: false,
+      exitCode: 78,
+      stdout: `${JSON.stringify({
+        version: 'hermes-pre-generation-dispatch/v0',
+        ok: false,
+        status: 'blocked',
+        subprocess_spawned: false,
+        reason_codes: ['hermes.pre_generation.controller_approval_missing'],
+        policy: {
+          status: 'blocked',
+          data_boundary_receipt: {
+            ok: true,
+            status: 'local-only-pass',
+            sensitivity: 'S1',
+            sensitivity_score: 1,
+            effective_lane: 'local_only',
+          },
+        },
+      })}\n`,
+      stderr: '',
+    });
+
+    const plan = planKanbanMarketingCardDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      command: 'decompose',
+      companyOsRoot,
+      commandRunner,
+      now: () => new Date('2026-06-13T10:00:00.000Z'),
+    });
+    expect(plan.ok).toBe(false);
+    const handoff = (plan.dispatch_handoff_packet || {}) as Record<string, unknown>;
+
+    const approval = recordKanbanMarketingDispatchApproval({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      review_note: 'Controller sees the handoff and keeps execution blocked.',
+      now: () => new Date('2026-06-13T10:05:00.000Z'),
+    });
+    expect(approval.ok).toBe(true);
+
+    const decision = recordKanbanMarketingDispatchDecision({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      decision: 'approved',
+      dispatch_handoff_packet: handoff,
+      decision_note: 'Controller approves the handoff as a receipt only; execution stays blocked.',
+      now: () => new Date('2026-06-13T10:06:00.000Z'),
+    });
+    expect(decision.ok).toBe(true);
+
+    const draft = generateKanbanMarketingDraft({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      generation_note: 'Generate the first local marketing loop output.',
+      now: () => new Date('2026-06-13T10:07:00.000Z'),
+    });
+    expect(draft.ok).toBe(true);
+    expect(draft.subprocess_spawned).toBe(false);
+
+    return { root, eventLedgerPath, cardId, handoff };
+  };
+
+  const lastEventPayload = (root: string, kind: string): Record<string, unknown> => {
+    const rows = readRows(
+      marketingBoardPath(root),
+      `SELECT payload FROM task_events WHERE kind = '${kind}' ORDER BY created_at DESC, id DESC LIMIT 1`
+    );
+    expect(rows).toHaveLength(1);
+    return JSON.parse(String((rows[0] as { payload: string }).payload)) as Record<string, unknown>;
+  };
+
+  it('runs the full monotonic ladder to in-process executor promotion with no spawn', () => {
+    const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
+
+    const output = approveKanbanMarketingOutput({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      approval_note: 'Approve the first local marketing loop output.',
+      now: () => new Date('2026-06-13T10:08:00.000Z'),
+    });
+    expect(output.ok).toBe(true);
+    expect(output.status).toBe('ready');
+    expect(output.reason_code).toBe('KANBAN_MARKETING_OUTPUT_APPROVED');
+    expect(output.subprocess_spawned).toBe(false);
+    expect(output.worker_dispatch_status).toBe('prepared');
+    expect(output.worker_contract_yaml).toContain('role: role:cmo');
+    expect(lastEventPayload(root, 'command_eve_marketing_output_approved').subprocess_spawned).toBe(false);
+
+    const dispatchRequest = requestKanbanMarketingWorkerDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      request_note: 'Request the manual worker dispatch.',
+      now: () => new Date('2026-06-13T10:09:00.000Z'),
+    });
+    expect(dispatchRequest.ok).toBe(true);
+    expect(dispatchRequest.worker_dispatch_request_status).toBe('blocked');
+    expect(dispatchRequest.release_blocked).toBe(true);
+    expect(dispatchRequest.subprocess_spawned).toBe(false);
+    expect(lastEventPayload(root, 'command_eve_marketing_worker_dispatch_requested').subprocess_spawned).toBe(false);
+
+    const observedRun = runKanbanMarketingWorkerObserved({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      observed_note: 'Observe the local worker run.',
+      now: () => new Date('2026-06-13T10:10:00.000Z'),
+    });
+    expect(observedRun.ok).toBe(true);
+    expect(observedRun.worker_observed_run_status).toBe('completed');
+    expect(observedRun.subprocess_spawned).toBe(false);
+    expect(observedRun.external_calls).toBe(false);
+    expect(observedRun.release_blocked).toBe(true);
+    expect(lastEventPayload(root, 'command_eve_marketing_worker_observed_run_completed').external_calls).toBe(false);
+
+    const startGate = checkKanbanMarketingWorkerStartGate({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      gate_note: 'Check the worker start gate with a valid observed executor profile.',
+      executor_enabled: true,
+      executor_profile: validExecutorProfile,
+      now: () => new Date('2026-06-13T10:11:00.000Z'),
+    });
+    expect(startGate.ok).toBe(true);
+    expect(startGate.worker_start_gate_status).toBe('ready');
+    expect(startGate.human_gate).toBe('HG-3');
+    expect(startGate.subprocess_spawned).toBe(false);
+    expect(startGate.external_calls).toBe(false);
+    expect(startGate.release_blocked).toBe(true);
+    expect(lastEventPayload(root, 'command_eve_marketing_worker_start_gate_checked').subprocess_spawned).toBe(false);
+
+    const dispatcherPrepare = prepareKanbanMarketingWorkerDispatcher({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      prepare_note: 'Prepare the gated dispatcher.',
+      now: () => new Date('2026-06-13T10:12:00.000Z'),
+    });
+    expect(dispatcherPrepare.ok).toBe(true);
+    expect(dispatcherPrepare.worker_dispatcher_prepare_status).toBe('ready');
+    expect(dispatcherPrepare.human_gate).toBe('HG-3.5');
+    expect(dispatcherPrepare.data_boundary_checked).toBe(true);
+    expect(dispatcherPrepare.subprocess_spawned).toBe(false);
+    expect(dispatcherPrepare.external_calls).toBe(false);
+    expect(dispatcherPrepare.release_blocked).toBe(true);
+    expect(lastEventPayload(root, 'command_eve_marketing_worker_dispatcher_prepared').subprocess_spawned).toBe(false);
+
+    const promotion = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      promotion_note: 'Promote the in-process local executor after all gates pass.',
+      cao_gate_approved: true,
+      now: () => new Date('2026-06-13T10:13:00.000Z'),
+    });
+    expect(promotion.ok).toBe(true);
+    expect(promotion.status).toBe('ready');
+    expect(promotion.reason_code).toBe('KANBAN_MARKETING_WORKER_EXECUTOR_PROMOTED');
+    expect(promotion.worker_executor_promotion_status).toBe('completed');
+    expect(promotion.human_gate).toBe('HG-3.5');
+    expect(promotion.subprocess_spawned).toBe(false);
+    expect(promotion.external_calls).toBe(false);
+    expect(promotion.data_boundary_checked).toBe(true);
+    expect(promotion.release_blocked).toBe(true);
+    expect(promotion.executor_promotion_packet).toMatchObject({
+      version: 'command-eve-worker-executor-promotion-packet/v0',
+      cao_gate_approved: true,
+      subprocess_spawned: false,
+      external_calls: false,
+      release_blocked: true,
+      publish_blocked: true,
+      blocked_actions: ['subprocess_spawn', 'external_call', 'publish', 'schedule', 'outreach'],
+    });
+    expect(promotion.worker_report).toContain('subprocess_spawned: false');
+    expect(promotion.worker_report).toContain('external_calls: false');
+
+    // worker.reported executor receipt is persisted with the structural no-spawn invariant.
+    const promotionPayload = lastEventPayload(root, 'command_eve_marketing_worker_executor_promoted');
+    expect(promotionPayload.subprocess_spawned).toBe(false);
+    expect(promotionPayload.external_calls).toBe(false);
+    expect(promotionPayload.release_blocked).toBe(true);
+    expect(promotionPayload.cao_gate_approved).toBe(true);
+
+    // Every persisted ladder payload carries subprocess_spawned === false.
+    for (const kind of [
+      'command_eve_marketing_output_approved',
+      'command_eve_marketing_worker_dispatch_requested',
+      'command_eve_marketing_worker_observed_run_completed',
+      'command_eve_marketing_worker_start_gate_checked',
+      'command_eve_marketing_worker_dispatcher_prepared',
+      'command_eve_marketing_worker_executor_promoted',
+    ]) {
+      expect(lastEventPayload(root, kind).subprocess_spawned).toBe(false);
+    }
+  });
+
+  it('hard-fails each ladder stage when the prior persisted receipt is absent (monotonic gate)', () => {
+    const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
+
+    // dispatch-request before output-approve -> blocked (no output_approved receipt).
+    const dispatchBeforeOutput = requestKanbanMarketingWorkerDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      now: () => new Date('2026-06-13T10:09:00.000Z'),
+    });
+    expect(dispatchBeforeOutput.ok).toBe(false);
+    expect(dispatchBeforeOutput.reason_code).toBe('KANBAN_MARKETING_OUTPUT_APPROVAL_REQUIRED');
+    expect(dispatchBeforeOutput.release_blocked).toBe(true);
+    expect(dispatchBeforeOutput.subprocess_spawned).toBe(false);
+
+    // observed-run before dispatch-request -> blocked.
+    const observedBeforeRequest = runKanbanMarketingWorkerObserved({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:10:00.000Z'),
+    });
+    expect(observedBeforeRequest.ok).toBe(false);
+    expect(observedBeforeRequest.reason_code).toBe('KANBAN_MARKETING_WORKER_DISPATCH_REQUEST_REQUIRED');
+    expect(observedBeforeRequest.release_blocked).toBe(true);
+
+    // start-gate before observed-run -> blocked.
+    const gateBeforeObserved = checkKanbanMarketingWorkerStartGate({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      executor_enabled: true,
+      executor_profile: validExecutorProfile,
+      now: () => new Date('2026-06-13T10:11:00.000Z'),
+    });
+    expect(gateBeforeObserved.ok).toBe(false);
+    expect(gateBeforeObserved.reason_code).toBe('KANBAN_MARKETING_WORKER_OBSERVED_RUN_REQUIRED');
+    expect(gateBeforeObserved.release_blocked).toBe(true);
+
+    // dispatcher-prepare before start-gate -> blocked.
+    const prepareBeforeGate = prepareKanbanMarketingWorkerDispatcher({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:12:00.000Z'),
+    });
+    expect(prepareBeforeGate.ok).toBe(false);
+    expect(prepareBeforeGate.reason_code).toBe('KANBAN_MARKETING_WORKER_START_GATE_REQUIRED');
+    expect(prepareBeforeGate.release_blocked).toBe(true);
+
+    // executor-promotion before dispatcher-prepare (even WITH cao gate) -> blocked.
+    const promoteBeforePrepare = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      cao_gate_approved: true,
+      now: () => new Date('2026-06-13T10:13:00.000Z'),
+    });
+    expect(promoteBeforePrepare.ok).toBe(false);
+    expect(promoteBeforePrepare.reason_code).toBe('KANBAN_MARKETING_WORKER_DISPATCHER_PREPARE_REQUIRED');
+    expect(promoteBeforePrepare.release_blocked).toBe(true);
+    expect(promoteBeforePrepare.subprocess_spawned).toBe(false);
+
+    // No ladder receipt should have been written by any blocked stage.
+    for (const kind of [
+      'command_eve_marketing_output_approved',
+      'command_eve_marketing_worker_dispatch_requested',
+      'command_eve_marketing_worker_observed_run_completed',
+      'command_eve_marketing_worker_start_gate_checked',
+      'command_eve_marketing_worker_dispatcher_prepared',
+      'command_eve_marketing_worker_executor_promoted',
+    ]) {
+      expect(
+        readRows(marketingBoardPath(root), `SELECT id FROM task_events WHERE kind = '${kind}'`)
+      ).toHaveLength(0);
+    }
+  });
+
+  it('blocks executor promotion unless cao_gate_approved === true even after all prior gates pass', () => {
+    const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
+
+    approveKanbanMarketingOutput({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      now: () => new Date('2026-06-13T10:08:00.000Z'),
+    });
+    requestKanbanMarketingWorkerDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      now: () => new Date('2026-06-13T10:09:00.000Z'),
+    });
+    runKanbanMarketingWorkerObserved({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:10:00.000Z'),
+    });
+    checkKanbanMarketingWorkerStartGate({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      executor_enabled: true,
+      executor_profile: validExecutorProfile,
+      now: () => new Date('2026-06-13T10:11:00.000Z'),
+    });
+    prepareKanbanMarketingWorkerDispatcher({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:12:00.000Z'),
+    });
+
+    // cao_gate_approved omitted (undefined) -> must NOT default to true; blocked at the input boundary.
+    const promotionNoCao = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:13:00.000Z'),
+    });
+    expect(promotionNoCao.ok).toBe(false);
+    expect(promotionNoCao.reason_code).toBe('KANBAN_MARKETING_EXECUTOR_PROMOTION_CAO_GATE_REQUIRED');
+    expect(promotionNoCao.release_blocked).toBe(true);
+    expect(promotionNoCao.subprocess_spawned).toBe(false);
+    expect(
+      readRows(marketingBoardPath(root), "SELECT id FROM task_events WHERE kind = 'command_eve_marketing_worker_executor_promoted'")
+    ).toHaveLength(0);
+
+    // cao_gate_approved explicitly false -> still blocked.
+    const promotionFalseCao = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      cao_gate_approved: false,
+      now: () => new Date('2026-06-13T10:13:30.000Z'),
+    });
+    expect(promotionFalseCao.ok).toBe(false);
+    expect(promotionFalseCao.reason_code).toBe('KANBAN_MARKETING_EXECUTOR_PROMOTION_CAO_GATE_REQUIRED');
+
+    // cao_gate_approved === true -> finally promotes.
+    const promotionOk = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      cao_gate_approved: true,
+      now: () => new Date('2026-06-13T10:14:00.000Z'),
+    });
+    expect(promotionOk.ok).toBe(true);
+    expect(promotionOk.worker_executor_promotion_status).toBe('completed');
+    expect(promotionOk.subprocess_spawned).toBe(false);
+    expect(promotionOk.release_blocked).toBe(true);
+  });
+
+  it('keeps the worker start gate blocked when no runtime executor profile is configured', () => {
+    const { root, eventLedgerPath, cardId, handoff } = driveToGeneratedDraft();
+
+    approveKanbanMarketingOutput({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      now: () => new Date('2026-06-13T10:08:00.000Z'),
+    });
+    requestKanbanMarketingWorkerDispatch({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      dispatch_handoff_packet: handoff,
+      now: () => new Date('2026-06-13T10:09:00.000Z'),
+    });
+    runKanbanMarketingWorkerObserved({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:10:00.000Z'),
+    });
+
+    // executor_enabled omitted -> gate is recorded but BLOCKED, and a later dispatcher-prepare fails.
+    const startGate = checkKanbanMarketingWorkerStartGate({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:11:00.000Z'),
+    });
+    expect(startGate.ok).toBe(true);
+    expect(startGate.worker_start_gate_status).toBe('blocked');
+    expect(startGate.release_blocked).toBe(true);
+    expect(startGate.subprocess_spawned).toBe(false);
+    expect(startGate.worker_start_gate_reason_codes).toContain('runtime_executor_not_configured');
+
+    const prepare = prepareKanbanMarketingWorkerDispatcher({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: cardId,
+      now: () => new Date('2026-06-13T10:12:00.000Z'),
+    });
+    expect(prepare.ok).toBe(false);
+    expect(prepare.reason_code).toBe('KANBAN_MARKETING_WORKER_START_GATE_NOT_READY');
+    expect(prepare.release_blocked).toBe(true);
+  });
+
+  it('blocks the entire ladder fail-closed when Kanban governance is not locked', () => {
+    const root = makeRoot();
+    writeLockedReconciliation(root, { kanban_dispatch_in_gateway: true });
+    const eventLedgerPath = path.join(root, 'agent-events.jsonl');
+    createNativeKanbanDb(marketingBoardPath(root));
+
+    const promotion = promoteKanbanMarketingWorkerExecutor({
+      userDataPath: root,
+      boardSlug: 'marketing',
+      eventLedgerPath,
+      task_id: 'governance-not-locked',
+      cao_gate_approved: true,
+      now: () => new Date('2026-06-13T10:13:00.000Z'),
+    });
+    expect(promotion.ok).toBe(false);
+    expect(promotion.reason_code).toBe('KANBAN_GOVERNANCE_NOT_LOCKED');
+    expect(promotion.subprocess_spawned).toBe(false);
+    expect(promotion.release_blocked).toBe(true);
+    expect(
+      readRows(marketingBoardPath(root), "SELECT id FROM task_events WHERE kind = 'command_eve_marketing_worker_executor_promoted'")
+    ).toHaveLength(0);
   });
 });

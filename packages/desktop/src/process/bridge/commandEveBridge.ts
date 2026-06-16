@@ -23,14 +23,20 @@ import {
 } from '@process/commandEve/entitlementCore';
 import {
   applyKanbanMarketingCardAction,
+  approveKanbanMarketingOutput,
   buildKanbanMarketingBoard,
+  checkKanbanMarketingWorkerStartGate,
   createKanbanMarketingCard,
   createKanbanMarketingProofCard,
   generateKanbanMarketingDraft,
   moveKanbanMarketingCard,
   planKanbanMarketingCardDispatch,
+  prepareKanbanMarketingWorkerDispatcher,
+  promoteKanbanMarketingWorkerExecutor,
   recordKanbanMarketingDispatchApproval,
   recordKanbanMarketingDispatchDecision,
+  requestKanbanMarketingWorkerDispatch,
+  runKanbanMarketingWorkerObserved,
   runKanbanPreflight,
 } from '@process/commandEve/kanbanPreflightCore';
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
@@ -631,6 +637,329 @@ export function initCommandEveBridge(): void {
               controller_approved: false,
               release_blocked: true,
               human_gate: 'HG-2.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  // v15 gated marketing-executor LADDER handlers (additive, fail-closed)
+  bridge
+    .buildProvider('command-eve.kanban-marketing-output-approve')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        approval_note?: string;
+      }) => {
+        try {
+          const result = approveKanbanMarketingOutput({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            approval_note: request?.approval_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing output-approve bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-output-approve/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_OUTPUT_APPROVE_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_OUTPUT_APPROVE_BRIDGE_FAILED'],
+              message: error instanceof Error ? error.message : 'Command EVE marketing output-approve bridge failed.',
+              subprocess_spawned: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-2.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-worker-dispatch-request')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        request_note?: string;
+      }) => {
+        try {
+          const result = requestKanbanMarketingWorkerDispatch({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            request_note: request?.request_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg:
+              error instanceof Error ? error.message : 'Command EVE marketing worker-dispatch-request bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-worker-dispatch-request/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_WORKER_DISPATCH_REQUEST_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_WORKER_DISPATCH_REQUEST_BRIDGE_FAILED'],
+              message:
+                error instanceof Error ? error.message : 'Command EVE marketing worker-dispatch-request bridge failed.',
+              subprocess_spawned: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-2.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-worker-observed-run')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        observed_note?: string;
+      }) => {
+        try {
+          const result = runKanbanMarketingWorkerObserved({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            observed_note: request?.observed_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing worker-observed-run bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-worker-observed-run/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_WORKER_OBSERVED_RUN_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_WORKER_OBSERVED_RUN_BRIDGE_FAILED'],
+              message:
+                error instanceof Error ? error.message : 'Command EVE marketing worker-observed-run bridge failed.',
+              subprocess_spawned: false,
+              external_calls: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-2.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-worker-start-gate')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        gate_note?: string;
+        executor_enabled?: boolean;
+        executor_profile?: Record<string, unknown>;
+      }) => {
+        try {
+          const result = checkKanbanMarketingWorkerStartGate({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            gate_note: request?.gate_note,
+            executor_enabled: request?.executor_enabled === true,
+            executor_profile: request?.executor_profile,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg: error instanceof Error ? error.message : 'Command EVE marketing worker-start-gate bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-worker-start-gate/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_WORKER_START_GATE_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_WORKER_START_GATE_BRIDGE_FAILED'],
+              message:
+                error instanceof Error ? error.message : 'Command EVE marketing worker-start-gate bridge failed.',
+              subprocess_spawned: false,
+              external_calls: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-3',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-worker-dispatcher-prepare')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        prepare_note?: string;
+      }) => {
+        try {
+          const result = prepareKanbanMarketingWorkerDispatcher({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            prepare_note: request?.prepare_note,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg:
+              error instanceof Error ? error.message : 'Command EVE marketing worker-dispatcher-prepare bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-worker-dispatcher-prepare/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_WORKER_DISPATCHER_PREPARE_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_WORKER_DISPATCHER_PREPARE_BRIDGE_FAILED'],
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Command EVE marketing worker-dispatcher-prepare bridge failed.',
+              subprocess_spawned: false,
+              external_calls: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-3.5',
+              source: {
+                generated_by: 'command-eve-kanban-marketing-board-core',
+                hermes_home: '',
+              },
+            },
+          };
+        }
+      }
+    );
+
+  bridge
+    .buildProvider('command-eve.kanban-marketing-worker-executor-promotion')
+    .provider(
+      async (request?: {
+        task_id?: string;
+        boardSlug?: string;
+        eventLedgerPath?: string;
+        dispatch_handoff_packet?: Record<string, unknown>;
+        promotion_note?: string;
+        cao_gate_approved?: boolean;
+      }) => {
+        try {
+          const result = promoteKanbanMarketingWorkerExecutor({
+            userDataPath: getDataPath(),
+            task_id: request?.task_id || '',
+            boardSlug: request?.boardSlug,
+            eventLedgerPath: request?.eventLedgerPath,
+            dispatch_handoff_packet: request?.dispatch_handoff_packet,
+            promotion_note: request?.promotion_note,
+            cao_gate_approved: request?.cao_gate_approved === true,
+          });
+          return {
+            success: result.ok,
+            msg: result.ok ? undefined : result.reason_code || result.message,
+            data: result,
+          };
+        } catch (error) {
+          return {
+            success: false,
+            msg:
+              error instanceof Error ? error.message : 'Command EVE marketing worker-executor-promotion bridge failed.',
+            data: {
+              version: 'command-eve-kanban-marketing-worker-executor-promotion/v0',
+              ok: false,
+              status: 'failed',
+              reason_code: 'KANBAN_MARKETING_WORKER_EXECUTOR_PROMOTION_BRIDGE_FAILED',
+              reason_codes: ['KANBAN_MARKETING_WORKER_EXECUTOR_PROMOTION_BRIDGE_FAILED'],
+              message:
+                error instanceof Error
+                  ? error.message
+                  : 'Command EVE marketing worker-executor-promotion bridge failed.',
+              subprocess_spawned: false,
+              external_calls: false,
+              data_boundary_checked: false,
+              controller_approved: false,
+              release_blocked: true,
+              human_gate: 'HG-3.5',
               source: {
                 generated_by: 'command-eve-kanban-marketing-board-core',
                 hermes_home: '',
