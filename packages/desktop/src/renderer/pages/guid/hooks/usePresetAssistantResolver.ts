@@ -21,21 +21,31 @@ type UsePresetAssistantResolverOptions = {
 
 type UsePresetAssistantResolverResult = {
   resolvePresetRulesAndSkills: (
-    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
+    agentInfo:
+      | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+      | undefined
   ) => Promise<{ rules?: string }>;
   resolvePresetContext: (
-    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
+    agentInfo:
+      | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+      | undefined
   ) => Promise<string | undefined>;
   resolvePresetAgentType: (
-    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
   ) => string;
   resolveEnabledSkills: (
-    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
   resolveDisabledBuiltinSkills: (
-    agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+    agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
   ) => string[] | undefined;
 };
+
+function resolveAssistantIdentityId(
+  agentInfo: { assistant_id?: string; custom_agent_id?: string } | undefined
+): string | undefined {
+  return agentInfo?.assistant_id || agentInfo?.custom_agent_id;
+}
 
 /**
  * Hook that provides preset assistant resolution callbacks.
@@ -49,21 +59,23 @@ export const usePresetAssistantResolver = ({
 }: UsePresetAssistantResolverOptions): UsePresetAssistantResolverResult => {
   const resolvePresetRulesAndSkills = useCallback(
     async (
-      agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
+      agentInfo:
+        | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+        | undefined
     ): Promise<{ rules?: string }> => {
       if (!agentInfo) return {};
-      const custom_agent_id = agentInfo.custom_agent_id;
-      if (!custom_agent_id) return { rules: agentInfo.context };
+      const assistantId = resolveAssistantIdentityId(agentInfo);
+      if (!assistantId) return { rules: agentInfo.context };
 
       let rules = '';
 
       try {
         rules = await ipcBridge.fs.readAssistantRule.invoke({
-          assistant_id: custom_agent_id,
+          assistant_id: assistantId,
           locale: localeKey,
         });
       } catch (error) {
-        console.warn(`Failed to load rules for ${custom_agent_id}:`, error);
+        console.warn(`Failed to load rules for ${assistantId}:`, error);
       }
 
       return { rules: rules || agentInfo.context };
@@ -73,7 +85,9 @@ export const usePresetAssistantResolver = ({
 
   const resolvePresetContext = useCallback(
     async (
-      agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string; context?: string } | undefined
+      agentInfo:
+        | { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string; context?: string }
+        | undefined
     ): Promise<string | undefined> => {
       const { rules } = await resolvePresetRulesAndSkills(agentInfo);
       return rules;
@@ -82,10 +96,13 @@ export const usePresetAssistantResolver = ({
   );
 
   const resolvePresetAgentType = useCallback(
-    (agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined): string => {
+    (
+      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
+    ): string => {
       if (!agentInfo) return 'gemini';
-      if (!agentInfo.custom_agent_id) return agentInfo.backend || agentInfo.agent_type;
-      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      const assistantId = resolveAssistantIdentityId(agentInfo);
+      if (!assistantId) return agentInfo.backend || agentInfo.agent_type;
+      const assistant = assistants.find((a) => a.id === assistantId);
       return assistant?.preset_agent_type || 'gemini';
     },
     [assistants]
@@ -93,10 +110,11 @@ export const usePresetAssistantResolver = ({
 
   const resolveEnabledSkills = useCallback(
     (
-      agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
     ): string[] | undefined => {
-      if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
-      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      const assistantId = resolveAssistantIdentityId(agentInfo);
+      if (!assistantId) return undefined;
+      const assistant = assistants.find((a) => a.id === assistantId);
       // Preserve legacy "undefined means use agent default" semantics by
       // treating an empty list the same as absent. The field is typed as
       // required `string[]`, but legacy/extension assistants can omit it,
@@ -109,10 +127,11 @@ export const usePresetAssistantResolver = ({
 
   const resolveDisabledBuiltinSkills = useCallback(
     (
-      agentInfo: { agent_type: string; backend?: string; custom_agent_id?: string } | undefined
+      agentInfo: { agent_type: string; backend?: string; assistant_id?: string; custom_agent_id?: string } | undefined
     ): string[] | undefined => {
-      if (!agentInfo || !agentInfo.custom_agent_id) return undefined;
-      const assistant = assistants.find((a) => a.id === agentInfo.custom_agent_id);
+      const assistantId = resolveAssistantIdentityId(agentInfo);
+      if (!assistantId) return undefined;
+      const assistant = assistants.find((a) => a.id === assistantId);
       if (!assistant?.disabled_builtin_skills?.length) return undefined;
       return assistant.disabled_builtin_skills;
     },
