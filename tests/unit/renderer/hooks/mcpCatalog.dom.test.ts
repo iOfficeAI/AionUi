@@ -6,15 +6,15 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { httpRequestMock, mcpServiceMock } = vi.hoisted(() => ({
-  httpRequestMock: vi.fn(),
+const { getClientBusinessSettingMock, mcpServiceMock } = vi.hoisted(() => ({
+  getClientBusinessSettingMock: vi.fn(),
   mcpServiceMock: {
     listServers: { invoke: vi.fn() },
   },
 }));
 
-vi.mock('@/common/adapter/httpBridge', () => ({
-  httpRequest: httpRequestMock,
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: getClientBusinessSettingMock,
 }));
 
 vi.mock('@/common/adapter/ipcBridge', () => ({
@@ -26,9 +26,7 @@ import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 describe('ensureBackendMcpCatalog', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    httpRequestMock.mockResolvedValue({
-      'mcp.config': [],
-    });
+    getClientBusinessSettingMock.mockResolvedValue([]);
     mcpServiceMock.listServers.invoke.mockResolvedValue([
       {
         id: 'user-1',
@@ -44,20 +42,18 @@ describe('ensureBackendMcpCatalog', () => {
   });
 
   it('reads MCP catalog from backend settings without falling back to configService', async () => {
-    httpRequestMock.mockResolvedValue({
-      'mcp.config': [
-        {
-          id: 'builtin-1',
-          name: 'builtin one',
-          enabled: true,
-          transport: { type: 'stdio', command: 'builtin', args: [] },
-          created_at: 1,
-          updated_at: 1,
-          original_json: '{}',
-          builtin: true,
-        },
-      ],
-    });
+    getClientBusinessSettingMock.mockResolvedValue([
+      {
+        id: 'builtin-1',
+        name: 'builtin one',
+        enabled: true,
+        transport: { type: 'stdio', command: 'builtin', args: [] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+        builtin: true,
+      },
+    ]);
 
     const result = await ensureBackendMcpCatalog();
 
@@ -67,20 +63,18 @@ describe('ensureBackendMcpCatalog', () => {
   });
 
   it('does not re-import legacy user MCP rows from backend client settings at runtime', async () => {
-    httpRequestMock.mockResolvedValue({
-      'mcp.config': [
-        {
-          id: 'legacy-user-1',
-          name: 'legacy user server',
-          enabled: true,
-          transport: { type: 'stdio', command: 'legacy-user', args: [] },
-          created_at: 1,
-          updated_at: 1,
-          original_json: '{}',
-          builtin: false,
-        },
-      ],
-    });
+    getClientBusinessSettingMock.mockResolvedValue([
+      {
+        id: 'legacy-user-1',
+        name: 'legacy user server',
+        enabled: true,
+        transport: { type: 'stdio', command: 'legacy-user', args: [] },
+        created_at: 1,
+        updated_at: 1,
+        original_json: '{}',
+        builtin: false,
+      },
+    ]);
     mcpServiceMock.listServers.invoke.mockResolvedValue([]);
 
     const result = await ensureBackendMcpCatalog();

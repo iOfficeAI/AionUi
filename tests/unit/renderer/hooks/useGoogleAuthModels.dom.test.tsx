@@ -9,17 +9,18 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { renderHook, waitFor } from '@testing-library/react';
 import { SWRConfig } from 'swr';
 
-const { httpRequestMock, googleAuthStatusMock, googleSubscriptionStatusMock, configServiceMock } = vi.hoisted(() => ({
-  httpRequestMock: vi.fn(),
-  googleAuthStatusMock: vi.fn(),
-  googleSubscriptionStatusMock: vi.fn(),
-  configServiceMock: {
-    get: vi.fn(),
-  },
-}));
+const { getClientBusinessSettingMock, googleAuthStatusMock, googleSubscriptionStatusMock, configServiceMock } =
+  vi.hoisted(() => ({
+    getClientBusinessSettingMock: vi.fn(),
+    googleAuthStatusMock: vi.fn(),
+    googleSubscriptionStatusMock: vi.fn(),
+    configServiceMock: {
+      get: vi.fn(),
+    },
+  }));
 
-vi.mock('@/common/adapter/httpBridge', () => ({
-  httpRequest: httpRequestMock,
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: getClientBusinessSettingMock,
 }));
 
 vi.mock('@/common', () => ({
@@ -56,7 +57,7 @@ describe('useGoogleAuthModels', () => {
     configServiceMock.get.mockImplementation(() => {
       throw new Error('configService should not be used for google business settings');
     });
-    httpRequestMock.mockResolvedValue({ proxy: 'http://proxy.local' });
+    getClientBusinessSettingMock.mockResolvedValue({ proxy: 'http://proxy.local' });
     googleAuthStatusMock.mockResolvedValue({ success: true });
     googleSubscriptionStatusMock.mockResolvedValue({
       isSubscriber: true,
@@ -77,7 +78,7 @@ describe('useGoogleAuthModels', () => {
       });
     });
 
-    expect(httpRequestMock).toHaveBeenCalledWith('GET', '/api/settings/client?key=google.config');
+    expect(getClientBusinessSettingMock).toHaveBeenCalledWith('google.config');
     expect(googleAuthStatusMock).toHaveBeenCalledWith({ proxy: 'http://proxy.local' });
     expect(googleSubscriptionStatusMock).toHaveBeenCalledWith({ proxy: 'http://proxy.local' });
     expect(configServiceMock.get).not.toHaveBeenCalled();

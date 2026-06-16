@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import { httpRequest } from '@/common/adapter/httpBridge';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import useSWR from 'swr';
 
 export interface GoogleAuthModelResult {
@@ -20,7 +20,7 @@ export interface GoogleAuthModelResult {
 
 export const useGoogleAuthModels = (): GoogleAuthModelResult => {
   const { data: googleConfig } = useSWR('settings.client.google.config', () =>
-    httpRequest<{ proxy?: string }>('GET', '/api/settings/client?key=google.config')
+    getClientBusinessSetting('google.config')
   );
   const proxyKey = googleConfig?.proxy || '';
 

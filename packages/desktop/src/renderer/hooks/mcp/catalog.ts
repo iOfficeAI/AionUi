@@ -1,6 +1,6 @@
-import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import type { IMcpServer, IMcpServerTransport, ISessionMcpServer } from '@/common/config/storage';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 
 type BackendMcpTransport = Exclude<IMcpServerTransport, { type: 'streamable_http' }>;
 
@@ -72,11 +72,8 @@ export const ensureBackendMcpCatalog = async (): Promise<{
   builtinServers: IMcpServer[];
   allServers: IMcpServer[];
 }> => {
-  const settings: Record<string, unknown> =
-    (await httpRequest<Record<string, unknown>>('GET', '/api/settings/client').catch(
-      () => ({}) as Record<string, unknown>
-    )) || {};
-  const localServers = Array.isArray(settings['mcp.config']) ? (settings['mcp.config'] as IMcpServer[]) : [];
+  const localServers = ((await getClientBusinessSetting('mcp.config').catch((): IMcpServer[] => [])) ||
+    []) as IMcpServer[];
   const builtinServers = dedupeServers(localServers.filter(isBuiltinServer));
   const userServers = dedupeServers(await mcpService.listServers.invoke());
 
