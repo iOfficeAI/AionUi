@@ -6,16 +6,10 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 
-const { httpRequestMock, mcpServiceMock, configServiceMock } = vi.hoisted(() => ({
+const { httpRequestMock, mcpServiceMock } = vi.hoisted(() => ({
   httpRequestMock: vi.fn(),
   mcpServiceMock: {
     listServers: { invoke: vi.fn() },
-    importServers: { invoke: vi.fn() },
-    toggleServer: { invoke: vi.fn() },
-  },
-  configServiceMock: {
-    get: vi.fn(),
-    setLocal: vi.fn(),
   },
 }));
 
@@ -27,10 +21,6 @@ vi.mock('@/common/adapter/ipcBridge', () => ({
   mcpService: mcpServiceMock,
 }));
 
-vi.mock('@/common/config/configService', () => ({
-  configService: configServiceMock,
-}));
-
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 
 describe('ensureBackendMcpCatalog', () => {
@@ -39,7 +29,6 @@ describe('ensureBackendMcpCatalog', () => {
     httpRequestMock.mockResolvedValue({
       'mcp.config': [],
     });
-    configServiceMock.get.mockReturnValue([]);
     mcpServiceMock.listServers.invoke.mockResolvedValue([
       {
         id: 'user-1',
@@ -75,7 +64,29 @@ describe('ensureBackendMcpCatalog', () => {
     expect(result.userServers).toHaveLength(1);
     expect(result.builtinServers).toHaveLength(1);
     expect(result.allServers).toHaveLength(2);
-    expect(configServiceMock.get).not.toHaveBeenCalled();
-    expect(configServiceMock.setLocal).not.toHaveBeenCalled();
+  });
+
+  it('does not re-import legacy user MCP rows from backend client settings at runtime', async () => {
+    httpRequestMock.mockResolvedValue({
+      'mcp.config': [
+        {
+          id: 'legacy-user-1',
+          name: 'legacy user server',
+          enabled: true,
+          transport: { type: 'stdio', command: 'legacy-user', args: [] },
+          created_at: 1,
+          updated_at: 1,
+          original_json: '{}',
+          builtin: false,
+        },
+      ],
+    });
+    mcpServiceMock.listServers.invoke.mockResolvedValue([]);
+
+    const result = await ensureBackendMcpCatalog();
+
+    expect(result.userServers).toEqual([]);
+    expect(result.builtinServers).toEqual([]);
+    expect(result.allServers).toEqual([]);
   });
 });
