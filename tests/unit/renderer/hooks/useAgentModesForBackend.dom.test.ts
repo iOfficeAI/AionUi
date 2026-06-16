@@ -18,7 +18,7 @@ vi.mock('@/renderer/hooks/agent/useAgents', () => ({
 import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
 
 describe('useAgentModesForBackend', () => {
-  it('prefers handshake modes from detected agents over static fallback', () => {
+  it('uses static backend modes without reading /api/agents data', () => {
     useAgentsMock.mockReturnValue({
       agents: [
         {
@@ -50,10 +50,11 @@ describe('useAgentModesForBackend', () => {
     const { result } = renderHook(() => useAgentModesForBackend('codex'));
 
     expect(result.current).toEqual([
-      { value: 'read-only', label: 'Read Only', description: undefined },
-      { value: 'auto', label: 'Auto', description: undefined },
-      { value: 'full-access', label: 'Full Access', description: undefined },
+      { value: 'read-only', label: 'Read Only' },
+      { value: 'auto', label: 'Default' },
+      { value: 'full-access', label: 'Full Access' },
     ]);
+    expect(useAgentsMock).not.toHaveBeenCalled();
   });
 
   it('falls back to static modes when handshake data is unavailable', () => {
@@ -68,5 +69,6 @@ describe('useAgentModesForBackend', () => {
     const { result } = renderHook(() => useAgentModesForBackend('codex'));
 
     expect(result.current.map((mode) => mode.value)).toEqual(['read-only', 'auto', 'full-access']);
+    expect(useAgentsMock).not.toHaveBeenCalled();
   });
 });

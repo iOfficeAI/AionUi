@@ -5,13 +5,7 @@
  */
 
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
-import { useAgents } from '@/renderer/hooks/agent/useAgents';
-import {
-  getAgentModes,
-  getAgentModesFromHandshake,
-  supportsModeSwitch,
-  type AgentModeOption,
-} from '@/renderer/utils/model/agentModes';
+import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
 import { Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -97,7 +91,6 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
-  const { agents } = useAgents();
   const runtimeConfig = useAcpConfigOptions({
     conversation_id: conversation_id ?? '',
     prepareRuntime: beforeRuntimeSync,
@@ -114,19 +107,12 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [runtimeMode?.options]
   );
 
-  const handshakeModes = useMemo(() => {
-    if (!backend) return [];
-    const agent = agents.find((item) => (item.backend ?? item.agent_type) === backend);
-    return getAgentModesFromHandshake(agent);
-  }, [agents, backend]);
-
-  // Priority: observed config_options > dynamicModes (runtime) > handshake modes > static fallback
+  // Priority: observed config_options > dynamicModes (runtime) > static fallback
   const modes = useMemo(() => {
     if (runtimeModes && runtimeModes.length > 0) return runtimeModes;
     if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
-    if (handshakeModes.length > 0) return handshakeModes;
     return getAgentModes(backend);
-  }, [runtimeModes, dynamicModes, handshakeModes, backend]);
+  }, [runtimeModes, dynamicModes, backend]);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')

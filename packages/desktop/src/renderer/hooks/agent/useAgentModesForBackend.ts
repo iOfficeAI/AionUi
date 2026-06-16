@@ -4,26 +4,12 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { useAgents } from '@/renderer/hooks/agent/useAgents';
-import { getAgentModes, getAgentModesFromHandshake, type AgentModeOption } from '@/renderer/utils/model/agentModes';
-import { useMemo } from 'react';
+import { getAgentModes, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 
 /**
- * Resolves the available agent modes for a backend, in the same priority
- * order as `AgentModeSelector`: cached handshake modes → cached config
- * options (`category=mode`) → static `getAgentModes` fallback. Lets the
- * mobile action sheet enumerate modes without re-implementing the lookup.
+ * Resolves the available runtime modes for a backend without consuming
+ * `/api/agents`. Business surfaces should use assistant or live
+ * conversation state, not agent catalog metadata, so this hook only exposes
+ * the static backend fallback used before runtime config is observed.
  */
-export const useAgentModesForBackend = (backend?: string): AgentModeOption[] => {
-  const { agents } = useAgents();
-  const handshakeModes = useMemo(() => {
-    if (!backend) return [];
-    const agent = agents.find((item) => (item.backend ?? item.agent_type) === backend);
-    return getAgentModesFromHandshake(agent);
-  }, [agents, backend]);
-
-  return useMemo(() => {
-    if (handshakeModes.length > 0) return handshakeModes;
-    return getAgentModes(backend);
-  }, [handshakeModes, backend]);
-};
+export const useAgentModesForBackend = (backend?: string): AgentModeOption[] => getAgentModes(backend);
