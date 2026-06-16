@@ -11,13 +11,19 @@ import userEvent from '@testing-library/user-event';
 import { ConfigProvider } from '@arco-design/web-react';
 import { SWRConfig } from 'swr';
 
-const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock, messageInfoMock } = vi.hoisted(() => ({
-  systemInfoMock: vi.fn(),
-  updateSystemInfoMock: vi.fn(),
-  restartMock: vi.fn(),
-  showOpenMock: vi.fn(),
-  messageInfoMock: vi.fn(),
-}));
+const { systemInfoMock, updateSystemInfoMock, restartMock, showOpenMock, messageInfoMock, configServiceMock } =
+  vi.hoisted(() => ({
+    systemInfoMock: vi.fn(),
+    updateSystemInfoMock: vi.fn(),
+    restartMock: vi.fn(),
+    showOpenMock: vi.fn(),
+    messageInfoMock: vi.fn(),
+    configServiceMock: {
+      get: vi.fn(() => undefined),
+      set: vi.fn(() => Promise.resolve()),
+      setLocal: vi.fn(),
+    },
+  }));
 const clientBusinessSettingsMocks = vi.hoisted(() => ({
   getClientBusinessSetting: vi.fn(),
   setClientBusinessSetting: vi.fn(() => Promise.resolve()),
@@ -54,11 +60,7 @@ vi.mock('@/renderer/services/clientBusinessSettings', () => ({
 }));
 
 vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: vi.fn(() => undefined),
-    set: vi.fn(() => Promise.resolve()),
-    setLocal: vi.fn(),
-  },
+  configService: configServiceMock,
 }));
 
 vi.mock('@/common', () => ({
@@ -128,6 +130,8 @@ describe('SystemModalContent directory settings', () => {
   beforeEach(() => {
     cleanup();
     vi.clearAllMocks();
+    configServiceMock.get.mockImplementation(() => undefined);
+    configServiceMock.set.mockResolvedValue(undefined);
     clientBusinessSettingsMocks.getClientBusinessSetting.mockImplementation(async (key: string) => {
       if (key === 'acp.promptTimeout') return undefined;
       if (key === 'acp.agentIdleTimeout') return undefined;
@@ -269,6 +273,21 @@ describe('SystemModalContent directory settings', () => {
 
     expect(await screen.findByDisplayValue('640')).toBeInTheDocument();
     expect(await screen.findByDisplayValue('9')).toBeInTheDocument();
+  });
+
+  it('does not fall back to legacy configService ACP timeout keys', async () => {
+    configServiceMock.get.mockImplementation((key: string) => {
+      if (key === 'acp.promptTimeout') return 777;
+      if (key === 'acp.agentIdleTimeout') return 13;
+      return undefined;
+    });
+
+    renderContent();
+
+    expect(await screen.findByDisplayValue('300')).toBeInTheDocument();
+    expect(await screen.findByDisplayValue('5')).toBeInTheDocument();
+    expect(configServiceMock.get).not.toHaveBeenCalledWith('acp.promptTimeout');
+    expect(configServiceMock.get).not.toHaveBeenCalledWith('acp.agentIdleTimeout');
   });
 
   it('persists ACP timeout changes through backend client settings', async () => {

@@ -108,29 +108,14 @@ const SystemModalContent: React.FC = () => {
           return;
         }
 
-        const fallbackPromptTimeout = configService.get('acp.promptTimeout');
-        const fallbackAgentIdleTimeout = configService.get('acp.agentIdleTimeout');
-        const resolvedPromptTimeout = storedPromptTimeout ?? fallbackPromptTimeout;
-        const resolvedAgentIdleTimeout = storedAgentIdleTimeout ?? fallbackAgentIdleTimeout;
-
-        if (typeof resolvedPromptTimeout === 'number' && resolvedPromptTimeout > 0) {
-          setPromptTimeout(resolvedPromptTimeout);
+        if (typeof storedPromptTimeout === 'number' && storedPromptTimeout > 0) {
+          setPromptTimeout(storedPromptTimeout);
         }
-        if (typeof resolvedAgentIdleTimeout === 'number' && resolvedAgentIdleTimeout > 0) {
-          setAgentIdleTimeout(resolvedAgentIdleTimeout);
+        if (typeof storedAgentIdleTimeout === 'number' && storedAgentIdleTimeout > 0) {
+          setAgentIdleTimeout(storedAgentIdleTimeout);
         }
       } catch {
-        if (cancelled) {
-          return;
-        }
-        const fallbackPromptTimeout = configService.get('acp.promptTimeout');
-        const fallbackAgentIdleTimeout = configService.get('acp.agentIdleTimeout');
-        if (typeof fallbackPromptTimeout === 'number' && fallbackPromptTimeout > 0) {
-          setPromptTimeout(fallbackPromptTimeout);
-        }
-        if (typeof fallbackAgentIdleTimeout === 'number' && fallbackAgentIdleTimeout > 0) {
-          setAgentIdleTimeout(fallbackAgentIdleTimeout);
-        }
+        // Keep the in-memory defaults when backend settings are unavailable.
       }
     };
 
