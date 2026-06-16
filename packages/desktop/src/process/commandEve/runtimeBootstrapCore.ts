@@ -33,6 +33,15 @@ const PYTHON_BINARY_CANDIDATES = ['python3.13', 'python3.12', 'python3.11', 'pyt
 // Hermes 0.16 supports CPython 3.11, 3.12, 3.13. We probe newest-first.
 const SUPPORTED_PYTHON_MINORS = ['3.13', '3.12', '3.11'] as const;
 const COMMAND_EVE_PYTHON_PATH_ENV = 'COMMAND_EVE_PYTHON_PATH';
+// Dev/unpackaged override pointing at a python-build-standalone interpreter so
+// the bundled-first path is exercisable without a packaged app. In a packaged
+// build the bundle is resolved from process.resourcesPath instead (see
+// resolveBundledPythonCandidate).
+const COMMAND_EVE_BUNDLED_PYTHON_ENV = 'COMMAND_EVE_BUNDLED_PYTHON';
+// Layout S1 ships under Contents/Resources/python/bin/python3.12 — i.e.
+// <resourcesPath>/python/bin/python3.12. Kept as path segments so it composes
+// with whatever resourcesPath the main process reports.
+const BUNDLED_PYTHON_REL_SEGMENTS = ['python', 'bin', 'python3.12'] as const;
 // On a zsh-default Mac, `bash -lc 'command -v'` runs a bash login shell that
 // does NOT source ~/.zprofile, so Homebrew's /opt/homebrew/bin (added by
 // `brew shellenv` in ~/.zprofile) can be missing from that PATH even after
@@ -71,6 +80,19 @@ function commonAbsolutePythonCandidates(): string[] {
     // No pyenv versions dir — ignore.
   }
   return candidates;
+}
+// The bundled python-build-standalone interpreter is the PRIMARY, durable fix
+// (the Alois bug: a user's system python3 was 3.9.6, outside Hermes' range). It
+// is resolved without importing electron `app` so this core stays unit-testable:
+// in a packaged build the main process supplies resourcesPath (Contents/
+// Resources); in dev an explicit COMMAND_EVE_BUNDLED_PYTHON env can point at a
+// staged build. Returns '' when no bundle location is known — callers must then
+// fall through to the system-search chain, never hard-fail on a missing bundle.
+function resolveBundledPythonCandidate(env: NodeJS.ProcessEnv, resourcesPath?: string): string {
+  const override = compact(env[COMMAND_EVE_BUNDLED_PYTHON_ENV]);
+  if (override) return override;
+  if (resourcesPath) return path.join(resourcesPath, ...BUNDLED_PYTHON_REL_SEGMENTS);
+  return '';
 }
 const LOCAL_OLLAMA_BINARY_CANDIDATES =
   process.platform === 'darwin'
@@ -1164,7 +1186,8 @@ async function resolvePythonCommand(
   runner: RuntimeBootstrapRunner,
   env: NodeJS.ProcessEnv,
   candidates = PYTHON_BINARY_CANDIDATES,
-  absoluteCandidates: string[] = commonAbsolutePythonCandidates()
+  absoluteCandidates: string[] = commonAbsolutePythonCandidates(),
+  bundledCandidate = ''
 ): Promise<PythonLookup> {
   let foundUnsupported = '';
   const noteUnsupported = (detailText: string): void => {
@@ -1172,6 +1195,18 @@ async function resolvePythonCommand(
       foundUnsupported = `Found ${detailText}, but Command EVE needs Python 3.11–3.13. ${PYTHON_INSTALL_GUIDANCE}`;
     }
   };
+
+  // 0) Bundled interpreter is the PRIMARY, durable fix: the app ships a
+  //    self-contained Python 3.12 so EVE never depends on the user's system
+  //    Python. Prefer it when present + in range. If it is missing or somehow
+  //    out-of-range/corrupt, fall through to the system-search chain below —
+  //    a missing bundle must NEVER hard-fail (the fallback layer stands alone),
+  //    so we deliberately do NOT record it as `foundUnsupported`.
+  if (bundledCandidate && fs.existsSync(bundledCandidate)) {
+    const probe = await probePythonAt(bundledCandidate, runner, env);
+    if (probe.supported) return probe.supported;
+    // Out-of-range/corrupt bundle: defensive fall-through, no hard-fail.
+  }
 
   // 1) Explicit env override wins. Lets us / the user point at a known-good
   //    interpreter when auto-detection cannot find one. If it is set but
@@ -1735,7 +1770,14 @@ export async function ensureCommandEveRuntimeBootstrap(
   }
   pushStage(makeStage('capacity', 'pass', { detail: `${freeGb}GB free disk, ${totalMemoryGb}GB memory` }));
 
-  const python = await resolvePythonCommand(runner, env);
+  const bundledPython = resolveBundledPythonCandidate(env, options.resourcesPath);
+  const python = await resolvePythonCommand(
+    runner,
+    env,
+    PYTHON_BINARY_CANDIDATES,
+    commonAbsolutePythonCandidates(),
+    bundledPython
+  );
   if (!python.ok) {
     pushStage(
       makeStage('python', 'blocked', {

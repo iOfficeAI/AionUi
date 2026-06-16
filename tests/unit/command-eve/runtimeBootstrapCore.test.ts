@@ -628,6 +628,185 @@ describe('Command EVE runtime bootstrap core', () => {
     expect(commands.some((command) => command.includes('-m venv'))).toBe(false);
   });
 
+  it('uses the bundled python3.12 FIRST when packaged resources provide one (durable Alois fix)', async () => {
+    const root = makeRoot();
+    const resourcesPath = '/Applications/Command EVE.app/Contents/Resources';
+    const bundledPython = path.join(resourcesPath, 'python', 'bin', 'python3.12');
+    // Only the bundled interpreter "exists" for the absolute probe. No
+    // compatible system interpreter is present (mirrors the Alois machine).
+    stubAbsolutePythonExistence([bundledPython]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      // System PATH only has the unsupported stock python — must be ignored.
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      if (command === bundledPython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.12.7\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      resourcesPath,
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(pythonStage?.status).toBe('pass');
+    expect(pythonStage?.detail).toContain(bundledPython);
+    expect(pythonStage?.detail).toContain('Python 3.12.7');
+    // It probed the bundled interpreter FIRST and never consulted the system
+    // PATH / absolute chain (the unsupported stock python was untouched).
+    expect(commands.some((command) => command === `${bundledPython} --version`)).toBe(true);
+    // No system PATH probe (`bash -lc 'command -v ...'`) and no system python
+    // version check were needed — the bundle short-circuited resolution.
+    expect(commands.some((command) => command.startsWith('bash -lc command -v'))).toBe(false);
+    expect(commands.some((command) => command === '/usr/bin/python3 --version')).toBe(false);
+  });
+
+  it('falls through to system search when the bundled python is missing (fallback intact)', async () => {
+    const root = makeRoot();
+    const resourcesPath = '/Applications/Command EVE.app/Contents/Resources';
+    const bundledPython = path.join(resourcesPath, 'python', 'bin', 'python3.12');
+    const brewPython = '/opt/homebrew/bin/python3.12';
+    // Bundle is absent on disk; a compatible system Homebrew python exists.
+    stubAbsolutePythonExistence([brewPython]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      if (command === brewPython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.12.7\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      resourcesPath,
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(pythonStage?.status).toBe('pass');
+    // System fallback resolved the Homebrew interpreter, not the bundle.
+    expect(pythonStage?.detail).toContain(brewPython);
+    expect(pythonStage?.detail).toContain('Python 3.12.7');
+    // A missing bundle is never even probed (existsSync gate) and never spawned.
+    expect(commands.some((command) => command === `${bundledPython} --version`)).toBe(false);
+    // The absolute system probe still ran — the fallback chain is intact.
+    expect(commands.some((command) => command === `${brewPython} --version`)).toBe(true);
+  });
+
+  it('falls through (defensively) when the bundled python reports an out-of-range version, never hard-failing', async () => {
+    const root = makeRoot();
+    const resourcesPath = '/Applications/Command EVE.app/Contents/Resources';
+    const bundledPython = path.join(resourcesPath, 'python', 'bin', 'python3.12');
+    const brewPython = '/opt/homebrew/bin/python3.12';
+    // Bundle is present on disk but corrupt/out-of-range; system has a good one.
+    stubAbsolutePythonExistence([bundledPython, brewPython]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      // Bundle exists but is out of the supported 3.11–3.13 range.
+      if (command === bundledPython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.14.1\n');
+      }
+      if (command === brewPython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.13.2\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      resourcesPath,
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    // Defensive fall-through: an out-of-range bundle does NOT block; the system
+    // interpreter is used and the run succeeds.
+    expect(pythonStage?.status).toBe('pass');
+    expect(pythonStage?.detail).toContain(brewPython);
+    expect(pythonStage?.detail).toContain('Python 3.13.2');
+    // The bundle WAS probed (it existed) but its out-of-range result was ignored.
+    expect(commands.some((command) => command === `${bundledPython} --version`)).toBe(true);
+    expect(commands.some((command) => command === `${brewPython} --version`)).toBe(true);
+  });
+
+  it('uses a dev bundled python via COMMAND_EVE_BUNDLED_PYTHON before the system chain', async () => {
+    const root = makeRoot();
+    // Unpackaged/dev: no resourcesPath, but an explicit dev bundle path is set.
+    const devBundled = '/dev/staging/python/bin/python3.12';
+    stubAbsolutePythonExistence([devBundled]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      if (command === devBundled && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.12.4\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+      env: { COMMAND_EVE_BUNDLED_PYTHON: devBundled },
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(pythonStage?.status).toBe('pass');
+    expect(pythonStage?.detail).toContain(devBundled);
+    expect(pythonStage?.detail).toContain('Python 3.12.4');
+    // Dev bundle won; the unsupported system python was never probed.
+    expect(commands.some((command) => command === `${devBundled} --version`)).toBe(true);
+    expect(commands.some((command) => command === '/usr/bin/python3 --version')).toBe(false);
+  });
+
   it('blocks before installing anything when capacity is too small', async () => {
     const harness = makeHarness({ ollamaInitiallyInstalled: true });
     const receipt = await ensureCommandEveRuntimeBootstrap({
