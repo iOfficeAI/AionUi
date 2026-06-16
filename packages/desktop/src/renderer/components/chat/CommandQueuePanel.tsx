@@ -45,10 +45,7 @@ const createRestrictToQueueContainerModifier = (
 
 type CommandQueuePanelProps = {
   items: ConversationCommandQueueItem[];
-  paused: boolean;
   interactionLocked: boolean;
-  onPause: () => void;
-  onResume: () => void;
   onInteractionLock: () => void;
   onInteractionUnlock: () => void;
   onUpdate?: (commandId: string, input: string) => boolean;

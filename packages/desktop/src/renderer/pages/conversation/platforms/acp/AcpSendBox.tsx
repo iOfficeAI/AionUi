@@ -396,15 +396,12 @@ Please check your local CLI tool authentication status`,
 
   const {
     items: queuedCommands,
-    isPaused: isQueuePaused,
     isInteractionLocked: isQueueInteractionLocked,
     hasPendingCommands,
     enqueue,
     remove,
     clear,
     reorder,
-    pause,
-    resume,
     lockInteraction,
     unlockInteraction,
     resetActiveExecution,
@@ -413,6 +410,7 @@ Please check your local CLI tool authentication status`,
     enabled: true,
     isBusy,
     runtimeGate: commandQueueRuntimeGate,
+    teamUpgradeHandoffReady: Boolean(teamRuntime && teamSendMessage),
     onExecute: executeCommand,
   });
 
@@ -659,10 +657,7 @@ Please check your local CLI tool authentication status`,
     <div className='max-w-800px w-full mx-auto flex flex-col mt-auto mb-16px'>
       <CommandQueuePanel
         items={queuedCommands}
-        paused={isQueuePaused}
         interactionLocked={isQueueInteractionLocked}
-        onPause={pause}
-        onResume={resume}
         onInteractionLock={lockInteraction}
         onInteractionUnlock={unlockInteraction}
         onEdit={handleEditQueuedCommand}
