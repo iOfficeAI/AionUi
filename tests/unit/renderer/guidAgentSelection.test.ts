@@ -14,16 +14,16 @@ describe('guid assistant selection helpers', () => {
   ];
 
   it('prefers explicit custom assistant keys when the assistant exists', () => {
-    expect(resolveAssistantSelectionKey('custom:user-research', assistants)).toBe('custom:user-research');
+    expect(resolveAssistantSelectionKey('custom:user-research', assistants)).toBe('user-research');
   });
 
   it('migrates legacy backend keys onto assistant ids', () => {
-    expect(resolveAssistantSelectionKey('claude', assistants)).toBe('custom:builtin-writer');
-    expect(resolveAssistantSelectionKey('aionrs', assistants)).toBe('custom:bare-aionrs');
+    expect(resolveAssistantSelectionKey('claude', assistants)).toBe('builtin-writer');
+    expect(resolveAssistantSelectionKey('aionrs', assistants)).toBe('bare-aionrs');
   });
 
   it('defaults to the bare aionrs assistant when available', () => {
-    expect(pickDefaultAssistantSelectionKey(assistants)).toBe('custom:bare-aionrs');
+    expect(pickDefaultAssistantSelectionKey(assistants)).toBe('bare-aionrs');
   });
 });
 
