@@ -119,11 +119,9 @@ const GuidPage: React.FC = () => {
   const navState = location.state as {
     resetAssistant?: boolean;
     selectedAssistantId?: string;
-    selectedAgentKey?: string;
   } | null;
   const resetAssistantRequested = navState?.resetAssistant === true;
-  // Legacy fallback for agent-first navigation state written before phase 2.
-  const preselectAssistantId = navState?.selectedAssistantId || navState?.selectedAgentKey;
+  const preselectAssistantId = navState?.selectedAssistantId;
   const agentSelection = useGuidAssistantSelection({
     resetAssistant: resetAssistantRequested,
     preselectAssistantId,
@@ -166,7 +164,6 @@ const GuidPage: React.FC = () => {
     // Agent state
     selectedAssistantId: agentSelection.selectedAssistantId,
     selectedAssistantBackend: agentSelection.selectedAssistantBackend,
-    selectedAssistantName: agentSelection.selectedAssistant?.name,
     selectedMode: agentSelection.selectedMode,
     selectedAcpModel: agentSelection.selectedAcpModel,
     currentAcpCachedModelInfo: agentSelection.currentAcpCachedModelInfo,

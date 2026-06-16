@@ -6,7 +6,6 @@
 
 import { ipcBridge } from '@/common';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
-import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { toSessionMcpServer } from '@/renderer/hooks/mcp/catalog';
 import { emitter } from '@/renderer/utils/emitter';
 import { updateWorkspaceTime } from '@/renderer/utils/workspace/workspaceHistory';
@@ -32,7 +31,6 @@ export type GuidSendDeps = {
   // Assistant state
   selectedAssistantId: string | null;
   selectedAssistantBackend: string;
-  selectedAssistantName?: string;
   selectedMode: string;
   selectedAcpModel: string | null;
   currentAcpCachedModelInfo: AcpModelInfo | null;
@@ -80,7 +78,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     loading,
     selectedAssistantId,
     selectedAssistantBackend,
-    selectedAssistantName,
     selectedMode,
     selectedAcpModel,
     currentAcpCachedModelInfo,
@@ -206,31 +203,31 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    const agentConversationParams = buildAgentConversationParams({
-      backend: assistantBackend,
-      name: input,
-      agent_name: selectedAssistantName,
-      preset_assistant_id: assistantConversationId,
-      workspace: finalWorkspace,
-      model: current_model ?? ({} as TProviderWithModel),
-      custom_workspace: isCustomWorkspace,
-      is_preset: true,
-      custom_agent_id: assistantConversationId,
-      preset_agent_type: assistantBackend,
-      session_mode: selectedMode,
-      current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
-      assistant_locale: localeKey,
-      assistant_conversation_overrides: assistantOverrides,
-      extra: {
-        default_files: files,
-        selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
-        selected_session_mcp_servers:
-          selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,
-      },
-    });
-
     try {
-      const conversation = await ipcBridge.conversation.create.invoke(agentConversationParams);
+      const conversation = await ipcBridge.conversation.create.invoke({
+        type: 'acp',
+        model: current_model ?? ({} as TProviderWithModel),
+        name: input,
+        assistant: assistantConversationId
+          ? {
+              id: assistantConversationId,
+              locale: localeKey,
+              conversation_overrides: assistantOverrides,
+            }
+          : undefined,
+        extra: {
+          workspace: finalWorkspace,
+          custom_workspace: isCustomWorkspace,
+          default_files: files,
+          preset_assistant_id: assistantConversationId,
+          backend: assistantBackend,
+          session_mode: selectedMode,
+          current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+          selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
+          selected_session_mcp_servers:
+            selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,
+        },
+      });
       if (!conversation || !conversation.id) {
         console.error('Failed to create ACP conversation - conversation object is null or missing id');
         return;
@@ -266,7 +263,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
     dir,
     selectedAssistantId,
     selectedAssistantBackend,
-    selectedAssistantName,
     selectedMode,
     selectedAcpModel,
     currentAcpCachedModelInfo,

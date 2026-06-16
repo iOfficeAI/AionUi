@@ -11,6 +11,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 const {
   modelSelectionMock,
   agentSelectionMock,
+  locationMock,
   guidInputMock,
   capturedGuidActionRowProps,
   capturedAssistantSelectionAreaProps,
@@ -96,6 +97,13 @@ const {
     handleFilesUploaded: vi.fn(),
     handleRemoveFile: vi.fn(),
   },
+  locationMock: {
+    state: null as unknown,
+    key: 'guid-location',
+    pathname: '/guid',
+    search: '',
+    hash: '',
+  },
   capturedGuidActionRowProps: [] as Array<Record<string, unknown>>,
   capturedAssistantSelectionAreaProps: [] as Array<Record<string, unknown>>,
   capturedGuidInputCardProps: [] as Array<Record<string, unknown>>,
@@ -115,13 +123,7 @@ vi.mock('react-i18next', () => ({
 
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
-  useLocation: () => ({
-    state: null,
-    key: 'guid-location',
-    pathname: '/guid',
-    search: '',
-    hash: '',
-  }),
+  useLocation: () => locationMock,
 }));
 
 vi.mock('@/common', () => ({
@@ -149,8 +151,10 @@ vi.mock('@/renderer/pages/guid/hooks/useGuidModelSelection', () => ({
   useGuidModelSelection: () => modelSelectionMock,
 }));
 
+const useGuidAssistantSelectionMock = vi.fn(() => agentSelectionMock);
+
 vi.mock('@/renderer/pages/guid/hooks/useGuidAssistantSelection', () => ({
-  useGuidAssistantSelection: () => agentSelectionMock,
+  useGuidAssistantSelection: (...args: unknown[]) => useGuidAssistantSelectionMock(...args),
   resolveAssistantSelectionKey: vi.fn(),
   pickDefaultAssistantSelectionKey: vi.fn(),
 }));
@@ -267,10 +271,12 @@ import GuidPage from '@/renderer/pages/guid/GuidPage';
 
 describe('GuidPage', () => {
   beforeEach(() => {
+    locationMock.state = null;
     swrMock.useSWRMock.mockReturnValue({ data: null });
     capturedGuidActionRowProps.length = 0;
     capturedAssistantSelectionAreaProps.length = 0;
     capturedGuidInputCardProps.length = 0;
+    useGuidAssistantSelectionMock.mockClear();
     agentSelectionMock.assistants = [
       {
         id: 'bare-aionrs',
@@ -319,6 +325,20 @@ describe('GuidPage', () => {
     expect(latestGuidInputCardProps).not.toHaveProperty('mentionOpen');
     expect(latestGuidInputCardProps).not.toHaveProperty('mentionSelectorBadge');
     expect(latestGuidInputCardProps).not.toHaveProperty('mentionDropdown');
+  });
+
+  it('ignores legacy selectedAgentKey navigation state when preselecting an assistant', () => {
+    locationMock.state = {
+      selectedAgentKey: 'bare:claude',
+    };
+
+    render(<GuidPage />);
+
+    expect(useGuidAssistantSelectionMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preselectAssistantId: undefined,
+      })
+    );
   });
 
   it('renders example prompts with wrapping text for long assistant suggestions', () => {

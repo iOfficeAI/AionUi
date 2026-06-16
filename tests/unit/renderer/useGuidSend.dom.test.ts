@@ -54,7 +54,6 @@ const createDeps = (): GuidSendDeps => ({
   loading: false,
   selectedAssistantId: 'assistant-1',
   selectedAssistantBackend: 'claude',
-  selectedAssistantName: 'Claude',
   selectedMode: 'bypassPermissions',
   selectedAcpModel: 'claude-opus',
   currentAcpCachedModelInfo: null,
@@ -178,7 +177,6 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
-    deps.selectedAssistantName = 'Aion CLI';
     deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
     deps.guidEnabledSkills = ['pdf-reader'];
     deps.guidDisabledBuiltinSkills = ['todo-tracker'];
@@ -200,7 +198,6 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:aionrs';
     deps.selectedAssistantBackend = 'aionrs';
-    deps.selectedAssistantName = 'Aion CLI';
     deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
@@ -218,7 +215,6 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAssistantId = 'bare:claude';
     deps.selectedAssistantBackend = 'claude';
-    deps.selectedAssistantName = 'Claude';
     deps.current_model = { provider_id: 'anthropic', model: 'claude-sonnet', use_model: 'claude-sonnet' } as never;
 
     const { result } = renderHook(() => useGuidSend(deps));
