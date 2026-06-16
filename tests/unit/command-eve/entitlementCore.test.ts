@@ -75,6 +75,48 @@ const signCode = (
   return ['CEVE', 'v1', toBase64Url(payloadBytes), toBase64Url(signature)].join('.');
 };
 
+// CEVE.v2 canonical key order — the 6 v1 keys UNCHANGED, then trial_ends_at +
+// seat_count APPENDED (fixed order). Byte-for-byte mirror of
+// CANONICAL_PAYLOAD_KEYS_V2 / canonicalPayloadJson's v2 branch in the canonical
+// `scripts/licensing/license-code-core.mjs`.
+const canonicalPayloadJsonV2 = (payload: Record<string, unknown>): string =>
+  JSON.stringify({
+    license_version: payload.license_version ?? null,
+    edition: payload.edition ?? null,
+    serial: payload.serial ?? null,
+    tenant_serial: payload.tenant_serial ?? null,
+    issued_at: payload.issued_at ?? null,
+    expires_at: payload.expires_at ?? null,
+    trial_ends_at: payload.trial_ends_at ?? null,
+    seat_count: payload.seat_count ?? null,
+  });
+
+/** Tiny in-test signer mirroring the CEVE.v2 wire format (prefix "CEVE.v2."). */
+const signCodeV2 = (
+  privateKey: crypto.KeyObject,
+  payload: Record<string, unknown>,
+  opts: { canonical?: boolean } = {}
+): string => {
+  const json = opts.canonical === false ? JSON.stringify(payload) : canonicalPayloadJsonV2(payload);
+  const payloadBytes = Buffer.from(json, 'utf8');
+  const signature = crypto.sign(null, payloadBytes, privateKey);
+  return ['CEVE', 'v2', toBase64Url(payloadBytes), toBase64Url(signature)].join('.');
+};
+
+const validPayloadV2 = (
+  overrides: Partial<Record<string, unknown>> = {}
+): Record<string, unknown> => ({
+  license_version: 'command-eve-license/v2',
+  edition: 'pilot' as CommandEveLicenseEdition,
+  serial: 'CEVE-PILOT-V2-0001',
+  tenant_serial: 'TENANT-0001',
+  issued_at: '2026-01-01T00:00:00.000Z',
+  expires_at: '2027-01-01T00:00:00.000Z',
+  trial_ends_at: null,
+  seat_count: 1,
+  ...overrides,
+});
+
 const validPayload = (
   overrides: Partial<Record<string, unknown>> = {}
 ): Record<string, unknown> => ({
@@ -275,6 +317,298 @@ describe('verifyLicenseCodeMultiTs', () => {
     });
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.reason_code).toBe('LICENSE_EXPIRED');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CEVE.v2 — the 6 load-bearing proofs (mirrors the canonical core's v2 tests on
+// the desktop side) + the wire/payload version-mismatch guard.
+//
+// v2 = the 6 v1 keys UNCHANGED + trial_ends_at + seat_count APPENDED (fixed
+// order). Wire prefix "CEVE.v2.". The verifier dispatches on the wire segment,
+// accepts v1 AND v2, and binds wire-version ↔ payload license_version.
+// ---------------------------------------------------------------------------
+
+describe('verifyLicenseCodeTs — CEVE.v2', () => {
+  // (a) An existing v1 code still verifies EXACTLY as before under the v2-aware
+  // verifier (v1 byte path untouched).
+  it('(a) v1 code still verifies under the v2-aware verifier (byte-untouched)', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const code = signCode(privateKey, validPayload());
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.payload.license_version).toBe('command-eve-license/v1');
+      expect(result.payload.serial).toBe('CEVE-PILOT-0001');
+      // v1 result object carries NO v2 fields (shape identical to before).
+      expect('trial_ends_at' in result.payload).toBe(false);
+      expect('seat_count' in result.payload).toBe(false);
+    }
+  });
+
+  // (b) A v2 TRIAL code verifies and gates on trial_ends_at (valid before,
+  // invalid at-or-after), NOT on expires_at.
+  it('(b) v2 trial verifies and gates on trial_ends_at (valid before, invalid after)', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const trial = validPayloadV2({
+      trial_ends_at: '2026-06-15T00:00:00.000Z',
+      expires_at: null, // trial license: expires_at is null; trial_ends_at is the gate
+      seat_count: 3,
+    });
+    const code = signCodeV2(privateKey, trial);
+
+    // Before trial end → valid, TRIAL surfaced.
+    const before = verifyLicenseCodeTs({ code, publicKeyPem, now: new Date('2026-06-10T00:00:00.000Z') });
+    expect(before.ok).toBe(true);
+    if (before.ok) {
+      expect(before.payload.license_version).toBe('command-eve-license/v2');
+      expect(before.payload.trial_ends_at).toBe('2026-06-15T00:00:00.000Z');
+      expect(before.payload.seat_count).toBe(3);
+    }
+
+    // At-or-after trial end → EXPIRED (inclusive).
+    const atEnd = verifyLicenseCodeTs({ code, publicKeyPem, now: new Date('2026-06-15T00:00:00.000Z') });
+    expect(atEnd.ok).toBe(false);
+    if (!atEnd.ok) expect(atEnd.reason_code).toBe('LICENSE_EXPIRED');
+
+    const after = verifyLicenseCodeTs({ code, publicKeyPem, now: new Date('2026-07-01T00:00:00.000Z') });
+    expect(after.ok).toBe(false);
+    if (!after.ok) expect(after.reason_code).toBe('LICENSE_EXPIRED');
+  });
+
+  // Trial gating ignores expires_at: a trial that is past its trial_ends_at is
+  // EXPIRED even if expires_at is far in the future (trial_ends_at is the gate).
+  it('(b2) v2 trial is gated by trial_ends_at, NOT expires_at', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const code = signCodeV2(
+      privateKey,
+      validPayloadV2({ trial_ends_at: '2026-06-15T00:00:00.000Z', expires_at: '2099-01-01T00:00:00.000Z' })
+    );
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: new Date('2026-06-20T00:00:00.000Z') });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_EXPIRED');
+  });
+
+  // (c) A v2 PAID code (trial_ends_at null) verifies on expires_at — exactly the
+  // v1 PAID behavior.
+  it('(c) v2 paid (trial_ends_at null) verifies on expires_at', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const code = signCodeV2(privateKey, validPayloadV2({ trial_ends_at: null, expires_at: '2027-01-01T00:00:00.000Z' }));
+
+    const valid = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(valid.ok).toBe(true);
+    if (valid.ok) {
+      expect(valid.payload.trial_ends_at).toBe(null);
+      expect(valid.payload.seat_count).toBe(1);
+    }
+
+    const expired = verifyLicenseCodeTs({ code, publicKeyPem, now: new Date('2027-06-01T00:00:00.000Z') });
+    expect(expired.ok).toBe(false);
+    if (!expired.ok) expect(expired.reason_code).toBe('LICENSE_EXPIRED');
+  });
+
+  // (d) A tampered v2 payload fails the signature check.
+  it('(d) tampered v2 payload fails with SIGNATURE_INVALID', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const code = signCodeV2(privateKey, validPayloadV2());
+    const parts = code.split('.');
+    // Re-encode a DIFFERENT v2 body (seat_count bumped) without re-signing.
+    parts[2] = toBase64Url(Buffer.from(canonicalPayloadJsonV2(validPayloadV2({ seat_count: 99 })), 'utf8'));
+    const result = verifyLicenseCodeTs({ code: parts.join('.'), publicKeyPem, now: NOW });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_SIGNATURE_INVALID');
+  });
+
+  // (e) Both founder + server keys verify a v2 code (multi-key intact).
+  it('(e) founder + server keys both verify a v2 code (multi-key intact)', () => {
+    const founder = makeKeypair();
+    const server = makeKeypair();
+    const keys = [
+      { issuer: 'founder' as const, pem: founder.publicKeyPem },
+      { issuer: 'server' as const, pem: server.publicKeyPem },
+    ];
+
+    const founderCode = signCodeV2(founder.privateKey, validPayloadV2());
+    const founderResult = verifyLicenseCodeMultiTs({ code: founderCode, keys, now: NOW });
+    expect(founderResult.ok).toBe(true);
+    if (founderResult.ok) {
+      expect(founderResult.issuer).toBe('founder');
+      expect(founderResult.payload.license_version).toBe('command-eve-license/v2');
+    }
+
+    const serverCode = signCodeV2(server.privateKey, validPayloadV2());
+    const serverResult = verifyLicenseCodeMultiTs({ code: serverCode, keys, now: NOW });
+    expect(serverResult.ok).toBe(true);
+    if (serverResult.ok) expect(serverResult.issuer).toBe('server');
+  });
+
+  // (f) Byte-compat with the canonical core. The canonical
+  // `scripts/licensing/license-code-core.mjs` produces, for a v2 payload, the
+  // EXACT 8-key canonical JSON below (captured fixture). Two-part proof:
+  //   1. the desktop's in-test v2 serializer reproduces those exact canonical
+  //      bytes (the signed-bytes contract is identical across cores), and
+  //   2. a v2 code signed over the canonical bytes (ephemeral key) verifies.
+  it('(f) byte-compat: desktop verify accepts a v2 code produced over the canonical core bytes', () => {
+    // Captured from the canonical core (buildLicensePayloadV2 + canonicalPayloadJson):
+    const CANONICAL_V2_TRIAL_JSON =
+      '{"license_version":"command-eve-license/v2","edition":"pilot","serial":"CEVE-CANON-TRIAL-0001","tenant_serial":"TENANT-CANON-0001","issued_at":"2026-01-01T00:00:00.000Z","expires_at":null,"trial_ends_at":"2026-06-15T00:00:00.000Z","seat_count":3}';
+    const CANONICAL_V2_PAID_JSON =
+      '{"license_version":"command-eve-license/v2","edition":"standard","serial":"CEVE-CANON-PAID-0001","tenant_serial":"TENANT-CANON-0001","issued_at":"2026-01-01T00:00:00.000Z","expires_at":"2027-01-01T00:00:00.000Z","trial_ends_at":null,"seat_count":5}';
+
+    const trialPayload = {
+      license_version: 'command-eve-license/v2',
+      edition: 'pilot',
+      serial: 'CEVE-CANON-TRIAL-0001',
+      tenant_serial: 'TENANT-CANON-0001',
+      issued_at: '2026-01-01T00:00:00.000Z',
+      expires_at: null,
+      trial_ends_at: '2026-06-15T00:00:00.000Z',
+      seat_count: 3,
+    };
+    const paidPayload = {
+      license_version: 'command-eve-license/v2',
+      edition: 'standard',
+      serial: 'CEVE-CANON-PAID-0001',
+      tenant_serial: 'TENANT-CANON-0001',
+      issued_at: '2026-01-01T00:00:00.000Z',
+      expires_at: '2027-01-01T00:00:00.000Z',
+      trial_ends_at: null,
+      seat_count: 5,
+    };
+
+    // 1. Byte-identical canonical serialization (the cross-core signed-bytes contract).
+    expect(canonicalPayloadJsonV2(trialPayload)).toBe(CANONICAL_V2_TRIAL_JSON);
+    expect(canonicalPayloadJsonV2(paidPayload)).toBe(CANONICAL_V2_PAID_JSON);
+
+    // 2. A v2 code signed over those exact canonical bytes verifies on the desktop.
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const signOverCanonical = (json: string): string => {
+      const bytes = Buffer.from(json, 'utf8');
+      return ['CEVE', 'v2', toBase64Url(bytes), toBase64Url(crypto.sign(null, bytes, privateKey))].join('.');
+    };
+
+    const trialResult = verifyLicenseCodeTs({
+      code: signOverCanonical(CANONICAL_V2_TRIAL_JSON),
+      publicKeyPem,
+      now: new Date('2026-06-10T00:00:00.000Z'),
+    });
+    expect(trialResult.ok).toBe(true);
+    if (trialResult.ok) {
+      expect(trialResult.payload.trial_ends_at).toBe('2026-06-15T00:00:00.000Z');
+      expect(trialResult.payload.seat_count).toBe(3);
+    }
+
+    const paidResult = verifyLicenseCodeTs({ code: signOverCanonical(CANONICAL_V2_PAID_JSON), publicKeyPem, now: NOW });
+    expect(paidResult.ok).toBe(true);
+    if (paidResult.ok) {
+      expect(paidResult.payload.trial_ends_at).toBe(null);
+      expect(paidResult.payload.seat_count).toBe(5);
+    }
+  });
+
+  // Wire/payload version-mismatch guard (binding): neither version can be swapped
+  // independently. A v2 wire carrying a v1 payload — or a v1 wire carrying a v2
+  // payload — is VERSION_UNSUPPORTED, never cross-parsed.
+  it('binds wire ↔ payload version: v2 wire + v1 payload → VERSION_UNSUPPORTED', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    // Sign a v1 payload but ship it under the "CEVE.v2." wire prefix.
+    const payloadBytes = Buffer.from(canonicalPayloadJson(validPayload()), 'utf8');
+    const sig = crypto.sign(null, payloadBytes, privateKey);
+    const code = ['CEVE', 'v2', toBase64Url(payloadBytes), toBase64Url(sig)].join('.');
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_VERSION_UNSUPPORTED');
+  });
+
+  it('binds wire ↔ payload version: v1 wire + v2 payload → VERSION_UNSUPPORTED', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    // Sign a v2 payload but ship it under the "CEVE.v1." wire prefix.
+    const payloadBytes = Buffer.from(canonicalPayloadJsonV2(validPayloadV2()), 'utf8');
+    const sig = crypto.sign(null, payloadBytes, privateKey);
+    const code = ['CEVE', 'v1', toBase64Url(payloadBytes), toBase64Url(sig)].join('.');
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_VERSION_UNSUPPORTED');
+  });
+
+  it('rejects an unsupported wire version (v3) with VERSION_UNSUPPORTED', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const payloadBytes = Buffer.from(canonicalPayloadJsonV2(validPayloadV2()), 'utf8');
+    const sig = crypto.sign(null, payloadBytes, privateKey);
+    const code = ['CEVE', 'v3', toBase64Url(payloadBytes), toBase64Url(sig)].join('.');
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_VERSION_UNSUPPORTED');
+  });
+
+  it('rejects a signed-but-shape-incomplete v2 payload (bad seat_count) with MALFORMED', () => {
+    const { publicKeyPem, privateKey } = makeKeypair();
+    // Validly signed, but seat_count is 0 (< 1): malformed mint, refuse to honor.
+    const code = signCodeV2(privateKey, validPayloadV2({ seat_count: 0 }));
+    const result = verifyLicenseCodeTs({ code, publicKeyPem, now: NOW });
+    expect(result.ok).toBe(false);
+    if (!result.ok) expect(result.reason_code).toBe('LICENSE_MALFORMED');
+  });
+});
+
+// ---------------------------------------------------------------------------
+// CEVE.v2 — end-to-end through activation + status (trial re-locks on
+// trial_ends_at; seat_count is surfaced but never blocking).
+// ---------------------------------------------------------------------------
+
+describe('activateEntitlement + getEntitlementStatus — CEVE.v2', () => {
+  it('activates a v2 trial, surfaces trial_ends_at + seat_count, re-locks on trial_ends_at', () => {
+    const root = makeRoot();
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const options = optionsFor(root, publicKeyPem);
+    register(options);
+
+    const code = signCodeV2(
+      privateKey,
+      validPayloadV2({ trial_ends_at: '2026-06-15T00:00:00.000Z', expires_at: null, seat_count: 4 })
+    );
+    const result = activateEntitlement({ code }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.trial_ends_at).toBe('2026-06-15T00:00:00.000Z');
+    expect(result.record?.seat_count).toBe(4);
+
+    // While inside the trial (NOW = 2026-06-12) → entitled, v2 surface present.
+    const entitled = getEntitlementStatus(options);
+    expect(entitled.state).toBe('entitled');
+    expect(entitled.trial_ends_at).toBe('2026-06-15T00:00:00.000Z');
+    expect(entitled.seat_count).toBe(4);
+
+    // Later launch past trial end → re-locks to expired (gated by trial_ends_at,
+    // not expires_at which is null here).
+    const later: CommandEveEntitlementOptions = {
+      ...optionsFor(root, publicKeyPem),
+      now: () => new Date('2026-06-20T00:00:00.000Z'),
+    };
+    const expired = getEntitlementStatus(later);
+    expect(expired.state).toBe('expired');
+    expect(expired.reason_code).toBe('LICENSE_EXPIRED');
+  });
+
+  it('activates a v2 paid license and stays entitled on expires_at (seat_count informational)', () => {
+    const root = makeRoot();
+    const { publicKeyPem, privateKey } = makeKeypair();
+    const options = optionsFor(root, publicKeyPem);
+    register(options);
+
+    const code = signCodeV2(
+      privateKey,
+      validPayloadV2({ trial_ends_at: null, expires_at: '2027-01-01T00:00:00.000Z', seat_count: 5 })
+    );
+    const result = activateEntitlement({ code }, options);
+    expect(result.ok).toBe(true);
+    expect(result.record?.trial_ends_at).toBe(null);
+    expect(result.record?.seat_count).toBe(5);
+
+    const status = getEntitlementStatus(options);
+    expect(status.state).toBe('entitled');
+    expect(status.seat_count).toBe(5);
+    // seat_count is never a blocking factor offline.
+    expect(status.ok).toBe(true);
   });
 });
 
