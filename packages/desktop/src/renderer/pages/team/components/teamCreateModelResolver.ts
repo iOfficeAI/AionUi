@@ -5,7 +5,6 @@
  */
 
 import { ipcBridge } from '@/common';
-import { configService } from '@/common/config/configService';
 import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 /**
@@ -16,9 +15,8 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
  * `use_model: null`. Downstream, GeminiSendBox / AionrsSendBox gate the
  * textarea on `current_model?.useModel` and render disabled. See mnemo #297.
  *
- * This resolver reads the user's configured default model for provider-based
- * agents (gemini / aionrs) from ConfigStorage and falls back to a sensible
- * CLI default when no preference is set.
+ * This resolver reads assistant-owned defaults first and then falls back to
+ * backend-safe defaults when the selected assistant has no explicit model.
  *
  * For ACP backends (claude, codex, acp) the model is resolved from the
  * agent's handshake data or cached model info so the backend receives a
@@ -82,9 +80,5 @@ async function resolveGeminiDefaultModel(): Promise<string> {
 }
 
 async function resolveAionrsDefaultModel(): Promise<string> {
-  const saved = configService.get('aionrs.defaultModel');
-  if (saved && typeof saved === 'object' && typeof saved.use_model === 'string' && saved.use_model.length > 0) {
-    return saved.use_model;
-  }
   return 'default';
 }

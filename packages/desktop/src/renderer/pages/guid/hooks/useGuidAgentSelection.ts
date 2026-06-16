@@ -5,13 +5,10 @@
  */
 
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { configService } from '@/common/config/configService';
 import type { AcpModelInfo } from '../types';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { savePreferredMode, savePreferredModelId } from './agentSelectionUtils';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
 
 export type GuidAgentSelectionResult = {
@@ -38,15 +35,7 @@ function resolveDefaultMode(backend: string | undefined): string {
   return 'default';
 }
 
-export function resolveInitialAssistantModel(
-  backend: string,
-  models: string[],
-  preferredModelId?: string
-): string | null {
-  if (preferredModelId && models.includes(preferredModelId)) {
-    return preferredModelId;
-  }
-
+export function resolveInitialAssistantModel(backend: string, models: string[]): string | null {
   if (models.length > 0) {
     return models[0];
   }
@@ -117,26 +106,15 @@ export const useGuidAgentSelection = ({
   preselectAgentKey,
   locationKey,
 }: UseGuidAgentSelectionOptions): GuidAgentSelectionResult => {
-  const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string>(() => {
-    try {
-      return configService.get('guid.lastSelectedAgent') || '';
-    } catch {
-      return '';
-    }
-  });
+  const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string>('');
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
-  const selectedBackendRef = useRef<string | null>(null);
   const { assistants } = useCustomAgentsLoader();
 
   const setSelectedMode = useCallback(
-    (mode: React.SetStateAction<string>, options?: { persistPreference?: boolean }) => {
+    (mode: React.SetStateAction<string>, _options?: { persistPreference?: boolean }) => {
       _setSelectedMode((prev) => {
         const nextMode = typeof mode === 'function' ? mode(prev) : mode;
-        const backend = selectedBackendRef.current;
-        if (backend && options?.persistPreference !== false) {
-          void savePreferredMode(backend, nextMode);
-        }
         return nextMode;
       });
     },
@@ -144,13 +122,9 @@ export const useGuidAgentSelection = ({
   );
 
   const setSelectedAcpModel = useCallback(
-    (modelId: React.SetStateAction<string | null>, options?: { persistPreference?: boolean }) => {
+    (modelId: React.SetStateAction<string | null>, _options?: { persistPreference?: boolean }) => {
       _setSelectedAcpModel((prev) => {
         const nextModelId = typeof modelId === 'function' ? modelId(prev) : modelId;
-        const backend = selectedBackendRef.current;
-        if (backend && backend !== 'gemini' && nextModelId && options?.persistPreference !== false) {
-          void savePreferredModelId(backend, nextModelId);
-        }
         return nextModelId;
       });
     },
@@ -161,9 +135,6 @@ export const useGuidAgentSelection = ({
     (assistantId: string) => {
       const normalizedId = resolveAssistantSelectionKey(assistantId, assistants) ?? assistantId;
       _setSelectedAssistantId(normalizedId);
-      configService.set('guid.lastSelectedAgent', normalizedId).catch((error) => {
-        console.error('Failed to save selected assistant:', error);
-      });
     },
     [assistants]
   );
@@ -184,9 +155,6 @@ export const useGuidAgentSelection = ({
       if (resolvedPreselect) {
         resetHandledRef.current = true;
         _setSelectedAssistantId(resolvedPreselect);
-        configService.set('guid.lastSelectedAgent', resolvedPreselect).catch((error) => {
-          console.error('Failed to save preselected assistant:', error);
-        });
         return;
       }
     }
@@ -195,9 +163,6 @@ export const useGuidAgentSelection = ({
       resetHandledRef.current = true;
       const fallbackId = pickDefaultAssistantSelectionKey(assistants);
       _setSelectedAssistantId(fallbackId);
-      configService.set('guid.lastSelectedAgent', fallbackId).catch((error) => {
-        console.error('Failed to save reset assistant:', error);
-      });
     }
   }, [assistants, preselectAgentKey, resetAssistant]);
 
@@ -205,32 +170,10 @@ export const useGuidAgentSelection = ({
     if (assistants.length === 0) return;
     if (resetAssistant) return;
     if (preselectAgentKey && resolveAssistantSelectionKey(preselectAgentKey, assistants)) return;
-
-    let cancelled = false;
-
-    const restoreSavedSelection = async () => {
-      try {
-        const savedKey = configService.get('guid.lastSelectedAgent');
-        if (cancelled) return;
-
-        const resolvedSavedKey = resolveAssistantSelectionKey(savedKey, assistants);
-        if (resolvedSavedKey) {
-          _setSelectedAssistantId(resolvedSavedKey);
-          return;
-        }
-
-        _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
-      } catch (error) {
-        console.error('Failed to load last selected assistant:', error);
-      }
-    };
-
-    void restoreSavedSelection();
-
-    return () => {
-      cancelled = true;
-    };
-  }, [assistants, preselectAgentKey, resetAssistant]);
+    if (!selectedAssistantIdState || !assistants.some((assistant) => assistant.id === selectedAssistantIdState)) {
+      _setSelectedAssistantId(pickDefaultAssistantSelectionKey(assistants));
+    }
+  }, [assistants, preselectAgentKey, resetAssistant, selectedAssistantIdState]);
 
   const selectedAssistant = useMemo(
     () =>
@@ -247,68 +190,13 @@ export const useGuidAgentSelection = ({
 
   useEffect(() => {
     const backend = selectedAssistantBackend;
-    selectedBackendRef.current = backend;
-
-    const config = configService.get('acp.config');
-    const preferredModelId = (config?.[backend] as Record<string, unknown> | undefined)?.preferredModelId as
-      | string
-      | undefined;
-    _setSelectedAcpModel(resolveInitialAssistantModel(backend, selectedAssistantModels, preferredModelId));
+    _setSelectedAcpModel(resolveInitialAssistantModel(backend, selectedAssistantModels));
   }, [selectedAssistantBackend, selectedAssistantModels]);
 
   useEffect(() => {
     const backend = selectedAssistantBackend;
-    selectedBackendRef.current = backend;
     const fallbackMode = resolveDefaultMode(backend);
     _setSelectedMode(fallbackMode);
-
-    let cancelled = false;
-
-    const loadPreferredMode = async () => {
-      try {
-        let preferred: string | undefined;
-        let yoloMode = false;
-
-        if (backend === 'aionrs') {
-          const config = configService.get('aionrs.config');
-          preferred = config?.preferredMode;
-        } else {
-          const config = configService.get('acp.config');
-          const backendConfig = config?.[backend] as Record<string, unknown> | undefined;
-          preferred = backendConfig?.preferredMode as string | undefined;
-          yoloMode = (backendConfig?.yoloMode as boolean) ?? false;
-        }
-
-        if (cancelled) return;
-
-        const normalizedPreferred = backend === 'codex' ? normalizeCodexMode(preferred) : preferred;
-        if (normalizedPreferred) {
-          const modes = getAgentModes(backend);
-          if (modes.some((mode) => mode.value === normalizedPreferred)) {
-            _setSelectedMode(normalizedPreferred);
-            return;
-          }
-        }
-
-        if (yoloMode) {
-          const yoloValues: Record<string, string> = {
-            claude: 'bypassPermissions',
-            gemini: 'yolo',
-            codex: CODEX_MODE_NATIVE_FULL_ACCESS,
-            qwen: 'yolo',
-          };
-          _setSelectedMode(yoloValues[backend] || 'yolo');
-        }
-      } catch {
-        // ignore
-      }
-    };
-
-    void loadPreferredMode();
-
-    return () => {
-      cancelled = true;
-    };
   }, [selectedAssistantBackend]);
 
   const currentAcpCachedModelInfo = useMemo(() => {

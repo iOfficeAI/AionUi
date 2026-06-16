@@ -17,7 +17,6 @@ import type { NavigateFunction } from 'react-router-dom';
 import { mutate as swrMutate } from 'swr';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import type { AcpModelInfo } from '../types';
-import { getPreferredThoughtLevel } from './agentSelectionUtils';
 
 export type GuidSendDeps = {
   // Input state
@@ -207,7 +206,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       return;
     }
 
-    const preferredThoughtLevel = getPreferredThoughtLevel(assistantBackend);
     const agentConversationParams = buildAgentConversationParams({
       backend: assistantBackend,
       name: input,
@@ -221,7 +219,6 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       preset_agent_type: assistantBackend,
       session_mode: selectedMode,
       current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
-      thought_level: preferredThoughtLevel,
       assistant_locale: localeKey,
       assistant_conversation_overrides: assistantOverrides,
       extra: {

@@ -5,22 +5,13 @@
  */
 
 import { renderHook, waitFor } from '@testing-library/react';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import {
   buildAssistantModelInfo,
   resolveInitialAssistantModel,
   useGuidAgentSelection,
 } from '@/renderer/pages/guid/hooks/useGuidAgentSelection';
-
-const configGetMock = vi.fn();
-
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: (...args: unknown[]) => configGetMock(...args),
-    set: vi.fn(() => Promise.resolve()),
-  },
-}));
 
 vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
   useCustomAgentsLoader: () => ({
@@ -50,23 +41,6 @@ vi.mock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
 }));
 
 describe('useGuidAgentSelection', () => {
-  beforeEach(() => {
-    configGetMock.mockReset();
-    configGetMock.mockImplementation((key: string) => {
-      if (key === 'guid.lastSelectedAgent') {
-        return 'assistant-claude';
-      }
-      if (key === 'acp.config') {
-        return {
-          claude: {
-            preferredModelId: 'claude-sonnet',
-          },
-        };
-      }
-      return undefined;
-    });
-  });
-
   it('derives availability and model info from assistant catalog data', async () => {
     const { result } = renderHook(() =>
       useGuidAgentSelection({
@@ -79,7 +53,7 @@ describe('useGuidAgentSelection', () => {
     });
 
     expect(result.current.selectedAssistantAvailable).toBe(true);
-    expect(result.current.selectedAcpModel).toBe('claude-sonnet');
+    expect(result.current.selectedAcpModel).toBe('claude-opus');
     expect(result.current.currentAcpCachedModelInfo).toEqual({
       current_model_id: 'claude-opus',
       current_model_label: 'claude-opus',
@@ -103,10 +77,7 @@ describe('assistant model helpers', () => {
     });
   });
 
-  it('prefers configured model ids when they exist in the assistant model list', () => {
-    expect(resolveInitialAssistantModel('claude', ['claude-opus', 'claude-sonnet'], 'claude-sonnet')).toBe(
-      'claude-sonnet'
-    );
-    expect(resolveInitialAssistantModel('claude', ['claude-opus', 'claude-sonnet'], 'missing')).toBe('claude-opus');
+  it('defaults to the first assistant model when no assistant preference has been applied yet', () => {
+    expect(resolveInitialAssistantModel('claude', ['claude-opus', 'claude-sonnet'])).toBe('claude-opus');
   });
 });

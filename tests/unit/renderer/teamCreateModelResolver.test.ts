@@ -7,7 +7,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const getAssistantMock = vi.fn();
-const configGetMock = vi.fn();
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -19,18 +18,11 @@ vi.mock('@/common', () => ({
   },
 }));
 
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: (...args: unknown[]) => configGetMock(...args),
-  },
-}));
-
 import { resolveDefaultTeamAgentModel } from '@/renderer/pages/team/components/teamCreateModelResolver';
 
 describe('resolveDefaultTeamAgentModel', () => {
   beforeEach(() => {
     getAssistantMock.mockReset();
-    configGetMock.mockReset();
   });
 
   it('prefers the assistant fixed default model over agent-level fallbacks', async () => {
@@ -52,7 +44,7 @@ describe('resolveDefaultTeamAgentModel', () => {
     ).resolves.toBe('claude-sonnet-4-5-20250514');
   });
 
-  it('uses the assistant remembered auto model before falling back to global agent defaults', async () => {
+  it('uses the assistant remembered auto model before falling back to backend defaults', async () => {
     getAssistantMock.mockResolvedValue({
       defaults: {
         model: { mode: 'auto' },
@@ -60,9 +52,6 @@ describe('resolveDefaultTeamAgentModel', () => {
       preferences: {
         last_model_id: 'gemini-2.5-pro',
       },
-    });
-    configGetMock.mockReturnValue({
-      use_model: 'gpt-5',
     });
 
     await expect(
