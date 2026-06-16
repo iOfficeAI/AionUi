@@ -5,7 +5,6 @@
  */
 
 import React, { useState, useMemo, useEffect, useCallback } from 'react';
-import useSWR from 'swr';
 import { useTranslation } from 'react-i18next';
 import { Form, Input, Select, Message, TimePicker, Radio, Button } from '@arco-design/web-react';
 import ModalWrapper from '@renderer/components/base/ModalWrapper';
@@ -20,8 +19,8 @@ import type { TProviderWithModel } from '@/common/config/storage';
 import { type AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useModelProviderList } from '@renderer/hooks/agent/useModelProviderList';
 import GuidModelSelector from '@renderer/pages/guid/components/GuidModelSelector';
+import { buildAssistantModelInfo } from '@renderer/pages/guid/hooks/useGuidAgentSelection';
 import { WorkspaceFolderSelect } from '@renderer/components/workspace';
-import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@renderer/utils/model/agentTypes';
 import { createCronSchedule } from '@renderer/pages/cron/cronUtils';
 import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/utils/conversationCreateError';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
@@ -154,7 +153,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const { t } = useTranslation();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
-  const { cliAgents, presetAssistants } = useConversationAgents();
+  const { presetAssistants } = useConversationAgents();
   const { providers, getAvailableModels, formatModelLabel } = useModelProviderList();
   const [frequency, setFrequency] = useState<FrequencyType>('manual');
   const [time, setTime] = useState('09:00');
@@ -170,9 +169,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
   const [selectedAgent, setSelectedAgent] = useState<string | undefined>(undefined);
-
-  // Available agents from backend `/api/agents`, shared across SWR cache.
-  const { data: detectedAgents } = useSWR<AgentMetadata[]>(DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents);
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -221,11 +217,13 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   }, [visible, editJob, form, presetAssistants]);
 
   // Resolve backend from the selected assistant.
-  const resolvedBackend = useMemo(() => {
-    if (!selectedAgent) return undefined;
-    const assistant = presetAssistants.find((item) => item.id === selectedAgent);
-    return assistant?.preset_agent_type;
-  }, [selectedAgent, presetAssistants]);
+  const selectedAssistant = useMemo(
+    () => (selectedAgent ? presetAssistants.find((item) => item.id === selectedAgent) : undefined),
+    [presetAssistants, selectedAgent]
+  );
+
+  const resolvedBackend = selectedAssistant?.preset_agent_type;
+  const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const isGeminiMode = resolvedBackend === 'gemini' || resolvedBackend === 'aionrs';
 
@@ -280,13 +278,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     []
   );
 
-  // ACP model info derived from the backend `/api/agents` handshake.
   const acpCachedModelInfo = useMemo<AcpModelInfo | null>(() => {
     if (!resolvedBackend || resolvedBackend === 'gemini' || resolvedBackend === 'aionrs') return null;
-    const matched = detectedAgents?.find((a) => (a.backend ?? a.agent_type) === resolvedBackend);
-    const info = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    return info?.available_models?.length ? info : null;
-  }, [resolvedBackend, detectedAgents]);
+    return buildAssistantModelInfo(resolvedBackend, selectedAssistantModels);
+  }, [resolvedBackend, selectedAssistantModels]);
 
   // Auto-pick the first available model from /api/providers when aionrs is
   // selected but none is set yet. Source of truth is the backend provider
@@ -383,7 +378,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const { agent_config, resolvedAgentType } = resolveCronAgentConfig({
         agentValue: values.agent,
         conversationAgentType: agent_type || 'acp',
-        cliAgents,
         presetAssistants,
         selectedAionrsProvider: geminiCurrentModel
           ? {

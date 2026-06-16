@@ -13,7 +13,6 @@ describe('resolveCronAgentConfig', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-1',
       conversationAgentType: 'acp',
-      cliAgents: [],
       presetAssistants: [
         assistant({
           id: 'assistant-1',
@@ -51,7 +50,6 @@ describe('resolveCronAgentConfig', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-2',
       conversationAgentType: 'acp',
-      cliAgents: [],
       presetAssistants: [
         assistant({
           id: 'assistant-2',
