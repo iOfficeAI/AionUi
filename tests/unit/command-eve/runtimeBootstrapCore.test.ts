@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { afterEach, describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import fs from 'fs';
 import http from 'http';
 import os from 'os';
@@ -42,10 +42,27 @@ const makeRoot = (): string => {
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   for (const root of tempRoots.splice(0)) {
     fs.rmSync(root, { recursive: true, force: true });
   }
 });
+
+// Stub fs.existsSync so absolute-path Python probing is deterministic in tests:
+// only the paths we explicitly allow (plus any real path the bootstrap genuinely
+// needs, e.g. the venv it just created) report as existing.
+const stubAbsolutePythonExistence = (allowedPaths: string[]): void => {
+  const allow = new Set(allowedPaths);
+  const realExistsSync = fs.existsSync.bind(fs);
+  vi.spyOn(fs, 'existsSync').mockImplementation((target) => {
+    const targetPath = typeof target === 'string' ? target : target.toString();
+    // Common macOS absolute interpreter locations must NOT leak in from the host.
+    if (/python@?3\.\d|\.pyenv|Python\.framework|\/bin\/python3(\.\d+)?$/.test(targetPath)) {
+      return allow.has(targetPath);
+    }
+    return realExistsSync(target);
+  });
+};
 
 const commandResult = (
   command: string,
@@ -429,6 +446,8 @@ describe('Command EVE runtime bootstrap core', () => {
 
   it('rejects Python 3.14 when no Hermes-compatible interpreter exists', async () => {
     const root = makeRoot();
+    // No compatible absolute interpreter anywhere on this (test) machine.
+    stubAbsolutePythonExistence([]);
     const commands: string[] = [];
     const runner: RuntimeBootstrapRunner = async (command, args) => {
       commands.push([command, ...args].join(' '));
@@ -449,8 +468,163 @@ describe('Command EVE runtime bootstrap core', () => {
       totalMemoryBytes: 32 * 1024 ** 3,
     });
 
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
     expect(receipt.status).toBe('blocked');
-    expect(receipt.stages.some((stage) => stage.code === 'PYTHON_UNSUPPORTED')).toBe(true);
+    expect(pythonStage?.code).toBe('PYTHON_UNSUPPORTED');
+    // Actionable guidance, even in auto mode.
+    expect(pythonStage?.detail).toContain('Python 3.11–3.13');
+    expect(pythonStage?.detail).toContain('brew install python@3.12');
+    expect(pythonStage?.detail).toContain('COMMAND_EVE_PYTHON_PATH');
+    expect(receipt.next_action).toBe(pythonStage?.detail);
+    expect(commands.some((command) => command.includes('-m venv'))).toBe(false);
+  });
+
+  it('resolves a compatible Homebrew python at an absolute path when only python3=3.9.6 is on PATH (the core bug)', async () => {
+    const root = makeRoot();
+    const brewPython = '/opt/homebrew/bin/python3.12';
+    // Only the Homebrew interpreter "exists" on disk for the absolute probe.
+    stubAbsolutePythonExistence([brewPython]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      // The only python on PATH (via the bash login shell) is the stock 3.9.6.
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      // Homebrew python at the absolute path is compatible.
+      if (command === brewPython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.12.7\n');
+      }
+      if (command === brewPython && args[0] === '-m' && args[1] === 'venv') {
+        const venv = args[2];
+        fs.mkdirSync(path.join(venv, 'bin'), { recursive: true });
+        fs.writeFileSync(path.join(venv, 'bin', 'python'), '#!/usr/bin/env bash\n');
+        fs.chmodSync(path.join(venv, 'bin', 'python'), 0o755);
+        return commandResult(command, args);
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(pythonStage?.status).toBe('pass');
+    expect(pythonStage?.detail).toContain(brewPython);
+    expect(pythonStage?.detail).toContain('Python 3.12.7');
+    // It probed the absolute Homebrew path directly.
+    expect(commands.some((command) => command === `${brewPython} --version`)).toBe(true);
+  });
+
+  it('uses COMMAND_EVE_PYTHON_PATH when it points at a compatible interpreter', async () => {
+    const root = makeRoot();
+    const overridePython = '/custom/python/bin/python3';
+    stubAbsolutePythonExistence([overridePython]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      // PATH only has the unsupported stock python — the override must win regardless.
+      if (command === 'bash' && args[0] === '-lc') {
+        const target = args[3];
+        return commandResult(command, args, target === 'python3', target === 'python3' ? '/usr/bin/python3' : '');
+      }
+      if (command === '/usr/bin/python3' && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.9.6\n');
+      }
+      if (command === overridePython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.11.9\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      mode: 'check',
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+      env: { COMMAND_EVE_PYTHON_PATH: overridePython },
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(pythonStage?.status).toBe('pass');
+    expect(pythonStage?.detail).toContain(overridePython);
+    expect(pythonStage?.detail).toContain('Python 3.11.9');
+    // The override was probed and the unsupported PATH python was never needed.
+    expect(commands.some((command) => command === `${overridePython} --version`)).toBe(true);
+    expect(commands.some((command) => command === '/usr/bin/python3 --version')).toBe(false);
+  });
+
+  it('rejects COMMAND_EVE_PYTHON_PATH when it points at an unsupported interpreter, with guidance', async () => {
+    const root = makeRoot();
+    const overridePython = '/custom/python/bin/python3';
+    // Override exists but no compatible interpreter exists anywhere else.
+    stubAbsolutePythonExistence([overridePython]);
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      if (command === 'bash' && args[0] === '-lc') {
+        return commandResult(command, args, false, '');
+      }
+      if (command === overridePython && args[0] === '--version') {
+        return commandResult(command, args, true, 'Python 3.10.14\n');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+      env: { COMMAND_EVE_PYTHON_PATH: overridePython },
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(receipt.status).toBe('blocked');
+    expect(pythonStage?.code).toBe('PYTHON_UNSUPPORTED');
+    expect(pythonStage?.detail).toContain('COMMAND_EVE_PYTHON_PATH');
+    expect(pythonStage?.detail).toContain('Python 3.10.14');
+    expect(pythonStage?.detail).toContain('Python 3.11–3.13');
+  });
+
+  it('blocks with actionable guidance when no compatible Python exists anywhere', async () => {
+    const root = makeRoot();
+    stubAbsolutePythonExistence([]);
+    const commands: string[] = [];
+    const runner: RuntimeBootstrapRunner = async (command, args) => {
+      commands.push([command, ...args].join(' '));
+      // Nothing on PATH at all.
+      if (command === 'bash' && args[0] === '-lc') {
+        return commandResult(command, args, false, '');
+      }
+      return commandResult(command, args);
+    };
+
+    const receipt = await ensureCommandEveRuntimeBootstrap({
+      userDataPath: root,
+      runner,
+      detachedSpawner: () => {},
+      statfs: () => ({ bavail: 50 * 1024 * 1024, bsize: 1024 }),
+      totalMemoryBytes: 32 * 1024 ** 3,
+    });
+
+    const pythonStage = receipt.stages.find((stage) => stage.id === 'python');
+    expect(receipt.status).toBe('blocked');
+    expect(pythonStage?.code).toBe('PYTHON_MISSING');
+    expect(pythonStage?.detail).toContain('No Python found');
+    expect(pythonStage?.detail).toContain('brew install python@3.12');
+    expect(pythonStage?.detail).toContain('COMMAND_EVE_PYTHON_PATH');
     expect(commands.some((command) => command.includes('-m venv'))).toBe(false);
   });
 
