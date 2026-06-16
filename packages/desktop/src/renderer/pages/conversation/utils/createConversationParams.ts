@@ -87,6 +87,25 @@ async function resolvePreferredAcpModelId(backend: string): Promise<string | und
   return undefined;
 }
 
+function resolvePreferredAssistantModelId(
+  assistant: Assistant,
+  preferredModelId: string | undefined
+): string | undefined {
+  if (preferredModelId && assistant.models.includes(preferredModelId)) {
+    return preferredModelId;
+  }
+
+  if (assistant.models.length > 0) {
+    return assistant.models[0];
+  }
+
+  if (assistant.preset_agent_type === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+    return DEFAULT_CODEX_MODELS[0]?.id;
+  }
+
+  return undefined;
+}
+
 function getAvailableAionrsModels(provider: IProvider): string[] {
   return (provider.models || []).filter((modelName) => {
     if (provider.model_enabled?.[modelName] === false) {
@@ -204,7 +223,14 @@ export async function buildPresetAssistantParams(
 
   const preferredMode = await resolvePreferredMode(preset_agent_type);
   const type = getConversationTypeForBackend(preset_agent_type);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(preset_agent_type) : undefined;
+  const acpConfig = configService.get('acp.config');
+  const configuredModelId = (acpConfig?.[preset_agent_type as string] as { preferredModelId?: string } | undefined)
+    ?.preferredModelId;
+  const preferredAcpModelId =
+    type === 'acp'
+      ? (resolvePreferredAssistantModelId(assistant, configuredModelId) ??
+        (await resolvePreferredAcpModelId(preset_agent_type)))
+      : undefined;
   const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(preset_agent_type) : undefined;
   const model = {} as TProviderWithModel;
 
