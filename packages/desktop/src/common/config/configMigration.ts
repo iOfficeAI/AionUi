@@ -28,8 +28,6 @@ const LEGACY_CHANNEL_KEYS = [
 type LegacyChannelConfigKey = (typeof LEGACY_CHANNEL_KEYS)[number];
 type LegacyBusinessConfigKey =
   | 'google.config'
-  | 'codex.config'
-  | 'acp.config'
   | 'acp.promptTimeout'
   | 'acp.agentIdleTimeout'
   | 'mcp.config'
@@ -47,8 +45,6 @@ type LegacyChannelConfigFile = ConfigFile & {
 };
 
 const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
-  'codex.config',
-  'acp.config',
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
   'language',

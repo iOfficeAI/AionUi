@@ -19,22 +19,6 @@ export interface IConfigStorageRefer {
     /** Proxy URL for Google OAuth endpoint reachability / Google OAuth 端点代理 */
     proxy?: string;
   };
-  'codex.config'?: {
-    cli_path?: string;
-    yoloMode?: boolean;
-    sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access';
-  };
-  'acp.config': {
-    [backend: string]: {
-      auth_methodId?: string;
-      authToken?: string;
-      lastAuthTime?: number;
-      cli_path?: string;
-      yoloMode?: boolean;
-      /** LLM prompt timeout in seconds (default: 300) / LLM 请求超时时间（秒，默认 300） */
-      promptTimeout?: number;
-    };
-  };
   /** Global LLM prompt timeout in seconds (default: 300). Per-backend promptTimeout overrides this. */
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */

@@ -162,6 +162,26 @@ describe('configMigration', () => {
       expect(configFile.get).not.toHaveBeenCalledWith('acp.cachedModes');
     });
 
+    it('does not probe removed ACP/Codex legacy config blobs during migration', async () => {
+      const configFile: ConfigFile = {
+        get: vi.fn((key: string) => {
+          if (key === 'language') return Promise.resolve('en');
+          return Promise.reject(new Error('not found'));
+        }),
+        set: vi.fn(),
+      };
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateConfigStorage(configFile);
+
+      expect(configFile.get).not.toHaveBeenCalledWith('acp.config');
+      expect(configFile.get).not.toHaveBeenCalledWith('codex.config');
+    });
+
     it('still migrates legacy channel assistant settings from local config', async () => {
       const legacyChannelAgent = {
         assistant_id: 'asst_123',
