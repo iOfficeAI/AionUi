@@ -148,6 +148,35 @@ describe('resolveImageGenerationMigrationConfig', () => {
 });
 
 describe('runBackendMigrations', () => {
+  it('does not write image generation business config back to local config storage', async () => {
+    listServersMock.mockResolvedValue([imageServer()]);
+    configFileGetMock.mockImplementation(async (key: string) => {
+      if (key === 'tools.imageGenerationModel') {
+        return {
+          id: 'provider-1',
+          name: 'Gemini',
+          platform: 'gemini',
+          use_model: 'gemini-image',
+          switch: true,
+        };
+      }
+      return undefined;
+    });
+    httpRequestMock.mockImplementation(async (method: string, path: string) => {
+      if (method === 'GET' && path === '/api/settings/client') {
+        return {};
+      }
+      if (method === 'GET' && path === '/api/providers') {
+        return [provider];
+      }
+      return undefined;
+    });
+
+    await runBackendMigrations(configFile as never);
+
+    expect(configFileSetMock).not.toHaveBeenCalledWith('tools.imageGenerationModel', expect.anything());
+  });
+
   it('does not sync the built-in image MCP server when bootstrap makes no effective change', async () => {
     const infoSpy = vi.spyOn(console, 'info').mockImplementation(() => {});
     listServersMock.mockResolvedValue([imageServer()]);

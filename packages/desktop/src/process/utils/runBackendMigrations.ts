@@ -351,11 +351,6 @@ async function ensureBootstrapMcpServersInDb(configFile: ConfigFile): Promise<vo
     );
   }
 
-  if (imageConfig?.switch === true) {
-    const { switch: _switch, ...rest } = imageConfig;
-    await configFile.set('tools.imageGenerationModel', rest as ConfigKeyMap['tools.imageGenerationModel']);
-  }
-
   console.info(
     '[Migration] MCP bootstrap completed, imported %d missing defaults, updated image server: %s, image config source: %s, image enabled: %s',
     missing.length,
