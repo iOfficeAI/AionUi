@@ -160,6 +160,39 @@ export type CommandEveKanbanMarketingCard = {
   generated_draft_text: string | null;
   generated_draft_at: number | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
+  // v15 marketing-executor LADDER read-model projection (A2, additive). Pure
+  // read of A1 receipts in `task_events`; the projection never mutates state.
+  ladder: CommandEveKanbanMarketingLadderProjection;
+};
+
+// The six ordered ladder rungs the A1 backend records, in advancement order.
+export const COMMAND_EVE_MARKETING_LADDER_STAGES = [
+  'output_approved',
+  'dispatch_requested',
+  'observed_run',
+  'start_gate',
+  'dispatcher_prepared',
+  'executor_promoted',
+] as const;
+
+export type CommandEveKanbanMarketingLadderStage = (typeof COMMAND_EVE_MARKETING_LADDER_STAGES)[number];
+
+export type CommandEveKanbanMarketingLadderRung = {
+  stage: CommandEveKanbanMarketingLadderStage;
+  // Whether the A1 receipt for this rung exists for the card.
+  recorded: boolean;
+  // Per-rung status, when the receipt carries one (e.g. start_gate 'ready'|'blocked').
+  status: string | null;
+  audit_event_id: string | null;
+  recorded_at: number | null;
+};
+
+export type CommandEveKanbanMarketingLadderProjection = {
+  // Highest rung that has a recorded receipt, or null when none recorded yet.
+  highest_recorded_stage: CommandEveKanbanMarketingLadderStage | null;
+  // executor_promoted recorded — the terminal HG-3.5 rung.
+  executor_promoted: boolean;
+  rungs: CommandEveKanbanMarketingLadderRung[];
 };
 
 export type CommandEveKanbanMarketingColumn = {
@@ -191,9 +224,20 @@ export type CommandEveKanbanMarketingBoardModel = {
     controller_decision_approved_cards: number;
     controller_decision_rejected_cards: number;
     generated_draft_cards: number;
+    // v15 marketing-executor LADDER read-model projection (A2, additive).
+    ladder_summary: CommandEveKanbanMarketingLadderSummary;
   };
   columns: CommandEveKanbanMarketingColumn[];
   warnings: string[];
+};
+
+export type CommandEveKanbanMarketingLadderSummary = {
+  output_approved_cards: number;
+  dispatch_requested_cards: number;
+  observed_run_cards: number;
+  start_gate_cards: number;
+  dispatcher_prepared_cards: number;
+  executor_promoted_cards: number;
 };
 
 export type CommandEveKanbanMarketingBoardResult = {
@@ -588,6 +632,7 @@ function marketingBoardBaseModel({
       controller_decision_approved_cards: 0,
       controller_decision_rejected_cards: 0,
       generated_draft_cards: 0,
+      ladder_summary: emptyLadderSummary(),
     },
     columns: emptyMarketingColumns(),
     warnings,
@@ -690,6 +735,101 @@ function nullableTextField(value: unknown): string | null {
   return typeof value === 'string' && value.trim() ? value : null;
 }
 
+// v15 marketing-executor LADDER read-model projection (A2, additive).
+// Projects the six A1 ladder receipts recorded in `task_events` onto a card.
+// Pure read: it inspects the already-fetched row columns and never writes.
+function ladderRecordedAt(value: unknown): number | null {
+  return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : null;
+}
+
+function buildLadderProjection(item: JsonRecord): CommandEveKanbanMarketingLadderProjection {
+  const rungSpecs: {
+    stage: CommandEveKanbanMarketingLadderStage;
+    recordedKey: string;
+    statusKey?: string;
+    auditKey: string;
+    atKey: string;
+  }[] = [
+    {
+      stage: 'output_approved',
+      recordedKey: 'ladder_output_approved',
+      auditKey: 'ladder_output_approved_audit_event_id',
+      atKey: 'ladder_output_approved_at',
+    },
+    {
+      stage: 'dispatch_requested',
+      recordedKey: 'ladder_dispatch_requested',
+      auditKey: 'ladder_dispatch_requested_audit_event_id',
+      atKey: 'ladder_dispatch_requested_at',
+    },
+    {
+      stage: 'observed_run',
+      recordedKey: 'ladder_observed_run',
+      auditKey: 'ladder_observed_run_audit_event_id',
+      atKey: 'ladder_observed_run_at',
+    },
+    {
+      stage: 'start_gate',
+      recordedKey: 'ladder_start_gate',
+      statusKey: 'ladder_start_gate_status',
+      auditKey: 'ladder_start_gate_audit_event_id',
+      atKey: 'ladder_start_gate_at',
+    },
+    {
+      stage: 'dispatcher_prepared',
+      recordedKey: 'ladder_dispatcher_prepared',
+      auditKey: 'ladder_dispatcher_prepared_audit_event_id',
+      atKey: 'ladder_dispatcher_prepared_at',
+    },
+    {
+      stage: 'executor_promoted',
+      recordedKey: 'ladder_executor_promoted',
+      auditKey: 'ladder_executor_promoted_audit_event_id',
+      atKey: 'ladder_executor_promoted_at',
+    },
+  ];
+  const rungs: CommandEveKanbanMarketingLadderRung[] = rungSpecs.map((spec) => ({
+    stage: spec.stage,
+    recorded: numberField(item[spec.recordedKey]) === 1,
+    status: spec.statusKey ? nullableTextField(item[spec.statusKey]) : null,
+    audit_event_id: nullableTextField(item[spec.auditKey]),
+    recorded_at: ladderRecordedAt(item[spec.atKey]),
+  }));
+  let highest: CommandEveKanbanMarketingLadderStage | null = null;
+  for (const rung of rungs) {
+    if (rung.recorded) highest = rung.stage;
+  }
+  return {
+    highest_recorded_stage: highest,
+    executor_promoted: rungs[rungs.length - 1]?.recorded ?? false,
+    rungs,
+  };
+}
+
+function emptyLadderSummary(): CommandEveKanbanMarketingLadderSummary {
+  return {
+    output_approved_cards: 0,
+    dispatch_requested_cards: 0,
+    observed_run_cards: 0,
+    start_gate_cards: 0,
+    dispatcher_prepared_cards: 0,
+    executor_promoted_cards: 0,
+  };
+}
+
+function summarizeLadder(cards: CommandEveKanbanMarketingCard[]): CommandEveKanbanMarketingLadderSummary {
+  const recorded = (stage: CommandEveKanbanMarketingLadderStage): number =>
+    cards.filter((card) => card.ladder.rungs.some((rung) => rung.stage === stage && rung.recorded)).length;
+  return {
+    output_approved_cards: recorded('output_approved'),
+    dispatch_requested_cards: recorded('dispatch_requested'),
+    observed_run_cards: recorded('observed_run'),
+    start_gate_cards: recorded('start_gate'),
+    dispatcher_prepared_cards: recorded('dispatcher_prepared'),
+    executor_promoted_cards: recorded('executor_promoted'),
+  };
+}
+
 function parseMarketingCards(rows: unknown[]): CommandEveKanbanMarketingCard[] {
   return rows.map((row) => {
     const item = isRecord(row) ? row : {};
@@ -725,6 +865,7 @@ function parseMarketingCards(rows: unknown[]): CommandEveKanbanMarketingCard[] {
       generated_draft_text: nullableTextField(item.generated_draft_text),
       generated_draft_at: typeof item.generated_draft_at === 'number' ? item.generated_draft_at : null,
       governance_state: linkedAuditEventId ? 'proof_write_recorded' : 'read_only',
+      ladder: buildLadderProjection(item),
     };
   });
 }
@@ -766,6 +907,7 @@ function buildMarketingModelFromRows({
       controller_decision_approved_cards: cards.filter((card) => card.controller_decision_status === 'approved').length,
       controller_decision_rejected_cards: cards.filter((card) => card.controller_decision_status === 'rejected').length,
       generated_draft_cards: cards.filter((card) => card.generated_draft_status === 'generated').length,
+      ladder_summary: summarizeLadder(cards),
     },
     columns,
   };
@@ -976,6 +1118,146 @@ try:
             ),
             0
           ) AS generated_draft_at,
+          -- v15 marketing-executor LADDER read-model projection (A2, additive).
+          -- Each rung's presence (its event kind exists for the card) means that
+          -- rung was recorded. We project the latest receipt audit_event_id and
+          -- created_at per rung so the Command Center can show ladder state. This
+          -- is a read-only projection of A1 receipts; it does NOT mutate the board.
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_output_approved'
+          ) THEN 1 ELSE 0 END AS ladder_output_approved,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_output_approved' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_output_approved_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_output_approved'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_output_approved_at,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatch_requested'
+          ) THEN 1 ELSE 0 END AS ladder_dispatch_requested,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatch_requested' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_dispatch_requested_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatch_requested'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_dispatch_requested_at,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_observed_run_completed'
+          ) THEN 1 ELSE 0 END AS ladder_observed_run,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_observed_run_completed' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_observed_run_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_observed_run_completed'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_observed_run_at,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_start_gate_checked'
+          ) THEN 1 ELSE 0 END AS ladder_start_gate,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.worker_start_gate_status')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_start_gate_checked' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_start_gate_status,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_start_gate_checked' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_start_gate_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_start_gate_checked'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_start_gate_at,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatcher_prepared'
+          ) THEN 1 ELSE 0 END AS ladder_dispatcher_prepared,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatcher_prepared' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_dispatcher_prepared_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_dispatcher_prepared'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_dispatcher_prepared_at,
+          CASE WHEN EXISTS (
+            SELECT 1 FROM task_events e
+            WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_executor_promoted'
+          ) THEN 1 ELSE 0 END AS ladder_executor_promoted,
+          COALESCE(
+            (
+              SELECT json_extract(e.payload, '$.audit_event_id')
+              FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_executor_promoted' AND json_valid(e.payload)
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            ''
+          ) AS ladder_executor_promoted_audit_event_id,
+          COALESCE(
+            (
+              SELECT e.created_at FROM task_events e
+              WHERE e.task_id = t.id AND e.kind = 'command_eve_marketing_worker_executor_promoted'
+              ORDER BY e.created_at DESC, e.id DESC LIMIT 1
+            ),
+            0
+          ) AS ladder_executor_promoted_at,
           COALESCE(CAST(t.current_run_id AS TEXT), '') AS linked_run_id
         FROM tasks t
         WHERE COALESCE(t.tenant, '') = ?
