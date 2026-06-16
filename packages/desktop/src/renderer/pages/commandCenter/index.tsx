@@ -187,6 +187,49 @@ interface ICommandEveMarketingCard {
   generated_draft_text: string | null;
   generated_draft_at: number | null;
   governance_state: 'read_only' | 'proof_write_recorded' | 'unknown';
+  // v15 marketing-executor LADDER read-model projection (A2, additive).
+  ladder: ICommandEveMarketingLadderProjection;
+}
+
+// The six ordered ladder rungs, in advancement order (mirrors the A1 backend).
+type IMarketingLadderStage =
+  | 'output_approved'
+  | 'dispatch_requested'
+  | 'observed_run'
+  | 'start_gate'
+  | 'dispatcher_prepared'
+  | 'executor_promoted';
+
+const MARKETING_LADDER_STAGES: IMarketingLadderStage[] = [
+  'output_approved',
+  'dispatch_requested',
+  'observed_run',
+  'start_gate',
+  'dispatcher_prepared',
+  'executor_promoted',
+];
+
+interface ICommandEveMarketingLadderRung {
+  stage: IMarketingLadderStage;
+  recorded: boolean;
+  status: string | null;
+  audit_event_id: string | null;
+  recorded_at: number | null;
+}
+
+interface ICommandEveMarketingLadderProjection {
+  highest_recorded_stage: IMarketingLadderStage | null;
+  executor_promoted: boolean;
+  rungs: ICommandEveMarketingLadderRung[];
+}
+
+interface ICommandEveMarketingLadderSummary {
+  output_approved_cards: number;
+  dispatch_requested_cards: number;
+  observed_run_cards: number;
+  start_gate_cards: number;
+  dispatcher_prepared_cards: number;
+  executor_promoted_cards: number;
 }
 
 interface ICommandEveMarketingColumn {
@@ -218,6 +261,8 @@ interface ICommandEveMarketingBoardModel {
     controller_decision_approved_cards: number;
     controller_decision_rejected_cards: number;
     generated_draft_cards: number;
+    // v15 marketing-executor LADDER read-model projection (A2, additive).
+    ladder_summary: ICommandEveMarketingLadderSummary;
   };
   columns: ICommandEveMarketingColumn[];
   warnings: string[];
@@ -468,6 +513,64 @@ interface ICommandEveMarketingDraftGenerateResult {
   };
 }
 
+// ---------------------------------------------------------------------------
+// v15 marketing-executor LADDER (A2 promote-UI). The shared loop request/result
+// shape backs the six fail-closed ladder rungs exposed by the A1 backend on
+// ipcBridge.commandEve.*. Every rung is gated and records release_blocked:true,
+// subprocess_spawned:false. ONLY the executor-promotion request carries
+// cao_gate_approved, and ONLY the explicit-approval button sets it true.
+// ---------------------------------------------------------------------------
+interface ICommandEveMarketingWorkerLoopRequest {
+  task_id: string;
+  boardSlug?: string;
+  eventLedgerPath?: string;
+  dispatch_handoff_packet?: Record<string, unknown>;
+  approval_note?: string;
+  request_note?: string;
+  observed_note?: string;
+  gate_note?: string;
+  prepare_note?: string;
+  executor_enabled?: boolean;
+  executor_profile?: Record<string, unknown>;
+}
+
+// The executor-promotion request is the ONLY ladder request that carries
+// cao_gate_approved. The A1 backend reads it strictly (=== true); the UI sets
+// it true only on a deliberate human confirmation of the HG-3.5 promotion.
+interface ICommandEveMarketingWorkerExecutorPromotionRequest extends ICommandEveMarketingWorkerLoopRequest {
+  cao_gate_approved?: boolean;
+  promotion_note?: string;
+}
+
+interface ICommandEveMarketingWorkerLoopResult {
+  version: string;
+  ok: boolean;
+  status: 'ready' | 'blocked' | 'failed';
+  reason_code?: string;
+  reason_codes?: string[];
+  message?: string;
+  card_id?: string;
+  subprocess_spawned: boolean;
+  external_calls?: boolean;
+  data_boundary_checked: boolean;
+  controller_approval_status?: string;
+  controller_approved?: boolean;
+  release_blocked?: boolean;
+  human_gate?: 'HG-2.5' | 'HG-3' | 'HG-3.5';
+  audit_event_id?: string;
+  audit_event_path?: string;
+  worker_start_gate_status?: 'ready' | 'blocked';
+  worker_dispatcher_prepare_status?: 'ready';
+  worker_executor_promotion_status?: 'completed';
+  worker_report?: string;
+  executor_promotion_packet?: Record<string, unknown>;
+  model?: ICommandEveMarketingBoardModel;
+  source: {
+    generated_by: 'command-eve-kanban-marketing-board-core';
+    hermes_home: string;
+  };
+}
+
 interface ICommandEveCrmOverlayPolicy {
   local_only: true;
   plane_sync_enabled: false;
@@ -661,6 +764,39 @@ const kanbanMarketingDraftGenerate = bridge.buildProvider<
   ICommandEveMarketingDraftGenerateRequest
 >('command-eve.kanban-marketing-draft-generate');
 
+// v15 marketing-executor LADDER providers (A2 promote-UI). These map to the
+// six fail-closed A1 handlers exposed on ipcBridge.commandEve.*. The promote
+// rung is the only one carrying cao_gate_approved.
+const kanbanMarketingOutputApprove = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerLoopRequest
+>('command-eve.kanban-marketing-output-approve');
+
+const kanbanMarketingWorkerDispatchRequest = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerLoopRequest
+>('command-eve.kanban-marketing-worker-dispatch-request');
+
+const kanbanMarketingWorkerObservedRun = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerLoopRequest
+>('command-eve.kanban-marketing-worker-observed-run');
+
+const kanbanMarketingWorkerStartGate = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerLoopRequest
+>('command-eve.kanban-marketing-worker-start-gate');
+
+const kanbanMarketingWorkerDispatcherPrepare = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerLoopRequest
+>('command-eve.kanban-marketing-worker-dispatcher-prepare');
+
+const kanbanMarketingWorkerExecutorPromotion = bridge.buildProvider<
+  IBridgeResponse<ICommandEveMarketingWorkerLoopResult>,
+  ICommandEveMarketingWorkerExecutorPromotionRequest
+>('command-eve.kanban-marketing-worker-executor-promotion');
+
 const crmOverlay = bridge.buildProvider<IBridgeResponse<ICommandEveCrmOverlayResult>, { eventLedgerPath?: string }>(
   'command-eve.crm-overlay'
 );
@@ -703,6 +839,23 @@ const nextMarketingLane = (lane: IMarketingLaneKey): IMarketingLaneKey | null =>
   if (index < 0 || index >= MARKETING_LANE_ORDER.length - 1) return null;
   return MARKETING_LANE_ORDER[index + 1];
 };
+
+// Cross-page board-refresh signal raised by the chat /marketing-loop intent.
+// Keep this string in sync with AionrsSendBox's window CustomEvent name.
+const COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT = 'command-eve.marketing-board.refresh';
+
+// The observed-local executor profile the HG-3 start gate accepts. It declares
+// a local, observed (non-spawning) executor; the A1 gate validates it and stays
+// release_blocked. This is the same profile shape the chat path would have used.
+const createObservedLocalExecutorProfile = (): Record<string, unknown> => ({
+  version: 'command-eve-runtime-executor-profile/v0',
+  executor_kind: 'hermes-local-observed',
+  spawn_subprocess: false,
+  external_calls: false,
+  publishing_enabled: false,
+  scheduling_enabled: false,
+  outreach_enabled: false,
+});
 
 const textOrDash = (value?: string | null): string => {
   const text = String(value || '').trim();
@@ -1114,24 +1267,161 @@ const BoardColumnView: React.FC<{ column: BoardColumn }> = ({ column }) => {
   );
 };
 
+// Index of a stage in the ordered ladder, or -1.
+const ladderStageIndex = (stage: IMarketingLadderStage): number => MARKETING_LADDER_STAGES.indexOf(stage);
+
+// The single next rung that may be advanced for a card: the first un-recorded
+// rung in ladder order. Returns null when the ladder is fully recorded. The
+// ladder is strictly sequential — only one rung is actionable at a time.
+const nextLadderStage = (ladder: ICommandEveMarketingLadderProjection): IMarketingLadderStage | null => {
+  for (const stage of MARKETING_LADDER_STAGES) {
+    const rung = ladder.rungs.find((item) => item.stage === stage);
+    if (!rung?.recorded) return stage;
+  }
+  return null;
+};
+
+// v15 marketing-executor LADDER display + per-stage advance controls (A2).
+//
+// The executor-promotion rung (HG-3.5) is NOT advanced by the plain advance
+// control. It is an explicit human action gated behind onPromoteExecutor, which
+// the parent wires to a confirmation affordance that passes cao_gate_approved
+// true ONLY on the deliberate confirm. This component never sets that flag.
+const MarketingLadderView: React.FC<{
+  card: ICommandEveMarketingCard;
+  advancingStage: IMarketingLadderStage | null;
+  promoting: boolean;
+  onAdvanceStage: (card: ICommandEveMarketingCard, stage: IMarketingLadderStage) => void;
+  onPromoteExecutor: (card: ICommandEveMarketingCard) => void;
+}> = ({ card, advancingStage, promoting, onAdvanceStage, onPromoteExecutor }) => {
+  const { t } = useTranslation();
+  const ladder = card.ladder;
+  const actionable = nextLadderStage(ladder);
+  const dispatcherPrepared = ladder.rungs.find((rung) => rung.stage === 'dispatcher_prepared')?.recorded ?? false;
+  const executorPromoted = ladder.executor_promoted;
+  return (
+    <div
+      className='mt-8px rounded-8px border border-solid border-[var(--color-border-2)] bg-fill-1 px-10px py-8px'
+      data-testid={`marketing-card-ladder-${card.card_id}`}
+    >
+      <div className='flex items-center justify-between gap-8px'>
+        <span className='text-11px font-600 leading-16px text-t-secondary'>
+          {t('commandCenter.marketingBoard.ladder.title')}
+        </span>
+        <Tag
+          color={executorPromoted ? 'green' : actionable ? 'orange' : 'gray'}
+          data-testid={`marketing-card-ladder-stage-summary-${card.card_id}`}
+        >
+          {ladder.highest_recorded_stage
+            ? t(`commandCenter.marketingBoard.ladder.stages.${ladder.highest_recorded_stage}`)
+            : t('commandCenter.marketingBoard.ladder.notStarted')}
+        </Tag>
+      </div>
+      <ol className='mt-6px flex flex-col gap-4px'>
+        {MARKETING_LADDER_STAGES.map((stage, index) => {
+          const rung = ladder.rungs.find((item) => item.stage === stage);
+          const recorded = rung?.recorded ?? false;
+          const isPromotionStage = stage === 'executor_promoted';
+          const isActionable = actionable === stage;
+          const advancingThis = advancingStage === stage;
+          return (
+            <li
+              key={stage}
+              className='flex items-center justify-between gap-8px'
+              data-testid={`marketing-card-ladder-rung-${stage}-${card.card_id}`}
+            >
+              <span className='flex min-w-0 items-center gap-6px'>
+                <Tag color={recorded ? 'green' : isActionable ? 'orange' : 'gray'} size='small'>
+                  {`${index + 1}`}
+                </Tag>
+                <span className='truncate text-11px leading-16px text-t-secondary'>
+                  {t(`commandCenter.marketingBoard.ladder.stages.${stage}`)}
+                </span>
+                {rung?.status ? (
+                  <span className='truncate text-10px leading-14px text-t-tertiary'>{`(${rung.status})`}</span>
+                ) : null}
+              </span>
+              {isPromotionStage ? (
+                <Button
+                  size='mini'
+                  shape='round'
+                  status='warning'
+                  type='primary'
+                  loading={promoting}
+                  // The promote control is enabled only once the prior rung
+                  // (dispatcher_prepared) is recorded and the card is not yet
+                  // promoted. It opens a confirmation before passing the gate.
+                  disabled={promoting || executorPromoted || !dispatcherPrepared}
+                  data-testid={`marketing-card-ladder-promote-${card.card_id}`}
+                  onClick={() => onPromoteExecutor(card)}
+                >
+                  {executorPromoted
+                    ? t('commandCenter.marketingBoard.ladder.promoted')
+                    : t('commandCenter.marketingBoard.ladder.promoteButton')}
+                </Button>
+              ) : recorded ? (
+                <Tag color='green' size='small' data-testid={`marketing-card-ladder-recorded-${stage}-${card.card_id}`}>
+                  {t('commandCenter.marketingBoard.ladder.recorded')}
+                </Tag>
+              ) : (
+                <Button
+                  size='mini'
+                  shape='round'
+                  loading={advancingThis}
+                  disabled={!isActionable || advancingStage !== null}
+                  data-testid={`marketing-card-ladder-advance-${stage}-${card.card_id}`}
+                  onClick={() => onAdvanceStage(card, stage)}
+                >
+                  {t('commandCenter.marketingBoard.ladder.advance')}
+                </Button>
+              )}
+            </li>
+          );
+        })}
+      </ol>
+      {executorPromoted ? (
+        <div className='mt-6px'>
+          <Tag color='green' data-testid={`marketing-card-ladder-hg35-${card.card_id}`}>
+            {t('commandCenter.marketingBoard.ladder.hg35Recorded')}
+          </Tag>
+        </div>
+      ) : (
+        <div className='mt-6px text-10px leading-14px text-t-tertiary'>
+          {t('commandCenter.marketingBoard.ladder.gatedNoSpawn')}
+        </div>
+      )}
+    </div>
+  );
+};
+
 const MarketingCardView: React.FC<{
   card: ICommandEveMarketingCard;
   movingCardId: string | null;
   dispatchingCardId: string | null;
   actioningCardId: string | null;
+  advancingLadderCardId: string | null;
+  advancingLadderStage: IMarketingLadderStage | null;
+  promotingExecutorCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
   onOpenComment: (card: ICommandEveMarketingCard) => void;
   onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
+  onAdvanceLadderStage: (card: ICommandEveMarketingCard, stage: IMarketingLadderStage) => void;
+  onPromoteExecutor: (card: ICommandEveMarketingCard) => void;
 }> = ({
   card,
   movingCardId,
   dispatchingCardId,
   actioningCardId,
+  advancingLadderCardId,
+  advancingLadderStage,
+  promotingExecutorCardId,
   onMoveNext,
   onPlanDispatch,
   onOpenComment,
   onApplyAction,
+  onAdvanceLadderStage,
+  onPromoteExecutor,
 }) => {
   const { t } = useTranslation();
   const nextLane = nextMarketingLane(card.lane_key);
@@ -1262,6 +1552,13 @@ const MarketingCardView: React.FC<{
           </span>
         )}
       </div>
+      <MarketingLadderView
+        card={card}
+        advancingStage={advancingLadderCardId === card.card_id ? advancingLadderStage : null}
+        promoting={promotingExecutorCardId === card.card_id}
+        onAdvanceStage={onAdvanceLadderStage}
+        onPromoteExecutor={onPromoteExecutor}
+      />
     </article>
   );
 };
@@ -1271,19 +1568,29 @@ const MarketingColumnView: React.FC<{
   movingCardId: string | null;
   dispatchingCardId: string | null;
   actioningCardId: string | null;
+  advancingLadderCardId: string | null;
+  advancingLadderStage: IMarketingLadderStage | null;
+  promotingExecutorCardId: string | null;
   onMoveNext: (card: ICommandEveMarketingCard, toLane: IMarketingLaneKey) => void;
   onPlanDispatch: (card: ICommandEveMarketingCard) => void;
   onOpenComment: (card: ICommandEveMarketingCard) => void;
   onApplyAction: (card: ICommandEveMarketingCard, action: Exclude<IMarketingCardAction, 'comment'>) => void;
+  onAdvanceLadderStage: (card: ICommandEveMarketingCard, stage: IMarketingLadderStage) => void;
+  onPromoteExecutor: (card: ICommandEveMarketingCard) => void;
 }> = ({
   column,
   movingCardId,
   dispatchingCardId,
   actioningCardId,
+  advancingLadderCardId,
+  advancingLadderStage,
+  promotingExecutorCardId,
   onMoveNext,
   onPlanDispatch,
   onOpenComment,
   onApplyAction,
+  onAdvanceLadderStage,
+  onPromoteExecutor,
 }) => {
   const { t } = useTranslation();
   return (
@@ -1306,10 +1613,15 @@ const MarketingColumnView: React.FC<{
               movingCardId={movingCardId}
               dispatchingCardId={dispatchingCardId}
               actioningCardId={actioningCardId}
+              advancingLadderCardId={advancingLadderCardId}
+              advancingLadderStage={advancingLadderStage}
+              promotingExecutorCardId={promotingExecutorCardId}
               onMoveNext={onMoveNext}
               onPlanDispatch={onPlanDispatch}
               onOpenComment={onOpenComment}
               onApplyAction={onApplyAction}
+              onAdvanceLadderStage={onAdvanceLadderStage}
+              onPromoteExecutor={onPromoteExecutor}
             />
           ))}
         </div>
@@ -1605,6 +1917,9 @@ const MarketingBoardSection: React.FC<{
   actioningCardId: string | null;
   dispatchingCardId: string | null;
   generatingDraftCardId: string | null;
+  advancingLadderCardId: string | null;
+  advancingLadderStage: IMarketingLadderStage | null;
+  promotingExecutorCardId: string | null;
   approvalRecording: boolean;
   decisionRecording: 'approved' | 'rejected' | null;
   onCreateProofCard: () => void;
@@ -1618,6 +1933,8 @@ const MarketingBoardSection: React.FC<{
   onRecordDispatchReview: () => void;
   onRecordDispatchDecision: (decision: 'approved' | 'rejected') => void;
   onGenerateDraft: (card: ICommandEveMarketingCard) => void;
+  onAdvanceLadderStage: (card: ICommandEveMarketingCard, stage: IMarketingLadderStage) => void;
+  onPromoteExecutor: (card: ICommandEveMarketingCard) => void;
 }> = ({
   result,
   proofResult,
@@ -1635,6 +1952,9 @@ const MarketingBoardSection: React.FC<{
   actioningCardId,
   dispatchingCardId,
   generatingDraftCardId,
+  advancingLadderCardId,
+  advancingLadderStage,
+  promotingExecutorCardId,
   approvalRecording,
   decisionRecording,
   onCreateProofCard,
@@ -1648,6 +1968,8 @@ const MarketingBoardSection: React.FC<{
   onRecordDispatchReview,
   onRecordDispatchDecision,
   onGenerateDraft,
+  onAdvanceLadderStage,
+  onPromoteExecutor,
 }) => {
   const { t } = useTranslation();
   const model = result?.model;
@@ -2022,6 +2344,20 @@ const MarketingBoardSection: React.FC<{
             <span className='min-w-0 truncate'>{`${t('commandCenter.marketingBoard.labels.board')}: ${model.board.slug}`}</span>
             <span className='min-w-0 truncate'>{`${t('commandCenter.marketingBoard.labels.database')}: ${model.board.db_path}`}</span>
           </div>
+          <div className='flex flex-wrap items-center gap-6px' data-testid='marketing-board-ladder-summary'>
+            <span className='text-11px font-600 leading-16px text-t-tertiary'>
+              {t('commandCenter.marketingBoard.ladder.summaryTitle')}
+            </span>
+            <Tag color='gray'>{`${t('commandCenter.marketingBoard.ladder.stages.output_approved')}: ${formatCount(
+              model.summary.ladder_summary.output_approved_cards
+            )}`}</Tag>
+            <Tag color='gray'>{`${t('commandCenter.marketingBoard.ladder.stages.dispatcher_prepared')}: ${formatCount(
+              model.summary.ladder_summary.dispatcher_prepared_cards
+            )}`}</Tag>
+            <Tag color='green' data-testid='marketing-board-ladder-summary-promoted'>{`${t(
+              'commandCenter.marketingBoard.ladder.stages.executor_promoted'
+            )}: ${formatCount(model.summary.ladder_summary.executor_promoted_cards)}`}</Tag>
+          </div>
           <MarketingDispatchQueueView
             model={model}
             generatingDraftCardId={generatingDraftCardId}
@@ -2035,10 +2371,15 @@ const MarketingBoardSection: React.FC<{
                 movingCardId={movingCardId}
                 dispatchingCardId={dispatchingCardId}
                 actioningCardId={actioningCardId}
+                advancingLadderCardId={advancingLadderCardId}
+                advancingLadderStage={advancingLadderStage}
+                promotingExecutorCardId={promotingExecutorCardId}
                 onMoveNext={onMoveCardNext}
                 onPlanDispatch={onPlanDispatch}
                 onOpenComment={onOpenComment}
                 onApplyAction={onApplyAction}
+                onAdvanceLadderStage={onAdvanceLadderStage}
+                onPromoteExecutor={onPromoteExecutor}
               />
             ))}
           </div>
@@ -2526,6 +2867,10 @@ const CommandCenterPage: React.FC = () => {
   const [actioningCardId, setActioningCardId] = useState<string | null>(null);
   const [dispatchingCardId, setDispatchingCardId] = useState<string | null>(null);
   const [generatingDraftCardId, setGeneratingDraftCardId] = useState<string | null>(null);
+  // v15 marketing-executor LADDER (A2 promote-UI) per-card busy state.
+  const [advancingLadderCardId, setAdvancingLadderCardId] = useState<string | null>(null);
+  const [advancingLadderStage, setAdvancingLadderStage] = useState<IMarketingLadderStage | null>(null);
+  const [promotingExecutorCardId, setPromotingExecutorCardId] = useState<string | null>(null);
   const [approvalRecording, setApprovalRecording] = useState(false);
   const [decisionRecording, setDecisionRecording] = useState<'approved' | 'rejected' | null>(null);
   const [crmInitializing, setCrmInitializing] = useState(false);
@@ -2587,6 +2932,20 @@ const CommandCenterPage: React.FC = () => {
   useEffect(() => {
     void refresh();
   }, [refresh]);
+
+  // Re-read only the marketing board when the chat /marketing-loop intent (in a
+  // different page) signals a new card + dispatch-plan receipt. Passing null to
+  // applyBoardModel forces a fresh kanbanMarketingBoard read.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const handler = (): void => {
+      void applyBoardModel(null);
+    };
+    window.addEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
+    return () => {
+      window.removeEventListener(COMMAND_EVE_MARKETING_BOARD_REFRESH_EVENT, handler);
+    };
+  }, [applyBoardModel]);
 
   const model = result?.model;
   const totals = model?.morning_brief?.totals ?? {};
@@ -3071,6 +3430,156 @@ const CommandCenterPage: React.FC = () => {
     [applyBoardModel, t]
   );
 
+  // v15 marketing-executor LADDER (A2 promote-UI) handlers.
+  //
+  // Each non-promotion rung advances by invoking its A1 provider with a gated,
+  // fail-closed request. NONE of these carries cao_gate_approved. Only the
+  // promote handler (below) passes that flag, and only after an explicit human
+  // confirmation. The handoff packet mirrors the recorded controller handoff so
+  // the receipt is consistent.
+  const buildLadderHandoff = useCallback(
+    (card: ICommandEveMarketingCard, status: string, humanGate: 'HG-2.5' | 'HG-3' | 'HG-3.5'): Record<string, unknown> => ({
+      version: 'command-eve-local-dispatch-handoff/v0',
+      status,
+      dispatch: card.controller_decision_handoff_dispatch || card.controller_review_handoff_dispatch || 'manual',
+      role_label: card.controller_decision_handoff_role || card.controller_review_handoff_role || 'role:cmo',
+      card_id: card.card_id,
+      human_gate: humanGate,
+    }),
+    []
+  );
+
+  const advanceLadderStage = useCallback(
+    async (card: ICommandEveMarketingCard, stage: IMarketingLadderStage) => {
+      if (!isElectronDesktop()) return;
+      // The promotion rung is NEVER advanced through this control — it is
+      // reachable only via the explicit-approval promote handler.
+      if (stage === 'executor_promoted') return;
+      setAdvancingLadderCardId(card.card_id);
+      setAdvancingLadderStage(stage);
+      try {
+        let response: IBridgeResponse<ICommandEveMarketingWorkerLoopResult>;
+        switch (stage) {
+          case 'output_approved':
+            response = await kanbanMarketingOutputApprove.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'output_approved', 'HG-2.5'),
+              approval_note: 'Command EVE Command Center approved the generated local marketing output.',
+            });
+            break;
+          case 'dispatch_requested':
+            response = await kanbanMarketingWorkerDispatchRequest.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'worker_dispatch_requested', 'HG-2.5'),
+              request_note: 'Command EVE Command Center requested dispatch; execution remains policy-locked.',
+            });
+            break;
+          case 'observed_run':
+            response = await kanbanMarketingWorkerObservedRun.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'worker_observed_run', 'HG-2.5'),
+              observed_note:
+                'Command EVE Command Center recorded an observed local worker receipt; no subprocess was spawned.',
+            });
+            break;
+          case 'start_gate':
+            response = await kanbanMarketingWorkerStartGate.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'worker_start_gate', 'HG-3'),
+              gate_note:
+                'Command EVE Command Center checked an explicit HG-3 observed local executor profile without spawning a runtime worker.',
+              executor_enabled: true,
+              executor_profile: createObservedLocalExecutorProfile(),
+            });
+            break;
+          case 'dispatcher_prepared':
+            response = await kanbanMarketingWorkerDispatcherPrepare.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'worker_dispatcher_prepare', 'HG-3.5'),
+              prepare_note:
+                'Command EVE Command Center prepared the gated dispatcher after worker start readiness; no runtime worker was spawned.',
+            });
+            break;
+          default:
+            return;
+        }
+        const data = response.data ?? null;
+        await applyBoardModel(data);
+        if (response.success && data?.ok) {
+          Message.success(t(`commandCenter.marketingBoard.ladder.advanced.${stage}`));
+        } else {
+          Message.warning(data?.reason_code || response.msg || t('commandCenter.marketingBoard.ladder.advanceFailed'));
+        }
+      } catch (advanceError) {
+        const detail =
+          advanceError instanceof Error ? advanceError.message : t('commandCenter.marketingBoard.ladder.advanceFailed');
+        Message.error(detail);
+      } finally {
+        setAdvancingLadderCardId(null);
+        setAdvancingLadderStage(null);
+      }
+    },
+    [applyBoardModel, buildLadderHandoff, t]
+  );
+
+  // HG-3.5 EXECUTOR PROMOTION — the only ladder action that carries
+  // cao_gate_approved. It is gated behind an explicit Modal.confirm so the flag
+  // is passed `true` ONLY on the deliberate human OK. The A1 backend reads
+  // cao_gate_approved strictly (=== true) and remains release_blocked + no-spawn.
+  const promoteWorkerExecutor = useCallback(
+    (card: ICommandEveMarketingCard) => {
+      if (!isElectronDesktop()) return;
+      Modal.confirm({
+        title: t('commandCenter.marketingBoard.ladder.promoteConfirm.title'),
+        content: t('commandCenter.marketingBoard.ladder.promoteConfirm.content', { title: card.card_title }),
+        okText: t('commandCenter.marketingBoard.ladder.promoteConfirm.ok'),
+        cancelText: t('commandCenter.marketingBoard.ladder.promoteConfirm.cancel'),
+        okButtonProps: { status: 'warning', 'data-testid': 'marketing-card-ladder-promote-confirm' } as Record<
+          string,
+          unknown
+        >,
+        onOk: async () => {
+          setPromotingExecutorCardId(card.card_id);
+          try {
+            const response = await kanbanMarketingWorkerExecutorPromotion.invoke({
+              task_id: card.card_id,
+              boardSlug: MARKETING_BOARD_SLUG,
+              dispatch_handoff_packet: buildLadderHandoff(card, 'worker_executor_promotion', 'HG-3.5'),
+              promotion_note:
+                'Command EVE Command Center promoted the local in-process marketing executor after explicit human approval; no subprocess or external call ran.',
+              // Explicit human approval of the HG-3.5 promotion. This is the
+              // ONLY place in the renderer that sets cao_gate_approved true.
+              cao_gate_approved: true,
+            });
+            const data = response.data ?? null;
+            await applyBoardModel(data);
+            if (response.success && data?.ok) {
+              Message.success(t('commandCenter.marketingBoard.ladder.promoteSuccess'));
+            } else {
+              Message.warning(
+                data?.reason_code || response.msg || t('commandCenter.marketingBoard.ladder.promoteFailed')
+              );
+            }
+          } catch (promotionError) {
+            const detail =
+              promotionError instanceof Error
+                ? promotionError.message
+                : t('commandCenter.marketingBoard.ladder.promoteFailed');
+            Message.error(detail);
+          } finally {
+            setPromotingExecutorCardId(null);
+          }
+        },
+      });
+    },
+    [applyBoardModel, buildLadderHandoff, t]
+  );
+
   const initializeCrm = useCallback(async () => {
     if (!isElectronDesktop()) return;
     setCrmInitializing(true);
@@ -3366,6 +3875,9 @@ const CommandCenterPage: React.FC = () => {
               actioningCardId={actioningCardId}
               dispatchingCardId={dispatchingCardId}
               generatingDraftCardId={generatingDraftCardId}
+              advancingLadderCardId={advancingLadderCardId}
+              advancingLadderStage={advancingLadderStage}
+              promotingExecutorCardId={promotingExecutorCardId}
               approvalRecording={approvalRecording}
               decisionRecording={decisionRecording}
               onCreateProofCard={createProofCard}
@@ -3379,6 +3891,8 @@ const CommandCenterPage: React.FC = () => {
               onRecordDispatchReview={recordDispatchReview}
               onRecordDispatchDecision={recordDispatchDecision}
               onGenerateDraft={generateMarketingDraft}
+              onAdvanceLadderStage={advanceLadderStage}
+              onPromoteExecutor={promoteWorkerExecutor}
             />
             <MarketingCardCommentModal
               card={commentCard}

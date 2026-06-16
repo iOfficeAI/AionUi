@@ -366,8 +366,12 @@ const AionrsSendBox: React.FC<{
         const dispatchPlan = dispatchPlanResponse.data ?? null;
 
         // Tell the Command Center to re-read the board so the new card + its
-        // dispatch-plan receipt show up immediately.
-        emitter.emit('command-eve.marketing-board.refresh');
+        // dispatch-plan receipt show up immediately. A window CustomEvent keeps
+        // this cross-page signal decoupled from the typed in-page emitter
+        // registry (the chat and the Command Center are separate pages).
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('command-eve.marketing-board.refresh'));
+        }
 
         if (
           dispatchPlanResponse.success &&

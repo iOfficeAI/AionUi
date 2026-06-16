@@ -242,6 +242,41 @@
       "note": "Legt genau eine lokale Proof-Karte und ein append-only Audit-Event an. Keine Worker werden gestartet.",
       "resultTitle": "Proof-Card-Receipt",
       "failed": "Proof-Karte konnte nicht angelegt werden."
+    },
+    "ladder": {
+      "title": "Executor-Leiter",
+      "summaryTitle": "Leiter:",
+      "notStarted": "Nicht gestartet",
+      "recorded": "Aufgezeichnet",
+      "advance": "Stufe aufzeichnen",
+      "advanceFailed": "Leiter-Stufe konnte nicht aufgezeichnet werden.",
+      "advanced": {
+        "output_approved": "Output-Freigabe-Beleg aufgezeichnet.",
+        "dispatch_requested": "Dispatch-Anforderungs-Beleg aufgezeichnet (weiterhin gesperrt).",
+        "observed_run": "Beobachteter-Lauf-Beleg aufgezeichnet (kein Subprozess).",
+        "start_gate": "Start-Gate-Beleg (HG-3) aufgezeichnet.",
+        "dispatcher_prepared": "Dispatcher-Vorbereitungs-Beleg aufgezeichnet."
+      },
+      "stages": {
+        "output_approved": "Output freigegeben",
+        "dispatch_requested": "Dispatch angefordert",
+        "observed_run": "Beobachteter Lauf",
+        "start_gate": "Start-Gate (HG-3)",
+        "dispatcher_prepared": "Dispatcher vorbereitet",
+        "executor_promoted": "Executor befördert (HG-3.5)"
+      },
+      "promoteButton": "Zum Executor befördern (HG-3.5)",
+      "promoted": "Befördert (HG-3.5)",
+      "promoteSuccess": "Lokaler Executor befördert (HG-3.5) – kein Subprozess, kein externer Aufruf.",
+      "promoteFailed": "Executor-Beförderung fehlgeschlagen.",
+      "hg35Recorded": "HG-3.5-Beförderung aufgezeichnet · release-blockiert · kein Spawn",
+      "gatedNoSpawn": "Gated: jede Stufe ist release-blockiert und spawnt keinen Subprozess. Die HG-3.5-Beförderung erfordert eine ausdrückliche Freigabe.",
+      "promoteConfirm": {
+        "title": "Zum Executor befördern (HG-3.5)?",
+        "content": "Karte \"{{title}}\" zum lokalen In-Process-Executor befördern. Dies ist eine ausdrückliche menschliche HG-3.5-Freigabe. Es wird kein Subprozess gespawnt, kein externer Aufruf, keine Veröffentlichung und kein Versand ausgelöst; der Vorgang bleibt release-blockiert.",
+        "ok": "Befördern (HG-3.5)",
+        "cancel": "Abbrechen"
+      }
     }
   },
   "crmOverlay": {
