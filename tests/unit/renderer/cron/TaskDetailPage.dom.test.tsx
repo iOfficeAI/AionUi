@@ -114,6 +114,36 @@ describe('TaskDetailPage', () => {
     expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
     expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
   });
+
+  it('still renders assistant identity for legacy jobs that only stored custom_agent_id', async () => {
+    getJobInvokeMock.mockResolvedValue(
+      job({
+        metadata: {
+          agent_config: {
+            backend: 'codex',
+            name: '问好助手',
+            is_preset: true,
+            custom_agent_id: 'assistant-1',
+            preset_agent_type: 'codex',
+          },
+        },
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    expect(await screen.findByText('问好助手')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
+    expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
+  });
 });
 
 function job(overrides?: Partial<ICronJob>): ICronJob {
@@ -146,7 +176,7 @@ function job(overrides?: Partial<ICronJob>): ICronJob {
         backend: 'codex',
         name: '问好助手',
         is_preset: true,
-        custom_agent_id: 'assistant-1',
+        assistant_id: 'assistant-1',
         preset_agent_type: 'codex',
         ...agentConfigOverrides,
       },

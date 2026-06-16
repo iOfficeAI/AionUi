@@ -14,6 +14,10 @@ function normalizeAgentBackend(agent: string | undefined): string | undefined {
   return agent.replace(/^cli:/, '').replace(/^preset:/, '');
 }
 
+function resolveCronAssistantId(config: ICronJob['metadata']['agent_config']): string | undefined {
+  return config?.assistant_id || config?.custom_agent_id;
+}
+
 /**
  * Resolve the display name and logo for a cron job's agent.
  *
@@ -28,7 +32,7 @@ export function getJobAgentMeta(
   presetAssistants: Assistant[]
 ): { name?: string; logo?: string | null; emoji?: string } {
   const config = job.metadata.agent_config;
-  const assistantId = config?.assistant_id || config?.custom_agent_id;
+  const assistantId = resolveCronAssistantId(config);
   if (assistantId) {
     const assistant = presetAssistants.find((item) => item.id === assistantId);
     const rawType = normalizeAgentBackend(job.metadata.agent_type);

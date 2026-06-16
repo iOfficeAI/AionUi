@@ -1315,6 +1315,7 @@ export interface ICronAgentConfig {
   cli_path?: string;
   is_preset?: boolean;
   assistant_id?: string;
+  /** @deprecated Legacy assistant identity kept for read compatibility only. */
   custom_agent_id?: string;
   preset_agent_type?: string;
   mode?: string;

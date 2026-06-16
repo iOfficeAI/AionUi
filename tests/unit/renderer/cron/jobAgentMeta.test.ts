@@ -54,6 +54,33 @@ describe('getJobAgentMeta', () => {
     expect(meta.name).toBe('Codex 助手');
     expect(meta.logo).toBeTruthy();
   });
+
+  it('still resolves assistant metadata from legacy custom_agent_id rows', () => {
+    const meta = getJobAgentMeta(
+      cronJob({
+        metadata: {
+          agent_type: 'acp',
+          agent_config: {
+            custom_agent_id: 'assistant-1',
+            backend: 'codex',
+            name: 'Legacy name',
+          },
+        },
+      }),
+      [
+        assistant({
+          id: 'assistant-1',
+          name: '文件规划助手',
+          avatar: '🤖',
+        }),
+      ]
+    );
+
+    expect(meta).toEqual({
+      name: '文件规划助手',
+      emoji: '🤖',
+    });
+  });
 });
 
 function cronJob(overrides: Partial<ICronJob>): ICronJob {

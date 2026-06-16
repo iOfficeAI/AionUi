@@ -122,7 +122,7 @@ function getDescriptionInitialValue(job: ICronJob): string {
  * `custom_agent_id` or a backend slug. For those rows we map back to a stable
  * assistant id, preferring the bare assistant for the backend.
  */
-function getAgentKeyFromJob(
+function getAssistantSelectionFromJob(
   job: ICronJob,
   presetAssistants: { id: string; preset_agent_type: string; source: string }[]
 ): string | undefined {
@@ -189,7 +189,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             Object.keys(editJob.metadata.agent_config.config_options).length > 0)
         )
       );
-      const agentKey = getAgentKeyFromJob(editJob, presetAssistants);
+      const agentKey = getAssistantSelectionFromJob(editJob, presetAssistants);
       setSelectedAssistantId(agentKey);
       form.setFieldsValue({
         name: editJob.name,
