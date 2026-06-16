@@ -5,7 +5,7 @@
  */
 
 import { describe, expect, it } from 'vitest';
-import { fromBackendAgent, normalizeTeamStatus } from '@/common/adapter/teamMapper';
+import { fromBackendAgent, normalizeTeamStatus, toBackendAgent } from '@/common/adapter/teamMapper';
 
 describe('teamMapper', () => {
   describe('normalizeTeamStatus', () => {
@@ -35,5 +35,47 @@ describe('teamMapper', () => {
     });
 
     expect(agent.status).toBe('active');
+  });
+
+  it('hydrates assistant identity from either assistant_id or legacy custom_agent_id', () => {
+    expect(
+      fromBackendAgent({
+        slot_id: 'slot-1',
+        conversation_id: 'conversation-1',
+        role: 'teammate',
+        backend: 'aionrs',
+        name: 'Worker',
+        assistant_id: 'assistant-1',
+      }).assistant_id
+    ).toBe('assistant-1');
+
+    expect(
+      fromBackendAgent({
+        slot_id: 'slot-2',
+        conversation_id: 'conversation-2',
+        role: 'teammate',
+        backend: 'aionrs',
+        name: 'Worker',
+        custom_agent_id: 'assistant-legacy',
+      }).assistant_id
+    ).toBe('assistant-legacy');
+  });
+
+  it('preserves assistant identity when serializing agents back to the backend payload', () => {
+    expect(
+      toBackendAgent({
+        role: 'leader',
+        agent_type: 'aionrs',
+        agent_name: 'Aion CLI',
+        conversation_type: 'aionrs',
+        status: 'pending',
+        assistant_id: 'assistant-1',
+        custom_agent_id: 'assistant-1',
+      })
+    ).toMatchObject({
+      backend: 'aionrs',
+      assistant_id: 'assistant-1',
+      custom_agent_id: 'assistant-1',
+    });
   });
 });

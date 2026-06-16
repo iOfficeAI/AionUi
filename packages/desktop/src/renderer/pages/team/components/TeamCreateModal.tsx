@@ -149,6 +149,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const dispatchAgentType = resolveTeamAgentType(dispatchAgent, 'acp');
       const dispatchConversationType = resolveConversationType(dispatchAgentType);
       const resolvedModel = await resolveDefaultTeamAgentModel({
+        assistant_id: dispatchAgent?.id,
         agent_type: dispatchAgentType,
         conversation_type: dispatchConversationType,
       });
@@ -160,6 +161,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         agent_type: dispatchAgentType,
         agent_name: dispatchAgent?.name || 'Leader',
         conversation_type: dispatchConversationType,
+        assistant_id: dispatchAgent?.id,
         custom_agent_id: dispatchAgent?.id,
         model: resolvedModel,
       });

@@ -185,6 +185,7 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAgent = 'claude';
     deps.selectedAgentKey = 'claude';
+    deps.selectedAssistantId = null;
     deps.selectedAgentInfo = {
       id: 'meta-claude',
       key: 'claude',
@@ -216,6 +217,7 @@ describe('useGuidSend', () => {
     const deps = createDeps();
     deps.selectedAgent = 'aionrs';
     deps.selectedAgentKey = 'aionrs';
+    deps.selectedAssistantId = null;
     deps.selectedAgentInfo = {
       id: 'meta-aionrs',
       key: 'aionrs',
@@ -241,5 +243,61 @@ describe('useGuidSend', () => {
     expect(payload.assistant).toBeUndefined();
     expect(payload.extra.enabled_skills).toEqual(['pdf-reader']);
     expect(payload.extra.exclude_builtin_skills).toEqual(['todo-tracker']);
+  });
+
+  it('attaches the selected assistant id for non-legacy assistant-backed Aion CLI conversations', async () => {
+    const deps = createDeps();
+    deps.selectedAgent = 'aionrs';
+    deps.selectedAssistantId = 'bare:aionrs';
+    deps.selectedAgentInfo = {
+      id: 'bare:aionrs',
+      key: 'bare:aionrs',
+      name: 'Aion CLI',
+      agent_type: 'aionrs',
+      backend: 'aionrs',
+      is_preset: false,
+      isExtension: false,
+    } as never;
+    deps.is_presetAgent = false;
+    deps.current_model = { provider_id: 'openai', model: 'gemini-2.5-pro', use_model: 'gemini-2.5-pro' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant?.id).toBe('bare:aionrs');
+    expect(payload.extra.preset_assistant_id).toBe('bare:aionrs');
+  });
+
+  it('attaches the selected assistant id for non-legacy assistant-backed ACP conversations', async () => {
+    const deps = createDeps();
+    deps.selectedAgent = 'claude';
+    deps.selectedAgentKey = 'bare:claude';
+    deps.selectedAssistantId = 'bare:claude';
+    deps.selectedAgentInfo = {
+      id: 'bare:claude',
+      key: 'bare:claude',
+      name: 'Claude',
+      agent_type: 'claude',
+      backend: 'claude',
+      is_preset: false,
+      isExtension: false,
+      cli_path: '/usr/local/bin/claude',
+    } as never;
+    deps.is_presetAgent = false;
+    deps.current_model = { provider_id: 'anthropic', model: 'claude-sonnet', use_model: 'claude-sonnet' } as never;
+
+    const { result } = renderHook(() => useGuidSend(deps));
+
+    await act(async () => {
+      await result.current.handleSend();
+    });
+
+    const payload = createConversationInvokeMock.mock.calls[0][0];
+    expect(payload.assistant?.id).toBe('bare:claude');
+    expect(payload.extra.preset_assistant_id).toBe('bare:claude');
   });
 });

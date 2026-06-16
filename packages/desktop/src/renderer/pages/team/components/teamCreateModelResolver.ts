@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import { ipcBridge } from '@/common';
 import { configService } from '@/common/config/configService';
-import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
+import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 
 /**
  * Resolve the `model` value a team agent should send to `POST /api/teams`.
@@ -26,10 +26,16 @@ import { getAgents } from '@/renderer/hooks/agent/useAgents';
  * backend name.
  */
 export async function resolveDefaultTeamAgentModel(params: {
+  assistant_id?: string;
   agent_type: string;
   conversation_type: string;
 }): Promise<string> {
-  const { agent_type, conversation_type } = params;
+  const { assistant_id, agent_type, conversation_type } = params;
+
+  const assistantModel = await resolveAssistantDefaultModel(assistant_id);
+  if (assistantModel) {
+    return assistantModel;
+  }
 
   if (conversation_type === 'gemini' || agent_type === 'gemini') {
     return resolveGeminiDefaultModel();
@@ -42,19 +48,28 @@ export async function resolveDefaultTeamAgentModel(params: {
   return resolveAcpDefaultModel(agent_type);
 }
 
-async function resolveAcpDefaultModel(agent_type: string): Promise<string> {
-  // 1. Try handshake data from /api/agents
+async function resolveAssistantDefaultModel(assistant_id?: string): Promise<string | undefined> {
+  if (!assistant_id) return undefined;
+
   try {
-    const agents = await getAgents();
-    const matched = agents.find((a) => (a.backend ?? a.agent_type) === agent_type);
-    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    if (handshakeModels?.current_model_id) {
-      return handshakeModels.current_model_id;
+    const detail = (await ipcBridge.assistants.get.invoke({ id: assistant_id })) as AssistantDetail | null;
+    if (!detail) return undefined;
+
+    if (detail.defaults.model.mode === 'fixed' && detail.defaults.model.value) {
+      return detail.defaults.model.value;
+    }
+
+    if (detail.defaults.model.mode === 'auto' && detail.preferences.last_model_id) {
+      return detail.preferences.last_model_id;
     }
   } catch {
-    // Fall through to cached models
+    // Fall through to backend/model fallbacks
   }
 
+  return undefined;
+}
+
+async function resolveAcpDefaultModel(_agent_type: string): Promise<string> {
   return 'default';
 }
 

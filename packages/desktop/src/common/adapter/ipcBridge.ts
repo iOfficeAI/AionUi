@@ -1317,6 +1317,7 @@ export interface ICronAgentConfig {
   name: string;
   cli_path?: string;
   is_preset?: boolean;
+  assistant_id?: string;
   custom_agent_id?: string;
   preset_agent_type?: string;
   mode?: string;

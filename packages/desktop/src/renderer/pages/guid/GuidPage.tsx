@@ -136,7 +136,8 @@ const GuidPage: React.FC = () => {
   const resetMentionQuery = useCallback<React.Dispatch<React.SetStateAction<string | null>>>(() => {}, []);
   const resetMentionActiveIndex = useCallback<React.Dispatch<React.SetStateAction<number>>>(() => {}, []);
 
-  const selectedAssistantId = agentSelection.is_presetAgent ? agentSelection.selectedAssistantId : null;
+  const selectedAssistantId = agentSelection.selectedAssistantId;
+  const hasSelectedAssistant = selectedAssistantId !== null;
   const { data: selectedAssistantDetail } = useSWR(
     selectedAssistantId ? `guid.assistant.detail.${selectedAssistantId}.${localeKey}` : null,
     async (): Promise<AssistantDetail | null> =>
@@ -227,14 +228,14 @@ const GuidPage: React.FC = () => {
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
   const selectedAssistantRecord = useMemo(() => {
-    if (!agentSelection.is_presetAgent || !agentSelection.selectedAssistantId) return undefined;
+    if (!selectedAssistantId) return undefined;
     const selectedId = agentSelection.selectedAssistantId;
     const strippedId = selectedId.replace(/^builtin-/, '');
     const candidates = new Set([selectedId, `builtin-${strippedId}`, strippedId]);
     return agentSelection.assistants.find((item) => candidates.has(item.id));
-  }, [agentSelection.assistants, agentSelection.is_presetAgent, agentSelection.selectedAssistantId]);
+  }, [agentSelection.assistants, selectedAssistantId, agentSelection.selectedAssistantId]);
   const selectedAssistantPrompts = useMemo(() => {
-    if (!agentSelection.is_presetAgent) return [];
+    if (!selectedAssistantId) return [];
     return (
       selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
       selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
@@ -244,11 +245,11 @@ const GuidPage: React.FC = () => {
       selectedAssistantRecord?.prompts ||
       []
     );
-  }, [agentSelection.is_presetAgent, localeKey, selectedAssistantDetail, selectedAssistantRecord]);
+  }, [localeKey, selectedAssistantDetail, selectedAssistantRecord, selectedAssistantId]);
 
   // Sync disabledBuiltinSkills + enabledSkills from preset assistant config
   useEffect(() => {
-    if (!agentSelection.is_presetAgent) {
+    if (!selectedAssistantId) {
       setGuidDisabledBuiltinSkills(undefined);
       setGuidEnabledSkills(undefined);
       return;
@@ -268,11 +269,11 @@ const GuidPage: React.FC = () => {
       setGuidDisabledBuiltinSkills(undefined);
       setGuidEnabledSkills(undefined);
     }
-  }, [agentSelection.is_presetAgent, selectedAssistantDetail, selectedAssistantRecord]);
+  }, [selectedAssistantDetail, selectedAssistantId, selectedAssistantRecord]);
 
   const appliedAssistantDefaultsKeyRef = useRef<string | null>(null);
   useEffect(() => {
-    if (!agentSelection.is_presetAgent || !selectedAssistantId || !selectedAssistantDetail) {
+    if (!selectedAssistantId || !selectedAssistantDetail) {
       appliedAssistantDefaultsKeyRef.current = null;
       return;
     }
@@ -341,21 +342,21 @@ const GuidPage: React.FC = () => {
 
   const setGuidSelectedMode = useCallback(
     (mode: React.SetStateAction<string>) => {
-      agentSelection.setSelectedMode(mode, { persistPreference: !agentSelection.is_presetAgent });
+      agentSelection.setSelectedMode(mode, { persistPreference: !hasSelectedAssistant });
     },
-    [agentSelection]
+    [agentSelection, hasSelectedAssistant]
   );
   const setGuidSelectedAcpModel = useCallback(
     (model: React.SetStateAction<string | null>) => {
-      agentSelection.setSelectedAcpModel(model, { persistPreference: !agentSelection.is_presetAgent });
+      agentSelection.setSelectedAcpModel(model, { persistPreference: !hasSelectedAssistant });
     },
-    [agentSelection]
+    [agentSelection, hasSelectedAssistant]
   );
   const setGuidCurrentModel = useCallback(
     (model: TProviderWithModel) => {
-      return modelSelection.setCurrentModel(model, { persistPreference: !agentSelection.is_presetAgent });
+      return modelSelection.setCurrentModel(model, { persistPreference: !hasSelectedAssistant });
     },
-    [agentSelection.is_presetAgent, modelSelection]
+    [hasSelectedAssistant, modelSelection]
   );
 
   // Reset guid-local UI state before paint so same-route navigations do not

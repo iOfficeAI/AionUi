@@ -130,7 +130,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
 
     const agentInfo = selectedAgentInfo;
     const is_preset = is_presetAgent;
-    const preset_assistant_id = is_preset ? selectedAssistantId || undefined : undefined;
+    const assistantConversationId = selectedAssistantId || undefined;
 
     const { agent_type: effectiveAgentType } = getEffectiveAgentType(agentInfo);
 
@@ -198,19 +198,18 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           type: 'aionrs',
           name: input,
           model: current_model,
-          assistant:
-            preset_assistant_id && is_preset
-              ? {
-                  id: preset_assistant_id,
-                  locale: localeKey,
-                  conversation_overrides: assistantOverrides,
-                }
-              : undefined,
+          assistant: assistantConversationId
+            ? {
+                id: assistantConversationId,
+                locale: localeKey,
+                conversation_overrides: assistantOverrides,
+              }
+            : undefined,
           extra: {
             default_files: files,
             workspace: finalWorkspace,
             custom_workspace: isCustomWorkspace,
-            preset_assistant_id,
+            preset_assistant_id: assistantConversationId,
             ...(!is_preset && enabled_skills_to_send?.length ? { enabled_skills: enabled_skills_to_send } : {}),
             ...(!is_preset && excludeBuiltinSkills?.length ? { exclude_builtin_skills: excludeBuiltinSkills } : {}),
             selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
@@ -228,9 +227,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           updateWorkspaceTime(finalWorkspace);
         }
 
-        if (preset_assistant_id) {
+        if (assistantConversationId) {
           await Promise.all([
-            swrMutate(`guid.assistant.detail.${preset_assistant_id}.${localeKey}`),
+            swrMutate(`guid.assistant.detail.${assistantConversationId}.${localeKey}`),
             swrMutate('assistants.list'),
           ]);
         }
@@ -281,7 +280,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         // slot so it cannot discriminate between rows on its own.
         agent_id: acpAgentInfo?.id,
         agent_name: acpAgentInfo?.name,
-        preset_assistant_id,
+        preset_assistant_id: assistantConversationId,
         workspace: finalWorkspace,
         model: current_model!,
         cli_path: acpAgentInfo?.cli_path,
@@ -315,9 +314,9 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           updateWorkspaceTime(finalWorkspace);
         }
 
-        if (preset_assistant_id) {
+        if (assistantConversationId) {
           await Promise.all([
-            swrMutate(`guid.assistant.detail.${preset_assistant_id}.${localeKey}`),
+            swrMutate(`guid.assistant.detail.${assistantConversationId}.${localeKey}`),
             swrMutate('assistants.list'),
           ]);
         }

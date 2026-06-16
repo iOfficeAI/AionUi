@@ -11,7 +11,7 @@ import { resolveCronAgentConfig } from '@/renderer/pages/cron/ScheduledTasksPage
 describe('resolveCronAgentConfig', () => {
   it('stores provider id for preset aionrs assistants instead of literal aionrs backend', () => {
     const result = resolveCronAgentConfig({
-      agentValue: 'preset:assistant-1',
+      agentValue: 'assistant-1',
       conversationAgentType: 'acp',
       cliAgents: [],
       presetAssistants: [
@@ -37,6 +37,7 @@ describe('resolveCronAgentConfig', () => {
         backend: 'provider-gemini',
         name: '文件规划助手',
         is_preset: true,
+        assistant_id: 'assistant-1',
         custom_agent_id: 'assistant-1',
         preset_agent_type: 'aionrs',
         mode: 'yolo',
@@ -48,7 +49,7 @@ describe('resolveCronAgentConfig', () => {
 
   it('keeps preset acp assistants on their backend slug', () => {
     const result = resolveCronAgentConfig({
-      agentValue: 'preset:assistant-2',
+      agentValue: 'assistant-2',
       conversationAgentType: 'acp',
       cliAgents: [],
       presetAssistants: [
@@ -69,6 +70,7 @@ describe('resolveCronAgentConfig', () => {
         backend: 'codex',
         name: 'Codex 助手',
         is_preset: true,
+        assistant_id: 'assistant-2',
         custom_agent_id: 'assistant-2',
         preset_agent_type: 'codex',
         mode: 'full-access',

@@ -71,8 +71,11 @@ export function buildAgentConversationParams(input: BuildAgentConversationInput)
     ...extraOverrides,
   };
 
-  if (is_preset) {
+  if (effectivePresetAssistantId) {
     extra.preset_assistant_id = effectivePresetAssistantId;
+  }
+
+  if (is_preset) {
     if (type === 'acp') {
       extra.backend = effectivePresetType as string;
     }

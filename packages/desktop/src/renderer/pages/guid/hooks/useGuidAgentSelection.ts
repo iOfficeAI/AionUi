@@ -334,8 +334,8 @@ export const useGuidAgentSelection = ({
     if (assistants.some((assistant) => assistant.id === selectedAgentKey)) {
       return selectedAgentKey;
     }
-    return selectedAgentInfo?.custom_agent_id ?? null;
-  }, [assistants, selectedAgentInfo?.custom_agent_id, selectedAgentKey]);
+    return null;
+  }, [assistants, selectedAgentKey]);
 
   // Track whether the resetAssistant flag has been consumed so it only fires once
   // per navigation. Use locationKey (changes on every navigate()) to reset the guard,

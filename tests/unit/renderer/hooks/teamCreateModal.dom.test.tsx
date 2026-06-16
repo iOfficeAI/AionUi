@@ -10,6 +10,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 const createTeamInvokeMock = vi.fn();
+const resolveDefaultTeamAgentModelMock = vi.fn();
 
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
@@ -70,7 +71,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@renderer/pages/team/components/teamCreateModelResolver', () => ({
-  resolveDefaultTeamAgentModel: vi.fn().mockResolvedValue(undefined),
+  resolveDefaultTeamAgentModel: (...args: unknown[]) => resolveDefaultTeamAgentModelMock(...args),
 }));
 
 import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
@@ -79,6 +80,8 @@ describe('TeamCreateModal', () => {
   beforeEach(() => {
     createTeamInvokeMock.mockReset();
     createTeamInvokeMock.mockResolvedValue({ id: 'team-1', agents: [] });
+    resolveDefaultTeamAgentModelMock.mockReset();
+    resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
   });
 
   it('keeps blocked assistants visible with a reason and prevents selecting them', () => {
@@ -109,8 +112,14 @@ describe('TeamCreateModal', () => {
     await waitFor(() => expect(createTeamInvokeMock).toHaveBeenCalledTimes(1));
 
     const payload = createTeamInvokeMock.mock.calls[0][0];
+    expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledWith({
+      assistant_id: 'bare-aionrs',
+      agent_type: 'aionrs',
+      conversation_type: 'aionrs',
+    });
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
+      assistant_id: 'bare-aionrs',
       custom_agent_id: 'bare-aionrs',
       agent_name: 'Aion CLI',
     });

@@ -25,6 +25,7 @@ export type TeamAgent = {
   conversation_type: string;
   status: TeammateStatus;
   cli_path?: string;
+  assistant_id?: string;
   custom_agent_id?: string;
   model?: string;
   pending_confirmations?: number;

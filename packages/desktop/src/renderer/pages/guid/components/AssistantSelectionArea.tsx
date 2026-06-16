@@ -135,25 +135,25 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           style={{ background: 'var(--color-guid-agent-bar, var(--aou-2))' }}
         >
           <div className='flex min-w-0 max-w-full items-center gap-6px'>
-          {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
-          {hasOverflow ? (
-            <Dropdown
-              trigger='click'
-              position='bl'
-              droplist={overflowDroplist}
-              popupVisible={moreVisible}
-              onVisibleChange={setMoreVisible}
-            >
-              <Button
-                data-testid='assistant-more-btn'
-                type='text'
-                className='!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100'
+            {visibleAssistants.map((assistant) => renderAssistantPill(assistant, `preset-pill-${assistant.id}`))}
+            {hasOverflow ? (
+              <Dropdown
+                trigger='click'
+                position='bl'
+                droplist={overflowDroplist}
+                popupVisible={moreVisible}
+                onVisibleChange={setMoreVisible}
               >
-                <span>{t('common.more', { defaultValue: 'More' })}</span>
-                <Down theme='outline' size={14} />
-              </Button>
-            </Dropdown>
-          ) : null}
+                <Button
+                  data-testid='assistant-more-btn'
+                  type='text'
+                  className='!ml-6px !inline-flex !h-34px !shrink-0 !items-center !gap-4px !rounded-999px !border-none !px-12px !py-8px !text-13px !text-t-secondary opacity-75 transition-opacity hover:opacity-100'
+                >
+                  <span>{t('common.more', { defaultValue: 'More' })}</span>
+                  <Down theme='outline' size={14} />
+                </Button>
+              </Dropdown>
+            ) : null}
           </div>
         </div>
       </div>

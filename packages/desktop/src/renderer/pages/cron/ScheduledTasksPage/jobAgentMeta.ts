@@ -33,8 +33,9 @@ export function getJobAgentMeta(
   if (!rawType) return {};
 
   const config = job.metadata.agent_config;
-  if (config?.is_preset && config.custom_agent_id) {
-    const assistant = presetAssistants.find((item) => item.id === config.custom_agent_id);
+  const assistantId = config?.assistant_id || config?.custom_agent_id;
+  if (assistantId) {
+    const assistant = presetAssistants.find((item) => item.id === assistantId);
     const displayName = assistant?.name || config.name || rawType;
     const avatar = resolveAssistantAvatar(assistant?.avatar);
     if (avatar.kind === 'image') {

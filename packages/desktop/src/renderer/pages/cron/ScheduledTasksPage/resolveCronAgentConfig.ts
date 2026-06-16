@@ -47,8 +47,14 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
   } = input;
 
   const colonIdx = agentValue.indexOf(':');
-  const agentKind = colonIdx >= 0 ? agentValue.substring(0, colonIdx) : 'cli';
-  const agentId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
+  const prefixedKind = colonIdx >= 0 ? agentValue.substring(0, colonIdx) : undefined;
+  const prefixedId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
+  const assistantSelection =
+    prefixedKind !== 'cli'
+      ? presetAssistants.find((item) => item.id === prefixedId || item.id === agentValue)
+      : undefined;
+  const agentKind = assistantSelection ? 'assistant' : (prefixedKind ?? 'cli');
+  const agentId = assistantSelection?.id ?? prefixedId;
 
   let agent_config: ICronAgentConfig | undefined;
   let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType(
@@ -85,8 +91,8 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     } else if (agent) {
       resolvedAgentType = resolveSupportedConversationType(backend);
     }
-  } else if (agentKind === 'preset') {
-    const assistant = presetAssistants.find((item) => item.id === agentId);
+  } else if (agentKind === 'assistant') {
+    const assistant = assistantSelection;
     if (assistant) {
       const presetBackend = assistant.preset_agent_type;
       resolvedAgentType = resolveSupportedConversationType(presetBackend);
@@ -99,6 +105,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
           backend: selectedAionrsProvider.id,
           name: assistant.name,
           is_preset: true,
+          assistant_id: assistant.id,
           custom_agent_id: assistant.id,
           preset_agent_type: presetBackend,
           mode: getMode(presetBackend),
@@ -110,6 +117,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
           backend: presetBackend as string,
           name: assistant.name,
           is_preset: true,
+          assistant_id: assistant.id,
           custom_agent_id: assistant.id,
           preset_agent_type: presetBackend,
           mode: getMode(presetBackend),
