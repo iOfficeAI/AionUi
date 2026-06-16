@@ -1,8 +1,6 @@
-import React from 'react';
-import { act, render, renderHook, screen } from '@testing-library/react';
+import { act, renderHook } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { ITeamChildTurnEvent, ITeamRunEvent } from '@/common/types/team/teamTypes';
-import TeamRuntimeNotice from '@/renderer/pages/team/components/TeamRuntimeNotice';
 import { useTeamRunView } from '@/renderer/pages/team/hooks/useTeamRunView';
 
 type TeamRunHandler = (event: ITeamRunEvent) => void;
@@ -47,50 +45,6 @@ vi.mock('@/common', () => ({
     },
   },
 }));
-
-vi.mock('react-i18next', () => ({
-  useTranslation: () => ({
-    t: (key: string, params?: Record<string, string>) => {
-      if (key === 'team.runtime.notice.slow') {
-        return `slow notice ${params?.elapsed}`;
-      }
-      return key;
-    },
-  }),
-}));
-
-describe('TeamRuntimeNotice', () => {
-  it('renders slow notice from backend slot work', () => {
-    const work = {
-      slot_id: 'worker-1',
-      role: 'teammate' as const,
-      pending_wake_count: 1,
-      starting_child_count: 0,
-      active_turn_id: 'turn-worker',
-      active_turn_elapsed_ms: 720_000,
-      active_turn_slow: true,
-    };
-
-    render(<TeamRuntimeNotice work={work} />);
-
-    expect(screen.getByText('slow notice 12m')).toBeInTheDocument();
-  });
-
-  it('renders queued notice when work is queued for the slot', () => {
-    render(
-      <TeamRuntimeNotice
-        work={{
-          slot_id: 'worker-1',
-          role: 'teammate',
-          pending_wake_count: 1,
-          starting_child_count: 0,
-        }}
-      />
-    );
-
-    expect(screen.getByText('team.runtime.notice.queued')).toBeInTheDocument();
-  });
-});
 
 describe('useTeamRunView', () => {
   beforeEach(() => {

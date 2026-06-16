@@ -56,17 +56,5 @@
       "interview": "Спланировать глубинное интервью между агентами",
       "expert_review": "Несколько экспертов анализируют одну проблему"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "Поставлено в очередь для этого Agent.",
-      "slow": "Этот Agent работает уже {{elapsed}} и все еще обрабатывает задачу.",
-      "disconnected": "Сессия этого Agent отключена.",
-      "unhealthy": "Среда выполнения этого Agent неисправна.",
-      "suppressedByPause": "Новая фоновая работа для этого Agent приостановлена."
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

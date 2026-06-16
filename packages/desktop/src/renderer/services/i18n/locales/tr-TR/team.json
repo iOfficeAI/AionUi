@@ -57,17 +57,5 @@
       "write_report": "Bir konuyu araştır ve ayrıntılı rapor yaz",
       "fix_bug": "Projemizdeki hataları bul ve düzelt"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "Bu Agent için sıraya alındı.",
-      "slow": "Bu Agent {{elapsed}} süredir çalışıyor ve hâlâ işliyor.",
-      "disconnected": "Bu Agent oturumunun bağlantısı kesildi.",
-      "unhealthy": "Bu Agent çalışma zamanı sağlıklı değil.",
-      "suppressedByPause": "Bu Agent için yeni arka plan işi duraklatıldı."
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

@@ -56,17 +56,5 @@
       "interview": "策划一场深度访谈",
       "expert_review": "多位专家会诊同一个问题"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "已为该 Agent 排队。",
-      "slow": "该 Agent 已运行 {{elapsed}}，仍在处理中。",
-      "disconnected": "该 Agent 会话已断开。",
-      "unhealthy": "该 Agent 运行状态异常。",
-      "suppressedByPause": "该 Agent 的新后台任务已暂停。"
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

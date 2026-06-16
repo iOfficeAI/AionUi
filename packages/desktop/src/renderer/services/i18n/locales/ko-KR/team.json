@@ -56,17 +56,5 @@
       "interview": "Agent 간 심층 인터뷰 기획",
       "expert_review": "여러 전문가가 같은 문제를 분석"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "이 Agent에 대해 대기열에 추가되었습니다.",
-      "slow": "이 Agent가 {{elapsed}} 동안 실행 중이며 아직 처리 중입니다.",
-      "disconnected": "이 Agent 세션의 연결이 끊어졌습니다.",
-      "unhealthy": "이 Agent 런타임 상태가 정상적이지 않습니다.",
-      "suppressedByPause": "이 Agent의 새 백그라운드 작업이 일시 중지되었습니다."
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

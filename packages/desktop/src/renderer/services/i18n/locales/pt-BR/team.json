@@ -56,17 +56,5 @@
       "interview": "Planejar uma entrevista aprofundada entre os agentes",
       "expert_review": "Ter vários especialistas analisando o mesmo problema"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "Na fila para este Agent.",
-      "slow": "Este Agent está em execução há {{elapsed}} e ainda está processando.",
-      "disconnected": "A sessão deste Agent está desconectada.",
-      "unhealthy": "O runtime deste Agent não está saudável.",
-      "suppressedByPause": "Novo trabalho em segundo plano está pausado para este Agent."
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

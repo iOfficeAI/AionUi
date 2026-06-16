@@ -56,17 +56,5 @@
       "interview": "策劃一場深度訪談",
       "expert_review": "多位專家會診同一個問題"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "已為此 Agent 排隊。",
-      "slow": "此 Agent 已執行 {{elapsed}}，仍在處理中。",
-      "disconnected": "此 Agent 工作階段已斷線。",
-      "unhealthy": "此 Agent 執行狀態異常。",
-      "suppressedByPause": "此 Agent 的新背景工作已暫停。"
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }

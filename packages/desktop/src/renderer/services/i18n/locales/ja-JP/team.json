@@ -56,17 +56,5 @@
       "interview": "Agentによる深層インタビューを企画する",
       "expert_review": "複数の専門家が同じ問題を分析する"
     }
-  },
-  "runtime": {
-    "notice": {
-      "queued": "この Agent に対してキューに入りました。",
-      "slow": "この Agent は {{elapsed}} 実行中で、まだ処理しています。",
-      "disconnected": "この Agent セッションは切断されています。",
-      "unhealthy": "この Agent のランタイムは正常ではありません。",
-      "suppressedByPause": "この Agent の新しいバックグラウンド作業は一時停止されています。"
-    },
-    "error": {
-      "internal": "Request failed in the app."
-    }
   }
 }
