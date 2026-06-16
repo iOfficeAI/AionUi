@@ -144,6 +144,8 @@ describe('LocalAgents', () => {
     render(<LocalAgents />);
 
     expect(screen.getByText('settings.agentManagement.localAgentsEmpty')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.customAgents')).toBeTruthy();
+    expect(screen.getByText('settings.agentManagement.customEmpty')).toBeTruthy();
   });
 
   it('renders official/custom sections with management statuses and removes the chat shortcut', () => {
@@ -165,5 +167,14 @@ describe('LocalAgents', () => {
 
     expect(screen.getByText('AIONRS · AIONRS')).toBeInTheDocument();
     expect(screen.getByText('CLAUDE · ACP')).toBeInTheDocument();
+  });
+
+  it('does not render the market-install CTA in the diagnostics-only agent page', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+
+    render(<LocalAgents />);
+
+    expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
+    expect(screen.queryByText('settings.agentManagement.discoverMoreAgents')).toBeNull();
   });
 });

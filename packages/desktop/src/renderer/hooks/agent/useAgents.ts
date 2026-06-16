@@ -52,10 +52,11 @@ export const useAgents = (): UseAgentsResult => {
  * custom agents stay listed with a working re-enable toggle.
  *
  * Its `revalidate` refreshes **both** the management key and the shared
- * `DETECTED_AGENTS_SWR_KEY`, so toggling an agent on/off in settings is
- * immediately reflected in every picker (which reads the detected key).
- * Do not use this anywhere other than `AgentSettings` — pickers must stay
- * on {@link useAgents} to keep disabled agents hidden.
+ * `DETECTED_AGENTS_SWR_KEY`, so diagnostics-oriented settings surfaces that
+ * still consume `/api/agents` immediately see the latest status after
+ * toggles or test-connection runs.
+ *
+ * Do not use this anywhere other than `AgentSettings`.
  */
 export const useManagedAgents = (): UseAgentsResult => {
   const { data, isLoading, error } = useSWR<AgentMetadata[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);

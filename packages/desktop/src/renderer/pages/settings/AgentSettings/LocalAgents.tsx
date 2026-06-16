@@ -9,16 +9,13 @@ import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { Button, Message, Typography } from '@arco-design/web-react';
-import { Home, Plus } from '@icon-park/react';
 import React, { useCallback, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import AgentCard from './AgentCard';
-import { AgentHubModal } from './AgentHubModal';
 import InlineAgentEditor, { type CustomAgentDraft } from './InlineAgentEditor';
 
 const LocalAgents: React.FC = () => {
   const { t } = useTranslation();
-  const [hubModalVisible, setHubModalVisible] = useState(false);
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
@@ -147,36 +144,6 @@ const LocalAgents: React.FC = () => {
         </Button>
       </div>
 
-      {process.env.NODE_ENV === 'development' && (
-        <div className='px-16px mt-8px'>
-          <div className='flex flex-col gap-14px rounded-16px border border-solid border-[rgba(var(--primary-6),0.18)] bg-[rgba(var(--primary-6),0.06)] p-16px md:flex-row md:items-center md:justify-between'>
-            <div className='flex items-center gap-12px'>
-              <div className='flex h-40px w-40px items-center justify-center leading-none rounded-12px border border-solid border-[rgba(var(--primary-6),0.12)] bg-[rgba(var(--primary-6),0.10)] text-primary-6 shadow-[inset_0_1px_0_rgba(255,255,255,0.28)]'>
-                <Home theme='outline' size='20' strokeWidth={2} className='block' />
-              </div>
-              <div className='min-w-0'>
-                <Typography.Text className='mb-4px block text-15px font-medium text-t-primary'>
-                  {t('settings.agentManagement.installFromMarket')}
-                </Typography.Text>
-                <Typography.Text className='block text-12px leading-18px text-t-secondary'>
-                  {t('settings.agentManagement.discoverMoreAgents')}
-                </Typography.Text>
-              </div>
-            </div>
-
-            <Button
-              type='primary'
-              size='small'
-              icon={<Plus size='14' />}
-              className='!rounded-10px md:!min-w-144px'
-              onClick={() => setHubModalVisible(true)}
-            >
-              {t('settings.agentManagement.installFromMarket')}
-            </Button>
-          </div>
-        </div>
-      )}
-
       {/* Detected Agents section */}
       <div className='px-16px mt-8px'>
         <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
@@ -201,13 +168,11 @@ const LocalAgents: React.FC = () => {
       )}
 
       {/* Custom Agents section */}
-      {(editorVisible || (customAgents && customAgents.length > 0)) && (
-        <div className='px-16px mt-16px'>
-          <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
-            {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
-          </Typography.Text>
-        </div>
-      )}
+      <div className='px-16px mt-16px'>
+        <Typography.Text className='text-12px font-medium text-t-secondary mb-4px block'>
+          {t('settings.agentManagement.customAgents', { defaultValue: 'Custom Agents' })}
+        </Typography.Text>
+      </div>
 
       <AionModal
         visible={editorVisible}
@@ -264,9 +229,14 @@ const LocalAgents: React.FC = () => {
             isTesting={testingAgentId === agent.id}
           />
         ))}
+        {customAgents.length === 0 ? (
+          <Typography.Text type='secondary' className='block px-16px py-12px text-center text-12px'>
+            {t('settings.agentManagement.customEmpty', {
+              defaultValue: 'No custom agents yet. Click "Detect Custom Agent" to create one.',
+            })}
+          </Typography.Text>
+        ) : null}
       </div>
-
-      {hubModalVisible && <AgentHubModal visible={hubModalVisible} onCancel={() => setHubModalVisible(false)} />}
     </div>
   );
 };

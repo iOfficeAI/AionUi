@@ -6,10 +6,10 @@
  * Unit tests for renderer/hooks/agent/useAgents.ts → useManagedAgents.
  *
  * The Agent settings management surface must read the
- * `include_disabled=true` view (a SEPARATE SWR key from the pickers) and,
- * when an agent is toggled, revalidate BOTH the management key and the
- * shared detected key — otherwise re-enabling an agent in settings would
- * not make it reappear in the pickers.
+ * `include_disabled=true` view (a SEPARATE SWR key from the shared detected
+ * cache) and, when an agent is toggled, revalidate BOTH keys so other
+ * diagnostics-oriented settings consumers immediately see the refreshed
+ * management state.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
