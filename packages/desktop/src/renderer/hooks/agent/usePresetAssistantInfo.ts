@@ -16,6 +16,7 @@ export interface PresetAssistantInfo {
   name: string;
   logo: string;
   isEmoji: boolean;
+  assistantId?: string;
 }
 
 /**
@@ -28,20 +29,18 @@ export interface PresetAssistantInfo {
  * - enabled_skills: Gemini Cowork 会话的旧格式
  */
 /**
- * Resolve the assistant config ID (preserving original prefix like 'builtin-').
- * Use this when matching against the backend assistant catalog
- * (`ipcBridge.assistants.list`).
+ * Resolve the explicit assistant identity stored on a conversation.
+ * Legacy `custom_agent_id` is excluded here because older ACP rows used it as
+ * a runtime row id, not an assistant id.
  */
 export function resolveAssistantConfigId(conversation: TChatConversation): string | null {
   const extra = conversation.extra as {
     assistant_id?: unknown;
     preset_assistant_id?: unknown;
-    custom_agent_id?: unknown;
   };
   const assistant_id = typeof extra?.assistant_id === 'string' ? extra.assistant_id.trim() : '';
   const preset_assistant_id = typeof extra?.preset_assistant_id === 'string' ? extra.preset_assistant_id.trim() : '';
-  const custom_agent_id = typeof extra?.custom_agent_id === 'string' ? extra.custom_agent_id.trim() : '';
-  return assistant_id || preset_assistant_id || custom_agent_id || null;
+  return assistant_id || preset_assistant_id || null;
 }
 
 export function resolvePresetId(conversation: TChatConversation): string | null {
@@ -212,7 +211,7 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
   const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
   const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
   const normalized = normalizeAvatar(avatar);
-  return { name, logo: normalized.logo, isEmoji: normalized.isEmoji };
+  return { name, logo: normalized.logo, isEmoji: normalized.isEmoji, assistantId: assistant.id };
 }
 
 function inferLegacyAssistantInfo(
