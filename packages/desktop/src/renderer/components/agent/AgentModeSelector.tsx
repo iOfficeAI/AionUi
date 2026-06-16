@@ -4,10 +4,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
-import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
-import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { useAgents } from '@/renderer/hooks/agent/useAgents';
+import {
+  getAgentModes,
+  getAgentModesFromHandshake,
+  supportsModeSwitch,
+  type AgentModeOption,
+} from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
 import { Dropdown, Menu, Message } from '@arco-design/web-react';
@@ -23,20 +27,6 @@ const configErrorMessageKey = (error: unknown) => {
   if (errorKind === 'config_update_in_progress') return 'agent.config.busy';
   return 'agent.config.failed';
 };
-
-/**
- * Extract mode options from cached ACP config_options.
- * Looks for a select-type option with category === 'mode' and converts
- * its choices to AgentModeOption[] format.
- */
-function extractModesFromConfigOptions(config_options: AcpSessionConfigOption[]): AgentModeOption[] {
-  const modeOption = config_options.find((opt) => opt.category === 'mode' && opt.type === 'select' && opt.options);
-  if (!modeOption?.options || modeOption.options.length === 0) return [];
-  return modeOption.options.map((opt) => ({
-    value: opt.value,
-    label: opt.name || opt.label || opt.value,
-  }));
-}
 
 export interface AgentModeSelectorProps {
   /** Agent backend type / 代理后端类型 */
@@ -107,7 +97,7 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
-  const [cachedModes, setCachedModes] = useState<AgentModeOption[]>([]);
+  const { agents } = useAgents();
   const runtimeConfig = useAcpConfigOptions({
     conversation_id: conversation_id ?? '',
     prepareRuntime: beforeRuntimeSync,
@@ -124,40 +114,19 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
     [runtimeMode?.options]
   );
 
-  // Load modes from cache: try top-level `acp.cachedModes` first (qoder, opencode),
-  // then fall back to `acp.cached_config_options` category=mode (codex)
-  useEffect(() => {
-    if (!backend) return;
+  const handshakeModes = useMemo(() => {
+    if (!backend) return [];
+    const agent = agents.find((item) => (item.backend ?? item.agent_type) === backend);
+    return getAgentModesFromHandshake(agent);
+  }, [agents, backend]);
 
-    const cachedModeConfig = configService.get('acp.cachedModes');
-    const session_modes = cachedModeConfig?.[backend];
-    if (session_modes?.available_modes && session_modes.available_modes.length > 0) {
-      setCachedModes(
-        session_modes.available_modes.map((m) => ({
-          value: m.id,
-          label: m.name ?? m.id,
-        }))
-      );
-      return;
-    }
-
-    const cached = configService.get('acp.cached_config_options');
-    const options = cached?.[backend];
-    if (Array.isArray(options)) {
-      const modes = extractModesFromConfigOptions(options as AcpSessionConfigOption[]);
-      if (modes.length > 0) {
-        setCachedModes(modes);
-      }
-    }
-  }, [backend]);
-
-  // Priority: observed config_options > dynamicModes (runtime) > cachedModes (from cache) > static fallback
+  // Priority: observed config_options > dynamicModes (runtime) > handshake modes > static fallback
   const modes = useMemo(() => {
     if (runtimeModes && runtimeModes.length > 0) return runtimeModes;
     if (dynamicModes && dynamicModes.length > 0) return dynamicModes;
-    if (cachedModes.length > 0) return cachedModes;
+    if (handshakeModes.length > 0) return handshakeModes;
     return getAgentModes(backend);
-  }, [runtimeModes, dynamicModes, cachedModes, backend]);
+  }, [runtimeModes, dynamicModes, handshakeModes, backend]);
   const defaultMode = modes[0]?.value ?? 'default';
   // Validate initialMode against available modes; fall back to backend's default
   // when the provided value doesn't match (e.g. opencode has 'build'/'plan', not 'default')

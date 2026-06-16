@@ -9,6 +9,8 @@ import {
   CODEX_MODE_NATIVE_FULL_ACCESS,
   CODEX_MODE_READ_ONLY,
 } from '@/common/types/codex/codexModes';
+import type { AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
+import type { AgentMetadata } from './agentTypes';
 
 /**
  * Agent mode option interface
@@ -21,6 +23,15 @@ export interface AgentModeOption {
   label: string;
   /** Optional description / 可选描述 */
   description?: string;
+}
+
+function extractModesFromConfigOptions(config_options: AcpSessionConfigOption[]): AgentModeOption[] {
+  const modeOption = config_options.find((opt) => opt.category === 'mode' && opt.type === 'select' && opt.options);
+  if (!modeOption?.options || modeOption.options.length === 0) return [];
+  return modeOption.options.map((opt) => ({
+    value: opt.value,
+    label: opt.name || opt.label || opt.value,
+  }));
 }
 
 /**
@@ -93,6 +104,27 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
 export function getAgentModes(backend: string | undefined): AgentModeOption[] {
   if (!backend) return [];
   return AGENT_MODES[backend] || [];
+}
+
+export function getAgentModesFromHandshake(agent?: Pick<AgentMetadata, 'handshake'>): AgentModeOption[] {
+  const sessionModes = agent?.handshake?.available_modes as AcpSessionModes | undefined;
+  if (sessionModes?.available_modes && sessionModes.available_modes.length > 0) {
+    return sessionModes.available_modes.map((mode) => ({
+      value: mode.id,
+      label: mode.name ?? mode.id,
+      description: mode.description ?? undefined,
+    }));
+  }
+
+  const configOptions = agent?.handshake?.config_options as AcpSessionConfigOption[] | undefined;
+  if (Array.isArray(configOptions)) {
+    const modes = extractModesFromConfigOptions(configOptions);
+    if (modes.length > 0) {
+      return modes;
+    }
+  }
+
+  return [];
 }
 
 /**
