@@ -2,7 +2,7 @@
  * Agent Settings Detection — E2E tests.
  *
  * Covers: LocalAgents component rendering, CLI agent detection,
- * Gemini presence, agent status, PresetManagement sync, refresh.
+ * Gemini presence, agent status, and refresh.
  */
 import { test, expect } from '../fixtures';
 import { goToSettings, expectUrlContains, expectBodyContainsAny, settingsSiderItemById } from '../helpers';

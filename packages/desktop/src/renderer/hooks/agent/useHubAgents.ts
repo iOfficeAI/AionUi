@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { mutate } from 'swr';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
-import { DETECTED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
+import { DETECTED_AGENTS_SWR_KEY, MANAGED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
@@ -44,10 +44,11 @@ export function useHubAgents() {
         })
       );
 
-      // After install completes, revalidate agent list so home page & settings reflect new agent
+      // After install completes, revalidate agent caches so assistant/editor
+      // pickers and the Agent settings diagnostics page reflect the new tool.
       if (payload.status === 'installed') {
         mutate(DETECTED_AGENTS_SWR_KEY);
-        mutate('acp.agents.available.settings');
+        mutate(MANAGED_AGENTS_SWR_KEY);
       }
     });
 
