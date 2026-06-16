@@ -19,9 +19,13 @@ vi.mock('react-i18next', () => ({
 }));
 
 const navigate = vi.fn();
-vi.mock('react-router-dom', () => ({
-  useNavigate: () => navigate,
-}));
+vi.mock('react-router-dom', async () => {
+  const actual = await vi.importActual<typeof import('react-router-dom')>('react-router-dom');
+  return {
+    ...actual,
+    useNavigate: () => navigate,
+  };
+});
 
 const { messageSuccess, messageWarning, messageError } = vi.hoisted(() => ({
   messageSuccess: vi.fn(),
@@ -33,6 +37,14 @@ vi.mock('@arco-design/web-react', async () => {
   return {
     ...actual,
     Message: {
+      useMessage: () => [
+        {
+          success: messageSuccess,
+          warning: messageWarning,
+          error: messageError,
+        },
+        null,
+      ],
       success: messageSuccess,
       warning: messageWarning,
       error: messageError,
@@ -66,7 +78,10 @@ vi.mock('@renderer/pages/settings/AgentSettings/InlineAgentEditor', () => ({ def
 vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHubModal: () => null }));
 
 import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
+import AgentModalContent from '@renderer/components/settings/SettingsModal/contents/AgentModalContent';
+import { SettingsViewModeProvider } from '@renderer/components/settings/SettingsModal/settingsViewContext';
 import { ipcBridge } from '@/common';
+import { MemoryRouter } from 'react-router-dom';
 
 const makeAgents = () => [
   {
@@ -176,5 +191,20 @@ describe('LocalAgents', () => {
 
     expect(screen.queryByText('settings.agentManagement.installFromMarket')).toBeNull();
     expect(screen.queryByText('settings.agentManagement.discoverMoreAgents')).toBeNull();
+  });
+
+  it('renders agent management as a single diagnostics page without local/remote tabs', () => {
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+
+    render(
+      <MemoryRouter initialEntries={['/settings/agents?tab=remote']}>
+        <SettingsViewModeProvider value='page'>
+          <AgentModalContent />
+        </SettingsViewModeProvider>
+      </MemoryRouter>
+    );
+
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+    expect(screen.queryByText('settings.agentManagement.localAgents')).toBeNull();
   });
 });
