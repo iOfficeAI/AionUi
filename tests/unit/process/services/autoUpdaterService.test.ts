@@ -4,6 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import path from 'path';
+
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const autoUpdaterMock = vi.hoisted(() => ({
@@ -251,7 +253,8 @@ describe('AutoUpdaterService', () => {
       url: new URL('https://static.aionui.com/releases/2.1.14/AionUi-2.1.14-mac.zip'),
       info: { url: 'AionUi-2.1.14-mac.zip', sha512: 'sha512-value' },
     };
-    const validateDownloadedPath = vi.fn().mockResolvedValue('/cache/pending/AionUi-2.1.14-mac.zip');
+    const cachedUpdatePath = path.join('/cache/pending', 'AionUi-2.1.14-mac.zip');
+    const validateDownloadedPath = vi.fn().mockResolvedValue(cachedUpdatePath);
 
     autoUpdaterMock.checkForUpdates.mockImplementation(async () => {
       (autoUpdaterMock as { updateInfoAndProvider?: unknown }).updateInfoAndProvider = {
@@ -275,15 +278,10 @@ describe('AutoUpdaterService', () => {
         ready: true,
         version: '2.1.14',
         currentVersion: '2.1.13',
-        filePath: '/cache/pending/AionUi-2.1.14-mac.zip',
+        filePath: cachedUpdatePath,
       },
     });
-    expect(validateDownloadedPath).toHaveBeenCalledWith(
-      '/cache/pending/AionUi-2.1.14-mac.zip',
-      updateInfo,
-      fileInfo,
-      expect.anything()
-    );
+    expect(validateDownloadedPath).toHaveBeenCalledWith(cachedUpdatePath, updateInfo, fileInfo, expect.anything());
     expect(autoUpdaterMock.downloadUpdate).toHaveBeenCalledTimes(1);
   });
 
