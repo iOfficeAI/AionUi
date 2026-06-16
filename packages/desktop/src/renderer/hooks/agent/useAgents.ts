@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { AgentMetadata, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import {
   DETECTED_AGENTS_SWR_KEY,
   MANAGED_AGENTS_SWR_KEY,
@@ -21,6 +21,14 @@ export type UseAgentsResult = {
   /** Force re-fetch of `/api/agents` and broadcast to all subscribers. */
   revalidate: () => Promise<AgentMetadata[] | undefined>;
   /** POST `/api/agents/refresh` then revalidate — use this for explicit "refresh" buttons. */
+  refreshCustomAgents: () => Promise<void>;
+};
+
+export type UseManagedAgentsResult = {
+  agents: ManagedAgent[];
+  isLoading: boolean;
+  error: unknown;
+  revalidate: () => Promise<ManagedAgent[] | undefined>;
   refreshCustomAgents: () => Promise<void>;
 };
 
@@ -47,9 +55,10 @@ export const useAgents = (): UseAgentsResult => {
 };
 
 /**
- * Hook for the Agent settings management surface only. Reads the
- * `include_disabled=true` view (`MANAGED_AGENTS_SWR_KEY`) so user-disabled
- * custom agents stay listed with a working re-enable toggle.
+ * Hook for the Agent settings management surface only. Reads the dedicated
+ * `/api/agents/management` diagnostics view (`MANAGED_AGENTS_SWR_KEY`) so
+ * user-disabled or missing agents stay listed with working test-connection
+ * and re-enable actions.
  *
  * Its `revalidate` refreshes **both** the management key and the shared
  * `DETECTED_AGENTS_SWR_KEY`, so diagnostics-oriented settings surfaces that
@@ -58,12 +67,12 @@ export const useAgents = (): UseAgentsResult => {
  *
  * Do not use this anywhere other than `AgentSettings`.
  */
-export const useManagedAgents = (): UseAgentsResult => {
-  const { data, isLoading, error } = useSWR<AgentMetadata[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
+export const useManagedAgents = (): UseManagedAgentsResult => {
+  const { data, isLoading, error } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
 
   const revalidateBoth = async () => {
     const [managed] = await Promise.all([
-      mutate<AgentMetadata[]>(MANAGED_AGENTS_SWR_KEY),
+      mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY),
       mutate(DETECTED_AGENTS_SWR_KEY),
     ]);
     return managed;

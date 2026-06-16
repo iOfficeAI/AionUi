@@ -30,11 +30,11 @@ const renderCustom = (enabled: boolean, handlers: Partial<{ onToggle: (v: boolea
   render(
     <AgentCard
       type='custom'
-      agent={{ ...baseAgent, enabled }}
-      onGoToChat={vi.fn()}
+      agent={{ ...baseAgent, enabled, agent_type: 'acp', agent_source: 'custom', installed: true, status: 'available' }}
       onEdit={vi.fn()}
       onDelete={vi.fn()}
       onToggle={handlers.onToggle ?? vi.fn()}
+      onTestConnection={vi.fn()}
     />
   );
 
@@ -77,7 +77,10 @@ describe('AgentCard (official variant)', () => {
           id: 'claude',
           name: 'Claude Code',
           agent_type: 'acp',
+          agent_source: 'builtin',
           backend: 'claude',
+          enabled: true,
+          installed: false,
           status: 'missing',
           last_check_error_message: 'CLI command not found',
           last_check_guidance: 'Install Claude Code locally to continue.',

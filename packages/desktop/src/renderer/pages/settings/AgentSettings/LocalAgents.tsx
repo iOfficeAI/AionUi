@@ -5,7 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
+import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
 import AionModal from '@/renderer/components/base/AionModal';
 import { useManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { Button, Message, Typography } from '@arco-design/web-react';
@@ -28,10 +28,10 @@ const LocalAgents: React.FC = () => {
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
   );
 
-  const customAgents: AgentMetadata[] = allAgents.filter((a) => a.agent_source === 'custom');
+  const customAgents: ManagedAgent[] = allAgents.filter((a) => a.agent_source === 'custom');
 
   const [editorVisible, setEditorVisible] = useState(false);
-  const [editingAgent, setEditingAgent] = useState<AgentMetadata | null>(null);
+  const [editingAgent, setEditingAgent] = useState<ManagedAgent | null>(null);
 
   const handleSaveCustomAgent = useCallback(
     async (draft: CustomAgentDraft) => {

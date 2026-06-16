@@ -79,6 +79,7 @@ export type AgentHandshake = {
 export type AgentMetadata = {
   id: string;
   icon?: string;
+  avatar?: string;
   custom_agent_id?: string;
   name: string;
   name_i18n?: Record<string, string>;
@@ -129,6 +130,18 @@ export type AgentMetadata = {
   handshake?: AgentHandshake;
 };
 
+/**
+ * Agent Settings diagnostics row returned by `/api/agents/management`.
+ *
+ * This is intentionally separate from `AgentMetadata`: the management surface
+ * needs disabled/missing rows plus health-check snapshots, while business
+ * pickers should continue to consume `/api/agents` only.
+ */
+export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
+  installed: boolean;
+  status: AgentManagementStatus;
+};
+
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
 export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
@@ -144,15 +157,16 @@ export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
 
 /**
  * Fetcher for MANAGED_AGENTS_SWR_KEY — the Agent settings management view.
- * Hits `/api/agents?include_disabled=true` so user-disabled-but-installed
- * agents stay listed (greyed, with a working re-enable toggle). Must only
- * be used by the settings surface; pickers use {@link fetchDetectedAgents}.
+ * Hits `/api/agents/management` so user-disabled and missing rows remain
+ * visible for diagnostics and re-enable/test-connection actions. Must only be
+ * used by the settings surface; business pickers use
+ * {@link fetchDetectedAgents}.
  */
-export async function fetchManagedAgents(): Promise<AgentMetadata[]> {
+export async function fetchManagedAgents(): Promise<ManagedAgent[]> {
   try {
     const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return agents as ManagedAgent[];
     }
   } catch {
     // fallback to empty

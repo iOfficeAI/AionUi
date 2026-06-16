@@ -10,50 +10,18 @@ import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import type { AgentManagementStatus } from '@/renderer/utils/model/agentTypes';
-
-type DetectedAgent = {
-  agent_type: string;
-  backend?: string;
-  icon?: string;
-  name: string;
-  id: string;
-  custom_agent_id?: string;
-  isExtension?: boolean;
-  status?: AgentManagementStatus;
-  last_check_error_message?: string;
-  last_check_guidance?: string;
-  avatar?: string;
-};
-
-/** Minimal custom-agent fields consumed by the 'custom' card variant. */
-type CustomAgentCardData = {
-  id: string;
-  name: string;
-  agent_type?: string;
-  backend?: string;
-  /** User-picked emoji or avatar URL (maps to `AgentMetadata.icon`). */
-  icon?: string;
-  /** Spawn command for the CLI. */
-  command?: string;
-  /** Launch arguments for the CLI. */
-  args?: string[];
-  enabled: boolean;
-  status?: AgentManagementStatus;
-  last_check_error_message?: string;
-  last_check_guidance?: string;
-};
+import type { AgentManagementStatus, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
 type AgentCardProps =
   | {
       type: 'official';
-      agent: DetectedAgent;
+      agent: ManagedAgent;
       onTestConnection: () => void;
       isTesting?: boolean;
     }
   | {
       type: 'custom';
-      agent: CustomAgentCardData;
+      agent: ManagedAgent;
       onTestConnection: () => void;
       onEdit: () => void;
       onDelete: () => void;
