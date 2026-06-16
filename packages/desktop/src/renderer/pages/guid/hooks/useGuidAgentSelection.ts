@@ -6,14 +6,10 @@
 
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
-import type { IProvider } from '@/common/config/storage';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { configService } from '@/common/config/configService';
-import type { AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { AcpModelInfo } from '../types';
-import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { getAgentModes } from '@/renderer/utils/model/agentModes';
-import { useAgents } from '@/renderer/hooks/agent/useAgents';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { savePreferredMode, savePreferredModelId } from './agentSelectionUtils';
 import { useCustomAgentsLoader } from './useCustomAgentsLoader';
@@ -33,21 +29,53 @@ export type GuidAgentSelectionResult = {
   currentAcpCachedModelInfo: AcpModelInfo | null;
 };
 
-function resolveDefaultMode(backend: string | undefined, agents: AgentMetadata[] | undefined): string {
+function resolveDefaultMode(backend: string | undefined): string {
   if (!backend) return 'default';
-
-  const matched = agents?.find((a) => (a.backend ?? a.agent_type) === backend);
-  const handshakeModes = matched?.handshake?.available_modes as AcpSessionModes | undefined;
-  if (handshakeModes) {
-    if (handshakeModes.current_mode_id) return handshakeModes.current_mode_id;
-    const first = handshakeModes.available_modes?.[0]?.id;
-    if (first) return first;
-  }
 
   const staticModes = getAgentModes(backend);
   if (staticModes.length > 0) return staticModes[0].value;
 
   return 'default';
+}
+
+export function resolveInitialAssistantModel(
+  backend: string,
+  models: string[],
+  preferredModelId?: string
+): string | null {
+  if (preferredModelId && models.includes(preferredModelId)) {
+    return preferredModelId;
+  }
+
+  if (models.length > 0) {
+    return models[0];
+  }
+
+  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+    return DEFAULT_CODEX_MODELS[0]?.id ?? null;
+  }
+
+  return null;
+}
+
+export function buildAssistantModelInfo(backend: string, models: string[]): AcpModelInfo | null {
+  if (models.length > 0) {
+    return {
+      current_model_id: models[0],
+      current_model_label: models[0],
+      available_models: models.map((model) => ({ id: model, label: model })),
+    } satisfies AcpModelInfo;
+  }
+
+  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
+    return {
+      current_model_id: DEFAULT_CODEX_MODELS[0].id,
+      current_model_label: DEFAULT_CODEX_MODELS[0].label,
+      available_models: DEFAULT_CODEX_MODELS.map((model) => ({ id: model.id, label: model.label })),
+    } satisfies AcpModelInfo;
+  }
+
+  return null;
 }
 
 export function resolveAssistantSelectionKey(
@@ -79,16 +107,12 @@ export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): strin
 }
 
 type UseGuidAgentSelectionOptions = {
-  modelList: IProvider[];
-  isGoogleAuth: boolean;
   resetAssistant?: boolean;
   preselectAgentKey?: string;
   locationKey?: string;
 };
 
 export const useGuidAgentSelection = ({
-  modelList,
-  isGoogleAuth,
   resetAssistant,
   preselectAgentKey,
   locationKey,
@@ -103,21 +127,7 @@ export const useGuidAgentSelection = ({
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const selectedBackendRef = useRef<string | null>(null);
-  const { agents } = useAgents();
-
-  const availableCustomAgentIds = useMemo(() => {
-    const ids = new Set<string>();
-    agents.forEach((agent) => {
-      if (agent.agent_source === 'custom' && agent.id) {
-        ids.add(agent.id);
-      } else if (agent.custom_agent_id) {
-        ids.add(agent.custom_agent_id);
-      }
-    });
-    return ids;
-  }, [agents]);
-
-  const { assistants } = useCustomAgentsLoader({ availableCustomAgentIds });
+  const { assistants } = useCustomAgentsLoader();
 
   const setSelectedMode = useCallback(
     (mode: React.SetStateAction<string>, options?: { persistPreference?: boolean }) => {
@@ -229,13 +239,11 @@ export const useGuidAgentSelection = ({
   );
   const selectedAssistantId = selectedAssistant?.id ?? null;
   const selectedAssistantBackend = selectedAssistant?.preset_agent_type || 'aionrs';
+  const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const selectedAssistantAvailable = useMemo(() => {
-    if (selectedAssistantBackend === 'gemini') {
-      return isGoogleAuth || modelList.length > 0;
-    }
-    return agents.some((agent) => (agent.backend ?? agent.agent_type) === selectedAssistantBackend);
-  }, [agents, isGoogleAuth, modelList, selectedAssistantBackend]);
+    return selectedAssistant?.agent_status === 'available';
+  }, [selectedAssistant]);
 
   useEffect(() => {
     const backend = selectedAssistantBackend;
@@ -245,20 +253,13 @@ export const useGuidAgentSelection = ({
     const preferredModelId = (config?.[backend] as Record<string, unknown> | undefined)?.preferredModelId as
       | string
       | undefined;
-    if (preferredModelId) {
-      _setSelectedAcpModel(preferredModelId);
-      return;
-    }
-
-    const matched = agents.find((agent) => (agent.backend ?? agent.agent_type) === backend);
-    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    _setSelectedAcpModel(handshakeModels?.current_model_id ?? null);
-  }, [agents, selectedAssistantBackend]);
+    _setSelectedAcpModel(resolveInitialAssistantModel(backend, selectedAssistantModels, preferredModelId));
+  }, [selectedAssistantBackend, selectedAssistantModels]);
 
   useEffect(() => {
     const backend = selectedAssistantBackend;
     selectedBackendRef.current = backend;
-    const fallbackMode = resolveDefaultMode(backend, agents);
+    const fallbackMode = resolveDefaultMode(backend);
     _setSelectedMode(fallbackMode);
 
     let cancelled = false;
@@ -308,30 +309,11 @@ export const useGuidAgentSelection = ({
     return () => {
       cancelled = true;
     };
-  }, [agents, selectedAssistantBackend]);
+  }, [selectedAssistantBackend]);
 
   const currentAcpCachedModelInfo = useMemo(() => {
-    const backend = selectedAssistantBackend;
-    const matched = agents.find((agent) => (agent.backend ?? agent.agent_type) === backend);
-    const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-    if (
-      handshakeModels &&
-      Array.isArray(handshakeModels.available_models) &&
-      handshakeModels.available_models.length > 0
-    ) {
-      return handshakeModels;
-    }
-
-    if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-      return {
-        current_model_id: DEFAULT_CODEX_MODELS[0].id,
-        current_model_label: DEFAULT_CODEX_MODELS[0].label,
-        available_models: DEFAULT_CODEX_MODELS.map((model) => ({ id: model.id, label: model.label })),
-      } satisfies AcpModelInfo;
-    }
-
-    return null;
-  }, [agents, selectedAssistantBackend]);
+    return buildAssistantModelInfo(selectedAssistantBackend, selectedAssistantModels);
+  }, [selectedAssistantBackend, selectedAssistantModels]);
 
   const defaultAssistantId = useMemo(() => pickDefaultAssistantSelectionKey(assistants), [assistants]);
 

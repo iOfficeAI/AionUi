@@ -124,8 +124,6 @@ const GuidPage: React.FC = () => {
   const resetAssistantRequested = navState?.resetAssistant === true;
   const preselectAssistantId = navState?.selectedAssistantId || navState?.selectedAgentKey;
   const agentSelection = useGuidAgentSelection({
-    modelList: modelSelection.modelList,
-    isGoogleAuth: modelSelection.isGoogleAuth,
     resetAssistant: resetAssistantRequested,
     preselectAgentKey: preselectAssistantId,
     locationKey: location.key,
