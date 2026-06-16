@@ -1,0 +1,59 @@
+import React from 'react';
+import { render, screen } from '@testing-library/react';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+
+const useSWRMock = vi.fn();
+const usePresetAssistantInfoMock = vi.fn();
+const getConversationOrNullMock = vi.fn();
+
+vi.mock('swr', () => ({
+  __esModule: true,
+  default: (...args: unknown[]) => useSWRMock(...args),
+}));
+
+vi.mock('@/renderer/hooks/agent/usePresetAssistantInfo', () => ({
+  usePresetAssistantInfo: (...args: unknown[]) => usePresetAssistantInfoMock(...args),
+}));
+
+vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
+  getConversationOrNull: (...args: unknown[]) => getConversationOrNullMock(...args),
+}));
+
+vi.mock('@renderer/utils/model/agentLogo', () => ({
+  getAgentLogo: () => null,
+}));
+
+vi.mock('@renderer/utils/platform', () => ({
+  resolveBackendAssetUrl: (value: string | undefined) => value,
+}));
+
+import TeamAgentIdentity from '@/renderer/pages/team/components/TeamAgentIdentity';
+
+describe('TeamAgentIdentity', () => {
+  beforeEach(() => {
+    useSWRMock.mockReset();
+    usePresetAssistantInfoMock.mockReset();
+    getConversationOrNullMock.mockReset();
+  });
+
+  it('prefers preset assistant name over legacy runtime agent name when conversation identity exists', () => {
+    useSWRMock.mockReturnValue({ data: { id: 'conv-1' } });
+    usePresetAssistantInfoMock.mockReturnValue({
+      info: { name: 'Writer Assistant', logo: '✍️', isEmoji: true },
+    });
+
+    render(<TeamAgentIdentity agent_name='Legacy Runtime Name' agent_type='claude' conversation_id='conv-1' />);
+
+    expect(screen.getByText('Writer Assistant')).toBeInTheDocument();
+    expect(screen.queryByText('Legacy Runtime Name')).not.toBeInTheDocument();
+  });
+
+  it('falls back to the runtime name when no preset assistant info exists', () => {
+    useSWRMock.mockReturnValue({ data: { id: 'conv-1' } });
+    usePresetAssistantInfoMock.mockReturnValue({ info: null });
+
+    render(<TeamAgentIdentity agent_name='Legacy Runtime Name' agent_type='claude' conversation_id='conv-1' />);
+
+    expect(screen.getByText('Legacy Runtime Name')).toBeInTheDocument();
+  });
+});

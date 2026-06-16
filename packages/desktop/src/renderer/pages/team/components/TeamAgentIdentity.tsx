@@ -37,6 +37,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
     getConversationOrNull(conversation_id!)
   );
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
+  const displayName = presetInfo?.name || agent_name;
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(agent_type);
 
@@ -51,15 +52,15 @@ const TeamAgentIdentity: React.FC<Props> = ({
       if (presetInfo.isEmoji) {
         return <span className={resolvedAvatarClassName}>{presetInfo.logo}</span>;
       }
-      return <img src={presetInfo.logo} alt={presetInfo.name} className={resolvedLogoClassName} />;
+      return <img src={presetInfo.logo} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (explicitLogo) {
-      return <img src={explicitLogo} alt={agent_name} className={resolvedLogoClassName} />;
+      return <img src={explicitLogo} alt={displayName} className={resolvedLogoClassName} />;
     }
     if (backendLogo) {
-      return <img src={backendLogo} alt={agent_type} className={resolvedLogoClassName} />;
+      return <img src={backendLogo} alt={displayName} className={resolvedLogoClassName} />;
     }
-    return <span className={resolvedAvatarClassName}>{agent_name.charAt(0).toUpperCase() || '🤖'}</span>;
+    return <span className={resolvedAvatarClassName}>{displayName.charAt(0).toUpperCase() || '🤖'}</span>;
   };
 
   const crownIcon = (
@@ -85,7 +86,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   return (
     <div className={['flex items-center gap-8px', className].filter(Boolean).join(' ')}>
       {renderAvatar()}
-      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{agent_name}</span>
+      <span className={['min-w-0 flex-1 truncate', nameClassName].filter(Boolean).join(' ')}>{displayName}</span>
       {isLeader && (
         <span
           data-testid='team-leader-crown'
