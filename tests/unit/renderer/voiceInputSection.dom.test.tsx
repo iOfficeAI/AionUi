@@ -10,12 +10,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 
 const configStore: { value?: SpeechToTextConfig } = {};
+const speechSettingsMocks = vi.hoisted(() => ({
+  getClientBusinessSetting: vi.fn(),
+  setClientBusinessSetting: vi.fn(() => Promise.resolve()),
+}));
 
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: vi.fn(() => configStore.value),
-    set: vi.fn(() => Promise.resolve()),
-  },
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: speechSettingsMocks.getClientBusinessSetting,
+  setClientBusinessSetting: speechSettingsMocks.setClientBusinessSetting,
+  removeClientBusinessSetting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('react-i18next', () => ({
@@ -27,6 +30,8 @@ import VoiceInputSection from '@/renderer/components/settings/SettingsModal/cont
 describe('VoiceInputSection', () => {
   beforeEach(() => {
     configStore.value = undefined;
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(undefined);
+    speechSettingsMocks.setClientBusinessSetting.mockResolvedValue(undefined);
     // jsdom does not implement matchMedia; arco-design's responsive Grid needs it
     Object.defineProperty(window, 'matchMedia', {
       writable: true,
@@ -55,6 +60,7 @@ describe('VoiceInputSection', () => {
       provider: 'openai',
       openai: { api_key: 'k', base_url: '', model: 'gpt-4o-transcribe', language: '' },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextSource')).toBeTruthy());
     expect(screen.queryByText('settings.speechToTextBaseUrl')).toBeNull();
@@ -67,6 +73,7 @@ describe('VoiceInputSection', () => {
       provider: 'openai',
       openai: { api_key: 'k', base_url: 'https://my-host/v1', model: 'my-model', language: '' },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextBaseUrl')).toBeTruthy());
   });
@@ -77,6 +84,7 @@ describe('VoiceInputSection', () => {
       provider: 'openai',
       openai: { api_key: '', base_url: '', model: 'gpt-4o-transcribe', language: '' },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextSource')).toBeTruthy());
 
@@ -99,6 +107,7 @@ describe('VoiceInputSection', () => {
       provider: 'openai',
       openai: { api_key: 'k', base_url: '', model: 'gpt-4o-transcribe', language: '' },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextSource')).toBeTruthy());
 
@@ -122,6 +131,7 @@ describe('VoiceInputSection', () => {
       provider: 'openai',
       openai: { api_key: 'k', base_url: '', model: 'whisper-1', language: 'zh' },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextLanguage')).toBeTruthy());
     // The language select displays the migrated zh-CN option label.
@@ -141,6 +151,7 @@ describe('VoiceInputSection', () => {
         smartFormat: true,
       },
     };
+    speechSettingsMocks.getClientBusinessSetting.mockResolvedValue(configStore.value);
     render(<VoiceInputSection />);
     await waitFor(() => expect(screen.getByText('settings.speechToTextLanguage')).toBeTruthy());
     expect(screen.queryByText('settings.speechToTextBaseUrl')).toBeNull();

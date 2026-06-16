@@ -4,9 +4,9 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import { getSpeechInputErrorMessageKey, useSpeechInput } from '@/renderer/hooks/system/useSpeechInput';
+import { setClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import { Alert, Button } from '@arco-design/web-react';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
@@ -90,7 +90,7 @@ const SpeechTestPanel: React.FC<SpeechTestPanelProps> = ({ config, source }) => 
     }
 
     // The backend /api/stt reads the persisted config, so flush before testing.
-    await configService.set('tools.speechToText', config);
+    await setClientBusinessSetting('tools.speechToText', config);
 
     startedAtRef.current = Date.now();
     if (availability === 'file') {

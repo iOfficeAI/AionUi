@@ -5,10 +5,10 @@
  */
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { configService } from '@/common/config/configService';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
 import { transcribeAudioBlob } from '@/renderer/services/SpeechToTextService';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import {
   AudioWorkletUnavailableError,
   createPcmRecorder,
@@ -643,7 +643,7 @@ export const useSpeechInput = ({ onLiveTranscript, onTranscript }: UseSpeechInpu
       return;
     }
 
-    const speechConfig = configService.get('tools.speechToText');
+    const speechConfig = await getClientBusinessSetting('tools.speechToText');
     if (speechConfig && shouldTryStreaming(speechConfig)) {
       const handled = await startStreamingSession(speechConfig);
       if (handled) {

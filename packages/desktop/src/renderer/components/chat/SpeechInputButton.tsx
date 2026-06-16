@@ -4,11 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import { Message, Button, Tooltip } from '@arco-design/web-react';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { SPEECH_TO_TEXT_CONFIG_CHANGED_EVENT } from '@/renderer/services/SpeechToTextService';
+import { getClientBusinessSetting } from '@/renderer/services/clientBusinessSettings';
 import {
   getSpeechInputErrorMessageKey,
   useSpeechInput,
@@ -106,7 +106,7 @@ const SpeechInputButton: React.FC<SpeechInputButtonProps> = ({ disabled, onLiveT
 
     const syncSpeechToTextEnabled = async () => {
       try {
-        const config = configService.get('tools.speechToText');
+        const config = await getClientBusinessSetting('tools.speechToText');
         if (cancelled) {
           return;
         }

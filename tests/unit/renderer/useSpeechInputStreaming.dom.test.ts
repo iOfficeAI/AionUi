@@ -25,9 +25,9 @@ const mocks = vi.hoisted(() => {
   }
   return {
     AudioWorkletUnavailableError,
-    configGet: vi.fn(),
     createPcmRecorder: vi.fn(),
     encodeWavPcm16: vi.fn(),
+    getClientBusinessSetting: vi.fn(),
     rememberStreamUnsupported: vi.fn(),
     shouldTryStreaming: vi.fn(),
     startSpeechStream: vi.fn(),
@@ -35,8 +35,10 @@ const mocks = vi.hoisted(() => {
   };
 });
 
-vi.mock('@/common/config/configService', () => ({
-  configService: { get: mocks.configGet, set: vi.fn(() => Promise.resolve()) },
+vi.mock('@/renderer/services/clientBusinessSettings', () => ({
+  getClientBusinessSetting: mocks.getClientBusinessSetting,
+  setClientBusinessSetting: vi.fn(() => Promise.resolve()),
+  removeClientBusinessSetting: vi.fn(() => Promise.resolve()),
 }));
 
 vi.mock('@/renderer/services/SpeechToTextService', () => ({
@@ -145,7 +147,7 @@ beforeEach(() => {
     value: { getUserMedia },
   });
   vi.stubGlobal('MediaRecorder', FakeMediaRecorder);
-  mocks.configGet.mockReturnValue(makeConfig());
+  mocks.getClientBusinessSetting.mockResolvedValue(makeConfig());
   mocks.shouldTryStreaming.mockReturnValue(true);
   mocks.transcribeAudioBlob.mockResolvedValue({ model: 'm', provider: 'openai', text: 'fallback text' });
   mocks.encodeWavPcm16.mockReturnValue(new Blob(['wav'], { type: 'audio/wav' }));
