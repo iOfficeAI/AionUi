@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { SectionCard } from './editorSectionPrimitives';
 
 type RulesSectionProps = {
-  isBuiltin: boolean;
+  isReadOnly: boolean;
   promptViewMode: 'edit' | 'preview';
   setPromptViewMode: (value: 'edit' | 'preview') => void;
   rulesExpanded: boolean;
@@ -17,7 +17,7 @@ type RulesSectionProps = {
 };
 
 const RulesSection: React.FC<RulesSectionProps> = ({
-  isBuiltin,
+  isReadOnly,
   promptViewMode,
   setPromptViewMode,
   rulesExpanded,
@@ -28,7 +28,7 @@ const RulesSection: React.FC<RulesSectionProps> = ({
   readOnlyLabel,
 }) => {
   const { t } = useTranslation();
-  const isRuleEditable = !isBuiltin;
+  const isRuleEditable = !isReadOnly;
 
   return (
     <SectionCard
@@ -40,7 +40,7 @@ const RulesSection: React.FC<RulesSectionProps> = ({
       readOnlyLabel={readOnlyLabel}
       extra={
         <div className='flex items-center gap-6px'>
-          {isBuiltin ? (
+          {isReadOnly ? (
             <span className='rounded-8px bg-fill-1 px-8px py-3px text-10px font-500 text-t-tertiary'>
               {readOnlyLabel}
             </span>

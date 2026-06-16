@@ -20,7 +20,9 @@ const renderSummaryTag = ({ label }: { label: React.ReactNode }) => (
 );
 
 type DefaultsSectionProps = {
+  localeKey: string;
   isBuiltin: boolean;
+  isReadOnlyAssistant: boolean;
   isCreating: boolean;
   showSkills: boolean;
   defaultModelMode: 'auto' | 'fixed';
@@ -49,7 +51,9 @@ type DefaultsSectionProps = {
 };
 
 const DefaultsSection: React.FC<DefaultsSectionProps> = ({
+  localeKey,
   isBuiltin,
+  isReadOnlyAssistant,
   showSkills,
   defaultModelMode,
   setDefaultModelMode,
@@ -77,8 +81,8 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
-  const canEditDefaultModelAndPermission = true;
-  const canEditDefaultSkillsAndMcps = !isBuiltin;
+  const canEditDefaultModelAndPermission = !isReadOnlyAssistant || isBuiltin;
+  const canEditDefaultSkillsAndMcps = !isReadOnlyAssistant;
 
   return (
     <SectionCard
@@ -98,6 +102,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
           })}
         >
           <Select
+            key={`assistant-default-model-${localeKey}`}
             getPopupContainer={getEditorSelectPopupContainer}
             value={defaultModelMode === 'fixed' && defaultModelValue ? defaultModelValue : AUTO_SELECT_VALUE}
             onChange={(value) => {
@@ -129,6 +134,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
 
         <ConfigRow label={t('settings.assistantDefaultPermissionLabel', { defaultValue: 'Default Permission' })}>
           <Select
+            key={`assistant-default-permission-${localeKey}-${defaultPermissionMode}`}
             getPopupContainer={getEditorSelectPopupContainer}
             value={
               defaultPermissionMode === 'fixed' && defaultPermissionValue ? defaultPermissionValue : AUTO_SELECT_VALUE

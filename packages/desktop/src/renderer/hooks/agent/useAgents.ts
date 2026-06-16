@@ -87,7 +87,7 @@ export const useManagedAgents = (): UseAgentsResult => {
  * via `useAgents()` stays in sync.
  *
  * Note: this call always hits the network. That's fine because the handful
- * of non-React call sites (`createConversationParams`, `teamCreateModelResolver`)
+ * of non-React call sites (`createConversationParams`)
  * only fire on specific user actions, not on every render.
  */
 export async function getAgents(): Promise<AgentMetadata[]> {

@@ -26,7 +26,10 @@ type AssistantScalarDefaultMode = 'auto' | 'fixed';
 type AssistantSkillsDefaultMode = 'auto' | 'fixed';
 type AssistantMcpDefaultMode = 'auto' | 'fixed';
 
+const isSystemAssistant = (assistant: Assistant | null | undefined): boolean =>
+  assistant?.source === 'builtin' || assistant?.source === 'bare';
 const isBuiltinAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'builtin';
+const isBareAssistant = (assistant: Assistant | null | undefined): boolean => assistant?.source === 'bare';
 
 const resolveLocalizedRecommendedPrompts = (
   detail: Awaited<ReturnType<typeof ipcBridge.assistants.get.invoke>>,
@@ -207,7 +210,7 @@ export const useAssistantEditor = ({
     setIsCreating(false);
     setActiveAssistantId(assistant.id);
     setEditVisible(true);
-    setPromptViewMode(isBuiltinAssistant(assistant) ? 'preview' : 'edit');
+    setPromptViewMode(isSystemAssistant(assistant) ? 'preview' : 'edit');
     setEditName(assistant.name || '');
     setEditDescription(assistant.description || '');
     setEditAvatar(assistant.avatar || '');
@@ -245,7 +248,7 @@ export const useAssistantEditor = ({
       setBuiltinAutoSkills(autoSkills);
       setAvailableMcpServers(mcpServers);
       setSelectedSkills(detail.capabilities.default_skill_ids ?? []);
-      setCustomSkills(isBuiltinAssistant(assistant) ? [] : (detail.capabilities.custom_skill_names ?? []));
+      setCustomSkills(isSystemAssistant(assistant) ? [] : (detail.capabilities.custom_skill_names ?? []));
       setDisabledBuiltinSkills(detail.capabilities.default_disabled_builtin_skill_ids ?? []);
     } catch (error) {
       console.error('Failed to load assistant detail:', error);
@@ -433,6 +436,10 @@ export const useAssistantEditor = ({
       } else {
         if (!activeAssistant) return;
 
+        if (isBareAssistant(activeAssistant)) {
+          return;
+        }
+
         const updateRequest: UpdateAssistantRequest = isBuiltinAssistant(activeAssistant)
           ? {
               id: activeAssistant.id,
@@ -483,7 +490,7 @@ export const useAssistantEditor = ({
   const handleDeleteClick = () => {
     if (!activeAssistant) return;
 
-    if (isBuiltinAssistant(activeAssistant)) {
+    if (activeAssistant?.source !== 'user') {
       message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
       return;
     }
@@ -494,7 +501,7 @@ export const useAssistantEditor = ({
   const handleDeleteRequest = (assistant: AssistantListItem) => {
     setActiveAssistantId(assistant.id);
 
-    if (isBuiltinAssistant(assistant)) {
+    if (assistant.source !== 'user') {
       message.warning(t('settings.cannotDeleteBuiltin', { defaultValue: 'Cannot delete builtin assistants' }));
       return;
     }

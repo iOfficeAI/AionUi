@@ -4,7 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { SectionCard } from './editorSectionPrimitives';
 
 type PromptsSectionProps = {
-  isBuiltin: boolean;
+  isReadOnly: boolean;
   recommendedPromptItems: string[];
   addingPrompt: boolean;
   setAddingPrompt: (value: boolean) => void;
@@ -22,7 +22,7 @@ type PromptsSectionProps = {
 };
 
 const PromptsSection: React.FC<PromptsSectionProps> = ({
-  isBuiltin,
+  isReadOnly,
   recommendedPromptItems,
   addingPrompt,
   setAddingPrompt,
@@ -39,7 +39,7 @@ const PromptsSection: React.FC<PromptsSectionProps> = ({
   readOnlyLabel,
 }) => {
   const { t } = useTranslation();
-  const isPromptEditable = !isBuiltin;
+  const isPromptEditable = !isReadOnly;
   const showPromptPanel = addingPrompt || recommendedPromptItems.length > 0;
 
   return (
@@ -49,7 +49,7 @@ const PromptsSection: React.FC<PromptsSectionProps> = ({
         label: t('settings.assistantEffectiveImmediately', { defaultValue: 'Applies immediately' }),
         tone: 'now',
       }}
-      readOnly={isBuiltin}
+      readOnly={isReadOnly}
       readOnlyLabel={readOnlyLabel}
       extra={
         isPromptEditable ? (

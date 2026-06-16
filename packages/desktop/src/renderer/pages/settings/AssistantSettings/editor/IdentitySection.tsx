@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next';
 import { FieldLabel, SectionCard } from './editorSectionPrimitives';
 
 type IdentitySectionProps = {
-  isBuiltin: boolean;
+  isReadOnly: boolean;
   editAvatar: string;
   editName: string;
   setEditName: (value: string) => void;
@@ -21,7 +21,7 @@ type IdentitySectionProps = {
 };
 
 const IdentitySection: React.FC<IdentitySectionProps> = ({
-  isBuiltin,
+  isReadOnly,
   editAvatar,
   editName,
   setEditName,
@@ -35,7 +35,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
   readOnlyLabel,
 }) => {
   const { t } = useTranslation();
-  const isProfileEditable = !isBuiltin;
+  const isProfileEditable = !isReadOnly;
 
   return (
     <SectionCard
@@ -44,7 +44,7 @@ const IdentitySection: React.FC<IdentitySectionProps> = ({
         label: t('settings.assistantEffectiveImmediately', { defaultValue: 'Applies immediately' }),
         tone: 'now',
       }}
-      readOnly={isBuiltin}
+      readOnly={isReadOnly}
       readOnlyLabel={readOnlyLabel}
       testId='assistant-card-identity'
     >
