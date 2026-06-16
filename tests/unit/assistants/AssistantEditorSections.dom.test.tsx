@@ -13,6 +13,7 @@ const mockUseModelProviderList = vi.fn(() => ({
 const showOpenInvokeMock = vi.fn();
 const getImageBase64InvokeMock = vi.fn();
 let mockLanguage = 'en-US';
+let mockResolvedLanguage: string | undefined = 'en-US';
 
 const translateAgentMode = (key: string) => {
   if (!key.startsWith('agentMode.')) return null;
@@ -51,6 +52,9 @@ vi.mock('react-i18next', () => ({
     i18n: {
       get language() {
         return mockLanguage;
+      },
+      get resolvedLanguage() {
+        return mockResolvedLanguage;
       },
     },
   }),
@@ -165,6 +169,7 @@ const createEditor = (overrides: Partial<AssistantEditorViewModel> = {}): Assist
 describe('AssistantEditorSections', () => {
   beforeEach(() => {
     mockLanguage = 'en-US';
+    mockResolvedLanguage = 'en-US';
     showOpenInvokeMock.mockReset();
     getImageBase64InvokeMock.mockReset();
     getImageBase64InvokeMock.mockResolvedValue('data:image/png;base64,preview');
@@ -298,6 +303,7 @@ describe('AssistantEditorSections', () => {
 
   it('renders localized default permission options on initial non-English render', async () => {
     mockLanguage = 'zh-CN';
+    mockResolvedLanguage = 'zh-CN';
 
     renderWithProviders(
       <AssistantEditorSections
@@ -310,6 +316,66 @@ describe('AssistantEditorSections', () => {
         })}
         activeAssistant={null}
       />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-permission'));
+    await waitFor(() => {
+      expect(screen.getByText('只读')).toBeInTheDocument();
+      expect(screen.getByText('自动')).toBeInTheDocument();
+      expect(screen.getByText('完全访问')).toBeInTheDocument();
+    });
+  });
+
+  it('uses the active language even when resolvedLanguage still points to the fallback locale', async () => {
+    mockLanguage = 'zh-CN';
+    mockResolvedLanguage = 'en-US';
+
+    renderWithProviders(
+      <AssistantEditorSections
+        editor={createEditor({
+          agent: {
+            value: 'codex',
+            setValue: vi.fn(),
+            availableBackends: [],
+          },
+        })}
+        activeAssistant={null}
+      />
+    );
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-permission'));
+    await waitFor(() => {
+      expect(screen.getByText('只读')).toBeInTheDocument();
+      expect(screen.getByText('自动')).toBeInTheDocument();
+      expect(screen.getByText('完全访问')).toBeInTheDocument();
+    });
+  });
+
+  it('refreshes default permission labels when the active language changes before resolvedLanguage catches up', async () => {
+    const editor = createEditor({
+      agent: {
+        value: 'codex',
+        setValue: vi.fn(),
+        availableBackends: [],
+      },
+    });
+
+    const { rerender } = renderWithProviders(<AssistantEditorSections editor={editor} activeAssistant={null} />);
+
+    fireEvent.click(screen.getByTestId('select-assistant-default-permission'));
+    expect(screen.getByText('Read Only')).toBeInTheDocument();
+    expect(screen.getByText('Auto')).toBeInTheDocument();
+    expect(screen.getByText('Full Access')).toBeInTheDocument();
+
+    mockLanguage = 'zh-CN';
+    mockResolvedLanguage = 'en-US';
+
+    rerender(
+      <MemoryRouter>
+        <ConfigProvider>
+          <AssistantEditorSections editor={editor} activeAssistant={null} />
+        </ConfigProvider>
+      </MemoryRouter>
     );
 
     fireEvent.click(screen.getByTestId('select-assistant-default-permission'));

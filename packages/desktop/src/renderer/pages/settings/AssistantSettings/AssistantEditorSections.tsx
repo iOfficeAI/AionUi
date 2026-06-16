@@ -18,7 +18,7 @@ export type AssistantEditorSectionsProps = {
 
 const AssistantEditorSections: React.FC<AssistantEditorSectionsProps> = ({ editor, activeAssistant }) => {
   const { t, i18n } = useTranslation();
-  const localeKey = i18n.resolvedLanguage ?? i18n.language;
+  const localeKey = i18n.language;
   const { providers, getAvailableModels } = useModelProviderList();
   const [rulesExpanded, setRulesExpanded] = useState(false);
   const [addingPrompt, setAddingPrompt] = useState(false);
