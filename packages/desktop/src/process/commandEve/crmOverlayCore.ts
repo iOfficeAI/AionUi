@@ -105,6 +105,14 @@ export type CommandEveCrmOverlayInitializeResult = {
   };
 };
 
+export type CommandEveCrmDraftCreateInput = {
+  companyDisplayName?: string;
+  contactDisplayName?: string;
+  contactRoleTitle?: string;
+  dealLabel?: string;
+  notes?: string;
+};
+
 export type CommandEveCrmDraftCreateResult = {
   version: typeof COMMAND_EVE_CRM_DRAFT_CREATE_BRIDGE_VERSION;
   ok: boolean;
@@ -177,6 +185,7 @@ export type CommandEveCrmConsentLocalResult = {
 export type CommandEveCrmOverlayOptions = {
   userDataPath: string;
   eventLedgerPath?: string;
+  draftInput?: CommandEveCrmDraftCreateInput;
   env?: NodeJS.ProcessEnv;
   now?: () => Date;
   pythonPath?: string;
@@ -253,6 +262,20 @@ function resolveEventLedgerPath(
 
 function isRecord(value: unknown): value is JsonRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function sanitizeCrmText(value: unknown, fallback: string, maxLength = 120): string {
+  if (typeof value !== 'string') return fallback;
+  const normalized = value
+    .split('')
+    .map((character) => {
+      const code = character.charCodeAt(0);
+      return code < 32 || code === 127 ? ' ' : character;
+    })
+    .join('')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return normalized ? normalized.slice(0, maxLength) : fallback;
 }
 
 function readPythonJson(
@@ -472,12 +495,22 @@ try:
     company_id = request["company_id"]
     contact_id = request["contact_id"]
     deal_id = request["deal_id"]
+    company_display_name = request.get("company_display_name") or "Draft Company"
+    contact_display_name = request.get("contact_display_name") or "Draft Contact"
+    contact_role_title = request.get("contact_role_title") or "Decision Maker"
+    deal_label = request.get("deal_label") or "local-draft-only"
+    notes = request.get("notes") or ""
     created_at = request["created_at"]
     event_id = request["audit_event_id"]
     payload = {
         "company_id": company_id,
         "contact_id": contact_id,
         "deal_id": deal_id,
+        "company_label_length": len(company_display_name),
+        "contact_label_length": len(contact_display_name),
+        "contact_role_label_length": len(contact_role_title),
+        "deal_label_length": len(deal_label),
+        "notes_length": len(notes),
         "local_only": True,
         "plane_sync_enabled": False,
         "hosted_sync_enabled": False,
@@ -495,7 +528,7 @@ try:
         (company_id, display_name, source, relationship_status, owner, data_class, last_verified)
         VALUES (?, ?, ?, ?, ?, ?, ?)
         """,
-        (company_id, "Draft Company", "command-eve-local-draft", "draft", "eve", "S2", created_at),
+        (company_id, company_display_name, "command-eve-local-draft", "draft", "eve", "S2", created_at),
     )
     conn.execute(
         """
@@ -503,7 +536,7 @@ try:
         (contact_id, display_name, company_id, role_title, source, owner, consent_status, data_class, last_verified, notes_ref)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (contact_id, "Draft Contact", company_id, "Decision Maker", "command-eve-local-draft", "eve", "unknown", "S2", created_at, "local-draft-only"),
+        (contact_id, contact_display_name, company_id, contact_role_title, "command-eve-local-draft", "eve", "unknown", "S2", created_at, notes or "local-draft-only"),
     )
     conn.execute(
         """
@@ -511,7 +544,7 @@ try:
         (deal_id, pipeline_board_slug, company_id, contact_ids, stage, owner, source, confidence, human_gate, allowed_actions, last_activity_at, data_class, consent_status, notes_ref)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         """,
-        (deal_id, "sales", company_id, json.dumps([contact_id]), "draft", "eve", "command-eve-local-draft", 0.1, "HG-4", "draft-only", created_at, "S2", "unknown", "local-draft-only"),
+        (deal_id, "sales", company_id, json.dumps([contact_id]), "draft", "eve", "command-eve-local-draft", 0.1, "HG-4", "draft-only", created_at, "S2", "unknown", deal_label),
     )
     conn.execute(
         "INSERT OR IGNORE INTO crm_events (event_id, kind, payload, created_at) VALUES (?, ?, ?, ?)",
@@ -870,6 +903,11 @@ function appendCrmDraftAuditEvent({
   companyId,
   contactId,
   dealId,
+  companyDisplayName,
+  contactDisplayName,
+  contactRoleTitle,
+  dealLabel,
+  notes,
   dataBoundaryReceipt,
 }: {
   eventId: string;
@@ -879,6 +917,11 @@ function appendCrmDraftAuditEvent({
   companyId: string;
   contactId: string;
   dealId: string;
+  companyDisplayName: string;
+  contactDisplayName: string;
+  contactRoleTitle: string;
+  dealLabel: string;
+  notes: string;
   dataBoundaryReceipt: CommandEveCrmDataBoundaryReceipt;
 }): void {
   const event = {
@@ -903,6 +946,11 @@ function appendCrmDraftAuditEvent({
       company_id: companyId,
       contact_id: contactId,
       deal_id: dealId,
+      company_label_length: companyDisplayName.length,
+      contact_label_length: contactDisplayName.length,
+      contact_role_label_length: contactRoleTitle.length,
+      deal_label_length: dealLabel.length,
+      notes_length: notes.length,
       db_path: dbPath,
       local_only: true,
       plane_sync_enabled: false,
@@ -1208,12 +1256,22 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
   const contactId = `crm-contact-${idPart}`;
   const dealId = `crm-deal-${idPart}`;
   const auditEventId = crmDraftAuditEventId(occurredAt);
+  const companyDisplayName = sanitizeCrmText(options.draftInput?.companyDisplayName, 'Draft Company');
+  const contactDisplayName = sanitizeCrmText(options.draftInput?.contactDisplayName, 'Draft Contact');
+  const contactRoleTitle = sanitizeCrmText(options.draftInput?.contactRoleTitle, 'Decision Maker');
+  const dealLabel = sanitizeCrmText(options.draftInput?.dealLabel, 'local-draft-only');
+  const notes = sanitizeCrmText(options.draftInput?.notes, '', 240);
   const dataBoundaryReceipt = buildCrmDataBoundaryReceipt({
     action: 'crm_draft_deal_create',
     fields: {
       company_id: companyId,
       contact_id: contactId,
       deal_id: dealId,
+      company_display_name: companyDisplayName,
+      contact_display_name: contactDisplayName,
+      contact_role_title: contactRoleTitle,
+      deal_label: dealLabel,
+      notes,
       data_class: 'S2',
       human_gate: 'HG-4',
       local_only: true,
@@ -1231,6 +1289,11 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
       company_id: companyId,
       contact_id: contactId,
       deal_id: dealId,
+      company_display_name: companyDisplayName,
+      contact_display_name: contactDisplayName,
+      contact_role_title: contactRoleTitle,
+      deal_label: dealLabel,
+      notes,
       data_boundary_receipt: dataBoundaryReceipt,
     },
     crmDraftCreateScript(),
@@ -1256,6 +1319,11 @@ export function createCrmDraftDeal(options: CommandEveCrmOverlayOptions): Comman
     companyId,
     contactId,
     dealId,
+    companyDisplayName,
+    contactDisplayName,
+    contactRoleTitle,
+    dealLabel,
+    notes,
     dataBoundaryReceipt,
   });
   const overlay = buildCrmOverlay({ ...options, now });
