@@ -78,14 +78,60 @@ in the build pipeline so the staging dir exists.)
   `path.join(process.resourcesPath, 'python', 'bin', 'python3.12')` when
   `app.isPackaged`. It must support `-m venv` (the standalone builds do — verified)
   so the Hermes venv is created from it.
-- **S3 (notarization, the hard part):** a bundled CPython is dozens of Mach-O
-  files (`python3.12`, the `Python` dylib, `lib/python3.12/lib-dynload/*.so`,
-  `libssl`/`libcrypto`/`libffi`, …). Apple notarization REJECTS any embedded
-  binary that is not Developer-ID-signed + hardened-runtime. So
-  `afterAllArtifactBuild` must **deep-sign `Resources/python/**` inside-out
-  BEFORE notarize** (each `.dylib`/`.so` first, then `python3.12`, then the app),
-  with a python-specific entitlements plist (`allow-jit`,
-  `allow-unsigned-executable-memory`, likely `disable-library-validation`).
+## S3 — notarization deep-sign (IMPLEMENTED, file-only)
+
+A bundled CPython is dozens of Mach-O files (`bin/python3.12`, the
+`libpython3.12.dylib`, `lib/python3.12/lib-dynload/*.so`,
+`libssl`/`libcrypto`/`libffi`, …). Apple notarization REJECTS any embedded
+binary that is not Developer-ID-signed + hardened-runtime. electron-builder
+signs the `.app` (incl. its own `.node` native modules) but does **not**
+hardened-runtime-sign the bundled python tree, so notarization fails on it.
+
+S3 adds a guarded, darwin-only deep-sign step. Pure logic lives in
+`scripts/deepSignPython_core.js` (enumerate Mach-O + inside-out ordering +
+`codesign` arg construction + entitlements selection), unit-tested by
+`scripts/deepSignPython_core.test.mjs` (`node --test`). The hook glue is
+`deepSignBundledPython()` in `scripts/afterSign.js`.
+
+**Where in the hook sequence (and why `afterSign`, not `afterAllArtifactBuild`):**
+electron-builder runs `afterPack` → (signs the `.app` internally) → **`afterSign`**
+→ builds DMG/zip → `afterAllArtifactBuild`. Our `afterSign` already notarizes the
+`.app` itself via `@electron/notarize` (it ships as a `zip` target too), and
+`afterAllArtifactBuild` rebuilds the DMG **from that same signed `.app`** via
+`hdiutil` (COMPA-591). So the deep-sign MUST happen in `afterSign`, **after**
+electron-builder's app-sign is verified and **before** `notarize()` — otherwise
+the `.app`/`.zip` would be notarized with an un-deep-signed python. Doing it here
+also covers the DMG transitively (it is built from the re-sealed `.app`), so the
+CAO-passed COMPA-591 notarize/hdiutil flow in `afterAllArtifactBuild` is left
+untouched.
+
+**The deep-sign algorithm (inside-out):**
+1. Resolve `<App>.app/Contents/Resources/python`. If absent → skip gracefully
+   (non-bundle builds keep working). If no signing identity in env → skip with a
+   log line.
+2. Enumerate every Mach-O: `.so`/`.dylib` by extension, executables under `bin/`,
+   plus a `codesign -d` probe fallback for extensionless framework binaries.
+   Symlinks are skipped (sign the real target only).
+3. Sign **inside-out**: deepest leaves first (`lib-dynload/*.so`, nested
+   `.dylib`), then the `bin/python3.12` interpreter **last**, then re-seal the
+   outer `.app`. Each leaf:
+   `codesign --force --options runtime --timestamp --sign <identity>`. The
+   interpreter additionally gets `--entitlements python-entitlements.plist`.
+4. Re-seal the `.app` (`--force --options runtime --timestamp --entitlements
+   entitlements.plist`, **no `--deep`** so the python entitlements survive), then
+   `codesign --verify` it before notarize.
+
+The identity is read from env by NAME (`APPLE_DEVELOPER_IDENTITY` / `CSC_NAME` /
+`APPLE_DMG_SIGN_IDENTITY` — "Developer ID Application: FYN Labs LLC
+(NHNQ7Q5H28)"); it is never embedded.
+
+**`python-entitlements.plist`** (repo root, next to the app `entitlements.plist`)
+grants the interpreter `com.apple.security.cs.allow-jit`,
+`com.apple.security.cs.allow-unsigned-executable-memory`, and
+`com.apple.security.cs.disable-library-validation` so the signed interpreter may
+JIT and `dlopen` the signed `.so` extension modules under the hardened runtime.
+
 - **S4 (Founder/HG):** the credentialed notarize **proof-run** of the
   bundled-Python DMG is the gating validation — only the Founder's Apple creds
-  can confirm Apple accepts it.
+  can confirm Apple accepts the deep-signed bundle. S3 is file-only; no real
+  signing/notarization happens without those creds.

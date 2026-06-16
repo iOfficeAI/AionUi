@@ -1,4 +1,13 @@
-const { execFileSync } = require('child_process');
+const { execFileSync, spawnSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const {
+  enumerateMachOFiles,
+  planPythonCodesign,
+  buildAppResignArgs,
+  resolvePythonRoot,
+} = require('./deepSignPython_core.js');
 
 function firstEnv(env, names) {
   for (const name of names) {
@@ -72,6 +81,103 @@ function getNotarizeAuthMode(options) {
   return 'unconfigured';
 }
 
+// The Developer ID used to sign the bundled python tree. Reuse the SAME
+// identity electron-builder used for the .app so the re-signed nested binaries
+// stay in the FYN Labs team (referenced by NAME, never embedded). CSC_NAME is
+// electron-builder's own var; APPLE_DEVELOPER_IDENTITY/APPLE_DMG_SIGN_IDENTITY
+// are the ones the notarized build scripts already set.
+function getPythonSignIdentity(env = process.env) {
+  return firstEnv(env, ['APPLE_DEVELOPER_IDENTITY', 'CSC_NAME', 'APPLE_DMG_SIGN_IDENTITY']);
+}
+
+// Locate the python-only entitlements plist (allow-jit / unsigned-exec-mem /
+// disable-library-validation). Default sits next to the app entitlements.plist
+// at the repo root (electron-builder runs with directories.app: ".", so that is
+// where entitlements resolve). Overridable for tests / relocation.
+function resolvePythonEntitlementsPlist(env = process.env) {
+  const override = firstEnv(env, ['PYTHON_ENTITLEMENTS_PLIST']);
+  if (override) return override;
+  return path.resolve(__dirname, '..', 'python-entitlements.plist');
+}
+
+function resolveAppEntitlementsPlist(env = process.env) {
+  const override = firstEnv(env, ['APPLE_ENTITLEMENTS_PLIST']);
+  if (override) return override;
+  return path.resolve(__dirname, '..', 'entitlements.plist');
+}
+
+// Probe an extensionless file for a Mach-O magic header by asking codesign to
+// display its signing info. codesign exits 0 for any Mach-O (signed or not) and
+// non-zero with "not signed" for a Mach-O without a signature; it errors with a
+// "not a Mach-O / bundle" message for plain data files. Used only as the third
+// detection fallback in enumerateMachOFiles (extension + bin/ exec come first),
+// so a missing/odd codesign is harmless — return false on any doubt.
+function probeMachOWithCodesign(filePath) {
+  try {
+    const result = spawnSync('codesign', ['-d', '--verbose=1', filePath], { encoding: 'utf8' });
+    const text = `${result.stdout || ''}${result.stderr || ''}`;
+    if (result.status === 0) return true;
+    // "code object is not signed at all" still proves it IS a Mach-O.
+    if (/not signed/i.test(text)) return true;
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+// S3: deep-sign the bundled CPython tree (Contents/Resources/python/**)
+// inside-out, then re-seal the outer .app so its signature covers the freshly
+// signed python. Darwin-only; skips gracefully (returns false) when no bundled
+// python is present (a non-bundle build), so those builds keep working untouched.
+// Real signing needs the Developer ID in the keychain — the credentialed
+// proof-run is the Founder's S4 step. `deps` injects fs + the codesign runner so
+// this is exercised by the _core unit tests; production passes none.
+function deepSignBundledPython(appPath, env = process.env, deps = {}) {
+  const fsDeps = deps.fs || { readdirSync: fs.readdirSync, statSync: fs.statSync };
+  const runCodesign =
+    deps.runCodesign ||
+    ((args) => {
+      execFileSync('codesign', args, { stdio: 'inherit' });
+    });
+  const probe = deps.probeMachO || probeMachOWithCodesign;
+  const existsSync = (deps.fs && deps.fs.existsSync) || fs.existsSync;
+
+  const pythonRoot = resolvePythonRoot(appPath);
+  if (!existsSync(pythonRoot)) {
+    console.log(`Skipping bundled-python deep-sign - no ${path.relative(appPath, pythonRoot)} (non-bundle build).`);
+    return false;
+  }
+
+  const identity = getPythonSignIdentity(env);
+  if (!identity) {
+    console.log(
+      'Skipping bundled-python deep-sign - missing signing identity (APPLE_DEVELOPER_IDENTITY / CSC_NAME / APPLE_DMG_SIGN_IDENTITY).'
+    );
+    return false;
+  }
+
+  const pythonEntitlements = resolvePythonEntitlementsPlist(env);
+  const appEntitlements = resolveAppEntitlementsPlist(env);
+
+  const machoFiles = enumerateMachOFiles(pythonRoot, fsDeps, probe);
+  console.log(`Deep-signing bundled python: ${machoFiles.length} Mach-O file(s) under ${pythonRoot} (inside-out).`);
+
+  const plan = planPythonCodesign(machoFiles, {
+    identity,
+    pythonRoot,
+    entitlementsPlist: pythonEntitlements,
+  });
+
+  for (const step of plan) {
+    runCodesign(step.args);
+  }
+
+  // Re-seal the outer .app so its signature covers the re-signed python tree.
+  runCodesign(buildAppResignArgs(appPath, { identity, appEntitlementsPlist: appEntitlements }));
+  console.log(`Bundled-python deep-sign complete; outer .app re-sealed with ${identity}.`);
+  return true;
+}
+
 exports.default = async function afterSign(context) {
   const { electronPlatformName, appOutDir } = context;
 
@@ -101,6 +207,28 @@ exports.default = async function afterSign(context) {
     return;
   }
 
+  // S3: deep-sign the bundled CPython tree (if present) BEFORE notarization.
+  // electron-builder signs the .app (incl. its own native .node modules) but does
+  // NOT hardened-runtime-sign the bundled python interpreter / .dylib / .so files,
+  // which Apple notarization then rejects. We re-sign python inside-out, then
+  // re-seal the outer .app — so the .app/.zip notarized here AND the hdiutil DMG
+  // (rebuilt from this same signed .app in afterAllArtifactBuild) both ship a
+  // notarizable python. Skips gracefully on non-bundle builds. This MUST run
+  // before notarize() below; doing it later would notarize an un-deep-signed app.
+  let resealed = false;
+  try {
+    resealed = deepSignBundledPython(appPath);
+  } catch (deepSignError) {
+    console.error('Bundled-python deep-sign failed:', deepSignError.message);
+    throw deepSignError;
+  }
+  if (resealed) {
+    // Re-verify the outer signature is valid after the re-seal so we never
+    // hand a broken .app to notarytool.
+    execFileSync('codesign', ['--verify', '--verbose=2', appPath], { stdio: 'inherit' });
+    console.log(`App ${appName} re-verified after bundled-python deep-sign`);
+  }
+
   const notarizeOptions = getNotarizeOptions({ appBundleId, appPath });
   if (!notarizeOptions) {
     console.log(
@@ -122,3 +250,8 @@ exports.default = async function afterSign(context) {
 
 exports.getNotarizeOptions = getNotarizeOptions;
 exports.getNotarizeAuthMode = getNotarizeAuthMode;
+exports.getPythonSignIdentity = getPythonSignIdentity;
+exports.resolvePythonEntitlementsPlist = resolvePythonEntitlementsPlist;
+exports.resolveAppEntitlementsPlist = resolveAppEntitlementsPlist;
+exports.deepSignBundledPython = deepSignBundledPython;
+exports.probeMachOWithCodesign = probeMachOWithCodesign;

@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+  <dict>
+    <!--
+      Entitlements applied ONLY to the bundled CPython interpreter
+      (Contents/Resources/python/bin/python3.12) during the S3 deep-sign in
+      scripts/afterSign.js. The interpreter JITs Python bytecode and dlopen()s
+      the signed C-extension modules (lib-dynload/*.so, libpython*.dylib) at
+      runtime; under a hardened runtime those operations require these
+      entitlements or the process is killed / Gatekeeper rejects the bundle.
+      See docs/bundled-python.md (S3).
+    -->
+    <!-- CPython's eval loop maps writable+executable memory for the interpreter. -->
+    <key>com.apple.security.cs.allow-jit</key>
+    <true/>
+    <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+    <true/>
+    <!--
+      Let the signed interpreter load the signed .so/.dylib extension modules.
+      Without this, hardened-runtime library validation requires every loaded
+      library to be signed by the SAME Team ID as the loader; our extension
+      modules are re-signed with the FYN Labs Developer ID (same team), but
+      disabling library validation is the documented, robust path for a bundled
+      Python that also loads third-party native wheels at runtime.
+    -->
+    <key>com.apple.security.cs.disable-library-validation</key>
+    <true/>
+  </dict>
+</plist>
