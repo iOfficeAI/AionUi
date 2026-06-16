@@ -14,6 +14,7 @@ import {
 } from '@arco-design/web-react';
 import { Magic, FolderOpen, Lightning } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
+import { mutate } from 'swr';
 import { ipcBridge } from '@/common';
 import { uuid } from '@/common/utils';
 import type { TMessage } from '@/common/chat/chatLib';
@@ -277,7 +278,8 @@ Requirements:
           content,
         });
       }
-      await ipcBridge.acpConversation.refreshCustomAgents.invoke();
+      await mutate('assistants');
+      await mutate('assistants.list');
       Message.success(
         t('conversation.skill_generator.preset_registered', { defaultValue: 'Agent preset registered successfully!' })
       );
