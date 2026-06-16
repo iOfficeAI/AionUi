@@ -48,6 +48,15 @@
       "unknown": "The license code could not be verified. Please try again."
     }
   },
+  "curtain": {
+    "title": "Your trial has ended",
+    "lede": "Welcome back. Your 14-day Command EVE trial has ended. You can pick up right where you left off.",
+    "preservedTitle": "Your setup is preserved",
+    "preservedBody": "Your Company OS, memory, connections and SOPs are still saved and waiting for you. Nothing is deleted or reset.",
+    "price": "Continue for 250 €/month",
+    "continue": "Continue now",
+    "hint": "This opens the secure checkout page in your browser. Once your subscription is active, unlock Command EVE again with your new license code."
+  },
   "unconfigured": {
     "title": "Activation unavailable",
     "description": "This build cannot verify license codes because no verification key is configured. Contact the Command EVE team, or start the app with the pilot fallback flag.",

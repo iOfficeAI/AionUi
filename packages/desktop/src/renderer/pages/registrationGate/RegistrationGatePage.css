@@ -198,3 +198,51 @@
   color: #64748b;
   text-align: center;
 }
+
+/* Day-14 trial-conversion curtain. A warm "continue" screen, NOT an error.
+   Styling stays inside the existing gate vocabulary (same card, palette, radii)
+   but leans on the brand orange to read as an invitation rather than a block. */
+.registration-gate__card--curtain {
+  border-color: rgba(249, 115, 22, 0.35);
+}
+
+.registration-gate__curtain-lede {
+  margin: 0;
+  font-size: 14px;
+  line-height: 21px;
+  color: #334155;
+}
+
+.registration-gate__curtain-preserved {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 14px 16px;
+  border: 1px solid rgba(249, 115, 22, 0.25);
+  border-radius: 12px;
+  background: rgba(249, 115, 22, 0.06);
+}
+
+.registration-gate__curtain-preserved-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 18px;
+  color: #c2410c;
+}
+
+.registration-gate__curtain-preserved-body {
+  margin: 0;
+  font-size: 12px;
+  line-height: 18px;
+  color: #475569;
+}
+
+.registration-gate__curtain-price {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 19px;
+  color: #1e293b;
+  text-align: center;
+}

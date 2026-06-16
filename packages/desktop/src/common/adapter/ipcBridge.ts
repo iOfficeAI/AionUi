@@ -1027,6 +1027,20 @@ export interface ICommandEveEntitlementStatusResult {
   tenant_id?: string;
   edition?: ICommandEveLicenseEdition;
   expires_at?: string | null;
+  /**
+   * CEVE.v2 surface (additive superset; the main-process core already returns
+   * these — see `entitlementCore.getEntitlementStatus`). The renderer mirrors
+   * them so the gate can distinguish a TRIAL from a paid license WITHOUT making
+   * any entitlement decision itself:
+   *   - `trial_ends_at` present + non-null ⇒ this entitlement is/was a TRIAL.
+   *     Combined with `state === 'expired'` this is the day-14 trial-expired
+   *     state that drives the conversion curtain (vs a paid license expiry,
+   *     which keeps `trial_ends_at` null/absent).
+   *   - `seat_count` is informational only ("N seats"); the server is the
+   *     binding seat gate and the desktop never blocks on it.
+   */
+  trial_ends_at?: string | null;
+  seat_count?: number;
 }
 
 export interface ICommandEveRegistrationRecord {
