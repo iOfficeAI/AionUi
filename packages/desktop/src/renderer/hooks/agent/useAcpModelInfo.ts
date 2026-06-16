@@ -7,7 +7,6 @@
 import { ipcBridge } from '@/common';
 import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { savePreferredModelId } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { DETECTED_AGENTS_SWR_KEY, fetchDetectedAgents, type AgentMetadata } from '@/renderer/utils/model/agentTypes';
 import { useAcpConfigOptions } from './useAcpConfigOptions';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -19,7 +18,6 @@ type UseAcpModelInfoArgs = {
   initialModelId?: string;
   prepareRuntime?: () => Promise<void>;
   enabled?: boolean;
-  persistGlobalPreference?: boolean;
   onSelectModelSuccess?: (model_id: string) => void;
   onSelectModelFailed?: (model_id: string, error: unknown) => void;
 };
@@ -62,7 +60,6 @@ export const useAcpModelInfo = ({
   initialModelId,
   prepareRuntime,
   enabled = true,
-  persistGlobalPreference = true,
   onSelectModelSuccess,
   onSelectModelFailed,
 }: UseAcpModelInfoArgs): UseAcpModelInfoResult => {
@@ -127,15 +124,12 @@ export const useAcpModelInfo = ({
       void setConfigOption(model.id, model_id)
         .then(async () => {
           onSelectModelSuccess?.(model_id);
-          if (backend && persistGlobalPreference) {
-            await savePreferredModelId(backend, model_id);
-          }
         })
         .catch((error) => {
           onSelectModelFailed?.(model_id, error);
         });
     },
-    [backend, enabled, model, onSelectModelFailed, onSelectModelSuccess, persistGlobalPreference, setConfigOption]
+    [enabled, model, onSelectModelFailed, onSelectModelSuccess, setConfigOption]
   );
 
   return {

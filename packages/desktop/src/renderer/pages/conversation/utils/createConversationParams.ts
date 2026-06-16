@@ -4,97 +4,20 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
-import { CODEX_MODE_NATIVE_FULL_ACCESS, normalizeCodexMode } from '@/common/types/codex/codexModes';
+import { CODEX_MODE_NATIVE_FULL_ACCESS } from '@/common/types/codex/codexModes';
 import { resolveLocaleKey } from '@/common/utils';
 import {
   buildAgentConversationParams,
   getConversationTypeForBackend,
 } from '@/common/utils/buildAgentConversationParams';
 import type { AgentMetadata } from '@/renderer/utils/model/agentTypes';
-import { getAgents } from '@/renderer/hooks/agent/useAgents';
-import type { AcpModelInfo } from '@/common/types/platform/acpTypes';
-import { getAgentModes } from '@/renderer/utils/model/agentModes';
 import { hasSpecificModelCapability } from '@/renderer/utils/model/modelCapabilities';
-import { getPreferredThoughtLevel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
-
-type ModePreference = {
-  preferredMode?: string;
-  yoloMode?: boolean;
-};
-
-const LEGACY_YOLO_MODE_MAP: Partial<Record<string, string>> = {
-  claude: 'bypassPermissions',
-  codex: CODEX_MODE_NATIVE_FULL_ACCESS,
-  qwen: 'yolo',
-};
-
-async function resolvePreferredMode(backend: string): Promise<string | undefined> {
-  const modeOptions = getAgentModes(backend);
-  if (modeOptions.length === 0) {
-    return undefined;
-  }
-
-  let preference: ModePreference | undefined;
-
-  if (backend === 'aionrs') {
-    preference = configService.get('aionrs.config');
-  } else {
-    const acpConfig = configService.get('acp.config');
-    preference = acpConfig?.[backend as string];
-  }
-
-  const normalizedPreferredMode =
-    backend === 'codex' ? normalizeCodexMode(preference?.preferredMode) : preference?.preferredMode;
-  if (normalizedPreferredMode && modeOptions.some((option) => option.value === normalizedPreferredMode)) {
-    return normalizedPreferredMode;
-  }
-
-  const legacyMode = LEGACY_YOLO_MODE_MAP[backend];
-  if (preference?.yoloMode && legacyMode && modeOptions.some((option) => option.value === legacyMode)) {
-    return legacyMode;
-  }
-
-  return undefined;
-}
-
-async function resolvePreferredAcpModelId(backend: string): Promise<string | undefined> {
-  const acpConfig = configService.get('acp.config');
-  const backendConfig = acpConfig?.[backend as string] as { preferredModelId?: string } | undefined;
-  const preferredModelId = backendConfig?.preferredModelId;
-  if (typeof preferredModelId === 'string' && preferredModelId.trim().length > 0) {
-    return preferredModelId;
-  }
-
-  // Fallback: last-seen model info persisted on the backend's agent_metadata row.
-  const agents = await getAgents();
-  const matched = agents.find((a) => (a.backend ?? a.agent_type) === backend);
-  const handshakeModels = matched?.handshake?.available_models as AcpModelInfo | undefined;
-  const handshakeModelId = handshakeModels?.current_model_id;
-  if (typeof handshakeModelId === 'string' && handshakeModelId.trim().length > 0) {
-    return handshakeModelId;
-  }
-
-  if (backend === 'codex' && DEFAULT_CODEX_MODELS.length > 0) {
-    return DEFAULT_CODEX_MODELS[0]?.id;
-  }
-
-  return undefined;
-}
-
-function resolvePreferredAssistantModelId(
-  assistant: Assistant,
-  preferredModelId: string | undefined
-): string | undefined {
-  if (preferredModelId && assistant.models.includes(preferredModelId)) {
-    return preferredModelId;
-  }
-
+function resolveAssistantModelId(assistant: Assistant): string | undefined {
   if (assistant.models.length > 0) {
     return assistant.models[0];
   }
@@ -127,9 +50,8 @@ function isAionrsCompatibleProvider(provider: IProvider): boolean {
 
 /**
  * Get a model from configured providers that is compatible with aionrs.
- * Respects the user's saved `aionrs.defaultModel` selection when it still
- * exists in the current provider list, otherwise falls back to the first
- * compatible provider/model pair.
+ * Falls back to the first compatible provider/model pair in the current
+ * provider list without consulting legacy renderer-side preference storage.
  */
 export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const providers = await ipcBridge.mode.listProviders.invoke();
@@ -141,17 +63,6 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
   const compatibleProviders = providers.filter(isAionrsCompatibleProvider);
   if (compatibleProviders.length === 0) {
     throw new Error('No enabled model provider for Aion CLI');
-  }
-
-  const savedDefault = configService.get('aionrs.defaultModel');
-  if (savedDefault?.id && savedDefault.use_model) {
-    const savedProvider = compatibleProviders.find((provider) => provider.id === savedDefault.id);
-    if (savedProvider && getAvailableAionrsModels(savedProvider).includes(savedDefault.use_model)) {
-      return {
-        ...savedProvider,
-        use_model: savedDefault.use_model,
-      };
-    }
   }
 
   const provider = compatibleProviders[0];
@@ -181,9 +92,6 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 export async function buildCliAgentParams(agent: AgentMetadata, workspace: string): Promise<ICreateConversationParams> {
   const agentKey = agent.backend || agent.agent_type;
   const type = getConversationTypeForBackend(agentKey);
-  const preferredMode = await resolvePreferredMode(agentKey);
-  const preferredAcpModelId = type === 'acp' ? await resolvePreferredAcpModelId(agentKey) : undefined;
-  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(agentKey) : undefined;
 
   let model: TProviderWithModel;
   if (type === 'aionrs') {
@@ -200,9 +108,6 @@ export async function buildCliAgentParams(agent: AgentMetadata, workspace: strin
     agent_name: agent.name,
     workspace,
     model,
-    session_mode: preferredMode,
-    current_model_id: preferredAcpModelId,
-    thought_level: preferredThoughtLevel,
   });
 }
 
@@ -221,17 +126,8 @@ export async function buildPresetAssistantParams(
 
   const localeKey = resolveLocaleKey(language);
 
-  const preferredMode = await resolvePreferredMode(preset_agent_type);
   const type = getConversationTypeForBackend(preset_agent_type);
-  const acpConfig = configService.get('acp.config');
-  const configuredModelId = (acpConfig?.[preset_agent_type as string] as { preferredModelId?: string } | undefined)
-    ?.preferredModelId;
-  const preferredAcpModelId =
-    type === 'acp'
-      ? (resolvePreferredAssistantModelId(assistant, configuredModelId) ??
-        (await resolvePreferredAcpModelId(preset_agent_type)))
-      : undefined;
-  const preferredThoughtLevel = type === 'acp' ? getPreferredThoughtLevel(preset_agent_type) : undefined;
+  const preferredAcpModelId = type === 'acp' ? resolveAssistantModelId(assistant) : undefined;
   const model = {} as TProviderWithModel;
 
   return buildAgentConversationParams({
@@ -250,8 +146,6 @@ export async function buildPresetAssistantParams(
         assistant.disabled_builtin_skills.length > 0 ? assistant.disabled_builtin_skills : undefined,
     },
     model,
-    session_mode: preferredMode,
     current_model_id: preferredAcpModelId,
-    thought_level: preferredThoughtLevel,
   });
 }

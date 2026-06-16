@@ -4,7 +4,6 @@ import { Message, Spin } from '@arco-design/web-react';
 import React, { Suspense, useCallback } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAionrsModelSelection } from '@/renderer/pages/conversation/platforms/aionrs/useAionrsModelSelection';
-import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { isLegacyReadOnlyConversationType } from '@/renderer/pages/conversation/utils/conversationRuntime';
 import type { ITeamRunAck } from '@/common/types/team/teamTypes';
 import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
@@ -38,7 +37,6 @@ const AionrsTeamChat: React.FC<{
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
-      if (ok) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
     [conversation.id]

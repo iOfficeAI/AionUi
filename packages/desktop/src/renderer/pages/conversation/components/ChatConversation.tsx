@@ -23,7 +23,6 @@ import AcpChat from '../platforms/acp/AcpChat';
 import ChatLayout from './ChatLayout';
 import ChatSlider from './ChatSlider.tsx';
 import AcpModelSelector from '@/renderer/components/agent/AcpModelSelector';
-import { saveAionrsDefaultModel } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getConversationCreateErrorMessage } from '@/renderer/pages/conversation/utils/conversationCreateError';
 import GoogleModelSelector from '../platforms/gemini/GoogleModelSelector';
@@ -142,7 +141,6 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
 }) => {
   const runtimeView = useConversationRuntimeView(conversation.id);
   const aionrsAssistantId = resolveAssistantConfigId(conversation) ?? undefined;
-  const persistGlobalPreference = !aionrsAssistantId;
   const onSelectModel = useCallback(
     async (_provider: IProvider, modelName: string) => {
       const selected = { ..._provider, use_model: modelName } as TProviderWithModel;
@@ -155,10 +153,9 @@ const AionrsConversationPanel: React.FC<{ conversation: AionrsConversation; slid
         runtimeView.markStopAcknowledged(runtimeView.activeTurnId, result.runtime);
       }
       const ok = await ipcBridge.conversation.update.invoke({ id: conversation.id, updates: { model: selected } });
-      if (ok && persistGlobalPreference) void saveAionrsDefaultModel(_provider.id, modelName);
       return Boolean(ok);
     },
-    [conversation.id, persistGlobalPreference, runtimeView]
+    [conversation.id, runtimeView]
   );
 
   const modelSelection = useAionrsModelSelection({
@@ -290,7 +287,6 @@ const ChatConversation: React.FC<{
           backend={extra.backend}
           initialModelId={extra.current_model_id}
           waitForWarmup
-          persistGlobalPreference={!acpAssistantId}
         />
       );
     }

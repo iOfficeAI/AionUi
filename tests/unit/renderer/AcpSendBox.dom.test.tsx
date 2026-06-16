@@ -19,7 +19,6 @@ const {
   setSendBoxHandlerMock,
   useAcpConfigOptionsMock,
   useTeamPermissionMock,
-  savePreferredThoughtLevelMock,
   thoughtSelectorProps,
 } = vi.hoisted(() => ({
   sendMessageInvokeMock: vi.fn(),
@@ -29,7 +28,6 @@ const {
   setSendBoxHandlerMock: vi.fn(),
   useAcpConfigOptionsMock: vi.fn(),
   useTeamPermissionMock: vi.fn(),
-  savePreferredThoughtLevelMock: vi.fn(),
   thoughtSelectorProps: {
     current: null as null | { onSetOption: (optionId: string, value: string) => Promise<unknown> },
   },
@@ -193,11 +191,6 @@ vi.mock('@/renderer/utils/file/messageFiles', () => ({
 vi.mock('@/renderer/pages/conversation/platforms/acp/useAcpInitialMessage', () => ({
   useAcpInitialMessage: vi.fn(),
 }));
-vi.mock('@/renderer/pages/guid/hooks/agentSelectionUtils', () => ({
-  savePreferredMode: vi.fn(),
-  savePreferredThoughtLevel: savePreferredThoughtLevelMock,
-}));
-
 vi.mock('@arco-design/web-react', () => ({
   Message: {
     success: vi.fn(),
@@ -225,7 +218,6 @@ const makeMessageState = (): UseAcpMessageReturn => ({
 describe('AcpSendBox', () => {
   beforeEach(() => {
     vi.clearAllMocks();
-    savePreferredThoughtLevelMock.mockResolvedValue(undefined);
     thoughtSelectorProps.current = null;
     useTeamPermissionMock.mockReturnValue(null);
     useAcpConfigOptionsMock.mockReturnValue({
@@ -300,7 +292,7 @@ describe('AcpSendBox', () => {
     expect(screen.getByTestId('mock-thought-selector')).toHaveAttribute('data-icon-only', 'false');
   });
 
-  it('persists preferred thought level after the desktop selector observes the change', async () => {
+  it('updates runtime thought level without persisting a global agent preference', async () => {
     const setConfigOption = vi.fn().mockResolvedValue([]);
     useAcpConfigOptionsMock.mockReturnValue({
       mode: null,
@@ -334,10 +326,10 @@ describe('AcpSendBox', () => {
       await thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high');
     });
 
-    expect(savePreferredThoughtLevelMock).toHaveBeenCalledWith('codex', 'high');
+    expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
   });
 
-  it('does not persist preferred thought level when observed confirmation fails', async () => {
+  it('does not update runtime thought level when observed confirmation fails', async () => {
     const setConfigOption = vi.fn().mockRejectedValue(new Error('command_ack'));
     useAcpConfigOptionsMock.mockReturnValue({
       mode: null,
@@ -365,7 +357,7 @@ describe('AcpSendBox', () => {
     );
 
     await expect(thoughtSelectorProps.current?.onSetOption('reasoning_effort', 'high')).rejects.toThrow('command_ack');
-    expect(savePreferredThoughtLevelMock).not.toHaveBeenCalled();
+    expect(setConfigOption).toHaveBeenCalledWith('reasoning_effort', 'high');
   });
 
   it('renders thought_level as icon-only inside a team pane', () => {

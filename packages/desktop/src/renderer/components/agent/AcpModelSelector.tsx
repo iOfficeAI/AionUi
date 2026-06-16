@@ -41,9 +41,7 @@ const AcpModelSelector: React.FC<{
   initialModelId?: string;
   /** Wait for ACP warmup before reading runtime model info. */
   waitForWarmup?: boolean;
-  /** Whether model switches should persist to the backend-wide preference key. */
-  persistGlobalPreference?: boolean;
-}> = ({ conversation_id, backend, initialModelId, waitForWarmup = false, persistGlobalPreference = true }) => {
+}> = ({ conversation_id, backend, initialModelId, waitForWarmup = false }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
   const isMobileHeaderCompact = Boolean(layout?.isMobile);
@@ -53,7 +51,6 @@ const AcpModelSelector: React.FC<{
     backend,
     initialModelId,
     prepareRuntime: waitForWarmup ? prepareRuntime : undefined,
-    persistGlobalPreference,
     onSelectModelSuccess: () => Message.success(t('agent.model.switchSuccess')),
     onSelectModelFailed: (_modelId, error) => Message.error(t(configErrorMessageKey(error))),
   });

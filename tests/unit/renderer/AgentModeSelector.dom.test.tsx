@@ -4,19 +4,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import React from 'react';
 import AgentModeSelector from '@/renderer/components/agent/AgentModeSelector';
 
 const { useAcpConfigOptionsMock } = vi.hoisted(() => ({
   useAcpConfigOptionsMock: vi.fn(),
-}));
-
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: vi.fn(),
-  },
 }));
 
 vi.mock('@/renderer/hooks/agent/useAcpConfigOptions', () => ({
@@ -28,13 +22,11 @@ vi.mock('@/renderer/hooks/context/LayoutContext', () => ({
   useLayoutContext: () => ({ isMobile: false }),
 }));
 
-vi.mock('@/renderer/pages/guid/hooks/agentSelectionUtils', () => ({
-  savePreferredMode: vi.fn(),
-}));
-
 vi.mock('@/renderer/components/agent/MarqueePillLabel', () => ({
   default: ({ children }: { children?: React.ReactNode }) => <span>{children}</span>,
 }));
+
+const menuContext = React.createContext<((key: string) => void) | null>(null);
 
 vi.mock('@icon-park/react', () => ({
   Down: () => <span aria-hidden='true'>v</span>,
@@ -42,17 +34,36 @@ vi.mock('@icon-park/react', () => ({
 }));
 
 vi.mock('@arco-design/web-react', () => {
-  const Menu = Object.assign(({ children }: { children?: React.ReactNode }) => <div>{children}</div>, {
-    ItemGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-    Item: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
-  });
+  const Menu = Object.assign(
+    ({ children, onClickMenuItem }: { children?: React.ReactNode; onClickMenuItem?: (key: string) => void }) => (
+      <menuContext.Provider value={onClickMenuItem ?? null}>{children}</menuContext.Provider>
+    ),
+    {
+      ItemGroup: ({ children }: { children?: React.ReactNode }) => <div>{children}</div>,
+      Item: ({ children }: { children?: React.ReactNode }) => {
+        const onClickMenuItem = React.useContext(menuContext);
+        const child = React.isValidElement(children) ? children : null;
+        const itemKey = child?.props?.['data-mode-value'] as string | undefined;
+        return (
+          <button type='button' onClick={() => itemKey && onClickMenuItem?.(itemKey)}>
+            {children}
+          </button>
+        );
+      },
+    }
+  );
   return {
     Button: ({ children, ...props }: React.ButtonHTMLAttributes<HTMLButtonElement>) => (
       <button type='button' {...props}>
         {children}
       </button>
     ),
-    Dropdown: ({ children }: { children?: React.ReactNode }) => <>{children}</>,
+    Dropdown: ({ children, droplist }: { children?: React.ReactNode; droplist?: React.ReactNode }) => (
+      <>
+        {children}
+        {droplist}
+      </>
+    ),
     Menu,
     Message: {
       success: vi.fn(),
@@ -152,5 +163,25 @@ describe('AgentModeSelector', () => {
     expect(button).not.toHaveAttribute('loading');
     expect(button).toHaveTextContent('权限 · 默认');
     expect(loading.parentElement?.lastElementChild).toBe(loading);
+  });
+
+  it('does not persist runtime mode changes to global agent preferences', async () => {
+    const setConfigOption = vi.fn().mockResolvedValue(undefined);
+    useAcpConfigOptionsMock.mockImplementation(() => ({
+      setStatus: { state: 'idle' },
+      mode: runtimeMode(),
+      model: null,
+      thoughtLevel: null,
+      reload: vi.fn(),
+      setConfigOption,
+    }));
+
+    render(<AgentModeSelector backend='claude' conversation_id='conv-1' />);
+
+    fireEvent.click(screen.getByText('Bypass Permissions'));
+
+    await waitFor(() => {
+      expect(setConfigOption).toHaveBeenCalledWith('mode', 'bypassPermissions');
+    });
   });
 });

@@ -17,9 +17,6 @@ export type ConfigKeyMap = {
       lastAuthTime?: number;
       cli_path?: string;
       yoloMode?: boolean;
-      preferredMode?: string;
-      preferredModelId?: string;
-      preferredThoughtLevel?: string;
       promptTimeout?: number;
     };
   };
@@ -45,13 +42,10 @@ export type ConfigKeyMap = {
   'css.activeThemeId': string;
   'theme.activeId': string;
   'theme.userThemes': Theme[];
-  'aionrs.config': { preferredMode?: string } | undefined;
-  'aionrs.defaultModel': { id: string; use_model: string } | undefined;
   'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };
   'tools.speechToText': SpeechToTextConfig | undefined;
   'workspace.pasteConfirm': boolean | undefined;
   'upload.saveToWorkspace': boolean | undefined;
-  'guid.lastSelectedAgent': string | undefined;
   'system.closeToTray': boolean | undefined;
   'system.notificationEnabled': boolean | undefined;
   'system.cronNotificationEnabled': boolean | undefined;

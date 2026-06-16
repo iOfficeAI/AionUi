@@ -31,12 +31,6 @@ export interface IConfigStorageRefer {
       lastAuthTime?: number;
       cli_path?: string;
       yoloMode?: boolean;
-      /** Preferred session mode for new conversations / 新会话的默认模式 */
-      preferredMode?: string;
-      /** Preferred model ID for new conversations / 新会话的默认模型 */
-      preferredModelId?: string;
-      /** Preferred thought level for new ACP conversations / 新会话的默认思考强度 */
-      preferredThoughtLevel?: string;
       /** LLM prompt timeout in seconds (default: 300) / LLM 请求超时时间（秒，默认 300） */
       promptTimeout?: number;
     };
@@ -76,11 +70,6 @@ export interface IConfigStorageRefer {
   'theme.activeId': string;
   /** User-created themes */
   'theme.userThemes': Theme[];
-  'aionrs.config'?: {
-    /** Preferred session mode for new conversations / 新会话的默认模式 */
-    preferredMode?: string;
-  };
-  'aionrs.defaultModel'?: { id: string; use_model: string };
   'tools.imageGenerationModel': TProviderWithModel & {
     /** @deprecated Image generation is now controlled via built-in MCP server toggle */
     switch?: boolean;
@@ -90,8 +79,6 @@ export interface IConfigStorageRefer {
   'workspace.pasteConfirm'?: boolean;
   // 上传的文件是否保存到工作区目录（true = 保存到工作区，false = 保存到缓存目录）
   'upload.saveToWorkspace'?: boolean;
-  // guid 页面上次选择的 agent 类型 / Last selected agent type on guid page
-  'guid.lastSelectedAgent'?: string;
   // 关闭窗口时最小化到系统托盘 / Minimize to system tray when closing window
   'system.closeToTray'?: boolean;
   // 任务完成时显示系统通知 / Show system notification when task completes

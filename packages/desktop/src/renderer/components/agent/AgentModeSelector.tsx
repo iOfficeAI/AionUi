@@ -7,7 +7,6 @@
 import { configService } from '@/common/config/configService';
 import type { AcpSessionConfigOption } from '@/common/types/platform/acpTypes';
 import { classifyConfigSetError, useAcpConfigOptions } from '@/renderer/hooks/agent/useAcpConfigOptions';
-import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { getAgentModes, supportsModeSwitch, type AgentModeOption } from '@/renderer/utils/model/agentModes';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { AgentLogoIcon } from './AgentBadge';
@@ -76,8 +75,6 @@ export interface AgentModeSelectorProps {
   dynamicModes?: AgentModeOption[];
   /** Optional runtime preparation before reading active-session mode. */
   beforeRuntimeSync?: () => Promise<void>;
-  /** Whether switching mode should persist into the backend-wide preference key. */
-  persistGlobalPreference?: boolean;
 }
 
 /**
@@ -106,7 +103,6 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
   onModeChanged,
   dynamicModes,
   beforeRuntimeSync,
-  persistGlobalPreference = true,
 }) => {
   const { t } = useTranslation();
   const layout = useLayoutContext();
@@ -223,11 +219,6 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
         await setActiveMode();
         setCurrentMode(mode);
         onModeChanged?.(mode);
-        if (backend && persistGlobalPreference) {
-          // Mirror Guid page behaviour so a switch made inside the
-          // conversation also becomes the next-session default.
-          void savePreferredMode(backend, mode);
-        }
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
         console.error('[AgentModeSelector] Failed to switch mode:', error);
@@ -243,7 +234,6 @@ const AgentModeSelector: React.FC<AgentModeSelectorProps> = ({
       current_mode,
       onModeChanged,
       onModeSelect,
-      persistGlobalPreference,
       runtimeConfig,
       runtimeMode,
       t,

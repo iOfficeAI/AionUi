@@ -4,67 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { configService } from '@/common/config/configService';
 import type { AgentSource } from '@/renderer/utils/model/agentTypes';
-
-/** Save preferred mode to the agent's own config key */
-export async function savePreferredMode(agentKey: string, mode: string): Promise<void> {
-  try {
-    if (agentKey === 'aionrs') {
-      const config = configService.get('aionrs.config');
-      await configService.set('aionrs.config', { ...config, preferredMode: mode });
-    } else if (agentKey !== 'custom') {
-      const config = configService.get('acp.config');
-      const backendConfig = config?.[agentKey as string] || {};
-      await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredMode: mode } });
-    }
-  } catch {
-    /* silent */
-  }
-}
-
-/** Save preferred model ID to the agent's acp.config key */
-export async function savePreferredModelId(agentKey: string, model_id: string): Promise<void> {
-  try {
-    const config = configService.get('acp.config');
-    const backendConfig = config?.[agentKey as string] || {};
-    await configService.set('acp.config', { ...config, [agentKey]: { ...backendConfig, preferredModelId: model_id } });
-  } catch {
-    /* silent */
-  }
-}
-
-export function getPreferredThoughtLevel(agentKey: string | undefined): string | undefined {
-  if (!agentKey) return undefined;
-  const config = configService.get('acp.config');
-  const value = config?.[agentKey as string]?.preferredThoughtLevel;
-  return typeof value === 'string' && value.trim().length > 0 ? value.trim() : undefined;
-}
-
-/** Save preferred thought level to the agent's acp.config key */
-export async function savePreferredThoughtLevel(agentKey: string, thoughtLevel: string): Promise<void> {
-  try {
-    const value = thoughtLevel.trim();
-    if (!agentKey || !value) return;
-    const config = configService.get('acp.config');
-    const backendConfig = config?.[agentKey as string] || {};
-    await configService.set('acp.config', {
-      ...config,
-      [agentKey]: { ...backendConfig, preferredThoughtLevel: value },
-    });
-  } catch {
-    /* silent */
-  }
-}
-
-/** Save default aionrs provider/model so the Guid page restores it next session. */
-export async function saveAionrsDefaultModel(provider_id: string, use_model: string): Promise<void> {
-  try {
-    await configService.set('aionrs.defaultModel', { id: provider_id, use_model });
-  } catch {
-    /* silent */
-  }
-}
 
 /**
  * Get agent key for selection.

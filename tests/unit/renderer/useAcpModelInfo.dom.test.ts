@@ -12,19 +12,13 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 
-const {
-  getConfigOptionsInvokeMock,
-  setConfigOptionInvokeMock,
-  configServiceSetMock,
-  fetchDetectedAgentsMock,
-  responseStreamHandlers,
-} = vi.hoisted(() => ({
-  getConfigOptionsInvokeMock: vi.fn(),
-  setConfigOptionInvokeMock: vi.fn(),
-  configServiceSetMock: vi.fn(),
-  fetchDetectedAgentsMock: vi.fn(),
-  responseStreamHandlers: [] as Array<(message: IResponseMessage) => void>,
-}));
+const { getConfigOptionsInvokeMock, setConfigOptionInvokeMock, fetchDetectedAgentsMock, responseStreamHandlers } =
+  vi.hoisted(() => ({
+    getConfigOptionsInvokeMock: vi.fn(),
+    setConfigOptionInvokeMock: vi.fn(),
+    fetchDetectedAgentsMock: vi.fn(),
+    responseStreamHandlers: [] as Array<(message: IResponseMessage) => void>,
+  }));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -41,13 +35,6 @@ vi.mock('@/common', () => ({
         }),
       },
     },
-  },
-}));
-
-vi.mock('@/common/config/configService', () => ({
-  configService: {
-    get: vi.fn().mockReturnValue({}),
-    set: configServiceSetMock,
   },
 }));
 
@@ -133,13 +120,11 @@ describe('useAcpModelInfo', () => {
     responseStreamHandlers.length = 0;
     getConfigOptionsInvokeMock.mockReset();
     setConfigOptionInvokeMock.mockReset();
-    configServiceSetMock.mockReset();
     getConfigOptionsInvokeMock.mockResolvedValue({ config_options: buildConfigOptions() });
     setConfigOptionInvokeMock.mockResolvedValue({
       confirmation: 'observed',
       config_options: buildConfigOptions('opus-4'),
     });
-    configServiceSetMock.mockResolvedValue(undefined);
     fetchDetectedAgentsMock.mockResolvedValue([]);
   });
 
@@ -161,7 +146,7 @@ describe('useAcpModelInfo', () => {
     expect(result.current.canSwitch).toBe(true);
   });
 
-  it('waits for observed confirmation before updating selected model and saving preference', async () => {
+  it('waits for observed confirmation before updating selected model without persisting a global preference', async () => {
     const setConfigDeferred = deferred<{
       confirmation: 'observed';
       config_options: AcpConfigOptionDto[];
@@ -209,9 +194,6 @@ describe('useAcpModelInfo', () => {
     });
     expect(onSelectModelSuccess).toHaveBeenCalledWith('opus-4');
     expect(onSelectModelFailed).not.toHaveBeenCalled();
-    await waitFor(() => {
-      expect(configServiceSetMock).toHaveBeenCalledWith('acp.config', { claude: { preferredModelId: 'opus-4' } });
-    });
   });
 
   it('does not update model info when backend only returns command acknowledgement', async () => {
@@ -243,7 +225,6 @@ describe('useAcpModelInfo', () => {
     });
     expect(result.current.model_info?.current_model_id).toBe('sonnet-4');
     expect(onSelectModelSuccess).not.toHaveBeenCalled();
-    expect(configServiceSetMock).not.toHaveBeenCalled();
   });
 
   it('shares observed model snapshots across hook instances for the same conversation', async () => {

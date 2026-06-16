@@ -25,15 +25,10 @@ describe('buildPresetAssistantParams', () => {
   beforeEach(() => {
     configGetMock.mockReset();
     getAgentsMock.mockReset();
-    configGetMock.mockImplementation((key: string) => {
-      if (key === 'acp.config') {
-        return {};
-      }
-      return undefined;
-    });
+    configGetMock.mockReturnValue(undefined);
   });
 
-  it('uses assistant model metadata before falling back to /api/agents', async () => {
+  it('uses assistant model metadata without consulting agent preference storage', async () => {
     getAgentsMock.mockRejectedValue(new Error('should not be called for preset assistants'));
 
     const payload = await buildPresetAssistantParams(
@@ -48,19 +43,15 @@ describe('buildPresetAssistantParams', () => {
     expect(payload.assistant?.conversation_overrides?.model).toBe('claude-sonnet-4');
     expect(payload.extra.current_model_id).toBe('claude-sonnet-4');
     expect(getAgentsMock).not.toHaveBeenCalled();
+    expect(configGetMock).not.toHaveBeenCalled();
   });
 
-  it('prefers saved model ids when they still exist in the assistant catalog row', async () => {
-    configGetMock.mockImplementation((key: string) => {
-      if (key === 'acp.config') {
-        return {
-          claude: {
-            preferredModelId: 'claude-opus-4',
-          },
-        };
-      }
-      return undefined;
-    });
+  it('ignores legacy saved model ids and always uses assistant-owned model metadata', async () => {
+    configGetMock.mockImplementation(() => ({
+      claude: {
+        preferredModelId: 'claude-opus-4',
+      },
+    }));
     getAgentsMock.mockRejectedValue(new Error('should not be called for preset assistants'));
 
     const payload = await buildPresetAssistantParams(
@@ -72,9 +63,10 @@ describe('buildPresetAssistantParams', () => {
       'zh-CN'
     );
 
-    expect(payload.assistant?.conversation_overrides?.model).toBe('claude-opus-4');
-    expect(payload.extra.current_model_id).toBe('claude-opus-4');
+    expect(payload.assistant?.conversation_overrides?.model).toBe('claude-sonnet-4');
+    expect(payload.extra.current_model_id).toBe('claude-sonnet-4');
     expect(getAgentsMock).not.toHaveBeenCalled();
+    expect(configGetMock).not.toHaveBeenCalled();
   });
 });
 

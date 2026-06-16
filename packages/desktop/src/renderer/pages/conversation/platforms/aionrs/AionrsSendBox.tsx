@@ -28,7 +28,6 @@ import { createSetUploadFile, useSendBoxFiles } from '@/renderer/hooks/chat/useS
 import { useSlashCommands } from '@/renderer/hooks/chat/useSlashCommands';
 import { useOpenFileSelector } from '@/renderer/hooks/file/useOpenFileSelector';
 import { useLatestRef } from '@/renderer/hooks/ui/useLatestRef';
-import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import {
   shouldEnqueueConversationCommand,
   useConversationCommandQueue,
@@ -121,7 +120,6 @@ const AionrsSendBox: React.FC<{
   const isMobile = Boolean(layout?.isMobile);
   const conversationContext = useConversationContextSafe();
   const loadedSkills = conversationContext?.loadedSkills ?? [];
-  const assistantId = conversationContext?.assistantId;
   const loadedMcpStatuses =
     conversationContext?.loadedMcpStatuses ??
     (conversationContext?.loadedMcpServers ?? []).map<IConversationMcpStatus>((name) => ({
@@ -396,9 +394,6 @@ const AionrsSendBox: React.FC<{
       try {
         await runtimeConfig.setConfigOption(runtimeMode.id, mode);
         setCurrentMode(mode);
-        if (!assistantId) {
-          void savePreferredMode('aionrs', mode);
-        }
         propagateMode?.(mode);
         Message.success(t('agentMode.switchSuccess'));
       } catch (error) {
@@ -406,7 +401,7 @@ const AionrsSendBox: React.FC<{
         Message.error(t(configErrorMessageKey(error)));
       }
     },
-    [assistantId, propagateMode, runtimeConfig, runtimeMode, t]
+    [propagateMode, runtimeConfig, runtimeMode, t]
   );
 
   const handleSheetModelSelect = useCallback(
@@ -680,7 +675,6 @@ const AionrsSendBox: React.FC<{
               hideCompactLabelPrefixOnMobile
               onModeChanged={propagateMode}
               beforeRuntimeSync={prepareRuntimeSync}
-              persistGlobalPreference={!assistantId}
             />
           </div>
         }
