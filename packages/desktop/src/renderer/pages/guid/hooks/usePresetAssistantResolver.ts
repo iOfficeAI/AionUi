@@ -80,9 +80,20 @@ type UsePresetAssistantResolverResult = {
 };
 
 function resolveAssistantIdentityId(
-  agentInfo: { assistant_id?: string; preset_assistant_id?: string; custom_agent_id?: string } | undefined
+  agentInfo: { assistant_id?: string; preset_assistant_id?: string; custom_agent_id?: string } | undefined,
+  assistants: Assistant[]
 ): string | undefined {
-  return agentInfo?.assistant_id || agentInfo?.preset_assistant_id || agentInfo?.custom_agent_id;
+  const explicitAssistantId = agentInfo?.assistant_id || agentInfo?.preset_assistant_id;
+  if (explicitAssistantId) {
+    return explicitAssistantId;
+  }
+
+  const legacyAssistantId = agentInfo?.custom_agent_id;
+  if (!legacyAssistantId) {
+    return undefined;
+  }
+
+  return assistants.some((assistant) => assistant.id === legacyAssistantId) ? legacyAssistantId : undefined;
 }
 
 /**
@@ -109,7 +120,7 @@ export const usePresetAssistantResolver = ({
         | undefined
     ): Promise<{ rules?: string }> => {
       if (!agentInfo) return {};
-      const assistantId = resolveAssistantIdentityId(agentInfo);
+      const assistantId = resolveAssistantIdentityId(agentInfo, assistants);
       if (!assistantId) return { rules: agentInfo.context };
 
       let rules = '';
@@ -125,7 +136,7 @@ export const usePresetAssistantResolver = ({
 
       return { rules: rules || agentInfo.context };
     },
-    [localeKey]
+    [assistants, localeKey]
   );
 
   const resolvePresetContext = useCallback(
@@ -160,7 +171,7 @@ export const usePresetAssistantResolver = ({
         | undefined
     ): string => {
       if (!agentInfo) return 'gemini';
-      const assistantId = resolveAssistantIdentityId(agentInfo);
+      const assistantId = resolveAssistantIdentityId(agentInfo, assistants);
       if (!assistantId) return agentInfo.backend || agentInfo.agent_type;
       const assistant = assistants.find((a) => a.id === assistantId);
       return assistant?.preset_agent_type || 'gemini';
@@ -180,7 +191,7 @@ export const usePresetAssistantResolver = ({
           }
         | undefined
     ): string[] | undefined => {
-      const assistantId = resolveAssistantIdentityId(agentInfo);
+      const assistantId = resolveAssistantIdentityId(agentInfo, assistants);
       if (!assistantId) return undefined;
       const assistant = assistants.find((a) => a.id === assistantId);
       // Preserve legacy "undefined means use agent default" semantics by
@@ -205,7 +216,7 @@ export const usePresetAssistantResolver = ({
           }
         | undefined
     ): string[] | undefined => {
-      const assistantId = resolveAssistantIdentityId(agentInfo);
+      const assistantId = resolveAssistantIdentityId(agentInfo, assistants);
       if (!assistantId) return undefined;
       const assistant = assistants.find((a) => a.id === assistantId);
       if (!assistant?.disabled_builtin_skills?.length) return undefined;
