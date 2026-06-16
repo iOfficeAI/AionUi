@@ -1,5 +1,48 @@
 # Changelog
 
+## [2.1.19](https://github.com/iOfficeAI/AionUi/compare/v2.1.18...v2.1.19) (2026-06-15)
+
+### Desktop
+
+#### Features
+
+- **team:** support slot-scoped stop controls (#3334)
+- **desktop:** report installation integrity diagnostics (#3333)
+- **update:** use CDN metadata for stable auto updates (#3244)
+- **acp:** add observed config option selectors (#3324)
+- **layout:** make sider wordmark a back-to-chat control in settings (#3320)
+- **preview:** actionable server-side install guidance for officecli errors in web mode (#3310)
+
+#### Bug Fixes
+
+- align team workspace display fallback (#3340)
+- **team:** prefer assistant avatars in team chats (#3338)
+- repair assistant cron and guid metadata flows (#3336)
+- **assistant:** remove star office ui remnants (#3329)
+- **startup:** hydrate windows path for cli detection (#3308)
+- **docker:** install libicu so officecli preview works on Linux server deployments (#3323)
+- **agents:** keep disabled custom agents visible in settings (#3319)
+- **stt:** keep recording when streaming fails before it establishes (#3317)
+
+### Core ([v0.1.30](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.30))
+
+#### Features
+
+- **acp:** use observed config options for preferences ([#468](https://github.com/iOfficeAI/AionCore/issues/468))
+- align team shared workspace resolution ([#475](https://github.com/iOfficeAI/AionCore/issues/475))
+- **team:** support slot-scoped team pause and wake flow ([#472](https://github.com/iOfficeAI/AionCore/issues/472))
+
+#### Bug Fixes
+
+- **agent:** send non-empty clientInfo in ACP initialize handshake ([#471](https://github.com/iOfficeAI/AionCore/issues/471))
+- **agent:** wait for task shutdown during clear ([#446](https://github.com/iOfficeAI/AionCore/issues/446))
+- **assistant:** remove star office helper remnants ([#470](https://github.com/iOfficeAI/AionCore/issues/470))
+- **office:** fetch officecli installer from official mirror before GitHub ([#463](https://github.com/iOfficeAI/AionCore/issues/463))
+- preserve assistant snapshot and skill wiring for cron ([#473](https://github.com/iOfficeAI/AionCore/issues/473))
+- **shell:** reveal file via FileManager1 D-Bus on Linux ([#466](https://github.com/iOfficeAI/AionCore/issues/466))
+
+---
+
 ## [2.1.18](https://github.com/iOfficeAI/AionUi/compare/v2.1.17...v2.1.18) (2026-06-12)
 
 ### Desktop

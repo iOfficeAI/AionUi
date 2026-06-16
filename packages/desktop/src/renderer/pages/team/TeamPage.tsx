@@ -23,6 +23,7 @@ import { TeamPermissionProvider } from './hooks/TeamPermissionContext';
 import { useTeamSession } from './hooks/useTeamSession';
 import { useTeamRunView, type TeamRunViewState } from './hooks/useTeamRunView';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
+import { resolveTeamWorkspaceView } from './utils/teamWorkspaceView';
 
 type Props = {
   team: TTeam;
@@ -219,12 +220,16 @@ const TeamPageContent: React.FC<TeamPageContentProps> = ({ team, onRenameTeam })
   );
 
   // Use team workspace if specified, otherwise fall back to leader agent's conversation workspace (temp workspace)
-  const effectiveWorkspace = team.workspace || (dispatchConversation?.extra as { workspace?: string })?.workspace || '';
-  const workspaceEnabled = Boolean(effectiveWorkspace);
+  const teamWorkspaceView = resolveTeamWorkspaceView(
+    team.workspace,
+    (dispatchConversation?.extra as { workspace?: string } | undefined)?.workspace
+  );
+  const effectiveWorkspace = teamWorkspaceView.workspacePath;
+  const workspaceEnabled = teamWorkspaceView.workspaceEnabled;
   // Team is "user-picked" only when team.workspace was explicitly set at team
   // creation. Falling back to a leader agent's auto-temp workspace counts as
   // temporary, mirroring single-chat behavior.
-  const isTeamWorkspaceTemporary = !team.workspace;
+  const isTeamWorkspaceTemporary = teamWorkspaceView.isTemporaryWorkspace;
 
   const siderTitle = useMemo(
     () => (
