@@ -17,9 +17,9 @@ describe('guid assistant selection helpers', () => {
     expect(resolveAssistantSelectionKey('custom:user-research', assistants)).toBe('user-research');
   });
 
-  it('migrates legacy backend keys onto assistant ids', () => {
-    expect(resolveAssistantSelectionKey('claude', assistants)).toBe('builtin-writer');
-    expect(resolveAssistantSelectionKey('aionrs', assistants)).toBe('bare-aionrs');
+  it('does not accept legacy backend keys as assistant selection ids', () => {
+    expect(resolveAssistantSelectionKey('claude', assistants)).toBeUndefined();
+    expect(resolveAssistantSelectionKey('aionrs', assistants)).toBeUndefined();
   });
 
   it('defaults to the bare aionrs assistant when available', () => {

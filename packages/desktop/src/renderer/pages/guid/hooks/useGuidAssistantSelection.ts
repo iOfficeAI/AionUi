@@ -82,8 +82,7 @@ export function resolveAssistantSelectionKey(
     return savedKey;
   }
 
-  const backendMatch = assistants.find((assistant) => assistant.preset_agent_type === savedKey);
-  return backendMatch?.id;
+  return undefined;
 }
 
 export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string {
