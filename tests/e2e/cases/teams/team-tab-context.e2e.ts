@@ -6,13 +6,7 @@
  * visible and has not been cleared.
  */
 import { test, expect } from '../../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
-
-const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
-  gemini: { backend: 'gemini', model: 'gemini' },
-  claude: { backend: 'acp', model: 'claude' },
-  codex: { backend: 'acp', model: 'codex' },
-};
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, ensureTeam } from '../../helpers';
 
 test.describe('Team Tab Context Persistence', () => {
   test('switching tabs and back preserves leader conversation history', async ({ page }) => {
@@ -26,41 +20,14 @@ test.describe('Team Tab Context Persistence', () => {
       return;
     }
 
-    const agentMeta = AGENT_TYPE_MAP[leaderType];
-    if (!agentMeta) {
-      test.skip(true, `Leader type "${leaderType}" not in AGENT_TYPE_MAP — skipping`);
-      return;
-    }
-
     const teamName = 'E2E Tab Context Team';
 
-    // [setup] Find or create the team
-    const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      user_id: 'system_default_user',
-    });
-    const existing = teams.find((t) => t.name === teamName);
     let teamId: string;
-
-    if (existing) {
-      teamId = existing.id;
-    } else {
-      const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        name: teamName,
-        agents: [
-          {
-            name: 'Leader',
-            role: 'lead',
-            backend: agentMeta.backend,
-            model: agentMeta.model,
-          },
-        ],
-      }).catch(() => null);
-
-      if (!created?.id) {
-        test.skip(true, `Team "${teamName}" could not be created — agent may not be installed`);
-        return;
-      }
-      teamId = created.id;
+    try {
+      teamId = await ensureTeam(page, teamName, leaderType);
+    } catch (error) {
+      test.skip(true, `Team "${teamName}" could not be created — ${(error as Error).message}`);
+      return;
     }
 
     // [navigate] Go to team page and wait for leader textarea

@@ -12,14 +12,7 @@
  * Operations MUST go through leader chat input — invokeBridge is only for setup.
  */
 import { test, expect } from '../../fixtures';
-import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS } from '../../helpers';
-
-/** Map leader type to backend + model values used in team.create */
-const AGENT_TYPE_MAP: Record<string, { backend: string; model: string }> = {
-  gemini: { backend: 'gemini', model: 'gemini' },
-  claude: { backend: 'acp', model: 'claude' },
-  codex: { backend: 'acp', model: 'codex' },
-};
+import { invokeBridge, navigateTo, TEAM_SUPPORTED_BACKENDS, ensureTeam } from '../../helpers';
 
 const LEADER_CONFIGS = [...TEAM_SUPPORTED_BACKENDS].map((leaderType) => ({
   leaderType,
@@ -31,38 +24,12 @@ for (const { leaderType, teamName } of LEADER_CONFIGS) {
     test.setTimeout(300_000); // LLM inference + MCP calls need ~2-3 min total
 
     // [setup] Find or create the team — self-contained, no cross-file dependency
-    const agentMeta = AGENT_TYPE_MAP[leaderType];
-    if (!agentMeta) {
-      test.skip(true, `Leader type "${leaderType}" not in AGENT_TYPE_MAP — skipping`);
-      return;
-    }
-
-    const teams = await invokeBridge<Array<{ id: string; name: string }>>(page, 'team.list', {
-      user_id: 'system_default_user',
-    });
-    const existing = teams.find((t) => t.name === teamName);
     let resolvedTeamId: string;
-
-    if (existing) {
-      resolvedTeamId = existing.id;
-    } else {
-      const created = await invokeBridge<{ id: string } | null>(page, 'team.create', {
-        name: teamName,
-        agents: [
-          {
-            name: 'Leader',
-            role: 'lead',
-            backend: agentMeta.backend,
-            model: agentMeta.model,
-          },
-        ],
-      }).catch(() => null);
-
-      if (!created?.id) {
-        test.skip(true, `Team "${teamName}" could not be created — agent type may not be installed`);
-        return;
-      }
-      resolvedTeamId = created.id;
+    try {
+      resolvedTeamId = await ensureTeam(page, teamName, leaderType);
+    } catch (error) {
+      test.skip(true, `Team "${teamName}" could not be created — ${(error as Error).message}`);
+      return;
     }
 
     // [setup] Navigate to team page, wait for leader chat input
