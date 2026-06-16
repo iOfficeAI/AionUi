@@ -166,7 +166,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
             custom_workspace: isCustomWorkspace,
             selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
             selected_session_mcp_servers: selectedSessionMcpServersToSend,
-            session_mode: selectedMode,
+            ...(!assistantConversationId && selectedMode
+              ? {
+                  session_mode: selectedMode,
+                }
+              : {}),
           },
         });
 
@@ -219,8 +223,16 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           custom_workspace: isCustomWorkspace,
           default_files: files,
           backend: assistantBackend,
-          session_mode: selectedMode,
-          current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+          ...(!assistantConversationId && selectedMode
+            ? {
+                session_mode: selectedMode,
+              }
+            : {}),
+          ...(!assistantConversationId && (selectedAcpModel || currentAcpCachedModelInfo?.current_model_id)
+            ? {
+                current_model_id: selectedAcpModel || currentAcpCachedModelInfo?.current_model_id || undefined,
+              }
+            : {}),
           selected_mcp_server_ids: selectedUserMcpServerIdsToSend,
           selected_session_mcp_servers:
             selectedMcpServerIds !== undefined ? selectedSessionMcpServers : selectedSessionMcpServersToSend,

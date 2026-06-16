@@ -96,6 +96,9 @@ describe('useGuidSend', () => {
     const payload = createConversationInvokeMock.mock.calls[0][0];
     expect(payload.assistant?.conversation_overrides?.permission).toBe('bypassPermissions');
     expect(payload.assistant?.conversation_overrides?.model).toBe('claude-opus');
+    expect(payload.extra.backend).toBe('claude');
+    expect(payload.extra.session_mode).toBeUndefined();
+    expect(payload.extra.current_model_id).toBeUndefined();
     expect(swrMutateMock).toHaveBeenCalledWith('guid.assistant.detail.assistant-1.zh-CN');
     expect(swrMutateMock).toHaveBeenCalledWith('assistants.list');
   });
@@ -192,6 +195,7 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.id).toBe('bare:aionrs');
     expect(payload.assistant?.conversation_overrides?.skill_ids).toEqual(['pdf-reader']);
     expect(payload.assistant?.conversation_overrides?.disabled_builtin_skill_ids).toEqual(['todo-tracker']);
+    expect(payload.extra.session_mode).toBeUndefined();
   });
 
   it('does not write legacy preset_assistant_id for bare Aion CLI assistant conversations', async () => {
