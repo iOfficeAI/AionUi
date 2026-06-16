@@ -36,6 +36,7 @@ const TaskDetailPage: React.FC = () => {
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
   const { presetAssistants } = useConversationAssistants();
+  const assistantIdentity = job ? getJobAgentMeta(job, presetAssistants) : null;
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
@@ -295,27 +296,24 @@ const TaskDetailPage: React.FC = () => {
               </div>
             </section>
 
-            {job.metadata.agent_type && (
+            {assistantIdentity?.name && (
               <section className='flex flex-col gap-10px'>
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.assistant')}</h2>
                 <div className='flex items-center gap-10px'>
-                  {(() => {
-                    const { name: displayName, logo, emoji } = getJobAgentMeta(job, presetAssistants);
-                    return (
-                      <>
-                        {logo ? (
-                          <img src={logo} alt={displayName} className='h-28px w-28px rounded-50%' />
-                        ) : emoji ? (
-                          <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
-                            {emoji}
-                          </span>
-                        ) : (
-                          <Robot size='28' className='shrink-0 text-t-secondary' />
-                        )}
-                        <span className='min-w-0 text-14px font-medium text-t-primary'>{displayName}</span>
-                      </>
-                    );
-                  })()}
+                  {assistantIdentity.logo ? (
+                    <img
+                      src={assistantIdentity.logo}
+                      alt={assistantIdentity.name}
+                      className='h-28px w-28px rounded-50%'
+                    />
+                  ) : assistantIdentity.emoji ? (
+                    <span className='inline-flex h-28px w-28px items-center justify-center text-20px'>
+                      {assistantIdentity.emoji}
+                    </span>
+                  ) : (
+                    <Robot size='28' className='shrink-0 text-t-secondary' />
+                  )}
+                  <span className='min-w-0 text-14px font-medium text-t-primary'>{assistantIdentity.name}</span>
                 </div>
               </section>
             )}

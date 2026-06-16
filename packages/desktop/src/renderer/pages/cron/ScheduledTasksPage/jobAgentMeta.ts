@@ -27,13 +27,11 @@ export function getJobAgentMeta(
   job: ICronJob,
   presetAssistants: Assistant[]
 ): { name?: string; logo?: string | null; emoji?: string } {
-  const rawType = normalizeAgentBackend(job.metadata.agent_type);
-  if (!rawType) return {};
-
   const config = job.metadata.agent_config;
   const assistantId = config?.assistant_id || config?.custom_agent_id;
   if (assistantId) {
     const assistant = presetAssistants.find((item) => item.id === assistantId);
+    const rawType = normalizeAgentBackend(job.metadata.agent_type);
     const displayName = assistant?.name || config.name || rawType;
     const avatar = resolveAssistantAvatar(assistant?.avatar);
     if (avatar.kind === 'image') {
@@ -49,6 +47,9 @@ export function getJobAgentMeta(
       logo: getAgentLogo(presetBackend),
     };
   }
+
+  const rawType = normalizeAgentBackend(job.metadata.agent_type);
+  if (!rawType) return {};
 
   if (rawType === 'acp') {
     const backend = config?.backend;

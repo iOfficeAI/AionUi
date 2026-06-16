@@ -90,9 +90,38 @@ describe('TaskDetailPage', () => {
     expect(assistantAvatar).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
     expect(screen.queryByText('Codex CLI')).not.toBeInTheDocument();
   });
+
+  it('still renders assistant identity when legacy agent_type is absent but assistant_id exists', async () => {
+    getJobInvokeMock.mockResolvedValue(
+      job({
+        metadata: {
+          agent_type: '',
+        },
+      })
+    );
+
+    render(
+      <MemoryRouter initialEntries={['/scheduled/job-1']}>
+        <Routes>
+          <Route path='/scheduled/:job_id' element={<TaskDetailPage />} />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    await waitFor(() => expect(getJobInvokeMock).toHaveBeenCalledWith({ job_id: 'job-1' }));
+
+    expect(await screen.findByText('问好助手')).toBeInTheDocument();
+    expect(screen.getByText('cron.detail.assistant')).toBeInTheDocument();
+    expect(screen.getByAltText('问好助手')).toHaveAttribute('src', 'data:image/svg+xml;base64,assistant-avatar');
+  });
 });
 
-function job(): ICronJob {
+function job(overrides?: Partial<ICronJob>): ICronJob {
+  const metadataOverrides = overrides?.metadata;
+  const { agent_config: agentConfigOverrides, ...metadataRestOverrides } = metadataOverrides ?? {};
+  const targetOverrides = overrides?.target;
+  const { payload: payloadOverrides, ...targetRestOverrides } = targetOverrides ?? {};
+
   return {
     id: 'job-1',
     name: '问好',
@@ -104,10 +133,7 @@ function job(): ICronJob {
       timezone: 'Asia/Shanghai',
       description: '每天10点向我问好',
     },
-    target: {
-      execution_mode: 'new_conversation',
-      payload: { text: '每天10点向我问好' },
-    },
+    ...overrides,
     metadata: {
       created_at_ms: 1,
       updated_at_ms: 1,
@@ -115,12 +141,22 @@ function job(): ICronJob {
       last_run_at_ms: undefined,
       status: 'paused',
       agent_type: 'acp',
+      ...metadataRestOverrides,
       agent_config: {
         backend: 'codex',
         name: '问好助手',
         is_preset: true,
         custom_agent_id: 'assistant-1',
         preset_agent_type: 'codex',
+        ...agentConfigOverrides,
+      },
+    },
+    target: {
+      execution_mode: 'new_conversation',
+      ...targetRestOverrides,
+      payload: {
+        text: '每天10点向我问好',
+        ...payloadOverrides,
       },
     },
     state: {
@@ -129,6 +165,7 @@ function job(): ICronJob {
       run_count: 0,
       retry_count: 0,
       max_retries: 0,
+      ...overrides?.state,
     },
   } as ICronJob;
 }
