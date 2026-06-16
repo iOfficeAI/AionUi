@@ -32,9 +32,6 @@ type LegacyBusinessConfigKey =
   | 'acp.config'
   | 'acp.promptTimeout'
   | 'acp.agentIdleTimeout'
-  | 'acp.cachedInitializeResult'
-  | 'acp.cached_config_options'
-  | 'acp.cachedModes'
   | 'mcp.config'
   | 'tools.imageGenerationModel'
   | 'tools.speechToText';
@@ -54,9 +51,6 @@ const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'acp.config',
   'acp.promptTimeout',
   'acp.agentIdleTimeout',
-  'acp.cachedInitializeResult',
-  'acp.cached_config_options',
-  'acp.cachedModes',
   'language',
   'theme',
   'colorScheme',

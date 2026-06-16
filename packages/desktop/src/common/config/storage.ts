@@ -39,12 +39,6 @@ export interface IConfigStorageRefer {
   'acp.promptTimeout'?: number;
   /** Idle timeout in minutes before an ACP agent process is killed to reclaim memory (default: 5). */
   'acp.agentIdleTimeout'?: number;
-  // Cached initialize results per ACP backend (persisted across sessions)
-  'acp.cachedInitializeResult'?: Record<string, import('@/common/types/platform/acpTypes').AcpInitializeResult>;
-  // Cached config options per ACP backend for Guid page pre-selection
-  'acp.cached_config_options'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionConfigOption[]>;
-  // Cached modes per ACP backend for Guid page / AgentModeSelector
-  'acp.cachedModes'?: Record<string, import('@/common/types/platform/acpTypes').AcpSessionModes>;
   'mcp.config'?: IMcpServer[];
   language: string;
   theme: string; // @deprecated migrated to theme.activeId/theme.userThemes
