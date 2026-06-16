@@ -53,14 +53,12 @@ function normalisePresetAgentType(raw: unknown): string {
 }
 
 /**
- * Frozen snapshot of built-in assistant ids. Must stay in sync with the
- * backend manifest at
- * `AionCore/crates/aionui-app/assets/builtin-assistants/preset-id-whitelist.json`
- * — add/remove ids in the same PR. Drift means a user-authored assistant
- * whose id accidentally matches a built-in slug will be imported into the
- * user table and then silently overwritten the next time the backend ships
- * a matching built-in. The legacy `builtin-` prefix check handles the common
- * case; this whitelist is the guard for unprefixed ids.
+ * Frozen snapshot of legacy built-in assistant ids that shipped without the
+ * historical `builtin-` prefix. This migration still needs them so a
+ * user-authored assistant whose id accidentally matches one of these slugs is
+ * not imported into the user table and later overwritten by the backend's
+ * built-in bootstrap. The prefix check handles the common case; this set is
+ * only the guard for those older unprefixed ids.
  */
 const PRESET_ID_WHITELIST = new Set<string>([
   'word-creator',
