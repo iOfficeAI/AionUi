@@ -7,7 +7,6 @@
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
-import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
 function normalizeAgentBackend(agent: string | undefined): string | undefined {
@@ -26,7 +25,6 @@ function normalizeAgentBackend(agent: string | undefined): string | undefined {
  */
 export function getJobAgentMeta(
   job: ICronJob,
-  cliAgents: AgentMetadata[],
   presetAssistants: Assistant[]
 ): { name?: string; logo?: string | null; emoji?: string } {
   const rawType = normalizeAgentBackend(job.metadata.agent_type);
@@ -54,16 +52,14 @@ export function getJobAgentMeta(
 
   if (rawType === 'acp') {
     const backend = config?.backend;
-    const detected = backend ? cliAgents.find((a) => (a.backend || a.agent_type) === backend) : undefined;
     return {
-      name: detected?.name || config?.name || backend || rawType,
+      name: config?.name || backend || rawType,
       logo: getAgentLogo(backend),
     };
   }
 
-  const detected = cliAgents.find((a) => (a.backend || a.agent_type) === rawType);
   return {
-    name: detected?.name || rawType,
+    name: config?.name || rawType,
     logo: getAgentLogo(rawType),
   };
 }

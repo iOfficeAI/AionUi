@@ -50,20 +50,6 @@ vi.mock('@renderer/pages/conversation/hooks/useConversationAssistants', () => ({
   }),
 }));
 
-vi.mock('@renderer/pages/conversation/hooks/useRuntimeAgentsCatalog', () => ({
-  useRuntimeAgentsCatalog: () => ({
-    cliAgents: [
-      {
-        id: 'codex-runtime',
-        name: 'Codex CLI',
-        backend: 'codex',
-        agent_type: 'acp',
-        icon: 'codex.svg',
-      },
-    ],
-  }),
-}));
-
 vi.mock('@renderer/pages/cron/useCronJobs', () => ({
   useCronJobConversations: () => ({ conversations: [] }),
 }));

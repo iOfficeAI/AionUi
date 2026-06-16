@@ -13,7 +13,6 @@ import { ipcBridge } from '@/common';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import type { TChatConversation } from '@/common/config/storage';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
-import { useRuntimeAgentsCatalog } from '@renderer/pages/conversation/hooks/useRuntimeAgentsCatalog';
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
@@ -37,7 +36,6 @@ const TaskDetailPage: React.FC = () => {
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
   const { presetAssistants } = useConversationAssistants();
-  const { cliAgents } = useRuntimeAgentsCatalog();
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;
@@ -302,7 +300,7 @@ const TaskDetailPage: React.FC = () => {
                 <h2 className='m-0 text-13px font-medium text-t-secondary'>{t('cron.detail.agent')}</h2>
                 <div className='flex items-center gap-10px'>
                   {(() => {
-                    const { name: displayName, logo, emoji } = getJobAgentMeta(job, cliAgents, presetAssistants);
+                    const { name: displayName, logo, emoji } = getJobAgentMeta(job, presetAssistants);
                     return (
                       <>
                         {logo ? (
