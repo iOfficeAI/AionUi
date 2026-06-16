@@ -162,7 +162,7 @@ const DefaultsSection: React.FC<DefaultsSectionProps> = ({
             <Select.Option value={AUTO_SELECT_VALUE}>{autoDefaultOptionLabel}</Select.Option>
             {permissionOptions.map((option) => (
               <Select.Option key={option.value} value={option.value}>
-                {option.label}
+                {t(`agentMode.${option.value}`, { defaultValue: option.label })}
               </Select.Option>
             ))}
           </Select>
