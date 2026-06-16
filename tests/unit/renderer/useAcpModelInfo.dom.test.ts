@@ -12,13 +12,11 @@ import type { IResponseMessage } from '@/common/adapter/ipcBridge';
 import type { AcpConfigOptionDto, AcpModelInfo } from '@/common/types/platform/acpTypes';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 
-const { getConfigOptionsInvokeMock, setConfigOptionInvokeMock, fetchDetectedAgentsMock, responseStreamHandlers } =
-  vi.hoisted(() => ({
-    getConfigOptionsInvokeMock: vi.fn(),
-    setConfigOptionInvokeMock: vi.fn(),
-    fetchDetectedAgentsMock: vi.fn(),
-    responseStreamHandlers: [] as Array<(message: IResponseMessage) => void>,
-  }));
+const { getConfigOptionsInvokeMock, setConfigOptionInvokeMock, responseStreamHandlers } = vi.hoisted(() => ({
+  getConfigOptionsInvokeMock: vi.fn(),
+  setConfigOptionInvokeMock: vi.fn(),
+  responseStreamHandlers: [] as Array<(message: IResponseMessage) => void>,
+}));
 
 vi.mock('@/common', () => ({
   ipcBridge: {
@@ -36,11 +34,6 @@ vi.mock('@/common', () => ({
       },
     },
   },
-}));
-
-vi.mock('@/renderer/utils/model/agentTypes', () => ({
-  DETECTED_AGENTS_SWR_KEY: 'detected-agents',
-  fetchDetectedAgents: fetchDetectedAgentsMock,
 }));
 
 const buildConfigOptions = (currentModelId = 'sonnet-4'): AcpConfigOptionDto[] => [
@@ -125,7 +118,6 @@ describe('useAcpModelInfo', () => {
       confirmation: 'observed',
       config_options: buildConfigOptions('opus-4'),
     });
-    fetchDetectedAgentsMock.mockResolvedValue([]);
   });
 
   it('derives model info from the model config option and ignores thought_level values', async () => {
