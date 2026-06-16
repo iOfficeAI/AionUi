@@ -64,7 +64,6 @@ describe('channel assistant binding helpers', () => {
   it('serializes only assistant identity for new channel bindings', () => {
     expect(buildChannelAssistantBinding(assistants[1])).toEqual({
       assistant_id: 'bare-claude',
-      name: 'Claude',
     });
   });
 });

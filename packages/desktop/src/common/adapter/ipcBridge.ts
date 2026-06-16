@@ -1663,7 +1663,7 @@ export const extensions = {
 // ---------------------------------------------------------------------------
 
 import type {
-  IChannelAssistantSetting,
+  IChannelAssistantBindingWrite,
   IChannelDefaultModelSetting,
   IChannelPairingRequest,
   IChannelPlatformSettings,
@@ -1753,7 +1753,7 @@ export const channel = {
   getPlatformSettings: httpGet<IChannelPlatformSettings, { platform: string }>(
     (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}`
   ),
-  setAssistantSetting: httpPut<void, { platform: string; assistant: IChannelAssistantSetting }>(
+  setAssistantSetting: httpPut<void, { platform: string; assistant: IChannelAssistantBindingWrite }>(
     (p) => `/api/channel/settings/${encodeURIComponent(p.platform)}/assistant`,
     (p) => p.assistant
   ),

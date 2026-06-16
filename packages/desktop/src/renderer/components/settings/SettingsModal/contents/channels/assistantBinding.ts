@@ -5,17 +5,9 @@
  */
 
 import type { Assistant } from '@/common/types/agent/assistantTypes';
+import type { IChannelAssistantBindingWrite, IChannelAssistantStoredBinding } from '@/common/types/channel/channel';
 
-export type ChannelAssistantBinding =
-  | {
-      assistant_id?: string;
-      custom_agent_id?: string;
-      backend?: string;
-      agent_type?: string;
-      name?: string;
-    }
-  | string
-  | undefined;
+export type ChannelAssistantBinding = IChannelAssistantStoredBinding | string | undefined;
 
 export function getDefaultChannelAssistant(assistants: Assistant[]): Assistant | undefined {
   return (
@@ -49,10 +41,9 @@ export function resolveChannelAssistantId(saved: ChannelAssistantBinding, assist
   return findAssistantIdByBackend(backend, assistants) || getDefaultChannelAssistant(assistants)?.id;
 }
 
-export function buildChannelAssistantBinding(assistant: Assistant) {
+export function buildChannelAssistantBinding(assistant: Assistant): IChannelAssistantBindingWrite {
   return {
     assistant_id: assistant.id,
-    name: assistant.name,
   };
 }
 

@@ -64,12 +64,16 @@ export interface IChannelSession {
   lastActivity: number;
 }
 
-export interface IChannelAssistantSetting {
+export interface IChannelAssistantStoredBinding {
   assistant_id?: string;
   custom_agent_id?: string;
   backend?: string;
   agent_type?: string;
   name?: string;
+}
+
+export interface IChannelAssistantBindingWrite {
+  assistant_id: string;
 }
 
 export interface IChannelDefaultModelSetting {
@@ -79,6 +83,6 @@ export interface IChannelDefaultModelSetting {
 
 export interface IChannelPlatformSettings {
   platform: string;
-  assistant: IChannelAssistantSetting | null;
+  assistant: IChannelAssistantStoredBinding | null;
   default_model: IChannelDefaultModelSetting | null;
 }
