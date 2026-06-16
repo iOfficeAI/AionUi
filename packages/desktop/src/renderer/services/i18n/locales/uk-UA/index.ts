@@ -22,6 +22,7 @@ import guid from './guid.json';
 import agent from './agent.json';
 import team from './team.json';
 import pet from './pet.json';
+import usageStats from './usageStats.json';
 
 export default {
   common,
@@ -43,4 +44,5 @@ export default {
   agent,
   team,
   pet,
+  usageStats,
 };

@@ -1,0 +1,68 @@
+{
+  "title": "使用统计",
+  "menuLabel": "使用统计",
+  "refresh": "刷新",
+  "granularity": {
+    "day": "按日",
+    "week": "按周"
+  },
+  "timeRange": {
+    "today": "今天",
+    "7d": "最近 7 天",
+    "30d": "最近 30 天",
+    "90d": "最近 90 天",
+    "all": "全部"
+  },
+  "trend": {
+    "title": "Token 用量趋势",
+    "dimension": {
+      "label": "拆分维度",
+      "agent": "工具",
+      "project": "项目",
+      "model": "模型"
+    }
+  },
+  "sessions": {
+    "title": "会话明细",
+    "time": "时间",
+    "agent": "Agent",
+    "model": "模型",
+    "project": "项目",
+    "tokens": "Token",
+    "total": "共 {{count}} 个会话",
+    "loadMore": "加载更多"
+  },
+  "source": {
+    "missing": "未找到 {{agent}} 日志目录",
+    "skipped": "有 {{count}} 个 {{agent}} 日志文件无法解析, 已跳过"
+  },
+  "empty": "未找到使用数据",
+  "error": "加载使用数据失败",
+  "unsupported": "当前后端不支持使用统计, 请升级。",
+  "kpi": {
+    "totalTokens": "总 token",
+    "sessions": "会话数",
+    "messages": "消息数",
+    "cacheRatio": "缓存占比"
+  },
+  "composition": {
+    "title": "Token 构成",
+    "input": "输入",
+    "output": "输出",
+    "cacheRead": "缓存读取",
+    "cacheCreation": "缓存创建",
+    "unit": "token",
+    "uncached": "未缓存"
+  },
+  "comparison": {
+    "title": "按工具",
+    "projectsTitle": "项目排行",
+    "modelsTitle": "模型排行"
+  },
+  "trendCtl": {
+    "mode": "模式",
+    "split": "分时",
+    "cumulative": "累计",
+    "perPoint": "每点 ≈ {{span}}"
+  }
+}

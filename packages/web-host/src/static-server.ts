@@ -43,13 +43,40 @@ function getLanIP(): string | null {
   return null;
 }
 
-function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number): void {
+export const WEBUI_REMOTE_HEADER = 'x-aionui-webui-remote';
+
+/**
+ * Build headers forwarded to the backend.
+ * Security (review P1): always strip any client-supplied WEBUI_REMOTE_HEADER
+ * first, then set it to "1" only when this WebHost runs in remote mode.
+ * Local Electron talks to the backend directly (not via this proxy) so it
+ * never carries the header → backend treats it as local (no sanitize).
+ */
+export function buildBackendHeaders(
+  reqHeaders: Record<string, string | string[] | undefined>,
+  backendPort: number,
+  allowRemote: boolean
+): Record<string, string | string[] | undefined> {
+  const headers: Record<string, string | string[] | undefined> = { ...reqHeaders, host: `127.0.0.1:${backendPort}` };
+  // 不信任客户端自带的该 header — 一律先删除。
+  delete headers[WEBUI_REMOTE_HEADER];
+  if (allowRemote) {
+    headers[WEBUI_REMOTE_HEADER] = '1';
+  }
+  return headers;
+}
+
+function forwardToBackend(req: IncomingMessage, res: ServerResponse, backendPort: number, allowRemote: boolean): void {
   const options: http.RequestOptions = {
     hostname: '127.0.0.1',
     port: backendPort,
     path: req.url,
     method: req.method,
-    headers: { ...req.headers, host: `127.0.0.1:${backendPort}` },
+    headers: buildBackendHeaders(
+      req.headers as Record<string, string | string[] | undefined>,
+      backendPort,
+      allowRemote
+    ),
   };
   const proxy = http.request(options, (proxyRes) => {
     res.writeHead(proxyRes.statusCode ?? 502, proxyRes.headers);
@@ -142,7 +169,7 @@ export async function startStaticServer(opts: StaticServerOptions): Promise<Stat
       // /login and /logout are aionui-auth's top-level auth endpoints: proxy them too
       // so WebUI browser clients reach the backend without a path-rewrite.
       if (req.url.startsWith('/api/') || req.url.startsWith('/api?') || req.url === '/login' || req.url === '/logout') {
-        forwardToBackend(req, res, opts.backendPort);
+        forwardToBackend(req, res, opts.backendPort, allowRemote);
         return;
       }
 

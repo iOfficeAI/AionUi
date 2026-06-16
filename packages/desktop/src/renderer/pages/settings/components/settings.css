@@ -48,3 +48,50 @@
     font-weight: 500;
   }
 }
+
+/* ===== Usage statistics — bento dashboard ===== */
+.usage-bento {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 12px;
+  margin-bottom: 16px;
+  grid-template-areas:
+    'hero hero sess msg cache cache'
+    'hero hero trend trend trend trend'
+    'comp comp trend trend trend trend'
+    'comp comp tool tool tool tool'
+    'proj proj proj model model model';
+}
+
+/* Stack into a single column on narrow/mobile widths. Children set grid-area
+   inline, so reset them with !important here. */
+@media (max-width: 820px) {
+  .usage-bento {
+    grid-template-columns: 1fr;
+    grid-template-areas: none;
+  }
+  .usage-bento > * {
+    grid-area: auto !important;
+  }
+}
+
+/* Bento cell — a self-themed surface used in place of Arco Card inside the grid. */
+.usage-cell {
+  background: var(--bg-base, #fff);
+  border: 1px solid var(--color-border, #e5e6eb);
+  border-radius: 8px;
+  padding: 16px;
+  box-sizing: border-box;
+}
+.usage-cell-label {
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--text-secondary, #86909c);
+}
+.usage-figure {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+  color: var(--text-primary, #1d2129);
+}

@@ -4,7 +4,12 @@ import http from 'node:http';
 import os from 'node:os';
 import path from 'node:path';
 import type { AddressInfo } from 'node:net';
-import { startStaticServer, type StaticServerHandle } from './static-server.js';
+import {
+  startStaticServer,
+  type StaticServerHandle,
+  buildBackendHeaders,
+  WEBUI_REMOTE_HEADER,
+} from './static-server.js';
 
 async function mkRendererFixture(): Promise<string> {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'ws-static-'));
@@ -356,5 +361,37 @@ describe('static-server', () => {
     // may still be undefined on CI machines without a LAN interface
     expect(typeof h2.networkUrl === 'string' || h2.networkUrl === undefined).toBe(true);
     await h2.stop();
+  });
+});
+
+describe('buildBackendHeaders', () => {
+  it('local mode 不注入 webui-remote header', () => {
+    const out = buildBackendHeaders({ 'content-type': 'application/json' }, 3000, false);
+    expect(out[WEBUI_REMOTE_HEADER]).toBeUndefined();
+    expect(out['content-type']).toBe('application/json');
+    expect(out.host).toBe('127.0.0.1:3000');
+  });
+
+  it('remote mode 注入 webui-remote=1', () => {
+    const out = buildBackendHeaders({ 'content-type': 'application/json' }, 3000, true);
+    expect(out[WEBUI_REMOTE_HEADER]).toBe('1');
+    expect(out.host).toBe('127.0.0.1:3000');
+  });
+
+  it('客户端伪造 webui-remote header 在 local mode 必须被剥离', () => {
+    // 安全 P1: 不信任客户端自带的 header, 即便 local mode 也要先删
+    const out = buildBackendHeaders({ [WEBUI_REMOTE_HEADER]: 'malicious-1' }, 3000, false);
+    expect(out[WEBUI_REMOTE_HEADER]).toBeUndefined();
+  });
+
+  it('客户端伪造 webui-remote header 在 remote mode 也必须被服务端覆盖为 1', () => {
+    // 即便客户端发了不同值, 也只能是服务端控制的 '1'
+    const out = buildBackendHeaders({ [WEBUI_REMOTE_HEADER]: 'attacker-controlled' }, 3000, true);
+    expect(out[WEBUI_REMOTE_HEADER]).toBe('1');
+  });
+
+  it('host header 始终被覆盖为 backend 端口', () => {
+    const out = buildBackendHeaders({ host: 'evil.example.com' }, 9999, false);
+    expect(out.host).toBe('127.0.0.1:9999');
   });
 });

@@ -1,0 +1,68 @@
+{
+  "title": "Estatísticas de uso",
+  "menuLabel": "Uso",
+  "refresh": "Atualizar",
+  "granularity": {
+    "day": "Diário",
+    "week": "Semanal"
+  },
+  "timeRange": {
+    "today": "Hoje",
+    "7d": "Últimos 7 dias",
+    "30d": "Últimos 30 dias",
+    "90d": "Últimos 90 dias",
+    "all": "Todo o período"
+  },
+  "trend": {
+    "title": "Tendência de uso de tokens",
+    "dimension": {
+      "label": "Dividir por",
+      "agent": "Ferramenta",
+      "project": "Projeto",
+      "model": "Modelo"
+    }
+  },
+  "sessions": {
+    "title": "Sessões",
+    "time": "Hora",
+    "agent": "Agente",
+    "model": "Modelo",
+    "project": "Projeto",
+    "tokens": "Tokens",
+    "total": "{{count}} sessões no total",
+    "loadMore": "Carregar mais"
+  },
+  "source": {
+    "missing": "Diretório de logs de {{agent}} não encontrado",
+    "skipped": "{{count}} arquivo(s) de log de {{agent}} não puderam ser analisados e foram ignorados"
+  },
+  "empty": "Nenhum dado de uso encontrado",
+  "error": "Falha ao carregar dados de uso",
+  "unsupported": "O backend atual não oferece suporte a estatísticas de uso. Atualize-o.",
+  "kpi": {
+    "totalTokens": "Total de tokens",
+    "sessions": "Sessões",
+    "messages": "Mensagens",
+    "cacheRatio": "Taxa de cache"
+  },
+  "composition": {
+    "title": "Composição de tokens",
+    "input": "Entrada",
+    "output": "Saída",
+    "cacheRead": "Leitura do cache",
+    "cacheCreation": "Criação de cache",
+    "unit": "tokens",
+    "uncached": "Sem cache"
+  },
+  "comparison": {
+    "title": "Por ferramenta",
+    "projectsTitle": "Principais projetos",
+    "modelsTitle": "Principais modelos"
+  },
+  "trendCtl": {
+    "mode": "Modo",
+    "split": "Divisão",
+    "cumulative": "Cumulativo",
+    "perPoint": "≈ {{span}} / ponto"
+  }
+}
