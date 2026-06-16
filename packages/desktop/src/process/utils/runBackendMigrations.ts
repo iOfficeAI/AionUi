@@ -8,7 +8,7 @@ import { execFile } from 'node:child_process';
 import { migrateConfigStorage, migrateLegacyMcpConfigToDb, migrateProviders } from '@/common/config/configMigration';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import { mcpService } from '@/common/adapter/ipcBridge';
-import type { ConfigKeyMap } from '@/common/config/configKeys';
+import type { ImageGenerationModelSetting } from '@/common/config/clientSettings';
 import {
   removeImageGenerationEnvKeys,
   resolveImageGenerationMcpEnv,
@@ -63,18 +63,18 @@ async function fetchProviders(): Promise<IProvider[]> {
 
 export function resolveImageGenerationMigrationConfig(
   backendPrefs: BackendClientPreferences,
-  fileConfig?: ConfigKeyMap['tools.imageGenerationModel']
-): ConfigKeyMap['tools.imageGenerationModel'] | undefined {
+  fileConfig?: ImageGenerationModelSetting
+): ImageGenerationModelSetting | undefined {
   const backendConfig = backendPrefs['tools.imageGenerationModel'];
   if (backendConfig && typeof backendConfig === 'object') {
-    return backendConfig as ConfigKeyMap['tools.imageGenerationModel'];
+    return backendConfig as ImageGenerationModelSetting;
   }
   return fileConfig;
 }
 
 function resolveImageGenerationMigrationConfigSource(
   backendPrefs: BackendClientPreferences,
-  fileConfig?: ConfigKeyMap['tools.imageGenerationModel']
+  fileConfig?: ImageGenerationModelSetting
 ): 'backend' | 'file' | 'none' {
   const backendConfig = backendPrefs['tools.imageGenerationModel'];
   if (backendConfig && typeof backendConfig === 'object') {
@@ -111,7 +111,7 @@ function logImageGenerationEnvResolution(
 
 function buildBuiltinImageGenerationServer(
   resolution: ImageGenerationMcpEnvResolveResult,
-  config?: ConfigKeyMap['tools.imageGenerationModel']
+  config?: ImageGenerationModelSetting
 ): McpImportServer {
   const scriptPath = getBuiltinMcpScriptPath('builtin-mcp-image-gen');
   const env = resolution.ok ? resolution.env : {};

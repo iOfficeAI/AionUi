@@ -2,7 +2,7 @@ import { ipcBridge } from '@/common';
 import { httpRequest } from '@/common/adapter/httpBridge';
 import type { CreateProviderRequest } from '@/common/types/provider/providerApi';
 
-import type { ConfigKey, ConfigKeyMap } from './configKeys';
+import type { ConfigKey } from './configKeys';
 import type { IConfigStorageRefer, IMcpServer } from './storage';
 import { BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_LEGACY_NAMES, BUILTIN_IMAGE_GEN_NAME } from './storage';
 
@@ -26,7 +26,19 @@ const LEGACY_CHANNEL_KEYS = [
 ] as const;
 
 type LegacyChannelConfigKey = (typeof LEGACY_CHANNEL_KEYS)[number];
-type LegacyConfigKey = ConfigKey | LegacyChannelConfigKey;
+type LegacyBusinessConfigKey =
+  | 'google.config'
+  | 'codex.config'
+  | 'acp.config'
+  | 'acp.promptTimeout'
+  | 'acp.agentIdleTimeout'
+  | 'acp.cachedInitializeResult'
+  | 'acp.cached_config_options'
+  | 'acp.cachedModes'
+  | 'mcp.config'
+  | 'tools.imageGenerationModel'
+  | 'tools.speechToText';
+type LegacyConfigKey = ConfigKey | LegacyBusinessConfigKey | LegacyChannelConfigKey;
 
 type LegacyMcpConfigFile = ConfigFile & {
   get(key: typeof LEGACY_MCP_CONFIG_KEY): Promise<unknown>;
@@ -34,7 +46,7 @@ type LegacyMcpConfigFile = ConfigFile & {
 };
 
 type LegacyChannelConfigFile = ConfigFile & {
-  get(key: LegacyChannelConfigKey): Promise<unknown>;
+  get(key: LegacyConfigKey): Promise<unknown>;
 };
 
 const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
@@ -84,7 +96,7 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
       try {
         const value = LEGACY_CHANNEL_KEYS.includes(key as LegacyChannelConfigKey)
           ? await legacyConfigFile.get(key as LegacyChannelConfigKey)
-          : await configFile.get(key as ConfigKey);
+          : await legacyConfigFile.get(key as LegacyConfigKey);
         return [key, value] as const;
       } catch {
         return [key, undefined] as const;
@@ -367,7 +379,7 @@ async function markProvidersMigrationDone(configFile: ConfigFile): Promise<void>
   }
 }
 
-type BackendClientPreferences = Partial<{ [K in ConfigKey]: ConfigKeyMap[K] | null }> & Record<string, unknown>;
+type BackendClientPreferences = Record<string, unknown>;
 
 async function fetchExistingClientKeys(): Promise<Record<string, unknown>> {
   try {

@@ -1,31 +1,7 @@
-import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
-import type { SpeechToTextConfig } from '@/common/types/provider/speech';
-import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
+import type { ICssTheme } from '@/common/config/storage';
 import type { Theme } from '@/common/theme/types';
 
 export type ConfigKeyMap = {
-  'google.config': {
-    proxy?: string;
-  };
-  'codex.config':
-    | { cli_path?: string; yoloMode?: boolean; sandboxMode?: 'read-only' | 'workspace-write' | 'danger-full-access' }
-    | undefined;
-  'acp.config': {
-    [backend: string]: {
-      auth_methodId?: string;
-      authToken?: string;
-      lastAuthTime?: number;
-      cli_path?: string;
-      yoloMode?: boolean;
-      promptTimeout?: number;
-    };
-  };
-  'acp.promptTimeout': number | undefined;
-  'acp.agentIdleTimeout': number | undefined;
-  'acp.cachedInitializeResult': Record<string, AcpInitializeResult> | undefined;
-  'acp.cached_config_options': Record<string, AcpSessionConfigOption[]> | undefined;
-  'acp.cachedModes': Record<string, AcpSessionModes> | undefined;
-  'mcp.config': IMcpServer[];
   language: string;
   theme: string;
   colorScheme: string;
@@ -42,8 +18,6 @@ export type ConfigKeyMap = {
   'css.activeThemeId': string;
   'theme.activeId': string;
   'theme.userThemes': Theme[];
-  'tools.imageGenerationModel': TProviderWithModel & { switch?: boolean };
-  'tools.speechToText': SpeechToTextConfig | undefined;
   'workspace.pasteConfirm': boolean | undefined;
   'upload.saveToWorkspace': boolean | undefined;
   'system.closeToTray': boolean | undefined;

@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ConfigKeyMap } from '@/common/config/configKeys';
+import type { ImageGenerationModelSetting } from '@/common/config/clientSettings';
 import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/common/config/imageGenerationMcpEnv';
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
@@ -304,9 +304,7 @@ const ModalMcpManagementSection: React.FC<{
 const ToolsModalContent: React.FC = () => {
   const { t } = useTranslation();
   const [mcpMessage, mcpMessageContext] = Message.useMessage({ maxCount: 10 });
-  const [imageGenerationModel, setImageGenerationModel] = useState<
-    ConfigKeyMap['tools.imageGenerationModel'] | undefined
-  >();
+  const [imageGenerationModel, setImageGenerationModel] = useState<ImageGenerationModelSetting | undefined>();
   const [isUpdatingImageGeneration, setIsUpdatingImageGeneration] = useState(false);
   const { modelListWithImage: data } = useConfigModelListWithImage();
   const { mcpServers, extensionMcpServers, saveMcpServers, setMcpServers, isMcpServersLoading } = useMcpServers();
@@ -340,7 +338,7 @@ const ToolsModalContent: React.FC = () => {
 
   // Sync image generation model config to the built-in MCP server's transport.env
   const syncMcpServerEnv = useCallback(
-    async (model: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
+    async (model: Partial<ImageGenerationModelSetting>) => {
       const builtinServer = mcpServers.find(isBuiltinImageGenServer);
       if (!builtinServer || builtinServer.transport.type !== 'stdio') return;
 
@@ -446,7 +444,7 @@ const ToolsModalContent: React.FC = () => {
   }, [data, imageGenerationModel, syncMcpServerEnv]);
 
   const handleImageGenerationModelChange = useCallback(
-    (value: Partial<ConfigKeyMap['tools.imageGenerationModel']>) => {
+    (value: Partial<ImageGenerationModelSetting>) => {
       setImageGenerationModel((prev) => {
         const newImageGenerationModel = {
           ...prev,
@@ -456,7 +454,7 @@ const ToolsModalContent: React.FC = () => {
           base_url: '',
           api_key: '',
           use_model: value.use_model,
-        } as ConfigKeyMap['tools.imageGenerationModel'];
+        } as ImageGenerationModelSetting;
         setClientBusinessSetting('tools.imageGenerationModel', newImageGenerationModel).catch((error) => {
           console.error('Failed to update image generation model config:', error);
         });

@@ -5,28 +5,24 @@
  */
 
 import { httpRequest } from '@/common/adapter/httpBridge';
-import type { ConfigKeyMap } from '@/common/config/configKeys';
+import type { ClientBusinessSettingKey, ClientBusinessSettingMap } from '@/common/config/clientSettings';
 
-type BusinessClientSettingKey =
-  | 'google.config'
-  | 'tools.imageGenerationModel'
-  | 'tools.speechToText'
-  | 'acp.promptTimeout'
-  | 'acp.agentIdleTimeout';
-
-export async function getClientBusinessSetting<K extends BusinessClientSettingKey>(
+export async function getClientBusinessSetting<K extends ClientBusinessSettingKey>(
   key: K
-): Promise<ConfigKeyMap[K] | undefined> {
-  return httpRequest<ConfigKeyMap[K] | undefined>('GET', `/api/settings/client?key=${encodeURIComponent(key)}`);
+): Promise<ClientBusinessSettingMap[K] | undefined> {
+  return httpRequest<ClientBusinessSettingMap[K] | undefined>(
+    'GET',
+    `/api/settings/client?key=${encodeURIComponent(key)}`
+  );
 }
 
-export async function setClientBusinessSetting<K extends BusinessClientSettingKey>(
+export async function setClientBusinessSetting<K extends ClientBusinessSettingKey>(
   key: K,
-  value: ConfigKeyMap[K]
+  value: ClientBusinessSettingMap[K]
 ): Promise<void> {
   await httpRequest<void>('PUT', '/api/settings/client', { [key]: value });
 }
 
-export async function removeClientBusinessSetting<K extends BusinessClientSettingKey>(key: K): Promise<void> {
+export async function removeClientBusinessSetting<K extends ClientBusinessSettingKey>(key: K): Promise<void> {
   await httpRequest<void>('PUT', '/api/settings/client', { [key]: null });
 }
