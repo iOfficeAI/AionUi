@@ -40,6 +40,13 @@ describe('team agent type policy', () => {
     expect(blocked.team_block_reason).toBe('agent unavailable');
   });
 
+  it('keeps assistant candidate options assistant-first and does not expose legacy agent_type', () => {
+    const option = assistantToOption(assistant('assistant-1', true, undefined, 'claude'));
+
+    expect(option.backend).toBe('claude');
+    expect(option).not.toHaveProperty('agent_type');
+  });
+
   it('keeps blocked assistants in the team list instead of filtering them out', () => {
     const options = [
       assistantToOption(assistant('assistant-1', true, undefined)),

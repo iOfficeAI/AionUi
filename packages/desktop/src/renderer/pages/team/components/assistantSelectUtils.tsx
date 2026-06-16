@@ -14,8 +14,6 @@ export type TeamAssistantOption = {
   name: string;
   /** Execution backend (claude, gemini, qwen, …). */
   backend?: string;
-  /** Top-level runtime type used to resolve conversation kind. */
-  agent_type?: string;
   /** Icon / avatar token — an SVG filename, emoji, or key into
    *  `CUSTOM_AVATAR_IMAGE_MAP`. */
   icon?: string;
@@ -30,7 +28,6 @@ export function assistantToOption(assistant: Assistant): TeamAssistantOption {
     id: assistant.id,
     name: assistant.name,
     backend: assistant.preset_agent_type,
-    agent_type: assistant.preset_agent_type,
     icon: assistant.avatar,
     team_capable: assistant.team_selectable,
     team_block_reason: assistant.team_block_reason,
@@ -54,7 +51,7 @@ export function resolveTeamAssistantBackend(assistant: TeamAssistantOption | und
 
 /** Filter assistants to only those supported in team mode. */
 export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] {
-  return assistants.filter((assistant) => !isDeprecatedRuntimeAgentType(assistant.agent_type));
+  return assistants.filter((assistant) => !isDeprecatedRuntimeAgentType(assistant.backend));
 }
 
 export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
