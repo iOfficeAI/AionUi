@@ -9,7 +9,6 @@ import { removeImageGenerationEnvKeys, resolveImageGenerationMcpEnv } from '@/co
 import { mcpService } from '@/common/adapter/ipcBridge';
 import { type IMcpServer, BUILTIN_IMAGE_GEN_ID, BUILTIN_IMAGE_GEN_NAME } from '@/common/config/storage';
 import { isImageGenSupported } from '@/common/utils/imageModelAllowlist';
-import { getManagedAgents } from '@/renderer/hooks/agent/useAgents';
 import { Divider, Form, Tooltip, Message, Button, Dropdown, Menu, Modal, Switch } from '@arco-design/web-react';
 import { Help, Down, Plus } from '@icon-park/react';
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
@@ -132,25 +131,7 @@ const ModalMcpManagementSection: React.FC<{
     [handleBatchImportMcpServers, handleTestMcpConnections]
   );
 
-  const [detectedAgents, setDetectedAgents] = useState<Array<{ backend: string; name: string }>>([]);
   const [importMode, setImportMode] = useState<'json' | 'oneclick'>('json');
-
-  useEffect(() => {
-    const loadAgents = async () => {
-      try {
-        const agents = await getManagedAgents();
-        setDetectedAgents(
-          agents.map((agent) => ({
-            backend: agent.backend,
-            name: agent.name,
-          }))
-        );
-      } catch (error) {
-        console.error('Failed to load agents:', error);
-      }
-    };
-    void loadAgents();
-  }, []);
 
   useEffect(() => {
     const httpServers = mcpServers.filter(
@@ -170,54 +151,38 @@ const ModalMcpManagementSection: React.FC<{
   }, [serverToDelete, hideDeleteConfirm, handleDeleteMcpServer]);
 
   const renderAddButton = () => {
-    if (detectedAgents.length > 0) {
-      return (
-        <Dropdown
-          trigger='click'
-          droplist={
-            <Menu>
-              <Menu.Item
-                key='json'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImportMode('json');
-                  showAddMcpModal();
-                }}
-              >
-                {t('settings.mcpImportFromJSON')}
-              </Menu.Item>
-              <Menu.Item
-                key='oneclick'
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setImportMode('oneclick');
-                  showAddMcpModal();
-                }}
-              >
-                {t('settings.mcpOneKeyImport')}
-              </Menu.Item>
-            </Menu>
-          }
-        >
-          <Button type='outline' icon={<Plus size={'16'} />} shape='round' onClick={(e) => e.stopPropagation()}>
-            {t('settings.mcpAddServer')} <Down size='12' />
-          </Button>
-        </Dropdown>
-      );
-    }
-
     return (
-      <Button
-        type='outline'
-        icon={<Plus size={'16'} />}
-        shape='round'
-        onClick={() => {
-          setImportMode('json');
-          showAddMcpModal();
-        }}
+      <Dropdown
+        trigger='click'
+        droplist={
+          <Menu>
+            <Menu.Item
+              key='json'
+              onClick={(e) => {
+                e.stopPropagation();
+                setImportMode('json');
+                showAddMcpModal();
+              }}
+            >
+              {t('settings.mcpImportFromJSON')}
+            </Menu.Item>
+            <Menu.Item
+              key='oneclick'
+              onClick={(e) => {
+                e.stopPropagation();
+                setImportMode('oneclick');
+                showAddMcpModal();
+              }}
+            >
+              {t('settings.mcpOneKeyImport')}
+            </Menu.Item>
+          </Menu>
+        }
       >
-        {t('settings.mcpAddServer')}
-      </Button>
+        <Button type='outline' icon={<Plus size={'16'} />} shape='round' onClick={(e) => e.stopPropagation()}>
+          {t('settings.mcpAddServer')} <Down size='12' />
+        </Button>
+      </Dropdown>
     );
   };
 

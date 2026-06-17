@@ -868,7 +868,7 @@ export const mcpService = {
         }
       >;
     }>,
-    Array<{ agent_type: string; backend?: string; name: string; cli_path?: string }>
+    void
   >('/api/mcp/agent-configs'),
   testMcpConnection: httpPost<
     {
