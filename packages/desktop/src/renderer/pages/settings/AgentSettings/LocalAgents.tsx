@@ -25,7 +25,7 @@ const LocalAgents: React.FC = () => {
   // listed (greyed) with a working re-enable toggle. Use `revalidate` for
   // diagnostics-only updates and `refreshCatalog` when the underlying agent
   // directory changed and assistant/backend selectors must be kept in sync.
-  const { agents: allAgents, isRefreshing, revalidate, refreshCatalog } = useManagedAgents();
+  const { agents: allAgents, isRefreshing, refreshCatalog } = useManagedAgents();
 
   const officialAgents = allAgents.filter(
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
@@ -106,7 +106,7 @@ const LocalAgents: React.FC = () => {
       try {
         setTestingAgentId(agentId);
         const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
-        await revalidate();
+        await refreshCatalog();
         switch (result.status) {
           case 'available':
             Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
@@ -130,7 +130,7 @@ const LocalAgents: React.FC = () => {
         setTestingAgentId(null);
       }
     },
-    [revalidate, t]
+    [refreshCatalog, t]
   );
 
   return (

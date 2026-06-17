@@ -148,8 +148,8 @@ describe('LocalAgents', () => {
       expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'aionrs' });
     });
     await waitFor(() => {
-      expect(revalidate).toHaveBeenCalled();
-      expect(refreshCatalog).not.toHaveBeenCalled();
+      expect(refreshCatalog).toHaveBeenCalled();
+      expect(revalidate).not.toHaveBeenCalled();
       expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionAvailable');
     });
   });
