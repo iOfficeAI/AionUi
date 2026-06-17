@@ -18,7 +18,6 @@ type UseAssistantEditorParams = {
   activeAssistant: AssistantListItem | null;
   setActiveAssistantId: (id: string | null) => void;
   loadAssistants: () => Promise<void>;
-  refreshAgentDetection: () => Promise<void>;
   message: ReturnType<typeof Message.useMessage>[0];
 };
 
@@ -59,7 +58,6 @@ export const useAssistantEditor = ({
   activeAssistant,
   setActiveAssistantId,
   loadAssistants,
-  refreshAgentDetection,
   message,
 }: UseAssistantEditorParams) => {
   const { t } = useTranslation();
@@ -480,7 +478,6 @@ export const useAssistantEditor = ({
 
       setEditVisible(false);
       setPendingSkills([]);
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to save assistant:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
@@ -518,7 +515,6 @@ export const useAssistantEditor = ({
       setDeleteConfirmVisible(false);
       setEditVisible(false);
       message.success(t('common.success', { defaultValue: 'Success' }));
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to delete assistant:', error);
       message.error(t('common.failed', { defaultValue: 'Failed' }));
@@ -538,7 +534,6 @@ export const useAssistantEditor = ({
       await ipcBridge.assistants.setState.invoke({ id: assistant.id, enabled });
       await refreshAssistantCatalog();
       await refreshAssistantDetailCaches(assistant.id);
-      await refreshAgentDetection();
     } catch (error) {
       console.error('Failed to toggle assistant:', error);
       await Promise.all([swrMutate('assistants.list'), swrMutate('assistants')]);

@@ -117,7 +117,6 @@ describe('useAssistantEditor', () => {
     activeAssistant: null,
     setActiveAssistantId: vi.fn(),
     loadAssistants: vi.fn(),
-    refreshAgentDetection: vi.fn(),
     message: mockMessage,
   };
 
@@ -558,13 +557,10 @@ describe('useAssistantEditor', () => {
     (ipcBridge.assistants.setState.invoke as any).mockResolvedValue(undefined);
 
     const loadAssistantsMock = vi.fn();
-    const refreshAgentDetectionMock = vi.fn();
-
     const { result } = renderHook(() =>
       useAssistantEditor({
         ...defaultParams,
         loadAssistants: loadAssistantsMock,
-        refreshAgentDetection: refreshAgentDetectionMock,
       })
     );
 
@@ -575,7 +571,6 @@ describe('useAssistantEditor', () => {
     expect(swrMutate).toHaveBeenNthCalledWith(1, 'assistants.list', expect.any(Function), { revalidate: false });
     expect(ipcBridge.assistants.setState.invoke).toHaveBeenCalledWith({ id: 'builtin-1', enabled: false });
     expect(loadAssistantsMock).toHaveBeenCalled();
-    expect(refreshAgentDetectionMock).toHaveBeenCalled();
     expect(swrMutate).toHaveBeenCalledWith('assistants');
     expect(swrMutate).toHaveBeenCalledWith('guid.assistant.detail.builtin-1.en');
   });

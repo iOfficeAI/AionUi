@@ -18,9 +18,9 @@
  * read-only so users can inspect what's bundled.
  */
 import { Message } from '@arco-design/web-react';
-import { useDetectedAgents, useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
+import { useAssistantEditor, useAssistantList } from '@/renderer/hooks/assistant';
 import SettingsPageWrapper from '../components/SettingsPageWrapper';
-import { resolveAvatarImageSrc } from './assistantUtils';
+import { buildAssistantEditorBackends, resolveAvatarImageSrc } from './assistantUtils';
 import AssistantEditorPage from './AssistantEditorPage';
 import AssistantListPanel from './AssistantListPanel';
 import DeleteAssistantModal from './DeleteAssistantModal';
@@ -74,15 +74,13 @@ const AssistantSettings: React.FC = () => {
         .filter((option): option is NonNullable<typeof option> => option !== null),
     [assistants, localeKey]
   );
-
-  const { availableBackends, refreshAgentDetection } = useDetectedAgents();
+  const availableBackends = useMemo(() => buildAssistantEditorBackends(assistants, localeKey), [assistants, localeKey]);
 
   const editor = useAssistantEditor({
     localeKey,
     activeAssistant,
     setActiveAssistantId,
     loadAssistants,
-    refreshAgentDetection,
     message,
   });
 

@@ -1,5 +1,6 @@
+import { DEFAULT_CODEX_MODELS } from '@/common/types/codex/codexModels';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
-import type { AssistantListItem } from './types';
+import type { AssistantListItem, AvailableBackend } from './types';
 
 export type AssistantListFilter = 'all' | 'enabled' | 'disabled' | 'builtin' | 'user';
 export const ASSISTANT_SORT_ORDER_GAP = 1000;
@@ -146,3 +147,36 @@ export const groupAssistantsByEnabled = (assistants: AssistantListItem[]) => ({
   enabledAssistants: assistants.filter((assistant) => assistant.enabled !== false),
   disabledAssistants: assistants.filter((assistant) => assistant.enabled === false),
 });
+
+export const buildAssistantEditorBackends = (
+  assistants: AssistantListItem[],
+  localeKey: string
+): AvailableBackend[] => {
+  const backendMap = new Map<string, AvailableBackend>();
+
+  for (const assistant of assistants) {
+    if (assistant.source !== 'bare') {
+      continue;
+    }
+
+    const backend = assistant.preset_agent_type?.trim();
+    if (!backend || backendMap.has(backend)) {
+      continue;
+    }
+
+    const modelOptions =
+      assistant.models.length > 0
+        ? assistant.models.map((model) => ({ value: model, label: model }))
+        : backend === 'codex'
+          ? DEFAULT_CODEX_MODELS.map((model) => ({ value: model.id, label: model.label }))
+          : [];
+
+    backendMap.set(backend, {
+      id: backend,
+      name: assistant.name_i18n?.[localeKey] || assistant.name,
+      modelOptions,
+    });
+  }
+
+  return [...backendMap.values()];
+};

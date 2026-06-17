@@ -1,6 +1,5 @@
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { IMcpServer } from '@/common/config/storage';
-import type { AvailableBackend } from '@/renderer/hooks/assistant';
 
 // Skill info type
 export type SkillSource = 'builtin' | 'custom' | 'extension';
@@ -40,6 +39,18 @@ export type BuiltinAvatarOption = {
   id: string;
   label: string;
   src: string;
+};
+
+export type AvailableBackendModelOption = {
+  value: string;
+  label: string;
+};
+
+export type AvailableBackend = {
+  id: string;
+  name: string;
+  isExtension?: boolean;
+  modelOptions: AvailableBackendModelOption[];
 };
 
 export type AssistantEditorViewModel = {
