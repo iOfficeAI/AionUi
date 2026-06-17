@@ -7,8 +7,9 @@
  *
  * The Agent settings management surface must read the
  * `include_disabled=true` view (a SEPARATE SWR key from any detected-agent
- * cache) and refresh both the management cache and the shared detected-agent
- * cache when diagnostics actions mutate availability.
+ * cache). Diagnostics-only actions should refresh the management cache only;
+ * catalog-changing actions must also invalidate the shared detected-agent
+ * cache.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -71,13 +72,26 @@ describe('useManagedAgents', () => {
     expect(result.current.agents).toEqual([]);
   });
 
-  it('revalidate refreshes both the management key and the shared detected cache', async () => {
+  it('revalidate refreshes only the management key', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
 
     await act(async () => {
       await result.current.revalidate();
+    });
+
+    expect(mutate).toHaveBeenCalledWith('agents.managed');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
+  });
+
+  it('refreshCatalog refreshes both the management key and the shared detected cache', async () => {
+    (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
+
+    const { result } = renderHook(() => useManagedAgents());
+
+    await act(async () => {
+      await result.current.refreshCatalog();
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
@@ -98,7 +112,7 @@ describe('useManagedAgents', () => {
     expect(mutate).toHaveBeenCalledWith('agents.detected');
   });
 
-  it('getManagedAgents fetches the management catalog and refreshes the shared detected cache too', async () => {
+  it('getManagedAgents fetches the management catalog without invalidating the detected cache', async () => {
     const managedAgents = [
       { id: 'managed-1', name: 'Managed Agent', agent_type: 'acp', agent_source: 'builtin', enabled: true },
     ];
@@ -108,7 +122,7 @@ describe('useManagedAgents', () => {
 
     expect(fetchManagedAgents).toHaveBeenCalledTimes(1);
     expect(mutate).toHaveBeenCalledWith('agents.managed', managedAgents, { revalidate: false });
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
     expect(result).toEqual(managedAgents);
   });
 });

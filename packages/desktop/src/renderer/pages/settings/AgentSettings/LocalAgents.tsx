@@ -19,10 +19,10 @@ const LocalAgents: React.FC = () => {
   const [testingAgentId, setTestingAgentId] = useState<string | null>(null);
 
   // Management view: includes user-disabled custom agents so they stay
-  // listed (greyed) with a working re-enable toggle. `revalidate` here
-  // refreshes both the management cache and the shared detected cache, so
-  // toggling an agent on/off is reflected in the pickers too.
-  const { agents: allAgents, revalidate: mutateAgents } = useManagedAgents();
+  // listed (greyed) with a working re-enable toggle. Use `revalidate` for
+  // diagnostics-only updates and `refreshCatalog` when the underlying agent
+  // directory changed and assistant/backend selectors must be kept in sync.
+  const { agents: allAgents, revalidate: revalidateAgents, refreshCatalog } = useManagedAgents();
 
   const officialAgents = allAgents.filter(
     (a) => (a.agent_type === 'acp' || a.agent_type === 'aionrs') && a.agent_source !== 'custom'
@@ -49,7 +49,7 @@ const LocalAgents: React.FC = () => {
         } else {
           await ipcBridge.acpConversation.createCustomAgent.invoke(body);
         }
-        await mutateAgents();
+        await refreshCatalog();
         setEditorVisible(false);
         setEditingAgent(null);
       } catch (err) {
@@ -57,31 +57,31 @@ const LocalAgents: React.FC = () => {
         console.error('save custom agent failed:', err);
       }
     },
-    [editingAgent, mutateAgents]
+    [editingAgent, refreshCatalog]
   );
 
   const handleDeleteCustomAgent = useCallback(
     async (agentId: string) => {
       try {
         await ipcBridge.acpConversation.deleteCustomAgent.invoke({ id: agentId });
-        await mutateAgents();
+        await refreshCatalog();
       } catch (err) {
         console.error('delete custom agent failed:', err);
       }
     },
-    [mutateAgents]
+    [refreshCatalog]
   );
 
   const handleToggleCustomAgent = useCallback(
     async (agentId: string, enabled: boolean) => {
       try {
         await ipcBridge.acpConversation.setAgentEnabled.invoke({ id: agentId, enabled });
-        await mutateAgents();
+        await refreshCatalog();
       } catch (err) {
         console.error('toggle custom agent failed:', err);
       }
     },
-    [mutateAgents]
+    [refreshCatalog]
   );
 
   const sortedOfficialAgents = [...officialAgents].sort((left, right) => {
@@ -103,7 +103,7 @@ const LocalAgents: React.FC = () => {
       try {
         setTestingAgentId(agentId);
         const result = await ipcBridge.acpConversation.checkManagedAgentHealthById.invoke({ id: agentId });
-        await mutateAgents();
+        await revalidateAgents();
         switch (result.status) {
           case 'available':
             Message.success(t('settings.agentManagement.testConnectionAvailable', { name: result.name }));
@@ -127,7 +127,7 @@ const LocalAgents: React.FC = () => {
         setTestingAgentId(null);
       }
     },
-    [mutateAgents, t]
+    [revalidateAgents, t]
   );
 
   return (
