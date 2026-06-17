@@ -153,9 +153,6 @@ const WecomConfigForm: React.FC<WecomConfigFormProps> = ({
         platform: 'wecom',
         assistant: buildChannelAssistantBinding(assistant),
       });
-      await channel.syncChannelSettings
-        .invoke({ platform: 'wecom' })
-        .catch((err) => console.warn('[WecomConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
       console.error('[WecomConfig] Failed to save assistant:', error);

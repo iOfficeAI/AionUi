@@ -223,9 +223,6 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
         platform: 'weixin',
         assistant: buildChannelAssistantBinding(assistant),
       });
-      await channel.syncChannelSettings
-        .invoke({ platform: 'weixin' })
-        .catch((err) => console.warn('[WeixinConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
       console.error('[WeixinConfig] Failed to save assistant:', error);

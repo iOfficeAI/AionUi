@@ -146,9 +146,6 @@ const TelegramConfigForm: React.FC<TelegramConfigFormProps> = ({
         platform: 'telegram',
         assistant: buildChannelAssistantBinding(assistant),
       });
-      await channel.syncChannelSettings
-        .invoke({ platform: 'telegram' })
-        .catch((err) => console.warn('[TelegramConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
       console.error('[TelegramConfig] Failed to save assistant:', error);

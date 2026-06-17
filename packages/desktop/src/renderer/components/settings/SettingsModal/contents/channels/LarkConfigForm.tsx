@@ -154,9 +154,6 @@ const LarkConfigForm: React.FC<LarkConfigFormProps> = ({ pluginStatus, modelSele
         platform: 'lark',
         assistant: buildChannelAssistantBinding(assistant),
       });
-      await channel.syncChannelSettings
-        .invoke({ platform: 'lark' })
-        .catch((err) => console.warn('[LarkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
       console.error('[LarkConfig] Failed to save assistant:', error);

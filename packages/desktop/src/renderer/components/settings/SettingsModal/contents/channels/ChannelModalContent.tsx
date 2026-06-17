@@ -116,9 +116,6 @@ const useChannelModelSelection = (platform: ChannelSettingsPlatform): GoogleMode
       try {
         const modelRef = { id: provider.id, use_model: modelName };
         await channel.setDefaultModelSetting.invoke({ platform, default_model: modelRef });
-        await channel.syncChannelSettings
-          .invoke({ platform })
-          .catch((err) => console.warn(`[ChannelSettings] syncChannelSettings failed for ${platform}:`, err));
 
         Message.success(t('settings.assistant.modelSwitched', 'Model switched successfully'));
         return true;

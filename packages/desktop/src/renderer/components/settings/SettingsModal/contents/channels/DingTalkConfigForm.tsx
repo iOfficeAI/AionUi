@@ -149,9 +149,6 @@ const DingTalkConfigForm: React.FC<DingTalkConfigFormProps> = ({ pluginStatus, m
         platform: 'dingtalk',
         assistant: buildChannelAssistantBinding(assistant),
       });
-      await channel.syncChannelSettings
-        .invoke({ platform: 'dingtalk' })
-        .catch((err) => console.warn('[DingTalkConfig] syncChannelSettings failed:', err));
       Message.success(t('settings.assistant.agentSwitched', 'Assistant switched successfully'));
     } catch (error) {
       console.error('[DingTalkConfig] Failed to save assistant:', error);
