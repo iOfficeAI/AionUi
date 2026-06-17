@@ -9,11 +9,14 @@ import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import { app } from 'electron';
 import log from 'electron-log';
 import { EventEmitter } from 'events';
+import { COMMAND_EVE_SHELL_ENABLED, COMMAND_EVE_UPDATE_FEED_BASE_URL } from '@/common/config/commandEveShell';
 import { recordAutoUpdateQuitAndInstall, recordAutoUpdateStatus } from './autoUpdateDiagnostics';
 
 /**
  * Environment variable that supplies the generic auto-update feed base URL.
- * Highest-priority feed source; overrides any persisted ProcessConfig value.
+ * Highest-priority feed source; overrides any persisted ProcessConfig value AND
+ * the CE-scoped R2 default. A present-but-empty value is an explicit "force no
+ * feed" opt-out (see resolveUpdateFeedUrl for the full priority ladder).
  */
 export const UPDATE_FEED_URL_ENV = 'COMMAND_EVE_UPDATE_FEED_URL';
 
@@ -25,17 +28,32 @@ export const UPDATE_FEED_URL_CONFIG_KEY = 'update.feedUrl' as const;
 
 /**
  * Resolve the configured generic-provider update feed base URL.
- * Priority: COMMAND_EVE_UPDATE_FEED_URL env var, then the persisted
- * ProcessConfig setting. Returns undefined when neither is configured, which
- * is a first-class quiet "no feed" state — NOT an error.
+ *
+ * Priority:
+ *   1. COMMAND_EVE_UPDATE_FEED_URL env var, when set to a non-empty value
+ *      (highest priority explicit override — e.g. the e2e local feed).
+ *   2. EXPLICIT OPT-OUT: COMMAND_EVE_UPDATE_FEED_URL set but empty/whitespace.
+ *      A *present-but-empty* env value is an intentional "force no feed" signal
+ *      (distinct from the var being absent). It returns undefined regardless of
+ *      anything else, which keeps the W8 quiet no-op provable in CE-shell builds
+ *      (Suite C launches the packaged CE app with COMMAND_EVE_UPDATE_FEED_URL='').
+ *   3. The persisted ProcessConfig `update.feedUrl` setting, when non-empty.
+ *   4. CE-SCOPED DEFAULT: when COMMAND_EVE_SHELL_ENABLED is true and nothing
+ *      above resolved, fall back to COMMAND_EVE_UPDATE_FEED_BASE_URL (the R2
+ *      bucket). This is what makes an installed Command EVE build actually check
+ *      `<base>/latest-arm64-mac.yml` on startup with NO env/config set — the
+ *      Alois machine path.
+ *   5. Otherwise undefined — the first-class quiet "no feed" state (NOT an
+ *      error). Upstream/non-CE builds (COMMAND_EVE_SHELL_ENABLED === false)
+ *      always land here when no explicit feed is configured, so the W8
+ *      feed-agnostic default-quiet behaviour is preserved for upstream.
  *
  * NOTE (feed wiring): this runtime resolver intentionally does NOT read the
  * bundled app-update.yml. electron-builder.yml `publish` (generic, R2) is what
  * bakes app-update.yml into the build; the runtime then re-points the updater
- * via setFeedURL using THIS env/config value (W8 feed-agnostic design). So for
- * the installed app to actually check the R2 feed, the app must run with
- * COMMAND_EVE_UPDATE_FEED_URL (or a persisted `update.feedUrl`) set to the R2
- * base. Without it the startup check stays in the quiet no-op state by design.
+ * via setFeedURL using THIS resolved value (W8 feed-agnostic design). The
+ * CE-scoped default (step 4) points at the SAME R2 base that publish.url bakes
+ * in, so build-time and runtime feeds agree.
  *
  * The config reader is injected so this stays unit-testable without booting
  * Electron storage; production passes ProcessConfig.get.
@@ -43,19 +61,35 @@ export const UPDATE_FEED_URL_CONFIG_KEY = 'update.feedUrl' as const;
 export async function resolveUpdateFeedUrl(
   readConfig?: (key: typeof UPDATE_FEED_URL_CONFIG_KEY) => Promise<string | undefined>
 ): Promise<string | undefined> {
-  const fromEnv = process.env[UPDATE_FEED_URL_ENV];
-  if (typeof fromEnv === 'string' && fromEnv.trim() !== '') {
-    return fromEnv.trim();
-  }
-  if (!readConfig) return undefined;
-  try {
-    const fromConfig = await readConfig(UPDATE_FEED_URL_CONFIG_KEY);
-    if (typeof fromConfig === 'string' && fromConfig.trim() !== '') {
-      return fromConfig.trim();
+  const rawEnv = process.env[UPDATE_FEED_URL_ENV];
+  if (typeof rawEnv === 'string') {
+    const trimmed = rawEnv.trim();
+    if (trimmed !== '') {
+      // (1) explicit non-empty override wins.
+      return trimmed;
     }
-  } catch (error) {
-    log.warn('Failed to read persisted update feed URL:', error);
+    // (2) explicit opt-out: present-but-empty env forces the quiet no-feed state
+    // and short-circuits the persisted config + CE-scoped default below.
+    return undefined;
   }
+  if (readConfig) {
+    try {
+      const fromConfig = await readConfig(UPDATE_FEED_URL_CONFIG_KEY);
+      if (typeof fromConfig === 'string' && fromConfig.trim() !== '') {
+        // (3) persisted override.
+        return fromConfig.trim();
+      }
+    } catch (error) {
+      log.warn('Failed to read persisted update feed URL:', error);
+    }
+  }
+  // (4) CE-scoped default: an installed Command EVE build checks the R2 feed even
+  // with no env/config set. Upstream (CE shell off) intentionally skips this and
+  // falls through to the (5) quiet no-op state.
+  if (COMMAND_EVE_SHELL_ENABLED) {
+    return COMMAND_EVE_UPDATE_FEED_BASE_URL;
+  }
+  // (5) quiet "no feed" state.
   return undefined;
 }
 

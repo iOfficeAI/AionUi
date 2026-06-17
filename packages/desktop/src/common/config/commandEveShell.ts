@@ -9,6 +9,18 @@ export const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 export const COMMAND_EVE_TITLE = '⌘ EVE';
 export const COMMAND_EVE_VERSION = '1.0.0-alpha.7';
 export const COMMAND_EVE_APP_ID = 'com.fynlabs.commandeve';
+/**
+ * Generic (electron-updater) over-the-air update feed base URL for Command EVE.
+ *
+ * This is the Cloudflare R2 public bucket the release pipeline mirrors the
+ * channel yml + zip + blockmap to (electron-builder.yml `publish.url` bakes the
+ * SAME value into the bundled app-update.yml). It is the default the runtime
+ * feed resolver falls back to when COMMAND_EVE_SHELL_ENABLED and no explicit
+ * COMMAND_EVE_UPDATE_FEED_URL env / persisted `update.feedUrl` override is set,
+ * so an installed Command EVE build actually checks `<base>/latest-arm64-mac.yml`
+ * on startup. Upstream (CE shell off) builds never get this default.
+ */
+export const COMMAND_EVE_UPDATE_FEED_BASE_URL = 'https://pub-0a282738bf7a4731a6bb71c2420bfd69.r2.dev';
 export const COMMAND_EVE_PROTOCOL_SCHEME = 'command-eve';
 export const COMMAND_EVE_ASSISTANT_ID = 'command-eve-chief-of-staff';
 export const COMMAND_EVE_ASSISTANT_KEY = `custom:${COMMAND_EVE_ASSISTANT_ID}`;
