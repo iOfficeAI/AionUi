@@ -64,7 +64,7 @@ function resolveConversationType(backend: string): string {
 export function fromBackendAssistant(raw: unknown): TeamAssistant {
   const r = (raw ?? {}) as Record<string, unknown>;
   const agentType = (r.agent_type as string | undefined) ?? (r.backend as string | undefined) ?? '';
-  const backend = (r.backend as string | undefined) ?? agentType;
+  const backend = (r.assistant_backend as string | undefined) ?? (r.backend as string | undefined) ?? agentType;
   const conversationType = resolveConversationType(backend);
   return {
     slot_id: (r.slot_id as string | undefined) ?? '',
@@ -72,7 +72,11 @@ export function fromBackendAssistant(raw: unknown): TeamAssistant {
     role: toRole(r.role as string | undefined),
     assistant_backend: backend,
     icon: r.icon as string | undefined,
-    assistant_name: (r.agent_name as string | undefined) ?? (r.name as string | undefined) ?? '',
+    assistant_name:
+      (r.assistant_name as string | undefined) ??
+      (r.agent_name as string | undefined) ??
+      (r.name as string | undefined) ??
+      '',
     conversation_type: conversationType,
     status: normalizeTeamStatus(r.status as BackendTeammateStatus | undefined),
     cli_path: r.cli_path as string | undefined,

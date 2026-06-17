@@ -42,14 +42,16 @@ describe('teamMapper', () => {
       slot_id: 'slot-1',
       conversation_id: 'conversation-1',
       role: 'teammate',
+      assistant_backend: 'codex',
       backend: 'claude',
+      assistant_name: 'Writer',
       agent_type: 'claude',
       agent_name: 'Worker',
       status: 'idle',
     });
 
-    expect(assistant.assistant_backend).toBe('claude');
-    expect(assistant.assistant_name).toBe('Worker');
+    expect(assistant.assistant_backend).toBe('codex');
+    expect(assistant.assistant_name).toBe('Writer');
     expect(assistant).not.toHaveProperty('agent_type');
     expect(assistant).not.toHaveProperty('agent_name');
   });
