@@ -198,7 +198,76 @@ describe('afterAllArtifactBuild notarization self-verification (fail-closed)', (
       verifyNotarizationStapled('/tmp/Command EVE.dmg', {
         runValidate: () => undefined,
         runSpctl: () => ({ status: 3, output: 'rejected\nsource=no usable signature' }),
+        spctlDelayMs: 0,
       })
     ).toThrow(/self-verification FAILED/);
+  });
+
+  it('passes after bounded retry when spctl lags (non-accepted twice, then accepted)', () => {
+    let spctlCalls = 0;
+    const result = verifyNotarizationStapled('/tmp/Command EVE.dmg', {
+      runValidate: () => undefined,
+      runSpctl: () => {
+        spctlCalls += 1;
+        // Transient Gatekeeper-DB lag: no verdict yet for the first two calls,
+        // then accepted on the third.
+        if (spctlCalls < 3) return { status: 0, output: '' };
+        return { status: 0, output: 'accepted\nsource=Notarized Developer ID' };
+      },
+      spctlAttempts: 5,
+      spctlDelayMs: 0,
+    });
+    expect(result).toBe(true);
+    expect(spctlCalls).toBe(3);
+  });
+
+  it('throws after exhausting retries when spctl never accepts (fail-closed)', () => {
+    let spctlCalls = 0;
+    expect(() =>
+      verifyNotarizationStapled('/tmp/Command EVE.dmg', {
+        runValidate: () => undefined,
+        runSpctl: () => {
+          spctlCalls += 1;
+          return { status: 0, output: '' }; // never returns an "accepted" verdict
+        },
+        spctlAttempts: 4,
+        spctlDelayMs: 0,
+      })
+    ).toThrow(/after 4 spctl attempt\(s\)/);
+    expect(spctlCalls).toBe(4);
+  });
+
+  it('does NOT retry — throws immediately — when stapler validate fails (staple proof is authoritative)', () => {
+    let spctlCalls = 0;
+    expect(() =>
+      verifyNotarizationStapled('/tmp/Command EVE.dmg', {
+        runValidate: () => {
+          throw new Error('does not have a ticket stapled to it');
+        },
+        runSpctl: () => {
+          spctlCalls += 1;
+          return { status: 0, output: 'accepted' };
+        },
+        spctlAttempts: 5,
+        spctlDelayMs: 0,
+      })
+    ).toThrow(/ticket stapled/);
+    // stapler validate failure short-circuits before any spctl assessment.
+    expect(spctlCalls).toBe(0);
+  });
+
+  it('stops retrying as soon as spctl accepts (no extra attempts)', () => {
+    let spctlCalls = 0;
+    const result = verifyNotarizationStapled('/tmp/Command EVE.dmg', {
+      runValidate: () => undefined,
+      runSpctl: () => {
+        spctlCalls += 1;
+        return { status: 0, output: 'accepted\nsource=Notarized Developer ID' };
+      },
+      spctlAttempts: 5,
+      spctlDelayMs: 0,
+    });
+    expect(result).toBe(true);
+    expect(spctlCalls).toBe(1);
   });
 });
