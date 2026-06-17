@@ -1146,6 +1146,20 @@ export interface ICommandEveEntitlementActivateResult {
   idempotent?: boolean;
 }
 
+export interface ICommandEveLicenseWireStatusResult {
+  /** True iff a usable (keychain-ref) CEVE bearer is stored for EVE Inference. */
+  available: boolean;
+}
+
+export interface ICommandEveResolveInferenceProviderResult {
+  /** The resolved conversation `model` provider (local-runtime or EVE cloud). */
+  provider: TProviderWithModel;
+  /** Which lane was resolved. */
+  lane: 'local' | 'eve';
+  /** EVE tier id when lane === 'eve'. */
+  tierId?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
@@ -1245,6 +1259,17 @@ export const commandEve = {
     IBridgeResponse<ICommandEveEntitlementActivateResult>,
     ICommandEveEntitlementActivateRequest
   >('command-eve.entitlement-activate'),
+  // Presence-only status of the EVE Inference cloud bearer (the stored CEVE
+  // license wire string). Never returns the raw wire — only `{ available }`.
+  licenseWireStatus: bridge.buildProvider<IBridgeResponse<ICommandEveLicenseWireStatusResult>, void>(
+    'command-eve.license-wire-status'
+  ),
+  // Resolve a picker selection into the full conversation `model` provider.
+  // For an EVE tier the bearer (CEVE wire) is injected in the main process.
+  resolveInferenceProvider: bridge.buildProvider<
+    IBridgeResponse<ICommandEveResolveInferenceProviderResult>,
+    { selection?: string; localTierId?: string }
+  >('command-eve.resolve-inference-provider'),
 };
 
 // ---------------------------------------------------------------------------

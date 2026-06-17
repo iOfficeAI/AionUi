@@ -42,6 +42,14 @@ import {
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
 import { buildSkillLibrary } from '@process/commandEve/skillLibraryCore';
 import { buildCommandEveStatusSurface } from '@process/commandEve/statusSurfaceCore';
+import { hasLicenseWire, readLicenseWire, storeLicenseWire } from '@/common/config/licenseWireAtRest';
+import {
+  buildEveInferenceProvider,
+  isEveInferenceSelection,
+  parseEveTierIdFromSelection,
+  type EveInferenceTierId,
+} from '@/common/config/eveInferenceCore';
+import { getCommandEveLocalRuntimeProvider } from '@/common/config/commandEveShell';
 import { getDataPath } from '@process/utils/utils';
 
 type CommandEveStatusSurfaceRequest = { maxRuns?: number; companyOsRoot?: string; eventLedgerPath?: string };
@@ -1200,7 +1208,21 @@ export function initCommandEveBridge(): void {
 
   bridge.buildProvider('command-eve.entitlement-activate').provider(async (request?: { code?: string }) => {
     try {
-      const result = activateEntitlement({ code: request?.code || '' }, { userDataPath: getDataPath() });
+      const code = request?.code || '';
+      const result = activateEntitlement({ code }, { userDataPath: getDataPath() });
+      // On a successful activation, persist the RAW wire string (keychain at
+      // rest, fail-closed) so the EVE Inference cloud lane has a bearer
+      // credential. We never return the raw wire to the renderer. A keychain
+      // failure here does not fail the activation (the gate already unlocked on
+      // the verified payload) — it just means EVE Inference cloud is
+      // unavailable until re-activation on a keychain-capable host.
+      if (result.ok) {
+        try {
+          storeLicenseWire(getDataPath(), code);
+        } catch {
+          // Non-fatal: never let wire persistence break the gate.
+        }
+      }
       return {
         success: result.ok,
         msg: result.ok ? undefined : (result.reason_code as string) || result.message,
@@ -1219,4 +1241,69 @@ export function initCommandEveBridge(): void {
       };
     }
   });
+
+  // Presence-only: tells the renderer whether the EVE Inference cloud lane has
+  // a usable bearer credential. NEVER returns the raw wire string — the EVE
+  // Inference client is built in the main process (see eveInferenceCore +
+  // ClientFactory), so the renderer only needs to know "available or not".
+  bridge.buildProvider('command-eve.license-wire-status').provider(async () => {
+    try {
+      const available = hasLicenseWire(getDataPath());
+      return { success: true, data: { available } };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE license-wire status bridge failed.',
+        data: { available: false },
+      };
+    }
+  });
+
+  // Resolve a picker selection ("Privat lokal" tier OR "EVE Inference" tier)
+  // into the full TProviderWithModel used as the conversation `model`. For an
+  // EVE tier we inject the stored CEVE license WIRE STRING here in the MAIN
+  // process (the renderer never asks for the raw wire — it only knows the
+  // selection value). The returned provider does carry the wire as `api_key`
+  // because the conversation `model` is POSTed to the backend over the local
+  // loopback HTTP bridge (same lifecycle as the local-runtime loopback key).
+  // Fail-closed: an EVE selection with no usable wire returns an error result,
+  // never a provider with an empty bearer.
+  bridge
+    .buildProvider('command-eve.resolve-inference-provider')
+    .provider(async (request?: { selection?: string; localTierId?: string }) => {
+      try {
+        const selection = request?.selection || '';
+
+        // EVE Inference (cloud) lane.
+        const eveTierId: EveInferenceTierId | undefined = parseEveTierIdFromSelection(selection);
+        if (isEveInferenceSelection(selection)) {
+          if (!eveTierId) {
+            return { success: false, msg: 'EVE_INFERENCE_UNKNOWN_TIER', data: undefined };
+          }
+          const wireResult = readLicenseWire(getDataPath());
+          if (!wireResult.ok || !wireResult.wire) {
+            return {
+              success: false,
+              msg: wireResult.reason_code || 'EVE_INFERENCE_NO_BEARER',
+              data: undefined,
+            };
+          }
+          const provider = buildEveInferenceProvider({ tierId: eveTierId, licenseWire: wireResult.wire });
+          return { success: true, data: { provider, lane: 'eve' as const, tierId: eveTierId } };
+        }
+
+        // Privat (lokal) lane — reuse the bundled local-runtime provider. The
+        // local tier id rides either in the selection ("command-eve-local:<id>")
+        // mapped by the renderer, or as an explicit localTierId for the
+        // commandEveShell tier.
+        const provider = getCommandEveLocalRuntimeProvider(request?.localTierId);
+        return { success: true, data: { provider, lane: 'local' as const } };
+      } catch (error) {
+        return {
+          success: false,
+          msg: error instanceof Error ? error.message : 'Command EVE resolve-inference-provider bridge failed.',
+          data: undefined,
+        };
+      }
+    });
 }

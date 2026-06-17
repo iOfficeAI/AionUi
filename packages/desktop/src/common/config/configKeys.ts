@@ -59,6 +59,13 @@ export type ConfigKeyMap = {
   'commandEve.runtimeStatusVisible': boolean | undefined;
   'commandEve.modelWarmupEnabled': boolean | undefined;
   'commandEve.localModelTierId': string | undefined;
+  /**
+   * The single EVE inference picker selection (two-group picker). One of:
+   *   - 'command-eve-local:<localTierId>'        (Privat lokal)
+   *   - 'command-eve-inference:<eveTierId>'       (EVE Inference cloud)
+   * Absent ⇒ fall back to the local default tier.
+   */
+  'commandEve.inferenceSelection': string | undefined;
   'commandEve.executionMode': 'observed' | 'delegated' | 'autonomous' | undefined;
   'assistant.telegram.defaultModel': { id: string; use_model: string } | undefined;
   'assistant.telegram.agent':
