@@ -7,7 +7,8 @@ const workspaceRoot = path.resolve(projectRoot, '..');
 const config = getDefaultConfig(projectRoot);
 
 // Share pure functions from the main AionUi project
-config.watchFolders = [path.resolve(workspaceRoot, 'src/common')];
+const sharedCommonRoot = path.resolve(workspaceRoot, 'packages/desktop/src/common');
+config.watchFolders = [sharedCommonRoot];
 
 // Resolve node_modules from mobile/ only
 config.resolver.nodeModulesPaths = [path.resolve(projectRoot, 'node_modules')];
@@ -21,7 +22,7 @@ config.resolver.blockList = [
 
 // Map path aliases for shared code
 config.resolver.extraNodeModules = {
-  '@common': path.resolve(workspaceRoot, 'src/common'),
+  '@common': sharedCommonRoot,
 };
 
 module.exports = config;

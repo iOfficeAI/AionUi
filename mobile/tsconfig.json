@@ -3,6 +3,7 @@
   "compilerOptions": {
     "strict": true,
     "skipLibCheck": true,
+    "types": ["jest"],
     "paths": {
       "@/*": ["./*"]
     }

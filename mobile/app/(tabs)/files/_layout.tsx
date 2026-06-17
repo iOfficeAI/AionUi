@@ -1,6 +1,6 @@
 import React from 'react';
 import { Drawer } from 'expo-router/drawer';
-import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import type { DrawerContentComponentProps } from 'expo-router/drawer';
 import { WorkspaceFilesSidebar } from '../../../src/components/files/WorkspaceFilesSidebar';
 import { useThemeColor } from '../../../src/hooks/useThemeColor';
 

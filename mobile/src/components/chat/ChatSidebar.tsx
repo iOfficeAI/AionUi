@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
-import type { DrawerContentComponentProps } from '@react-navigation/drawer';
+import type { DrawerContentComponentProps } from 'expo-router/drawer';
 import { ThemedText } from '../ui/ThemedText';
 import { NewConversationModal } from '../conversation/NewConversationModal';
 import { WorkspaceGroup } from './WorkspaceGroup';

@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import { View, StyleSheet } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { DrawerActions } from '@react-navigation/routers';
+import { useNavigation, DrawerActions } from "expo-router/react-navigation";
 import { Ionicons } from '@expo/vector-icons';
 import { useTranslation } from 'react-i18next';
 import { MobileFileTabHeader } from '../../../src/components/files/MobileFileTabHeader';
