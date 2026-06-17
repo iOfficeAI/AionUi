@@ -25,6 +25,8 @@ import AionScrollArea from '@/renderer/components/base/AionScrollArea';
 import { useProvidersQuery } from '@/renderer/hooks/agent/useModelProviderList';
 import { useSettingsViewMode } from '../settingsViewContext';
 import { consumePendingDeepLink } from '@/renderer/hooks/system/useDeepLink';
+import { useEntitlementGate } from '@/renderer/hooks/useEntitlementGate';
+import { isByokDisabledForEntitlement } from '@/common/config/eveInferenceCore';
 import '../model-provider.css';
 
 /**
@@ -322,6 +324,12 @@ const ModelModalContent: React.FC = () => {
       });
   };
 
+  // BYOK (bring-your-own-key) gating: while the entitlement is trialing/free
+  // (entitlementCore CEVE.v2 trial_ends_at present), custom-provider add (the
+  // BYOK path) is greyed out — trial users use EVE Standard + local tiers only.
+  const { status: entitlementStatus } = useEntitlementGate();
+  const byokDisabled = COMMAND_EVE_SHELL_ENABLED && isByokDisabledForEntitlement(entitlementStatus);
+
   const [addPlatformModalCtrl, addPlatformModalContext] = AddPlatformModal.useModal({
     onSubmit(platform) {
       updatePlatform(platform, () => {
@@ -334,10 +342,10 @@ const ModelModalContent: React.FC = () => {
   // Consume pending deep-link data on mount (set by useDeepLink hook before navigation)
   useEffect(() => {
     const pending = consumePendingDeepLink();
-    if (pending) {
+    if (pending && !byokDisabled) {
       addPlatformModalCtrl.open({ deepLinkData: pending });
     }
-  }, [addPlatformModalCtrl]);
+  }, [addPlatformModalCtrl, byokDisabled]);
 
   const [addModelModalCtrl, addModelModalContext] = AddModelModal.useModal({
     onSubmit(platform) {
@@ -375,15 +383,24 @@ const ModelModalContent: React.FC = () => {
             >
               {t('settings.clearStatus')}
             </Button>
-            <Button
-              type='outline'
-              shape='round'
-              icon={<Plus size='16' />}
-              onClick={() => addPlatformModalCtrl.open()}
-              className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+            <Tooltip
+              content={t('settings.byokPaidOnly', 'Eigener API-Key nur im Paid-Tarif verfügbar')}
+              disabled={!byokDisabled}
             >
-              {t('settings.addModel')}
-            </Button>
+              <Button
+                type='outline'
+                shape='round'
+                disabled={byokDisabled}
+                icon={<Plus size='16' />}
+                onClick={() => {
+                  if (byokDisabled) return;
+                  addPlatformModalCtrl.open();
+                }}
+                className='rd-100px border-1 border-solid border-[var(--color-border-2)] h-34px px-14px text-t-secondary hover:text-t-primary'
+              >
+                {t('settings.addModel')}
+              </Button>
+            </Tooltip>
           </div>
         </div>
         {COMMAND_EVE_SHELL_ENABLED ? (
