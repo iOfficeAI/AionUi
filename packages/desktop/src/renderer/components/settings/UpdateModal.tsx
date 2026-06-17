@@ -8,6 +8,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Button, Progress, Message } from '@arco-design/web-react';
 import { CheckOne, Download, FolderOpen, Refresh, CloseOne, Install } from '@icon-park/react';
 import { ipcBridge } from '@/common';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import AionModal from '@/renderer/components/base/AionModal';
 import MarkdownView from '@/renderer/components/Markdown';
 import type { UpdateDownloadProgressEvent, UpdateReleaseInfo, AutoUpdateStatus } from '@/common/update/updateTypes';
@@ -76,16 +77,42 @@ const UpdateModal: React.FC = () => {
       }
       setAutoUpdateAvailable(autoUpdateOk);
 
-      // Always run manual check for version info and release notes
-      const res = await ipcBridge.update.check.invoke({ includePrerelease });
-      if (!res?.success) {
-        throw new Error(res?.msg || t('update.checkFailed'));
+      // The manual check (ipcBridge.update.check) hits the GitHub Releases API.
+      // For Command EVE that repo is PRIVATE, so this call 404s/throws — it must
+      // NOT surface as a UI error when the generic (electron-updater / R2) feed is
+      // the authoritative source. We only use the manual result to ENRICH the
+      // display (CDN-rewritten asset, release notes, html release page); the
+      // generic feed already decided update-available / up-to-date.
+      //
+      // Treat the manual check as best-effort (non-fatal) whenever the generic
+      // feed is active — either it just reported an update (autoUpdateOk) or this
+      // is a Command EVE shell build (where the feed is the generic R2 bucket and
+      // the GitHub manual path is structurally unavailable). Only in the pure
+      // upstream/manual mode (no generic feed) is a manual-check failure fatal.
+      const genericFeedActive = autoUpdateOk || COMMAND_EVE_SHELL_ENABLED;
+      let res: Awaited<ReturnType<typeof ipcBridge.update.check.invoke>> | null = null;
+      try {
+        res = await ipcBridge.update.check.invoke({ includePrerelease });
+      } catch (manualErr) {
+        if (!genericFeedActive) throw manualErr;
+        console.warn('Manual GitHub update check failed; tolerated (generic feed active):', manualErr);
       }
-      setCurrentVersion(res.data?.currentVersion || '');
+      if (res && !res.success) {
+        if (!genericFeedActive) {
+          throw new Error(res.msg || t('update.checkFailed'));
+        }
+        console.warn('Manual GitHub update check returned failure; tolerated (generic feed active):', res.msg);
+        res = null;
+      }
+      if (res?.data?.currentVersion) {
+        setCurrentVersion(res.data.currentVersion);
+      }
 
       if (autoUpdateOk) {
-        // Auto-update available — use manual check data for display only
-        if (res.data?.latest) {
+        // Auto-update available — use manual check data for display only when it
+        // succeeded; otherwise the auto-update info (version/release notes) drives
+        // the available state on its own.
+        if (res?.data?.latest) {
           setUpdateInfo(res.data.latest);
           setReleasePageUrl(res.data.latest.htmlUrl || '');
         }
@@ -93,8 +120,18 @@ const UpdateModal: React.FC = () => {
         return;
       }
 
-      // Manual mode
-      if (res.data?.updateAvailable && res.data.latest) {
+      // Generic feed active (CE shell) but it reported no update AND the manual
+      // GitHub path is unavailable: the feed is the source of truth, so this is a
+      // clean "up to date", never a GitHub 404 error.
+      if (genericFeedActive && !res) {
+        setStatus('upToDate');
+        return;
+      }
+
+      // Manual mode (pure upstream / GitHub path). `res` is non-null here: the
+      // only paths that null it out already returned above (genericFeedActive),
+      // and pure manual mode rethrows on a failed manual check.
+      if (res?.data?.updateAvailable && res.data.latest) {
         setUpdateInfo(res.data.latest);
         setReleasePageUrl(res.data.latest.htmlUrl || '');
         if (!res.data.latest.recommendedAsset) {
@@ -104,8 +141,8 @@ const UpdateModal: React.FC = () => {
         return;
       }
 
-      setUpdateInfo(res.data?.latest || null);
-      setReleasePageUrl(res.data?.latest?.htmlUrl || '');
+      setUpdateInfo(res?.data?.latest || null);
+      setReleasePageUrl(res?.data?.latest?.htmlUrl || '');
       setStatus('upToDate');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err);
