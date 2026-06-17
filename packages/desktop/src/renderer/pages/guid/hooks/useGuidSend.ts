@@ -17,6 +17,7 @@ import {
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 import { configService } from '@/common/config/configService';
+import { isEveInferenceSelection } from '@/common/config/eveInferenceCore';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
@@ -146,6 +147,27 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
         console.warn('[Command EVE] Failed to log truth-gate decision:', error);
       });
       await configService.whenReady().catch((): undefined => undefined);
+
+      // EVE Inference (cloud) lane: when the picker selection is an EVE tier,
+      // resolve the synthetic provider in the MAIN process (which injects the
+      // CEVE license bearer) and route straight to the eve-inference Edge
+      // Function — no local model warmup. The local Gemma lanes fall through to
+      // the existing warmup path below.
+      const inferenceSelection = configService.get('commandEve.inferenceSelection');
+      if (isEveInferenceSelection(inferenceSelection)) {
+        const resolved = await ipcBridge.commandEve.resolveInferenceProvider
+          .invoke({ selection: inferenceSelection as string })
+          .catch((): undefined => undefined);
+        if (!resolved?.success || !resolved.data?.provider) {
+          Message.error(
+            t('conversation.eveInference.bearerMissing', 'EVE Inference ist erst nach Aktivierung verfügbar.')
+          );
+          return;
+        }
+        commandEveRuntimeModel = resolved.data.provider;
+        commandEveRuntimeModelId = resolved.data.provider.use_model;
+        // Skip local warmup: this is the cloud lane.
+      } else {
       const tierId = normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'));
       const expectedModel = getCommandEveAcpModelIdForTier(tierId);
       const expectedRuntimeModel = toCommandEveRuntimeModelId(expectedModel);
@@ -178,6 +200,7 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
           );
           return;
         }
+      }
       }
     }
     const effectiveCurrentModel = commandEveRuntimeModel ?? current_model;

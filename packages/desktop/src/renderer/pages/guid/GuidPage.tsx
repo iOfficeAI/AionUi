@@ -7,6 +7,12 @@
 import { ipcBridge } from '@/common';
 import type { IMcpServer } from '@/common/config/storage';
 import { resolveLocaleKey } from '@/common/utils';
+import {
+  COMMAND_EVE_ASSISTANT_ID,
+  COMMAND_EVE_ASSISTANT_KEY,
+  COMMAND_EVE_SHELL_ENABLED,
+} from '@/common/config/commandEveShell';
+import EveInferencePicker from '@/renderer/components/agent/EveInferencePicker';
 
 import { useInputFocusRing } from '@/renderer/hooks/chat/useInputFocusRing';
 import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/platform';
@@ -551,8 +557,19 @@ const GuidPage: React.FC = () => {
     />
   );
 
+  // For the Command EVE Assistant we replace the raw model/agent selector with
+  // the clean two-group EVE Inference picker (Privat lokal + EVE Inference).
+  // Founder mandate: nothing confusing — no raw CLI/agent/model list here.
+  const selectedCommandEveAgentId = agentSelection.selectedAgentInfo?.custom_agent_id?.replace(/^builtin-/, '');
+  const isCommandEveAssistant =
+    COMMAND_EVE_SHELL_ENABLED &&
+    (agentSelection.selectedAgentKey === COMMAND_EVE_ASSISTANT_KEY ||
+      selectedCommandEveAgentId === COMMAND_EVE_ASSISTANT_ID);
+
   // Build the model selector node
-  const modelSelectorNode = (
+  const modelSelectorNode = isCommandEveAssistant ? (
+    <EveInferencePicker />
+  ) : (
     <GuidModelSelector
       isGeminiMode={isGeminiMode}
       modelList={modelSelection.modelList}
