@@ -122,7 +122,8 @@ const makeAgents = () => [
 describe('LocalAgents', () => {
   it('shows a success toast after an official-agent health check succeeds', async () => {
     const revalidate = vi.fn().mockResolvedValue(undefined);
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate });
+    const refreshCatalog = vi.fn().mockResolvedValue(undefined);
+    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate, refreshCatalog });
     vi.mocked(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).mockResolvedValue({
       ...makeAgents()[1],
       status: 'available',
@@ -136,13 +137,18 @@ describe('LocalAgents', () => {
       expect(ipcBridge.acpConversation.checkManagedAgentHealthById.invoke).toHaveBeenCalledWith({ id: 'aionrs' });
     });
     await waitFor(() => {
-      expect(revalidate).toHaveBeenCalled();
+      expect(refreshCatalog).toHaveBeenCalled();
+      expect(revalidate).not.toHaveBeenCalled();
       expect(messageSuccess).toHaveBeenCalledWith('settings.agentManagement.testConnectionAvailable');
     });
   });
 
   it('reads the managed-agents view and renders detected + custom sections', () => {
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
 
     render(<LocalAgents />);
 
@@ -154,7 +160,7 @@ describe('LocalAgents', () => {
   });
 
   it('shows the empty state when no detected agents are present', () => {
-    useManagedAgents.mockReturnValue({ agents: [], revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({ agents: [], revalidate: vi.fn(), refreshCatalog: vi.fn() });
 
     render(<LocalAgents />);
 
@@ -164,7 +170,11 @@ describe('LocalAgents', () => {
   });
 
   it('renders official/custom sections with management statuses and removes the chat shortcut', () => {
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
 
     render(<LocalAgents />);
 
@@ -176,7 +186,11 @@ describe('LocalAgents', () => {
   });
 
   it('renders official agents as diagnostics cards with backend/type metadata', () => {
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
 
     render(<LocalAgents />);
 
@@ -185,7 +199,11 @@ describe('LocalAgents', () => {
   });
 
   it('does not render the market-install CTA in the diagnostics-only agent page', () => {
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
 
     render(<LocalAgents />);
 
@@ -194,7 +212,11 @@ describe('LocalAgents', () => {
   });
 
   it('renders agent management as a single diagnostics page without local/remote tabs', () => {
-    useManagedAgents.mockReturnValue({ agents: makeAgents(), revalidate: vi.fn() });
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
 
     render(
       <MemoryRouter initialEntries={['/settings/agents?tab=remote']}>
