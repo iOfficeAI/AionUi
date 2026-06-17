@@ -1,0 +1,68 @@
+{
+  "title": "使用統計",
+  "menuLabel": "使用量",
+  "refresh": "重新整理",
+  "granularity": {
+    "day": "每日",
+    "week": "每週"
+  },
+  "timeRange": {
+    "today": "今天",
+    "7d": "最近 7 天",
+    "30d": "最近 30 天",
+    "90d": "最近 90 天",
+    "all": "全部"
+  },
+  "trend": {
+    "title": "Token 使用趨勢",
+    "dimension": {
+      "label": "分組依據",
+      "agent": "工具",
+      "project": "專案",
+      "model": "模型"
+    }
+  },
+  "sessions": {
+    "title": "工作階段",
+    "time": "時間",
+    "agent": "工具",
+    "model": "模型",
+    "project": "專案",
+    "tokens": "Token",
+    "total": "共 {{count}} 個工作階段",
+    "loadMore": "載入更多"
+  },
+  "source": {
+    "missing": "找不到 {{agent}} 記錄目錄",
+    "skipped": "{{count}} 個 {{agent}} 記錄檔無法解析，已略過"
+  },
+  "empty": "找不到使用資料",
+  "error": "載入使用資料失敗",
+  "unsupported": "目前的後端不支援使用統計，請更新。",
+  "kpi": {
+    "totalTokens": "總 token",
+    "sessions": "工作階段數",
+    "messages": "訊息數",
+    "cacheRatio": "快取佔比"
+  },
+  "composition": {
+    "title": "Token 組成",
+    "input": "輸入",
+    "output": "輸出",
+    "cacheRead": "快取讀取",
+    "cacheCreation": "快取建立",
+    "unit": "token",
+    "uncached": "未快取"
+  },
+  "comparison": {
+    "title": "依工具",
+    "projectsTitle": "專案排行",
+    "modelsTitle": "模型排行"
+  },
+  "trendCtl": {
+    "mode": "模式",
+    "split": "分時",
+    "cumulative": "累計",
+    "perPoint": "每點 ≈ {{span}}"
+  }
+}

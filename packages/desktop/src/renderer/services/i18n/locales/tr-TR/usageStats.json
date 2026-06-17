@@ -1,0 +1,68 @@
+{
+  "title": "Kullanım İstatistikleri",
+  "menuLabel": "Kullanım",
+  "refresh": "Yenile",
+  "granularity": {
+    "day": "Günlük",
+    "week": "Haftalık"
+  },
+  "timeRange": {
+    "today": "Bugün",
+    "7d": "Son 7 gün",
+    "30d": "Son 30 gün",
+    "90d": "Son 90 gün",
+    "all": "Tüm zamanlar"
+  },
+  "trend": {
+    "title": "Token kullanım eğilimi",
+    "dimension": {
+      "label": "Ayır",
+      "agent": "Araç",
+      "project": "Proje",
+      "model": "Model"
+    }
+  },
+  "sessions": {
+    "title": "Oturumlar",
+    "time": "Zaman",
+    "agent": "Araç",
+    "model": "Model",
+    "project": "Proje",
+    "tokens": "Token",
+    "total": "Toplam {{count}} oturum",
+    "loadMore": "Daha fazla yükle"
+  },
+  "source": {
+    "missing": "{{agent}} günlük dizini bulunamadı",
+    "skipped": "{{count}} {{agent}} günlük dosyası ayrıştırılamadı ve atlandı"
+  },
+  "empty": "Kullanım verisi bulunamadı",
+  "error": "Kullanım verisi yüklenemedi",
+  "unsupported": "Geçerli arka uç kullanım istatistiklerini desteklemiyor. Lütfen güncelleyin.",
+  "kpi": {
+    "totalTokens": "Toplam token",
+    "sessions": "Oturumlar",
+    "messages": "Mesajlar",
+    "cacheRatio": "Önbellek oranı"
+  },
+  "composition": {
+    "title": "Token bileşimi",
+    "input": "Giriş",
+    "output": "Çıkış",
+    "cacheRead": "Önbellek okuma",
+    "cacheCreation": "Önbellek oluşturma",
+    "unit": "token",
+    "uncached": "Önbelleksiz"
+  },
+  "comparison": {
+    "title": "Araca göre",
+    "projectsTitle": "En çok proje",
+    "modelsTitle": "En çok model"
+  },
+  "trendCtl": {
+    "mode": "Mod",
+    "split": "Dönemsel",
+    "cumulative": "Kümülatif",
+    "perPoint": "Nokta ≈ {{span}}"
+  }
+}

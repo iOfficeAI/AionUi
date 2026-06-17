@@ -1,0 +1,68 @@
+{
+  "title": "사용 통계",
+  "menuLabel": "사용량",
+  "refresh": "새로 고침",
+  "granularity": {
+    "day": "일별",
+    "week": "주별"
+  },
+  "timeRange": {
+    "today": "오늘",
+    "7d": "최근 7일",
+    "30d": "최근 30일",
+    "90d": "최근 90일",
+    "all": "전체 기간"
+  },
+  "trend": {
+    "title": "토큰 사용 추세",
+    "dimension": {
+      "label": "분류 기준",
+      "agent": "도구",
+      "project": "프로젝트",
+      "model": "모델"
+    }
+  },
+  "sessions": {
+    "title": "세션",
+    "time": "시간",
+    "agent": "도구",
+    "model": "모델",
+    "project": "프로젝트",
+    "tokens": "토큰",
+    "total": "총 {{count}}개 세션",
+    "loadMore": "더 보기"
+  },
+  "source": {
+    "missing": "{{agent}} 로그 디렉터리를 찾을 수 없습니다",
+    "skipped": "{{count}}개의 {{agent}} 로그 파일을 구문 분석하지 못해 건너뛰었습니다"
+  },
+  "empty": "사용 데이터를 찾을 수 없습니다",
+  "error": "사용 데이터를 불러오지 못했습니다",
+  "unsupported": "현재 백엔드는 사용 통계를 지원하지 않습니다. 업데이트하세요.",
+  "kpi": {
+    "totalTokens": "총 토큰",
+    "sessions": "세션 수",
+    "messages": "메시지 수",
+    "cacheRatio": "캐시 비율"
+  },
+  "composition": {
+    "title": "토큰 구성",
+    "input": "입력",
+    "output": "출력",
+    "cacheRead": "캐시 읽기",
+    "cacheCreation": "캐시 생성",
+    "unit": "토큰",
+    "uncached": "캐시 안 됨"
+  },
+  "comparison": {
+    "title": "도구별",
+    "projectsTitle": "상위 프로젝트",
+    "modelsTitle": "상위 모델"
+  },
+  "trendCtl": {
+    "mode": "모드",
+    "split": "기간별",
+    "cumulative": "누적",
+    "perPoint": "포인트당 ≈ {{span}}"
+  }
+}

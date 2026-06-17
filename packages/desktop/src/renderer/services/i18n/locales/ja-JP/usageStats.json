@@ -1,0 +1,68 @@
+{
+  "title": "使用統計",
+  "menuLabel": "使用状況",
+  "refresh": "更新",
+  "granularity": {
+    "day": "日次",
+    "week": "週次"
+  },
+  "timeRange": {
+    "today": "今日",
+    "7d": "過去7日間",
+    "30d": "過去30日間",
+    "90d": "過去90日間",
+    "all": "全期間"
+  },
+  "trend": {
+    "title": "トークン使用量の推移",
+    "dimension": {
+      "label": "内訳",
+      "agent": "ツール",
+      "project": "プロジェクト",
+      "model": "モデル"
+    }
+  },
+  "sessions": {
+    "title": "セッション",
+    "time": "時刻",
+    "agent": "ツール",
+    "model": "モデル",
+    "project": "プロジェクト",
+    "tokens": "トークン",
+    "total": "合計 {{count}} セッション",
+    "loadMore": "さらに読み込む"
+  },
+  "source": {
+    "missing": "{{agent}} のログディレクトリが見つかりません",
+    "skipped": "{{count}} 件の {{agent}} ログファイルを解析できずスキップしました"
+  },
+  "empty": "使用データが見つかりません",
+  "error": "使用データの読み込みに失敗しました",
+  "unsupported": "現在のバックエンドは使用統計に対応していません。更新してください。",
+  "kpi": {
+    "totalTokens": "合計トークン",
+    "sessions": "セッション数",
+    "messages": "メッセージ数",
+    "cacheRatio": "キャッシュ率"
+  },
+  "composition": {
+    "title": "トークン構成",
+    "input": "入力",
+    "output": "出力",
+    "cacheRead": "キャッシュ読み取り",
+    "cacheCreation": "キャッシュ作成",
+    "unit": "トークン",
+    "uncached": "キャッシュなし"
+  },
+  "comparison": {
+    "title": "ツール別",
+    "projectsTitle": "プロジェクト上位",
+    "modelsTitle": "モデル上位"
+  },
+  "trendCtl": {
+    "mode": "モード",
+    "split": "期間別",
+    "cumulative": "累計",
+    "perPoint": "1点 ≈ {{span}}"
+  }
+}

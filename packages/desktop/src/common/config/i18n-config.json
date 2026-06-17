@@ -21,6 +21,7 @@
     "guid",
     "agent",
     "team",
-    "pet"
+    "pet",
+    "usageStats"
   ]
 }
