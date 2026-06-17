@@ -56,6 +56,20 @@ export const EVE_INFERENCE_PROVIDER_ID_PREFIX = 'command-eve-inference';
 export const EVE_INFERENCE_PROVIDER_NAME = 'EVE Inference';
 
 /**
+ * HONEST CLOUD LABELING (founder-mandated). EVE Inference is an EXTERNAL cloud
+ * lane (OpenRouter free/paid models via the backend Edge Function) — it is NOT
+ * private/local. The picker group heading and the in-conversation chip therefore
+ * carry an explicit "(Cloud)" marker so a user can never mistake an EVE tier for
+ * the private/local Gemma lane. The local group keeps its "(lokal)" marker.
+ */
+export const EVE_INFERENCE_GROUP_TITLE = `${EVE_INFERENCE_PROVIDER_NAME} (Cloud)`;
+/**
+ * Sublabel for EVE tiers (mirrors the local tiers' model-label sublabel). Makes
+ * the cloud/external nature explicit on every EVE row, not just the heading.
+ */
+export const EVE_INFERENCE_TIER_SUBLABEL = 'Externe Free-Modelle · OpenRouter';
+
+/**
  * EVE Inference cloud tiers. `tier` is the wire value POSTed in the body; the
  * server maps it to a concrete model (free model for Standard on a trial).
  * `model` is the OpenAI `model` field the client sends — the function accepts a
@@ -320,13 +334,17 @@ export function buildEvePickerGroups(entitlement: EveEntitlementView | null | un
 
   const eveGroup: EvePickerGroup = {
     kind: 'eve',
-    title: EVE_INFERENCE_PROVIDER_NAME,
+    // Honest cloud labeling: "(Cloud)" in the heading so EVE is never mistaken
+    // for the private/local lane.
+    title: EVE_INFERENCE_GROUP_TITLE,
     items: EVE_INFERENCE_TIERS.map((tier) => {
       const disabled = tier.paidOnly && trialing;
       return {
         value: eveTierValue(tier.id),
         group: 'eve' as const,
         label: tier.label,
+        // Per-row cloud/external sublabel (mirrors the local model-label pattern).
+        sublabel: EVE_INFERENCE_TIER_SUBLABEL,
         disabled,
         ...(disabled ? { disabledReasonCode: 'PAID_TIER_REQUIRED' as const } : {}),
       };

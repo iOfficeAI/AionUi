@@ -158,20 +158,35 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       const inferenceSelection = resolveEffectiveInferenceSelection(
         configService.get('commandEve.inferenceSelection')
       );
-      if (isEveInferenceSelection(inferenceSelection)) {
-        const resolved = await ipcBridge.commandEve.resolveInferenceProvider
-          .invoke({ selection: inferenceSelection as string })
-          .catch((): undefined => undefined);
-        if (!resolved?.success || !resolved.data?.provider) {
-          Message.error(
-            t('conversation.eveInference.bearerMissing', 'EVE Inference ist erst nach Aktivierung verfügbar.')
+      // GRACEFUL FALLBACK (audit #3): EVE Standard is the default + always
+      // selectable, but it is an EXTERNAL cloud lane that needs (a) an activated
+      // license (the CEVE bearer) and (b) network. A fresh/offline/non-activated
+      // user would otherwise default to EVE-cloud and hit a SILENT dead send.
+      // So if EVE is selected but the bearer cannot be resolved OR the device is
+      // offline, we DON'T dead-return — we surface a clear, actionable message
+      // and fall back to the local Gemma lane. `useEveCloud` gates which lane runs.
+      let useEveCloud = isEveInferenceSelection(inferenceSelection);
+      if (useEveCloud) {
+        const isOffline = typeof navigator !== 'undefined' && navigator.onLine === false;
+        const resolved = isOffline
+          ? undefined
+          : await ipcBridge.commandEve.resolveInferenceProvider.invoke({ selection: inferenceSelection as string }).catch((): undefined => undefined);
+        if (isOffline || !resolved?.success || !resolved.data?.provider) {
+          // Clear, actionable notice — then fall through to the local lane rather
+          // than a silent dead send.
+          Message.warning(
+            isOffline
+              ? t('conversation.eveInference.offlineFallback', 'EVE Cloud benötigt eine Internetverbindung — wechsle auf das lokale Modell.')
+              : t('conversation.eveInference.activationFallback', 'EVE Cloud ist erst nach Aktivierung verfügbar — wechsle auf das lokale Modell.')
           );
-          return;
+          useEveCloud = false;
+        } else {
+          commandEveRuntimeModel = resolved.data.provider;
+          commandEveRuntimeModelId = resolved.data.provider.use_model;
+          // Skip local warmup: this is the cloud lane.
         }
-        commandEveRuntimeModel = resolved.data.provider;
-        commandEveRuntimeModelId = resolved.data.provider.use_model;
-        // Skip local warmup: this is the cloud lane.
-      } else {
+      }
+      if (!useEveCloud) {
       const tierId = normalizeCommandEveLocalModelTierId(configService.get('commandEve.localModelTierId'));
       const expectedModel = getCommandEveAcpModelIdForTier(tierId);
       const expectedRuntimeModel = toCommandEveRuntimeModelId(expectedModel);

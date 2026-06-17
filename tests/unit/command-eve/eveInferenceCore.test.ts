@@ -30,6 +30,8 @@ import {
   EVE_DEFAULT_INFERENCE_SELECTION,
   EVE_INFERENCE_FUNCTION_URL,
   EVE_INFERENCE_DEFAULT_TIER_ID,
+  EVE_INFERENCE_GROUP_TITLE,
+  EVE_INFERENCE_TIER_SUBLABEL,
   eveTierValue,
   isByokDisabledForEntitlement,
   isEveInferenceSelection,
@@ -121,6 +123,35 @@ describe('eveInferenceCore — free-tier greying (requirement 1)', () => {
     expect(isByokDisabledForEntitlement(PAID_NULL)).toBe(false);
     expect(isByokDisabledForEntitlement(PAID_ABSENT)).toBe(false);
     expect(isByokDisabledForEntitlement(null)).toBe(false);
+  });
+});
+
+describe('eveInferenceCore — honest CLOUD labeling (audit #1)', () => {
+  it('the EVE group heading carries an explicit "(Cloud)" marker', () => {
+    const groups = buildEvePickerGroups(TRIAL);
+    const eveGroup = groups.find((g) => g.kind === 'eve')!;
+    expect(eveGroup.title).toBe(EVE_INFERENCE_GROUP_TITLE);
+    expect(eveGroup.title).toContain('(Cloud)');
+    // The local group stays the private/local one (no Cloud marker).
+    expect(groups.find((g) => g.kind === 'local')!.title).not.toContain('Cloud');
+  });
+
+  it('every EVE tier row carries the external/OpenRouter sublabel', () => {
+    const items = flat(buildEvePickerGroups(TRIAL));
+    for (const label of ['Standard', 'High', 'Max']) {
+      expect(byLabel(items, 'eve', label)!.sublabel).toBe(EVE_INFERENCE_TIER_SUBLABEL);
+    }
+    // Sanity: the sublabel makes the external/cloud nature explicit.
+    expect(EVE_INFERENCE_TIER_SUBLABEL).toMatch(/OpenRouter/);
+  });
+
+  it('a user cannot mistake EVE Standard for private/local: heading + row both say cloud/external', () => {
+    const groups = buildEvePickerGroups(TRIAL);
+    const eveGroup = groups.find((g) => g.kind === 'eve')!;
+    const eveStandard = eveGroup.items.find((i) => i.label === 'Standard')!;
+    // Heading carries (Cloud); the Standard row carries the OpenRouter sublabel.
+    expect(eveGroup.title.toLowerCase()).toContain('cloud');
+    expect(eveStandard.sublabel!.toLowerCase()).toContain('openrouter');
   });
 });
 

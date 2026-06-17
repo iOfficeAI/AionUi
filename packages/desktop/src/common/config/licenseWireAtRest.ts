@@ -74,6 +74,37 @@ function readJsonFile<T>(file: string): T | null {
   }
 }
 
+/**
+ * Defense-in-depth STRUCTURAL check that a decrypted value is a well-formed CEVE
+ * wire string before we hand it back as a bearer credential. This is NOT a
+ * cryptographic verification (the Ed25519 signature is verified server-side by
+ * the Edge Function and locally by entitlementCore); it only guards against a
+ * decrypted value that is corrupt / not-a-license so we fail closed instead of
+ * returning a garbage bearer that would just trigger a confusing 401 upstream.
+ *
+ * Canonical CEVE wire shape (mirrors entitlementCore.verifyLicenseCode):
+ *   `CEVE.<wireVersion>.<payloadB64>.<sigB64>` — EXACTLY 4 dot-separated,
+ *   non-empty segments; prefix `CEVE`; wireVersion in {v1, v2}.
+ * Kept self-contained here (no crypto / no entitlementCore import) so this
+ * fs+keychain-only module stays renderer/common-safe and unit-testable.
+ */
+const CEVE_WIRE_PREFIX = 'CEVE';
+const CEVE_KNOWN_WIRE_VERSIONS: readonly string[] = ['v1', 'v2'];
+
+export function isWellFormedCeveWire(value: unknown): value is string {
+  if (typeof value !== 'string') return false;
+  const trimmed = value.trim();
+  // Cheap fast-path guard before the split.
+  if (!trimmed.startsWith(`${CEVE_WIRE_PREFIX}.`)) return false;
+  const parts = trimmed.split('.');
+  if (parts.length !== 4) return false;
+  const [prefix, wireVersion, payloadB64, sigB64] = parts;
+  if (prefix !== CEVE_WIRE_PREFIX) return false;
+  if (!CEVE_KNOWN_WIRE_VERSIONS.includes(wireVersion)) return false;
+  if (payloadB64.length === 0 || sigB64.length === 0) return false;
+  return true;
+}
+
 export interface StoreLicenseWireResult {
   ok: boolean;
   outcome: 'stored' | 'empty' | 'dropped-fail-closed';
@@ -139,7 +170,14 @@ export function readLicenseWire(userDataPath: string): ReadLicenseWireResult {
   if (!dec.ok || typeof dec.value !== 'string' || dec.value.length === 0) {
     return { ok: false, outcome: 'decrypt-failed', reason_code: dec.reason_code ?? 'KEYCHAIN_DECRYPT_FAILED' };
   }
-  return { ok: true, wire: dec.value, outcome: 'decrypted' };
+  // Defense-in-depth: a successful decrypt is NOT enough — assert the plaintext is
+  // a well-formed CEVE wire before handing it back as a bearer. If the keychain
+  // returned a corrupt / non-license value, FAIL CLOSED (treat as no-license)
+  // rather than emit a garbage bearer.
+  if (!isWellFormedCeveWire(dec.value)) {
+    return { ok: false, outcome: 'malformed', reason_code: 'LICENSE_WIRE_FORMAT_INVALID' };
+  }
+  return { ok: true, wire: dec.value.trim(), outcome: 'decrypted' };
 }
 
 /** True iff a (ref) license-wire record exists on disk. Does NOT decrypt. */

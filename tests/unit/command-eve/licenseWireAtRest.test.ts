@@ -20,7 +20,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 
-import { hasLicenseWire, readLicenseWire, storeLicenseWire } from '@/common/config/licenseWireAtRest';
+import { hasLicenseWire, isWellFormedCeveWire, readLicenseWire, storeLicenseWire } from '@/common/config/licenseWireAtRest';
 import { setSafeStorageForTesting, type SafeStorageAdapter } from '@/common/config/keychain';
 
 /** Synthetic CEVE wire string — NOT a real license. */
@@ -153,5 +153,48 @@ describe('licenseWireAtRest — (c) read fails closed', () => {
     const back = readLicenseWire(root);
     expect(back.ok).toBe(false);
     expect(back.wire).toBeUndefined();
+  });
+
+  it('FAILS CLOSED (malformed) when the decrypted value is NOT a well-formed CEVE wire', () => {
+    // An adapter that decrypts to a corrupt / non-license value. The store path is
+    // bypassed (we write a ref directly) so we exercise the post-decrypt guard.
+    const GARBAGE_PLAINTEXT = 'not-a-ceve-license-just-garbage';
+    setSafeStorageForTesting({
+      isEncryptionAvailable: () => true,
+      encryptString: (plainText: string) => Buffer.from(`enc::${plainText}`, 'utf8'),
+      decryptString: () => GARBAGE_PLAINTEXT, // decrypt SUCCEEDS but yields garbage
+    });
+    const root = makeRoot();
+    // Persist a valid-looking ref via the normal path...
+    expect(storeLicenseWire(root, FAKE_WIRE).ok).toBe(true);
+    // ...but on read the adapter returns garbage -> must fail closed, no bearer.
+    const back = readLicenseWire(root);
+    expect(back.ok).toBe(false);
+    expect(back.outcome).toBe('malformed');
+    expect(back.reason_code).toBe('LICENSE_WIRE_FORMAT_INVALID');
+    expect(back.wire).toBeUndefined();
+  });
+});
+
+describe('isWellFormedCeveWire — structural CEVE wire guard', () => {
+  it('accepts well-formed CEVE.v1 / CEVE.v2 wires', () => {
+    expect(isWellFormedCeveWire('CEVE.v1.payloadB64.sigB64')).toBe(true);
+    expect(isWellFormedCeveWire('CEVE.v2.payloadB64.sigB64')).toBe(true);
+    expect(isWellFormedCeveWire(FAKE_WIRE)).toBe(true);
+    expect(isWellFormedCeveWire('  CEVE.v2.payloadB64.sigB64  ')).toBe(true); // trims
+  });
+
+  it('rejects malformed / non-CEVE values', () => {
+    expect(isWellFormedCeveWire('')).toBe(false);
+    expect(isWellFormedCeveWire('garbage')).toBe(false);
+    expect(isWellFormedCeveWire('CEVE.v2.onlythree')).toBe(false); // 3 segments
+    expect(isWellFormedCeveWire('CEVE.v2.a.b.c')).toBe(false); // 5 segments
+    expect(isWellFormedCeveWire('NOPE.v2.a.b')).toBe(false); // wrong prefix
+    expect(isWellFormedCeveWire('CEVE.v9.a.b')).toBe(false); // unknown version
+    expect(isWellFormedCeveWire('CEVE.v2..b')).toBe(false); // empty payload seg
+    expect(isWellFormedCeveWire('CEVE.v2.a.')).toBe(false); // empty sig seg
+    expect(isWellFormedCeveWire(42 as unknown)).toBe(false);
+    expect(isWellFormedCeveWire(null as unknown)).toBe(false);
+    expect(isWellFormedCeveWire(undefined as unknown)).toBe(false);
   });
 });
