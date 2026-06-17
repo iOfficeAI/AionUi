@@ -62,9 +62,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     agent_config = {
       backend: selectedAionrsProvider.id,
       name: assistant.name,
-      is_preset: true,
       assistant_id: assistant.id,
-      preset_agent_type: presetBackend,
       mode: getMode(presetBackend),
       model_id,
       workspace,
@@ -73,9 +71,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     agent_config = {
       backend: presetBackend as string,
       name: assistant.name,
-      is_preset: true,
       assistant_id: assistant.id,
-      preset_agent_type: presetBackend,
       mode: getMode(presetBackend),
       model_id,
       config_options,

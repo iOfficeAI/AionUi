@@ -35,9 +35,7 @@ describe('resolveCronAgentConfig', () => {
       agent_config: {
         backend: 'provider-gemini',
         name: '文件规划助手',
-        is_preset: true,
         assistant_id: 'assistant-1',
-        preset_agent_type: 'aionrs',
         mode: 'yolo',
         model_id: 'gemini-3.1-pro-preview',
         workspace: '/tmp/project',
@@ -66,9 +64,7 @@ describe('resolveCronAgentConfig', () => {
       agent_config: {
         backend: 'codex',
         name: 'Codex 助手',
-        is_preset: true,
         assistant_id: 'assistant-2',
-        preset_agent_type: 'codex',
         mode: 'full-access',
         config_options: { reasoning_effort: 'high' },
         model_id: undefined,
@@ -93,6 +89,8 @@ describe('resolveCronAgentConfig', () => {
 
     expect(result.agent_config).toBeDefined();
     expect(result.agent_config).not.toHaveProperty('custom_agent_id');
+    expect(result.agent_config).not.toHaveProperty('preset_agent_type');
+    expect(result.agent_config).not.toHaveProperty('is_preset');
   });
 
   it('throws when the selected assistant cannot be resolved', () => {
