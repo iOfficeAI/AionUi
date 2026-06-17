@@ -27,6 +27,19 @@ const EMPTY_TEAM_RUN_VIEW: TeamRunViewState = {
   slotWorkBySlot: {},
 };
 
+const resolveAssistantDisplayName = (
+  conversation: TChatConversation,
+  presetAssistantName: string | null,
+  explicitAssistantName?: string
+): string | undefined => {
+  if (presetAssistantName) return presetAssistantName;
+  const trimmedExplicitAssistantName = explicitAssistantName?.trim();
+  if (trimmedExplicitAssistantName) return trimmedExplicitAssistantName;
+  const extraAgentName = (conversation.extra as { agent_name?: string } | undefined)?.agent_name;
+  if (extraAgentName?.trim()) return extraAgentName.trim();
+  return undefined;
+};
+
 /** Aionrs sub-component manages model selection state without adding a ChatLayout wrapper */
 const AionrsTeamChat: React.FC<{
   conversation: AionrsConversation;
@@ -122,6 +135,11 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
   const resolvedAssistantBackend =
     resolveConversationBackend(conversation, assistant_backend || presetAssistantInfo?.backend) || 'claude';
+  const resolvedAssistantName = resolveAssistantDisplayName(
+    conversation,
+    presetAssistantInfo?.name ?? null,
+    assistant_name
+  );
   const teamRuntime =
     team_id && slot_id
       ? buildTeamSendRuntime({
@@ -154,7 +172,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             workspace={conversation.extra?.workspace}
             backend={resolvedAssistantBackend}
             session_mode={conversation.extra?.session_mode}
-            agent_name={assistant_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
+            agent_name={resolvedAssistantName}
             hideSendBox={resolvedHideSendBox}
             emptySlot={emptySlot}
             teamSendMessage={teamSendMessageOverride}
@@ -167,7 +185,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation={conversation as AionrsConversation}
             emptySlot={emptySlot}
-            assistant_name={assistant_name}
+            assistant_name={resolvedAssistantName}
             teamSendMessage={teamSendMessageOverride}
             teamRuntime={teamRuntime}
           />

@@ -72,4 +72,40 @@ describe('TeamChatView', () => {
       })
     );
   });
+
+  it('prefers preset assistant name over legacy conversation extra agent_name', async () => {
+    usePresetAssistantInfoMock.mockReturnValue({
+      info: {
+        name: 'Planner Assistant',
+        logo: '📋',
+        isEmoji: true,
+        backend: 'codex',
+      },
+    });
+
+    render(
+      <TeamChatView
+        conversation={{
+          id: 'conv-1',
+          type: 'acp',
+          name: 'Team - Planner',
+          created_at: Date.now(),
+          updated_at: Date.now(),
+          extra: {
+            agent_name: 'Legacy Runtime Name',
+            backend: 'claude',
+            workspace: '/tmp',
+          },
+        }}
+      />
+    );
+
+    expect(await screen.findByTestId('mock-acp-chat')).toBeInTheDocument();
+    expect(acpChatMock).toHaveBeenCalled();
+    expect(acpChatMock.mock.calls[0]?.[0]).toEqual(
+      expect.objectContaining({
+        agent_name: 'Planner Assistant',
+      })
+    );
+  });
 });
