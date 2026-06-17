@@ -34,6 +34,12 @@ export interface AgentModeOption {
  * - Qwen: ACP session/set_mode returns success but does not enforce plan mode behavior.
  *   Plan mode disabled until upstream fix. See https://github.com/QwenLM/qwen-code/issues/1806
  * - OpenCode: plan/build modes via ACP session/set_mode (no yolo support)
+ * - Hermes (Command EVE): advertises default/accept_edits/dont_ask via ACP
+ *   session/new (acp_adapter server _session_modes). These are the permission
+ *   modes that gate Hermes tool execution — Hermes issues ACP
+ *   session/request_permission for dangerous calls and the desktop renders the
+ *   approval (allow once/session/always, deny). The static entry below is a
+ *   label fallback; mergeWithCapabilities overrides it with the live ACP modes.
  * - Gemini: supports default/autoEdit/yolo (auto-approve at manager layer, not via ACP)
  * - Codex: ACP currently advertises `read-only` / `auto` / `full-access`
  * - Goose: mode set at startup only, not during session
@@ -56,6 +62,22 @@ export const AGENT_MODES: Record<string, AgentModeOption[]> = {
   opencode: [
     { value: 'build', label: 'Build' },
     { value: 'plan', label: 'Plan' },
+  ],
+  // Command EVE's agent. IDs match Hermes' ACP-advertised session modes
+  // (acp_adapter server _session_modes); the live capability list overrides
+  // these labels via mergeWithCapabilities when the ACP session reports them.
+  hermes: [
+    { value: 'default', label: 'Ask every time', description: 'Ask before edits and sensitive actions.' },
+    {
+      value: 'accept_edits',
+      label: 'Semi-autonomous',
+      description: 'Auto-allow workspace and /tmp edits; still asks for sensitive paths.',
+    },
+    {
+      value: 'dont_ask',
+      label: 'YOLO',
+      description: 'Auto-allow file edits for this session except sensitive paths.',
+    },
   ],
   gemini: [
     { value: 'default', label: 'Default' },
