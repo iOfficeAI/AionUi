@@ -168,7 +168,9 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
   const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(undefined);
 
-  // Populate form when entering edit mode
+  // Reset transient state whenever the dialog opens. Assistant resolution
+  // for edit mode runs in a separate effect — keeping it here would re-fire
+  // this reset on every assistant catalog refresh and wipe the user's input.
   useEffect(() => {
     if (!visible) return;
     if (editJob) {
@@ -187,13 +189,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             Object.keys(editJob.metadata.agent_config.config_options).length > 0)
         )
       );
-      const agentKey = getAssistantSelectionFromJob(editJob, presetAssistants);
-      setSelectedAssistantId(agentKey);
       form.setFieldsValue({
         name: editJob.name,
         description: getDescriptionInitialValue(editJob),
         prompt: editJob.target.payload.text,
-        assistant: agentKey,
       });
       // Populate advanced settings from editJob
       setModelId(editJob.metadata.agent_config?.model_id);
@@ -212,7 +211,18 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setWorkspace(undefined);
       setSelectedAssistantId(undefined);
     }
-  }, [visible, editJob, form, presetAssistants]);
+  }, [visible, editJob, form]);
+
+  // Edit mode needs the assistant catalog to map a stored job to its
+  // current assistant id. We isolate this in a separate effect so that
+  // catalog refreshes never reach the form-reset path above.
+  useEffect(() => {
+    if (!visible || !editJob) return;
+    const agentKey = getAssistantSelectionFromJob(editJob, presetAssistants);
+    if (!agentKey) return;
+    setSelectedAssistantId(agentKey);
+    form.setFieldValue('assistant', agentKey);
+  }, [visible, editJob, presetAssistants, form]);
 
   // Resolve backend from the selected assistant.
   const selectedAssistant = useMemo(
