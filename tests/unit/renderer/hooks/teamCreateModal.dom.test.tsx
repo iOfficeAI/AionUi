@@ -112,7 +112,6 @@ describe('TeamCreateModal', () => {
     expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledWith({
       assistant_id: 'bare-aionrs',
       assistant_backend: 'aionrs',
-      conversation_type: 'aionrs',
     });
     expect(payload.assistants[0]).toMatchObject({
       role: 'leader',

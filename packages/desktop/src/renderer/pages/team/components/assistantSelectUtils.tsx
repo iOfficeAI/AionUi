@@ -3,10 +3,7 @@ import { Robot } from '@icon-park/react';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import {
-  isDeprecatedRuntimeAgentType,
-  resolveSupportedConversationType,
-} from '@/renderer/utils/model/agentTypeSupportPolicy';
+import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 /** Team leader selector entry derived from the unified assistant catalog. */
 export type TeamAssistantOption = {
@@ -45,17 +42,9 @@ export function assistantFromId(
   return allAssistants.find((assistant) => assistantKey(assistant) === assistantId);
 }
 
-export function resolveTeamAssistantBackend(assistant: TeamAssistantOption | undefined, fallback: string): string {
-  return assistant?.backend || fallback;
-}
-
 /** Filter assistants to only those supported in team mode. */
 export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[]): TeamAssistantOption[] {
   return assistants.filter((assistant) => !isDeprecatedRuntimeAgentType(assistant.backend));
-}
-
-export function resolveConversationType(backend: string): 'acp' | 'aionrs' {
-  return resolveSupportedConversationType(backend);
 }
 
 export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {

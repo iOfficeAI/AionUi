@@ -26,20 +26,19 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
 export async function resolveDefaultTeamAgentModel(params: {
   assistant_id?: string;
   assistant_backend: string;
-  conversation_type: string;
 }): Promise<string> {
-  const { assistant_id, assistant_backend, conversation_type } = params;
+  const { assistant_id, assistant_backend } = params;
 
   const assistantModel = await resolveAssistantDefaultModel(assistant_id);
   if (assistantModel) {
     return assistantModel;
   }
 
-  if (conversation_type === 'gemini' || assistant_backend === 'gemini') {
+  if (assistant_backend === 'gemini') {
     return resolveGeminiDefaultModel();
   }
 
-  if (conversation_type === 'aionrs' || assistant_backend === 'aionrs') {
+  if (assistant_backend === 'aionrs') {
     return resolveAionrsDefaultModel();
   }
 

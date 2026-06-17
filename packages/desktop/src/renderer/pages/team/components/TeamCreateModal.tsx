@@ -13,14 +13,13 @@ import { getConversationCreateErrorMessage } from '@renderer/pages/conversation/
 import {
   assistantKey,
   assistantFromId,
-  resolveConversationType,
-  resolveTeamAssistantBackend,
   filterTeamSupportedAssistants,
   AssistantOptionLabel,
   assistantToOption,
 } from './assistantSelectUtils';
 import type { TeamAssistantOption } from './assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
+import { resolveSupportedConversationType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
 // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
@@ -146,12 +145,11 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const assistants: TeamAssistant[] = [];
 
       const leaderAssistant = leaderAssistantId ? assistantFromId(leaderAssistantId, allAssistants) : undefined;
-      const leaderAssistantBackend = resolveTeamAssistantBackend(leaderAssistant, 'acp');
-      const dispatchConversationType = resolveConversationType(leaderAssistantBackend);
+      const leaderAssistantBackend = leaderAssistant?.backend || 'acp';
+      const dispatchConversationType = resolveSupportedConversationType(leaderAssistantBackend);
       const resolvedModel = await resolveDefaultTeamAgentModel({
         assistant_id: leaderAssistant?.id,
         assistant_backend: leaderAssistantBackend,
-        conversation_type: dispatchConversationType,
       });
       assistants.push({
         slot_id: '',

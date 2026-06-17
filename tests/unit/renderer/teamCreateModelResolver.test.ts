@@ -39,7 +39,6 @@ describe('resolveDefaultTeamAgentModel', () => {
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-fixed',
         assistant_backend: 'claude',
-        conversation_type: 'acp',
       })
     ).resolves.toBe('claude-sonnet-4-5-20250514');
   });
@@ -58,7 +57,6 @@ describe('resolveDefaultTeamAgentModel', () => {
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-auto',
         assistant_backend: 'aionrs',
-        conversation_type: 'aionrs',
       })
     ).resolves.toBe('gemini-2.5-pro');
   });
