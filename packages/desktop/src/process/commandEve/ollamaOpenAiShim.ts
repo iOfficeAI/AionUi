@@ -317,10 +317,20 @@ function writeStreamChunk(response: ServerResponse, model: string, content: stri
   );
 }
 
-function isHttpsUrl(value: string): boolean {
+/**
+ * The EVE function URL must be https in production. A loopback http URL is also
+ * accepted (same trust model as the local-runtime loopback key) so the routing
+ * is testable and a self-hosted loopback proxy stays possible; any other plain
+ * http (a real remote host over cleartext) is rejected.
+ */
+function isAllowedEveFunctionUrl(value: string): boolean {
   try {
     const url = new URL(value);
-    return url.protocol === 'https:' && Boolean(url.hostname);
+    if (url.protocol === 'https:') return Boolean(url.hostname);
+    if (url.protocol === 'http:') {
+      return ['127.0.0.1', 'localhost', '[::1]', '::1'].includes(url.hostname);
+    }
+    return false;
   } catch {
     return false;
   }
@@ -351,10 +361,10 @@ async function handleEveCloudCompletions(
   const stream = Boolean(body.stream);
 
   // Fail closed: never make an unauthenticated request, never POST to a
-  // non-https function URL.
-  if (!isHttpsUrl(functionUrl)) {
+  // disallowed (cleartext-remote) function URL.
+  if (!isAllowedEveFunctionUrl(functionUrl)) {
     jsonResponse(response, 500, {
-      error: { message: 'EVE Inference function URL is missing or not https.' },
+      error: { message: 'EVE Inference function URL is missing or not an allowed (https/loopback) URL.' },
     });
     return;
   }
