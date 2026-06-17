@@ -5,6 +5,7 @@
  */
 
 import type { IChannelPairingRequest, IChannelPluginStatus, IChannelUser } from '@/common/types/channel/channel';
+import { BUILTIN_AGENT_DISPLAY_NAME } from '@/common/brand';
 import { channel } from '@/common/adapter/ipcBridge';
 import { getAgents } from '@/renderer/hooks/agent/useAgents';
 import { getBaseUrl } from '@/common/adapter/httpBridge';
@@ -334,7 +335,7 @@ const WeixinConfigForm: React.FC<WeixinConfigFormProps> = ({ pluginStatus, model
     backend?: string;
     name: string;
     id?: string;
-  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: 'Aion CLI' }];
+  }> = availableAgents.length > 0 ? availableAgents : [{ agent_type: 'aionrs', name: BUILTIN_AGENT_DISPLAY_NAME }];
 
   const handleDisconnect = async () => {
     try {

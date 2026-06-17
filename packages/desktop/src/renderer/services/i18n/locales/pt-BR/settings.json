@@ -255,7 +255,7 @@
   "deleteInvalidKeys": "Excluir Chaves Inválidas",
   "testAllKeys": "Testar Todas as Chaves",
   "addModelPlaceholder": "Selecione ou insira o ID do modelo",
-  "customModelSupportNote": "Nota: Apenas o Aion CLI suporta modelos personalizados atualmente.",
+  "customModelSupportNote": "Nota: Apenas o Coworker CLI suporta modelos personalizados atualmente.",
   "addModelHint": "Escolha ou digite o ID de um modelo e ele será adicionado a este provedor.",
   "addModelSelectedHint": "Pronto para adicionar o modelo: {{model}}",
   "currentModelsLabel": "Modelos Atuais",
@@ -959,7 +959,7 @@
   "agentManagement": {
     "localAgents": "Agentes Locais",
     "remoteAgents": "Agentes Remotos",
-    "localAgentsDescription": "O Aion CLI é o agente integrado e vem com o app — sem necessidade de instalação. Outros agentes são detectados apenas após a CLI deles ser instalada localmente.",
+    "localAgentsDescription": "O Coworker CLI é o agente integrado e vem com o app — sem necessidade de instalação. Outros agentes são detectados apenas após a CLI deles ser instalada localmente.",
     "localAgentsSetupLink": "Guia de configuração",
     "goToChat": "Iniciar Conversa",
     "remoteAgentsDescription": "Somente conexões remotas OpenClaw são suportadas por enquanto. Outros agentes estão em desenvolvimento.",

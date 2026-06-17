@@ -5,6 +5,7 @@
  */
 
 import { ipcBridge } from '@/common';
+import { remapLegacyDisplayName } from '@/common/brand';
 
 /** SWR key for agent metadata rows (from `/api/agents`). */
 export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
@@ -109,12 +110,25 @@ export type AgentMetadata = {
   handshake?: AgentHandshake;
 };
 
+function withRemappedDisplayNames(agents: AgentMetadata[]): AgentMetadata[] {
+  return agents.map((agent) => {
+    const name = remapLegacyDisplayName(agent.name);
+    const name_i18n = agent.name_i18n
+      ? Object.fromEntries(Object.entries(agent.name_i18n).map(([locale, value]) => [locale, remapLegacyDisplayName(value)]))
+      : undefined;
+    if (name === agent.name && !name_i18n) {
+      return agent;
+    }
+    return { ...agent, name, ...(name_i18n ? { name_i18n } : {}) };
+  });
+}
+
 /** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
 export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return withRemappedDisplayNames(agents as AgentMetadata[]);
     }
   } catch {
     // fallback to empty
@@ -132,7 +146,7 @@ export async function fetchManagedAgents(): Promise<AgentMetadata[]> {
   try {
     const agents = await ipcBridge.acpConversation.getManagedAgents.invoke();
     if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
+      return withRemappedDisplayNames(agents as AgentMetadata[]);
     }
   } catch {
     // fallback to empty

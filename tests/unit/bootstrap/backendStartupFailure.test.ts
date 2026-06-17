@@ -130,7 +130,7 @@ describe('classifyBackendStartupFailure', () => {
   });
 
   it('classifies packaged macOS architecture mismatches separately from generic startup failures', () => {
-    const error = new Error('AionUi package architecture does not match this Mac') as Error & {
+    const error = new Error('Coworker package architecture does not match this Mac') as Error & {
       details?: Record<string, unknown>;
     };
     error.details = {

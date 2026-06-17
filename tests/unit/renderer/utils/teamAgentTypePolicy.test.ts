@@ -35,7 +35,7 @@ describe('team agent type policy', () => {
   it('keeps assistants out of team creation when their backend is not team capable', () => {
     const capableKeys = new Set(['aionrs']);
     const options = [
-      assistantToOption(assistant('bare-aionrs', 'Aion CLI', 'aionrs'), capableKeys),
+      assistantToOption(assistant('bare-aionrs', 'Coworker CLI', 'aionrs'), capableKeys),
       assistantToOption(assistant('custom-qwen', 'Qwen Helper', 'qwen'), capableKeys),
     ];
 

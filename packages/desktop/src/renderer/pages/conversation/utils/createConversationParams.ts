@@ -6,6 +6,7 @@
 
 import { configService } from '@/common/config/configService';
 import { ipcBridge } from '@/common';
+import { BUILTIN_AGENT_DISPLAY_NAME } from '@/common/brand';
 import type { ICreateConversationParams } from '@/common/adapter/ipcBridge';
 import type { IProvider, TProviderWithModel } from '@/common/config/storage';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
@@ -121,7 +122,7 @@ export async function getDefaultAionrsModel(): Promise<TProviderWithModel> {
 
   const compatibleProviders = providers.filter(isAionrsCompatibleProvider);
   if (compatibleProviders.length === 0) {
-    throw new Error('No enabled model provider for Aion CLI');
+    throw new Error(`No enabled model provider for ${BUILTIN_AGENT_DISPLAY_NAME}`);
   }
 
   const savedDefault = configService.get('aionrs.defaultModel');

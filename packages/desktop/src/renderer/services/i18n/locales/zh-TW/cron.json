@@ -105,7 +105,7 @@
       "selectFolder": "選擇資料夾",
       "clearFolder": "清除",
       "model": "模型",
-      "aionrsModelRequired": "請為 Aion CLI 選擇模型",
+      "aionrsModelRequired": "請為 Coworker CLI 選擇模型",
       "aionrsNoProvider": "暫無可用模型"
     },
     "freq": {

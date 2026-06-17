@@ -5,6 +5,7 @@
  */
 
 import type { ICreateCronJobParams, ICronAgentConfig } from '@/common/adapter/ipcBridge';
+import { BUILTIN_AGENT_DISPLAY_NAME } from '@/common/brand';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { AgentMetadata } from '@renderer/utils/model/agentTypes';
 import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
@@ -66,7 +67,7 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
       resolvedAgentType = 'aionrs';
       agent_config = {
         backend: selectedAionrsProvider.id,
-        name: selectedAionrsProvider.name || agent?.name || 'Aion CLI',
+        name: selectedAionrsProvider.name || agent?.name || BUILTIN_AGENT_DISPLAY_NAME,
         mode: getMode('aionrs'),
         model_id,
         workspace,

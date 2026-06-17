@@ -104,7 +104,7 @@
       "selectFolder": "[Select Folder]",
       "clearFolder": "[Clear]",
       "model": "[Model]",
-      "aionrsModelRequired": "Выберите модель для Aion CLI",
+      "aionrsModelRequired": "Выберите модель для Coworker CLI",
       "aionrsNoProvider": "Нет доступных моделей"
     },
     "freq": {

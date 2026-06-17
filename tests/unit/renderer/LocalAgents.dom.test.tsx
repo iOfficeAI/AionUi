@@ -50,7 +50,7 @@ vi.mock('@renderer/pages/settings/AgentSettings/AgentHubModal', () => ({ AgentHu
 import LocalAgents from '@renderer/pages/settings/AgentSettings/LocalAgents';
 
 const makeAgents = () => [
-  { id: 'aionrs', name: 'Aion CLI', agent_type: 'aionrs', agent_source: 'internal', backend: 'aionrs' },
+  { id: 'aionrs', name: 'Coworker CLI', agent_type: 'aionrs', agent_source: 'internal', backend: 'aionrs' },
   { id: 'acp-claude', name: 'Claude Code', agent_type: 'acp', agent_source: 'builtin', backend: 'claude' },
   { id: 'custom-1', name: 'My Agent', agent_type: 'acp', agent_source: 'custom', command: 'sh', enabled: true },
 ];
@@ -63,7 +63,7 @@ describe('LocalAgents', () => {
 
     // Proves L30 (useManagedAgents) ran and fed the derived lists.
     expect(useManagedAgents).toHaveBeenCalled();
-    expect(screen.getByText('Aion CLI')).toBeTruthy();
+    expect(screen.getByText('Coworker CLI')).toBeTruthy();
     expect(screen.getByText('Claude Code')).toBeTruthy();
     expect(screen.getByText('My Agent')).toBeTruthy();
   });

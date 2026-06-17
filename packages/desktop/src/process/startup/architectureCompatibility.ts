@@ -5,6 +5,7 @@
  */
 
 import { execFileSync as defaultExecFileSync } from 'node:child_process';
+import { APP_DISPLAY_NAME } from '@/common/brand';
 
 type ExecFileSync = (command: string, args: string[], options?: { encoding: 'utf8'; timeout: number }) => string;
 
@@ -29,7 +30,7 @@ export class StartupArchitectureMismatchError extends Error {
   readonly details: StartupArchitectureMismatchDetails;
 
   constructor(details: StartupArchitectureMismatchDetails) {
-    super('AionUi package architecture does not match this Mac. Please download the matching package.');
+    super(`${APP_DISPLAY_NAME} package architecture does not match this Mac. Please download the matching package.`);
     this.name = 'StartupArchitectureMismatchError';
     this.details = details;
   }

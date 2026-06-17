@@ -38,7 +38,7 @@ vi.mock('@renderer/hooks/context/AuthContext', () => ({
 vi.mock('@renderer/pages/conversation/hooks/useConversationAgents', () => ({
   useConversationAgents: () => ({
     cliAgents: [
-      { id: 'aionrs-runtime', name: 'Aion CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true },
+      { id: 'aionrs-runtime', name: 'Coworker CLI', backend: 'aionrs', agent_type: 'aionrs', team_capable: true },
     ],
     presetAssistants: assistants(),
   }),
@@ -96,7 +96,7 @@ describe('TeamCreateModal', () => {
     expect(payload.agents[0]).toMatchObject({
       role: 'leader',
       custom_agent_id: 'bare-aionrs',
-      agent_name: 'Aion CLI',
+      agent_name: 'Coworker CLI',
     });
   });
 });
@@ -105,7 +105,7 @@ function assistants(): Assistant[] {
   return [
     assistant({
       id: 'bare-aionrs',
-      name: 'Aion CLI',
+      name: 'Coworker CLI',
       source: 'bare',
       preset_agent_type: 'aionrs',
       team_selectable: true,

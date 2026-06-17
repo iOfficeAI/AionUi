@@ -163,7 +163,7 @@ describe('ClientFactory', () => {
       const config = calls[0][1];
       expect(config.defaultHeaders).toEqual({
         'HTTP-Referer': 'https://aionui.com',
-        'X-Title': 'AionUi',
+        'X-Title': 'Coworker',
       });
     });
 

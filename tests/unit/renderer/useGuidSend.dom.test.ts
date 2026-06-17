@@ -200,7 +200,7 @@ describe('useGuidSend', () => {
     deps.selectedAgentInfo = {
       id: 'meta-aionrs',
       key: 'aionrs',
-      name: 'Aion CLI',
+      name: 'Coworker CLI',
       agent_type: 'aionrs',
       backend: 'aionrs',
       is_preset: false,
