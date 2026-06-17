@@ -1,4 +1,6 @@
-<svg width="20" height="20" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- macOS icon grid: 1024 canvas, 824 artwork, 100px gutter, rx 185.4 -->
+<svg width="1024" height="1024" viewBox="0 0 1024 1024" fill="none" xmlns="http://www.w3.org/2000/svg">
   <rect x="100" y="100" width="824" height="824" rx="185.4" fill="black" />
   <g transform="translate(100 100) scale(0.8046875)">
     <path

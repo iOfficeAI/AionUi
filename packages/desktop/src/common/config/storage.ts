@@ -57,6 +57,8 @@ export interface IConfigStorageRefer {
   colorScheme: string; // @deprecated migrated to theme.activeId/theme.userThemes
   /** Persisted app-wide UI zoom factor for Display settings */
   'ui.zoomFactor'?: number;
+  /** `office` = simplified UI; `power` = full agent/developer UI */
+  'ui.experienceMode'?: import('@/common/types/ui/experienceMode').ExperienceMode;
   /** Per-region configurable font sizes (px), set in Appearance settings */
   'ui.fontSize.chat'?: number;
   'ui.fontSize.markdown'?: number;

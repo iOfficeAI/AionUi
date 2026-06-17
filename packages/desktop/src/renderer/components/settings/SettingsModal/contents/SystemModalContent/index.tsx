@@ -21,6 +21,7 @@ import DevSettings from './DevSettings';
 import DirInputItem from './DirInputItem';
 import PreferenceRow from './PreferenceRow';
 import VoiceInputSection from './VoiceInputSection';
+import { useExperienceMode } from '@/renderer/hooks/ui/useExperienceMode';
 
 /**
  * System settings content component
@@ -52,6 +53,7 @@ const SystemModalContent: React.FC = () => {
   const [agentIdleTimeout, setAgentIdleTimeout] = useState<number>(5);
   const [saveUploadToWorkspace, setSaveUploadToWorkspace] = useState(false);
   const [autoPreviewOfficeFiles, setAutoPreviewOfficeFiles] = useState(true);
+  const { isOfficeMode, setExperienceMode } = useExperienceMode();
 
   useEffect(() => {
     if (!isDesktop) {
@@ -238,6 +240,13 @@ const SystemModalContent: React.FC = () => {
     });
   }, []);
 
+  const handleExperienceModeChange = useCallback(
+    (checked: boolean) => {
+      void setExperienceMode(checked ? 'office' : 'power');
+    },
+    [setExperienceMode]
+  );
+
   // Get system directory info
   const { data: systemInfo } = useSWR('system.dir.info', () => ipcBridge.application.systemInfo.invoke());
 
@@ -254,6 +263,12 @@ const SystemModalContent: React.FC = () => {
 
   const preferenceItems = [
     { key: 'language', label: t('settings.language'), component: <LanguageSwitcher /> },
+    {
+      key: 'experienceMode',
+      label: t('settings.experienceMode.label'),
+      description: t('settings.experienceMode.description'),
+      component: <Switch checked={isOfficeMode} onChange={handleExperienceModeChange} />,
+    },
     {
       key: 'startOnBoot',
       label: t('settings.startOnBoot'),

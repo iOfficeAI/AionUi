@@ -30,6 +30,7 @@ const ALL_LEGACY_KEYS: ConfigKey[] = [
   'theme',
   'colorScheme',
   'ui.zoomFactor',
+  'ui.experienceMode',
   'ui.fontSize.chat',
   'ui.fontSize.markdown',
   'ui.fontSize.code',

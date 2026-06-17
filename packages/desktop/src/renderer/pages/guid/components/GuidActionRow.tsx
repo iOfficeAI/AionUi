@@ -29,6 +29,9 @@ type GuidActionRowProps = {
   // Model selector node (rendered by parent)
   modelSelectorNode: React.ReactNode;
 
+  /** Office-mode agent dropdown (rendered in the action row) */
+  agentSelectorNode?: React.ReactNode;
+
   // Agent mode
   selectedAgent: string | 'custom';
   effectiveModeAgent?: string;
@@ -59,6 +62,9 @@ type GuidActionRowProps = {
   selectedMcpServerIds: string[];
   onToggleMcpServer: (serverId: string) => void;
 
+  /** Hides skills/MCP/mode/model controls — for office experience mode */
+  simplified?: boolean;
+
   // Send button
   loading: boolean;
   isButtonDisabled: boolean;
@@ -70,6 +76,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   files,
   onFilesUploaded,
   modelSelectorNode,
+  agentSelectorNode,
   selectedAgent,
   effectiveModeAgent,
   selectedMode,
@@ -89,6 +96,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   mcpServers,
   selectedMcpServerIds,
   onToggleMcpServer,
+  simplified = false,
   hidePresetTag = false,
   loading,
   isButtonDisabled,
@@ -100,8 +108,8 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
   const isMobile = layout?.isMobile ?? false;
   const [isPlusDropdownOpen, setIsPlusDropdownOpen] = useState(false);
   const modeBackend = effectiveModeAgent || selectedAgent;
-  const showModeSwitch = supportsModeSwitch(modeBackend);
-  const configOptionCount = (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0);
+  const showModeSwitch = !simplified && supportsModeSwitch(modeBackend);
+  const configOptionCount = !simplified ? (modelSelectorNode ? 1 : 0) + (showModeSwitch ? 1 : 0) : 0;
 
   // Browser file picker ref (WebUI only)
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -182,7 +190,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           </div>
         </Menu.Item>
       )}
-      {allSkills.length > 0 && (
+      {allSkills.length > 0 && !simplified && (
         <Menu.SubMenu
           key='skills'
           title={
@@ -220,7 +228,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
           ))}
         </Menu.SubMenu>
       )}
-      {mcpServers.length > 0 && (
+      {mcpServers.length > 0 && !simplified && (
         <Menu.SubMenu
           key='mcp'
           title={
@@ -299,6 +307,7 @@ const GuidActionRow: React.FC<GuidActionRowProps> = ({
             />
           )}
         </div>
+        {agentSelectorNode}
       </div>
       <div className={styles.actionSubmit}>
         {configOptionCount > 0 && (

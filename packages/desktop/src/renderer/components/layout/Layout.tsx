@@ -357,26 +357,16 @@ const Layout: React.FC<{
                   onClick={onClick}
                 >
                   <svg
-                    className={classNames('w-5.5 h-5.5 absolute inset-0 m-auto', {
-                      'scale-140': !collapsed,
-                    })}
-                    viewBox='0 0 80 80'
+                    className='w-5.5 h-5.5 absolute inset-0 m-auto'
+                    viewBox='0 0 1024 1024'
                     fill='none'
                   >
-                    <path
-                      key='logo-path-1'
-                      d='M40 20 Q38 22 25 40 Q23 42 26 42 L30 42 Q32 40 40 30 Q48 40 50 42 L54 42 Q57 42 55 40 Q42 22 40 20'
-                      fill='white'
-                    ></path>
-                    <circle key='logo-circle' cx='40' cy='46' r='3' fill='white'></circle>
-                    <path
-                      key='logo-path-2'
-                      d='M18 50 Q40 70 62 50'
-                      stroke='white'
-                      strokeWidth='3.5'
-                      fill='none'
-                      strokeLinecap='round'
-                    ></path>
+                    <g transform='translate(100 100) scale(0.8046875)'>
+                      <path
+                        d='M831.9944 0a191.99664 191.99664 0 1 1-181.052831 255.99552H352.0028a95.99832 95.99832 0 0 0 0 191.99664h319.9944a223.99608 223.99608 0 0 1 0 447.99216H373.058431a192.060639 192.060639 0 1 1 0-127.99776H671.9972a95.99832 95.99832 0 0 0 0-191.99664h-319.9944a223.99608 223.99608 0 0 1 0-447.99216h298.87477A192.060639 192.060639 0 0 1 831.9944 0z'
+                        fill='white'
+                      />
+                    </g>
                   </svg>
                 </div>
                 {isSettingsRoute ? (

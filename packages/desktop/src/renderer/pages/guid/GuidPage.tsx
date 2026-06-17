@@ -14,6 +14,8 @@ import { openExternalUrl, resolveExtensionAssetUrl } from '@/renderer/utils/plat
 import { CUSTOM_AVATAR_IMAGE_MAP } from './constants';
 import AgentPillBar from './components/AgentPillBar';
 import AssistantSelectionArea from './components/AssistantSelectionArea';
+import OfficeSceneGrid from './components/OfficeSceneGrid';
+import GuidAgentSelector from './components/GuidAgentSelector';
 import { AgentPillBarSkeleton } from './components/GuidSkeleton';
 import GuidActionRow from './components/GuidActionRow';
 import GuidInputCard from './components/GuidInputCard';
@@ -30,6 +32,8 @@ import { useTypewriterPlaceholder } from './hooks/useTypewriterPlaceholder';
 import { ensureBackendMcpCatalog } from '@/renderer/hooks/mcp/catalog';
 import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveGuidAssistantDefaults } from './utils/assistantDefaults';
+import type { OfficeSceneDefinition } from './config/officeScenes';
+import { useExperienceMode } from '@/renderer/hooks/ui/useExperienceMode';
 import SpeechInputButton from '@/renderer/components/chat/SpeechInputButton';
 import { appendSpeechTranscript } from '@/renderer/hooks/system/useSpeechInput';
 import { useLiveTranscriptInsertion } from '@/renderer/hooks/system/useLiveTranscriptInsertion';
@@ -52,6 +56,9 @@ const GuidPage: React.FC = () => {
 
   const localeKey = resolveLocaleKey(i18n.language);
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
+  const { isOfficeMode } = useExperienceMode();
+  const [showMoreAssistants, setShowMoreAssistants] = useState(false);
+  const [activeScenePrompts, setActiveScenePrompts] = useState<string[] | undefined>(undefined);
 
   // Open external link
   const openLink = useCallback(async (url: string) => {
@@ -337,6 +344,29 @@ const GuidPage: React.FC = () => {
     ]
   );
 
+  const handleOfficeSceneSelect = useCallback(
+    (scene: OfficeSceneDefinition) => {
+      if (!scene.assistantId) return;
+      const prompts = scene.promptKeys.map((key) => t(key));
+      setActiveScenePrompts(prompts);
+      setShowMoreAssistants(false);
+      handleSelectAssistant(`custom:${scene.assistantId}`);
+    },
+    [handleSelectAssistant, t]
+  );
+
+  const handleBackToOfficeScenes = useCallback(() => {
+    setShowMoreAssistants(false);
+    setActiveScenePrompts(undefined);
+    agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
+    guidInput.setInput('');
+    setIsDescriptionExpanded(false);
+  }, [
+    agentSelection.defaultAgentKey,
+    agentSelection.setSelectedAgentKey,
+    guidInput.setInput,
+  ]);
+
   // Typewriter placeholder
   const typewriterPlaceholder = useTypewriterPlaceholder(t('conversation.welcome.placeholder'));
   const selectedAssistantRecord = useMemo(() => {
@@ -441,11 +471,14 @@ const GuidPage: React.FC = () => {
   ]);
 
   const heroTitle = useMemo(() => {
+    if (isOfficeMode && !agentSelection.is_presetAgent) {
+      return t('guid.office.welcomeTitle');
+    }
     if (!agentSelection.is_presetAgent) return t('conversation.welcome.title');
     const i18nName = selectedAssistantRecord?.name_i18n?.[localeKey];
     if (i18nName) return i18nName;
     return mention.selectedAgentLabel || t('conversation.welcome.title');
-  }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t]);
+  }, [agentSelection.is_presetAgent, selectedAssistantRecord, localeKey, mention.selectedAgentLabel, t, isOfficeMode]);
   const selectedAssistantDescription = useMemo(() => {
     return selectedAssistantRecord?.description_i18n?.[localeKey] || selectedAssistantRecord?.description || '';
   }, [selectedAssistantRecord, localeKey]);
@@ -670,7 +703,7 @@ const GuidPage: React.FC = () => {
   );
 
   // Build the model selector node
-  const modelSelectorNode = (
+  const modelSelectorNode = isOfficeMode ? null : (
     <GuidModelSelector
       isGeminiMode={isGeminiMode}
       modelList={modelSelection.modelList}
@@ -681,6 +714,19 @@ const GuidPage: React.FC = () => {
       setSelectedAcpModel={setGuidSelectedAcpModel}
     />
   );
+
+  const agentSelectorNode = isOfficeMode ? (
+    <GuidAgentSelector
+      availableAgents={agentSelection.availableAgents}
+      selectedAgentKey={agentSelection.selectedAgentKey}
+      getAgentKey={agentSelection.getAgentKey}
+      onSelectAgent={handleSelectAgentFromPillBar}
+    />
+  ) : null;
+
+  const inputPlaceholder = isOfficeMode
+    ? typewriterPlaceholder || t('guid.office.inputPlaceholder')
+    : `${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`;
 
   const handleSpeechTranscript = useCallback(
     (transcript: string) => {
@@ -696,6 +742,7 @@ const GuidPage: React.FC = () => {
       files={guidInput.files}
       onFilesUploaded={guidInput.handleFilesUploaded}
       modelSelectorNode={modelSelectorNode}
+      agentSelectorNode={agentSelectorNode}
       selectedAgent={agentSelection.selectedAgent}
       effectiveModeAgent={agentSelection.currentEffectiveAgentInfo.agent_type}
       selectedMode={agentSelection.selectedMode}
@@ -717,7 +764,8 @@ const GuidPage: React.FC = () => {
       mcpServers={availableMcpServers}
       selectedMcpServerIds={guidSelectedMcpServerIds ?? []}
       onToggleMcpServer={handleToggleMcpServer}
-      hidePresetTag
+      hidePresetTag={isOfficeMode}
+      simplified={isOfficeMode}
       speechInputNode={
         <SpeechInputButton
           disabled={guidInput.loading}
@@ -746,6 +794,10 @@ const GuidPage: React.FC = () => {
                     icon={<Left theme='outline' size={18} fill='currentColor' />}
                     className={styles.heroBackButton}
                     onClick={() => {
+                      if (isOfficeMode) {
+                        handleBackToOfficeScenes();
+                        return;
+                      }
                       agentSelection.setSelectedAgentKey(agentSelection.defaultAgentKey);
                       guidInput.setInput('');
                       setIsDescriptionExpanded(false);
@@ -777,11 +829,19 @@ const GuidPage: React.FC = () => {
                     className={styles.heroTitleEdit}
                     onClick={() => openAssistantDetailsRef.current?.()}
                     aria-label={t('settings.editAssistant', { defaultValue: 'Assistant Details' })}
+                    style={isOfficeMode ? { display: 'none' } : undefined}
                   />
                 </div>
               </div>
             ) : (
-              <p className='text-2xl font-semibold mb-0 text-0 text-center'>{heroTitle}</p>
+              <div className='text-center'>
+                <p className='text-2xl font-semibold mb-0 text-0'>{heroTitle}</p>
+                {isOfficeMode ? (
+                  <p className={`${styles.officeWelcomeSubtitle} text-14px text-t-secondary mt-8px mb-0`}>
+                    {t('guid.office.welcomeSubtitle')}
+                  </p>
+                ) : null}
+              </div>
             )}
           </div>
 
@@ -821,8 +881,8 @@ const GuidPage: React.FC = () => {
               </div>
             ) : null
           ) : agentSelection.availableAgents === undefined ? (
-            <AgentPillBarSkeleton />
-          ) : agentSelection.availableAgents.length > 0 ? (
+            !isOfficeMode ? <AgentPillBarSkeleton /> : null
+          ) : agentSelection.availableAgents.length > 0 && !isOfficeMode ? (
             <AgentPillBar
               availableAgents={agentSelection.availableAgents}
               selectedAgentKey={agentSelection.selectedAgentKey}
@@ -839,7 +899,7 @@ const GuidPage: React.FC = () => {
             onPaste={guidInput.onPaste}
             onFocus={guidInput.handleTextareaFocus}
             onBlur={guidInput.handleTextareaBlur}
-            placeholder={`${mention.selectedAgentLabel}, ${typewriterPlaceholder || t('conversation.welcome.placeholder')}`}
+            placeholder={inputPlaceholder}
             isInputActive={guidInput.isInputFocused}
             isFileDragging={guidInput.isFileDragging}
             activeBorderColor={activeBorderColor}
@@ -848,14 +908,16 @@ const GuidPage: React.FC = () => {
             dragHandlers={guidInput.dragHandlers}
             mentionOpen={mention.mentionOpen}
             mentionSelectorBadge={
-              <MentionSelectorBadge
-                visible={mention.mentionSelectorVisible}
-                open={mention.mentionSelectorOpen}
-                onOpenChange={mention.setMentionSelectorOpen}
-                agentLabel={mention.selectedAgentLabel}
-                mentionMenu={mentionDropdownNode}
-                onResetQuery={() => mention.setMentionQuery(null)}
-              />
+              isOfficeMode ? undefined : (
+                <MentionSelectorBadge
+                  visible={mention.mentionSelectorVisible}
+                  open={mention.mentionSelectorOpen}
+                  onOpenChange={mention.setMentionSelectorOpen}
+                  agentLabel={mention.selectedAgentLabel}
+                  mentionMenu={mentionDropdownNode}
+                  onResetQuery={() => mention.setMentionQuery(null)}
+                />
+              )
             }
             mentionDropdown={mentionDropdownNode}
             files={guidInput.files}
@@ -866,8 +928,16 @@ const GuidPage: React.FC = () => {
             onClearWorkspace={() => guidInput.setDir('')}
           />
 
+          {isOfficeMode && !agentSelection.is_presetAgent && !showMoreAssistants ? (
+            <OfficeSceneGrid
+              onSelectScene={handleOfficeSceneSelect}
+              onShowMoreAssistants={() => setShowMoreAssistants(true)}
+            />
+          ) : null}
+
           <AssistantSelectionArea
             is_presetAgent={agentSelection.is_presetAgent}
+            selectedAgentKey={agentSelection.selectedAgentKey}
             selectedAgentInfo={agentSelection.selectedAgentInfo}
             assistants={agentSelection.assistants}
             selectedAssistantDetail={selectedAssistantDetail}
@@ -876,18 +946,25 @@ const GuidPage: React.FC = () => {
             onSelectAssistant={handleSelectAssistant}
             onSetInput={guidInput.setInput}
             onFocusInput={guidInput.handleTextareaFocus}
+            officeMode={isOfficeMode}
+            showMoreAssistants={showMoreAssistants}
+            onBackToScenes={handleBackToOfficeScenes}
+            scenePrompts={activeScenePrompts}
             onRegisterOpenDetails={(openDetails) => {
               openAssistantDetailsRef.current = openDetails;
             }}
           />
+
         </div>
 
-        <QuickActionButtons
-          onOpenLink={openLink}
-          onOpenBugReport={() => setShowFeedbackModal(true)}
-          inactiveBorderColor={inactiveBorderColor}
-          activeShadow={activeShadow}
-        />
+        {!isOfficeMode ? (
+          <QuickActionButtons
+            onOpenLink={openLink}
+            onOpenBugReport={() => setShowFeedbackModal(true)}
+            inactiveBorderColor={inactiveBorderColor}
+            activeShadow={activeShadow}
+          />
+        ) : null}
         <FeedbackReportModal visible={showFeedbackModal} onCancel={() => setShowFeedbackModal(false)} />
       </div>
     </ConfigProvider>

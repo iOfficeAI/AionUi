@@ -383,7 +383,12 @@
   flex: 0 1 auto;
 }
 
-/* 首页输入框右下「模型 / 模式」按钮：与对话框 .sendbox-tools/.sendbox-actions 同款 */
+/* 首页输入框左下 / 右下配置按钮：与对话框 .sendbox-tools/.sendbox-actions 同款 */
+.actionTools :global(.sendbox-model-btn),
+.actionTools :global(.sendbox-model-btn:hover),
+.actionTools :global(.sendbox-model-btn:active),
+.actionTools :global(.sendbox-model-btn:focus),
+.actionTools :global(.sendbox-model-btn:focus-visible),
 .actionSubmit :global(.sendbox-model-btn),
 .actionSubmit :global(.sendbox-model-btn:hover),
 .actionSubmit :global(.sendbox-model-btn:active),
@@ -395,6 +400,10 @@
   color: var(--text-secondary) !important;
 }
 
+.actionTools :global(.sendbox-model-btn:hover),
+.actionTools :global(.sendbox-model-btn:active),
+.actionTools :global(.sendbox-model-btn:focus),
+.actionTools :global(.sendbox-model-btn:focus-visible),
 .actionSubmit :global(.sendbox-model-btn:hover),
 .actionSubmit :global(.sendbox-model-btn:active),
 .actionSubmit :global(.sendbox-model-btn:focus),
@@ -402,10 +411,12 @@
   color: var(--text-primary) !important;
 }
 
+.actionTools :global(.sendbox-model-btn .arco-btn-content),
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content) {
   gap: 0 !important;
 }
 
+.actionTools :global(.sendbox-model-btn .arco-btn-content > span:first-child),
 .actionConfigGroup :global(.sendbox-model-btn .arco-btn-content > span:first-child) {
   gap: 4px !important;
 }
@@ -1052,4 +1063,93 @@
   .presetAgentTagName {
     max-width: 100px;
   }
+}
+
+.officeWelcomeSubtitle {
+  line-height: 1.5;
+}
+
+.officeSceneSection {
+  width: 100%;
+  margin-top: 24px;
+}
+
+.officeSceneHint {
+  margin: 0 0 12px;
+  text-align: center;
+  font-size: 13px;
+  color: var(--color-text-3);
+}
+
+.officeSceneGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+@media (min-width: 720px) {
+  .officeSceneGrid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+.officeSceneCard {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 6px;
+  padding: 14px 14px 12px;
+  border: 1px solid var(--color-border-2);
+  border-radius: 14px;
+  background: var(--assistant-surface-bg, var(--color-fill-1));
+  cursor: pointer;
+  text-align: left;
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease;
+}
+
+.officeSceneCard:hover {
+  border-color: var(--color-border-3);
+  background: var(--assistant-surface-bg-hover, var(--color-fill-2));
+  box-shadow: 0 4px 14px color-mix(in srgb, var(--color-text-1) 6%, transparent);
+}
+
+.officeSceneIcon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+.officeSceneTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--color-text-1);
+}
+
+.officeSceneDesc {
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-text-3);
+}
+
+.officeMoreAssistantsLink,
+.officeBackToScenes {
+  display: block;
+  margin: 14px auto 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: rgb(var(--primary-6));
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.officeBackToScenes {
+  margin: 0 auto 12px;
+  text-align: center;
+  width: 100%;
 }

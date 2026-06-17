@@ -26,5 +26,75 @@
     "statusTesting": "Testing latency...",
     "statusUnreachable": "Unreachable",
     "statusAvailable": "Available"
+  },
+  "office": {
+    "welcomeTitle": "你的 AI 同事",
+    "welcomeSubtitle": "選個場景，用一句话派活，直接拿到可編輯的文件",
+    "inputPlaceholder": "告訴 AI 同事要做什么…",
+    "sceneHint": "你想完成什么工作？",
+    "moreAssistants": "更多助手…",
+    "moreAssistantsHint": "选择其他办公助手",
+    "backToScenes": "← 返回場景",
+    "scenes": {
+      "spreadsheet": {
+        "title": "做表格",
+        "description": "整理數據、生成 Excel 台賬",
+        "prompt0": "把這份數據整理成带表头的 Excel 費用明细表",
+        "prompt1": "汇总資料夾里的数字，生成可編輯的 Excel 統計表",
+        "prompt2": "根據這份 CSV 做一份月度收支分析表"
+      },
+      "document": {
+        "title": "寫文档",
+        "description": "报告、說明、合同与表單",
+        "prompt0": "根據要點寫一份 Word 工作匯報",
+        "prompt1": "把這份草稿整理成格式規範的 Word 文档",
+        "prompt2": "生成一份費用報銷說明 Word 文档"
+      },
+      "presentation": {
+        "title": "做匯報",
+        "description": "生成可編輯的 PPT",
+        "prompt0": "根據大綱做一份 10 頁的專案匯報 PPT",
+        "prompt1": "把這份 Word 内容转成結構清晰的演示文稿",
+        "prompt2": "做一份週會匯報 PPT，含數據摘要頁"
+      },
+      "organize": {
+        "title": "整理文件",
+        "description": "归类、重新命名、批量處理",
+        "prompt0": "按月份整理這個資料夾里的發票和回單",
+        "prompt1": "批量重新命名文件，統一为「日期-類型-摘要」格式",
+        "prompt2": "把散落的 Excel 和 PDF 按客户名称分資料夾歸檔"
+      },
+      "scheduled": {
+        "title": "定時任务",
+        "description": "每週/每月自动执行",
+        "prompt0": "打開定時任务，設定每週五自动生成周报",
+        "prompt1": "查看并管理我的定時任务",
+        "prompt2": "設定每月 25 日提醒整理本月材料"
+      },
+      "general": {
+        "title": "隨便問問",
+        "description": "通用问答与文件處理",
+        "prompt0": "帮我看看這個資料夾里有哪些需要我處理的事項",
+        "prompt1": "根據這些文件寫一段給領導的简要說明",
+        "prompt2": "帮我起草一封工作郵件，語氣正式簡潔"
+      }
+    },
+    "selectAgentTitle": "請選擇你的 Agent",
+    "selectAgentHint": "Agent 是幫你完成任務的 AI 引擎。先選好 Agent，再輸入需求或點擊上方場景即可開始。",
+    "agentDescriptionFallback": "可處理你的辦公任務",
+    "manageAgents": "管理或新增 Agent",
+    "agents": {
+      "descriptions": {
+        "aionrs": "首選：整理檔案、產生文件表格等日常辦公",
+        "gemini": "適合快速問答，需登入 Google 帳號",
+        "claude": "適合長文寫作、資料分析與複雜任務",
+        "codex": "適合資料處理與偏技術的操作",
+        "qwen": "中文理解佳，適合多輪溝通",
+        "openai": "通用對話與文字生成",
+        "nanobot": "輕量自動化與快捷任務",
+        "custom": "你自訂設定的 Agent"
+      }
+    },
+    "agentDropdownLabel": "Agent"
   }
 }

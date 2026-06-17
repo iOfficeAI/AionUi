@@ -5,10 +5,80 @@
   "agentTabAutoSwitch": "模型不兼容 Gemini，已自动切换到 {{fallback}}",
   "autoSwitchToAgent": "Gemini 未配置，正在自动切换到 {{agent}}",
   "autoSwitchedAgent": "{{from}} 不可用，已自动切换到 {{to}}",
-  "promptExamplesHint": "试试这些可点击的案例提示词：",
+  "promptExamplesHint": "试试这些示例，点一下就能填入：",
   "selectAssistantHint": "选择一位助手开始任务",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "已切换到 {{agent}}",
+  "office": {
+    "welcomeTitle": "你的 AI 同事",
+    "welcomeSubtitle": "选个场景，用一句话派活，直接拿到可编辑的文件",
+    "inputPlaceholder": "告诉 AI 同事要做什么…",
+    "sceneHint": "你想完成什么工作？",
+    "moreAssistants": "更多助手…",
+    "moreAssistantsHint": "选择其他办公助手",
+    "backToScenes": "← 返回场景",
+    "scenes": {
+      "spreadsheet": {
+        "title": "做表格",
+        "description": "整理数据、生成 Excel 台账",
+        "prompt0": "把这份数据整理成带表头的 Excel 费用明细表",
+        "prompt1": "汇总文件夹里的数字，生成可编辑的 Excel 统计表",
+        "prompt2": "根据这份 CSV 做一份月度收支分析表"
+      },
+      "document": {
+        "title": "写文档",
+        "description": "报告、说明、合同与表单",
+        "prompt0": "根据要点写一份 Word 工作汇报",
+        "prompt1": "把这份草稿整理成格式规范的 Word 文档",
+        "prompt2": "生成一份费用报销说明 Word 文档"
+      },
+      "presentation": {
+        "title": "做汇报",
+        "description": "生成可编辑的 PPT",
+        "prompt0": "根据大纲做一份 10 页的项目汇报 PPT",
+        "prompt1": "把这份 Word 内容转成结构清晰的演示文稿",
+        "prompt2": "做一份周会汇报 PPT，含数据摘要页"
+      },
+      "organize": {
+        "title": "整理文件",
+        "description": "归类、重命名、批量处理",
+        "prompt0": "按月份整理这个文件夹里的发票和回单",
+        "prompt1": "批量重命名文件，统一为「日期-类型-摘要」格式",
+        "prompt2": "把散落的 Excel 和 PDF 按客户名称分文件夹归档"
+      },
+      "scheduled": {
+        "title": "定时任务",
+        "description": "每周/每月自动执行",
+        "prompt0": "打开定时任务，设置每周五自动生成周报",
+        "prompt1": "查看并管理我的定时任务",
+        "prompt2": "设置每月 25 日提醒整理本月材料"
+      },
+      "general": {
+        "title": "随便问问",
+        "description": "通用问答与文件处理",
+        "prompt0": "帮我看看这个文件夹里有哪些需要我处理的事项",
+        "prompt1": "根据这些文件写一段给领导的简要说明",
+        "prompt2": "帮我起草一封工作邮件，语气正式简洁"
+      }
+    },
+    "selectAgentTitle": "请选择你的 Agent",
+    "selectAgentHint": "Agent 是帮你完成任务的 AI 引擎。先选好 Agent，再输入需求或点击上方场景即可开始。",
+    "agentDescriptionFallback": "可处理你的办公任务",
+    "manageAgents": "管理或添加 Agent",
+    "agents": {
+      "descriptions": {
+        "aionrs": "首选：整理文件、生成文档表格等日常办公",
+        "gemini": "适合快速问答，需登录 Google 账号",
+        "claude": "适合长文写作、资料分析与复杂任务",
+        "codex": "适合数据处理与偏技术的操作",
+        "qwen": "中文理解好，适合多轮沟通",
+        "openai": "通用对话与文本生成",
+        "nanobot": "轻量自动化与快捷任务",
+        "custom": "你自定义配置的 Agent"
+      }
+    },
+    "agentDropdownLabel": "Agent"
+  },
   "workspace": {
     "workInProject": "在项目中工作",
     "optional": "可选",

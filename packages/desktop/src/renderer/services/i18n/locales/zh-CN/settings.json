@@ -198,6 +198,10 @@
   "cacheClearSuccess": "缓存清理成功",
   "cacheClearFailed": "缓存清理失败",
   "language": "语言",
+  "experienceMode": {
+    "label": "办公简洁模式",
+    "description": "隐藏 Agent、技能等高级选项，首页改为办公场景入口"
+  },
   "saveUploadToWorkspace": "上传文件保存到项目文件夹",
   "autoPreviewOfficeFiles": "自动预览新建 Office 文件",
   "autoPreviewOfficeFilesDesc": "自动打开当前项目中新创建的 Word、Excel 和 PowerPoint 文件，并忽略 Office 临时锁定文件。",

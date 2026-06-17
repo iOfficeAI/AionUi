@@ -198,6 +198,10 @@
   "cacheClearSuccess": "Cache cleared successfully",
   "cacheClearFailed": "Failed to clear cache",
   "language": "Language",
+  "experienceMode": {
+    "label": "Office-friendly mode",
+    "description": "Hide advanced Agent and skill controls; show office scenario shortcuts on the home page"
+  },
   "saveUploadToWorkspace": "Save Uploads to Project Folder",
   "autoPreviewOfficeFiles": "Auto Preview New Office Files",
   "autoPreviewOfficeFilesDesc": "Automatically open newly created Word, Excel, and PowerPoint files in the current project. Office temporary lock files are ignored.",

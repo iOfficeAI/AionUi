@@ -1055,5 +1055,9 @@
     "acpTool": "the managed ACP tool",
     "codexAcp": "the Codex ACP runtime component",
     "claudeAgentAcp": "the Claude ACP runtime component"
+  },
+  "experienceMode": {
+    "label": "Office-friendly mode",
+    "description": "Hide advanced Agent and skill controls; show office scenario shortcuts on the home page"
   }
 }

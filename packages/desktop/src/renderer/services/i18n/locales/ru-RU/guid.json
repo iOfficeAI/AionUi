@@ -26,5 +26,75 @@
     "statusTesting": "Тестирование задержки...",
     "statusUnreachable": "Недоступен",
     "statusAvailable": "Доступен"
+  },
+  "office": {
+    "welcomeTitle": "Your AI coworker",
+    "welcomeSubtitle": "Pick a scenario, describe the task, and get editable files",
+    "inputPlaceholder": "Tell your AI coworker what to do…",
+    "sceneHint": "What do you want to get done?",
+    "moreAssistants": "More assistants…",
+    "moreAssistantsHint": "Choose another office assistant",
+    "backToScenes": "← Back to scenarios",
+    "scenes": {
+      "spreadsheet": {
+        "title": "Spreadsheets",
+        "description": "Organize data into Excel",
+        "prompt0": "Turn this data into an Excel expense sheet with headers",
+        "prompt1": "Summarize numbers in this folder into an editable Excel report",
+        "prompt2": "Build a monthly income and expense analysis from this CSV"
+      },
+      "document": {
+        "title": "Documents",
+        "description": "Reports, memos, and forms",
+        "prompt0": "Write a Word work report from these bullet points",
+        "prompt1": "Polish this draft into a well-formatted Word document",
+        "prompt2": "Create a Word expense reimbursement memo"
+      },
+      "presentation": {
+        "title": "Presentations",
+        "description": "Editable slide decks",
+        "prompt0": "Create a 10-slide project update presentation",
+        "prompt1": "Turn this Word outline into a clear slide deck",
+        "prompt2": "Build a weekly meeting deck with a data summary slide"
+      },
+      "organize": {
+        "title": "Organize files",
+        "description": "Sort, rename, and batch tasks",
+        "prompt0": "Sort invoices and receipts in this folder by month",
+        "prompt1": "Batch-rename files to date-type-summary format",
+        "prompt2": "Archive scattered Excel and PDF files by client name"
+      },
+      "scheduled": {
+        "title": "Scheduled tasks",
+        "description": "Run automatically on a schedule",
+        "prompt0": "Open scheduled tasks and set a weekly report for Fridays",
+        "prompt1": "Review and manage my scheduled tasks",
+        "prompt2": "Remind me on the 25th to organize this month's files"
+      },
+      "general": {
+        "title": "Ask anything",
+        "description": "General Q&A and file help",
+        "prompt0": "Review this folder and list what needs my attention",
+        "prompt1": "Write a short brief for my manager based on these files",
+        "prompt2": "Draft a concise professional work email"
+      }
+    },
+    "selectAgentTitle": "Выберите Agent",
+    "selectAgentHint": "Agent — это ИИ-движок, который выполняет задачу. Сначала выберите Agent, затем введите запрос или сценарий выше.",
+    "agentDescriptionFallback": "Выполняет офисные задачи",
+    "manageAgents": "Управление Agent",
+    "agents": {
+      "descriptions": {
+        "aionrs": "Рекомендуется для повседневной работы и файлов",
+        "gemini": "Быстрые ответы; нужен аккаунт Google",
+        "claude": "Длинные тексты, анализ и сложные задачи",
+        "codex": "Данные и технические операции",
+        "qwen": "Хорош для китайского и диалога",
+        "openai": "Общий чат и генерация текста",
+        "nanobot": "Лёгкая автоматизация",
+        "custom": "Ваш настроенный Agent"
+      }
+    },
+    "agentDropdownLabel": "Agent"
   }
 }

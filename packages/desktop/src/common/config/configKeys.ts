@@ -1,5 +1,6 @@
 import type { AcpInitializeResult, AcpSessionConfigOption, AcpSessionModes } from '@/common/types/platform/acpTypes';
 import type { SpeechToTextConfig } from '@/common/types/provider/speech';
+import type { ExperienceMode } from '@/common/types/ui/experienceMode';
 import type { ICssTheme, IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import type { Theme } from '@/common/theme/types';
 
@@ -33,6 +34,8 @@ export type ConfigKeyMap = {
   theme: string;
   colorScheme: string;
   'ui.zoomFactor': number | undefined;
+  /** `office` = simplified UI; `power` = full agent/developer UI */
+  'ui.experienceMode': ExperienceMode | undefined;
   'ui.fontSize.chat': number | undefined;
   'ui.fontSize.markdown': number | undefined;
   'ui.fontSize.code': number | undefined;

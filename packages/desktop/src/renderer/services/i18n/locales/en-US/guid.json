@@ -5,10 +5,80 @@
   "agentTabAutoSwitch": "Model not compatible with Gemini, auto-switched to {{fallback}}",
   "autoSwitchToAgent": "Gemini is not configured, auto-switching to {{agent}}",
   "autoSwitchedAgent": "{{from}} is not available, switched to {{to}}",
-  "promptExamplesHint": "Try example prompts:",
+  "promptExamplesHint": "Try these examples — tap to fill in:",
   "selectAssistantHint": "Select an assistant to start a task",
   "agentSwitcherLabel": "Agent",
   "switchedToAgent": "Switched to {{agent}}",
+  "office": {
+    "welcomeTitle": "Your AI coworker",
+    "welcomeSubtitle": "Pick a scenario, describe the task, and get editable files",
+    "inputPlaceholder": "Tell your AI coworker what to do…",
+    "sceneHint": "What do you want to get done?",
+    "moreAssistants": "More assistants…",
+    "moreAssistantsHint": "Choose another office assistant",
+    "backToScenes": "← Back to scenarios",
+    "scenes": {
+      "spreadsheet": {
+        "title": "Spreadsheets",
+        "description": "Organize data into Excel",
+        "prompt0": "Turn this data into an Excel expense sheet with headers",
+        "prompt1": "Summarize numbers in this folder into an editable Excel report",
+        "prompt2": "Build a monthly income and expense analysis from this CSV"
+      },
+      "document": {
+        "title": "Documents",
+        "description": "Reports, memos, and forms",
+        "prompt0": "Write a Word work report from these bullet points",
+        "prompt1": "Polish this draft into a well-formatted Word document",
+        "prompt2": "Create a Word expense reimbursement memo"
+      },
+      "presentation": {
+        "title": "Presentations",
+        "description": "Editable slide decks",
+        "prompt0": "Create a 10-slide project update presentation",
+        "prompt1": "Turn this Word outline into a clear slide deck",
+        "prompt2": "Build a weekly meeting deck with a data summary slide"
+      },
+      "organize": {
+        "title": "Organize files",
+        "description": "Sort, rename, and batch tasks",
+        "prompt0": "Sort invoices and receipts in this folder by month",
+        "prompt1": "Batch-rename files to date-type-summary format",
+        "prompt2": "Archive scattered Excel and PDF files by client name"
+      },
+      "scheduled": {
+        "title": "Scheduled tasks",
+        "description": "Run automatically on a schedule",
+        "prompt0": "Open scheduled tasks and set a weekly report for Fridays",
+        "prompt1": "Review and manage my scheduled tasks",
+        "prompt2": "Remind me on the 25th to organize this month's files"
+      },
+      "general": {
+        "title": "Ask anything",
+        "description": "General Q&A and file help",
+        "prompt0": "Review this folder and list what needs my attention",
+        "prompt1": "Write a short brief for my manager based on these files",
+        "prompt2": "Draft a concise professional work email"
+      }
+    },
+    "selectAgentTitle": "Choose your Agent",
+    "selectAgentHint": "An Agent is the AI engine that runs your task. Pick one first, then type a request or tap a scenario above.",
+    "agentDescriptionFallback": "Handles your office tasks",
+    "manageAgents": "Manage or add Agents",
+    "agents": {
+      "descriptions": {
+        "aionrs": "Recommended for everyday office work, files, and documents",
+        "gemini": "Quick Q&A; requires a Google account",
+        "claude": "Long-form writing, analysis, and complex tasks",
+        "codex": "Data work and more technical operations",
+        "qwen": "Strong in Chinese and multi-turn chat",
+        "openai": "General conversation and text generation",
+        "nanobot": "Light automation and quick tasks",
+        "custom": "Your custom-configured Agent"
+      }
+    },
+    "agentDropdownLabel": "Agent"
+  },
   "workspace": {
     "workInProject": "Work in a project",
     "optional": "Optional",

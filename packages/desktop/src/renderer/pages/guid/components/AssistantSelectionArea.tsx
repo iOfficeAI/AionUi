@@ -15,6 +15,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
+import { filterOfficeAssistants } from '../config/officeScenes';
 
 type AssistantSelectionAreaProps = {
   is_presetAgent: boolean;
@@ -33,6 +34,10 @@ type AssistantSelectionAreaProps = {
   onSetInput: (text: string) => void;
   onFocusInput: () => void;
   onRegisterOpenDetails?: (openDetails: (() => void) | null) => void;
+  officeMode?: boolean;
+  showMoreAssistants?: boolean;
+  onBackToScenes?: () => void;
+  scenePrompts?: string[];
 };
 
 const resolveAssistantCandidateIds = (assistantId: string): string[] => {
@@ -54,6 +59,10 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   onSetInput,
   onFocusInput,
   onRegisterOpenDetails,
+  officeMode = false,
+  showMoreAssistants = false,
+  onBackToScenes,
+  scenePrompts,
 }) => {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -124,8 +133,16 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
     return () => observer.disconnect();
   }, [assistants]);
 
+  const visibleAssistants = useMemo(() => {
+    const enabled = assistants.filter((a) => a.enabled !== false);
+    return officeMode ? filterOfficeAssistants(enabled) : enabled;
+  }, [assistants, officeMode]);
+
+  // Office home uses OfficeSceneGrid; this area only renders for preset view or "more assistants".
+  if (officeMode && !is_presetAgent && !showMoreAssistants) return null;
+
   // Render only if the backend catalog has at least one assistant.
-  if (!assistants || assistants.length === 0) return null;
+  if (!visibleAssistants || visibleAssistants.length === 0) return null;
 
   if (is_presetAgent && selectedAgentInfo) {
     // Selected Assistant View
@@ -159,12 +176,14 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
           {(() => {
             const agent = assistants.find((a) => a.id === selectedAgentInfo.custom_agent_id);
             const prompts =
-              selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
-              selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
-              selectedAssistantDetail?.prompts.recommended ||
-              agent?.prompts_i18n?.[localeKey] ||
-              agent?.prompts_i18n?.['en-US'] ||
-              agent?.prompts;
+              scenePrompts && scenePrompts.length > 0
+                ? scenePrompts
+                : selectedAssistantDetail?.prompts.recommended_i18n?.[localeKey] ||
+                  selectedAssistantDetail?.prompts.recommended_i18n?.['en-US'] ||
+                  selectedAssistantDetail?.prompts.recommended ||
+                  agent?.prompts_i18n?.[localeKey] ||
+                  agent?.prompts_i18n?.['en-US'] ||
+                  agent?.prompts;
             if (prompts && prompts.length > 0) {
               return (
                 <div className='mt-16px'>
@@ -198,17 +217,22 @@ const AssistantSelectionArea: React.FC<AssistantSelectionAreaProps> = ({
   // Assistant List View
   return (
     <div className='mt-32px w-full'>
+      {officeMode && showMoreAssistants && onBackToScenes ? (
+        <button type='button' className={styles.officeBackToScenes} onClick={onBackToScenes}>
+          {t('guid.office.backToScenes')}
+        </button>
+      ) : null}
       <div className={`${styles.assistantPromptHint} text-center mb-12px`}>
-        {t('guid.selectAssistantHint', { defaultValue: 'Select an assistant to start a task' })}
+        {officeMode
+          ? t('guid.office.moreAssistantsHint')
+          : t('guid.selectAssistantHint', { defaultValue: 'Select an assistant to start a task' })}
       </div>
       <div
         ref={scrollWrapRef}
         className={`${styles.assistantCardScrollWrap} ${isScrollable ? styles.assistantCardScrollWrapScrollable : ''}`}
       >
         <div className={styles.assistantCardGrid}>
-          {assistants
-            .filter((a) => a.enabled !== false)
-            .map((assistant) => {
+          {visibleAssistants.map((assistant) => {
               const avatarValue = assistant.avatar?.trim();
               const mappedAvatar = avatarValue ? CUSTOM_AVATAR_IMAGE_MAP[avatarValue] : undefined;
               const resolvedAvatar = avatarValue ? resolveExtensionAssetUrl(avatarValue) : undefined;
