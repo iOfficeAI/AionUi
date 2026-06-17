@@ -132,9 +132,38 @@ describe('teamMapper', () => {
         assistant_id: 'assistant-1',
       })
     ).toMatchObject({
-      backend: 'aionrs',
       name: 'Aion CLI',
       assistant_id: 'assistant-1',
+    });
+  });
+
+  it('omits backend for new assistant-led payloads so the backend can derive it from assistant identity', () => {
+    expect(
+      toBackendAgent({
+        role: 'teammate',
+        assistant_backend: 'codex',
+        assistant_name: 'Writer',
+        conversation_type: 'acp',
+        status: 'pending',
+        assistant_id: 'assistant-writer',
+        model: 'gpt-5',
+      })
+    ).not.toHaveProperty('backend');
+  });
+
+  it('keeps backend for legacy payloads without assistant identity', () => {
+    expect(
+      toBackendAgent({
+        role: 'teammate',
+        assistant_backend: 'acp',
+        assistant_name: 'Legacy Worker',
+        conversation_type: 'acp',
+        status: 'pending',
+        model: 'claude',
+      })
+    ).toMatchObject({
+      backend: 'acp',
+      name: 'Legacy Worker',
     });
   });
 });
