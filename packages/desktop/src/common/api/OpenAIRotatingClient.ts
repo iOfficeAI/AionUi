@@ -111,6 +111,38 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
     };
   }
 
+  // Mirror of enforceCommandEveChatEgressBoundary for the image-generation path.
+  // createImage egress (client.images.generate) would otherwise bypass the
+  // Command EVE egress boundary entirely. The image prompt is a single string,
+  // so we evaluate/block/redact that prompt rather than chat messages. Defense
+  // in depth: block -> throw before egress; redact -> sanitize the prompt.
+  private async enforceCommandEveImageEgressBoundary(
+    params: OpenAI.Images.ImageGenerateParams
+  ): Promise<OpenAI.Images.ImageGenerateParams> {
+    const policyAction = this.baseConfig.commandEveEgressPolicyAction;
+    if (!policyAction) return params;
+    const boundary = await evaluateCommandEveEgressBoundary({
+      text: typeof params.prompt === 'string' ? params.prompt : '',
+      provider: {
+        kind: 'cloud',
+        name: this.baseConfig.commandEveEgressProviderName || 'openai-compatible',
+        model: String(params.model || ''),
+        baseUrl: this.baseConfig.baseURL,
+      },
+      policyAction,
+    });
+    if (boundary.decision === 'block') {
+      throw new Error(
+        `Command EVE blocked sensitive data before cloud model egress (${boundary.receipt.finding_count} finding(s)).`
+      );
+    }
+    if (boundary.decision !== 'redact') return params;
+    return {
+      ...params,
+      prompt: redactCommandEveSensitiveText(typeof params.prompt === 'string' ? params.prompt : ''),
+    };
+  }
+
   // Convenience methods for common OpenAI operations
   async createChatCompletion(
     params: OpenAI.Chat.Completions.ChatCompletionCreateParams,
@@ -127,8 +159,9 @@ export class OpenAIRotatingClient extends RotatingApiClient<OpenAI> {
     params: OpenAI.Images.ImageGenerateParams,
     options?: OpenAI.RequestOptions
   ): Promise<OpenAI.Images.ImagesResponse> {
+    const safeParams = await this.enforceCommandEveImageEgressBoundary(params);
     return await this.executeWithRetry((client) => {
-      return client.images.generate(params, options) as Promise<OpenAI.Images.ImagesResponse>;
+      return client.images.generate(safeParams, options) as Promise<OpenAI.Images.ImagesResponse>;
     });
   }
 

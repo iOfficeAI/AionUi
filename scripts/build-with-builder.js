@@ -15,6 +15,23 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
+// Fail-closed exit-code propagation. Historically a build failure could log
+// "❌ Build failed" yet leave the process exit code at 0 (e.g. an async
+// rejection that escaped the synchronous try/catch), masking the failure from
+// CI / founder / automation (this masked the alpha.6 first-build failure). These
+// guards GUARANTEE the wrapper exits non-zero whenever a build error is not
+// fully handled, so a broken build can never look green.
+process.on('unhandledRejection', (reason) => {
+  console.error('❌ Build failed (unhandled rejection):', reason instanceof Error ? reason.message : reason);
+  process.exitCode = 1;
+  process.exit(1);
+});
+process.on('uncaughtException', (error) => {
+  console.error('❌ Build failed (uncaught exception):', error instanceof Error ? error.message : error);
+  process.exitCode = 1;
+  process.exit(1);
+});
+
 // DMG retry logic for macOS: detects DMG creation failures by checking artifacts
 // (.app exists but .dmg missing) and retries only the DMG step using
 // electron-builder --prepackaged with the .app path (not the parent directory).
@@ -418,6 +435,13 @@ if (forceBuild) console.log('⚡ --force: Force full rebuild');
 const packageJsonPath = path.resolve(__dirname, '../package.json');
 
 try {
+  // Test-only hook: deterministically exercise the failure path so the
+  // non-zero-exit contract is unit-testable without running a real build. Inert
+  // in production (the env var is never set by any real build invocation).
+  if (process.env.BUILD_WITH_BUILDER_SELFTEST_FAIL === '1') {
+    throw new Error('BUILD_WITH_BUILDER_SELFTEST_FAIL: simulated electron-builder failure');
+  }
+
   // 1. Ensure package.json main entry is correct for electron-vite
   const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8'));
   if (packageJson.main !== './out/main/index.js') {
@@ -633,6 +657,9 @@ try {
 
   console.log('✅ Build completed!');
 } catch (error) {
-  console.error('❌ Build failed:', error.message);
+  console.error('❌ Build failed:', error && error.message ? error.message : error);
+  // Set exitCode first so the failure survives even if process.exit is ever
+  // deferred/overridden; then force-exit non-zero immediately.
+  process.exitCode = 1;
   process.exit(1);
 }
