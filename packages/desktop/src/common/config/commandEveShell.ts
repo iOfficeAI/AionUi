@@ -7,7 +7,7 @@ export const COMMAND_EVE_SHELL_ENABLED =
 export const COMMAND_EVE_APP_NAME = 'Command EVE';
 export const COMMAND_EVE_DISPLAY_NAME = 'EVE';
 export const COMMAND_EVE_TITLE = '⌘ EVE';
-export const COMMAND_EVE_VERSION = '1.0.0-alpha.7';
+export const COMMAND_EVE_VERSION = '1.0.0-alpha.8';
 export const COMMAND_EVE_APP_ID = 'com.fynlabs.commandeve';
 /**
  * Generic (electron-updater) over-the-air update feed base URL for Command EVE.
