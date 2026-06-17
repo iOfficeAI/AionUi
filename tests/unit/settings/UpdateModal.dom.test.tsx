@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import type { AutoUpdateStatus, UpdateDownloadProgressEvent, UpdateDownloadRequest } from '@/common/update/updateTypes';
 
@@ -131,11 +131,11 @@ describe('UpdateModal manual install fallback', () => {
       window.dispatchEvent(new Event('aionui-open-update-modal'));
     });
 
-    const downloadAndInstall = await screen.findByText('update.downloadAndInstall');
+    const downloadAndInstall = await screen.findByText('update.downloadButton');
     await user.click(downloadAndInstall);
 
     await waitFor(() => {
-      expect(screen.getByText('update.installNow')).toBeInTheDocument();
+      expect(screen.getByText('update.restartNow')).toBeInTheDocument();
     });
 
     expect(mocks.updateDownloadMock).toHaveBeenCalledWith({
@@ -162,6 +162,8 @@ describe('UpdateModal manual install fallback', () => {
       expect(mocks.updateCheckMock).toHaveBeenCalled();
     });
 
+    // Release notes now live in the Release Log modal, opened via the link.
+    fireEvent.click(await screen.findByText('update.releaseLog'));
     expect(await screen.findByText('notes')).toBeInTheDocument();
     expect(screen.getByText(/2\.1\.13/)).toBeInTheDocument();
   });

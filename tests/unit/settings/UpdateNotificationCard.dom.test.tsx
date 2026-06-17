@@ -146,6 +146,10 @@ describe('UpdateNotificationCard', () => {
     await waitFor(() => {
       expect(mocks.updateCheckMock).toHaveBeenCalled();
     });
+
+    // Release notes moved to a centered modal opened via the Release Log link.
+    expect(screen.queryByText('notes')).not.toBeInTheDocument();
+    fireEvent.click(screen.getByText('update.releaseLog'));
     expect(await screen.findByText('notes')).toBeInTheDocument();
   });
 
@@ -162,16 +166,16 @@ describe('UpdateNotificationCard', () => {
     render(<UpdateNotificationCard />);
 
     expect(await screen.findByTestId('update-notification-card')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
-    expect(screen.getByText('100%')).toBeInTheDocument();
-    expect(screen.getByText('update.installNow')).toBeInTheDocument();
+    // Downloaded state shows the "download complete" label + restart button (no progress bar).
+    expect(screen.getByText('update.downloadCompleteTitle')).toBeInTheDocument();
+    expect(screen.getByText('update.restartNow')).toBeInTheDocument();
     expect(mocks.updateCheckMock).not.toHaveBeenCalled();
 
     await act(async () => {
       mocks.updateOpenHandler?.({ source: 'menu' });
     });
 
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
+    expect(screen.getByText('update.restartNow')).toBeInTheDocument();
     expect(mocks.autoUpdateCheckMock).not.toHaveBeenCalled();
     expect(mocks.updateCheckMock).not.toHaveBeenCalled();
   });
@@ -213,9 +217,9 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    expect(await screen.findByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
-    expect(screen.getByText('update.installNow')).toBeInTheDocument();
-    expect(screen.queryByText('update.downloadAndInstall')).not.toBeInTheDocument();
+    expect(await screen.findByText('update.downloadCompleteTitle')).toBeInTheDocument();
+    expect(screen.getByText('update.restartNow')).toBeInTheDocument();
+    expect(screen.queryByText('update.downloadButton')).not.toBeInTheDocument();
   });
 
   it('keeps the download progress bar stable when update entry points are opened again', async () => {
@@ -235,7 +239,7 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
+    fireEvent.click(await screen.findByText('update.downloadButton'));
 
     await act(async () => {
       mocks.autoStatusHandler?.({
@@ -286,7 +290,7 @@ describe('UpdateNotificationCard', () => {
     expect(screen.queryByLabelText('common.close')).not.toBeInTheDocument();
     expect(screen.queryByText('update.manualInstall')).not.toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
-    expect(screen.getByText('update.downloadAndInstall')).toBeInTheDocument();
+    expect(screen.getByText('update.downloadButton')).toBeInTheDocument();
   });
 
   it('shows release-note loading and failure states instead of empty notes', async () => {
@@ -305,6 +309,7 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
+    fireEvent.click(await screen.findByText('update.releaseLog'));
     expect(await screen.findByText('update.releaseNotesLoading')).toBeInTheDocument();
 
     cleanup();
@@ -323,11 +328,12 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
+    fireEvent.click(await screen.findByText('update.releaseLog'));
     expect(await screen.findByText('update.releaseNotesFailed')).toBeInTheDocument();
     expect(screen.getByText('update.viewRelease')).toBeInTheDocument();
   });
 
-  it('uses cancel and minimize actions while downloading and cancel restores the initial state', async () => {
+  it('shows only a close (cancel) icon while downloading and cancel restores the initial state', async () => {
     render(<UpdateNotificationCard />);
 
     await waitFor(() => {
@@ -343,7 +349,7 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
+    fireEvent.click(await screen.findByText('update.downloadButton'));
 
     await act(async () => {
       mocks.autoStatusHandler?.({
@@ -357,70 +363,22 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
+    // Downloading hides text buttons; the only action is the top-right close (cancel) icon.
     expect(screen.queryByText('update.later')).not.toBeInTheDocument();
-    expect(screen.getByText('update.cancel')).toBeInTheDocument();
-    expect(screen.getByText('update.minimize')).toBeInTheDocument();
+    expect(screen.queryByText('update.cancel')).not.toBeInTheDocument();
+    expect(screen.queryByText('update.minimize')).not.toBeInTheDocument();
 
-    fireEvent.click(screen.getByText('update.cancel'));
+    fireEvent.click(screen.getByLabelText('update.cancel'));
 
     await waitFor(() => {
       expect(mocks.autoUpdateCancelDownloadMock).toHaveBeenCalled();
     });
-    expect(await screen.findByText('update.downloadAndInstall')).toBeInTheDocument();
+    expect(await screen.findByText('update.downloadButton')).toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
   });
 
-  it('minimizes downloading into a circular progress entry and restores the full card on click', async () => {
-    const { container } = render(<UpdateNotificationCard />);
-
-    await waitFor(() => {
-      expect(mocks.autoStatusHandler).toBeTruthy();
-    });
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'available',
-        version: '2.1.14',
-        currentVersion: '2.1.13',
-        releaseNotes: 'auto notes',
-      });
-    });
-
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'downloading',
-        progress: {
-          bytesPerSecond: 1048576,
-          percent: 27,
-          transferred: 1048576,
-          total: 4194304,
-        },
-      });
-    });
-
-    fireEvent.click(screen.getByText('update.minimize'));
-
-    const mini = await screen.findByTestId('update-notification-mini-progress');
-    expect(screen.queryByTestId('update-notification-card')).not.toBeInTheDocument();
-    expect(mini).toHaveAttribute('aria-label', 'update.restoreUpdateNotification');
-    expect(mini.parentElement).toBe(document.body);
-    expect(container).not.toContainElement(mini);
-    expect(mini).toHaveClass('fixed');
-    expect(mini).not.toHaveClass('relative');
-    expect(mini).not.toHaveClass('border');
-    expect(mini).toHaveAttribute('data-ring-stroke-width', '8');
-    expect(screen.getByText('27%')).toBeInTheDocument();
-
-    fireEvent.click(mini);
-
-    expect(await screen.findByTestId('update-notification-card')).toBeInTheDocument();
-    expect(screen.getByRole('progressbar')).toHaveAttribute('aria-valuenow', '27');
-  });
-
-  it('keeps minimized terminal states in the circular entry with success and error symbols', async () => {
+  it('shows restart guidance text and later/restart actions after download completes', async () => {
     render(<UpdateNotificationCard />);
 
     await waitFor(() => {
@@ -436,104 +394,7 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'downloading',
-        progress: {
-          bytesPerSecond: 1048576,
-          percent: 75,
-          transferred: 3145728,
-          total: 4194304,
-        },
-      });
-    });
-
-    fireEvent.click(screen.getByText('update.minimize'));
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'downloaded',
-        version: '2.1.14',
-      });
-    });
-
-    const completedMini = await screen.findByTestId('update-notification-mini-progress');
-    expect(completedMini).toHaveAttribute('data-mini-status', 'downloaded');
-    expect(screen.queryByTestId('update-notification-card')).not.toBeInTheDocument();
-    expect(screen.getByText('✓')).toBeInTheDocument();
-
-    fireEvent.click(completedMini);
-    expect(await screen.findByTestId('update-notification-card')).toBeInTheDocument();
-    expect(screen.getByText('update.installNow')).toBeInTheDocument();
-
-    cleanup();
-    render(<UpdateNotificationCard />);
-
-    await waitFor(() => {
-      expect(mocks.autoStatusHandler).toBeTruthy();
-    });
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'available',
-        version: '2.1.14',
-        currentVersion: '2.1.13',
-        releaseNotes: 'auto notes',
-      });
-    });
-
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'downloading',
-        progress: {
-          bytesPerSecond: 1048576,
-          percent: 41,
-          transferred: 1048576,
-          total: 4194304,
-        },
-      });
-    });
-
-    fireEvent.click(screen.getByText('update.minimize'));
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'error',
-        error: 'download failed',
-      });
-    });
-
-    const errorMini = await screen.findByTestId('update-notification-mini-progress');
-    expect(errorMini).toHaveAttribute('data-mini-status', 'error');
-    expect(screen.queryByTestId('update-notification-card')).not.toBeInTheDocument();
-    expect(screen.getByText('×')).toBeInTheDocument();
-
-    fireEvent.click(errorMini);
-    expect(await screen.findByText('download failed')).toBeInTheDocument();
-    expect(screen.getByLabelText('common.close')).toBeInTheDocument();
-  });
-
-  it('shows a fixed 100 percent green progress bar and later/install actions after download completes', async () => {
-    render(<UpdateNotificationCard />);
-
-    await waitFor(() => {
-      expect(mocks.autoStatusHandler).toBeTruthy();
-    });
-
-    await act(async () => {
-      mocks.autoStatusHandler?.({
-        status: 'available',
-        version: '2.1.14',
-        currentVersion: '2.1.13',
-        releaseNotes: 'auto notes',
-      });
-    });
-
-    fireEvent.click(await screen.findByText('update.downloadAndInstall'));
+    fireEvent.click(await screen.findByText('update.downloadButton'));
 
     await act(async () => {
       mocks.autoStatusHandler?.({
@@ -551,13 +412,13 @@ describe('UpdateNotificationCard', () => {
       });
     });
 
-    expect(await screen.findByRole('progressbar')).toHaveAttribute('aria-valuenow', '100');
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(await screen.findByText('update.downloadCompleteTitle')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     expect(screen.getByText('update.later')).toBeInTheDocument();
-    expect(screen.getByText('update.installNow')).toBeInTheDocument();
+    expect(screen.getByText('update.restartNow')).toBeInTheDocument();
   });
 
-  it('keeps the top-right close button in the error state only', async () => {
+  it('does not render a close button in the error state', async () => {
     mocks.updateCheckMock.mockRejectedValue(new Error('network failed'));
     render(<UpdateNotificationCard />);
 
@@ -570,6 +431,6 @@ describe('UpdateNotificationCard', () => {
     });
 
     expect(await screen.findByText('network failed')).toBeInTheDocument();
-    expect(screen.getByLabelText('common.close')).toBeInTheDocument();
+    expect(screen.queryByLabelText('common.close')).not.toBeInTheDocument();
   });
 });

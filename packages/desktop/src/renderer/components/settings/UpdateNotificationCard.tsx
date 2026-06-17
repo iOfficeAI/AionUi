@@ -5,12 +5,15 @@
  */
 
 import MarkdownView from '@/renderer/components/Markdown';
-import { Button, Progress } from '@arco-design/web-react';
-import { CheckOne, CloseOne, Download, Install, Minus, Refresh } from '@icon-park/react';
+import { Button, Modal, Progress } from '@arco-design/web-react';
+import { CheckOne, Close, Download } from '@icon-park/react';
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { formatUpdateSize, useUpdateNotificationController } from './useUpdateNotificationController';
+
+// Shared action-button style across every notification state: rounded corners, no leading icon.
+const ACTION_BTN_CLASS = '!rounded-8px';
 
 const renderNotificationLayer = (node: React.ReactElement) => {
   if (typeof document === 'undefined' || !document.body) return node;
@@ -20,6 +23,7 @@ const renderNotificationLayer = (node: React.ReactElement) => {
 const UpdateNotificationCard: React.FC = () => {
   const { t } = useTranslation();
   const { state, versionLabel, actions } = useUpdateNotificationController();
+  const [releaseLogVisible, setReleaseLogVisible] = React.useState(false);
 
   if (!state.visible) return null;
 
@@ -100,40 +104,28 @@ const UpdateNotificationCard: React.FC = () => {
         );
       case 'available':
         return (
-          <div className='min-h-0'>
-            <div className='text-13px text-t-tertiary mb-10px'>
-              {state.currentVersion} → <span className='text-t-primary font-600'>{versionLabel}</span>
-            </div>
-            <div className='max-h-180px overflow-y-auto text-13px text-t-secondary leading-relaxed custom-scrollbar'>
-              {state.releaseNotesStatus === 'loading' ? (
-                <span>{t('update.releaseNotesLoading')}</span>
-              ) : state.releaseNotesStatus === 'failed' ? (
-                <div className='flex items-center gap-6px'>
-                  <span>{t('update.releaseNotesFailed')}</span>
-                  {state.releasePageUrl && (
-                    <button
-                      type='button'
-                      className='text-[rgb(var(--primary-6))] underline underline-offset-2'
-                      onClick={actions.openReleasePage}
-                    >
-                      {t('update.viewRelease')}
-                    </button>
-                  )}
-                </div>
-              ) : state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes ? (
-                <MarkdownView allowHtml>
-                  {state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes || ''}
-                </MarkdownView>
-              ) : (
-                <span>{t('update.releaseNotesLoading')}</span>
-              )}
-            </div>
+          <div className='flex items-center gap-10px text-13px text-t-secondary'>
+            <span>
+              {state.currentVersion} → {versionLabel}
+            </span>
+            <button
+              type='button'
+              className='bg-transparent border-none p-0 cursor-pointer text-inherit underline underline-offset-2'
+              onClick={() => setReleaseLogVisible(true)}
+            >
+              {t('update.releaseLog')}
+            </button>
           </div>
         );
       case 'downloading':
         return renderProgress();
       case 'downloaded':
-        return renderProgress(100);
+        return (
+          <div className='flex items-start gap-10px text-13px text-t-secondary leading-relaxed'>
+            <CheckOne theme='filled' size='18' fill='rgb(var(--success-6))' className='mt-2px shrink-0' />
+            <span>{t('update.downloadCompleteTitle')}</span>
+          </div>
+        );
       case 'success':
         return <div className='py-16px text-13px text-t-secondary break-all'>{state.downloadPath}</div>;
       case 'error':
@@ -147,11 +139,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'downloaded') {
       return (
         <>
-          <Button size='small' onClick={() => actions.dismiss('later')}>
+          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
             {t('update.later')}
           </Button>
-          <Button type='primary' size='small' onClick={actions.quitAndInstall} icon={<Install size='14' />}>
-            {t('update.installNow')}
+          <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.quitAndInstall}>
+            {t('update.restartNow')}
           </Button>
         </>
       );
@@ -159,10 +151,10 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'success') {
       return (
         <>
-          <Button size='small' onClick={() => actions.dismiss('later')}>
+          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
             {t('update.later')}
           </Button>
-          <Button type='primary' size='small' onClick={actions.openFile} icon={<Install size='14' />}>
+          <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.openFile}>
             {t('update.installNow')}
           </Button>
         </>
@@ -171,11 +163,11 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'error') {
       return (
         <>
-          <Button size='small' onClick={() => void actions.checkForUpdates()} icon={<Refresh size='14' />}>
+          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => void actions.checkForUpdates()}>
             {t('common.retry')}
           </Button>
           {state.releasePageUrl && (
-            <Button type='primary' size='small' onClick={actions.openReleasePage}>
+            <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.openReleasePage}>
               {t('update.goToRelease')}
             </Button>
           )}
@@ -185,57 +177,89 @@ const UpdateNotificationCard: React.FC = () => {
     if (state.status === 'available') {
       return (
         <>
-          <Button size='small' onClick={() => actions.dismiss('later')}>
+          <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
             {t('update.later')}
           </Button>
-          <Button type='primary' size='small' onClick={actions.startDownload} icon={<Download size='14' />}>
-            {t('update.downloadAndInstall')}
-          </Button>
-        </>
-      );
-    }
-    if (state.status === 'downloading') {
-      return (
-        <>
-          <Button size='small' onClick={actions.cancelDownload}>
-            {t('update.cancel')}
-          </Button>
-          <Button type='primary' size='small' onClick={actions.minimize} icon={<Minus size='14' />}>
-            {t('update.minimize')}
+          <Button type='primary' size='small' className={ACTION_BTN_CLASS} onClick={actions.startDownload}>
+            {t('update.downloadButton')}
           </Button>
         </>
       );
     }
     return (
-      <Button size='small' onClick={() => actions.dismiss('later')}>
+      <Button size='small' className={ACTION_BTN_CLASS} onClick={() => actions.dismiss('later')}>
         {t('update.later')}
       </Button>
     );
   };
 
+  const releaseNotes = state.updateInfo?.body || state.autoUpdateInfo?.releaseNotes || '';
+
   return renderNotificationLayer(
-    <section
-      data-testid='update-notification-card'
-      className='fixed right-24px bottom-24px z-1000 w-420px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-lg overflow-hidden'
-    >
-      <div className='flex items-center justify-between gap-12px px-16px py-12px border-b border-border-2'>
-        <div className='flex items-center gap-10px min-w-0'>
+    <>
+      <section
+        data-testid='update-notification-card'
+        className='fixed right-24px bottom-24px z-1000 w-max min-w-300px max-w-[calc(100vw-32px)] bg-1 border border-border-2 rd-8px shadow-[0_2px_16px_rgba(0,0,0,0.12)] overflow-hidden'
+      >
+        <div className='flex items-center gap-10px px-16px pt-12px pb-6px min-w-0'>
           <Download size='18' fill='rgb(var(--primary-6))' />
-          <div className='text-14px text-t-primary font-600 truncate'>{t('update.modalTitle')}</div>
+          <div className='text-14px text-t-primary font-600 truncate flex-1'>{t('update.modalTitle')}</div>
+          {state.status === 'downloading' && (
+            <button
+              type='button'
+              className='flex items-center justify-center bg-transparent border-none p-0 cursor-pointer text-t-tertiary hover:text-t-primary transition-colors'
+              onClick={actions.cancelDownload}
+              aria-label={t('update.cancel')}
+            >
+              <Close size='16' />
+            </button>
+          )}
         </div>
-        {state.status === 'error' && (
-          <Button
-            type='text'
-            size='mini'
-            icon={<CloseOne size='14' />}
-            onClick={() => actions.dismiss('close')}
-            aria-label={t('common.close')}
-          />
+        {state.status === 'downloading' ? (
+          <div className='px-16px pt-6px pb-12px'>{renderBody()}</div>
+        ) : (
+          <>
+            <div className='px-16px py-6px'>{renderBody()}</div>
+            <div className='flex justify-start gap-8px px-16px pt-6px pb-12px'>{renderActions()}</div>
+          </>
         )}
-      </div>
-      <div className='px-16px py-12px'>{renderBody()}</div>
-      <div className='flex justify-end gap-8px px-16px py-12px border-t border-border-2'>{renderActions()}</div>
-    </section>
+      </section>
+      <Modal
+        title={t('update.releaseLog')}
+        visible={releaseLogVisible}
+        onCancel={() => setReleaseLogVisible(false)}
+        footer={null}
+        autoFocus={false}
+        focusLock={false}
+        unmountOnExit
+      >
+        <div
+          data-testid='update-release-log'
+          className='max-h-60vh overflow-y-auto text-13px text-t-secondary leading-relaxed custom-scrollbar'
+        >
+          {state.releaseNotesStatus === 'loading' ? (
+            <span>{t('update.releaseNotesLoading')}</span>
+          ) : state.releaseNotesStatus === 'failed' ? (
+            <div className='flex items-center gap-6px'>
+              <span>{t('update.releaseNotesFailed')}</span>
+              {state.releasePageUrl && (
+                <button
+                  type='button'
+                  className='bg-transparent border-none p-0 cursor-pointer text-[rgb(var(--primary-6))] underline underline-offset-2'
+                  onClick={actions.openReleasePage}
+                >
+                  {t('update.viewRelease')}
+                </button>
+              )}
+            </div>
+          ) : releaseNotes ? (
+            <MarkdownView allowHtml>{releaseNotes}</MarkdownView>
+          ) : (
+            <span>{t('update.releaseNotesLoading')}</span>
+          )}
+        </div>
+      </Modal>
+    </>
   );
 };
 
