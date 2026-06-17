@@ -373,7 +373,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       const scheduleDesc = scheduleInfo.description;
       const schedule = createCronSchedule(scheduleExpr, scheduleDesc);
 
-      const { agent_config, resolvedAgentType } = resolveCronAgentConfig({
+      const { agent_config } = resolveCronAgentConfig({
         agentValue: values.assistant,
         presetAssistants,
         selectedAionrsProvider: geminiCurrentModel
@@ -422,7 +422,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           prompt: values.prompt,
           conversation_id: _conversation_id ?? '',
           conversation_title,
-          agent_type: resolvedAgentType,
           created_by: 'user',
           execution_mode,
           agent_config,

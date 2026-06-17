@@ -1342,7 +1342,7 @@ export interface ICreateCronJobParams {
   message?: string;
   conversation_id: string;
   conversation_title?: string;
-  agent_type: string;
+  agent_type?: string;
   created_by: 'user' | 'agent';
   execution_mode?: 'existing' | 'new_conversation';
   agent_config?: ICronAgentConfigWrite;

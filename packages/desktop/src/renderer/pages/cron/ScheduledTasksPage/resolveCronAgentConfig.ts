@@ -4,9 +4,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import type { ICreateCronJobParams, ICronAgentConfigWrite } from '@/common/adapter/ipcBridge';
+import type { ICronAgentConfigWrite } from '@/common/adapter/ipcBridge';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
-import { resolveSupportedConversationType } from '@renderer/utils/model/agentTypeSupportPolicy';
 
 type SelectedAionrsProvider = {
   id?: string;
@@ -26,7 +25,6 @@ type ResolveCronAgentConfigInput = {
 
 type ResolveCronAgentConfigResult = {
   agent_config: ICronAgentConfigWrite | undefined;
-  resolvedAgentType: ICreateCronJobParams['agent_type'];
 };
 
 export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): ResolveCronAgentConfigResult {
@@ -49,11 +47,9 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
   }
 
   let agent_config: ICronAgentConfigWrite | undefined;
-  let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType('acp');
 
   const assistant = assistantSelection;
   const presetBackend = assistant.preset_agent_type;
-  resolvedAgentType = resolveSupportedConversationType(presetBackend);
 
   if (presetBackend === 'aionrs') {
     if (!selectedAionrsProvider?.id || !model_id) {
@@ -79,5 +75,5 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     };
   }
 
-  return { agent_config, resolvedAgentType };
+  return { agent_config };
 }

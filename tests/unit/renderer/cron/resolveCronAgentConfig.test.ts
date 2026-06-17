@@ -12,7 +12,6 @@ describe('resolveCronAgentConfig', () => {
   it('stores provider id for preset aionrs assistants instead of literal aionrs backend', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-1',
-      conversationAgentType: 'acp',
       presetAssistants: [
         assistant({
           id: 'assistant-1',
@@ -31,7 +30,6 @@ describe('resolveCronAgentConfig', () => {
     });
 
     expect(result).toEqual({
-      resolvedAgentType: 'aionrs',
       agent_config: {
         backend: 'provider-gemini',
         name: '文件规划助手',
@@ -46,7 +44,6 @@ describe('resolveCronAgentConfig', () => {
   it('keeps preset acp assistants on their backend slug', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-2',
-      conversationAgentType: 'acp',
       presetAssistants: [
         assistant({
           id: 'assistant-2',
@@ -60,7 +57,6 @@ describe('resolveCronAgentConfig', () => {
     });
 
     expect(result).toEqual({
-      resolvedAgentType: 'acp',
       agent_config: {
         backend: 'codex',
         name: 'Codex 助手',
