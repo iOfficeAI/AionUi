@@ -112,6 +112,12 @@ export interface IConfigStorageRefer {
   'commandEve.modelWarmupEnabled'?: boolean;
   // Selected local model tier for Command EVE's Hermes/Ollama runtime
   'commandEve.localModelTierId'?: string;
+  // The single EVE inference picker selection (two-group picker). One of:
+  //   - 'command-eve-local:<localTierId>'   (Privat lokal)
+  //   - 'command-eve-inference:<eveTierId>' (EVE Inference cloud)
+  // The main process reads this (getSync) to decide whether the shim routes a
+  // chat to the eve-inference Edge Function (EVE cloud) or to local Ollama.
+  'commandEve.inferenceSelection'?: string;
   // Explicit Command EVE execution mode. Default runtime interpretation is delegated.
   'commandEve.executionMode'?: 'observed' | 'delegated' | 'autonomous';
   // Telegram assistant default model / Telegram 助手默认模型

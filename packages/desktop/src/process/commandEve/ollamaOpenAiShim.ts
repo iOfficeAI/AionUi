@@ -90,6 +90,34 @@ export type CommandEvePromptProof = {
   roles: string[];
 };
 
+/**
+ * Pure builder for the per-request EVE cloud route. Given the active picker
+ * selection, the function URL, and the resolved EVE tier + license, return a
+ * route the shim acts on. Kept pure (no fs, no config singletons) so it is
+ * unit-testable; the main process supplies the live selection / license / URL.
+ *
+ * Returns `{ active: false }` for any non-EVE (local) selection, so the shim
+ * falls through to the local Ollama lane.
+ */
+export function buildEveCloudRoute(args: {
+  /** True iff the active picker selection is an EVE Inference (cloud) tier. */
+  isEveSelection: boolean;
+  /** Wire tier value (e.g. "standard") parsed from the selection. */
+  tier?: string;
+  /** Absolute https URL of the eve-inference Edge Function. */
+  functionUrl?: string;
+  /** The CEVE license wire string (bearer credential), or undefined if absent. */
+  license?: string;
+}): CommandEveEveCloudRoute {
+  if (!args.isEveSelection) return { active: false };
+  return {
+    active: true,
+    functionUrl: args.functionUrl,
+    license: args.license,
+    tier: args.tier,
+  };
+}
+
 let server: http.Server | undefined;
 let serverUrl = '';
 
