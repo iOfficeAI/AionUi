@@ -100,17 +100,15 @@ const LOCAL_OLLAMA_BINARY_CANDIDATES =
     : process.platform === 'win32'
       ? []
       : ['/usr/local/bin/ollama', '/usr/bin/ollama', '/snap/bin/ollama'];
-const COMMAND_EVE_HERMES_DISABLED_SKILLS = [
-  'red-teaming/godmode',
-  'blockchain',
-  'gaming',
-  'health/neuroskill-bci',
-  'mlops',
-  'wecom',
-  'weixin',
-  'feishu',
-  'dingtalk',
-];
+// Only GENUINELY-UNSAFE skills are disabled now (founder requirement: the agent
+// must offer the FULL Hermes capability surface; the permission modes gate
+// EXECUTION, so capability availability is no longer the safety lever). The
+// jailbreak/red-team skill stays off because it deliberately subverts the very
+// permission/consent boundary EVE relies on. Everything previously disabled for
+// being merely off-topic (blockchain, gaming, mlops) or region-specific
+// messaging connectors (wecom/weixin/feishu/dingtalk) is re-enabled — they were
+// never unsafe, just curation, and curation now belongs to the user.
+const COMMAND_EVE_HERMES_DISABLED_SKILLS = ['red-teaming/godmode'];
 
 export type RuntimeBootstrapMode = 'auto' | 'check' | 'off';
 
@@ -214,6 +212,8 @@ export type CommandEveRuntimeReconciliation = {
     mcp_servers: string[];
     skills_external_dirs: string[];
     disabled_skills: string[];
+    /** The full Hermes composite toolsets emitted per platform. */
+    platform_toolsets: { cli: string[]; acp: string[] };
     kanban_dispatch_in_gateway: false;
     kanban_auto_decompose: false;
   };
@@ -1009,13 +1009,14 @@ function buildCommandEveRuntimeReconciliation(
       mcp_servers: [],
       skills_external_dirs: [`\${HERMES_HOME}/${COMMAND_EVE_MANAGED_SKILLS_DIR}`],
       disabled_skills: COMMAND_EVE_HERMES_DISABLED_SKILLS,
+      platform_toolsets: { cli: ['hermes-cli'], acp: ['hermes-acp'] },
       kanban_dispatch_in_gateway: false,
       kanban_auto_decompose: false,
     },
     blocked_external_mcp_transports: ['http', 'sse'],
     warnings: [
       'Department capabilities with default_state=available are prompt labels until a real SKILL.md binding exists.',
-      'HTTP/SSE MCP transports are blocked by default for the local_only lane because they can egress outside the model proxy.',
+      'HTTP/SSE MCP transports are blocked by default for the cloud lane because they can egress outside the model proxy; vetted connectors are added via the catalog preflight/HumanGate flow.',
       'Hermes Kanban is read-first in Command EVE v1.1; dispatcher, auto-decompose, cron and worker auto-spawn remain off.',
     ],
   };
@@ -1442,13 +1443,37 @@ function writeHermesRuntimeFiles(
     '  reasoning_effort: none',
     'skills:',
     '  creation_nudge_interval: 0',
+    // external_dirs ADDS the EVE-managed skills on top of Hermes' own primary
+    // skills dir (${HERMES_HOME}/skills). It does NOT replace or restrict the
+    // full catalog — the user installs more via the skills hub into the primary
+    // dir, which stays available. (FACT hermes skill_utils.py:427 get_all_skills_dirs.)
     '  external_dirs:',
     ...yamlStringList([commandEveSkillDir], '    '),
+    // Only genuinely-unsafe skills are disabled (see constant above).
     '  disabled:',
     ...yamlStringList(COMMAND_EVE_HERMES_DISABLED_SKILLS, '    '),
+    // KEYSTONE: emit the FULL Hermes toolset for both platforms. An explicit
+    // EMPTY list ([]) here meant "the user excluded every tool" — that was
+    // starving the agent of web_search/browser/terminal/file/etc. (FACT hermes
+    // tools_config.py:1232 resolve_enabled_toolsets: an explicit [] is honored
+    // as an empty enable-set; a list with a composite key enables that set).
+    // hermes-cli / hermes-acp are the full composite toolsets (FACT
+    // toolsets.py:347 hermes-acp, :399 hermes-cli) — web search/extract,
+    // terminal, file ops, vision, skills, full browser automation, todo/memory,
+    // session search, code-exec + delegation. Execution is gated by the
+    // permission modes, not by withholding the capability.
     'platform_toolsets:',
-    '  cli: []',
-    '  acp: []',
+    '  cli:',
+    '    - hermes-cli',
+    '  acp:',
+    '    - hermes-acp',
+    // mcp_servers is the EXTERNAL MCP surface. Browser / web-search / desktop /
+    // fetch are NATIVE Hermes toolsets (enabled above), NOT MCP servers, so
+    // nothing is emitted here by default. Real connectors (e.g. Supabase) are
+    // added through the Command EVE connector catalog + guided preflight /
+    // HumanGate flow (connectorCatalogCore), which writes the vetted
+    // command/args/env entry here — keeping secret handling and the consent
+    // boundary intact rather than force-wiring credentials at first run.
     'mcp_servers: {}',
     'kanban:',
     '  dispatch_in_gateway: false',
@@ -1458,9 +1483,17 @@ function writeHermesRuntimeFiles(
     `  default: ${runtimeModelRef}`,
     `  model_url: ${manifest.local_runtime.base_url}`,
     `  base_url: ${manifest.local_runtime.base_url}`,
+    // EVE Standard (OpenRouter free models, via the eve-inference function) is
+    // the DEFAULT inference backend and is a CLOUD lane, so the default lane is
+    // no longer local_only. The egress boundary still BLOCKS raw secrets before
+    // any model egress (block_raw_secrets) and S2/S3-classified content is kept
+    // local — only ordinary chat content may leave on the cloud lane.
     'data_boundary:',
-    '  default_lane: local_only',
+    '  default_lane: eve_cloud',
     '  block_raw_secrets: true',
+    '  local_only_classifications:',
+    '    - S2',
+    '    - S3',
     '',
   ].join('\n');
   fs.writeFileSync(path.join(paths.hermesHome, 'config.yaml'), config, { mode: 0o600 });
@@ -1469,7 +1502,9 @@ function writeHermesRuntimeFiles(
     '# EVE SOUL',
     '',
     'You are EVE, Command EVE Chief of Staff.',
-    'Default to local-first execution, ask for explicit consent before external model/provider routing, and keep receipts for runtime decisions.',
+    'Your default inference backend is EVE Standard (cloud, OpenRouter free models) — cloud, not private. Bundled local Gemma is an opt-in alternate backend for private/offline work.',
+    'You have the full Hermes capability surface (web search, browser, terminal, file, vision, skills, code execution, connectors). Use it. The permission modes (ask-every-time / semi-autonomous / YOLO) gate when an action runs — capability is always available; consent is what is asked for.',
+    'Never put raw secrets, passwords, cookies, recovery codes, or .env contents into a prompt — the egress boundary blocks them. Keep S2/S3-classified material on the local lane. Keep receipts for runtime decisions.',
     '',
   ].join('\n');
   fs.writeFileSync(path.join(paths.hermesHome, 'SOUL.md'), soul, { mode: 0o600 });
