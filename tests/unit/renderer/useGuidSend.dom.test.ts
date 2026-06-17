@@ -98,8 +98,14 @@ describe('useGuidSend', () => {
     expect(payload.assistant?.conversation_overrides?.permission).toBe('bypassPermissions');
     expect(payload.assistant?.conversation_overrides?.model).toBe('claude-opus');
     expect(payload.extra.backend).toBeUndefined();
+    expect(payload.extra.agent_name).toBeUndefined();
+    expect(payload.extra.agent_id).toBeUndefined();
+    expect(payload.extra.custom_agent_id).toBeUndefined();
+    expect(payload.extra.preset_rules).toBeUndefined();
+    expect(payload.extra.preset_context).toBeUndefined();
     expect(payload.extra.session_mode).toBeUndefined();
     expect(payload.extra.current_model_id).toBeUndefined();
+    expect(payload.extra.preset_assistant_id).toBeUndefined();
     expect(swrMutateMock).toHaveBeenCalledWith('guid.assistant.detail.assistant-1.zh-CN');
     expect(swrMutateMock).toHaveBeenCalledWith('assistants.list');
   });

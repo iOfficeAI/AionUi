@@ -1413,7 +1413,6 @@ export interface ICreateConversationParams {
     workspace?: string;
     custom_workspace?: boolean;
     default_files?: string[];
-    backend?: string;
     cli_path?: string;
     gateway?: {
       host?: string;
@@ -1424,25 +1423,17 @@ export interface ICreateConversationParams {
       cli_path?: string;
     };
     web_search_engine?: 'google' | 'default';
-    agent_name?: string;
-    agent_id?: string;
-    custom_agent_id?: string;
     context?: string;
     context_file_name?: string;
-    preset_rules?: string;
     /** Transient: preset opt-in skills. Consumed by backend create handler
      *  and stripped before persistence. */
     preset_enabled_skills?: string[];
     /** Transient: auto-inject skills the user opted out of on the Guid page.
      *  Consumed by backend create handler and stripped before persistence. */
     exclude_auto_inject_skills?: string[];
-    preset_context?: string;
-    preset_assistant_id?: string;
     selected_mcp_server_ids?: string[];
     selected_session_mcp_servers?: ISessionMcpServer[];
-    session_mode?: string;
     codex_model?: string;
-    current_model_id?: string;
     thought_level?: string;
     cached_config_options?: import('../types/platform/acpTypes').AcpSessionConfigOption[];
     pending_config_options?: Record<string, string>;
