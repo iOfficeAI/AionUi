@@ -79,6 +79,7 @@ describe('usePresetAssistantInfo', () => {
       name: 'Social Job Publisher',
       logo: 'http://127.0.0.1:56663/api/assistants/social-job-publisher/avatar',
       isEmoji: false,
+      backend: undefined,
       assistantId: 'assistant-social',
     });
   });
@@ -118,7 +119,44 @@ describe('usePresetAssistantInfo', () => {
       name: '学术论文助手',
       logo: '📚',
       isEmoji: true,
+      backend: undefined,
       assistantId: 'academic-paper',
+    });
+  });
+
+  it('includes preset assistant backend when the assistant catalog resolves an identity', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') {
+        return {
+          data: [
+            {
+              id: 'assistant-social',
+              name: 'Social Job Publisher',
+              avatar: '🦜',
+              preset_agent_type: 'gemini',
+              name_i18n: {},
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      assistant_id: 'assistant-social',
+      backend: 'claude',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Social Job Publisher',
+      logo: '🦜',
+      isEmoji: true,
+      backend: 'gemini',
+      assistantId: 'assistant-social',
     });
   });
 

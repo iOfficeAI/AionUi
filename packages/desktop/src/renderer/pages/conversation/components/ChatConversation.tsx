@@ -229,6 +229,21 @@ const ChatConversation: React.FC<{
   const acpConversation = isAionrsConversation ? undefined : conversation;
   const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(acpConversation);
   const acpAssistantId = presetAssistantInfo?.assistantId;
+  const resolvedConversationBackend =
+    presetAssistantInfo?.backend ||
+    (conversation?.type === 'acp'
+      ? conversation?.extra?.backend
+      : conversation?.type === 'aionrs'
+        ? 'aionrs'
+        : conversation?.type === 'codex'
+          ? 'codex'
+          : conversation?.type === 'openclaw-gateway'
+            ? 'openclaw-gateway'
+            : conversation?.type === 'nanobot'
+              ? 'nanobot'
+              : conversation?.type === 'remote'
+                ? 'remote'
+                : undefined);
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;
@@ -245,7 +260,7 @@ const ChatConversation: React.FC<{
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            backend={conversation.extra?.backend || 'claude'}
+            backend={resolvedConversationBackend || 'claude'}
             session_mode={conversation.extra?.session_mode}
             agent_name={assistantDisplayName}
             cron_job_id={(conversation.extra as { cron_job_id?: string })?.cron_job_id}
@@ -306,20 +321,7 @@ const ChatConversation: React.FC<{
     : isLoadingPreset
       ? {} // Still loading custom agents — avoid showing backend logo prematurely
       : {
-          backend:
-            conversation?.type === 'acp'
-              ? conversation?.extra?.backend
-              : conversation?.type === 'aionrs'
-                ? 'aionrs'
-                : conversation?.type === 'codex'
-                  ? 'codex'
-                  : conversation?.type === 'openclaw-gateway'
-                    ? 'openclaw-gateway'
-                    : conversation?.type === 'nanobot'
-                      ? 'nanobot'
-                      : conversation?.type === 'remote'
-                        ? 'remote'
-                        : undefined,
+          backend: resolvedConversationBackend,
           agent_name: conversationAgentName,
         };
 
