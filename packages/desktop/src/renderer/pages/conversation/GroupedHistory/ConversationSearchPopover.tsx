@@ -8,7 +8,8 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
@@ -17,7 +18,6 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { flushSync } from 'react-dom';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import './ConversationSearchPopover.css';
 
 const PAGE_SIZE = 20;
@@ -101,34 +101,20 @@ interface ConversationSearchPopoverProps {
 const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
   const logos = useAgentLogos();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
-
-  if (assistantInfo) {
-    if (assistantInfo.isEmoji) {
-      return (
-        <span className='text-18px leading-none flex-shrink-0' title={assistantInfo.name}>
-          {assistantInfo.logo}
-        </span>
-      );
-    }
-
+  const leadingMark = resolveConversationLeadingMark(conversation, assistantInfo, logos);
+  if (leadingMark.kind === 'emoji') {
     return (
-      <img
-        src={assistantInfo.logo}
-        alt={assistantInfo.name}
-        title={assistantInfo.name}
-        className='w-18px h-18px rounded-50% flex-shrink-0'
-      />
+      <span className='text-18px leading-none flex-shrink-0' title={leadingMark.label}>
+        {leadingMark.value}
+      </span>
     );
   }
-
-  const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = resolveAgentLogo(logos, { backend: backendKey });
-  if (logo) {
+  if (leadingMark.kind === 'image') {
     return (
       <img
-        src={logo}
-        alt={`${backendKey || 'agent'} logo`}
-        title={backendKey || 'agent'}
+        src={leadingMark.value}
+        alt={leadingMark.label}
+        title={leadingMark.label}
         className='w-18px h-18px rounded-50% flex-shrink-0'
       />
     );

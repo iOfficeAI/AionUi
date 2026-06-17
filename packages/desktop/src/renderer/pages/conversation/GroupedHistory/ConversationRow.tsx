@@ -4,10 +4,11 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
+import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import { cleanupSiderTooltips, getSiderTooltipProps } from '@/renderer/utils/ui/siderTooltip';
 import { useLayoutContext } from '@/renderer/hooks/context/LayoutContext';
 import { Checkbox, Dropdown, Menu, Spin, Tooltip } from '@arco-design/web-react';
@@ -17,7 +18,6 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 
 import type { ConversationRowProps } from './types';
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
 import { isConversationPinned } from './utils/groupingHelpers';
 
 const ConversationRow: React.FC<ConversationRowProps> = (props) => {
@@ -64,30 +64,17 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     const pinnedHoverFade = isPinned ? 'group-hover:opacity-0 transition-opacity' : '';
     const composedClass = classNames(pinnedHoverFade);
 
-    if (assistantInfo) {
-      if (assistantInfo.isEmoji) {
-        return (
-          <span className={classNames('text-16px leading-none flex-shrink-0', composedClass)}>
-            {assistantInfo.logo}
-          </span>
-        );
-      }
+    const leadingMark = resolveConversationLeadingMark(conversation, assistantInfo, logos);
+    if (leadingMark.kind === 'emoji') {
       return (
-        <img
-          src={assistantInfo.logo}
-          alt={assistantInfo.name}
-          className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
-        />
+        <span className={classNames('text-16px leading-none flex-shrink-0', composedClass)}>{leadingMark.value}</span>
       );
     }
-
-    const backendKey = getBackendKeyFromConversation(conversation);
-    const logo = resolveAgentLogo(logos, { backend: backendKey });
-    if (logo) {
+    if (leadingMark.kind === 'image') {
       return (
         <img
-          src={logo}
-          alt={`${backendKey || 'agent'} logo`}
+          src={leadingMark.value}
+          alt={leadingMark.label}
           className={classNames('w-16px h-16px rounded-50% flex-shrink-0', composedClass)}
         />
       );

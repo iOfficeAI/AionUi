@@ -1,4 +1,7 @@
 import type { TChatConversation } from '@/common/config/storage';
+import type { PresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
 
 /**
  * Resolve the effective runtime backend for a conversation.
@@ -35,4 +38,55 @@ export function resolveConversationBackend(
   }
 
   return conversation.type;
+}
+
+export type ConversationLeadingMark =
+  | {
+      kind: 'emoji';
+      value: string;
+      label: string;
+    }
+  | {
+      kind: 'image';
+      value: string;
+      label: string;
+    }
+  | {
+      kind: 'fallback';
+      label: string;
+    };
+
+export function resolveConversationLeadingMark(
+  conversation: TChatConversation,
+  assistantInfo: PresetAssistantInfo | undefined,
+  logos: AgentLogoMap
+): ConversationLeadingMark {
+  if (assistantInfo) {
+    return assistantInfo.isEmoji
+      ? {
+          kind: 'emoji',
+          value: assistantInfo.logo,
+          label: assistantInfo.name,
+        }
+      : {
+          kind: 'image',
+          value: assistantInfo.logo,
+          label: assistantInfo.name,
+        };
+  }
+
+  const backendKey = resolveConversationBackend(conversation)?.trim() || 'agent';
+  const logo = resolveAgentLogo(logos, { backend: backendKey });
+  if (logo) {
+    return {
+      kind: 'image',
+      value: logo,
+      label: backendKey,
+    };
+  }
+
+  return {
+    kind: 'fallback',
+    label: backendKey,
+  };
 }

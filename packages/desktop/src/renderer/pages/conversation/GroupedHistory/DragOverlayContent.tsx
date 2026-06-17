@@ -5,11 +5,11 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
+import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveConversationLeadingMark } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
+import { useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { MessageOne } from '@icon-park/react';
 import React from 'react';
-
-import { getBackendKeyFromConversation } from './utils/exportHelpers';
 
 type DragOverlayContentProps = {
   conversation?: TChatConversation;
@@ -17,10 +17,10 @@ type DragOverlayContentProps = {
 
 const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation }) => {
   const logos = useAgentLogos();
+  const { info: assistantInfo } = usePresetAssistantInfo(conversation);
   if (!conversation) return null;
 
-  const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = resolveAgentLogo(logos, { backend: backendKey });
+  const leadingMark = resolveConversationLeadingMark(conversation, assistantInfo, logos);
 
   return (
     <div
@@ -32,8 +32,10 @@ const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation })
         transform: 'scale(1.02)',
       }}
     >
-      {logo ? (
-        <img src={logo} alt={`${backendKey || 'agent'} logo`} className='w-18px h-18px rounded-50% flex-shrink-0' />
+      {leadingMark.kind === 'emoji' ? (
+        <span className='text-18px leading-none flex-shrink-0'>{leadingMark.value}</span>
+      ) : leadingMark.kind === 'image' ? (
+        <img src={leadingMark.value} alt={leadingMark.label} className='w-18px h-18px rounded-50% flex-shrink-0' />
       ) : (
         <MessageOne theme='outline' size='20' className='line-height-0 flex-shrink-0' />
       )}
