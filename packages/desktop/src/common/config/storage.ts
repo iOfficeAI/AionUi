@@ -135,6 +135,14 @@ export type TConversationRuntimeSummary = {
   turn_id: string | null;
 };
 
+export type TConversationAssistantIdentity = {
+  id: string;
+  source: string;
+  name: string;
+  avatar: string;
+  backend: string;
+};
+
 interface IChatConversation<T, Extra> {
   created_at: number;
   modified_at: number;
@@ -150,6 +158,8 @@ interface IChatConversation<T, Extra> {
   source?: ConversationSource;
   /** Channel chat isolation ID (e.g. user:xxx, group:xxx) */
   channel_chat_id?: string;
+  /** Explicit assistant identity for assistant-led conversations */
+  assistant?: TConversationAssistantIdentity;
 }
 
 // Token 使用统计数据类型

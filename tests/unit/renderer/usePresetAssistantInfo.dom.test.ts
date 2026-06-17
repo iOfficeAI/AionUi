@@ -124,6 +124,38 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('prefers explicit conversation assistant payload before catalog fallbacks', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = {
+      ...makeConversation({
+        assistant_id: 'assistant-social',
+        backend: 'claude',
+      }),
+      assistant: {
+        id: 'assistant-social',
+        source: 'bare',
+        name: 'Social Job Publisher',
+        avatar: '/api/assistants/assistant-social/avatar',
+        backend: 'gemini',
+      },
+    } as TChatConversation;
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'Social Job Publisher',
+      logo: '/api/assistants/assistant-social/avatar',
+      isEmoji: false,
+      backend: 'gemini',
+      assistantId: 'assistant-social',
+    });
+  });
+
   it('includes preset assistant backend when the assistant catalog resolves an identity', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {

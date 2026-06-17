@@ -232,6 +232,19 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
   };
 }
 
+function buildPresetInfoFromConversationAssistant(
+  assistant: NonNullable<TChatConversation['assistant']>
+): PresetAssistantInfo {
+  const normalized = normalizeAvatar(assistant.avatar);
+  return {
+    name: assistant.name,
+    logo: normalized.logo,
+    isEmoji: normalized.isEmoji,
+    backend: assistant.backend,
+    assistantId: assistant.id,
+  };
+}
+
 function inferLegacyAssistantInfo(
   conversation: TChatConversation,
   locale: string,
@@ -291,6 +304,13 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
+
+    if (conversation.assistant) {
+      return {
+        info: buildPresetInfoFromConversationAssistant(conversation.assistant),
+        isLoading: false,
+      };
+    }
 
     // Remote agent conversations short-circuit to the remote record
     if (conversation.type === 'remote' && remoteAgentId) {

@@ -17,6 +17,11 @@ export function resolveConversationBackend(
 
   if (!conversation) return undefined;
 
+  const conversationAssistantBackend = conversation.assistant?.backend?.trim();
+  if (conversationAssistantBackend) {
+    return conversationAssistantBackend;
+  }
+
   if (conversation.type === 'acp') {
     return conversation.extra?.backend;
   }
