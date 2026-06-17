@@ -10,10 +10,11 @@ import type { TChatConversation } from '@/common/config/storage';
 import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 
 const useSWRMock = vi.fn();
+let currentLanguage = 'en-US';
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({
-    i18n: { language: 'en-US' },
+    i18n: { language: currentLanguage },
   }),
 }));
 
@@ -43,6 +44,7 @@ vi.mock('swr', () => ({
 describe('usePresetAssistantInfo', () => {
   beforeEach(() => {
     useSWRMock.mockReset();
+    currentLanguage = 'en-US';
   });
 
   it('prefers preset assistant avatar over custom runtime metadata when both identities exist', () => {
@@ -78,6 +80,45 @@ describe('usePresetAssistantInfo', () => {
       logo: 'http://127.0.0.1:56663/api/assistants/social-job-publisher/avatar',
       isEmoji: false,
       assistantId: 'assistant-social',
+    });
+  });
+
+  it('prefers localized assistant names for the active language', () => {
+    currentLanguage = 'zh-CN';
+
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') {
+        return {
+          data: [
+            {
+              id: 'academic-paper',
+              name: 'Academic Paper',
+              avatar: '📚',
+              name_i18n: {
+                'zh-CN': '学术论文助手',
+              },
+            },
+          ],
+          isLoading: false,
+        };
+      }
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = makeConversation({
+      assistant_id: 'academic-paper',
+      preset_assistant_id: 'academic-paper',
+      backend: 'claude',
+    });
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: '学术论文助手',
+      logo: '📚',
+      isEmoji: true,
+      assistantId: 'academic-paper',
     });
   });
 
