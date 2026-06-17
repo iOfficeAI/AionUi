@@ -757,6 +757,8 @@ export const acpConversation = {
   sendMessage: conversation.sendMessage,
   responseStream: conversation.responseStream,
   getAvailableAgents: httpGet<AgentMetadata[], void>('/api/agents'),
+  /** Backend -> logo URL catalog for business surfaces. */
+  getAgentLogos: httpGet<import('@/renderer/utils/model/agentLogo').AgentLogoEntry[], void>('/api/agents/logos'),
   /** Management view used by Agent settings. */
   getManagedAgents: httpGet<import('@/renderer/utils/model/agentTypes').ManagedAgent[], void>('/api/agents/management'),
   refreshCustomAgents: httpPost<void, void>('/api/agents/refresh'),

@@ -8,10 +8,28 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 const useSWRMock = vi.fn();
 let currentLanguage = 'en-US';
+
+// Backend logo catalog stub. The hook resolves bare/legacy backends to their
+// logo via `resolveAgentLogo(useAgentLogos(), ...)`, so the test mirrors the
+// backend-provided map here.
+const TEST_LOGOS: Record<string, string> = {
+  codex: '/api/assets/logos/tools/coding/codex.svg',
+  gemini: '/api/assets/logos/ai-major/gemini.svg',
+  'openclaw-gateway': '/api/assets/logos/tools/openclaw.svg',
+};
+const getAgentLogo = (backend: string): string | null => TEST_LOGOS[backend.toLowerCase()] ?? null;
+
+vi.mock('@/renderer/utils/model/agentLogo', () => ({
+  useAgentLogos: () => TEST_LOGOS,
+  resolveAgentLogo: (logos: Record<string, string>, opts: { icon?: string | null; backend?: string | null }) => {
+    if (opts.icon) return opts.icon;
+    if (!opts.backend) return null;
+    return logos[opts.backend.toLowerCase()] ?? null;
+  },
+}));
 
 vi.mock('react-i18next', () => ({
   useTranslation: () => ({

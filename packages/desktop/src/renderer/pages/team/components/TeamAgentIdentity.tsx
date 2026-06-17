@@ -1,6 +1,6 @@
 import React from 'react';
 import useSWR from 'swr';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
@@ -32,6 +32,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   nameClassName,
   crownClassName,
 }) => {
+  const logos = useAgentLogos();
   // Share the SWR key with AgentChatSlot / TeamChatEmptyState so this hits cache instead of firing a fetch
   const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
     getConversationOrNull(conversation_id!)
@@ -39,7 +40,7 @@ const TeamAgentIdentity: React.FC<Props> = ({
   const { info: presetInfo } = usePresetAssistantInfo(conversation ?? undefined);
   const displayName = presetInfo?.name || assistant_name || 'Assistant';
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(assistant_backend);
+  const backendLogo = resolveAgentLogo(logos, { backend: assistant_backend });
 
   const defaultLogoClassName = 'w-16px h-16px object-contain rounded-2px opacity-80';
   const resolvedLogoClassName = logoClassName ?? defaultLogoClassName;

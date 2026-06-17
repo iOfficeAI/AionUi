@@ -16,6 +16,7 @@ import { useConversationAssistants } from '@renderer/pages/conversation/hooks/us
 import CronStatusTag from './CronStatusTag';
 import CreateTaskDialog from './CreateTaskDialog';
 import { getJobAgentMeta } from './jobAgentMeta';
+import { useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { formatSchedule, formatNextRun } from '@renderer/pages/cron/cronUtils';
 import { useCronJobConversations } from '@renderer/pages/cron/useCronJobs';
 import { repairCronJobTimeZone } from '@renderer/pages/cron/repairCronJobTimeZone';
@@ -36,7 +37,8 @@ const TaskDetailPage: React.FC = () => {
   const isManualOnly = job?.schedule.kind === 'cron' && !job.schedule.expr;
   const { conversations } = useCronJobConversations(job_id);
   const { presetAssistants } = useConversationAssistants();
-  const assistantIdentity = job ? getJobAgentMeta(job, presetAssistants) : null;
+  const logos = useAgentLogos();
+  const assistantIdentity = job ? getJobAgentMeta(job, presetAssistants, logos) : null;
 
   const fetchJob = useCallback(async () => {
     if (!job_id) return;

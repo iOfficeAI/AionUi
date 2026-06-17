@@ -11,7 +11,8 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
@@ -234,14 +235,14 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
 }
 
 function buildPresetInfoFromConversationAssistant(
-  assistant: NonNullable<TChatConversation['assistant']>
+  assistant: NonNullable<TChatConversation['assistant']>,
+  logos: AgentLogoMap
 ): PresetAssistantInfo {
   // Generated assistants (bare assistants reconciled from agent rows) get
   // their avatar from the agent's `icon` field — typically a cli logo
   // filename like `claude.svg` or `codex.svg`. `normalizeAvatar` cannot
-  // resolve those (they're not in CUSTOM_AVATAR_IMAGE_MAP) and would fall
-  // through to the default robot emoji. When that happens, look up the
-  // backend's built-in logo so the row keeps its real icon.
+  // resolve those and would fall through to the default robot emoji. When
+  // that happens, look up the backend's logo so the row keeps its real icon.
   const normalized = normalizeAvatar(assistant.avatar);
   const isUnresolvedSvgFallback =
     normalized.isEmoji &&
@@ -249,7 +250,7 @@ function buildPresetInfoFromConversationAssistant(
     assistant.avatar.trim().toLowerCase().endsWith('.svg');
   const isEmptyAvatarFallback = normalized.isEmoji && (!assistant.avatar || assistant.avatar.trim().length === 0);
   if (isUnresolvedSvgFallback || isEmptyAvatarFallback) {
-    const backendLogo = getAgentLogo(assistant.backend);
+    const backendLogo = resolveAgentLogo(logos, { backend: assistant.backend });
     if (backendLogo) {
       return {
         name: assistant.name,
@@ -307,6 +308,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   isLoading: boolean;
 } {
   const { i18n } = useTranslation();
+  const logos = useAgentLogos();
 
   // Merged assistant catalog (builtin + user) from backend
   const { data: assistantsList, isLoading: isLoadingAssistants } = useSWR('assistants', () =>
@@ -333,7 +335,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
 
     if (conversation.assistant) {
       return {
-        info: buildPresetInfoFromConversationAssistant(conversation.assistant),
+        info: buildPresetInfoFromConversationAssistant(conversation.assistant, logos),
         isLoading: false,
       };
     }
@@ -374,7 +376,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
         typeof (conversation.extra as { backend?: unknown })?.backend === 'string'
           ? ((conversation.extra as { backend?: string }).backend ?? '').trim()
           : '';
-      const backendLogo = getAgentLogo(legacyBackend);
+      const backendLogo = resolveAgentLogo(logos, { backend: legacyBackend });
       if (backendLogo) {
         return {
           info: { name, logo: backendLogo, isEmoji: false, backend: legacyBackend },
@@ -436,6 +438,7 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   }, [
     conversation,
     i18n.language,
+    logos,
     assistantsList,
     isLoadingAssistants,
     extensionAcpAdapters,

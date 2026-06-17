@@ -8,7 +8,7 @@ import React from 'react';
 import { Avatar, Button, Switch, Tag, Tooltip, Typography } from '@arco-design/web-react';
 import { Delete, EditTwo, Robot } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
-import { resolveAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import type { AgentManagementStatus, ManagedAgent } from '@/renderer/utils/model/agentTypes';
 
@@ -82,13 +82,14 @@ const statusSummary = (
 
 const AgentCard: React.FC<AgentCardProps> = (props) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
 
   if (props.type === 'official') {
     const { agent, onTestConnection, isTesting } = props;
     const extensionAvatar = resolveExtensionAssetUrl(agent.isExtension ? agent.avatar : undefined);
     const logo =
       extensionAvatar ||
-      resolveAgentLogo({
+      resolveAgentLogo(logos, {
         icon: agent.icon,
         backend: agent.backend || agent.agent_type,
         custom_agent_id: agent.custom_agent_id,

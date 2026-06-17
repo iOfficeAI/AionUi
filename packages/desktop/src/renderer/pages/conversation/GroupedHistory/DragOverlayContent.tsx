@@ -5,7 +5,7 @@
  */
 
 import type { TChatConversation } from '@/common/config/storage';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { MessageOne } from '@icon-park/react';
 import React from 'react';
 
@@ -16,10 +16,11 @@ type DragOverlayContentProps = {
 };
 
 const DragOverlayContent: React.FC<DragOverlayContentProps> = ({ conversation }) => {
+  const logos = useAgentLogos();
   if (!conversation) return null;
 
   const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = getAgentLogo(backendKey);
+  const logo = resolveAgentLogo(logos, { backend: backendKey });
 
   return (
     <div

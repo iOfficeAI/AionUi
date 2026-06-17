@@ -45,7 +45,7 @@ export const formatMessageTime = (timestamp: number): string => {
   return time;
 };
 import MessageCronBadge from './MessageCronBadge';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import TeammateMessageAvatar from './TeammateMessageAvatar';
 
 const CODE_STYLE = { marginTop: 4, marginBlock: 4 };
@@ -95,6 +95,7 @@ const useFormatContent = (content: string) => {
 };
 
 const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = ({ message, showCopyRow = true }) => {
+  const logos = useAgentLogos();
   // Filter think tags from content before rendering
   // 在渲染前过滤 think 标签
   const contentToRender = useMemo(() => {
@@ -162,7 +163,7 @@ const MessageText: React.FC<{ message: IMessageText; showCopyRow?: boolean }> = 
   const senderName = message.content.senderName;
   const senderAgentType = message.content.senderAgentType;
   const senderConversationId = message.content.senderConversationId;
-  const fallbackBackendLogo = senderAgentType ? getAgentLogo(senderAgentType) : null;
+  const fallbackBackendLogo = senderAgentType ? resolveAgentLogo(logos, { backend: senderAgentType }) : null;
 
   return (
     <>

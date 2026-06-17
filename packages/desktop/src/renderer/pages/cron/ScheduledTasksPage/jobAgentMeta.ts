@@ -5,7 +5,8 @@
  */
 
 import type { ICronJob } from '@/common/adapter/ipcBridge';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import type { AgentLogoMap } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 
@@ -29,7 +30,8 @@ function resolveCronAssistantId(config: ICronJob['metadata']['agent_config']): s
  */
 export function getJobAgentMeta(
   job: ICronJob,
-  presetAssistants: Assistant[]
+  presetAssistants: Assistant[],
+  logos: AgentLogoMap
 ): { name?: string; logo?: string | null; emoji?: string } {
   const config = job.metadata.agent_config;
   const assistantId = resolveCronAssistantId(config);
@@ -48,7 +50,7 @@ export function getJobAgentMeta(
     const presetBackend = config.preset_agent_type || (rawType === 'acp' ? config.backend : rawType);
     return {
       name: displayName,
-      logo: getAgentLogo(presetBackend),
+      logo: resolveAgentLogo(logos, { backend: presetBackend }),
     };
   }
 
@@ -59,12 +61,12 @@ export function getJobAgentMeta(
     const backend = config?.backend;
     return {
       name: config?.name || backend || rawType,
-      logo: getAgentLogo(backend),
+      logo: resolveAgentLogo(logos, { backend }),
     };
   }
 
   return {
     name: config?.name || rawType,
-    logo: getAgentLogo(rawType),
+    logo: resolveAgentLogo(logos, { backend: rawType }),
   };
 }

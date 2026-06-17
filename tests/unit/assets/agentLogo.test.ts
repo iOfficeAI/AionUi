@@ -5,17 +5,21 @@
  */
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import {
-  getAgentLogo,
-  resolveAgentLogo,
-  hasAgentLogo,
-  isDefaultModel,
-  getModelDisplayLabel,
-} from '@/renderer/utils/model/agentLogo';
+import type { AgentLogoMap } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, isDefaultModel, getModelDisplayLabel } from '@/renderer/utils/model/agentLogo';
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveBackendAssetUrl: (url: string) => url,
 }));
+
+// Backend logo catalog returned by `useAgentLogos()` in production. The unit
+// test passes it explicitly to the pure `resolveAgentLogo`.
+const LOGOS: AgentLogoMap = {
+  claude: '/api/assets/logos/ai-major/claude.svg',
+  gemini: '/api/assets/logos/ai-major/gemini.svg',
+  opencode: '/api/assets/logos/tools/coding/opencode-light.svg',
+  'openclaw-gateway': '/api/assets/logos/tools/openclaw.svg',
+};
 
 describe('agentLogo', () => {
   let originalDocument: Document | undefined;
@@ -37,90 +41,52 @@ describe('agentLogo', () => {
     }
   });
 
-  describe('getAgentLogo', () => {
-    it('returns logo path for known agent (case-insensitive)', () => {
-      const logo = getAgentLogo('Claude');
-      expect(logo).toContain('/api/assets/logos/ai-major/claude.svg');
+  describe('resolveAgentLogo (backend lookup)', () => {
+    it('returns logo path for known backend (case-insensitive)', () => {
+      expect(resolveAgentLogo(LOGOS, { backend: 'Claude' })).toContain('/api/assets/logos/ai-major/claude.svg');
     });
 
     it('returns logo for lowercase input', () => {
-      const logo = getAgentLogo('gemini');
-      expect(logo).toContain('/api/assets/logos/ai-major/gemini.svg');
+      expect(resolveAgentLogo(LOGOS, { backend: 'gemini' })).toContain('/api/assets/logos/ai-major/gemini.svg');
     });
 
-    it('returns null for unknown agent', () => {
-      expect(getAgentLogo('unknown-agent')).toBeNull();
+    it('returns null for unknown backend', () => {
+      expect(resolveAgentLogo(LOGOS, { backend: 'unknown-agent' })).toBeNull();
     });
 
-    it('returns null for null input', () => {
-      expect(getAgentLogo(null)).toBeNull();
+    it('returns null for null/undefined/empty backend', () => {
+      expect(resolveAgentLogo(LOGOS, { backend: null })).toBeNull();
+      expect(resolveAgentLogo(LOGOS, { backend: undefined })).toBeNull();
+      expect(resolveAgentLogo(LOGOS, { backend: '' })).toBeNull();
     });
 
-    it('returns null for undefined input', () => {
-      expect(getAgentLogo(undefined)).toBeNull();
-    });
-
-    it('returns null for empty string', () => {
-      expect(getAgentLogo('')).toBeNull();
-    });
-
-    it('returns logo for multi-variant agents', () => {
-      const logo1 = getAgentLogo('openclaw-gateway');
-      const logo2 = getAgentLogo('openclaw');
-      expect(logo1).toContain('openclaw.svg');
-      expect(logo2).toContain('openclaw.svg');
+    it('tolerates a missing catalog map', () => {
+      expect(resolveAgentLogo(undefined as unknown as AgentLogoMap, { backend: 'claude' })).toBeNull();
     });
 
     it('applies dark theme variant for opencode', () => {
       (global.document.documentElement.getAttribute as any).mockReturnValue('dark');
-      const logo = getAgentLogo('opencode');
-      expect(logo).toContain('opencode-dark.svg');
+      expect(resolveAgentLogo(LOGOS, { backend: 'opencode' })).toContain('opencode-dark.svg');
     });
   });
 
-  describe('resolveAgentLogo', () => {
+  describe('resolveAgentLogo (priority)', () => {
     it('prioritizes explicit icon', () => {
-      const result = resolveAgentLogo({
-        icon: '/custom/icon.svg',
-        backend: 'claude',
-      });
-      expect(result).toContain('/custom/icon.svg');
+      expect(resolveAgentLogo(LOGOS, { icon: '/custom/icon.svg', backend: 'claude' })).toContain('/custom/icon.svg');
     });
 
     it('falls back to backend ID', () => {
-      const result = resolveAgentLogo({
-        backend: 'gemini',
-      });
-      expect(result).toContain('gemini.svg');
+      expect(resolveAgentLogo(LOGOS, { backend: 'gemini' })).toContain('gemini.svg');
     });
 
     it('extracts adapter ID from custom_agent_id for extensions', () => {
-      const result = resolveAgentLogo({
-        isExtension: true,
-        custom_agent_id: 'ext:my-ext:claude',
-      });
-      expect(result).toContain('claude.svg');
+      expect(resolveAgentLogo(LOGOS, { isExtension: true, custom_agent_id: 'ext:my-ext:claude' })).toContain(
+        'claude.svg'
+      );
     });
 
     it('returns null when no match found', () => {
-      const result = resolveAgentLogo({
-        backend: 'unknown',
-      });
-      expect(result).toBeNull();
-    });
-  });
-
-  describe('hasAgentLogo', () => {
-    it('returns true for known agent', () => {
-      expect(hasAgentLogo('claude')).toBe(true);
-    });
-
-    it('returns false for unknown agent', () => {
-      expect(hasAgentLogo('unknown')).toBe(false);
-    });
-
-    it('returns false for null', () => {
-      expect(hasAgentLogo(null)).toBe(false);
+      expect(resolveAgentLogo(LOGOS, { backend: 'unknown' })).toBeNull();
     });
   });
 

@@ -4,7 +4,7 @@ import useSWR from 'swr';
 import type { TChatConversation } from '@/common/config/storage';
 import { getConversationOrNull } from '@/renderer/pages/conversation/utils/conversationCache';
 import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
 import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
@@ -64,6 +64,7 @@ const TeamChatEmptyState: React.FC<Props> = ({
   isLeader = false,
 }) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
 
   // Reuse the same SWR key as AgentChatSlot so this hits cache instead of a new fetch.
   const { data: conversation } = useSWR(conversation_id ? ['team-conversation', conversation_id] : null, () =>
@@ -97,7 +98,7 @@ const TeamChatEmptyState: React.FC<Props> = ({
   const assistantBackend = resolveConversationBackend(conversation, assistant_backend || presetInfo?.backend) || 'acp';
   const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null, assistant_name);
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
-  const backendLogo = getAgentLogo(assistantBackend);
+  const backendLogo = resolveAgentLogo(logos, { backend: assistantBackend });
 
   const renderAvatar = () => {
     if (presetInfo) {

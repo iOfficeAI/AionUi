@@ -8,7 +8,7 @@ import { ipcBridge } from '@/common';
 import type { IMessageSearchItem } from '@/common/types/team/database';
 import AionModal from '@/renderer/components/base/AionModal';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { blockMobileInputFocus, blurActiveElement } from '@/renderer/utils/ui/focus';
 import { Empty, Spin, Typography } from '@arco-design/web-react';
 import { Close, CloseSmall, MessageOne, Search } from '@icon-park/react';
@@ -99,6 +99,7 @@ interface ConversationSearchPopoverProps {
 }
 
 const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conversation'] }> = ({ conversation }) => {
+  const logos = useAgentLogos();
   const { info: assistantInfo } = usePresetAssistantInfo(conversation);
 
   if (assistantInfo) {
@@ -121,7 +122,7 @@ const ConversationAgentMark: React.FC<{ conversation: IMessageSearchItem['conver
   }
 
   const backendKey = getBackendKeyFromConversation(conversation);
-  const logo = getAgentLogo(backendKey);
+  const logo = resolveAgentLogo(logos, { backend: backendKey });
   if (logo) {
     return (
       <img

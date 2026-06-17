@@ -44,7 +44,8 @@ vi.mock('@/renderer/utils/chat/thinkTagFilter', () => ({
 }));
 
 vi.mock('@/renderer/utils/model/agentLogo', () => ({
-  getAgentLogo: () => null,
+  useAgentLogos: () => ({}),
+  resolveAgentLogo: () => null,
 }));
 
 vi.mock('@/renderer/utils/ui/clipboard', () => ({

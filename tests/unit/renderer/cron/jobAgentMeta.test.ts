@@ -9,6 +9,8 @@ import type { Assistant } from '@/common/types/agent/assistantTypes';
 import type { ICronJob } from '@/common/adapter/ipcBridge';
 import { getJobAgentMeta } from '@/renderer/pages/cron/ScheduledTasksPage/jobAgentMeta';
 
+const LOGOS = { codex: '/api/assets/logos/tools/coding/codex.svg' };
+
 describe('getJobAgentMeta', () => {
   it('prefers assistant catalog metadata for assistant-backed jobs', () => {
     const meta = getJobAgentMeta(
@@ -28,7 +30,8 @@ describe('getJobAgentMeta', () => {
           name: '文件规划助手',
           avatar: '🤖',
         }),
-      ]
+      ],
+      LOGOS
     );
 
     expect(meta).toEqual({
@@ -48,11 +51,12 @@ describe('getJobAgentMeta', () => {
           },
         },
       }),
-      []
+      [],
+      LOGOS
     );
 
     expect(meta.name).toBe('Codex 助手');
-    expect(meta.logo).toBeTruthy();
+    expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
   });
 
   it('still resolves assistant metadata from legacy custom_agent_id rows', () => {
@@ -73,7 +77,8 @@ describe('getJobAgentMeta', () => {
           name: '文件规划助手',
           avatar: '🤖',
         }),
-      ]
+      ],
+      LOGOS
     );
 
     expect(meta).toEqual({

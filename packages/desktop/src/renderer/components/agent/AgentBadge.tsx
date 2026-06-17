@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import { iconColors } from '@/renderer/styles/colors';
 import { Robot } from '@icon-park/react';
 import React, { useCallback } from 'react';
@@ -27,6 +27,7 @@ export type AgentBadgeProps = {
 export const AgentLogoIcon: React.FC<
   Pick<AgentBadgeProps, 'backend' | 'agentLogo' | 'agentLogoIsEmoji' | 'agent_name'>
 > = ({ backend, agentLogo, agentLogoIsEmoji, agent_name }) => {
+  const logos = useAgentLogos();
   const logoContent = (() => {
     if (agentLogo) {
       if (agentLogoIsEmoji) {
@@ -36,7 +37,7 @@ export const AgentLogoIcon: React.FC<
         <img src={agentLogo} alt={`${agent_name || 'agent'} logo`} className='block w-16px h-16px object-contain' />
       );
     }
-    const logo = getAgentLogo(backend);
+    const logo = resolveAgentLogo(logos, { backend });
     if (logo) {
       return <img src={logo} alt={`${backend} logo`} className='block w-16px h-16px object-contain' />;
     }

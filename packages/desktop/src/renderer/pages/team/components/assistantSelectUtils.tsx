@@ -1,6 +1,6 @@
 import React from 'react';
 import { Robot } from '@icon-park/react';
-import { getAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { resolveAssistantAvatar } from '@renderer/utils/model/assistantAvatar';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { isDeprecatedRuntimeAgentType } from '@/renderer/utils/model/agentTypeSupportPolicy';
@@ -55,7 +55,8 @@ export function filterTeamSupportedAssistants(assistants: TeamAssistantOption[])
 }
 
 export const AssistantOptionLabel: React.FC<{ assistant: TeamAssistantOption }> = ({ assistant }) => {
-  const logo = getAgentLogo(assistant.backend);
+  const logos = useAgentLogos();
+  const logo = resolveAgentLogo(logos, { backend: assistant.backend });
   const avatar = resolveAssistantAvatar(assistant.icon);
   return (
     <div className='flex items-center gap-8px'>

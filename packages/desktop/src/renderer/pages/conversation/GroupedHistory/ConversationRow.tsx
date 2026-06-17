@@ -4,7 +4,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@/renderer/utils/model/agentLogo';
 import FlexFullContainer from '@/renderer/components/layout/FlexFullContainer';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 import { CronJobIndicator } from '@/renderer/pages/cron';
@@ -33,6 +33,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     menuVisible,
     dimIcon = false,
   } = props;
+  const logos = useAgentLogos();
   const layout = useLayoutContext();
   const isMobile = layout?.isMobile ?? false;
   const {
@@ -81,7 +82,7 @@ const ConversationRow: React.FC<ConversationRowProps> = (props) => {
     }
 
     const backendKey = getBackendKeyFromConversation(conversation);
-    const logo = getAgentLogo(backendKey);
+    const logo = resolveAgentLogo(logos, { backend: backendKey });
     if (logo) {
       return (
         <img

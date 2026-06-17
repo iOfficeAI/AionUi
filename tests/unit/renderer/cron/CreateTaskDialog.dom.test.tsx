@@ -75,6 +75,7 @@ vi.mock('@renderer/utils/model/assistantAvatar', () => ({
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({
+  useAgentLogos: () => ({}),
   resolveAgentLogo: () => null,
 }));
 

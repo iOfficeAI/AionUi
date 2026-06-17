@@ -12,7 +12,7 @@ import { Down, Robot } from '@icon-park/react';
 import { ipcBridge } from '@/common';
 import type { ICreateCronJobParams, ICronJob, ICronJobUpdateParams } from '@/common/adapter/ipcBridge';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
-import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import dayjs from 'dayjs';
 import { getFullAutoMode } from '@renderer/utils/model/agentModes';
 import type { TProviderWithModel } from '@/common/config/storage';
@@ -149,6 +149,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   conversation_title,
 }) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
   const [form] = Form.useForm();
   const [submitting, setSubmitting] = useState(false);
   const { presetAssistants } = useConversationAssistants();
@@ -493,7 +494,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
                 const assistant = presetAssistants.find((item) => item.id === assistantId);
                 const name = assistant?.name || assistantId;
                 const avatar = resolveAssistantAvatar(assistant?.avatar);
-                const logo = resolveAgentLogo({
+                const logo = resolveAgentLogo(logos, {
                   backend: assistant?.preset_agent_type,
                 });
 
@@ -515,7 +516,7 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
             >
               {presetAssistants.map((assistant) => {
                 const avatar = resolveAssistantAvatar(assistant.avatar);
-                const logo = resolveAgentLogo({
+                const logo = resolveAgentLogo(logos, {
                   backend: assistant.preset_agent_type,
                 });
                 const disabled = assistant.preset_agent_type === 'aionrs' && !hasAionrsProvider;

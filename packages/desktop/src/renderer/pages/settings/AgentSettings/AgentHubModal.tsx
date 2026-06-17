@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import ModalWrapper from '@/renderer/components/base/ModalWrapper';
 import { useHubAgents } from '@/renderer/hooks/agent/useHubAgents';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
-import { resolveAgentLogo } from '@renderer/utils/model/agentLogo';
+import { resolveAgentLogo, useAgentLogos } from '@renderer/utils/model/agentLogo';
 import { openExternalUrl } from '@/renderer/utils/platform';
 
 interface AgentHubModalProps {
@@ -17,6 +17,7 @@ const AION_HUB_REPO_URL = 'https://github.com/iOfficeAI/AionHub';
 
 export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel }) => {
   const { t } = useTranslation();
+  const logos = useAgentLogos();
   const { agents, loading, error, install, retryInstall, update } = useHubAgents();
   const actionButtonClassName = '!min-w-80px !rounded-9px !px-10px';
   const openAionHubRepo = () => {
@@ -126,7 +127,7 @@ export const AgentHubModal: React.FC<AgentHubModalProps> = ({ visible, onCancel 
         ) : (
           <div data-testid='agent-hub-grid' className='grid grid-cols-1 gap-10px sm:grid-cols-2 lg:grid-cols-4'>
             {agents.map((agent) => {
-              const logo = resolveAgentLogo({
+              const logo = resolveAgentLogo(logos, {
                 icon: agent.icon,
                 backend: agent.contributes?.acpAdapters?.[0],
               });

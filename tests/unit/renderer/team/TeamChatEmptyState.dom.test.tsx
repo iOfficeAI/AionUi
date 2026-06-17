@@ -26,7 +26,8 @@ vi.mock('@/renderer/pages/conversation/utils/conversationCache', () => ({
 }));
 
 vi.mock('@renderer/utils/model/agentLogo', () => ({
-  getAgentLogo: () => null,
+  useAgentLogos: () => ({}),
+  resolveAgentLogo: () => null,
 }));
 
 vi.mock('@renderer/utils/platform', () => ({
