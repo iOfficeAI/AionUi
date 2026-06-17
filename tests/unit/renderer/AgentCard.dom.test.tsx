@@ -93,6 +93,30 @@ describe('AgentCard (official variant)', () => {
     expect(screen.getByText('CLI command not found Install Claude Code locally to continue.')).toBeInTheDocument();
   });
 
+  it('shows the last check timestamp when a health snapshot is present', () => {
+    const checkedAt = Date.UTC(2026, 5, 17, 8, 30, 0);
+
+    render(
+      <AgentCard
+        type='official'
+        agent={{
+          id: 'gemini',
+          name: 'Gemini CLI',
+          agent_type: 'acp',
+          agent_source: 'builtin',
+          backend: 'gemini',
+          enabled: true,
+          installed: true,
+          status: 'available',
+          last_check_at: checkedAt,
+        }}
+        onTestConnection={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText(`settings.mcpCheckedAtLabel ${new Date(checkedAt).toLocaleString()}`)).toBeInTheDocument();
+  });
+
   it('shows a status summary even when no diagnostics text is present', () => {
     render(
       <AgentCard

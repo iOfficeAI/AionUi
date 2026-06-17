@@ -57,6 +57,11 @@ const statusLabelKey = (status?: AgentManagementStatus) => {
 
 const statusHelpText = (error?: string, guidance?: string) => [error, guidance].filter(Boolean).join(' ');
 
+const formatStatusTimestamp = (timestamp?: number): string | null => {
+  if (!timestamp) return null;
+  return new Date(timestamp).toLocaleString();
+};
+
 const diagnosticMeta = (backend?: string, agentType?: string) => {
   const parts = [backend, agentType].filter(Boolean).map((value) => value!.toUpperCase());
   return parts.join(' · ');
@@ -99,6 +104,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
     const metadata = diagnosticMeta(agent.backend, agent.agent_type);
     const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
     const summary = statusSummary(t, agent, diagnostics);
+    const checkedAt = formatStatusTimestamp(agent.last_check_at);
 
     return (
       <div className='flex min-h-[154px] flex-col rounded-12px border border-solid border-[var(--color-border-2)] bg-[var(--color-bg-2)] p-12px transition-colors hover:border-[var(--color-border-3)]'>
@@ -128,6 +134,11 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
           <Typography.Paragraph className='mt-6px mb-0 text-11px leading-16px text-t-secondary'>
             {summary}
           </Typography.Paragraph>
+          {checkedAt ? (
+            <Typography.Text className='mt-4px block text-11px text-t-secondary'>
+              {`${t('settings.mcpCheckedAtLabel')} ${checkedAt}`}
+            </Typography.Text>
+          ) : null}
         </div>
 
         <Button size='small' type='secondary' onClick={onTestConnection} loading={isTesting}>
@@ -142,6 +153,7 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
   const metadata = diagnosticMeta(agent.backend, agent.agent_type);
   const diagnostics = statusHelpText(agent.last_check_error_message, agent.last_check_guidance);
   const summary = statusSummary(t, agent, diagnostics);
+  const checkedAt = formatStatusTimestamp(agent.last_check_at);
 
   return (
     <div className='flex items-center justify-between px-16px py-10px rd-8px bg-aou-1 hover:bg-aou-2'>
@@ -171,6 +183,9 @@ const AgentCard: React.FC<AgentCardProps> = (props) => {
             )}
           </div>
           <div className='mt-4px text-11px text-t-secondary line-clamp-2'>{summary}</div>
+          {checkedAt ? (
+            <div className='mt-4px text-11px text-t-secondary'>{`${t('settings.mcpCheckedAtLabel')} ${checkedAt}`}</div>
+          ) : null}
         </div>
       </div>
       <div className='flex items-center gap-8px'>
