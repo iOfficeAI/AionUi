@@ -24,6 +24,15 @@ vi.mock('@/common', () => ({
       listProviders: { invoke: vi.fn(), provider: vi.fn() },
       createProvider: { invoke: vi.fn(), provider: vi.fn() },
     },
+    assistants: {
+      list: { invoke: vi.fn() },
+    },
+    channel: {
+      getPlatformSettings: { invoke: vi.fn() },
+      setAssistantSetting: { invoke: vi.fn() },
+      setDefaultModelSetting: { invoke: vi.fn() },
+      syncChannelSettings: { invoke: vi.fn() },
+    },
   },
 }));
 
@@ -35,6 +44,11 @@ import { ipcBridge } from '@/common';
 describe('configMigration', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    (ipcBridge.assistants.list.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([]);
+    (ipcBridge.channel.getPlatformSettings.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(null);
+    (ipcBridge.channel.setAssistantSetting.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (ipcBridge.channel.setDefaultModelSetting.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
+    (ipcBridge.channel.syncChannelSettings.invoke as ReturnType<typeof vi.fn>).mockResolvedValue(undefined);
   });
 
   describe('migrateConfigStorage', () => {
@@ -182,9 +196,9 @@ describe('configMigration', () => {
       expect(configFile.get).not.toHaveBeenCalledWith('codex.config');
     });
 
-    it('still migrates legacy channel assistant settings from local config', async () => {
+    it('migrates legacy channel settings through dedicated channel APIs', async () => {
       const legacyChannelAgent = {
-        assistant_id: 'asst_123',
+        assistant_id: 'missing_assistant',
         backend: 'codex',
         name: 'Telegram Assistant',
       };
@@ -202,14 +216,68 @@ describe('configMigration', () => {
         if (method === 'GET') return Promise.resolve({});
         return Promise.resolve(undefined);
       });
+      (ipcBridge.assistants.list.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'bare_codex',
+          source: 'bare',
+          preset_agent_type: 'codex',
+        },
+      ]);
       vi.spyOn(console, 'info').mockImplementation(() => {});
 
       await migrateConfigStorage(configFile);
 
-      expect(httpRequest).toHaveBeenCalledWith('PUT', '/api/settings/client', {
-        'assistant.telegram.agent': legacyChannelAgent,
-        'assistant.telegram.defaultModel': { id: 'provider_1', use_model: 'gpt-5' },
+      expect(httpRequest).not.toHaveBeenCalledWith('PUT', '/api/settings/client', {
+        'assistant.telegram.agent': expect.anything(),
+        'assistant.telegram.defaultModel': expect.anything(),
       });
+      expect(ipcBridge.channel.setAssistantSetting.invoke).toHaveBeenCalledWith({
+        platform: 'telegram',
+        assistant: { assistant_id: 'bare_codex' },
+      });
+      expect(ipcBridge.channel.setDefaultModelSetting.invoke).toHaveBeenCalledWith({
+        platform: 'telegram',
+        default_model: { id: 'provider_1', use_model: 'gpt-5' },
+      });
+      expect(ipcBridge.channel.syncChannelSettings.invoke).toHaveBeenCalledWith({
+        platform: 'telegram',
+      });
+    });
+
+    it('preserves backend channel settings and skips rewriting existing values', async () => {
+      const configFile: ConfigFile = {
+        get: vi.fn((key: string) => {
+          if (key === 'assistant.telegram.agent') return Promise.resolve({ backend: 'codex' });
+          if (key === 'assistant.telegram.defaultModel') {
+            return Promise.resolve({ id: 'provider_1', use_model: 'gpt-5' });
+          }
+          return Promise.reject(new Error('not found'));
+        }),
+        set: vi.fn(),
+      };
+      (httpRequest as ReturnType<typeof vi.fn>).mockImplementation((method: string) => {
+        if (method === 'GET') return Promise.resolve({});
+        return Promise.resolve(undefined);
+      });
+      (ipcBridge.assistants.list.invoke as ReturnType<typeof vi.fn>).mockResolvedValue([
+        {
+          id: 'bare_codex',
+          source: 'bare',
+          preset_agent_type: 'codex',
+        },
+      ]);
+      (ipcBridge.channel.getPlatformSettings.invoke as ReturnType<typeof vi.fn>).mockResolvedValue({
+        platform: 'telegram',
+        assistant: { assistant_id: 'existing_assistant' },
+        default_model: { id: 'provider_existing', use_model: 'o3' },
+      });
+      vi.spyOn(console, 'info').mockImplementation(() => {});
+
+      await migrateConfigStorage(configFile);
+
+      expect(ipcBridge.channel.setAssistantSetting.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.channel.setDefaultModelSetting.invoke).not.toHaveBeenCalled();
+      expect(ipcBridge.channel.syncChannelSettings.invoke).not.toHaveBeenCalled();
     });
   });
 

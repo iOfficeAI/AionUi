@@ -25,7 +25,10 @@ const LEGACY_CHANNEL_KEYS = [
   'assistant.wecom.agent',
 ] as const;
 
+const LEGACY_CHANNEL_PLATFORMS = ['telegram', 'lark', 'dingtalk', 'weixin', 'wecom'] as const;
+
 type LegacyChannelConfigKey = (typeof LEGACY_CHANNEL_KEYS)[number];
+type LegacyChannelPlatform = (typeof LEGACY_CHANNEL_PLATFORMS)[number];
 type LegacyBusinessConfigKey =
   | 'google.config'
   | 'acp.promptTimeout'
@@ -42,6 +45,12 @@ type LegacyMcpConfigFile = ConfigFile & {
 
 type LegacyChannelConfigFile = ConfigFile & {
   get(key: LegacyConfigKey): Promise<unknown>;
+};
+
+type ChannelAssistantCandidate = {
+  id: string;
+  source: string;
+  preset_agent_type: string;
 };
 
 const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
@@ -74,7 +83,6 @@ const ALL_LEGACY_KEYS: LegacyConfigKey[] = [
   'system.cronNotificationEnabled',
   'system.keepAwake',
   'system.autoPreviewOfficeFiles',
-  ...LEGACY_CHANNEL_KEYS,
 ];
 
 export async function migrateConfigStorage(configFile: ConfigFile): Promise<void> {
@@ -102,33 +110,34 @@ export async function migrateConfigStorage(configFile: ConfigFile): Promise<void
 
   if (Object.keys(entries).length === 0) {
     console.info('[Migration] configStorage migration skipped — no legacy keys found');
-    return;
-  }
+  } else {
+    // Merge strategy: only write keys that don't already exist in the backend DB.
+    // This prevents overwriting user's runtime changes on repeated migrations.
+    const existing = await fetchExistingClientKeys();
+    const newEntries: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(entries)) {
+      if (!(key in existing)) {
+        newEntries[key] = value;
+      }
+    }
 
-  // Merge strategy: only write keys that don't already exist in the backend DB.
-  // This prevents overwriting user's runtime changes on repeated migrations.
-  const existing = await fetchExistingClientKeys();
-  const newEntries: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(entries)) {
-    if (!(key in existing)) {
-      newEntries[key] = value;
+    if (Object.keys(newEntries).length > 0) {
+      await setBackendClientPreferences(newEntries);
+      console.info(
+        '[Migration] configStorage migration completed, migrated %d/%d keys (skipped %d existing)',
+        Object.keys(newEntries).length,
+        Object.keys(entries).length,
+        Object.keys(entries).length - Object.keys(newEntries).length
+      );
+    } else {
+      console.info(
+        '[Migration] configStorage migration skipped — all %d keys already exist in backend',
+        Object.keys(entries).length
+      );
     }
   }
 
-  if (Object.keys(newEntries).length > 0) {
-    await setBackendClientPreferences(newEntries);
-    console.info(
-      '[Migration] configStorage migration completed, migrated %d/%d keys (skipped %d existing)',
-      Object.keys(newEntries).length,
-      Object.keys(entries).length,
-      Object.keys(entries).length - Object.keys(newEntries).length
-    );
-  } else {
-    console.info(
-      '[Migration] configStorage migration skipped — all %d keys already exist in backend',
-      Object.keys(entries).length
-    );
-  }
+  await migrateLegacyChannelSettings(legacyConfigFile);
 }
 
 export async function migrateLegacyMcpConfigToDb(configFile: ConfigFile): Promise<void> {
@@ -187,6 +196,108 @@ function normalizeLegacyMcpServer(
     name: BUILTIN_IMAGE_GEN_NAME,
     builtin: true,
   };
+}
+
+async function migrateLegacyChannelSettings(configFile: LegacyChannelConfigFile): Promise<void> {
+  const assistants: ChannelAssistantCandidate[] = await ipcBridge.assistants.list
+    .invoke()
+    .catch((): ChannelAssistantCandidate[] => []);
+  if (!Array.isArray(assistants) || assistants.length === 0) {
+    console.info('[Migration] channel settings migration skipped — no assistants available');
+    return;
+  }
+
+  for (const platform of LEGACY_CHANNEL_PLATFORMS) {
+    const assistantKey = `assistant.${platform}.agent` as const;
+    const defaultModelKey = `assistant.${platform}.defaultModel` as const;
+
+    const [legacyAssistant, legacyDefaultModel, currentSettings] = await Promise.all([
+      configFile.get(assistantKey).catch((): undefined => undefined),
+      configFile.get(defaultModelKey).catch((): undefined => undefined),
+      ipcBridge.channel.getPlatformSettings.invoke({ platform }).catch((): null => null),
+    ]);
+
+    const nextAssistantId =
+      currentSettings?.assistant?.assistant_id ?? resolveLegacyChannelAssistantId(legacyAssistant, assistants);
+
+    let changed = false;
+
+    if (!currentSettings?.assistant?.assistant_id && nextAssistantId) {
+      await ipcBridge.channel.setAssistantSetting.invoke({
+        platform,
+        assistant: { assistant_id: nextAssistantId },
+      });
+      changed = true;
+    }
+
+    const nextDefaultModel =
+      currentSettings?.default_model ?? normalizeLegacyChannelDefaultModelSetting(legacyDefaultModel);
+
+    if (!currentSettings?.default_model && nextDefaultModel) {
+      await ipcBridge.channel.setDefaultModelSetting.invoke({
+        platform,
+        default_model: nextDefaultModel,
+      });
+      changed = true;
+    }
+
+    if (changed) {
+      await ipcBridge.channel.syncChannelSettings.invoke({ platform });
+    }
+  }
+}
+
+function normalizeLegacyChannelDefaultModelSetting(value: unknown):
+  | {
+      id: string;
+      use_model: string;
+    }
+  | undefined {
+  if (!value || typeof value !== 'object') return undefined;
+  const candidate = value as Record<string, unknown>;
+  return typeof candidate.id === 'string' && typeof candidate.use_model === 'string'
+    ? {
+        id: candidate.id,
+        use_model: candidate.use_model,
+      }
+    : undefined;
+}
+
+function resolveLegacyChannelAssistantId(saved: unknown, assistants: ChannelAssistantCandidate[]): string | undefined {
+  if (!saved) return undefined;
+
+  if (typeof saved === 'string') {
+    return findAssistantIdByBackend(saved, assistants);
+  }
+
+  if (typeof saved !== 'object') return undefined;
+
+  const record = saved as Record<string, unknown>;
+  const explicitAssistantId =
+    (typeof record.assistant_id === 'string' ? record.assistant_id : undefined) ||
+    (typeof record.custom_agent_id === 'string' ? record.custom_agent_id : undefined);
+
+  if (explicitAssistantId && assistants.some((assistant) => assistant.id === explicitAssistantId)) {
+    return explicitAssistantId;
+  }
+
+  const backend =
+    (typeof record.backend === 'string' ? record.backend : undefined) ||
+    (typeof record.agent_type === 'string' ? record.agent_type : undefined);
+
+  return findAssistantIdByBackend(backend, assistants);
+}
+
+function findAssistantIdByBackend(
+  backend: string | undefined,
+  assistants: ChannelAssistantCandidate[]
+): string | undefined {
+  if (!backend) return undefined;
+
+  return (
+    assistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === backend)?.id ||
+    assistants.find((assistant) => assistant.preset_agent_type === backend)?.id
+  );
 }
 
 // ---------------------------------------------------------------------------
