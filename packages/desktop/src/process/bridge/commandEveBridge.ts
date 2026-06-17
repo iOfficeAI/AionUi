@@ -42,6 +42,7 @@ import {
 import { buildLocalRuntimeStatus } from '@process/commandEve/localRuntimeStatusCore';
 import { buildSkillLibrary } from '@process/commandEve/skillLibraryCore';
 import { buildCommandEveStatusSurface } from '@process/commandEve/statusSurfaceCore';
+import { hasLicenseWire, storeLicenseWire } from '@/common/config/licenseWireAtRest';
 import { getDataPath } from '@process/utils/utils';
 
 type CommandEveStatusSurfaceRequest = { maxRuns?: number; companyOsRoot?: string; eventLedgerPath?: string };
@@ -1200,7 +1201,21 @@ export function initCommandEveBridge(): void {
 
   bridge.buildProvider('command-eve.entitlement-activate').provider(async (request?: { code?: string }) => {
     try {
-      const result = activateEntitlement({ code: request?.code || '' }, { userDataPath: getDataPath() });
+      const code = request?.code || '';
+      const result = activateEntitlement({ code }, { userDataPath: getDataPath() });
+      // On a successful activation, persist the RAW wire string (keychain at
+      // rest, fail-closed) so the EVE Inference cloud lane has a bearer
+      // credential. We never return the raw wire to the renderer. A keychain
+      // failure here does not fail the activation (the gate already unlocked on
+      // the verified payload) — it just means EVE Inference cloud is
+      // unavailable until re-activation on a keychain-capable host.
+      if (result.ok) {
+        try {
+          storeLicenseWire(getDataPath(), code);
+        } catch {
+          // Non-fatal: never let wire persistence break the gate.
+        }
+      }
       return {
         success: result.ok,
         msg: result.ok ? undefined : (result.reason_code as string) || result.message,
@@ -1216,6 +1231,23 @@ export function initCommandEveBridge(): void {
           reason_code: 'ENTITLEMENT_ACTIVATE_BRIDGE_FAILED',
           message: error instanceof Error ? error.message : 'Command EVE entitlement activate bridge failed.',
         },
+      };
+    }
+  });
+
+  // Presence-only: tells the renderer whether the EVE Inference cloud lane has
+  // a usable bearer credential. NEVER returns the raw wire string — the EVE
+  // Inference client is built in the main process (see eveInferenceCore +
+  // ClientFactory), so the renderer only needs to know "available or not".
+  bridge.buildProvider('command-eve.license-wire-status').provider(async () => {
+    try {
+      const available = hasLicenseWire(getDataPath());
+      return { success: true, data: { available } };
+    } catch (error) {
+      return {
+        success: false,
+        msg: error instanceof Error ? error.message : 'Command EVE license-wire status bridge failed.',
+        data: { available: false },
       };
     }
   });

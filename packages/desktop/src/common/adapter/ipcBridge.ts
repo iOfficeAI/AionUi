@@ -1146,6 +1146,11 @@ export interface ICommandEveEntitlementActivateResult {
   idempotent?: boolean;
 }
 
+export interface ICommandEveLicenseWireStatusResult {
+  /** True iff a usable (keychain-ref) CEVE bearer is stored for EVE Inference. */
+  available: boolean;
+}
+
 // ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
@@ -1245,6 +1250,11 @@ export const commandEve = {
     IBridgeResponse<ICommandEveEntitlementActivateResult>,
     ICommandEveEntitlementActivateRequest
   >('command-eve.entitlement-activate'),
+  // Presence-only status of the EVE Inference cloud bearer (the stored CEVE
+  // license wire string). Never returns the raw wire — only `{ available }`.
+  licenseWireStatus: bridge.buildProvider<IBridgeResponse<ICommandEveLicenseWireStatusResult>, void>(
+    'command-eve.license-wire-status'
+  ),
 };
 
 // ---------------------------------------------------------------------------
