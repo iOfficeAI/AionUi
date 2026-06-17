@@ -52,13 +52,9 @@ describe('channel assistant binding helpers', () => {
     expect(resolveChannelAssistantId({ assistant_id: 'user-writer' }, assistants)).toBe('user-writer');
   });
 
-  it('falls back to legacy custom_agent_id bindings', () => {
-    expect(resolveChannelAssistantId({ custom_agent_id: 'bare-claude' }, assistants)).toBe('bare-claude');
-  });
-
-  it('maps legacy backend-only bindings to the matching bare assistant', () => {
-    expect(resolveChannelAssistantId({ backend: 'claude' }, assistants)).toBe('bare-claude');
-    expect(resolveChannelAssistantId('claude', assistants)).toBe('bare-claude');
+  it('falls back to the default assistant when no assistant id is present', () => {
+    expect(resolveChannelAssistantId({ custom_agent_id: 'bare-claude' }, assistants)).toBe('bare-aionrs');
+    expect(resolveChannelAssistantId({ backend: 'claude' }, assistants)).toBe('bare-aionrs');
   });
 
   it('serializes only assistant identity for new channel bindings', () => {
