@@ -169,6 +169,26 @@ export function eveTierValue(tierId: EveInferenceTierId): string {
   return `${EVE_INFERENCE_PROVIDER_ID_PREFIX}:${tierId}`;
 }
 
+/**
+ * The DEFAULT picker selection for a fresh chat. Founder mandate (software-first
+ * GTM): the out-of-the-box experience is Hermes + EVE Standard (OpenRouter free
+ * models, cloud) — local Gemma is opt-in. So an absent/empty persisted
+ * selection resolves to EVE Standard, not the local default tier.
+ */
+export const EVE_DEFAULT_INFERENCE_SELECTION: string = eveTierValue(EVE_INFERENCE_DEFAULT_TIER_ID);
+
+/**
+ * Normalize a persisted selection to an effective one: an empty/absent value
+ * falls back to EVE Standard (the new default). A present value is returned
+ * verbatim (the picker still re-resolves a now-disabled paid tier to Standard
+ * at render time). Pure, so both the picker and the send path share one rule.
+ */
+export function resolveEffectiveInferenceSelection(persisted: string | null | undefined): string {
+  return typeof persisted === 'string' && persisted.trim().length > 0
+    ? persisted
+    : EVE_DEFAULT_INFERENCE_SELECTION;
+}
+
 /** Stable selection value for a local picker tier. */
 export function localTierValue(id: string): string {
   return `command-eve-local:${id}`;

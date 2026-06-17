@@ -39,6 +39,7 @@ import {
   findEveInferenceTier,
   isEveInferenceSelection,
   parseEveTierIdFromSelection,
+  resolveEffectiveInferenceSelection,
 } from './common/config/eveInferenceCore';
 import { readLicenseWire } from './common/config/licenseWireAtRest';
 import { buildEveCloudRoute, type CommandEveEveCloudRoute } from './process/commandEve/ollamaOpenAiShim';
@@ -397,7 +398,9 @@ function commandEveGateAuditPath(runtimeRoot: string): string {
 function buildCommandEveShimRoutingResolver(): () => CommandEveEveCloudRoute | undefined {
   return () => {
     try {
-      const selection = ProcessConfig.getSync('commandEve.inferenceSelection');
+      // Apply the same EVE-Standard default the renderer uses, so a fresh user
+      // who never opened the picker still routes to the cloud lane.
+      const selection = resolveEffectiveInferenceSelection(ProcessConfig.getSync('commandEve.inferenceSelection'));
       if (!isEveInferenceSelection(selection)) {
         return { active: false };
       }

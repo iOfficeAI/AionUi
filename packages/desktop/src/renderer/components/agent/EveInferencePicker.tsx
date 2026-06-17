@@ -27,10 +27,10 @@
 import { configService } from '@/common/config/configService';
 import {
   buildEvePickerGroups,
+  EVE_DEFAULT_INFERENCE_SELECTION,
   EVE_INFERENCE_DEFAULT_TIER_ID,
   eveTierValue,
   isEveInferenceSelection,
-  localTierValue,
   type EvePickerItem,
 } from '@/common/config/eveInferenceCore';
 import { useEntitlementGate } from '@renderer/hooks/useEntitlementGate';
@@ -52,7 +52,8 @@ const EveInferencePicker: React.FC<{
   const { status } = useEntitlementGate();
 
   const [selection, setSelection] = useState<string>(() => {
-    return configService.get('commandEve.inferenceSelection') || localTierValue('local-standard');
+    // Default to EVE Standard (cloud) for a fresh user; local Gemma is opt-in.
+    return configService.get('commandEve.inferenceSelection') || EVE_DEFAULT_INFERENCE_SELECTION;
   });
 
   // Keep local state in sync with config changes from elsewhere.

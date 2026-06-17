@@ -27,6 +27,7 @@ import {
   buildEveInferenceProvider,
   buildEvePickerGroups,
   buildEveInferenceRequestBody,
+  EVE_DEFAULT_INFERENCE_SELECTION,
   EVE_INFERENCE_FUNCTION_URL,
   EVE_INFERENCE_DEFAULT_TIER_ID,
   eveTierValue,
@@ -34,7 +35,9 @@ import {
   isEveInferenceSelection,
   isEveTierSelectable,
   isTrialingEntitlement,
+  localTierValue,
   parseEveTierIdFromSelection,
+  resolveEffectiveInferenceSelection,
   type EvePickerItem,
 } from '@/common/config/eveInferenceCore';
 
@@ -176,5 +179,29 @@ describe('eveInferenceCore — selection parsing', () => {
 
   it('default EVE tier is Standard', () => {
     expect(EVE_INFERENCE_DEFAULT_TIER_ID).toBe('eve-standard');
+  });
+});
+
+describe('eveInferenceCore — default-flip to EVE Standard (cloud)', () => {
+  it('the default selection is EVE Standard, not a local tier', () => {
+    expect(EVE_DEFAULT_INFERENCE_SELECTION).toBe(eveTierValue('eve-standard'));
+    expect(isEveInferenceSelection(EVE_DEFAULT_INFERENCE_SELECTION)).toBe(true);
+  });
+
+  it('an absent/empty persisted selection resolves to EVE Standard', () => {
+    expect(resolveEffectiveInferenceSelection(undefined)).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
+    expect(resolveEffectiveInferenceSelection(null)).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
+    expect(resolveEffectiveInferenceSelection('')).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
+    expect(resolveEffectiveInferenceSelection('   ')).toBe(EVE_DEFAULT_INFERENCE_SELECTION);
+    // The default must route to the cloud lane.
+    expect(isEveInferenceSelection(resolveEffectiveInferenceSelection(undefined))).toBe(true);
+  });
+
+  it('a present selection is returned verbatim (local stays opt-in, not overridden)', () => {
+    const local = localTierValue('local-high');
+    expect(resolveEffectiveInferenceSelection(local)).toBe(local);
+    expect(isEveInferenceSelection(resolveEffectiveInferenceSelection(local))).toBe(false);
+    const eveHigh = eveTierValue('eve-high');
+    expect(resolveEffectiveInferenceSelection(eveHigh)).toBe(eveHigh);
   });
 });
