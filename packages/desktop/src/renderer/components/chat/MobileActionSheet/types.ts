@@ -11,6 +11,8 @@ export interface MobileActionSheetOption {
   label: ReactNode;
   description?: ReactNode;
   active?: boolean;
+  /** Greyed, non-selectable row (e.g. an EVE paid tier while trialing). */
+  disabled?: boolean;
 }
 
 export interface MobileActionSheetSubMenu {

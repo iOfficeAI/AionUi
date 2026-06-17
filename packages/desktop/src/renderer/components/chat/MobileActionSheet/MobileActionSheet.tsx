@@ -192,15 +192,18 @@ const MobileActionSheet: React.FC<MobileActionSheetProps> = ({ open, onClose, ti
                     return (
                       <div
                         key={option.key}
-                        className={styles.item}
-                        onClick={() => handleSubSelect(option.key)}
+                        className={`${styles.item} ${option.disabled ? styles.disabled : ''}`}
+                        onClick={() => {
+                          if (option.disabled) return;
+                          handleSubSelect(option.key);
+                        }}
                         data-testid={`mobile-action-sheet-option-${option.key}`}
                       >
                         <div className={styles.body}>
                           <div className={styles.label}>{option.label}</div>
                           {option.description && <div className={styles.desc}>{option.description}</div>}
                         </div>
-                        {showRadio && (
+                        {showRadio && !option.disabled && (
                           <div
                             className={`${styles.radio} ${option.active ? styles.checked : ''}`}
                             aria-hidden='true'

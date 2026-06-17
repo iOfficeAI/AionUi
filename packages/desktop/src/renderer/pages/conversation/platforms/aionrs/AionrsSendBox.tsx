@@ -44,6 +44,8 @@ import { emitter, useAddEventListener } from '@/renderer/utils/emitter';
 import { mergeFileSelectionItems } from '@/renderer/utils/file/fileSelection';
 import { buildDisplayMessage, collectSelectedFiles } from '@/renderer/utils/file/messageFiles';
 import { mergeWithCapabilities, type AgentModeOption } from '@/renderer/utils/model/agentModes';
+import { useEveInferenceSelection } from '@/renderer/hooks/agent/useEveInferenceSelection';
+import { COMMAND_EVE_SHELL_ENABLED } from '@/common/config/commandEveShell';
 import { isElectronDesktop } from '@/renderer/utils/platform';
 import { Message, Tag } from '@arco-design/web-react';
 import { Brain, MagicHat, Shield } from '@icon-park/react';
@@ -110,6 +112,11 @@ const AionrsSendBox: React.FC<{
   const [isMobileSheetOpen, setIsMobileSheetOpen] = useState(false);
   const layout = useLayoutContext();
   const isMobile = Boolean(layout?.isMobile);
+  // In the Command EVE shell the mobile sheet surfaces the EVE Inference tier
+  // picker instead of the raw provider/model list (same persistence key as the
+  // desktop header + GuidPage picker). aionrs conversations are filtered out of
+  // the EVE shell, so this is a defensive parity path that stays dormant there.
+  const eveInference = useEveInferenceSelection();
   const conversationContext = useConversationContextSafe();
   const loadedSkills = conversationContext?.loadedSkills ?? [];
   const loadedMcpStatuses =
@@ -535,19 +542,54 @@ const AionrsSendBox: React.FC<{
       modeOptions.find((opt) => opt.active)?.label ?? t('agentMode.default', { defaultValue: 'Default' });
     const currentModelLabel = modelSelection.current_model?.use_model || t('conversation.welcome.selectModel');
 
-    const entries: MobileActionSheetEntry[] = [
-      {
-        key: 'model',
+    const eveInferenceEntry: MobileActionSheetEntry = (() => {
+      const eveOptions: MobileActionSheetOption[] = eveInference.groups.flatMap((group) =>
+        group.items.map((item) => ({
+          key: item.value,
+          label:
+            group.kind === 'eve'
+              ? `EVE · ${item.label}`
+              : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
+          description: item.sublabel,
+          active: item.value === eveInference.selection && !item.disabled,
+          disabled: item.disabled,
+        }))
+      );
+      const currentEveLabel = eveInference.selectedItem
+        ? eveInference.selectedItem.group === 'eve'
+          ? `EVE · ${eveInference.selectedItem.label}`
+          : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${eveInference.selectedItem.label}`
+        : t('conversation.eveInference.pick', { defaultValue: 'Modell wählen' });
+      return {
+        key: 'eve-inference',
         icon: <Brain theme='outline' size='16' />,
-        label: t('common.model', { defaultValue: 'Model' }),
-        meta: currentModelLabel,
+        label: t('conversation.eveInference.title', { defaultValue: 'EVE Inference' }),
+        meta: currentEveLabel,
         submenu: {
-          title: t('common.model', { defaultValue: 'Model' }),
-          options: modelOptions,
-          onSelect: handleSheetModelSelect,
-          emptyText: t('conversation.welcome.selectModel'),
+          title: t('conversation.eveInference.title', { defaultValue: 'EVE Inference' }),
+          options: eveOptions,
+          onSelect: (value) => eveInference.commit(value),
         },
+      };
+    })();
+
+    const modelEntry: MobileActionSheetEntry = {
+      key: 'model',
+      icon: <Brain theme='outline' size='16' />,
+      label: t('common.model', { defaultValue: 'Model' }),
+      meta: currentModelLabel,
+      submenu: {
+        title: t('common.model', { defaultValue: 'Model' }),
+        options: modelOptions,
+        onSelect: handleSheetModelSelect,
+        emptyText: t('conversation.welcome.selectModel'),
       },
+    };
+
+    const entries: MobileActionSheetEntry[] = [
+      // Founder mandate: EVE shell surfaces the EVE Inference tier picker; the
+      // raw provider/model list is replaced (not shown alongside).
+      COMMAND_EVE_SHELL_ENABLED ? eveInferenceEntry : modelEntry,
       {
         key: 'permission',
         icon: <Shield theme='outline' size='16' />,
@@ -613,6 +655,7 @@ const AionrsSendBox: React.FC<{
     attachEntries,
     currentMode,
     dynamicModes,
+    eveInference,
     handleSheetModeChange,
     handleSheetModelSelect,
     isMobile,

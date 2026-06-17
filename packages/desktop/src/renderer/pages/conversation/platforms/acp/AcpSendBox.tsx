@@ -17,6 +17,8 @@ import FilePreview from '@/renderer/components/media/FilePreview';
 import HorizontalFileList from '@/renderer/components/media/HorizontalFileList';
 import { useAcpModelInfo } from '@/renderer/hooks/agent/useAcpModelInfo';
 import { useAgentModesForBackend } from '@/renderer/hooks/agent/useAgentModesForBackend';
+import { useEveInferenceSelection } from '@/renderer/hooks/agent/useEveInferenceSelection';
+import { isCommandEveAcpConversation } from '@/common/config/commandEveShell';
 import { savePreferredMode } from '@/renderer/pages/guid/hooks/agentSelectionUtils';
 import { useAutoTitle } from '@/renderer/hooks/chat/useAutoTitle';
 import { getSendBoxDraftHook, type FileOrFolderItem } from '@/renderer/hooks/chat/useSendBoxDraft';
@@ -142,6 +144,13 @@ const AcpSendBox: React.FC<{
     onSelectModelFailed: () => Message.error(t('agent.model.switchFailed')),
   });
   const availableAgentModes = useAgentModesForBackend(backend);
+
+  // Command EVE (Hermes) conversations swap the raw ACP model row for the EVE
+  // Inference tier picker (Standard/High/Max + Private). Same persistence key as
+  // the desktop header + GuidPage picker, so a switch made in the sheet takes
+  // effect on the next turn (the send shim re-reads the live selection).
+  const isEveConversation = isCommandEveAcpConversation(backend);
+  const eveInference = useEveInferenceSelection();
 
   // Mirror AgentModeSelector's getMode sync so the sheet shows the live mode label.
   useEffect(() => {
@@ -442,9 +451,37 @@ Please check your local CLI tool authentication status`,
 
     const entries: MobileActionSheetEntry[] = [];
 
-    // Model entry: only when the agent exposes a switchable list. Otherwise
-    // (Codex with no list, no info) skip — exposing a no-op row would be noise.
-    if (modelOptions.length > 0) {
+    if (isEveConversation) {
+      // EVE Inference tier entry (Standard/High/Max + Private). High/Max stay
+      // greyed (disabled) while trialing via the shared core gating.
+      const eveOptions: MobileActionSheetOption[] = eveInference.groups.flatMap((group) =>
+        group.items.map((item) => ({
+          key: item.value,
+          label: group.kind === 'eve' ? `EVE · ${item.label}` : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${item.label}`,
+          description: item.sublabel,
+          active: item.value === eveInference.selection && !item.disabled,
+          disabled: item.disabled,
+        }))
+      );
+      const currentEveLabel = eveInference.selectedItem
+        ? eveInference.selectedItem.group === 'eve'
+          ? `EVE · ${eveInference.selectedItem.label}`
+          : `${t('common.localModel', { defaultValue: 'Lokal' })} · ${eveInference.selectedItem.label}`
+        : t('conversation.eveInference.pick', { defaultValue: 'Modell wählen' });
+      entries.push({
+        key: 'eve-inference',
+        icon: <Brain theme='outline' size='16' />,
+        label: t('conversation.eveInference.title', { defaultValue: 'EVE Inference' }),
+        meta: currentEveLabel,
+        submenu: {
+          title: t('conversation.eveInference.title', { defaultValue: 'EVE Inference' }),
+          options: eveOptions,
+          onSelect: (value) => eveInference.commit(value),
+        },
+      });
+    } else if (modelOptions.length > 0) {
+      // Model entry: only when the agent exposes a switchable list. Otherwise
+      // (Codex with no list, no info) skip — exposing a no-op row would be noise.
       entries.push({
         key: 'model',
         icon: <Brain theme='outline' size='16' />,
@@ -531,7 +568,9 @@ Please check your local CLI tool authentication status`,
     availableAgentModes,
     canSwitchModel,
     currentMode,
+    eveInference,
     handleSheetModeChange,
+    isEveConversation,
     isMobile,
     loadedMcpStatuses,
     loadedSkills,
