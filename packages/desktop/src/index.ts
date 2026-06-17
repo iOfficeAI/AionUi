@@ -34,6 +34,16 @@ import { initMainAdapterWithWindow } from './common/adapter/main';
 import { ipcBridge } from './common';
 import { initializeProcess } from './process';
 import { ProcessConfig } from './process/utils/initStorage';
+import {
+  EVE_INFERENCE_FUNCTION_URL,
+  findEveInferenceTier,
+  isEveInferenceSelection,
+  parseEveTierIdFromSelection,
+  resolveEffectiveInferenceSelection,
+} from './common/config/eveInferenceCore';
+import { readLicenseWire } from './common/config/licenseWireAtRest';
+import { buildEveCloudRoute, type CommandEveEveCloudRoute } from './process/commandEve/ollamaOpenAiShim';
+import { getDataPath } from '@process/utils/utils';
 import { registerWindowMaximizeListeners } from '@process/bridge';
 import { BackendLifecycleManager } from '@aionui/web-host';
 import { resolveBinaryPath } from '@process/backend';
@@ -370,6 +380,46 @@ function commandEveGateAuditPath(runtimeRoot: string): string {
   return path.join(runtimeRoot, 'audit', 'gate-decisions.jsonl');
 }
 
+/**
+ * Build the EVE cloud routing resolver passed to the Ollama OpenAI shim. The
+ * resolver runs PER request (sync) so it always reflects the live picker
+ * selection and the keychain-at-rest CEVE license:
+ *
+ *   - reads `commandEve.inferenceSelection` from the in-memory config cache,
+ *   - returns `{ active: false }` for any local (Privat lokal) selection,
+ *   - for an EVE tier, parses the wire tier and reads the license, returning a
+ *     route the shim POSTs to the eve-inference Edge Function (bearer = license).
+ *
+ * Fail-soft: any read error keeps the request on the local lane (returns
+ * undefined), never throwing inside the HTTP handler. The shim itself
+ * fail-closes (401/500) if an EVE route is active but the license/URL is
+ * missing, so a dropped license never becomes a silent unauthenticated call.
+ */
+function buildCommandEveShimRoutingResolver(): () => CommandEveEveCloudRoute | undefined {
+  return () => {
+    try {
+      // Apply the same EVE-Standard default the renderer uses, so a fresh user
+      // who never opened the picker still routes to the cloud lane.
+      const selection = resolveEffectiveInferenceSelection(ProcessConfig.getSync('commandEve.inferenceSelection'));
+      if (!isEveInferenceSelection(selection)) {
+        return { active: false };
+      }
+      const tierId = parseEveTierIdFromSelection(selection);
+      const tier = tierId ? findEveInferenceTier(tierId)?.tier : undefined;
+      const wireResult = readLicenseWire(getDataPath());
+      return buildEveCloudRoute({
+        isEveSelection: true,
+        tier,
+        functionUrl: EVE_INFERENCE_FUNCTION_URL,
+        license: wireResult.ok ? wireResult.wire : undefined,
+      });
+    } catch (error) {
+      console.warn('[Command EVE] EVE shim routing resolver failed; staying local:', error);
+      return undefined;
+    }
+  };
+}
+
 function writeCommandEveModelWarmupReceipt(runtimeRoot: string, receipt: CommandEveModelWarmupReceipt): void {
   try {
     if (!runtimeRoot) return;
@@ -626,6 +676,7 @@ function registerCommandEveRuntimeBridge(): void {
         (await startCommandEveOllamaOpenAiShim({
           promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
           egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+          eveRouting: buildCommandEveShimRoutingResolver(),
         }));
       commandEveOllamaShimUrl = shimUrl;
       const warmupReceipt = shouldWarm
@@ -677,6 +728,7 @@ function registerCommandEveRuntimeBridge(): void {
         (await startCommandEveOllamaOpenAiShim({
           promptProofPath: commandEvePromptProofPath(paths.runtimeRoot),
           egressReceiptPath: commandEveEgressBoundaryReceiptPath(paths.runtimeRoot),
+          eveRouting: buildCommandEveShimRoutingResolver(),
         }));
       commandEveOllamaShimUrl = shimUrl;
       const warmupReceipt = await ensureCommandEveLocalModelWarmup(receipt, shimUrl, warmCommandEveLocalModel);
@@ -1038,6 +1090,7 @@ const handleAppReady = async (): Promise<void> => {
     const shimUrl = await startCommandEveOllamaOpenAiShim({
       promptProofPath: commandEvePromptProofPath(runtimePaths.runtimeRoot),
       egressReceiptPath: commandEveEgressBoundaryReceiptPath(runtimePaths.runtimeRoot),
+      eveRouting: buildCommandEveShimRoutingResolver(),
     });
     commandEveOllamaShimUrl = shimUrl;
     mark(`commandEveOllamaShim (${shimUrl})`);

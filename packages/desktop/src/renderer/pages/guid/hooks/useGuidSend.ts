@@ -17,7 +17,7 @@ import {
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 import { configService } from '@/common/config/configService';
-import { isEveInferenceSelection } from '@/common/config/eveInferenceCore';
+import { isEveInferenceSelection, resolveEffectiveInferenceSelection } from '@/common/config/eveInferenceCore';
 import type { IMcpServer, TProviderWithModel } from '@/common/config/storage';
 import { buildAgentConversationParams } from '@/common/utils/buildAgentConversationParams';
 import { emitter } from '@/renderer/utils/emitter';
@@ -153,7 +153,11 @@ export const useGuidSend = (deps: GuidSendDeps): GuidSendResult => {
       // CEVE license bearer) and route straight to the eve-inference Edge
       // Function — no local model warmup. The local Gemma lanes fall through to
       // the existing warmup path below.
-      const inferenceSelection = configService.get('commandEve.inferenceSelection');
+      // Default a fresh chat (no persisted selection) to EVE Standard (cloud);
+      // local Gemma is opt-in. Mirrors the picker's default.
+      const inferenceSelection = resolveEffectiveInferenceSelection(
+        configService.get('commandEve.inferenceSelection')
+      );
       if (isEveInferenceSelection(inferenceSelection)) {
         const resolved = await ipcBridge.commandEve.resolveInferenceProvider
           .invoke({ selection: inferenceSelection as string })

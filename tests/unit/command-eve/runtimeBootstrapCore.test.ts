@@ -277,12 +277,34 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(configYaml).toContain('"${HERMES_HOME}/skills-command-eve"');
       expect(configYaml).toContain('disabled:');
       expect(configYaml).toContain('"red-teaming/godmode"');
+      // KEYSTONE: the full Hermes toolset is emitted for both platforms (not
+      // the previous capability-starving empty lists), and only the genuinely
+      // unsafe jailbreak skill stays disabled.
       expect(configYaml).toContain('platform_toolsets:');
+      expect(configYaml).toContain('- hermes-cli');
+      expect(configYaml).toContain('- hermes-acp');
+      expect(configYaml).not.toContain('cli: []');
+      expect(configYaml).not.toContain('acp: []');
+      // The previously-disabled off-topic / regional skills are re-enabled.
+      expect(configYaml).not.toContain('"blockchain"');
+      expect(configYaml).not.toContain('"gaming"');
+      expect(configYaml).not.toContain('"weixin"');
       expect(configYaml).toContain('mcp_servers: {}');
+      // EVE Standard (cloud) is the default lane; raw secrets still blocked and
+      // S2/S3 stays local.
+      expect(configYaml).toContain('default_lane: eve_cloud');
+      expect(configYaml).toContain('block_raw_secrets: true');
+      expect(configYaml).toContain('- S2');
+      expect(configYaml).toContain('- S3');
       expect(configYaml).toContain('kanban:');
       expect(configYaml).toContain('dispatch_in_gateway: false');
       expect(configYaml).toContain('auto_decompose: false');
       expect(configYaml).toContain(`model_url: ${baseUrl}`);
+      // SOUL.md reflects EVE-cloud-as-default and the full capability surface.
+      const soulMd = fs.readFileSync(path.join(paths.hermesHome, 'SOUL.md'), 'utf8');
+      expect(soulMd).toContain('EVE Standard');
+      expect(soulMd).toContain('full Hermes capability surface');
+      expect(soulMd).not.toContain('Default to local-first execution');
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'first-run-company-discovery', 'SKILL.md'))).toBe(true);
       expect(fs.existsSync(path.join(paths.managedSkillsRoot, 'content-machine', 'SKILL.md'))).toBe(false);
       const reconciliation = JSON.parse(fs.readFileSync(paths.runtimeReconciliation, 'utf8')) as {
@@ -291,6 +313,7 @@ describe('Command EVE runtime bootstrap core', () => {
         hermes_config: {
           mcp_servers: string[];
           skills_external_dirs: string[];
+          platform_toolsets: { cli: string[]; acp: string[] };
           kanban_dispatch_in_gateway: boolean;
           kanban_auto_decompose: boolean;
         };
@@ -300,6 +323,7 @@ describe('Command EVE runtime bootstrap core', () => {
       expect(reconciliation.prompt_label_skill_ids).toContain('content-machine');
       expect(reconciliation.hermes_config.skills_external_dirs).toEqual(['${HERMES_HOME}/skills-command-eve']);
       expect(reconciliation.hermes_config.mcp_servers).toEqual([]);
+      expect(reconciliation.hermes_config.platform_toolsets).toEqual({ cli: ['hermes-cli'], acp: ['hermes-acp'] });
       expect(reconciliation.hermes_config.kanban_dispatch_in_gateway).toBe(false);
       expect(reconciliation.hermes_config.kanban_auto_decompose).toBe(false);
       expect(reconciliation.blocked_external_mcp_transports).toEqual(['http', 'sse']);
