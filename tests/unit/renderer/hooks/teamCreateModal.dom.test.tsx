@@ -112,7 +112,6 @@ describe('TeamCreateModal', () => {
     const payload = createTeamInvokeMock.mock.calls[0][0];
     expect(resolveDefaultTeamAgentModelMock).toHaveBeenCalledWith({
       assistant_id: 'bare-aionrs',
-      assistant_backend: 'aionrs',
     });
     expect(payload.assistants[0]).toMatchObject({
       role: 'leader',

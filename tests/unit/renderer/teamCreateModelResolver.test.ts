@@ -38,7 +38,6 @@ describe('resolveDefaultTeamAgentModel', () => {
     await expect(
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-fixed',
-        assistant_backend: 'claude',
       })
     ).resolves.toBe('claude-sonnet-4-5-20250514');
   });
@@ -56,8 +55,27 @@ describe('resolveDefaultTeamAgentModel', () => {
     await expect(
       resolveDefaultTeamAgentModel({
         assistant_id: 'assistant-auto',
-        assistant_backend: 'aionrs',
       })
     ).resolves.toBe('gemini-2.5-pro');
+  });
+
+  it('falls back to the assistant engine backend when no assistant-owned model is stored', async () => {
+    getAssistantMock.mockResolvedValue({
+      defaults: {
+        model: { mode: 'auto' },
+      },
+      preferences: {
+        last_model_id: undefined,
+      },
+      engine: {
+        agent_backend: 'gemini',
+      },
+    });
+
+    await expect(
+      resolveDefaultTeamAgentModel({
+        assistant_id: 'assistant-gemini',
+      })
+    ).resolves.toBe('auto');
   });
 });

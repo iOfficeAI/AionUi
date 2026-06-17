@@ -25,15 +25,47 @@ import type { AssistantDetail } from '@/common/types/agent/assistantTypes';
  */
 export async function resolveDefaultTeamAgentModel(params: {
   assistant_id?: string;
-  assistant_backend: string;
+  assistant_backend?: string;
 }): Promise<string> {
   const { assistant_id, assistant_backend } = params;
 
-  const assistantModel = await resolveAssistantDefaultModel(assistant_id);
-  if (assistantModel) {
-    return assistantModel;
+  const assistantDetail = await resolveAssistantDetail(assistant_id);
+  if (assistantDetail) {
+    const assistantModel = resolveAssistantModel(assistantDetail);
+    if (assistantModel) {
+      return assistantModel;
+    }
+
+    return resolveBackendDefaultModel(assistantDetail.engine.agent_backend);
   }
 
+  return resolveBackendDefaultModel(assistant_backend);
+}
+
+async function resolveAssistantDetail(assistant_id?: string): Promise<AssistantDetail | undefined> {
+  if (!assistant_id) return undefined;
+
+  try {
+    const detail = (await ipcBridge.assistants.get.invoke({ id: assistant_id })) as AssistantDetail | null;
+    return detail ?? undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+function resolveAssistantModel(detail: AssistantDetail): string | undefined {
+  if (detail.defaults.model.mode === 'fixed' && detail.defaults.model.value) {
+    return detail.defaults.model.value;
+  }
+
+  if (detail.defaults.model.mode === 'auto' && detail.preferences.last_model_id) {
+    return detail.preferences.last_model_id;
+  }
+
+  return undefined;
+}
+
+function resolveBackendDefaultModel(assistant_backend?: string): Promise<string> {
   if (assistant_backend === 'gemini') {
     return resolveGeminiDefaultModel();
   }
@@ -42,28 +74,7 @@ export async function resolveDefaultTeamAgentModel(params: {
     return resolveAionrsDefaultModel();
   }
 
-  return resolveAcpDefaultModel(assistant_backend);
-}
-
-async function resolveAssistantDefaultModel(assistant_id?: string): Promise<string | undefined> {
-  if (!assistant_id) return undefined;
-
-  try {
-    const detail = (await ipcBridge.assistants.get.invoke({ id: assistant_id })) as AssistantDetail | null;
-    if (!detail) return undefined;
-
-    if (detail.defaults.model.mode === 'fixed' && detail.defaults.model.value) {
-      return detail.defaults.model.value;
-    }
-
-    if (detail.defaults.model.mode === 'auto' && detail.preferences.last_model_id) {
-      return detail.preferences.last_model_id;
-    }
-  } catch {
-    // Fall through to backend/model fallbacks
-  }
-
-  return undefined;
+  return resolveAcpDefaultModel(assistant_backend ?? 'acp');
 }
 
 async function resolveAcpDefaultModel(_assistant_backend: string): Promise<string> {

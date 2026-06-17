@@ -149,7 +149,6 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
       const dispatchConversationType = resolveSupportedConversationType(leaderAssistantBackend);
       const resolvedModel = await resolveDefaultTeamAgentModel({
         assistant_id: leaderAssistant?.id,
-        assistant_backend: leaderAssistantBackend,
       });
       assistants.push({
         slot_id: '',
