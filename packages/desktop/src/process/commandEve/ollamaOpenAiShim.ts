@@ -20,6 +20,35 @@ const DEFAULT_OLLAMA_BASE_URL = 'http://127.0.0.1:11434';
 const DEFAULT_NUM_CTX = 32_768;
 const DEFAULT_MAX_TOKENS = 512;
 
+/**
+ * Resolved EVE Inference (cloud) route for the CURRENT chat. The shim is the
+ * single OpenAI-compatible egress chokepoint Hermes points its inference at
+ * (config.yaml `model.base_url` = this shim). Hermes always sends the same
+ * local model ref, so it cannot itself signal "the user picked an EVE cloud
+ * tier" — therefore the shim asks this resolver, per request, whether to route
+ * the call to the eve-inference Edge Function instead of local Ollama.
+ *
+ * The resolver is injected at shim startup (main process) so it can read the
+ * live picker selection + the keychain-at-rest CEVE license; the shim core
+ * itself stays pure and unit-testable (the resolver is a plain function).
+ *
+ * Returning `undefined` (or `{ active: false }`) keeps the request on the local
+ * Ollama lane. Returning `{ active: true, functionUrl, license, tier }` routes
+ * it to the function with `Authorization: Bearer <license>` and `tier` in body.
+ */
+export type CommandEveEveCloudRoute = {
+  active: boolean;
+  /** Absolute https URL of the eve-inference Edge Function. */
+  functionUrl?: string;
+  /** The CEVE license wire string used verbatim as the bearer credential. */
+  license?: string;
+  /** Wire tier value POSTed in the body (e.g. "standard"). */
+  tier?: string;
+};
+
+/** Per-request resolver: is the active selection an EVE cloud tier? */
+export type CommandEveEveRoutingResolver = () => CommandEveEveCloudRoute | undefined;
+
 export type CommandEveOllamaShimOptions = {
   port?: number;
   ollamaBaseUrl?: string;
@@ -28,6 +57,11 @@ export type CommandEveOllamaShimOptions = {
   promptProofPath?: string;
   egressReceiptPath?: string;
   egressPolicyAction?: CommandEveEgressPolicyAction;
+  /**
+   * Optional EVE cloud routing resolver. When omitted, the shim behaves exactly
+   * as before (local Ollama only) — EVE routing is purely additive.
+   */
+  eveRouting?: CommandEveEveRoutingResolver;
 };
 
 export type CommandEveModelWarmupOptions = {
@@ -255,6 +289,148 @@ function writeStreamChunk(response: ServerResponse, model: string, content: stri
   );
 }
 
+function isHttpsUrl(value: string): boolean {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' && Boolean(url.hostname);
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * EVE Inference (cloud) lane. The same egress-boundary enforcement that guards
+ * the local Ollama path runs FIRST (provider.kind: 'cloud' so the receipt is
+ * truthful), then the OpenAI-compatible body — with the `tier` the function
+ * routes on — is POSTed to the eve-inference Edge Function with the CEVE license
+ * as the bearer credential. The function returns an OpenAI-compatible
+ * completion (or SSE stream), the exact shape the local path already emits, so
+ * we can passthrough verbatim.
+ *
+ * The license is sent ONLY in the Authorization header (never in the body,
+ * never logged) — the egress redactor scans message CONTENT, not headers.
+ */
+async function handleEveCloudCompletions(
+  body: Record<string, unknown>,
+  response: ServerResponse,
+  options: Required<CommandEveOllamaShimOptions>,
+  route: CommandEveEveCloudRoute
+): Promise<void> {
+  const functionUrl = typeof route.functionUrl === 'string' ? route.functionUrl.trim() : '';
+  const license = typeof route.license === 'string' ? route.license.trim() : '';
+  const tier = typeof route.tier === 'string' && route.tier.trim() ? route.tier.trim() : 'standard';
+  const model = String(body.model || '');
+  const stream = Boolean(body.stream);
+
+  // Fail closed: never make an unauthenticated request, never POST to a
+  // non-https function URL.
+  if (!isHttpsUrl(functionUrl)) {
+    jsonResponse(response, 500, {
+      error: { message: 'EVE Inference function URL is missing or not https.' },
+    });
+    return;
+  }
+  if (license.length === 0) {
+    jsonResponse(response, 401, {
+      error: { message: 'EVE Inference is unavailable: no CEVE license bearer credential.' },
+    });
+    return;
+  }
+
+  // Egress boundary — same gate as local, but the provider is a CLOUD lane.
+  const egressBoundary = await evaluateCommandEveEgressBoundary({
+    text: asMessages(body.messages).map(messageText).join('\n\n'),
+    provider: {
+      kind: 'cloud',
+      name: 'EVE Inference',
+      model: tier,
+      baseUrl: functionUrl,
+    },
+    policyAction: options.egressPolicyAction,
+  });
+  try {
+    writeCommandEveEgressBoundaryReceipt(options.egressReceiptPath, egressBoundary.receipt);
+  } catch (error) {
+    console.warn('[Command EVE] Failed to write egress boundary receipt:', error);
+  }
+  response.setHeader('x-command-eve-egress-decision', egressBoundary.decision);
+  if (egressBoundary.decision === 'block') {
+    jsonResponse(response, 451, {
+      error: {
+        message:
+          'Command EVE blocked sensitive data before model egress. Move secrets into settings, an env file, or an approved vault flow.',
+        receipt: egressBoundary.receipt,
+      },
+    });
+    return;
+  }
+  let outboundMessages = asMessages(body.messages);
+  if (egressBoundary.decision === 'redact') {
+    outboundMessages = outboundMessages.map(redactMessageContent);
+  }
+
+  const proof = buildCommandEvePromptProof({ ...body, messages: outboundMessages });
+  try {
+    writePromptProof(options.promptProofPath, proof);
+  } catch (error) {
+    console.warn('[Command EVE] Failed to write prompt proof receipt:', error);
+  }
+  response.setHeader('x-command-eve-persona-proof', proof.ok ? proof.prompt_sha256 : 'missing');
+
+  // Forward only OpenAI-standard fields + the tier the function routes on. The
+  // function STRIPS model/models/user/license itself, so the local Gemma model
+  // ref Hermes sent is harmless, but we omit it to keep the request clean.
+  const outboundBody: Record<string, unknown> = {
+    messages: outboundMessages,
+    stream,
+    tier,
+  };
+
+  let upstream: Response;
+  try {
+    upstream = await fetch(functionUrl, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        // The license rides ONLY here — never in the body, never logged.
+        authorization: `Bearer ${license}`,
+      },
+      body: JSON.stringify(outboundBody),
+    });
+  } catch {
+    // Generic 502 — never echo the error (could surface the bearer in some
+    // runtimes), matching the function's own upstream-failure discipline.
+    jsonResponse(response, 502, { error: { message: 'EVE Inference upstream unreachable.' } });
+    return;
+  }
+
+  // Stream passthrough: the function already emits OpenAI-compatible SSE.
+  if (stream && upstream.ok && upstream.body) {
+    response.writeHead(200, {
+      'content-type': upstream.headers.get('content-type') || 'text/event-stream',
+      'cache-control': 'no-cache',
+      connection: 'keep-alive',
+    });
+    const reader = upstream.body.getReader();
+    while (true) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      response.write(value);
+    }
+    response.end();
+    return;
+  }
+
+  // Non-streaming (or upstream error): passthrough the JSON verbatim. The
+  // function returns OpenAI-compatible completions on 200 and sanitized error
+  // bodies otherwise.
+  const text = await upstream.text().catch(() => '');
+  response.writeHead(upstream.status || 502, {
+    'content-type': upstream.headers.get('content-type') || 'application/json',
+  });
+  response.end(text || JSON.stringify({ error: { message: `EVE Inference request failed (${upstream.status}).` } }));
+}
+
 async function handleChatCompletions(
   request: IncomingMessage,
   response: ServerResponse,
@@ -263,6 +439,18 @@ async function handleChatCompletions(
   const body = await readBody(request);
   const model = String(body.model || '');
   const stream = Boolean(body.stream);
+
+  // EVE Inference (cloud) lane takes precedence over the local Ollama path when
+  // the active picker selection is an EVE tier. A warm-up ping ("ping") stays
+  // local — it only ever exercises the bundled local model.
+  if (!isCommandEveWarmupRequest(body)) {
+    const eveRoute = options.eveRouting();
+    if (eveRoute?.active) {
+      await handleEveCloudCompletions(body, response, options, eveRoute);
+      return;
+    }
+  }
+
   if (!isCommandEveWarmupRequest(body)) {
     const egressBoundary = await evaluateCommandEveEgressBoundary({
       text: asMessages(body.messages).map(messageText).join('\n\n'),
@@ -400,6 +588,8 @@ export async function startCommandEveOllamaOpenAiShim(shimOptions: CommandEveOll
     promptProofPath: shimOptions.promptProofPath || '',
     egressReceiptPath: shimOptions.egressReceiptPath || '',
     egressPolicyAction: shimOptions.egressPolicyAction || 'block',
+    // Default resolver keeps every request on the local lane.
+    eveRouting: shimOptions.eveRouting || ((): undefined => undefined),
   };
   server = http.createServer((request, response) => {
     void (async () => {
