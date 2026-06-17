@@ -84,6 +84,13 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
       };
     } else if (agent) {
       resolvedAgentType = resolveSupportedConversationType(backend);
+      agent_config = {
+        backend,
+        name: agent.name || (backend.charAt(0).toUpperCase() + backend.slice(1)),
+        mode: getMode(backend),
+        model_id,
+        workspace,
+      };
     }
   } else if (agentKind === 'preset') {
     const assistant = presetAssistants.find((item) => item.id === agentId);
