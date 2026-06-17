@@ -1394,7 +1394,7 @@ export interface IConfirmMessageParams {
 }
 
 export interface ICreateConversationParams {
-  type: 'acp' | 'aionrs';
+  type?: 'acp' | 'aionrs';
   id?: string;
   name?: string;
   model: TProviderWithModel;
