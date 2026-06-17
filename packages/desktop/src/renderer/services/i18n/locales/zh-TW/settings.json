@@ -986,6 +986,7 @@
     "testConnectionMissing": "「{{name}}」尚未安裝。",
     "testConnectionUnavailable": "「{{name}}」目前不可用。",
     "testConnectionError": "測試 Agent 連線失敗。",
+    "refreshingStatuses": "正在重新整理偵測狀態...",
     "statusAvailable": "可用",
     "statusUnavailable": "不可用",
     "statusMissing": "未找到",

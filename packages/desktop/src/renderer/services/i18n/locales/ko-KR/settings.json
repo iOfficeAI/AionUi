@@ -974,6 +974,7 @@
     "testConnectionMissing": "{{name}}이(가) 아직 설치되지 않았습니다.",
     "testConnectionUnavailable": "{{name}}을(를) 현재 사용할 수 없습니다.",
     "testConnectionError": "Agent 연결 테스트에 실패했습니다.",
+    "refreshingStatuses": "감지 상태를 새로 고치는 중...",
     "statusAvailable": "사용 가능",
     "statusUnavailable": "사용 불가",
     "statusMissing": "찾을 수 없음",

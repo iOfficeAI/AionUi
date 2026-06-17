@@ -1106,6 +1106,7 @@ export type I18nKey =
   | 'settings.agentManagement.marketInstalling'
   | 'settings.agentManagement.marketUpdate'
   | 'settings.agentManagement.officialAgents'
+  | 'settings.agentManagement.refreshingStatuses'
   | 'settings.agentManagement.remoteAgents'
   | 'settings.agentManagement.remoteAgentsDescription'
   | 'settings.agentManagement.statusAvailable'

@@ -892,6 +892,7 @@
     "testConnectionMissing": "«{{name}}» ще не встановлено.",
     "testConnectionUnavailable": "«{{name}}» зараз недоступний.",
     "testConnectionError": "Не вдалося перевірити з'єднання Agent.",
+    "refreshingStatuses": "Оновлюємо статус виявлення...",
     "statusAvailable": "Доступний",
     "statusUnavailable": "Недоступний",
     "statusMissing": "Не знайдено",

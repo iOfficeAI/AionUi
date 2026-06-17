@@ -965,6 +965,7 @@
     "testConnectionMissing": "«{{name}}» ещё не установлен.",
     "testConnectionUnavailable": "«{{name}}» сейчас недоступен.",
     "testConnectionError": "Не удалось проверить подключение Agent.",
+    "refreshingStatuses": "Обновляем статус обнаружения...",
     "statusAvailable": "Доступен",
     "statusUnavailable": "Недоступен",
     "statusMissing": "Не найден",

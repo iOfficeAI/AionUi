@@ -972,6 +972,7 @@
     "testConnectionMissing": "{{name}} henüz yüklü değil.",
     "testConnectionUnavailable": "{{name}} şu anda kullanılamıyor.",
     "testConnectionError": "Agent bağlantısı test edilemedi.",
+    "refreshingStatuses": "Algılama durumu yenileniyor...",
     "statusAvailable": "Kullanılabilir",
     "statusUnavailable": "Kullanılamıyor",
     "statusMissing": "Bulunamadı",

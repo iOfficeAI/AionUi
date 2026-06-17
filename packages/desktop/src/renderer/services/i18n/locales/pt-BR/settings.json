@@ -984,6 +984,7 @@
     "testConnectionMissing": "{{name}} ainda não está instalado.",
     "testConnectionUnavailable": "{{name}} está indisponível no momento.",
     "testConnectionError": "Falha ao testar a conexão do Agent.",
+    "refreshingStatuses": "Atualizando o status de detecção...",
     "statusAvailable": "Disponível",
     "statusUnavailable": "Indisponível",
     "statusMissing": "Não encontrado",

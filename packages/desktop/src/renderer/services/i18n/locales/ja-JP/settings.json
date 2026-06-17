@@ -974,6 +974,7 @@
     "testConnectionMissing": "「{{name}}」はまだインストールされていません。",
     "testConnectionUnavailable": "「{{name}}」は現在利用できません。",
     "testConnectionError": "Agent 接続のテストに失敗しました。",
+    "refreshingStatuses": "検出状態を更新しています...",
     "statusAvailable": "利用可能",
     "statusUnavailable": "利用不可",
     "statusMissing": "未検出",

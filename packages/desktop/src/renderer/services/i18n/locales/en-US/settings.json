@@ -984,6 +984,7 @@
     "testConnectionMissing": "{{name}} is not installed yet.",
     "testConnectionUnavailable": "{{name}} is unavailable.",
     "testConnectionError": "Failed to test agent connection.",
+    "refreshingStatuses": "Refreshing detection status...",
     "statusAvailable": "Available",
     "statusUnavailable": "Unavailable",
     "statusMissing": "Missing",

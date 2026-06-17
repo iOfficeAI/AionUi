@@ -185,6 +185,20 @@ describe('LocalAgents', () => {
     expect(screen.queryByText('settings.agentManagement.goToChat')).toBeNull();
   });
 
+  it('shows a lightweight refresh hint while the management view is revalidating', () => {
+    useManagedAgents.mockReturnValue({
+      agents: makeAgents(),
+      isRefreshing: true,
+      revalidate: vi.fn(),
+      refreshCatalog: vi.fn(),
+    });
+
+    render(<LocalAgents />);
+
+    expect(screen.getByText('settings.agentManagement.refreshingStatuses')).toBeInTheDocument();
+    expect(screen.getByText('Aion CLI')).toBeInTheDocument();
+  });
+
   it('renders official agents as diagnostics cards with backend/type metadata', () => {
     useManagedAgents.mockReturnValue({
       agents: makeAgents(),

@@ -12,6 +12,7 @@ import useSWR, { mutate } from 'swr';
 export type UseManagedAgentsResult = {
   agents: ManagedAgent[];
   isLoading: boolean;
+  isRefreshing: boolean;
   error: unknown;
   revalidate: () => Promise<ManagedAgent[] | undefined>;
   refreshCatalog: () => Promise<ManagedAgent[] | undefined>;
@@ -35,7 +36,7 @@ export type UseManagedAgentsResult = {
  * Do not use this anywhere other than `AgentSettings`.
  */
 export const useManagedAgents = (): UseManagedAgentsResult => {
-  const { data, isLoading, error } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
+  const { data, isLoading, isValidating, error } = useSWR<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY, fetchManagedAgents);
 
   const revalidateManaged = () => mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY);
 
@@ -48,6 +49,7 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
   return {
     agents: data ?? [],
     isLoading,
+    isRefreshing: isValidating && !isLoading,
     error,
     revalidate: revalidateManaged,
     refreshCatalog,
