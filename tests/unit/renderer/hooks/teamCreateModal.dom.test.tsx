@@ -117,8 +117,11 @@ describe('TeamCreateModal', () => {
       role: 'leader',
       assistant_id: 'bare-aionrs',
       assistant_name: 'Aion CLI',
-      assistant_backend: 'aionrs',
     });
+    // Runtime backend / conversation type are derived server-side from the
+    // assistant, so the create payload no longer carries legacy agent fields.
+    expect(payload.assistants[0]).not.toHaveProperty('assistant_backend');
+    expect(payload.assistants[0]).not.toHaveProperty('conversation_type');
     expect(payload.assistants[0]).not.toHaveProperty('custom_agent_id');
     expect(payload.assistants[0]).not.toHaveProperty('agent_name');
     expect(payload.assistants[0]).not.toHaveProperty('agent_type');

@@ -15,17 +15,24 @@ import type {
 
 // ── Parameter types for team API calls ─────────────────────────────────
 
+/**
+ * Fields the backend actually consumes when creating a team member. The
+ * runtime backend / conversation type are derived server-side from the
+ * assistant, so callers only supply assistant identity, role, and model.
+ */
+export type TeamAssistantInput = Pick<TeamAssistant, 'role' | 'assistant_name' | 'assistant_id' | 'model'>;
+
 export type ICreateTeamParams = {
   user_id: string;
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  assistants: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>[];
+  assistants: TeamAssistantInput[];
 };
 
 export type IAddTeamAssistantParams = {
   team_id: string;
-  assistant: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>;
+  assistant: TeamAssistantInput;
 };
 
 // ── Backend → Frontend ─────────────────────────────────────────────────
@@ -114,7 +121,7 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 
 // ── Frontend → Backend ─────────────────────────────────────────────────
 
-export function toBackendAssistant(a: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
+export function toBackendAssistant(a: TeamAssistantInput): Record<string, unknown> {
   if (!a.assistant_id) {
     throw new Error('assistant_id is required');
   }

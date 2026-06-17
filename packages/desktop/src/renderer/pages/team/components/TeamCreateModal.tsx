@@ -4,7 +4,8 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close, Search, CloseSmall } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import type { TTeam, TeamAssistant } from '@/common/types/team/teamTypes';
+import type { TTeam } from '@/common/types/team/teamTypes';
+import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import AionModal from '@renderer/components/base/AionModal';
@@ -19,7 +20,6 @@ import {
 } from './assistantSelectUtils';
 import type { TeamAssistantOption } from './assistantSelectUtils';
 import { resolveDefaultTeamAgentModel } from './teamCreateModelResolver';
-import { resolveSupportedConversationType } from '@/renderer/utils/model/agentTypeSupportPolicy';
 
 // [E2E SYNC] 修改此组件的 DOM 结构（class、标题、关闭按钮等）时，
 // 必须同步更新 tests/e2e/cases/teams/team-create.e2e.ts 和 team-whitelist.e2e.ts 中的 selector，
@@ -142,22 +142,15 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
-      const assistants: TeamAssistant[] = [];
+      const assistants: TeamAssistantInput[] = [];
 
       const leaderAssistant = leaderAssistantId ? assistantFromId(leaderAssistantId, allAssistants) : undefined;
-      const leaderAssistantBackend = leaderAssistant?.backend || 'acp';
-      const dispatchConversationType = resolveSupportedConversationType(leaderAssistantBackend);
       const resolvedModel = await resolveDefaultTeamAgentModel({
         assistant_id: leaderAssistant?.id,
       });
       assistants.push({
-        slot_id: '',
-        conversation_id: '',
         role: 'leader',
-        status: 'pending',
-        assistant_backend: leaderAssistantBackend,
         assistant_name: leaderAssistant?.name || 'Leader',
-        conversation_type: dispatchConversationType,
         assistant_id: leaderAssistant?.id,
         model: resolvedModel,
       });

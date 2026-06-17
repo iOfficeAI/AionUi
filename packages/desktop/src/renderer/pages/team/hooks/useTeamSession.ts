@@ -1,6 +1,7 @@
 // src/renderer/pages/team/hooks/useTeamSession.ts
 import { ipcBridge } from '@/common';
 import { normalizeTeamStatus } from '@/common/adapter/teamMapper';
+import type { TeamAssistantInput } from '@/common/adapter/teamMapper';
 import type {
   ITeamAgentRemovedEvent,
   ITeamAgentRenamedEvent,
@@ -9,7 +10,6 @@ import type {
   ITeamMcpStatusEvent,
   ITeamSessionChangedEvent,
   ITeamTaskChangedEvent,
-  TeamAssistant,
   TeammateStatus,
   TTeam,
 } from '@/common/types/team/teamTypes';
@@ -86,7 +86,7 @@ export function useTeamSession(team: TTeam) {
   }, [team.id, mutateTeam]);
 
   const addAssistant = useCallback(
-    async (assistant: Omit<TeamAssistant, 'slot_id'>) => {
+    async (assistant: TeamAssistantInput) => {
       await ipcBridge.team.addAgent.invoke({ team_id: team.id, assistant });
       await mutateTeam();
     },
