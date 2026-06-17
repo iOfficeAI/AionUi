@@ -706,6 +706,7 @@
   "contactMe": "联系我",
   "officialWebsite": "官网",
   "checkForUpdates": "检查更新",
+  "checkingForUpdates": "检查新版本中",
   "includePrereleaseUpdates": "包含预发布/dev 版本",
   "saveModelConfigFailed": "保存模型配置失败",
   "healthCheck": "健康检测",

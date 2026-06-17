@@ -17,7 +17,12 @@ import {
   type UpdateNotificationProgress,
   type UpdateNotificationState,
 } from './updateNotificationState';
+import { getIncludePrerelease, runUpdateCheck, type CheckUpdateOutcome } from './checkForUpdatesShared';
 import { setUpdateReadyState } from './updateReadyState';
+
+type AvailableOutcome = Extract<CheckUpdateOutcome, { kind: 'available' }>;
+
+export const UPDATE_AVAILABLE_EVENT = 'aionui-update-available';
 
 declare const __APP_VERSION__: string;
 
@@ -51,8 +56,6 @@ const toManualProgress = (evt: UpdateDownloadProgressEvent): UpdateNotificationP
   total: evt.totalBytes ?? 0,
   speed: formatSpeed(evt.bytesPerSecond ?? 0),
 });
-
-const getIncludePrerelease = () => localStorage.getItem('update.includePrerelease') === 'true';
 
 const createInitialState = (): UpdateNotificationState => ({
   ...initialUpdateNotificationState,
@@ -114,56 +117,55 @@ export const useUpdateNotificationController = () => {
   const checkForUpdates = useCallback(async () => {
     dispatch({ type: 'checkStarted' });
 
-    try {
-      let autoUpdateAvailable = false;
-      let autoUpdateInfo: { version: string; releaseNotes?: string } | null = null;
-      try {
-        const autoRes = await ipcBridge.autoUpdate.check.invoke({ includePrerelease: getIncludePrerelease() });
-        if (autoRes?.success && autoRes.data?.updateInfo) {
-          autoUpdateAvailable = true;
-          autoUpdateInfo = {
-            version: autoRes.data.updateInfo.version,
-            releaseNotes: autoRes.data.updateInfo.releaseNotes,
-          };
-        }
-      } catch (error) {
-        console.warn('Auto-update check error, using manual mode:', error);
-      }
+    const outcome = await runUpdateCheck({
+      includePrerelease: getIncludePrerelease(),
+      fallbackVersion: __APP_VERSION__,
+      checkFailedLabel: t('update.checkFailed'),
+    });
 
-      const res = await ipcBridge.update.check.invoke({ includePrerelease: getIncludePrerelease() });
-      if (!res?.success) {
-        throw new Error(res?.msg || t('update.checkFailed'));
-      }
-
-      const currentVersion = res.data?.currentVersion || __APP_VERSION__;
-      const latest = res.data?.latest ?? null;
-      const releasePageUrl = latest?.htmlUrl || '';
-
-      if (autoUpdateAvailable || (res.data?.updateAvailable && latest)) {
+    switch (outcome.kind) {
+      case 'available':
         dispatch({
           type: 'checkAvailable',
-          currentVersion,
-          updateInfo: latest,
-          releasePageUrl,
-          autoUpdateAvailable,
-          autoUpdateInfo,
+          currentVersion: outcome.currentVersion,
+          updateInfo: outcome.updateInfo,
+          releasePageUrl: outcome.releasePageUrl,
+          autoUpdateAvailable: outcome.autoUpdateAvailable,
+          autoUpdateInfo: outcome.autoUpdateInfo,
         });
         return;
-      }
-
-      dispatch({
-        type: 'checkUpToDate',
-        currentVersion,
-        updateInfo: latest,
-        releasePageUrl,
-      });
-    } catch (error) {
-      dispatch({
-        type: 'checkError',
-        message: error instanceof Error ? error.message : String(error),
-      });
+      case 'upToDate':
+        dispatch({
+          type: 'checkUpToDate',
+          currentVersion: outcome.currentVersion,
+          updateInfo: outcome.updateInfo,
+          releasePageUrl: outcome.releasePageUrl,
+        });
+        return;
+      case 'error':
+        dispatch({ type: 'checkError', message: outcome.message });
+        return;
     }
   }, [t]);
+
+  // Present an already-fetched "available" outcome directly, with no checking
+  // flash and no second IPC check. Respects an in-progress/ready download so a
+  // background download is never clobbered by a fresh available result.
+  const presentAvailableOutcome = useCallback((outcome: AvailableOutcome) => {
+    const current = stateRef.current;
+    if (current.status === 'downloading' || current.status === 'downloaded') {
+      dispatch({ type: 'openRequested', source: 'about', userInitiated: true });
+      return;
+    }
+    dispatch({
+      type: 'checkAvailable',
+      currentVersion: outcome.currentVersion,
+      updateInfo: outcome.updateInfo,
+      releasePageUrl: outcome.releasePageUrl,
+      autoUpdateAvailable: outcome.autoUpdateAvailable,
+      autoUpdateInfo: outcome.autoUpdateInfo,
+    });
+  }, []);
 
   const restoreDownloadedUpdate = useCallback(async () => {
     try {
@@ -222,11 +224,22 @@ export const useUpdateNotificationController = () => {
     };
     window.addEventListener('aionui-open-update-modal', handleWindowOpen);
 
+    // The About button runs its own check and only reveals the card when an
+    // update is actually available, handing over the already-fetched outcome.
+    const handleAvailable = (evt: Event) => {
+      const outcome = (evt as CustomEvent<AvailableOutcome>).detail;
+      if (outcome?.kind === 'available') {
+        presentAvailableOutcome(outcome);
+      }
+    };
+    window.addEventListener(UPDATE_AVAILABLE_EVENT, handleAvailable);
+
     return () => {
       removeOpenListener();
       window.removeEventListener('aionui-open-update-modal', handleWindowOpen);
+      window.removeEventListener(UPDATE_AVAILABLE_EVENT, handleAvailable);
     };
-  }, [openUpdateNotification]);
+  }, [openUpdateNotification, presentAvailableOutcome]);
 
   useEffect(() => {
     const removeListener = ipcBridge.autoUpdate.status.on((evt: AutoUpdateStatus) => {

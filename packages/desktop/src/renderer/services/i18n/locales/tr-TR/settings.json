@@ -694,6 +694,7 @@
   "contactMe": "Bana Ulaşın",
   "officialWebsite": "Resmi Web Sitesi",
   "checkForUpdates": "Güncellemeleri kontrol et",
+  "checkingForUpdates": "Güncellemeler denetleniyor...",
   "includePrereleaseUpdates": "Ön sürüm/geliştirici sürümlerini dahil et",
   "saveModelConfigFailed": "Model yapılandırması kaydedilemedi",
   "healthCheck": "Sağlık Kontrolü",

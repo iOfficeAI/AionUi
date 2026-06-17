@@ -686,6 +686,7 @@
   "contactMe": "Связаться со мной",
   "officialWebsite": "Официальный сайт",
   "checkForUpdates": "Проверить обновления",
+  "checkingForUpdates": "Проверка обновлений...",
   "includePrereleaseUpdates": "Включить предварительные/dev сборки",
   "saveModelConfigFailed": "Не удалось сохранить конфигурацию модели",
   "healthCheck": "Проверка здоровья",

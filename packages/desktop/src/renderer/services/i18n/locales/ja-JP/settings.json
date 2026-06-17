@@ -694,6 +694,7 @@
   "contactMe": "お問い合わせ",
   "officialWebsite": "公式サイト",
   "checkForUpdates": "更新を確認",
+  "checkingForUpdates": "アップデートを確認中...",
   "includePrereleaseUpdates": "プレリリース/dev ビルドを含める",
   "saveModelConfigFailed": "モデル設定の保存に失敗しました",
   "healthCheck": "ヘルスチェック",

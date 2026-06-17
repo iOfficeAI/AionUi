@@ -706,6 +706,7 @@
   "contactMe": "聯繫我",
   "officialWebsite": "官網",
   "checkForUpdates": "檢查更新",
+  "checkingForUpdates": "檢查新版本中",
   "includePrereleaseUpdates": "包含預發佈/dev 版本",
   "saveModelConfigFailed": "儲存模型設定失敗",
   "healthCheck": "健康檢測",

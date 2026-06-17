@@ -645,6 +645,7 @@
   "contactMe": "Зв'язатися зі мною",
   "officialWebsite": "Офіційний сайт",
   "checkForUpdates": "Перевірити оновлення",
+  "checkingForUpdates": "Перевірка оновлень...",
   "includePrereleaseUpdates": "Включити попередні/dev збірки",
   "saveModelConfigFailed": "Не вдалося зберегти конфігурацію моделі",
   "healthCheck": "Перевірка здоров'я",

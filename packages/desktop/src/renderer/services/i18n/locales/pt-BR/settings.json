@@ -706,6 +706,7 @@
   "contactMe": "Contato",
   "officialWebsite": "Site Oficial",
   "checkForUpdates": "Verificar atualizações",
+  "checkingForUpdates": "Verificando atualizações...",
   "includePrereleaseUpdates": "Incluir versões de pré-lançamento/dev",
   "saveModelConfigFailed": "Falha ao salvar a configuração do modelo",
   "healthCheck": "Verificação de Saúde",
