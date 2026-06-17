@@ -151,8 +151,8 @@ describe('teamMapper', () => {
     ).not.toHaveProperty('backend');
   });
 
-  it('keeps backend for legacy payloads without assistant identity', () => {
-    expect(
+  it('rejects new team payloads without assistant identity', () => {
+    expect(() =>
       toBackendAgent({
         role: 'teammate',
         assistant_backend: 'acp',
@@ -161,9 +161,6 @@ describe('teamMapper', () => {
         status: 'pending',
         model: 'claude',
       })
-    ).toMatchObject({
-      backend: 'acp',
-      name: 'Legacy Worker',
-    });
+    ).toThrow('assistant_id is required');
   });
 });

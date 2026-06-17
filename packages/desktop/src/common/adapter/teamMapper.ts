@@ -122,12 +122,15 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 // ── Frontend → Backend ─────────────────────────────────────────────────
 
 export function toBackendAssistant(a: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
+  if (!a.assistant_id) {
+    throw new Error('assistant_id is required');
+  }
+
   return {
     name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
     model: a.model || 'default',
-    ...(a.assistant_id ? { assistant_id: a.assistant_id } : {}),
-    ...(!a.assistant_id && a.assistant_backend ? { backend: a.assistant_backend } : {}),
+    assistant_id: a.assistant_id,
   };
 }
 
