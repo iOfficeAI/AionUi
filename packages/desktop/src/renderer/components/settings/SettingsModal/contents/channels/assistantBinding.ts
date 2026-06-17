@@ -33,6 +33,17 @@ export function resolveChannelAssistantId(saved: ChannelAssistantBinding, assist
     return explicitAssistantId;
   }
 
+  const legacyBackend =
+    (typeof saved.backend === 'string' ? saved.backend : undefined) ||
+    (typeof saved.agent_type === 'string' ? saved.agent_type : undefined);
+
+  if (legacyBackend) {
+    const mappedAssistant =
+      assistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === legacyBackend) ||
+      assistants.find((assistant) => assistant.preset_agent_type === legacyBackend);
+    if (mappedAssistant) return mappedAssistant.id;
+  }
+
   return getDefaultChannelAssistant(assistants)?.id;
 }
 
