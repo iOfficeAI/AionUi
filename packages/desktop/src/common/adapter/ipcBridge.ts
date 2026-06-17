@@ -1151,6 +1151,15 @@ export interface ICommandEveLicenseWireStatusResult {
   available: boolean;
 }
 
+export interface ICommandEveResolveInferenceProviderResult {
+  /** The resolved conversation `model` provider (local-runtime or EVE cloud). */
+  provider: TProviderWithModel;
+  /** Which lane was resolved. */
+  lane: 'local' | 'eve';
+  /** EVE tier id when lane === 'eve'. */
+  tierId?: string;
+}
+
 // ---------------------------------------------------------------------------
 // Command EVE runtime — stays IPC (local runtime, receipts, model tier prep)
 // ---------------------------------------------------------------------------
@@ -1255,6 +1264,12 @@ export const commandEve = {
   licenseWireStatus: bridge.buildProvider<IBridgeResponse<ICommandEveLicenseWireStatusResult>, void>(
     'command-eve.license-wire-status'
   ),
+  // Resolve a picker selection into the full conversation `model` provider.
+  // For an EVE tier the bearer (CEVE wire) is injected in the main process.
+  resolveInferenceProvider: bridge.buildProvider<
+    IBridgeResponse<ICommandEveResolveInferenceProviderResult>,
+    { selection?: string; localTierId?: string }
+  >('command-eve.resolve-inference-provider'),
 };
 
 // ---------------------------------------------------------------------------

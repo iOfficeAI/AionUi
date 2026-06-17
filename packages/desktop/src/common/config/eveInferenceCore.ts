@@ -174,6 +174,41 @@ export function localTierValue(id: string): string {
   return `command-eve-local:${id}`;
 }
 
+const EVE_SELECTION_PREFIX = `${EVE_INFERENCE_PROVIDER_ID_PREFIX}:`;
+const LOCAL_SELECTION_PREFIX = 'command-eve-local:';
+
+/** True iff a picker selection value belongs to the EVE Inference (cloud) group. */
+export function isEveInferenceSelection(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.startsWith(EVE_SELECTION_PREFIX);
+}
+
+/** True iff a picker selection value belongs to the Privat (lokal) group. */
+export function isLocalSelection(value: string | null | undefined): boolean {
+  return typeof value === 'string' && value.startsWith(LOCAL_SELECTION_PREFIX);
+}
+
+/**
+ * Parse an EVE tier id out of a selection value (e.g.
+ * "command-eve-inference:eve-standard" → "eve-standard"). Returns undefined
+ * when the value is not a known EVE selection.
+ */
+export function parseEveTierIdFromSelection(value: string | null | undefined): EveInferenceTierId | undefined {
+  if (!isEveInferenceSelection(value)) return undefined;
+  const tierId = (value as string).slice(EVE_SELECTION_PREFIX.length);
+  return findEveInferenceTier(tierId)?.id;
+}
+
+/**
+ * Parse a local picker tier out of a selection value (e.g.
+ * "command-eve-local:local-standard" → its EveLocalPickerTier). Returns
+ * undefined when the value is not a known local selection.
+ */
+export function parseLocalTierFromSelection(value: string | null | undefined): EveLocalPickerTier | undefined {
+  if (!isLocalSelection(value)) return undefined;
+  const id = (value as string).slice(LOCAL_SELECTION_PREFIX.length);
+  return EVE_LOCAL_PICKER_TIERS.find((tier) => tier.id === id);
+}
+
 // ---------------------------------------------------------------------------
 // Entitlement → gating. The ONLY input the gating needs is the trial flag, so
 // callers pass a minimal shape (mirrors entitlementCore's status surface).
