@@ -38,7 +38,6 @@ interface CreateTaskDialogProps {
   editJob?: ICronJob;
   conversation_id?: string;
   conversation_title?: string;
-  agent_type?: string;
 }
 
 type FrequencyType = 'manual' | 'hourly' | 'daily' | 'weekdays' | 'weekly' | 'custom';
@@ -148,7 +147,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   editJob,
   conversation_id: _conversation_id,
   conversation_title,
-  agent_type,
 }) => {
   const { t } = useTranslation();
   const [form] = Form.useForm();
@@ -377,7 +375,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
 
       const { agent_config, resolvedAgentType } = resolveCronAgentConfig({
         agentValue: values.assistant,
-        conversationAgentType: agent_type || 'acp',
         presetAssistants,
         selectedAionrsProvider: geminiCurrentModel
           ? {

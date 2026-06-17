@@ -15,7 +15,6 @@ type SelectedAionrsProvider = {
 
 type ResolveCronAgentConfigInput = {
   agentValue: string;
-  conversationAgentType?: string;
   presetAssistants: Assistant[];
   selectedAionrsProvider?: SelectedAionrsProvider;
   model_id?: string;
@@ -33,7 +32,6 @@ type ResolveCronAgentConfigResult = {
 export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): ResolveCronAgentConfigResult {
   const {
     agentValue,
-    conversationAgentType,
     presetAssistants,
     selectedAionrsProvider,
     model_id,
@@ -46,44 +44,43 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
   const colonIdx = agentValue.indexOf(':');
   const prefixedId = colonIdx >= 0 ? agentValue.substring(colonIdx + 1) : agentValue;
   const assistantSelection = presetAssistants.find((item) => item.id === prefixedId || item.id === agentValue);
+  if (!assistantSelection) {
+    throw new Error('assistant_id is required');
+  }
 
   let agent_config: ICronAgentConfig | undefined;
-  let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType(
-    conversationAgentType || 'acp'
-  );
+  let resolvedAgentType: ICreateCronJobParams['agent_type'] = resolveSupportedConversationType('acp');
 
   const assistant = assistantSelection;
-  if (assistant) {
-    const presetBackend = assistant.preset_agent_type;
-    resolvedAgentType = resolveSupportedConversationType(presetBackend);
+  const presetBackend = assistant.preset_agent_type;
+  resolvedAgentType = resolveSupportedConversationType(presetBackend);
 
-    if (presetBackend === 'aionrs') {
-      if (!selectedAionrsProvider?.id || !model_id) {
-        throw new Error(aionrsModelRequiredMessage);
-      }
-      agent_config = {
-        backend: selectedAionrsProvider.id,
-        name: assistant.name,
-        is_preset: true,
-        assistant_id: assistant.id,
-        preset_agent_type: presetBackend,
-        mode: getMode(presetBackend),
-        model_id,
-        workspace,
-      };
-    } else {
-      agent_config = {
-        backend: presetBackend as string,
-        name: assistant.name,
-        is_preset: true,
-        assistant_id: assistant.id,
-        preset_agent_type: presetBackend,
-        mode: getMode(presetBackend),
-        model_id,
-        config_options,
-        workspace,
-      };
+  if (presetBackend === 'aionrs') {
+    if (!selectedAionrsProvider?.id || !model_id) {
+      throw new Error(aionrsModelRequiredMessage);
     }
+    agent_config = {
+      backend: selectedAionrsProvider.id,
+      name: assistant.name,
+      is_preset: true,
+      assistant_id: assistant.id,
+      preset_agent_type: presetBackend,
+      mode: getMode(presetBackend),
+      model_id,
+      workspace,
+    };
+  } else {
+    agent_config = {
+      backend: presetBackend as string,
+      name: assistant.name,
+      is_preset: true,
+      assistant_id: assistant.id,
+      preset_agent_type: presetBackend,
+      mode: getMode(presetBackend),
+      model_id,
+      config_options,
+      workspace,
+    };
   }
 
   return { agent_config, resolvedAgentType };

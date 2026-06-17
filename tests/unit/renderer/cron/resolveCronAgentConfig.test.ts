@@ -80,7 +80,6 @@ describe('resolveCronAgentConfig', () => {
   it('does not write legacy custom_agent_id for new preset cron jobs', () => {
     const result = resolveCronAgentConfig({
       agentValue: 'assistant-3',
-      conversationAgentType: 'acp',
       presetAssistants: [
         assistant({
           id: 'assistant-3',
@@ -94,6 +93,17 @@ describe('resolveCronAgentConfig', () => {
 
     expect(result.agent_config).toBeDefined();
     expect(result.agent_config).not.toHaveProperty('custom_agent_id');
+  });
+
+  it('throws when the selected assistant cannot be resolved', () => {
+    expect(() =>
+      resolveCronAgentConfig({
+        agentValue: 'missing-assistant',
+        presetAssistants: [],
+        getMode: () => 'default',
+        aionrsModelRequiredMessage: 'provider required',
+      })
+    ).toThrowError('assistant_id is required');
   });
 });
 
