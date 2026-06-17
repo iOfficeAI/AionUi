@@ -236,9 +236,20 @@ removePackageScripts: true
 electronDownload:
   cache: ${env.ELECTRON_CACHE}
 
+# Auto-update feed. The DMG/zip is distributed via the PUBLIC R2 bucket, not via
+# GitHub Releases (the MathiasHeinke/company-os repo is PRIVATE, so the in-app
+# autoUpdater — which carries no GitHub token — could never fetch its releases).
+# `provider: generic` makes the BUILT app's Contents/Resources/app-update.yml
+# point at the R2 base, so the installed app reads `<url>/latest-mac.yml` (plus
+# the channel suffix from getUpdateChannel(), e.g. latest-arm64-mac.yml) over a
+# plain static HTTPS GET — no auth, no GitHub API.
+#
+# NOTE: at runtime autoUpdaterService.configureFeed() ALSO calls
+# setFeedURL({ provider: 'generic', url }) using COMMAND_EVE_UPDATE_FEED_URL /
+# the persisted `update.feedUrl`; that runtime override takes precedence over
+# this bundled app-update.yml. This block is the build-time default + the source
+# `publish-update-feed.mjs` mirrors to R2 (latest-mac.yml + zip + blockmap).
 publish:
-  provider: github
-  owner: MathiasHeinke
-  repo: company-os
+  provider: generic
+  url: https://pub-0a282738bf7a4731a6bb71c2420bfd69.r2.dev
   publishAutoUpdate: true
-  releaseType: release
