@@ -4,7 +4,7 @@ import type { RefInputType } from '@arco-design/web-react/es/Input/interface';
 import { Close, Search, CloseSmall } from '@icon-park/react';
 import { useTranslation } from 'react-i18next';
 import { ipcBridge } from '@/common';
-import type { TTeam, TeamAgent } from '@/common/types/team/teamTypes';
+import type { TTeam, TeamAssistant } from '@/common/types/team/teamTypes';
 import { useAuth } from '@renderer/hooks/context/AuthContext';
 import { useConversationAssistants } from '@renderer/pages/conversation/hooks/useConversationAssistants';
 import AionModal from '@renderer/components/base/AionModal';
@@ -33,7 +33,7 @@ type Props = {
   onCreated: (team: TTeam) => void;
 };
 
-const AgentRadioRow: React.FC<{
+const AssistantRadioRow: React.FC<{
   assistant: TeamAssistantOption;
   isSelected: boolean;
   onClick: () => void;
@@ -143,7 +143,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
     const user_id = user?.id ?? 'system_default_user';
     setLoading(true);
     try {
-      const agents: TeamAgent[] = [];
+      const assistants: TeamAssistant[] = [];
 
       const leaderAssistant = leaderAssistantId ? assistantFromId(leaderAssistantId, allAssistants) : undefined;
       const leaderAssistantBackend = resolveTeamAssistantBackend(leaderAssistant, 'acp');
@@ -153,7 +153,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         assistant_backend: leaderAssistantBackend,
         conversation_type: dispatchConversationType,
       });
-      agents.push({
+      assistants.push({
         slot_id: '',
         conversation_id: '',
         role: 'leader',
@@ -170,7 +170,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
         name,
         workspace,
         workspace_mode: 'shared',
-        agents,
+        assistants,
       });
 
       // The platform bridge swallows provider errors and returns a sentinel object
@@ -303,7 +303,7 @@ const TeamCreateModal: React.FC<Props> = ({ visible, onClose, onCreated }) => {
                     filteredAssistants.map((assistant) => {
                       const assistantId = assistantKey(assistant);
                       return (
-                        <AgentRadioRow
+                        <AssistantRadioRow
                           key={assistantId}
                           assistant={assistant}
                           isSelected={leaderAssistantId === assistantId}

@@ -70,7 +70,7 @@ import type {
   ISendTeamMessageParams,
   ITeamTeammateMessageEvent,
   TTeam,
-  TeamAgent,
+  TeamAssistant,
 } from '../types/team/teamTypes';
 import type {
   AutoUpdateStatus,
@@ -96,13 +96,13 @@ import {
   wsMappedEmitter,
 } from './httpBridge';
 import { fromApiSearchResult, type ApiMessageSearchItem } from './searchMapper';
-import type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
+import type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 import {
-  fromBackendAgent,
+  fromBackendAssistant,
   fromBackendTeam,
   fromBackendTeamList,
   fromBackendTeamOptional,
-  toBackendAgent,
+  toBackendAssistant,
 } from './teamMapper';
 import { fromBackendCompareResult, type RawCompareResult } from './fileSnapshotMapper';
 import {
@@ -1800,13 +1800,13 @@ export const hub = {
 // Team Mode API — routed to /api/teams/*
 // ---------------------------------------------------------------------------
 
-export type { IAddTeamAgentParams, ICreateTeamParams } from './teamMapper';
+export type { IAddTeamAssistantParams, ICreateTeamParams } from './teamMapper';
 
 export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
-      agents: p.agents.map(toBackendAgent),
+      agents: p.assistants.map(toBackendAssistant),
       ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam
@@ -1821,11 +1821,11 @@ export const team = {
   ),
   remove: httpDelete<void, { id: string }>((p) => `/api/teams/${p.id}`),
   addAgent: withResponseMap(
-    httpPost<TeamAgent, IAddTeamAgentParams>(
+    httpPost<TeamAssistant, IAddTeamAssistantParams>(
       (p) => `/api/teams/${p.team_id}/agents`,
-      (p) => toBackendAgent(p.agent)
+      (p) => toBackendAssistant(p.assistant)
     ),
-    fromBackendAgent
+    fromBackendAssistant
   ),
   removeAgent: httpDelete<void, { team_id: string; slot_id: string }>(
     (p) => `/api/teams/${p.team_id}/agents/${p.slot_id}`

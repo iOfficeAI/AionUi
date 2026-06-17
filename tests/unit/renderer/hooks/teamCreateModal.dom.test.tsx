@@ -76,7 +76,7 @@ import TeamCreateModal from '@/renderer/pages/team/components/TeamCreateModal';
 describe('TeamCreateModal', () => {
   beforeEach(() => {
     createTeamInvokeMock.mockReset();
-    createTeamInvokeMock.mockResolvedValue({ id: 'team-1', agents: [] });
+    createTeamInvokeMock.mockResolvedValue({ id: 'team-1', assistants: [], agents: [] });
     resolveDefaultTeamAgentModelMock.mockReset();
     resolveDefaultTeamAgentModelMock.mockResolvedValue(undefined);
   });
@@ -114,15 +114,15 @@ describe('TeamCreateModal', () => {
       assistant_backend: 'aionrs',
       conversation_type: 'aionrs',
     });
-    expect(payload.agents[0]).toMatchObject({
+    expect(payload.assistants[0]).toMatchObject({
       role: 'leader',
       assistant_id: 'bare-aionrs',
       assistant_name: 'Aion CLI',
       assistant_backend: 'aionrs',
     });
-    expect(payload.agents[0]).not.toHaveProperty('custom_agent_id');
-    expect(payload.agents[0]).not.toHaveProperty('agent_name');
-    expect(payload.agents[0]).not.toHaveProperty('agent_type');
+    expect(payload.assistants[0]).not.toHaveProperty('custom_agent_id');
+    expect(payload.assistants[0]).not.toHaveProperty('agent_name');
+    expect(payload.assistants[0]).not.toHaveProperty('agent_type');
   });
 });
 

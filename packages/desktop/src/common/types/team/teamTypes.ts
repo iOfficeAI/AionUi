@@ -14,8 +14,8 @@ export type TeammateStatus = 'pending' | 'idle' | 'active' | 'completed' | 'fail
 /** Workspace sharing strategy for the team */
 export type WorkspaceMode = 'shared' | 'isolated';
 
-/** Persisted agent configuration within a team */
-export type TeamAgent = {
+/** Persisted assistant configuration within a team */
+export type TeamAssistant = {
   slot_id: string;
   conversation_id: string;
   role: TeammateRole;
@@ -30,6 +30,9 @@ export type TeamAgent = {
   pending_confirmations?: number;
 };
 
+/** @deprecated Use TeamAssistant. */
+export type TeamAgent = TeamAssistant;
+
 /** Persisted team record (stored in SQLite `teams` table) */
 export type TTeam = {
   id: string;
@@ -38,8 +41,10 @@ export type TTeam = {
   workspace: string;
   workspace_mode: WorkspaceMode;
   leader_agent_id: string;
-  agents: TeamAgent[];
-  /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned agents inherit it. */
+  assistants: TeamAssistant[];
+  /** @deprecated Use assistants. */
+  agents: TeamAssistant[];
+  /** Current session permission mode (e.g. 'plan', 'auto'). Persisted so newly spawned assistants inherit it. */
   session_mode?: string;
   created_at: number;
   updated_at: number;
@@ -125,7 +130,9 @@ export type ITeamAgentStatusEvent = {
 /** IPC event pushed to renderer when a new agent is spawned at runtime */
 export type ITeamAgentSpawnedEvent = {
   team_id: string;
-  agent: TeamAgent;
+  assistant: TeamAssistant;
+  /** @deprecated Use assistant. */
+  agent: TeamAssistant;
 };
 
 /** IPC event pushed to renderer when an agent is removed from the team */

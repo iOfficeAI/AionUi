@@ -175,16 +175,17 @@ const TeamTabView: React.FC<TeamTabViewProps> = ({
 
 type TeamTabsProps = {
   onTabClick?: (slot_id: string) => void;
-  /** Pending permission confirmation counts per slot ID */
+  /** Pending permission confirmation counts per assistant slot ID */
   pendingCounts?: Map<string, number>;
 };
 
 /**
- * Tab bar for team mode showing agent tabs with status badges.
- * Supports scroll overflow with fade indicators and add-agent dropdown.
+ * Tab bar for team mode showing assistant tabs with status badges.
+ * Supports scroll overflow with fade indicators.
  */
 const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
-  const { agents, activeSlotId, statusMap, switchTab, renameAgent, removeAgent, reorderAgents } = useTeamTabs();
+  const { assistants, activeSlotId, statusMap, switchTab, renameAssistant, removeAssistant, reorderAssistants } =
+    useTeamTabs();
   const tabsContainerRef = useRef<HTMLDivElement>(null);
   const [showLeftFade, setShowLeftFade] = useState(false);
   const [showRightFade, setShowRightFade] = useState(false);
@@ -229,16 +230,16 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
   const handleDrop = useCallback(() => {
     if (dragSourceRef.current && dragOverSlotId) {
       // Prevent dropping onto the leader's position (index 0)
-      const targetIndex = agents.findIndex((a) => a.slot_id === dragOverSlotId);
+      const targetIndex = assistants.findIndex((assistant) => assistant.slot_id === dragOverSlotId);
       if (targetIndex !== 0) {
-        reorderAgents(dragSourceRef.current, dragOverSlotId);
+        reorderAssistants(dragSourceRef.current, dragOverSlotId);
       }
     }
     dragSourceRef.current = null;
     setDragOverSlotId(null);
-  }, [dragOverSlotId, reorderAgents, agents]);
+  }, [dragOverSlotId, reorderAssistants, assistants]);
 
-  if (agents.length === 0) return null;
+  if (assistants.length === 0) return null;
 
   return (
     <div data-testid='team-tab-bar' className='relative shrink-0 bg-2 min-h-40px'>
@@ -247,30 +248,30 @@ const TeamTabs: React.FC<TeamTabsProps> = ({ onTabClick, pendingCounts }) => {
           ref={tabsContainerRef}
           className='flex items-center h-full flex-1 overflow-x-auto overflow-y-hidden [scrollbar-width:none]'
         >
-          {agents.map((agent) => {
-            const statusInfo = statusMap.get(agent.slot_id);
+          {assistants.map((assistant) => {
+            const statusInfo = statusMap.get(assistant.slot_id);
             return (
               <TeamTabView
-                key={agent.slot_id}
-                slot_id={agent.slot_id}
-                assistant_name={agent.assistant_name}
-                assistant_backend={agent.assistant_backend}
-                icon={agent.icon}
-                conversation_id={agent.conversation_id}
-                isActive={agent.slot_id === activeSlotId}
-                status={statusInfo?.status ?? agent.status}
-                isLeader={agent.role === 'leader'}
-                pendingCount={pendingCounts?.get(agent.slot_id) ?? 0}
+                key={assistant.slot_id}
+                slot_id={assistant.slot_id}
+                assistant_name={assistant.assistant_name}
+                assistant_backend={assistant.assistant_backend}
+                icon={assistant.icon}
+                conversation_id={assistant.conversation_id}
+                isActive={assistant.slot_id === activeSlotId}
+                status={statusInfo?.status ?? assistant.status}
+                isLeader={assistant.role === 'leader'}
+                pendingCount={pendingCounts?.get(assistant.slot_id) ?? 0}
                 onSwitch={(slot_id) => {
                   switchTab(slot_id);
                   onTabClick?.(slot_id);
                 }}
-                onRename={renameAgent ? (sid, name) => void renameAgent(sid, name) : undefined}
-                onRemove={removeAgent ? (sid) => void removeAgent(sid) : undefined}
+                onRename={renameAssistant ? (sid, name) => void renameAssistant(sid, name) : undefined}
+                onRemove={removeAssistant ? (sid) => void removeAssistant(sid) : undefined}
                 onDragStart={handleDragStart}
                 onDragOver={handleDragOver}
                 onDrop={handleDrop}
-                isDragOver={dragOverSlotId === agent.slot_id}
+                isDragOver={dragOverSlotId === assistant.slot_id}
               />
             );
           })}

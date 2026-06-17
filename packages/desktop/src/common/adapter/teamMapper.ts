@@ -6,7 +6,7 @@
 
 import type {
   BackendTeammateStatus,
-  TeamAgent,
+  TeamAssistant,
   TeammateRole,
   TeammateStatus,
   TTeam,
@@ -20,13 +20,16 @@ export type ICreateTeamParams = {
   name: string;
   workspace: string;
   workspace_mode: WorkspaceMode;
-  agents: Omit<TeamAgent, 'slot_id' | 'conversation_id'>[];
+  assistants: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>[];
 };
 
-export type IAddTeamAgentParams = {
+export type IAddTeamAssistantParams = {
   team_id: string;
-  agent: Omit<TeamAgent, 'slot_id' | 'conversation_id'>;
+  assistant: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>;
 };
+
+/** @deprecated Use IAddTeamAssistantParams. */
+export type IAddTeamAgentParams = IAddTeamAssistantParams;
 
 // ── Backend → Frontend ─────────────────────────────────────────────────
 
@@ -65,7 +68,7 @@ function resolveAssistantIdentity(raw: Record<string, unknown>): string | undefi
   return (raw.assistant_id as string | undefined) ?? (raw.custom_agent_id as string | undefined);
 }
 
-export function fromBackendAgent(raw: unknown): TeamAgent {
+export function fromBackendAssistant(raw: unknown): TeamAssistant {
   const r = (raw ?? {}) as Record<string, unknown>;
   const agentType = (r.agent_type as string | undefined) ?? (r.backend as string | undefined) ?? '';
   const backend = (r.backend as string | undefined) ?? agentType;
@@ -87,9 +90,12 @@ export function fromBackendAgent(raw: unknown): TeamAgent {
   };
 }
 
+/** @deprecated Use fromBackendAssistant. */
+export const fromBackendAgent = fromBackendAssistant;
+
 export function fromBackendTeam(raw: unknown): TTeam {
   const r = (raw ?? {}) as Record<string, unknown>;
-  const agents = Array.isArray(r.agents) ? (r.agents as unknown[]).map(fromBackendAgent) : [];
+  const assistants = Array.isArray(r.agents) ? (r.agents as unknown[]).map(fromBackendAssistant) : [];
   return {
     id: (r.id as string | undefined) ?? '',
     user_id: (r.user_id as string | undefined) ?? '',
@@ -97,7 +103,8 @@ export function fromBackendTeam(raw: unknown): TTeam {
     workspace: (r.workspace as string | undefined) ?? '',
     workspace_mode: toWorkspaceMode(r.workspace_mode as string | undefined),
     leader_agent_id: (r.leader_agent_id as string | undefined) ?? '',
-    agents,
+    assistants,
+    agents: assistants,
     session_mode: r.session_mode as string | undefined,
     created_at: (r.created_at as number | undefined) ?? 0,
     updated_at: (r.updated_at as number | undefined) ?? 0,
@@ -114,7 +121,7 @@ export function fromBackendTeamOptional(raw: unknown): TTeam | null {
 
 // ── Frontend → Backend ─────────────────────────────────────────────────
 
-export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
+export function toBackendAssistant(a: Omit<TeamAssistant, 'slot_id' | 'conversation_id'>): Record<string, unknown> {
   return {
     name: a.assistant_name,
     role: a.role === 'leader' ? 'lead' : a.role,
@@ -123,3 +130,6 @@ export function toBackendAgent(a: Omit<TeamAgent, 'slot_id' | 'conversation_id'>
     ...(!a.assistant_id && a.assistant_backend ? { backend: a.assistant_backend } : {}),
   };
 }
+
+/** @deprecated Use toBackendAssistant. */
+export const toBackendAgent = toBackendAssistant;
