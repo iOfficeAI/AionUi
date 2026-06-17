@@ -1834,7 +1834,7 @@ export const team = {
   create: withResponseMap(
     httpPost<TTeam, ICreateTeamParams>('/api/teams', (p) => ({
       name: p.name,
-      agents: p.assistants.map(toBackendAssistant),
+      assistants: p.assistants.map(toBackendAssistant),
       ...(p.workspace ? { workspace: p.workspace } : {}),
     })),
     fromBackendTeam
@@ -1851,7 +1851,7 @@ export const team = {
   addAgent: withResponseMap(
     httpPost<TeamAssistant, IAddTeamAssistantParams>(
       (p) => `/api/teams/${p.team_id}/agents`,
-      (p) => toBackendAssistant(p.assistant)
+      (p) => ({ assistant: toBackendAssistant(p.assistant) })
     ),
     fromBackendAssistant
   ),
