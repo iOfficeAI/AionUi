@@ -84,6 +84,25 @@ describe('getJobAgentMeta', () => {
     expect(meta.name).toBe('Legacy name');
     expect(meta.logo).toBe('/api/assets/logos/tools/coding/codex.svg');
   });
+
+  it('does not fall back to legacy cron metadata when assistant_id is present but the assistant is missing', () => {
+    const meta = getJobAgentMeta(
+      cronJob({
+        metadata: {
+          agent_type: 'acp',
+          agent_config: {
+            assistant_id: 'missing-assistant',
+            backend: 'codex',
+            name: 'Legacy name',
+          },
+        },
+      }),
+      [],
+      LOGOS
+    );
+
+    expect(meta).toEqual({});
+  });
 });
 
 function cronJob(overrides: Partial<ICronJob>): ICronJob {

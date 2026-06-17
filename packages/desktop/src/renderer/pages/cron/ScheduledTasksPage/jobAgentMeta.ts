@@ -37,9 +37,13 @@ export function getJobAgentMeta(
   const assistantId = resolveCronAssistantId(config);
   if (assistantId) {
     const assistant = presetAssistants.find((item) => item.id === assistantId);
+    if (!assistant) {
+      return {};
+    }
+
     const rawType = normalizeAgentBackend(job.metadata.agent_type);
-    const displayName = assistant?.name || config.name || rawType;
-    const avatar = resolveAssistantAvatar(assistant?.avatar);
+    const displayName = assistant.name || rawType;
+    const avatar = resolveAssistantAvatar(assistant.avatar);
     if (avatar.kind === 'image') {
       return { name: displayName, logo: avatar.value };
     }
@@ -47,7 +51,7 @@ export function getJobAgentMeta(
       return { name: displayName, emoji: avatar.value };
     }
 
-    const presetBackend = config.preset_agent_type || (rawType === 'acp' ? config.backend : rawType);
+    const presetBackend = assistant.preset_agent_type || rawType;
     return {
       name: displayName,
       logo: resolveAgentLogo(logos, { backend: presetBackend }),
