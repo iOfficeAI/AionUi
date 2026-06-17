@@ -11,6 +11,7 @@ import { ipcBridge } from '@/common';
 import type { Assistant } from '@/common/types/agent/assistantTypes';
 import { resolveLocaleKey } from '@/common/utils';
 import CoworkLogo from '@/renderer/assets/icons/cowork.svg';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 import { resolveExtensionAssetUrl } from '@/renderer/utils/platform';
 import useSWR from 'swr';
 export interface PresetAssistantInfo {
@@ -235,7 +236,30 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
 function buildPresetInfoFromConversationAssistant(
   assistant: NonNullable<TChatConversation['assistant']>
 ): PresetAssistantInfo {
+  // Generated assistants (bare assistants reconciled from agent rows) get
+  // their avatar from the agent's `icon` field — typically a cli logo
+  // filename like `claude.svg` or `codex.svg`. `normalizeAvatar` cannot
+  // resolve those (they're not in CUSTOM_AVATAR_IMAGE_MAP) and would fall
+  // through to the default robot emoji. When that happens, look up the
+  // backend's built-in logo so the row keeps its real icon.
   const normalized = normalizeAvatar(assistant.avatar);
+  const isUnresolvedSvgFallback =
+    normalized.isEmoji &&
+    typeof assistant.avatar === 'string' &&
+    assistant.avatar.trim().toLowerCase().endsWith('.svg');
+  const isEmptyAvatarFallback = normalized.isEmoji && (!assistant.avatar || assistant.avatar.trim().length === 0);
+  if (isUnresolvedSvgFallback || isEmptyAvatarFallback) {
+    const backendLogo = getAgentLogo(assistant.backend);
+    if (backendLogo) {
+      return {
+        name: assistant.name,
+        logo: backendLogo,
+        isEmoji: false,
+        backend: assistant.backend,
+        assistantId: assistant.id,
+      };
+    }
+  }
   return {
     name: assistant.name,
     logo: normalized.logo,
@@ -305,6 +329,8 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
   return useMemo(() => {
     if (!conversation) return { info: null, isLoading: false };
 
+    const locale = i18n.language || 'en-US';
+
     if (conversation.assistant) {
       return {
         info: buildPresetInfoFromConversationAssistant(conversation.assistant),
@@ -332,7 +358,6 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       ? findAssistantByIdentityCandidates(assistantsList, explicitAssistantCandidates)
       : findAssistantByIdentityCandidates(assistantsList, legacyAssistantCandidates);
     const runtimeRowAgentId = resolveLegacyRuntimeRowId(conversation);
-    const locale = i18n.language || 'en-US';
     const adapterIdentity = (hasExplicitAssistantId ? explicitAssistantCandidates : legacyAssistantCandidates).find(
       (candidate) => candidate.startsWith('ext:')
     );
@@ -341,6 +366,21 @@ export function usePresetAssistantInfo(conversation: TChatConversation | undefin
       if (!runtimeRowAgentId) return null;
       const name = resolveLegacyRuntimeDisplayName(conversation);
       if (!name) return null;
+      // Legacy ACP rows persist `backend` (e.g. "claude", "codex") without
+      // an assistant id or snapshot. Resolve the cli logo from the backend
+      // slug so upgraded conversations keep their real icon instead of the
+      // generic robot emoji.
+      const legacyBackend =
+        typeof (conversation.extra as { backend?: unknown })?.backend === 'string'
+          ? ((conversation.extra as { backend?: string }).backend ?? '').trim()
+          : '';
+      const backendLogo = getAgentLogo(legacyBackend);
+      if (backendLogo) {
+        return {
+          info: { name, logo: backendLogo, isEmoji: false, backend: legacyBackend },
+          isLoading: false,
+        };
+      }
       return { info: { name, logo: '🤖', isEmoji: true }, isLoading: false };
     };
 

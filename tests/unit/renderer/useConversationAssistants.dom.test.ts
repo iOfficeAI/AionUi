@@ -36,4 +36,22 @@ describe('useConversationAssistants', () => {
 
     expect(result.current.presetAssistants.map((assistant) => assistant.id)).toEqual(['bare-aionrs', 'assistant-1']);
   });
+
+  it('keeps the filtered assistant list stable across rerenders when SWR data is unchanged', async () => {
+    const catalog = [
+      { id: 'bare-aionrs', name: 'Aion CLI', enabled: true, source: 'bare' },
+      { id: 'assistant-1', name: 'Researcher', source: 'user' },
+    ] satisfies Partial<Assistant>[];
+
+    (ipcBridge.assistants.list.invoke as never as ReturnType<typeof vi.fn>).mockResolvedValue(catalog);
+
+    const { result, rerender } = renderHook(() => useConversationAssistants());
+
+    await waitFor(() => expect(result.current.presetAssistants).toHaveLength(2));
+
+    const firstRenderAssistants = result.current.presetAssistants;
+    rerender();
+
+    expect(result.current.presetAssistants).toBe(firstRenderAssistants);
+  });
 });

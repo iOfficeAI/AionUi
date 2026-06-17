@@ -8,6 +8,7 @@ import { renderHook } from '@testing-library/react';
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import type { TChatConversation } from '@/common/config/storage';
 import { resolveAssistantConfigId, usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { getAgentLogo } from '@/renderer/utils/model/agentLogo';
 
 const useSWRMock = vi.fn();
 let currentLanguage = 'en-US';
@@ -34,6 +35,7 @@ vi.mock('@/common', () => ({
 
 vi.mock('@/renderer/utils/platform', () => ({
   resolveExtensionAssetUrl: (value: string | undefined) => value,
+  resolveBackendAssetUrl: (value: string | undefined) => value,
 }));
 
 vi.mock('swr', () => ({
@@ -156,6 +158,38 @@ describe('usePresetAssistantInfo', () => {
     });
   });
 
+  it('falls back to the backend logo for bare assistants whose avatar is empty', () => {
+    useSWRMock.mockImplementation((key: unknown) => {
+      if (key === 'assistants') return { data: [], isLoading: false };
+      if (key === 'extensions.acpAdapters') return { data: [], isLoading: false };
+      return { data: undefined, isLoading: false };
+    });
+
+    const conversation = {
+      ...makeConversation({
+        assistant_id: 'bare-codex',
+        backend: 'codex',
+      }),
+      assistant: {
+        id: 'bare-codex',
+        source: 'bare',
+        name: 'codex',
+        avatar: '',
+        backend: 'codex',
+      },
+    } as TChatConversation;
+
+    const { result } = renderHook(() => usePresetAssistantInfo(conversation));
+
+    expect(result.current.info).toEqual({
+      name: 'codex',
+      logo: getAgentLogo('codex'),
+      isEmoji: false,
+      backend: 'codex',
+      assistantId: 'bare-codex',
+    });
+  });
+
   it('includes preset assistant backend when the assistant catalog resolves an identity', () => {
     useSWRMock.mockImplementation((key: unknown) => {
       if (key === 'assistants') {
@@ -209,8 +243,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🤖',
-      isEmoji: true,
+      logo: getAgentLogo('gemini'),
+      isEmoji: false,
+      backend: 'gemini',
     });
   });
 
@@ -231,8 +266,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🤖',
-      isEmoji: true,
+      logo: getAgentLogo('gemini'),
+      isEmoji: false,
+      backend: 'gemini',
     });
   });
 
@@ -254,8 +290,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🤖',
-      isEmoji: true,
+      logo: getAgentLogo('gemini'),
+      isEmoji: false,
+      backend: 'gemini',
     });
   });
 
@@ -289,8 +326,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Gemini Runtime',
-      logo: '🤖',
-      isEmoji: true,
+      logo: getAgentLogo('gemini'),
+      isEmoji: false,
+      backend: 'gemini',
     });
   });
 
@@ -382,8 +420,9 @@ describe('usePresetAssistantInfo', () => {
 
     expect(result.current.info).toEqual({
       name: 'Openclaw Gateway',
-      logo: '🤖',
-      isEmoji: true,
+      logo: getAgentLogo('openclaw-gateway'),
+      isEmoji: false,
+      backend: 'openclaw-gateway',
     });
   });
 
