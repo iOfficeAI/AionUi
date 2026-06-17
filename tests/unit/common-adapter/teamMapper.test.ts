@@ -69,7 +69,7 @@ describe('teamMapper', () => {
     expect(agent.conversation_type).toBe('acp');
   });
 
-  it('hydrates assistant identity from either assistant_id or legacy custom_agent_id', () => {
+  it('hydrates assistant identity from assistant_id', () => {
     expect(
       fromBackendAgent({
         slot_id: 'slot-1',
@@ -80,7 +80,9 @@ describe('teamMapper', () => {
         assistant_id: 'assistant-1',
       }).assistant_id
     ).toBe('assistant-1');
+  });
 
+  it('ignores legacy custom_agent_id when assistant_id is absent from the backend payload', () => {
     expect(
       fromBackendAgent({
         slot_id: 'slot-2',
@@ -90,35 +92,7 @@ describe('teamMapper', () => {
         name: 'Worker',
         custom_agent_id: 'assistant-legacy',
       }).assistant_id
-    ).toBe('assistant-legacy');
-  });
-
-  it('prefers assistant_id over legacy custom_agent_id when both are present', () => {
-    expect(
-      fromBackendAgent({
-        slot_id: 'slot-3',
-        conversation_id: 'conversation-3',
-        role: 'teammate',
-        backend: 'aionrs',
-        name: 'Worker',
-        assistant_id: 'assistant-modern',
-        custom_agent_id: 'assistant-legacy',
-      }).assistant_id
-    ).toBe('assistant-modern');
-  });
-
-  it('does not expose legacy custom_agent_id on the frontend team agent shape', () => {
-    const agent = fromBackendAgent({
-      slot_id: 'slot-2',
-      conversation_id: 'conversation-2',
-      role: 'teammate',
-      backend: 'aionrs',
-      name: 'Worker',
-      custom_agent_id: 'assistant-legacy',
-    });
-
-    expect(agent.assistant_id).toBe('assistant-legacy');
-    expect(agent).not.toHaveProperty('custom_agent_id');
+    ).toBeUndefined();
   });
 
   it('preserves assistant identity when serializing agents back to the backend payload', () => {
