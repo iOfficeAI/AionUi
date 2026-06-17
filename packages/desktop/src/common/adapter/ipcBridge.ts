@@ -1327,7 +1327,7 @@ export interface ICronAgentConfigRead {
 }
 
 export interface ICronAgentConfigWrite {
-  backend: string;
+  backend?: string;
   name: string;
   assistant_id?: string;
   mode?: string;

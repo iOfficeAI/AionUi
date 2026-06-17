@@ -58,7 +58,6 @@ describe('resolveCronAgentConfig', () => {
 
     expect(result).toEqual({
       agent_config: {
-        backend: 'codex',
         name: 'Codex 助手',
         assistant_id: 'assistant-2',
         mode: 'full-access',
@@ -67,6 +66,33 @@ describe('resolveCronAgentConfig', () => {
         workspace: undefined,
       },
     });
+  });
+
+  it('omits backend for non-aionrs assistants and lets the backend derive runtime identity', () => {
+    const result = resolveCronAgentConfig({
+      agentValue: 'assistant-4',
+      presetAssistants: [
+        assistant({
+          id: 'assistant-4',
+          name: 'Claude 助手',
+          preset_agent_type: 'claude',
+        }),
+      ],
+      getMode: () => 'default',
+      aionrsModelRequiredMessage: 'provider required',
+    });
+
+    expect(result).toEqual({
+      agent_config: {
+        name: 'Claude 助手',
+        assistant_id: 'assistant-4',
+        mode: 'default',
+        model_id: undefined,
+        config_options: undefined,
+        workspace: undefined,
+      },
+    });
+    expect(result.agent_config).not.toHaveProperty('backend');
   });
 
   it('does not write legacy custom_agent_id for new preset cron jobs', () => {

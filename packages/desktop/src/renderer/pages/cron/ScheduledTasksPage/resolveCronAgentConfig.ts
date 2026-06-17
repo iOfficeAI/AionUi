@@ -65,7 +65,6 @@ export function resolveCronAgentConfig(input: ResolveCronAgentConfigInput): Reso
     };
   } else {
     agent_config = {
-      backend: presetBackend as string,
       name: assistant.name,
       assistant_id: assistant.id,
       mode: getMode(presetBackend),
