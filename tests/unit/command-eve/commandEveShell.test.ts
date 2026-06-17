@@ -6,12 +6,14 @@ import {
   COMMAND_EVE_EGRESS_PROXY_OPENAI_BASE_URL,
   COMMAND_EVE_LOCAL_RUNTIME_PROVIDER_ID,
   COMMAND_EVE_LOCAL_MODEL_TIERS,
+  COMMAND_EVE_SHELL_ENABLED,
   getCommandEveAcpModelIdForTier,
   getCommandEveDefaultAcpModelId,
   getCommandEveDefaultAcpModelIdForTier,
   getCommandEveLocalAcpModelInfo,
   getCommandEveLocalAcpModelInfoForTier,
   getCommandEveLocalRuntimeProvider,
+  isCommandEveAcpConversation,
   normalizeCommandEveLocalModelTierId,
 } from '@/common/config/commandEveShell';
 
@@ -74,5 +76,28 @@ describe('commandEveShell', () => {
     expect(provider.api_key).toBe('command-eve-local-loopback');
     expect(provider.use_model).toBe('custom:command-eve-gemma4-12b-64k:latest');
     expect(provider.context_limit).toBe(65_536);
+  });
+
+  describe('isCommandEveAcpConversation', () => {
+    // The unit test runner does not set AIONUI_UPSTREAM_MODE=1, so the EVE shell
+    // is enabled and the helper keys purely off the backend being Hermes.
+    it('runs with the EVE shell enabled in this test env', () => {
+      expect(COMMAND_EVE_SHELL_ENABLED).toBe(true);
+    });
+
+    it('detects the Hermes (EVE) backend as a Command EVE conversation', () => {
+      expect(isCommandEveAcpConversation('hermes')).toBe(true);
+      expect(isCommandEveAcpConversation(COMMAND_EVE_DEFAULT_ACP_BACKEND)).toBe(true);
+    });
+
+    it('rejects every other CLI/agent backend so they keep the raw model picker', () => {
+      expect(isCommandEveAcpConversation('codex')).toBe(false);
+      expect(isCommandEveAcpConversation('claude')).toBe(false);
+      expect(isCommandEveAcpConversation('gemini')).toBe(false);
+      expect(isCommandEveAcpConversation('aionrs')).toBe(false);
+      expect(isCommandEveAcpConversation(undefined)).toBe(false);
+      expect(isCommandEveAcpConversation(null)).toBe(false);
+      expect(isCommandEveAcpConversation('')).toBe(false);
+    });
   });
 });
