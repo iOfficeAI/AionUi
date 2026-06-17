@@ -5,8 +5,7 @@
  *
  * Unit tests for renderer/utils/model/agentTypes.ts → fetchManagedAgents.
  * The settings management fetcher must hit the dedicated `getManagedAgents`
- * bridge (`/api/agents?include_disabled=true`), never the picker-safe
- * `getAvailableAgents` endpoint, and degrade to [] on failure.
+ * bridge (`/api/agents/management`) and degrade to [] on failure.
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
@@ -14,7 +13,6 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 vi.mock('@/common', () => ({
   ipcBridge: {
     acpConversation: {
-      getAvailableAgents: { invoke: vi.fn() },
       getManagedAgents: { invoke: vi.fn() },
     },
   },
@@ -34,8 +32,6 @@ describe('fetchManagedAgents', () => {
 
     await expect(fetchManagedAgents()).resolves.toEqual(rows);
     expect(ipcBridge.acpConversation.getManagedAgents.invoke).toHaveBeenCalledTimes(1);
-    // Must NOT fall back to the picker-safe endpoint.
-    expect(ipcBridge.acpConversation.getAvailableAgents.invoke).not.toHaveBeenCalled();
   });
 
   it('returns [] when the bridge rejects', async () => {

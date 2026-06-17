@@ -6,15 +6,12 @@
 
 import { ipcBridge } from '@/common';
 
-/** SWR key for agent metadata rows (from `/api/agents`). */
-export const DETECTED_AGENTS_SWR_KEY = 'agents.detected';
-
 /**
- * SWR key for the Agent settings management view
- * (`/api/agents?include_disabled=true`). Kept separate from
- * {@link DETECTED_AGENTS_SWR_KEY} so user-disabled agents never leak into
- * assistant-editor detection surfaces that still derive backend options from
- * live agent metadata.
+ * SWR key for the Agent settings management view (`/api/agents/management`).
+ *
+ * Phase 2 removed the renderer-side detected-agent candidate cache; business
+ * surfaces now consume assistants only. The management view keeps its own
+ * diagnostics cache so disabled/missing rows remain visible for troubleshooting.
  */
 export const MANAGED_AGENTS_SWR_KEY = 'agents.managed';
 
@@ -70,13 +67,7 @@ export type AgentHandshake = {
   available_commands?: unknown;
 };
 
-/**
- * Unified agent metadata returned by `/api/agents`.
- *
- * Replaces the old split of `DetectedAgent` / `AvailableAgent` — the
- * backend now stores the same shape in the `agent_metadata` table,
- * caches it in-process, and serves it directly over HTTP.
- */
+/** Unified agent metadata persisted in the backend `agent_metadata` table. */
 export type AgentMetadata = {
   id: string;
   icon?: string;
@@ -136,25 +127,12 @@ export type AgentMetadata = {
  *
  * This is intentionally separate from `AgentMetadata`: the management surface
  * needs disabled/missing rows plus health-check snapshots, while business
- * pickers should continue to consume `/api/agents` only.
+ * surfaces no longer consume `/api/agents` directly.
  */
 export type ManagedAgent = Omit<AgentMetadata, 'available' | 'handshake'> & {
   installed: boolean;
   status: AgentManagementStatus;
 };
-
-/** Shared fetcher for DETECTED_AGENTS_SWR_KEY — single source of truth. */
-export async function fetchDetectedAgents(): Promise<AgentMetadata[]> {
-  try {
-    const agents = await ipcBridge.acpConversation.getAvailableAgents.invoke();
-    if (Array.isArray(agents)) {
-      return agents as AgentMetadata[];
-    }
-  } catch {
-    // fallback to empty
-  }
-  return [];
-}
 
 /**
  * Fetcher for MANAGED_AGENTS_SWR_KEY — the Agent settings management view.
