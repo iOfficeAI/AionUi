@@ -282,18 +282,18 @@ const ChatConversation: React.FC<{
     if (isMobile) return undefined;
     if (isLegacyReadOnlyConversation) return undefined;
     if (conversation.type === 'acp') {
-      const extra = conversation.extra as { backend?: string; current_model_id?: string };
+      const extra = conversation.extra as { current_model_id?: string };
       return (
         <AcpModelSelector
           conversation_id={conversation.id}
-          backend={extra.backend}
+          backend={resolvedConversationBackend}
           initialModelId={extra.current_model_id}
           waitForWarmup
         />
       );
     }
     return <GoogleModelSelector disabled={true} />;
-  }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation]);
+  }, [conversation, isAionrsConversation, isMobile, isLegacyReadOnlyConversation, resolvedConversationBackend]);
 
   if (conversation && conversation.type === 'aionrs') {
     return <AionrsConversationPanel key={conversation.id} conversation={conversation} sliderTitle={sliderTitle} />;
