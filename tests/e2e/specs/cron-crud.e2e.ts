@@ -335,7 +335,10 @@ test.describe('Cron via AI conversation', () => {
     // Expand the scheduled-task sidebar section when needed.
     const childEntry = page.locator(`[data-testid="cron-child-sortable-${conversationId}"]`);
     if (!(await childEntry.isVisible().catch(() => false))) {
-      const scheduledSection = page.locator('.sider-section-label').filter({ hasText: /Scheduled Tasks|定时任务/ }).first();
+      const scheduledSection = page
+        .locator('.sider-section-label')
+        .filter({ hasText: /Scheduled Tasks|定时任务/ })
+        .first();
       await expect(scheduledSection).toBeVisible({ timeout: 10_000 });
       await scheduledSection.click();
     }

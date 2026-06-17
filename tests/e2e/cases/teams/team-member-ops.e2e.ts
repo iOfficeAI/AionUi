@@ -90,7 +90,13 @@ test.describe('Team Member Ops', () => {
     const memberName = `E2E-rm-${Date.now()}`;
     const addResult = await invokeBridge<{ slot_id: string } | null>(page, 'team.add-agent', {
       team_id: teamId,
-      agent: { name: memberName, role: 'teammate', assistant_id: memberAssistantId, backend: 'claude', model: 'claude' },
+      agent: {
+        name: memberName,
+        role: 'teammate',
+        assistant_id: memberAssistantId,
+        backend: 'claude',
+        model: 'claude',
+      },
     }).catch(() => null);
 
     if (!addResult?.slot_id) {
