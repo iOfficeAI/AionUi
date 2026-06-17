@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { mutate } from 'swr';
 import type { IHubAgentItem } from '@/common/types/agent/hub';
 import { ipcBridge } from '@/common';
-import { DETECTED_AGENTS_SWR_KEY, MANAGED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
+import { MANAGED_AGENTS_SWR_KEY } from '@renderer/utils/model/agentTypes';
 
 export function useHubAgents() {
   const [agents, setAgents] = useState<IHubAgentItem[]>([]);
@@ -44,10 +44,9 @@ export function useHubAgents() {
         })
       );
 
-      // After install completes, revalidate agent caches so assistant/editor
-      // pickers and the Agent settings diagnostics page reflect the new tool.
+      // After install completes, revalidate the diagnostics catalog only.
+      // Business pickers consume assistants, not `/api/agents`.
       if (payload.status === 'installed') {
-        mutate(DETECTED_AGENTS_SWR_KEY);
         mutate(MANAGED_AGENTS_SWR_KEY);
       }
     });

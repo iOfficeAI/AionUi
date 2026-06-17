@@ -29,9 +29,7 @@ vi.mock('@/common', () => ({
 }));
 
 vi.mock('@/renderer/utils/model/agentTypes', () => ({
-  DETECTED_AGENTS_SWR_KEY: 'agents.detected',
   MANAGED_AGENTS_SWR_KEY: 'agents.managed',
-  fetchDetectedAgents: vi.fn(),
   fetchManagedAgents: vi.fn(),
 }));
 
@@ -85,7 +83,7 @@ describe('useManagedAgents', () => {
     expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCatalog refreshes both the management key and the shared detected cache', async () => {
+  it('refreshCatalog refreshes only the management key', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -95,10 +93,10 @@ describe('useManagedAgents', () => {
     });
 
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
-  it('refreshCustomAgents triggers a backend rescan then refreshes both caches', async () => {
+  it('refreshCustomAgents triggers a backend rescan then refreshes only the management cache', async () => {
     (useSWR as any).mockReturnValue({ data: [], error: null, isLoading: false });
 
     const { result } = renderHook(() => useManagedAgents());
@@ -109,7 +107,7 @@ describe('useManagedAgents', () => {
 
     expect(ipcBridge.acpConversation.refreshCustomAgents.invoke).toHaveBeenCalled();
     expect(mutate).toHaveBeenCalledWith('agents.managed');
-    expect(mutate).toHaveBeenCalledWith('agents.detected');
+    expect(mutate).not.toHaveBeenCalledWith('agents.detected');
   });
 
   it('getManagedAgents fetches the management catalog without invalidating the detected cache', async () => {

@@ -6,7 +6,7 @@
 
 import { ipcBridge } from '@/common';
 import type { ManagedAgent } from '@/renderer/utils/model/agentTypes';
-import { DETECTED_AGENTS_SWR_KEY, MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
+import { MANAGED_AGENTS_SWR_KEY, fetchManagedAgents } from '@/renderer/utils/model/agentTypes';
 import useSWR, { mutate } from 'swr';
 
 export type UseManagedAgentsResult = {
@@ -29,9 +29,9 @@ export type UseManagedAgentsResult = {
  * diagnostics-only changes such as health checks that should not invalidate the
  * shared detected-agent catalog.
  *
- * `refreshCatalog` additionally invalidates the shared detected-agent cache and
- * should be used only when the underlying agent directory actually changed
- * (custom-agent create/update/delete/toggle or refresh scans).
+ * `refreshCatalog` refreshes the management catalog after structural changes
+ * (custom-agent create/update/delete/toggle or refresh scans). Business
+ * assistant pickers must not depend on this hook or on `/api/agents`.
  *
  * Do not use this anywhere other than `AgentSettings`.
  */
@@ -41,9 +41,7 @@ export const useManagedAgents = (): UseManagedAgentsResult => {
   const revalidateManaged = () => mutate<ManagedAgent[]>(MANAGED_AGENTS_SWR_KEY);
 
   const refreshCatalog = async () => {
-    const managed = await revalidateManaged();
-    await mutate(DETECTED_AGENTS_SWR_KEY);
-    return managed;
+    return revalidateManaged();
   };
 
   return {
