@@ -17,6 +17,7 @@ export interface PresetAssistantInfo {
   name: string;
   logo: string;
   isEmoji: boolean;
+  backend?: string;
   assistantId?: string;
 }
 
@@ -222,7 +223,13 @@ function buildPresetInfoFromAssistant(assistant: Assistant, locale: string): Pre
   const name = assistant.name_i18n?.[localeKey] || assistant.name_i18n?.[locale] || assistant.name || assistant.id;
   const avatar = typeof assistant.avatar === 'string' ? assistant.avatar : '';
   const normalized = normalizeAvatar(avatar);
-  return { name, logo: normalized.logo, isEmoji: normalized.isEmoji, assistantId: assistant.id };
+  return {
+    name,
+    logo: normalized.logo,
+    isEmoji: normalized.isEmoji,
+    backend: assistant.preset_agent_type,
+    assistantId: assistant.id,
+  };
 }
 
 function inferLegacyAssistantInfo(

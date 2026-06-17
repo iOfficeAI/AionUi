@@ -9,6 +9,7 @@ import type { ITeamRunAck } from '@/common/types/team/teamTypes';
 import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
+import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
@@ -88,6 +89,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   onTeamRunAck,
 }) => {
   const { t } = useTranslation();
+  const { info: presetAssistantInfo } = usePresetAssistantInfo(conversation);
   // Single source of truth for the team greeting. Each *Chat simply forwards
   // `emptySlot` to MessageList. The empty state can derive preset assistant
   // details from the shared SWR-cached conversation record, but it should
@@ -117,6 +119,12 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
     [isLeader, onTeamRunAck, slot_id, team_id]
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
+  const resolvedAssistantBackend =
+    assistant_backend?.trim() ||
+    presetAssistantInfo?.backend?.trim() ||
+    (conversation.type === 'acp'
+      ? ((conversation.extra as { backend?: string } | undefined)?.backend ?? 'claude')
+      : conversation.type);
   const teamRuntime =
     team_id && slot_id
       ? buildTeamSendRuntime({
@@ -147,7 +155,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
             key={conversation.id}
             conversation_id={conversation.id}
             workspace={conversation.extra?.workspace}
-            backend={assistant_backend ?? conversation.extra?.backend ?? 'claude'}
+            backend={resolvedAssistantBackend}
             session_mode={conversation.extra?.session_mode}
             agent_name={assistant_name ?? (conversation.extra as { agent_name?: string })?.agent_name}
             hideSendBox={resolvedHideSendBox}
