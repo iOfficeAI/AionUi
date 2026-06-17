@@ -7,6 +7,7 @@
 import { ipcBridge } from '@/common';
 import { AgentLogoIcon } from '@/renderer/components/agent/AgentBadge';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 import React from 'react';
 import useSWR from 'swr';
 
@@ -21,21 +22,7 @@ const MobileConversationBrand: React.FC<MobileConversationBrandProps> = ({ conve
     () => ipcBridge.conversation.get.invoke({ id: conversation_id })
   );
   const { info: presetAssistant } = usePresetAssistantInfo(conversation || undefined);
-
-  const backend =
-    conversation?.type === 'acp'
-      ? conversation.extra?.backend
-      : conversation?.type === 'aionrs'
-        ? 'aionrs'
-        : conversation?.type === 'codex'
-          ? 'codex'
-          : conversation?.type === 'openclaw-gateway'
-            ? 'openclaw-gateway'
-            : conversation?.type === 'nanobot'
-              ? 'nanobot'
-              : conversation?.type === 'remote'
-                ? 'remote'
-                : conversation?.type;
+  const backend = resolveConversationBackend(conversation, presetAssistant?.backend);
 
   const showLogo = Boolean(backend || presetAssistant);
   const title = conversation?.name || fallbackTitle;

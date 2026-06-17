@@ -7,6 +7,7 @@ import { getSendBoxDraftHook } from '@renderer/hooks/chat/useSendBoxDraft';
 import { getAgentLogo } from '@renderer/utils/model/agentLogo';
 import { usePresetAssistantInfo } from '@renderer/hooks/agent/usePresetAssistantInfo';
 import { resolveBackendAssetUrl } from '@renderer/utils/platform';
+import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 
 const useAcpDraft = getSendBoxDraftHook('acp', { _type: 'acp', atPath: [], content: '', uploadFile: [] });
 const useAionrsDraft = getSendBoxDraftHook('aionrs', { _type: 'aionrs', atPath: [], content: '', uploadFile: [] });
@@ -36,26 +37,6 @@ type TeamDraftKind = 'acp' | 'aionrs';
 /** Map a conversation.type onto the runnable draft store. */
 const toDraftKind = (type: TChatConversation['type']): TeamDraftKind => {
   return type === 'aionrs' ? 'aionrs' : 'acp';
-};
-
-const resolveAssistantBackendFromConversation = (
-  conversation: TChatConversation,
-  presetAssistantBackend?: string,
-  explicitAssistantBackend?: string
-): string => {
-  if (explicitAssistantBackend?.trim()) {
-    return explicitAssistantBackend.trim();
-  }
-  if (presetAssistantBackend?.trim()) {
-    return presetAssistantBackend.trim();
-  }
-  if (conversation.type === 'acp') {
-    return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'acp';
-  }
-  if (conversation.type === 'openclaw-gateway') {
-    return (conversation.extra as { backend?: string } | undefined)?.backend ?? 'openclaw-gateway';
-  }
-  return conversation.type;
 };
 
 const resolveAssistantName = (
@@ -113,11 +94,7 @@ const TeamChatEmptyState: React.FC<Props> = ({
   )?.trim();
   if (!team_id) return null;
 
-  const assistantBackend = resolveAssistantBackendFromConversation(
-    conversation,
-    presetInfo?.backend,
-    assistant_backend
-  );
+  const assistantBackend = resolveConversationBackend(conversation, assistant_backend || presetInfo?.backend) || 'acp';
   const assistantName = resolveAssistantName(conversation, presetInfo?.name ?? null, assistant_name);
   const explicitLogo = resolveBackendAssetUrl(icon) ?? icon;
   const backendLogo = getAgentLogo(assistantBackend);

@@ -31,6 +31,7 @@ import AionrsModelSelector from '../platforms/aionrs/AionrsModelSelector';
 import { useAionrsModelSelection } from '../platforms/aionrs/useAionrsModelSelection';
 import { useConversationRuntimeView } from '../runtime/useConversationRuntimeView';
 import { isLegacyReadOnlyConversationType } from '../utils/conversationRuntime';
+import { resolveConversationBackend } from '../utils/conversationAssistantIdentity';
 import LegacyReadOnlyConversation from '../platforms/legacy/LegacyReadOnlyConversation';
 // import SkillRuleGenerator from './components/SkillRuleGenerator'; // Temporarily hidden
 
@@ -229,21 +230,7 @@ const ChatConversation: React.FC<{
   const acpConversation = isAionrsConversation ? undefined : conversation;
   const { info: presetAssistantInfo, isLoading: isLoadingPreset } = usePresetAssistantInfo(acpConversation);
   const acpAssistantId = presetAssistantInfo?.assistantId;
-  const resolvedConversationBackend =
-    presetAssistantInfo?.backend ||
-    (conversation?.type === 'acp'
-      ? conversation?.extra?.backend
-      : conversation?.type === 'aionrs'
-        ? 'aionrs'
-        : conversation?.type === 'codex'
-          ? 'codex'
-          : conversation?.type === 'openclaw-gateway'
-            ? 'openclaw-gateway'
-            : conversation?.type === 'nanobot'
-              ? 'nanobot'
-              : conversation?.type === 'remote'
-                ? 'remote'
-                : undefined);
+  const resolvedConversationBackend = resolveConversationBackend(conversation, presetAssistantInfo?.backend);
 
   const conversationAgentName = (conversation?.extra as { agent_name?: string } | undefined)?.agent_name;
   const assistantDisplayName = presetAssistantInfo?.name || conversationAgentName;

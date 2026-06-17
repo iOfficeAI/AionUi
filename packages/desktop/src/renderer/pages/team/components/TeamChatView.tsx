@@ -10,6 +10,7 @@ import { buildTeamSendRuntime, buildTeamStopHandler } from './teamSendRuntime';
 import type { TeamRunViewState } from '../hooks/useTeamRunView';
 import TeamChatEmptyState from './TeamChatEmptyState';
 import { usePresetAssistantInfo } from '@/renderer/hooks/agent/usePresetAssistantInfo';
+import { resolveConversationBackend } from '@/renderer/pages/conversation/utils/conversationAssistantIdentity';
 
 const AcpChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/acp/AcpChat'));
 const AionrsChat = React.lazy(() => import('@/renderer/pages/conversation/platforms/aionrs/AionrsChat'));
@@ -120,11 +121,7 @@ const TeamChatView: React.FC<TeamChatViewProps> = ({
   );
   const teamSendMessageOverride = team_id ? teamSendMessage : undefined;
   const resolvedAssistantBackend =
-    assistant_backend?.trim() ||
-    presetAssistantInfo?.backend?.trim() ||
-    (conversation.type === 'acp'
-      ? ((conversation.extra as { backend?: string } | undefined)?.backend ?? 'claude')
-      : conversation.type);
+    resolveConversationBackend(conversation, assistant_backend || presetAssistantInfo?.backend) || 'claude';
   const teamRuntime =
     team_id && slot_id
       ? buildTeamSendRuntime({
