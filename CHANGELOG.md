@@ -1,5 +1,37 @@
 # Changelog
 
+## [2.1.20](https://github.com/iOfficeAI/AionUi/compare/v2.1.19...v2.1.20) (2026-06-17)
+
+### Desktop
+
+#### Features
+
+- **agent:** combine header model thinking selector (#3358)
+- **update:** add singleton update notification (#3351)
+- **team:** handle queued team runtime metadata (#3349)
+
+#### Bug Fixes
+
+- **team:** wait for solo turn before handoff queue drain (#3353)
+- **assistant:** remove leftover gap above assistant list (#3344)
+
+### Core ([v0.1.31](https://github.com/iOfficeAI/AionCore/releases/tag/v0.1.31))
+
+#### Features
+
+- **assistant:** add built-in AionUi self-management assistant ([#474](https://github.com/iOfficeAI/AionCore/issues/474))
+- **assistant:** expand AionUi assistant into a butler with remote-access ([#481](https://github.com/iOfficeAI/AionCore/issues/481))
+- enforce TeamRun ownership for agent turns ([#483](https://github.com/iOfficeAI/AionCore/issues/483))
+- **team:** support queued team_send_message semantics ([#479](https://github.com/iOfficeAI/AionCore/issues/479))
+
+#### Bug Fixes
+
+- **acp:** persist runtime model and mode into assistant preferences ([#482](https://github.com/iOfficeAI/AionCore/issues/482))
+- harden ACP image path handling ([#477](https://github.com/iOfficeAI/AionCore/issues/477))
+- **team:** retry handoff turns after runtime release ([#480](https://github.com/iOfficeAI/AionCore/issues/480))
+
+---
+
 ## [2.1.19](https://github.com/iOfficeAI/AionUi/compare/v2.1.18...v2.1.19) (2026-06-15)
 
 ### Desktop
