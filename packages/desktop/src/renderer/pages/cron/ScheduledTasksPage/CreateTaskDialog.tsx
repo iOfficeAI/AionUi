@@ -166,7 +166,10 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
   const [model_id, setModelId] = useState<string | undefined>(undefined);
   const [config_options, setConfigOptions] = useState<Record<string, string> | undefined>(undefined);
   const [workspace, setWorkspace] = useState<string | undefined>(undefined);
-  const [selectedAssistantId, setSelectedAssistantId] = useState<string | undefined>(undefined);
+  // Form.Item with `field="assistant"` owns the value via Arco's Form store —
+  // attaching a separate `onChange` to <Select> would be overridden by the
+  // injected one. Watch the field instead so derived state stays in sync.
+  const selectedAssistantId = Form.useWatch('assistant', form) as string | undefined;
 
   // Populate form when entering edit mode
   useEffect(() => {
@@ -188,7 +191,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
         )
       );
       const agentKey = getAssistantSelectionFromJob(editJob, presetAssistants);
-      setSelectedAssistantId(agentKey);
       form.setFieldsValue({
         name: editJob.name,
         description: getDescriptionInitialValue(editJob),
@@ -210,7 +212,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
       setModelId(undefined);
       setConfigOptions(undefined);
       setWorkspace(undefined);
-      setSelectedAssistantId(undefined);
     }
   }, [visible, editJob, form, presetAssistants]);
 
@@ -352,13 +353,26 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
     }
   };
 
-  const handleAssistantChange = useCallback((value: string) => {
-    setSelectedAssistantId(value);
-    // Reset model and config_options when agent changes
+  // Reset advanced settings when the user manually switches assistants.
+  // The edit-mode populate-effect runs first and seeds these from editJob,
+  // so we skip the initial sync by tracking the last assistant we cleared for.
+  const lastClearedAssistantRef = React.useRef<string | undefined>(undefined);
+  useEffect(() => {
+    if (!visible) {
+      lastClearedAssistantRef.current = selectedAssistantId;
+      return;
+    }
+    if (lastClearedAssistantRef.current === selectedAssistantId) return;
+    if (lastClearedAssistantRef.current === undefined) {
+      // First sync after dialog open — keep edit-mode seeded values.
+      lastClearedAssistantRef.current = selectedAssistantId;
+      return;
+    }
+    lastClearedAssistantRef.current = selectedAssistantId;
     setModelId(undefined);
     setConfigOptions(undefined);
-    // Workspace remains unchanged (agent-agnostic)
-  }, []);
+    // Workspace remains unchanged (agent-agnostic).
+  }, [visible, selectedAssistantId]);
 
   const handleWorkspaceClear = useCallback(() => {
     setWorkspace(undefined);
@@ -475,7 +489,6 @@ const CreateTaskDialog: React.FC<CreateTaskDialogProps> = ({
           >
             <Select
               placeholder={t('cron.page.form.assistantPlaceholder')}
-              onChange={handleAssistantChange}
               renderFormat={(_option, value) => {
                 const assistantId = value as unknown as string;
                 if (!assistantId) return '';
