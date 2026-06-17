@@ -25,6 +25,10 @@ describe('guid assistant selection helpers', () => {
   it('defaults to the bare aionrs assistant when available', () => {
     expect(pickDefaultAssistantSelectionKey(assistants)).toBe('bare-aionrs');
   });
+
+  it('returns null when no assistants are available', () => {
+    expect(pickDefaultAssistantSelectionKey([])).toBeNull();
+  });
 });
 
 function assistant(overrides: Partial<Assistant> & Pick<Assistant, 'id' | 'source' | 'preset_agent_type'>): Assistant {

@@ -85,13 +85,13 @@ export function resolveAssistantSelectionKey(
   return undefined;
 }
 
-export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string {
+export function pickDefaultAssistantSelectionKey(assistants: Assistant[]): string | null {
   const enabledAssistants = assistants.filter((assistant) => assistant.enabled !== false);
   const preferred =
     enabledAssistants.find((assistant) => assistant.source === 'bare' && assistant.preset_agent_type === 'aionrs') ??
     enabledAssistants.find((assistant) => assistant.preset_agent_type === 'aionrs') ??
     enabledAssistants[0];
-  return preferred?.id ?? 'aionrs';
+  return preferred?.id ?? null;
 }
 
 type UseGuidAssistantSelectionOptions = {
@@ -105,7 +105,7 @@ export const useGuidAssistantSelection = ({
   preselectAssistantId,
   locationKey,
 }: UseGuidAssistantSelectionOptions): GuidAssistantSelectionResult => {
-  const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string>('');
+  const [selectedAssistantIdState, _setSelectedAssistantId] = useState<string | null>(null);
   const [selectedMode, _setSelectedMode] = useState<string>('default');
   const [selectedAcpModel, _setSelectedAcpModel] = useState<string | null>(null);
   const { assistants } = useCustomAgentsLoader();
@@ -180,7 +180,7 @@ export const useGuidAssistantSelection = ({
     [assistants, selectedAssistantIdState]
   );
   const selectedAssistantId = selectedAssistant?.id ?? null;
-  const selectedAssistantBackend = selectedAssistant?.preset_agent_type || 'aionrs';
+  const selectedAssistantBackend = selectedAssistant?.preset_agent_type || '';
   const selectedAssistantModels = selectedAssistant?.models ?? [];
 
   const selectedAssistantAvailable = useMemo(() => {

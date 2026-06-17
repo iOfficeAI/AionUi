@@ -63,6 +63,35 @@ describe('useGuidAssistantSelection', () => {
       ],
     });
   });
+
+  it('does not synthesize a backend slug when no assistants exist', async () => {
+    vi.resetModules();
+    vi.doMock('@/renderer/pages/guid/hooks/useCustomAgentsLoader', () => ({
+      useCustomAgentsLoader: () => ({
+        assistants: [],
+      }),
+    }));
+
+    const { useGuidAssistantSelection: useSelectionWithoutAssistants } =
+      await import('@/renderer/pages/guid/hooks/useGuidAssistantSelection');
+
+    const { result } = renderHook(() =>
+      useSelectionWithoutAssistants({
+        resetAssistant: false,
+      })
+    );
+
+    await waitFor(() => {
+      expect(result.current.selectedAssistantId).toBeNull();
+    });
+
+    expect(result.current.defaultAssistantId).toBeNull();
+    expect(result.current.selectedAssistantBackend).toBe('');
+    expect(result.current.selectedAssistantAvailable).toBe(false);
+
+    vi.doUnmock('@/renderer/pages/guid/hooks/useCustomAgentsLoader');
+    vi.resetModules();
+  });
 });
 
 describe('assistant model helpers', () => {
