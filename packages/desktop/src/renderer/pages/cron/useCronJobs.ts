@@ -507,7 +507,18 @@ export function useCronJobConversations(job_id: string | undefined) {
     void fetchConversations();
   }, [fetchConversations]);
 
-  // Refetch when job executes or a new conversation is created
+  // Refetch when job executes or a known conversation is removed.
+  // `created` events are intentionally ignored: cron-spawned conversations
+  // arrive through `onJobExecuted` (which carries the matching `job_id`),
+  // so subscribing the listChanged broadcast on every Sider row would fan
+  // out N×M requests on each unrelated conversation create.
+  // `deleted` events fan out by checking against the current row set —
+  // we only refetch when the deleted conversation belonged to this cron.
+  const conversationIdsRef = useRef<Set<string>>(new Set());
+  useEffect(() => {
+    conversationIdsRef.current = new Set(conversations.map((c) => c.id));
+  }, [conversations]);
+
   useEffect(() => {
     if (!job_id) return;
     const unsubExecuted = ipcBridge.cron.onJobExecuted.on((data) => {
@@ -516,7 +527,7 @@ export function useCronJobConversations(job_id: string | undefined) {
       }
     });
     const unsubListChanged = ipcBridge.conversation.listChanged.on((data) => {
-      if (data.action === 'created' || data.action === 'deleted') {
+      if (data.action === 'deleted' && conversationIdsRef.current.has(data.conversation_id)) {
         void fetchConversations();
       }
     });

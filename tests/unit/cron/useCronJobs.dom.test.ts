@@ -700,8 +700,8 @@ describe('useCronJobConversations', () => {
     );
   });
 
-  it('refetches on conversation list changed', async () => {
-    let onListChangedHandler: ((data: { action: string }) => void) | null = null;
+  it('ignores created listChanged events (covered by onJobExecuted instead)', async () => {
+    let onListChangedHandler: ((data: { action: string; conversation_id: string }) => void) | null = null;
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([]);
     vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
     vi.mocked(ipcBridge.conversation.listChanged.on).mockImplementation((handler) => {
@@ -713,13 +713,46 @@ describe('useCronJobConversations', () => {
     renderHook(() => useCronJobConversations('job-1'));
 
     await waitFor(() => {
-      /* wait for initial fetch */
+      expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalled();
     });
 
     vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
 
-    onListChangedHandler!({ action: 'created' });
+    onListChangedHandler!({ action: 'created', conversation_id: 'unrelated' });
 
+    // Give React a chance to apply any pending effects before asserting absence.
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(ipcBridge.conversation.listByCronJob.invoke).not.toHaveBeenCalled();
+  });
+
+  it('refetches on deleted listChanged only when the conversation belongs to this cron', async () => {
+    let onListChangedHandler: ((data: { action: string; conversation_id: string }) => void) | null = null;
+    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockResolvedValue([
+      { id: 'conv-owned', name: 'mine', extra: { cron_job_id: 'job-1' } } as never,
+    ]);
+    vi.mocked(ipcBridge.cron.onJobExecuted.on).mockReturnValue(() => {});
+    vi.mocked(ipcBridge.conversation.listChanged.on).mockImplementation((handler) => {
+      onListChangedHandler = handler;
+      return () => {};
+    });
+    vi.mocked(emitter.on).mockReturnValue(undefined);
+
+    renderHook(() => useCronJobConversations('job-1'));
+
+    await waitFor(() => {
+      expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledTimes(1);
+    });
+
+    vi.mocked(ipcBridge.conversation.listByCronJob.invoke).mockClear();
+
+    // Unrelated conversation deletion: must not refetch.
+    onListChangedHandler!({ action: 'deleted', conversation_id: 'conv-other' });
+    await new Promise((resolve) => setTimeout(resolve, 30));
+    expect(ipcBridge.conversation.listByCronJob.invoke).not.toHaveBeenCalled();
+
+    // Owned conversation deletion: must refetch.
+    onListChangedHandler!({ action: 'deleted', conversation_id: 'conv-owned' });
     await waitFor(() =>
       expect(ipcBridge.conversation.listByCronJob.invoke).toHaveBeenCalledWith({ cron_job_id: 'job-1' })
     );
